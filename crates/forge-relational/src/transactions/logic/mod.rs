@@ -327,6 +327,29 @@ impl<'a> RelationalTransaction<'a> {
             lineage_event_ids,
             index_generation_ids: Vec::new(),
         };
+        if let Err(error) = self.runtime.append_durable_commit(
+            crate::durability::data::DurableCommitEnvelope {
+                envelope: canonical_commit_envelope.clone(),
+            },
+        ) {
+            staged.apply_to_runtime(&mut self.runtime.partitions);
+            self.runtime.push_bounded_diagnostic(
+                DiagnosticsScope::History,
+                DiagnosticsArtifactKind::Failure,
+                vec![RelationalDiagnosticsEntry {
+                    code: DiagnosticCode::DurableAppendFailed,
+                    message: error.detail.clone(),
+                    fields: json!({
+                        "commit_id": commit_id.0,
+                        "branch_id": branch_id.0,
+                    }),
+                }],
+            );
+            return Err(TransactionCommitError::Publication(PublicationError {
+                stage: PublicationStage::Visibility,
+                detail: error.detail,
+            }));
+        }
 
         staged.apply_to_runtime(&mut self.runtime.partitions);
         self.runtime
@@ -355,11 +378,6 @@ impl<'a> RelationalTransaction<'a> {
         self.runtime
             .commit_envelopes
             .insert(commit_id, canonical_commit_envelope.clone());
-        self.runtime
-            .durable_log
-            .push(crate::durability::data::DurableCommitEnvelope {
-                envelope: canonical_commit_envelope,
-            });
         self.runtime.compact_durable_log_if_needed();
         self.runtime.latest_publication_bundle = Some(artifacts.bundle.clone());
         self.runtime

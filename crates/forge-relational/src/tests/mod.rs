@@ -9,18 +9,21 @@ use forge_harness::facade::{
     ReplayHarnessAdapter, ReplayRequest, ScenarioPlan,
 };
 use serde_json::json;
+use std::fs;
+use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
 use crate::config::data::{DurableLogPolicy, DurableLogRetentionMode};
 use crate::facade::{
     BranchCreateError, BranchId, CommitOutcome, DiagnosticCode, DiagnosticsArtifactKind,
-    DiagnosticsScope, EntityKindRegistration, EntityReadRecord, InvariantCatalog, InvariantClass,
-    InvariantExecutionPoint, InvariantRule, KindId, PartitionId, PublicationStage,
-    PublicationStatus, QueryWorkPacket, ReadTarget, RelationId, RelationKindRegistration,
-    RelationalHarnessAdapter, RelationalMutation, RelationalRuntime, RelationalRuntimeApi,
-    RelationalRuntimeProfile, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
-    StorageLayoutConfig, TransactionCommitError, TransactionIntent, TransactionOptions,
-    WorkerIntentBatch,
+    DiagnosticsScope, DurableStoreLayout, DurabilityMode, EntityKindRegistration,
+    EntityReadRecord, InvariantCatalog, InvariantClass, InvariantExecutionPoint, InvariantRule,
+    KindId, PartitionId, PublicationStage, PublicationStatus, QueryWorkPacket, ReadTarget,
+    RelationId, RelationKindRegistration, RelationalHarnessAdapter, RelationalMutation,
+    RelationalRuntime, RelationalRuntimeApi, RelationalRuntimeProfile, RelationalSchemaRegistry,
+    SchemaId, SchemaVersionId, StorageLayoutConfig, TransactionCommitError, TransactionIntent,
+    TransactionOptions, WorkerIntentBatch,
 };
 use crate::payloads::data::RecordPayload;
 use crate::publication::data::diff::{PatchCompatibilityClass, PatchDetail};
@@ -1192,6 +1195,28 @@ pub(super) fn runtime_with_test_schema_profile(
         .build()
 }
 
+pub(super) fn persisted_runtime_with_test_schema() -> RelationalRuntime {
+    RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::CertificationCore)
+        .schema_registry(test_schema_registry())
+        .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
+        .durable_store_layout(DurableStoreLayout {
+            root_path: unique_test_store_path("forge-relational-persisted"),
+            segment_commit_capacity: 2,
+        })
+        .build()
+}
+
+pub(super) fn unique_test_store_path(prefix: &str) -> PathBuf {
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let path = std::env::temp_dir().join(format!("{prefix}-{nanos}"));
+    let _ = fs::remove_dir_all(&path);
+    path
+}
+
 pub(super) fn runtime_with_test_schema_and_chunks(
     entity_chunk_size: usize,
     relation_chunk_size: usize,
@@ -1337,6 +1362,28 @@ pub(super) fn create_relation_in_partition(
     );
     let outcome = txn.commit().unwrap();
     changed_relations(&outcome)[0]
+}
+
+pub(super) fn create_relation_outcome(
+    runtime: &mut RelationalRuntime,
+    source: crate::facade::EntityId,
+    target: crate::facade::EntityId,
+    client_key: &str,
+) -> CommitOutcome {
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("relation").push(TransactionIntent::CreateRelation(
+            crate::transactions::data::RelationSpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(2),
+                client_key: InternedString::Raw(client_key.to_string()),
+                source,
+                target,
+                payload: Some(RecordPayload::StructuredJson(json!({"label":"rel"}))),
+            },
+        )),
+    );
+    txn.commit().unwrap()
 }
 
 pub(super) fn changed_entities(outcome: &CommitOutcome) -> Vec<crate::facade::EntityId> {

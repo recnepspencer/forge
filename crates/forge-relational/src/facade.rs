@@ -14,8 +14,12 @@ pub use crate::diagnostics::data::{
     RelationalDiagnosticArtifact, RelationalDiagnosticsEntry, RelationalDiagnosticsProfile,
 };
 pub use crate::durability::data::{
-    DurabilityError, DurabilityMode, DurableCheckpoint, DurableCommitEnvelope,
-    RecoveryFailureClass, RecoveryPlan,
+    CheckpointCoverage, CompactionOutcome, CompactionPlan, CompactionPolicy, DurabilityError,
+    DurabilityMode, DurableCheckpoint, DurableCheckpointId, DurableCheckpointManifest,
+    DurableCommitEnvelope, DurableIntegrityStatus, DurableSegmentId, DurableSegmentManifest,
+    DurableStore, DurableStoreLayout, PartitionCheckpointImage, RecoveryCompatibilityCheck,
+    RecoveryCoverage, RecoveryCursor, RecoveryFailureClass, RecoveryIntegrityReport, RecoveryPlan,
+    SegmentRetentionClass,
 };
 pub use crate::history::data::{
     BranchCreateError, BranchHead, BranchId, CommitId, CommitReference, HistoryRetentionClass,

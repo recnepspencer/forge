@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::config::data::{AdjacencyBackend, AdjacencyPolicy};
 use crate::identity::data::{
@@ -8,6 +8,13 @@ use crate::payloads::data::RecordPayload;
 use crate::replay::data::RelationalReplayRecord;
 use crate::storage::data::RecordLifecycleState;
 use crate::symbols::data::Symbol;
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct LifecycleCounts {
+    pub(crate) live: usize,
+    pub(crate) deleted: usize,
+    pub(crate) reusable: usize,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct DenseSlotBitSet {
@@ -105,6 +112,14 @@ impl DenseSlotBitSet {
             }
         }
         slots
+    }
+
+    pub(crate) fn from_words(words: Vec<u64>) -> Self {
+        Self { words }
+    }
+
+    pub(crate) fn words(&self) -> &[u64] {
+        &self.words
     }
 }
 
@@ -247,6 +262,97 @@ impl EntityArena {
         self.snapshot_pins.reserve(additional);
         self.free_list.reserve(additional);
     }
+
+    pub(crate) fn allocate(
+        &mut self,
+        partition_id: PartitionId,
+        kind_id: KindId,
+        payload: RecordPayload,
+        version_id: VersionId,
+    ) -> (usize, u32, bool) {
+        let payload = payload.canonicalized();
+        if let Some(slot) = self.free_list.pop() {
+            let idx = slot as usize;
+            self.partition_ids[idx] = partition_id;
+            self.lifecycle[idx] = RecordLifecycleState::Live;
+            self.kind_ids[idx] = Some(kind_id);
+            self.payloads[idx] = Some(payload.clone());
+            self.payload_history[idx] = vec![VersionedPayload {
+                effective_at: version_id,
+                retired_at: None,
+                value: payload,
+            }];
+            self.created_at[idx] = version_id;
+            self.retired_at[idx] = None;
+            self.generations[idx] += 1;
+            self.aspect_versions[idx].clear();
+            self.structural_fingerprints[idx] = None;
+            self.lineage_ids[idx] = None;
+            self.diagnostics_enrichment[idx].clear();
+            self.branch_pins[idx] = 0;
+            self.replay_pins[idx] = 0;
+            self.snapshot_pins[idx] = 0;
+            self.live_bitset.set(idx, true);
+            self.reclaimable_bitset.set(idx, false);
+            return (idx, self.generations[idx], true);
+        }
+
+        let slot = self.generations.len();
+        self.partition_ids.push(partition_id);
+        self.generations.push(1);
+        self.lifecycle.push(RecordLifecycleState::Live);
+        self.kind_ids.push(Some(kind_id));
+        self.payloads.push(Some(payload.clone()));
+        self.payload_history.push(vec![VersionedPayload {
+            effective_at: version_id,
+            retired_at: None,
+            value: payload,
+        }]);
+        self.created_at.push(version_id);
+        self.retired_at.push(None);
+        self.aspect_versions.push(BTreeMap::new());
+        self.structural_fingerprints.push(None);
+        self.lineage_ids.push(None);
+        self.diagnostics_enrichment.push(BTreeMap::new());
+        self.branch_pins.push(0);
+        self.replay_pins.push(0);
+        self.snapshot_pins.push(0);
+        self.live_bitset.set(slot, true);
+        self.reclaimable_bitset.set(slot, false);
+        (slot, 1, false)
+    }
+
+    pub(crate) fn apply_payload_update(
+        &mut self,
+        slot: usize,
+        payload: RecordPayload,
+        version_id: VersionId,
+    ) {
+        let payload = payload.canonicalized();
+        self.payloads[slot] = Some(payload.clone());
+        if let Some(current) = self.payload_history[slot].last_mut() {
+            current.retired_at = Some(version_id);
+        }
+        self.payload_history[slot].push(VersionedPayload {
+            effective_at: version_id,
+            retired_at: None,
+            value: payload,
+        });
+    }
+
+    pub(crate) fn retire(&mut self, slot: usize, version_id: VersionId) {
+        self.retired_at[slot] = Some(version_id);
+        self.lifecycle[slot] = RecordLifecycleState::DeletedRetained;
+        self.live_bitset.set(slot, false);
+        self.reclaimable_bitset.set(slot, true);
+        if let Some(current) = self.payload_history[slot].last_mut() {
+            current.retired_at = Some(version_id);
+        }
+    }
+
+    pub(crate) fn lifecycle_counts(&self) -> LifecycleCounts {
+        lifecycle_counts(&self.lifecycle)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -305,6 +411,88 @@ impl RelationArena {
         self.diagnostics_enrichment.reserve(additional);
         self.snapshot_pins.reserve(additional);
         self.free_list.reserve(additional);
+    }
+
+    pub(crate) fn allocate(
+        &mut self,
+        partition_id: PartitionId,
+        kind_id: KindId,
+        payload: Option<RecordPayload>,
+        version_id: VersionId,
+        endpoints: RelationEndpoints,
+    ) -> (usize, u32) {
+        let canonical_payload = payload.map(|value| value.canonicalized());
+        if let Some(slot) = self.free_list.pop() {
+            let idx = slot as usize;
+            self.partition_ids[idx] = partition_id;
+            self.lifecycle[idx] = RecordLifecycleState::Live;
+            self.kind_ids[idx] = Some(kind_id);
+            self.payloads[idx] = canonical_payload.clone();
+            if let Some(payload) = canonical_payload {
+                self.payload_history.insert(
+                    idx,
+                    vec![VersionedPayload {
+                        effective_at: version_id,
+                        retired_at: None,
+                        value: payload,
+                    }],
+                );
+            } else {
+                self.payload_history.remove(&idx);
+            }
+            self.created_at[idx] = version_id;
+            self.retired_at[idx] = None;
+            self.endpoints[idx] = Some(endpoints);
+            self.diagnostics_enrichment[idx].clear();
+            self.snapshot_pins[idx] = 0;
+            self.generations[idx] += 1;
+            self.live_bitset.set(idx, true);
+            self.reclaimable_bitset.set(idx, false);
+            return (idx, self.generations[idx]);
+        }
+
+        let slot = self.generations.len();
+        self.partition_ids.push(partition_id);
+        self.generations.push(1);
+        self.lifecycle.push(RecordLifecycleState::Live);
+        self.kind_ids.push(Some(kind_id));
+        self.payloads.push(canonical_payload.clone());
+        if let Some(payload) = canonical_payload {
+            self.payload_history.insert(
+                slot,
+                vec![VersionedPayload {
+                    effective_at: version_id,
+                    retired_at: None,
+                    value: payload,
+                }],
+            );
+        }
+        self.created_at.push(version_id);
+        self.retired_at.push(None);
+        self.endpoints.push(Some(endpoints));
+        self.diagnostics_enrichment.push(BTreeMap::new());
+        self.snapshot_pins.push(0);
+        self.live_bitset.set(slot, true);
+        self.reclaimable_bitset.set(slot, false);
+        (slot, 1)
+    }
+
+    pub(crate) fn retire(&mut self, slot: usize, version_id: VersionId) {
+        self.retired_at[slot] = Some(version_id);
+        self.lifecycle[slot] = RecordLifecycleState::DeletedRetained;
+        self.live_bitset.set(slot, false);
+        self.reclaimable_bitset.set(slot, true);
+        if let Some(current) = self
+            .payload_history
+            .get_mut(&slot)
+            .and_then(|history| history.last_mut())
+        {
+            current.retired_at = Some(version_id);
+        }
+    }
+
+    pub(crate) fn lifecycle_counts(&self) -> LifecycleCounts {
+        lifecycle_counts(&self.lifecycle)
     }
 }
 
@@ -496,4 +684,20 @@ pub(crate) struct PublicationArtifacts {
     pub(crate) snapshot_state: SnapshotState,
     pub(crate) diagnostics_summary: crate::diagnostics::data::RelationalDiagnosticArtifact,
     pub(crate) bundle: crate::publication::data::PublicationBundle<RelationalReplayRecord>,
+}
+
+fn lifecycle_counts(lifecycle: &[RecordLifecycleState]) -> LifecycleCounts {
+    let mut counts = LifecycleCounts::default();
+    for state in lifecycle {
+        match state {
+            RecordLifecycleState::Live => counts.live += 1,
+            RecordLifecycleState::Reusable => counts.reusable += 1,
+            RecordLifecycleState::DeletedRetained
+            | RecordLifecycleState::PinnedBySnapshot
+            | RecordLifecycleState::PinnedByBranch
+            | RecordLifecycleState::PinnedByReplayRetention
+            | RecordLifecycleState::Reclaimable => counts.deleted += 1,
+        }
+    }
+    counts
 }

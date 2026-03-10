@@ -93,4 +93,15 @@ impl StringInterner {
                 .collect(),
         }
     }
+
+    pub fn restore_snapshot(&mut self, snapshot: SymbolTableSnapshot) {
+        self.by_value.clear();
+        self.by_symbol.clear();
+        self.next_symbol = 1;
+        for (symbol, value) in snapshot.entries {
+            self.by_value.insert(value.clone(), symbol);
+            self.by_symbol.insert(symbol, value);
+            self.next_symbol = self.next_symbol.max(symbol.0 + 1);
+        }
+    }
 }

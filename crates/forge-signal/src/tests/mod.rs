@@ -2,6 +2,8 @@ mod adversarial_diagnostics;
 mod adversarial_edges;
 mod adversarial_keyed;
 mod adversarial_parallel;
+mod adversarial_properties;
+mod adversarial_workflows;
 mod bitset;
 mod comparator_policy;
 mod contracts;

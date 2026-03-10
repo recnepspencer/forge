@@ -225,6 +225,7 @@ impl RelationalRuntime {
             .rev()
             .find(|checkpoint| {
                 checkpoint
+                    .coverage
                     .up_to_commit
                     .as_ref()
                     .map(|commit| chain.contains(&commit.commit_id))
@@ -233,7 +234,7 @@ impl RelationalRuntime {
             .cloned();
         let tail_start = checkpoint
             .as_ref()
-            .and_then(|checkpoint| checkpoint.up_to_commit.as_ref())
+            .and_then(|checkpoint| checkpoint.coverage.up_to_commit.as_ref())
             .map(|commit| commit.commit_id);
         let tail_log = chain
             .iter()
@@ -247,8 +248,25 @@ impl RelationalRuntime {
             .collect();
         RecoveryPlan {
             config: self.config.clone(),
+            store: self.durable_store.clone(),
+            checkpoint_manifest: checkpoint.as_ref().and_then(|_| None),
             checkpoint,
             tail_log,
+            cursor: crate::durability::data::RecoveryCursor {
+                checkpoint_id: None,
+                segment_ids: Vec::new(),
+            },
+            integrity_report: crate::durability::data::RecoveryIntegrityReport {
+                selected_checkpoint_id: None,
+                skipped_corrupt_checkpoints: Vec::new(),
+                verified_segment_ids: Vec::new(),
+                corrupt_segment_id: None,
+            },
+            compatibility: crate::durability::data::RecoveryCompatibilityCheck {
+                schema_match: true,
+                profile_match: true,
+                runtime_name_match: true,
+            },
         }
     }
 

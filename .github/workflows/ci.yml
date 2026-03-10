@@ -72,6 +72,9 @@ jobs:
       - name: Forge-signal phase 5 contract lane
         run: bash scripts/ci/check_signal_phase5_contracts.sh
 
+      - name: Forge-signal adversarial workflow lane
+        run: bash scripts/ci/check_signal_adversarial_workflows.sh
+
       - name: Forge-signal transaction adversarial lane
         run: cargo test -p forge-signal --lib --features parallel transaction_ -- --nocapture
 
@@ -162,6 +165,7 @@ jobs:
         run: |
           cargo test -p forge-signal --lib --features parallel adversarial_parallel -- --ignored --nocapture
           cargo test -p forge-signal --lib --features parallel transaction_stress -- --nocapture
+          bash scripts/ci/check_signal_adversarial_workflows.sh --long
 
       - name: Upload forge-signal performance report
         uses: actions/upload-artifact@v4

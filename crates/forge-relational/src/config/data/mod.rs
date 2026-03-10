@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::diagnostics::data::RelationalDiagnosticsProfile;
-use crate::durability::data::DurabilityMode;
+use crate::durability::data::{DurabilityMode, DurableStoreLayout};
 use crate::history::data::{BranchId, HistoryRetentionClass, VersionGraphPolicy};
 use crate::logic::commit::CommitAuthorityContract;
 use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
@@ -147,6 +147,7 @@ pub struct RelationalConfigOverride {
     pub payload_policy: Option<PayloadPolicy>,
     pub symbol_policy: Option<SymbolPolicy>,
     pub durable_log_policy: Option<DurableLogPolicy>,
+    pub durable_store_layout: Option<DurableStoreLayout>,
     pub adjacency_policy: Option<AdjacencyPolicy>,
     pub cross_context_policy: Option<CrossContextPolicy>,
     pub cascade_delete_policy: Option<CascadeDeletePolicy>,
@@ -164,6 +165,7 @@ impl RelationalConfigOverride {
             && self.payload_policy.is_none()
             && self.symbol_policy.is_none()
             && self.durable_log_policy.is_none()
+            && self.durable_store_layout.is_none()
             && self.adjacency_policy.is_none()
             && self.cross_context_policy.is_none()
             && self.cascade_delete_policy.is_none()
@@ -183,6 +185,7 @@ impl Default for RelationalConfigOverride {
             payload_policy: None,
             symbol_policy: None,
             durable_log_policy: None,
+            durable_store_layout: None,
             adjacency_policy: None,
             cross_context_policy: None,
             cascade_delete_policy: None,
@@ -210,6 +213,7 @@ pub struct RelationalRuntimeConfig {
     pub payload_policy: PayloadPolicy,
     pub symbol_policy: SymbolPolicy,
     pub durable_log_policy: DurableLogPolicy,
+    pub durable_store_layout: Option<DurableStoreLayout>,
     pub adjacency_policy: AdjacencyPolicy,
     pub cross_context_policy: CrossContextPolicy,
     pub cascade_delete_policy: CascadeDeletePolicy,
@@ -277,6 +281,7 @@ impl RelationalRuntimeConfig {
                     max_in_memory_envelopes: 4_096,
                     compact_after_checkpoint: false,
                 },
+                durable_store_layout: None,
                 adjacency_policy: AdjacencyPolicy {
                     backend: AdjacencyBackend::InlineSmallDegreeAdjacency,
                     small_degree_inline_capacity: 4,
@@ -341,6 +346,7 @@ impl RelationalRuntimeConfig {
                     max_in_memory_envelopes: 2_048,
                     compact_after_checkpoint: true,
                 },
+                durable_store_layout: None,
                 adjacency_policy: AdjacencyPolicy {
                     backend: AdjacencyBackend::InlineSmallDegreeAdjacency,
                     small_degree_inline_capacity: 8,
@@ -405,6 +411,7 @@ impl RelationalRuntimeConfig {
                     max_in_memory_envelopes: 1_024,
                     compact_after_checkpoint: true,
                 },
+                durable_store_layout: None,
                 adjacency_policy: AdjacencyPolicy {
                     backend: AdjacencyBackend::CompressedFanoutAdjacency,
                     small_degree_inline_capacity: 8,
@@ -469,6 +476,7 @@ impl RelationalRuntimeConfig {
                     max_in_memory_envelopes: 1_024,
                     compact_after_checkpoint: true,
                 },
+                durable_store_layout: None,
                 adjacency_policy: AdjacencyPolicy {
                     backend: AdjacencyBackend::InlineSmallDegreeAdjacency,
                     small_degree_inline_capacity: 4,
@@ -531,6 +539,10 @@ impl RelationalRuntimeConfig {
             provenance_entry(config_override.durable_log_policy.is_some()),
         );
         provenance_entries.insert(
+            "durable_store_layout".to_string(),
+            provenance_entry(config_override.durable_store_layout.is_some()),
+        );
+        provenance_entries.insert(
             "adjacency_policy".to_string(),
             provenance_entry(config_override.adjacency_policy.is_some()),
         );
@@ -575,6 +587,9 @@ impl RelationalRuntimeConfig {
         }
         if let Some(durable_log_policy) = &config_override.durable_log_policy {
             config.durable_log_policy = durable_log_policy.clone();
+        }
+        if let Some(durable_store_layout) = &config_override.durable_store_layout {
+            config.durable_store_layout = Some(durable_store_layout.clone());
         }
         if let Some(adjacency_policy) = &config_override.adjacency_policy {
             config.adjacency_policy = adjacency_policy.clone();

@@ -16,6 +16,7 @@ case "$PRESET" in
     bash scripts/ci/check_signal_contract_matrix.sh
     bash scripts/ci/check_signal_resource_bounds.sh
     bash scripts/ci/check_signal_phase5_contracts.sh
+    bash scripts/ci/check_signal_adversarial_workflows.sh
     bash scripts/ci/check_signal_semantic_snapshots.sh "$SNAPSHOT_DIR"
     ;;
   game-engine)
@@ -25,6 +26,7 @@ case "$PRESET" in
     bash scripts/ci/check_signal_contract_matrix.sh
     bash scripts/ci/check_signal_resource_bounds.sh
     bash scripts/ci/check_signal_phase5_contracts.sh
+    bash scripts/ci/check_signal_adversarial_workflows.sh
     bash scripts/ci/check_signal_parallel_determinism_cert.sh 2 "$DETERMINISM_DIR"
     ;;
   fintech)
@@ -34,6 +36,7 @@ case "$PRESET" in
     bash scripts/ci/check_signal_contract_matrix.sh
     bash scripts/ci/check_signal_resource_bounds.sh
     bash scripts/ci/check_signal_phase5_contracts.sh
+    bash scripts/ci/check_signal_adversarial_workflows.sh
     bash scripts/ci/check_signal_parallel_determinism_cert.sh 2 "$DETERMINISM_DIR"
     bash scripts/ci/run_signal_perf_lane.sh
     ;;
@@ -44,6 +47,7 @@ case "$PRESET" in
     bash scripts/ci/check_signal_contract_matrix.sh
     bash scripts/ci/check_signal_resource_bounds.sh
     bash scripts/ci/check_signal_phase5_contracts.sh
+    bash scripts/ci/check_signal_adversarial_workflows.sh
     bash scripts/ci/check_signal_parallel_determinism_cert.sh 2 "$DETERMINISM_DIR"
     bash scripts/ci/run_signal_perf_lane.sh
     ;;
@@ -54,6 +58,7 @@ case "$PRESET" in
     bash scripts/ci/check_signal_contract_matrix.sh
     bash scripts/ci/check_signal_resource_bounds.sh
     bash scripts/ci/check_signal_phase5_contracts.sh
+    bash scripts/ci/check_signal_adversarial_workflows.sh
     bash scripts/ci/check_signal_parallel_determinism_cert.sh 2 "$DETERMINISM_DIR"
     bash scripts/ci/run_signal_perf_lane.sh
     ;;

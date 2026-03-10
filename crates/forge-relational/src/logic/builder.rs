@@ -4,7 +4,7 @@ use crate::config::data::{
     StorageLayoutConfig,
 };
 use crate::diagnostics::data::RelationalDiagnosticsProfile;
-use crate::durability::data::DurabilityMode;
+use crate::durability::data::{DurabilityMode, DurableStoreLayout};
 use crate::logic::commit::CommitAuthorityContract;
 use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
 use crate::logic::runtime::{InvariantCatalog, RelationalRuntime, RelationalRuntimeConfig};
@@ -128,6 +128,11 @@ impl RelationalRuntimeBuilder {
 
     pub fn durable_log_policy(mut self, durable_log_policy: DurableLogPolicy) -> Self {
         self.config_override.durable_log_policy = Some(durable_log_policy);
+        self
+    }
+
+    pub fn durable_store_layout(mut self, durable_store_layout: DurableStoreLayout) -> Self {
+        self.config_override.durable_store_layout = Some(durable_store_layout);
         self
     }
 

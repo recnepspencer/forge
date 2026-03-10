@@ -4,7 +4,7 @@ pub(crate) mod merge;
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::durability::data::{DurableCheckpoint, DurableCommitEnvelope};
+use crate::durability::data::{DurableCheckpoint, DurableCommitEnvelope, DurableStore};
 use crate::history::data::{
     BranchCreateError, BranchHead, BranchId, VersionGraphSnapshot, VersionNode,
 };
@@ -68,6 +68,7 @@ pub struct RelationalRuntime {
         BTreeMap<String, BTreeMap<String, BTreeSet<crate::identity::data::EntityId>>>,
     pub(crate) durable_log: Vec<DurableCommitEnvelope>,
     pub(crate) durable_checkpoints: Vec<DurableCheckpoint>,
+    pub(crate) durable_store: Option<DurableStore>,
     pub(crate) next_index_id: u64,
     pub(crate) next_index_generation_id: u64,
     pub(crate) next_lineage_id: u64,
@@ -102,6 +103,11 @@ impl RelationalRuntime {
             entity_unique_field_index: BTreeMap::new(),
             durable_log: Vec::new(),
             durable_checkpoints: Vec::new(),
+            durable_store: config.durable_store_layout.clone().map(|layout| DurableStore {
+                layout,
+                segments: Vec::new(),
+                checkpoints: Vec::new(),
+            }),
             next_index_id: 1,
             next_index_generation_id: 1,
             next_lineage_id: 1,
@@ -255,6 +261,12 @@ impl RelationalRuntime {
         self.latest_publication_bundle
             .as_ref()
             .map(|bundle| &bundle.commit)
+            .or_else(|| {
+                self.commit_envelopes
+                    .values()
+                    .max_by_key(|envelope| envelope.commit.commit_id)
+                    .map(|envelope| &envelope.commit)
+            })
     }
 
     pub fn branch_head(
@@ -939,7 +951,7 @@ impl RelationalRuntime {
     }
 
     #[allow(dead_code)]
-    pub(super) fn rebuild_unique_field_indexes(&mut self) {
+    pub(crate) fn rebuild_unique_field_indexes(&mut self) {
         self.entity_unique_field_index.clear();
         let tracked_fields = self.tracked_unique_entity_fields();
         if tracked_fields.is_empty() {
@@ -1411,7 +1423,7 @@ impl RelationalRuntime {
             DurableLogRetentionMode::RetainAllInMemory => {}
             DurableLogRetentionMode::CompactAfterCheckpoint => {
                 if let Some(checkpoint) = self.durable_checkpoints.last() {
-                    if let Some(commit) = checkpoint.up_to_commit.as_ref() {
+                    if let Some(commit) = checkpoint.coverage.up_to_commit.as_ref() {
                         self.durable_log
                             .retain(|entry| entry.envelope.commit.commit_id > commit.commit_id);
                     }
@@ -1427,6 +1439,12 @@ impl RelationalRuntime {
                 break;
             };
             self.version_visibility_cache.remove(&oldest_version);
+        }
+        if self.config.durability_mode
+            == crate::durability::data::DurabilityMode::PersistedSegmentedLocalFs
+            && policy.compact_after_checkpoint
+        {
+            let _ = self.compact_store();
         }
     }
 }
