@@ -1,7 +1,7 @@
 use crate::facade::{
-    BranchId, CanonicalCommitEnvelope, DurableCommitEnvelope, EntityKindRegistration, KindId,
-    RecoveryFailureClass, RelationalRuntimeApi, RelationalSchemaRegistry, SchemaId,
-    SchemaVersionId,
+    BranchId, CanonicalCommitEnvelope, DerivedIndexBuildRequest, DerivedIndexDefinition,
+    DerivedIndexKind, DurableCommitEnvelope, EntityKindRegistration, KindId, RecoveryFailureClass,
+    RelationalRuntimeApi, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 
 // CONTRACT: durability
@@ -125,4 +125,98 @@ fn durability_contract_recovery_preserves_merge_parent_order() {
         recovered_merge.merge_base_commits,
         vec![main.commit.commit_id]
     );
+}
+
+#[test]
+fn durability_contract_checkpoint_tail_recovery_preserves_post_checkpoint_commits() {
+    let mut runtime = super::runtime_with_test_schema();
+    let main = super::create_entity_outcome(&mut runtime, "main-a");
+    let _checkpoint = runtime.checkpoint().unwrap();
+    let later = super::create_entity_outcome(&mut runtime, "main-b");
+    let plan = runtime.recovery_plan();
+    let mut recovered = super::runtime_with_test_schema();
+    let outcome = recovered.recover(plan).unwrap();
+
+    assert_eq!(outcome.recovered_commits, 2);
+    assert_eq!(outcome.latest_commit, Some(later.commit.clone()));
+    assert_eq!(
+        recovered.branch_head(&BranchId("main".to_string())),
+        Some(&later.commit)
+    );
+    assert_eq!(
+        recovered
+            .canonical_commit_envelope(main.commit.commit_id)
+            .unwrap()
+            .commit
+            .commit_id,
+        main.commit.commit_id
+    );
+}
+
+#[test]
+fn durability_contract_checkpoint_recovers_index_metadata() {
+    let mut runtime = super::runtime_with_test_schema();
+    let commit = super::create_entity_outcome(&mut runtime, "indexed");
+    let index = runtime.register_index(DerivedIndexDefinition {
+        index_id: crate::facade::DerivedIndexId(0),
+        name: "entity-name".to_string(),
+        kind: DerivedIndexKind::EntityPayloadField {
+            field: "name".to_string(),
+        },
+        branch_scoped: false,
+    });
+    let build = runtime.build_indexes_for_commit(DerivedIndexBuildRequest {
+        source_commit_id: commit.commit.commit_id,
+        branch_id: BranchId("main".to_string()),
+        index_ids: vec![index.index_id],
+    });
+    runtime.checkpoint().unwrap();
+    let plan = runtime.recovery_plan();
+    let mut recovered = super::runtime_with_test_schema();
+    recovered.recover(plan).unwrap();
+
+    let generation = recovered
+        .latest_index_generation(index.index_id, &BranchId("main".to_string()))
+        .unwrap();
+    assert_eq!(generation.generation_id, build.generations[0].generation_id);
+    assert_eq!(generation.source_commit_id, commit.commit.commit_id);
+}
+
+#[test]
+fn durability_contract_checkpoint_recovers_lineage_metadata() {
+    let mut runtime = super::runtime_with_test_schema();
+    let first = super::create_entity_outcome(&mut runtime, "first");
+    let second = super::create_entity_outcome(&mut runtime, "second");
+    let first_lineage = runtime
+        .lineage_for_record(super::changed_entities(&first)[0])
+        .unwrap()
+        .lineage_id;
+    let second_lineage = runtime
+        .lineage_for_record(super::changed_entities(&second)[0])
+        .unwrap()
+        .lineage_id;
+    let candidate = runtime.record_correspondence_candidate(
+        BranchId("main".to_string()),
+        vec![first_lineage],
+        vec![second_lineage],
+        "recover-me",
+    );
+    runtime
+        .promote_correspondence(candidate.candidate_id, second.commit.clone())
+        .unwrap();
+    runtime.checkpoint().unwrap();
+    let plan = runtime.recovery_plan();
+    let mut recovered = super::runtime_with_test_schema();
+    recovered.recover(plan).unwrap();
+    let graph = recovered.lineage_graph(&BranchId("main".to_string()));
+
+    assert_eq!(graph.nodes.len(), 2);
+    assert!(graph
+        .events
+        .iter()
+        .any(|event| event.kind == crate::facade::LineageEventKind::Correspond));
+    assert!(graph
+        .correspondence_candidates
+        .iter()
+        .any(|entry| entry.candidate_id == candidate.candidate_id));
 }

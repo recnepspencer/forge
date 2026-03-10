@@ -8,7 +8,7 @@ use crate::data::lineage::{
     LineageEventRecord, LineageGraphSnapshot, LineageNode, LineageResolutionStatus,
 };
 use crate::data::transaction::RecordRef;
-use crate::logic::runtime::state::WorkingState;
+use crate::logic::runtime::state::{PartitionAccess, WorkingState};
 use crate::logic::runtime::RelationalRuntime;
 use serde_json::json;
 
@@ -186,6 +186,7 @@ impl RelationalRuntime {
         &mut self,
         staged: &mut WorkingState,
         commit: &CommitReference,
+        merged_plan: &[crate::data::transaction::TransactionIntent],
         changed_records: &[RecordRef],
     ) -> Vec<u64> {
         let mut event_ids = Vec::new();
@@ -219,6 +220,106 @@ impl RelationalRuntime {
                 targets: vec![lineage_id],
             });
             event_ids.push(event_id);
+        }
+        for intent in merged_plan {
+            match intent {
+                crate::data::transaction::TransactionIntent::DeleteEntity { entity_id } => {
+                    if let Some(lineage_id) = staged
+                        .get_partition(entity_id.partition_id)
+                        .and_then(|partition| {
+                            partition
+                                .entity_arena
+                                .lineage_ids
+                                .get(entity_id.local_slot.0 as usize)
+                                .copied()
+                                .flatten()
+                        })
+                    {
+                        let event_id = self.next_lineage_event_id;
+                        self.next_lineage_event_id += 1;
+                        self.lineage_events.push(LineageEventRecord {
+                            event_id,
+                            commit: commit.clone(),
+                            branch_id: commit.branch_id.clone(),
+                            kind: LineageEventKind::Retire,
+                            sources: vec![lineage_id],
+                            targets: Vec::new(),
+                        });
+                        event_ids.push(event_id);
+                    }
+                }
+                crate::data::transaction::TransactionIntent::ReplaceEntity {
+                    entity_id,
+                    replacement,
+                } => {
+                    let source_lineage_id = staged
+                        .get_partition(entity_id.partition_id)
+                        .and_then(|partition| {
+                            partition
+                                .entity_arena
+                                .lineage_ids
+                                .get(entity_id.local_slot.0 as usize)
+                                .copied()
+                                .flatten()
+                        });
+                    let replacement_entity_id = changed_records.iter().find_map(|record| {
+                        let RecordRef::Entity(candidate) = record else {
+                            return None;
+                        };
+                        let partition = staged.get_partition(candidate.partition_id)?;
+                        let slot = candidate.local_slot.0 as usize;
+                        if partition
+                            .entity_arena
+                            .created_at
+                            .get(slot)
+                            == Some(&commit.version_id)
+                            && candidate.partition_id == replacement.partition_id
+                            && partition
+                                .entity_arena
+                                .kind_ids
+                                .get(slot)
+                                == Some(&Some(replacement.kind_id))
+                            && partition.entity_arena.payloads.get(slot)
+                                == Some(&Some(replacement.payload.clone()))
+                        {
+                            Some(*candidate)
+                        } else {
+                            None
+                        }
+                    });
+                    let Some(source_lineage_id) = source_lineage_id else {
+                        continue;
+                    };
+                    let Some(replacement_entity_id) = replacement_entity_id else {
+                        continue;
+                    };
+                    let replacement_lineage_id = staged
+                        .get_partition(replacement_entity_id.partition_id)
+                        .and_then(|partition| {
+                            partition
+                                .entity_arena
+                                .lineage_ids
+                                .get(replacement_entity_id.local_slot.0 as usize)
+                                .copied()
+                                .flatten()
+                        });
+                    let Some(replacement_lineage_id) = replacement_lineage_id else {
+                        continue;
+                    };
+                    let event_id = self.next_lineage_event_id;
+                    self.next_lineage_event_id += 1;
+                    self.lineage_events.push(LineageEventRecord {
+                        event_id,
+                        commit: commit.clone(),
+                        branch_id: commit.branch_id.clone(),
+                        kind: LineageEventKind::Replace,
+                        sources: vec![source_lineage_id],
+                        targets: vec![replacement_lineage_id],
+                    });
+                    event_ids.push(event_id);
+                }
+                _ => {}
+            }
         }
         event_ids
     }

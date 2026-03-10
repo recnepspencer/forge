@@ -81,3 +81,53 @@ fn lineage_contract_branch_divergence_is_queryable() {
     assert!(!divergence.right_only_event_ids.is_empty());
     assert!(!divergence.shared_lineage_ids.is_empty());
 }
+
+#[test]
+fn lineage_contract_delete_emits_retire_event() {
+    let mut runtime = super::runtime_with_test_schema();
+    let created = super::create_entity_outcome(&mut runtime, "retired");
+    let entity = super::changed_entities(&created)[0];
+    let deleted = super::delete_entity(&mut runtime, entity);
+    let graph = runtime.lineage_graph(&BranchId("main".to_string()));
+
+    assert!(graph
+        .events
+        .iter()
+        .any(|event| event.commit.commit_id == deleted.commit.commit_id
+            && event.kind == crate::facade::LineageEventKind::Retire));
+}
+
+#[test]
+fn lineage_contract_replace_emits_replace_edge() {
+    let mut runtime = super::runtime_with_test_schema();
+    let created = super::create_entity_outcome(&mut runtime, "source");
+    let entity = super::changed_entities(&created)[0];
+
+    let mut txn = runtime.begin_transaction(crate::facade::TransactionOptions::default());
+    txn.push_batch(
+        crate::facade::WorkerIntentBatch::new("replace").push(
+            crate::facade::TransactionIntent::ReplaceEntity {
+                entity_id: entity,
+                replacement: crate::data::transaction::EntitySpec {
+                    partition_id: crate::facade::PartitionId::main(),
+                    kind_id: crate::facade::KindId(1),
+                    client_key: crate::data::symbols::InternedString::Raw(
+                        "replacement".to_string(),
+                    ),
+                    payload: crate::data::payload::RecordPayload::StructuredJson(
+                        serde_json::json!({"name":"replacement"}),
+                    ),
+                },
+            },
+        ),
+    );
+    let outcome = txn.commit().unwrap();
+    let graph = runtime.lineage_graph(&BranchId("main".to_string()));
+
+    assert!(graph.events.iter().any(|event| {
+        event.commit.commit_id == outcome.commit.commit_id
+            && event.kind == crate::facade::LineageEventKind::Replace
+            && event.sources.len() == 1
+            && event.targets.len() == 1
+    }));
+}

@@ -38,6 +38,10 @@ impl DenseSlotBitSet {
             self.words[word] &= !(1 << bit);
         }
     }
+
+    pub(super) fn count_ones(&self) -> usize {
+        self.words.iter().map(|word| word.count_ones() as usize).sum()
+    }
 }
 
 #[derive(Debug, Clone)]

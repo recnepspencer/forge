@@ -7,7 +7,7 @@ use crate::diagnostics::flow::{
     PrecomputeSummary,
 };
 use crate::diagnostics::lineage::{LineageEvent, LineageRecord};
-use crate::diagnostics::policy::DiagnosticsPolicy;
+use crate::diagnostics::policy::{DiagnosticsPolicy, SnapshotRestoreLineageMode};
 use crate::diagnostics::replay::{ReplayEvent, ReplayEventKind};
 use crate::diagnostics::summary::{ExecutionHistorySummary, ExplanationSummary};
 use crate::logic::planner::{
@@ -108,7 +108,7 @@ pub fn record_semantic_execution(
                 Some(task.id.0),
                 Some(task.semantic_segment_id.0),
                 lineage_artifact_id,
-                Some(format!("{:?}", task.outcome)),
+                Some(task_outcome_label(task.outcome).to_owned()),
             ));
     }
 }
@@ -184,36 +184,58 @@ pub fn record_branch_lineage_event(
 }
 
 pub fn record_snapshot_restore_lineage(graph: &mut SignalGraph, snapshot_id: SignalSnapshotId) {
-    let branch_id = graph.current_branch().id;
-    let restored_nodes = graph
-        .live_node_ids()
-        .into_iter()
-        .filter_map(|node| {
-            graph.get_entry(node).ok().and_then(|entry| {
-                entry.get_trace_summary().and_then(|summary| {
-                    summary
-                        .lineage_artifact_id
-                        .map(|artifact_id| (node, artifact_id))
+    match graph.runtime_policy().snapshot_restore_lineage_mode {
+        SnapshotRestoreLineageMode::CompactGlobal => {
+            let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();
+            let branch_id = graph.current_branch().id;
+            graph
+                .diagnostics_state_mut()
+                .record_lineage_record(LineageRecord::new(
+                    sequence,
+                    branch_id,
+                    None,
+                    None,
+                    None,
+                    LineageEvent::Restored,
+                    None,
+                    None,
+                    Some(snapshot_id),
+                    Some(format!("restored snapshot {}", snapshot_id.0)),
+                ));
+        }
+        SnapshotRestoreLineageMode::PerNode => {
+            let branch_id = graph.current_branch().id;
+            let restored_nodes = graph
+                .live_node_ids()
+                .into_iter()
+                .filter_map(|node| {
+                    graph.get_entry(node).ok().and_then(|entry| {
+                        entry.get_trace_summary().and_then(|summary| {
+                            summary
+                                .lineage_artifact_id
+                                .map(|artifact_id| (node, artifact_id))
+                        })
+                    })
                 })
-            })
-        })
-        .collect::<Vec<_>>();
-    for (node, artifact_id) in restored_nodes {
-        let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();
-        graph
-            .diagnostics_state_mut()
-            .record_lineage_record(LineageRecord::new(
-                sequence,
-                branch_id,
-                Some(node),
-                Some(artifact_id),
-                Some(artifact_id),
-                LineageEvent::Restored,
-                None,
-                None,
-                Some(snapshot_id),
-                Some(format!("restored from snapshot {}", snapshot_id.0)),
-            ));
+                .collect::<Vec<_>>();
+            for (node, artifact_id) in restored_nodes {
+                let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();
+                graph
+                    .diagnostics_state_mut()
+                    .record_lineage_record(LineageRecord::new(
+                        sequence,
+                        branch_id,
+                        Some(node),
+                        Some(artifact_id),
+                        Some(artifact_id),
+                        LineageEvent::Restored,
+                        None,
+                        None,
+                        Some(snapshot_id),
+                        Some(format!("restored from snapshot {}", snapshot_id.0)),
+                    ));
+            }
+        }
     }
     record_snapshot_event(
         graph,
@@ -221,6 +243,18 @@ pub fn record_snapshot_restore_lineage(graph: &mut SignalGraph, snapshot_id: Sig
         Some(snapshot_id),
         format!("restored snapshot {}", snapshot_id.0),
     );
+}
+
+fn task_outcome_label(outcome: TaskExecutionOutcome) -> &'static str {
+    match outcome {
+        TaskExecutionOutcome::Recomputed => "Recomputed",
+        TaskExecutionOutcome::ValidatedClean => "ValidatedClean",
+        TaskExecutionOutcome::ConditionDeferred => "ConditionDeferred",
+        TaskExecutionOutcome::ConditionRevertedClean => "ConditionRevertedClean",
+        TaskExecutionOutcome::MemoizedReuse => "MemoizedReuse",
+        TaskExecutionOutcome::PropagationSuppressed => "PropagationSuppressed",
+        TaskExecutionOutcome::Pruned => "Pruned",
+    }
 }
 
 pub fn record_lineage_transition(

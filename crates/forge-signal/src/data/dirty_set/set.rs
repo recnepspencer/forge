@@ -44,12 +44,19 @@ impl<D: Copy + Ord, I: Copy + Ord> BatchedDirtySet<D, I> {
 
     /// Merge a precomputed impact for one domain.
     pub fn merge_domain_impact(&mut self, domain: D, impact: DomainImpact<I>) {
+        if impact.is_empty() {
+            self.by_domain.remove(&domain);
+            return;
+        }
         let current = self.by_domain.entry(domain).or_default();
         if impact.is_global() {
             current.mark_global();
             return;
         }
         current.add_scoped_many(impact.scoped());
+        if current.is_empty() {
+            self.by_domain.remove(&domain);
+        }
     }
 
     /// Whether a domain currently has dirty impact.

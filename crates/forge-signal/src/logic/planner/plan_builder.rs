@@ -1,5 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
-
+use crate::data::bitset::DenseBitset;
 use crate::data::comparator::{
     ComparatorPolicyResolver, DefaultComparatorPolicyResolver, DefaultComparatorResolver,
     VersionComparatorPolicy,
@@ -34,8 +33,11 @@ pub fn build_evaluation_plan_with_policy_resolver(
     request_mode: EvaluationRequestMode,
     resolver: &mut impl ComparatorPolicyResolver,
 ) -> Result<EvaluationPlan, SignalError> {
-    let mut planned = BTreeMap::<NodeId, PlannedNode>::new();
-    let mut visiting = BTreeSet::<NodeId>::new();
+    let arena_capacity = graph.arena_capacity();
+    let mut planned = vec![None::<PlannedNode>; arena_capacity];
+    let mut planned_nodes = Vec::<NodeId>::new();
+    let mut visiting = DenseBitset::new();
+    visiting.ensure_len(arena_capacity);
 
     let mut deduped_targets = targets.to_vec();
     deduped_targets.sort_by_key(|node| node_sort_key(*node));
@@ -52,13 +54,21 @@ pub fn build_evaluation_plan_with_policy_resolver(
             resolver,
             &mut visiting,
             &mut planned,
+            &mut planned_nodes,
         )?;
     }
 
-    let depth_cache = compute_depths(graph, &planned)?;
-    let max_depth = depth_cache.values().copied().max().unwrap_or(0) as usize;
+    let depth_cache = compute_depths(graph, &planned_nodes)?;
+    let max_depth = planned_nodes
+        .iter()
+        .filter_map(|node| depth_cache[node.index() as usize])
+        .max()
+        .unwrap_or(0) as usize;
     let mut stages_by_depth = vec![Vec::<EvaluationTask>::new(); max_depth + 1];
-    for (&node, planned_node) in &planned {
+    planned_nodes.sort_by_key(|node| node_sort_key(*node));
+    for node in planned_nodes {
+        let planned_node = planned[node.index() as usize]
+            .expect("planned node list should only contain planned nodes");
         let reason = classify_reason(graph, node, planned_node.direct_request, request_mode)?;
         let task = EvaluationTask {
             node,
@@ -66,7 +76,9 @@ pub fn build_evaluation_plan_with_policy_resolver(
             direct_request: planned_node.direct_request,
             reason,
         };
-        let depth = *depth_cache.get(&node).unwrap_or(&0) as usize;
+        let depth = depth_cache[node.index() as usize].ok_or_else(|| {
+            SignalError::internal("planned node missing depth cache entry during stage assembly")
+        })? as usize;
         stages_by_depth[depth].push(task);
     }
 
@@ -114,10 +126,11 @@ fn visit_node(
     direct_request: bool,
     reason: TaskReason,
     resolver: &mut impl ComparatorPolicyResolver,
-    visiting: &mut BTreeSet<NodeId>,
-    planned: &mut BTreeMap<NodeId, PlannedNode>,
+    visiting: &mut DenseBitset,
+    planned: &mut [Option<PlannedNode>],
+    planned_nodes: &mut Vec<NodeId>,
 ) -> Result<(), SignalError> {
-    if !visiting.insert(node) {
+    if !visiting.mark(node.index() as usize) {
         return Err(SignalError::invalid_input(format!(
             "cycle detected while building evaluation plan at {node}"
         )));
@@ -127,10 +140,14 @@ fn visit_node(
     let should_include = matches!(state, NodeState::Dirty | NodeState::MaybeStale)
         || (direct_request && matches!(request_mode, EvaluationRequestMode::ForceOnDemand));
     if should_include {
-        planned
-            .entry(node)
-            .and_modify(|existing| existing.direct_request |= direct_request)
-            .or_insert(PlannedNode { direct_request });
+        let slot = &mut planned[node.index() as usize];
+        match slot {
+            Some(existing) => existing.direct_request |= direct_request,
+            None => {
+                *slot = Some(PlannedNode { direct_request });
+                planned_nodes.push(node);
+            }
+        }
     }
 
     match state {
@@ -145,6 +162,7 @@ fn visit_node(
                     resolver,
                     visiting,
                     planned,
+                    planned_nodes,
                 )?;
             }
         }
@@ -165,6 +183,7 @@ fn visit_node(
                     resolver,
                     visiting,
                     planned,
+                    planned_nodes,
                 )?;
             }
         }
@@ -182,6 +201,7 @@ fn visit_node(
                         resolver,
                         visiting,
                         planned,
+                        planned_nodes,
                     )?;
                 }
             }
@@ -189,41 +209,42 @@ fn visit_node(
         NodeState::Clean => {}
     }
 
-    visiting.remove(&node);
+    visiting.clear(node.index() as usize);
     Ok(())
 }
 
 fn compute_depths(
     graph: &SignalGraph,
-    planned: &BTreeMap<NodeId, PlannedNode>,
-) -> Result<BTreeMap<NodeId, u32>, SignalError> {
-    let planned_ids: BTreeSet<NodeId> = planned.keys().copied().collect();
-    let mut indegree = BTreeMap::<NodeId, u32>::new();
-    let mut outgoing = BTreeMap::<NodeId, Vec<NodeId>>::new();
-
-    for &node in &planned_ids {
-        indegree.entry(node).or_insert(0);
-        outgoing.entry(node).or_default();
+    planned_nodes: &[NodeId],
+) -> Result<Vec<Option<u32>>, SignalError> {
+    let mut planned_mask = DenseBitset::new();
+    planned_mask.ensure_len(graph.arena_capacity());
+    for node in planned_nodes {
+        planned_mask.mark(node.index() as usize);
     }
 
-    for &node in &planned_ids {
+    let mut indegree = vec![0_u32; graph.arena_capacity()];
+    let mut outgoing = vec![Vec::<NodeId>::new(); graph.arena_capacity()];
+
+    for &node in planned_nodes {
         for dependency in graph.dependencies_of(node)? {
             let source = dependency.source();
-            if !planned_ids.contains(&source) {
+            if !planned_mask.contains(source.index() as usize) {
                 continue;
             }
-            *indegree.entry(node).or_insert(0) += 1;
-            outgoing.entry(source).or_default().push(node);
+            indegree[node.index() as usize] += 1;
+            outgoing[source.index() as usize].push(node);
         }
     }
 
-    let mut frontier = indegree
+    let mut frontier = planned_nodes
         .iter()
-        .filter_map(|(&node, &degree)| (degree == 0).then_some(node))
+        .copied()
+        .filter(|node| indegree[node.index() as usize] == 0)
         .collect::<Vec<_>>();
     frontier.sort_by_key(|node| node_sort_key(*node));
 
-    let mut depths = BTreeMap::<NodeId, u32>::new();
+    let mut depths = vec![None; graph.arena_capacity()];
     let mut visited = 0usize;
 
     while let Some(node) = frontier.pop() {
@@ -231,18 +252,16 @@ fn compute_depths(
         let depth = graph
             .dependencies_of(node)?
             .iter()
-            .filter(|dependency| planned_ids.contains(&dependency.source()))
-            .filter_map(|dependency| depths.get(&dependency.source()).copied())
+            .filter(|dependency| planned_mask.contains(dependency.source().index() as usize))
+            .filter_map(|dependency| depths[dependency.source().index() as usize])
             .max()
             .map_or(0, |parent| parent + 1);
-        depths.insert(node, depth);
+        depths[node.index() as usize] = Some(depth);
 
-        if let Some(children) = outgoing.get(&node) {
+        {
             let mut newly_ready = Vec::new();
-            for &child in children {
-                let degree = indegree
-                    .get_mut(&child)
-                    .ok_or_else(|| SignalError::internal("planned child missing indegree entry"))?;
+            for &child in &outgoing[node.index() as usize] {
+                let degree = &mut indegree[child.index() as usize];
                 *degree = degree.saturating_sub(1);
                 if *degree == 0 {
                     newly_ready.push(child);
@@ -253,7 +272,7 @@ fn compute_depths(
         }
     }
 
-    if visited != planned_ids.len() {
+    if visited != planned_nodes.len() {
         return Err(SignalError::internal(
             "planner depth computation encountered a cycle in the planned graph",
         ));

@@ -135,6 +135,53 @@ pub(super) fn apply_plan_to_staged_state(
                     ),
                 });
             }
+            TransactionIntent::ReplaceEntity {
+                entity_id,
+                replacement,
+            } => {
+                delete_entity_with_cascade(
+                    staged,
+                    apply_plan.version_id,
+                    entity_id,
+                    patch_surface_policy,
+                    &mut changed_records,
+                    &mut patch_records,
+                );
+                let replacement_id = allocate_entity(
+                    staged,
+                    apply_plan.version_id,
+                    replacement.partition_id,
+                    replacement.kind_id,
+                    replacement.payload.clone(),
+                );
+                staged.mark_entity_slot_touched(
+                    replacement_id.partition_id,
+                    replacement_id.local_slot.0 as usize,
+                );
+                changed_records.push(RecordRef::Entity(replacement_id));
+                diagnostics.push(RelationalDiagnosticsEntry {
+                    code: DiagnosticCode::EntityUpdated,
+                    message: "entity replaced".to_string(),
+                    fields: json!({
+                        "replaced_partition_id": entity_id.partition_id.0,
+                        "replaced_entity_slot": entity_id.local_slot.0,
+                        "replacement_partition_id": replacement_id.partition_id.0,
+                        "replacement_entity_slot": replacement_id.local_slot.0,
+                        "kind_id": replacement.kind_id.0,
+                    }),
+                });
+                patch_records.push(PatchRecord {
+                    kind: PatchRecordKind::EntityCreated,
+                    entity_id: Some(replacement_id),
+                    relation_id: None,
+                    detail: patch_detail_for_entity(
+                        patch_surface_policy,
+                        PatchRecordKind::EntityCreated,
+                        replacement_id,
+                        Some(&replacement.payload),
+                    ),
+                });
+            }
             TransactionIntent::DeleteEntity { entity_id } => {
                 delete_entity_with_cascade(
                     staged,

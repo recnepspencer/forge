@@ -127,23 +127,32 @@ impl RelationalRuntime {
                     }
                     InvariantRule::MaxSnapshotEntities(limit) => {
                         let mut visible_entities = 0;
-                        for partition_id in state.partition_ids() {
-                            let partition = state
-                                .get_partition(partition_id)
-                                .expect("partition for invariant scan");
-                            self.complexity_counters
-                                .borrow_mut()
-                                .invariant_entity_slot_scans +=
-                                partition.entity_arena.generations.len();
-                            visible_entities += (0..partition.entity_arena.generations.len())
-                                .filter(|slot| {
-                                    entity_visible_at_version(
-                                        &partition.entity_arena,
-                                        *slot,
-                                        version_id,
-                                    )
-                                })
-                                .count();
+                        if version_id == self.current_version_id() {
+                            for partition_id in state.partition_ids() {
+                                let partition = state
+                                    .get_partition(partition_id)
+                                    .expect("partition for invariant scan");
+                                visible_entities += partition.entity_arena.live_bitset.count_ones();
+                            }
+                        } else {
+                            for partition_id in state.partition_ids() {
+                                let partition = state
+                                    .get_partition(partition_id)
+                                    .expect("partition for invariant scan");
+                                self.complexity_counters
+                                    .borrow_mut()
+                                    .invariant_entity_slot_scans +=
+                                    partition.entity_arena.generations.len();
+                                visible_entities += (0..partition.entity_arena.generations.len())
+                                    .filter(|slot| {
+                                        entity_visible_at_version(
+                                            &partition.entity_arena,
+                                            *slot,
+                                            version_id,
+                                        )
+                                    })
+                                    .count();
+                            }
                         }
                         if visible_entities > *limit {
                             violations.push(InvariantViolation {
@@ -378,6 +387,20 @@ fn planned_entity_field_values(
             crate::data::transaction::TransactionIntent::UpdateEntity { entity_id, payload } => {
                 saw_entity_change = true;
                 if let Some(value) = payload
+                    .as_json()
+                    .and_then(|value| value.get(field))
+                    .and_then(|value| value.as_str())
+                {
+                    values.push((Some(*entity_id), value.to_string()));
+                }
+            }
+            crate::data::transaction::TransactionIntent::ReplaceEntity {
+                entity_id,
+                replacement,
+            } => {
+                saw_entity_change = true;
+                if let Some(value) = replacement
+                    .payload
                     .as_json()
                     .and_then(|value| value.get(field))
                     .and_then(|value| value.as_str())

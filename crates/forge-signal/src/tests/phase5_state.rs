@@ -63,11 +63,11 @@ fn graph_snapshot_round_trip_restores_versions_and_emits_restore_replay_and_line
         "restore should emit a snapshot-restored replay event"
     );
     assert!(
-        graph.lineage_for_node(source).iter().any(|record| {
+        graph.lineage_records().iter().any(|record| {
             record.event == LineageEvent::Restored
                 && record.snapshot_id == Some(snapshot.meta.snapshot_id)
         }),
-        "restore should emit restored lineage records for materialized artifacts"
+        "restore should emit lineage-visible restore records under the active runtime policy"
     );
     let around_restore = graph.replay_around_snapshot(snapshot.meta.snapshot_id);
     assert!(
@@ -339,7 +339,7 @@ fn repeated_snapshot_restore_loops_do_not_leak_non_restore_lineage_or_branch_sta
         graph.current_lineage_artifact(source),
         Some(baseline_artifact)
     );
-    let lineage = graph.lineage_for_node(source);
+    let lineage = graph.lineage_records();
     assert!(
         lineage
             .iter()
@@ -349,7 +349,9 @@ fn repeated_snapshot_restore_loops_do_not_leak_non_restore_lineage_or_branch_sta
         "restore loops should preserve restore history instead of silently erasing it"
     );
     assert!(
-        lineage.iter().all(|record| record.node == Some(source)),
+        lineage.iter().all(|record| {
+            record.event == LineageEvent::Restored || record.node == Some(source)
+        }),
         "restore churn should not create stray lineage ownership"
     );
     assert!(
@@ -665,6 +667,10 @@ fn branch_switch_and_restore_churn_preserve_branch_local_heads_and_replay_isolat
 #[test]
 fn lineage_chain_preserves_invalidation_and_restore_events_for_the_same_artifact() {
     let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(
+        SignalRuntimePolicy::forensic()
+            .with_snapshot_restore_lineage_mode(SnapshotRestoreLineageMode::PerNode),
+    );
     let source = graph.node().output_identity().build();
 
     evaluate(&mut graph, source, &mut |_id, _graph| {
@@ -984,9 +990,18 @@ fn replay_and_lineage_overlap_stay_equivalent_across_runtime_policy_matrix() {
         )
     }
 
-    let operational = run_workload(SignalRuntimePolicy::operational());
-    let development = run_workload(SignalRuntimePolicy::development());
-    let forensic = run_workload(SignalRuntimePolicy::forensic());
+    let operational = run_workload(
+        SignalRuntimePolicy::operational()
+            .with_snapshot_restore_lineage_mode(SnapshotRestoreLineageMode::CompactGlobal),
+    );
+    let development = run_workload(
+        SignalRuntimePolicy::development()
+            .with_snapshot_restore_lineage_mode(SnapshotRestoreLineageMode::CompactGlobal),
+    );
+    let forensic = run_workload(
+        SignalRuntimePolicy::forensic()
+            .with_snapshot_restore_lineage_mode(SnapshotRestoreLineageMode::CompactGlobal),
+    );
 
     for (left_main, left_feature, left_lineage, right_main, right_feature, right_lineage) in [
         (
@@ -1076,6 +1091,72 @@ fn snapshot_contract_accepts_matching_schema_and_rejects_profile_or_schema_misma
     assert!(
         wrong_schema_err.to_string().contains("schema version"),
         "schema mismatch should fail explicitly"
+    );
+}
+
+#[test]
+fn snapshot_restore_lineage_defaults_to_compact_global_but_forensic_can_emit_per_node() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let source = runtime.graph_mut().node().output_identity().build();
+    let dependent = runtime.graph_mut().node().build();
+    runtime
+        .graph_mut()
+        .add_dependency(dependent, source, ASPECT_A)
+        .unwrap();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(dependent, &|node, view| {
+                let result = if node == source {
+                    view.finish(
+                        NodeEvaluationResult::from_version(version_ab(1, 0))
+                            .with_output_identity("compact-restore"),
+                    )
+                } else {
+                    let version = view.read_aspect_version(source, ASPECT_A)?;
+                    view.finish(NodeEvaluationResult::from_version(version))
+                };
+                Ok(result)
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let snapshot = runtime.capture_snapshot();
+    runtime.restore_snapshot(&snapshot).unwrap();
+    let compact_restores = runtime
+        .graph()
+        .lineage_records()
+        .iter()
+        .filter(|record| {
+            record.event == LineageEvent::Restored
+                && record.snapshot_id == Some(snapshot.meta.snapshot_id)
+        })
+        .count();
+    assert_eq!(
+        compact_restores, 1,
+        "operational/development restore lineage should default to one compact global restore event"
+    );
+
+    runtime.set_runtime_policy(
+        SignalRuntimePolicy::forensic()
+            .with_snapshot_restore_lineage_mode(SnapshotRestoreLineageMode::PerNode),
+    );
+    let forensic_snapshot = runtime.capture_snapshot();
+    runtime.restore_snapshot(&forensic_snapshot).unwrap();
+    let forensic_restores = runtime
+        .graph()
+        .lineage_records()
+        .iter()
+        .filter(|record| {
+            record.event == LineageEvent::Restored
+                && record.snapshot_id == Some(forensic_snapshot.meta.snapshot_id)
+        })
+        .count();
+    assert!(
+        forensic_restores >= 2,
+        "forensic per-node restore lineage should emit restored entries for materialized artifacts"
     );
 }
 

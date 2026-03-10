@@ -240,6 +240,25 @@ fn complexity_contract_invariant_materialization_is_declared_and_measured() {
 }
 
 #[test]
+fn complexity_budget_snapshot_entity_limit_uses_live_bitsets_for_current_version() {
+    let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
+        snapshot_audit: vec![InvariantRule::MaxSnapshotEntities(1)],
+        ..InvariantCatalog::default()
+    });
+    let _ = create_entity(&mut runtime, "visible");
+
+    runtime.reset_complexity_counters();
+    let results = runtime.run_invariants(InvariantExecutionPoint::SnapshotPublication, false);
+    let counters = runtime.complexity_counters();
+
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].class, InvariantClass::SnapshotAudit);
+    assert!(results[0].violations.is_empty());
+    assert_eq!(counters.invariant_entity_slot_scans, 0);
+    assert_eq!(counters.invariant_entity_records_materialized, 0);
+}
+
+#[test]
 fn complexity_budget_live_history_trimming_is_touched_record_bounded() {
     let mut runtime = runtime_with_test_schema();
     let create_a = create_entity_outcome(&mut runtime, "a");

@@ -129,9 +129,12 @@ pub const COMPLEXITY_CONTRACTS: &[ComplexityContract] = &[
     ComplexityContract {
         id: "runtime.invariant.materialization",
         function_path: "logic/runtime/invariants.rs::run_invariants_for_state",
-        declared_time_complexity: "O(entity_slots + relation_slots) today, moving toward changed-set/index-assisted checks",
-        budget_summary: "Invariant materialization cost must be measured explicitly so full-state checks cannot hide.",
+        declared_time_complexity: "Mixed: O(1 partition live-bitset counts) for current-version snapshot limits, O(touched_entities + lookup_hits) for unique-field checks, remaining rules still trend toward O(entity_slots + relation_slots)",
+        budget_summary: "Invariant materialization cost must be measured explicitly so full-state checks cannot hide, and optimized rules must prove their fast paths directly.",
         status: ComplexityStatus::Debt,
-        proof_tests: &["tests::complexity_contracts::complexity_contract_invariant_materialization_is_declared_and_measured"],
+        proof_tests: &[
+            "tests::complexity_contracts::complexity_contract_invariant_materialization_is_declared_and_measured",
+            "tests::complexity_contracts::complexity_budget_snapshot_entity_limit_uses_live_bitsets_for_current_version",
+        ],
     },
 ];

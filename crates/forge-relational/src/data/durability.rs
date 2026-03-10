@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::data::history::{BranchHead, CommitReference};
+use crate::data::index::{DerivedIndexDefinition, DerivedIndexGeneration};
+use crate::data::lineage::{CorrespondenceCandidate, LineageEventRecord, LineageNode};
 use crate::data::replay::CanonicalCommitEnvelope;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -18,8 +20,11 @@ pub struct DurableCheckpoint {
     pub up_to_commit: Option<CommitReference>,
     pub branches: Vec<BranchHead>,
     pub envelopes: Vec<CanonicalCommitEnvelope>,
-    pub lineage_event_ids: Vec<u64>,
-    pub index_generation_ids: Vec<u64>,
+    pub lineage_nodes: Vec<LineageNode>,
+    pub lineage_events: Vec<LineageEventRecord>,
+    pub correspondence_candidates: Vec<CorrespondenceCandidate>,
+    pub index_definitions: Vec<DerivedIndexDefinition>,
+    pub index_generations: Vec<DerivedIndexGeneration>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -82,7 +82,7 @@ pub(super) fn apply_full_parallel_stage(
             &mut semantic_batch,
             stage_record,
         )?;
-        apply_group_with_rollback(graph, &materialized.updates, false)?;
+        apply_group_with_rollback(graph, materialized.updates.clone(), false)?;
         if stage_record.apply_mode.is_none() {
             stage_record.apply_mode = Some(ParallelApplyMode::SerialFallback);
         }
@@ -144,7 +144,7 @@ fn flush_concurrent_groups(
         .iter()
         .flat_map(|group| group.updates.iter().cloned())
         .collect::<Vec<_>>();
-    apply_group_with_rollback(graph, &merged_updates, true)?;
+    apply_group_with_rollback(graph, merged_updates, true)?;
     stage_record.apply_mode = Some(ParallelApplyMode::GroupedConcurrentApply);
     stage_record.apply_group_count += groups.len() as u32;
     stage_record.concurrent_apply_task_count += groups
@@ -162,7 +162,7 @@ fn flush_concurrent_groups(
 
 fn apply_group_with_rollback(
     graph: &mut SignalGraph,
-    updates: &[(crate::data::handle::NodeId, NodeEntry)],
+    updates: Vec<(crate::data::handle::NodeId, NodeEntry)>,
     parallel: bool,
 ) -> Result<(), SignalError> {
     let originals = updates
@@ -173,7 +173,7 @@ fn apply_group_with_rollback(
     let apply_result = if parallel {
         graph.replace_entries_parallel(updates)
     } else {
-        for (node, entry) in updates {
+        for (node, entry) in &updates {
             graph.replace_entry(*node, entry.clone())?;
         }
         Ok(())

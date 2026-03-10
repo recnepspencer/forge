@@ -350,24 +350,31 @@ fn detect_cycle_from(
     scratch: &mut TraversalScratch,
     node: NodeId,
 ) -> Result<(), SignalError> {
-    let index = node.index() as usize;
-    if scratch.cycle_finished.is_marked(index) {
-        return Ok(());
-    }
-    if scratch.cycle_visiting.is_marked(index) {
-        return Err(circular_reference_error(node));
-    }
+    let mut stack = vec![(node, false)];
+    while let Some((current, expanded)) = stack.pop() {
+        let index = current.index() as usize;
+        if expanded {
+            scratch.cycle_visiting.clear_mark(index);
+            scratch.cycle_finished.mark(index);
+            continue;
+        }
+        if scratch.cycle_finished.is_marked(index) {
+            continue;
+        }
+        if scratch.cycle_visiting.is_marked(index) {
+            return Err(circular_reference_error(current));
+        }
 
-    scratch.cycle_visiting.mark(index);
-    if let Ok(subscribers) = graph.subscribers_of(node) {
-        for &subscriber in subscribers {
-            if graph.is_alive(subscriber) {
-                detect_cycle_from(graph, scratch, subscriber)?;
+        scratch.cycle_visiting.mark(index);
+        stack.push((current, true));
+        if let Ok(subscribers) = graph.subscribers_of(current) {
+            for &subscriber in subscribers.iter().rev() {
+                if graph.is_alive(subscriber) {
+                    stack.push((subscriber, false));
+                }
             }
         }
     }
-    scratch.cycle_visiting.clear_mark(index);
-    scratch.cycle_finished.mark(index);
     Ok(())
 }
 
@@ -432,7 +439,9 @@ fn propagate_maybe_stale(
                 continue;
             };
             for &subscriber in subscribers {
-                if graph.is_alive(subscriber) {
+                if graph.is_alive(subscriber)
+                    && !scratch.visited.is_marked(subscriber.index() as usize)
+                {
                     frontier.mark_next(subscriber.index() as usize);
                 }
             }
@@ -450,12 +459,15 @@ fn merge_dirty_partition_scopes(
     was_clean: bool,
 ) {
     if changed_scopes.is_empty() {
-        // Whole-aspect invalidation supersedes scoped dirtiness.
-        entry.clear_dirty_partition_scopes();
+        // Whole-aspect invalidation supersedes scoped dirtiness for this aspect only.
+        entry.clear_dirty_partition_scopes_for(changed_aspect);
         return;
     }
     if !was_clean
-        && entry.get_dirty_partition_scopes().is_empty()
+        && entry
+            .get_dirty_partition_scopes_for(changed_aspect)
+            .next()
+            .is_none()
         && entry
             .get_dirty_aspects()
             .contains(AspectMask::from_aspect(changed_aspect))
@@ -464,7 +476,7 @@ fn merge_dirty_partition_scopes(
         return;
     }
     for scope in changed_scopes {
-        entry.add_dirty_partition_scope(scope.clone());
+        entry.add_dirty_partition_scope(changed_aspect, scope.clone());
     }
 }
 

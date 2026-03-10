@@ -48,6 +48,7 @@ pub use lineage::{LineageArtifactId, LineageEvent, LineageRecord};
 pub use policy::{
     ArtifactMaterializationMode, ArtifactRetentionPolicy, DiagnosticsPolicy,
     ParallelAdmissionPolicy, ReplayDetailPolicy, SemanticRetentionPolicy, SignalRuntimePolicy,
+    SnapshotRestoreLineageMode,
 };
 pub use profile::DiagnosticsProfile;
 pub use replay::{ReplayCursor, ReplayEvent, ReplayEventKind, ReplayFrame, ReplaySlice};

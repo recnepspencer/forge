@@ -41,7 +41,8 @@ pub struct NodeEntry {
     state: NodeState,
     dirty_aspects: AspectMask,
     #[serde(default)]
-    dirty_partition_scopes: SmallVec<[PartitionSubscription; HOT_VEC_INLINE_CAPACITY]>,
+    dirty_partition_scopes:
+        SmallVec<[(crate::data::aspect::Aspect, PartitionSubscription); HOT_VEC_INLINE_CAPACITY]>,
     aspect_version: AspectVersion,
     /// Handle to graph-owned dependency edge storage.
     dependencies_id: DependencySetId,
@@ -102,25 +103,48 @@ impl NodeEntry {
         self.dirty_aspects = dirty_aspects;
     }
 
-    pub fn get_dirty_partition_scopes(&self) -> &[PartitionSubscription] {
-        &self.dirty_partition_scopes
+    pub fn get_dirty_partition_scopes(
+        &self,
+    ) -> SmallVec<[PartitionSubscription; HOT_VEC_INLINE_CAPACITY]> {
+        self.dirty_partition_scopes().cloned().collect()
     }
 
-    pub fn set_dirty_partition_scopes(
-        &mut self,
-        scopes: impl IntoIterator<Item = PartitionSubscription>,
-    ) {
-        self.dirty_partition_scopes.clear();
-        self.dirty_partition_scopes.extend(scopes);
+    pub fn dirty_partition_scopes(&self) -> impl Iterator<Item = &PartitionSubscription> {
+        self.dirty_partition_scopes.iter().map(|(_, scope)| scope)
     }
 
     pub fn clear_dirty_partition_scopes(&mut self) {
         self.dirty_partition_scopes.clear();
     }
 
-    pub fn add_dirty_partition_scope(&mut self, scope: PartitionSubscription) {
-        if !self.dirty_partition_scopes.contains(&scope) {
-            self.dirty_partition_scopes.push(scope);
+    pub fn get_dirty_partition_scopes_for(
+        &self,
+        aspect: crate::data::aspect::Aspect,
+    ) -> impl Iterator<Item = &PartitionSubscription> {
+        self.dirty_partition_scopes
+            .iter()
+            .filter(move |(candidate_aspect, _)| *candidate_aspect == aspect)
+            .map(|(_, scope)| scope)
+    }
+
+    pub fn clear_dirty_partition_scopes_for(&mut self, aspect: crate::data::aspect::Aspect) {
+        self.dirty_partition_scopes
+            .retain(|(candidate_aspect, _)| *candidate_aspect != aspect);
+    }
+
+    pub fn add_dirty_partition_scope(
+        &mut self,
+        aspect: crate::data::aspect::Aspect,
+        scope: PartitionSubscription,
+    ) {
+        if !self
+            .dirty_partition_scopes
+            .iter()
+            .any(|(candidate_aspect, candidate_scope)| {
+                *candidate_aspect == aspect && *candidate_scope == scope
+            })
+        {
+            self.dirty_partition_scopes.push((aspect, scope));
         }
     }
 

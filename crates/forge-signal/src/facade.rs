@@ -59,6 +59,7 @@ pub use crate::diagnostics::{
     PlanInspector, PlanningSummary, PrecomputeSummary, ReplayCursor, ReplayDetailPolicy,
     ReplayDiff, ReplayEventKind, ReplayFrame, ReplaySlice, ReportInspector, RollbackDiagnostic,
     RollbackSummary, RuntimeDiagnostics, SemanticRetentionPolicy, SignalRuntimePolicy,
+    SnapshotRestoreLineageMode,
 };
 
 // Re-export Logic constructs

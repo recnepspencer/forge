@@ -83,6 +83,7 @@ impl<'a> RelationalTransaction<'a> {
                     RecordRef::Entity(EntityId::new(PartitionId::main(), u64::MAX, 0))
                 }
                 TransactionIntent::UpdateEntity { entity_id, .. } => RecordRef::Entity(entity_id),
+                TransactionIntent::ReplaceEntity { entity_id, .. } => RecordRef::Entity(entity_id),
                 TransactionIntent::DeleteEntity { entity_id } => RecordRef::Entity(entity_id),
                 TransactionIntent::CreateRelation(_)
                 | TransactionIntent::BulkCreateRelations { .. } => {
@@ -301,6 +302,7 @@ impl<'a> RelationalTransaction<'a> {
         let lineage_event_ids = self.runtime.ensure_lineage_for_commit(
             &mut staged,
             &commit_reference,
+            &merged_plan.merged_intents,
             &changed_records,
         );
         let canonical_commit_envelope = CanonicalCommitEnvelope {
@@ -517,6 +519,7 @@ impl<'a> RelationalTransaction<'a> {
                     }
                 }
                 TransactionIntent::UpdateEntity { .. }
+                | TransactionIntent::ReplaceEntity { .. }
                 | TransactionIntent::DeleteEntity { .. }
                 | TransactionIntent::DeleteRelation { .. } => {}
             }
@@ -562,6 +565,7 @@ impl<'a> RelationalTransaction<'a> {
                     }
                 }
                 TransactionIntent::UpdateEntity { .. }
+                | TransactionIntent::ReplaceEntity { .. }
                 | TransactionIntent::DeleteEntity { .. }
                 | TransactionIntent::DeleteRelation { .. } => {}
             }
@@ -581,8 +585,12 @@ fn touched_partitions_for_plan(plan: &MergedCommitPlan) -> usize {
                 touched.insert(*partition_id);
             }
             TransactionIntent::UpdateEntity { entity_id, .. }
-            | TransactionIntent::DeleteEntity { entity_id } => {
+            | TransactionIntent::DeleteEntity { entity_id }
+            | TransactionIntent::ReplaceEntity { entity_id, .. } => {
                 touched.insert(entity_id.partition_id);
+                if let TransactionIntent::ReplaceEntity { replacement, .. } = intent {
+                    touched.insert(replacement.partition_id);
+                }
             }
             TransactionIntent::CreateRelation(spec) => {
                 touched.insert(spec.partition_id);

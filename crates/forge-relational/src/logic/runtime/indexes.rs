@@ -106,13 +106,17 @@ impl RelationalRuntime {
         index_id: DerivedIndexId,
         branch_id: &BranchId,
     ) -> Option<&DerivedIndexGeneration> {
+        let definition = self.index_definitions.get(&index_id)?;
         self.index_generations
             .get(&index_id)
             .and_then(|generations| {
                 generations
                     .iter()
                     .rev()
-                    .find(|generation| generation.compatibility.branch_id == *branch_id)
+                    .find(|generation| {
+                        !definition.branch_scoped
+                            || generation.compatibility.branch_id == *branch_id
+                    })
             })
     }
 
@@ -144,17 +148,11 @@ impl RelationalRuntime {
     ) -> Option<IndexedReadOutcome> {
         let result = self.execute_read_packet(handle, packet)?;
         let branch_id = self
-            .latest_commit()
-            .map(|commit| commit.branch_id.clone())
+            .branch_id_for_version(handle.version_id)
             .unwrap_or_else(|| self.config.main_branch.clone());
         let used_index_generation = self
-            .index_generations
-            .values()
-            .flat_map(|generations| generations.iter())
-            .filter(|generation| {
-                generation.compatibility.branch_id == branch_id
-                    && generation.compatibility.version_id <= handle.version_id
-            })
+            .compatible_index_generations_for_version(&branch_id, handle.version_id)
+            .into_iter()
             .max_by_key(|generation| generation.generation_id)
             .map(|generation| generation.generation_id);
         Some(IndexedReadOutcome {
@@ -218,6 +216,37 @@ impl RelationalRuntime {
                 .index_generation_ids
                 .extend(ids.iter().copied());
         }
+    }
+
+    fn branch_id_for_version(
+        &self,
+        version_id: crate::data::identity::VersionId,
+    ) -> Option<BranchId> {
+        self.commit_graph
+            .values()
+            .find(|node| node.commit.version_id == version_id)
+            .map(|node| node.commit.branch_id.clone())
+    }
+
+    fn compatible_index_generations_for_version(
+        &self,
+        branch_id: &BranchId,
+        version_id: crate::data::identity::VersionId,
+    ) -> Vec<&DerivedIndexGeneration> {
+        self.index_generations
+            .values()
+            .flat_map(|generations| generations.iter())
+            .filter(|generation| {
+                generation.compatibility.version_id <= version_id
+                    && self
+                        .index_definitions
+                        .get(&generation.index_id)
+                        .is_some_and(|definition| {
+                            !definition.branch_scoped
+                                || generation.compatibility.branch_id == *branch_id
+                        })
+            })
+            .collect()
     }
 }
 

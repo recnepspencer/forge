@@ -1,7 +1,7 @@
-use std::collections::BTreeSet;
 use std::time::Instant;
 
 use crate::data::aspect::Aspect;
+use crate::data::bitset::DenseBitset;
 use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::dirty_set::DomainImpact;
 use crate::data::effect_mapping::EffectMapping;
@@ -110,9 +110,10 @@ where
         source: NodeId,
     ) -> Result<(), SignalError> {
         let mut stack = vec![source];
-        let mut seen: BTreeSet<NodeId> = BTreeSet::new();
+        let mut seen = DenseBitset::new();
+        seen.ensure_len(self.graph.arena_capacity());
         while let Some(node) = stack.pop() {
-            if !seen.insert(node) {
+            if !seen.mark(node.index() as usize) {
                 continue;
             }
             if !self.graph.is_alive(node) {
@@ -128,9 +129,10 @@ where
 
     pub(super) fn stage_evaluate_candidates(&mut self, node: NodeId) -> Result<(), SignalError> {
         let mut stack = vec![node];
-        let mut seen: BTreeSet<NodeId> = BTreeSet::new();
+        let mut seen = DenseBitset::new();
+        seen.ensure_len(self.graph.arena_capacity());
         while let Some(current) = stack.pop() {
-            if !seen.insert(current) {
+            if !seen.mark(current.index() as usize) {
                 continue;
             }
             if !self.graph.is_alive(current) {

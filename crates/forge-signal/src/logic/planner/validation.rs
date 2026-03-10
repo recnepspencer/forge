@@ -31,16 +31,8 @@ pub(crate) fn capture_current_dependencies(
 pub(crate) fn sorted_dependencies(
     graph: &SignalGraph,
     node: NodeId,
-) -> Result<Vec<DependencyEdge>, SignalError> {
-    let mut dependencies = graph.dependencies_of(node)?.to_vec();
-    dependencies.sort_by_key(|dependency| {
-        (
-            dependency.source().index(),
-            dependency.source().generation(),
-            dependency.aspect().index(),
-        )
-    });
-    Ok(dependencies)
+) -> Result<&[DependencyEdge], SignalError> {
+    graph.dependencies_of(node)
 }
 
 pub(crate) fn preview_maybe_stale(

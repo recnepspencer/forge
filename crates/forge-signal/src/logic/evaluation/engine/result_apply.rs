@@ -72,18 +72,7 @@ pub(super) fn apply_evaluation_result_with_policy(
     );
     let meaningful_input_changes = count_meaningful_input_changes(graph, node)?;
     let snapshot = build_dep_snapshot(graph, node)?;
-    let mut changed_regions = result.changed_regions.clone();
-    changed_regions.sort_by(|left, right| {
-        (
-            left.partition.0.as_str(),
-            left.detail.as_deref().unwrap_or_default(),
-        )
-            .cmp(&(
-                right.partition.0.as_str(),
-                right.detail.as_deref().unwrap_or_default(),
-            ))
-    });
-    changed_regions.dedup();
+    let changed_regions = canonical_changed_regions(&result.changed_regions);
     let mut labels = result.labels.clone();
     labels.sort();
     labels.dedup();
@@ -167,31 +156,33 @@ fn build_dep_snapshot(
 }
 
 fn count_meaningful_input_changes(graph: &SignalGraph, node: NodeId) -> Result<u32, SignalError> {
+    let dependencies = graph.dependencies_of(node)?;
+    let snapshot_entries = graph.get_dep_snapshot(node)?.entries();
+    let mut dep_index = 0usize;
+    let mut snapshot_index = 0usize;
     let mut changes = 0_u32;
-    for dependency in graph.dependencies_of(node)? {
-        let cached = graph
-            .get_dep_snapshot(node)?
-            .entries()
-            .iter()
-            .find(|(source, aspect, _, scope)| {
-                *source == dependency.source()
-                    && *aspect == dependency.aspect()
-                    && *scope == dependency.scope_ref().cloned()
-            })
-            .map(|(_, _, version, _)| *version);
-        let Some(cached) = cached else {
-            continue;
-        };
-        if !graph.is_alive(dependency.source()) {
-            changes += 1;
-            continue;
-        }
-        let current = graph
-            .get_entry(dependency.source())?
-            .get_aspect_version()
-            .get(dependency.aspect());
-        if current != cached {
-            changes += 1;
+    while dep_index < dependencies.len() && snapshot_index < snapshot_entries.len() {
+        let dependency = &dependencies[dep_index];
+        let snapshot = &snapshot_entries[snapshot_index];
+        match compare_dependency_to_snapshot(dependency, snapshot) {
+            std::cmp::Ordering::Less => dep_index += 1,
+            std::cmp::Ordering::Greater => snapshot_index += 1,
+            std::cmp::Ordering::Equal => {
+                let cached = snapshot.2;
+                if !graph.is_alive(dependency.source()) {
+                    changes += 1;
+                } else {
+                    let current = graph
+                        .get_entry(dependency.source())?
+                        .get_aspect_version()
+                        .get(dependency.aspect());
+                    if current != cached {
+                        changes += 1;
+                    }
+                }
+                dep_index += 1;
+                snapshot_index += 1;
+            }
         }
     }
     Ok(changes)
@@ -217,6 +208,46 @@ fn count_changed_partitions(changed_regions: &[crate::data::output::ChangedRegio
         partitions.insert(region.partition.clone());
     }
     partitions.len() as u32
+}
+
+fn canonical_changed_regions(
+    changed_regions: &[crate::data::output::ChangedRegion],
+) -> Vec<crate::data::output::ChangedRegion> {
+    if changed_regions.len() <= 1
+        || changed_regions
+            .windows(2)
+            .all(|window| window[0] < window[1])
+    {
+        return changed_regions.to_vec();
+    }
+
+    let mut canonical = changed_regions.to_vec();
+    canonical.sort();
+    canonical.dedup();
+    canonical
+}
+
+fn compare_dependency_to_snapshot(
+    dependency: &crate::data::dependency::DependencyEdge,
+    snapshot: &(
+        NodeId,
+        crate::data::aspect::Aspect,
+        u64,
+        Option<crate::data::output::PartitionSubscription>,
+    ),
+) -> std::cmp::Ordering {
+    (
+        dependency.source().index(),
+        dependency.source().generation(),
+        dependency.aspect().index(),
+        dependency.scope_ref(),
+    )
+        .cmp(&(
+            snapshot.0.index(),
+            snapshot.0.generation(),
+            snapshot.1.index(),
+            snapshot.3.as_ref(),
+        ))
 }
 
 fn trace_identity_hash(identity: &crate::data::output::OutputIdentity) -> StableHashValue {

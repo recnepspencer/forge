@@ -142,6 +142,10 @@ pub enum TransactionIntent {
         entity_id: EntityId,
         payload: RecordPayload,
     },
+    ReplaceEntity {
+        entity_id: EntityId,
+        replacement: EntitySpec,
+    },
     DeleteEntity {
         entity_id: EntityId,
     },

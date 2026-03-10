@@ -1,0 +1,92 @@
+use crate::data::config::CompiledLanePolicy;
+use crate::data::diagnostics::{
+    DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
+};
+use crate::data::history::CommitId;
+use crate::data::identity::PartitionId;
+use crate::logic::runtime::{
+    CompiledArtifactCompatibility, CompiledArtifactError, CompiledExecutionArtifact,
+    RelationalRuntime, TopologyFreezeMode,
+};
+use serde_json::json;
+
+impl RelationalRuntime {
+    pub fn compile_execution_artifact(
+        &mut self,
+        commit_id: CommitId,
+        mut partition_ids: Vec<PartitionId>,
+    ) -> Result<CompiledExecutionArtifact, CompiledArtifactError> {
+        if self.config.compiled_lane_policy != CompiledLanePolicy::DerivedCompiledLane {
+            return Err(CompiledArtifactError {
+                compatibility: CompiledArtifactCompatibility::CompiledLaneDisabled,
+                detail: "compiled execution lane is disabled for this profile".to_string(),
+            });
+        }
+        let Some(envelope) = self.commit_envelopes.get(&commit_id).cloned() else {
+            return Err(CompiledArtifactError {
+                compatibility: CompiledArtifactCompatibility::MissingSourceCommit,
+                detail: format!("missing source commit {}", commit_id.0),
+            });
+        };
+        partition_ids.sort();
+        partition_ids.dedup();
+        let compiled_record_count = envelope.patch.records.len();
+        let artifact = CompiledExecutionArtifact {
+            artifact_id: self.next_compiled_artifact_id,
+            source_commit_id: commit_id,
+            source_version_id: envelope.commit.version_id,
+            source_branch_id: envelope.branch_context.clone(),
+            partition_ids,
+            topology_freeze_mode: TopologyFreezeMode::FreezeAtCommit,
+            compiled_record_count,
+        };
+        self.next_compiled_artifact_id += 1;
+        self.compiled_artifacts
+            .insert(artifact.artifact_id, artifact.clone());
+        self.push_bounded_diagnostic(
+            DiagnosticsScope::History,
+            DiagnosticsArtifactKind::MinimalSummary,
+            vec![RelationalDiagnosticsEntry {
+                code: DiagnosticCode::CommitPublished,
+                message: "compiled execution artifact created".to_string(),
+                fields: json!({
+                    "artifact_id": artifact.artifact_id,
+                    "source_commit_id": artifact.source_commit_id.0,
+                    "source_version_id": artifact.source_version_id.0,
+                    "partition_ids": artifact.partition_ids.iter().map(|id| id.0).collect::<Vec<_>>(),
+                    "compiled_record_count": artifact.compiled_record_count,
+                }),
+            }],
+        );
+        Ok(artifact)
+    }
+
+    pub fn compiled_artifact(
+        &self,
+        artifact_id: u64,
+    ) -> Option<&CompiledExecutionArtifact> {
+        self.compiled_artifacts.get(&artifact_id)
+    }
+
+    pub fn compiled_artifact_compatibility(
+        &self,
+        artifact_id: u64,
+    ) -> CompiledArtifactCompatibility {
+        if self.config.compiled_lane_policy != CompiledLanePolicy::DerivedCompiledLane {
+            return CompiledArtifactCompatibility::CompiledLaneDisabled;
+        }
+        let Some(artifact) = self.compiled_artifacts.get(&artifact_id) else {
+            return CompiledArtifactCompatibility::MissingSourceCommit;
+        };
+        let Some(commit) = self.commit_envelopes.get(&artifact.source_commit_id) else {
+            return CompiledArtifactCompatibility::MissingSourceCommit;
+        };
+        if commit.commit.version_id != artifact.source_version_id {
+            return CompiledArtifactCompatibility::StaleVersion;
+        }
+        if self.current_version_id() != artifact.source_version_id {
+            return CompiledArtifactCompatibility::StaleVersion;
+        }
+        CompiledArtifactCompatibility::Compatible
+    }
+}

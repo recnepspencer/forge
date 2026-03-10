@@ -30,18 +30,28 @@ pub(super) fn canonical_intent_key(intent: &TransactionIntent) -> (u8, String) {
             format!("{:08}:{:010}:{:?}", partition_id.0, kind_id.0, client_keys),
         ),
         TransactionIntent::UpdateEntity { entity_id, .. } => (2, entity_key(*entity_id)),
-        TransactionIntent::DeleteEntity { entity_id } => (3, entity_key(*entity_id)),
-        TransactionIntent::CreateRelation(spec) => (4, relation_create_key(spec)),
+        TransactionIntent::ReplaceEntity { entity_id, replacement } => (
+            3,
+            format!(
+                "{}->{:08}:{:010}:{:?}",
+                entity_key(*entity_id),
+                replacement.partition_id.0,
+                replacement.kind_id.0,
+                replacement.client_key
+            ),
+        ),
+        TransactionIntent::DeleteEntity { entity_id } => (4, entity_key(*entity_id)),
+        TransactionIntent::CreateRelation(spec) => (5, relation_create_key(spec)),
         TransactionIntent::BulkCreateRelations {
             partition_id,
             kind_id,
             endpoints,
             ..
         } => (
-            5,
+            6,
             format!("{:08}:{:010}:{:?}", partition_id.0, kind_id.0, endpoints),
         ),
-        TransactionIntent::DeleteRelation { relation_id } => (6, relation_key(*relation_id)),
+        TransactionIntent::DeleteRelation { relation_id } => (7, relation_key(*relation_id)),
     }
 }
 
@@ -61,9 +71,16 @@ pub(super) fn validate_intent(
             .map(|_| ())
             .map_err(schema_error_to_commit_conflict),
         TransactionIntent::UpdateEntity { entity_id, .. }
-        | TransactionIntent::DeleteEntity { entity_id } => {
+        | TransactionIntent::DeleteEntity { entity_id }
+        | TransactionIntent::ReplaceEntity { entity_id, .. } => {
             if entity_exists_in_state(state, *entity_id) {
-                Ok(())
+                match intent {
+                    TransactionIntent::ReplaceEntity { replacement, .. } => schema_registry
+                        .resolve_entity(replacement.kind_id)
+                        .map(|_| ())
+                        .map_err(schema_error_to_commit_conflict),
+                    _ => Ok(()),
+                }
             } else {
                 Err(CommitConflict {
                     code: DiagnosticCode::StaleHandle,
@@ -181,7 +198,8 @@ pub(super) fn detect_conflicting_updates(
     for intent in intents {
         match intent {
             TransactionIntent::UpdateEntity { entity_id, .. }
-            | TransactionIntent::DeleteEntity { entity_id } => {
+            | TransactionIntent::DeleteEntity { entity_id }
+            | TransactionIntent::ReplaceEntity { entity_id, .. } => {
                 if !seen_updates.insert(format!("entity:{}", entity_key(*entity_id))) {
                     return Err(CommitConflict {
                         code: DiagnosticCode::ConflictingIntent,
@@ -247,6 +265,7 @@ pub(super) fn detect_conflicting_updates(
             TransactionIntent::CreateEntity(_)
             | TransactionIntent::BulkCreateEntities { .. }
             | TransactionIntent::UpdateEntity { .. }
+            | TransactionIntent::ReplaceEntity { .. }
             | TransactionIntent::DeleteEntity { .. }
             | TransactionIntent::DeleteRelation { .. } => {}
         }

@@ -154,6 +154,36 @@ pub struct RelationalReplayRecord {
     pub schema_registry: RelationalSchemaRegistry,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TopologyFreezeMode {
+    FreezeAtCommit,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CompiledArtifactCompatibility {
+    Compatible,
+    StaleVersion,
+    MissingSourceCommit,
+    CompiledLaneDisabled,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CompiledArtifactError {
+    pub compatibility: CompiledArtifactCompatibility,
+    pub detail: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CompiledExecutionArtifact {
+    pub artifact_id: u64,
+    pub source_commit_id: crate::data::history::CommitId,
+    pub source_version_id: VersionId,
+    pub source_branch_id: crate::data::history::BranchId,
+    pub partition_ids: Vec<crate::data::identity::PartitionId>,
+    pub topology_freeze_mode: TopologyFreezeMode,
+    pub compiled_record_count: usize,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RelationalDiagnosticsFacade {
     pub artifacts: Vec<RelationalDiagnosticArtifact>,

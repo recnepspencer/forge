@@ -302,6 +302,48 @@ fn gc_epoch_compacts_edge_and_snapshot_storage_after_churn() {
 }
 
 #[test]
+fn dependency_snapshot_growth_returns_near_live_state_after_gc() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::with_gc_threshold(1)).build();
+    let source = runtime.graph_mut().node().build();
+    let dependent = runtime.graph_mut().node().build();
+    runtime
+        .graph_mut()
+        .add_dependency(dependent, source, ASPECT_A)
+        .unwrap();
+    let mut runtime_ctx = ();
+
+    for round in 0..64 {
+        runtime
+            .transaction(&mut runtime_ctx, |tx| {
+                tx.mark_dirty(source, ASPECT_A)?;
+                tx.evaluate_with_plan(
+                    dependent,
+                    &|node, view| {
+                        let result = if node == source {
+                            view.finish(version_ab(round as u64 + 1, 0))
+                        } else {
+                            let version = view.read_aspect_version(source, ASPECT_A)?;
+                            view.finish(NodeEvaluationResult::from_version(version))
+                        };
+                        Ok(result)
+                    },
+                    EvaluationRequestMode::Default,
+                )?;
+                Ok(())
+            })
+            .unwrap();
+    }
+
+    let before = runtime.graph().test_storage_counts();
+    runtime.graph_mut().run_gc_epoch();
+    let after = runtime.graph().test_storage_counts();
+    assert!(
+        after.2 <= 2,
+        "dependency snapshot storage should compact back near live snapshot count after churn: before={before:?} after={after:?}"
+    );
+}
+
+#[test]
 #[ignore = "stress coverage for large edge rewrites and slot reuse"]
 fn stress_edge_rewrites_across_reused_nodes() {
     let mut graph = SignalGraph::new();

@@ -1,5 +1,6 @@
 mod apply;
 mod chunks;
+mod compiled;
 mod complexity;
 mod durability;
 mod indexes;
@@ -42,7 +43,8 @@ pub use types::{
     PacketResult, PartitionStorageStats, RecordLifecycleState, RecoveryOutcome, RelationReadRecord,
     RelationalDiagnosticsFacade, RelationalReadView, RelationalReplayRecord,
     RelationalRuntimeConfig, ReplaySchemaVersion, RetentionPassOutcome, StorageInvariantReport,
-    StorageStats,
+    StorageStats, CompiledArtifactCompatibility, CompiledArtifactError, CompiledExecutionArtifact,
+    TopologyFreezeMode,
 };
 
 use self::state::{BorrowedWorkingState, PartitionAccess, PartitionState, SnapshotState, WorkingState};
@@ -75,6 +77,8 @@ pub struct RelationalRuntime {
     next_snapshot_id: u64,
     symbol_interner: RefCell<StringInterner>,
     complexity_counters: RefCell<RuntimeComplexityCounters>,
+    compiled_artifacts: BTreeMap<u64, CompiledExecutionArtifact>,
+    next_compiled_artifact_id: u64,
 }
 
 impl RelationalRuntime {
@@ -106,6 +110,8 @@ impl RelationalRuntime {
             next_snapshot_id: 1,
             symbol_interner: RefCell::new(StringInterner::default()),
             complexity_counters: RefCell::new(RuntimeComplexityCounters::default()),
+            compiled_artifacts: BTreeMap::new(),
+            next_compiled_artifact_id: 1,
             config,
         }
     }

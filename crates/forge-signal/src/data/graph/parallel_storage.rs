@@ -27,15 +27,14 @@ impl SignalGraph {
 
     pub(crate) fn replace_entries_parallel(
         &mut self,
-        updates: &[(NodeId, NodeEntry)],
+        mut updates: Vec<(NodeId, NodeEntry)>,
     ) -> Result<(), SignalError> {
-        for &(node, _) in updates {
-            self.validate_handle(node)?;
+        for (node, _) in &updates {
+            self.validate_handle(*node)?;
         }
 
-        let mut sorted = updates.to_vec();
-        sorted.sort_by_key(|(node, _)| (node.index(), node.generation()));
-        for window in sorted.windows(2) {
+        updates.sort_by_key(|(node, _)| (node.index(), node.generation()));
+        for window in updates.windows(2) {
             if let [left, right] = window {
                 if left.0 == right.0 {
                     return Err(SignalError::internal(
@@ -45,14 +44,14 @@ impl SignalGraph {
             }
         }
 
-        replace_entries_recursive(&mut self.nodes, 0, &sorted)
+        replace_entries_recursive(&mut self.nodes, 0, &mut updates)
     }
 }
 
 fn replace_entries_recursive(
     slots: &mut [Slot],
     base_index: usize,
-    updates: &[(NodeId, NodeEntry)],
+    updates: &mut [(NodeId, NodeEntry)],
 ) -> Result<(), SignalError> {
     if updates.is_empty() {
         return Ok(());
@@ -72,7 +71,7 @@ fn replace_entries_recursive(
                 .data
                 .as_mut()
                 .ok_or_else(|| SignalError::internal("parallel apply targeted vacant slot"))?;
-            *target = entry.clone();
+            *target = std::mem::take(entry);
         }
         return Ok(());
     }
@@ -81,7 +80,7 @@ fn replace_entries_recursive(
     let split_index =
         updates.partition_point(|(node, _)| (node.index() as usize) < base_index + mid);
     let (left_slots, right_slots) = slots.split_at_mut(mid);
-    let (left_updates, right_updates) = updates.split_at(split_index);
+    let (left_updates, right_updates) = updates.split_at_mut(split_index);
     let (left_result, right_result) = rayon::join(
         || replace_entries_recursive(left_slots, base_index, left_updates),
         || replace_entries_recursive(right_slots, base_index + mid, right_updates),

@@ -57,13 +57,10 @@ impl AspectVersion {
     /// Bump all aspects included in the provided mask.
     pub fn bump_mask(mut self, mask: AspectMask) -> Self {
         let mut bits = mask.bits();
-        let mut index = 0usize;
         while bits != 0 {
-            if (bits & 1) != 0 {
-                self.slots[index] += 1;
-            }
-            bits >>= 1;
-            index += 1;
+            let index = bits.trailing_zeros() as usize;
+            self.slots[index] += 1;
+            bits &= bits - 1;
         }
         self
     }

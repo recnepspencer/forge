@@ -55,6 +55,12 @@ pub enum SemanticRetentionPolicy {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SnapshotRestoreLineageMode {
+    CompactGlobal,
+    PerNode,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ParallelAdmissionPolicy {
     pub operational_min_parallel_tasks: usize,
     pub development_min_parallel_tasks: usize,
@@ -97,6 +103,7 @@ pub struct SignalRuntimePolicy {
     pub provenance_retention: ArtifactRetentionPolicy,
     pub replay_detail: ReplayDetailPolicy,
     pub semantic_retention: SemanticRetentionPolicy,
+    pub snapshot_restore_lineage_mode: SnapshotRestoreLineageMode,
     pub parallel_admission: ParallelAdmissionPolicy,
 }
 
@@ -159,6 +166,7 @@ impl SignalRuntimePolicy {
             provenance_retention: ArtifactRetentionPolicy::Reconstruct,
             replay_detail: ReplayDetailPolicy::Minimal,
             semantic_retention: SemanticRetentionPolicy::Minimal,
+            snapshot_restore_lineage_mode: SnapshotRestoreLineageMode::CompactGlobal,
             parallel_admission: ParallelAdmissionPolicy::default(),
         }
     }
@@ -177,6 +185,7 @@ impl SignalRuntimePolicy {
             provenance_retention: ArtifactRetentionPolicy::Retain,
             replay_detail: ReplayDetailPolicy::Standard,
             semantic_retention: SemanticRetentionPolicy::Development,
+            snapshot_restore_lineage_mode: SnapshotRestoreLineageMode::CompactGlobal,
             parallel_admission: ParallelAdmissionPolicy::default(),
         }
     }
@@ -195,6 +204,7 @@ impl SignalRuntimePolicy {
             provenance_retention: ArtifactRetentionPolicy::Retain,
             replay_detail: ReplayDetailPolicy::Forensic,
             semantic_retention: SemanticRetentionPolicy::Forensic,
+            snapshot_restore_lineage_mode: SnapshotRestoreLineageMode::PerNode,
             parallel_admission: ParallelAdmissionPolicy::default(),
         }
     }
@@ -224,6 +234,11 @@ impl SignalRuntimePolicy {
 
     pub fn with_semantic_retention(mut self, semantic_retention: SemanticRetentionPolicy) -> Self {
         self.semantic_retention = semantic_retention;
+        self
+    }
+
+    pub fn with_snapshot_restore_lineage_mode(mut self, mode: SnapshotRestoreLineageMode) -> Self {
+        self.snapshot_restore_lineage_mode = mode;
         self
     }
 

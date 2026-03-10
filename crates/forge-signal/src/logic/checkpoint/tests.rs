@@ -107,3 +107,24 @@ fn ensure_fresh_forces_single_domain_refresh() {
     assert_eq!(evaluator.refreshed.len(), 1);
     assert_eq!(evaluator.refreshed[0].0, Domain::Alpha);
 }
+
+#[test]
+fn merging_empty_domain_impact_does_not_leave_historical_dirty_domain_debris() {
+    let mut dirty = BatchedDirtySet::<Domain, Impact>::new();
+    dirty.mark_domain_scoped(Domain::Alpha, Impact::One);
+    assert_eq!(dirty.first_dirty_domain(), Some(Domain::Alpha));
+
+    let taken = dirty.take_domain_impact(Domain::Alpha).unwrap();
+    assert!(!taken.is_empty());
+    assert!(dirty.first_dirty_domain().is_none());
+
+    dirty.merge_domain_impact(Domain::Alpha, DomainImpact::empty());
+    assert!(
+        dirty.impact_for(Domain::Alpha).is_none(),
+        "empty merged impacts should not recreate an empty historical domain entry"
+    );
+    assert!(
+        dirty.first_dirty_domain().is_none(),
+        "empty merged impacts should not affect dirty-domain iteration"
+    );
+}
