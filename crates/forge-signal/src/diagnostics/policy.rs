@@ -26,6 +26,12 @@ pub enum ArtifactMaterializationMode {
     Unavailable,
 }
 
+impl Default for ArtifactMaterializationMode {
+    fn default() -> Self {
+        Self::Reconstructed
+    }
+}
+
 impl ArtifactMaterializationMode {
     pub fn message(self) -> &'static str {
         match self {

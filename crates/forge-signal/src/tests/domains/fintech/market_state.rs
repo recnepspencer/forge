@@ -46,14 +46,18 @@ pub(super) fn seed_market_regime(
         let fx = model.fx_market();
         tx.read(fixture.fx.eur_usd, &move |_node, view| {
             Ok(view.finish(
-                NodeEvaluationResult::from_version(AspectVersion::from_updates([(PRICE, fx.eur_usd)]))
-                    .with_output_identity("eur-usd"),
+                NodeEvaluationResult::from_version(AspectVersion::from_updates([(
+                    PRICE, fx.eur_usd,
+                )]))
+                .with_output_identity("eur-usd"),
             ))
         })?;
         tx.read(fixture.fx.usd_jpy, &move |_node, view| {
             Ok(view.finish(
-                NodeEvaluationResult::from_version(AspectVersion::from_updates([(PRICE, fx.usd_jpy)]))
-                    .with_output_identity("usd-jpy"),
+                NodeEvaluationResult::from_version(AspectVersion::from_updates([(
+                    PRICE, fx.usd_jpy,
+                )]))
+                .with_output_identity("usd-jpy"),
             ))
         })?;
 
@@ -62,8 +66,10 @@ pub(super) fn seed_market_regime(
             let value = curve_series[index];
             tx.read(*node, &move |_node, view| {
                 Ok(view.finish(
-                    NodeEvaluationResult::from_version(AspectVersion::from_updates([(CURVE, value)]))
-                        .with_output_identity(format!("curve-{index}")),
+                    NodeEvaluationResult::from_version(AspectVersion::from_updates([(
+                        CURVE, value,
+                    )]))
+                    .with_output_identity(format!("curve-{index}")),
                 ))
             })?;
         }

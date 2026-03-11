@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use crate::diagnostics::data::{
-    DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
+    DiagnosticCode, DiagnosticsScope,
 };
 use crate::durability::data::{DurableCommitEnvelope, RecoveryPlan};
 use crate::history::data::{BranchId, CommitId};
@@ -28,51 +28,34 @@ impl RelationalRuntime {
             .get(&request.commit_id)
             .cloned()
         else {
-            return RelationalReplayOutcome {
-                requested: request,
-                commit: None,
-                reconstructed_parent_chain: Vec::new(),
-                snapshot_version: None,
-                compared_surfaces: Vec::new(),
-                mismatches: Vec::new(),
-                failure: Some(ReplayFailureClass::MissingCommit),
-            };
+            return RelationalReplayOutcome::fail(
+                request,
+                None,
+                None,
+                ReplayFailureClass::MissingCommit,
+            );
         };
         if envelope.branch_context != request.branch_id {
-            return RelationalReplayOutcome {
-                requested: request,
-                commit: Some(envelope.commit.clone()),
-                reconstructed_parent_chain: envelope.commit.parents.clone(),
-                snapshot_version: Some(envelope.commit.version_id),
-                compared_surfaces: Vec::new(),
-                mismatches: Vec::new(),
-                failure: Some(ReplayFailureClass::BranchMismatch),
-            };
+            return RelationalReplayOutcome::fail(
+                request,
+                Some(&envelope),
+                None,
+                ReplayFailureClass::BranchMismatch,
+            );
         }
         if envelope.schema_registry != self.config.schema_registry {
-            return RelationalReplayOutcome {
-                requested: request,
-                commit: Some(envelope.commit.clone()),
-                reconstructed_parent_chain: envelope.commit.parents.clone(),
-                snapshot_version: Some(envelope.commit.version_id),
-                compared_surfaces: Vec::new(),
-                mismatches: Vec::new(),
-                failure: Some(ReplayFailureClass::SchemaMismatch),
-            };
+            return RelationalReplayOutcome::fail(
+                request,
+                Some(&envelope),
+                None,
+                ReplayFailureClass::SchemaMismatch,
+            );
         }
 
         let chain = match self.replay_chain(request.commit_id) {
             Ok(chain) => chain,
             Err(failure) => {
-                return RelationalReplayOutcome {
-                    requested: request,
-                    commit: Some(envelope.commit.clone()),
-                    reconstructed_parent_chain: envelope.commit.parents.clone(),
-                    snapshot_version: Some(envelope.commit.version_id),
-                    compared_surfaces: Vec::new(),
-                    mismatches: Vec::new(),
-                    failure: Some(failure),
-                };
+                return RelationalReplayOutcome::fail(request, Some(&envelope), None, failure);
             }
         };
 
@@ -80,15 +63,12 @@ impl RelationalRuntime {
         let replay_runtime = match RelationalRuntime::rebuild_runtime_from_plan(replay_plan) {
             Ok(runtime) => runtime,
             Err(_) => {
-                return RelationalReplayOutcome {
-                    requested: request,
-                    commit: Some(envelope.commit.clone()),
-                    reconstructed_parent_chain: chain.clone(),
-                    snapshot_version: Some(envelope.commit.version_id),
-                    compared_surfaces: Vec::new(),
-                    mismatches: Vec::new(),
-                    failure: Some(ReplayFailureClass::ObservableMismatch),
-                };
+                return RelationalReplayOutcome::fail(
+                    request,
+                    Some(&envelope),
+                    Some(&chain),
+                    ReplayFailureClass::ObservableMismatch,
+                );
             }
         };
 
@@ -353,23 +333,21 @@ impl RelationalRuntime {
             Some(_) => DiagnosticCode::InvariantViolation,
             None => DiagnosticCode::CommitPublished,
         };
-        self.push_bounded_diagnostic(
-            DiagnosticsScope::Replay,
-            if outcome.failure.is_some() {
-                DiagnosticsArtifactKind::Failure
-            } else {
-                DiagnosticsArtifactKind::Comparison
-            },
-            vec![RelationalDiagnosticsEntry {
-                code,
-                message: "replay comparison completed".to_string(),
-                fields: json!({
-                    "commit_id": request.commit_id.0,
-                    "branch_id": request.branch_id.0,
-                    "mismatch_count": outcome.mismatches.len(),
-                    "failure": outcome.failure.as_ref().map(|value| format!("{value:?}")),
-                }),
-            }],
+        let builder = self.diagnostic(DiagnosticsScope::Replay);
+        let builder = if outcome.failure.is_some() {
+            builder.failure()
+        } else {
+            builder.comparison()
+        };
+        builder.emit_entry(
+            code,
+            "replay comparison completed",
+            json!({
+                "commit_id": request.commit_id.0,
+                "branch_id": request.branch_id.0,
+                "mismatch_count": outcome.mismatches.len(),
+                "failure": outcome.failure.as_ref().map(|value| format!("{value:?}")),
+            }),
         );
     }
 }

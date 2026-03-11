@@ -2,13 +2,13 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::data::bitset::DenseBitset;
 use crate::data::dependency::DependencySnapshotStore;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeEntry;
 use crate::data::output::PartitionInterner;
 use crate::data::telemetry::RuntimeTelemetry;
-use crate::data::bitset::DenseBitset;
 use crate::diagnostics::state::DiagnosticsState;
 
 use super::scratch::{ScratchLeaseKind, TraversalScratch};
@@ -28,6 +28,8 @@ pub struct SignalGraph {
     pub(super) active_nodes: u32,
     pub(super) tombstone_count: u32,
     pub(super) gc_threshold: u32,
+    pub(super) gc_compaction_debt: u32,
+    pub(super) gc_compaction_cursor: u8,
     #[serde(skip, default)]
     pub(super) scratch: TraversalScratch,
     #[serde(skip, default)]
@@ -63,6 +65,8 @@ impl SignalGraph {
             active_nodes: 0,
             tombstone_count: 0,
             gc_threshold: 1024,
+            gc_compaction_debt: 0,
+            gc_compaction_cursor: 0,
             scratch: TraversalScratch::default(),
             scratch_lease: None,
             telemetry: RuntimeTelemetry::default(),
@@ -122,6 +126,17 @@ impl SignalGraph {
         }
     }
 
+    pub(crate) fn with_scratch<R>(
+        &mut self,
+        kind: ScratchLeaseKind,
+        f: impl FnOnce(&mut SignalGraph, &mut TraversalScratch) -> Result<R, SignalError>,
+    ) -> Result<R, SignalError> {
+        let mut scratch = self.acquire_scratch(kind)?;
+        let result = f(self, &mut scratch);
+        self.restore_scratch(kind, scratch)?;
+        result
+    }
+
     pub(super) fn allocate_node(&mut self, entry: NodeEntry) -> NodeId {
         while let Some(index) = self.free_list.pop() {
             if index as usize >= self.nodes.len() {
@@ -129,6 +144,9 @@ impl SignalGraph {
             }
             self.free_slots.clear(index as usize);
             let slot = &mut self.nodes[index as usize];
+            if slot.is_retired() {
+                continue;
+            }
             let generation = slot.occupy(entry);
             self.active_nodes += 1;
             return NodeId::new(index, generation);
@@ -162,7 +180,7 @@ impl SignalGraph {
                 slot.vacate();
                 self.active_nodes = self.active_nodes.saturating_sub(1);
             }
-            if !self.free_slots.contains(index) {
+            if !slot.is_retired() && !self.free_slots.contains(index) {
                 self.free_list.push(index as u32);
                 self.free_slots.mark(index);
             }
@@ -212,6 +230,30 @@ impl SignalGraph {
     #[cfg(test)]
     pub(crate) fn free_list_snapshot(&self) -> Vec<u32> {
         self.free_list.clone()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn force_slot_generation_for_test(
+        &mut self,
+        index: u32,
+        generation: u32,
+    ) -> Result<(), SignalError> {
+        let slot = self
+            .nodes
+            .get_mut(index as usize)
+            .ok_or_else(|| SignalError::invalid_input(format!("unknown slot `{index}`")))?;
+        slot.generation = generation;
+        slot.retired = false;
+        Ok(())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn is_slot_retired_for_test(&self, index: u32) -> Result<bool, SignalError> {
+        let slot = self
+            .nodes
+            .get(index as usize)
+            .ok_or_else(|| SignalError::invalid_input(format!("unknown slot `{index}`")))?;
+        Ok(slot.is_retired())
     }
 }
 

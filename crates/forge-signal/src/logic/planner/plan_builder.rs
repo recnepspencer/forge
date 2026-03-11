@@ -6,13 +6,15 @@ use crate::data::comparator::{
     VersionComparatorPolicy,
 };
 use crate::data::error::SignalError;
+use crate::data::graph::TraversalScratch;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
 use crate::logic::evaluation::EvaluationRequestMode;
 
 use super::types::{
-    EvaluationPlan, EvaluationTask, ExecutionStage, PlanSummary, StageBarrier, TaskReason,
+    EvaluationCursor, EvaluationPlan, EvaluationSession, EvaluationTask, ExecutionStage,
+    PlanSummary, StageBarrier, StageCursor, TaskReason,
 };
 use super::validation::{preview_maybe_stale, sorted_dependencies};
 
@@ -35,81 +37,83 @@ pub fn build_evaluation_plan_with_policy_resolver(
     request_mode: EvaluationRequestMode,
     resolver: &mut impl ComparatorPolicyResolver,
 ) -> Result<EvaluationPlan, SignalError> {
-    let arena_capacity = graph.arena_capacity();
-    let mut planned = vec![None::<PlannedNode>; arena_capacity];
-    let mut planned_nodes = Vec::<NodeId>::new();
-    let mut visiting = DenseBitset::new();
-    visiting.ensure_len(arena_capacity);
+    let cursor = build_evaluation_cursor_with_policy_resolver(
+        graph,
+        targets,
+        request_mode,
+        resolver,
+    )?;
+    Ok(materialize_plan_from_cursor(cursor))
+}
 
-    let mut deduped_targets = targets.to_vec();
-    deduped_targets.sort_by_key(|node| node_sort_key(*node));
-    deduped_targets.dedup();
-
-    for &target in &deduped_targets {
-        graph.get_entry(target)?;
-        visit_node(
-            graph,
-            target,
-            request_mode,
-            true,
-            TaskReason::RequestedTarget,
-            resolver,
-            &mut visiting,
-            &mut planned,
-            &mut planned_nodes,
-        )?;
-    }
-
-    let depth_cache = compute_depths(graph, &planned_nodes)?;
-    let max_depth = depth_cache.depths.iter().copied().max().unwrap_or(0) as usize;
-    let mut stages_by_depth = vec![Vec::<EvaluationTask>::new(); max_depth + 1];
-    planned_nodes.sort_by_key(|node| node_sort_key(*node));
-    for node in planned_nodes {
-        let planned_node = planned[node.index() as usize]
-            .expect("planned node list should only contain planned nodes");
-        let reason = classify_reason(graph, node, planned_node.direct_request, request_mode)?;
-        let task = EvaluationTask {
-            node,
-            request_mode,
-            direct_request: planned_node.direct_request,
-            reason,
-        };
-        let depth = depth_cache.depth_for(node).ok_or_else(|| {
-            SignalError::internal("planned node missing depth cache entry during stage assembly")
-        })? as usize;
-        stages_by_depth[depth].push(task);
-    }
-
+pub(crate) fn build_evaluation_cursor_with_policy_resolver(
+    graph: &SignalGraph,
+    targets: &[NodeId],
+    request_mode: EvaluationRequestMode,
+    resolver: &mut impl ComparatorPolicyResolver,
+) -> Result<EvaluationCursor, SignalError> {
+    let mut deduped_targets = Vec::new();
+    let mut flat_tasks = Vec::new();
     let mut stages = Vec::new();
-    for mut tasks in stages_by_depth {
-        if tasks.is_empty() {
-            continue;
-        }
-        tasks.sort_by_key(|task| node_sort_key(task.node));
-        stages.push(ExecutionStage {
-            index: stages.len() as u32,
-            tasks,
-            barrier: Some(StageBarrier::StageBoundary),
-        });
-    }
+    let summary = populate_plan_buffers(
+        graph,
+        targets,
+        request_mode,
+        resolver,
+        &mut deduped_targets,
+        &mut flat_tasks,
+        &mut stages,
+    )?;
 
-    let summary = PlanSummary {
-        requested_target_count: deduped_targets.len() as u32,
-        stage_count: stages.len() as u32,
-        task_count: stages.iter().map(|stage| stage.tasks.len() as u32).sum(),
-        max_stage_width: stages
-            .iter()
-            .map(|stage| stage.tasks.len() as u32)
-            .max()
-            .unwrap_or(0),
-    };
-
-    Ok(EvaluationPlan {
+    Ok(EvaluationCursor {
         request_mode,
         targets: deduped_targets,
+        tasks: flat_tasks,
         stages,
         summary,
     })
+}
+
+pub(crate) fn build_evaluation_session_with_policy_resolver<'a>(
+    graph: &SignalGraph,
+    scratch: &'a mut TraversalScratch,
+    targets: &[NodeId],
+    request_mode: EvaluationRequestMode,
+    resolver: &mut impl ComparatorPolicyResolver,
+) -> Result<EvaluationSession<'a>, SignalError> {
+    let summary = populate_plan_buffers(
+        graph,
+        targets,
+        request_mode,
+        resolver,
+        &mut scratch.planner_targets,
+        &mut scratch.planner_tasks,
+        &mut scratch.planner_stages,
+    )?;
+
+    Ok(EvaluationSession {
+        targets: &scratch.planner_targets,
+        tasks: &scratch.planner_tasks,
+        stages: &scratch.planner_stages,
+        summary,
+    })
+}
+
+pub(crate) fn materialize_plan_from_cursor(cursor: EvaluationCursor) -> EvaluationPlan {
+    let mut stages = Vec::with_capacity(cursor.stages.len());
+    for stage in &cursor.stages {
+        stages.push(ExecutionStage {
+            index: stage.index,
+            tasks: cursor.tasks[stage.start..stage.end].to_vec(),
+            barrier: stage.barrier,
+        });
+    }
+    EvaluationPlan {
+        request_mode: cursor.request_mode,
+        targets: cursor.targets,
+        stages,
+        summary: cursor.summary,
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -222,6 +226,92 @@ impl DepthCache {
             .get(&node)
             .and_then(|index| self.depths.get(*index).copied())
     }
+}
+
+fn populate_plan_buffers(
+    graph: &SignalGraph,
+    targets: &[NodeId],
+    request_mode: EvaluationRequestMode,
+    resolver: &mut impl ComparatorPolicyResolver,
+    out_targets: &mut Vec<NodeId>,
+    out_tasks: &mut Vec<EvaluationTask>,
+    out_stages: &mut Vec<StageCursor>,
+) -> Result<PlanSummary, SignalError> {
+    let arena_capacity = graph.arena_capacity();
+    let mut planned = vec![None::<PlannedNode>; arena_capacity];
+    let mut planned_nodes = Vec::<NodeId>::new();
+    let mut visiting = DenseBitset::new();
+    visiting.ensure_len(arena_capacity);
+
+    out_targets.clear();
+    out_targets.extend_from_slice(targets);
+    out_targets.sort_by_key(|node| node_sort_key(*node));
+    out_targets.dedup();
+
+    for &target in out_targets.iter() {
+        graph.get_entry(target)?;
+        visit_node(
+            graph,
+            target,
+            request_mode,
+            true,
+            TaskReason::RequestedTarget,
+            resolver,
+            &mut visiting,
+            &mut planned,
+            &mut planned_nodes,
+        )?;
+    }
+
+    let depth_cache = compute_depths(graph, &planned_nodes)?;
+    let max_depth = depth_cache.depths.iter().copied().max().unwrap_or(0) as usize;
+    let mut stages_by_depth = vec![Vec::<EvaluationTask>::new(); max_depth + 1];
+    planned_nodes.sort_by_key(|node| node_sort_key(*node));
+    for node in planned_nodes {
+        let planned_node = planned[node.index() as usize]
+            .expect("planned node list should only contain planned nodes");
+        let reason = classify_reason(graph, node, planned_node.direct_request, request_mode)?;
+        let task = EvaluationTask {
+            node,
+            request_mode,
+            direct_request: planned_node.direct_request,
+            reason,
+        };
+        let depth = depth_cache.depth_for(node).ok_or_else(|| {
+            SignalError::internal("planned node missing depth cache entry during stage assembly")
+        })? as usize;
+        stages_by_depth[depth].push(task);
+    }
+
+    out_tasks.clear();
+    out_stages.clear();
+    for mut stage_tasks in stages_by_depth {
+        if stage_tasks.is_empty() {
+            continue;
+        }
+        stage_tasks.sort_by_key(|task| node_sort_key(task.node));
+        let start = out_tasks.len();
+        let end = start + stage_tasks.len();
+        let stage_index = out_stages.len() as u32;
+        out_tasks.extend(stage_tasks);
+        out_stages.push(StageCursor {
+            index: stage_index,
+            start,
+            end,
+            barrier: Some(StageBarrier::StageBoundary),
+        });
+    }
+
+    Ok(PlanSummary {
+        requested_target_count: out_targets.len() as u32,
+        stage_count: out_stages.len() as u32,
+        task_count: out_tasks.len() as u32,
+        max_stage_width: out_stages
+            .iter()
+            .map(|stage| (stage.end - stage.start) as u32)
+            .max()
+            .unwrap_or(0),
+    })
 }
 
 fn compute_depths(
@@ -344,19 +434,7 @@ pub(crate) fn partition_scope_untouched(
     trace_summary: Option<&crate::data::trace::TraceSummary>,
     scope: &crate::data::output::PartitionSubscription,
 ) -> bool {
-    trace_summary.is_none_or(|summary| {
-        !summary.changed_regions.iter().any(|region| {
-            if scope.partition != region.partition {
-                return false;
-            }
-            match scope.match_mode {
-                crate::data::output::PartitionMatchMode::WholePartition => true,
-                crate::data::output::PartitionMatchMode::PartitionAndDetail => {
-                    scope.detail == region.detail
-                }
-            }
-        })
-    })
+    !crate::data::output::scope_touched_by_trace(trace_summary, scope)
 }
 
 pub(crate) fn node_sort_key(node: NodeId) -> (u32, u32) {

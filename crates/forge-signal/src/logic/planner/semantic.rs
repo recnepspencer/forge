@@ -3,10 +3,12 @@ use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
 use crate::data::trace::TraceSummary;
-use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
 use crate::diagnostics::recorder::record_lineage_transition;
+use crate::logic::explain::RewiringSummary;
 
-use super::reporting::{accumulate_report_counters, classify_task_record};
+use super::reporting::classify_task_record;
+use super::semantic_artifacts::record_semantic_artifacts;
+use super::semantic_reporting::record_semantic_update;
 use super::types::{
     EvaluationTask, ExecutionRecordId, ExecutionReport, SemanticSegmentId, SemanticTaskRange,
     StageExecutionRecord, TaskExecutionRecord,
@@ -30,6 +32,7 @@ pub(super) struct SemanticTaskUpdate {
     pub dependency_updates: u32,
     pub recomputed: bool,
     pub partition_aware: bool,
+    pub rewiring: Option<RewiringSummary>,
     pub prepared_outcome: PreparedEvaluationOutcome,
     pub prepared_origin: PreparedEvaluationOrigin,
 }
@@ -128,7 +131,6 @@ pub(super) fn finalize_stage_batch(
     });
 
     let mut task_records = Vec::with_capacity(stage_tasks.len());
-    let policy = graph.runtime_policy();
     for segment in segments {
         for update in segment.updates {
             stamp_trace_summary(
@@ -156,32 +158,9 @@ pub(super) fn finalize_stage_batch(
                 update.prepared_outcome,
                 update.prepared_origin,
             );
-            accumulate_report_counters(report, &task_record);
+            record_semantic_update(graph, report, &task_record, &update);
             task_records.push(task_record);
-            graph.telemetry_mut().prepared_evaluations_applied += 1;
-            graph.telemetry_mut().dependency_capture_updates += update.dependency_updates as u64;
-            if update.recomputed {
-                graph.telemetry_mut().nodes_recomputed += 1;
-            }
-            if update.partition_aware {
-                graph.telemetry_mut().partition_aware_recomputations += 1;
-            }
-            report.prepared_evaluations_applied += 1;
-            report.dependency_capture_updates += update.dependency_updates;
-            if policy.retains_explanation_facts() || policy.retains_provenance_facts() {
-                if let Ok(explanation) = graph.explain(update.node) {
-                    if policy.retains_explanation_facts() {
-                        graph.diagnostics_state_mut().record_explanation_fact(
-                            ExplanationFact::from_explanation(&explanation),
-                        );
-                    }
-                    if policy.retains_provenance_facts() {
-                        graph
-                            .diagnostics_state_mut()
-                            .record_provenance_fact(ProvenanceFact::from_explanation(&explanation));
-                    }
-                }
-            }
+            record_semantic_artifacts(graph, &update)?;
         }
     }
     task_records.sort_by_key(|record| record.id.0);

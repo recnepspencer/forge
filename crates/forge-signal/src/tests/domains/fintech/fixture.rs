@@ -357,10 +357,7 @@ impl FintechWorld {
                 super::aspects::RISK,
                 apply_signed_delta(current.get(super::aspects::RISK), price_delta + vol_delta),
             ),
-            (
-                super::aspects::ALERT,
-                current.get(super::aspects::ALERT),
-            ),
+            (super::aspects::ALERT, current.get(super::aspects::ALERT)),
         ]);
 
         self.runtime.transaction(&mut (), |tx| {
@@ -504,7 +501,8 @@ pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
     for instrument_index in 0..scale.instruments {
         let core = build_instrument_nodes(&mut runtime);
         let buckets = build_bucket_exposure_nodes(&mut runtime, &core, scale.buckets);
-        let scenarios = build_scenario_nodes(&mut runtime, &core, &scenario_sources, scale.scenarios);
+        let scenarios =
+            build_scenario_nodes(&mut runtime, &core, &scenario_sources, scale.scenarios);
         instruments.push(InstrumentFixture {
             instrument_index,
             book_index: super::hierarchy::book_for_instrument(scale, instrument_index),
@@ -603,7 +601,11 @@ pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
         for instrument in &instruments {
             runtime
                 .graph_mut()
-                .add_dependency(aggregate, instrument.scenarios[scenario_index], super::aspects::RISK)
+                .add_dependency(
+                    aggregate,
+                    instrument.scenarios[scenario_index],
+                    super::aspects::RISK,
+                )
                 .unwrap();
         }
         scenario_aggregates.push(aggregate);
@@ -620,7 +622,11 @@ pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
         for instrument in &instruments {
             runtime
                 .graph_mut()
-                .add_dependency(aggregate, instrument.buckets[bucket_index], super::aspects::RISK)
+                .add_dependency(
+                    aggregate,
+                    instrument.buckets[bucket_index],
+                    super::aspects::RISK,
+                )
                 .unwrap();
         }
         bucket_aggregates.push(aggregate);

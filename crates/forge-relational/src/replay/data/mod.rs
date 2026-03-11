@@ -85,6 +85,31 @@ pub struct RelationalReplayOutcome {
     pub failure: Option<ReplayFailureClass>,
 }
 
+impl RelationalReplayOutcome {
+    pub(crate) fn fail(
+        requested: RelationalReplayRequest,
+        envelope: Option<&CanonicalCommitEnvelope>,
+        chain: Option<&[CommitId]>,
+        failure: ReplayFailureClass,
+    ) -> Self {
+        let commit = envelope.map(|candidate| candidate.commit.clone());
+        let reconstructed_parent_chain = chain
+            .map(|resolved| resolved.to_vec())
+            .or_else(|| envelope.map(|candidate| candidate.commit.parents.clone()))
+            .unwrap_or_default();
+        let snapshot_version = envelope.map(|candidate| candidate.commit.version_id);
+        Self {
+            requested,
+            commit,
+            reconstructed_parent_chain,
+            snapshot_version,
+            compared_surfaces: Vec::new(),
+            mismatches: Vec::new(),
+            failure: Some(failure),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReplaySchemaVersion(pub u32);
 

@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
+use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::profile::DiagnosticsProfile;
 use crate::logic::planner::{ExecutionRecordId, PlanSummary, StageExecutor};
 
@@ -37,6 +38,8 @@ pub struct RollbackDiagnostic {
     pub staged_node_patch_count: u64,
     pub max_touched_nodes_in_txn: u64,
     pub reason: Option<String>,
+    #[serde(default)]
+    pub event_epochs: Vec<EventEpochSummary>,
 }
 
 /// Compact failure summary suitable for comparison and persistence.
@@ -52,6 +55,8 @@ pub struct FailureSummary {
     pub rolled_back: bool,
     pub staged_node_patch_count: Option<u64>,
     pub max_touched_nodes_in_txn: Option<u64>,
+    #[serde(default)]
+    pub event_epochs: Vec<EventEpochSummary>,
     pub message: String,
 }
 
@@ -108,6 +113,9 @@ impl ExecutionFailureContext {
             rolled_back: rollback.map(|d| d.rolled_back).unwrap_or(false),
             staged_node_patch_count: rollback.map(|d| d.staged_node_patch_count),
             max_touched_nodes_in_txn: rollback.map(|d| d.max_touched_nodes_in_txn),
+            event_epochs: rollback
+                .map(|diagnostic| diagnostic.event_epochs.clone())
+                .unwrap_or_default(),
             message: self.message.clone(),
         }
     }
@@ -119,12 +127,14 @@ impl RollbackDiagnostic {
         staged_node_patch_count: u64,
         max_touched_nodes_in_txn: u64,
         reason: Option<String>,
+        event_epochs: Vec<EventEpochSummary>,
     ) -> Self {
         Self {
             rolled_back,
             staged_node_patch_count,
             max_touched_nodes_in_txn,
             reason,
+            event_epochs,
         }
     }
 }

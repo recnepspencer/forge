@@ -9,6 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 pub(super) use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
 pub(super) use crate::config::data::{DurableLogPolicy, DurableLogRetentionMode};
+pub(super) use crate::config::data::{PatchSurfacePolicy, PublicationConfig};
 pub(super) use crate::facade::{
     BranchCreateError, BranchId, CommitOutcome, DiagnosticCode, DiagnosticsArtifactKind,
     DiagnosticsScope, DurabilityMode, DurableStoreLayout, EntityKindRegistration, EntityReadRecord,

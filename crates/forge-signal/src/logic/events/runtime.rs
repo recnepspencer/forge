@@ -186,7 +186,7 @@ where
         &mut self,
         barrier: CheckpointBarrier,
         runtime: &mut C,
-    ) -> Result<(), EventFlushError<D>> {
+    ) -> Result<Vec<CompletedSubscriber>, EventFlushError<D>> {
         let flush_start = Instant::now();
         self.ensure_finalized().map_err(EventFlushError::Registry)?;
 
@@ -197,9 +197,11 @@ where
             }
             by_key
         });
+        let mut completed_subscribers = Vec::new();
 
         for &idx in &self.order {
             let entry = &mut self.subscribers[idx];
+            let staged_before = self.context.staged_ids();
             if let Some(keys) = entry.routed_event_keys {
                 if let Some(batches) = &routed_batches {
                     for key in keys {
@@ -220,23 +222,34 @@ where
                 }
             }
             if let Err(source) = entry.sub.on_checkpoint(barrier, &mut self.context, runtime) {
+                let staged_after = self.context.staged_ids();
                 self.context.clear_staged();
                 return Err(EventFlushError::Subscriber {
                     subscriber_id: entry.id,
                     subscriber_name: entry.name,
+                    completed_subscribers,
+                    failed_subscriber_requires: format_data_ids(entry.requires),
+                    failed_subscriber_provides: format_data_ids(entry.provides),
+                    failed_subscriber_staged: staged_delta(&staged_before, &staged_after),
                     source,
                 });
             }
             if let Some(flag) = self.rollback_ready.get_mut(idx) {
                 *flag = true;
             }
+            completed_subscribers.push(CompletedSubscriber {
+                name: entry.name,
+                requires_data_ids: format_data_ids(entry.requires),
+                provides_data_ids: format_data_ids(entry.provides),
+                staged_data_ids: staged_delta(&staged_before, &self.context.staged_ids()),
+            });
         }
 
         self.pending.clear();
         self.context.finalize();
         self.telemetry.event_flushes += 1;
         self.telemetry.event_flush_nanos += flush_start.elapsed().as_nanos();
-        Ok(())
+        Ok(completed_subscribers)
     }
 
     /// Roll back lifecycle state in reverse deterministic order.
@@ -262,4 +275,38 @@ where
             .map(|&idx| self.subscribers[idx].id)
             .collect()
     }
+
+    pub fn resolved_subscriber_names(&self) -> Vec<&'static str> {
+        self.order
+            .iter()
+            .map(|&idx| self.subscribers[idx].name)
+            .collect()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CompletedSubscriber {
+    pub name: &'static str,
+    pub requires_data_ids: Vec<String>,
+    pub provides_data_ids: Vec<String>,
+    pub staged_data_ids: Vec<String>,
+}
+
+fn format_data_ids<D: std::fmt::Debug>(ids: &[D]) -> Vec<String> {
+    ids.iter().map(|id| format!("{id:?}")).collect()
+}
+
+fn staged_delta<D>(before: &[D], after: &[D]) -> Vec<String>
+where
+    D: Copy + Ord + std::fmt::Debug,
+{
+    let before = before
+        .iter()
+        .copied()
+        .collect::<std::collections::BTreeSet<_>>();
+    after
+        .iter()
+        .filter(|id| !before.contains(id))
+        .map(|id| format!("{id:?}"))
+        .collect()
 }

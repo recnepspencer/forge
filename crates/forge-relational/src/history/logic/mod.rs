@@ -1,10 +1,16 @@
 use std::collections::BTreeSet;
 
+use serde_json::json;
+
+use crate::diagnostics::data::{
+    DiagnosticCode, DiagnosticsScope, RelationalDiagnosticsEntry,
+};
 use crate::history::data::{
     BranchCreateError, BranchHead, BranchId, CommitId, MergeConflictRecord, MergeInspection,
     VersionGraphSnapshot,
 };
 use crate::logic::runtime::RelationalRuntime;
+use crate::storage::logic::state::SnapshotState;
 
 impl RelationalRuntime {
     pub fn latest_commit(&self) -> Option<&crate::history::data::CommitReference> {
@@ -144,8 +150,7 @@ impl RelationalRuntime {
             source_head.as_ref().map(|head| head.version_id),
         );
         if let Some(source_head) = source_head {
-            let state = self.ensure_visibility_state(source_head.version_id, false);
-            self.pin_branch_state(&state);
+            self.pin_branch_version(source_head.version_id);
         }
         Ok(())
     }
@@ -207,10 +212,13 @@ impl RelationalRuntime {
             .iter()
             .filter_map(|commit_id| self.history.commit_envelopes.get(commit_id))
             .flat_map(|envelope| envelope.patch.records.iter())
-            .filter_map(|record| match (record.entity_id, record.relation_id) {
-                (Some(entity_id), None) => Some(MergeConflictRecord::Entity(entity_id)),
-                (None, Some(relation_id)) => Some(MergeConflictRecord::Relation(relation_id)),
-                _ => None,
+            .map(|record| match record.target {
+                crate::transactions::data::RecordRef::Entity(entity_id) => {
+                    MergeConflictRecord::Entity(entity_id)
+                }
+                crate::transactions::data::RecordRef::Relation(relation_id) => {
+                    MergeConflictRecord::Relation(relation_id)
+                }
             })
             .collect()
     }
@@ -235,6 +243,15 @@ impl RelationalRuntime {
         if self.config.visibility_cache_policy.protect_replay_retained {
             self.bump_replay_ref(version_id, 1);
         }
+        self.diagnostic(DiagnosticsScope::Retention)
+            .minimal_summary()
+            .entries([replay_retention_diagnostic(
+                DiagnosticCode::ReplayRetentionPinned,
+                "replay retention pinned historical visibility state",
+                version_id,
+                &state,
+            )])
+            .emit();
         self.snapshots.replay_retained.insert(
             version_id,
             crate::logic::runtime::ReplayRetentionState { ref_count: 1 },
@@ -265,6 +282,33 @@ impl RelationalRuntime {
             self.bump_replay_ref(version_id, -1);
             self.evict_visibility_cache_if_needed();
         }
+        self.diagnostic(DiagnosticsScope::Retention)
+            .minimal_summary()
+            .entries([replay_retention_diagnostic(
+                DiagnosticCode::ReplayRetentionReleased,
+                "replay retention released historical visibility state",
+                version_id,
+                &state,
+            )])
+            .emit();
         true
+    }
+}
+
+fn replay_retention_diagnostic(
+    code: DiagnosticCode,
+    message: &str,
+    version_id: crate::identity::data::VersionId,
+    state: &SnapshotState,
+) -> RelationalDiagnosticsEntry {
+    RelationalDiagnosticsEntry {
+        code,
+        message: message.to_string(),
+        fields: json!({
+            "version_id": version_id.0,
+            "pinned_entity_count": state.pinned_entity_count,
+            "pinned_relation_count": state.pinned_relation_count,
+            "pinned_partition_count": state.pinned_partitions.len(),
+        }),
     }
 }

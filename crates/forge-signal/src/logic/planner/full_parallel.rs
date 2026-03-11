@@ -19,7 +19,8 @@ use super::semantic::{
     StageSemanticBatch, StageSemanticIdentity,
 };
 use super::types::{
-    EvaluationPlan, ExecutionReport, ParallelApplyMode, StageExecutionRecord, StageExecutor,
+    EvaluationTask, ExecutionReport, ParallelApplyMode, PlanSummary, StageExecutionRecord,
+    StageExecutor,
 };
 
 struct MaterializedApplyGroup {
@@ -30,11 +31,12 @@ struct MaterializedApplyGroup {
 
 pub(super) fn apply_full_parallel_stage(
     graph: &mut SignalGraph,
-    stage: &super::types::ExecutionStage,
+    stage_index: u32,
+    stage_tasks: &[EvaluationTask],
     patches: Vec<super::precompute::PreparedTaskPatch>,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
     executor: StageExecutor,
-    plan: &EvaluationPlan,
+    plan_summary: &PlanSummary,
     stage_identities: &[StageSemanticIdentity],
     report: &mut ExecutionReport,
     stage_record: &mut StageExecutionRecord,
@@ -112,18 +114,18 @@ pub(super) fn apply_full_parallel_stage(
         stage_record.serial_apply_task_count += 1;
         apply_serial_fallback_patch(
             graph,
-            stage,
+            stage_index,
             patch,
             comparator_resolver,
             executor,
-            plan,
+            plan_summary,
             stage_identities,
             &mut semantic_batch,
         )?;
     }
 
     let semantic_finalize_start = Instant::now();
-    finalize_stage_batch(graph, &stage.tasks, semantic_batch, report, stage_record)?;
+    finalize_stage_batch(graph, stage_tasks, semantic_batch, report, stage_record)?;
     stage_record.semantic_finalize_duration_nanos = semantic_finalize_start.elapsed().as_nanos();
     Ok(())
 }
@@ -221,11 +223,11 @@ fn build_group_segment(
 #[allow(clippy::too_many_arguments)]
 fn apply_serial_fallback_patch(
     graph: &mut SignalGraph,
-    stage: &super::types::ExecutionStage,
+    stage_index: u32,
     patch: super::precompute::PreparedTaskPatch,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
     executor: StageExecutor,
-    plan: &EvaluationPlan,
+    plan_summary: &PlanSummary,
     stage_identities: &[StageSemanticIdentity],
     semantic_batch: &mut StageSemanticBatch,
 ) -> Result<(), SignalError> {
@@ -252,11 +254,11 @@ fn apply_serial_fallback_patch(
             graph,
             ExecutionFailureContext::new(
                 ExecutionFailurePhase::Apply,
-                Some(stage.index),
+                Some(stage_index),
                 Some(patch.node),
                 Some(executor),
                 Some(identity.record_id),
-                Some(plan.summary.clone()),
+                Some(plan_summary.clone()),
                 err.to_string(),
             ),
         );
@@ -273,6 +275,7 @@ fn apply_serial_fallback_patch(
         dependency_updates,
         recomputed,
         partition_aware,
+        rewiring: patch.rewiring.clone(),
         prepared_outcome,
         prepared_origin,
     }));

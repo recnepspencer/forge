@@ -1,21 +1,15 @@
-pub(crate) mod apply;
-pub(crate) mod merge;
+use std::collections::{BTreeMap, VecDeque};
+use std::sync::{Mutex, RwLock};
 
-use std::cell::RefCell;
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
-
-use crate::durability::data::{DurableCheckpoint, DurableCommitEnvelope, DurableStore};
-use crate::history::data::{BranchId, VersionNode};
-use crate::indexes::data::{DerivedIndexDefinition, DerivedIndexGeneration, DerivedIndexId};
-use crate::lineage::data::{CorrespondenceCandidate, LineageEventRecord, LineageNode};
-use crate::publication::data::PublicationBundle;
+use crate::durability::data::DurableStore;
 use crate::query::data::QueryWorkPacket;
-use crate::replay::data::CanonicalCommitEnvelope;
 use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
-use crate::storage::logic::state::PartitionState;
+use crate::storage::overlay::PartitionState;
 use crate::symbols::data::StringInterner;
 use crate::transactions::data::TransactionOptions;
 use crate::transactions::logic::RelationalTransaction;
+
+mod state;
 
 pub use crate::config::data::RelationalRuntimeConfig;
 pub use crate::durability::data::RecoveryOutcome;
@@ -40,120 +34,38 @@ pub use crate::validation::data::{
     InvariantFailureEffect, InvariantRule, InvariantViolation, StorageInvariantReport,
 };
 
-use crate::storage::logic::state::{BorrowedWorkingState, SnapshotState};
-pub(crate) use crate::storage::logic::state::{PartitionAccess, WorkingState};
+use crate::storage::logic::state::{BorrowedWorkingState, OverlayStateView};
+pub(crate) use crate::storage::logic::state::{PartitionAccess, RelationalDraft, WorkingState};
+pub(crate) use state::{
+    DeterministicVersionWindowPolicy, DurabilityState, HistoryState, IndexState, LineageState,
+    PublicationState, ReplayRetentionState, RuntimeInstrumentation, RuntimeSequenceState,
+    SimulationState, SnapshotHandleBinding, SnapshotRegistry, VisibilityResidency,
+};
+pub use state::RelationalRuntime;
 
-#[derive(Debug, Clone, Default)]
-pub(crate) struct SnapshotRegistry {
-    pub(crate) active: BTreeMap<SnapshotId, SnapshotHandleBinding>,
-    pub(crate) published_handles: BTreeMap<SnapshotId, crate::identity::data::VersionId>,
-    pub(crate) visibility_states:
-        RefCell<BTreeMap<crate::identity::data::VersionId, SnapshotState>>,
-    pub(crate) visibility_residency:
-        RefCell<BTreeMap<crate::identity::data::VersionId, VisibilityResidency>>,
-    pub(crate) recent_policy: RefCell<DeterministicVersionWindowPolicy>,
-    pub(crate) replay_retained: BTreeMap<crate::identity::data::VersionId, ReplayRetentionState>,
-    pub(crate) next_snapshot_id: u64,
+pub struct SnapshotGuard<'runtime> {
+    runtime: &'runtime mut RelationalRuntime,
+    handle: SnapshotHandle,
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct SnapshotHandleBinding {
-    pub(crate) version_id: crate::identity::data::VersionId,
-    pub(crate) read_policy: SnapshotReadPolicy,
+impl SnapshotGuard<'_> {
+    pub fn handle(&self) -> &SnapshotHandle {
+        &self.handle
+    }
+
+    pub fn snapshot_id(&self) -> SnapshotId {
+        self.handle.snapshot_id
+    }
+
+    pub fn read(&self) -> Option<RelationalReadView> {
+        self.runtime.read_snapshot(&self.handle)
+    }
 }
 
-#[derive(Debug, Clone, Default)]
-pub(crate) struct VisibilityResidency {
-    pub(crate) branch_head_refs: u32,
-    pub(crate) replay_refs: u32,
-    pub(crate) active_snapshot_refs: u32,
-    pub(crate) recent_resident: bool,
-}
-
-#[derive(Debug, Clone, Default)]
-pub(crate) struct DeterministicVersionWindowPolicy {
-    pub(crate) recent_version_window: usize,
-    pub(crate) order: VecDeque<crate::identity::data::VersionId>,
-    pub(crate) resident_count: usize,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct ReplayRetentionState {
-    pub(crate) ref_count: usize,
-}
-
-#[derive(Debug, Clone, Default)]
-pub(crate) struct PublicationState {
-    pub(crate) diagnostics: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
-    pub(crate) latest_bundle: Option<PublicationBundle<RelationalReplayRecord>>,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct HistoryState {
-    pub(crate) branch_heads: BTreeMap<BranchId, Option<crate::history::data::CommitReference>>,
-    pub(crate) commit_graph: BTreeMap<crate::history::data::CommitId, VersionNode>,
-    pub(crate) commit_envelopes: BTreeMap<crate::history::data::CommitId, CanonicalCommitEnvelope>,
-    pub(crate) next_commit_id: u64,
-    pub(crate) next_version_id: u64,
-}
-
-#[derive(Debug, Clone, Default)]
-pub(crate) struct IndexState {
-    pub(crate) definitions: BTreeMap<DerivedIndexId, DerivedIndexDefinition>,
-    pub(crate) generations: BTreeMap<DerivedIndexId, Vec<DerivedIndexGeneration>>,
-    pub(crate) entity_unique_field_index:
-        BTreeMap<String, BTreeMap<String, BTreeSet<crate::identity::data::EntityId>>>,
-    pub(crate) next_index_id: u64,
-    pub(crate) next_generation_id: u64,
-}
-
-#[derive(Debug, Clone, Default)]
-pub(crate) struct LineageState {
-    pub(crate) nodes: BTreeMap<crate::identity::data::LineageId, LineageNode>,
-    pub(crate) events: Vec<LineageEventRecord>,
-    pub(crate) correspondence_candidates: Vec<CorrespondenceCandidate>,
-    pub(crate) next_lineage_id: u64,
-    pub(crate) next_event_id: u64,
-}
-
-#[derive(Debug, Clone, Default)]
-pub(crate) struct DurabilityState {
-    pub(crate) log: Vec<DurableCommitEnvelope>,
-    pub(crate) checkpoints: Vec<DurableCheckpoint>,
-    pub(crate) store: Option<DurableStore>,
-}
-
-#[derive(Debug, Clone, Default)]
-pub(crate) struct RuntimeSequenceState {
-    pub(crate) next_transaction_id: u64,
-    pub(crate) next_savepoint_id: u64,
-}
-
-#[derive(Debug, Clone, Default)]
-pub(crate) struct RuntimeInstrumentation {
-    pub(crate) complexity_counters: RefCell<RuntimeComplexityCounters>,
-}
-
-#[derive(Debug, Clone, Default)]
-pub(crate) struct SimulationState {
-    pub(crate) compiled_artifacts: BTreeMap<u64, CompiledExecutionArtifact>,
-    pub(crate) next_compiled_artifact_id: u64,
-}
-
-#[derive(Debug, Clone)]
-pub struct RelationalRuntime {
-    pub(crate) config: RelationalRuntimeConfig,
-    pub(crate) partitions: BTreeMap<crate::identity::data::PartitionId, PartitionState>,
-    pub(crate) snapshots: SnapshotRegistry,
-    pub(crate) publication: PublicationState,
-    pub(crate) history: HistoryState,
-    pub(crate) indexes: IndexState,
-    pub(crate) lineage: LineageState,
-    pub(crate) durability: DurabilityState,
-    pub(crate) sequence: RuntimeSequenceState,
-    pub(crate) symbols: StringInterner,
-    pub(crate) instrumentation: RuntimeInstrumentation,
-    pub(crate) simulation: SimulationState,
+impl Drop for SnapshotGuard<'_> {
+    fn drop(&mut self) {
+        let _ = self.runtime.release_snapshot(&self.handle);
+    }
 }
 
 impl RelationalRuntime {
@@ -163,9 +75,9 @@ impl RelationalRuntime {
             snapshots: SnapshotRegistry {
                 active: BTreeMap::new(),
                 published_handles: BTreeMap::new(),
-                visibility_states: RefCell::new(BTreeMap::new()),
-                visibility_residency: RefCell::new(BTreeMap::new()),
-                recent_policy: RefCell::new(DeterministicVersionWindowPolicy {
+                visibility_states: RwLock::new(BTreeMap::new()),
+                visibility_residency: RwLock::new(BTreeMap::new()),
+                recent_policy: Mutex::new(DeterministicVersionWindowPolicy {
                     recent_version_window: config.visibility_cache_policy.recent_version_window,
                     order: VecDeque::new(),
                     resident_count: 0,
@@ -178,6 +90,7 @@ impl RelationalRuntime {
                 branch_heads: BTreeMap::from([(config.main_branch.clone(), None)]),
                 commit_graph: BTreeMap::new(),
                 commit_envelopes: BTreeMap::new(),
+                patch_stream_index: BTreeMap::new(),
                 next_commit_id: 1,
                 next_version_id: 1,
             },
@@ -213,7 +126,7 @@ impl RelationalRuntime {
             },
             symbols: StringInterner::default(),
             instrumentation: RuntimeInstrumentation {
-                complexity_counters: RefCell::new(RuntimeComplexityCounters::default()),
+                complexity_counters: Mutex::new(RuntimeComplexityCounters::default()),
             },
             simulation: SimulationState {
                 compiled_artifacts: BTreeMap::new(),
@@ -225,6 +138,57 @@ impl RelationalRuntime {
 
     pub fn config(&self) -> &RelationalRuntimeConfig {
         &self.config
+    }
+
+    pub fn fork(&self) -> Self {
+        Self {
+            config: self.config.clone(),
+            partitions: self.partitions.clone(),
+            snapshots: SnapshotRegistry {
+                active: self.snapshots.active.clone(),
+                published_handles: self.snapshots.published_handles.clone(),
+                visibility_states: RwLock::new(
+                    self.snapshots
+                        .visibility_states
+                        .read()
+                        .expect("visibility state lock poisoned")
+                        .clone(),
+                ),
+                visibility_residency: RwLock::new(
+                    self.snapshots
+                        .visibility_residency
+                        .read()
+                        .expect("visibility residency lock poisoned")
+                        .clone(),
+                ),
+                recent_policy: Mutex::new(
+                    self.snapshots
+                        .recent_policy
+                        .lock()
+                        .expect("recent visibility policy lock poisoned")
+                        .clone(),
+                ),
+                replay_retained: self.snapshots.replay_retained.clone(),
+                next_snapshot_id: self.snapshots.next_snapshot_id,
+            },
+            publication: self.publication.clone(),
+            history: self.history.clone(),
+            indexes: self.indexes.clone(),
+            lineage: self.lineage.clone(),
+            durability: self.durability.clone(),
+            sequence: self.sequence.clone(),
+            symbols: self.symbols.clone(),
+            instrumentation: RuntimeInstrumentation {
+                complexity_counters: Mutex::new(
+                    self.instrumentation
+                        .complexity_counters
+                        .lock()
+                        .expect("complexity counter lock poisoned")
+                        .clone(),
+                ),
+            },
+            simulation: self.simulation.clone(),
+        }
     }
 
     pub(crate) fn partition(
@@ -279,6 +243,39 @@ impl RelationalRuntime {
             self.bump_active_snapshot_ref(handle.version_id, 1);
         }
         handle
+    }
+
+    pub fn pin_snapshot(
+        &mut self,
+        version_id: crate::identity::data::VersionId,
+    ) -> Option<SnapshotGuard<'_>> {
+        if self.read_or_reconstruct_visibility_state(version_id, false).is_none() {
+            return None;
+        }
+        let snapshot_id = SnapshotId(self.snapshots.next_snapshot_id);
+        self.snapshots.next_snapshot_id += 1;
+        let state = self.build_visibility_state(
+            version_id,
+            snapshot_id,
+            SnapshotReadPolicy::ImmutablePinned,
+        );
+        self.pin_snapshot_state(&state);
+        let handle = state.handle.clone();
+        self.snapshots.active.insert(
+            handle.snapshot_id,
+            SnapshotHandleBinding {
+                version_id: handle.version_id,
+                read_policy: handle.read_policy,
+            },
+        );
+        if self.config.visibility_cache_policy.protect_active_snapshots {
+            self.insert_visibility_state(state);
+            self.bump_active_snapshot_ref(handle.version_id, 1);
+        }
+        Some(SnapshotGuard {
+            runtime: self,
+            handle,
+        })
     }
 
     pub fn release_snapshot(&mut self, handle: &SnapshotHandle) -> bool {
@@ -357,12 +354,19 @@ impl RelationalRuntime {
     }
 
     pub fn complexity_counters(&self) -> RuntimeComplexityCounters {
-        self.instrumentation.complexity_counters.borrow().clone()
+        self.instrumentation
+            .complexity_counters
+            .lock()
+            .expect("complexity counter lock poisoned")
+            .clone()
     }
 
     pub fn reset_complexity_counters(&self) {
-        *self.instrumentation.complexity_counters.borrow_mut() =
-            RuntimeComplexityCounters::default();
+        *self
+            .instrumentation
+            .complexity_counters
+            .lock()
+            .expect("complexity counter lock poisoned") = RuntimeComplexityCounters::default();
     }
 
     pub fn invariants(&self, class: InvariantClass) -> StorageInvariantReport {
@@ -419,7 +423,13 @@ impl RelationalRuntime {
         &mut self,
         commit_id: crate::history::data::CommitId,
     ) -> bool {
-        self.history.commit_envelopes.remove(&commit_id).is_some()
+        let Some(envelope) = self.history.commit_envelopes.remove(&commit_id) else {
+            return false;
+        };
+        self.history
+            .patch_stream_index
+            .remove(&envelope.patch.position);
+        true
     }
 
     #[cfg(test)]
@@ -457,9 +467,9 @@ impl RelationalRuntime {
                 partition
                     .relation_arena
                     .payload_history
-                    .get(&(relation_id.local_slot.0 as usize))
-                    .map(Vec::len)
+                    .get(relation_id.local_slot.0 as usize)
             })
+            .map(Vec::len)
             .unwrap_or(0)
     }
 
@@ -467,10 +477,30 @@ impl RelationalRuntime {
         BorrowedWorkingState::new(&self.partitions)
     }
 
-    pub(crate) fn take_working_state(&mut self) -> WorkingState {
-        WorkingState::new(
-            std::mem::take(&mut self.partitions),
+    pub(crate) fn touched_partition_overlay(
+        &self,
+        touched_partitions: impl IntoIterator<Item = crate::identity::data::PartitionId>,
+    ) -> RelationalDraft {
+        RelationalDraft::from_touched_partitions(
+            &self.partitions,
+            touched_partitions,
             self.config.adjacency_policy.clone(),
         )
+    }
+
+    pub(crate) fn overlay_state_view<'a>(
+        &'a self,
+        staged: &'a RelationalDraft,
+    ) -> OverlayStateView<'a, RelationalDraft> {
+        OverlayStateView::new(&self.partitions, staged)
+    }
+
+    pub(crate) fn mutation_config(&self) -> crate::config::data::MutationConfig {
+        crate::config::data::MutationConfig {
+            patch_surface_policy: self.config.publication.patch_surface_policy,
+            cascade_delete_policy: self.config.cascade_delete_policy,
+            adjacency_policy: self.config.adjacency_policy.clone(),
+            cross_context_policy: self.config.cross_context_policy,
+        }
     }
 }

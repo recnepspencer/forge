@@ -6,10 +6,12 @@ use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
 use crate::data::output::{MemoizedResultOrigin, OutputChange};
+use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::profile::DiagnosticsProfile;
-use crate::logic::explain::{NodeExplanation, UpstreamCause};
+use crate::logic::explain::{CausalDisposition, NodeExplanation, UpstreamCause};
 use crate::logic::planner::{
-    EvaluationPlan, ExecutionReport, StageExecutionOutcome, TaskExecutionOutcome, TaskReason,
+    EvaluationPlan, EvaluationSession, ExecutionReport, StageExecutionOutcome,
+    TaskExecutionOutcome, TaskReason,
 };
 use crate::presentation::metrics::GraphMetrics;
 
@@ -71,6 +73,7 @@ pub struct ExecutionReportSummary {
 pub struct ExplanationSummary {
     pub profile: DiagnosticsProfile,
     pub node: NodeId,
+    pub materialization_mode: String,
     pub state: NodeState,
     pub dirty_aspect_count: u32,
     pub upstream_count: u32,
@@ -80,6 +83,16 @@ pub struct ExplanationSummary {
     pub clean_upstream_count: u32,
     pub missing_snapshot_count: u32,
     pub dependency_removed_count: u32,
+    pub conservative_cause_count: u32,
+    pub direct_scope_count: u32,
+    pub translated_scope_count: u32,
+    pub discarded_scope_count: u32,
+    pub insufficient_scope_count: u32,
+    pub rewired_dependency_count: u32,
+    pub direct_cause_kinds: Vec<String>,
+    pub scope_provenance_kinds: Vec<String>,
+    pub cause_note_samples: Vec<String>,
+    pub triage_classes: Vec<String>,
     pub propagation_suppressed: bool,
     pub execution_record_id: Option<u64>,
     pub semantic_segment_id: Option<u64>,
@@ -107,6 +120,11 @@ pub struct ExecutionHistorySummary {
     pub execution_record_count: u32,
     pub latest_execution_record_id: Option<u64>,
     pub nodes: Vec<ExecutionHistoryNodeSummary>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EventEpochHistorySummary {
+    pub epochs: Vec<EventEpochSummary>,
 }
 
 impl GraphSummary {
@@ -188,18 +206,53 @@ impl GraphSummary {
 
 impl EvaluationPlanSummary {
     pub fn from_plan(plan: &EvaluationPlan, profile: DiagnosticsProfile) -> Self {
+        Self::from_components(
+            plan.summary.requested_target_count,
+            plan.summary.stage_count,
+            plan.summary.task_count,
+            plan.summary.max_stage_width,
+            plan.stages.iter().map(|stage| stage.tasks.len() as u32),
+            plan.stages.iter().flat_map(|stage| stage.tasks.iter()),
+            profile,
+        )
+    }
+
+    pub(crate) fn from_session(
+        session: &EvaluationSession<'_>,
+        profile: DiagnosticsProfile,
+    ) -> Self {
+        Self::from_components(
+            session.summary.requested_target_count,
+            session.summary.stage_count,
+            session.summary.task_count,
+            session.summary.max_stage_width,
+            session
+                .stages
+                .iter()
+                .map(|stage| (stage.end - stage.start) as u32),
+            session.tasks.iter(),
+            profile,
+        )
+    }
+
+    fn from_components<'a>(
+        requested_target_count: u32,
+        stage_count: u32,
+        task_count: u32,
+        max_stage_width: u32,
+        stage_widths_iter: impl Iterator<Item = u32>,
+        tasks_iter: impl Iterator<Item = &'a crate::logic::planner::EvaluationTask>,
+        profile: DiagnosticsProfile,
+    ) -> Self {
         let mut task_reason_counts = BTreeMap::new();
         let mut direct_request_count = 0_u32;
-        let mut stage_widths = Vec::new();
-        for stage in &plan.stages {
-            stage_widths.push(stage.tasks.len() as u32);
-            for task in &stage.tasks {
-                *task_reason_counts
-                    .entry(format!("{:?}", task.reason))
-                    .or_insert(0) += 1;
-                if task.direct_request {
-                    direct_request_count += 1;
-                }
+        let mut stage_widths = stage_widths_iter.collect::<Vec<_>>();
+        for task in tasks_iter {
+            *task_reason_counts
+                .entry(format!("{:?}", task.reason))
+                .or_insert(0) += 1;
+            if task.direct_request {
+                direct_request_count += 1;
             }
         }
         if stage_widths.len() > profile.detail_limit() {
@@ -207,13 +260,13 @@ impl EvaluationPlanSummary {
         }
         Self {
             profile,
-            requested_target_count: plan.summary.requested_target_count,
-            stage_count: plan.summary.stage_count,
-            task_count: plan.summary.task_count,
-            max_stage_width: plan.summary.max_stage_width,
+            requested_target_count,
+            stage_count,
+            task_count,
+            max_stage_width,
             stage_widths,
             direct_request_count,
-            transitive_task_count: plan.summary.task_count.saturating_sub(direct_request_count),
+            transitive_task_count: task_count.saturating_sub(direct_request_count),
             task_reason_counts,
         }
     }
@@ -263,6 +316,15 @@ impl ExplanationSummary {
         let mut clean_upstream_count = 0_u32;
         let mut missing_snapshot_count = 0_u32;
         let mut dependency_removed_count = 0_u32;
+        let mut conservative_cause_count = 0_u32;
+        let mut direct_scope_count = 0_u32;
+        let mut translated_scope_count = 0_u32;
+        let mut discarded_scope_count = 0_u32;
+        let mut insufficient_scope_count = 0_u32;
+        let mut direct_cause_kinds = Vec::new();
+        let mut scope_provenance_kinds = Vec::new();
+        let mut cause_note_samples = Vec::new();
+        let mut triage_classes = Vec::new();
 
         for cause in &explanation.upstream {
             match cause {
@@ -274,10 +336,49 @@ impl ExplanationSummary {
                 UpstreamCause::DependencyRemoved { .. } => dependency_removed_count += 1,
             }
         }
+        for link in &explanation.causal_links {
+            if matches!(link.disposition, CausalDisposition::Conservative) {
+                conservative_cause_count += 1;
+            }
+            match link.scope.kind {
+                crate::logic::explain::ScopeProvenanceKind::Direct => direct_scope_count += 1,
+                crate::logic::explain::ScopeProvenanceKind::Translated => {
+                    translated_scope_count += 1
+                }
+                crate::logic::explain::ScopeProvenanceKind::Discarded => discarded_scope_count += 1,
+                crate::logic::explain::ScopeProvenanceKind::InsufficientEvidence => {
+                    insufficient_scope_count += 1
+                }
+                crate::logic::explain::ScopeProvenanceKind::None => {}
+            }
+            if direct_cause_kinds.len() < profile.detail_limit() {
+                direct_cause_kinds.push(link.kind.clone());
+            }
+            if !matches!(
+                link.scope.kind,
+                crate::logic::explain::ScopeProvenanceKind::None
+            ) && scope_provenance_kinds.len() < profile.detail_limit()
+            {
+                scope_provenance_kinds.push(format!("{:?}", link.scope.kind));
+            }
+            if let Some(note) = &link.note {
+                if cause_note_samples.len() < profile.detail_limit() {
+                    cause_note_samples.push(note.clone());
+                }
+            }
+            push_triage_class(
+                &mut triage_classes,
+                triage_class_for_link(link, explanation.rewiring.is_some()),
+            );
+        }
+        if explanation.rewiring.is_some() {
+            push_triage_class(&mut triage_classes, Some("rewiring".to_string()));
+        }
 
         Self {
             profile,
             node: explanation.node,
+            materialization_mode: format!("{:?}", explanation.materialization_mode),
             state: explanation.state,
             dirty_aspect_count: explanation.dirty_aspects.bits().count_ones(),
             upstream_count: explanation.upstream.len() as u32,
@@ -287,6 +388,20 @@ impl ExplanationSummary {
             clean_upstream_count,
             missing_snapshot_count,
             dependency_removed_count,
+            conservative_cause_count,
+            direct_scope_count,
+            translated_scope_count,
+            discarded_scope_count,
+            insufficient_scope_count,
+            rewired_dependency_count: explanation
+                .rewiring
+                .as_ref()
+                .map(|rewiring| (rewiring.added.len() + rewiring.removed.len()) as u32)
+                .unwrap_or(0),
+            direct_cause_kinds,
+            scope_provenance_kinds,
+            cause_note_samples,
+            triage_classes,
             propagation_suppressed: explanation.propagation_suppressed,
             execution_record_id: explanation.execution_record_id,
             semantic_segment_id: explanation.semantic_segment_id,
@@ -374,6 +489,40 @@ impl ExecutionReport {
 impl NodeExplanation {
     pub fn diagnostics_summary(&self, profile: DiagnosticsProfile) -> ExplanationSummary {
         ExplanationSummary::from_explanation(self, profile)
+    }
+}
+
+fn triage_class_for_link(
+    link: &crate::logic::explain::CausalLink,
+    rewired: bool,
+) -> Option<String> {
+    if rewired || matches!(link.disposition, CausalDisposition::Topology) {
+        return Some("rewiring".to_string());
+    }
+    if matches!(
+        link.scope.kind,
+        crate::logic::explain::ScopeProvenanceKind::Direct
+            | crate::logic::explain::ScopeProvenanceKind::Translated
+            | crate::logic::explain::ScopeProvenanceKind::Discarded
+            | crate::logic::explain::ScopeProvenanceKind::InsufficientEvidence
+    ) {
+        return Some("locality".to_string());
+    }
+    if matches!(link.disposition, CausalDisposition::Conservative)
+        || link.kind == "SkippedByComparator"
+        || link.kind.starts_with("ConditionDeferred::")
+    {
+        return Some("validation".to_string());
+    }
+    None
+}
+
+fn push_triage_class(target: &mut Vec<String>, value: Option<String>) {
+    let Some(value) = value else {
+        return;
+    };
+    if !target.contains(&value) {
+        target.push(value);
     }
 }
 

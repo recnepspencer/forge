@@ -29,14 +29,7 @@ impl FintechTruthSnapshot {
         world: &mut FintechWorld,
         executor: StageExecutor,
     ) -> Result<Self, SignalError> {
-        Self::capture(
-            world,
-            executor,
-            &[],
-            &[],
-            1,
-            1,
-        )
+        Self::capture(world, executor, &[], &[], 1, 1)
     }
 
     pub(super) fn capture(
@@ -57,7 +50,10 @@ impl FintechTruthSnapshot {
 
         let mut replays = BTreeMap::new();
         for (alias, branch) in replay_branches {
-            replays.insert((*alias).to_string(), world.replay_for_branch(branch.clone()));
+            replays.insert(
+                (*alias).to_string(),
+                world.replay_for_branch(branch.clone()),
+            );
         }
 
         let bucket_limit = bucket_count.min(world.bucket_aggregates.len());

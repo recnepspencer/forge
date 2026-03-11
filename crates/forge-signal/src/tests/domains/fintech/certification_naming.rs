@@ -21,7 +21,8 @@ pub(super) mod artifact_aliases {
 }
 
 pub(super) mod invariant_names {
-    pub(crate) const ANALYSIS_RESTORE_MATCHES: &str = "audit_eq:analysis_audit:restored_analysis_audit";
+    pub(crate) const ANALYSIS_RESTORE_MATCHES: &str =
+        "audit_eq:analysis_audit:restored_analysis_audit";
     pub(crate) const MAIN_RESTORE_MATCHES: &str = "audit_eq:baseline_audit:restored_main_audit";
     pub(crate) const ANALYSIS_REPLAY_HAS_ROLLBACK: &str =
         "replay_has_kind:analysis_replay_after:TransactionRolledBack";

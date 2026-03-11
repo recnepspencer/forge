@@ -1,11 +1,10 @@
-use crate::data::aspect::{AspectMask, AspectVersion};
+use crate::data::aspect::AspectVersion;
 use crate::data::comparator::ComparatorPolicyResolver;
 use crate::data::core_profile::StableHashValue;
-use crate::data::dependency::DependencySnapshot;
+use crate::data::dependency::{DependencySnapshot, DependencySnapshotEntry};
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
-use crate::data::node::NodeState;
 use crate::data::output::{MemoizedResultOrigin, NodeEvaluationResult, OutputChange};
 use crate::data::trace::TraceSummary;
 
@@ -117,9 +116,7 @@ pub(super) fn apply_evaluation_result_with_policy(
         let entry = graph.get_entry_mut(node)?;
         entry.set_aspect_version(result.aspect_version);
         entry.set_trace_summary(Some(trace_summary));
-        entry.set_state(NodeState::Clean);
-        entry.set_dirty_aspects(AspectMask::EMPTY);
-        entry.clear_dirty_partition_scopes();
+        entry.transition_clean();
     }
     graph.set_dep_snapshot(node, snapshot)?;
 
@@ -168,7 +165,7 @@ fn count_meaningful_input_changes(graph: &SignalGraph, node: NodeId) -> Result<u
             std::cmp::Ordering::Less => dep_index += 1,
             std::cmp::Ordering::Greater => snapshot_index += 1,
             std::cmp::Ordering::Equal => {
-                let cached = snapshot.2;
+                let cached = snapshot.cached_version;
                 if !graph.is_alive(dependency.source()) {
                     changes += 1;
                 } else {
@@ -229,25 +226,9 @@ fn canonical_changed_regions(
 
 fn compare_dependency_to_snapshot(
     dependency: &crate::data::dependency::DependencyEdge,
-    snapshot: &(
-        NodeId,
-        crate::data::aspect::Aspect,
-        u64,
-        Option<crate::data::output::PartitionSubscription>,
-    ),
+    snapshot: &DependencySnapshotEntry,
 ) -> std::cmp::Ordering {
-    (
-        dependency.source().index(),
-        dependency.source().generation(),
-        dependency.aspect().index(),
-        dependency.scope_ref(),
-    )
-        .cmp(&(
-            snapshot.0.index(),
-            snapshot.0.generation(),
-            snapshot.1.index(),
-            snapshot.3.as_ref(),
-        ))
+    dependency.sort_key().cmp(&snapshot.sort_key())
 }
 
 fn trace_identity_hash(identity: &crate::data::output::OutputIdentity) -> StableHashValue {

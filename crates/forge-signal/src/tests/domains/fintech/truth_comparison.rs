@@ -53,7 +53,10 @@ pub(super) fn compare_exact(
     for (alias, left_replay) in &left.replays {
         match right.replays.get(alias) {
             Some(right_replay) => {
-                if !compare_replay_slices(left_replay, right_replay).mismatches.is_empty() {
+                if !compare_replay_slices(left_replay, right_replay)
+                    .mismatches
+                    .is_empty()
+                {
                     mismatch.fields.push(format!("replay:{alias}"));
                 }
             }
@@ -64,7 +67,10 @@ pub(super) fn compare_exact(
     for (alias, left_lineage) in &left.lineages {
         match right.lineages.get(alias) {
             Some(right_lineage) => {
-                if !compare_lineage_records(left_lineage, right_lineage).mismatches.is_empty() {
+                if !compare_lineage_records(left_lineage, right_lineage)
+                    .mismatches
+                    .is_empty()
+                {
                     mismatch.fields.push(format!("lineage:{alias}"));
                 }
             }

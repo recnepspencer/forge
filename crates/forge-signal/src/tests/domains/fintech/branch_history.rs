@@ -49,5 +49,7 @@ pub(super) fn replay_around_snapshot(
 }
 
 pub(super) fn lineage_for_main_risk(fixture: &FintechDomainFixture) -> Vec<LineageRecord> {
-    fixture.runtime.lineage_chain_for_node(fixture.main_risk_node())
+    fixture
+        .runtime
+        .lineage_chain_for_node(fixture.main_risk_node())
 }

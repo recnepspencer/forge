@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
-use crate::data::aspect::{AspectMask, AspectVersion, MAX_ASPECTS};
+use crate::data::aspect::{Aspect, AspectMask, AspectVersion, MAX_ASPECTS};
 use crate::data::core_profile::HOT_VEC_INLINE_CAPACITY;
 use crate::data::dependency::DependencySnapshotId;
 use crate::data::graph::{DependencySetId, SubscriberSetId};
@@ -91,6 +91,33 @@ impl NodeEntry {
     /// Set the node state.
     pub fn set_state(&mut self, state: NodeState) {
         self.state = state;
+    }
+
+    /// Transition to `Clean` and clear all dirty tracking.
+    pub fn transition_clean(&mut self) {
+        self.set_state(NodeState::Clean);
+        self.set_dirty_aspects(AspectMask::EMPTY);
+        self.clear_dirty_partition_scopes();
+    }
+
+    /// Transition to `Dirty` for one aspect and merge any scoped dirty regions.
+    pub fn transition_dirty(&mut self, aspect: Aspect, scopes: &[PartitionSubscription]) {
+        let was_clean = matches!(self.state, NodeState::Clean);
+        let already_dirty_for_aspect = self.dirty_aspects.contains(AspectMask::from_aspect(aspect));
+        self.set_state(NodeState::Dirty);
+        self.add_dirty_aspect(aspect);
+        self.merge_dirty_partition_scopes(aspect, scopes, was_clean, already_dirty_for_aspect);
+    }
+
+    /// Transition to `MaybeStale` for one aspect.
+    pub fn transition_maybe_stale(&mut self, aspect: Aspect) {
+        let was_clean = matches!(self.state, NodeState::Clean);
+        let already_dirty_for_aspect = self.dirty_aspects.contains(AspectMask::from_aspect(aspect));
+        self.set_state(NodeState::MaybeStale);
+        self.add_dirty_aspect(aspect);
+        if was_clean || !already_dirty_for_aspect {
+            self.clear_dirty_partition_scopes_for(aspect);
+        }
     }
 
     /// Dirty aspects currently pending recomputation for this node.
@@ -248,6 +275,33 @@ impl NodeEntry {
             .is_some_and(|cold| cold.trace_summary.is_none() && cold.causality.is_none())
         {
             self.cold = None;
+        }
+    }
+
+    fn merge_dirty_partition_scopes(
+        &mut self,
+        changed_aspect: Aspect,
+        changed_scopes: &[PartitionSubscription],
+        was_clean: bool,
+        already_dirty_for_aspect: bool,
+    ) {
+        if changed_scopes.is_empty() {
+            // Whole-aspect invalidation supersedes scoped dirtiness for this aspect only.
+            self.clear_dirty_partition_scopes_for(changed_aspect);
+            return;
+        }
+        if !was_clean
+            && already_dirty_for_aspect
+            && self
+                .get_dirty_partition_scopes_for(changed_aspect)
+                .next()
+                .is_none()
+        {
+            // An existing whole-aspect dirty mark is already stronger than any scoped follow-up.
+            return;
+        }
+        for scope in changed_scopes {
+            self.add_dirty_partition_scope(changed_aspect, scope.clone());
         }
     }
 }

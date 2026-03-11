@@ -5,11 +5,12 @@ use crate::facade::StageExecutor;
 
 #[test]
 fn fintech_high_fanout_tolerance_session_recovers_after_masking_pressure() {
-    let mut fixture =
-        setup_seeded_world_with(FintechScale::fanout(), MarketRegime::Calm, 7);
+    let mut fixture = setup_seeded_world_with(FintechScale::fanout(), MarketRegime::Calm, 7);
     fixture.assert_shape(FintechScale::fanout());
 
-    let baseline_checkpoint = fixture.capture_active_checkpoint(StageExecutor::Serial).unwrap();
+    let baseline_checkpoint = fixture
+        .capture_active_checkpoint(StageExecutor::Serial)
+        .unwrap();
     let baseline_threshold = fixture
         .read_primary_threshold_with_executor(StageExecutor::Serial)
         .unwrap();
@@ -73,7 +74,9 @@ fn fintech_high_fanout_tolerance_session_recovers_after_masking_pressure() {
     assert_eq!(restored_scenario, baseline_scenario);
     assert_eq!(restored_threshold, baseline_threshold);
     assert_eq!(
-        fixture.read_primary_audit_surface(StageExecutor::Serial).unwrap(),
+        fixture
+            .read_primary_audit_surface(StageExecutor::Serial)
+            .unwrap(),
         baseline_checkpoint.audit
     );
 }

@@ -160,11 +160,34 @@ fn retention_plan_reports_explicit_replay_pins_for_deleted_relations_until_relea
     assert!(runtime.retain_version_for_replay(created.version_id));
 
     let pinned = runtime.inspect_retention_plan();
+    let diagnostics = runtime.diagnostics();
+    let retention_artifacts = diagnostics.by_scope(DiagnosticsScope::Retention);
+    let latest_retention = retention_artifacts.last().unwrap();
+    let latest_entry = latest_retention.entries.last().unwrap();
+    assert!(retention_artifacts
+        .iter()
+        .flat_map(|artifact| artifact.entries.iter())
+        .any(|entry| entry.code == DiagnosticCode::ReplayRetentionPinned));
     assert!(pinned.replay_pinned_relations >= 1);
     assert_eq!(pinned.reclaimable_relations, 0);
+    assert_eq!(latest_entry.code, DiagnosticCode::RetentionPlanInspected);
+    assert_eq!(
+        latest_entry.fields["replay_pinned_relations"].as_u64(),
+        Some(pinned.replay_pinned_relations as u64)
+    );
+    assert_eq!(
+        latest_entry.fields["branch_pinned_relations"].as_u64(),
+        Some(pinned.branch_pinned_relations as u64)
+    );
+    assert!(
+        latest_entry.fields["branch_replay_overlap_relations"]
+            .as_u64()
+            .unwrap_or(0)
+            >= 1
+    );
 
     assert!(runtime.release_version_replay_retention(created.version_id));
     let released = runtime.inspect_retention_plan();
     assert_eq!(released.replay_pinned_relations, 0);
-    assert!(released.reclaimable_relations >= 1);
+    assert!(released.branch_pinned_relations >= 1);
 }

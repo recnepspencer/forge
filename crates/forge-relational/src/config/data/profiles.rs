@@ -237,6 +237,7 @@ fn default_profile_config(profile: RelationalRuntimeProfile) -> RelationalRuntim
             PublicationConfig {
                 coherent_publication_required: true,
                 max_patch_records_per_commit: 4096,
+                max_published_snapshot_handles: 256,
                 patch_surface_policy: PatchSurfacePolicy::StructuredPatchSurface,
             },
             CompiledLanePolicy::Disabled,
@@ -293,6 +294,7 @@ fn default_profile_config(profile: RelationalRuntimeProfile) -> RelationalRuntim
             PublicationConfig {
                 coherent_publication_required: true,
                 max_patch_records_per_commit: 8192,
+                max_published_snapshot_handles: 64,
                 patch_surface_policy: PatchSurfacePolicy::StructuredPatchSurface,
             },
             CompiledLanePolicy::Disabled,
@@ -349,6 +351,7 @@ fn default_profile_config(profile: RelationalRuntimeProfile) -> RelationalRuntim
             PublicationConfig {
                 coherent_publication_required: true,
                 max_patch_records_per_commit: 16384,
+                max_published_snapshot_handles: 64,
                 patch_surface_policy: PatchSurfacePolicy::DensePatchSurface,
             },
             CompiledLanePolicy::DerivedCompiledLane,
@@ -405,6 +408,7 @@ fn default_profile_config(profile: RelationalRuntimeProfile) -> RelationalRuntim
             PublicationConfig {
                 coherent_publication_required: true,
                 max_patch_records_per_commit: 8192,
+                max_published_snapshot_handles: 128,
                 patch_surface_policy: PatchSurfacePolicy::StructuredPatchSurface,
             },
             CompiledLanePolicy::Disabled,

@@ -50,16 +50,17 @@ pub use crate::diagnostics::{
     repeat_run_summaries_equal, replay_slices_equivalent, reports_semantically_equivalent,
     serial_parallel_reports_equivalent, ApplySummary, ArtifactMaterializationMode,
     ArtifactRetentionPolicy, ChangeInputSummary, DiagnosticMismatch, DiagnosticMismatchCategory,
-    DiagnosticsPolicy, DiagnosticsProfile, EvaluationPlanSummary, ExecutionFailureContext,
+    DiagnosticsPolicy, DiagnosticsProfile, EvaluationPlanSummary, EventEpochOutcome,
+    EventEpochSummary, EventSubscriberOutcome, EventSubscriberOutcomeKind, ExecutionFailureContext,
     ExecutionFailurePhase, ExecutionHistoryNodeSummary, ExecutionHistorySummary,
     ExecutionInspector, ExecutionReportDiff, ExecutionReportSummary, ExplanationDiff,
-    ExplanationSummary, FailureDiff, FailureSummary, FlowDiff, FlowInspector, FlowSummary,
-    GraphDiagnostics, GraphDiff, GraphInspector, GraphSummary, HistoryDiff, InvalidationSummary,
-    LineageArtifactId, LineageDiff, LineageEvent, LineageRecord, ParallelAdmissionPolicy, PlanDiff,
-    PlanInspector, PlanningSummary, PrecomputeSummary, ReplayCursor, ReplayDetailPolicy,
-    ReplayDiff, ReplayEventKind, ReplayFrame, ReplaySlice, ReportInspector, RollbackDiagnostic,
-    RollbackSummary, RuntimeDiagnostics, SemanticRetentionPolicy, SignalRuntimePolicy,
-    SnapshotRestoreLineageMode,
+    ExplanationSummary, FailureDiff, FailureSummary, FlowCauseSample, FlowDiff, FlowInspector,
+    FlowSummary, GraphDiagnostics, GraphDiff, GraphInspector, GraphSummary, HistoryDiff,
+    InvalidationSummary, LineageArtifactId, LineageDiff, LineageEvent, LineageRecord,
+    ParallelAdmissionPolicy, PlanDiff, PlanInspector, PlanningSummary, PrecomputeSummary,
+    ReplayCursor, ReplayDetailPolicy, ReplayDiff, ReplayEventKind, ReplayFrame, ReplaySlice,
+    ReportInspector, RollbackDiagnostic, RollbackSummary, RuntimeDiagnostics,
+    SemanticRetentionPolicy, SignalRuntimePolicy, SnapshotRestoreLineageMode,
 };
 
 // Re-export Logic constructs
@@ -72,7 +73,8 @@ pub use crate::logic::evaluation::{
 };
 pub use crate::logic::events::{EventBus, EventFlushError, SubscriberRegistryError};
 pub use crate::logic::explain::{
-    ConditionDecision, MeaningfulChangeReason, NodeExplanation, UpstreamCause,
+    CausalDisposition, CausalLink, ConditionDecision, MeaningfulChangeReason, NodeExplanation,
+    RewiringDependency, RewiringSummary, ScopeProvenance, ScopeProvenanceKind, UpstreamCause,
 };
 pub use crate::logic::invalidation::{mark_dirty, mark_dirty_with_regions};
 #[cfg(feature = "parallel")]

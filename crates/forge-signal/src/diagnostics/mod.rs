@@ -2,6 +2,8 @@ pub mod access;
 pub mod compare;
 pub mod diff;
 pub mod display;
+pub mod epochs;
+pub(crate) mod execution_flow;
 pub mod facts;
 pub mod failure;
 pub mod flow;
@@ -32,13 +34,16 @@ pub use display::{
     render_execution_history_summary, render_execution_report_summary, render_explanation_summary,
     render_failure_summary, render_flow_summary, render_graph_summary, render_plan_summary,
 };
+pub use epochs::{
+    EventEpochOutcome, EventEpochSummary, EventSubscriberOutcome, EventSubscriberOutcomeKind,
+};
 pub use facts::{ExplanationFact, ProvenanceFact};
 pub use failure::{
     ExecutionFailureContext, ExecutionFailurePhase, FailureSummary, RollbackDiagnostic,
 };
 pub use flow::{
-    ApplySummary, ChangeInputSummary, FlowSummary, InvalidationSummary, PlanningSummary,
-    PrecomputeSummary, RollbackSummary,
+    ApplySummary, ChangeInputSummary, FlowCauseSample, FlowSummary, InvalidationSummary,
+    PlanningSummary, PrecomputeSummary, RollbackSummary,
 };
 pub use history::{
     inspect_execution, inspect_flow, inspect_graph, inspect_plan, inspect_report,

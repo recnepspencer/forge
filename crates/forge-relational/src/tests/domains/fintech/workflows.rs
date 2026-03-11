@@ -360,7 +360,7 @@ fn fintech_branch_divergence_merge_and_savepoint_verbs_stay_case_local() {
     let audit = open_audit_branch(&mut world);
 
     let rollback = rollback_seeded_trade_correction_after_savepoint(&mut world, analysis.clone());
-    assert!(!rollback.restored_records.is_empty());
+    assert!(!rollback.effects.is_empty());
 
     let _saved = commit_case_trade_after_savepoint(&mut world, analysis.clone());
     let _diverged = diverge_case_trade_on_branch(
@@ -413,7 +413,7 @@ fn fintech_failure_injection_helpers_cover_savepoints_replay_and_checkpoint_corr
     let rollback = rollback_seeded_trade_correction_after_savepoint(&mut world, analysis.clone());
     let invalid_code = invalid_savepoint_rollback_code(&mut world, analysis.clone());
 
-    assert!(!rollback.restored_records.is_empty());
+    assert!(!rollback.effects.is_empty());
     assert_eq!(
         invalid_code,
         crate::facade::DiagnosticCode::InvalidSavepoint

@@ -204,7 +204,7 @@ fn snapshot_churn_reorders_dependencies_without_ghost_snapshots() {
 
     let snapshot = runtime.graph().get_dep_snapshot(dependent).unwrap();
     assert_eq!(snapshot.entries().len(), 1);
-    assert_eq!(snapshot.entries()[0].0, b);
+    assert_eq!(snapshot.entries()[0].source, b);
 
     let explanation = runtime.explain(dependent).unwrap();
     assert!(!format!("{:?}", explanation).contains(&a.to_string()));

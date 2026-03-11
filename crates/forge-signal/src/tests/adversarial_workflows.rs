@@ -1539,7 +1539,8 @@ fn parallel_fintech_hostile_session_matches_serial_truth() {
 #[test]
 fn focused_parallel_branch_restore_and_evaluate_dirty_regression() {
     trace_adv("[parallel-test] focused-regression:start");
-    let mut fixture = build_geometry_fixture(SignalRuntimePolicy::development().with_history_limit(8));
+    let mut fixture =
+        build_geometry_fixture(SignalRuntimePolicy::development().with_history_limit(8));
     let mut model = ReferenceModel::default();
     let (main, main_snapshot) = seed_geometry_baseline(&mut fixture, &mut model);
     trace_adv("[parallel-test] focused-regression:seeded-main");

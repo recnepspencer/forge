@@ -44,6 +44,16 @@ impl<D: Copy + Ord + std::fmt::Debug + 'static> SubscriberContext<D> {
         self.committed.get(&id)?.downcast_ref::<T>()
     }
 
+    /// Return the currently staged data ids in deterministic order.
+    pub fn staged_ids(&self) -> Vec<D> {
+        self.staged.keys().copied().collect()
+    }
+
+    /// Return the currently committed data ids in deterministic order.
+    pub fn committed_ids(&self) -> Vec<D> {
+        self.committed.keys().copied().collect()
+    }
+
     /// Promote staged values to committed values.
     ///
     /// Existing committed entries for the same IDs are replaced.

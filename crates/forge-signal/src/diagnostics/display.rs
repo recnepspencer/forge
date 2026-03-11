@@ -43,14 +43,17 @@ pub fn render_execution_report_summary(summary: &ExecutionReportSummary) -> Stri
 
 pub fn render_explanation_summary(summary: &ExplanationSummary) -> String {
     format!(
-        "ExplanationSummary profile={:?} node={} state={:?} upstream={} changed={} skipped={} deferred={}",
+        "ExplanationSummary profile={:?} node={} state={:?} upstream={} changed={} skipped={} deferred={} locality(discarded={},insufficient={}) triage={:?}",
         summary.profile,
         summary.node,
         summary.state,
         summary.upstream_count,
         summary.changed_upstream_count,
         summary.skipped_upstream_count,
-        summary.condition_deferred_count
+        summary.condition_deferred_count,
+        summary.discarded_scope_count,
+        summary.insufficient_scope_count,
+        summary.triage_classes
     )
 }
 
@@ -66,14 +69,16 @@ pub fn render_execution_history_summary(summary: &ExecutionHistorySummary) -> St
 
 pub fn render_flow_summary(summary: &FlowSummary) -> String {
     format!(
-        "FlowSummary profile={:?} changed_nodes={} changed_regions={} planned_tasks={} prepared={} applied={} rollback={}",
+        "FlowSummary profile={:?} changed_nodes={} changed_regions={} planned_tasks={} prepared={} applied={} rollback={} samples={} epochs={}",
         summary.profile,
         summary.change.changed_nodes.len(),
         summary.change.changed_region_count,
         summary.planning.plan.task_count,
         summary.precompute.prepared_evaluations_produced,
         summary.apply.prepared_evaluations_applied,
-        summary.rollback.is_some()
+        summary.rollback.is_some(),
+        summary.cause_samples.len(),
+        summary.event_epochs.len()
     )
 }
 

@@ -88,7 +88,7 @@ impl HarnessAdapter for RelationalHarnessAdapter {
             .changed_records
             .iter()
             .filter_map(|record| match record {
-                crate::transactions::data::RecordRef::Entity(entity_id) => Some(*entity_id),
+                crate::transactions::data::RecordRef::Entity(entity_id) => Some(entity_id.clone()),
                 crate::transactions::data::RecordRef::Relation(_) => None,
             })
             .collect::<Vec<_>>();
@@ -217,7 +217,7 @@ impl HarnessAdapter for RelationalHarnessAdapter {
     ) -> Result<SnapshotRecord<Self::TargetId>, Self::Error> {
         let scenario_id_value = forge_harness::facade::scenario_id(&fixture.name);
         let run_id_value = run_id(&scenario_id_value, &profile.name, &request.name);
-        let mut clone = runtime.clone();
+        let mut clone = runtime.fork();
         let snapshot = clone.snapshot();
         let mut read_view = clone.read_version(snapshot.version_id);
         read_view.snapshot = snapshot.clone();

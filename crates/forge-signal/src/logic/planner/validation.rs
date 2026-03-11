@@ -46,21 +46,21 @@ pub(crate) fn preview_maybe_stale(
     let mut requires_upstream_evaluation = Vec::new();
     let mut meaningful_change_detected = false;
 
-    for (source, aspect, cached_version, scope) in snapshot.entries() {
-        if !graph.is_alive(*source) {
+    for snapshot_entry in snapshot.entries() {
+        if !graph.is_alive(snapshot_entry.source) {
             meaningful_change_detected = true;
             continue;
         }
 
-        let source_entry = graph.get_entry(*source)?;
+        let source_entry = graph.get_entry(snapshot_entry.source)?;
         if !matches!(source_entry.get_state(), NodeState::Clean) {
-            requires_upstream_evaluation.push(*source);
+            requires_upstream_evaluation.push(snapshot_entry.source);
             continue;
         }
 
-        let current_version = source_entry.get_aspect_version().get(*aspect);
-        if let Some(scope) = scope {
-            if current_version == *cached_version {
+        let current_version = source_entry.get_aspect_version().get(snapshot_entry.aspect);
+        if let Some(scope) = &snapshot_entry.scope {
+            if current_version == snapshot_entry.cached_version {
                 continue;
             }
             if partition_scope_untouched(source_entry.get_trace_summary(), scope) {
@@ -70,7 +70,12 @@ pub(crate) fn preview_maybe_stale(
             continue;
         }
 
-        if comparator.has_meaningful_change(*aspect, *cached_version, current_version, resolver)? {
+        if comparator.has_meaningful_change(
+            snapshot_entry.aspect,
+            snapshot_entry.cached_version,
+            current_version,
+            resolver,
+        )? {
             meaningful_change_detected = true;
         }
     }

@@ -21,7 +21,7 @@ use crate::logic::events::EventBus;
 use crate::logic::explain::{explain_with_policy_resolver, NodeExplanation};
 use crate::logic::transaction::patch_buffer::SparsePatchBuffer;
 use crate::presentation::metrics::RuntimeMetrics;
-use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotV1};
+use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId, SignalSnapshotV1};
 
 use super::builder::SignalRuntimeBuilder;
 use super::config::SignalRuntimeConfig;
@@ -54,6 +54,7 @@ where
     pub(super) event_bus: EventBus<E, D, Ctx>,
     pub(super) telemetry: RuntimeTelemetry,
     branches: BTreeMap<SignalBranchId, RuntimeBranchState<D, I, T>>,
+    branch_snapshots: BTreeMap<SignalSnapshotId, RuntimeBranchState<D, I, T>>,
 }
 
 pub struct SignalGraphMut<'a, D, I, E, Ctx, T>
@@ -131,6 +132,7 @@ where
             event_bus,
             telemetry: RuntimeTelemetry::default(),
             branches: BTreeMap::new(),
+            branch_snapshots: BTreeMap::new(),
         }
     }
 
@@ -275,6 +277,7 @@ where
             partition_match_dirty_count: self.telemetry.partition_match_dirty_count,
             detail_match_dirty_count: self.telemetry.detail_match_dirty_count,
             partition_scope_revert_clean_count: self.telemetry.partition_scope_revert_clean_count,
+            partition_interner_growth_delta: self.telemetry.partition_interner_growth_delta,
             graph_storage_compaction_count: self.telemetry.graph_storage_compaction_count,
             graph_storage_dependency_segments_rewritten: self
                 .telemetry
@@ -284,6 +287,7 @@ where
                 .graph_storage_subscriber_segments_rewritten,
             graph_storage_snapshot_rewrites: self.telemetry.graph_storage_snapshot_rewrites,
             rolled_back_created_node_count: self.telemetry.rolled_back_created_node_count,
+            subscriber_index_rebuild_count: self.telemetry.subscriber_index_rebuild_count,
             plans_built: self.telemetry.plans_built,
             stages_built: self.telemetry.stages_built,
             tasks_scheduled: self.telemetry.tasks_scheduled,
@@ -299,6 +303,7 @@ where
             prepared_evaluations_produced: self.telemetry.prepared_evaluations_produced,
             prepared_evaluations_applied: self.telemetry.prepared_evaluations_applied,
             dependency_capture_updates: self.telemetry.dependency_capture_updates,
+            rewiring_apply_count: self.telemetry.rewiring_apply_count,
             serial_precompute_task_count: self.telemetry.serial_precompute_task_count,
             parallel_precompute_task_count: self.telemetry.parallel_precompute_task_count,
             execution_snapshot_nanos: self.telemetry.execution_snapshot_nanos,
@@ -338,6 +343,8 @@ where
     pub fn capture_snapshot(&mut self) -> SignalSnapshotV1 {
         let mut snapshot = self.graph.capture_snapshot();
         snapshot.runtime_telemetry = Some(self.telemetry.clone());
+        self.branch_snapshots
+            .insert(snapshot.meta.snapshot_id, self.capture_branch_state());
         let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
         self.synchronize_branch_catalogs(branch_catalog);
         snapshot
@@ -449,6 +456,10 @@ where
             let branch_catalog = state.graph.diagnostics_state().branch_catalog().clone();
             (snapshot, branch_catalog)
         };
+        if let Some(state) = self.branches.get(&branch.id).cloned() {
+            self.branch_snapshots
+                .insert(snapshot.meta.snapshot_id, state);
+        }
         self.synchronize_branch_catalogs(branch_catalog);
         Ok(snapshot)
     }
@@ -468,6 +479,16 @@ where
         if branch.id == self.graph.current_branch().id {
             return self.restore_snapshot(snapshot);
         }
+        let snapshot_state = self
+            .branch_snapshots
+            .get(&snapshot.meta.snapshot_id)
+            .cloned()
+            .ok_or_else(|| {
+                SignalError::invalid_input(format!(
+                    "snapshot `{}` is missing runtime-local branch semantic state",
+                    snapshot.meta.snapshot_id.0
+                ))
+            })?;
         let current_diagnostics = self
             .branches
             .get(&branch.id)
@@ -489,12 +510,12 @@ where
             .set_branch_head_snapshot(branch.id, snapshot.meta.snapshot_id);
         let state = RuntimeBranchState {
             graph,
-            config: self.config.clone(),
-            checkpoint: self.checkpoint.clone(),
+            config: snapshot_state.config,
+            checkpoint: snapshot_state.checkpoint,
             telemetry: snapshot
                 .runtime_telemetry
                 .clone()
-                .unwrap_or_else(|| self.telemetry.clone()),
+                .unwrap_or(snapshot_state.telemetry),
         };
         let mut state = state;
         crate::diagnostics::recorder::record_snapshot_restore_lineage(
@@ -671,8 +692,7 @@ where
             staged_dirty: crate::data::dirty_set::BatchedDirtySet::new(),
             staged_checkpoint_flushes: 0,
             staged_checkpoint_flush_nanos: 0,
-            staged_events: Vec::new(),
-            staged_event_flushes: Vec::new(),
+            staged_event_operations: Vec::new(),
             staged_memo_writes: std::collections::BTreeMap::new(),
             graph_patches: SparsePatchBuffer::new(),
             created_nodes: Vec::new(),

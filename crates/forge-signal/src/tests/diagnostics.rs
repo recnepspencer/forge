@@ -249,6 +249,8 @@ fn flow_and_failure_summaries_are_structured_and_diffable() {
         PlanningSummary::from_plan(&plan, DiagnosticsProfile::Development),
         PrecomputeSummary::from_report(&report, DiagnosticsProfile::Development),
         ApplySummary::from_report(&report, DiagnosticsProfile::Development),
+        Vec::new(),
+        Vec::new(),
         None,
         Some(explanation.diagnostics_summary(DiagnosticsProfile::Development)),
     );
@@ -266,7 +268,13 @@ fn flow_and_failure_summaries_are_structured_and_diffable() {
         Some(plan.summary.clone()),
         "precompute failed",
     );
-    let rollback = RollbackDiagnostic::new(true, 3, 2, Some("rewound staged changes".to_string()));
+    let rollback = RollbackDiagnostic::new(
+        true,
+        3,
+        2,
+        Some("rewound staged changes".to_string()),
+        Vec::new(),
+    );
     let failure_summary = failure.summarize(Some(&rollback), DiagnosticsProfile::Forensic);
     let failure_summary_2 = failure.summarize(None, DiagnosticsProfile::Forensic);
     assert!(!compare_failures(&failure_summary, &failure_summary_2).is_empty());

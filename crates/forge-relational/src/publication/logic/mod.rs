@@ -1,4 +1,4 @@
-use serde_json::json;
+use serde_json::{json, Value};
 
 use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticsArtifactKind, DiagnosticsScope,
@@ -10,7 +10,7 @@ use crate::publication::data::diff::{
 };
 use crate::publication::data::{PublicationBundle, PublicationStatus};
 use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
-use crate::storage::logic::state::{PartitionAccess, PublicationArtifacts};
+use crate::storage::logic::state::PublicationArtifacts;
 
 impl RelationalRuntime {
     pub fn diagnostics(&self) -> RelationalDiagnosticsFacade {
@@ -48,21 +48,18 @@ impl RelationalRuntime {
             });
         }
 
-        let mut envelopes = self
+        let latest_position = self
             .history
-            .commit_envelopes
-            .values()
-            .map(|envelope| &envelope.patch)
-            .collect::<Vec<_>>();
-        envelopes.sort_by_key(|patch| patch.position);
-
-        let latest_position = envelopes.last().map(|patch| patch.position);
+            .patch_stream_index
+            .last_key_value()
+            .map(|(position, _)| *position);
         let latest_commit_id = self.latest_commit().map(|commit| commit.commit_id);
 
         if let Some(after_position) = request.after_position {
-            if !envelopes
-                .iter()
-                .any(|patch| patch.position == after_position)
+            if !self
+                .history
+                .patch_stream_index
+                .contains_key(&after_position)
             {
                 return Err(PatchStreamReadError {
                     class: PatchStreamReadErrorClass::UnknownResumePosition,
@@ -71,15 +68,17 @@ impl RelationalRuntime {
             }
         }
 
-        let patches = envelopes
-            .into_iter()
-            .filter(|patch| {
-                request
-                    .after_position
-                    .is_none_or(|position| patch.position > position)
-            })
+        let start = request
+            .after_position
+            .map(|position| std::ops::Bound::Excluded(position))
+            .unwrap_or(std::ops::Bound::Unbounded);
+        let patches = self
+            .history
+            .patch_stream_index
+            .range((start, std::ops::Bound::Unbounded))
+            .filter_map(|(_, commit_id)| self.history.commit_envelopes.get(commit_id))
+            .map(|envelope| envelope.patch.clone())
             .take(request.max_commits)
-            .cloned()
             .collect::<Vec<_>>();
 
         Ok(PatchStreamBatch {
@@ -95,26 +94,36 @@ impl RelationalRuntime {
         self.publication.diagnostics.push(artifact);
     }
 
+    pub(crate) fn prune_published_snapshot_handles_if_needed(&mut self) {
+        let limit = self
+            .config
+            .publication
+            .max_published_snapshot_handles
+            .max(1);
+        while self.snapshots.published_handles.len() > limit {
+            let Some(oldest_snapshot_id) = self.snapshots.published_handles.keys().next().copied()
+            else {
+                break;
+            };
+            self.snapshots.published_handles.remove(&oldest_snapshot_id);
+        }
+    }
+
     pub(crate) fn push_bounded_diagnostic(
         &mut self,
         scope: DiagnosticsScope,
         kind: DiagnosticsArtifactKind,
         entries: Vec<RelationalDiagnosticsEntry>,
     ) -> RelationalDiagnosticArtifact {
-        let max_entries = self.config.diagnostics.max_entries_per_artifact;
-        let artifact = RelationalDiagnosticArtifact {
-            scope,
-            kind,
-            determinism: DeterminismExpectation::Required,
-            entries: entries.into_iter().take(max_entries).collect(),
-        };
-        self.push_diagnostic_artifact(artifact.clone());
-        artifact
+        self.diagnostic(scope).kind(kind).entries(entries).emit()
+    }
+
+    pub(crate) fn diagnostic(&mut self, scope: DiagnosticsScope) -> DiagnosticArtifactBuilder<'_> {
+        DiagnosticArtifactBuilder::new(self, scope)
     }
 
     pub(crate) fn assemble_publication_bundle(
         &mut self,
-        _staged: &impl PartitionAccess,
         commit_reference: crate::history::data::CommitReference,
         version_id: crate::identity::data::VersionId,
         patch: crate::publication::data::diff::RelationalPatchRecord,
@@ -148,6 +157,88 @@ impl RelationalRuntime {
             diagnostics_summary,
             bundle,
         }
+    }
+}
+
+pub(crate) struct DiagnosticArtifactBuilder<'runtime> {
+    runtime: &'runtime mut RelationalRuntime,
+    scope: DiagnosticsScope,
+    kind: DiagnosticsArtifactKind,
+    entries: Vec<RelationalDiagnosticsEntry>,
+}
+
+impl<'runtime> DiagnosticArtifactBuilder<'runtime> {
+    fn new(runtime: &'runtime mut RelationalRuntime, scope: DiagnosticsScope) -> Self {
+        Self {
+            runtime,
+            scope,
+            kind: DiagnosticsArtifactKind::MinimalSummary,
+            entries: Vec::new(),
+        }
+    }
+
+    pub(crate) fn kind(mut self, kind: DiagnosticsArtifactKind) -> Self {
+        self.kind = kind;
+        self
+    }
+
+    pub(crate) fn minimal_summary(self) -> Self {
+        self.kind(DiagnosticsArtifactKind::MinimalSummary)
+    }
+
+    pub(crate) fn failure(self) -> Self {
+        self.kind(DiagnosticsArtifactKind::Failure)
+    }
+
+    pub(crate) fn rollback(self) -> Self {
+        self.kind(DiagnosticsArtifactKind::Rollback)
+    }
+
+    pub(crate) fn comparison(self) -> Self {
+        self.kind(DiagnosticsArtifactKind::Comparison)
+    }
+
+    pub(crate) fn entry(
+        mut self,
+        code: crate::diagnostics::data::DiagnosticCode,
+        message: impl Into<String>,
+        fields: Value,
+    ) -> Self {
+        self.entries.push(RelationalDiagnosticsEntry {
+            code,
+            message: message.into(),
+            fields,
+        });
+        self
+    }
+
+    pub(crate) fn entries(
+        mut self,
+        entries: impl IntoIterator<Item = RelationalDiagnosticsEntry>,
+    ) -> Self {
+        self.entries.extend(entries);
+        self
+    }
+
+    pub(crate) fn emit_entry(
+        self,
+        code: crate::diagnostics::data::DiagnosticCode,
+        message: impl Into<String>,
+        fields: Value,
+    ) -> RelationalDiagnosticArtifact {
+        self.entry(code, message, fields).emit()
+    }
+
+    pub(crate) fn emit(self) -> RelationalDiagnosticArtifact {
+        let max_entries = self.runtime.config.diagnostics.max_entries_per_artifact;
+        let artifact = RelationalDiagnosticArtifact {
+            scope: self.scope,
+            kind: self.kind,
+            determinism: DeterminismExpectation::Required,
+            entries: self.entries.into_iter().take(max_entries).collect(),
+        };
+        self.runtime.push_diagnostic_artifact(artifact.clone());
+        artifact
     }
 }
 

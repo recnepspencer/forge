@@ -5,6 +5,7 @@ use serde_json::Value;
 pub enum DiagnosticsScope {
     Transaction,
     Snapshot,
+    Retention,
     History,
     Replay,
     PatchPublication,
@@ -51,6 +52,10 @@ pub enum DiagnosticCode {
     EntityDeleted,
     RelationCreated,
     RelationDeleted,
+    RelationRetainedForAudit,
+    ReplayRetentionPinned,
+    ReplayRetentionReleased,
+    RetentionPlanInspected,
     MergeBaseResolved,
     MergeCommitPublished,
     CommitPublished,
@@ -64,6 +69,13 @@ pub enum DiagnosticCode {
     DurableCompactionCompleted,
     DiagnosticsPublicationFailure,
     ReplaySchemaVersionMismatch,
+    SnapshotReadPathInspected,
+    PublishedSnapshotHandleRead,
+    VisibilityCacheHit,
+    VisibilityCacheMissReconstructed,
+    VisibilityCacheRecentAdmissionCandidate,
+    VisibilityCacheProtectedRead,
+    VisibilityCacheTransientRead,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

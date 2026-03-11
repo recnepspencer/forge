@@ -7,8 +7,6 @@ use std::num::NonZeroU32;
 use crate::data::aspect::{Aspect, AspectMask};
 use crate::data::handle::NodeId;
 use crate::data::output::{InternedPartitionSubscription, PartitionSubscription};
-use std::cmp::Ordering;
-
 /// A dependency edge recording which upstream node and aspect a downstream reads.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DependencyEdge {
@@ -70,6 +68,43 @@ impl DependencyEdge {
     pub fn aspect_mask(&self) -> AspectMask {
         AspectMask::from_aspect(self.aspect)
     }
+
+    pub fn sort_key(&self) -> DependencySortKey {
+        DependencySortKey {
+            source_index: self.source.index(),
+            source_generation: self.source.generation(),
+            aspect_index: self.aspect.index(),
+            scope: self.scope.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct DependencySortKey {
+    source_index: u32,
+    source_generation: u32,
+    aspect_index: usize,
+    scope: Option<PartitionSubscription>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct DependencySnapshotEntry {
+    pub source: NodeId,
+    pub aspect: Aspect,
+    pub cached_version: u64,
+    #[serde(default)]
+    pub scope: Option<PartitionSubscription>,
+}
+
+impl DependencySnapshotEntry {
+    pub fn sort_key(&self) -> DependencySortKey {
+        DependencySortKey {
+            source_index: self.source.index(),
+            source_generation: self.source.generation(),
+            aspect_index: self.aspect.index(),
+            scope: self.scope.clone(),
+        }
+    }
 }
 
 /// A snapshot of upstream aspect versions at the time a node was last evaluated.
@@ -78,7 +113,7 @@ impl DependencyEdge {
 /// to `Clean`: if all upstream versions match the snapshot, no recomputation needed.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DependencySnapshot {
-    entries: Vec<(NodeId, Aspect, u64, Option<PartitionSubscription>)>,
+    entries: Vec<DependencySnapshotEntry>,
 }
 
 impl DependencySnapshot {
@@ -97,21 +132,30 @@ impl DependencySnapshot {
         version: u64,
         scope: Option<PartitionSubscription>,
     ) {
-        self.entries.push((source, aspect, version, scope));
+        self.entries.push(DependencySnapshotEntry {
+            source,
+            aspect,
+            cached_version: version,
+            scope,
+        });
     }
 
     /// All recorded entries.
-    pub fn entries(&self) -> &[(NodeId, Aspect, u64, Option<PartitionSubscription>)] {
+    pub fn entries(&self) -> &[DependencySnapshotEntry] {
         &self.entries
     }
 
     fn canonicalize(&mut self) {
-        self.entries.sort_by(compare_snapshot_entries);
-        let mut normalized = Vec::with_capacity(self.entries.len());
+        self.entries.sort_by(|left, right| {
+            left.sort_key()
+                .cmp(&right.sort_key())
+                .then(left.cached_version.cmp(&right.cached_version))
+        });
+        let mut normalized: Vec<DependencySnapshotEntry> = Vec::with_capacity(self.entries.len());
         for entry in self.entries.drain(..) {
             if let Some(previous) = normalized.last_mut() {
-                if compare_snapshot_identity(previous, &entry) == Ordering::Equal {
-                    if previous.2 <= entry.2 {
+                if previous.sort_key() == entry.sort_key() {
+                    if previous.cached_version <= entry.cached_version {
                         *previous = entry;
                     }
                     continue;
@@ -200,42 +244,4 @@ impl DependencySnapshotStore {
 fn empty_dependency_snapshot() -> &'static DependencySnapshot {
     static EMPTY: std::sync::OnceLock<DependencySnapshot> = std::sync::OnceLock::new();
     EMPTY.get_or_init(DependencySnapshot::empty)
-}
-
-fn compare_snapshot_entries(
-    left: &(NodeId, Aspect, u64, Option<PartitionSubscription>),
-    right: &(NodeId, Aspect, u64, Option<PartitionSubscription>),
-) -> Ordering {
-    (
-        left.0.index(),
-        left.0.generation(),
-        left.1.index(),
-        left.2,
-        &left.3,
-    )
-        .cmp(&(
-            right.0.index(),
-            right.0.generation(),
-            right.1.index(),
-            right.2,
-            &right.3,
-        ))
-}
-
-fn compare_snapshot_identity(
-    left: &(NodeId, Aspect, u64, Option<PartitionSubscription>),
-    right: &(NodeId, Aspect, u64, Option<PartitionSubscription>),
-) -> Ordering {
-    (
-        left.0.index(),
-        left.0.generation(),
-        left.1.index(),
-        &left.3,
-    )
-        .cmp(&(
-            right.0.index(),
-            right.0.generation(),
-            right.1.index(),
-            &right.3,
-        ))
 }

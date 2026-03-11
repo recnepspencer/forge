@@ -3,8 +3,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::diagnostics::data::DiagnosticCode;
 use crate::logic::runtime::RelationalRuntime;
 use crate::storage::data::RecordLifecycleState;
-use crate::storage::logic::state::PartitionAccess;
-use crate::transactions::data::{MergedCommitPlan, TransactionIntent};
+use crate::storage::logic::state::{
+    EntityRecordKind, PartitionAccess, RecordKind, RelationRecordKind,
+};
+use crate::transactions::data::MergedCommitPlan;
 use crate::validation::data::{InvariantClass, InvariantRule, InvariantViolation};
 
 use super::helpers::{
@@ -23,62 +25,42 @@ pub(crate) fn evaluate_rule(
 ) {
     match rule {
         InvariantRule::LiveEntityRequiresKind => {
-            for partition_id in state.partition_ids() {
-                let partition = state
-                    .get_partition(partition_id)
-                    .expect("partition for invariant scan");
-                let slots = state
-                    .touched_entity_slots(partition_id)
-                    .unwrap_or_else(|| (0..partition.entity_arena.generations.len()).collect());
-                runtime
-                    .instrumentation
-                    .complexity_counters
-                    .borrow_mut()
-                    .invariant_entity_slot_scans += slots.len();
-                for slot in slots {
-                    if partition.entity_arena.lifecycle[slot] == RecordLifecycleState::Live
-                        && partition.entity_arena.kind_ids[slot].is_none()
-                    {
-                        violations.push(InvariantViolation {
-                            class,
-                            code: DiagnosticCode::SidecarConsistencyFailure,
-                            detail: format!(
-                                "live entity slot {} in partition {} missing kind id",
-                                slot, partition.partition_id.0
-                            ),
-                        });
-                    }
-                }
-            }
+            evaluate_live_record_sidecar::<EntityRecordKind>(
+                runtime,
+                state,
+                class,
+                violations,
+                |state, partition_id| state.touched_entity_slots(partition_id),
+                |partition, slot| partition.entity_arena.kind_ids[slot].is_some(),
+                "kind id",
+                |runtime, slots| {
+                    runtime
+                        .instrumentation
+                        .complexity_counters
+                        .lock()
+                        .expect("complexity counter lock poisoned")
+                        .invariant_entity_slot_scans += slots;
+                },
+            );
         }
         InvariantRule::LiveRelationRequiresEndpoints => {
-            for partition_id in state.partition_ids() {
-                let partition = state
-                    .get_partition(partition_id)
-                    .expect("partition for invariant scan");
-                let slots = state
-                    .touched_relation_slots(partition_id)
-                    .unwrap_or_else(|| (0..partition.relation_arena.generations.len()).collect());
-                runtime
-                    .instrumentation
-                    .complexity_counters
-                    .borrow_mut()
-                    .invariant_relation_slot_scans += slots.len();
-                for slot in slots {
-                    if partition.relation_arena.lifecycle[slot] == RecordLifecycleState::Live
-                        && partition.relation_arena.endpoints[slot].is_none()
-                    {
-                        violations.push(InvariantViolation {
-                            class,
-                            code: DiagnosticCode::SidecarConsistencyFailure,
-                            detail: format!(
-                                "live relation slot {} in partition {} missing endpoints",
-                                slot, partition.partition_id.0
-                            ),
-                        });
-                    }
-                }
-            }
+            evaluate_live_record_sidecar::<RelationRecordKind>(
+                runtime,
+                state,
+                class,
+                violations,
+                |state, partition_id| state.touched_relation_slots(partition_id),
+                |partition, slot| partition.relation_arena.extra[slot].is_some(),
+                "endpoints",
+                |runtime, slots| {
+                    runtime
+                        .instrumentation
+                        .complexity_counters
+                        .lock()
+                        .expect("complexity counter lock poisoned")
+                        .invariant_relation_slot_scans += slots;
+                },
+            );
         }
         InvariantRule::MaxMergedIntents(limit) => {
             let merged_len = merged_plan
@@ -112,7 +94,8 @@ pub(crate) fn evaluate_rule(
                     runtime
                         .instrumentation
                         .complexity_counters
-                        .borrow_mut()
+                        .lock()
+                        .expect("complexity counter lock poisoned")
                         .invariant_entity_slot_scans += partition.entity_arena.generations.len();
                     visible_entities += (0..partition.entity_arena.generations.len())
                         .filter(|slot| {
@@ -146,6 +129,40 @@ pub(crate) fn evaluate_rule(
     }
 }
 
+fn evaluate_live_record_sidecar<K: RecordKind>(
+    runtime: &RelationalRuntime,
+    state: &impl PartitionAccess,
+    class: InvariantClass,
+    violations: &mut Vec<InvariantViolation>,
+    touched_slots: impl Fn(&dyn PartitionAccess, crate::identity::data::PartitionId) -> Option<Vec<usize>>,
+    has_required_sidecar: impl Fn(&crate::storage::logic::state::PartitionState, usize) -> bool,
+    missing_label: &str,
+    count_scans: impl Fn(&RelationalRuntime, usize),
+) {
+    for partition_id in state.partition_ids() {
+        let partition = state
+            .get_partition(partition_id)
+            .expect("partition for invariant scan");
+        let slots = touched_slots(state, partition_id)
+            .unwrap_or_else(|| (0..K::arena(partition).generations.len()).collect());
+        count_scans(runtime, slots.len());
+        for slot in slots {
+            if K::arena(partition).lifecycle[slot] == RecordLifecycleState::Live
+                && !has_required_sidecar(partition, slot)
+            {
+                violations.push(InvariantViolation {
+                    class,
+                    code: DiagnosticCode::SidecarConsistencyFailure,
+                    detail: format!(
+                        "live slot {} in partition {} missing {}",
+                        slot, partition.partition_id.0, missing_label
+                    ),
+                });
+            }
+        }
+    }
+}
+
 fn evaluate_unique_entity_payload_field(
     runtime: &RelationalRuntime,
     state: &impl PartitionAccess,
@@ -161,7 +178,8 @@ fn evaluate_unique_entity_payload_field(
             runtime
                 .instrumentation
                 .complexity_counters
-                .borrow_mut()
+                .lock()
+                .expect("complexity counter lock poisoned")
                 .invariant_entity_slot_scans += 1;
             if let Some(existing_entity_id) =
                 planned_value_to_entity.insert(value.clone(), entity_id)
@@ -192,7 +210,8 @@ fn evaluate_unique_entity_payload_field(
             runtime
                 .instrumentation
                 .complexity_counters
-                .borrow_mut()
+                .lock()
+                .expect("complexity counter lock poisoned")
                 .invariant_entity_slot_scans += 1;
             let Some(payload) = entity_payload_for_state(state, entity_id, version_id) else {
                 continue;
@@ -234,7 +253,8 @@ fn evaluate_unique_entity_payload_field(
             runtime
                 .instrumentation
                 .complexity_counters
-                .borrow_mut()
+                .lock()
+                .expect("complexity counter lock poisoned")
                 .invariant_entity_slot_scans += partition.entity_arena.generations.len();
             for slot in 0..partition.entity_arena.generations.len() {
                 if !entity_visible_at_version(&partition.entity_arena, slot, version_id) {
@@ -279,58 +299,8 @@ fn planned_entity_field_values(
     let mut values = Vec::new();
     let mut saw_entity_change = false;
     for intent in &merged_plan.merged_intents {
-        match intent {
-            TransactionIntent::CreateEntity(spec) => {
-                saw_entity_change = true;
-                if let Some(value) = spec
-                    .payload
-                    .as_json()
-                    .and_then(|value| value.get(field))
-                    .and_then(|value| value.as_str())
-                {
-                    values.push((None, value.to_string()));
-                }
-            }
-            TransactionIntent::BulkCreateEntities { payloads, .. } => {
-                saw_entity_change = true;
-                for payload in payloads {
-                    if let Some(value) = payload
-                        .as_json()
-                        .and_then(|value| value.get(field))
-                        .and_then(|value| value.as_str())
-                    {
-                        values.push((None, value.to_string()));
-                    }
-                }
-            }
-            TransactionIntent::UpdateEntity { entity_id, payload } => {
-                saw_entity_change = true;
-                if let Some(value) = payload
-                    .as_json()
-                    .and_then(|value| value.get(field))
-                    .and_then(|value| value.as_str())
-                {
-                    values.push((Some(*entity_id), value.to_string()));
-                }
-            }
-            TransactionIntent::ReplaceEntity {
-                entity_id,
-                replacement,
-            } => {
-                saw_entity_change = true;
-                if let Some(value) = replacement
-                    .payload
-                    .as_json()
-                    .and_then(|value| value.get(field))
-                    .and_then(|value| value.as_str())
-                {
-                    values.push((Some(*entity_id), value.to_string()));
-                }
-            }
-            TransactionIntent::DeleteEntity { .. }
-            | TransactionIntent::CreateRelation(_)
-            | TransactionIntent::BulkCreateRelations { .. }
-            | TransactionIntent::DeleteRelation { .. } => {}
+        if intent.collect_planned_entity_field_values(field, &mut values) {
+            saw_entity_change = true;
         }
     }
     saw_entity_change.then_some(values)

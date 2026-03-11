@@ -171,8 +171,7 @@ impl CorrelatedMarketModel {
         for scenario in 0..scenarios {
             let scenario_seed = self.seed ^ ((scenario as u64 + 1) * 0x9e37);
             let risk = clamp_u64(
-                700
-                    + 17 * sample_window(scenario_seed, 0x5001, &self.shape.vol_windows).abs()
+                700 + 17 * sample_window(scenario_seed, 0x5001, &self.shape.vol_windows).abs()
                     + 11 * sample_window(scenario_seed, 0x5002, &self.shape.fx_windows).abs(),
             );
             let vol = clamp_u64(
@@ -271,7 +270,14 @@ fn windows(raw: [(i64, i64, u64); 3]) -> [ProbabilityWindow; 3] {
     })
 }
 
-fn bucket_series(seed: u64, salt: u64, buckets: usize, base: i64, slope: i64, curvature: i64) -> Vec<u64> {
+fn bucket_series(
+    seed: u64,
+    salt: u64,
+    buckets: usize,
+    base: i64,
+    slope: i64,
+    curvature: i64,
+) -> Vec<u64> {
     let center = ((buckets.saturating_sub(1)) as i64) / 2;
     let local = signed_jitter(seed, salt, 3);
     let mut values = Vec::with_capacity(buckets);

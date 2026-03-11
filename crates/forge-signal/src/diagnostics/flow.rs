@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::aspect::Aspect;
 use crate::data::handle::NodeId;
+use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::failure::RollbackDiagnostic;
 use crate::diagnostics::profile::DiagnosticsProfile;
 use crate::diagnostics::summary::{
@@ -35,8 +36,23 @@ pub struct FlowSummary {
     pub planning: PlanningSummary,
     pub precompute: PrecomputeSummary,
     pub apply: ApplySummary,
+    #[serde(default)]
+    pub cause_samples: Vec<FlowCauseSample>,
+    #[serde(default)]
+    pub event_epochs: Vec<EventEpochSummary>,
     pub rollback: Option<RollbackSummary>,
     pub explanation: Option<ExplanationSummary>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FlowCauseSample {
+    pub node: NodeId,
+    pub cause_kinds: Vec<String>,
+    pub scope_kinds: Vec<String>,
+    pub scope_notes: Vec<String>,
+    pub suspect_classes: Vec<String>,
+    pub rewired: bool,
+    pub conservative_recompute: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -117,6 +133,8 @@ impl FlowSummary {
         planning: PlanningSummary,
         precompute: PrecomputeSummary,
         apply: ApplySummary,
+        cause_samples: Vec<FlowCauseSample>,
+        event_epochs: Vec<EventEpochSummary>,
         rollback: Option<RollbackSummary>,
         explanation: Option<ExplanationSummary>,
     ) -> Self {
@@ -127,6 +145,8 @@ impl FlowSummary {
             planning,
             precompute,
             apply,
+            cause_samples,
+            event_epochs,
             rollback,
             explanation,
         }
@@ -138,6 +158,10 @@ impl PlanningSummary {
         Self {
             plan: EvaluationPlanSummary::from_plan(plan, profile),
         }
+    }
+
+    pub fn from_summary(plan: EvaluationPlanSummary) -> Self {
+        Self { plan }
     }
 }
 

@@ -36,7 +36,9 @@ fn run_parallel_drift_workflow(executor: StageExecutor) -> BranchDivergenceOutco
     let analysis_replay = fixture.replay_for_branch(analysis.clone());
     fixture.capture_active_checkpoint(executor).unwrap();
 
-    fixture.switch_branch(main_checkpoint.branch.clone()).unwrap();
+    fixture
+        .switch_branch(main_checkpoint.branch.clone())
+        .unwrap();
     fixture.restore_checkpoint(&main_checkpoint).unwrap();
     let correction = fixture.open_branch("correction-drift").unwrap();
     fixture.seed_market(MarketSeed::fx_dislocation(29)).unwrap();
@@ -46,7 +48,9 @@ fn run_parallel_drift_workflow(executor: StageExecutor) -> BranchDivergenceOutco
     fixture.capture_active_checkpoint(executor).unwrap();
     let correction_lineage = fixture.main_risk_lineage();
 
-    fixture.switch_branch(main_checkpoint.branch.clone()).unwrap();
+    fixture
+        .switch_branch(main_checkpoint.branch.clone())
+        .unwrap();
     fixture.restore_checkpoint(&main_checkpoint).unwrap();
     let main_audit = fixture.read_primary_audit_surface(executor).unwrap();
 
@@ -58,7 +62,10 @@ fn run_parallel_drift_workflow(executor: StageExecutor) -> BranchDivergenceOutco
         correction_replay,
         correction_lineage,
         branch_heads: BTreeMap::from([
-            ("main", fixture.branch_head_snapshot_id(main_checkpoint.branch)),
+            (
+                "main",
+                fixture.branch_head_snapshot_id(main_checkpoint.branch),
+            ),
             ("analysis", fixture.branch_head_snapshot_id(analysis)),
             ("correction", fixture.branch_head_snapshot_id(correction)),
         ]),

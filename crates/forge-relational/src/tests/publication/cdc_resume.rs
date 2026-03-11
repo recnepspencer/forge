@@ -85,12 +85,12 @@ fn patch_stream_records_aspects_for_entity_and_relation_payloads() {
     let entity_patch = latest_patch
         .records
         .iter()
-        .find(|record| record.entity_id == Some(source))
+        .find(|record| record.target == crate::transactions::data::RecordRef::Entity(source))
         .unwrap();
     let relation_patch = latest_patch
         .records
         .iter()
-        .find(|record| record.relation_id == Some(relation))
+        .find(|record| record.target == crate::transactions::data::RecordRef::Relation(relation))
         .unwrap();
 
     assert_eq!(entity_patch.aspects.len(), 3);
@@ -111,4 +111,33 @@ fn patch_stream_records_aspects_for_entity_and_relation_payloads() {
     );
     assert!(runtime.entity_aspect_versions(source).unwrap().len() >= 3);
     assert!(runtime.relation_aspect_versions(relation).unwrap().len() >= 2);
+}
+
+#[test]
+fn patch_stream_index_stays_coherent_when_commit_history_is_removed_for_fault_injection() {
+    let mut runtime = runtime_with_test_schema();
+    let first = create_entity_outcome(&mut runtime, "a");
+    let second = create_entity_outcome(&mut runtime, "b");
+    let third = create_entity_outcome(&mut runtime, "c");
+
+    assert!(runtime.remove_commit_envelope_for_test(second.commit.commit_id));
+
+    let batch = runtime
+        .read_patch_stream(PatchStreamRequest {
+            after_position: Some(PatchStreamPosition(1)),
+            max_commits: 4,
+        })
+        .unwrap();
+
+    assert_eq!(batch.patches.len(), 1);
+    assert_eq!(batch.patches[0].position, PatchStreamPosition(3));
+    assert_eq!(batch.latest_position, Some(PatchStreamPosition(3)));
+    assert!(runtime
+        .read_patch_stream(PatchStreamRequest {
+            after_position: Some(PatchStreamPosition(2)),
+            max_commits: 1,
+        })
+        .is_err());
+    assert_eq!(first.version_id.0, 1);
+    assert_eq!(third.version_id.0, 3);
 }

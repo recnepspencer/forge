@@ -24,7 +24,9 @@ fn fintech_threshold_flap_rollback_storm_preserves_condition_and_restore_coheren
     fixture.assert_shape(FintechScale::smoke());
 
     let analysis = fixture.open_branch("analysis-threshold").unwrap();
-    let checkpoint = fixture.capture_active_checkpoint(StageExecutor::Serial).unwrap();
+    let checkpoint = fixture
+        .capture_active_checkpoint(StageExecutor::Serial)
+        .unwrap();
     let baseline_threshold = fixture
         .read_primary_threshold_with_executor(StageExecutor::Serial)
         .unwrap();
@@ -58,7 +60,9 @@ fn fintech_threshold_flap_rollback_storm_preserves_condition_and_restore_coheren
     let restored_threshold = fixture
         .read_primary_threshold_with_executor(StageExecutor::Serial)
         .unwrap();
-    let restored_audit = fixture.read_primary_audit_surface(StageExecutor::Serial).unwrap();
+    let restored_audit = fixture
+        .read_primary_audit_surface(StageExecutor::Serial)
+        .unwrap();
     assert_eq!(restored_threshold, baseline_threshold);
     assert_eq!(restored_audit, checkpoint.audit);
 

@@ -41,18 +41,14 @@ fn fintech_retained_and_reconstructed_artifacts_agree_across_runtime_policies() 
         .retained_provenance_artifact(retained_node)
         .expect("development policy should retain provenance eagerly");
 
-    assert!(
-        reconstructed_world
-            .runtime
-            .retained_explanation_artifact(reconstructed_node)
-            .is_none()
-    );
-    assert!(
-        reconstructed_world
-            .runtime
-            .retained_provenance_artifact(reconstructed_node)
-            .is_none()
-    );
+    assert!(reconstructed_world
+        .runtime
+        .retained_explanation_artifact(reconstructed_node)
+        .is_none());
+    assert!(reconstructed_world
+        .runtime
+        .retained_provenance_artifact(reconstructed_node)
+        .is_none());
 
     let reconstructed_explanation = reconstructed_world
         .runtime
@@ -72,10 +68,8 @@ fn fintech_retained_and_reconstructed_artifacts_agree_across_runtime_policies() 
         retained_provenance.vertices.len(),
         reconstructed_provenance.vertices.len()
     );
-    assert!(
-        reconstructed_provenance
-            .vertices
-            .iter()
-            .any(|vertex| vertex.node == reconstructed_node)
-    );
+    assert!(reconstructed_provenance
+        .vertices
+        .iter()
+        .any(|vertex| vertex.node == reconstructed_node));
 }

@@ -1,11 +1,11 @@
 use crate::history::data::CommitId;
-use crate::identity::data::{EntityId, RelationId};
 use crate::payloads::data::{canonicalize_json, RecordPayload};
 use crate::symbols::data::InternedString;
+use crate::transactions::data::RecordRef;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct AspectKey(pub InternedString);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -61,18 +61,16 @@ impl PatchDetail {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PatchRecordKind {
-    EntityCreated,
-    EntityUpdated,
-    EntityDeleted,
-    RelationCreated,
-    RelationDeleted,
+    Created,
+    Updated,
+    Deleted,
+    RetainedForAudit,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PatchRecord {
     pub kind: PatchRecordKind,
-    pub entity_id: Option<EntityId>,
-    pub relation_id: Option<RelationId>,
+    pub target: RecordRef,
     pub aspects: Vec<AspectKey>,
     pub detail: PatchDetail,
 }
@@ -80,12 +78,11 @@ pub struct PatchRecord {
 impl PatchRecord {
     pub fn canonicalized(&self) -> Self {
         let mut aspects = self.aspects.clone();
-        aspects.sort_by(|left, right| format!("{left:?}").cmp(&format!("{right:?}")));
+        aspects.sort();
         aspects.dedup();
         Self {
             kind: self.kind.clone(),
-            entity_id: self.entity_id,
-            relation_id: self.relation_id,
+            target: self.target.clone(),
             aspects,
             detail: self.detail.canonicalized(),
         }

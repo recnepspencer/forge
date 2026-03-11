@@ -86,7 +86,16 @@ pub struct DurableBitSet {
 pub struct VersionedPayloadImage {
     pub effective_at: VersionId,
     pub retired_at: Option<VersionId>,
+    pub generation: u32,
     pub value: RecordPayload,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VersionedEntityMetadataImage {
+    pub effective_at: VersionId,
+    pub retired_at: Option<VersionId>,
+    pub generation: u32,
+    pub kind_id: KindId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -96,6 +105,7 @@ pub struct EntityArenaCheckpointImage {
     pub kind_ids: Vec<Option<KindId>>,
     pub payloads: Vec<Option<RecordPayload>>,
     pub payload_history: Vec<Vec<VersionedPayloadImage>>,
+    pub metadata_history: Vec<Vec<VersionedEntityMetadataImage>>,
     pub created_at: Vec<VersionId>,
     pub retired_at: Vec<Option<VersionId>>,
     pub aspect_versions: Vec<std::collections::BTreeMap<Symbol, u64>>,
@@ -117,12 +127,22 @@ pub struct RelationEndpointsImage {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VersionedRelationMetadataImage {
+    pub effective_at: VersionId,
+    pub retired_at: Option<VersionId>,
+    pub generation: u32,
+    pub kind_id: KindId,
+    pub endpoints: RelationEndpointsImage,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RelationArenaCheckpointImage {
     pub generations: Vec<u32>,
     pub lifecycle: Vec<RecordLifecycleState>,
     pub kind_ids: Vec<Option<KindId>>,
     pub payloads: Vec<Option<RecordPayload>>,
-    pub payload_history: Vec<(usize, Vec<VersionedPayloadImage>)>,
+    pub payload_history: Vec<Vec<VersionedPayloadImage>>,
+    pub metadata_history: Vec<Vec<VersionedRelationMetadataImage>>,
     pub created_at: Vec<VersionId>,
     pub retired_at: Vec<Option<VersionId>>,
     pub endpoints: Vec<Option<RelationEndpointsImage>>,

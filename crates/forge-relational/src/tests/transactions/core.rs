@@ -121,8 +121,75 @@ fn savepoint_rollback_discards_inner_work_only() {
     let outcome = txn.commit().unwrap();
     let read = runtime.read_snapshot(&outcome.snapshot).unwrap();
 
-    assert!(!rollback.restored_records.is_empty());
+    assert!(rollback.effects.iter().any(|effect| matches!(
+        effect,
+        crate::facade::RollbackEffect::DiscardedEntityCreation
+    )));
     assert_eq!(read.entities().len(), 1);
+}
+
+#[test]
+fn snapshot_audit_failure_discards_only_touched_overlay() {
+    let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
+        snapshot_audit: vec![InvariantRule::MaxSnapshotEntities(1)],
+        ..InvariantCatalog::default()
+    });
+    let baseline = create_entity_outcome(&mut runtime, "baseline");
+
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(batch_create("blocked"));
+    let error = txn.commit().unwrap_err();
+    let committed_read = runtime.read_snapshot(&baseline.snapshot).unwrap();
+
+    assert!(matches!(
+        error,
+        TransactionCommitError::Publication(ref publication)
+            if publication.stage == PublicationStage::InvariantCheck
+    ));
+    assert_eq!(committed_read.entities().len(), 1);
+    assert!(committed_read.entities().iter().any(|record| read_entity_name(record) == Some("baseline")));
+    assert_eq!(runtime.latest_commit().unwrap().commit_id, baseline.commit.commit_id);
+}
+
+#[test]
+fn audit_retained_relations_remain_visible_after_endpoint_delete() {
+    let schema = RelationalSchemaRegistry::new()
+        .register_entity_kind(EntityKindRegistration {
+            kind_id: KindId(1),
+            kind_name: "test.entity".to_string(),
+            schema_id: SchemaId("test".to_string()),
+            schema_version_id: SchemaVersionId(1),
+        })
+        .and_then(|registry| {
+            registry.register_relation_kind(RelationKindRegistration {
+                kind_id: KindId(2),
+                kind_name: "test.relation".to_string(),
+                schema_id: SchemaId("test".to_string()),
+                schema_version_id: SchemaVersionId(1),
+                payload_class: RelationPayloadClass::PayloadBearingRelation,
+                cross_context_policy: CrossContextPolicy::AllowExplicit,
+                cascade_delete_policy: CascadeDeletePolicy::RetainDanglingForAudit,
+            })
+        })
+        .unwrap();
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(schema)
+        .cascade_delete_policy(CascadeDeletePolicy::RetainDanglingForAudit)
+        .build();
+    let source = create_entity(&mut runtime, "source");
+    let target = create_entity(&mut runtime, "target");
+    let relation_outcome = create_relation_outcome(&mut runtime, source, target, "r1");
+    let relation = changed_relations(&relation_outcome)[0];
+    let deleted = delete_entity(&mut runtime, source);
+    let read = runtime.read_snapshot(&deleted.snapshot).unwrap();
+    let relation = read.get_relation(relation).unwrap();
+
+    assert_eq!(
+        relation.lifecycle,
+        crate::facade::RecordLifecycleState::RetainedDanglingForAudit
+    );
+    assert_eq!(relation.source, source);
+    assert_eq!(relation.target, target);
 }
 
 #[test]
@@ -178,6 +245,26 @@ fn snapshots_resolve_historical_entity_payloads_by_version() {
         read_entity_name(version_read.get_entity(entity).unwrap()),
         Some("before")
     );
+}
+
+#[test]
+fn historical_reads_preserve_generation_and_payload_after_slot_reuse() {
+    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
+    let created = create_entity_outcome(&mut runtime, "before");
+    let original = changed_entities(&created)[0];
+    let deleted = delete_entity(&mut runtime, original);
+    assert!(runtime.release_snapshot(&created.snapshot));
+    assert!(runtime.release_snapshot(&deleted.snapshot));
+    let _ = runtime.run_retention_pass();
+    let replacement = create_entity(&mut runtime, "after");
+
+    let historical = runtime.read_version(created.version_id);
+    let record = historical.get_entity(original).unwrap();
+
+    assert_eq!(record.entity_id, original);
+    assert_eq!(read_entity_name(record), Some("before"));
+    assert_eq!(original.local_slot, replacement.local_slot);
+    assert!(replacement.generation.0 > original.generation.0);
 }
 
 #[test]

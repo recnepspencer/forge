@@ -582,7 +582,10 @@ fn partition_scoped_runtime_reads_do_not_widen_captured_dependencies() {
         })
         .unwrap();
 
-    assert_eq!(runtime.graph().get_state(matching).unwrap(), NodeState::Dirty);
+    assert_eq!(
+        runtime.graph().get_state(matching).unwrap(),
+        NodeState::Dirty
+    );
     assert_eq!(
         runtime.graph().get_state(non_matching).unwrap(),
         NodeState::MaybeStale
@@ -657,8 +660,14 @@ fn transaction_rollback_after_partition_local_evaluation_restores_clean_states()
     assert!(err.is_err());
 
     assert_eq!(runtime.graph().get_state(source).unwrap(), NodeState::Clean);
-    assert_eq!(runtime.graph().get_state(matching).unwrap(), NodeState::Clean);
-    assert_eq!(runtime.graph().get_state(non_matching).unwrap(), NodeState::Clean);
+    assert_eq!(
+        runtime.graph().get_state(matching).unwrap(),
+        NodeState::Clean
+    );
+    assert_eq!(
+        runtime.graph().get_state(non_matching).unwrap(),
+        NodeState::Clean
+    );
 }
 
 #[test]
@@ -729,7 +738,10 @@ fn committed_partition_local_evaluation_preserves_changed_region_explanation_and
         })
         .unwrap();
 
-    assert_eq!(runtime.graph().get_state(matching).unwrap(), NodeState::Clean);
+    assert_eq!(
+        runtime.graph().get_state(matching).unwrap(),
+        NodeState::Clean
+    );
     assert_eq!(
         runtime.graph().get_state(non_matching).unwrap(),
         NodeState::MaybeStale
@@ -800,8 +812,12 @@ fn transaction_partition_invalidations_union_dirty_scopes_until_runtime_evaluati
     let entry = runtime.graph().get_entry(dependent).unwrap();
     let scopes = entry.get_dirty_partition_scopes();
     assert_eq!(entry.get_state(), &NodeState::Dirty);
-    assert!(scopes.iter().any(|scope| scope.detail.as_deref() == Some("rib-12")));
-    assert!(scopes.iter().any(|scope| scope.detail.as_deref() == Some("rib-13")));
+    assert!(scopes
+        .iter()
+        .any(|scope| scope.detail.as_deref() == Some("rib-12")));
+    assert!(scopes
+        .iter()
+        .any(|scope| scope.detail.as_deref() == Some("rib-13")));
 }
 
 #[test]

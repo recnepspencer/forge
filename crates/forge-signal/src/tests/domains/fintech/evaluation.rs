@@ -1,8 +1,8 @@
-use crate::data::handle::NodeId;
 use crate::data::error::SignalError;
+use crate::data::handle::NodeId;
+use crate::data::output::PartitionSubscription;
 use crate::facade::{AspectVersion, NodeEvaluationResult};
 use crate::logic::prepared::{ExecutionReadView, PreparedEvaluation};
-use crate::data::output::PartitionSubscription;
 
 use super::aspects::{ALERT, CURVE, LIQUIDITY, PRICE, RISK, VOL};
 use super::fixture::FintechDomainFixture;
@@ -60,7 +60,8 @@ impl FintechEvaluationShape {
 
     pub(super) fn precompute(
         &self,
-    ) -> impl Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync + '_ {
+    ) -> impl Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync + '_
+    {
         move |node, view| self.precompute_node(node, view)
     }
 
@@ -82,9 +83,15 @@ impl FintechEvaluationShape {
 
         for instrument in &self.instruments {
             if node == instrument.core.normalized {
-                let price = view.read_aspect_version(instrument.core.market, PRICE)?.get(PRICE);
-                let vol = view.read_aspect_version(instrument.core.market, VOL)?.get(VOL);
-                let curve = view.read_aspect_version(instrument.core.market, CURVE)?.get(CURVE);
+                let price = view
+                    .read_aspect_version(instrument.core.market, PRICE)?
+                    .get(PRICE);
+                let vol = view
+                    .read_aspect_version(instrument.core.market, VOL)?
+                    .get(VOL);
+                let curve = view
+                    .read_aspect_version(instrument.core.market, CURVE)?
+                    .get(CURVE);
                 let liquidity = view
                     .read_aspect_version(instrument.core.market, LIQUIDITY)?
                     .get(LIQUIDITY);
@@ -103,9 +110,15 @@ impl FintechEvaluationShape {
             }
 
             if node == instrument.core.price {
-                let price = view.read_aspect_version(instrument.core.normalized, PRICE)?.get(PRICE);
-                let vol = view.read_aspect_version(instrument.core.normalized, VOL)?.get(VOL);
-                let curve = view.read_aspect_version(instrument.core.normalized, CURVE)?.get(CURVE);
+                let price = view
+                    .read_aspect_version(instrument.core.normalized, PRICE)?
+                    .get(PRICE);
+                let vol = view
+                    .read_aspect_version(instrument.core.normalized, VOL)?
+                    .get(VOL);
+                let curve = view
+                    .read_aspect_version(instrument.core.normalized, CURVE)?
+                    .get(CURVE);
                 let priced = price + vol / 8 + curve / 32;
                 let priced_risk = priced / 3 + vol / 2 + curve / 6;
                 return Ok(view.finish(
@@ -119,7 +132,9 @@ impl FintechEvaluationShape {
             }
 
             if node == instrument.core.risk {
-                let priced_risk = view.read_aspect_version(instrument.core.price, RISK)?.get(RISK);
+                let priced_risk = view
+                    .read_aspect_version(instrument.core.price, RISK)?
+                    .get(RISK);
                 let liquidity = view
                     .read_aspect_version(instrument.core.normalized, LIQUIDITY)?
                     .get(LIQUIDITY);
@@ -136,37 +151,56 @@ impl FintechEvaluationShape {
             }
 
             if node == instrument.core.alert {
-                let alert = view.read_aspect_version(instrument.core.risk, ALERT)?.get(ALERT);
+                let alert = view
+                    .read_aspect_version(instrument.core.risk, ALERT)?
+                    .get(ALERT);
                 return Ok(view.finish(
-                    NodeEvaluationResult::from_version(AspectVersion::from_updates([(ALERT, alert)]))
-                        .with_output_identity(format!("alert-{alert}"))
-                        .with_continuity_token("alert"),
+                    NodeEvaluationResult::from_version(AspectVersion::from_updates([(
+                        ALERT, alert,
+                    )]))
+                    .with_output_identity(format!("alert-{alert}"))
+                    .with_continuity_token("alert"),
                 ));
             }
 
             if node == instrument.core.threshold {
-                let price = view.read_aspect_version(instrument.core.price, PRICE)?.get(PRICE);
+                let price = view
+                    .read_aspect_version(instrument.core.price, PRICE)?
+                    .get(PRICE);
                 return Ok(view.finish(
-                    NodeEvaluationResult::from_version(AspectVersion::from_updates([(PRICE, price)]))
-                        .with_output_identity(format!("threshold-{price}"))
-                        .with_continuity_token("threshold"),
+                    NodeEvaluationResult::from_version(AspectVersion::from_updates([(
+                        PRICE, price,
+                    )]))
+                    .with_output_identity(format!("threshold-{price}"))
+                    .with_continuity_token("threshold"),
                 ));
             }
 
-            if let Some(bucket_index) = instrument.buckets.iter().position(|candidate| *candidate == node) {
-                let risk = view.read_aspect_version(instrument.core.risk, RISK)?.get(RISK);
+            if let Some(bucket_index) = instrument
+                .buckets
+                .iter()
+                .position(|candidate| *candidate == node)
+            {
+                let risk = view
+                    .read_aspect_version(instrument.core.risk, RISK)?
+                    .get(RISK);
                 let threshold = view
                     .read_aspect_version(instrument.core.threshold, PRICE)?
                     .get(PRICE);
-                let curve = view.read_aspect_version(self.curve_buckets[bucket_index], CURVE)?.get(CURVE);
+                let curve = view
+                    .read_aspect_version(self.curve_buckets[bucket_index], CURVE)?
+                    .get(CURVE);
                 let surface_vol = view
                     .read_aspect_version(self.vol_surface_buckets[bucket_index], VOL)?
                     .get(VOL);
                 let bucket_risk = risk + threshold / 5 + curve / 9 + surface_vol / 7;
                 return Ok(view.finish(
-                    NodeEvaluationResult::from_version(AspectVersion::from_updates([(RISK, bucket_risk)]))
-                        .with_output_identity(format!("bucket-{bucket_index}-{bucket_risk}"))
-                        .with_continuity_token("bucket-risk"),
+                    NodeEvaluationResult::from_version(AspectVersion::from_updates([(
+                        RISK,
+                        bucket_risk,
+                    )]))
+                    .with_output_identity(format!("bucket-{bucket_index}-{bucket_risk}"))
+                    .with_continuity_token("bucket-risk"),
                 ));
             }
 
@@ -175,9 +209,15 @@ impl FintechEvaluationShape {
                 .iter()
                 .position(|candidate| *candidate == node)
             {
-                let price = view.read_aspect_version(instrument.core.price, PRICE)?.get(PRICE);
-                let risk = view.read_aspect_version(instrument.core.risk, RISK)?.get(RISK);
-                let alert = view.read_aspect_version(instrument.core.alert, ALERT)?.get(ALERT);
+                let price = view
+                    .read_aspect_version(instrument.core.price, PRICE)?
+                    .get(PRICE);
+                let risk = view
+                    .read_aspect_version(instrument.core.risk, RISK)?
+                    .get(RISK);
+                let alert = view
+                    .read_aspect_version(instrument.core.alert, ALERT)?
+                    .get(ALERT);
                 let scenario_risk = view
                     .read_aspect_version(self.scenario_sources[scenario_index], RISK)?
                     .get(RISK);
@@ -197,7 +237,11 @@ impl FintechEvaluationShape {
             }
         }
 
-        if let Some(book_index) = self.book_aggregates.iter().position(|candidate| *candidate == node) {
+        if let Some(book_index) = self
+            .book_aggregates
+            .iter()
+            .position(|candidate| *candidate == node)
+        {
             let mut risk_total = view
                 .read_aspect_version(self.aggregate_sources[book_index].book_state, RISK)?
                 .get(RISK);
@@ -207,8 +251,12 @@ impl FintechEvaluationShape {
             let fx = view.read_aspect_version(self.fx.eur_jpy, PRICE)?.get(PRICE);
             for instrument in &self.instruments {
                 if instrument.book_index == book_index {
-                    risk_total += view.read_aspect_version(instrument.core.risk, RISK)?.get(RISK);
-                    alert_total += view.read_aspect_version(instrument.core.alert, ALERT)?.get(ALERT);
+                    risk_total += view
+                        .read_aspect_version(instrument.core.risk, RISK)?
+                        .get(RISK);
+                    alert_total += view
+                        .read_aspect_version(instrument.core.alert, ALERT)?
+                        .get(ALERT);
                 }
             }
             risk_total += fx / 100;
@@ -223,7 +271,11 @@ impl FintechEvaluationShape {
             ));
         }
 
-        if let Some(desk_index) = self.desk_aggregates.iter().position(|candidate| *candidate == node) {
+        if let Some(desk_index) = self
+            .desk_aggregates
+            .iter()
+            .position(|candidate| *candidate == node)
+        {
             let mut risk_total = view
                 .read_aspect_version(self.aggregate_sources[desk_index].desk_limit, RISK)?
                 .get(RISK);

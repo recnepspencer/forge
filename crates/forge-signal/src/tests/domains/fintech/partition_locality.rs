@@ -86,13 +86,17 @@ fn fintech_partition_locality_checkpoint_restore_recovers_branch_local_truth_wit
     let mut world = setup_world();
     world.assert_shape(FintechScale::smoke());
 
-    let baseline = world.capture_active_checkpoint(StageExecutor::Serial).unwrap();
+    let baseline = world
+        .capture_active_checkpoint(StageExecutor::Serial)
+        .unwrap();
     let analysis = world.open_branch("analysis-locality").unwrap();
 
     world
         .shock_rates_bucket_zero(9, StageExecutor::Serial)
         .unwrap();
-    let rates_checkpoint = world.capture_active_checkpoint(StageExecutor::Serial).unwrap();
+    let rates_checkpoint = world
+        .capture_active_checkpoint(StageExecutor::Serial)
+        .unwrap();
     let rates_snapshot = (
         world
             .read_rates_partition_with_executor(StageExecutor::Serial)
@@ -104,7 +108,8 @@ fn fintech_partition_locality_checkpoint_restore_recovers_branch_local_truth_wit
             .read_rates_bucket_zero_with_executor(StageExecutor::Serial)
             .unwrap(),
     );
-    let rates_truth = FintechTruthSnapshot::capture_core(&mut world, StageExecutor::Serial).unwrap();
+    let rates_truth =
+        FintechTruthSnapshot::capture_core(&mut world, StageExecutor::Serial).unwrap();
 
     world
         .shock_credit_partition(6, StageExecutor::Serial)
@@ -126,7 +131,10 @@ fn fintech_partition_locality_checkpoint_restore_recovers_branch_local_truth_wit
     assert_ne!(rates_snapshot.1, credit_snapshot.1);
     let mismatch = compare_exact(&rates_truth, &credit_truth);
     assert!(!mismatch.is_empty());
-    assert!(mismatch.fields.iter().any(|field| field == "credit_partition"));
+    assert!(mismatch
+        .fields
+        .iter()
+        .any(|field| field == "credit_partition"));
 
     world.restore_checkpoint(&rates_checkpoint).unwrap();
     let restored_rates = (
@@ -161,6 +169,9 @@ fn fintech_partition_locality_checkpoint_restore_recovers_branch_local_truth_wit
 
     world.switch_branch(analysis).unwrap();
     let analysis_replay = world.replay_for_branch(world.current_branch());
-    assert!(analysis_replay.frames.iter().all(|frame| frame.branch_id == world.current_branch().id));
+    assert!(analysis_replay
+        .frames
+        .iter()
+        .all(|frame| frame.branch_id == world.current_branch().id));
     assert_ne!(baseline_main, restored_rates);
 }

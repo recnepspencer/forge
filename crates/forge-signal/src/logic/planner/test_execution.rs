@@ -8,8 +8,9 @@ use crate::diagnostics::recorder::record_lineage_transition;
 use crate::logic::evaluation::EvaluationExecutionMetadata;
 use crate::logic::prepared::{ExecutionSnapshot, PreparedEvaluation};
 
+use super::execution_diagnostics::{record_successful_execution, RecordedPlan};
 use super::reporting::{
-    accumulate_report_counters, classify_task_record, record_successful_execution,
+    accumulate_report_counters, classify_task_record,
 };
 use super::test_helpers::{
     apply_test_precompute_telemetry, empty_execution_report, prepare_test_precomputed_task,
@@ -212,7 +213,12 @@ where
         report.stages.push(stage_record);
     }
 
-    record_successful_execution(graph, plan, &report);
+    let profile = graph.diagnostics_profile();
+    record_successful_execution(
+        graph,
+        RecordedPlan::from_plan(plan, profile),
+        &report,
+    );
     Ok(report)
 }
 
@@ -379,6 +385,11 @@ where
         report.stages.push(stage_record);
     }
 
-    record_successful_execution(graph, plan, &report);
+    let profile = graph.diagnostics_profile();
+    record_successful_execution(
+        graph,
+        RecordedPlan::from_plan(plan, profile),
+        &report,
+    );
     Ok(report)
 }

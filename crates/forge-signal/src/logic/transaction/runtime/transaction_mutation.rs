@@ -13,7 +13,7 @@ use crate::diagnostics::replay::ReplayEventKind;
 use crate::diagnostics::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::logic::invalidation::{mark_dirty, mark_dirty_with_regions};
 
-use super::transaction_types::SignalTransaction;
+use super::transaction_types::{SignalTransaction, StagedEventOperation};
 
 impl<'a, D, I, E, Ctx, T> SignalTransaction<'a, D, I, E, Ctx, T>
 where
@@ -45,7 +45,8 @@ where
     }
 
     pub fn emit_event(&mut self, event: E) {
-        self.staged_events.push(event);
+        self.staged_event_operations
+            .push(StagedEventOperation::Emit(event));
     }
 
     pub fn record_effect<M>(&mut self, effect: &M::Effect)
@@ -107,7 +108,8 @@ where
     }
 
     pub fn flush_events(&mut self, barrier: CheckpointBarrier) -> Result<(), SignalError> {
-        self.staged_event_flushes.push(barrier);
+        self.staged_event_operations
+            .push(StagedEventOperation::Flush(barrier));
         Ok(())
     }
 
@@ -128,7 +130,8 @@ where
         &mut self,
         source: NodeId,
     ) -> Result<(), SignalError> {
-        self.mark_dirty_staged.ensure_len(self.graph.arena_capacity());
+        self.mark_dirty_staged
+            .ensure_len(self.graph.arena_capacity());
         if self.mark_dirty_staged.contains(source.index() as usize) {
             return Ok(());
         }
@@ -147,7 +150,7 @@ where
             self.mark_dirty_staged.mark(node.index() as usize);
             self.dirty_targets.mark(node.index() as usize);
             self.graph_patches.stage_original(self.graph, node)?;
-            for &subscriber in self.graph.subscribers_of(node)? {
+            for &subscriber in self.graph.runtime_subscribers_of(node)? {
                 stack.push(subscriber);
             }
         }
@@ -168,21 +171,19 @@ where
             }
             self.dirty_targets.mark(current.index() as usize);
             self.graph_patches.stage_original(self.graph, current)?;
-            for dependency in self.graph.dependencies_of(current)? {
+            for dependency in self.graph.runtime_dependencies_of(current)? {
                 stack.push(dependency.source());
             }
         }
         Ok(())
     }
 
-    pub(super) fn stage_plan_candidates(
+    pub(super) fn stage_task_candidates(
         &mut self,
-        plan: &crate::logic::planner::EvaluationPlan,
+        tasks: &[crate::logic::planner::EvaluationTask],
     ) -> Result<(), SignalError> {
-        for stage in &plan.stages {
-            for task in &stage.tasks {
-                self.stage_evaluate_candidates(task.node)?;
-            }
+        for task in tasks {
+            self.stage_evaluate_candidates(task.node)?;
         }
         Ok(())
     }

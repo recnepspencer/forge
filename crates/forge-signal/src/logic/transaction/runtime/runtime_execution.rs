@@ -1,10 +1,12 @@
 use crate::data::aspect::AspectVersion;
 use crate::data::comparator::TierPolicyResolver;
 use crate::data::error::SignalError;
+use crate::data::graph::ScratchLeaseKind;
 use crate::data::handle::NodeId;
 use crate::logic::evaluation::EvaluationRequestMode;
 use crate::logic::planner::{
-    build_evaluation_plan_with_policy_resolver, execute_prepared_plan_with_policy, EvaluationPlan,
+    build_evaluation_plan_with_policy_resolver, build_evaluation_session_with_policy_resolver,
+    execute_evaluation_session_with_policy, execute_prepared_plan_with_policy, EvaluationPlan,
     ExecutionReport, StageExecutor,
 };
 use crate::logic::prepared::{ExecutionReadView, PreparedEvaluation};
@@ -80,8 +82,7 @@ where
     where
         F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
     {
-        let plan = self.build_evaluation_plan(&[node], request_mode)?;
-        self.execute_prepared_plan(&plan, precompute)
+        self.evaluate_with_plan_and_executor(node, precompute, request_mode, StageExecutor::Serial)
     }
 
     pub fn evaluate_with_plan_and_executor<F>(
@@ -94,8 +95,29 @@ where
     where
         F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
     {
-        let plan = self.build_evaluation_plan(&[node], request_mode)?;
-        self.execute_prepared_plan_with_executor(&plan, precompute, executor)
+        let mut resolver = TierPolicyResolver::new(
+            self.config.node_meta(),
+            self.config.tier_policies(),
+            self.config.fallback_comparator(),
+        );
+        let report = self.graph.with_scratch(ScratchLeaseKind::Evaluation, |graph, scratch| {
+            let session = build_evaluation_session_with_policy_resolver(
+                graph,
+                scratch,
+                &[node],
+                request_mode,
+                &mut resolver,
+            )?;
+            execute_evaluation_session_with_policy(
+                graph,
+                &session,
+                precompute,
+                &mut resolver,
+                executor,
+            )
+        })?;
+        self.absorb_execution_report_telemetry(&report);
+        Ok(report)
     }
 
     pub fn read<F>(&mut self, node: NodeId, precompute: &F) -> Result<AspectVersion, SignalError>
@@ -149,8 +171,29 @@ where
         if targets.is_empty() {
             return Ok(crate::logic::transaction::helpers::empty_execution_report());
         }
-        let plan = self.build_evaluation_plan(&targets, EvaluationRequestMode::Default)?;
-        self.execute_prepared_plan_with_executor(&plan, precompute, executor)
+        let mut resolver = TierPolicyResolver::new(
+            self.config.node_meta(),
+            self.config.tier_policies(),
+            self.config.fallback_comparator(),
+        );
+        let report = self.graph.with_scratch(ScratchLeaseKind::Evaluation, |graph, scratch| {
+            let session = build_evaluation_session_with_policy_resolver(
+                graph,
+                scratch,
+                &targets,
+                EvaluationRequestMode::Default,
+                &mut resolver,
+            )?;
+            execute_evaluation_session_with_policy(
+                graph,
+                &session,
+                precompute,
+                &mut resolver,
+                executor,
+            )
+        })?;
+        self.absorb_execution_report_telemetry(&report);
+        Ok(report)
     }
 
     pub(super) fn absorb_execution_report_telemetry(&mut self, report: &ExecutionReport) {

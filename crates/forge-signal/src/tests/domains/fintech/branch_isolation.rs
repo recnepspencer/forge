@@ -6,7 +6,10 @@ use crate::diagnostics::{LineageEvent, ReplayEventKind};
 use crate::facade::{ReplaySlice, SignalBranchHandle, StageExecutor};
 
 fn replay_is_branch_local(replay: &ReplaySlice, branch: &SignalBranchHandle) -> bool {
-    replay.frames.iter().all(|frame| frame.branch_id == branch.id)
+    replay
+        .frames
+        .iter()
+        .all(|frame| frame.branch_id == branch.id)
 }
 
 #[test]
@@ -14,11 +17,15 @@ fn fintech_hostile_branch_replay_and_audit_workflow_stays_coherent() {
     let mut fixture = setup_seeded_world();
     fixture.assert_shape(FintechScale::smoke());
 
-    let baseline = fixture.capture_active_checkpoint(StageExecutor::Serial).unwrap();
+    let baseline = fixture
+        .capture_active_checkpoint(StageExecutor::Serial)
+        .unwrap();
 
     let analysis = fixture.open_branch("analysis-risk").unwrap();
     fixture.seed_market(MarketSeed::high_vol(17)).unwrap();
-    let analysis_checkpoint = fixture.capture_active_checkpoint(StageExecutor::Serial).unwrap();
+    let analysis_checkpoint = fixture
+        .capture_active_checkpoint(StageExecutor::Serial)
+        .unwrap();
 
     let analysis_replay_before = fixture.replay_for_branch(analysis.clone());
     fixture
@@ -39,7 +46,9 @@ fn fintech_hostile_branch_replay_and_audit_workflow_stays_coherent() {
     );
 
     fixture.restore_checkpoint(&analysis_checkpoint).unwrap();
-    let restored_analysis = fixture.read_primary_audit_surface(StageExecutor::Serial).unwrap();
+    let restored_analysis = fixture
+        .read_primary_audit_surface(StageExecutor::Serial)
+        .unwrap();
     assert_eq!(restored_analysis, analysis_checkpoint.audit);
 
     let correction = fixture.open_branch("correction").unwrap();
@@ -49,7 +58,9 @@ fn fintech_hostile_branch_replay_and_audit_workflow_stays_coherent() {
         .unwrap();
     fixture.switch_branch(baseline.branch.clone()).unwrap();
     fixture.restore_checkpoint(&baseline).unwrap();
-    let restored_main = fixture.read_primary_audit_surface(StageExecutor::Serial).unwrap();
+    let restored_main = fixture
+        .read_primary_audit_surface(StageExecutor::Serial)
+        .unwrap();
     assert_eq!(restored_main, baseline.audit);
 
     let main_replay = fixture.replay_for_branch(baseline.branch.clone());
@@ -73,12 +84,10 @@ fn fintech_hostile_branch_replay_and_audit_workflow_stays_coherent() {
     }));
 
     let around_snapshot = fixture.replay_around_saved_snapshot(&analysis_checkpoint.snapshot);
-    assert!(
-        around_snapshot
-            .frames
-            .iter()
-            .any(|frame| frame.snapshot_id == Some(analysis_checkpoint.snapshot.meta.snapshot_id))
-    );
+    assert!(around_snapshot
+        .frames
+        .iter()
+        .any(|frame| frame.snapshot_id == Some(analysis_checkpoint.snapshot.meta.snapshot_id)));
 
     let current = fixture.current_branch();
     assert_eq!(current.name, "correction");
@@ -93,39 +102,53 @@ fn fintech_cross_branch_churn_keeps_branch_truth_from_leaking() {
     let mut fixture = setup_seeded_world();
     fixture.assert_shape(FintechScale::smoke());
 
-    let main_checkpoint = fixture.capture_active_checkpoint(StageExecutor::Serial).unwrap();
+    let main_checkpoint = fixture
+        .capture_active_checkpoint(StageExecutor::Serial)
+        .unwrap();
 
     let analysis = fixture.open_branch("analysis-isolated").unwrap();
     fixture.seed_market(MarketSeed::high_vol(17)).unwrap();
     fixture
         .bump_primary_market(7, 3, 1, 0, StageExecutor::Serial)
         .unwrap();
-    let analysis_checkpoint = fixture.capture_active_checkpoint(StageExecutor::Serial).unwrap();
+    let analysis_checkpoint = fixture
+        .capture_active_checkpoint(StageExecutor::Serial)
+        .unwrap();
 
-    fixture.switch_branch(main_checkpoint.branch.clone()).unwrap();
+    fixture
+        .switch_branch(main_checkpoint.branch.clone())
+        .unwrap();
     fixture.restore_checkpoint(&main_checkpoint).unwrap();
     let correction = fixture.open_branch("correction-isolated").unwrap();
     fixture.seed_market(MarketSeed::fx_dislocation(29)).unwrap();
     fixture
         .bump_primary_market(1, 6, 4, 3, StageExecutor::Serial)
         .unwrap();
-    let correction_checkpoint = fixture.capture_active_checkpoint(StageExecutor::Serial).unwrap();
+    let correction_checkpoint = fixture
+        .capture_active_checkpoint(StageExecutor::Serial)
+        .unwrap();
 
     fixture.switch_branch(analysis.clone()).unwrap();
     fixture.restore_checkpoint(&analysis_checkpoint).unwrap();
-    let analysis_audit = fixture.read_primary_audit_surface(StageExecutor::Serial).unwrap();
+    let analysis_audit = fixture
+        .read_primary_audit_surface(StageExecutor::Serial)
+        .unwrap();
     let analysis_market = fixture
         .read_primary_market_source_with_executor(StageExecutor::Serial)
         .unwrap();
 
     fixture.switch_branch(correction.clone()).unwrap();
     fixture.restore_checkpoint(&correction_checkpoint).unwrap();
-    let correction_audit = fixture.read_primary_audit_surface(StageExecutor::Serial).unwrap();
+    let correction_audit = fixture
+        .read_primary_audit_surface(StageExecutor::Serial)
+        .unwrap();
     let correction_market = fixture
         .read_primary_market_source_with_executor(StageExecutor::Serial)
         .unwrap();
 
-    fixture.switch_branch(main_checkpoint.branch.clone()).unwrap();
+    fixture
+        .switch_branch(main_checkpoint.branch.clone())
+        .unwrap();
     fixture.restore_checkpoint(&main_checkpoint).unwrap();
     let main_truth = FintechTruthSnapshot::capture(
         &mut fixture,
@@ -155,11 +178,17 @@ fn fintech_cross_branch_churn_keeps_branch_truth_from_leaking() {
     let main_replay = main_truth.replays.get("main").unwrap();
     let analysis_replay = main_truth.replays.get("analysis").unwrap();
     let correction_replay = main_truth.replays.get("correction").unwrap();
-    assert!(replay_is_branch_local(&main_replay, &main_checkpoint.branch));
+    assert!(replay_is_branch_local(
+        &main_replay,
+        &main_checkpoint.branch
+    ));
     assert!(replay_is_branch_local(&analysis_replay, &analysis));
     assert!(replay_is_branch_local(&correction_replay, &correction));
 
-    assert_eq!(main_truth.branch_heads.get("main"), Some(&Some(main_checkpoint.snapshot.meta.snapshot_id)));
+    assert_eq!(
+        main_truth.branch_heads.get("main"),
+        Some(&Some(main_checkpoint.snapshot.meta.snapshot_id))
+    );
     assert_eq!(
         main_truth.branch_heads.get("analysis"),
         Some(&Some(analysis_checkpoint.snapshot.meta.snapshot_id))
@@ -168,5 +197,4 @@ fn fintech_cross_branch_churn_keeps_branch_truth_from_leaking() {
         main_truth.branch_heads.get("correction"),
         Some(&Some(correction_checkpoint.snapshot.meta.snapshot_id))
     );
-
 }

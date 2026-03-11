@@ -282,12 +282,15 @@ fn preview_condition_action(
 #[cfg(test)]
 fn max_dependency_delta(graph: &SignalGraph, node: NodeId) -> Result<u64, SignalError> {
     let mut max_delta = 0;
-    for (source, aspect, cached_version, _) in graph.get_dep_snapshot(node)?.entries() {
-        if !graph.is_alive(*source) {
+    for snapshot_entry in graph.get_dep_snapshot(node)?.entries() {
+        if !graph.is_alive(snapshot_entry.source) {
             continue;
         }
-        let current_version = graph.get_entry(*source)?.get_aspect_version().get(*aspect);
-        max_delta = max_delta.max(current_version.abs_diff(*cached_version));
+        let current_version = graph
+            .get_entry(snapshot_entry.source)?
+            .get_aspect_version()
+            .get(snapshot_entry.aspect);
+        max_delta = max_delta.max(current_version.abs_diff(snapshot_entry.cached_version));
     }
     Ok(max_delta)
 }
@@ -326,25 +329,34 @@ fn preview_upstream_state(
     let comparator = resolver.policy_for_node(node, node_cfg.comparator.as_ref());
     let mut partition_scope_revert_clean_count = 0;
 
-    for (source, aspect, cached_version, scope) in snapshot.entries() {
-        if !graph.is_alive(*source) {
+    for snapshot_entry in snapshot.entries() {
+        if !graph.is_alive(snapshot_entry.source) {
             return Ok(UpstreamPreview {
                 unchanged: false,
                 partition_scope_revert_clean_count,
             });
         }
-        if !matches!(graph.get_entry(*source)?.get_state(), NodeState::Clean) {
+        if !matches!(
+            graph.get_entry(snapshot_entry.source)?.get_state(),
+            NodeState::Clean
+        ) {
             return Ok(UpstreamPreview {
                 unchanged: false,
                 partition_scope_revert_clean_count,
             });
         }
-        let current_version = graph.get_entry(*source)?.get_aspect_version().get(*aspect);
-        if let Some(scope) = scope {
-            if current_version == *cached_version {
+        let current_version = graph
+            .get_entry(snapshot_entry.source)?
+            .get_aspect_version()
+            .get(snapshot_entry.aspect);
+        if let Some(scope) = &snapshot_entry.scope {
+            if current_version == snapshot_entry.cached_version {
                 continue;
             }
-            if partition_scope_untouched(graph.get_entry(*source)?.get_trace_summary(), scope) {
+            if partition_scope_untouched(
+                graph.get_entry(snapshot_entry.source)?.get_trace_summary(),
+                scope,
+            ) {
                 partition_scope_revert_clean_count += 1;
                 continue;
             }
@@ -353,7 +365,12 @@ fn preview_upstream_state(
                 partition_scope_revert_clean_count,
             });
         }
-        if comparator.has_meaningful_change(*aspect, *cached_version, current_version, resolver)? {
+        if comparator.has_meaningful_change(
+            snapshot_entry.aspect,
+            snapshot_entry.cached_version,
+            current_version,
+            resolver,
+        )? {
             return Ok(UpstreamPreview {
                 unchanged: false,
                 partition_scope_revert_clean_count,

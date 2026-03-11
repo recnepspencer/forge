@@ -10,6 +10,7 @@ use crate::data::output::{
     ChangedRegion, MemoizedResultOrigin, OutputChange, OutputIdentity, PartitionSubscription,
 };
 use crate::data::trace::{CausalityMetadata, TraceSummary};
+use crate::diagnostics::policy::ArtifactMaterializationMode;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MeaningfulChangeReason {
@@ -76,9 +77,65 @@ pub enum UpstreamCause {
     },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CausalDisposition {
+    Semantic,
+    Suppressed,
+    Ignored,
+    Conservative,
+    Topology,
+    Lifecycle,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ScopeProvenanceKind {
+    None,
+    Direct,
+    Translated,
+    Discarded,
+    InsufficientEvidence,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ScopeProvenance {
+    pub source_scope: Option<PartitionSubscription>,
+    pub validation_scope: Option<PartitionSubscription>,
+    pub kind: ScopeProvenanceKind,
+    pub note: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CausalLink {
+    pub source: Option<NodeId>,
+    pub aspect: Option<Aspect>,
+    pub disposition: CausalDisposition,
+    pub kind: String,
+    pub scope: ScopeProvenance,
+    pub cached_version: Option<u64>,
+    pub current_version: Option<u64>,
+    pub comparator: Option<VersionComparatorPolicy>,
+    pub reason: Option<MeaningfulChangeReason>,
+    pub note: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RewiringDependency {
+    pub source: NodeId,
+    pub aspect: Aspect,
+    pub subscription: Option<PartitionSubscription>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RewiringSummary {
+    pub added: Vec<RewiringDependency>,
+    pub removed: Vec<RewiringDependency>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NodeExplanation {
     pub node: NodeId,
+    #[serde(default)]
+    pub materialization_mode: ArtifactMaterializationMode,
     pub state: NodeState,
     pub dirty_aspects: AspectMask,
     pub condition: EvaluationCondition,
@@ -91,6 +148,10 @@ pub struct NodeExplanation {
     pub propagation_suppressed: bool,
     pub memoized_origin: Option<MemoizedResultOrigin>,
     pub upstream: Vec<UpstreamCause>,
+    #[serde(default)]
+    pub causal_links: Vec<CausalLink>,
+    #[serde(default)]
+    pub rewiring: Option<RewiringSummary>,
     pub causality: Option<CausalityMetadata>,
 }
 
@@ -101,6 +162,7 @@ impl fmt::Display for NodeExplanation {
             "Node {} state={:?} condition={:?}",
             self.node, self.state, self.condition
         )?;
+        writeln!(f, "Materialization: {:?}", self.materialization_mode)?;
         if !self.dirty_aspects.is_empty() {
             writeln!(f, "Dirty aspects: {:?}", self.dirty_aspects)?;
         }
@@ -134,11 +196,34 @@ impl fmt::Display for NodeExplanation {
         if !self.changed_regions.is_empty() {
             writeln!(f, "Changed regions: {}", self.changed_regions.len())?;
         }
+        if let Some(rewiring) = &self.rewiring {
+            writeln!(
+                f,
+                "Rewiring: +{} / -{}",
+                rewiring.added.len(),
+                rewiring.removed.len()
+            )?;
+        }
+        for link in &self.causal_links {
+            writeln!(f, "{}", format_causal_link(link))?;
+        }
         for cause in &self.upstream {
             writeln!(f, "{}", format_upstream_cause(cause))?;
         }
         Ok(())
     }
+}
+
+fn format_causal_link(link: &CausalLink) -> String {
+    format!(
+        "  cause {:?}/{:?} <- {:?} aspect {:?} scope {:?} note {:?}",
+        link.disposition,
+        link.kind,
+        link.source,
+        link.aspect.map(|aspect| aspect.index()),
+        link.scope.validation_scope,
+        link.note
+    )
 }
 
 fn format_upstream_cause(cause: &UpstreamCause) -> String {

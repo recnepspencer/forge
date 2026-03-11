@@ -1,5 +1,7 @@
-use crate::data::bitset::DenseBitset;
 use crate::data::handle::NodeId;
+use crate::logic::planner::{
+    EvaluationTask, StageCursor, StageExecutionRecord, TaskExecutionRecord,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(not(test), allow(dead_code))]
@@ -18,8 +20,13 @@ pub(crate) struct TraversalScratch {
     pub(crate) cycle_stack: Vec<(NodeId, bool)>,
     pub(crate) node_buffer_a: Vec<NodeId>,
     pub(crate) node_buffer_b: Vec<NodeId>,
-    pub(crate) gc_liveness_generations: Vec<u32>,
-    pub(crate) gc_liveness_alive: DenseBitset,
+    pub(crate) planner_targets: Vec<NodeId>,
+    pub(crate) planner_tasks: Vec<EvaluationTask>,
+    pub(crate) planner_stages: Vec<StageCursor>,
+    #[allow(dead_code)]
+    pub(crate) report_stages: Vec<StageExecutionRecord>,
+    #[allow(dead_code)]
+    pub(crate) report_tasks: Vec<TaskExecutionRecord>,
 }
 
 #[derive(Debug, Clone, Default)]

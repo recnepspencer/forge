@@ -204,6 +204,13 @@ pub fn compare_explanations(
     compare_value(
         &mut diff.mismatches,
         DiagnosticMismatchCategory::Provenance,
+        "materialization_mode",
+        left.materialization_mode.clone(),
+        right.materialization_mode.clone(),
+    );
+    compare_value(
+        &mut diff.mismatches,
+        DiagnosticMismatchCategory::Provenance,
         "state",
         format!("{:?}", left.state),
         format!("{:?}", right.state),
@@ -229,6 +236,84 @@ pub fn compare_explanations(
         left.condition_deferred_count,
         right.condition_deferred_count,
     );
+    compare_value(
+        &mut diff.mismatches,
+        DiagnosticMismatchCategory::Provenance,
+        "conservative_cause_count",
+        left.conservative_cause_count,
+        right.conservative_cause_count,
+    );
+    compare_value(
+        &mut diff.mismatches,
+        DiagnosticMismatchCategory::Provenance,
+        "direct_scope_count",
+        left.direct_scope_count,
+        right.direct_scope_count,
+    );
+    compare_value(
+        &mut diff.mismatches,
+        DiagnosticMismatchCategory::Provenance,
+        "translated_scope_count",
+        left.translated_scope_count,
+        right.translated_scope_count,
+    );
+    compare_value(
+        &mut diff.mismatches,
+        DiagnosticMismatchCategory::Provenance,
+        "discarded_scope_count",
+        left.discarded_scope_count,
+        right.discarded_scope_count,
+    );
+    compare_value(
+        &mut diff.mismatches,
+        DiagnosticMismatchCategory::Provenance,
+        "insufficient_scope_count",
+        left.insufficient_scope_count,
+        right.insufficient_scope_count,
+    );
+    compare_value(
+        &mut diff.mismatches,
+        DiagnosticMismatchCategory::Provenance,
+        "rewired_dependency_count",
+        left.rewired_dependency_count,
+        right.rewired_dependency_count,
+    );
+    if left.direct_cause_kinds != right.direct_cause_kinds {
+        push_mismatch(
+            &mut diff.mismatches,
+            DiagnosticMismatchCategory::Provenance,
+            "direct_cause_kinds",
+            format!("{:?}", left.direct_cause_kinds),
+            format!("{:?}", right.direct_cause_kinds),
+        );
+    }
+    if left.scope_provenance_kinds != right.scope_provenance_kinds {
+        push_mismatch(
+            &mut diff.mismatches,
+            DiagnosticMismatchCategory::Provenance,
+            "scope_provenance_kinds",
+            format!("{:?}", left.scope_provenance_kinds),
+            format!("{:?}", right.scope_provenance_kinds),
+        );
+    }
+    if left.cause_note_samples != right.cause_note_samples {
+        push_mismatch(
+            &mut diff.mismatches,
+            DiagnosticMismatchCategory::Provenance,
+            "cause_note_samples",
+            format!("{:?}", left.cause_note_samples),
+            format!("{:?}", right.cause_note_samples),
+        );
+    }
+    if left.triage_classes != right.triage_classes {
+        push_mismatch(
+            &mut diff.mismatches,
+            DiagnosticMismatchCategory::Provenance,
+            "triage_classes",
+            format!("{:?}", left.triage_classes),
+            format!("{:?}", right.triage_classes),
+        );
+    }
     compare_value(
         &mut diff.mismatches,
         DiagnosticMismatchCategory::Provenance,
@@ -360,6 +445,24 @@ pub fn compare_flows(left: &FlowSummary, right: &FlowSummary) -> FlowDiff {
             right.explanation.is_some(),
         ),
         (None, None) => {}
+    }
+    if left.cause_samples != right.cause_samples {
+        push_mismatch(
+            &mut diff.mismatches,
+            DiagnosticMismatchCategory::Flow,
+            "cause_samples",
+            format!("{:?}", left.cause_samples),
+            format!("{:?}", right.cause_samples),
+        );
+    }
+    if left.event_epochs != right.event_epochs {
+        push_mismatch(
+            &mut diff.mismatches,
+            DiagnosticMismatchCategory::Flow,
+            "event_epochs",
+            format!("{:?}", left.event_epochs),
+            format!("{:?}", right.event_epochs),
+        );
     }
     diff
 }

@@ -233,6 +233,20 @@ fn complexity_contract_current_state_clone_is_declared_and_measured() {
 }
 
 #[test]
+fn complexity_budget_snapshot_visibility_state_avoids_record_materialization() {
+    let mut runtime = runtime_with_test_schema();
+    let _ = create_entity(&mut runtime, "first");
+    let _ = create_entity(&mut runtime, "second");
+
+    runtime.reset_complexity_counters();
+    let _snapshot = runtime.snapshot();
+    let counters = runtime.complexity_counters();
+
+    assert_eq!(counters.visible_entity_records_materialized, 0);
+    assert_eq!(counters.visible_relation_records_materialized, 0);
+}
+
+#[test]
 fn complexity_budget_snapshot_pin_maintenance_is_incremental() {
     let mut runtime = runtime_with_test_schema();
     for index in 0..6 {

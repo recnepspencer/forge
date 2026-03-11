@@ -1,3 +1,4 @@
 pub mod data;
 pub mod facade;
-pub mod logic;
+pub(crate) mod graph;
+pub(crate) mod resolution;

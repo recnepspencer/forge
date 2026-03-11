@@ -29,7 +29,8 @@ fn fintech_snapshot_restore_after_partial_audit_refresh_recovers_full_truth() {
 
     let analysis = fixture.open_branch("analysis-partial-refresh").unwrap();
     fixture.seed_market(MarketSeed::high_vol(17)).unwrap();
-    let expected_truth = FintechTruthSnapshot::capture_core(&mut fixture, StageExecutor::Serial).unwrap();
+    let expected_truth =
+        FintechTruthSnapshot::capture_core(&mut fixture, StageExecutor::Serial).unwrap();
     let expected_audit = expected_truth.primary_audit.clone();
     let expected_market = expected_truth.primary_market;
     let snapshot = fixture.capture_branch_snapshot(analysis).unwrap();
@@ -48,7 +49,8 @@ fn fintech_snapshot_restore_after_partial_audit_refresh_recovers_full_truth() {
     fixture
         .restore_saved_snapshot(fixture.current_branch(), &snapshot)
         .unwrap();
-    let restored_truth = FintechTruthSnapshot::capture_core(&mut fixture, StageExecutor::Serial).unwrap();
+    let restored_truth =
+        FintechTruthSnapshot::capture_core(&mut fixture, StageExecutor::Serial).unwrap();
     assert_eq!(restored_truth.primary_audit, expected_audit);
     assert!(compare_exact(&restored_truth, &expected_truth).is_empty());
 

@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::aspect::Aspect;
 use crate::data::handle::NodeId;
 use crate::data::output::ChangedRegion;
+use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
 use crate::diagnostics::failure::{FailureSummary, RollbackDiagnostic};
 use crate::diagnostics::flow::{ChangeInputSummary, FlowSummary, InvalidationSummary};
@@ -217,6 +218,12 @@ impl DiagnosticsState {
 
     pub fn clear_pending_input(&mut self) {
         self.pending_input = None;
+    }
+
+    pub fn attach_event_epochs_to_latest_flow(&mut self, event_epochs: Vec<EventEpochSummary>) {
+        if let Some(flow) = &mut self.latest_flow {
+            flow.event_epochs = event_epochs;
+        }
     }
 
     pub fn allocate_replay_cursor(&mut self) -> ReplayCursor {

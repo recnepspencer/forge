@@ -172,21 +172,43 @@ fn explicit_retained_and_reconstructed_artifact_apis_match_policy() {
         .unwrap();
     assert!(graph.retained_explanation_artifact(dependent).is_some());
     assert!(graph.retained_provenance_artifact(dependent).is_some());
+    assert_eq!(
+        graph
+            .retained_explanation_artifact(dependent)
+            .unwrap()
+            .materialization_mode,
+        ArtifactMaterializationMode::Retained
+    );
+    assert_eq!(
+        graph
+            .retained_provenance_artifact(dependent)
+            .unwrap()
+            .materialization_mode,
+        ArtifactMaterializationMode::Retained
+    );
 
     graph.set_runtime_policy(SignalRuntimePolicy::operational());
     assert!(graph.retained_explanation_artifact(dependent).is_none());
     assert!(graph.retained_provenance_artifact(dependent).is_none());
-    assert!(!graph
-        .reconstruct_explanation_artifact(dependent)
-        .unwrap()
-        .upstream
-        .is_empty());
-    assert!(graph
-        .reconstruct_provenance_artifact(dependent)
-        .unwrap()
+    let reconstructed_explanation = graph.reconstruct_explanation_artifact(dependent).unwrap();
+    let reconstructed_provenance = graph.reconstruct_provenance_artifact(dependent).unwrap();
+    assert_eq!(
+        reconstructed_explanation.materialization_mode,
+        ArtifactMaterializationMode::Reconstructed
+    );
+    assert_eq!(
+        reconstructed_provenance.materialization_mode,
+        ArtifactMaterializationMode::Reconstructed
+    );
+    assert!(!reconstructed_explanation.upstream.is_empty());
+    assert!(reconstructed_provenance
         .vertices
         .iter()
         .any(|vertex| vertex.node == dependent));
+    assert_eq!(
+        reconstructed_provenance.causal_links,
+        reconstructed_explanation.causal_links
+    );
 }
 
 #[test]
@@ -248,6 +270,10 @@ fn explain_reports_missing_snapshot_and_dependency_removed() {
         .upstream
         .iter()
         .any(|cause| matches!(cause, UpstreamCause::MissingSnapshot { source: missing, aspect, current_version: Some(1), .. } if *missing == source && *aspect == ASPECT_A)));
+    assert!(missing_snapshot.causal_links.iter().any(|link| {
+        matches!(link.disposition, CausalDisposition::Conservative)
+            && link.kind == "MissingSnapshot"
+    }));
 
     let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(10, 0));
     evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
@@ -421,4 +447,157 @@ fn rollback_preserves_committed_explanation_and_increments_rollback_metric() {
         runtime.metrics().transaction_rollback_count,
         rollback_before + 1
     );
+}
+
+#[test]
+fn flow_diagnostics_attach_event_epochs_after_successful_commit() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().build();
+    let dependent = graph.node().build();
+    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    let mut runtime = build_runtime(graph);
+
+    runtime
+        .transaction(&mut (), |tx| {
+            tx.evaluate_with_plan(
+                source,
+                &|_id, view| Ok(view.finish(version_ab(1, 0))),
+                EvaluationRequestMode::Default,
+            )?;
+            tx.evaluate_with_plan(
+                dependent,
+                &|_id, view| {
+                    let version = view.read_aspect_version(source, ASPECT_A)?;
+                    Ok(view.finish(NodeEvaluationResult::from_version(version)))
+                },
+                EvaluationRequestMode::Default,
+            )?;
+            tx.emit_event(Ev::Tick);
+            tx.flush_events(CheckpointBarrier::PerOperation)?;
+            Ok(())
+        })
+        .unwrap();
+
+    let flow = runtime.latest_flow_diagnostics().unwrap();
+    assert_eq!(flow.event_epochs.len(), 1);
+    assert_eq!(flow.event_epochs[0].outcome, EventEpochOutcome::Committed);
+    assert_eq!(
+        flow.event_epochs[0].barrier,
+        CheckpointBarrier::PerOperation
+    );
+    assert_eq!(flow.event_epochs[0].committed_subscriber_count, 0);
+    assert_eq!(flow.event_epochs[0].failed_subscriber_position, None);
+}
+
+#[test]
+fn fillet_style_explanation_stays_local_to_the_changed_partition_scope() {
+    let mut graph = SignalGraph::new();
+    let feature_edit = graph.node().partitioned_output().build();
+    let unrelated_region = graph.node().partitioned_output().build();
+    let fillet = graph.node().build();
+    graph
+        .add_partition_detail_dependency(fillet, feature_edit, ASPECT_A, "surface", "fillet-band")
+        .unwrap();
+
+    let bootstrap = graph
+        .build_evaluation_plan(
+            &[feature_edit, unrelated_region, fillet],
+            EvaluationRequestMode::ForceOnDemand,
+        )
+        .unwrap();
+    graph
+        .execute_prepared_plan(&bootstrap, &|node, view| {
+            let result = if node == fillet {
+                let version = view.read_partitioned_aspect_version(
+                    feature_edit,
+                    ASPECT_A,
+                    PartitionSubscription::partition_and_detail("surface", "fillet-band"),
+                )?;
+                view.finish(NodeEvaluationResult::from_version(version))
+            } else {
+                view.finish(NodeEvaluationResult::from_version(version_ab(1, 0)))
+            };
+            Ok(result)
+        })
+        .unwrap();
+
+    mark_dirty_with_regions(
+        &mut graph,
+        feature_edit,
+        ASPECT_A,
+        &[ChangedRegion::new("surface").with_detail("fillet-band")],
+    )
+    .unwrap();
+    let feature_update = graph
+        .build_evaluation_plan(&[feature_edit], EvaluationRequestMode::Default)
+        .unwrap();
+    graph
+        .execute_prepared_plan(&feature_update, &|_node, view| {
+            Ok(view.finish(
+                NodeEvaluationResult::from_version(version_ab(2, 0))
+                    .with_changed_region(ChangedRegion::new("surface").with_detail("fillet-band")),
+            ))
+        })
+        .unwrap();
+
+    let explanation = graph.explain(fillet).unwrap();
+    let summary = explanation.diagnostics_summary(DiagnosticsProfile::Development);
+    assert!(explanation.causal_links.iter().any(|link| {
+        link.source == Some(feature_edit)
+            && link.scope.validation_scope.as_ref().is_some_and(|scope| {
+                scope.partition.0 == "surface" && scope.detail.as_deref() == Some("fillet-band")
+            })
+    }));
+    assert!(!explanation
+        .causal_links
+        .iter()
+        .any(|link| link.source == Some(unrelated_region)));
+    assert!(summary.triage_classes.contains(&"locality".to_string()));
+    assert_eq!(summary.discarded_scope_count, 0);
+    assert!(summary
+        .scope_provenance_kinds
+        .iter()
+        .any(|kind| kind == "Direct"));
+}
+
+#[test]
+fn flow_cause_samples_surface_locality_triage_without_false_rewiring() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().partitioned_output().build();
+    let fillet = graph.node().build();
+    graph
+        .add_partition_detail_dependency(fillet, source, ASPECT_A, "surface", "fillet-band")
+        .unwrap();
+    let mut runtime = build_runtime(graph);
+
+    runtime
+        .transaction(&mut (), |tx| {
+            tx.evaluate_with_plan(
+                source,
+                &|_id, view| Ok(view.finish(version_ab(1, 0))),
+                EvaluationRequestMode::Default,
+            )?;
+            tx.evaluate_with_plan(
+                fillet,
+                &|_id, view| {
+                    let version = view.read_partitioned_aspect_version(
+                        source,
+                        ASPECT_A,
+                        PartitionSubscription::partition_and_detail("surface", "fillet-band"),
+                    )?;
+                    Ok(view.finish(NodeEvaluationResult::from_version(version)))
+                },
+                EvaluationRequestMode::Default,
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+    let flow = runtime.latest_flow_diagnostics().unwrap();
+    assert!(flow.cause_samples.iter().any(|sample| {
+        sample.node == fillet
+            && sample.suspect_classes.contains(&"locality".to_string())
+            && !sample.suspect_classes.contains(&"rewiring".to_string())
+            && sample.scope_kinds.iter().any(|kind| kind == "Direct")
+    }));
 }

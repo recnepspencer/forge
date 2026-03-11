@@ -85,20 +85,26 @@ fn count_meaningful_input_changes(
     snapshot: &DependencySnapshot,
 ) -> Result<u32, SignalError> {
     let mut changes = 0_u32;
-    for (source, aspect, _cached_version, scope) in snapshot.entries() {
+    for snapshot_entry in snapshot.entries() {
         let cached = graph
             .get_dep_snapshot(node)?
             .entries()
             .iter()
-            .find(|(candidate_source, candidate_aspect, _, candidate_scope)| {
-                candidate_source == source && candidate_aspect == aspect && candidate_scope == scope
+            .find(|candidate| {
+                candidate.source == snapshot_entry.source
+                    && candidate.aspect == snapshot_entry.aspect
+                    && candidate.scope == snapshot_entry.scope
             })
-            .map(|(_, _, version, _)| *version);
+            .map(|candidate| candidate.cached_version);
         let Some(cached) = cached else {
             continue;
         };
-        if !graph.is_alive(*source)
-            || graph.get_entry(*source)?.get_aspect_version().get(*aspect) != cached
+        if !graph.is_alive(snapshot_entry.source)
+            || graph
+                .get_entry(snapshot_entry.source)?
+                .get_aspect_version()
+                .get(snapshot_entry.aspect)
+                != cached
         {
             changes += 1;
         }

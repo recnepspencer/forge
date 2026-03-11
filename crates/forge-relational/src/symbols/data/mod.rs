@@ -12,7 +12,7 @@ pub enum SymbolPolicy {
     RequireInterned,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum InternedString {
     Raw(String),
     Symbol(Symbol),

@@ -53,6 +53,14 @@ pub struct ExecutionStage {
     pub barrier: Option<StageBarrier>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct StageCursor {
+    pub index: u32,
+    pub start: usize,
+    pub end: usize,
+    pub barrier: Option<StageBarrier>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct PlanSummary {
     pub requested_target_count: u32,
@@ -66,6 +74,23 @@ pub struct EvaluationPlan {
     pub request_mode: EvaluationRequestMode,
     pub targets: Vec<NodeId>,
     pub stages: Vec<ExecutionStage>,
+    pub summary: PlanSummary,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct EvaluationCursor {
+    pub request_mode: EvaluationRequestMode,
+    pub targets: Vec<NodeId>,
+    pub tasks: Vec<EvaluationTask>,
+    pub stages: Vec<StageCursor>,
+    pub summary: PlanSummary,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct EvaluationSession<'a> {
+    pub targets: &'a [NodeId],
+    pub tasks: &'a [EvaluationTask],
+    pub stages: &'a [StageCursor],
     pub summary: PlanSummary,
 }
 

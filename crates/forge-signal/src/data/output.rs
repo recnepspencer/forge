@@ -185,6 +185,101 @@ pub struct InternedPartitionSubscription {
     pub match_mode: PartitionMatchMode,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum PartitionTokenRef<'a> {
+    Public(&'a PartitionToken),
+    Interned(PartitionTokenId),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum DetailTokenRef<'a> {
+    Public(&'a str),
+    Interned(DetailTokenId),
+}
+
+pub(crate) trait PartitionScoped {
+    fn partition_token_ref(&self) -> PartitionTokenRef<'_>;
+    fn detail_token_ref(&self) -> Option<DetailTokenRef<'_>>;
+    fn match_mode(&self) -> PartitionMatchMode;
+}
+
+impl PartitionScoped for PartitionSubscription {
+    fn partition_token_ref(&self) -> PartitionTokenRef<'_> {
+        PartitionTokenRef::Public(&self.partition)
+    }
+
+    fn detail_token_ref(&self) -> Option<DetailTokenRef<'_>> {
+        self.detail.as_deref().map(DetailTokenRef::Public)
+    }
+
+    fn match_mode(&self) -> PartitionMatchMode {
+        self.match_mode
+    }
+}
+
+impl PartitionScoped for InternedPartitionSubscription {
+    fn partition_token_ref(&self) -> PartitionTokenRef<'_> {
+        PartitionTokenRef::Interned(self.partition)
+    }
+
+    fn detail_token_ref(&self) -> Option<DetailTokenRef<'_>> {
+        self.detail.map(DetailTokenRef::Interned)
+    }
+
+    fn match_mode(&self) -> PartitionMatchMode {
+        self.match_mode
+    }
+}
+
+impl PartitionScoped for ChangedRegion {
+    fn partition_token_ref(&self) -> PartitionTokenRef<'_> {
+        PartitionTokenRef::Public(&self.partition)
+    }
+
+    fn detail_token_ref(&self) -> Option<DetailTokenRef<'_>> {
+        self.detail.as_deref().map(DetailTokenRef::Public)
+    }
+
+    fn match_mode(&self) -> PartitionMatchMode {
+        if self.detail.is_some() {
+            PartitionMatchMode::PartitionAndDetail
+        } else {
+            PartitionMatchMode::WholePartition
+        }
+    }
+}
+
+pub(crate) fn scopes_overlap(left: &impl PartitionScoped, right: &impl PartitionScoped) -> bool {
+    if left.partition_token_ref() != right.partition_token_ref() {
+        return false;
+    }
+    match (left.match_mode(), right.match_mode()) {
+        (PartitionMatchMode::WholePartition, _) | (_, PartitionMatchMode::WholePartition) => true,
+        (PartitionMatchMode::PartitionAndDetail, PartitionMatchMode::PartitionAndDetail) => {
+            left.detail_token_ref() == right.detail_token_ref()
+        }
+    }
+}
+
+pub(crate) fn scope_touched_by_trace(
+    trace_summary: Option<&crate::data::trace::TraceSummary>,
+    scope: &PartitionSubscription,
+) -> bool {
+    let Some(trace_summary) = trace_summary else {
+        return false;
+    };
+    if trace_summary.output_change == OutputChange::Unchanged {
+        return false;
+    }
+    if trace_summary.changed_regions.is_empty() {
+        return true;
+    }
+    trace_summary
+        .changed_regions
+        .iter()
+        .any(|region| scopes_overlap(scope, region))
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PartitionInterner {
     partitions: Vec<String>,
@@ -230,6 +325,14 @@ impl PartitionInterner {
 
     pub fn partition_count(&self) -> usize {
         self.partitions.len()
+    }
+
+    pub fn detail_count(&self) -> usize {
+        self.details.len()
+    }
+
+    pub fn token_count(&self) -> usize {
+        self.partition_count() + self.detail_count()
     }
 
     fn intern_partition(&mut self, partition: &str) -> PartitionTokenId {

@@ -1,8 +1,10 @@
 use std::collections::BTreeMap;
 
 use crate::data::bitset::DenseBitset;
+use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::dirty_set::BatchedDirtySet;
 use crate::data::telemetry::RuntimeTelemetry;
+use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::failure::FailureSummary;
 use crate::diagnostics::replay::ReplayEventKind;
 use crate::diagnostics::state::DiagnosticsState;
@@ -25,6 +27,12 @@ pub(super) struct TransactionSemanticDelta {
     pub failure_summary: Option<FailureSummary>,
     pub rollback: Option<crate::diagnostics::failure::RollbackDiagnostic>,
     pub replay_events: Vec<(ReplayEventKind, String, Option<u64>, Option<u64>)>,
+    pub event_epochs: Vec<EventEpochSummary>,
+}
+
+pub(super) enum StagedEventOperation<E> {
+    Emit(E),
+    Flush(CheckpointBarrier),
 }
 
 pub struct SignalTransaction<'a, D, I, E, Ctx, T = ()>
@@ -41,8 +49,7 @@ where
     pub(super) staged_dirty: BatchedDirtySet<D, I>,
     pub(super) staged_checkpoint_flushes: u64,
     pub(super) staged_checkpoint_flush_nanos: u128,
-    pub(super) staged_events: Vec<E>,
-    pub(super) staged_event_flushes: Vec<crate::data::checkpoint::CheckpointBarrier>,
+    pub(super) staged_event_operations: Vec<StagedEventOperation<E>>,
     pub(super) staged_memo_writes: BTreeMap<
         (RuntimeStringId, RuntimeStringId, RuntimeStringId),
         crate::data::output::NodeEvaluationResult,

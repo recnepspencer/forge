@@ -33,6 +33,8 @@ pub struct RuntimeTelemetry {
     pub detail_match_dirty_count: u64,
     /// Count of scoped nodes reverted clean because no subscribed partition was touched.
     pub partition_scope_revert_clean_count: u64,
+    /// Count of partition/detail tokens added to the partition interner over runtime lifetime.
+    pub partition_interner_growth_delta: u64,
     /// Event-bus flush count.
     pub event_flushes: u64,
     /// Total nanoseconds spent inside event-bus flush.
@@ -83,6 +85,8 @@ pub struct RuntimeTelemetry {
     pub graph_storage_snapshot_rewrites: u64,
     /// Count of created nodes rolled back before commit.
     pub rolled_back_created_node_count: u64,
+    /// Count of subscriber-index rebuild passes executed.
+    pub subscriber_index_rebuild_count: u64,
     /// Count of execution plans built.
     pub plans_built: u64,
     /// Count of execution stages built.
@@ -113,6 +117,8 @@ pub struct RuntimeTelemetry {
     pub prepared_evaluations_applied: u64,
     /// Count of dependency-edge updates caused by prepared dependency capture.
     pub dependency_capture_updates: u64,
+    /// Count of applied tasks that rewired at least one dependency edge.
+    pub rewiring_apply_count: u64,
     /// Count of tasks precomputed serially.
     pub serial_precompute_task_count: u64,
     /// Count of tasks precomputed in parallel.

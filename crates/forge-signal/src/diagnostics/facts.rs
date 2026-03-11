@@ -5,12 +5,15 @@ use serde::{Deserialize, Serialize};
 use crate::data::aspect::Aspect;
 use crate::data::handle::NodeId;
 use crate::data::output::PartitionSubscription;
+use crate::diagnostics::policy::ArtifactMaterializationMode;
+use crate::logic::explain::{CausalLink, RewiringSummary};
 use crate::logic::explain::{NodeExplanation, UpstreamCause};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ExplanationFact {
     pub node: NodeId,
     pub explanation: NodeExplanation,
+    pub materialization_mode: ArtifactMaterializationMode,
     pub execution_record_id: Option<u64>,
     pub semantic_segment_id: Option<u64>,
     pub state: String,
@@ -23,10 +26,13 @@ pub struct ExplanationFact {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProvenanceFact {
     pub node: NodeId,
+    pub materialization_mode: ArtifactMaterializationMode,
     pub execution_record_id: Option<u64>,
     pub semantic_segment_id: Option<u64>,
     pub vertices: Vec<ProvenanceVertex>,
     pub edges: Vec<ProvenanceEdge>,
+    pub causal_links: Vec<CausalLink>,
+    pub rewiring: Option<RewiringSummary>,
     pub propagation_suppressed: bool,
     pub causality_kind: Option<String>,
 }
@@ -55,6 +61,7 @@ impl ExplanationFact {
         Self {
             node: explanation.node,
             explanation: explanation.clone(),
+            materialization_mode: explanation.materialization_mode,
             execution_record_id: explanation.execution_record_id,
             semantic_segment_id: explanation.semantic_segment_id,
             state: format!("{:?}", explanation.state),
@@ -114,10 +121,13 @@ impl ProvenanceFact {
         });
         Self {
             node: explanation.node,
+            materialization_mode: explanation.materialization_mode,
             execution_record_id: explanation.execution_record_id,
             semantic_segment_id: explanation.semantic_segment_id,
             vertices: vertices.into_values().collect(),
             edges,
+            causal_links: explanation.causal_links.clone(),
+            rewiring: explanation.rewiring.clone(),
             propagation_suppressed: explanation.propagation_suppressed,
             causality_kind: explanation.causality.as_ref().map(|c| c.kind.clone()),
         }

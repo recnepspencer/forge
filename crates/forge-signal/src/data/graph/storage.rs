@@ -10,6 +10,20 @@ use crate::data::trace::CausalityMetadata;
 
 use super::node_builder::NodeBuilder;
 use super::signal_graph::SignalGraph;
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct DependencyReconciliationReport {
+    pub added: u32,
+    pub removed: u32,
+    pub unchanged: u32,
+}
+
+impl DependencyReconciliationReport {
+    pub fn update_count(self) -> u32 {
+        self.added + self.removed
+    }
+}
+
 impl SignalGraph {
     #[doc(hidden)]
     pub fn create_node(&mut self) -> NodeId {
@@ -159,50 +173,12 @@ impl SignalGraph {
     ) -> Result<(), SignalError> {
         self.validate_handle(downstream)?;
         self.validate_handle(upstream)?;
-        let interned_scope = self.partition_interner.intern_subscription(&scope);
-        let edge = DependencyEdge::with_scope(upstream, aspect, scope, interned_scope);
+        let edge = self.build_dependency_edge(upstream, aspect, Some(scope));
         let inserted = self.add_dependency_edge(downstream, edge)?;
         if inserted {
             self.add_subscriber_edge(upstream, downstream)?;
         }
         Ok(())
-    }
-
-    pub(crate) fn connect_dependency_capture(
-        &mut self,
-        downstream: NodeId,
-        upstream: NodeId,
-        aspect: Aspect,
-        scope: Option<PartitionSubscription>,
-    ) -> Result<bool, SignalError> {
-        self.validate_handle(downstream)?;
-        self.validate_handle(upstream)?;
-        let edge = match scope {
-            Some(scope) => {
-                let interned_scope = self.partition_interner.intern_subscription(&scope);
-                DependencyEdge::with_scope(upstream, aspect, scope, interned_scope)
-            }
-            None => DependencyEdge::new(upstream, aspect),
-        };
-        let inserted = self.add_dependency_edge(downstream, edge)?;
-        if inserted {
-            self.add_subscriber_edge(upstream, downstream)?;
-        }
-        Ok(inserted)
-    }
-
-    pub(crate) fn disconnect_dependency_edge(
-        &mut self,
-        downstream: NodeId,
-        edge: DependencyEdge,
-    ) -> Result<bool, SignalError> {
-        self.validate_handle(downstream)?;
-        self.validate_handle(edge.source())?;
-        let removed = self.remove_dependency_edge(downstream, edge.clone())?;
-        if removed && !self.has_dependency_on(downstream, edge.source())? {
-            self.remove_subscriber_edge(edge.source(), downstream)?;
-        }
-        Ok(removed)
     }
 
     pub fn remove_dependency(
@@ -239,22 +215,80 @@ impl SignalGraph {
         Ok(())
     }
 
+    pub(crate) fn build_dependency_edge(
+        &mut self,
+        upstream: NodeId,
+        aspect: Aspect,
+        scope: Option<PartitionSubscription>,
+    ) -> DependencyEdge {
+        match scope {
+            Some(scope) => {
+                let token_count_before = self.partition_interner.token_count();
+                let interned_scope = self.partition_interner.intern_subscription(&scope);
+                self.telemetry.partition_interner_growth_delta += self
+                    .partition_interner
+                    .token_count()
+                    .saturating_sub(token_count_before) as u64;
+                DependencyEdge::with_scope(upstream, aspect, scope, interned_scope)
+            }
+            None => DependencyEdge::new(upstream, aspect),
+        }
+    }
+
+    pub(crate) fn reconcile_dependencies(
+        &mut self,
+        node: NodeId,
+        desired: &[DependencyEdge],
+    ) -> Result<DependencyReconciliationReport, SignalError> {
+        self.validate_handle(node)?;
+        let current = self.dependencies_of(node)?.to_vec();
+        let current_sources = current.iter().map(|edge| edge.source()).collect::<Vec<_>>();
+        let desired_sources = desired.iter().map(|edge| edge.source()).collect::<Vec<_>>();
+        let mut report = DependencyReconciliationReport::default();
+        let mut current_index = 0usize;
+        let mut desired_index = 0usize;
+
+        while current_index < current.len() && desired_index < desired.len() {
+            match compare_dependency_edges(&current[current_index], &desired[desired_index]) {
+                Ordering::Less => {
+                    report.removed += 1;
+                    current_index += 1;
+                }
+                Ordering::Greater => {
+                    report.added += 1;
+                    desired_index += 1;
+                }
+                Ordering::Equal => {
+                    report.unchanged += 1;
+                    current_index += 1;
+                    desired_index += 1;
+                }
+            }
+        }
+
+        report.removed += (current.len() - current_index) as u32;
+        report.added += (desired.len() - desired_index) as u32;
+
+        self.set_dependency_edges_sorted(node, desired)?;
+        self.reconcile_subscriber_sets(node, &current_sources, &desired_sources)?;
+        Ok(report)
+    }
+
     fn add_dependency_edge(
         &mut self,
         node: NodeId,
         edge: DependencyEdge,
     ) -> Result<bool, SignalError> {
-        let mut updated = self.dependencies_of(node)?.to_vec();
-        updated.sort_by(compare_dependency_edges);
-        match updated.binary_search_by(|candidate| compare_dependency_edges(candidate, &edge)) {
-            Ok(_) => return Ok(false),
-            Err(index) => updated.insert(index, edge),
-        }
-        let dependencies_id = self.dependency_edges.insert_from_slice(&updated);
-        self.get_entry_mut(node)?
-            .set_dependencies_id(dependencies_id);
-        self.maybe_compact_graph_storage();
-        Ok(true)
+        self.mutate_dependency_edges(node, |updated| {
+            updated.sort_by(compare_dependency_edges);
+            match updated.binary_search_by(|candidate| compare_dependency_edges(candidate, &edge)) {
+                Ok(_) => false,
+                Err(index) => {
+                    updated.insert(index, edge);
+                    true
+                }
+            }
+        })
     }
 
     pub(crate) fn set_dependency_edges_sorted(
@@ -269,27 +303,6 @@ impl SignalGraph {
         Ok(())
     }
 
-    fn remove_dependency_edge(
-        &mut self,
-        node: NodeId,
-        edge: DependencyEdge,
-    ) -> Result<bool, SignalError> {
-        let current = self.dependencies_of(node)?.to_vec();
-        let original_len = current.len();
-        let updated: Vec<_> = current
-            .into_iter()
-            .filter(|candidate| *candidate != edge)
-            .collect();
-        if updated.len() == original_len {
-            return Ok(false);
-        }
-        let dependencies_id = self.dependency_edges.insert_from_slice(&updated);
-        self.get_entry_mut(node)?
-            .set_dependencies_id(dependencies_id);
-        self.maybe_compact_graph_storage();
-        Ok(true)
-    }
-
     fn remove_dependency_edges_matching(
         &mut self,
         node: NodeId,
@@ -297,11 +310,9 @@ impl SignalGraph {
         aspect: Aspect,
         scope: Option<&PartitionSubscription>,
     ) -> Result<bool, SignalError> {
-        let current = self.dependencies_of(node)?.to_vec();
-        let original_len = current.len();
-        let updated: Vec<_> = current
-            .into_iter()
-            .filter(|candidate| {
+        self.mutate_dependency_edges(node, |updated| {
+            let original_len = updated.len();
+            updated.retain(|candidate| {
                 if candidate.source() != upstream || candidate.aspect() != aspect {
                     return true;
                 }
@@ -309,13 +320,9 @@ impl SignalGraph {
                     Some(scope) => candidate.scope_ref() != Some(scope),
                     None => false,
                 }
-            })
-            .collect();
-        if updated.len() == original_len {
-            return Ok(false);
-        }
-        self.set_dependency_edges_sorted(node, &updated)?;
-        Ok(true)
+            });
+            updated.len() != original_len
+        })
     }
 
     pub(super) fn remove_dependencies_on(
@@ -323,20 +330,11 @@ impl SignalGraph {
         node: NodeId,
         source: NodeId,
     ) -> Result<bool, SignalError> {
-        let current = self.dependencies_of(node)?.to_vec();
-        let original_len = current.len();
-        let updated: Vec<_> = current
-            .into_iter()
-            .filter(|edge| edge.source() != source)
-            .collect();
-        if updated.len() == original_len {
-            return Ok(false);
-        }
-        let dependencies_id = self.dependency_edges.insert_from_slice(&updated);
-        self.get_entry_mut(node)?
-            .set_dependencies_id(dependencies_id);
-        self.maybe_compact_graph_storage();
-        Ok(true)
+        self.mutate_dependency_edges(node, |updated| {
+            let original_len = updated.len();
+            updated.retain(|edge| edge.source() != source);
+            updated.len() != original_len
+        })
     }
 
     fn has_dependency_on(&self, node: NodeId, source: NodeId) -> Result<bool, SignalError> {
@@ -351,16 +349,16 @@ impl SignalGraph {
         node: NodeId,
         subscriber: NodeId,
     ) -> Result<bool, SignalError> {
-        let mut updated = self.subscribers_of(node)?.to_vec();
-        updated.sort();
-        match updated.binary_search(&subscriber) {
-            Ok(_) => return Ok(false),
-            Err(index) => updated.insert(index, subscriber),
-        }
-        let subscribers_id = self.subscriber_edges.insert_from_slice(&updated);
-        self.get_entry_mut(node)?.set_subscribers_id(subscribers_id);
-        self.maybe_compact_graph_storage();
-        Ok(true)
+        self.mutate_subscriber_edges(node, |updated| {
+            updated.sort();
+            match updated.binary_search(&subscriber) {
+                Ok(_) => false,
+                Err(index) => {
+                    updated.insert(index, subscriber);
+                    true
+                }
+            }
+        })
     }
 
     pub(crate) fn set_subscribers_sorted(
@@ -379,22 +377,15 @@ impl SignalGraph {
         node: NodeId,
         subscriber: NodeId,
     ) -> Result<bool, SignalError> {
-        let current = self.subscribers_of(node)?.to_vec();
-        let original_len = current.len();
-        let updated: Vec<_> = current
-            .into_iter()
-            .filter(|candidate| *candidate != subscriber)
-            .collect();
-        if updated.len() == original_len {
-            return Ok(false);
-        }
-        let subscribers_id = self.subscriber_edges.insert_from_slice(&updated);
-        self.get_entry_mut(node)?.set_subscribers_id(subscribers_id);
-        self.maybe_compact_graph_storage();
-        Ok(true)
+        self.mutate_subscriber_edges(node, |updated| {
+            let original_len = updated.len();
+            updated.retain(|candidate| *candidate != subscriber);
+            updated.len() != original_len
+        })
     }
 
     pub(crate) fn rebuild_subscriber_index_from_dependencies(&mut self) -> Result<(), SignalError> {
+        self.telemetry.subscriber_index_rebuild_count += 1;
         let live_nodes = self.live_node_ids();
         let mut rebuilt = vec![Vec::<NodeId>::new(); self.arena_capacity()];
 
@@ -421,6 +412,64 @@ impl SignalGraph {
 
         Ok(())
     }
+
+    fn reconcile_subscriber_sets(
+        &mut self,
+        node: NodeId,
+        current_sources: &[NodeId],
+        desired_sources: &[NodeId],
+    ) -> Result<(), SignalError> {
+        let mut current_sources = current_sources.to_vec();
+        let mut desired_sources = desired_sources.to_vec();
+        current_sources.sort_by_key(|source| (source.index(), source.generation()));
+        desired_sources.sort_by_key(|source| (source.index(), source.generation()));
+        current_sources.dedup();
+        desired_sources.dedup();
+
+        for source in &current_sources {
+            if !desired_sources.contains(source) {
+                self.remove_subscriber_edge(*source, node)?;
+            }
+        }
+
+        for source in &desired_sources {
+            if !current_sources.contains(source) {
+                self.add_subscriber_edge(*source, node)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn mutate_dependency_edges(
+        &mut self,
+        node: NodeId,
+        mutate: impl FnOnce(&mut Vec<DependencyEdge>) -> bool,
+    ) -> Result<bool, SignalError> {
+        let mut updated = self.dependencies_of(node)?.to_vec();
+        if !mutate(&mut updated) {
+            return Ok(false);
+        }
+        let dependencies_id = self.dependency_edges.insert_from_slice(&updated);
+        self.get_entry_mut(node)?.set_dependencies_id(dependencies_id);
+        self.maybe_compact_graph_storage();
+        Ok(true)
+    }
+
+    fn mutate_subscriber_edges(
+        &mut self,
+        node: NodeId,
+        mutate: impl FnOnce(&mut Vec<NodeId>) -> bool,
+    ) -> Result<bool, SignalError> {
+        let mut updated = self.subscribers_of(node)?.to_vec();
+        if !mutate(&mut updated) {
+            return Ok(false);
+        }
+        let subscribers_id = self.subscriber_edges.insert_from_slice(&updated);
+        self.get_entry_mut(node)?.set_subscribers_id(subscribers_id);
+        self.maybe_compact_graph_storage();
+        Ok(true)
+    }
 }
 
 pub(super) fn stale_error(id: NodeId) -> SignalError {
@@ -428,16 +477,5 @@ pub(super) fn stale_error(id: NodeId) -> SignalError {
 }
 
 fn compare_dependency_edges(left: &DependencyEdge, right: &DependencyEdge) -> Ordering {
-    (
-        left.source().index(),
-        left.source().generation(),
-        left.aspect().index(),
-        left.scope_ref(),
-    )
-        .cmp(&(
-            right.source().index(),
-            right.source().generation(),
-            right.aspect().index(),
-            right.scope_ref(),
-        ))
+    left.sort_key().cmp(&right.sort_key())
 }

@@ -1,7 +1,7 @@
 use crate::facade::{EvaluationCondition, NodeId, SignalRuntime};
 
-use super::execution_tier::FintechTier;
 use super::aspects::{full_mask, market_mask, pricing_mask, ALERT};
+use super::execution_tier::FintechTier;
 
 pub(super) type FintechRuntime = SignalRuntime<(), (), (), (), FintechTier>;
 
@@ -38,7 +38,11 @@ pub(super) struct PartitionLocalityNodes {
 }
 
 pub(super) fn build_instrument_nodes(runtime: &mut FintechRuntime) -> InstrumentNodes {
-    let market = runtime.graph_mut().node().depends_on_aspects(full_mask()).build();
+    let market = runtime
+        .graph_mut()
+        .node()
+        .depends_on_aspects(full_mask())
+        .build();
     let normalized = runtime
         .graph_mut()
         .node()
@@ -326,10 +330,7 @@ pub(super) fn build_partition_locality_nodes(
     }
 }
 
-pub(super) fn build_bucket_sources(
-    runtime: &mut FintechRuntime,
-    buckets: usize,
-) -> Vec<NodeId> {
+pub(super) fn build_bucket_sources(runtime: &mut FintechRuntime, buckets: usize) -> Vec<NodeId> {
     let mut nodes = Vec::with_capacity(buckets);
     for _ in 0..buckets {
         nodes.push(

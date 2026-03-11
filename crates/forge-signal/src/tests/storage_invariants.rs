@@ -18,7 +18,9 @@ fn rollback_created_nodes_keeps_free_list_unique_and_bounded_across_reuse_cycles
         unique.dedup();
 
         assert_eq!(free_list.len(), unique.len());
-        assert!(free_list.iter().all(|index| (*index as usize) < graph.arena_capacity()));
+        assert!(free_list
+            .iter()
+            .all(|index| (*index as usize) < graph.arena_capacity()));
         assert!(graph.is_alive(anchor));
         assert_eq!(graph.active_node_count(), 1);
     }

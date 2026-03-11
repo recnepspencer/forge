@@ -3,7 +3,6 @@ use std::collections::BTreeSet;
 use crate::diagnostics::data::DiagnosticCode;
 use crate::payloads::data::RecordPayload;
 use crate::schema::data::SchemaRegistryError;
-use crate::storage::data::RecordLifecycleState;
 use crate::storage::logic::state::{EntityArena, PartitionAccess, VersionedValue};
 use crate::transactions::data::CommitConflict;
 use crate::validation::data::{InvariantCheckResult, InvariantFailureEffect};
@@ -21,15 +20,21 @@ pub(crate) fn touched_visible_entity_ids(
         };
         saw_any = true;
         for slot in slots {
-            if slot >= partition.entity_arena.generations.len()
-                || !entity_visible_at_version(&partition.entity_arena, slot, version_id)
-            {
+            if slot >= partition.entity_arena.generations.len() {
                 continue;
             }
+            let Some(metadata) = partition
+                .entity_arena
+                .metadata_history
+                .get(slot)
+                .and_then(|history| visible_entity_metadata(history, version_id))
+            else {
+                continue;
+            };
             ids.push(crate::identity::data::EntityId::new(
                 partition_id,
                 slot as u64,
-                partition.entity_arena.generations[slot],
+                metadata.generation,
             ));
         }
     }
@@ -57,8 +62,10 @@ pub(crate) fn visible_payload(
     history: &[VersionedValue],
     version_id: crate::identity::data::VersionId,
 ) -> Option<&RecordPayload> {
-    history
+    let end = history.partition_point(|entry| entry.effective_at <= version_id);
+    history[..end]
         .iter()
+        .rev()
         .find(|entry| {
             entry.effective_at <= version_id
                 && entry.retired_at.is_none_or(|retired| version_id < retired)
@@ -71,9 +78,22 @@ pub(crate) fn entity_visible_at_version(
     slot: usize,
     version_id: crate::identity::data::VersionId,
 ) -> bool {
-    arena.lifecycle[slot] != RecordLifecycleState::Reusable
-        && arena.created_at[slot] <= version_id
-        && arena.retired_at[slot].is_none_or(|retired| version_id < retired)
+    arena
+        .metadata_history
+        .get(slot)
+        .and_then(|history| visible_entity_metadata(history, version_id))
+        .is_some()
+}
+
+pub(crate) fn visible_entity_metadata(
+    history: &[crate::storage::logic::state::VersionedEntityMetadata],
+    version_id: crate::identity::data::VersionId,
+) -> Option<&crate::storage::logic::state::VersionedEntityMetadata> {
+    let end = history.partition_point(|entry| entry.effective_at <= version_id);
+    history[..end].iter().rev().find(|entry| {
+        entry.effective_at <= version_id
+            && entry.retired_at.is_none_or(|retired| version_id < retired)
+    })
 }
 
 pub(crate) fn first_blocking_invariant_error(

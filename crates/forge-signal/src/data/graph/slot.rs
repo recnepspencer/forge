@@ -9,6 +9,8 @@ pub(crate) struct Slot {
     pub(crate) data: Option<NodeEntry>,
     /// Generation counter (bumped on each reuse).
     pub(crate) generation: u32,
+    /// Whether this slot has been permanently retired after generation wrap.
+    pub(crate) retired: bool,
 }
 
 impl Slot {
@@ -17,6 +19,7 @@ impl Slot {
         Self {
             data: None,
             generation: 0,
+            retired: false,
         }
     }
 
@@ -26,14 +29,21 @@ impl Slot {
         self.generation
     }
 
-    /// Vacate this slot, bumping the generation.
+    /// Vacate this slot, bumping the generation and retiring on wrap.
     pub(crate) fn vacate(&mut self) -> Option<NodeEntry> {
-        self.generation += 1;
+        self.generation = self.generation.wrapping_add(1);
+        if self.generation == 0 {
+            self.retired = true;
+        }
         self.data.take()
     }
 
     /// Whether this slot is occupied.
     pub(crate) fn is_occupied(&self) -> bool {
         self.data.is_some()
+    }
+
+    pub(crate) fn is_retired(&self) -> bool {
+        self.retired
     }
 }

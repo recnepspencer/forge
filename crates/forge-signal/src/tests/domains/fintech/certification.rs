@@ -2,18 +2,18 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use forge_harness::facade::{
     AdapterSupport, ArtifactBundle, ArtifactClass, ArtifactSurface, CheckpointSemantics,
-    DifferentialMatrixCapability, FailureInjectionPoint, InvariantCheck,
-    InvariantReport, ProfileConditionalGuarantee, RegressionTarget, RegressionTargetKind,
-    ReproductionMetadata, UnsupportedWorkflowComparison, WorkflowArtifactSurfaceCapability,
-    WorkflowCaptureRequest, WorkflowCertificationAdapter, WorkflowCertificationCapabilities,
-    WorkflowCertificationRunner, WorkflowCheckpoint, WorkflowFailureContext, WorkflowPlan,
-    WorkflowRuntimeProfile, WorkflowState, WorkflowStep, WorkflowStepOutcome,
+    DifferentialMatrixCapability, FailureInjectionPoint, InvariantCheck, InvariantReport,
+    ProfileConditionalGuarantee, RegressionTarget, RegressionTargetKind, ReproductionMetadata,
+    UnsupportedWorkflowComparison, WorkflowArtifactSurfaceCapability, WorkflowCaptureRequest,
+    WorkflowCertificationAdapter, WorkflowCertificationCapabilities, WorkflowCertificationRunner,
+    WorkflowCheckpoint, WorkflowFailureContext, WorkflowPlan, WorkflowRuntimeProfile,
+    WorkflowState, WorkflowStep, WorkflowStepOutcome,
 };
 use serde_json::{json, Value};
 
 use crate::facade::{
-    AspectVersion, LineageEvent, LineageRecord, ReplayEventKind, ReplaySlice,
-    SignalBranchHandle, SignalError, SignalRuntimePolicy, SignalSnapshotV1, StageExecutor,
+    AspectVersion, LineageEvent, LineageRecord, ReplayEventKind, ReplaySlice, SignalBranchHandle,
+    SignalError, SignalRuntimePolicy, SignalSnapshotV1, StageExecutor,
 };
 
 #[cfg(feature = "parallel")]
@@ -92,7 +92,9 @@ impl CertifiedFintechWorkflowSession {
 
     fn snapshot(&self, alias: &str) -> Result<SignalSnapshotV1, SignalError> {
         self.named_snapshots.get(alias).cloned().ok_or_else(|| {
-            SignalError::invalid_input(format!("unknown certified fintech snapshot alias `{alias}`"))
+            SignalError::invalid_input(format!(
+                "unknown certified fintech snapshot alias `{alias}`"
+            ))
         })
     }
 
@@ -113,7 +115,9 @@ impl CertifiedFintechWorkflowSession {
 struct SignalFintechWorkflowCertificationAdapter;
 
 impl SignalFintechWorkflowCertificationAdapter {
-    fn runtime_policy(profile: &WorkflowRuntimeProfile) -> Result<SignalRuntimePolicy, SignalError> {
+    fn runtime_policy(
+        profile: &WorkflowRuntimeProfile,
+    ) -> Result<SignalRuntimePolicy, SignalError> {
         match profile.policy_name.as_deref().unwrap_or("fintech") {
             "fintech" => Ok(SignalRuntimePolicy::fintech()
                 .with_history_limit(8)
@@ -178,7 +182,9 @@ impl SignalFintechWorkflowCertificationAdapter {
     fn lineage_summary(lineage: &[LineageRecord]) -> Value {
         let mut events = BTreeMap::new();
         for record in lineage {
-            *events.entry(format!("{:?}", record.event)).or_insert(0usize) += 1;
+            *events
+                .entry(format!("{:?}", record.event))
+                .or_insert(0usize) += 1;
         }
         json!({
             "record_count": lineage.len(),
@@ -213,9 +219,7 @@ impl SignalFintechWorkflowCertificationAdapter {
                 "BranchSwitched" => Ok(LineageEvent::BranchSwitched),
                 "MergedFrom" => Ok(LineageEvent::MergedFrom),
                 "MemoizedFrom" => Ok(LineageEvent::MemoizedFrom),
-                "InvalidatedWithoutReplacement" => {
-                    Ok(LineageEvent::InvalidatedWithoutReplacement)
-                }
+                "InvalidatedWithoutReplacement" => Ok(LineageEvent::InvalidatedWithoutReplacement),
                 other => Err(SignalError::invalid_input(format!(
                     "unknown lineage event `{other}`"
                 ))),
@@ -258,7 +262,10 @@ impl SignalFintechWorkflowCertificationAdapter {
                 let replay = session.replay(alias)?;
                 let branch = session.branch(branch_alias)?;
                 (
-                    replay.frames.iter().all(|frame| frame.branch_id == branch.id),
+                    replay
+                        .frames
+                        .iter()
+                        .all(|frame| frame.branch_id == branch.id),
                     format!("replay `{alias}` should remain local to branch `{branch_alias}`"),
                 )
             }
@@ -274,10 +281,9 @@ impl SignalFintechWorkflowCertificationAdapter {
                 let branch = session.branch(branch_alias)?;
                 let snapshot = session.snapshot(snapshot_alias)?;
                 (
-                    session.world.branch_head_snapshot_id(branch) == Some(snapshot.meta.snapshot_id),
-                    format!(
-                        "branch `{branch_alias}` should keep head snapshot `{snapshot_alias}`"
-                    ),
+                    session.world.branch_head_snapshot_id(branch)
+                        == Some(snapshot.meta.snapshot_id),
+                    format!("branch `{branch_alias}` should keep head snapshot `{snapshot_alias}`"),
                 )
             }
             ["replay_mentions_snapshot", alias, snapshot_alias] => {
@@ -293,7 +299,10 @@ impl SignalFintechWorkflowCertificationAdapter {
             }
             _ => (
                 false,
-                format!("unsupported certified fintech invariant `{}`", check.check_id),
+                format!(
+                    "unsupported certified fintech invariant `{}`",
+                    check.check_id
+                ),
             ),
         };
         Ok(InvariantReport {
@@ -385,16 +394,21 @@ impl WorkflowCertificationAdapter for SignalFintechWorkflowCertificationAdapter 
             }],
             unsupported_comparisons: vec![UnsupportedWorkflowComparison {
                 surface: ArtifactSurface::Diagnostics,
-                reason: "signal workflow certification has not yet frozen diagnostics-order overlap".to_string(),
+                reason:
+                    "signal workflow certification has not yet frozen diagnostics-order overlap"
+                        .to_string(),
             }],
             profile_guarantees: vec![
                 ProfileConditionalGuarantee {
                     profile_name: "fintech-development".to_string(),
-                    guarantee: "branch/snapshot/replay overlap is stable across hostile workflows".to_string(),
+                    guarantee: "branch/snapshot/replay overlap is stable across hostile workflows"
+                        .to_string(),
                 },
                 ProfileConditionalGuarantee {
                     profile_name: "fintech-forensic".to_string(),
-                    guarantee: "failure reproduction includes branch-local replay and lineage evidence".to_string(),
+                    guarantee:
+                        "failure reproduction includes branch-local replay and lineage evidence"
+                            .to_string(),
                 },
             ],
             budget_artifacts: AdapterSupport::Unsupported,
@@ -461,9 +475,7 @@ impl WorkflowCertificationAdapter for SignalFintechWorkflowCertificationAdapter 
                 Ok(WorkflowStepOutcome::applied())
             }
             FintechWorkflowStep::ReadPrimaryAuditSurface { alias } => {
-                let value = session
-                    .world
-                    .read_primary_audit_surface(session.executor)?;
+                let value = session.world.read_primary_audit_surface(session.executor)?;
                 session.named_audits.insert((*alias).to_string(), value);
                 Ok(WorkflowStepOutcome::applied())
             }
@@ -472,10 +484,9 @@ impl WorkflowCertificationAdapter for SignalFintechWorkflowCertificationAdapter 
                     .world
                     .inject_primary_market_rollback(session.executor)?;
                 if let Some(injection) = injection {
-                    session.failure_injections.push(format!(
-                        "{:?}:{}",
-                        injection.boundary, injection.location
-                    ));
+                    session
+                        .failure_injections
+                        .push(format!("{:?}:{}", injection.boundary, injection.location));
                 }
                 Ok(WorkflowStepOutcome {
                     detail: Some("synthetic rollback captured".to_string()),
@@ -494,7 +505,10 @@ impl WorkflowCertificationAdapter for SignalFintechWorkflowCertificationAdapter 
                     .restore_branch_snapshot(branch, &snapshot)?;
                 Ok(WorkflowStepOutcome::applied())
             }
-            FintechWorkflowStep::CaptureReplay { branch_alias, alias } => {
+            FintechWorkflowStep::CaptureReplay {
+                branch_alias,
+                alias,
+            } => {
                 let branch = session.branch(branch_alias)?;
                 let replay = session.world.replay_for_branch(branch);
                 session.named_replays.insert((*alias).to_string(), replay);
@@ -690,7 +704,10 @@ impl WorkflowCertificationAdapter for SignalFintechWorkflowCertificationAdapter 
     }
 }
 
-fn certified_step(name: impl Into<String>, operation: FintechWorkflowStep) -> WorkflowStep<FintechWorkflowStep> {
+fn certified_step(
+    name: impl Into<String>,
+    operation: FintechWorkflowStep,
+) -> WorkflowStep<FintechWorkflowStep> {
     WorkflowStep::new(name, operation)
         .capture_at(WorkflowState::Inspected)
         .inspect_at(WorkflowState::Inspected)
@@ -826,7 +843,9 @@ fn hostile_branch_replay_and_audit_plan() -> WorkflowPlan<FintechWorkflowStep> {
     ))
     .step(certified_step(
         "switch-main",
-        FintechWorkflowStep::SwitchBranch { alias: artifact_aliases::MAIN_BRANCH },
+        FintechWorkflowStep::SwitchBranch {
+            alias: artifact_aliases::MAIN_BRANCH,
+        },
     ))
     .step(certified_step(
         "restore-main-snapshot",
@@ -864,7 +883,9 @@ fn hostile_branch_replay_and_audit_plan() -> WorkflowPlan<FintechWorkflowStep> {
     ))
     .step(certified_step(
         "switch-correction",
-        FintechWorkflowStep::SwitchBranch { alias: artifact_aliases::CORRECTION_BRANCH },
+        FintechWorkflowStep::SwitchBranch {
+            alias: artifact_aliases::CORRECTION_BRANCH,
+        },
     ))
     .step(certified_step(
         "capture-correction-lineage",
@@ -1034,24 +1055,22 @@ fn compare_signal_fintech_overlap(
 fn workflow_certification_runner_proves_hostile_fintech_branch_replay_and_audit() {
     let runner = WorkflowCertificationRunner::new(SignalFintechWorkflowCertificationAdapter);
     let plan = hostile_branch_replay_and_audit_plan();
-    let report = runner.certify(&plan, &development_serial_profile()).unwrap();
+    let report = runner
+        .certify(&plan, &development_serial_profile())
+        .unwrap();
 
     assert_eq!(report.session.state, WorkflowState::Completed);
     assert!(report.failure_bundle.is_none());
-    assert!(
-        report
-            .session
-            .session_data
-            .named_replays
-            .contains_key("analysis_replay_after")
-    );
-    assert!(
-        report
-            .session
-            .session_data
-            .named_lineages
-            .contains_key("correction_lineage")
-    );
+    assert!(report
+        .session
+        .session_data
+        .named_replays
+        .contains_key("analysis_replay_after"));
+    assert!(report
+        .session
+        .session_data
+        .named_lineages
+        .contains_key("correction_lineage"));
 }
 
 #[cfg(feature = "parallel")]
@@ -1059,8 +1078,12 @@ fn workflow_certification_runner_proves_hostile_fintech_branch_replay_and_audit(
 fn workflow_certification_runner_keeps_serial_parallel_fintech_overlap_honest() {
     let runner = WorkflowCertificationRunner::new(SignalFintechWorkflowCertificationAdapter);
     let plan = hostile_branch_replay_and_audit_plan();
-    let serial = runner.certify(&plan, &development_serial_profile()).unwrap();
-    let parallel = runner.certify(&plan, &development_parallel_profile()).unwrap();
+    let serial = runner
+        .certify(&plan, &development_serial_profile())
+        .unwrap();
+    let parallel = runner
+        .certify(&plan, &development_parallel_profile())
+        .unwrap();
 
     assert_eq!(serial.session.state, WorkflowState::Completed);
     assert_eq!(parallel.session.state, WorkflowState::Completed);

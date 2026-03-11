@@ -22,6 +22,17 @@ impl DependencySetId {
     }
 }
 
+#[cfg(test)]
+pub(crate) fn checked_segment_component_for_test(
+    value: usize,
+) -> Result<u32, crate::data::error::SignalError> {
+    u32::try_from(value).map_err(|_| {
+        crate::data::error::SignalError::invalid_input(format!(
+            "edge-store segment component `{value}` exceeds u32 capacity"
+        ))
+    })
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SubscriberSetId(Option<NonZeroU32>);
 
@@ -90,11 +101,11 @@ impl DependencyEdgeStore {
                 }
             }
         }
-        let start = self.edges.len() as u32;
+        let start = checked_segment_component(self.edges.len(), "dependency segment start");
         self.edges.extend_from_slice(edges);
         self.segments.push(Segment {
             start,
-            len: edges.len() as u32,
+            len: checked_segment_component(edges.len(), "dependency segment length"),
         });
         let id = DependencySetId::from_index(self.segments.len());
         self.interner.entry(hash).or_default().push(id);
@@ -158,11 +169,11 @@ impl SubscriberEdgeStore {
                 }
             }
         }
-        let start = self.subscribers.len() as u32;
+        let start = checked_segment_component(self.subscribers.len(), "subscriber segment start");
         self.subscribers.extend_from_slice(subscribers);
         self.segments.push(Segment {
             start,
-            len: subscribers.len() as u32,
+            len: checked_segment_component(subscribers.len(), "subscriber segment length"),
         });
         let id = SubscriberSetId::from_index(self.segments.len());
         self.interner.entry(hash).or_default().push(id);
@@ -183,4 +194,10 @@ fn hash_slice<T: Hash>(items: &[T]) -> u64 {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     items.hash(&mut hasher);
     hasher.finish()
+}
+
+fn checked_segment_component(value: usize, label: &str) -> u32 {
+    u32::try_from(value).unwrap_or_else(|_| {
+        panic!("forge-signal edge store overflow: {label} `{value}` exceeds u32 capacity")
+    })
 }

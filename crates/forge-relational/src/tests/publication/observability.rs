@@ -67,6 +67,49 @@ fn publication_snapshot_handle_reads_without_becoming_a_pinned_snapshot() {
 }
 
 #[test]
+fn released_publication_handles_stop_counting_as_readable_runtime_state() {
+    let mut runtime = runtime_with_test_schema();
+    let first = create_entity_outcome(&mut runtime, "first");
+    let second = create_entity_outcome(&mut runtime, "second");
+
+    let before = runtime.storage_stats();
+    assert_eq!(before.published_snapshot_handle_count, 2);
+
+    assert!(runtime.release_snapshot(&first.snapshot));
+    let after_first_release = runtime.storage_stats();
+    assert_eq!(after_first_release.published_snapshot_handle_count, 1);
+    assert!(runtime.read_snapshot(&first.snapshot).is_none());
+    assert!(runtime.read_snapshot(&second.snapshot).is_some());
+
+    assert!(runtime.release_snapshot(&second.snapshot));
+    let after_second_release = runtime.storage_stats();
+    assert_eq!(after_second_release.published_snapshot_handle_count, 0);
+}
+
+#[test]
+fn publication_handle_retention_is_bounded_by_policy() {
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(test_schema_registry())
+        .publication(PublicationConfig {
+            coherent_publication_required: true,
+            max_patch_records_per_commit: 4096,
+            max_published_snapshot_handles: 2,
+            patch_surface_policy: PatchSurfacePolicy::StructuredPatchSurface,
+        })
+        .build();
+    let first = create_entity_outcome(&mut runtime, "first");
+    let second = create_entity_outcome(&mut runtime, "second");
+    let third = create_entity_outcome(&mut runtime, "third");
+
+    let stats = runtime.storage_stats();
+
+    assert_eq!(stats.published_snapshot_handle_count, 2);
+    assert!(runtime.read_snapshot(&first.snapshot).is_none());
+    assert!(runtime.read_snapshot(&second.snapshot).is_some());
+    assert!(runtime.read_snapshot(&third.snapshot).is_some());
+}
+
+#[test]
 fn snapshot_audit_failure_blocks_publication() {
     let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
         snapshot_audit: vec![InvariantRule::MaxSnapshotEntities(0)],

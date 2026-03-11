@@ -10,6 +10,7 @@ use crate::snapshots::data::SnapshotHandle;
 pub enum RecordLifecycleState {
     Live,
     DeletedRetained,
+    RetainedDanglingForAudit,
     PinnedBySnapshot,
     PinnedByBranch,
     PinnedByReplayRetention,
@@ -73,26 +74,30 @@ impl RelationalReadView {
     }
 
     pub fn execute_packet(&self, packet: &crate::query::data::QueryWorkPacket) -> PacketResult {
+        let entity_index = self
+            .entities
+            .iter()
+            .enumerate()
+            .map(|(index, record)| (record.entity_id, index))
+            .collect::<std::collections::HashMap<_, _>>();
+        let relation_index = self
+            .relations
+            .iter()
+            .enumerate()
+            .map(|(index, record)| (record.relation_id, index))
+            .collect::<std::collections::HashMap<_, _>>();
         let mut entities = Vec::new();
         let mut relations = Vec::new();
         for target in &packet.targets {
             match target {
                 crate::query::data::ReadTarget::Entity(entity_id) => {
-                    if let Some(record) = self
-                        .entities
-                        .iter()
-                        .find(|record| &record.entity_id == entity_id)
-                    {
-                        entities.push(record.clone());
+                    if let Some(index) = entity_index.get(entity_id) {
+                        entities.push(self.entities[*index].clone());
                     }
                 }
                 crate::query::data::ReadTarget::Relation(relation_id) => {
-                    if let Some(record) = self
-                        .relations
-                        .iter()
-                        .find(|record| &record.relation_id == relation_id)
-                    {
-                        relations.push(record.clone());
+                    if let Some(index) = relation_index.get(relation_id) {
+                        relations.push(self.relations[*index].clone());
                     }
                 }
             }

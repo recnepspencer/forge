@@ -12,7 +12,9 @@ fn fintech_mixed_tier_policy_honors_audit_tolerance_without_hiding_live_truth_ch
     let mut world = setup_seeded_world();
     world.assert_shape(FintechScale::smoke());
 
-    world.runtime.set_node_tier(world.top_desk(), FintechTier::Audit);
+    world
+        .runtime
+        .set_node_tier(world.top_desk(), FintechTier::Audit);
     world
         .runtime
         .set_node_tier(world.primary_threshold_node(), FintechTier::Live);

@@ -106,7 +106,7 @@ fn dependency_snapshots_collapse_conflicting_duplicate_logical_entries_to_latest
 
     let entries = graph.get_dep_snapshot(node).unwrap().entries();
     assert_eq!(entries.len(), 1);
-    assert_eq!(entries[0].2, 3);
+    assert_eq!(entries[0].cached_version, 3);
 }
 
 #[test]

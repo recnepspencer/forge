@@ -28,7 +28,7 @@ pub use crate::history::data::{
 };
 pub use crate::identity::data::{
     EntityId, EntityStorageId, Generation, KindId, LineageId, LocalSlot, PartitionId, RelationId,
-    RelationStorageId, Slot, StructuralFingerprint, VersionId,
+    RelationStorageId, Slot, StructuralFingerprint, VersionBound, VersionId,
 };
 pub use crate::indexes::data::{
     DerivedIndexBuildOutcome, DerivedIndexBuildRequest, DerivedIndexCompatibility,
@@ -51,7 +51,7 @@ pub use crate::logic::runtime::{
     InvariantExecutionPoint, InvariantFailureEffect, InvariantRule, PacketResult,
     PartitionStorageStats, RelationReadRecord, RelationalReadView, RelationalReplayRecord,
     RelationalRuntime, RelationalRuntimeConfig, ReplaySchemaVersion, RuntimeComplexityCounters,
-    StorageInvariantReport, StorageStats, TopologyFreezeMode,
+    SnapshotGuard, StorageInvariantReport, StorageStats, TopologyFreezeMode,
 };
 pub use crate::payloads::data::{
     PayloadClass, PayloadCompatibility, PayloadEncoding, PayloadPolicy, RecordPayload,
@@ -88,13 +88,14 @@ pub use crate::schema::data::{
 pub use crate::snapshots::data::{
     SnapshotHandle, SnapshotId, SnapshotInspectionSummary, SnapshotReadPolicy,
 };
+pub use crate::storage::data::RecordLifecycleState;
 pub use crate::symbols::data::{
     InternedString, StringInterner, Symbol, SymbolPolicy, SymbolTableSnapshot,
 };
 pub use crate::transactions::data::{
     AuthoritativeApplyPlan, AuthorityMode, CommitAuthority, CommitConflict, CommitOutcome,
-    CrossContextEndpointClass, MergedCommitPlan, RecordRef, RelationScope, RollbackOutcome,
-    SavepointId, TransactionCommitError, TransactionId, TransactionIntent, TransactionIntentBatch,
-    TransactionOptions, UndoRecord, WorkerIntentBatch,
+    CrossContextEndpointClass, MergedCommitPlan, RecordRef, RelationScope, RollbackEffect,
+    RollbackOutcome, SavepointId, TransactionCommitError, TransactionId, TransactionIntent,
+    TransactionIntentBatch, TransactionOptions, UndoRecord, WorkerIntentBatch,
 };
 pub use crate::transactions::logic::RelationalTransaction;

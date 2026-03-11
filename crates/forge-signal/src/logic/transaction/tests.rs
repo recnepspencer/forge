@@ -419,10 +419,9 @@ fn mark_dirty_after_evaluate_staging_still_stages_downstream_rollback_coverage()
     let mut runtime = build_runtime(graph);
     let mut ctx = ();
 
-    let mut seed =
-        |_id: crate::data::handle::NodeId, _graph: &crate::data::graph::SignalGraph| {
-            Ok(version_ab(1, 0))
-        };
+    let mut seed = |_id: crate::data::handle::NodeId, _graph: &crate::data::graph::SignalGraph| {
+        Ok(version_ab(1, 0))
+    };
     evaluate(runtime.graph_mut(), source, &mut seed).unwrap();
     evaluate(runtime.graph_mut(), downstream, &mut seed).unwrap();
 
@@ -435,12 +434,18 @@ fn mark_dirty_after_evaluate_staging_still_stages_downstream_rollback_coverage()
     .unwrap();
     tx.mark_dirty(source, ASPECT_A).unwrap();
 
-    assert_eq!(tx.staged_graph().get_state(downstream).unwrap(), NodeState::Dirty);
+    assert_eq!(
+        tx.staged_graph().get_state(downstream).unwrap(),
+        NodeState::Dirty
+    );
     assert_eq!(
         tx.rollback(&mut ctx).unwrap(),
         TransactionOutcome::RolledBack
     );
-    assert_eq!(runtime.graph().get_state(downstream).unwrap(), NodeState::Clean);
+    assert_eq!(
+        runtime.graph().get_state(downstream).unwrap(),
+        NodeState::Clean
+    );
 }
 
 #[test]

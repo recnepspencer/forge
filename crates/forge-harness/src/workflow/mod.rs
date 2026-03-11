@@ -11,11 +11,10 @@ pub use capability::{
 pub use record::{
     ArtifactBundle, ArtifactClass, ArtifactSurface, CheckpointSemantics, DifferentialComparison,
     DifferentialOutcome, FailureBundle, FailureBundleVersion, FailureInjectionPoint,
-    InvariantCheck, InvariantReport, RegressionTarget, RegressionTargetKind,
-    ReproductionMetadata, WorkflowCaptureRequest, WorkflowCertificationReport,
-    WorkflowCheckpoint, WorkflowCheckpointTraceEntry, WorkflowFailureContext, WorkflowPlan,
-    WorkflowRuntimeProfile, WorkflowSession, WorkflowState, WorkflowStep, WorkflowStepOutcome,
-    WorkflowStepTraceEntry,
+    InvariantCheck, InvariantReport, RegressionTarget, RegressionTargetKind, ReproductionMetadata,
+    WorkflowCaptureRequest, WorkflowCertificationReport, WorkflowCheckpoint,
+    WorkflowCheckpointTraceEntry, WorkflowFailureContext, WorkflowPlan, WorkflowRuntimeProfile,
+    WorkflowSession, WorkflowState, WorkflowStep, WorkflowStepOutcome, WorkflowStepTraceEntry,
 };
 pub use runner::WorkflowCertificationRunner;
 

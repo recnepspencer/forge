@@ -26,14 +26,15 @@ pub(super) fn assert_world_shape(world: &FintechDomainFixture, scale: FintechSca
     assert_eq!(world.vol_surface_buckets.len(), scale.buckets);
     assert_eq!(world.scenario_sources.len(), scale.scenarios);
     assert!(
-        world
-            .instruments
-            .iter()
-            .all(|instrument| world
-                .runtime
-                .graph()
-                .depends_on(instrument.core.normalized, instrument.core.market, super::aspects::PRICE)
-                .unwrap()),
+        world.instruments.iter().all(|instrument| world
+            .runtime
+            .graph()
+            .depends_on(
+                instrument.core.normalized,
+                instrument.core.market,
+                super::aspects::PRICE
+            )
+            .unwrap()),
         "normalized nodes should remain wired to market state"
     );
     assert!(

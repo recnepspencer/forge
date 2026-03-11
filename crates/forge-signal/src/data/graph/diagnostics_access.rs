@@ -1,5 +1,4 @@
 use crate::data::aspect::Aspect;
-use crate::data::dependency::DependencyEdge;
 use crate::data::error::SignalError;
 use crate::data::graph::signal_graph::SignalGraph;
 use crate::data::handle::NodeId;
@@ -34,28 +33,6 @@ impl SignalGraph {
         explain(self, node)
     }
 
-    pub fn dependencies_of(&self, node: NodeId) -> Result<&[DependencyEdge], SignalError> {
-        let entry = self.get_entry(node)?;
-        Ok(self.dependency_edges.get(entry.get_dependencies_id()))
-    }
-
-    pub fn subscribers_of(&self, node: NodeId) -> Result<&[NodeId], SignalError> {
-        let entry = self.get_entry(node)?;
-        Ok(self.subscriber_edges.get(entry.get_subscribers_id()))
-    }
-
-    pub fn depends_on(
-        &self,
-        node: NodeId,
-        upstream: NodeId,
-        aspect: Aspect,
-    ) -> Result<bool, SignalError> {
-        Ok(self
-            .dependencies_of(node)?
-            .iter()
-            .any(|dependency| dependency.source() == upstream && dependency.aspect() == aspect))
-    }
-
     pub fn dependency_chain_to(
         &self,
         root: NodeId,
@@ -67,7 +44,7 @@ impl SignalGraph {
     pub fn metrics(&self) -> GraphMetrics {
         GraphMetrics::from_runtime_telemetry(
             self.telemetry(),
-            self.partition_interner.partition_count(),
+            self.partition_interner.token_count(),
         )
     }
 
@@ -395,26 +372,36 @@ impl SignalGraph {
     }
 
     pub fn retained_explanation_artifact(&self, node: NodeId) -> Option<NodeExplanation> {
-        self.explanation_fact(node)
-            .map(|fact| fact.explanation.clone())
+        self.explanation_fact(node).map(|fact| {
+            let mut explanation = fact.explanation.clone();
+            explanation.materialization_mode = ArtifactMaterializationMode::Retained;
+            explanation
+        })
     }
 
     pub fn reconstruct_explanation_artifact(
         &self,
         node: NodeId,
     ) -> Result<NodeExplanation, SignalError> {
-        explain(self, node)
+        let mut explanation = explain(self, node)?;
+        explanation.materialization_mode = ArtifactMaterializationMode::Reconstructed;
+        Ok(explanation)
     }
 
     pub fn retained_provenance_artifact(&self, node: NodeId) -> Option<ProvenanceFact> {
-        self.provenance_fact(node).cloned()
+        self.provenance_fact(node).cloned().map(|mut fact| {
+            fact.materialization_mode = ArtifactMaterializationMode::Retained;
+            fact
+        })
     }
 
     pub fn reconstruct_provenance_artifact(
         &self,
         node: NodeId,
     ) -> Result<ProvenanceFact, SignalError> {
-        Ok(ProvenanceFact::from_explanation(&explain(self, node)?))
+        let mut explanation = explain(self, node)?;
+        explanation.materialization_mode = ArtifactMaterializationMode::Reconstructed;
+        Ok(ProvenanceFact::from_explanation(&explanation))
     }
 
     #[cfg(test)]
@@ -431,10 +418,9 @@ impl SignalGraph {
         node: NodeId,
     ) -> Result<(Option<NodeExplanation>, ArtifactMaterializationMode), SignalError> {
         if let Some(fact) = self.explanation_fact(node) {
-            return Ok((
-                Some(fact.explanation.clone()),
-                ArtifactMaterializationMode::Retained,
-            ));
+            let mut explanation = fact.explanation.clone();
+            explanation.materialization_mode = ArtifactMaterializationMode::Retained;
+            return Ok((Some(explanation), ArtifactMaterializationMode::Retained));
         }
         if self.runtime_policy().can_reconstruct_explanation() {
             return Ok((
@@ -450,7 +436,9 @@ impl SignalGraph {
         node: NodeId,
     ) -> Result<(Option<ProvenanceFact>, ArtifactMaterializationMode), SignalError> {
         if let Some(fact) = self.provenance_fact(node) {
-            return Ok((Some(fact.clone()), ArtifactMaterializationMode::Retained));
+            let mut fact = fact.clone();
+            fact.materialization_mode = ArtifactMaterializationMode::Retained;
+            return Ok((Some(fact), ArtifactMaterializationMode::Retained));
         }
         if self.runtime_policy().can_reconstruct_provenance() {
             return Ok((

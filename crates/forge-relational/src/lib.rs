@@ -18,6 +18,7 @@
 
 #![forbid(unsafe_code)]
 
+mod authority;
 mod config;
 mod diagnostics;
 mod durability;
@@ -39,6 +40,7 @@ mod storage;
 mod symbols;
 mod transactions;
 mod validation;
+mod visibility;
 
 pub mod facade;
 

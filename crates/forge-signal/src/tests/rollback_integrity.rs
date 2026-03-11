@@ -1,10 +1,10 @@
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::{Arc, Mutex};
 
 use crate::data::checkpoint::CheckpointBarrier;
-use crate::diagnostics::replay::ReplayEventKind;
 use crate::data::event_subscriber::{EventSubscriber, SubscriberId};
 use crate::data::subscriber_context::SubscriberContext;
+use crate::diagnostics::replay::ReplayEventKind;
 use crate::facade::*;
 use crate::tests::support::*;
 
@@ -285,13 +285,18 @@ fn failed_commit_preserves_preexisting_memo_cache_while_discarding_new_staged_gr
         .unwrap();
 
     assert_eq!(
-        stable_compute_calls.load(Ordering::Relaxed), 1,
+        stable_compute_calls.load(Ordering::Relaxed),
+        1,
         "baseline memoized result must survive failed commits and remain reusable afterward",
     );
     let metrics = runtime.metrics();
     assert!(metrics.memoization_hits >= 1);
     assert_eq!(
-        runtime.graph().replay_events().back().map(|event| event.kind),
+        runtime
+            .graph()
+            .replay_events()
+            .back()
+            .map(|event| event.kind),
         Some(ReplayEventKind::TransactionCommitted)
     );
 }

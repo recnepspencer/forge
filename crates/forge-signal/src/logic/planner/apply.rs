@@ -8,6 +8,7 @@ use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::{NodeEntry, NodeState};
 use crate::data::trace::TraceSummary;
+use crate::logic::explain::{RewiringDependency, RewiringSummary};
 use crate::logic::prepared::{
     PreparedDependencyCapture, PreparedEvaluation, PreparedEvaluationOrigin,
     PreparedEvaluationOutcome,
@@ -29,6 +30,7 @@ pub(super) struct TaskPatch {
     pub partition_aware: bool,
     pub current_dependencies: Vec<DependencyEdge>,
     pub next_dependencies: Vec<DependencyEdge>,
+    pub rewiring: Option<RewiringSummary>,
 }
 
 #[derive(Debug, Clone)]
@@ -51,7 +53,7 @@ pub(super) fn prepare_stage_patches(
             continue;
         }
 
-        let current_dependencies = graph.dependencies_of(patch.node)?.to_vec();
+        let current_dependencies = graph.runtime_dependencies_of(patch.node)?.to_vec();
         let next_dependencies = capture_to_dependency_edges(graph, &patch.prepared.dependencies)?;
         let before_entry = graph.get_entry(patch.node)?.clone();
 
@@ -71,6 +73,7 @@ pub(super) fn prepare_stage_patches(
             partition_aware,
             current_dependencies,
             next_dependencies,
+            rewiring: rewiring_summary_from_edges(&current_dependencies, &next_dependencies),
         });
     }
 
@@ -78,6 +81,19 @@ pub(super) fn prepare_stage_patches(
         tasks,
         serial_fallbacks,
     })
+}
+
+pub(super) fn rewiring_summary_from_capture(
+    graph: &mut SignalGraph,
+    node: NodeId,
+    capture: &PreparedDependencyCapture,
+) -> Result<Option<RewiringSummary>, SignalError> {
+    let current_dependencies = graph.runtime_dependencies_of(node)?.to_vec();
+    let next_dependencies = capture_to_dependency_edges(graph, capture)?;
+    Ok(rewiring_summary_from_edges(
+        &current_dependencies,
+        &next_dependencies,
+    ))
 }
 
 pub(super) fn materialize_apply_group(
@@ -155,7 +171,7 @@ fn can_materialize_concurrently(
 }
 
 fn stage_subscriber_updates(
-    graph: &SignalGraph,
+    graph: &mut SignalGraph,
     target: NodeId,
     current_dependencies: &[DependencyEdge],
     next_dependencies: &[DependencyEdge],
@@ -184,9 +200,9 @@ fn stage_subscriber_updates(
     Ok(())
 }
 
-fn current_subscribers(graph: &SignalGraph, node: NodeId) -> HashSet<NodeId> {
+fn current_subscribers(graph: &mut SignalGraph, node: NodeId) -> HashSet<NodeId> {
     graph
-        .subscribers_of(node)
+        .runtime_subscribers_of(node)
         .map(|subscribers| subscribers.iter().copied().collect())
         .unwrap_or_default()
 }
@@ -283,18 +299,11 @@ fn capture_to_dependency_edges(
 ) -> Result<Vec<DependencyEdge>, SignalError> {
     let mut edges = Vec::with_capacity(capture.as_slice().len());
     for dependency in capture.as_slice() {
-        let edge = match dependency.scope.clone() {
-            Some(scope) => {
-                let interned_scope = graph.partition_interner_mut().intern_subscription(&scope);
-                DependencyEdge::with_scope(
-                    dependency.source,
-                    dependency.aspect,
-                    scope,
-                    interned_scope,
-                )
-            }
-            None => DependencyEdge::new(dependency.source, dependency.aspect),
-        };
+        let edge = graph.build_dependency_edge(
+            dependency.source,
+            dependency.aspect,
+            dependency.scope.clone(),
+        );
         if !edges.contains(&edge) {
             edges.push(edge);
         }
@@ -322,6 +331,57 @@ fn build_dep_snapshot_from_edges(
         }
     }
     Ok(snapshot)
+}
+
+pub(super) fn rewiring_summary_from_edges(
+    current_dependencies: &[DependencyEdge],
+    next_dependencies: &[DependencyEdge],
+) -> Option<RewiringSummary> {
+    let mut added = next_dependencies
+        .iter()
+        .filter(|candidate| !current_dependencies.contains(candidate))
+        .map(rewiring_dependency_from_edge)
+        .collect::<Vec<_>>();
+    let mut removed = current_dependencies
+        .iter()
+        .filter(|candidate| !next_dependencies.contains(candidate))
+        .map(rewiring_dependency_from_edge)
+        .collect::<Vec<_>>();
+
+    if added.is_empty() && removed.is_empty() {
+        None
+    } else {
+        added.sort_by_key(rewiring_dependency_key);
+        removed.sort_by_key(rewiring_dependency_key);
+        Some(RewiringSummary { added, removed })
+    }
+}
+
+fn rewiring_dependency_from_edge(edge: &DependencyEdge) -> RewiringDependency {
+    RewiringDependency {
+        source: edge.source(),
+        aspect: edge.aspect(),
+        subscription: edge.scope_ref().cloned(),
+    }
+}
+
+fn rewiring_dependency_key(dependency: &RewiringDependency) -> (u32, u32, usize, String, u8) {
+    let scope = dependency.subscription.as_ref().map(|subscription| {
+        (
+            subscription.detail.clone().unwrap_or_default(),
+            subscription.match_mode as u8,
+        )
+    });
+    (
+        dependency.source.index(),
+        dependency.source.generation(),
+        dependency.aspect.index(),
+        scope
+            .as_ref()
+            .map(|(detail, _)| detail.clone())
+            .unwrap_or_default(),
+        scope.as_ref().map(|(_, mode)| *mode).unwrap_or_default(),
+    )
 }
 
 fn compare_dependency_edges(left: &DependencyEdge, right: &DependencyEdge) -> std::cmp::Ordering {

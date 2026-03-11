@@ -2,17 +2,10 @@ use crate::data::graph::SignalGraph;
 use crate::data::output::{MemoizedResultOrigin, OutputChange};
 use crate::data::trace::TraceSummary;
 use crate::diagnostics::failure::{ExecutionFailureContext, FailureSummary};
-use crate::diagnostics::flow::{
-    ApplySummary, ChangeInputSummary, FlowSummary, InvalidationSummary, PlanningSummary,
-    PrecomputeSummary,
-};
 use crate::diagnostics::lineage::{LineageEvent, LineageRecord};
 use crate::diagnostics::policy::{DiagnosticsPolicy, SnapshotRestoreLineageMode};
 use crate::diagnostics::replay::{ReplayEvent, ReplayEventKind};
-use crate::diagnostics::summary::{ExecutionHistorySummary, ExplanationSummary};
-use crate::logic::planner::{
-    EvaluationPlan, ExecutionRecordId, ExecutionReport, SemanticSegmentId, TaskExecutionOutcome,
-};
+use crate::logic::planner::{ExecutionRecordId, SemanticSegmentId};
 use crate::state::SignalSnapshotId;
 
 pub struct DiagnosticsRecorder<'a> {
@@ -38,78 +31,6 @@ impl<'a> DiagnosticsRecorder<'a> {
 
     pub fn record_failure_summary(&mut self, summary: FailureSummary) {
         self.graph.diagnostics_state_mut().record_failure(summary);
-    }
-}
-
-pub fn record_semantic_execution(
-    graph: &mut SignalGraph,
-    plan: &EvaluationPlan,
-    report: &ExecutionReport,
-) {
-    let profile = DiagnosticsPolicy::from_profile(graph.diagnostics_profile()).profile;
-    let (change, invalidation) = graph
-        .diagnostics_state()
-        .pending_change_summary()
-        .unwrap_or_else(|| {
-            (
-                ChangeInputSummary::new(Vec::new(), Vec::new(), 0, None),
-                InvalidationSummary::new(0, 0, 0),
-            )
-        });
-    let explanation = if DiagnosticsPolicy::from_profile(profile).retain_flow_explanation {
-        plan.targets
-            .first()
-            .and_then(|target| graph.explain(*target).ok())
-            .map(|explanation| ExplanationSummary::from_explanation(&explanation, profile))
-    } else {
-        None
-    };
-    let flow = FlowSummary::new(
-        profile,
-        change,
-        invalidation,
-        PlanningSummary::from_plan(plan, profile),
-        PrecomputeSummary::from_report(report, profile),
-        ApplySummary::from_report(report, profile),
-        None,
-        explanation,
-    );
-    let history = if execution_history_unchanged(report) {
-        graph
-            .diagnostics_state()
-            .recent_history()
-            .back()
-            .cloned()
-            .unwrap_or_else(|| ExecutionHistorySummary::from_graph(graph, profile))
-    } else {
-        ExecutionHistorySummary::from_graph(graph, profile)
-    };
-    graph.diagnostics_state_mut().complete_flow(flow, history);
-    for task in report
-        .stages
-        .iter()
-        .flat_map(|stage| stage.task_records.iter())
-    {
-        let cursor = graph.diagnostics_state_mut().allocate_replay_cursor();
-        let branch_id = graph.current_branch().id;
-        let lineage_artifact_id = graph
-            .get_entry(task.node)
-            .ok()
-            .and_then(|entry| entry.get_trace_summary())
-            .and_then(|summary| summary.lineage_artifact_id);
-        graph
-            .diagnostics_state_mut()
-            .record_replay_event(ReplayEvent::new(
-                cursor,
-                ReplayEventKind::TaskApplied,
-                branch_id,
-                None,
-                Some(task.node),
-                Some(task.id.0),
-                Some(task.semantic_segment_id.0),
-                lineage_artifact_id,
-                Some(task_outcome_label(task.outcome).to_owned()),
-            ));
     }
 }
 
@@ -245,18 +166,6 @@ pub fn record_snapshot_restore_lineage(graph: &mut SignalGraph, snapshot_id: Sig
     );
 }
 
-fn task_outcome_label(outcome: TaskExecutionOutcome) -> &'static str {
-    match outcome {
-        TaskExecutionOutcome::Recomputed => "Recomputed",
-        TaskExecutionOutcome::ValidatedClean => "ValidatedClean",
-        TaskExecutionOutcome::ConditionDeferred => "ConditionDeferred",
-        TaskExecutionOutcome::ConditionRevertedClean => "ConditionRevertedClean",
-        TaskExecutionOutcome::MemoizedReuse => "MemoizedReuse",
-        TaskExecutionOutcome::PropagationSuppressed => "PropagationSuppressed",
-        TaskExecutionOutcome::Pruned => "Pruned",
-    }
-}
-
 pub fn record_lineage_transition(
     graph: &mut SignalGraph,
     node: crate::data::handle::NodeId,
@@ -352,20 +261,4 @@ pub fn record_invalidation_lineage(
             None,
             Some(detail.into()),
         ));
-}
-
-fn execution_history_unchanged(report: &ExecutionReport) -> bool {
-    report
-        .stages
-        .iter()
-        .flat_map(|stage| &stage.task_records)
-        .all(|task| {
-            matches!(
-                task.outcome,
-                TaskExecutionOutcome::ValidatedClean
-                    | TaskExecutionOutcome::ConditionDeferred
-                    | TaskExecutionOutcome::ConditionRevertedClean
-                    | TaskExecutionOutcome::Pruned
-            )
-        })
 }

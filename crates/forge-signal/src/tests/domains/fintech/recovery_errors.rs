@@ -10,7 +10,8 @@ fn fintech_cross_branch_restore_rejection_preserves_branch_heads_and_truth() {
     world.assert_shape(FintechScale::smoke());
 
     let main = world.current_branch();
-    let expected_truth = FintechTruthSnapshot::capture_core(&mut world, StageExecutor::Serial).unwrap();
+    let expected_truth =
+        FintechTruthSnapshot::capture_core(&mut world, StageExecutor::Serial).unwrap();
     let main_snapshot = world.capture_world_snapshot();
     let feature = world.open_branch("feature-invalid-restore").unwrap();
 

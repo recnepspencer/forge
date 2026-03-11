@@ -2,8 +2,7 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::EvaluationCondition;
-use crate::data::output::{ChangedRegion, OutputChange, PartitionMatchMode, PartitionSubscription};
-use crate::data::trace::TraceSummary;
+use crate::data::output::{scope_touched_by_trace, PartitionSubscription};
 
 use super::types::ConditionDecision;
 
@@ -36,44 +35,22 @@ pub(super) fn classify_condition_decision(
 
 fn max_dependency_delta(graph: &SignalGraph, node: NodeId) -> Result<u64, SignalError> {
     let mut max_delta = 0;
-    for (source, aspect, cached_version, _) in graph.get_dep_snapshot(node)?.entries() {
-        if !graph.is_alive(*source) {
+    for snapshot_entry in graph.get_dep_snapshot(node)?.entries() {
+        if !graph.is_alive(snapshot_entry.source) {
             continue;
         }
-        let current_version = graph.get_entry(*source)?.get_aspect_version().get(*aspect);
-        max_delta = max_delta.max(current_version.abs_diff(*cached_version));
+        let current_version = graph
+            .get_entry(snapshot_entry.source)?
+            .get_aspect_version()
+            .get(snapshot_entry.aspect);
+        max_delta = max_delta.max(current_version.abs_diff(snapshot_entry.cached_version));
     }
     Ok(max_delta)
 }
 
 pub(super) fn partition_scope_untouched(
-    trace_summary: Option<&TraceSummary>,
+    trace_summary: Option<&crate::data::trace::TraceSummary>,
     scope: &PartitionSubscription,
 ) -> bool {
-    let Some(trace_summary) = trace_summary else {
-        return false;
-    };
-    if trace_summary.output_change == OutputChange::Unchanged {
-        return true;
-    }
-    if trace_summary.changed_regions.is_empty() {
-        return false;
-    }
-    !trace_summary
-        .changed_regions
-        .iter()
-        .any(|region| partition_subscription_matches(scope, region))
-}
-
-pub(super) fn partition_subscription_matches(
-    subscription: &PartitionSubscription,
-    region: &ChangedRegion,
-) -> bool {
-    if subscription.partition != region.partition {
-        return false;
-    }
-    match subscription.match_mode {
-        PartitionMatchMode::WholePartition => true,
-        PartitionMatchMode::PartitionAndDetail => subscription.detail == region.detail,
-    }
+    !scope_touched_by_trace(trace_summary, scope)
 }

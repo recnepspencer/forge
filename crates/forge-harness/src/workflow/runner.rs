@@ -1,10 +1,9 @@
 use super::adapter::{WorkflowCertificationAdapter, WorkflowCertificationError};
 use super::record::{
     ArtifactBundle, CheckpointSemantics, FailureBundle, FailureBundleVersion,
-    FailureInjectionPoint, InvariantReport, WorkflowCaptureRequest,
-    WorkflowCertificationReport, WorkflowCheckpoint, WorkflowCheckpointTraceEntry,
-    WorkflowFailureContext, WorkflowPlan, WorkflowRuntimeProfile, WorkflowSession, WorkflowState,
-    WorkflowStep, WorkflowStepTraceEntry,
+    FailureInjectionPoint, InvariantReport, WorkflowCaptureRequest, WorkflowCertificationReport,
+    WorkflowCheckpoint, WorkflowCheckpointTraceEntry, WorkflowFailureContext, WorkflowPlan,
+    WorkflowRuntimeProfile, WorkflowSession, WorkflowState, WorkflowStep, WorkflowStepTraceEntry,
 };
 
 pub struct WorkflowCertificationRunner<A> {
@@ -83,9 +82,12 @@ where
             .iter()
             .filter(|check| {
                 check.boundary == boundary
-                    && step.map(|step| step.invariant_boundaries.contains(&boundary)).unwrap_or(
-                        boundary == WorkflowState::Completed || boundary == WorkflowState::Failed,
-                    )
+                    && step
+                        .map(|step| step.invariant_boundaries.contains(&boundary))
+                        .unwrap_or(
+                            boundary == WorkflowState::Completed
+                                || boundary == WorkflowState::Failed,
+                        )
             })
             .cloned()
             .collect();
@@ -166,41 +168,42 @@ where
 
         for (step_index, step) in plan.steps.iter().enumerate() {
             let injection = step.failure_injection.clone();
-            let outcome = match self
-                .adapter
-                .execute_step(&mut session.session_data, step, injection.as_ref())
-            {
-                Ok(outcome) => outcome,
-                Err(_) => {
-                    session.state = WorkflowState::Failed;
-                    let artifacts = self.capture_requested_artifacts(
-                        &session.session_data,
-                        Some(step_index),
-                        Some(step),
-                        WorkflowState::Failed,
-                    )?;
-                    session.artifacts.extend(artifacts);
-                    let reports = self.run_requested_invariants(
-                        &session.session_data,
-                        plan,
-                        Some(step),
-                        WorkflowState::Failed,
-                    )?;
-                    session.invariant_reports.extend(reports);
-                    let failure_bundle = self.build_failure_bundle(
-                        &session.session_data,
-                        &session,
-                        plan,
-                        profile,
-                        Some(step_index),
-                        injection,
-                    )?;
-                    return Ok(WorkflowCertificationReport {
-                        session,
-                        failure_bundle: Some(failure_bundle),
-                    });
-                }
-            };
+            let outcome =
+                match self
+                    .adapter
+                    .execute_step(&mut session.session_data, step, injection.as_ref())
+                {
+                    Ok(outcome) => outcome,
+                    Err(_) => {
+                        session.state = WorkflowState::Failed;
+                        let artifacts = self.capture_requested_artifacts(
+                            &session.session_data,
+                            Some(step_index),
+                            Some(step),
+                            WorkflowState::Failed,
+                        )?;
+                        session.artifacts.extend(artifacts);
+                        let reports = self.run_requested_invariants(
+                            &session.session_data,
+                            plan,
+                            Some(step),
+                            WorkflowState::Failed,
+                        )?;
+                        session.invariant_reports.extend(reports);
+                        let failure_bundle = self.build_failure_bundle(
+                            &session.session_data,
+                            &session,
+                            plan,
+                            profile,
+                            Some(step_index),
+                            injection,
+                        )?;
+                        return Ok(WorkflowCertificationReport {
+                            session,
+                            failure_bundle: Some(failure_bundle),
+                        });
+                    }
+                };
 
             Self::transition(&mut session, WorkflowState::StepApplied)?;
             session.step_trace.push(WorkflowStepTraceEntry {

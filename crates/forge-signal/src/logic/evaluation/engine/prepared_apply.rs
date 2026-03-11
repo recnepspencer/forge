@@ -1,9 +1,7 @@
-use crate::data::aspect::AspectMask;
 use crate::data::comparator::ComparatorPolicyResolver;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
-use crate::data::node::NodeState;
 use crate::data::output::{MemoizedResultOrigin, NodeEvaluationResult};
 use crate::logic::prepared::{
     PreparedDependencyCapture, PreparedEvaluation, PreparedEvaluationOrigin,
@@ -92,40 +90,24 @@ fn apply_prepared_dependencies(
     node: NodeId,
     capture: &PreparedDependencyCapture,
 ) -> Result<u32, SignalError> {
-    let old_dependencies = graph.dependencies_of(node)?.to_vec();
-    let mut updates = 0_u32;
-
-    for dependency in &old_dependencies {
-        let still_present = capture.as_slice().iter().any(|captured| {
-            captured.source == dependency.source()
-                && captured.aspect == dependency.aspect()
-                && captured.scope == dependency.scope_ref().cloned()
-        });
-        if !still_present {
-            let removed = graph.disconnect_dependency_edge(node, dependency.clone())?;
-            updates += u32::from(removed);
-        }
-    }
-
-    for dependency in capture.as_slice() {
-        let inserted = graph.connect_dependency_capture(
-            node,
-            dependency.source,
-            dependency.aspect,
-            dependency.scope.clone(),
-        )?;
-        updates += u32::from(inserted);
-    }
-
-    Ok(updates)
+    let desired = capture
+        .as_slice()
+        .iter()
+        .map(|dependency| {
+            graph.build_dependency_edge(
+                dependency.source,
+                dependency.aspect,
+                dependency.scope.clone(),
+            )
+        })
+        .collect::<Vec<_>>();
+    let report = graph.reconcile_dependencies(node, &desired)?;
+    Ok(report.update_count())
 }
 
 pub(super) fn revert_to_clean(graph: &mut SignalGraph, node: NodeId) -> Result<(), SignalError> {
     graph.telemetry_mut().skipped_by_comparator += 1;
-    let entry = graph.get_entry_mut(node)?;
-    entry.set_state(NodeState::Clean);
-    entry.set_dirty_aspects(AspectMask::EMPTY);
-    entry.clear_dirty_partition_scopes();
+    graph.get_entry_mut(node)?.transition_clean();
     Ok(())
 }
 
@@ -133,14 +115,13 @@ fn revert_to_clean_due_to_condition(
     graph: &mut SignalGraph,
     node: NodeId,
 ) -> Result<(), SignalError> {
-    let entry = graph.get_entry_mut(node)?;
-    entry.set_state(NodeState::Clean);
-    entry.set_dirty_aspects(AspectMask::EMPTY);
-    entry.clear_dirty_partition_scopes();
+    graph.get_entry_mut(node)?.transition_clean();
     Ok(())
 }
 
 fn defer_due_to_condition(graph: &mut SignalGraph, node: NodeId) -> Result<(), SignalError> {
-    graph.get_entry_mut(node)?.set_state(NodeState::MaybeStale);
+    graph
+        .get_entry_mut(node)?
+        .set_state(crate::data::node::NodeState::MaybeStale);
     Ok(())
 }

@@ -7,7 +7,7 @@ use crate::logic::prepared::{ExecutionSnapshot, PreparedEvaluation};
 
 #[cfg(feature = "parallel")]
 use super::executor_pool::PlannerExecutorPool;
-use super::types::ExecutionStage;
+use super::types::EvaluationTask;
 #[cfg(feature = "parallel")]
 use super::types::ParallelExecutionPolicy;
 use super::validation::{capture_current_dependencies, preview_maybe_stale};
@@ -35,14 +35,14 @@ impl StageExecutionData {
         }
     }
 
-    pub fn into_patches(self, stage: &ExecutionStage) -> Vec<PreparedTaskPatch> {
+    pub fn into_patches(self, tasks: &[EvaluationTask]) -> Vec<PreparedTaskPatch> {
         match self {
             Self::Prepared(prepared) => prepared
                 .into_iter()
                 .enumerate()
                 .map(|(task_index, prepared)| PreparedTaskPatch {
                     task_index,
-                    node: stage.tasks[task_index].node,
+                    node: tasks[task_index].node,
                     prepared,
                 })
                 .collect(),
@@ -53,7 +53,7 @@ impl StageExecutionData {
 }
 
 pub(super) fn precompute_stage_serial<F>(
-    stage: &ExecutionStage,
+    tasks: &[EvaluationTask],
     snapshot: &ExecutionSnapshot<'_>,
     precompute: &F,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
@@ -65,8 +65,8 @@ where
         ) -> Result<PreparedEvaluation, SignalError>
         + Sync,
 {
-    let mut prepared = Vec::with_capacity(stage.tasks.len());
-    for task in &stage.tasks {
+    let mut prepared = Vec::with_capacity(tasks.len());
+    for task in tasks {
         prepared.push(prepare_stage_task(
             task,
             snapshot,
@@ -79,7 +79,7 @@ where
 
 #[cfg(feature = "parallel")]
 pub(super) fn precompute_stage_parallel<F>(
-    stage: &ExecutionStage,
+    tasks: &[EvaluationTask],
     snapshot: &ExecutionSnapshot<'_>,
     precompute: &F,
     policy: ParallelExecutionPolicy,
@@ -92,9 +92,9 @@ where
         ) -> Result<PreparedEvaluation, SignalError>
         + Sync,
 {
-    let mut prepared = Vec::with_capacity(stage.tasks.len());
+    let mut prepared = Vec::with_capacity(tasks.len());
     let mut compute_indices = Vec::new();
-    for task in &stage.tasks {
+    for task in tasks {
         match prepare_validated_clean_if_unchanged(task, snapshot, comparator_resolver)? {
             Some(prepared_task) => prepared.push(Some(prepared_task)),
             None => {
@@ -111,7 +111,7 @@ where
             .collect());
     }
 
-    let chunk_size = policy.chunk_size_for(stage.tasks.len());
+    let chunk_size = policy.chunk_size_for(tasks.len());
     let worker_count = policy.worker_count_for(compute_indices.len());
     let pool = PlannerExecutorPool::shared(worker_count)?;
     pool.install(|| {
@@ -121,7 +121,7 @@ where
             .map(|(chunk_index, index_chunk)| {
                 let mut chunk_results = Vec::with_capacity(index_chunk.len());
                 for &task_index in index_chunk {
-                    let task = &stage.tasks[task_index];
+                    let task = &tasks[task_index];
                     let view = snapshot.read_view(task.node);
                     chunk_results.push((task_index, precompute(task.node, &view)?));
                 }
@@ -149,7 +149,7 @@ where
 
 #[cfg(feature = "parallel")]
 pub(super) fn build_parallel_stage_patches<F>(
-    stage: &ExecutionStage,
+    tasks: &[EvaluationTask],
     snapshot: &ExecutionSnapshot<'_>,
     precompute: &F,
     policy: ParallelExecutionPolicy,
@@ -162,9 +162,9 @@ where
         ) -> Result<PreparedEvaluation, SignalError>
         + Sync,
 {
-    let mut prepatched = Vec::with_capacity(stage.tasks.len());
+    let mut prepatched = Vec::with_capacity(tasks.len());
     let mut compute_indices = Vec::new();
-    for (task_index, task) in stage.tasks.iter().enumerate() {
+    for (task_index, task) in tasks.iter().enumerate() {
         match prepare_validated_clean_if_unchanged(task, snapshot, comparator_resolver)? {
             Some(prepared) => prepatched.push(Some(PreparedTaskPatch {
                 task_index,
@@ -185,7 +185,7 @@ where
             .collect());
     }
 
-    let chunk_size = policy.chunk_size_for(stage.tasks.len());
+    let chunk_size = policy.chunk_size_for(tasks.len());
     let worker_count = policy.worker_count_for(compute_indices.len());
     let pool = PlannerExecutorPool::shared(worker_count)?;
     pool.install(|| {
@@ -195,7 +195,7 @@ where
             .map(|(_chunk_index, index_chunk)| {
                 let mut chunk_patches = Vec::with_capacity(index_chunk.len());
                 for &task_index in index_chunk {
-                    let task = &stage.tasks[task_index];
+                    let task = &tasks[task_index];
                     let view = snapshot.read_view(task.node);
                     chunk_patches.push(PreparedTaskPatch {
                         task_index,

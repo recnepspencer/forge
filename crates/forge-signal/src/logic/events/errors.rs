@@ -1,5 +1,6 @@
 use crate::data::error::SignalError;
 use crate::data::event_subscriber::SubscriberId;
+use crate::logic::events::runtime::CompletedSubscriber;
 
 /// Registration-time DAG validation failures.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -30,6 +31,10 @@ pub enum EventFlushError<D: Copy + Ord + std::fmt::Debug + 'static> {
     Subscriber {
         subscriber_id: SubscriberId,
         subscriber_name: &'static str,
+        completed_subscribers: Vec<CompletedSubscriber>,
+        failed_subscriber_requires: Vec<String>,
+        failed_subscriber_provides: Vec<String>,
+        failed_subscriber_staged: Vec<String>,
         source: SignalError,
     },
 }
@@ -41,13 +46,24 @@ impl<D: Copy + Ord + std::fmt::Debug + 'static> std::fmt::Display for EventFlush
             Self::Subscriber {
                 subscriber_id,
                 subscriber_name,
+                completed_subscribers,
+                failed_subscriber_requires,
+                failed_subscriber_provides,
+                failed_subscriber_staged,
                 source,
             } => {
                 write!(
                     f,
-                    "subscriber {} (id={}) failed: {}",
+                    "subscriber {} (id={}) failed after {:?} with requires {:?}, provides {:?}, staged {:?}: {}",
                     subscriber_name,
                     subscriber_id.get(),
+                    completed_subscribers
+                        .iter()
+                        .map(|subscriber| subscriber.name)
+                        .collect::<Vec<_>>(),
+                    failed_subscriber_requires,
+                    failed_subscriber_provides,
+                    failed_subscriber_staged,
                     source
                 )
             }
