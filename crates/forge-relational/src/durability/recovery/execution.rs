@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 
+use crate::capabilities::{RuntimeIdentitySource, SchemaSource};
 use serde_json::json;
 
 use crate::diagnostics::data::{
@@ -19,24 +20,7 @@ impl RelationalRuntime {
         &mut self,
         plan: RecoveryPlan,
     ) -> Result<RuntimeRecoveryOutcome, DurabilityError> {
-        if plan.config.schema_registry != self.config.schema_registry {
-            return Err(DurabilityError {
-                class: RecoveryFailureClass::SchemaMismatch,
-                detail: "recovery schema registry mismatch".to_string(),
-            });
-        }
-        if plan.config.profile != self.config.profile {
-            return Err(DurabilityError {
-                class: RecoveryFailureClass::ProfileMismatch,
-                detail: "recovery profile mismatch".to_string(),
-            });
-        }
-        if plan.config.runtime_name != self.config.runtime_name {
-            return Err(DurabilityError {
-                class: RecoveryFailureClass::RuntimeNameMismatch,
-                detail: "recovery runtime name mismatch".to_string(),
-            });
-        }
+        validate_recovery_compatibility(self, &plan)?;
         if !plan.compatibility.schema_match {
             return Err(DurabilityError {
                 class: RecoveryFailureClass::SchemaMismatch,
@@ -113,8 +97,8 @@ impl RelationalRuntime {
         plan: RecoveryPlan,
     ) -> Result<RelationalRuntime, DurabilityError> {
         let mut restored = RelationalRuntime::new(plan.config.clone());
-        let original_durability_mode = restored.config.durability_mode;
-        restored.config.durability_mode = DurabilityMode::InMemoryCanonical;
+        let original_durability_mode = restored.config.durability.mode;
+        restored.config.durability.mode = DurabilityMode::InMemoryCanonical;
         restored.durability.store = None;
 
         if let Some(checkpoint) = &plan.checkpoint {
@@ -211,24 +195,8 @@ impl RelationalRuntime {
             + 1;
 
         for partition in restored.partitions.values_mut() {
-            for counter in &mut partition.entity_arena.snapshot_pins {
-                *counter = 0;
-            }
-            for counter in &mut partition.entity_arena.branch_pins {
-                *counter = 0;
-            }
-            for counter in &mut partition.entity_arena.replay_pins {
-                *counter = 0;
-            }
-            for counter in &mut partition.relation_arena.snapshot_pins {
-                *counter = 0;
-            }
-            for counter in &mut partition.relation_arena.branch_pins {
-                *counter = 0;
-            }
-            for counter in &mut partition.relation_arena.replay_pins {
-                *counter = 0;
-            }
+            partition.entity_arena.clear_all_pins();
+            partition.relation_arena.clear_all_pins();
         }
 
         let available_commit_ids = restored
@@ -239,11 +207,11 @@ impl RelationalRuntime {
             .chain(
                 plan.tail_log
                     .iter()
-                    .map(|entry| entry.envelope.commit.commit_id),
+                    .map(|entry| entry.commit.commit_id),
             )
             .collect::<BTreeSet<_>>();
 
-        for envelope in plan.tail_log.iter().map(|entry| &entry.envelope) {
+        for envelope in &plan.tail_log {
             if envelope
                 .commit
                 .parents
@@ -295,7 +263,13 @@ impl RelationalRuntime {
                 name: format!("recovery-commit-{}", envelope.commit.commit_id.0),
                 partition_key: None,
                 worker_local_only: true,
-                intents: envelope.merged_plan.merged_intents.clone(),
+                intents: envelope
+                    .merged_plan
+                    .merged_intents
+                    .clone()
+                    .into_iter()
+                    .map(crate::transactions::data::TransactionIntent::from)
+                    .collect(),
             });
             txn.commit().map_err(|_| DurabilityError {
                 class: RecoveryFailureClass::ReplayFailure,
@@ -349,7 +323,7 @@ impl RelationalRuntime {
             .max()
             .unwrap_or(0)
             + 1;
-        restored.config.durability_mode = original_durability_mode;
+        restored.config.durability.mode = original_durability_mode;
         restored.rebuild_unique_field_indexes();
         restored.rebuild_branch_pins_from_heads();
         restored
@@ -377,4 +351,29 @@ impl RelationalRuntime {
 
         Ok(restored)
     }
+}
+
+fn validate_recovery_compatibility(
+    runtime: &(impl SchemaSource + RuntimeIdentitySource),
+    plan: &RecoveryPlan,
+) -> Result<(), DurabilityError> {
+    if plan.config.schema_registry != *runtime.schema_registry() {
+        return Err(DurabilityError {
+            class: RecoveryFailureClass::SchemaMismatch,
+            detail: "recovery schema registry mismatch".to_string(),
+        });
+    }
+    if plan.config.profile != runtime.runtime_profile() {
+        return Err(DurabilityError {
+            class: RecoveryFailureClass::ProfileMismatch,
+            detail: "recovery profile mismatch".to_string(),
+        });
+    }
+    if plan.config.runtime_name != runtime.runtime_name() {
+        return Err(DurabilityError {
+            class: RecoveryFailureClass::RuntimeNameMismatch,
+            detail: "recovery runtime name mismatch".to_string(),
+        });
+    }
+    Ok(())
 }

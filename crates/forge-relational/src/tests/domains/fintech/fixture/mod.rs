@@ -4,7 +4,7 @@ mod relation_seeding;
 mod seed_catalog;
 
 use crate::facade::{
-    BranchId, EntityId, PartitionId, QueryWorkPacket, ReadTarget, RelationId, RelationalReadView,
+    BranchId, EntityId, PartitionId, QueryWorkPacket, RecordRef, RelationId, RelationalReadView,
     RelationalRuntime, RelationalRuntimeApi, SnapshotHandle,
 };
 use crate::facade::{DurabilityMode, DurableStoreLayout, RelationalRuntimeProfile};
@@ -119,9 +119,9 @@ impl FintechWorld {
         QueryWorkPacket::bulk(
             "portfolio-check",
             vec![
-                ReadTarget::Entity(case.account),
-                ReadTarget::Entity(case.instrument),
-                ReadTarget::Entity(case.risk_view),
+                RecordRef::Entity(case.account),
+                RecordRef::Entity(case.instrument),
+                RecordRef::Entity(case.risk_view),
             ],
         )
     }
@@ -140,9 +140,9 @@ impl FintechWorld {
         QueryWorkPacket::bulk(
             "correction-probe",
             vec![
-                ReadTarget::Entity(case.trade),
-                ReadTarget::Entity(case.account),
-                ReadTarget::Entity(case.audit_record),
+                RecordRef::Entity(case.trade),
+                RecordRef::Entity(case.account),
+                RecordRef::Entity(case.audit_record),
             ],
         )
     }
@@ -152,10 +152,10 @@ impl FintechWorld {
         QueryWorkPacket::bulk(
             "intraday-risk-probe",
             vec![
-                ReadTarget::Entity(case.instrument),
-                ReadTarget::Entity(case.risk_view),
-                ReadTarget::Entity(case.limit),
-                ReadTarget::Entity(case.breach),
+                RecordRef::Entity(case.instrument),
+                RecordRef::Entity(case.risk_view),
+                RecordRef::Entity(case.limit),
+                RecordRef::Entity(case.breach),
             ],
         )
     }
@@ -165,10 +165,10 @@ impl FintechWorld {
         QueryWorkPacket::bulk(
             "settlement-repair-probe",
             vec![
-                ReadTarget::Entity(case.settlement),
-                ReadTarget::Entity(case.cash_event),
-                ReadTarget::Entity(case.trade),
-                ReadTarget::Entity(case.audit_record),
+                RecordRef::Entity(case.settlement),
+                RecordRef::Entity(case.cash_event),
+                RecordRef::Entity(case.trade),
+                RecordRef::Entity(case.audit_record),
             ],
         )
     }

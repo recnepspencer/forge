@@ -1,9 +1,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::capabilities::VisibilityPolicySource;
 use crate::logic::runtime::RelationalRuntime;
 use crate::storage::data::RecordLifecycleState;
 use crate::storage::logic::state::{
-    EntityRecordKind, HistoricalMetadata, RecordKind, RelationRecordKind, SnapshotState,
+    EntityRecordKind, HistoricalMetadata, PinClass, RecordKind, RelationRecordKind, SnapshotState,
 };
 
 impl RelationalRuntime {
@@ -101,19 +102,10 @@ impl RelationalRuntime {
 
     pub(crate) fn rebuild_branch_pins_from_heads(&mut self) {
         for partition in self.partitions.values_mut() {
-            for counter in &mut partition.entity_arena.branch_pins {
-                *counter = 0;
-            }
-            for counter in &mut partition.relation_arena.branch_pins {
-                *counter = 0;
-            }
+            partition.entity_arena.clear_named_pins(PinClass::Branch);
+            partition.relation_arena.clear_named_pins(PinClass::Branch);
         }
-        let head_versions = self
-            .history
-            .branch_heads
-            .values()
-            .filter_map(|head| head.as_ref().map(|head| head.version_id))
-            .collect::<Vec<_>>();
+        let head_versions = self.branch_head_versions();
         for version_id in head_versions {
             self.pin_branch_version(version_id);
         }
@@ -146,23 +138,15 @@ impl RelationalRuntime {
         for version_id in tracked_versions {
             self.maybe_remove_unprotected_visibility_state(version_id);
         }
-        if !self.config.visibility_cache_policy.protect_branch_heads {
+        if !self.protect_branch_heads() {
             self.evict_visibility_cache_if_needed();
             return;
         }
-        let head_versions = self
-            .history
-            .branch_heads
-            .values()
-            .filter_map(|head| head.as_ref().map(|head| head.version_id))
-            .collect::<Vec<_>>();
+        let head_versions = self.branch_head_versions();
         for version_id in head_versions {
             self.protect_branch_head_version(version_id);
             self.instrumentation
-                .complexity_counters
-                .lock()
-                .expect("complexity counter lock poisoned")
-                .visibility_cache_branch_head_promotions += 1;
+                .count(|counters| counters.visibility_cache_branch_head_promotions += 1);
         }
         self.evict_visibility_cache_if_needed();
     }
@@ -172,21 +156,18 @@ impl RelationalRuntime {
         previous_head: Option<crate::identity::data::VersionId>,
         next_head: Option<crate::identity::data::VersionId>,
     ) {
-        if !self.config.visibility_cache_policy.protect_branch_heads || previous_head == next_head {
+        if !self.protect_branch_heads() || previous_head == next_head {
             return;
         }
         if let Some(version_id) = previous_head {
-            self.bump_visibility_ref(version_id, -1, |residency| {
+            self.bump_visibility_ref(version_id, |residency| {
                 residency.branch_head_refs = residency.branch_head_refs.saturating_sub(1);
             });
         }
         if let Some(version_id) = next_head {
             self.protect_branch_head_version(version_id);
             self.instrumentation
-                .complexity_counters
-                .lock()
-                .expect("complexity counter lock poisoned")
-                .visibility_cache_branch_head_promotions += 1;
+                .count(|counters| counters.visibility_cache_branch_head_promotions += 1);
         }
         self.evict_visibility_cache_if_needed();
     }
@@ -252,23 +233,38 @@ fn trim_live_history<K: RecordKind>(
         };
         let arena = K::arena_mut(partition);
         for slot in slots {
-            if slot >= arena.payload_history.len() || arena.lifecycle[slot] != RecordLifecycleState::Live {
+            if arena
+                .get_slot(slot)
+                .is_none_or(|slot_view| slot_view.lifecycle() != RecordLifecycleState::Live)
+            {
                 continue;
             }
-            if arena.metadata_history[slot].len() > 1 {
+            if arena
+                .metadata_history_at(slot)
+                .is_some_and(|metadata_history| metadata_history.len() > 1)
+            {
                 continue;
             }
             let bound = crate::identity::data::VersionBound::new(oldest_pinned_version);
-            let history = &mut arena.payload_history[slot];
-            let original_len = history.len();
-            history.retain(|entry| {
-                entry.retired_at.is_none_or(|retired| bound.retains_retired(retired))
-            });
-            let metadata_history = &mut arena.metadata_history[slot];
-            metadata_history.retain(|entry| {
-                entry.retired_at().is_none_or(|retired| bound.retains_retired(retired))
-            });
-            total_trimmed += original_len.saturating_sub(history.len());
+            let original_len = match arena.payload_history_at(slot) {
+                Some(history) => history.len(),
+                None => continue,
+            };
+            let trimmed_len = {
+                let Some(history) = arena.payload_history_at_mut(slot) else {
+                    continue;
+                };
+                history.retain(|entry| {
+                    entry.retired_at.is_none_or(|retired| bound.retains_retired(retired))
+                });
+                history.len()
+            };
+            if let Some(metadata_history) = arena.metadata_history_at_mut(slot) {
+                metadata_history.retain(|entry| {
+                    entry.retired_at().is_none_or(|retired| bound.retains_retired(retired))
+                });
+            }
+            total_trimmed += original_len.saturating_sub(trimmed_len);
         }
     }
     count_trimmed(runtime, total_trimmed);

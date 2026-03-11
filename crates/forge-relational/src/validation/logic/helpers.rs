@@ -1,9 +1,9 @@
 use std::collections::BTreeSet;
 
-use crate::diagnostics::data::DiagnosticCode;
 use crate::payloads::data::RecordPayload;
 use crate::schema::data::SchemaRegistryError;
 use crate::storage::logic::state::{EntityArena, PartitionAccess, VersionedValue};
+use crate::storage::substrate::RecordId;
 use crate::transactions::data::CommitConflict;
 use crate::validation::data::{InvariantCheckResult, InvariantFailureEffect};
 
@@ -20,13 +20,9 @@ pub(crate) fn touched_visible_entity_ids(
         };
         saw_any = true;
         for slot in slots {
-            if slot >= partition.entity_arena.generations.len() {
-                continue;
-            }
             let Some(metadata) = partition
                 .entity_arena
-                .metadata_history
-                .get(slot)
+                .metadata_history_at(slot)
                 .and_then(|history| visible_entity_metadata(history, version_id))
             else {
                 continue;
@@ -51,11 +47,19 @@ pub(crate) fn entity_payload_for_state(
     version_id: crate::identity::data::VersionId,
 ) -> Option<&RecordPayload> {
     let partition = state.get_partition(entity_id.partition_id)?;
-    let slot = entity_id.local_slot.0 as usize;
-    if slot >= partition.entity_arena.payload_history.len() {
+    let slot = entity_id.local_slot();
+    if partition
+        .entity_arena
+        .get(&entity_id)
+        .map(|slot_view| slot_view.generation())
+        != Some(entity_id.generation())
+    {
         return None;
     }
-    visible_payload(&partition.entity_arena.payload_history[slot], version_id)
+    partition
+        .entity_arena
+        .payload_history_at(slot)
+        .and_then(|history| visible_payload(history, version_id))
 }
 
 pub(crate) fn visible_payload(
@@ -79,8 +83,7 @@ pub(crate) fn entity_visible_at_version(
     version_id: crate::identity::data::VersionId,
 ) -> bool {
     arena
-        .metadata_history
-        .get(slot)
+        .metadata_history_at(slot)
         .and_then(|history| visible_entity_metadata(history, version_id))
         .is_some()
 }
@@ -106,10 +109,10 @@ pub(crate) fn first_blocking_invariant_error(
                 && !result.violations.is_empty()
         })
         .and_then(|result| result.violations.first())
-        .map(|violation| CommitConflict {
+        .map(|violation| CommitConflict::new(crate::transactions::data::ConflictClass::InvariantViolation {
             code: violation.code,
             detail: violation.detail.clone(),
-        })
+        }))
 }
 
 pub(crate) fn first_publication_invariant_error(
@@ -122,17 +125,16 @@ pub(crate) fn first_publication_invariant_error(
                 && !result.violations.is_empty()
         })
         .and_then(|result| result.violations.first())
-        .map(|violation| CommitConflict {
+        .map(|violation| CommitConflict::new(crate::transactions::data::ConflictClass::InvariantViolation {
             code: violation.code,
             detail: violation.detail.clone(),
-        })
+        }))
 }
 
 pub(crate) fn schema_error_to_commit_conflict(error: SchemaRegistryError) -> CommitConflict {
-    CommitConflict {
-        code: DiagnosticCode::InvariantViolation,
+    CommitConflict::new(crate::transactions::data::ConflictClass::KindSchemaMismatch {
         detail: format!("{error:?}"),
-    }
+    })
 }
 
 pub(crate) fn touched_entity_set(

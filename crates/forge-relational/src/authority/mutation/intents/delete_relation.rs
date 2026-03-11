@@ -4,31 +4,29 @@ use crate::authority::mutation::record_changes::delete_relation;
 use crate::authority::mutation::stale_targets::ensure_relation_target_is_current;
 use crate::authority::mutation::{MutationEffect, MutationWorkspace};
 use crate::diagnostics::data::{DiagnosticCode, RelationalDiagnosticsEntry};
-use crate::transactions::data::{CommitConflict, TransactionIntent};
+use crate::transactions::data::{CommitConflict, DeleteRelationIntent};
 
 pub(super) fn apply(
-    intent: &TransactionIntent,
+    intent: &DeleteRelationIntent,
     workspace: &mut MutationWorkspace<'_>,
 ) -> Result<MutationEffect, CommitConflict> {
-    let TransactionIntent::DeleteRelation { relation_id } = intent else {
-        unreachable!("delete_relation handler only accepts DeleteRelation");
-    };
-    let (draft, _symbols, config, _schema, version_id) = workspace.as_parts_mut();
-    ensure_relation_target_is_current(draft, *relation_id)?;
+    let version_id = workspace.version_id();
+    let patch_surface_policy = workspace.patch_surface_policy();
+    ensure_relation_target_is_current(workspace.draft_mut(), intent.relation_id)?;
     let mut effect = MutationEffect::default();
     delete_relation(
-        draft,
+        workspace.draft_mut(),
         version_id,
-        *relation_id,
-        config.patch_surface_policy,
+        intent.relation_id,
+        patch_surface_policy,
         &mut effect,
     );
     effect.record_diagnostic(RelationalDiagnosticsEntry {
         code: DiagnosticCode::RelationDeleted,
         message: "relation deleted".to_string(),
         fields: json!({
-            "partition_id": relation_id.partition_id.0,
-            "relation_slot": relation_id.local_slot.0,
+            "partition_id": intent.relation_id.partition_id.0,
+            "relation_slot": intent.relation_id.local_slot.0,
         }),
     });
     Ok(effect)

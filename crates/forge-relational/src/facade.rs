@@ -4,10 +4,11 @@
 
 pub use crate::config::data::{
     AdjacencyBackend, AdjacencyPolicy, CascadeDeletePolicy, CompiledLanePolicy, ConfigProvenance,
-    ConfigProvenanceEntry, ConfigValueSource, CrossContextPolicy, DurableLogPolicy,
-    DurableLogRetentionMode, MvccConfig, PatchSurfacePolicy, PublicationConfig,
-    RelationalConfigOverride, RelationalRuntimeProfile, RetentionBackend, RetentionPolicy,
-    SnapshotReleasePolicy, StorageLayoutConfig, VisibilityCachePolicy,
+    ConfigProvenanceEntry, ConfigValueSource, CrossContextPolicy, CheckpointPolicy,
+    DurabilityPolicy, DurableLogPolicy, DurableLogRetentionMode, MvccConfig,
+    PatchSurfacePolicy, PublicationConfig, RelationalConfigOverride,
+    RelationalRuntimeProfile, RetentionBackend, RetentionPolicy, SnapshotReleasePolicy,
+    StorageLayoutConfig, VisibilityCachePolicy,
 };
 pub use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
@@ -17,7 +18,7 @@ pub use crate::diagnostics::facade::RelationalDiagnosticsFacade;
 pub use crate::durability::data::{
     CheckpointCoverage, CompactionOutcome, CompactionPlan, CompactionPolicy, DurabilityError,
     DurabilityMode, DurableCheckpoint, DurableCheckpointId, DurableCheckpointManifest,
-    DurableCommitEnvelope, DurableIntegrityStatus, DurableSegmentId, DurableSegmentManifest,
+    DurableIntegrityStatus, DurableSegmentId, DurableSegmentManifest,
     DurableStore, DurableStoreLayout, PartitionCheckpointImage, RecoveryCompatibilityCheck,
     RecoveryCoverage, RecoveryCursor, RecoveryFailureClass, RecoveryIntegrityReport, RecoveryPlan,
     SegmentRetentionClass,
@@ -74,7 +75,7 @@ pub use crate::publication::data::{
     PublicationBundle, PublicationError, PublicationStage, PublicationStatus,
 };
 pub use crate::query::data::{
-    PartitionHint, QueryExecutionShape, QueryWorkPacket, ReadPacketPlan, ReadTarget,
+    PartitionHint, QueryExecutionShape, QueryWorkPacket, ReadPacketPlan,
     ReductionDiscipline,
 };
 pub use crate::replay::data::{
@@ -93,9 +94,12 @@ pub use crate::symbols::data::{
     InternedString, StringInterner, Symbol, SymbolPolicy, SymbolTableSnapshot,
 };
 pub use crate::transactions::data::{
-    AuthoritativeApplyPlan, AuthorityMode, CommitAuthority, CommitConflict, CommitOutcome,
-    CrossContextEndpointClass, MergedCommitPlan, RecordRef, RelationScope, RollbackEffect,
-    RollbackOutcome, SavepointId, TransactionCommitError, TransactionId, TransactionIntent,
-    TransactionIntentBatch, TransactionOptions, UndoRecord, WorkerIntentBatch,
+    AuthoritativeApplyPlan, AuthorityMode, BulkEntityCreateIntent, BulkRelationCreateIntent,
+    CommitAuthority, CommitConflict, CommitOutcome, ConflictClass, CreateIntent,
+    CrossContextEndpointClass, DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent,
+    MergedCommitPlan, MutationIntent, RecordRef, RelationMutationIntent, RelationScope,
+    ReplaceEntityIntent, RollbackEffect, RollbackOutcome, SavepointId, TransactionCommitError,
+    TransactionId, TransactionIntent, TransactionIntentBatch, TransactionOptions, UndoRecord,
+    UpdateEntityIntent, WorkerIntentBatch,
 };
 pub use crate::transactions::logic::RelationalTransaction;

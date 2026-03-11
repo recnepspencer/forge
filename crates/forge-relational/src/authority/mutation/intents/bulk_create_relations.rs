@@ -14,38 +14,34 @@ use crate::diagnostics::data::{DiagnosticCode, RelationalDiagnosticsEntry};
 use crate::publication::data::diff::{PatchRecord, PatchRecordKind};
 use crate::symbols::data::InternedString;
 use crate::transactions::data::{
-    CommitConflict, RecordRef, RelationSpec, TransactionIntent,
+    BulkRelationCreateIntent, CommitConflict, RecordRef, RelationSpec,
 };
 
 pub(super) fn apply(
-    intent: &TransactionIntent,
+    intent: &BulkRelationCreateIntent,
     workspace: &mut MutationWorkspace<'_>,
 ) -> Result<MutationEffect, CommitConflict> {
-    let TransactionIntent::BulkCreateRelations {
-        partition_id,
-        kind_id,
-        client_keys: _,
-        endpoints,
-        payloads,
-    } = intent
-    else {
-        unreachable!("bulk_create_relations handler only accepts BulkCreateRelations");
-    };
-    let (draft, symbols, config, _schema, version_id) = workspace.as_parts_mut();
+    let version_id = workspace.version_id();
+    let patch_surface_policy = workspace.patch_surface_policy();
     let mut effect = MutationEffect::default();
-    reserve_bulk_relation_capacity(draft, *partition_id, endpoints.len());
-    for (index, (source, target)) in endpoints.iter().enumerate() {
+    workspace.with_draft_and_symbols(|draft, _| {
+        reserve_bulk_relation_capacity(draft, intent.partition_id, intent.endpoints.len());
+    });
+    for (index, (source, target)) in intent.endpoints.iter().enumerate() {
         let spec = RelationSpec {
-            partition_id: *partition_id,
-            kind_id: *kind_id,
+            partition_id: intent.partition_id,
+            kind_id: intent.kind_id,
             client_key: InternedString::from("bulk"),
             source: *source,
             target: *target,
-            payload: payloads.get(index).cloned().unwrap_or(None),
+            payload: intent.payloads.get(index).cloned().unwrap_or(None),
         };
-        let relation_id = allocate_relation(draft, version_id, &spec);
-        draft.mark_relation_slot_touched(relation_id.partition_id, relation_id.local_slot.0 as usize);
-        write_relation_aspect_versions(draft, relation_id, version_id, spec.payload.as_ref(), symbols);
+        let relation_id = workspace.with_draft_and_symbols(|draft, symbols| {
+            let relation_id = allocate_relation(draft, version_id, &spec);
+            draft.mark_relation_slot_touched(relation_id.partition_id, relation_id.local_slot.0 as usize);
+            write_relation_aspect_versions(draft, relation_id, version_id, spec.payload.as_ref(), symbols);
+            relation_id
+        });
         effect.record_change(RecordRef::Relation(relation_id));
         effect.record_adjacency_delta(AdjacencyDelta {
             relation_id,
@@ -57,9 +53,11 @@ pub(super) fn apply(
         effect.record_patch(PatchRecord {
             kind: PatchRecordKind::Created,
             target: RecordRef::Relation(relation_id),
-            aspects: aspect_keys_for_payload(spec.payload.as_ref(), symbols),
+            aspects: workspace.with_draft_and_symbols(|_, symbols| {
+                aspect_keys_for_payload(spec.payload.as_ref(), symbols)
+            }),
             detail: patch_detail_for_relation(
-                config.patch_surface_policy,
+                patch_surface_policy,
                 PatchRecordKind::Created,
                 relation_id,
                 spec.source,
@@ -71,7 +69,10 @@ pub(super) fn apply(
     effect.record_diagnostic(RelationalDiagnosticsEntry {
         code: DiagnosticCode::RelationCreated,
         message: "bulk relations created".to_string(),
-        fields: json!({"partition_id": partition_id.0, "kind_id": kind_id.0}),
+        fields: json!({
+            "partition_id": intent.partition_id.0,
+            "kind_id": intent.kind_id.0
+        }),
     });
     Ok(effect)
 }

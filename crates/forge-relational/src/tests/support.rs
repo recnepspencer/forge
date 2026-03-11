@@ -15,7 +15,7 @@ pub(super) use crate::facade::{
     DiagnosticsScope, DurabilityMode, DurableStoreLayout, EntityKindRegistration, EntityReadRecord,
     InvariantCatalog, InvariantClass, InvariantExecutionPoint, InvariantRule, KindId, PartitionId,
     PatchStreamPosition, PatchStreamRequest, PublicationStage, PublicationStatus, QueryWorkPacket,
-    ReadTarget, RelationId, RelationKindRegistration, RelationalHarnessAdapter, RelationalMutation,
+    RecordRef, RelationId, RelationKindRegistration, RelationalHarnessAdapter, RelationalMutation,
     RelationalRuntime, RelationalRuntimeApi, RelationalRuntimeProfile, RelationalSchemaRegistry,
     ReplayMismatchClass, SchemaId, SchemaVersionId, StorageLayoutConfig, TransactionCommitError,
     TransactionIntent, TransactionOptions, VisibilityCachePolicy, WorkerIntentBatch,

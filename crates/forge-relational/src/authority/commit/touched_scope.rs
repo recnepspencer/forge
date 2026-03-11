@@ -61,7 +61,10 @@ mod tests {
         AdjacencySet, EntityArena, PartitionState, RelationArena, RelationEndpoints,
         WorkingState,
     };
-    use crate::transactions::data::{MergedCommitPlan, TransactionId, TransactionIntent};
+    use crate::transactions::data::{
+        DeleteEntityIntent, EntityMutationIntent, MergedCommitPlan, MutationIntent,
+        TransactionId,
+    };
 
     use super::touched_partitions_for_plan_set;
 
@@ -131,9 +134,11 @@ mod tests {
         let state = WorkingState::new(partitions, adjacency_policy);
         let plan = MergedCommitPlan {
             transaction_id: TransactionId(1),
-            merged_intents: vec![TransactionIntent::DeleteEntity {
-                entity_id: source_entity_id,
-            }],
+            merged_intents: vec![MutationIntent::Entity(EntityMutationIntent::Delete(
+                DeleteEntityIntent {
+                    entity_id: source_entity_id,
+                },
+            ))],
         };
 
         let touched = touched_partitions_for_plan_set(&state, &plan);

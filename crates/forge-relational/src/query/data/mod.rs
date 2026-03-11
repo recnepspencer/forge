@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::identity::data::{EntityId, PartitionId, RelationId};
+use crate::identity::data::PartitionId;
+use crate::transactions::data::RecordRef;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PartitionHint {
@@ -19,18 +20,12 @@ pub enum ReductionDiscipline {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ReadTarget {
-    Entity(EntityId),
-    Relation(RelationId),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QueryWorkPacket {
     pub label: String,
     pub partition_hint: Option<PartitionHint>,
     pub execution_shape: QueryExecutionShape,
     pub reduction: ReductionDiscipline,
-    pub targets: Vec<ReadTarget>,
+    pub targets: Vec<RecordRef>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -42,7 +37,7 @@ pub struct ReadPacketPlan {
 }
 
 impl QueryWorkPacket {
-    pub fn bulk(label: impl Into<String>, targets: Vec<ReadTarget>) -> Self {
+    pub fn bulk(label: impl Into<String>, targets: Vec<RecordRef>) -> Self {
         Self {
             label: label.into(),
             partition_hint: None,

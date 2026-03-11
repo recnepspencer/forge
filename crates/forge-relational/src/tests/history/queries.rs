@@ -257,7 +257,7 @@ fn chunk_diagnostics_and_packet_plans_are_public_and_stable() {
     let snapshot = runtime.snapshot();
     let packet = QueryWorkPacket::bulk(
         "pair",
-        vec![ReadTarget::Entity(entity_a), ReadTarget::Entity(entity_b)],
+        vec![RecordRef::Entity(entity_a), RecordRef::Entity(entity_b)],
     );
 
     let plan = runtime.plan_read_packet(&snapshot, &packet).unwrap();

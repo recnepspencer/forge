@@ -1,9 +1,10 @@
 use crate::identity::data::{VersionBound, VersionId};
 use crate::logic::runtime::RelationalRuntime;
-use crate::query::data::{QueryWorkPacket, ReadPacketPlan, ReadTarget};
+use crate::query::data::{QueryWorkPacket, ReadPacketPlan};
 use crate::storage::data::{
     ChunkDiagnostics, ChunkVisibilitySummary, ChunkedStorageSummary, RecordLifecycleState,
 };
+use crate::transactions::data::RecordRef;
 
 impl RelationalRuntime {
     pub fn chunked_storage_summary(&self, version_id: VersionId) -> ChunkedStorageSummary {
@@ -60,7 +61,7 @@ impl RelationalRuntime {
 
         for target in &packet.targets {
             match target {
-                ReadTarget::Entity(entity_id) => {
+                RecordRef::Entity(entity_id) => {
                     let chunk_index = slot_chunk_index(
                         entity_id.local_slot.0 as usize,
                         self.config.storage_layout.entity_chunk_size,
@@ -69,7 +70,7 @@ impl RelationalRuntime {
                         entity_chunk_indexes.push(chunk_index);
                     }
                 }
-                ReadTarget::Relation(relation_id) => {
+                RecordRef::Relation(relation_id) => {
                     let chunk_index = slot_chunk_index(
                         relation_id.local_slot.0 as usize,
                         self.config.storage_layout.relation_chunk_size,
@@ -105,18 +106,11 @@ fn summarize_entity_chunks(
             continue;
         }
         summaries.extend(summarize_chunks(
-            partition.entity_arena.generations.len(),
+            partition.entity_arena.slot_count(),
             runtime.config.storage_layout.entity_chunk_size,
             |slot| partition.entity_arena.created_at.get(slot).copied(),
-            |slot| {
-                partition
-                    .entity_arena
-                    .retired_at
-                    .get(slot)
-                    .copied()
-                    .flatten()
-            },
-            |slot| partition.entity_arena.lifecycle.get(slot).copied(),
+            |slot| partition.entity_arena.retired_at_for_slot(slot),
+            |slot| partition.entity_arena.get_slot(slot).map(|slot_view| slot_view.lifecycle()),
             |slot| {
                 partition
                     .entity_arena
@@ -125,10 +119,14 @@ fn summarize_entity_chunks(
                     .is_some_and(|created| {
                         let bound = VersionBound::new(version_id);
                         bound.includes_created(*created)
-                            && partition.entity_arena.retired_at[slot]
+                            && partition.entity_arena.retired_at_for_slot(slot)
                                 .is_none_or(|retired| bound.retains_retired(retired))
-                            && partition.entity_arena.lifecycle[slot]
-                                != RecordLifecycleState::Reusable
+                            && partition
+                                .entity_arena
+                                .get_slot(slot)
+                                .is_some_and(|slot_view| {
+                                    slot_view.lifecycle() != RecordLifecycleState::Reusable
+                                })
                     })
             },
         ));
@@ -151,18 +149,11 @@ fn summarize_relation_chunks(
             continue;
         }
         summaries.extend(summarize_chunks(
-            partition.relation_arena.generations.len(),
+            partition.relation_arena.slot_count(),
             runtime.config.storage_layout.relation_chunk_size,
             |slot| partition.relation_arena.created_at.get(slot).copied(),
-            |slot| {
-                partition
-                    .relation_arena
-                    .retired_at
-                    .get(slot)
-                    .copied()
-                    .flatten()
-            },
-            |slot| partition.relation_arena.lifecycle.get(slot).copied(),
+            |slot| partition.relation_arena.retired_at_for_slot(slot),
+            |slot| partition.relation_arena.get_slot(slot).map(|slot_view| slot_view.lifecycle()),
             |slot| {
                 partition
                     .relation_arena
@@ -171,10 +162,14 @@ fn summarize_relation_chunks(
                     .is_some_and(|created| {
                         let bound = VersionBound::new(version_id);
                         bound.includes_created(*created)
-                            && partition.relation_arena.retired_at[slot]
+                            && partition.relation_arena.retired_at_for_slot(slot)
                                 .is_none_or(|retired| bound.retains_retired(retired))
-                            && partition.relation_arena.lifecycle[slot]
-                                != RecordLifecycleState::Reusable
+                            && partition
+                                .relation_arena
+                                .get_slot(slot)
+                                .is_some_and(|slot_view| {
+                                    slot_view.lifecycle() != RecordLifecycleState::Reusable
+                                })
                     })
             },
         ));
@@ -187,7 +182,7 @@ fn summarize_current_entity_chunks(
     chunk_size: usize,
 ) -> Vec<ChunkVisibilitySummary> {
     summarize_current_chunks(
-        partition.entity_arena.generations.len(),
+        partition.entity_arena.slot_count(),
         chunk_size,
         |start, end| {
             partition
@@ -196,15 +191,8 @@ fn summarize_current_entity_chunks(
                 .count_ones_in_range(start, end)
         },
         |slot| partition.entity_arena.created_at.get(slot).copied(),
-        |slot| {
-            partition
-                .entity_arena
-                .retired_at
-                .get(slot)
-                .copied()
-                .flatten()
-        },
-        |slot| partition.entity_arena.lifecycle.get(slot).copied(),
+        |slot| partition.entity_arena.retired_at_for_slot(slot),
+        |slot| partition.entity_arena.get_slot(slot).map(|slot_view| slot_view.lifecycle()),
     )
 }
 
@@ -213,7 +201,7 @@ fn summarize_current_relation_chunks(
     chunk_size: usize,
 ) -> Vec<ChunkVisibilitySummary> {
     summarize_current_chunks(
-        partition.relation_arena.generations.len(),
+        partition.relation_arena.slot_count(),
         chunk_size,
         |start, end| {
             partition
@@ -222,15 +210,8 @@ fn summarize_current_relation_chunks(
                 .count_ones_in_range(start, end)
         },
         |slot| partition.relation_arena.created_at.get(slot).copied(),
-        |slot| {
-            partition
-                .relation_arena
-                .retired_at
-                .get(slot)
-                .copied()
-                .flatten()
-        },
-        |slot| partition.relation_arena.lifecycle.get(slot).copied(),
+        |slot| partition.relation_arena.retired_at_for_slot(slot),
+        |slot| partition.relation_arena.get_slot(slot).map(|slot_view| slot_view.lifecycle()),
     )
 }
 

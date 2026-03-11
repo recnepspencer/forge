@@ -2,7 +2,7 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeEntry;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 #[derive(Debug, Clone)]
 struct NodePatch {
@@ -60,6 +60,7 @@ impl SparsePatchBuffer {
     }
 
     /// Roll back graph to staged originals, then clear patch set.
+    #[cfg(test)]
     pub(super) fn rollback_and_clear(
         &mut self,
         graph: &mut SignalGraph,
@@ -74,6 +75,27 @@ impl SparsePatchBuffer {
         self.index_by_node.clear();
 
         Ok(())
+    }
+
+    pub(super) fn rollback_and_collect_current_dependency_sources(
+        &mut self,
+        graph: &mut SignalGraph,
+    ) -> Result<Vec<NodeId>, SignalError> {
+        self.patches.sort_by_key(|(index, _)| *index);
+        let mut sources = BTreeSet::new();
+
+        for (index, patch) in std::mem::take(&mut self.patches) {
+            let node = graph
+                .live_node_id_at(index)
+                .ok_or_else(|| SignalError::internal("rollback encountered stale patch node"))?;
+            for source in graph.dependency_sources_of(node)? {
+                sources.insert(source);
+            }
+            graph.replace_entry(node, patch.original)?;
+        }
+        self.index_by_node.clear();
+
+        Ok(sources.into_iter().collect())
     }
 }
 

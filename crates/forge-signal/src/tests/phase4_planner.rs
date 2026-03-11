@@ -301,6 +301,49 @@ fn maybe_stale_requested_target_validates_clean_without_running_compute() {
 }
 
 #[test]
+fn maybe_stale_validation_prunes_retired_runtime_dependencies_before_recapture() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().build();
+    let retired = graph.node().build();
+    let dependent = graph.node().build();
+    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+
+    let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
+    let mut dependent_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(10, 0));
+    evaluate(&mut graph, source, &mut source_v1).unwrap();
+    evaluate(&mut graph, dependent, &mut dependent_v1).unwrap();
+
+    graph.unregister_node(retired).unwrap();
+    graph
+        .inject_retired_dependency_for_test(dependent, retired, ASPECT_A)
+        .unwrap();
+    {
+        let entry = graph.get_entry_mut(dependent).unwrap();
+        entry.set_state(NodeState::MaybeStale);
+        entry.set_dirty_aspects(AspectMask::from_aspect(ASPECT_A));
+    }
+
+    let plan = graph
+        .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
+        .unwrap();
+
+    let calls = AtomicU32::new(0);
+    let report = graph
+        .execute_prepared_plan(&plan, &|_node, view| {
+            calls.fetch_add(1, Ordering::Relaxed);
+            Ok(view.finish(version_ab(99, 0)))
+        })
+        .unwrap();
+
+    assert_eq!(calls.load(Ordering::Relaxed), 0);
+    assert_eq!(report.tasks_validated_clean, 1, "{report:?}");
+    assert!(
+        graph.dependencies_of(dependent).unwrap().is_empty(),
+        "validated-clean recapture should prune retired runtime edges before persisting dependencies"
+    );
+}
+
+#[test]
 fn execution_report_marks_on_demand_deferral_explicitly() {
     let mut graph = SignalGraph::new();
     let node = graph.node().on_demand().build();

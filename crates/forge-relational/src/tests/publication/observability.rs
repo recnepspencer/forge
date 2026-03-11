@@ -47,7 +47,7 @@ fn publication_snapshot_handle_reads_without_becoming_a_pinned_snapshot() {
     let inspection = runtime.inspect_snapshot(&outcome.snapshot).unwrap();
     let packet = QueryWorkPacket::bulk(
         "entities",
-        vec![ReadTarget::Entity(changed_entities(&outcome)[0])],
+        vec![RecordRef::Entity(changed_entities(&outcome)[0])],
     );
 
     assert_eq!(retention.active_snapshot_count, 0);
@@ -135,13 +135,13 @@ fn bulk_packets_are_the_primary_read_surface() {
     let plan = runtime
         .plan_read_packet(
             &snapshot,
-            &QueryWorkPacket::bulk("entities", vec![ReadTarget::Entity(entity)]),
+            &QueryWorkPacket::bulk("entities", vec![RecordRef::Entity(entity)]),
         )
         .unwrap();
     let result = runtime
         .execute_read_packet(
             &snapshot,
-            &QueryWorkPacket::bulk("entities", vec![ReadTarget::Entity(entity)]),
+            &QueryWorkPacket::bulk("entities", vec![RecordRef::Entity(entity)]),
         )
         .unwrap();
 
@@ -196,7 +196,7 @@ fn runtime_packet_execution_and_storage_stats_are_readable() {
     let mut runtime = runtime_with_test_schema();
     let entity = create_entity(&mut runtime, "first");
     let snapshot = runtime.snapshot();
-    let packet = QueryWorkPacket::bulk("entities", vec![ReadTarget::Entity(entity)]);
+    let packet = QueryWorkPacket::bulk("entities", vec![RecordRef::Entity(entity)]);
     let result = runtime.execute_read_packet(&snapshot, &packet).unwrap();
     let stats = runtime.storage_stats();
 

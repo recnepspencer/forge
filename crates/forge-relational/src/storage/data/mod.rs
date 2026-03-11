@@ -5,6 +5,7 @@ use crate::payloads::data::RecordPayload;
 use crate::query::data::QueryExecutionShape;
 use crate::schema::data::KindResolution;
 use crate::snapshots::data::SnapshotHandle;
+use crate::transactions::data::RecordRef;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RecordLifecycleState {
@@ -79,23 +80,23 @@ impl RelationalReadView {
             .iter()
             .enumerate()
             .map(|(index, record)| (record.entity_id, index))
-            .collect::<std::collections::HashMap<_, _>>();
+            .collect::<std::collections::BTreeMap<_, _>>();
         let relation_index = self
             .relations
             .iter()
             .enumerate()
             .map(|(index, record)| (record.relation_id, index))
-            .collect::<std::collections::HashMap<_, _>>();
+            .collect::<std::collections::BTreeMap<_, _>>();
         let mut entities = Vec::new();
         let mut relations = Vec::new();
         for target in &packet.targets {
             match target {
-                crate::query::data::ReadTarget::Entity(entity_id) => {
+                RecordRef::Entity(entity_id) => {
                     if let Some(index) = entity_index.get(entity_id) {
                         entities.push(self.entities[*index].clone());
                     }
                 }
-                crate::query::data::ReadTarget::Relation(relation_id) => {
+                RecordRef::Relation(relation_id) => {
                     if let Some(index) = relation_index.get(relation_id) {
                         relations.push(self.relations[*index].clone());
                     }

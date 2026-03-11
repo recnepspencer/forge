@@ -3,8 +3,8 @@ use crate::facade::{
     EntityId, EntityKindRegistration, KindId, PartitionId, RelationId, RelationKindRegistration,
     RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
-use crate::query::data::ReadTarget;
 use crate::schema::data::RelationPayloadClass;
+use crate::transactions::data::RecordRef;
 
 use super::harness_data::RelationalHarnessError;
 
@@ -18,7 +18,7 @@ pub(super) fn resolve_targets(
     }
 }
 
-pub(super) fn parse_target(target: &str) -> Result<ReadTarget, RelationalHarnessError> {
+pub(super) fn parse_target(target: &str) -> Result<RecordRef, RelationalHarnessError> {
     let mut parts = target.split(':');
     let kind = parts
         .next()
@@ -52,12 +52,12 @@ pub(super) fn parse_target(target: &str) -> Result<ReadTarget, RelationalHarness
         }
     };
     match kind {
-        "entity" => Ok(ReadTarget::Entity(EntityId::new(
+        "entity" => Ok(RecordRef::Entity(EntityId::new(
             partition_id,
             slot,
             generation,
         ))),
-        "relation" => Ok(ReadTarget::Relation(RelationId::new(
+        "relation" => Ok(RecordRef::Relation(RelationId::new(
             partition_id,
             slot,
             generation,

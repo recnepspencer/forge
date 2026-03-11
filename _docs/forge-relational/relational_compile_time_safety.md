@@ -1,6 +1,6 @@
-# forge-relational Safety — Deferred Items
+# forge-relational Safety — Deferred and Follow-On Items
 
-> **Status**: These items do not affect type signatures in Milestones 1–6. They can be implemented after the core structural refactor lands without requiring breaking API changes.
+> **Status as of March 11, 2026**: The post-refactor hardening items in sections 3-5 have now landed. The remaining deferred work is merge-specific (`ConflictKey`, `MergeParentList`) and only becomes relevant once lineage-aware merge conflict semantics are expanded.
 >
 > **Relationship to `relational_architecture.md`**: That document contains the compile-time safety patterns that _do_ affect current milestone type signatures (`VersionBound`, branded `SlotView`, `SnapshotGuard`, adjacency deltas as data). This document covers the remaining items that are additive safety layers for future features.
 
@@ -12,7 +12,7 @@
 2. [`MergeParentList` Smart Constructor](#2-mergeparentlist-smart-constructor)
 3. [Intent Match Exhaustiveness Enforcement](#3-intent-match-exhaustiveness-enforcement)
 4. [Invariant Registration Completeness Test](#4-invariant-registration-completeness-test)
-5. [`Symbol` Stable `Ord` Implementation](#5-symbol-stable-ord-implementation)
+5. [`Symbol` Stable Ordering Hardening](#5-symbol-stable-ordering-hardening)
 
 ---
 
@@ -77,6 +77,8 @@ impl MergeParentList {
 
 ## 3. Intent Match Exhaustiveness Enforcement
 
+**Current status**: Implemented.
+
 **When it matters**: After Milestone 4 (Intent Dispatch) lands.
 
 **The Bug It Prevents**: A developer adds a 9th `TransactionIntent` variant. Eight of ten match sites are updated. Two files have `_ => {}` catch-all arms and compile successfully. The new intent is silently ignored in merge conflict detection and snapshot publication.
@@ -87,11 +89,19 @@ impl MergeParentList {
 2. Add a CI lint (or `#[deny(unreachable_patterns)]` at crate level) that fails on wildcard arms for this enum.
 3. Milestone 4's self-describing methods already reduce match sites from 10+ to 1, making this largely moot.
 
-**Why deferred**: Milestone 4 addresses the root cause (too many match sites). This is additive polish.
+**Implemented shape**:
+
+1. `TransactionIntent` wildcard-style matches were removed from the remaining core helpers.
+2. Intent-shape logic now lives in explicit variant matches or intent-owned helpers.
+3. The crate also denies unreachable patterns at the root to keep match drift visible during review.
+
+**What remains**: Nothing blocking. Future additions should keep avoiding wildcard arms on `TransactionIntent`.
 
 ---
 
 ## 4. Invariant Registration Completeness Test
+
+**Current status**: Implemented.
 
 **When it matters**: After Milestone 5 (structural cleanup) lands.
 
@@ -116,28 +126,35 @@ fn all_invariant_rules_are_registered() {
 }
 ```
 
-**Why deferred**: Just a test. No API or type changes.
+**Implemented shape**:
+
+- `InvariantRule` now has explicit registration-contract coverage in tests.
+- The test suite asserts that default structural invariants are actually registered and that opt-in policy invariants are not silently pre-registered.
+- Adding a new `InvariantRule` variant now requires updating the registration classification, which turns this into a compile-time-visible review point.
 
 ---
 
-## 5. `Symbol` Stable `Ord` Implementation
+## 5. `Symbol` Stable Ordering Hardening
+
+**Current status**: Implemented in the current runtime shape.
 
 **When it matters**: Anytime (independent fix).
 
 **The Bug It Prevents**: `BTreeMap<Symbol, u64>` iteration order depends on `Symbol`'s `Ord` implementation. If `Symbol` wraps an interned string and the interner assigns IDs based on insertion order (which varies between process restarts), `BTreeMap` iteration order changes between runs. Patch emission and diagnostic output become nondeterministic.
 
-**Design**: Implement `Ord` for `Symbol` based on the string content (stable across runs), not the interner ID (unstable across runs).
+**Design note**: In the current runtime, `Symbol` is only an intern id and does not carry enough information to safely implement lexical `Ord` by itself. So the hardening landed at the actual determinism boundaries instead:
 
 ```rust
-impl Ord for Symbol {
-    fn cmp(&self, other: &Self) -> Ordering {
-        // Compare by string content, not by intern ID.
-        self.as_str().cmp(other.as_str())
-    }
-}
+// Canonical symbol-table snapshots are emitted in string order.
+// Artifact-facing aspect materialization resolves symbols back to raw strings
+// before sorting and publication.
 ```
 
-**Why deferred**: Independent single-type fix. No downstream API changes.
+**Implemented shape**:
+
+- `SymbolTableSnapshot` entries are emitted in lexical string order rather than intern-id order.
+- Public aspect-version materialization resolves interned symbols back to raw aspect names before ordering.
+- Determinism tests now cover symbol-table snapshot ordering and restore behavior.
 
 ---
 
@@ -145,8 +162,5 @@ impl Ord for Symbol {
 
 When these items are ready to be implemented, the recommended order is:
 
-1. **Symbol `Ord`** (#5) — trivial fix, zero risk, immediate determinism improvement
-2. **Invariant completeness test** (#4) — trivial test, catches future omissions
-3. **Intent exhaustiveness** (#3) — trivial lint, catches future match gaps
-4. **`MergeParentList`** (#2) — smart constructor, needed before merge ships
-5. **`ConflictKey`** (#1) — API design, needed before merge ships
+1. **`MergeParentList`** (#2) — smart constructor, needed before merge ships
+2. **`ConflictKey`** (#1) — API design, needed before lineage-aware merge conflict detection ships

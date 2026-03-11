@@ -53,29 +53,68 @@ impl MutationEffect {
 }
 
 pub(crate) struct MutationWorkspace<'a> {
-    pub(crate) draft: &'a mut RelationalDraft,
-    pub(crate) symbols: &'a mut StringInterner,
-    pub(crate) config: &'a MutationConfig,
-    pub(crate) schema: &'a RelationalSchemaRegistry,
-    pub(crate) version_id: VersionId,
+    draft: &'a mut RelationalDraft,
+    symbols: &'a mut StringInterner,
+    config: &'a MutationConfig,
+    schema: &'a RelationalSchemaRegistry,
+    version_id: VersionId,
 }
 
 impl<'a> MutationWorkspace<'a> {
-    pub(crate) fn as_parts_mut(
+    pub(crate) fn new(
+        draft: &'a mut RelationalDraft,
+        symbols: &'a mut StringInterner,
+        config: &'a MutationConfig,
+        schema: &'a RelationalSchemaRegistry,
+        version_id: VersionId,
+    ) -> Self {
+        Self {
+            draft,
+            symbols,
+            config,
+            schema,
+            version_id,
+        }
+    }
+
+    pub(crate) fn with_draft_and_symbols<R>(
         &mut self,
-    ) -> (
-        &mut RelationalDraft,
-        &mut StringInterner,
-        &MutationConfig,
-        &RelationalSchemaRegistry,
-        VersionId,
-    ) {
-        (
-            self.draft,
-            self.symbols,
-            self.config,
-            self.schema,
-            self.version_id,
-        )
+        f: impl FnOnce(&mut RelationalDraft, &mut StringInterner) -> R,
+    ) -> R {
+        f(self.draft, self.symbols)
+    }
+
+    pub(crate) fn with_draft_and_schema<R>(
+        &mut self,
+        f: impl FnOnce(&mut RelationalDraft, &RelationalSchemaRegistry) -> R,
+    ) -> R {
+        f(self.draft, self.schema)
+    }
+
+    pub(crate) fn with_draft_symbols_and_schema<R>(
+        &mut self,
+        f: impl FnOnce(
+            &mut RelationalDraft,
+            &mut StringInterner,
+            &RelationalSchemaRegistry,
+        ) -> R,
+    ) -> R {
+        f(self.draft, self.symbols, self.schema)
+    }
+
+    pub(crate) fn draft_mut(&mut self) -> &mut RelationalDraft {
+        self.draft
+    }
+
+    pub(crate) fn patch_surface_policy(&self) -> crate::config::data::PatchSurfacePolicy {
+        self.config.patch_surface_policy
+    }
+
+    pub(crate) fn cascade_delete_policy(&self) -> crate::config::data::CascadeDeletePolicy {
+        self.config.cascade_delete_policy
+    }
+
+    pub(crate) fn version_id(&self) -> VersionId {
+        self.version_id
     }
 }

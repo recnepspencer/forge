@@ -101,10 +101,9 @@ pub(super) fn delete_entity_with_cascade(
             .and_then(|partition| {
                 partition
                     .relation_arena
-                    .kind_ids
-                    .get(relation_id.local_slot.0 as usize)
+                    .get(&relation_id)
+                    .and_then(|slot| slot.kind_id())
             })
-            .and_then(|kind_id| kind_id.as_ref().copied())
             .and_then(|kind_id| {
                 schema_registry
                     .relation_registration(kind_id)
@@ -143,15 +142,15 @@ pub(super) fn retain_relation_dangling_for_audit(
     effect: &mut MutationEffect,
 ) {
     let slot = relation_id.local_slot.0 as usize;
-    let relation_is_visible =
-        draft
-            .get_partition(relation_id.partition_id)
-            .is_some_and(|partition| {
-                matches!(
-                    partition.relation_arena.lifecycle[slot],
-                    RecordLifecycleState::Live | RecordLifecycleState::RetainedDanglingForAudit
-                )
-            });
+    let relation_is_visible = draft
+        .get_partition(relation_id.partition_id)
+        .and_then(|partition| partition.relation_arena.get(&relation_id))
+        .is_some_and(|relation_slot| {
+            matches!(
+                relation_slot.lifecycle(),
+                RecordLifecycleState::Live | RecordLifecycleState::RetainedDanglingForAudit
+            )
+        });
     if !relation_is_visible {
         return;
     }
@@ -161,8 +160,14 @@ pub(super) fn retain_relation_dangling_for_audit(
     let _ = version_id;
     partition.relation_arena.live_bitset.set(slot, true);
     partition.relation_arena.reclaimable_bitset.set(slot, false);
-    let endpoints = partition.relation_arena.extra[slot].clone();
-    let payload = partition.relation_arena.payloads[slot].clone();
+    let endpoints = partition
+        .relation_arena
+        .get_slot(slot)
+        .and_then(|relation_slot| relation_slot.extra().clone());
+    let payload = partition
+        .relation_arena
+        .get_slot(slot)
+        .and_then(|relation_slot| relation_slot.payload().cloned());
     let Some(endpoints) = endpoints else {
         return;
     };
@@ -190,18 +195,19 @@ pub(super) fn delete_relation(
     effect: &mut MutationEffect,
 ) {
     let slot = relation_id.local_slot.0 as usize;
-    let relation_is_live =
-        draft
-            .get_partition(relation_id.partition_id)
-            .is_some_and(|partition| {
-                partition.relation_arena.lifecycle[slot] == RecordLifecycleState::Live
-            });
+    let relation_is_live = draft
+        .get_partition(relation_id.partition_id)
+        .and_then(|partition| partition.relation_arena.get(&relation_id))
+        .is_some_and(|relation_slot| relation_slot.lifecycle() == RecordLifecycleState::Live);
     if !relation_is_live {
         return;
     }
     draft.mark_relation_slot_touched(relation_id.partition_id, slot);
     let partition = draft.get_partition_mut(relation_id.partition_id);
-    let endpoints = partition.relation_arena.extra[slot].clone();
+    let endpoints = partition
+        .relation_arena
+        .get_slot(slot)
+        .and_then(|relation_slot| relation_slot.extra().clone());
     partition.relation_arena.retire(slot, version_id);
     let fallback_source = endpoints
         .as_ref()
@@ -236,7 +242,7 @@ pub(super) fn delete_relation(
     });
 }
 
-pub(super) fn apply_adjacency_deltas(
+pub(crate) fn apply_adjacency_deltas(
     draft: &mut RelationalDraft,
     deltas: &[AdjacencyDelta],
 ) {

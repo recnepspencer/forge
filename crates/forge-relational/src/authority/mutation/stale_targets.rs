@@ -1,26 +1,23 @@
-use crate::diagnostics::data::DiagnosticCode;
-use crate::storage::data::RecordLifecycleState;
+use crate::capabilities::StorageRead;
 use crate::storage::logic::state::{EntityRecordKind, RecordId, RecordKind, RelationRecordKind};
-use crate::transactions::data::CommitConflict;
-
-use crate::logic::runtime::PartitionAccess;
+use crate::transactions::data::{CommitConflict, ConflictClass, ExistingRecordTarget};
 
 pub(super) fn ensure_entity_target_is_current(
-    staged: &impl PartitionAccess,
+    staged: &impl StorageRead,
     entity_id: crate::identity::data::EntityId,
 ) -> Result<(), CommitConflict> {
     ensure_target_is_current::<EntityRecordKind>(staged, entity_id, "entity")
 }
 
 pub(super) fn ensure_relation_target_is_current(
-    staged: &impl PartitionAccess,
+    staged: &impl StorageRead,
     relation_id: crate::identity::data::RelationId,
 ) -> Result<(), CommitConflict> {
     ensure_target_is_current::<RelationRecordKind>(staged, relation_id, "relation")
 }
 
 fn ensure_target_is_current<K: RecordKind>(
-    staged: &impl PartitionAccess,
+    staged: &impl StorageRead,
     record_id: K::Id,
     record_kind: &str,
 ) -> Result<(), CommitConflict> {
@@ -28,18 +25,38 @@ fn ensure_target_is_current<K: RecordKind>(
     let Some(partition) = staged.get_partition(record_id.partition_id()) else {
         return stale_handle_conflict(
             record_kind,
-            record_id.partition_id().0,
-            slot as u64,
+            if record_kind == "entity" {
+                ExistingRecordTarget::Entity(crate::identity::data::EntityId::new(
+                    record_id.partition_id(),
+                    slot as u64,
+                    record_id.generation(),
+                ))
+            } else {
+                ExistingRecordTarget::Relation(crate::identity::data::RelationId::new(
+                    record_id.partition_id(),
+                    slot as u64,
+                    record_id.generation(),
+                ))
+            },
         );
     };
     let arena = K::arena(partition);
-    if arena.generations.get(slot) != Some(&record_id.generation())
-        || arena.lifecycle.get(slot) != Some(&RecordLifecycleState::Live)
-    {
+    if !arena.contains_live_id(&record_id) {
         return stale_handle_conflict(
             record_kind,
-            record_id.partition_id().0,
-            slot as u64,
+            if record_kind == "entity" {
+                ExistingRecordTarget::Entity(crate::identity::data::EntityId::new(
+                    record_id.partition_id(),
+                    slot as u64,
+                    record_id.generation(),
+                ))
+            } else {
+                ExistingRecordTarget::Relation(crate::identity::data::RelationId::new(
+                    record_id.partition_id(),
+                    slot as u64,
+                    record_id.generation(),
+                ))
+            },
         );
     }
     Ok(())
@@ -47,13 +64,10 @@ fn ensure_target_is_current<K: RecordKind>(
 
 fn stale_handle_conflict(
     record_kind: &str,
-    partition_id: u32,
-    local_slot: u64,
+    target: ExistingRecordTarget,
 ) -> Result<(), CommitConflict> {
-    Err(CommitConflict {
-        code: DiagnosticCode::StaleHandle,
-        detail: format!(
-            "{record_kind} target changed before authoritative apply at {partition_id}:{local_slot}"
-        ),
-    })
+    Err(CommitConflict::new(ConflictClass::StaleTarget {
+        target,
+        context: format!("{record_kind} authoritative apply"),
+    }))
 }

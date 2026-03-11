@@ -1,3 +1,6 @@
+use crate::capabilities::{
+    DurabilityRead, RuntimeConfigSource, RuntimeIdentitySource, SchemaVersionSource,
+};
 use crate::durability::data::{
     DurabilityMode, RecoveryCompatibilityCheck, RecoveryCursor, RecoveryIntegrityReport,
     RecoveryPlan,
@@ -8,58 +11,21 @@ use crate::durability::log::local_store::{read_json, DurableCheckpointFile, Dura
 
 impl RelationalRuntime {
     pub fn recovery_plan(&self) -> RecoveryPlan {
-        match self.config.durability_mode {
-            DurabilityMode::InMemoryCanonical => {
-                let checkpoint = self.durability.checkpoints.last().cloned();
-                let tail_log = match checkpoint
-                    .as_ref()
-                    .and_then(|c| c.coverage.up_to_commit.as_ref())
-                {
-                    Some(up_to_commit) => self
-                        .durability
-                        .log
-                        .iter()
-                        .filter(|entry| entry.envelope.commit.commit_id > up_to_commit.commit_id)
-                        .cloned()
-                        .collect(),
-                    None => self.durability.log.clone(),
-                };
-                RecoveryPlan {
-                    config: self.config.clone(),
-                    store: self.durability.store.clone(),
-                    checkpoint_manifest: None,
-                    checkpoint,
-                    cursor: RecoveryCursor {
-                        checkpoint_id: None,
-                        segment_ids: Vec::new(),
-                    },
-                    integrity_report: RecoveryIntegrityReport {
-                        selected_checkpoint_id: None,
-                        skipped_corrupt_checkpoints: Vec::new(),
-                        verified_segment_ids: Vec::new(),
-                        corrupt_segment_id: None,
-                    },
-                    compatibility: RecoveryCompatibilityCheck {
-                        schema_match: true,
-                        profile_match: true,
-                        runtime_name_match: true,
-                    },
-                    tail_log,
-                }
-            }
+        match self.runtime_config().durability.mode {
+            DurabilityMode::InMemoryCanonical => in_memory_recovery_plan(self),
             DurabilityMode::PersistedSegmentedLocalFs => self.persisted_recovery_plan(),
         }
     }
 
-    pub fn durable_log(&self) -> &[crate::durability::data::DurableCommitEnvelope] {
-        &self.durability.log
+    pub fn durable_log(&self) -> &[crate::replay::data::CanonicalCommitEnvelope] {
+        DurabilityRead::durable_log(self)
     }
 
     fn persisted_recovery_plan(&self) -> RecoveryPlan {
         let Ok(store) = self.load_store_from_disk() else {
             return RecoveryPlan {
-                config: self.config.clone(),
-                store: self.durability.store.clone(),
+                config: self.runtime_config().clone(),
+                store: self.durable_store().cloned(),
                 checkpoint_manifest: None,
                 checkpoint: None,
                 tail_log: Vec::new(),
@@ -111,7 +77,7 @@ impl RelationalRuntime {
                     verified_segment_ids.push(manifest.segment_id);
                     tail_log.extend(file.entries.into_iter().filter(|entry| {
                         checkpoint_commit
-                            .is_none_or(|covered| entry.envelope.commit.commit_id > covered)
+                            .is_none_or(|covered| entry.commit.commit_id > covered)
                     }));
                 }
                 Err(_) => {
@@ -121,7 +87,7 @@ impl RelationalRuntime {
             }
         }
         RecoveryPlan {
-            config: self.config.clone(),
+            config: self.runtime_config().clone(),
             store: Some(store.clone()),
             checkpoint_manifest: selected_checkpoint_manifest.clone(),
             checkpoint: selected_checkpoint.clone(),
@@ -142,18 +108,58 @@ impl RelationalRuntime {
             compatibility: RecoveryCompatibilityCheck {
                 schema_match: selected_checkpoint_manifest
                     .as_ref()
-                    .map(|manifest| manifest.schema_version == self.primary_schema_version())
+                    .map(|manifest| manifest.schema_version == self.primary_schema_version_id())
                     .unwrap_or(true),
                 profile_match: selected_checkpoint_manifest
                     .as_ref()
-                    .map(|manifest| manifest.profile == self.config.profile)
+                    .map(|manifest| manifest.profile == self.runtime_profile())
                     .unwrap_or(true),
                 runtime_name_match: selected_checkpoint_manifest
                     .as_ref()
-                    .map(|manifest| manifest.runtime_name == self.config.runtime_name)
+                    .map(|manifest| manifest.runtime_name == self.runtime_name())
                     .unwrap_or(true),
             },
             tail_log,
         }
+    }
+}
+
+fn in_memory_recovery_plan(
+    runtime: &(impl DurabilityRead + RuntimeConfigSource),
+) -> RecoveryPlan {
+    let checkpoint = runtime.durable_checkpoints().last().cloned();
+    let tail_log = match checkpoint
+        .as_ref()
+        .and_then(|c| c.coverage.up_to_commit.as_ref())
+    {
+        Some(up_to_commit) => runtime
+            .durable_log()
+            .iter()
+            .filter(|entry| entry.commit.commit_id > up_to_commit.commit_id)
+            .cloned()
+            .collect(),
+        None => runtime.durable_log().to_vec(),
+    };
+    RecoveryPlan {
+        config: runtime.runtime_config().clone(),
+        store: runtime.durable_store().cloned(),
+        checkpoint_manifest: None,
+        checkpoint,
+        cursor: RecoveryCursor {
+            checkpoint_id: None,
+            segment_ids: Vec::new(),
+        },
+        integrity_report: RecoveryIntegrityReport {
+            selected_checkpoint_id: None,
+            skipped_corrupt_checkpoints: Vec::new(),
+            verified_segment_ids: Vec::new(),
+            corrupt_segment_id: None,
+        },
+        compatibility: RecoveryCompatibilityCheck {
+            schema_match: true,
+            profile_match: true,
+            runtime_name_match: true,
+        },
+        tail_log,
     }
 }

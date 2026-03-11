@@ -137,11 +137,11 @@ pub(super) fn apply_evaluation_result_with_policy(
 }
 
 fn build_dep_snapshot(
-    graph: &SignalGraph,
+    graph: &mut SignalGraph,
     node: NodeId,
 ) -> Result<DependencySnapshot, SignalError> {
     let mut snapshot = DependencySnapshot::empty();
-    for dep in graph.dependencies_of(node)? {
+    for dep in graph.runtime_dependencies_of(node)?.to_vec() {
         let source = dep.source();
         let aspect = dep.aspect();
         if graph.is_alive(source) {
@@ -152,8 +152,8 @@ fn build_dep_snapshot(
     Ok(snapshot)
 }
 
-fn count_meaningful_input_changes(graph: &SignalGraph, node: NodeId) -> Result<u32, SignalError> {
-    let dependencies = graph.dependencies_of(node)?;
+fn count_meaningful_input_changes(graph: &mut SignalGraph, node: NodeId) -> Result<u32, SignalError> {
+    let dependencies = graph.runtime_dependencies_of(node)?.to_vec();
     let snapshot_entries = graph.get_dep_snapshot(node)?.entries();
     let mut dep_index = 0usize;
     let mut snapshot_index = 0usize;

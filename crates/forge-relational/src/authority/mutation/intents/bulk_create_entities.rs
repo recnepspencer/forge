@@ -10,35 +10,40 @@ use crate::authority::mutation::record_changes::{
 use crate::authority::mutation::{MutationEffect, MutationWorkspace};
 use crate::diagnostics::data::{DiagnosticCode, RelationalDiagnosticsEntry};
 use crate::publication::data::diff::{PatchRecord, PatchRecordKind};
-use crate::transactions::data::{CommitConflict, RecordRef, TransactionIntent};
+use crate::transactions::data::{BulkEntityCreateIntent, CommitConflict, RecordRef};
 
 pub(super) fn apply(
-    intent: &TransactionIntent,
+    intent: &BulkEntityCreateIntent,
     workspace: &mut MutationWorkspace<'_>,
 ) -> Result<MutationEffect, CommitConflict> {
-    let TransactionIntent::BulkCreateEntities {
-        partition_id,
-        kind_id,
-        client_keys: _,
-        payloads,
-    } = intent
-    else {
-        unreachable!("bulk_create_entities handler only accepts BulkCreateEntities");
-    };
-    let (draft, symbols, config, _schema, version_id) = workspace.as_parts_mut();
+    let version_id = workspace.version_id();
+    let patch_surface_policy = workspace.patch_surface_policy();
     let mut effect = MutationEffect::default();
-    reserve_bulk_entity_capacity(draft, *partition_id, payloads.len());
-    for payload in payloads {
-        let entity_id = allocate_entity(draft, version_id, *partition_id, *kind_id, payload.clone());
-        draft.mark_entity_slot_touched(entity_id.partition_id, entity_id.local_slot.0 as usize);
-        write_entity_aspect_versions(draft, entity_id, version_id, payload, symbols);
+    workspace.with_draft_and_symbols(|draft, _| {
+        reserve_bulk_entity_capacity(draft, intent.partition_id, intent.payloads.len());
+    });
+    for payload in &intent.payloads {
+        let entity_id = workspace.with_draft_and_symbols(|draft, symbols| {
+            let entity_id = allocate_entity(
+                draft,
+                version_id,
+                intent.partition_id,
+                intent.kind_id,
+                payload.clone(),
+            );
+            draft.mark_entity_slot_touched(entity_id.partition_id, entity_id.local_slot.0 as usize);
+            write_entity_aspect_versions(draft, entity_id, version_id, payload, symbols);
+            entity_id
+        });
+        let aspects =
+            workspace.with_draft_and_symbols(|_, symbols| aspect_keys_for_payload(Some(payload), symbols));
         effect.record_change(RecordRef::Entity(entity_id));
         effect.record_patch(PatchRecord {
             kind: PatchRecordKind::Created,
             target: RecordRef::Entity(entity_id),
-            aspects: aspect_keys_for_payload(Some(payload), symbols),
+            aspects,
             detail: patch_detail_for_entity(
-                config.patch_surface_policy,
+                patch_surface_policy,
                 PatchRecordKind::Created,
                 entity_id,
                 Some(payload),
@@ -49,8 +54,8 @@ pub(super) fn apply(
         code: DiagnosticCode::EntityCreated,
         message: "bulk entities created".to_string(),
         fields: json!({
-            "partition_id": partition_id.0,
-            "kind_id": kind_id.0,
+            "partition_id": intent.partition_id.0,
+            "kind_id": intent.kind_id.0,
         }),
     });
     Ok(effect)

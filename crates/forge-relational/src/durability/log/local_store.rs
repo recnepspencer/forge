@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+use crate::capabilities::DurabilityRead;
 use crate::durability::data::{
     DurabilityError, DurableCheckpoint, DurableCheckpointId, DurableSegmentId, DurableStore,
     DurableStoreLayout, RecoveryFailureClass,
@@ -16,7 +17,7 @@ pub(crate) struct DurableStoreManifestFile {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct DurableSegmentFile {
-    pub(crate) entries: Vec<crate::durability::data::DurableCommitEnvelope>,
+    pub(crate) entries: Vec<crate::replay::data::CanonicalCommitEnvelope>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -26,10 +27,10 @@ pub(crate) struct DurableCheckpointFile {
 
 impl RelationalRuntime {
     pub(crate) fn ensure_loaded_store(&self) -> Result<DurableStore, DurabilityError> {
-        if let Some(store) = &self.durability.store {
+        if let Some(store) = self.durable_store() {
             return load_or_initialize_store(store.layout.clone());
         }
-        let Some(layout) = self.config.durable_store_layout.clone() else {
+        let Some(layout) = self.durable_store_layout() else {
             return Err(DurabilityError {
                 class: RecoveryFailureClass::DurableIoFailure,
                 detail: "persisted durability mode requires a durable store layout".to_string(),
@@ -39,7 +40,7 @@ impl RelationalRuntime {
     }
 
     pub(crate) fn load_store_from_disk(&self) -> Result<DurableStore, DurabilityError> {
-        let Some(layout) = self.config.durable_store_layout.clone() else {
+        let Some(layout) = self.durable_store_layout() else {
             return Err(DurabilityError {
                 class: RecoveryFailureClass::DurableIoFailure,
                 detail: "persisted durability mode requires a durable store layout".to_string(),

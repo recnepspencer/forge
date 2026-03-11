@@ -1,6 +1,6 @@
 use crate::facade::{
     BranchId, CanonicalCommitEnvelope, DerivedIndexBuildRequest, DerivedIndexDefinition,
-    DerivedIndexKind, DurableCommitEnvelope, EntityKindRegistration, KindId, RecoveryFailureClass,
+    DerivedIndexKind, EntityKindRegistration, KindId, RecoveryFailureClass,
     RecoveryIntegrityReport, RecoveryPlan, RelationalRuntimeApi, RelationalSchemaRegistry,
     SchemaId, SchemaVersionId,
 };
@@ -70,7 +70,7 @@ fn durability_contract_failure_missing_parent_chain_is_explicit() {
         .unwrap();
     let corrupt_plan = RecoveryPlan {
         config: runtime.config().clone(),
-        store: runtime.config().durable_store_layout.clone().map(|layout| {
+        store: runtime.config().durability.store_layout.clone().map(|layout| {
             crate::facade::DurableStore {
                 layout,
                 segments: Vec::new(),
@@ -79,11 +79,9 @@ fn durability_contract_failure_missing_parent_chain_is_explicit() {
         }),
         checkpoint_manifest: None,
         checkpoint: None,
-        tail_log: vec![DurableCommitEnvelope {
-            envelope: CanonicalCommitEnvelope {
-                commit: child_envelope.commit.clone(),
-                ..child_envelope
-            },
+        tail_log: vec![CanonicalCommitEnvelope {
+            commit: child_envelope.commit.clone(),
+            ..child_envelope
         }],
         cursor: crate::facade::RecoveryCursor {
             checkpoint_id: None,

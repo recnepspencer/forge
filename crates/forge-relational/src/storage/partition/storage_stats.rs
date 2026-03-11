@@ -15,21 +15,19 @@ impl RelationalRuntime {
                 let relation_counts = partition.relation_arena.lifecycle_counts();
                 PartitionStorageStats {
                     partition_id: *partition_id,
-                    entity_slots: partition.entity_arena.generations.len(),
+                    entity_slots: partition.entity_arena.slot_count(),
                     entity_chunks: partition
                         .entity_arena
-                        .generations
-                        .len()
-                        .div_ceil(self.config.storage_layout.entity_chunk_size.max(1)),
+                        .slot_count()
+                        .div_ceil(self.entity_chunk_size()),
                     live_entities: entity_counts.live,
                     deleted_entities: entity_counts.deleted,
                     reusable_entity_slots: entity_counts.reusable,
-                    relation_slots: partition.relation_arena.generations.len(),
+                    relation_slots: partition.relation_arena.slot_count(),
                     relation_chunks: partition
                         .relation_arena
-                        .generations
-                        .len()
-                        .div_ceil(self.config.storage_layout.relation_chunk_size.max(1)),
+                        .slot_count()
+                        .div_ceil(self.relation_chunk_size()),
                     live_relations: relation_counts.live,
                     deleted_relations: relation_counts.deleted,
                     reusable_relation_slots: relation_counts.reusable,

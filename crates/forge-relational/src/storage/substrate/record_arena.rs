@@ -458,10 +458,120 @@ impl<K: RecordKind> RecordArena<K> {
         self.reclaimable_bitset.set(slot, false);
         (slot, 1, false)
     }
+
+    pub(crate) fn get(&self, id: &K::Id) -> Option<SlotView<'_, K>> {
+        let slot = id.local_slot();
+        self.get_slot(slot)
+            .filter(|view| {
+                view.generation() == id.generation()
+                    && view.partition_id() == id.partition_id()
+            })
+    }
+
+    pub(crate) fn get_slot(&self, slot: usize) -> Option<SlotView<'_, K>> {
+        (slot < self.generations.len()).then(|| SlotView::new(self, slot))
+    }
+
+    pub(crate) fn slot_count(&self) -> usize {
+        self.generations.len()
+    }
+
+    pub(crate) fn retired_at_for_slot(&self, slot: usize) -> Option<VersionId> {
+        self.retired_at.get(slot).copied().flatten()
+    }
+
+    pub(crate) fn payload_history_at(&self, slot: usize) -> Option<&[VersionedPayload]> {
+        self.payload_history.get(slot).map(Vec::as_slice)
+    }
+
+    pub(crate) fn payload_history_at_mut(&mut self, slot: usize) -> Option<&mut Vec<VersionedPayload>> {
+        self.payload_history.get_mut(slot)
+    }
+
+    pub(crate) fn metadata_history_at(&self, slot: usize) -> Option<&[K::Meta]> {
+        self.metadata_history.get(slot).map(Vec::as_slice)
+    }
+
+    pub(crate) fn metadata_history_at_mut(&mut self, slot: usize) -> Option<&mut Vec<K::Meta>> {
+        self.metadata_history.get_mut(slot)
+    }
+
+    pub(crate) fn aspect_versions_at(&self, slot: usize) -> Option<&BTreeMap<Symbol, u64>> {
+        self.aspect_versions.get(slot)
+    }
+
+    pub(crate) fn snapshot_pin_count(&self, slot: usize) -> Option<u32> {
+        self.snapshot_pins.get(slot).copied()
+    }
+
+    pub(crate) fn branch_pin_count(&self, slot: usize) -> Option<u32> {
+        self.branch_pins.get(slot).copied()
+    }
+
+    pub(crate) fn replay_pin_count(&self, slot: usize) -> Option<u32> {
+        self.replay_pins.get(slot).copied()
+    }
+
+    pub(crate) fn increment_snapshot_pin(&mut self, slot: usize) -> Option<u32> {
+        let count = self.snapshot_pins.get_mut(slot)?;
+        *count = count.saturating_add(1);
+        Some(*count)
+    }
+
+    pub(crate) fn decrement_snapshot_pin(&mut self, slot: usize) -> Option<u32> {
+        let count = self.snapshot_pins.get_mut(slot)?;
+        if *count == 0 {
+            return None;
+        }
+        *count -= 1;
+        Some(*count)
+    }
+
+    pub(crate) fn adjust_named_pin(&mut self, slot: usize, class: PinClass) -> Option<&mut u32> {
+        match class {
+            PinClass::Branch => self.branch_pins.get_mut(slot),
+            PinClass::Replay => self.replay_pins.get_mut(slot),
+        }
+    }
+
+    pub(crate) fn set_lifecycle_for_slot(
+        &mut self,
+        slot: usize,
+        lifecycle: RecordLifecycleState,
+    ) -> bool {
+        let Some(current) = self.lifecycle.get_mut(slot) else {
+            return false;
+        };
+        *current = lifecycle;
+        true
+    }
+
+    pub(crate) fn clear_all_pins(&mut self) {
+        self.snapshot_pins.fill(0);
+        self.branch_pins.fill(0);
+        self.replay_pins.fill(0);
+    }
+
+    pub(crate) fn clear_named_pins(&mut self, class: PinClass) {
+        match class {
+            PinClass::Branch => self.branch_pins.fill(0),
+            PinClass::Replay => self.replay_pins.fill(0),
+        }
+    }
+
+    pub(crate) fn contains_live_id(&self, id: &K::Id) -> bool {
+        self.get(id).is_some_and(|view| view.is_live())
+    }
 }
 
 pub(crate) type EntityArena = RecordArena<EntityRecordKind>;
 pub(crate) type RelationArena = RecordArena<RelationRecordKind>;
+
+#[derive(Clone, Copy)]
+pub(crate) enum PinClass {
+    Branch,
+    Replay,
+}
 
 #[allow(dead_code)]
 pub(crate) struct SlotView<'a, K: RecordKind> {
@@ -482,6 +592,10 @@ impl<'a, K: RecordKind> SlotView<'a, K> {
 
     pub(crate) fn generation(&self) -> u32 {
         self.arena.generations[self.index]
+    }
+
+    pub(crate) fn partition_id(&self) -> PartitionId {
+        self.arena.partition_ids[self.index]
     }
 
     pub(crate) fn lifecycle(&self) -> RecordLifecycleState {
@@ -553,7 +667,7 @@ mod tests {
     use super::{
         EntityArena, EntityExtra, RelationArena, RelationEndpoints,
     };
-    use crate::identity::data::{EntityId, KindId, PartitionId, VersionId};
+    use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
     use crate::payloads::data::RecordPayload;
     use crate::storage::data::RecordLifecycleState;
     use crate::symbols::data::Symbol;
@@ -633,5 +747,25 @@ mod tests {
         assert!(reused);
         assert_eq!(reused_generation, 2);
         assert_eq!(arena.extra[slot], Some(second));
+    }
+
+    #[test]
+    fn get_rejects_id_from_different_partition_even_with_same_slot_and_generation() {
+        let mut arena = RelationArena::with_capacity(1);
+        let partition_id = PartitionId(3);
+        let other_partition_id = PartitionId(4);
+        let (slot, generation, _) = arena.allocate_common(
+            partition_id,
+            KindId(21),
+            Some(RecordPayload::OpaqueBytes(vec![9])),
+            VersionId(1),
+            Some(RelationEndpoints {
+                source: EntityId::new(partition_id, 1, 1),
+                target: EntityId::new(partition_id, 2, 1),
+            }),
+        );
+
+        let wrong_partition_id = RelationId::new(other_partition_id, slot as u64, generation);
+        assert!(arena.get(&wrong_partition_id).is_none());
     }
 }

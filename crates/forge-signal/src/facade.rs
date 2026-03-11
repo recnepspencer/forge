@@ -89,7 +89,7 @@ pub use crate::logic::prepared::{
     ExecutionReadView, ExecutionSnapshot, PreparedDependencyCapture, PreparedDependencyEdge,
     PreparedEvaluation, PreparedEvaluationOrigin, PreparedEvaluationOutcome, PreparedKeyedContext,
     PreparedMemoDecision, PreparedStage, PreparedTaskRecord, PreparedTraceData,
-    SnapshotDependencyView, SnapshotNodeView, StageApplyResult, StageSnapshot,
+    StageApplyResult, StageSnapshot,
 };
 pub use crate::logic::transaction::{
     emit_event_in_txn, flush_checkpoint_in_txn, SignalRuntime, SignalRuntimeBuilder,

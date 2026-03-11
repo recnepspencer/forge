@@ -377,12 +377,9 @@ impl MutationEffect {
 }
 ```
 
-### 2.2 Borrow-Splitting Workspace (modeled on `BRepWorkspace`)
+### 2.2 Borrow-Splitting Workspace
 
-**Precedent**: [BRepWorkspace](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/engine/transaction/logic/workspace.rs#L8-L9) declares in its doc comment: _"Functions destructure via `as_parts_mut()` and pass individual borrows — BRepWorkspace is NOT a parameter bag."_
-
-> [!CAUTION]
-> **Naive trap**: If `MutationWorkspace` holds `&mut WorkingState` and `&mut StringInterner` in the same struct, calling a helper that needs only `&mut WorkingState` while holding a `&PatchAccumulator` reference from the same struct will hit a borrow-checker conflict. The `BRepWorkspace` pattern solves this by **never being passed to leaf functions** — only being destructured at the call site.
+`MutationWorkspace` is now a narrow split-borrow context, not a parameter bag and not a wide tuple escape hatch. The important rule is: expose only the borrow combinations the mutation layer actually needs.
 
 ```rust
 pub(crate) struct MutationWorkspace<'a> {
@@ -394,13 +391,18 @@ pub(crate) struct MutationWorkspace<'a> {
 }
 
 impl MutationWorkspace<'_> {
-    /// Destructure into disjoint borrows for leaf functions.
-    pub fn as_parts_mut(&mut self)
-        -> (&mut RelationalDraft, &mut StringInterner, &MutationConfig, &RelationalSchemaRegistry) {
-        (self.draft, self.symbols, self.config, self.schema)
-    }
+    pub fn draft_and_symbols_mut(&mut self)
+        -> (&mut RelationalDraft, &mut StringInterner) { ... }
+
+    pub fn draft_and_schema(&mut self)
+        -> (&mut RelationalDraft, &RelationalSchemaRegistry) { ... }
+
+    pub fn draft_symbols_and_schema(&mut self)
+        -> (&mut RelationalDraft, &mut StringInterner, &RelationalSchemaRegistry) { ... }
 }
 ```
+
+This keeps leaf handlers explicit about which coupled borrows they really need, while preventing the old `as_parts_mut()` pattern from becoming a permanent all-access escape hatch.
 
 ### 2.5 Adjacency Deltas as Return Data
 
@@ -513,51 +515,31 @@ impl RelationalDraft {
 
 ### 3.2 Draft-Based Commit
 
-With `RelationalDraft` and the stabilized mutation seam from Milestone 2, `commit()` collapses from 370 lines to approximately this shape:
+With `RelationalDraft` and the stabilized mutation seam from Milestone 2, `commit()` becomes a thin orchestrator over named phases. The important architectural rule is: phase-local mechanics live under `authority/commit/phases/*`, while `pipeline.rs` sequences them.
 
 ```rust
 pub fn commit(&mut self, tx: RelationalTransaction) -> Result<CommitOutcome, TransactionCommitError> {
-    let plan = self.build_merged_plan(&tx)?;
-    let touched = touched_partitions_for_plan(&plan);
+    let prepared = phases::prepare::prepare_draft_scope(&mut tx)?;
+    phases::prepare::record_preparation_counters(...);
+    phases::invariants::run_commit_boundary_invariants(...)?;
 
-    // 1. Snapshot only touched partitions into a draft
-    let mut draft = RelationalDraft::new(&self.partitions, &touched);
-    let mut workspace = MutationWorkspace {
-        draft: &mut draft,
-        symbols: &mut self.symbols,
-        config: &self.mutation_config(),
-        schema: &self.config.schema_registry,
-        version_id: self.next_version_id(),
-    };
+    let effect = apply_plan_to_draft(...)?;
+    phases::prepare::record_mutation_counters(...);
+    phases::invariants::run_mutation_sensitive_invariants(...)?;
 
-    // 2. Pre-commit invariants (on the draft, before mutation)
-    self.run_commit_boundary_invariants(&plan, &workspace)?;
+    let history = phases::history::resolve_commit_history(...)?;
+    let patch = assemble_patch(...);
+    phases::publication::enforce_patch_budget(...)?;
+    phases::invariants::run_snapshot_publication_invariants(...)?;
 
-    // 3. Apply intents speculatively to the draft
-    let effects = apply_plan(&plan, &mut workspace)?;
-
-    // 4. Post-mutation invariants (on the draft)
-    self.run_mutation_sensitive_invariants(&plan, &workspace)?;
-
-    // 5. Assemble patch & validate budget
-    let patch = self.assemble_patch(&effects, workspace.version_id)?;
-    self.validate_patch_budget(&patch)?;
-
-    // 6. Run snapshot publication invariants
-    self.run_snapshot_publication_invariants(&plan, &workspace, &patch)?;
-
-    // 7. Success. Apply the draft to the live partitions.
-    let committed_partitions = draft.commit();
-    for (pid, partition) in committed_partitions {
-        self.partitions.insert(pid, partition);
-    }
-
-    // 8. Publish, update history, return outcome
-    self.publish_commit(plan, effects, patch)
+    let artifacts = runtime.assemble_publication_bundle(...);
+    let envelope = phases::publication::canonical_commit_envelope(...);
+    phases::publication::append_durable_commit(...)?;
+    phases::finalize::finalize_commit_publication(...);
 }
 ```
 
-If **any** step (2–6) returns `Err`, `draft` is dropped and `self.partitions` remains untouched. Zero manual restore calls.
+If any step before `finalize_commit_publication(...)` returns `Err`, the draft is dropped and live runtime partitions remain untouched.
 
 ### 3.3 Files Modified
 
@@ -565,6 +547,11 @@ If **any** step (2–6) returns `Err`, `draft` is dropped and `self.partitions` 
 | :-------------------------------- | :------------------------------------------------------------------------------ |
 | `storage/overlay/overlay.rs`      | `RelationalDraft` becomes the owning touched-partition mutation state.          |
 | `authority/commit/pipeline.rs`    | Phase orchestration only; draft commit no longer owns all helper mechanics.     |
+| `authority/commit/phases/prepare.rs` | Draft scope construction and pre-mutation counters.                         |
+| `authority/commit/phases/invariants.rs` | Commit-boundary, mutation-sensitive, and publication invariant phases.   |
+| `authority/commit/phases/history.rs` | Branch/parent/merge-base resolution and commit-reference assembly.           |
+| `authority/commit/phases/publication.rs` | Patch-budget, durable append, changed-record canonicalization, envelope build. |
+| `authority/commit/phases/finalize.rs` | Centralized adjacency application and runtime publication/finalization.     |
 | `authority/commit/publication.rs` | Patch assembly, diagnostics summary assembly, and post-publication runtime updates. |
 | `authority/commit/touched_scope.rs` | Touched-partition planning and adjacency-aware draft scope expansion.        |
 | `authority/commit/plan_building.rs` | Planning stays pure and scopes draft/bulk reservation inputs.                 |
@@ -578,7 +565,17 @@ This now follows the commit hardening work. The goal is to modularize intent han
 
 ### 4.1 Self-Describing Intent Enum
 
-**Current**: `TransactionIntent` is a flat enum with 8 variants ([transactions/data/mod.rs:133–163](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/transactions/data/mod.rs#L133-L163)). It is matched exhaustively in **10+ files**. The exact match sites:
+**Current direction**: the public transaction API still accepts `TransactionIntent` as the serialization/input boundary, but authority internals now convert immediately into a typed family:
+
+- `MutationIntent`
+- `CreateIntent`
+- `EntityMutationIntent`
+- `RelationMutationIntent`
+- typed bulk/update/delete payload structs
+
+That split removed the need for leaf mutation handlers to receive the umbrella enum directly. Remaining `TransactionIntent` matching is now mostly confined to the facade/input normalization layer and a few explicit merge-key/validation sites.
+
+Before the split, `TransactionIntent` was matched exhaustively in **10+ files**. The highest-signal sites were:
 
 1. `authority/mutation/intents/*.rs` — one handler per intent variant
 2. `authority/mutation/intents/dispatch.rs` — central match that routes to the per-intent handler
@@ -592,36 +589,27 @@ This now follows the commit hardening work. The goal is to modularize intent han
 10. [rules.rs `planned_entity_field_values`](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/validation/logic/rules.rs) — extracts field values
 
 > [!WARNING]
-> **Naive trap**: Do NOT replace the enum with `Box<dyn MutationAction>`. `TransactionIntent` derives `Serialize + Deserialize` and is stored in the durable commit log. Trait object serialization requires `typetag`, which adds runtime overhead, bloats the binary, and is incompatible with Wasm targets. **The enum stays as the serialization boundary.**
+> **Naive trap**: Do NOT replace the serialization boundary with `Box<dyn MutationAction>`. The durable log still needs a concrete serializable intent shape. `TransactionIntent` stays as the external/log boundary; typed intent families are the internal authority model.
 
-**Fix**: Add self-describing methods to `TransactionIntent` that consolidate the per-variant knowledge that 10+ files currently duplicate:
+**Fix**: keep the public boundary concrete, but move authority logic onto the typed family and keep only thin input-side helpers on `TransactionIntent`:
 
 ```rust
 impl TransactionIntent {
-    /// Which kind of record does this intent target?
-    pub fn record_kind(&self) -> RecordKindTag { /* one match, one file */ }
+    /// Convert the public input intent into the internal typed authority shape.
+    pub fn to_mutation_intent(&self) -> MutationIntent { ... }
 
-    /// Canonical sort key for merge deduplication. Zero-allocation tuple.
-    pub fn canonical_key(&self) -> (u8, u32, usize, u32) { /* one match, one file */ }
-
-    /// Which partitions does this intent touch?
-    pub fn touched_partitions(&self) -> SmallVec<[PartitionId; 3]> { /* one match */ }
-
-    /// How many slots does this intent need to allocate?
-    pub fn reservation_count(&self) -> usize { /* 1 for single, N for bulk */ }
-
-    /// Is this a creation intent?
-    pub fn is_creation(&self) -> bool { /* one match */ }
-
-    /// Get the affected record if this targets an existing record.
-    pub fn affected_record(&self) -> Option<RecordRef> { /* one match */ }
-
-    /// Client keys for deduplication.
-    pub fn client_keys(&self) -> SmallVec<[&InternedString; 4]> { /* one match */ }
+    /// Input-boundary helpers still live here when they are genuinely shared.
+    pub fn collect_raw_client_keys(&self, values: &mut Vec<String>) { ... }
+    pub fn normalize_client_keys(&mut self, interner: &mut StringInterner, policy: SymbolPolicy) { ... }
 }
 ```
 
-All 10+ match sites then call these methods instead of destructuring the enum themselves. Adding a new variant = one new arm in each method on `TransactionIntent` (all in one file) + one new handler module.
+Adding a new mutation kind should now mean:
+
+1. one new typed intent leaf
+2. one new `to_mutation_intent()` arm at the input boundary
+3. one new handler module
+4. any truly domain-specific merge/validation additions
 
 ### 4.2 Bento Box Handler Modules
 
@@ -641,11 +629,11 @@ authority/mutation/intents/
 └── mod.rs
 ```
 
-Each handler has this signature:
+Each handler now receives only its own typed payload:
 
 ```rust
 pub(crate) fn apply(
-    intent: &TransactionIntent,
+    intent: &DeleteEntityIntent,
     workspace: &mut MutationWorkspace,
 ) -> Result<MutationEffect, CommitConflict> { ... }
 ```
@@ -654,13 +642,17 @@ The top-level dispatch function:
 
 ```rust
 pub(crate) fn dispatch_intent(
-    intent: &TransactionIntent,
+    intent: &MutationIntent,
     workspace: &mut MutationWorkspace,
 ) -> Result<MutationEffect, CommitConflict> {
     match intent {
-        TransactionIntent::CreateEntity(_) => create_entity::apply(intent, workspace),
-        TransactionIntent::DeleteEntity { .. } => delete_entity::apply(intent, workspace),
-        // ... one arm per variant
+        MutationIntent::Create(CreateIntent::Entity(spec)) => {
+            create_entity::apply(spec, workspace)
+        }
+        MutationIntent::Entity(EntityMutationIntent::Delete(intent)) => {
+            delete_entity::apply(intent, workspace)
+        }
+        // ... one arm per typed family / leaf intent
     }
 }
 ```
@@ -876,27 +868,17 @@ pub struct RecordArenaCheckpointImage<K: RecordKind> {
 
 **Impact**: ~150 lines eliminated in `checkpoint_images.rs` + ~40 lines in `data/mod.rs`.
 
-### 6.2 Consolidated `RecordRef` / `ReadTarget`
+### 6.2 Consolidated `RecordRef` Query Targets
 
-**Current** ([query/data/mod.rs:22](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/query/data/mod.rs#L22)): The Query engine defines its own `enum ReadTarget { Entity(EntityId), Relation(RelationId) }` which is identically shaped to `transactions/data/mod.rs`'s `RecordRef`.
-**Fix**: Delete `ReadTarget` entirely. Use `RecordRef` as the universal "ID of either kind" type across all modules.
+`QueryWorkPacket` now uses `Vec<RecordRef>` directly. The duplicate `ReadTarget` enum is gone, and query planning, packet execution, harness parsing, and tests all match on `RecordRef::{Entity, Relation}`.
 
 ### 6.3 Generic Invariants
 
-**Current** ([validation/logic/rules.rs:25–84](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/validation/logic/rules.rs#L25-L84)): Two separate invariant rules, `LiveEntityRequiresKind` and `LiveRelationRequiresEndpoints`, have 30 lines of identical looping logic to scan arenas and push diagnostic violations.
-**Fix**: `InvariantRule::LiveRecordRequiresSidecar(RecordKindTag)`. A single 20-line generic loop using the `SlotView` accessor from Phase 1 replaces both.
+`InvariantRule` now uses `LiveRecordRequiresSidecar(RecordKindTag)`. The evaluation path shares one generic scan loop over the Phase 1 record substrate instead of duplicating entity/relation sidecar checks.
 
 ### 6.4 Flattened Durable Envelopes
 
-**Current** ([durability/data/mod.rs:168](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/Durability/data/mod.rs#L168)):
-
-```rust
-pub struct DurableCommitEnvelope {
-    pub envelope: CanonicalCommitEnvelope, // 1-field wrapper struct!?
-}
-```
-
-**Fix**: Delete the wrapper. Make `DurableSegmentFile` just store `Vec<CanonicalCommitEnvelope>`. No trailing `.envelope.envelope` accessors.
+Durability now stores raw `CanonicalCommitEnvelope` values in both in-memory log state and segment files. The one-field `DurableCommitEnvelope` wrapper is gone, and recovery/replay/lineage/index consumers use `entry.commit...` directly.
 
 ---
 
@@ -930,7 +912,7 @@ graph TD
 | `RecordArena<K>` (generic SoA)               | `TopologyArena`                 | `forge-topo`                                                                                                                                        |
 | `RelationalDraft` (RAII commit/rollback)     | `KernelDraft`                   | [draft.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/engine/transaction/logic/draft.rs)          |
 | `MutationEffect` (return-based accumulation) | `OperationResult<T>`            | [operation_result.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/envelope/data/operation_result.rs) |
-| `MutationWorkspace::as_parts_mut()`          | `BRepWorkspace::as_parts_mut()` | [workspace.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/engine/transaction/logic/workspace.rs)  |
+| Focused `MutationWorkspace` split borrows    | `BRepWorkspace` borrow splitting | [workspace.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/engine/transaction/logic/workspace.rs)  |
 | Bento Box intent modules                     | `operations/boolean/`           | [boolean/mod.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/operations/boolean/mod.rs)            |
 | `FeaturePipeline::execute` phases            | `FeaturePipeline`               | [executor.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/engine/pipeline/executor.rs)             |
 

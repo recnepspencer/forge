@@ -23,7 +23,7 @@ impl RelationalRuntime {
         let mut branch_replay_overlap_entities = 0;
         let mut branch_replay_overlap_relations = 0;
 
-        let partition_ids = self.partitions.keys().copied().collect::<Vec<_>>();
+        let partition_ids = self.partition_ids();
         for partition_id in partition_ids {
             inspect_partition_retention::<EntityRecordKind>(
                 self,
@@ -51,7 +51,7 @@ impl RelationalRuntime {
 
         let plan = RetentionPlan {
             retention_fence_version: retention_fence,
-            active_snapshot_count: self.snapshots.active.len(),
+            active_snapshot_count: self.active_snapshot_count(),
             branch_pinned_entities,
             replay_pinned_entities,
             snapshot_pinned_entities,
@@ -96,11 +96,11 @@ impl RelationalRuntime {
             relation_chunks_scanned: 0,
         };
 
-        let entity_chunk_size = self.config.storage_layout.entity_chunk_size.max(1);
-        let relation_chunk_size = self.config.storage_layout.relation_chunk_size.max(1);
+        let entity_chunk_size = self.entity_chunk_size();
+        let relation_chunk_size = self.relation_chunk_size();
         let retention_fence = self.retention_fence_version(self.current_version_id());
 
-        let partition_ids = self.partitions.keys().copied().collect::<Vec<_>>();
+        let partition_ids = self.partition_ids();
         for partition_id in partition_ids {
             run_partition_retention_pass::<EntityRecordKind>(
                 self,
@@ -164,32 +164,36 @@ fn inspect_partition_retention<K: RecordKind>(
     let len = runtime
         .partitions
         .get(&partition_id)
-        .map(|partition| K::arena(partition).lifecycle.len())
+        .map(|partition| K::arena(partition).slot_count())
         .unwrap_or(0);
     for slot in 0..len {
         let retired_at = runtime
             .partitions
             .get(&partition_id)
-            .and_then(|partition| K::arena(partition).retired_at.get(slot).copied())
-            .flatten();
+            .and_then(|partition| K::arena(partition).retired_at_for_slot(slot));
         if retired_at.is_some() {
             refresh_retention(runtime, partition_id, slot, retired_at, retention_fence);
         }
         let partition = &runtime.partitions[&partition_id];
         let arena = K::arena(partition);
-        if arena.branch_pins[slot] > 0 {
+        if arena.branch_pin_count(slot).unwrap_or(0) > 0 {
             *branch_pinned += 1;
         }
-        if arena.replay_pins[slot] > 0 {
+        if arena.replay_pin_count(slot).unwrap_or(0) > 0 {
             *replay_pinned += 1;
         }
-        if arena.branch_pins[slot] > 0 && arena.replay_pins[slot] > 0 {
+        if arena.branch_pin_count(slot).unwrap_or(0) > 0
+            && arena.replay_pin_count(slot).unwrap_or(0) > 0
+        {
             *branch_replay_overlap += 1;
         }
-        if arena.snapshot_pins[slot] > 0 {
+        if arena.snapshot_pin_count(slot).unwrap_or(0) > 0 {
             *snapshot_pinned += 1;
         }
-        if arena.lifecycle[slot] == RecordLifecycleState::Reclaimable {
+        if arena
+            .get_slot(slot)
+            .is_some_and(|slot_view| slot_view.lifecycle() == RecordLifecycleState::Reclaimable)
+        {
             *reclaimable += 1;
         }
     }
@@ -215,7 +219,7 @@ fn run_partition_retention_pass<K: RecordKind>(
     let len = runtime
         .partitions
         .get(&partition_id)
-        .map(|partition| K::arena(partition).lifecycle.len())
+        .map(|partition| K::arena(partition).slot_count())
         .unwrap_or(0);
     for slot_start in (0..len).step_by(chunk_size.max(1)) {
         *chunks_scanned += 1;
@@ -225,12 +229,15 @@ fn run_partition_retention_pass<K: RecordKind>(
             let retired_at = runtime
                 .partitions
                 .get(&partition_id)
-                .and_then(|partition| K::arena(partition).retired_at.get(slot).copied())
-                .flatten();
+                .and_then(|partition| K::arena(partition).retired_at_for_slot(slot));
             if let Some(version) = retired_at {
                 refresh_retention(runtime, partition_id, slot, Some(version), retention_fence);
                 if runtime.partitions.get(&partition_id).is_some_and(|partition| {
-                    K::arena(partition).lifecycle[slot] == RecordLifecycleState::Reclaimable
+                    K::arena(partition)
+                        .get_slot(slot)
+                        .is_some_and(|slot_view| {
+                            slot_view.lifecycle() == RecordLifecycleState::Reclaimable
+                        })
                 }) {
                     *reclaimable += 1;
                     if runtime.config.mvcc.auto_reclaim_deleted_records
@@ -241,7 +248,7 @@ fn run_partition_retention_pass<K: RecordKind>(
                             .get_mut(&partition_id)
                             .expect("partition for reclaim");
                         let arena = K::arena_mut(partition);
-                        arena.lifecycle[slot] = RecordLifecycleState::Reusable;
+                        arena.set_lifecycle_for_slot(slot, RecordLifecycleState::Reusable);
                         K::reset_reclaimed_slot(arena, slot);
                         *reclaimed += 1;
                     }

@@ -7,4 +7,5 @@ mod stale_targets;
 mod types;
 
 pub(crate) use execution::apply_plan_to_draft;
+pub(crate) use record_changes::apply_adjacency_deltas;
 pub(crate) use types::{AdjacencyDelta, AdjacencyDeltaKind, MutationEffect, MutationWorkspace};

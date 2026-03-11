@@ -17,8 +17,10 @@
 //! important than racing toward a shallow feature-complete prototype.
 
 #![forbid(unsafe_code)]
+#![deny(unreachable_patterns)]
 
 mod authority;
+mod capabilities;
 mod config;
 mod diagnostics;
 mod durability;

@@ -84,16 +84,17 @@ impl RelationalRuntime {
             let partition = state
                 .get_partition(partition_id)
                 .expect("partition for unique field rebuild");
-            for slot in 0..partition.entity_arena.generations.len() {
-                if partition.entity_arena.lifecycle[slot]
-                    == crate::storage::data::RecordLifecycleState::Reusable
-                {
+            for slot in 0..partition.entity_arena.slot_count() {
+                let Some(slot_view) = partition.entity_arena.get_slot(slot) else {
+                    continue;
+                };
+                if slot_view.lifecycle() == crate::storage::data::RecordLifecycleState::Reusable {
                     continue;
                 }
                 let entity_id = crate::identity::data::EntityId::new(
                     partition_id,
                     slot as u64,
-                    partition.entity_arena.generations[slot],
+                    slot_view.generation(),
                 );
                 if let Some(payload) = crate::validation::logic::entity_payload_for_state(
                     &state, entity_id, version_id,
@@ -339,12 +340,9 @@ impl RelationalRuntime {
             .durability
             .log
             .iter_mut()
-            .find(|entry| entry.envelope.commit.commit_id == commit_id)
+            .find(|entry| entry.commit.commit_id == commit_id)
         {
-            log_entry
-                .envelope
-                .index_generation_ids
-                .extend(ids.iter().copied());
+            log_entry.index_generation_ids.extend(ids.iter().copied());
         }
     }
 

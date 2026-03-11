@@ -1,4 +1,5 @@
 use crate::tests::support::*;
+use crate::facade::{CreateIntent, MutationIntent};
 
 #[test]
 fn opaque_payloads_round_trip_through_commit_and_read() {
@@ -40,7 +41,7 @@ fn symbol_policy_interns_client_keys_before_merge() {
     let plan = txn.merged_plan().unwrap().clone();
 
     match &plan.merged_intents[0] {
-        TransactionIntent::CreateEntity(spec) => {
+        MutationIntent::Create(CreateIntent::Entity(spec)) => {
             assert!(matches!(spec.client_key, InternedString::Symbol(_)));
         }
         other => panic!("expected create entity intent, got {other:?}"),

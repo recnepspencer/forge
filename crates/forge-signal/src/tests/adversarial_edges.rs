@@ -127,7 +127,10 @@ fn unregister_and_slot_reuse_after_churn_leave_no_ghost_edges() {
 
     assert!(graph.subscribers_of(upstream).unwrap().is_empty());
     for &downstream in &downstreams {
-        assert!(graph.dependencies_of(downstream).unwrap().is_empty());
+        assert!(
+            graph.runtime_dependencies_of(downstream).unwrap().is_empty(),
+            "runtime cleanup should clear stale edges left behind by retirement"
+        );
     }
     assert_ne!(replacement, middle);
 }

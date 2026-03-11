@@ -1,20 +1,19 @@
-pub mod access;
-pub mod compare;
-pub mod diff;
-pub mod display;
-pub mod epochs;
-pub(crate) mod execution_flow;
-pub mod facts;
-pub mod failure;
-pub mod flow;
-pub mod history;
-pub mod lineage;
+pub mod comparison;
+pub mod inspection;
+pub mod model;
 pub mod policy;
-pub mod profile;
-pub(crate) mod recorder;
-pub mod replay;
-pub(crate) mod state;
-pub mod summary;
+pub(crate) mod runtime;
+
+pub use comparison::compare;
+pub use comparison::diff;
+pub use inspection::access;
+pub use inspection::display;
+pub use inspection::history;
+pub use model::{epochs, facts, failure, flow, lineage, replay, summary};
+pub use policy::profile;
+pub(crate) use runtime::execution_flow;
+pub(crate) use runtime::recorder;
+pub(crate) use runtime::state;
 
 pub use access::{
     diagnostics_for_graph, diagnostics_for_runtime, GraphDiagnostics, RuntimeDiagnostics,

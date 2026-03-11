@@ -1,23 +1,19 @@
+mod compaction;
+mod construction;
 mod diagnostics_access;
-mod edge_store;
-mod execution_access;
-mod gc_compaction;
 mod lifecycle;
-mod node_retirement;
-mod node_builder;
-#[cfg(feature = "parallel")]
-mod parallel_storage;
-mod scratch;
-mod signal_graph;
-mod slot;
+mod runtime;
 mod storage;
-mod topology_access;
+mod topology;
 
+pub(crate) use construction::node_builder;
 #[cfg(test)]
-pub(crate) use edge_store::checked_segment_component_for_test;
-pub(crate) use edge_store::{
+pub(crate) use storage::checked_segment_component_for_test;
+pub(crate) use runtime::graph as signal_graph;
+pub(crate) use runtime::scratch;
+pub(crate) use storage::{
     DependencyEdgeStore, DependencySetId, SubscriberEdgeStore, SubscriberSetId,
 };
-pub use node_builder::NodeBuilder;
-pub(crate) use scratch::{ScratchLeaseKind, TraversalScratch};
-pub use signal_graph::SignalGraph;
+pub use construction::NodeBuilder;
+pub(crate) use runtime::{ScratchLeaseKind, TraversalScratch};
+pub use runtime::SignalGraph;

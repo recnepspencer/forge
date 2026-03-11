@@ -1,3 +1,4 @@
+use crate::capabilities::{SnapshotSource, VisibilityPolicySource};
 use serde_json::json;
 
 use crate::diagnostics::data::{
@@ -18,10 +19,9 @@ impl RelationalRuntime {
 
         let residency = self.visibility_residency_for_version(version_id);
         let cached = self.visibility_state_for_version(version_id).is_some();
-        let recent_window = self.config.visibility_cache_policy.recent_version_window;
+        let recent_window = self.recent_visibility_window();
         let protected = is_protected(&residency);
-        let recent_candidate =
-            self.config.visibility_cache_policy.enabled && recent_window > 0 && !protected;
+        let recent_candidate = self.visibility_cache_enabled() && recent_window > 0 && !protected;
 
         let mut entries = Vec::new();
         if !cached {
@@ -47,14 +47,12 @@ impl RelationalRuntime {
         &self,
         handle: &SnapshotHandle,
     ) -> Option<RelationalDiagnosticArtifact> {
-        if let Some(binding) = self.snapshots.active.get(&handle.snapshot_id) {
-            let residency = self.visibility_residency_for_version(binding.version_id);
-            let cached = self
-                .visibility_state_for_version(binding.version_id)
-                .is_some();
-            let recent_window = self.config.visibility_cache_policy.recent_version_window;
-            let recent_candidate = !self.config.visibility_cache_policy.protect_active_snapshots
-                && self.config.visibility_cache_policy.enabled
+        if let Some((version_id, _read_policy)) = self.active_snapshot_binding(handle.snapshot_id) {
+            let residency = self.visibility_residency_for_version(version_id);
+            let cached = self.visibility_state_for_version(version_id).is_some();
+            let recent_window = self.recent_visibility_window();
+            let recent_candidate = !self.protect_active_snapshots()
+                && self.visibility_cache_enabled()
                 && recent_window > 0
                 && !is_protected(&residency);
             let mut entries = Vec::new();
@@ -68,7 +66,7 @@ impl RelationalRuntime {
                 false,
             ));
             return Some(snapshot_read_path_artifact(
-                binding.version_id,
+                version_id,
                 cached,
                 recent_candidate,
                 recent_window,
@@ -77,13 +75,12 @@ impl RelationalRuntime {
             ));
         }
 
-        let version_id = *self.snapshots.published_handles.get(&handle.snapshot_id)?;
+        let version_id = self.published_snapshot_version(handle.snapshot_id)?;
         let residency = self.visibility_residency_for_version(version_id);
         let cached = self.visibility_state_for_version(version_id).is_some();
-        let recent_window = self.config.visibility_cache_policy.recent_version_window;
-        let recent_candidate = self.config.visibility_cache_policy.enabled
-            && recent_window > 0
-            && !is_protected(&residency);
+        let recent_window = self.recent_visibility_window();
+        let recent_candidate =
+            self.visibility_cache_enabled() && recent_window > 0 && !is_protected(&residency);
         let mut entries = vec![RelationalDiagnosticsEntry {
             code: DiagnosticCode::PublishedSnapshotHandleRead,
             message: "snapshot read will resolve through a published handle".to_string(),

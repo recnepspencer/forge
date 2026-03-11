@@ -1,10 +1,11 @@
 use std::collections::BTreeSet;
 
-use crate::diagnostics::data::DiagnosticCode;
-use crate::transactions::data::{CommitConflict, ExistingRecordTarget, TransactionIntent};
+use crate::transactions::data::{
+    CommitConflict, ConflictClass, ExistingRecordTarget, MutationIntent,
+};
 
 pub(crate) fn detect_conflicting_updates(
-    intents: &[TransactionIntent],
+    intents: &[MutationIntent],
 ) -> Result<(), CommitConflict> {
     let mut seen_updates = BTreeSet::new();
     for intent in intents {
@@ -18,10 +19,10 @@ pub(crate) fn detect_conflicting_updates(
                         format!("conflicting relation intent for slot {}", relation_id.local_slot.0)
                     }
                 };
-                return Err(CommitConflict {
-                    code: DiagnosticCode::ConflictingIntent,
-                    detail,
-                });
+                let _ = detail;
+                return Err(CommitConflict::new(ConflictClass::ConflictingIntent {
+                    target,
+                }));
             }
         }
     }
@@ -32,10 +33,9 @@ pub(crate) fn detect_conflicting_updates(
         intent.collect_relation_identities(&mut identities);
         for identity in identities {
             if !seen_relation_creates.insert(identity) {
-                return Err(CommitConflict {
-                    code: DiagnosticCode::DuplicateRelationIdentity,
-                    detail: "duplicate relation identity in merged plan".to_string(),
-                });
+                return Err(CommitConflict::new(ConflictClass::DuplicateRelationIdentity {
+                        detail: "duplicate relation identity in merged plan".to_string(),
+                    }));
             }
         }
     }

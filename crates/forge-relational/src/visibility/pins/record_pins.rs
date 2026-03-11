@@ -4,6 +4,7 @@ use crate::storage::data::RecordLifecycleState;
 use crate::storage::logic::state::{
     EntityRecordKind, RecordId, RecordKind, RelationRecordKind, SnapshotState,
 };
+use crate::storage::substrate::PinClass;
 
 impl RelationalRuntime {
     pub(crate) fn pin_snapshot_state(&mut self, state: &SnapshotState) {
@@ -125,12 +126,6 @@ impl RelationalRuntime {
     }
 }
 
-#[derive(Clone, Copy)]
-enum PinClass {
-    Branch,
-    Replay,
-}
-
 fn adjust_entity_pin(
     runtime: &mut RelationalRuntime,
     entity_id: crate::identity::data::EntityId,
@@ -167,18 +162,13 @@ fn pin_snapshot_record<K: RecordKind>(runtime: &mut RelationalRuntime, record_id
         return;
     };
     let arena = K::arena_mut(partition);
-    if slot >= arena.snapshot_pins.len() {
+    if arena.snapshot_pin_count(slot).is_none() {
         return;
     }
-    runtime
-        .instrumentation
-        .complexity_counters
-        .lock()
-        .expect("complexity counter lock poisoned")
-        .snapshot_pin_adjustments += 1;
-    arena.snapshot_pins[slot] = arena.snapshot_pins[slot].saturating_add(1);
-    if arena.retired_at[slot].is_some() {
-        arena.lifecycle[slot] = RecordLifecycleState::PinnedBySnapshot;
+    runtime.instrumentation.count(|counters| counters.snapshot_pin_adjustments += 1);
+    arena.increment_snapshot_pin(slot);
+    if arena.retired_at_for_slot(slot).is_some() {
+        arena.set_lifecycle_for_slot(slot, RecordLifecycleState::PinnedBySnapshot);
     }
 }
 
@@ -198,17 +188,12 @@ fn unpin_snapshot_record<K: RecordKind>(
         return;
     };
     let arena = K::arena_mut(partition);
-    if slot >= arena.snapshot_pins.len() || arena.snapshot_pins[slot] == 0 {
+    if arena.snapshot_pin_count(slot).unwrap_or(0) == 0 {
         return;
     }
-    runtime
-        .instrumentation
-        .complexity_counters
-        .lock()
-        .expect("complexity counter lock poisoned")
-        .snapshot_pin_adjustments += 1;
-    arena.snapshot_pins[slot] -= 1;
-    let retired_at = arena.retired_at[slot];
+    runtime.instrumentation.count(|counters| counters.snapshot_pin_adjustments += 1);
+    arena.decrement_snapshot_pin(slot);
+    let retired_at = arena.retired_at_for_slot(slot);
     let retention_fence = runtime.retention_fence_version(runtime.current_version_id());
     refresh_retention(runtime, record_id.partition_id(), slot, retired_at, retention_fence);
 }
@@ -228,22 +213,22 @@ fn refresh_retention_state<K: RecordKind>(
         .get_mut(&partition_id)
         .expect("retention partition present");
     let arena = K::arena_mut(partition);
-    arena.lifecycle[slot] = match runtime.config.retention_policy.backend {
+    let lifecycle = match runtime.config.retention_policy.backend {
         crate::config::data::RetentionBackend::PinTrackedRetention => {
-            if arena.snapshot_pins[slot] > 0 {
+            if arena.snapshot_pin_count(slot).unwrap_or(0) > 0 {
                 RecordLifecycleState::PinnedBySnapshot
-            } else if arena.branch_pins[slot] > 0 {
+            } else if arena.branch_pin_count(slot).unwrap_or(0) > 0 {
                 RecordLifecycleState::PinnedByBranch
-            } else if arena.replay_pins[slot] > 0 {
+            } else if arena.replay_pin_count(slot).unwrap_or(0) > 0 {
                 RecordLifecycleState::PinnedByReplayRetention
             } else {
                 RecordLifecycleState::Reclaimable
             }
         }
         crate::config::data::RetentionBackend::EpochChunkRetention => {
-            if arena.branch_pins[slot] > 0 {
+            if arena.branch_pin_count(slot).unwrap_or(0) > 0 {
                 RecordLifecycleState::PinnedByBranch
-            } else if arena.replay_pins[slot] > 0 {
+            } else if arena.replay_pin_count(slot).unwrap_or(0) > 0 {
                 RecordLifecycleState::PinnedByReplayRetention
             } else if retired_at.is_some_and(|retired| {
                 !VersionBound::new(retention_fence).retains_retired(retired)
@@ -254,6 +239,7 @@ fn refresh_retention_state<K: RecordKind>(
             }
         }
     };
+    arena.set_lifecycle_for_slot(slot, lifecycle);
 }
 
 fn adjust_record_pin<K: RecordKind>(
@@ -273,7 +259,7 @@ fn adjust_record_pin<K: RecordKind>(
     let Some(partition_len) = runtime
         .partitions
         .get(&record_id.partition_id())
-        .map(|partition| K::arena(partition).snapshot_pins.len())
+        .map(|partition| K::arena(partition).slot_count())
     else {
         return;
     };
@@ -286,9 +272,8 @@ fn adjust_record_pin<K: RecordKind>(
             .get_mut(&record_id.partition_id())
             .expect("partition present while adjusting pin");
         let arena = K::arena_mut(partition);
-        let counter = match class {
-            PinClass::Branch => &mut arena.branch_pins[slot],
-            PinClass::Replay => &mut arena.replay_pins[slot],
+        let Some(counter) = arena.adjust_named_pin(slot, class) else {
+            return;
         };
         if delta < 0 {
             if *counter == 0 {
@@ -302,8 +287,7 @@ fn adjust_record_pin<K: RecordKind>(
     let retired_at = runtime
         .partitions
         .get(&record_id.partition_id())
-        .and_then(|partition| K::arena(partition).retired_at.get(slot).copied())
-        .flatten();
+        .and_then(|partition| K::arena(partition).retired_at_for_slot(slot));
     let retention_fence = runtime.retention_fence_version(runtime.current_version_id());
     refresh_retention(runtime, record_id.partition_id(), slot, retired_at, retention_fence);
 }

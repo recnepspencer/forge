@@ -62,5 +62,5 @@ fn rebuild_subscriber_index_after_slot_reuse_matches_live_dependencies_only() {
 
     assert_eq!(replacement.index(), source.index());
     assert!(graph.subscribers_of(replacement).unwrap().is_empty());
-    assert!(graph.dependencies_of(dependent).unwrap().is_empty());
+    assert!(graph.runtime_dependencies_of(dependent).unwrap().is_empty());
 }

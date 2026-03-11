@@ -4,10 +4,10 @@ use crate::diagnostics::data::DiagnosticCode;
 use crate::logic::runtime::RelationalRuntime;
 use crate::storage::data::RecordLifecycleState;
 use crate::storage::logic::state::{
-    EntityRecordKind, PartitionAccess, RecordKind, RelationRecordKind,
+    EntityRecordKind, PartitionAccess, RecordKind, RelationRecordKind, SlotView,
 };
 use crate::transactions::data::MergedCommitPlan;
-use crate::validation::data::{InvariantClass, InvariantRule, InvariantViolation};
+use crate::validation::data::{InvariantClass, InvariantRule, InvariantViolation, RecordKindTag};
 
 use super::helpers::{
     entity_payload_for_state, entity_visible_at_version, touched_entity_set,
@@ -24,43 +24,8 @@ pub(crate) fn evaluate_rule(
     violations: &mut Vec<InvariantViolation>,
 ) {
     match rule {
-        InvariantRule::LiveEntityRequiresKind => {
-            evaluate_live_record_sidecar::<EntityRecordKind>(
-                runtime,
-                state,
-                class,
-                violations,
-                |state, partition_id| state.touched_entity_slots(partition_id),
-                |partition, slot| partition.entity_arena.kind_ids[slot].is_some(),
-                "kind id",
-                |runtime, slots| {
-                    runtime
-                        .instrumentation
-                        .complexity_counters
-                        .lock()
-                        .expect("complexity counter lock poisoned")
-                        .invariant_entity_slot_scans += slots;
-                },
-            );
-        }
-        InvariantRule::LiveRelationRequiresEndpoints => {
-            evaluate_live_record_sidecar::<RelationRecordKind>(
-                runtime,
-                state,
-                class,
-                violations,
-                |state, partition_id| state.touched_relation_slots(partition_id),
-                |partition, slot| partition.relation_arena.extra[slot].is_some(),
-                "endpoints",
-                |runtime, slots| {
-                    runtime
-                        .instrumentation
-                        .complexity_counters
-                        .lock()
-                        .expect("complexity counter lock poisoned")
-                        .invariant_relation_slot_scans += slots;
-                },
-            );
+        InvariantRule::LiveRecordRequiresSidecar(kind) => {
+            evaluate_live_record_sidecar_rule(runtime, state, class, kind, violations);
         }
         InvariantRule::MaxMergedIntents(limit) => {
             let merged_len = merged_plan
@@ -91,13 +56,10 @@ pub(crate) fn evaluate_rule(
                     let partition = state
                         .get_partition(partition_id)
                         .expect("partition for invariant scan");
-                    runtime
-                        .instrumentation
-                        .complexity_counters
-                        .lock()
-                        .expect("complexity counter lock poisoned")
-                        .invariant_entity_slot_scans += partition.entity_arena.generations.len();
-                    visible_entities += (0..partition.entity_arena.generations.len())
+                    runtime.instrumentation.count(|counters| {
+                        counters.invariant_entity_slot_scans += partition.entity_arena.slot_count();
+                    });
+                    visible_entities += (0..partition.entity_arena.slot_count())
                         .filter(|slot| {
                             entity_visible_at_version(&partition.entity_arena, *slot, version_id)
                         })
@@ -129,13 +91,52 @@ pub(crate) fn evaluate_rule(
     }
 }
 
+fn evaluate_live_record_sidecar_rule(
+    runtime: &RelationalRuntime,
+    state: &impl PartitionAccess,
+    class: InvariantClass,
+    kind: &RecordKindTag,
+    violations: &mut Vec<InvariantViolation>,
+) {
+    match kind {
+        RecordKindTag::Entity => evaluate_live_record_sidecar::<EntityRecordKind>(
+            runtime,
+            state,
+            class,
+            violations,
+            |state, partition_id| state.touched_entity_slots(partition_id),
+            |slot_view| slot_view.kind_id().is_some(),
+            "kind id",
+            |runtime, slots| {
+                runtime
+                    .instrumentation
+                    .count(|counters| counters.invariant_entity_slot_scans += slots);
+            },
+        ),
+        RecordKindTag::Relation => evaluate_live_record_sidecar::<RelationRecordKind>(
+            runtime,
+            state,
+            class,
+            violations,
+            |state, partition_id| state.touched_relation_slots(partition_id),
+            |slot_view| slot_view.extra().is_some(),
+            "endpoints",
+            |runtime, slots| {
+                runtime
+                    .instrumentation
+                    .count(|counters| counters.invariant_relation_slot_scans += slots);
+            },
+        ),
+    }
+}
+
 fn evaluate_live_record_sidecar<K: RecordKind>(
     runtime: &RelationalRuntime,
     state: &impl PartitionAccess,
     class: InvariantClass,
     violations: &mut Vec<InvariantViolation>,
     touched_slots: impl Fn(&dyn PartitionAccess, crate::identity::data::PartitionId) -> Option<Vec<usize>>,
-    has_required_sidecar: impl Fn(&crate::storage::logic::state::PartitionState, usize) -> bool,
+    has_required_sidecar: impl Fn(&SlotView<'_, K>) -> bool,
     missing_label: &str,
     count_scans: impl Fn(&RelationalRuntime, usize),
 ) {
@@ -144,11 +145,14 @@ fn evaluate_live_record_sidecar<K: RecordKind>(
             .get_partition(partition_id)
             .expect("partition for invariant scan");
         let slots = touched_slots(state, partition_id)
-            .unwrap_or_else(|| (0..K::arena(partition).generations.len()).collect());
+            .unwrap_or_else(|| (0..K::arena(partition).slot_count()).collect());
         count_scans(runtime, slots.len());
         for slot in slots {
-            if K::arena(partition).lifecycle[slot] == RecordLifecycleState::Live
-                && !has_required_sidecar(partition, slot)
+            let Some(slot_view) = K::arena(partition).get_slot(slot) else {
+                continue;
+            };
+            if slot_view.lifecycle() == RecordLifecycleState::Live
+                && !has_required_sidecar(&slot_view)
             {
                 violations.push(InvariantViolation {
                     class,
@@ -255,13 +259,15 @@ fn evaluate_unique_entity_payload_field(
                 .complexity_counters
                 .lock()
                 .expect("complexity counter lock poisoned")
-                .invariant_entity_slot_scans += partition.entity_arena.generations.len();
-            for slot in 0..partition.entity_arena.generations.len() {
+                .invariant_entity_slot_scans += partition.entity_arena.slot_count();
+            for slot in 0..partition.entity_arena.slot_count() {
                 if !entity_visible_at_version(&partition.entity_arena, slot, version_id) {
                     continue;
                 }
-                let Some(payload) =
-                    visible_payload(&partition.entity_arena.payload_history[slot], version_id)
+                let Some(payload) = partition
+                    .entity_arena
+                    .payload_history_at(slot)
+                    .and_then(|history| visible_payload(history, version_id))
                 else {
                     continue;
                 };

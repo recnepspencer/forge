@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
@@ -99,18 +100,50 @@ pub struct VersionedEntityMetadataImage {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct EntityArenaCheckpointImage {
+pub struct EntityExtraImage {
+    pub structural_fingerprint: Option<StructuralFingerprint>,
+    pub lineage_id: Option<LineageId>,
+}
+
+pub trait RecordArenaCheckpointKind: Clone + PartialEq + Eq {
+    type MetaImage: Clone + PartialEq + Eq;
+    type ExtraImage: Clone + PartialEq + Eq;
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EntityCheckpointImageKind;
+
+impl RecordArenaCheckpointKind for EntityCheckpointImageKind {
+    type MetaImage = VersionedEntityMetadataImage;
+    type ExtraImage = EntityExtraImage;
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RelationCheckpointImageKind;
+
+impl RecordArenaCheckpointKind for RelationCheckpointImageKind {
+    type MetaImage = VersionedRelationMetadataImage;
+    type ExtraImage = Option<RelationEndpointsImage>;
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(
+    bound(
+        serialize = "K::MetaImage: Serialize, K::ExtraImage: Serialize",
+        deserialize = "K::MetaImage: Deserialize<'de>, K::ExtraImage: Deserialize<'de>"
+    )
+)]
+pub struct RecordArenaCheckpointImage<K: RecordArenaCheckpointKind> {
     pub generations: Vec<u32>,
     pub lifecycle: Vec<RecordLifecycleState>,
     pub kind_ids: Vec<Option<KindId>>,
     pub payloads: Vec<Option<RecordPayload>>,
     pub payload_history: Vec<Vec<VersionedPayloadImage>>,
-    pub metadata_history: Vec<Vec<VersionedEntityMetadataImage>>,
+    pub metadata_history: Vec<Vec<K::MetaImage>>,
     pub created_at: Vec<VersionId>,
     pub retired_at: Vec<Option<VersionId>>,
     pub aspect_versions: Vec<std::collections::BTreeMap<Symbol, u64>>,
-    pub structural_fingerprints: Vec<Option<StructuralFingerprint>>,
-    pub lineage_ids: Vec<Option<LineageId>>,
+    pub extra: Vec<K::ExtraImage>,
     pub diagnostics_enrichment: Vec<std::collections::BTreeMap<Symbol, String>>,
     pub branch_pins: Vec<u32>,
     pub replay_pins: Vec<u32>,
@@ -118,6 +151,8 @@ pub struct EntityArenaCheckpointImage {
     pub live_bitset: DurableBitSet,
     pub reclaimable_bitset: DurableBitSet,
     pub free_list: Vec<u64>,
+    #[serde(skip)]
+    pub marker: PhantomData<K>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -135,26 +170,8 @@ pub struct VersionedRelationMetadataImage {
     pub endpoints: RelationEndpointsImage,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct RelationArenaCheckpointImage {
-    pub generations: Vec<u32>,
-    pub lifecycle: Vec<RecordLifecycleState>,
-    pub kind_ids: Vec<Option<KindId>>,
-    pub payloads: Vec<Option<RecordPayload>>,
-    pub payload_history: Vec<Vec<VersionedPayloadImage>>,
-    pub metadata_history: Vec<Vec<VersionedRelationMetadataImage>>,
-    pub created_at: Vec<VersionId>,
-    pub retired_at: Vec<Option<VersionId>>,
-    pub endpoints: Vec<Option<RelationEndpointsImage>>,
-    pub aspect_versions: Vec<std::collections::BTreeMap<Symbol, u64>>,
-    pub diagnostics_enrichment: Vec<std::collections::BTreeMap<Symbol, String>>,
-    pub branch_pins: Vec<u32>,
-    pub replay_pins: Vec<u32>,
-    pub snapshot_pins: Vec<u32>,
-    pub live_bitset: DurableBitSet,
-    pub reclaimable_bitset: DurableBitSet,
-    pub free_list: Vec<u64>,
-}
+pub type EntityArenaCheckpointImage = RecordArenaCheckpointImage<EntityCheckpointImageKind>;
+pub type RelationArenaCheckpointImage = RecordArenaCheckpointImage<RelationCheckpointImageKind>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PartitionCheckpointImage {
@@ -163,11 +180,6 @@ pub struct PartitionCheckpointImage {
     pub relation_arena: RelationArenaCheckpointImage,
     pub adjacency: Vec<Vec<RelationId>>,
     pub reverse_adjacency: Vec<Vec<RelationId>>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DurableCommitEnvelope {
-    pub envelope: CanonicalCommitEnvelope,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -219,7 +231,7 @@ pub struct RecoveryPlan {
     pub store: Option<DurableStore>,
     pub checkpoint_manifest: Option<DurableCheckpointManifest>,
     pub checkpoint: Option<DurableCheckpoint>,
-    pub tail_log: Vec<DurableCommitEnvelope>,
+    pub tail_log: Vec<CanonicalCommitEnvelope>,
     pub cursor: RecoveryCursor,
     pub integrity_report: RecoveryIntegrityReport,
     pub compatibility: RecoveryCompatibilityCheck,

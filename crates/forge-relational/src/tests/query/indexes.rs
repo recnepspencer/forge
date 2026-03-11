@@ -1,6 +1,6 @@
 use crate::facade::{
     BranchId, DerivedIndexBuildRequest, DerivedIndexDefinition, DerivedIndexId, DerivedIndexKind,
-    QueryWorkPacket, ReadTarget,
+    QueryWorkPacket, RecordRef,
 };
 use crate::tests::support::*;
 
@@ -34,7 +34,7 @@ fn derived_index_contract_success_branch_scoped_build_keeps_storage_fallback() {
     });
     let packet = QueryWorkPacket::bulk(
         "entities",
-        vec![ReadTarget::Entity(changed_entities(&main_outcome)[0])],
+        vec![RecordRef::Entity(changed_entities(&main_outcome)[0])],
     );
     let fallback = runtime
         .read_with_storage_fallback(&main_outcome.snapshot, &packet)
@@ -80,7 +80,7 @@ fn derived_index_contract_unscoped_generation_can_be_selected_across_branches() 
     let snapshot = runtime.snapshot();
     let packet = QueryWorkPacket::bulk(
         "entities",
-        vec![ReadTarget::Entity(changed_entities(&main_outcome)[0])],
+        vec![RecordRef::Entity(changed_entities(&main_outcome)[0])],
     );
     let fallback = runtime
         .read_with_storage_fallback(&snapshot, &packet)
@@ -110,7 +110,7 @@ fn derived_index_contract_failure_unknown_index_keeps_truth_reads_correct() {
     let snapshot = runtime.snapshot();
     let packet = QueryWorkPacket::bulk(
         "entities",
-        vec![ReadTarget::Entity(changed_entities(&outcome)[0])],
+        vec![RecordRef::Entity(changed_entities(&outcome)[0])],
     );
     let storage_only = runtime.execute_read_packet(&snapshot, &packet).unwrap();
     let fallback_before = runtime

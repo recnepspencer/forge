@@ -1,5 +1,6 @@
 use serde_json::json;
 
+use crate::capabilities::{RuntimeConfigSource, RuntimeIdentitySource, SchemaVersionSource};
 use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
@@ -19,29 +20,27 @@ impl RelationalRuntime {
     pub(crate) fn compact_durable_log_if_needed(&mut self) {
         use crate::config::data::DurableLogRetentionMode;
 
-        let policy = &self.config.durable_log_policy;
-        if self.durability.log.len() <= policy.max_in_memory_envelopes {
+        let policy = self.runtime_config().durability.log.clone();
+        if self.durable_log_len() <= policy.max_in_memory_envelopes {
             return;
         }
 
         match policy.retention_mode {
             DurableLogRetentionMode::RetainAllInMemory => {}
             DurableLogRetentionMode::CompactAfterCheckpoint => {
-                if let Some(checkpoint) = self.durability.checkpoints.last() {
+                if let Some(checkpoint) = self.latest_durable_checkpoint() {
                     if let Some(commit) = checkpoint.coverage.up_to_commit.as_ref() {
-                        self.durability
-                            .log
-                            .retain(|entry| entry.envelope.commit.commit_id > commit.commit_id);
+                        self.retain_durable_log_newer_than(commit.commit_id);
                     }
                 }
-                if self.durability.log.len() > policy.max_in_memory_envelopes {
-                    let overflow = self.durability.log.len() - policy.max_in_memory_envelopes;
-                    self.durability.log.drain(0..overflow);
+                if self.durable_log_len() > policy.max_in_memory_envelopes {
+                    let overflow = self.durable_log_len() - policy.max_in_memory_envelopes;
+                    self.drain_oldest_durable_log_entries(overflow);
                 }
             }
         }
-        if self.config.durability_mode == DurabilityMode::PersistedSegmentedLocalFs
-            && policy.compact_after_checkpoint
+        if self.runtime_config().durability.mode == DurabilityMode::PersistedSegmentedLocalFs
+            && self.runtime_config().durability.checkpoints.compact_after_checkpoint
         {
             let _ = self.compact_store();
         }
@@ -49,7 +48,7 @@ impl RelationalRuntime {
 
     pub fn checkpoint(&mut self) -> Result<DurableCheckpoint, DurabilityError> {
         let checkpoint = self.build_checkpoint_image();
-        if self.config.durability_mode == DurabilityMode::PersistedSegmentedLocalFs {
+        if self.runtime_config().durability.mode == DurabilityMode::PersistedSegmentedLocalFs {
             let manifest = self.persist_checkpoint_file(&checkpoint)?;
             self.push_bounded_diagnostic(
                 DiagnosticsScope::History,
@@ -78,7 +77,7 @@ impl RelationalRuntime {
                 }],
             );
         }
-        self.durability.checkpoints.push(checkpoint.clone());
+        self.push_durable_checkpoint(checkpoint.clone());
         Ok(checkpoint)
     }
 
@@ -93,25 +92,20 @@ impl RelationalRuntime {
                 up_to_version: self.latest_commit().map(|commit| commit.version_id),
             },
             branches: self.branches(),
-            envelopes: self.history.commit_envelopes.values().cloned().collect(),
+            envelopes: self.commit_envelopes_snapshot(),
             partition_images: self
                 .partitions
                 .values()
                 .cloned()
                 .map(partition_to_image)
                 .collect(),
-            lineage_nodes: self.lineage.nodes.values().cloned().collect(),
-            lineage_events: self.lineage.events.clone(),
-            correspondence_candidates: self.lineage.correspondence_candidates.clone(),
-            index_definitions: self.indexes.definitions.values().cloned().collect(),
-            index_generations: self
-                .indexes
-                .generations
-                .values()
-                .flat_map(|generations| generations.iter().cloned())
-                .collect(),
-            symbol_table: self.symbols.snapshot(),
-            runtime_name: self.config.runtime_name.clone(),
+            lineage_nodes: self.lineage_nodes_snapshot(),
+            lineage_events: self.lineage_events_snapshot(),
+            correspondence_candidates: self.correspondence_candidates_snapshot(),
+            index_definitions: self.index_definitions_snapshot(),
+            index_generations: self.index_generations_snapshot(),
+            symbol_table: self.symbol_table_snapshot(),
+            runtime_name: self.runtime_name().to_string(),
         }
     }
 
@@ -140,14 +134,14 @@ impl RelationalRuntime {
             path,
             coverage: checkpoint.coverage.clone(),
             partition_count: checkpoint.partition_images.len(),
-            runtime_name: self.config.runtime_name.clone(),
-            profile: self.config.profile,
-            schema_version: self.primary_schema_version(),
+            runtime_name: self.runtime_name().to_string(),
+            profile: self.runtime_profile(),
+            schema_version: self.primary_schema_version_id(),
             integrity: DurableIntegrityStatus::Verified,
         };
         store.checkpoints.push(manifest.clone());
         self.persist_store_manifest(&store)?;
-        self.durability.store = Some(store);
+        self.set_durable_store(Some(store));
         Ok(manifest)
     }
 }

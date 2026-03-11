@@ -55,6 +55,10 @@ impl RelationalRuntimeConfig {
             provenance_entry(config_override.visibility_cache_policy.is_some()),
         );
         provenance_entries.insert(
+            "durability_policy".to_string(),
+            provenance_entry(config_override.durability_policy.is_some()),
+        );
+        provenance_entries.insert(
             "durable_log_policy".to_string(),
             provenance_entry(config_override.durable_log_policy.is_some()),
         );
@@ -108,11 +112,16 @@ impl RelationalRuntimeConfig {
         if let Some(visibility_cache_policy) = &config_override.visibility_cache_policy {
             config.visibility_cache_policy = visibility_cache_policy.clone();
         }
+        if let Some(durability_policy) = &config_override.durability_policy {
+            config.durability = durability_policy.clone();
+        }
         if let Some(durable_log_policy) = &config_override.durable_log_policy {
-            config.durable_log_policy = durable_log_policy.clone();
+            config.durability.log = durable_log_policy.clone();
+            config.durability.checkpoints.compact_after_checkpoint =
+                durable_log_policy.compact_after_checkpoint;
         }
         if let Some(durable_store_layout) = &config_override.durable_store_layout {
-            config.durable_store_layout = Some(durable_store_layout.clone());
+            config.durability.store_layout = Some(durable_store_layout.clone());
         }
         if let Some(adjacency_policy) = &config_override.adjacency_policy {
             config.adjacency_policy = adjacency_policy.clone();
@@ -146,7 +155,7 @@ fn default_profile_config(profile: RelationalRuntimeProfile) -> RelationalRuntim
                 payload_policy: PayloadPolicy,
                 symbol_policy: SymbolPolicy,
                 visibility_cache_policy: VisibilityCachePolicy,
-                durable_log_policy: DurableLogPolicy,
+                durability: DurabilityPolicy,
                 adjacency_policy: AdjacencyPolicy,
                 cross_context_policy: CrossContextPolicy,
                 cascade_delete_policy: CascadeDeletePolicy,
@@ -171,14 +180,12 @@ fn default_profile_config(profile: RelationalRuntimeProfile) -> RelationalRuntim
         payload_policy,
         symbol_policy,
         visibility_cache_policy,
-        durable_log_policy,
-        durable_store_layout: None,
+        durability,
         adjacency_policy,
         cross_context_policy,
         cascade_delete_policy,
         publication,
         compiled_lane_policy,
-        durability_mode: DurabilityMode::InMemoryCanonical,
         config_override: RelationalConfigOverride::default(),
         config_provenance: ConfigProvenance {
             profile,
@@ -223,10 +230,17 @@ fn default_profile_config(profile: RelationalRuntimeProfile) -> RelationalRuntim
                 protect_active_snapshots: true,
                 recent_version_window: 32,
             },
-            DurableLogPolicy {
-                retention_mode: DurableLogRetentionMode::RetainAllInMemory,
-                max_in_memory_envelopes: 4_096,
-                compact_after_checkpoint: false,
+            DurabilityPolicy {
+                mode: DurabilityMode::InMemoryCanonical,
+                log: DurableLogPolicy {
+                    retention_mode: DurableLogRetentionMode::RetainAllInMemory,
+                    max_in_memory_envelopes: 4_096,
+                    compact_after_checkpoint: false,
+                },
+                checkpoints: CheckpointPolicy {
+                    compact_after_checkpoint: false,
+                },
+                store_layout: None,
             },
             AdjacencyPolicy {
                 backend: AdjacencyBackend::InlineSmallDegreeAdjacency,
@@ -280,10 +294,17 @@ fn default_profile_config(profile: RelationalRuntimeProfile) -> RelationalRuntim
                 protect_active_snapshots: true,
                 recent_version_window: 2,
             },
-            DurableLogPolicy {
-                retention_mode: DurableLogRetentionMode::CompactAfterCheckpoint,
-                max_in_memory_envelopes: 2_048,
-                compact_after_checkpoint: true,
+            DurabilityPolicy {
+                mode: DurabilityMode::InMemoryCanonical,
+                log: DurableLogPolicy {
+                    retention_mode: DurableLogRetentionMode::CompactAfterCheckpoint,
+                    max_in_memory_envelopes: 2_048,
+                    compact_after_checkpoint: true,
+                },
+                checkpoints: CheckpointPolicy {
+                    compact_after_checkpoint: true,
+                },
+                store_layout: None,
             },
             AdjacencyPolicy {
                 backend: AdjacencyBackend::InlineSmallDegreeAdjacency,
@@ -337,10 +358,17 @@ fn default_profile_config(profile: RelationalRuntimeProfile) -> RelationalRuntim
                 protect_active_snapshots: true,
                 recent_version_window: 2,
             },
-            DurableLogPolicy {
-                retention_mode: DurableLogRetentionMode::CompactAfterCheckpoint,
-                max_in_memory_envelopes: 1_024,
-                compact_after_checkpoint: true,
+            DurabilityPolicy {
+                mode: DurabilityMode::InMemoryCanonical,
+                log: DurableLogPolicy {
+                    retention_mode: DurableLogRetentionMode::CompactAfterCheckpoint,
+                    max_in_memory_envelopes: 1_024,
+                    compact_after_checkpoint: true,
+                },
+                checkpoints: CheckpointPolicy {
+                    compact_after_checkpoint: true,
+                },
+                store_layout: None,
             },
             AdjacencyPolicy {
                 backend: AdjacencyBackend::CompressedFanoutAdjacency,
@@ -394,10 +422,17 @@ fn default_profile_config(profile: RelationalRuntimeProfile) -> RelationalRuntim
                 protect_active_snapshots: true,
                 recent_version_window: 16,
             },
-            DurableLogPolicy {
-                retention_mode: DurableLogRetentionMode::CompactAfterCheckpoint,
-                max_in_memory_envelopes: 1_024,
-                compact_after_checkpoint: true,
+            DurabilityPolicy {
+                mode: DurabilityMode::InMemoryCanonical,
+                log: DurableLogPolicy {
+                    retention_mode: DurableLogRetentionMode::CompactAfterCheckpoint,
+                    max_in_memory_envelopes: 1_024,
+                    compact_after_checkpoint: true,
+                },
+                checkpoints: CheckpointPolicy {
+                    compact_after_checkpoint: true,
+                },
+                store_layout: None,
             },
             AdjacencyPolicy {
                 backend: AdjacencyBackend::InlineSmallDegreeAdjacency,

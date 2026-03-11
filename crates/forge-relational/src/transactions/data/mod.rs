@@ -176,47 +176,128 @@ pub enum TransactionIntent {
     },
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BulkEntityCreateIntent {
+    pub partition_id: PartitionId,
+    pub kind_id: KindId,
+    pub client_keys: Vec<InternedString>,
+    pub payloads: Vec<RecordPayload>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UpdateEntityIntent {
+    pub entity_id: EntityId,
+    pub payload: RecordPayload,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReplaceEntityIntent {
+    pub entity_id: EntityId,
+    pub replacement: EntitySpec,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DeleteEntityIntent {
+    pub entity_id: EntityId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BulkRelationCreateIntent {
+    pub partition_id: PartitionId,
+    pub kind_id: KindId,
+    pub client_keys: Vec<InternedString>,
+    pub endpoints: Vec<(EntityId, EntityId)>,
+    pub payloads: Vec<Option<RecordPayload>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DeleteRelationIntent {
+    pub relation_id: RelationId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CreateIntent {
+    Entity(EntitySpec),
+    BulkEntities(BulkEntityCreateIntent),
+    Relation(RelationSpec),
+    BulkRelations(BulkRelationCreateIntent),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EntityMutationIntent {
+    Update(UpdateEntityIntent),
+    Replace(ReplaceEntityIntent),
+    Delete(DeleteEntityIntent),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RelationMutationIntent {
+    Delete(DeleteRelationIntent),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MutationIntent {
+    Create(CreateIntent),
+    Entity(EntityMutationIntent),
+    Relation(RelationMutationIntent),
+}
+
 impl TransactionIntent {
-    pub(crate) fn seed_touched_partitions(
-        &self,
-        touched: &mut std::collections::BTreeSet<PartitionId>,
-    ) {
+    pub(crate) fn to_mutation_intent(&self) -> MutationIntent {
         match self {
-            Self::CreateEntity(spec) => {
-                touched.insert(spec.partition_id);
-            }
-            Self::BulkCreateEntities { partition_id, .. } => {
-                touched.insert(*partition_id);
-            }
-            Self::UpdateEntity { entity_id, .. } | Self::DeleteEntity { entity_id } => {
-                touched.insert(entity_id.partition_id);
+            Self::CreateEntity(spec) => MutationIntent::Create(CreateIntent::Entity(spec.clone())),
+            Self::BulkCreateEntities {
+                partition_id,
+                kind_id,
+                client_keys,
+                payloads,
+            } => MutationIntent::Create(CreateIntent::BulkEntities(BulkEntityCreateIntent {
+                partition_id: *partition_id,
+                kind_id: *kind_id,
+                client_keys: client_keys.clone(),
+                payloads: payloads.clone(),
+            })),
+            Self::UpdateEntity { entity_id, payload } => {
+                MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
+                    entity_id: *entity_id,
+                    payload: payload.clone(),
+                }))
             }
             Self::ReplaceEntity {
                 entity_id,
                 replacement,
-            } => {
-                touched.insert(entity_id.partition_id);
-                touched.insert(replacement.partition_id);
+            } => MutationIntent::Entity(EntityMutationIntent::Replace(ReplaceEntityIntent {
+                entity_id: *entity_id,
+                replacement: replacement.clone(),
+            })),
+            Self::DeleteEntity { entity_id } => {
+                MutationIntent::Entity(EntityMutationIntent::Delete(DeleteEntityIntent {
+                    entity_id: *entity_id,
+                }))
             }
             Self::CreateRelation(spec) => {
-                touched.insert(spec.partition_id);
-                touched.insert(spec.source.partition_id);
-                touched.insert(spec.target.partition_id);
+                MutationIntent::Create(CreateIntent::Relation(spec.clone()))
             }
             Self::BulkCreateRelations {
                 partition_id,
+                kind_id,
+                client_keys,
                 endpoints,
-                ..
-            } => {
-                touched.insert(*partition_id);
-                for (source, target) in endpoints {
-                    touched.insert(source.partition_id);
-                    touched.insert(target.partition_id);
-                }
-            }
-            Self::DeleteRelation { relation_id } => {
-                touched.insert(relation_id.partition_id);
-            }
+                payloads,
+            } => MutationIntent::Create(CreateIntent::BulkRelations(
+                BulkRelationCreateIntent {
+                    partition_id: *partition_id,
+                    kind_id: *kind_id,
+                    client_keys: client_keys.clone(),
+                    endpoints: endpoints.clone(),
+                    payloads: payloads.clone(),
+                },
+            )),
+            Self::DeleteRelation { relation_id } => MutationIntent::Relation(
+                RelationMutationIntent::Delete(DeleteRelationIntent {
+                    relation_id: *relation_id,
+                }),
+            ),
         }
     }
 
@@ -273,53 +354,156 @@ impl TransactionIntent {
         }
     }
 
+    pub(crate) fn rollback_effect(&self) -> RollbackEffect {
+        self.to_mutation_intent().rollback_effect()
+    }
+}
+
+impl From<MutationIntent> for TransactionIntent {
+    fn from(value: MutationIntent) -> Self {
+        match value {
+            MutationIntent::Create(CreateIntent::Entity(spec)) => Self::CreateEntity(spec),
+            MutationIntent::Create(CreateIntent::BulkEntities(spec)) => Self::BulkCreateEntities {
+                partition_id: spec.partition_id,
+                kind_id: spec.kind_id,
+                client_keys: spec.client_keys,
+                payloads: spec.payloads,
+            },
+            MutationIntent::Entity(EntityMutationIntent::Update(spec)) => Self::UpdateEntity {
+                entity_id: spec.entity_id,
+                payload: spec.payload,
+            },
+            MutationIntent::Entity(EntityMutationIntent::Replace(spec)) => Self::ReplaceEntity {
+                entity_id: spec.entity_id,
+                replacement: spec.replacement,
+            },
+            MutationIntent::Entity(EntityMutationIntent::Delete(spec)) => Self::DeleteEntity {
+                entity_id: spec.entity_id,
+            },
+            MutationIntent::Create(CreateIntent::Relation(spec)) => Self::CreateRelation(spec),
+            MutationIntent::Create(CreateIntent::BulkRelations(spec)) => {
+                Self::BulkCreateRelations {
+                    partition_id: spec.partition_id,
+                    kind_id: spec.kind_id,
+                    client_keys: spec.client_keys,
+                    endpoints: spec.endpoints,
+                    payloads: spec.payloads,
+                }
+            }
+            MutationIntent::Relation(RelationMutationIntent::Delete(spec)) => {
+                Self::DeleteRelation {
+                    relation_id: spec.relation_id,
+                }
+            }
+        }
+    }
+}
+
+impl MutationIntent {
+    pub(crate) fn seed_touched_partitions(
+        &self,
+        touched: &mut std::collections::BTreeSet<PartitionId>,
+    ) {
+        match self {
+            Self::Create(CreateIntent::Entity(spec)) => {
+                touched.insert(spec.partition_id);
+            }
+            Self::Create(CreateIntent::BulkEntities(spec)) => {
+                touched.insert(spec.partition_id);
+            }
+            Self::Entity(EntityMutationIntent::Update(spec)) => {
+                touched.insert(spec.entity_id.partition_id);
+            }
+            Self::Entity(EntityMutationIntent::Replace(spec)) => {
+                touched.insert(spec.entity_id.partition_id);
+                touched.insert(spec.replacement.partition_id);
+            }
+            Self::Entity(EntityMutationIntent::Delete(spec)) => {
+                touched.insert(spec.entity_id.partition_id);
+            }
+            Self::Create(CreateIntent::Relation(spec)) => {
+                touched.insert(spec.partition_id);
+                touched.insert(spec.source.partition_id);
+                touched.insert(spec.target.partition_id);
+            }
+            Self::Create(CreateIntent::BulkRelations(spec)) => {
+                touched.insert(spec.partition_id);
+                for (source, target) in &spec.endpoints {
+                    touched.insert(source.partition_id);
+                    touched.insert(target.partition_id);
+                }
+            }
+            Self::Relation(RelationMutationIntent::Delete(spec)) => {
+                touched.insert(spec.relation_id.partition_id);
+            }
+        }
+    }
+
     pub(crate) fn bulk_entity_reservation(&self) -> Option<(PartitionId, usize)> {
         match self {
-            Self::BulkCreateEntities {
-                partition_id,
-                payloads,
-                ..
-            } => Some((*partition_id, payloads.len())),
-            _ => None,
+            Self::Create(CreateIntent::BulkEntities(spec)) => {
+                Some((spec.partition_id, spec.payloads.len()))
+            }
+            Self::Create(CreateIntent::Entity(_))
+            | Self::Create(CreateIntent::Relation(_))
+            | Self::Create(CreateIntent::BulkRelations(_))
+            | Self::Entity(_)
+            | Self::Relation(_) => None,
         }
     }
 
     pub(crate) fn bulk_relation_reservation(&self) -> Option<(PartitionId, usize)> {
         match self {
-            Self::BulkCreateRelations {
-                partition_id,
-                endpoints,
-                ..
-            } => Some((*partition_id, endpoints.len())),
-            _ => None,
+            Self::Create(CreateIntent::BulkRelations(spec)) => {
+                Some((spec.partition_id, spec.endpoints.len()))
+            }
+            Self::Create(CreateIntent::Entity(_))
+            | Self::Create(CreateIntent::BulkEntities(_))
+            | Self::Create(CreateIntent::Relation(_))
+            | Self::Entity(_)
+            | Self::Relation(_) => None,
         }
     }
 
     pub(crate) fn rollback_effect(&self) -> RollbackEffect {
         match self {
-            Self::CreateEntity(_) | Self::BulkCreateEntities { .. } => {
+            Self::Create(CreateIntent::Entity(_)) | Self::Create(CreateIntent::BulkEntities(_)) => {
                 RollbackEffect::DiscardedEntityCreation
             }
-            Self::UpdateEntity { entity_id, .. }
-            | Self::ReplaceEntity { entity_id, .. }
-            | Self::DeleteEntity { entity_id } => RollbackEffect::RestoredEntity(*entity_id),
-            Self::CreateRelation(_) | Self::BulkCreateRelations { .. } => {
+            Self::Entity(EntityMutationIntent::Update(spec)) => {
+                RollbackEffect::RestoredEntity(spec.entity_id)
+            }
+            Self::Entity(EntityMutationIntent::Replace(spec)) => {
+                RollbackEffect::RestoredEntity(spec.entity_id)
+            }
+            Self::Entity(EntityMutationIntent::Delete(spec)) => {
+                RollbackEffect::RestoredEntity(spec.entity_id)
+            }
+            Self::Create(CreateIntent::Relation(_))
+            | Self::Create(CreateIntent::BulkRelations(_)) => {
                 RollbackEffect::DiscardedRelationCreation
             }
-            Self::DeleteRelation { relation_id } => RollbackEffect::RestoredRelation(*relation_id),
+            Self::Relation(RelationMutationIntent::Delete(spec)) => {
+                RollbackEffect::RestoredRelation(spec.relation_id)
+            }
         }
     }
 
     pub(crate) fn existing_record_target(&self) -> Option<ExistingRecordTarget> {
         match self {
-            Self::UpdateEntity { entity_id, .. }
-            | Self::ReplaceEntity { entity_id, .. }
-            | Self::DeleteEntity { entity_id } => Some(ExistingRecordTarget::Entity(*entity_id)),
-            Self::DeleteRelation { relation_id } => Some(ExistingRecordTarget::Relation(*relation_id)),
-            Self::CreateEntity(_)
-            | Self::BulkCreateEntities { .. }
-            | Self::CreateRelation(_)
-            | Self::BulkCreateRelations { .. } => None,
+            Self::Entity(EntityMutationIntent::Update(spec)) => {
+                Some(ExistingRecordTarget::Entity(spec.entity_id))
+            }
+            Self::Entity(EntityMutationIntent::Replace(spec)) => {
+                Some(ExistingRecordTarget::Entity(spec.entity_id))
+            }
+            Self::Entity(EntityMutationIntent::Delete(spec)) => {
+                Some(ExistingRecordTarget::Entity(spec.entity_id))
+            }
+            Self::Relation(RelationMutationIntent::Delete(spec)) => {
+                Some(ExistingRecordTarget::Relation(spec.relation_id))
+            }
+            Self::Create(_) => None,
         }
     }
 
@@ -328,33 +512,26 @@ impl TransactionIntent {
         identities: &mut Vec<RelationIdentity>,
     ) {
         match self {
-            Self::CreateRelation(spec) => identities.push(RelationIdentity {
+            Self::Create(CreateIntent::Relation(spec)) => identities.push(RelationIdentity {
                 partition_id: spec.partition_id,
                 kind_id: spec.kind_id,
                 source: spec.source,
                 target: spec.target,
             }),
-            Self::BulkCreateRelations {
-                partition_id,
-                kind_id,
-                endpoints,
-                ..
-            } => {
-                for (source, target) in endpoints {
+            Self::Create(CreateIntent::BulkRelations(spec)) => {
+                for (source, target) in &spec.endpoints {
                     identities.push(RelationIdentity {
-                        partition_id: *partition_id,
-                        kind_id: *kind_id,
+                        partition_id: spec.partition_id,
+                        kind_id: spec.kind_id,
                         source: *source,
                         target: *target,
                     });
                 }
             }
-            Self::CreateEntity(_)
-            | Self::BulkCreateEntities { .. }
-            | Self::UpdateEntity { .. }
-            | Self::ReplaceEntity { .. }
-            | Self::DeleteEntity { .. }
-            | Self::DeleteRelation { .. } => {}
+            Self::Create(CreateIntent::Entity(_))
+            | Self::Create(CreateIntent::BulkEntities(_))
+            | Self::Entity(_)
+            | Self::Relation(_) => {}
         }
     }
 
@@ -364,31 +541,33 @@ impl TransactionIntent {
         values: &mut Vec<(Option<EntityId>, String)>,
     ) -> bool {
         match self {
-            Self::CreateEntity(spec) => {
+            Self::Create(CreateIntent::Entity(spec)) => {
                 collect_payload_field_value(None, &spec.payload, field, values);
                 true
             }
-            Self::BulkCreateEntities { payloads, .. } => {
-                for payload in payloads {
+            Self::Create(CreateIntent::BulkEntities(spec)) => {
+                for payload in &spec.payloads {
                     collect_payload_field_value(None, payload, field, values);
                 }
                 true
             }
-            Self::UpdateEntity { entity_id, payload } => {
-                collect_payload_field_value(Some(*entity_id), payload, field, values);
+            Self::Entity(EntityMutationIntent::Update(spec)) => {
+                collect_payload_field_value(Some(spec.entity_id), &spec.payload, field, values);
                 true
             }
-            Self::ReplaceEntity {
-                entity_id,
-                replacement,
-            } => {
-                collect_payload_field_value(Some(*entity_id), &replacement.payload, field, values);
+            Self::Entity(EntityMutationIntent::Replace(spec)) => {
+                collect_payload_field_value(
+                    Some(spec.entity_id),
+                    &spec.replacement.payload,
+                    field,
+                    values,
+                );
                 true
             }
-            Self::DeleteEntity { .. }
-            | Self::CreateRelation(_)
-            | Self::BulkCreateRelations { .. }
-            | Self::DeleteRelation { .. } => false,
+            Self::Entity(EntityMutationIntent::Delete(_))
+            | Self::Create(CreateIntent::Relation(_))
+            | Self::Create(CreateIntent::BulkRelations(_))
+            | Self::Relation(_) => false,
         }
     }
 }
@@ -396,14 +575,14 @@ impl TransactionIntent {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MergedCommitPlan {
     pub transaction_id: TransactionId,
-    pub merged_intents: Vec<TransactionIntent>,
+    pub merged_intents: Vec<MutationIntent>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthoritativeApplyPlan {
     pub transaction_id: TransactionId,
     pub version_id: VersionId,
-    pub merged_intents: Vec<TransactionIntent>,
+    pub merged_intents: Vec<MutationIntent>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -414,8 +593,111 @@ pub struct UndoRecord {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CommitConflict {
+    pub class: ConflictClass,
     pub code: DiagnosticCode,
     pub detail: String,
+}
+
+impl CommitConflict {
+    pub(crate) fn new(class: ConflictClass) -> Self {
+        let code = class.code();
+        let detail = class.detail();
+        Self { class, code, detail }
+    }
+
+    pub fn code(&self) -> DiagnosticCode {
+        self.code
+    }
+
+    pub fn detail(&self) -> String {
+        self.detail.clone()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ConflictClass {
+    StaleTarget {
+        target: ExistingRecordTarget,
+        context: String,
+    },
+    InvalidRelationEndpoint {
+        detail: String,
+    },
+    DuplicateRelationIdentity {
+        detail: String,
+    },
+    InvariantViolation {
+        code: DiagnosticCode,
+        detail: String,
+    },
+    KindSchemaMismatch {
+        detail: String,
+    },
+    ConflictingIntent {
+        target: ExistingRecordTarget,
+    },
+    InvalidSavepoint {
+        savepoint_id: SavepointId,
+    },
+    InvalidMergeParent {
+        detail: String,
+    },
+    MergeConflictOverlap {
+        detail: String,
+    },
+    MissingMergeBase {
+        detail: String,
+    },
+}
+
+impl ConflictClass {
+    pub fn code(&self) -> DiagnosticCode {
+        match self {
+            Self::StaleTarget { .. } => DiagnosticCode::StaleHandle,
+            Self::InvalidRelationEndpoint { .. } => DiagnosticCode::InvalidRelationEndpoint,
+            Self::DuplicateRelationIdentity { .. } => DiagnosticCode::DuplicateRelationIdentity,
+            Self::InvariantViolation { code, .. } => *code,
+            Self::KindSchemaMismatch { .. } => DiagnosticCode::InvariantViolation,
+            Self::ConflictingIntent { .. } => DiagnosticCode::ConflictingIntent,
+            Self::InvalidSavepoint { .. } => DiagnosticCode::InvalidSavepoint,
+            Self::InvalidMergeParent { .. } => DiagnosticCode::InvalidMergeParent,
+            Self::MergeConflictOverlap { .. } => DiagnosticCode::MergeConflictOverlap,
+            Self::MissingMergeBase { .. } => DiagnosticCode::MissingMergeBase,
+        }
+    }
+
+    pub fn detail(&self) -> String {
+        match self {
+            Self::StaleTarget { target, context } => match target {
+                ExistingRecordTarget::Entity(entity_id) => format!(
+                    "entity {:?} changed before authoritative apply ({context})",
+                    entity_id
+                ),
+                ExistingRecordTarget::Relation(relation_id) => format!(
+                    "relation {:?} changed before authoritative apply ({context})",
+                    relation_id
+                ),
+            },
+            Self::InvalidRelationEndpoint { detail }
+            | Self::DuplicateRelationIdentity { detail }
+            | Self::KindSchemaMismatch { detail }
+            | Self::InvalidMergeParent { detail }
+            | Self::MergeConflictOverlap { detail }
+            | Self::MissingMergeBase { detail } => detail.clone(),
+            Self::InvariantViolation { detail, .. } => detail.clone(),
+            Self::ConflictingIntent { target } => match target {
+                ExistingRecordTarget::Entity(entity_id) => {
+                    format!("conflicting entity intent for slot {}", entity_id.local_slot.0)
+                }
+                ExistingRecordTarget::Relation(relation_id) => {
+                    format!("conflicting relation intent for slot {}", relation_id.local_slot.0)
+                }
+            },
+            Self::InvalidSavepoint { savepoint_id } => {
+                format!("savepoint {:?} does not exist", savepoint_id)
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

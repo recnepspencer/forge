@@ -121,6 +121,19 @@ pub struct DurableLogPolicy {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CheckpointPolicy {
+    pub compact_after_checkpoint: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DurabilityPolicy {
+    pub mode: DurabilityMode,
+    pub log: DurableLogPolicy,
+    pub checkpoints: CheckpointPolicy,
+    pub store_layout: Option<DurableStoreLayout>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StorageLayoutConfig {
     pub entity_chunk_size: usize,
     pub relation_chunk_size: usize,
@@ -167,6 +180,7 @@ pub struct RelationalConfigOverride {
     pub payload_policy: Option<PayloadPolicy>,
     pub symbol_policy: Option<SymbolPolicy>,
     pub visibility_cache_policy: Option<VisibilityCachePolicy>,
+    pub durability_policy: Option<DurabilityPolicy>,
     pub durable_log_policy: Option<DurableLogPolicy>,
     pub durable_store_layout: Option<DurableStoreLayout>,
     pub adjacency_policy: Option<AdjacencyPolicy>,
@@ -186,6 +200,7 @@ impl RelationalConfigOverride {
             && self.payload_policy.is_none()
             && self.symbol_policy.is_none()
             && self.visibility_cache_policy.is_none()
+            && self.durability_policy.is_none()
             && self.durable_log_policy.is_none()
             && self.durable_store_layout.is_none()
             && self.adjacency_policy.is_none()
@@ -207,6 +222,7 @@ impl Default for RelationalConfigOverride {
             payload_policy: None,
             symbol_policy: None,
             visibility_cache_policy: None,
+            durability_policy: None,
             durable_log_policy: None,
             durable_store_layout: None,
             adjacency_policy: None,
@@ -236,14 +252,12 @@ pub struct RelationalRuntimeConfig {
     pub payload_policy: PayloadPolicy,
     pub symbol_policy: SymbolPolicy,
     pub visibility_cache_policy: VisibilityCachePolicy,
-    pub durable_log_policy: DurableLogPolicy,
-    pub durable_store_layout: Option<DurableStoreLayout>,
+    pub durability: DurabilityPolicy,
     pub adjacency_policy: AdjacencyPolicy,
     pub cross_context_policy: CrossContextPolicy,
     pub cascade_delete_policy: CascadeDeletePolicy,
     pub publication: PublicationConfig,
     pub compiled_lane_policy: CompiledLanePolicy,
-    pub durability_mode: DurabilityMode,
     pub config_override: RelationalConfigOverride,
     pub config_provenance: ConfigProvenance,
     pub initial_entity_capacity: usize,

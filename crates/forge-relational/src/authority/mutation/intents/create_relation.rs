@@ -10,19 +10,23 @@ use crate::authority::mutation::{
 };
 use crate::diagnostics::data::{DiagnosticCode, RelationalDiagnosticsEntry};
 use crate::publication::data::diff::{PatchRecord, PatchRecordKind};
-use crate::transactions::data::{CommitConflict, RecordRef, TransactionIntent};
+use crate::transactions::data::{CommitConflict, RecordRef, RelationSpec};
 
 pub(super) fn apply(
-    intent: &TransactionIntent,
+    spec: &RelationSpec,
     workspace: &mut MutationWorkspace<'_>,
 ) -> Result<MutationEffect, CommitConflict> {
-    let TransactionIntent::CreateRelation(spec) = intent else {
-        unreachable!("create_relation handler only accepts CreateRelation");
-    };
-    let (draft, symbols, config, _schema, version_id) = workspace.as_parts_mut();
-    let relation_id = allocate_relation(draft, version_id, spec);
-    draft.mark_relation_slot_touched(relation_id.partition_id, relation_id.local_slot.0 as usize);
-    write_relation_aspect_versions(draft, relation_id, version_id, spec.payload.as_ref(), symbols);
+    let version_id = workspace.version_id();
+    let patch_surface_policy = workspace.patch_surface_policy();
+    let relation_id = workspace.with_draft_and_symbols(|draft, symbols| {
+        let relation_id = allocate_relation(draft, version_id, spec);
+        draft.mark_relation_slot_touched(relation_id.partition_id, relation_id.local_slot.0 as usize);
+        write_relation_aspect_versions(draft, relation_id, version_id, spec.payload.as_ref(), symbols);
+        relation_id
+    });
+    let aspects = workspace.with_draft_and_symbols(|_, symbols| {
+        aspect_keys_for_payload(spec.payload.as_ref(), symbols)
+    });
 
     let mut effect = MutationEffect::default();
     effect.record_change(RecordRef::Relation(relation_id));
@@ -49,9 +53,9 @@ pub(super) fn apply(
     effect.record_patch(PatchRecord {
         kind: PatchRecordKind::Created,
         target: RecordRef::Relation(relation_id),
-        aspects: aspect_keys_for_payload(spec.payload.as_ref(), symbols),
+        aspects,
         detail: patch_detail_for_relation(
-            config.patch_surface_policy,
+            patch_surface_policy,
             PatchRecordKind::Created,
             relation_id,
             spec.source,

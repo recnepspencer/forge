@@ -5,7 +5,7 @@ use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsScope,
 };
 use crate::transactions::data::{
-    CommitConflict, RollbackOutcome, SavepointId, WorkerIntentBatch,
+    CommitConflict, ConflictClass, RollbackOutcome, SavepointId, WorkerIntentBatch,
 };
 
 impl<'a> RelationalTransaction<'a> {
@@ -37,10 +37,10 @@ impl<'a> RelationalTransaction<'a> {
             .iter()
             .position(|(candidate, _)| *candidate == savepoint_id)
         else {
-            return Err(CommitConflict {
-                code: DiagnosticCode::InvalidSavepoint,
-                detail: format!("savepoint {:?} does not exist", savepoint_id),
-            });
+            let _ = DiagnosticCode::InvalidSavepoint;
+            return Err(CommitConflict::new(ConflictClass::InvalidSavepoint {
+                savepoint_id,
+            }));
         };
         let (_, batch_len) = self.savepoints[index];
         let drained = self.batches.split_off(batch_len);

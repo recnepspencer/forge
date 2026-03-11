@@ -1,148 +1,207 @@
+use std::marker::PhantomData;
+
 use crate::config::data::{AdjacencyBackend, AdjacencyPolicy};
 use crate::durability::data::{
-    DurableBitSet, EntityArenaCheckpointImage, PartitionCheckpointImage,
-    RelationArenaCheckpointImage, RelationEndpointsImage, VersionedEntityMetadataImage,
-    VersionedPayloadImage, VersionedRelationMetadataImage,
+    DurableBitSet, EntityCheckpointImageKind, EntityExtraImage,
+    PartitionCheckpointImage, RecordArenaCheckpointImage, RecordArenaCheckpointKind,
+    RelationCheckpointImageKind, RelationEndpointsImage,
+    VersionedEntityMetadataImage, VersionedPayloadImage, VersionedRelationMetadataImage,
 };
 use crate::storage::logic::state::{
-    AdjacencySet, DenseSlotBitSet, EntityArena, PartitionState, RelationArena, RelationEndpoints,
+    AdjacencySet, DenseSlotBitSet, EntityExtra, EntityRecordKind, PartitionState, RecordArena,
+    RecordKind, RelationEndpoints, RelationRecordKind,
     VersionedEntityMetadata, VersionedPayload, VersionedRelationMetadata,
 };
+
+trait CheckpointArenaKind: RecordKind {
+    type ImageKind: RecordArenaCheckpointKind;
+
+    fn extra_to_image(extra: Self::Extra) -> <Self::ImageKind as RecordArenaCheckpointKind>::ExtraImage;
+    fn extra_from_image(
+        extra: <Self::ImageKind as RecordArenaCheckpointKind>::ExtraImage,
+    ) -> Self::Extra;
+    fn meta_to_image(meta: Self::Meta) -> <Self::ImageKind as RecordArenaCheckpointKind>::MetaImage;
+    fn meta_from_image(
+        meta: <Self::ImageKind as RecordArenaCheckpointKind>::MetaImage,
+    ) -> Self::Meta;
+}
+
+impl CheckpointArenaKind for EntityRecordKind {
+    type ImageKind = EntityCheckpointImageKind;
+
+    fn extra_to_image(extra: Self::Extra) -> EntityExtraImage {
+        EntityExtraImage {
+            structural_fingerprint: extra.structural_fingerprint,
+            lineage_id: extra.lineage_id,
+        }
+    }
+
+    fn extra_from_image(extra: EntityExtraImage) -> Self::Extra {
+        EntityExtra {
+            structural_fingerprint: extra.structural_fingerprint,
+            lineage_id: extra.lineage_id,
+        }
+    }
+
+    fn meta_to_image(meta: Self::Meta) -> VersionedEntityMetadataImage {
+        VersionedEntityMetadataImage {
+            effective_at: meta.effective_at,
+            retired_at: meta.retired_at,
+            generation: meta.generation,
+            kind_id: meta.kind_id,
+        }
+    }
+
+    fn meta_from_image(meta: VersionedEntityMetadataImage) -> Self::Meta {
+        VersionedEntityMetadata {
+            effective_at: meta.effective_at,
+            retired_at: meta.retired_at,
+            generation: meta.generation,
+            kind_id: meta.kind_id,
+        }
+    }
+}
+
+impl CheckpointArenaKind for RelationRecordKind {
+    type ImageKind = RelationCheckpointImageKind;
+
+    fn extra_to_image(extra: Self::Extra) -> Option<RelationEndpointsImage> {
+        extra.map(|endpoints| RelationEndpointsImage {
+            source: endpoints.source,
+            target: endpoints.target,
+        })
+    }
+
+    fn extra_from_image(extra: Option<RelationEndpointsImage>) -> Self::Extra {
+        extra.map(|endpoints| RelationEndpoints {
+            source: endpoints.source,
+            target: endpoints.target,
+        })
+    }
+
+    fn meta_to_image(meta: Self::Meta) -> VersionedRelationMetadataImage {
+        VersionedRelationMetadataImage {
+            effective_at: meta.effective_at,
+            retired_at: meta.retired_at,
+            generation: meta.generation,
+            kind_id: meta.kind_id,
+            endpoints: RelationEndpointsImage {
+                source: meta.endpoints.source,
+                target: meta.endpoints.target,
+            },
+        }
+    }
+
+    fn meta_from_image(meta: VersionedRelationMetadataImage) -> Self::Meta {
+        VersionedRelationMetadata {
+            effective_at: meta.effective_at,
+            retired_at: meta.retired_at,
+            generation: meta.generation,
+            kind_id: meta.kind_id,
+            endpoints: RelationEndpoints {
+                source: meta.endpoints.source,
+                target: meta.endpoints.target,
+            },
+        }
+    }
+}
+
+fn arena_to_image<K: CheckpointArenaKind>(
+    arena: RecordArena<K>,
+) -> RecordArenaCheckpointImage<K::ImageKind> {
+    RecordArenaCheckpointImage {
+        generations: arena.generations,
+        lifecycle: arena.lifecycle,
+        kind_ids: arena.kind_ids,
+        payloads: arena.payloads,
+        payload_history: arena
+            .payload_history
+            .into_iter()
+            .map(|entries| {
+                entries
+                    .into_iter()
+                    .map(|entry| VersionedPayloadImage {
+                        effective_at: entry.effective_at,
+                        retired_at: entry.retired_at,
+                        generation: entry.generation,
+                        value: entry.value,
+                    })
+                    .collect()
+            })
+            .collect(),
+        metadata_history: arena
+            .metadata_history
+            .into_iter()
+            .map(|entries| entries.into_iter().map(K::meta_to_image).collect())
+            .collect(),
+        created_at: arena.created_at,
+        retired_at: arena.retired_at,
+        aspect_versions: arena.aspect_versions,
+        extra: arena.extra.into_iter().map(K::extra_to_image).collect(),
+        diagnostics_enrichment: arena.diagnostics_enrichment,
+        branch_pins: arena.branch_pins,
+        replay_pins: arena.replay_pins,
+        snapshot_pins: arena.snapshot_pins,
+        live_bitset: DurableBitSet {
+            words: arena.live_bitset.words().to_vec(),
+        },
+        reclaimable_bitset: DurableBitSet {
+            words: arena.reclaimable_bitset.words().to_vec(),
+        },
+        free_list: arena.free_list,
+        marker: PhantomData,
+    }
+}
+
+fn arena_from_image<K: CheckpointArenaKind>(
+    partition_id: crate::identity::data::PartitionId,
+    image: RecordArenaCheckpointImage<K::ImageKind>,
+) -> RecordArena<K> {
+    RecordArena {
+        partition_ids: vec![partition_id; image.generations.len()],
+        generations: image.generations,
+        lifecycle: image.lifecycle,
+        kind_ids: image.kind_ids,
+        payloads: image.payloads,
+        payload_history: image
+            .payload_history
+            .into_iter()
+            .map(|entries| {
+                entries
+                    .into_iter()
+                    .map(|entry| VersionedPayload {
+                        effective_at: entry.effective_at,
+                        retired_at: entry.retired_at,
+                        generation: entry.generation,
+                        value: entry.value,
+                    })
+                    .collect()
+            })
+            .collect(),
+        metadata_history: image
+            .metadata_history
+            .into_iter()
+            .map(|entries| entries.into_iter().map(K::meta_from_image).collect())
+            .collect(),
+        created_at: image.created_at,
+        retired_at: image.retired_at,
+        extra: image.extra.into_iter().map(K::extra_from_image).collect(),
+        aspect_versions: image.aspect_versions,
+        diagnostics_enrichment: image.diagnostics_enrichment,
+        branch_pins: image.branch_pins,
+        replay_pins: image.replay_pins,
+        snapshot_pins: image.snapshot_pins,
+        live_bitset: DenseSlotBitSet::from_words(image.live_bitset.words),
+        reclaimable_bitset: DenseSlotBitSet::from_words(image.reclaimable_bitset.words),
+        free_list: image.free_list,
+    }
+}
 
 pub(super) fn partition_to_image(partition: PartitionState) -> PartitionCheckpointImage {
     PartitionCheckpointImage {
         partition_id: partition.partition_id,
-        entity_arena: EntityArenaCheckpointImage {
-            generations: partition.entity_arena.generations,
-            lifecycle: partition.entity_arena.lifecycle,
-            kind_ids: partition.entity_arena.kind_ids,
-            payloads: partition.entity_arena.payloads,
-            payload_history: partition
-                .entity_arena
-                .payload_history
-                .into_iter()
-                .map(|entries| {
-                    entries
-                        .into_iter()
-                        .map(|entry| VersionedPayloadImage {
-                            effective_at: entry.effective_at,
-                            retired_at: entry.retired_at,
-                            generation: entry.generation,
-                            value: entry.value,
-                        })
-                        .collect()
-                })
-                .collect(),
-            metadata_history: partition
-                .entity_arena
-                .metadata_history
-                .into_iter()
-                .map(|entries| {
-                    entries
-                        .into_iter()
-                        .map(|entry| VersionedEntityMetadataImage {
-                            effective_at: entry.effective_at,
-                            retired_at: entry.retired_at,
-                            generation: entry.generation,
-                            kind_id: entry.kind_id,
-                        })
-                        .collect()
-                })
-                .collect(),
-            created_at: partition.entity_arena.created_at,
-            retired_at: partition.entity_arena.retired_at,
-            aspect_versions: partition.entity_arena.aspect_versions,
-            structural_fingerprints: partition
-                .entity_arena
-                .extra
-                .iter()
-                .map(|extra| extra.structural_fingerprint)
-                .collect(),
-            lineage_ids: partition
-                .entity_arena
-                .extra
-                .iter()
-                .map(|extra| extra.lineage_id)
-                .collect(),
-            diagnostics_enrichment: partition.entity_arena.diagnostics_enrichment,
-            branch_pins: partition.entity_arena.branch_pins,
-            replay_pins: partition.entity_arena.replay_pins,
-            snapshot_pins: partition.entity_arena.snapshot_pins,
-            live_bitset: DurableBitSet {
-                words: partition.entity_arena.live_bitset.words().to_vec(),
-            },
-            reclaimable_bitset: DurableBitSet {
-                words: partition.entity_arena.reclaimable_bitset.words().to_vec(),
-            },
-            free_list: partition.entity_arena.free_list,
-        },
-        relation_arena: RelationArenaCheckpointImage {
-            generations: partition.relation_arena.generations,
-            lifecycle: partition.relation_arena.lifecycle,
-            kind_ids: partition.relation_arena.kind_ids,
-            payloads: partition.relation_arena.payloads,
-            payload_history: partition
-                .relation_arena
-                .payload_history
-                .into_iter()
-                .map(|entries| {
-                    entries
-                        .into_iter()
-                        .map(|entry| VersionedPayloadImage {
-                            effective_at: entry.effective_at,
-                            retired_at: entry.retired_at,
-                            generation: entry.generation,
-                            value: entry.value,
-                        })
-                        .collect()
-                })
-                .collect(),
-            metadata_history: partition
-                .relation_arena
-                .metadata_history
-                .into_iter()
-                .map(|entries| {
-                    entries
-                        .into_iter()
-                        .map(|entry| VersionedRelationMetadataImage {
-                            effective_at: entry.effective_at,
-                            retired_at: entry.retired_at,
-                            generation: entry.generation,
-                            kind_id: entry.kind_id,
-                            endpoints: RelationEndpointsImage {
-                                source: entry.endpoints.source,
-                                target: entry.endpoints.target,
-                            },
-                        })
-                        .collect()
-                })
-                .collect(),
-            created_at: partition.relation_arena.created_at,
-            retired_at: partition.relation_arena.retired_at,
-            endpoints: partition
-                .relation_arena
-                .extra
-                .into_iter()
-                .map(|endpoints| {
-                    endpoints.map(|endpoints| RelationEndpointsImage {
-                        source: endpoints.source,
-                        target: endpoints.target,
-                    })
-                })
-                .collect(),
-            aspect_versions: partition.relation_arena.aspect_versions,
-            diagnostics_enrichment: partition.relation_arena.diagnostics_enrichment,
-            branch_pins: partition.relation_arena.branch_pins,
-            replay_pins: partition.relation_arena.replay_pins,
-            snapshot_pins: partition.relation_arena.snapshot_pins,
-            live_bitset: DurableBitSet {
-                words: partition.relation_arena.live_bitset.words().to_vec(),
-            },
-            reclaimable_bitset: DurableBitSet {
-                words: partition.relation_arena.reclaimable_bitset.words().to_vec(),
-            },
-            free_list: partition.relation_arena.free_list,
-        },
+        entity_arena: arena_to_image::<EntityRecordKind>(partition.entity_arena),
+        relation_arena: arena_to_image::<RelationRecordKind>(partition.relation_arena),
         adjacency: partition
             .adjacency
             .into_iter()
@@ -163,133 +222,11 @@ pub(crate) fn partition_from_image(image: PartitionCheckpointImage) -> Partition
             backend: AdjacencyBackend::CompressedFanoutAdjacency,
             small_degree_inline_capacity: 4,
         },
-        entity_arena: EntityArena {
-            partition_ids: vec![image.partition_id; image.entity_arena.generations.len()],
-            generations: image.entity_arena.generations,
-            lifecycle: image.entity_arena.lifecycle,
-            kind_ids: image.entity_arena.kind_ids,
-            payloads: image.entity_arena.payloads,
-            payload_history: image
-                .entity_arena
-                .payload_history
-                .into_iter()
-                .map(|entries| {
-                    entries
-                        .into_iter()
-                        .map(|entry| VersionedPayload {
-                            effective_at: entry.effective_at,
-                            retired_at: entry.retired_at,
-                            generation: entry.generation,
-                            value: entry.value,
-                        })
-                        .collect()
-                })
-                .collect(),
-            metadata_history: image
-                .entity_arena
-                .metadata_history
-                .into_iter()
-                .map(|entries| {
-                    entries
-                        .into_iter()
-                        .map(|entry| VersionedEntityMetadata {
-                            effective_at: entry.effective_at,
-                            retired_at: entry.retired_at,
-                            generation: entry.generation,
-                            kind_id: entry.kind_id,
-                        })
-                        .collect()
-                })
-                .collect(),
-            created_at: image.entity_arena.created_at,
-            retired_at: image.entity_arena.retired_at,
-            aspect_versions: image.entity_arena.aspect_versions,
-            extra: image
-                .entity_arena
-                .structural_fingerprints
-                .into_iter()
-                .zip(image.entity_arena.lineage_ids)
-                .map(|(structural_fingerprint, lineage_id)| crate::storage::logic::state::EntityExtra {
-                    structural_fingerprint,
-                    lineage_id,
-                })
-                .collect(),
-            diagnostics_enrichment: image.entity_arena.diagnostics_enrichment,
-            branch_pins: image.entity_arena.branch_pins,
-            replay_pins: image.entity_arena.replay_pins,
-            snapshot_pins: image.entity_arena.snapshot_pins,
-            live_bitset: DenseSlotBitSet::from_words(image.entity_arena.live_bitset.words),
-            reclaimable_bitset: DenseSlotBitSet::from_words(
-                image.entity_arena.reclaimable_bitset.words,
-            ),
-            free_list: image.entity_arena.free_list,
-        },
-        relation_arena: RelationArena {
-            partition_ids: vec![image.partition_id; image.relation_arena.generations.len()],
-            generations: image.relation_arena.generations,
-            lifecycle: image.relation_arena.lifecycle,
-            kind_ids: image.relation_arena.kind_ids,
-            payloads: image.relation_arena.payloads,
-            payload_history: image
-                .relation_arena
-                .payload_history
-                .into_iter()
-                .map(|entries| {
-                    entries
-                        .into_iter()
-                        .map(|entry| VersionedPayload {
-                            effective_at: entry.effective_at,
-                            retired_at: entry.retired_at,
-                            generation: entry.generation,
-                            value: entry.value,
-                        })
-                        .collect()
-                })
-                .collect(),
-            metadata_history: image
-                .relation_arena
-                .metadata_history
-                .into_iter()
-                .map(|entries| {
-                    entries
-                        .into_iter()
-                        .map(|entry| VersionedRelationMetadata {
-                            effective_at: entry.effective_at,
-                            retired_at: entry.retired_at,
-                            generation: entry.generation,
-                            kind_id: entry.kind_id,
-                            endpoints: RelationEndpoints {
-                                source: entry.endpoints.source,
-                                target: entry.endpoints.target,
-                            },
-                        })
-                        .collect()
-                })
-                .collect(),
-            created_at: image.relation_arena.created_at,
-            retired_at: image.relation_arena.retired_at,
-            extra: image
-                .relation_arena
-                .endpoints
-                .into_iter()
-                .map(|endpoints| {
-                    endpoints.map(|endpoints| RelationEndpoints {
-                        source: endpoints.source,
-                        target: endpoints.target,
-                    })
-                })
-                .collect(),
-            aspect_versions: image.relation_arena.aspect_versions,
-            diagnostics_enrichment: image.relation_arena.diagnostics_enrichment,
-            branch_pins: image.relation_arena.branch_pins,
-            replay_pins: image.relation_arena.replay_pins,
-            snapshot_pins: image.relation_arena.snapshot_pins,
-            live_bitset: DenseSlotBitSet::from_words(image.relation_arena.live_bitset.words),
-            reclaimable_bitset: DenseSlotBitSet::from_words(
-                image.relation_arena.reclaimable_bitset.words,
-            ),
-            free_list: image.relation_arena.free_list,
-        },
+        entity_arena: arena_from_image::<EntityRecordKind>(image.partition_id, image.entity_arena),
+        relation_arena: arena_from_image::<RelationRecordKind>(
+            image.partition_id,
+            image.relation_arena,
+        ),
         adjacency: image
             .adjacency
             .into_iter()

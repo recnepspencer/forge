@@ -9,8 +9,10 @@ use crate::lineage::data::{
 };
 use crate::logic::runtime::{PartitionAccess, RelationalDraft, RelationalRuntime};
 use crate::transactions::data::RecordRef;
+use crate::transactions::data::{EntityMutationIntent, MutationIntent};
 use serde_json::json;
 use std::collections::BTreeSet;
+use crate::storage::substrate::RecordId;
 
 impl RelationalRuntime {
     pub fn lineage_graph(&self, branch_id: &BranchId) -> LineageGraphSnapshot {
@@ -81,14 +83,12 @@ impl RelationalRuntime {
     }
 
     pub fn lineage_for_record(&self, entity_id: EntityId) -> Option<&LineageNode> {
-        let slot = entity_id.local_slot.0 as usize;
         let lineage_id = self
             .partitions
             .get(&entity_id.partition_id)?
             .entity_arena
-            .extra
-            .get(slot)
-            .and_then(|extra| extra.lineage_id)?;
+            .get(&entity_id)
+            .and_then(|slot_view| slot_view.extra().lineage_id)?;
         self.lineage.nodes.get(&lineage_id)
     }
 
@@ -96,7 +96,7 @@ impl RelationalRuntime {
         &mut self,
         staged: &mut RelationalDraft,
         commit: &CommitReference,
-        merged_plan: &[crate::transactions::data::TransactionIntent],
+        merged_plan: &[MutationIntent],
         changed_records: &[RecordRef],
     ) -> Vec<u64> {
         let mut event_ids = Vec::new();
@@ -104,9 +104,9 @@ impl RelationalRuntime {
             let RecordRef::Entity(entity_id) = record else {
                 continue;
             };
-            let slot = entity_id.local_slot.0 as usize;
             let partition = staged.get_partition_mut(entity_id.partition_id);
-            if partition.entity_arena.created_at[slot] != commit.version_id {
+            let slot = entity_id.local_slot();
+            if partition.entity_arena.created_at.get(slot).copied() != Some(commit.version_id) {
                 continue;
             }
             let lineage_id = partition.entity_arena.extra[slot].lineage_id.unwrap_or_else(|| {
@@ -134,16 +134,12 @@ impl RelationalRuntime {
         let mut consumed_replace_targets = BTreeSet::new();
         for intent in merged_plan {
             match intent {
-                crate::transactions::data::TransactionIntent::DeleteEntity { entity_id } => {
+                MutationIntent::Entity(EntityMutationIntent::Delete(spec)) => {
+                    let entity_id = spec.entity_id;
                     if let Some(lineage_id) = staged
                         .get_partition(entity_id.partition_id)
-                        .and_then(|partition| {
-                            partition
-                                .entity_arena
-                                .extra
-                                .get(entity_id.local_slot.0 as usize)
-                                .and_then(|extra| extra.lineage_id)
-                        })
+                        .and_then(|partition| partition.entity_arena.get(&entity_id))
+                        .and_then(|slot_view| slot_view.extra().lineage_id)
                     {
                         let event_id = self.lineage.next_event_id;
                         self.lineage.next_event_id += 1;
@@ -158,23 +154,17 @@ impl RelationalRuntime {
                         event_ids.push(event_id);
                     }
                 }
-                crate::transactions::data::TransactionIntent::ReplaceEntity {
-                    entity_id,
-                    replacement,
-                } => {
+                MutationIntent::Entity(EntityMutationIntent::Replace(spec)) => {
+                    let entity_id = spec.entity_id;
+                    let replacement = &spec.replacement;
                     let source_lineage_id = staged
                         .get_partition(entity_id.partition_id)
-                        .and_then(|partition| {
-                            partition
-                                .entity_arena
-                                .extra
-                                .get(entity_id.local_slot.0 as usize)
-                                .and_then(|extra| extra.lineage_id)
-                        });
+                        .and_then(|partition| partition.entity_arena.get(&entity_id))
+                        .and_then(|slot_view| slot_view.extra().lineage_id);
                     let replacement_entity_id = find_replace_target_entity(
                         staged,
                         changed_records,
-                        *entity_id,
+                        entity_id,
                         replacement.partition_id,
                         replacement.kind_id,
                         commit.version_id,
@@ -188,13 +178,8 @@ impl RelationalRuntime {
                     };
                     let replacement_lineage_id = staged
                         .get_partition(replacement_entity_id.partition_id)
-                        .and_then(|partition| {
-                            partition
-                                .entity_arena
-                                .extra
-                                .get(replacement_entity_id.local_slot.0 as usize)
-                                .and_then(|extra| extra.lineage_id)
-                        });
+                        .and_then(|partition| partition.entity_arena.get(&replacement_entity_id))
+                        .and_then(|slot_view| slot_view.extra().lineage_id);
                     let Some(replacement_lineage_id) = replacement_lineage_id else {
                         continue;
                     };
@@ -210,7 +195,7 @@ impl RelationalRuntime {
                     });
                     event_ids.push(event_id);
                 }
-                _ => {}
+                MutationIntent::Create(_) | MutationIntent::Relation(_) | MutationIntent::Entity(EntityMutationIntent::Update(_)) => {}
             }
         }
         event_ids
@@ -228,12 +213,9 @@ impl RelationalRuntime {
             .durability
             .log
             .iter_mut()
-            .find(|entry| entry.envelope.commit.commit_id == commit_id)
+            .find(|entry| entry.commit.commit_id == commit_id)
         {
-            log_entry
-                .envelope
-                .lineage_event_ids
-                .extend(event_ids.iter().copied());
+            log_entry.lineage_event_ids.extend(event_ids.iter().copied());
         }
         self.push_bounded_diagnostic(
             DiagnosticsScope::Lineage,
@@ -270,11 +252,14 @@ fn find_replace_target_entity(
             continue;
         }
         let partition = staged.get_partition(candidate.partition_id)?;
-        let slot = candidate.local_slot.0 as usize;
+        let slot = candidate.local_slot();
         let created_now = partition.entity_arena.created_at.get(slot) == Some(&version_id);
         let matching_partition = candidate.partition_id == replacement_partition_id;
-        let matching_kind =
-            partition.entity_arena.kind_ids.get(slot) == Some(&Some(replacement_kind_id));
+        let matching_kind = partition
+            .entity_arena
+            .get(candidate)
+            .and_then(|slot_view| slot_view.kind_id())
+            == Some(replacement_kind_id);
         if created_now && matching_partition && matching_kind {
             consumed_replace_targets.insert(*candidate);
             return Some(*candidate);

@@ -1,6 +1,7 @@
 use crate::config::data::{
-    AdjacencyPolicy, CascadeDeletePolicy, CompiledLanePolicy, CrossContextPolicy, DurableLogPolicy,
-    MvccConfig, PublicationConfig, RelationalConfigOverride, RelationalRuntimeProfile,
+    AdjacencyPolicy, CascadeDeletePolicy, CompiledLanePolicy, CrossContextPolicy, DurabilityPolicy,
+    DurableLogPolicy, MvccConfig, PublicationConfig, RelationalConfigOverride,
+    RelationalRuntimeProfile,
     StorageLayoutConfig, VisibilityCachePolicy,
 };
 use crate::diagnostics::data::RelationalDiagnosticsProfile;
@@ -139,6 +140,11 @@ impl RelationalRuntimeBuilder {
         self
     }
 
+    pub fn durability_policy(mut self, durability_policy: DurabilityPolicy) -> Self {
+        self.config_override.durability_policy = Some(durability_policy);
+        self
+    }
+
     pub fn durable_store_layout(mut self, durable_store_layout: DurableStoreLayout) -> Self {
         self.config_override.durable_store_layout = Some(durable_store_layout);
         self
@@ -185,7 +191,7 @@ impl RelationalRuntimeBuilder {
             config.invariant_catalog = invariant_catalog;
         }
         if let Some(durability_mode) = self.durability_mode {
-            config.durability_mode = durability_mode;
+            config.durability.mode = durability_mode;
         }
         RelationalRuntime::new(config)
     }

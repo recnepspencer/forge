@@ -11,9 +11,9 @@ use serde_json::json;
 
 use crate::facade::{PartitionId, RelationalRuntime, RelationalRuntimeApi};
 use crate::payloads::data::RecordPayload;
-use crate::query::data::{QueryWorkPacket, ReadTarget};
+use crate::query::data::QueryWorkPacket;
 use crate::symbols::data::InternedString;
-use crate::transactions::data::{TransactionIntent, TransactionOptions, WorkerIntentBatch};
+use crate::transactions::data::{RecordRef, TransactionIntent, TransactionOptions, WorkerIntentBatch};
 
 use super::harness_data::{
     RelationalFixture, RelationalHarnessAdapter, RelationalHarnessError, RelationalMutation,
@@ -225,12 +225,12 @@ impl HarnessAdapter for RelationalHarnessAdapter {
             .into_iter()
             .map(|target| {
                 let payload = match parse_target(&target)? {
-                    ReadTarget::Entity(entity_id) => {
+                    RecordRef::Entity(entity_id) => {
                         read_view.get_entity(entity_id).map(|entity| {
                             SnapshotPayload::Structured(StructuredValue::Json(json!(entity)))
                         })
                     }
-                    ReadTarget::Relation(relation_id) => {
+                    RecordRef::Relation(relation_id) => {
                         read_view.get_relation(relation_id).map(|relation| {
                             SnapshotPayload::Structured(StructuredValue::Json(json!(relation)))
                         })
