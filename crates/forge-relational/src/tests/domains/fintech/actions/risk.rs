@@ -1,7 +1,7 @@
 use serde_json::json;
 
 use crate::facade::{
-    BranchId, CommitOutcome, EntityMutationIntent, RecordPayload, MutationIntent,
+    BranchId, CommitResult, EntityMutationIntent, RecordPayload, MutationIntent,
     TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
 };
 
@@ -10,7 +10,7 @@ use super::super::fixture::FintechWorld;
 pub(crate) fn shock_market_on_branch(
     world: &mut FintechWorld,
     branch_id: BranchId,
-) -> CommitOutcome {
+) -> CommitResult {
     let mut txn = world.runtime.begin_transaction(TransactionOptions {
         target_branch: Some(branch_id),
         ..TransactionOptions::default()
@@ -31,7 +31,7 @@ pub(crate) fn shock_market_on_branch(
     txn.commit().unwrap()
 }
 
-pub(crate) fn refresh_risk_views(world: &mut FintechWorld, branch_id: BranchId) -> CommitOutcome {
+pub(crate) fn refresh_risk_views(world: &mut FintechWorld, branch_id: BranchId) -> CommitResult {
     let mut txn = world.runtime.begin_transaction(TransactionOptions {
         target_branch: Some(branch_id),
         ..TransactionOptions::default()
@@ -55,7 +55,7 @@ pub(crate) fn refresh_risk_views(world: &mut FintechWorld, branch_id: BranchId) 
 pub(crate) fn stress_seeded_intraday_risk(
     world: &mut FintechWorld,
     branch_id: BranchId,
-) -> CommitOutcome {
+) -> CommitResult {
     let case = world.intraday_risk_case();
     let mut txn = world.runtime.begin_transaction(TransactionOptions {
         target_branch: Some(branch_id),

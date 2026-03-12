@@ -137,7 +137,7 @@ fn run_deep_chain(
     }
     for index in 1..chain.len() {
         graph
-            .add_dependency(chain[index], chain[index - 1], ASPECT_A)
+            .set_dependencies(chain[index], [DependencyEdge::new(chain[index - 1], ASPECT_A)])
             .unwrap();
     }
 
@@ -236,9 +236,14 @@ fn run_partition_tolerance(
     for (index, branch) in branches.iter().copied().enumerate() {
         let partition = if index % 2 == 0 { "shell" } else { "core" };
         graph
-            .add_partition_dependency(branch, source, ASPECT_A, partition)
+            .set_dependencies(
+                branch,
+                [DependencyEdge::whole_partition(source, ASPECT_A, partition)],
+            )
             .unwrap();
-        graph.add_dependency(target, branch, ASPECT_A).unwrap();
+        graph
+            .set_dependencies(target, [DependencyEdge::new(branch, ASPECT_A)])
+            .unwrap();
     }
 
     let bootstrap_targets: Vec<_> = std::iter::once(source)

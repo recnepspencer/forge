@@ -47,6 +47,9 @@ These rules come from [forge_relational_vision.md](./forge_relational_vision.md)
 - reads never perform hidden mutation, normalization, or repair
 - breaking APIs is acceptable; semantic drift is not
 - harness parity is part of completion, not follow-up cleanup
+- if intermediate structural maintenance has no semantic value inside a batch,
+  amortize it at the merged-batch boundary and reuse batch-derived summaries or
+  deltas instead of recomputing structure in each subsystem
 
 ## Milestone Planning Template
 
@@ -180,13 +183,17 @@ Acceptance focus:
 - invariants declare group, cost, execution point, and failure effect
 - mutation intents declare what invariant groups they can affect
 - invariant execution becomes targeted and policy-driven
-- verdicts distinguish pass, fail, and not-applicable/skip cases
+- verdicts distinguish pass, advisory, and violation cases
+- merged-plan structural facts are hoisted and reused rather than repeatedly
+  recomputed inside invariant paths
 
 Must remain unchanged:
 
 - always-on structural safety
 - deterministic diagnostics
 - explicit failure classes
+- batch-final truth semantics: intermediate structural maintenance remains
+  non-authoritative unless it is itself an explicit batch artifact
 
 ### Milestone 5: Commit Architecture
 
@@ -209,12 +216,16 @@ Acceptance focus:
 - commit decisions are explicitly recorded
 - callers receive one coherent commit result envelope
 - success and failure paths expose structured machine-usable context
+- commit phases consume batch-derived summaries or deltas rather than
+  rediscovering the same structural facts independently
 
 Must remain unchanged:
 
 - atomic publication contract
 - canonical patch/replay relationship
 - branch/history determinism
+- semantic focus on final batch truth rather than intermediate per-intent
+  structural states
 
 ### Milestone 6: API Surface
 

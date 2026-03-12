@@ -6,7 +6,7 @@ use std::num::NonZeroU32;
 
 use crate::data::aspect::{Aspect, AspectMask};
 use crate::data::handle::NodeId;
-use crate::data::output::{InternedPartitionSubscription, PartitionSubscription};
+use crate::data::output::{InternedPartitionSubscription, PartitionSubscription, PartitionToken};
 /// A dependency edge recording which upstream node and aspect a downstream reads.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DependencyEdge {
@@ -41,6 +41,49 @@ impl DependencyEdge {
             aspect,
             scope: Some(scope),
             interned_scope: Some(interned_scope),
+        }
+    }
+
+    /// Create a dependency edge scoped to one whole partition.
+    pub fn whole_partition(
+        source: NodeId,
+        aspect: Aspect,
+        partition: impl Into<PartitionToken>,
+    ) -> Self {
+        Self {
+            source,
+            aspect,
+            scope: Some(PartitionSubscription::whole_partition(partition)),
+            interned_scope: None,
+        }
+    }
+
+    /// Create a dependency edge from an explicit partition subscription scope.
+    pub fn with_partition_scope(
+        source: NodeId,
+        aspect: Aspect,
+        scope: PartitionSubscription,
+    ) -> Self {
+        Self {
+            source,
+            aspect,
+            scope: Some(scope),
+            interned_scope: None,
+        }
+    }
+
+    /// Create a dependency edge scoped to one partition detail.
+    pub fn partition_detail(
+        source: NodeId,
+        aspect: Aspect,
+        partition: impl Into<PartitionToken>,
+        detail: impl Into<String>,
+    ) -> Self {
+        Self {
+            source,
+            aspect,
+            scope: Some(PartitionSubscription::partition_and_detail(partition, detail)),
+            interned_scope: None,
         }
     }
 

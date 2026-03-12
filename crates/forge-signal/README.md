@@ -33,8 +33,7 @@ let total = graph
     .depends_on_aspects([PRICE, TAX])
     .on_demand()
     .build();
-
-graph.add_dependency(total, price, PRICE)?;
+graph.set_dependencies(total, [DependencyEdge::new(price, PRICE)])?;
 
 let mut runtime = SignalRuntime::builder(graph)
     .checkpoint_barrier(CheckpointBarrier::PerOperation)
@@ -60,30 +59,6 @@ runtime.transaction(&mut (), |transaction| {
 - condition helpers like `on_demand()`, `debounce(...)`, `aspect_filter(...)`, `delta_threshold(...)`, and `custom_condition(...)` keep common policies readable
 - `transaction(...)` gives one linear mutation/evaluation flow
 - `graph.node()` replaces raw config-struct-heavy node creation for common cases
-
-### Partition-aware subscriptions
-
-When one upstream artifact is internally partitioned, downstream nodes can subscribe to only the partition they care about.
-
-```rust
-use forge_signal::facade::*;
-
-const GEOMETRY: Aspect = Aspect::new(0);
-
-let mut graph = SignalGraph::new();
-let mesh = graph.node().partitioned_output().build();
-let wing_mass = graph.node().build();
-
-graph.add_partition_detail_dependency(wing_mass, mesh, GEOMETRY, "wing", "rib-12")?;
-mark_dirty_with_regions(
-    &mut graph,
-    mesh,
-    GEOMETRY,
-    &[ChangedRegion::new("wing").with_detail("rib-12")],
-)?;
-```
-
-This keeps large projection graphs from over-invalidating when only one region of a derived artifact changed.
 
 ### Conditions
 

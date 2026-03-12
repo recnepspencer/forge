@@ -7,8 +7,8 @@ fn kv63_circular_reference_detected() {
     let a = graph.node().build();
     let b = graph.node().build();
 
-    graph.add_dependency(b, a, ASPECT_B).unwrap();
-    graph.add_dependency(a, b, ASPECT_B).unwrap();
+    graph.append_dependency(b, a, ASPECT_B).unwrap();
+    graph.append_dependency(a, b, ASPECT_B).unwrap();
 
     let result = mark_dirty(&mut graph, a, ASPECT_B);
     assert!(
@@ -36,12 +36,12 @@ fn kv64_parallel_branches_deterministic() {
     for _ in 0..5 {
         let mut branch = Vec::new();
         let first = graph.node().build();
-        graph.add_dependency(first, root, ASPECT_B).unwrap();
+        graph.append_dependency(first, root, ASPECT_B).unwrap();
         branch.push(first);
 
         for j in 1..10 {
             let node = graph.node().build();
-            graph.add_dependency(node, branch[j - 1], ASPECT_B).unwrap();
+            graph.append_dependency(node, branch[j - 1], ASPECT_B).unwrap();
             branch.push(node);
         }
         branches.push(branch);

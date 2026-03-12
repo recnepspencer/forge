@@ -10,7 +10,7 @@ fn maybe_stale_partition_nodes_recompute_when_changed_region_evidence_is_absent(
     let source = graph.node().partitioned_output().build();
     let dependent = graph.node().build();
     graph
-        .add_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
+        .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
@@ -51,7 +51,7 @@ fn maybe_stale_partition_nodes_validate_clean_when_other_detail_changes() {
     let source = graph.node().partitioned_output().build();
     let dependent = graph.node().build();
     graph
-        .add_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
+        .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
 
     let bootstrap = graph

@@ -13,7 +13,7 @@ fn chain_1000_minimal_recomputation() {
 
     for i in 1..1000 {
         let node = graph.create_node();
-        graph.add_dependency(node, chain[i - 1], ASPECT_B).unwrap();
+        graph.append_dependency(node, chain[i - 1], ASPECT_B).unwrap();
         chain.push(node);
     }
 
@@ -44,7 +44,7 @@ fn push_perf_10k_nodes() {
 
     for i in 1..10_000 {
         let node = graph.create_node();
-        graph.add_dependency(node, chain[i - 1], ASPECT_B).unwrap();
+        graph.append_dependency(node, chain[i - 1], ASPECT_B).unwrap();
         chain.push(node);
     }
 

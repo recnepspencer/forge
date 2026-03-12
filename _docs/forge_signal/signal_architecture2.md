@@ -556,6 +556,62 @@ pub struct TransactionReplayEntry {
 > [!NOTE]
 > This phase subsumes V1's R8 (zero-allocation planner), R9 (feature-gated execution), and R10 (amortized GC). The designs are refined to align with the subsystem and contract patterns from S1–S2.
 
+### Cross-Cutting Rule — Batch-Scoped Structural Maintenance
+
+> [!IMPORTANT]
+> Amortize structural maintenance across a batch boundary whenever
+> intermediate states have no semantic value.
+
+This is now a core Forge Signal architecture rule, not an optional
+optimization pattern.
+
+The staged/session-backed execution model already gives the system natural
+batch boundaries: planning sessions, evaluation stages, transaction commit,
+rollback repair, scenario assembly, and any topology reconciliation pass that
+derives one final committed truth. When only that final truth is observable,
+Forge Signal must not pay to maintain every intermediate structural state as if
+it were semantically meaningful.
+
+The rule is simple:
+
+- if only the final batch or stage truth is observable
+- and intermediate structural states do not affect semantics in-flight
+- then structural work must be accumulated first
+- and committed once per affected node, source, set, or stage boundary
+
+This applies especially to:
+
+- dependency rewiring and subscriber membership maintenance
+- staged prepared-apply pipelines
+- scenario/setup graph assembly
+- rollback and repair passes
+- snapshot, topology, or diagnostics artifacts that can be derived once from a
+  merged batch result
+
+**Operational contract**
+
+Batch-first surfaces are the architectural default. Per-edit structural
+mutation is not an acceptable hot-path contract unless the caller can prove
+that intermediate states are semantically observable and required.
+
+In practice, that means:
+
+- batch/session APIs are the primary operational path
+- per-edit topology maintenance is a low-level implementation detail, not a
+  design surface
+- downstream diagnostics should prefer batch-derived summaries over repeated
+  structural reconstruction
+
+**Review rule**
+
+When reviewing hot-path code, ask:
+
+- is any intermediate structural state observable outside this batch?
+- are we rewriting storage more than once for the same affected set?
+- could this work be accumulated by node, source, or stage and committed once?
+- are downstream consumers reconstructing structure that the batch boundary
+  already knew?
+
 ### S5.1 — Contract-Driven Plan Pruning
 
 After S2 lands, the planner has `NodeContract.reads` available. The `populate_plan_buffers` function in [planning/mod.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-signal/src/logic/planner/planning/mod.rs) currently includes all `Dirty`/`MaybeStale` nodes. With contracts, nodes whose `reads` mask doesn't intersect the propagated `changed_aspects` mask are excluded at planning time, before any evaluation runs.

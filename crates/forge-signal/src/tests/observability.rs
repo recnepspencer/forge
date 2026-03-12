@@ -38,7 +38,7 @@ fn explain_reports_changed_upstream() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
 
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     let mut source_v2 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(2, 0));
@@ -63,7 +63,7 @@ fn explain_reports_clean_upstream_when_snapshot_matches() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, source, &mut compute).unwrap();
@@ -83,8 +83,8 @@ fn explain_reports_skipped_by_comparator_via_runtime_policy() {
     let source = graph.node().build();
     let middle = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(middle, source, ASPECT_A).unwrap();
-    graph.add_dependency(dependent, middle, ASPECT_A).unwrap();
+    graph.append_dependency(middle, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, middle, ASPECT_A).unwrap();
 
     let mut runtime = build_runtime(graph);
     runtime.set_node_tier(dependent, Tier::Slow);
@@ -129,7 +129,7 @@ fn explicit_omit_policy_surfaces_unavailable_artifacts() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
     graph.set_runtime_policy(
         SignalRuntimePolicy::operational()
             .with_explanation_retention(ArtifactRetentionPolicy::Omit)
@@ -154,7 +154,7 @@ fn explicit_retained_and_reconstructed_artifact_apis_match_policy() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
     graph.set_runtime_policy(SignalRuntimePolicy::development());
     let bootstrap = graph
         .build_evaluation_plan(&[source, dependent], EvaluationRequestMode::ForceOnDemand)
@@ -237,7 +237,7 @@ fn explain_reports_condition_deferred_for_on_demand_nodes() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().on_demand().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
 
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     let mut source_v2 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(2, 0));
@@ -264,7 +264,7 @@ fn explain_reports_missing_snapshot_and_dependency_removed() {
     let mut source_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, source, &mut source_compute).unwrap();
 
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
     let missing_snapshot = graph.observe().explain(dependent).unwrap();
     assert!(missing_snapshot
         .upstream
@@ -278,7 +278,7 @@ fn explain_reports_missing_snapshot_and_dependency_removed() {
     let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(10, 0));
     evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
     graph
-        .remove_dependency(dependent, source, ASPECT_A)
+        .drop_dependency(dependent, source, ASPECT_A)
         .unwrap();
 
     let removed = graph.observe().explain(dependent).unwrap();
@@ -319,8 +319,8 @@ fn dependency_inspection_apis_are_deterministic() {
     let root = graph.node().build();
     let middle = graph.node().build();
     let target = graph.node().build();
-    graph.add_dependency(middle, root, ASPECT_A).unwrap();
-    graph.add_dependency(target, middle, ASPECT_B).unwrap();
+    graph.append_dependency(middle, root, ASPECT_A).unwrap();
+    graph.append_dependency(target, middle, ASPECT_B).unwrap();
 
     assert_eq!(graph.dependencies_of(target).unwrap().len(), 1);
     assert_eq!(graph.subscribers_of(root).unwrap(), &[middle]);
@@ -337,7 +337,7 @@ fn dot_export_contains_state_color_and_edge_labels() {
     let source = graph.node().build();
     let dependent = graph.node().on_demand().build();
     graph
-        .add_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
+        .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
@@ -355,7 +355,7 @@ fn metrics_snapshots_reflect_runtime_activity() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
     let mut runtime = build_runtime(graph);
 
     let outcome = runtime
@@ -381,9 +381,15 @@ fn explanation_is_deterministic_with_multiple_upstreams_and_mixed_states() {
     let source_b = graph.node().build();
     let source_c = graph.node().build();
     let dependent = graph.node().on_demand().build();
-    graph.add_dependency(dependent, source_b, ASPECT_B).unwrap();
-    graph.add_dependency(dependent, source_a, ASPECT_A).unwrap();
-    graph.add_dependency(dependent, source_c, ASPECT_A).unwrap();
+    let mut dependencies = DependencyBatchBuilder::new(&mut graph);
+    dependencies
+        .append_dependency(dependent, source_b, ASPECT_B)
+        .unwrap()
+        .append_dependency(dependent, source_a, ASPECT_A)
+        .unwrap()
+        .append_dependency(dependent, source_c, ASPECT_A)
+        .unwrap();
+    dependencies.commit().unwrap();
 
     let mut source_a_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     let mut source_a_v2 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(2, 0));
@@ -419,7 +425,7 @@ fn rollback_preserves_committed_explanation_and_increments_rollback_metric() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
     let mut runtime = build_runtime(graph);
 
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
@@ -454,7 +460,7 @@ fn flow_diagnostics_attach_event_epochs_after_successful_commit() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
     let mut runtime = build_runtime(graph);
 
     runtime
@@ -496,7 +502,7 @@ fn fillet_style_explanation_stays_local_to_the_changed_partition_scope() {
     let unrelated_region = graph.node().partitioned_output().build();
     let fillet = graph.node().build();
     graph
-        .add_partition_detail_dependency(fillet, feature_edit, ASPECT_A, "surface", "fillet-band")
+        .append_partition_detail_dependency(fillet, feature_edit, ASPECT_A, "surface", "fillet-band")
         .unwrap();
 
     let bootstrap = graph
@@ -566,7 +572,7 @@ fn flow_cause_samples_surface_locality_triage_without_false_rewiring() {
     let source = graph.node().partitioned_output().build();
     let fillet = graph.node().build();
     graph
-        .add_partition_detail_dependency(fillet, source, ASPECT_A, "surface", "fillet-band")
+        .append_partition_detail_dependency(fillet, source, ASPECT_A, "surface", "fillet-band")
         .unwrap();
     let mut runtime = build_runtime(graph);
 

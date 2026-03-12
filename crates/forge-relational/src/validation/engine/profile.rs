@@ -1,6 +1,4 @@
-use crate::validation::data::{InvariantCostClass, InvariantExecutionPoint, InvariantGroup, InvariantGroupSet};
-
-use super::policy::InvariantExecutionPolicy;
+use crate::validation::data::{InvariantExecutionPoint, InvariantGroup, InvariantGroupSet};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum InvariantRequestProfile {
@@ -35,37 +33,25 @@ impl InvariantRequestProfile {
         }
     }
 
-    pub(crate) fn groups(self) -> InvariantGroupSet {
+    pub(crate) fn base_groups(self) -> InvariantGroupSet {
         match self {
-            Self::CommitBoundary => InvariantGroupSet::of(InvariantGroup::Mutation)
-                .union(InvariantGroupSet::of(InvariantGroup::Uniqueness))
-                .union(InvariantGroupSet::of(InvariantGroup::History)),
+            Self::CommitBoundary => InvariantGroupSet::of(InvariantGroup::StorageCoherence)
+                .union(InvariantGroupSet::of(InvariantGroup::IdentityCoherence))
+                .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance))
+                .union(InvariantGroupSet::of(InvariantGroup::LineageIntegrity))
+                .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence)),
             Self::MutationSensitive => {
-                InvariantGroupSet::of(InvariantGroup::Structural)
-                    .union(InvariantGroupSet::of(InvariantGroup::Mutation))
-                    .union(InvariantGroupSet::of(InvariantGroup::Uniqueness))
+                InvariantGroupSet::of(InvariantGroup::StorageCoherence)
+                    .union(InvariantGroupSet::of(InvariantGroup::IdentityCoherence))
+                    .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance))
+                    .union(InvariantGroupSet::of(InvariantGroup::AdjacencyIntegrity))
+                    .union(InvariantGroupSet::of(InvariantGroup::LineageIntegrity))
             }
             Self::SnapshotPublication => {
-                InvariantGroupSet::of(InvariantGroup::Snapshot)
-                    .union(InvariantGroupSet::of(InvariantGroup::Publication))
+                InvariantGroupSet::of(InvariantGroup::VersionVisibility)
+                    .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
             }
             Self::HarnessAudit => InvariantGroupSet::all(),
         }
-    }
-
-    pub(crate) fn policy(self) -> InvariantExecutionPolicy {
-        match self {
-            Self::CommitBoundary | Self::SnapshotPublication => {
-                InvariantExecutionPolicy::MaxCost(InvariantCostClass::FullScan)
-            }
-            Self::MutationSensitive => {
-                InvariantExecutionPolicy::MaxCost(InvariantCostClass::TargetedScan)
-            }
-            Self::HarnessAudit => InvariantExecutionPolicy::AllowAll,
-        }
-    }
-
-    pub(crate) fn requires_plan(self) -> bool {
-        matches!(self, Self::CommitBoundary)
     }
 }

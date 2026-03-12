@@ -43,8 +43,8 @@ fn overlapping_mark_dirty_calls_do_not_revisit_already_staged_subgraphs() {
     let a = graph.create_node();
     let b = graph.create_node();
     let c = graph.create_node();
-    graph.add_dependency(b, a, ASPECT_A).unwrap();
-    graph.add_dependency(c, b, ASPECT_A).unwrap();
+    graph.append_dependency(b, a, ASPECT_A).unwrap();
+    graph.append_dependency(c, b, ASPECT_A).unwrap();
 
     let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
     let mut ctx = ();
@@ -73,11 +73,11 @@ fn repeated_gc_compaction_cycles_stay_near_live_edge_storage() {
             } else {
                 ASPECT_B
             };
-            let _ = runtime.graph_mut().remove_dependency(leaf, root, ASPECT_A);
-            let _ = runtime.graph_mut().remove_dependency(leaf, root, ASPECT_B);
+            let _ = runtime.graph_mut().drop_dependency(leaf, root, ASPECT_A);
+            let _ = runtime.graph_mut().drop_dependency(leaf, root, ASPECT_B);
             runtime
                 .graph_mut()
-                .add_dependency(leaf, root, aspect)
+                .append_dependency(leaf, root, aspect)
                 .unwrap();
         }
         runtime.graph_mut().run_gc_epoch();

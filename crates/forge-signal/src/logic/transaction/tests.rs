@@ -496,7 +496,7 @@ fn mark_dirty_after_evaluate_staging_still_stages_downstream_rollback_coverage()
     let mut graph = crate::data::graph::SignalGraph::new();
     let source = graph.node().build();
     let downstream = graph.node().build();
-    graph.add_dependency(downstream, source, ASPECT_A).unwrap();
+    graph.append_dependency(downstream, source, ASPECT_A).unwrap();
     let mut runtime = build_runtime(graph);
     let mut ctx = ();
 
@@ -604,8 +604,8 @@ fn tier_comparator_inheritance_uses_tier_default() {
     let a = graph.node().build();
     let b = graph.node().build();
     let c = graph.node().build();
-    graph.add_dependency(b, a, ASPECT_B).unwrap();
-    graph.add_dependency(c, b, ASPECT_B).unwrap();
+    graph.append_dependency(b, a, ASPECT_B).unwrap();
+    graph.append_dependency(c, b, ASPECT_B).unwrap();
     let mut runtime = build_runtime(graph);
     runtime.set_node_tier(c, Tier::A);
     runtime.set_tier_policy(
@@ -700,7 +700,7 @@ fn rollback_removes_dynamic_dependency_capture_ghost_subscribers() {
     let source_a = graph.node().build();
     let source_b = graph.node().build();
     let target = graph.node().build();
-    graph.add_dependency(target, source_a, ASPECT_A).unwrap();
+    graph.append_dependency(target, source_a, ASPECT_A).unwrap();
 
     let mut runtime = build_runtime(graph);
     let mut ctx = ();
@@ -756,7 +756,7 @@ fn rollback_restores_original_source_subscriber_membership_after_rewire() {
     let source_a = graph.node().build();
     let source_b = graph.node().build();
     let target = graph.node().build();
-    graph.add_dependency(target, source_a, ASPECT_A).unwrap();
+    graph.append_dependency(target, source_a, ASPECT_A).unwrap();
 
     let mut runtime = build_runtime(graph);
     let mut ctx = ();

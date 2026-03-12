@@ -47,6 +47,8 @@ pub(crate) struct TraversalResources {
     pub(in crate::data::graph) scratch_lease: Option<ScratchLeaseKind>,
     #[serde(skip, default)]
     pub(in crate::data::graph) suppression_marks: DenseBitset,
+    #[serde(skip, default)]
+    pub(in crate::data::graph) topology_node_buffer: Vec<NodeId>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

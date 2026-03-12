@@ -162,13 +162,26 @@ fn main() {
     let core = graph.node().tolerance(1).partitioned_output().build();
     let target = graph.node().output_identity().build();
     graph
-        .add_partition_dependency(shell, source, ASPECT_A, "shell")
+        .set_dependencies(
+            shell,
+            [DependencyEdge::whole_partition(source, ASPECT_A, "shell")],
+        )
         .unwrap();
     graph
-        .add_partition_dependency(core, source, ASPECT_A, "mesh")
+        .set_dependencies(
+            core,
+            [DependencyEdge::whole_partition(source, ASPECT_A, "mesh")],
+        )
         .unwrap();
-    graph.add_dependency(target, shell, ASPECT_A).unwrap();
-    graph.add_dependency(target, core, ASPECT_A).unwrap();
+    graph
+        .set_dependencies(
+            target,
+            [
+                DependencyEdge::new(shell, ASPECT_A),
+                DependencyEdge::new(core, ASPECT_A),
+            ],
+        )
+        .unwrap();
 
     let bootstrap = graph
         .build_evaluation_plan(

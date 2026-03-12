@@ -1,6 +1,6 @@
-use crate::data::dependency::DependencySnapshot;
+use crate::data::dependency::{DependencyEdge, DependencySnapshot};
 use crate::facade::*;
-use crate::tests::support::{version_ab, ASPECT_A, ASPECT_B};
+use crate::tests::support::{DependencyBatchBuilder, version_ab, ASPECT_A, ASPECT_B};
 
 #[test]
 fn repeated_edge_churn_preserves_dependency_and_subscriber_integrity() {
@@ -11,7 +11,7 @@ fn repeated_edge_churn_preserves_dependency_and_subscriber_integrity() {
     for round in 0..40 {
         for &leaf in &leaves {
             let aspect = if round % 2 == 0 { ASPECT_A } else { ASPECT_B };
-            graph.add_dependency(leaf, hub, aspect).unwrap();
+            graph.append_dependency(leaf, hub, aspect).unwrap();
             assert!(graph
                 .dependencies_of(leaf)
                 .unwrap()
@@ -21,8 +21,8 @@ fn repeated_edge_churn_preserves_dependency_and_subscriber_integrity() {
 
         for &leaf in leaves.iter().step_by(3) {
             let aspect = if round % 2 == 0 { ASPECT_A } else { ASPECT_B };
-            graph.remove_dependency(leaf, hub, aspect).unwrap();
-            graph.add_dependency(leaf, hub, aspect).unwrap();
+            graph.drop_dependency(leaf, hub, aspect).unwrap();
+            graph.append_dependency(leaf, hub, aspect).unwrap();
         }
 
         let subscribers = graph.subscribers_of(hub).unwrap();
@@ -110,16 +110,16 @@ fn unregister_and_slot_reuse_after_churn_leave_no_ghost_edges() {
     let middle = graph.node().build();
     let downstreams: Vec<_> = (0..24).map(|_| graph.node().build()).collect();
 
-    graph.add_dependency(middle, upstream, ASPECT_A).unwrap();
+    graph.append_dependency(middle, upstream, ASPECT_A).unwrap();
     for &downstream in &downstreams {
-        graph.add_dependency(downstream, middle, ASPECT_B).unwrap();
+        graph.append_dependency(downstream, middle, ASPECT_B).unwrap();
     }
 
     for &downstream in downstreams.iter().step_by(2) {
         graph
-            .remove_dependency(downstream, middle, ASPECT_B)
+            .drop_dependency(downstream, middle, ASPECT_B)
             .unwrap();
-        graph.add_dependency(downstream, middle, ASPECT_B).unwrap();
+        graph.append_dependency(downstream, middle, ASPECT_B).unwrap();
     }
 
     graph.unregister_node(middle).unwrap();
@@ -176,11 +176,11 @@ fn snapshot_churn_reorders_dependencies_without_ghost_snapshots() {
 
     runtime
         .graph_mut()
-        .remove_dependency(dependent, a, ASPECT_A)
+        .drop_dependency(dependent, a, ASPECT_A)
         .unwrap();
     runtime
         .graph_mut()
-        .add_dependency(dependent, b, ASPECT_A)
+        .append_dependency(dependent, b, ASPECT_A)
         .unwrap();
 
     runtime
@@ -222,13 +222,23 @@ fn reconverging_invalidation_path_is_not_reported_as_a_cycle() {
     let direct_d = graph.node().build();
     let direct_e = graph.node().build();
 
-    graph.add_dependency(direct_b, source, ASPECT_A).unwrap();
-    graph.add_dependency(direct_c, source, ASPECT_A).unwrap();
-    graph.add_dependency(direct_d, source, ASPECT_A).unwrap();
-    graph.add_dependency(direct_e, source, ASPECT_A).unwrap();
-    graph.add_dependency(direct_d, direct_b, ASPECT_A).unwrap();
-    graph.add_dependency(direct_d, direct_c, ASPECT_A).unwrap();
-    graph.add_dependency(direct_e, direct_d, ASPECT_A).unwrap();
+    let mut dependencies = DependencyBatchBuilder::new(&mut graph);
+    dependencies
+        .append_dependency(direct_b, source, ASPECT_A)
+        .unwrap()
+        .append_dependency(direct_c, source, ASPECT_A)
+        .unwrap()
+        .append_dependency(direct_d, source, ASPECT_A)
+        .unwrap()
+        .append_dependency(direct_e, source, ASPECT_A)
+        .unwrap()
+        .append_dependency(direct_d, direct_b, ASPECT_A)
+        .unwrap()
+        .append_dependency(direct_d, direct_c, ASPECT_A)
+        .unwrap()
+        .append_dependency(direct_e, direct_d, ASPECT_A)
+        .unwrap();
+    dependencies.commit().unwrap();
 
     let result = mark_dirty(&mut graph, source, ASPECT_A);
 
@@ -249,18 +259,12 @@ fn gc_epoch_compacts_edge_and_snapshot_storage_after_churn() {
     for round in 0..24 {
         runtime
             .graph_mut()
-            .remove_dependency(dependent, source_a, ASPECT_A)
-            .ok();
-        runtime
-            .graph_mut()
-            .remove_dependency(dependent, source_b, ASPECT_A)
-            .ok();
-        runtime
-            .graph_mut()
-            .add_dependency(
+            .set_dependencies(
                 dependent,
-                if round % 2 == 0 { source_a } else { source_b },
-                ASPECT_A,
+                [DependencyEdge::new(
+                    if round % 2 == 0 { source_a } else { source_b },
+                    ASPECT_A,
+                )],
             )
             .unwrap();
         runtime
@@ -338,7 +342,7 @@ fn dependency_snapshot_growth_returns_near_live_state_after_gc() {
     let dependent = runtime.graph_mut().node().build();
     runtime
         .graph_mut()
-        .add_dependency(dependent, source, ASPECT_A)
+        .append_dependency(dependent, source, ASPECT_A)
         .unwrap();
     let mut runtime_ctx = ();
 
@@ -378,7 +382,7 @@ fn identical_dependency_snapshots_are_deduplicated_before_gc() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
 
     let mut snapshot = DependencySnapshot::empty();
     snapshot.record(source, ASPECT_A, 1, None);
@@ -406,9 +410,9 @@ fn stress_edge_rewrites_across_reused_nodes() {
             } else {
                 ASPECT_B
             };
-            let _ = graph.remove_dependency(leaf, roots[index % roots.len()], ASPECT_A);
-            let _ = graph.remove_dependency(leaf, roots[index % roots.len()], ASPECT_B);
-            graph.add_dependency(leaf, root, aspect).unwrap();
+            let _ = graph.drop_dependency(leaf, roots[index % roots.len()], ASPECT_A);
+            let _ = graph.drop_dependency(leaf, roots[index % roots.len()], ASPECT_B);
+            graph.append_dependency(leaf, root, aspect).unwrap();
         }
     }
 

@@ -9,10 +9,10 @@ fn add_dependency_is_idempotent_per_aspect() {
     let downstream = graph.node().build();
 
     graph
-        .add_dependency(downstream, upstream, ASPECT_A)
+        .append_dependency(downstream, upstream, ASPECT_A)
         .expect("initial dependency should be accepted");
     graph
-        .add_dependency(downstream, upstream, ASPECT_A)
+        .append_dependency(downstream, upstream, ASPECT_A)
         .expect("duplicate dependency should be ignored");
 
     let downstream_dependencies = graph
@@ -34,14 +34,14 @@ fn remove_dependency_preserves_other_aspects_between_same_nodes() {
     let downstream = graph.node().build();
 
     graph
-        .add_dependency(downstream, upstream, ASPECT_A)
+        .append_dependency(downstream, upstream, ASPECT_A)
         .unwrap();
     graph
-        .add_dependency(downstream, upstream, ASPECT_B)
+        .append_dependency(downstream, upstream, ASPECT_B)
         .unwrap();
 
     graph
-        .remove_dependency(downstream, upstream, ASPECT_A)
+        .drop_dependency(downstream, upstream, ASPECT_A)
         .expect("aspect-specific removal should succeed");
 
     let downstream_dependencies = graph
@@ -63,10 +63,10 @@ fn subscriber_fanout_does_not_duplicate_across_aspects() {
     let downstream = graph.node().build();
 
     graph
-        .add_dependency(downstream, upstream, ASPECT_A)
+        .append_dependency(downstream, upstream, ASPECT_A)
         .unwrap();
     graph
-        .add_dependency(downstream, upstream, ASPECT_B)
+        .append_dependency(downstream, upstream, ASPECT_B)
         .unwrap();
 
     let subscribers = graph
@@ -81,7 +81,7 @@ fn version_gated_skip_respects_repeated_monotonic_bumps() {
     let source = graph.node().build();
     let dependent = graph.node().build();
 
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
 
     let mut next_version = 0_u64;
     let mut compute_source = |_id, _graph: &SignalGraph| {

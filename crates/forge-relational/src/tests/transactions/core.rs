@@ -111,6 +111,88 @@ fn transaction_intent_is_the_shared_mutation_intent_type() {
 }
 
 #[test]
+fn commit_log_records_structural_summary_and_phase_progress() {
+    let mut runtime = runtime_with_test_schema();
+    let outcome = create_entity_outcome(&mut runtime, "logged");
+
+    assert_eq!(
+        outcome.commit_log.summary().commit_topology_mask,
+        crate::facade::CommitTopology::FlatEntityBatch.mask()
+    );
+    assert!(outcome.commit_log.summary().invariant_group_mask != 0);
+    assert!(outcome.commit_log.summary().touched_partition_count >= 1);
+    assert!(outcome
+        .commit_log
+        .events()
+        .iter()
+        .any(|event| matches!(
+            event,
+            crate::facade::CommitTraceEvent::PhaseStarted(crate::facade::CommitPhase::DraftPreparation)
+        )));
+    assert!(outcome
+        .commit_log
+        .events()
+        .iter()
+        .any(|event| matches!(
+            event,
+            crate::facade::CommitTraceEvent::PhaseCompleted(crate::facade::CommitPhase::Publication)
+        )));
+    assert!(outcome
+        .commit_log
+        .events()
+        .iter()
+        .any(|event| matches!(
+            event,
+            crate::facade::CommitTraceEvent::HistoryResolved { .. }
+        )));
+    assert!(outcome
+        .commit_log
+        .events()
+        .iter()
+        .any(|event| matches!(
+            event,
+            crate::facade::CommitTraceEvent::PublicationArtifactsPrepared { .. }
+        )));
+}
+
+#[test]
+fn commit_returns_envelope_with_patch_diagnostics_invariants_and_complexity() {
+    let mut runtime = runtime_with_test_schema();
+    let result = create_entity_outcome(&mut runtime, "enveloped");
+
+    assert!(!result.patch.is_empty());
+    assert!(!result.envelope.patch.records.is_empty());
+    assert!(!result.diagnostics.is_empty());
+    assert!(!result.invariant_results.is_empty());
+    assert!(result.complexity_delta.partitions_touched_by_commit >= 1);
+    assert_eq!(result.outcome.commit.commit_id, result.envelope.commit.commit_id);
+}
+
+#[test]
+fn failed_commit_carries_attempt_log() {
+    let mut runtime = runtime_with_test_schema();
+    let entity = create_entity(&mut runtime, "first");
+    delete_entity(&mut runtime, entity);
+
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("stale-update").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id: entity,
+                payload: RecordPayload::StructuredJson(json!({"name":"stale"})),
+            }),
+        )),
+    );
+    let error = txn.commit().unwrap_err();
+
+    assert!(!error.commit_log().events().is_empty());
+    assert!(matches!(
+        error.commit_log().events()[0],
+        crate::facade::CommitTraceEvent::PhaseStarted(crate::facade::CommitPhase::DraftPreparation)
+    ));
+}
+
+#[test]
 fn entity_slot_reuse_increments_generation() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
     let create_outcome = create_entity_outcome(&mut runtime, "first");
@@ -145,7 +227,7 @@ fn stale_entity_ids_are_rejected() {
 
     assert!(matches!(
         error,
-        TransactionCommitError::Conflict(ref conflict) if conflict.code == DiagnosticCode::StaleHandle
+        TransactionCommitError::Conflict { error: ref conflict, .. } if conflict.code == DiagnosticCode::StaleHandle
     ));
 }
 
@@ -167,7 +249,7 @@ fn unknown_entity_kind_fails_explicitly() {
 
     assert!(matches!(
         error,
-        TransactionCommitError::Conflict(ref conflict) if conflict.code == DiagnosticCode::InvariantViolation
+        TransactionCommitError::Conflict { error: ref conflict, .. } if conflict.code == DiagnosticCode::InvariantViolation
     ));
 }
 
@@ -197,7 +279,7 @@ fn duplicate_relation_identity_is_rejected() {
 
     assert!(matches!(
         error,
-        TransactionCommitError::Conflict(ref conflict)
+        TransactionCommitError::Conflict { error: ref conflict, .. }
             if conflict.code == DiagnosticCode::DuplicateRelationIdentity
     ));
 }
@@ -237,7 +319,7 @@ fn snapshot_audit_failure_discards_only_touched_overlay() {
 
     assert!(matches!(
         error,
-        TransactionCommitError::Publication(ref publication)
+        TransactionCommitError::Publication { error: ref publication, .. }
             if publication.stage == PublicationStage::InvariantCheck
     ));
     assert_eq!(committed_read.entities().len(), 1);

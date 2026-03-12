@@ -63,7 +63,7 @@ fn transaction_helper_commits_on_success() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
 
     let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
     let outcome = runtime
@@ -85,7 +85,7 @@ fn transaction_helper_rolls_back_on_error() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
     let before = graph.get_state(dependent).unwrap();
 
     let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();

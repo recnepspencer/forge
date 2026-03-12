@@ -107,10 +107,13 @@ fn cross_context_relations_respect_relation_kind_policy() {
 
     assert!(matches!(
         error,
-        crate::facade::TransactionCommitError::Conflict(crate::facade::CommitConflict {
-            code: crate::facade::DiagnosticCode::InvalidRelationEndpoint,
+        crate::facade::TransactionCommitError::Conflict {
+            error: crate::facade::CommitConflict {
+                code: crate::facade::DiagnosticCode::InvalidRelationEndpoint,
+                ..
+            },
             ..
-        })
+        }
     ));
 }
 

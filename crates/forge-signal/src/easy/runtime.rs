@@ -241,10 +241,22 @@ impl ReactiveGraph {
             entry.set_dirty_aspects(AspectMask::EMPTY);
             entry.clear_dirty_partition_scopes();
         }
-        for dependency in prepared.dependencies.as_slice() {
-            self.graph
-                .add_dependency(node, dependency.source, dependency.aspect)?;
-        }
+        self.graph
+            .set_dependencies(
+                node,
+                prepared
+                    .dependencies
+                    .as_slice()
+                    .iter()
+                    .map(|dependency| match &dependency.scope {
+                        Some(scope) => DependencyEdge::with_partition_scope(
+                            dependency.source,
+                            dependency.aspect,
+                            scope.clone(),
+                        ),
+                        None => DependencyEdge::new(dependency.source, dependency.aspect),
+                    }),
+            )?;
         self.graph.set_dep_snapshot(node, dep_snapshot)?;
         Ok(())
     }

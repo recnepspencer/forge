@@ -6,7 +6,7 @@ fn exact_comparator_detects_any_change() {
     let mut graph = SignalGraph::new();
     let a = graph.node().build();
     let b = graph.node().build();
-    graph.add_dependency(b, a, ASPECT_B).unwrap();
+    graph.append_dependency(b, a, ASPECT_B).unwrap();
 
     let mut compute = |_id: NodeId, _g: &SignalGraph| Ok(version_ab(0, 1));
     evaluate(&mut graph, a, &mut compute).unwrap();
@@ -23,8 +23,8 @@ fn tolerance_comparator_skips_small_version_delta() {
     let a = graph.node().build();
     let b = graph.node().build();
     let c = graph.node().tolerance(2).build();
-    graph.add_dependency(b, a, ASPECT_B).unwrap();
-    graph.add_dependency(c, b, ASPECT_B).unwrap();
+    graph.append_dependency(b, a, ASPECT_B).unwrap();
+    graph.append_dependency(c, b, ASPECT_B).unwrap();
 
     let mut compute_a_v10 = |_id: NodeId, _g: &SignalGraph| Ok(version_ab(0, 10));
     let mut compute_a_v12 = |_id: NodeId, _g: &SignalGraph| Ok(version_ab(0, 12));
@@ -66,7 +66,7 @@ fn custom_comparator_uses_resolver() {
             key: "force-change".to_string(),
         })
         .build();
-    graph.add_dependency(b, a, ASPECT_B).unwrap();
+    graph.append_dependency(b, a, ASPECT_B).unwrap();
 
     let mut compute = |_id: NodeId, _g: &SignalGraph| Ok(version_ab(0, 1));
     evaluate_with_resolver(&mut graph, a, &mut compute, &mut ForceChangeResolver).unwrap();

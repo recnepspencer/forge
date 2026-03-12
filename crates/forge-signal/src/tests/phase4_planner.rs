@@ -13,8 +13,8 @@ fn build_evaluation_plan_orders_chain_by_stage_depth() {
     let a = graph.node().build();
     let b = graph.node().build();
     let c = graph.node().build();
-    graph.add_dependency(b, a, ASPECT_A).unwrap();
-    graph.add_dependency(c, b, ASPECT_A).unwrap();
+    graph.append_dependency(b, a, ASPECT_A).unwrap();
+    graph.append_dependency(c, b, ASPECT_A).unwrap();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, a, &mut compute).unwrap();
@@ -53,7 +53,7 @@ fn build_evaluation_plan_prunes_dirty_target_when_contract_reads_do_not_intersec
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().reads_aspects(mask_a()).build();
-    graph.add_dependency(dependent, source, ASPECT_B).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_B).unwrap();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, source, &mut compute).unwrap();
@@ -123,7 +123,7 @@ fn execute_plan_returns_execution_report_and_updates_trace_record_id() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
 
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     let source_v2 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(2, 0));
@@ -177,7 +177,7 @@ fn runtime_plan_keeps_requested_maybe_stale_validation_task() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
 
     let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().with_tiers::<Tier>().build();
     runtime.set_node_tier(dependent, Tier::A);
@@ -237,7 +237,7 @@ fn runtime_execute_plan_with_executor_serial_matches_default_path() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
 
     let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
@@ -279,7 +279,7 @@ fn execution_report_marks_requested_maybe_stale_validation_as_validated_clean() 
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
 
     let mut source_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(10, 0));
@@ -315,7 +315,7 @@ fn maybe_stale_requested_target_validates_clean_without_running_compute() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
 
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     let mut source_v2_same_aspect_a = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 1));
@@ -354,7 +354,7 @@ fn maybe_stale_validation_prunes_retired_runtime_dependencies_before_recapture()
     let source = graph.node().build();
     let retired = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
 
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     let mut dependent_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(10, 0));
@@ -513,7 +513,7 @@ fn build_evaluation_plan_handles_deep_linear_chain_without_recursion() {
 
     for _ in 0..depth {
         let current = graph.node().build();
-        graph.add_dependency(current, previous, ASPECT_A).unwrap();
+        graph.append_dependency(current, previous, ASPECT_A).unwrap();
         previous = current;
     }
 

@@ -5,7 +5,8 @@ use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::output::{MemoizedResultOrigin, NodeEvaluationResult};
 use crate::logic::evaluation::{
-    EvaluationEffect, EvaluationVerdict, PreparedApplyResult, SuppressionReason,
+    EffectDependencyInputs, EvaluationEffect, EvaluationVerdict, PreparedApplyResult,
+    SuppressionReason,
 };
 use crate::logic::prepared::PreparedKeyedContext;
 
@@ -21,8 +22,12 @@ pub(crate) fn apply_effect_with_policy_and_condition(
     recomputed: bool,
     keyed_context: Option<PreparedKeyedContext>,
     causality: Option<crate::data::trace::CausalityMetadata>,
+    dependency_inputs: Option<EffectDependencyInputs>,
 ) -> Result<PreparedApplyResult, SignalError> {
-    let meaningful_input_changes = count_meaningful_input_changes(graph, node)?;
+    let dependency_inputs = match dependency_inputs {
+        Some(inputs) => inputs,
+        None => build_effect_dependency_inputs(graph, node)?,
+    };
     let effect = EvaluationEffect {
         node,
         verdict,
@@ -32,8 +37,8 @@ pub(crate) fn apply_effect_with_policy_and_condition(
         continuity_token: result.continuity_token,
         changed_regions: result.changed_regions,
         labels: result.labels,
-        dependency_snapshot: build_dep_snapshot(graph, node)?,
-        meaningful_input_changes,
+        dependency_snapshot: dependency_inputs.dependency_snapshot,
+        meaningful_input_changes: dependency_inputs.meaningful_input_changes,
         recomputed,
         memoized_origin: execution_metadata
             .map(|metadata| metadata.memoized_origin)
@@ -50,6 +55,15 @@ pub(crate) fn apply_effect_with_policy_and_condition(
         dependency_updates: 0,
         report,
     })
+}
+
+pub(crate) fn collect_effect_dependency_inputs_batch(
+    graph: &mut SignalGraph,
+    nodes: &[NodeId],
+) -> Result<Vec<EffectDependencyInputs>, SignalError> {
+    nodes.iter()
+        .map(|&node| build_effect_dependency_inputs(graph, node))
+        .collect()
 }
 
 pub(crate) fn verdict_for_evaluated_result(
@@ -90,52 +104,43 @@ pub(crate) fn verdict_for_evaluated_result(
     Ok(verdict)
 }
 
-fn build_dep_snapshot(
+fn build_effect_dependency_inputs(
     graph: &mut SignalGraph,
     node: NodeId,
-) -> Result<DependencySnapshot, SignalError> {
+) -> Result<EffectDependencyInputs, SignalError> {
     let mut snapshot = DependencySnapshot::empty();
-    for dep in graph.runtime_dependencies_of(node)?.to_vec() {
+    let dependencies = graph.runtime_dependencies_of(node)?.to_vec();
+    let snapshot_entries = graph.get_dep_snapshot(node)?.entries();
+    let mut snapshot_index = 0usize;
+    let mut changes = 0_u32;
+
+    for dep in dependencies {
         let source = dep.source();
         let aspect = dep.aspect();
         if graph.is_alive(source) {
             let entry = graph.get_entry(source)?;
             let ver = entry.version_for_scope(aspect, dep.scope_ref());
             snapshot.record(source, aspect, ver, dep.scope_ref().cloned());
-        }
-    }
-    Ok(snapshot)
-}
-
-fn count_meaningful_input_changes(graph: &mut SignalGraph, node: NodeId) -> Result<u32, SignalError> {
-    let dependencies = graph.runtime_dependencies_of(node)?.to_vec();
-    let snapshot_entries = graph.get_dep_snapshot(node)?.entries();
-    let mut dep_index = 0usize;
-    let mut snapshot_index = 0usize;
-    let mut changes = 0_u32;
-    while dep_index < dependencies.len() && snapshot_index < snapshot_entries.len() {
-        let dependency = &dependencies[dep_index];
-        let snapshot = &snapshot_entries[snapshot_index];
-        match dependency.sort_key().cmp(&snapshot.sort_key()) {
-            std::cmp::Ordering::Less => dep_index += 1,
-            std::cmp::Ordering::Greater => snapshot_index += 1,
-            std::cmp::Ordering::Equal => {
-                let cached = snapshot.cached_version;
-                if !graph.is_alive(dependency.source()) {
-                    changes += 1;
-                } else {
-                    let current = graph.get_entry(dependency.source())?.version_for_scope(
-                        dependency.aspect(),
-                        dependency.scope_ref(),
-                    );
-                    if current != cached {
-                        changes += 1;
-                    }
-                }
-                dep_index += 1;
+            while snapshot_index < snapshot_entries.len()
+                && snapshot_entries[snapshot_index].sort_key() < dep.sort_key()
+            {
                 snapshot_index += 1;
             }
+            if snapshot_index < snapshot_entries.len()
+                && snapshot_entries[snapshot_index].sort_key() == dep.sort_key()
+            {
+                if snapshot_entries[snapshot_index].cached_version != ver {
+                    changes += 1;
+                }
+                snapshot_index += 1;
+            }
+        } else {
+            changes += 1;
         }
     }
-    Ok(changes)
+
+    Ok(EffectDependencyInputs {
+        dependency_snapshot: snapshot,
+        meaningful_input_changes: changes,
+    })
 }

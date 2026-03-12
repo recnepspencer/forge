@@ -13,7 +13,9 @@ use serde_json::{json, Value};
 
 use crate::facade::*;
 
-use super::runtime::{SignalFixtureFactory, SignalHarnessSession, SignalMutationAction};
+use super::runtime::{
+    SignalFixtureFactory, SignalHarnessSession, SignalMutationAction, SignalMutationKind,
+};
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct SignalHarnessBridge;
@@ -249,8 +251,45 @@ impl HarnessAdapter for SignalHarnessBridge {
         batch: &forge_harness::facade::MutationBatch<Self::Mutation>,
     ) -> Result<(), Self::Error> {
         let runtime = runtime.runtime_mut()?;
+        let mut pending_regions = BTreeMap::<
+            (u32, u32, u8),
+            (NodeId, Aspect, Option<BTreeSet<ChangedRegion>>),
+        >::new();
+
         for operation in &batch.operations {
-            operation.apply(runtime)?;
+            match operation.kind() {
+                SignalMutationKind::MarkDirty { label, aspect } => {
+                    let node = runtime.resolve(label)?;
+                    pending_regions.insert(
+                        (node.index(), node.generation(), aspect.id()),
+                        (node, *aspect, None),
+                    );
+                }
+                SignalMutationKind::MarkDirtyWithRegions {
+                    label,
+                    aspect,
+                    changed_regions,
+                } => {
+                    let node = runtime.resolve(label)?;
+                    let key = (node.index(), node.generation(), aspect.id());
+                    let entry = pending_regions
+                        .entry(key)
+                        .or_insert_with(|| (node, *aspect, Some(BTreeSet::new())));
+                    if let Some(regions) = &mut entry.2 {
+                        regions.extend(changed_regions.iter().cloned());
+                    }
+                }
+            }
+        }
+
+        for (_, (node, aspect, regions)) in pending_regions {
+            match regions {
+                None => mark_dirty(runtime.graph_mut(), node, aspect)?,
+                Some(regions) => {
+                    let regions = regions.into_iter().collect::<Vec<_>>();
+                    mark_dirty_with_regions(runtime.graph_mut(), node, aspect, &regions)?;
+                }
+            }
         }
         Ok(())
     }

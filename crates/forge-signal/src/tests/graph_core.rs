@@ -23,7 +23,7 @@ fn add_dependency_wires_both_directions() {
     let upstream = graph.node().build();
     let downstream = graph.node().build();
     graph
-        .add_dependency(downstream, upstream, ASPECT_A)
+        .append_dependency(downstream, upstream, ASPECT_A)
         .unwrap();
 
     let deps = graph.dependencies_of(downstream).unwrap();
@@ -40,7 +40,7 @@ fn dirty_direct_dependent() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_B).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_B).unwrap();
 
     let mut compute = |_id, _g: &SignalGraph| Ok(version_ab(1, 1));
     evaluate(&mut graph, source, &mut compute).unwrap();
@@ -59,8 +59,8 @@ fn maybe_stale_transitive_dependent() {
     let b = graph.node().build();
     let c = graph.node().build();
 
-    graph.add_dependency(b, a, ASPECT_B).unwrap();
-    graph.add_dependency(c, b, ASPECT_B).unwrap();
+    graph.append_dependency(b, a, ASPECT_B).unwrap();
+    graph.append_dependency(c, b, ASPECT_B).unwrap();
 
     let mut compute = |_id, _g: &SignalGraph| Ok(version_ab(1, 1));
     evaluate(&mut graph, a, &mut compute).unwrap();
@@ -82,8 +82,8 @@ fn clean_version_skip_on_unchanged_upstream() {
     let b = graph.node().build();
     let c = graph.node().build();
 
-    graph.add_dependency(b, a, ASPECT_A).unwrap();
-    graph.add_dependency(c, b, ASPECT_A).unwrap();
+    graph.append_dependency(b, a, ASPECT_A).unwrap();
+    graph.append_dependency(c, b, ASPECT_A).unwrap();
 
     let mut eval_count = 0u32;
 

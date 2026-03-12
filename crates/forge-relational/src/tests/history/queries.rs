@@ -108,7 +108,7 @@ fn merge_commit_requires_existing_parent_branch_heads() {
 
     assert!(matches!(
         error,
-        TransactionCommitError::Conflict(ref conflict)
+        TransactionCommitError::Conflict { error: ref conflict, .. }
             if conflict.code == DiagnosticCode::InvalidMergeParent
     ));
 }
@@ -197,7 +197,7 @@ fn merge_commit_rejects_overlapping_authority_since_merge_base() {
 
     assert!(matches!(
         error,
-        TransactionCommitError::Conflict(ref conflict)
+        TransactionCommitError::Conflict { error: ref conflict, .. }
             if conflict.code == DiagnosticCode::MergeConflictOverlap
     ));
     assert!(runtime

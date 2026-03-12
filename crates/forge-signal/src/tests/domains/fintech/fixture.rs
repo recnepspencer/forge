@@ -1,4 +1,5 @@
 use crate::facade::*;
+use crate::tests::support::DependencyBatchBuilder;
 
 use super::audit_surface::PrimaryAuditSurface;
 use super::branch_checkpoint::BranchCheckpoint;
@@ -528,38 +529,32 @@ pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
             .reads_aspects(super::aspects::full_mask())
             .tolerance(5)
             .build();
-        runtime
-            .graph_mut()
-            .add_dependency(
+        let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
+        dependencies
+            .append_dependency(
                 aggregate,
                 aggregate_sources[book_index].book_state,
                 super::aspects::RISK,
             )
-            .unwrap();
-        runtime
-            .graph_mut()
-            .add_dependency(
+            .unwrap()
+            .append_dependency(
                 aggregate,
                 aggregate_sources[book_index].book_state,
                 super::aspects::ALERT,
             )
-            .unwrap();
-        runtime
-            .graph_mut()
-            .add_dependency(aggregate, fx.eur_jpy, super::aspects::PRICE)
+            .unwrap()
+            .append_dependency(aggregate, fx.eur_jpy, super::aspects::PRICE)
             .unwrap();
         for instrument in &instruments {
             if instrument.book_index == book_index {
-                runtime
-                    .graph_mut()
-                    .add_dependency(aggregate, instrument.core.risk, super::aspects::RISK)
-                    .unwrap();
-                runtime
-                    .graph_mut()
-                    .add_dependency(aggregate, instrument.core.alert, super::aspects::ALERT)
+                dependencies
+                    .append_dependency(aggregate, instrument.core.risk, super::aspects::RISK)
+                    .unwrap()
+                    .append_dependency(aggregate, instrument.core.alert, super::aspects::ALERT)
                     .unwrap();
             }
         }
+        dependencies.commit().unwrap();
         book_aggregates.push(aggregate);
     }
 
@@ -571,17 +566,15 @@ pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
             .reads_aspects(super::aspects::full_mask())
             .tolerance(6)
             .build();
-        runtime
-            .graph_mut()
-            .add_dependency(
+        let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
+        dependencies
+            .append_dependency(
                 aggregate,
                 aggregate_sources[desk_index].desk_limit,
                 super::aspects::RISK,
             )
-            .unwrap();
-        runtime
-            .graph_mut()
-            .add_dependency(
+            .unwrap()
+            .append_dependency(
                 aggregate,
                 aggregate_sources[desk_index].desk_limit,
                 super::aspects::ALERT,
@@ -589,12 +582,12 @@ pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
             .unwrap();
         for (book_index, book_node) in book_aggregates.iter().enumerate() {
             if super::hierarchy::desk_for_book(scale, book_index) == desk_index {
-                runtime
-                    .graph_mut()
-                    .add_dependency(aggregate, *book_node, super::aspects::RISK)
+                dependencies
+                    .append_dependency(aggregate, *book_node, super::aspects::RISK)
                     .unwrap();
             }
         }
+        dependencies.commit().unwrap();
         desk_aggregates.push(aggregate);
     }
 
@@ -606,16 +599,17 @@ pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
             .reads_aspects(super::aspects::full_mask())
             .tolerance(5)
             .build();
+        let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
         for instrument in &instruments {
-            runtime
-                .graph_mut()
-                .add_dependency(
+            dependencies
+                .append_dependency(
                     aggregate,
                     instrument.scenarios[scenario_index],
                     super::aspects::RISK,
                 )
                 .unwrap();
         }
+        dependencies.commit().unwrap();
         scenario_aggregates.push(aggregate);
     }
 
@@ -627,16 +621,17 @@ pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
             .reads_aspects(super::aspects::full_mask())
             .tolerance(5)
             .build();
+        let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
         for instrument in &instruments {
-            runtime
-                .graph_mut()
-                .add_dependency(
+            dependencies
+                .append_dependency(
                     aggregate,
                     instrument.buckets[bucket_index],
                     super::aspects::RISK,
                 )
                 .unwrap();
         }
+        dependencies.commit().unwrap();
         bucket_aggregates.push(aggregate);
     }
 

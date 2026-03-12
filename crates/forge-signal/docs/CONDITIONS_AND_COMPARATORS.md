@@ -257,8 +257,8 @@ let market_gated_node = graph
     .output_identity()
     .build();
 
-graph.add_dependency(view_node, source, PRICE)?;
-graph.add_dependency(market_gated_node, source, PRICE)?;
+graph.set_dependencies(view_node, [DependencyEdge::new(source, PRICE)])?;
+graph.set_dependencies(market_gated_node, [DependencyEdge::new(source, PRICE)])?;
 # Ok::<(), SignalError>(())
 ```
 

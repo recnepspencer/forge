@@ -383,30 +383,21 @@ fn build_geometry_fixture(policy: SignalRuntimePolicy) -> GeometryFixture {
     let demand_gate = runtime.graph_mut().node().on_demand().build();
     let fused = runtime.graph_mut().node().output_identity().build();
 
-    runtime
-        .graph_mut()
-        .add_partition_detail_dependency(delta_gate, source_a, ASPECT_A, "wing", "left")
+    let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
+    dependencies
+        .append_partition_detail_dependency(delta_gate, source_a, ASPECT_A, "wing", "left")
+        .unwrap()
+        .append_partition_dependency(filtered_gate, source_b, ASPECT_B, "lod")
+        .unwrap()
+        .append_dependency(demand_gate, source_a, ASPECT_A)
+        .unwrap()
+        .append_dependency(fused, delta_gate, ASPECT_A)
+        .unwrap()
+        .append_dependency(fused, filtered_gate, ASPECT_B)
+        .unwrap()
+        .append_dependency(fused, demand_gate, ASPECT_A)
         .unwrap();
-    runtime
-        .graph_mut()
-        .add_partition_dependency(filtered_gate, source_b, ASPECT_B, "lod")
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(demand_gate, source_a, ASPECT_A)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(fused, delta_gate, ASPECT_A)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(fused, filtered_gate, ASPECT_B)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(fused, demand_gate, ASPECT_A)
-        .unwrap();
+    dependencies.commit().unwrap();
 
     let family = define_keyed_computation(&mut runtime, "geom-workflow", ());
     let keyed_def = family.keyed("feature-panel");
@@ -446,22 +437,17 @@ fn build_fintech_fixture(policy: SignalRuntimePolicy) -> FintechFixture {
         .build();
     let risk = runtime.graph_mut().node().output_identity().build();
 
-    runtime
-        .graph_mut()
-        .add_dependency(throttle, ticks, ASPECT_A)
+    let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
+    dependencies
+        .append_dependency(throttle, ticks, ASPECT_A)
+        .unwrap()
+        .append_dependency(alert, volatility, ASPECT_B)
+        .unwrap()
+        .append_dependency(risk, throttle, ASPECT_A)
+        .unwrap()
+        .append_dependency(risk, alert, ASPECT_B)
         .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(alert, volatility, ASPECT_B)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(risk, throttle, ASPECT_A)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(risk, alert, ASPECT_B)
-        .unwrap();
+    dependencies.commit().unwrap();
 
     let family = define_keyed_computation(&mut runtime, "fintech-workflow", ());
     let keyed_def = family.keyed("risk-book");

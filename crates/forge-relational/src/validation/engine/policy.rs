@@ -1,40 +1,158 @@
-use crate::validation::data::InvariantCostClass;
+use crate::logic::runtime::RelationalRuntime;
+use crate::validation::data::{InvariantCostClass, InvariantExecutionPoint};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum InvariantExecutionPolicy {
-    AllowAll,
-    MaxCost(InvariantCostClass),
+pub(crate) enum InvariantScale {
+    Small,
+    Medium,
+    Large,
 }
 
-impl InvariantExecutionPolicy {
-    pub fn allows(self, cost: InvariantCostClass) -> bool {
-        match self {
-            Self::AllowAll => true,
-            Self::MaxCost(limit) => rank(cost) <= rank(limit),
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct InvariantContext {
+    pub scale: InvariantScale,
+    pub version_depth: usize,
+    pub snapshot_pressure: bool,
+}
+
+pub(crate) fn derive_invariant_context(runtime: &RelationalRuntime) -> InvariantContext {
+    let entity_count = runtime.entity_slot_count();
+    let relation_count = runtime.relation_slot_count();
+    let total_records = entity_count + relation_count;
+    let version_depth = runtime.history.commit_graph.len();
+    let snapshot_pressure = runtime.active_snapshot_count() > 10;
+
+    let scale = match total_records {
+        0..=1_000 => InvariantScale::Small,
+        1_001..=100_000 => InvariantScale::Medium,
+        _ => InvariantScale::Large,
+    };
+
+    InvariantContext {
+        scale,
+        version_depth,
+        snapshot_pressure,
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct RelationalInvariantRuntime {
+    skip_mask: u32,
+    deferred_mask: u32,
+    run_at: [u32; InvariantExecutionPoint::COUNT],
+    max_cost: [InvariantCostClass; InvariantExecutionPoint::COUNT],
+}
+
+impl RelationalInvariantRuntime {
+    pub(crate) fn resolve(
+        profile: super::profile::InvariantRequestProfile,
+        context: InvariantContext,
+    ) -> Self {
+        let mut run_at = [0u32; InvariantExecutionPoint::COUNT];
+        let mut max_cost = [InvariantCostClass::Global; InvariantExecutionPoint::COUNT];
+
+        run_at[InvariantExecutionPoint::CommitBoundary as usize] = profile.base_groups().mask();
+        run_at[InvariantExecutionPoint::MutationSensitive as usize] = profile.base_groups().mask();
+        run_at[InvariantExecutionPoint::SnapshotPublication as usize] = profile.base_groups().mask();
+        run_at[InvariantExecutionPoint::HarnessAudit as usize] = profile.base_groups().mask();
+
+        max_cost[InvariantExecutionPoint::CommitBoundary as usize] = match context.scale {
+            InvariantScale::Large => InvariantCostClass::Partition,
+            InvariantScale::Small | InvariantScale::Medium => InvariantCostClass::Global,
+        };
+        max_cost[InvariantExecutionPoint::MutationSensitive as usize] =
+            InvariantCostClass::Touched;
+        max_cost[InvariantExecutionPoint::SnapshotPublication as usize] = if context.snapshot_pressure
+            || matches!(context.scale, InvariantScale::Large)
+        {
+            InvariantCostClass::Partition
+        } else {
+            InvariantCostClass::Global
+        };
+        max_cost[InvariantExecutionPoint::HarnessAudit as usize] = InvariantCostClass::Global;
+
+        if context.version_depth > 1_000 {
+            max_cost[InvariantExecutionPoint::CommitBoundary as usize] =
+                InvariantCostClass::Partition;
+        }
+
+        Self {
+            skip_mask: 0,
+            deferred_mask: 0,
+            run_at,
+            max_cost,
         }
     }
+
+    #[inline]
+    pub(crate) fn should_run(
+        &self,
+        group_mask: u32,
+        checkpoint: InvariantExecutionPoint,
+    ) -> bool {
+        let allowed = self.run_at[checkpoint as usize] & !self.skip_mask & !self.deferred_mask;
+        (allowed & group_mask) != 0
+    }
+
+    #[inline]
+    pub(crate) fn max_cost_at(
+        &self,
+        checkpoint: InvariantExecutionPoint,
+    ) -> InvariantCostClass {
+        self.max_cost[checkpoint as usize]
+    }
 }
 
-const fn rank(cost: InvariantCostClass) -> u8 {
+pub(crate) const fn cost_rank(cost: InvariantCostClass) -> u8 {
     match cost {
-        InvariantCostClass::Constant => 0,
-        InvariantCostClass::TargetedScan => 1,
-        InvariantCostClass::FullScan => 2,
-        InvariantCostClass::HarnessHeavy => 3,
+        InvariantCostClass::Touched => 0,
+        InvariantCostClass::Partition => 1,
+        InvariantCostClass::Global => 2,
     }
+}
+
+pub(crate) const fn cost_allowed(limit: InvariantCostClass, cost: InvariantCostClass) -> bool {
+    cost_rank(cost) <= cost_rank(limit)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::InvariantExecutionPolicy;
-    use crate::validation::data::InvariantCostClass;
+    use super::{
+        cost_allowed, InvariantContext, InvariantScale, RelationalInvariantRuntime,
+    };
+    use crate::validation::data::{InvariantCostClass, InvariantExecutionPoint};
+    use crate::validation::engine::InvariantRequestProfile;
 
     #[test]
-    fn max_cost_policy_filters_more_expensive_rules() {
-        let policy = InvariantExecutionPolicy::MaxCost(InvariantCostClass::TargetedScan);
-        assert!(policy.allows(InvariantCostClass::Constant));
-        assert!(policy.allows(InvariantCostClass::TargetedScan));
-        assert!(!policy.allows(InvariantCostClass::FullScan));
-        assert!(!policy.allows(InvariantCostClass::HarnessHeavy));
+    fn large_runtime_context_reduces_commit_boundary_cost_ceiling() {
+        let runtime = RelationalInvariantRuntime::resolve(
+            InvariantRequestProfile::CommitBoundary,
+            InvariantContext {
+                scale: InvariantScale::Large,
+                version_depth: 2_000,
+                snapshot_pressure: true,
+            },
+        );
+
+        assert_eq!(
+            runtime.max_cost_at(InvariantExecutionPoint::CommitBoundary),
+            InvariantCostClass::Partition
+        );
+    }
+
+    #[test]
+    fn cost_ordering_is_touched_then_partition_then_global() {
+        assert!(cost_allowed(
+            InvariantCostClass::Partition,
+            InvariantCostClass::Touched
+        ));
+        assert!(cost_allowed(
+            InvariantCostClass::Global,
+            InvariantCostClass::Partition
+        ));
+        assert!(!cost_allowed(
+            InvariantCostClass::Touched,
+            InvariantCostClass::Global
+        ));
     }
 }

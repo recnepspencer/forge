@@ -1,12 +1,20 @@
 use serde::{Deserialize, Serialize};
+use std::ops::Deref;
 
 use crate::diagnostics::data::DiagnosticCode;
+use crate::diagnostics::data::RelationalDiagnosticArtifact;
 use crate::errors::data::{ErrorContext, ErrorOperation, RelationalSubsystem, SuggestedFix};
 use crate::identity::data::{EntityId, RelationId, VersionId};
+use crate::performance::data::RuntimeComplexityCounters;
+use crate::publication::data::diff::PatchRecord;
 use crate::publication::data::{PublicationError, PublicationStatus};
+use crate::replay::data::CanonicalCommitEnvelope;
 use crate::snapshots::data::SnapshotHandle;
+use crate::validation::data::InvariantCheckResult;
 
-use super::{ExistingRecordTarget, MutationIntent, RecordRef, SavepointId, TransactionId};
+use super::{
+    CommitLog, ExistingRecordTarget, MutationIntent, RecordRef, SavepointId, TransactionId,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MergedCommitPlan {
@@ -153,22 +161,56 @@ impl ConflictClass {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TransactionCommitError {
-    Conflict(CommitConflict),
-    Publication(PublicationError),
+    Conflict {
+        error: CommitConflict,
+        commit_log: CommitLog,
+    },
+    Publication {
+        error: PublicationError,
+        commit_log: CommitLog,
+    },
 }
 
 impl TransactionCommitError {
+    pub fn conflict(error: CommitConflict) -> Self {
+        Self::Conflict {
+            error,
+            commit_log: CommitLog::new(),
+        }
+    }
+
+    pub fn publication(error: PublicationError) -> Self {
+        Self::Publication {
+            error,
+            commit_log: CommitLog::new(),
+        }
+    }
+
+    pub fn with_commit_log(self, commit_log: CommitLog) -> Self {
+        match self {
+            Self::Conflict { error, .. } => Self::Conflict { error, commit_log },
+            Self::Publication { error, .. } => Self::Publication { error, commit_log },
+        }
+    }
+
     pub fn context(&self) -> &ErrorContext {
         match self {
-            Self::Conflict(error) => &error.context,
-            Self::Publication(error) => &error.context,
+            Self::Conflict { error, .. } => &error.context,
+            Self::Publication { error, .. } => &error.context,
         }
     }
 
     pub fn detail(&self) -> String {
         match self {
-            Self::Conflict(error) => error.detail(),
-            Self::Publication(error) => error.detail.clone(),
+            Self::Conflict { error, .. } => error.detail(),
+            Self::Publication { error, .. } => error.detail.clone(),
+        }
+    }
+
+    pub fn commit_log(&self) -> &CommitLog {
+        match self {
+            Self::Conflict { commit_log, .. } => commit_log,
+            Self::Publication { commit_log, .. } => commit_log,
         }
     }
 }
@@ -181,6 +223,38 @@ pub struct CommitOutcome {
     pub snapshot: SnapshotHandle,
     pub changed_records: Vec<RecordRef>,
     pub publication_status: PublicationStatus,
+    pub commit_log: CommitLog,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct CommitPhaseTiming {
+    pub draft_preparation_micros: u64,
+    pub invariant_pre_check_micros: u64,
+    pub authoritative_mutation_micros: u64,
+    pub history_resolution_micros: u64,
+    pub invariant_post_check_micros: u64,
+    pub artifact_assembly_micros: u64,
+    pub durable_append_micros: u64,
+    pub publication_micros: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CommitResult {
+    pub outcome: CommitOutcome,
+    pub diagnostics: Vec<RelationalDiagnosticArtifact>,
+    pub patch: Vec<PatchRecord>,
+    pub envelope: CanonicalCommitEnvelope,
+    pub phase_timing: CommitPhaseTiming,
+    pub invariant_results: Vec<InvariantCheckResult>,
+    pub complexity_delta: RuntimeComplexityCounters,
+}
+
+impl Deref for CommitResult {
+    type Target = CommitOutcome;
+
+    fn deref(&self) -> &Self::Target {
+        &self.outcome
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -1,7 +1,7 @@
 use serde_json::json;
 
 use crate::facade::{
-    BranchId, CommitOutcome, EntityMutationIntent, RecordPayload, RollbackOutcome,
+    BranchId, CommitResult, EntityMutationIntent, RecordPayload, RollbackOutcome,
     MutationIntent, TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
 };
 
@@ -40,7 +40,7 @@ pub(crate) fn rollback_case_trade_after_savepoint(
 pub(crate) fn commit_case_trade_after_savepoint(
     world: &mut FintechWorld,
     branch_id: BranchId,
-) -> CommitOutcome {
+) -> CommitResult {
     let case = world.late_trade_correction_case();
     let mut txn = world.runtime.begin_transaction(TransactionOptions {
         target_branch: Some(branch_id),

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::groups::{InvariantCostClass, InvariantGroupSet};
-use super::results::InvariantViolation;
+use super::results::{InvariantAdvisory, InvariantViolation};
 use super::rules::InvariantRule;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -21,6 +21,8 @@ pub enum InvariantExecutionPoint {
 }
 
 impl InvariantExecutionPoint {
+    pub const COUNT: usize = 4;
+
     pub const fn class(self) -> InvariantClass {
         match self {
             Self::MutationSensitive => InvariantClass::AlwaysOnStructural,
@@ -50,8 +52,11 @@ pub enum InvariantFailureEffect {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum InvariantVerdict {
     Pass,
-    Fail,
-    NotApplicable,
+    Advisory {
+        violation: InvariantViolation,
+        advisory: InvariantAdvisory,
+    },
+    Violation(InvariantViolation),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -60,7 +65,6 @@ pub struct InvariantCheckResult {
     pub failure_effect: InvariantFailureEffect,
     pub rule: InvariantRule,
     pub verdict: InvariantVerdict,
-    pub violations: Vec<InvariantViolation>,
 }
 
 impl InvariantCheckResult {

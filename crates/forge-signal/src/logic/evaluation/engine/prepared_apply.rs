@@ -1,9 +1,11 @@
 use crate::data::comparator::ComparatorPolicyResolver;
+use crate::data::dependency::DependencyEdge;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::output::{MemoizedResultOrigin, NodeEvaluationResult};
 use crate::logic::evaluation::{DeferralReason, PreparedApplyResult, SuppressionReason};
+use crate::logic::evaluation::EffectDependencyInputs;
 use crate::logic::prepared::{
     PreparedDependencyCapture, PreparedEvaluation, PreparedEvaluationOrigin,
     PreparedEvaluationOutcome,
@@ -14,6 +16,7 @@ use super::apply::{
 };
 use super::metadata::EvaluationExecutionMetadata;
 
+#[cfg(any(test, feature = "parallel"))]
 pub(crate) fn apply_prepared_evaluation_with_policy(
     graph: &mut SignalGraph,
     node: NodeId,
@@ -22,6 +25,38 @@ pub(crate) fn apply_prepared_evaluation_with_policy(
     execution_metadata: Option<&EvaluationExecutionMetadata>,
 ) -> Result<PreparedApplyResult, SignalError> {
     let dependency_updates = apply_prepared_dependencies(graph, node, &prepared.dependencies)?;
+    apply_prepared_evaluation_after_dependencies_with_policy(
+        graph,
+        node,
+        prepared,
+        comparator_resolver,
+        execution_metadata,
+        dependency_updates,
+        None,
+    )
+}
+
+pub(crate) fn apply_prepared_dependency_batch(
+    graph: &mut SignalGraph,
+    captures: &[(NodeId, &PreparedDependencyCapture)],
+) -> Result<Vec<u32>, SignalError> {
+    let desired = captures
+        .iter()
+        .map(|(node, capture)| (*node, build_prepared_dependency_edges(graph, capture)))
+        .collect::<Vec<_>>();
+    let reports = graph.reconcile_dependencies_batch(&desired)?;
+    Ok(reports.into_iter().map(|report| report.update_count()).collect())
+}
+
+pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
+    graph: &mut SignalGraph,
+    node: NodeId,
+    prepared: PreparedEvaluation,
+    comparator_resolver: &mut impl ComparatorPolicyResolver,
+    execution_metadata: Option<&EvaluationExecutionMetadata>,
+    dependency_updates: u32,
+    dependency_inputs: Option<EffectDependencyInputs>,
+) -> Result<PreparedApplyResult, SignalError> {
     match prepared.outcome {
         PreparedEvaluationOutcome::Evaluate => {
             let mut result = prepared.result;
@@ -58,6 +93,7 @@ pub(crate) fn apply_prepared_evaluation_with_policy(
                 recomputed,
                 prepared.keyed,
                 prepared.trace_data.causality,
+                dependency_inputs,
             )?;
             apply_result.dependency_updates = dependency_updates;
             Ok(apply_result)
@@ -76,6 +112,7 @@ pub(crate) fn apply_prepared_evaluation_with_policy(
                 false,
                 prepared.keyed,
                 prepared.trace_data.causality,
+                dependency_inputs,
             )?;
             apply_result.dependency_updates = dependency_updates;
             Ok(apply_result)
@@ -94,6 +131,7 @@ pub(crate) fn apply_prepared_evaluation_with_policy(
                 false,
                 prepared.keyed,
                 prepared.trace_data.causality,
+                dependency_inputs,
             )?;
             apply_result.dependency_updates = dependency_updates;
             Ok(apply_result)
@@ -112,6 +150,7 @@ pub(crate) fn apply_prepared_evaluation_with_policy(
                 false,
                 prepared.keyed,
                 prepared.trace_data.causality,
+                dependency_inputs,
             )?;
             apply_result.dependency_updates = dependency_updates;
             Ok(apply_result)
@@ -140,17 +179,28 @@ fn apply_prepared_with_synthesized_metadata(
         false,
         keyed_context,
         causality,
+        None,
     )?;
     apply_result.dependency_updates = dependency_updates;
     Ok(apply_result)
 }
 
+#[cfg(any(test, feature = "parallel"))]
 fn apply_prepared_dependencies(
     graph: &mut SignalGraph,
     node: NodeId,
     capture: &PreparedDependencyCapture,
 ) -> Result<u32, SignalError> {
-    let desired = capture
+    let desired = build_prepared_dependency_edges(graph, capture);
+    let report = graph.reconcile_dependencies(node, &desired)?;
+    Ok(report.update_count())
+}
+
+fn build_prepared_dependency_edges(
+    graph: &mut SignalGraph,
+    capture: &PreparedDependencyCapture,
+) -> Vec<DependencyEdge> {
+    capture
         .as_slice()
         .iter()
         .map(|dependency| {
@@ -160,7 +210,5 @@ fn apply_prepared_dependencies(
                 dependency.scope.clone(),
             )
         })
-        .collect::<Vec<_>>();
-    let report = graph.reconcile_dependencies(node, &desired)?;
-    Ok(report.update_count())
+        .collect()
 }

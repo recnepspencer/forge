@@ -7,6 +7,7 @@ use crate::publication::logic::publication_failure_diagnostic;
 use crate::transactions::data::{
     CommitConflict, MergedCommitPlan, TransactionCommitError,
 };
+use crate::validation::engine::InvariantExecutionResult;
 
 impl RelationalRuntime {
     pub(crate) fn invariant_authority(&mut self) -> InvariantAuthority<'_> {
@@ -26,17 +27,16 @@ impl<'runtime> InvariantAuthority<'runtime> {
     pub(crate) fn enforce_commit_boundary(
         &mut self,
         merged_plan: &MergedCommitPlan,
-    ) -> Result<(), TransactionCommitError> {
-        if let Some(failure) = self
+    ) -> Result<InvariantExecutionResult, TransactionCommitError> {
+        let result = self
             .runtime
             .invariant_access()
-            .commit_boundary(merged_plan)
-            .first_blocking_failure()
-        {
+            .commit_boundary(merged_plan);
+        if let Some(failure) = result.first_blocking_failure() {
             self.emit_conflict_diagnostic(failure.execution_point(), failure.detail().to_string());
-            return Err(TransactionCommitError::Conflict(failure.into_commit_conflict()));
+            return Err(TransactionCommitError::conflict(failure.into_commit_conflict()));
         }
-        Ok(())
+        Ok(result)
     }
 
     pub(crate) fn enforce_mutation_sensitive_for_working_state(
@@ -44,22 +44,21 @@ impl<'runtime> InvariantAuthority<'runtime> {
         working_state: &WorkingState,
         version_id: crate::identity::data::VersionId,
         merged_plan: &MergedCommitPlan,
-    ) -> Result<(), CommitConflict> {
-        let failure = {
+    ) -> Result<InvariantExecutionResult, CommitConflict> {
+        let result = {
             let overlay_state = self.runtime.overlay_state_view(working_state);
             self.runtime
                 .invariant_access()
                 .mutation_sensitive_for_state(&overlay_state, version_id, Some(merged_plan))
-                .first_blocking_failure()
         };
-        if let Some(failure) = failure {
+        if let Some(failure) = result.first_blocking_failure() {
             self.emit_conflict_diagnostic(
                 failure.execution_point(),
                 failure.detail().to_string(),
             );
             return Err(failure.into_commit_conflict());
         }
-        Ok(())
+        Ok(result)
     }
 
     pub(crate) fn enforce_snapshot_publication_for_working_state(
@@ -67,8 +66,8 @@ impl<'runtime> InvariantAuthority<'runtime> {
         working_state: &WorkingState,
         version_id: crate::identity::data::VersionId,
         merged_plan: &MergedCommitPlan,
-    ) -> Result<(), PublicationError> {
-        let failure = {
+    ) -> Result<InvariantExecutionResult, PublicationError> {
+        let result = {
             let overlay_state = self.runtime.overlay_state_view(working_state);
             self.runtime
                 .invariant_access()
@@ -77,13 +76,12 @@ impl<'runtime> InvariantAuthority<'runtime> {
                     version_id,
                     Some(merged_plan),
                 )
-                .first_publication_failure()
         };
-        if let Some(failure) = failure {
+        if let Some(failure) = result.first_publication_failure() {
             self.emit_publication_failure(failure.detail().to_string());
             return Err(failure.into_publication_error(PublicationStage::InvariantCheck));
         }
-        Ok(())
+        Ok(result)
     }
 
     fn emit_conflict_diagnostic(

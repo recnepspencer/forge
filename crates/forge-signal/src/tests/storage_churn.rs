@@ -9,7 +9,7 @@ fn compaction_and_slot_reuse_are_observable_through_storage_metrics() {
     let localized = runtime.graph_mut().node().build();
     runtime
         .graph_mut()
-        .add_partition_detail_dependency(localized, partitioned, ASPECT_A, "desk-0", "book-0")
+        .append_partition_detail_dependency(localized, partitioned, ASPECT_A, "desk-0", "book-0")
         .unwrap();
     let leaves = (0..8)
         .map(|_| runtime.graph_mut().node().build())
@@ -22,11 +22,11 @@ fn compaction_and_slot_reuse_are_observable_through_storage_metrics() {
             } else {
                 ASPECT_B
             };
-            let _ = runtime.graph_mut().remove_dependency(leaf, root, ASPECT_A);
-            let _ = runtime.graph_mut().remove_dependency(leaf, root, ASPECT_B);
+            let _ = runtime.graph_mut().drop_dependency(leaf, root, ASPECT_A);
+            let _ = runtime.graph_mut().drop_dependency(leaf, root, ASPECT_B);
             runtime
                 .graph_mut()
-                .add_dependency(leaf, root, aspect)
+                .append_dependency(leaf, root, aspect)
                 .unwrap();
         }
         runtime.graph_mut().run_gc_epoch();

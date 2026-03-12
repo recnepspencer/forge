@@ -1,7 +1,7 @@
 use serde_json::json;
 
 use crate::facade::{
-    BranchId, CommitOutcome, EntityId, EntityMutationIntent, RecordPayload, MutationIntent,
+    BranchId, CommitResult, EntityId, EntityMutationIntent, RecordPayload, MutationIntent,
     TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
 };
 
@@ -11,7 +11,7 @@ pub(crate) fn correct_trade_with_replacement(
     world: &mut FintechWorld,
     branch_id: BranchId,
     trade_id: EntityId,
-) -> CommitOutcome {
+) -> CommitResult {
     let mut txn = world.runtime.begin_transaction(TransactionOptions {
         target_branch: Some(branch_id),
         ..TransactionOptions::default()
@@ -37,6 +37,6 @@ pub(crate) fn correct_trade_with_replacement(
 pub(crate) fn correct_seeded_trade_candidate(
     world: &mut FintechWorld,
     branch_id: BranchId,
-) -> CommitOutcome {
+) -> CommitResult {
     correct_trade_with_replacement(world, branch_id, world.late_trade_correction_case().trade)
 }

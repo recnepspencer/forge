@@ -70,10 +70,10 @@ pub(super) fn commit_error_to_harness_error(
     error: crate::transactions::data::TransactionCommitError,
 ) -> RelationalHarnessError {
     match error {
-        crate::transactions::data::TransactionCommitError::Conflict(conflict) => {
+        crate::transactions::data::TransactionCommitError::Conflict { error: conflict, .. } => {
             RelationalHarnessError(conflict.detail)
         }
-        crate::transactions::data::TransactionCommitError::Publication(publication) => {
+        crate::transactions::data::TransactionCommitError::Publication { error: publication, .. } => {
             RelationalHarnessError(publication.detail)
         }
     }

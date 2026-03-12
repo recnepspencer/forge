@@ -125,7 +125,7 @@ fn snapshot_audit_failure_blocks_publication() {
 
     assert!(matches!(
         error,
-        TransactionCommitError::Publication(ref publication)
+        TransactionCommitError::Publication { error: ref publication, .. }
             if publication.stage == PublicationStage::InvariantCheck
     ));
     assert!(runtime.publication_access().latest_bundle().is_none());
@@ -244,12 +244,14 @@ fn repeated_serial_runs_are_harness_comparable() {
 
 #[test]
 fn harness_heavy_invariants_are_opt_in() {
-    let runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
+    let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
         registrations: vec![InvariantRegistration::harness_audit_only(
             InvariantRule::UniqueEntityPayloadField("name".to_string()),
         )],
         ..InvariantCatalog::default()
     });
+    let _ = create_entity(&mut runtime, "duplicate");
+    let _ = create_entity(&mut runtime, "duplicate");
 
     let default_results = runtime
         .invariant_access()
@@ -263,6 +265,10 @@ fn harness_heavy_invariants_are_opt_in() {
     assert!(default_results.is_empty());
     assert_eq!(enabled_results.len(), 1);
     assert_eq!(enabled_results[0].class(), InvariantClass::HarnessHeavy);
+    assert!(matches!(
+        enabled_results[0].verdict,
+        crate::validation::data::InvariantVerdict::Advisory { .. }
+    ));
 }
 
 #[test]

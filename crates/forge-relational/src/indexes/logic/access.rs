@@ -102,6 +102,13 @@ impl<'runtime> IndexAccess<'runtime> {
             .and_then(|values| values.get(value))
     }
 
+    pub(crate) fn entity_unique_field_entries(
+        &self,
+        field: &str,
+    ) -> Option<&std::collections::BTreeMap<String, std::collections::BTreeSet<crate::identity::data::EntityId>>> {
+        self.runtime.indexes.entity_unique_field_index.get(field)
+    }
+
     fn branch_id_for_version(
         &self,
         version_id: crate::identity::data::VersionId,

@@ -1,4 +1,4 @@
-# forge-signal Performance Architecture — Multi-Domain Performance Program
+# forge-signal Performance Architecture — Multi-Domain Performance Viability Plan
 
 > **Status:** Pre-production. Breaking changes are expected and encouraged.
 >
@@ -11,6 +11,8 @@
 >
 > **Core constraint:** Preserve semantic traceability and deterministic replay while making hot execution paths performant enough for domain-specific production use.
 >
+> **Severity:** This document is not a tuning backlog. It is a viability document. For kernel-class CAD and aircraft-scale geometry workloads, the current `forge-signal` hot mutation path is not yet credible. Incremental wins matter, but they do not close the architecture gap.
+>
 > **Relationship to older docs:** This is now the canonical performance plan. It supersedes the older performance-architecture drafts by grounding the program in the current codebase and the benchmark suite we actually run.
 
 ---
@@ -19,19 +21,20 @@
 
 1. [Doctrine](#doctrine)
 2. [Reality Check](#reality-check)
-3. [Current Code Map](#current-code-map)
-4. [Performance Profiles](#performance-profiles)
-5. [Phase P0 — Measurement Discipline](#phase-p0--measurement-discipline)
-6. [Phase P1 — Trace Cost Separation](#phase-p1--trace-cost-separation)
-7. [Phase P2 — Mutation Backend Redesign](#phase-p2--mutation-backend-redesign)
-8. [Phase P3 — Data Layout and Locality](#phase-p3--data-layout-and-locality)
-9. [Phase P4 — Allocation Discipline](#phase-p4--allocation-discipline)
-10. [Phase P5 — Parallel Scaling](#phase-p5--parallel-scaling)
-11. [Phase P6 — Maintenance and GC Policy](#phase-p6--maintenance-and-gc-policy)
-12. [Phase P7 — Domain Profile Packaging](#phase-p7--domain-profile-packaging)
-13. [Numeric Targets](#numeric-targets)
-14. [Sequencing](#sequencing)
-15. [What Must Never Be Sacrificed](#what-must-never-be-sacrificed)
+3. [Viability Gap](#viability-gap)
+4. [Current Code Map](#current-code-map)
+5. [Performance Profiles](#performance-profiles)
+6. [Phase P0 — Measurement Discipline](#phase-p0--measurement-discipline)
+7. [Phase P1 — Trace Cost Separation](#phase-p1--trace-cost-separation)
+8. [Phase P2 — Mutation Backend Redesign](#phase-p2--mutation-backend-redesign)
+9. [Phase P3 — Data Layout and Locality](#phase-p3--data-layout-and-locality)
+10. [Phase P4 — Allocation Discipline](#phase-p4--allocation-discipline)
+11. [Phase P5 — Parallel Scaling](#phase-p5--parallel-scaling)
+12. [Phase P6 — Maintenance and GC Policy](#phase-p6--maintenance-and-gc-policy)
+13. [Phase P7 — Domain Profile Packaging](#phase-p7--domain-profile-packaging)
+14. [Numeric Targets](#numeric-targets)
+15. [Sequencing](#sequencing)
+16. [What Must Never Be Sacrificed](#what-must-never-be-sacrificed)
 
 ---
 
@@ -45,10 +48,31 @@ Forge must be:
 - **debuggable enough for agent-native kernel development**
 - **fast enough for production CAD, chip simulation, and runtime workloads**
 
+For aircraft-class geometry systems, these are not tradeable aspirations. They are simultaneous requirements.
+
 These requirements are compatible only if we separate:
 
 1. **semantic traceability**
 2. **trace materialization cost**
+
+### What this document is not
+
+This is not a list of performance tips.
+
+It is not a promise that a sequence of 10-20% wins will make the system kernel-ready.
+
+It is not permission to confuse useful bridge optimizations with closure of the core performance gap.
+
+### Mandate
+
+`forge-signal` must become credible for geometry-kernel-class mutation and recomputation workloads.
+
+That requires:
+
+- measurement strong enough to expose structural waste
+- explicit rejection of hot-path cost models that do not scale
+- redesign of the mutation backend rather than indefinite clone/rewrite cleanup
+- profile-gated observability so hot execution does not pay forensic cost by default
 
 ### What is universal
 
@@ -88,7 +112,7 @@ The correct model is:
 
 The current system is materially better than it was, but still far from geometry-kernel-grade performance.
 
-This is not a tuning problem anymore. It is a performance architecture program.
+This is not a tuning problem anymore. It is a performance viability problem.
 
 The main gaps are:
 
@@ -98,7 +122,74 @@ The main gaps are:
 - parallel scaling still needs deeper audit
 - maintenance policy is not yet domain-specialized enough
 
-This is realistic, but only if handled as a dedicated phase program rather than incremental cleanup.
+Incremental cleanup is still worth doing, but it is bridge work.
+
+Bridge work is not the answer to the main viability gap.
+
+The current churn-heavy mutation/storage model is still too expensive for the class of local topology editing expected in a serious geometry kernel.
+
+### Current interpretation
+
+Recent improvements that reduce churn-path medians by tens of percentage points are useful and should continue.
+
+They do **not** justify a conclusion that the architecture is close to sufficient.
+
+The correct interpretation is:
+
+- local optimizations can remove obvious waste
+- local optimizations can sharpen the benchmark signal
+- local optimizations can buy time and reduce incidental pain
+- backend redesign is still required
+
+---
+
+## Viability Gap
+
+### What is not credible yet
+
+For aircraft-scale geometry work, the following behaviors are not acceptable as the steady-state hot-path model:
+
+- whole-slice dependency rewrites for local edge changes
+- whole-slice subscriber rewrites for local edge changes
+- repeated clone/edit/reintern cycles during churn-heavy reconciliation
+- hot mutation paths that scale with broad container rewrite cost instead of local edit radius
+- observability richness that taxes operational mutation paths by default
+
+### What must change
+
+The main required redesign is not optional:
+
+- a batched mutable topology-edit backend for dependency and subscriber updates
+- storage representations that tolerate churn without constant whole-set rewrite cost
+- stronger separation between operational execution and forensic materialization
+- geometry-shaped certification workloads that prove local edits stay local in cost
+
+### Bridge Work Versus Viability Work
+
+#### Bridge work
+
+Examples:
+
+- remove unnecessary sorting
+- replace full scans with range-based edits
+- reduce per-effect allocations
+- remove hot-path set/tree allocations
+- tighten suppression traversal scratch behavior
+
+These changes are good and should continue.
+
+They are not sufficient.
+
+#### Viability work
+
+Examples:
+
+- redesign mutation/storage to support batched local rewiring
+- introduce transient mutable builders and single-commit reconciliation
+- specialize storage/layout for churn-heavy geometry-style neighborhoods
+- define kernel-operational profiles that preserve lineage identity without paying full forensic cost
+
+These changes determine whether `forge-signal` becomes suitable for the target domain at all.
 
 ---
 
@@ -236,6 +327,8 @@ The same computation must mean the same thing across profiles. Only cost model a
 
 Stop making performance decisions from one-off noisy runs.
 
+This phase exists to prevent false comfort from isolated wins or losses. Kernel-grade redesign cannot be guided by anecdotes.
+
 ### Work
 
 - expand the benchmark matrix to cover:
@@ -277,6 +370,8 @@ Stop making performance decisions from one-off noisy runs.
 ### Goal
 
 Keep semantic traceability universal while removing rich trace construction from hot production paths.
+
+This is required for viability, not polish. A geometry kernel cannot afford to pay forensic-materialization cost on every serious operational edit.
 
 ### Design
 
@@ -328,9 +423,18 @@ Current churn-heavy mutation still overpays for:
 - whole-set reinterning
 - repeated per-source rewrites during reconciliation
 
+For aircraft-class geometry work, these costs are not “suboptimal.” They are disqualifying if left as the default hot-path model.
+
 ### Design
 
 Keep one semantic reconciliation model, but allow different backend implementations.
+
+The redesign target is explicit:
+
+- local topology edits must cost closer to the changed neighborhood
+- repeated rewiring must batch into mutable working sets
+- commit must happen once per affected set or batch, not once per tiny edge mutation
+- operational profiles must not pay avoidable reconstruction or rewrite tax
 
 ### Subphases
 
@@ -355,6 +459,8 @@ These builders should:
 - accept sorted inserts/removes efficiently
 - commit back to segmented storage once per affected set
 
+This is the first major redesign gate. If this class of builder does not materially reduce churn-path cost, the storage backend needs a deeper replacement rather than more local cleanup.
+
 #### P2.3 — Backend selection by profile
 
 Examples:
@@ -378,11 +484,14 @@ The mutation backend must explicitly support workloads like:
 - repeated source replacement
 - localized topology healing analogs
 
+These are not “nice to have” benchmark shapes. They are minimum viability evidence for geometry-kernel credibility.
+
 ### Acceptance
 
 - production reconciliation workloads improve materially again
 - rollback and retirement use the same backend model
 - common local rewiring avoids repeated clone/reintern cycles
+- the hot mutation path no longer relies on whole-slice rewrite as its default physical model
 
 ---
 
@@ -682,4 +791,3 @@ Even under the strongest performance specialization:
 This is the core doctrine:
 
 > **Forge may specialize execution policy aggressively, but it must never specialize truth.**
-

@@ -13,6 +13,7 @@ pub(crate) struct PublicationPreparation {
     pub(crate) changed_records: Vec<RecordRef>,
     pub(crate) canonical_commit_envelope: crate::replay::data::CanonicalCommitEnvelope,
     pub(crate) adjacency_deltas: Vec<crate::authority::mutation::AdjacencyDelta>,
+    pub(crate) lineage_event_count: usize,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -43,6 +44,7 @@ pub(crate) fn prepare_publication_artifacts(
         &merged_plan.merged_intents,
         &effect.changed_records,
     );
+    let lineage_event_count = lineage_event_ids.len();
     let canonical_commit_envelope = canonical_commit_envelope(
         runtime,
         commit_reference,
@@ -65,5 +67,6 @@ pub(crate) fn prepare_publication_artifacts(
         changed_records,
         canonical_commit_envelope,
         adjacency_deltas,
+        lineage_event_count,
     })
 }

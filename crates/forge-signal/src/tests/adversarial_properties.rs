@@ -42,7 +42,7 @@ fn whole_partition_changes_match_partition_and_detail_subscribers_under_permutat
     let upstream = graph.node().partitioned_output().build();
     let downstream = graph.node().build();
     graph
-        .add_partition_detail_dependency(downstream, upstream, ASPECT_A, "wing", "left")
+        .append_partition_detail_dependency(downstream, upstream, ASPECT_A, "wing", "left")
         .unwrap();
     graph
         .get_entry_mut(upstream)

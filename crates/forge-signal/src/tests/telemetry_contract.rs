@@ -40,10 +40,10 @@ fn direct_whole_partition_changes_are_counted_as_partition_matches() {
     let whole = graph.node().build();
     let detail = graph.node().build();
     graph
-        .add_partition_dependency(whole, source, ASPECT_A, "wing")
+        .append_partition_dependency(whole, source, ASPECT_A, "wing")
         .unwrap();
     graph
-        .add_partition_detail_dependency(detail, source, ASPECT_A, "wing", "rib-12")
+        .append_partition_detail_dependency(detail, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
 
     mark_dirty_with_regions(

@@ -138,7 +138,7 @@ fn many_thin_stages_remain_serial_under_parallel_threshold() {
     }
     for index in 1..chain.len() {
         graph
-            .add_dependency(chain[index], chain[index - 1], ASPECT_A)
+            .append_dependency(chain[index], chain[index - 1], ASPECT_A)
             .unwrap();
     }
 
@@ -476,10 +476,10 @@ fn full_parallel_policy_matrix_preserves_semantic_artifacts_on_tolerance_heavy_p
         let branch_a = graph.node().tolerance(1).build();
         let branch_b = graph.node().tolerance(1).build();
         graph
-            .add_partition_dependency(branch_a, source, ASPECT_A, "shell")
+            .append_partition_dependency(branch_a, source, ASPECT_A, "shell")
             .unwrap();
         graph
-            .add_partition_dependency(branch_b, source, ASPECT_A, "core")
+            .append_partition_dependency(branch_b, source, ASPECT_A, "core")
             .unwrap();
         (graph, source, branch_a, branch_b)
     }
@@ -566,7 +566,7 @@ fn logically_equivalent_region_orders_produce_identical_provenance_and_replay() 
     let source_a = graph_a.node().build();
     let target_a = graph_a.node().tolerance(0).build();
     graph_a
-        .add_partition_dependency(target_a, source_a, ASPECT_A, "face")
+        .append_partition_dependency(target_a, source_a, ASPECT_A, "face")
         .unwrap();
 
     let mut graph_b = graph_a.clone();
@@ -647,23 +647,23 @@ fn reordered_dependency_and_region_orders_stay_canonical_across_executor_matrix(
         let target = graph.node().output_identity().build();
 
         if reverse_dependencies {
-            graph.add_dependency(target, core, ASPECT_A).unwrap();
-            graph.add_dependency(target, shell, ASPECT_A).unwrap();
+            graph.append_dependency(target, core, ASPECT_A).unwrap();
+            graph.append_dependency(target, shell, ASPECT_A).unwrap();
             graph
-                .add_partition_dependency(core, source, ASPECT_A, "mesh")
+                .append_partition_dependency(core, source, ASPECT_A, "mesh")
                 .unwrap();
             graph
-                .add_partition_dependency(shell, source, ASPECT_A, "shell")
+                .append_partition_dependency(shell, source, ASPECT_A, "shell")
                 .unwrap();
         } else {
             graph
-                .add_partition_dependency(shell, source, ASPECT_A, "shell")
+                .append_partition_dependency(shell, source, ASPECT_A, "shell")
                 .unwrap();
             graph
-                .add_partition_dependency(core, source, ASPECT_A, "mesh")
+                .append_partition_dependency(core, source, ASPECT_A, "mesh")
                 .unwrap();
-            graph.add_dependency(target, shell, ASPECT_A).unwrap();
-            graph.add_dependency(target, core, ASPECT_A).unwrap();
+            graph.append_dependency(target, shell, ASPECT_A).unwrap();
+            graph.append_dependency(target, core, ASPECT_A).unwrap();
         }
 
         (graph, source, shell, core, target)
@@ -819,10 +819,10 @@ fn repeated_executor_policy_churn_keeps_tolerance_boundary_artifacts_stable() {
         let shell = graph.node().tolerance(2).build();
         let core = graph.node().tolerance(2).build();
         let target = graph.node().output_identity().build();
-        graph.add_dependency(shell, source, ASPECT_A).unwrap();
-        graph.add_dependency(core, source, ASPECT_A).unwrap();
-        graph.add_dependency(target, shell, ASPECT_A).unwrap();
-        graph.add_dependency(target, core, ASPECT_A).unwrap();
+        graph.append_dependency(shell, source, ASPECT_A).unwrap();
+        graph.append_dependency(core, source, ASPECT_A).unwrap();
+        graph.append_dependency(target, shell, ASPECT_A).unwrap();
+        graph.append_dependency(target, core, ASPECT_A).unwrap();
         (graph, source, shell, core, target)
     }
 

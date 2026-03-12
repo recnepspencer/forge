@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 
 use crate::payloads::data::RecordPayload;
 use crate::storage::logic::state::{EntityArena, PartitionAccess, VersionedValue};
@@ -81,7 +81,7 @@ impl<'state> InvariantStateView<'state> {
 
     pub(crate) fn touched_entity_set(
         ids: &[crate::identity::data::EntityId],
-    ) -> BTreeSet<crate::identity::data::EntityId> {
+    ) -> HashSet<crate::identity::data::EntityId> {
         ids.iter().copied().collect()
     }
 

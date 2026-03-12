@@ -2,7 +2,9 @@ use serde::{Deserialize, Serialize};
 
 use super::execution::{InvariantExecutionPoint, InvariantFailureEffect};
 use super::contracts::InvariantPlanContract;
-use super::groups::{InvariantCostClass, InvariantGroupSet};
+use super::groups::InvariantCostClass;
+use super::results::{InvariantAdvisory, InvariantViolation};
+use super::InvariantVerdict;
 use super::rules::{InvariantRule, RecordKindTag};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -68,16 +70,27 @@ impl InvariantRegistration {
         Self::audit_only(rule, InvariantExecutionPoint::HarnessAudit)
     }
 
-    pub(crate) fn matches_groups(&self, groups: InvariantGroupSet) -> bool {
-        self.rule.groups().intersects(groups)
-    }
-
     pub(crate) fn cost(&self) -> InvariantCostClass {
         self.rule.cost_class()
     }
 
     pub(crate) fn applies_to_contract(&self, contract: Option<InvariantPlanContract>) -> bool {
         contract.is_none_or(|contract| contract.applies_to_rule(&self.rule))
+    }
+
+    pub(crate) fn verdict_for_violation(
+        &self,
+        violation: InvariantViolation,
+    ) -> InvariantVerdict {
+        match self.failure_effect {
+            InvariantFailureEffect::AuditOnly => InvariantVerdict::Advisory {
+                violation,
+                advisory: InvariantAdvisory::AuditOnly,
+            },
+            InvariantFailureEffect::BlockCommit | InvariantFailureEffect::BlockPublication => {
+                InvariantVerdict::Violation(violation)
+            }
+        }
     }
 }
 

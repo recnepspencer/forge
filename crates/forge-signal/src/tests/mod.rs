@@ -29,6 +29,7 @@ mod partition_validation;
 mod performance;
 mod performance_budgets;
 mod performance_profiles;
+mod performance_support;
 mod phase1_api;
 mod phase3_semantics;
 mod phase4_planner;

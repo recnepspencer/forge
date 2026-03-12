@@ -1,5 +1,5 @@
 use crate::facade::{
-    BulkRelationCreateIntent, CommitOutcome, CreateIntent, EntityId, InternedString, KindId,
+    BulkRelationCreateIntent, CommitResult, CreateIntent, EntityId, InternedString, KindId,
     PartitionId, RecordPayload, RelationId, RelationalRuntime, MutationIntent,
     TransactionOptions, WorkerIntentBatch,
 };
@@ -205,7 +205,7 @@ where
     changed_relations(&txn.commit().unwrap())
 }
 
-fn changed_relations(outcome: &CommitOutcome) -> Vec<RelationId> {
+fn changed_relations(outcome: &CommitResult) -> Vec<RelationId> {
     outcome
         .changed_records
         .iter()

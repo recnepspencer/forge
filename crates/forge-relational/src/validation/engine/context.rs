@@ -22,6 +22,7 @@ impl<'runtime> InvariantExecutionContext<'runtime> {
         state: &'runtime dyn PartitionAccess,
         version_id: crate::identity::data::VersionId,
         execution_point: InvariantExecutionPoint,
+        plan_contract: Option<InvariantPlanContract>,
         merged_plan: Option<&'runtime MergedCommitPlan>,
     ) -> Self {
         Self {
@@ -29,7 +30,7 @@ impl<'runtime> InvariantExecutionContext<'runtime> {
             version_id,
             current_version_id: runtime.current_version_id(),
             execution_point,
-            plan_contract: merged_plan.map(InvariantPlanContract::from_merged_plan),
+            plan_contract,
             merged_plan,
             runtime,
         }

@@ -8,7 +8,7 @@ fn rollback_after_dependency_rewiring_restores_original_topology() {
     let source_a = graph.node().build();
     let source_b = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source_a, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source_a, ASPECT_A).unwrap();
 
     let before = graph.dependencies_of(dependent).unwrap().to_vec();
     let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();

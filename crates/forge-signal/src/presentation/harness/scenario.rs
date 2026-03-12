@@ -14,6 +14,7 @@ pub struct SignalScenario {
     graph: SignalGraph,
     evaluator: Option<Arc<dyn SignalEvaluationDriver>>,
     labels: BTreeMap<String, NodeId>,
+    pending_dependencies: BTreeMap<NodeId, Vec<DependencyEdge>>,
     declared_inputs: Vec<String>,
     declared_observations: Vec<String>,
     metadata: BTreeMap<String, String>,
@@ -26,6 +27,7 @@ impl SignalScenario {
             graph: SignalGraph::new(),
             evaluator: None,
             labels: BTreeMap::new(),
+            pending_dependencies: BTreeMap::new(),
             declared_inputs: Vec::new(),
             declared_observations: Vec::new(),
             metadata: BTreeMap::new(),
@@ -37,6 +39,8 @@ impl SignalScenario {
     }
 
     pub fn graph_mut(&mut self) -> &mut SignalGraph {
+        self.flush_pending_dependencies()
+            .expect("signal scenario pending dependency batch should flush cleanly");
         &mut self.graph
     }
 
@@ -55,6 +59,8 @@ impl SignalScenario {
         label: impl Into<String>,
         build: impl FnOnce(&mut SignalGraph) -> NodeId,
     ) -> NodeId {
+        self.flush_pending_dependencies()
+            .expect("signal scenario pending dependency batch should flush cleanly");
         let node = build(&mut self.graph);
         self.label(label, node)
     }
@@ -73,7 +79,9 @@ impl SignalScenario {
     ) -> Result<&mut Self, SignalError> {
         let downstream = self.resolve(downstream_label)?;
         let upstream = self.resolve(upstream_label)?;
-        self.graph.add_dependency(downstream, upstream, aspect)?;
+        let mut dependencies = self.pending_dependencies_for(downstream)?;
+        dependencies.push(DependencyEdge::new(upstream, aspect));
+        self.pending_dependencies.insert(downstream, dependencies);
         Ok(self)
     }
 
@@ -86,8 +94,9 @@ impl SignalScenario {
     ) -> Result<&mut Self, SignalError> {
         let downstream = self.resolve(downstream_label)?;
         let upstream = self.resolve(upstream_label)?;
-        self.graph
-            .add_partition_dependency(downstream, upstream, aspect, partition)?;
+        let mut dependencies = self.pending_dependencies_for(downstream)?;
+        dependencies.push(DependencyEdge::whole_partition(upstream, aspect, partition));
+        self.pending_dependencies.insert(downstream, dependencies);
         Ok(self)
     }
 
@@ -101,8 +110,14 @@ impl SignalScenario {
     ) -> Result<&mut Self, SignalError> {
         let downstream = self.resolve(downstream_label)?;
         let upstream = self.resolve(upstream_label)?;
-        self.graph
-            .add_partition_detail_dependency(downstream, upstream, aspect, partition, detail)?;
+        let mut dependencies = self.pending_dependencies_for(downstream)?;
+        dependencies.push(DependencyEdge::partition_detail(
+            upstream,
+            aspect,
+            partition,
+            detail,
+        ));
+        self.pending_dependencies.insert(downstream, dependencies);
         Ok(self)
     }
 
@@ -137,15 +152,17 @@ impl SignalScenario {
     }
 
     pub fn fixture(self) -> Result<ScenarioFixture<SignalFixtureFactory>, SignalError> {
-        let evaluator = self.evaluator.ok_or_else(|| {
+        let mut this = self;
+        this.flush_pending_dependencies()?;
+        let evaluator = this.evaluator.ok_or_else(|| {
             SignalError::invalid_input("signal scenario requires an evaluator before compile")
         })?;
-        let name = self.name;
-        let graph = self.graph;
-        let labels = self.labels;
-        let declared_inputs = self.declared_inputs;
-        let declared_observations = self.declared_observations;
-        let metadata = self.metadata;
+        let name = this.name;
+        let graph = this.graph;
+        let labels = this.labels;
+        let declared_inputs = this.declared_inputs;
+        let declared_observations = this.declared_observations;
+        let metadata = this.metadata;
 
         let fixture = SignalFixtureFactory::new(move || {
             Ok(SignalHarnessRuntime {
@@ -182,6 +199,26 @@ impl SignalScenario {
         targets: impl IntoIterator<Item = impl Into<String>>,
     ) -> ExecutionRequest<String> {
         ExecutionRequest::new(name, targets.into_iter().map(Into::into).collect())
+    }
+}
+
+impl SignalScenario {
+    fn pending_dependencies_for(&self, node: NodeId) -> Result<Vec<DependencyEdge>, SignalError> {
+        match self.pending_dependencies.get(&node) {
+            Some(dependencies) => Ok(dependencies.clone()),
+            None => Ok(self.graph.dependencies_of(node)?.to_vec()),
+        }
+    }
+
+    fn flush_pending_dependencies(&mut self) -> Result<(), SignalError> {
+        if self.pending_dependencies.is_empty() {
+            return Ok(());
+        }
+
+        let pending = std::mem::take(&mut self.pending_dependencies)
+            .into_iter()
+            .collect::<Vec<_>>();
+        self.graph.set_dependencies_batch(pending)
     }
 }
 

@@ -25,9 +25,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use forge_core::envelope::OperationResult;
 use forge_core::KernelError;
 use forge_signal::facade::{
-    evaluate_in_txn, Aspect, AspectMask, AspectVersion, CheckpointBarrier,
-    DefaultComparatorResolver, NodeId, SignalError, SignalGraph, SignalRuntime, TraceSummary,
-    TransactionOutcome,
+    evaluate_in_txn, Aspect, AspectMask, AspectVersion, CheckpointBarrier, DefaultComparatorResolver,
+    DependencyEdge, NodeId, SignalError, SignalGraph, SignalRuntime, TraceSummary, TransactionOutcome,
 };
 
 use super::contracts::feature_dependency::FeatureAspect;
@@ -206,27 +205,30 @@ impl<R: FeatureRegistry> FeatureTree<R> {
         next_version
     }
 
-    fn wire_dependency_bindings(
-        graph: &mut SignalGraph,
-        node_id: NodeId,
-        feature: &R,
-    ) -> Result<(), KernelError> {
+    fn dependency_edges_for_feature(feature: &R) -> Vec<DependencyEdge> {
+        let mut desired = Vec::new();
         for binding in feature.dependency_bindings() {
             let upstream = binding.node_id();
             let aspects = binding.aspects();
 
             if aspects.intersects(AspectMask::from_aspect(TOPOLOGY_ASPECT)) {
-                graph
-                    .add_dependency(node_id, upstream, TOPOLOGY_ASPECT)
-                    .map_err(Self::signal_to_kernel)?;
+                desired.push(DependencyEdge::new(upstream, TOPOLOGY_ASPECT));
             }
             if aspects.intersects(AspectMask::from_aspect(GEOMETRY_ASPECT)) {
-                graph
-                    .add_dependency(node_id, upstream, GEOMETRY_ASPECT)
-                    .map_err(Self::signal_to_kernel)?;
+                desired.push(DependencyEdge::new(upstream, GEOMETRY_ASPECT));
             }
         }
-        Ok(())
+        desired
+    }
+
+    fn wire_dependency_bindings(
+        graph: &mut SignalGraph,
+        node_id: NodeId,
+        feature: &R,
+    ) -> Result<(), KernelError> {
+        graph
+            .set_dependencies(node_id, Self::dependency_edges_for_feature(feature))
+            .map_err(Self::signal_to_kernel)
     }
 
     fn materialize_input(
@@ -315,27 +317,7 @@ impl<R: FeatureRegistry> FeatureTree<R> {
             });
         }
 
-        let old_feature = self.features.insert(node_id, feature);
-
-        if let Some(old) = old_feature {
-            for binding in old.dependency_bindings() {
-                let upstream = binding.node_id();
-                let aspects = binding.aspects();
-
-                if aspects.intersects(AspectMask::from_aspect(TOPOLOGY_ASPECT)) {
-                    self.runtime
-                        .graph_mut()
-                        .remove_dependency(node_id, upstream, TOPOLOGY_ASPECT)
-                        .map_err(Self::signal_to_kernel)?;
-                }
-                if aspects.intersects(AspectMask::from_aspect(GEOMETRY_ASPECT)) {
-                    self.runtime
-                        .graph_mut()
-                        .remove_dependency(node_id, upstream, GEOMETRY_ASPECT)
-                        .map_err(Self::signal_to_kernel)?;
-                }
-            }
-        }
+        self.features.insert(node_id, feature);
 
         let new_feature =
             self.features
@@ -344,7 +326,10 @@ impl<R: FeatureRegistry> FeatureTree<R> {
                     message: format!("Feature missing after insert for node {}", node_id),
                     context: None,
                 })?;
-        Self::wire_dependency_bindings(self.runtime.graph_mut(), node_id, new_feature)?;
+        self.runtime
+            .graph_mut()
+            .set_dependencies(node_id, Self::dependency_edges_for_feature(new_feature))
+            .map_err(Self::signal_to_kernel)?;
 
         let mut txn = self.runtime.begin();
         txn.mark_dirty(node_id, TOPOLOGY_ASPECT)

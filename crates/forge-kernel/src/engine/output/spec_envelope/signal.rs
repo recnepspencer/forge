@@ -5,8 +5,8 @@ use forge_core::KernelError;
 use forge_signal::facade::NodeState;
 use forge_signal::facade::{
     evaluate_in_txn_with_mode, Aspect, AspectVersion, CheckpointBarrier, DefaultComparatorResolver,
-    EvaluationCondition, EvaluationRequestMode, NodeId, SignalError, SignalGraph, SignalRuntime,
-    TransactionOutcome,
+    DependencyEdge, EvaluationCondition, EvaluationRequestMode, NodeId, SignalError, SignalGraph,
+    SignalRuntime, TransactionOutcome,
 };
 use forge_topo::projection::{
     compute_projected_topology_hash, validate_projected_topology_structural, ProjectedTopology,
@@ -96,22 +96,37 @@ impl SpecEnvelopeSignalState {
             .build();
 
         graph
-            .add_dependency(projection, root, TOPOLOGY_ASPECT)
+            .set_dependencies(projection, [DependencyEdge::new(root, TOPOLOGY_ASPECT)])
             .expect("spec envelope projection dependency should wire");
         graph
-            .add_dependency(structure_validation, projection, TOPOLOGY_ASPECT)
+            .set_dependencies(
+                structure_validation,
+                [DependencyEdge::new(projection, TOPOLOGY_ASPECT)],
+            )
             .expect("spec envelope structure dependency should wire");
         graph
-            .add_dependency(manifold_invariant, projection, TOPOLOGY_ASPECT)
+            .set_dependencies(
+                manifold_invariant,
+                [DependencyEdge::new(projection, TOPOLOGY_ASPECT)],
+            )
             .expect("spec envelope invariant dependency should wire");
         graph
-            .add_dependency(post_feature_checkpoint, manifold_invariant, TOPOLOGY_ASPECT)
+            .set_dependencies(
+                post_feature_checkpoint,
+                [DependencyEdge::new(manifold_invariant, TOPOLOGY_ASPECT)],
+            )
             .expect("spec envelope checkpoint dependency should wire");
         graph
-            .add_dependency(standard_fingerprint, root, TOPOLOGY_ASPECT)
+            .set_dependencies(
+                standard_fingerprint,
+                [DependencyEdge::new(root, TOPOLOGY_ASPECT)],
+            )
             .expect("spec envelope standard fingerprint dependency should wire");
         graph
-            .add_dependency(full_fingerprint, projection, TOPOLOGY_ASPECT)
+            .set_dependencies(
+                full_fingerprint,
+                [DependencyEdge::new(projection, TOPOLOGY_ASPECT)],
+            )
             .expect("spec envelope full fingerprint dependency should wire");
 
         let mut runtime = SignalRuntime::builder(graph)

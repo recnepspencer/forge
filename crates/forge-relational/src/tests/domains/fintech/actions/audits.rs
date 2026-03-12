@@ -1,7 +1,7 @@
 use serde_json::json;
 
 use crate::facade::{
-    BranchId, CommitOutcome, EntityMutationIntent, RecordPayload, MutationIntent,
+    BranchId, CommitResult, EntityMutationIntent, RecordPayload, MutationIntent,
     TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
 };
 
@@ -12,7 +12,7 @@ pub(crate) fn emit_case_audit_record(
     branch_id: BranchId,
     case_role: FintechCaseRole,
     event: &str,
-) -> CommitOutcome {
+) -> CommitResult {
     let case = world.workflow_case(case_role);
     let mut txn = world.runtime.begin_transaction(TransactionOptions {
         target_branch: Some(branch_id),
@@ -37,7 +37,7 @@ pub(crate) fn emit_case_audit_record(
 pub(crate) fn emit_trade_correction_audit_record(
     world: &mut FintechWorld,
     branch_id: BranchId,
-) -> CommitOutcome {
+) -> CommitResult {
     emit_case_audit_record(
         world,
         branch_id,

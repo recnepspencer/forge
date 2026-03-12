@@ -4,17 +4,12 @@ use crate::transactions::data::{
     CreateIntent, EntityMutationIntent, MergedCommitPlan, MutationIntent, RelationMutationIntent,
 };
 
-use super::rules::{InvariantRule, RecordKindTag};
+use super::groups::InvariantGroup;
+use super::rules::InvariantRule;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct InvariantPlanContract {
-    pub touches_entity_existence: bool,
-    pub touches_entity_payload: bool,
-    pub touches_relation_existence: bool,
-    pub touches_relation_payload: bool,
-    pub touches_uniqueness: bool,
-    pub touches_publication_surface: bool,
-    pub touches_snapshot_surface: bool,
+    pub may_break: u32,
 }
 
 impl InvariantPlanContract {
@@ -27,73 +22,64 @@ impl InvariantPlanContract {
     }
 
     pub fn is_empty(self) -> bool {
-        !self.touches_entity_existence
-            && !self.touches_entity_payload
-            && !self.touches_relation_existence
-            && !self.touches_relation_payload
-            && !self.touches_uniqueness
-            && !self.touches_publication_surface
-            && !self.touches_snapshot_surface
+        self.may_break == 0
+    }
+
+    pub fn may_break_groups(self) -> u32 {
+        self.may_break
+    }
+
+    pub fn intersects_groups(self, groups_mask: u32) -> bool {
+        self.is_empty() || (self.may_break & groups_mask) != 0
     }
 
     pub(crate) fn applies_to_rule(self, rule: &InvariantRule) -> bool {
         if self.is_empty() {
             return true;
         }
-        match rule {
-            InvariantRule::LiveRecordRequiresSidecar(RecordKindTag::Entity) => {
-                self.touches_entity_existence || self.touches_entity_payload
-            }
-            InvariantRule::LiveRecordRequiresSidecar(RecordKindTag::Relation) => {
-                self.touches_relation_existence || self.touches_relation_payload
-            }
-            InvariantRule::MaxMergedIntents(_) => true,
-            InvariantRule::MaxSnapshotEntities(_) => self.touches_snapshot_surface,
-            InvariantRule::UniqueEntityPayloadField(_) => self.touches_uniqueness,
-        }
+        (rule.groups().mask() & self.may_break) != 0
     }
 
     fn observe_intent(&mut self, intent: &MutationIntent) {
-        match intent {
-            MutationIntent::Create(CreateIntent::Entity(_)) => {
-                self.touches_entity_existence = true;
-                self.touches_entity_payload = true;
-                self.touches_uniqueness = true;
-                self.touches_publication_surface = true;
-                self.touches_snapshot_surface = true;
-            }
-            MutationIntent::Create(CreateIntent::BulkEntities(_)) => {
-                self.touches_entity_existence = true;
-                self.touches_entity_payload = true;
-                self.touches_uniqueness = true;
-                self.touches_publication_surface = true;
-                self.touches_snapshot_surface = true;
+        let mask = match intent {
+            MutationIntent::Create(CreateIntent::Entity(_))
+            | MutationIntent::Create(CreateIntent::BulkEntities(_)) => {
+                InvariantGroup::StorageCoherence.mask()
+                    | InvariantGroup::IdentityCoherence.mask()
+                    | InvariantGroup::SchemaCompliance.mask()
+                    | InvariantGroup::PublicationCoherence.mask()
+                    | InvariantGroup::VersionVisibility.mask()
             }
             MutationIntent::Entity(EntityMutationIntent::Update(_))
             | MutationIntent::Entity(EntityMutationIntent::Replace(_)) => {
-                self.touches_entity_payload = true;
-                self.touches_uniqueness = true;
-                self.touches_publication_surface = true;
-                self.touches_snapshot_surface = true;
+                InvariantGroup::IdentityCoherence.mask()
+                    | InvariantGroup::SchemaCompliance.mask()
+                    | InvariantGroup::PublicationCoherence.mask()
+                    | InvariantGroup::VersionVisibility.mask()
             }
             MutationIntent::Entity(EntityMutationIntent::Delete(_)) => {
-                self.touches_entity_existence = true;
-                self.touches_publication_surface = true;
-                self.touches_snapshot_surface = true;
+                InvariantGroup::AdjacencyIntegrity.mask()
+                    | InvariantGroup::StorageCoherence.mask()
+                    | InvariantGroup::LineageIntegrity.mask()
+                    | InvariantGroup::PublicationCoherence.mask()
+                    | InvariantGroup::VersionVisibility.mask()
             }
             MutationIntent::Create(CreateIntent::Relation(_))
             | MutationIntent::Create(CreateIntent::BulkRelations(_)) => {
-                self.touches_relation_existence = true;
-                self.touches_relation_payload = true;
-                self.touches_publication_surface = true;
-                self.touches_snapshot_surface = true;
+                InvariantGroup::AdjacencyIntegrity.mask()
+                    | InvariantGroup::StorageCoherence.mask()
+                    | InvariantGroup::SchemaCompliance.mask()
+                    | InvariantGroup::PublicationCoherence.mask()
+                    | InvariantGroup::VersionVisibility.mask()
             }
             MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {
-                self.touches_relation_existence = true;
-                self.touches_publication_surface = true;
-                self.touches_snapshot_surface = true;
+                InvariantGroup::AdjacencyIntegrity.mask()
+                    | InvariantGroup::StorageCoherence.mask()
+                    | InvariantGroup::PublicationCoherence.mask()
+                    | InvariantGroup::VersionVisibility.mask()
             }
-        }
+        };
+        self.may_break |= mask;
     }
 }
 
@@ -123,12 +109,11 @@ mod tests {
         };
 
         let contract = InvariantPlanContract::from_merged_plan(&plan);
-        assert!(contract.touches_entity_existence);
-        assert!(contract.touches_entity_payload);
-        assert!(contract.touches_uniqueness);
-        assert!(contract.touches_publication_surface);
-        assert!(contract.touches_snapshot_surface);
-        assert!(!contract.touches_relation_existence);
+        assert_ne!(contract.may_break, 0);
+        assert!(contract
+            .may_break_groups()
+            & crate::validation::data::InvariantGroup::SchemaCompliance.mask()
+            != 0);
     }
 
     #[test]
@@ -147,10 +132,13 @@ mod tests {
         };
 
         let contract = InvariantPlanContract::from_merged_plan(&plan);
-        assert!(contract.touches_entity_existence);
-        assert!(!contract.touches_entity_payload);
-        assert!(!contract.touches_uniqueness);
-        assert!(contract.touches_publication_surface);
-        assert!(contract.touches_snapshot_surface);
+        assert!(contract
+            .may_break_groups()
+            & crate::validation::data::InvariantGroup::AdjacencyIntegrity.mask()
+            != 0);
+        assert!(contract
+            .may_break_groups()
+            & crate::validation::data::InvariantGroup::LineageIntegrity.mask()
+            != 0);
     }
 }

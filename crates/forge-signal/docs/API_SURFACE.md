@@ -24,15 +24,10 @@ Common node-building surface:
 - `NodeBuilder::partitioned_output()`
 - `NodeBuilder::tolerance(epsilon)`
 - `NodeBuilder::comparator(...)`
+- `graph.set_dependencies(node, edges)`
+- `graph.clear_dependencies(node)`
 
 For the full condition/comparator story, including custom condition keys and tolerance semantics, see [CONDITIONS_AND_COMPARATORS.md](./CONDITIONS_AND_COMPARATORS.md).
-
-Dependency wiring:
-
-- `graph.add_dependency(downstream, upstream, aspect)`
-- `graph.add_partition_dependency(downstream, upstream, aspect, partition)`
-- `graph.add_partition_detail_dependency(downstream, upstream, aspect, partition, detail)`
-- `graph.remove_dependency(...)`
 
 Evaluation-result continuity hooks:
 
@@ -45,18 +40,21 @@ Mutation/invalidation:
 - `mark_dirty(graph, node, aspect)`
 - `mark_dirty_with_regions(graph, node, aspect, &[ChangedRegion])`
 
-### Example: partition-aware node graph
+### Example: wire one node from an explicit dependency batch
 
 ```rust
 use forge_signal::facade::*;
 
 let mut graph = SignalGraph::new();
-let source = graph.node().output_identity().build();
+let source = graph.node().build();
 let shell = graph.node().partitioned_output().tolerance(1).build();
 let target = graph.node().build();
 
-graph.add_partition_dependency(shell, source, Aspect::new(0), "shell")?;
-graph.add_dependency(target, shell, Aspect::new(0))?;
+graph.set_dependencies(
+    shell,
+    [DependencyEdge::whole_partition(source, Aspect::new(0), "shell")],
+)?;
+graph.set_dependencies(target, [DependencyEdge::new(shell, Aspect::new(0))])?;
 # Ok::<(), SignalError>(())
 ```
 

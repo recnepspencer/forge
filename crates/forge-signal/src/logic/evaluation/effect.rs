@@ -71,3 +71,9 @@ pub(crate) struct PreparedApplyResult {
     pub dependency_updates: u32,
     pub report: AppliedEffectReport,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct EffectDependencyInputs {
+    pub dependency_snapshot: DependencySnapshot,
+    pub meaningful_input_changes: u32,
+}

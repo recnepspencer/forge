@@ -102,12 +102,65 @@ impl<'runtime> InvariantAccess<'runtime> {
         version_id: crate::identity::data::VersionId,
         merged_plan: Option<&'runtime MergedCommitPlan>,
     ) -> InvariantExecutionResult {
+        if merged_plan.is_some_and(|plan| {
+            let contract = crate::validation::data::InvariantPlanContract::from_merged_plan(plan);
+            !contract.intersects_groups(profile.base_groups().mask())
+        }) {
+            return InvariantExecutionResult::new(Vec::new());
+        }
+
         let request = InvariantExecutionRequest::from_profile(
             profile,
+            self.runtime,
             state,
             version_id,
             merged_plan,
         );
+        if !request.should_execute_anything() {
+            return InvariantExecutionResult::new(Vec::new());
+        }
         InvariantEngine::new(self.runtime).execute(request)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::InvariantAccess;
+    use crate::facade::{
+        InvariantCatalog, InvariantRegistration, InvariantRule, PartitionId, RelationId,
+        RelationalRuntimeApi, RelationalSchemaRegistry,
+    };
+    use crate::transactions::data::{
+        DeleteRelationIntent, MergedCommitPlan, MutationIntent, RelationMutationIntent,
+        TransactionId,
+    };
+
+    fn runtime_with_invariants(invariant_catalog: InvariantCatalog) -> crate::facade::RelationalRuntime {
+        RelationalRuntimeApi::builder()
+            .schema_registry(RelationalSchemaRegistry::new())
+            .invariant_catalog(invariant_catalog)
+            .build()
+    }
+
+    #[test]
+    fn commit_boundary_short_circuits_when_plan_contract_cannot_touch_profile_groups() {
+        let runtime = runtime_with_invariants(InvariantCatalog {
+            registrations: vec![InvariantRegistration::commit_boundary_blocking(
+                InvariantRule::UniqueEntityPayloadField("name".to_string()),
+            )],
+            ..InvariantCatalog::default()
+        });
+        let plan = MergedCommitPlan {
+            transaction_id: TransactionId(1),
+            merged_intents: vec![MutationIntent::Relation(RelationMutationIntent::Delete(
+                DeleteRelationIntent {
+                    relation_id: RelationId::new(PartitionId::main(), 0, 1),
+                },
+            ))],
+        };
+
+        let results = InvariantAccess::new(&runtime).commit_boundary(&plan);
+
+        assert!(results.results().is_empty());
     }
 }

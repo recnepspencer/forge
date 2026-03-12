@@ -5,6 +5,7 @@ use forge_harness::facade::{
 };
 
 use crate::facade::*;
+use crate::tests::support::GraphDependencyBatchExt;
 
 const ASPECT_A: Aspect = Aspect::new(0);
 
@@ -34,7 +35,7 @@ fn basic_fixture() -> forge_harness::facade::ScenarioFixture<SignalFixtureFactor
             let dependent = builder.graph_mut().node().build();
             builder
                 .graph_mut()
-                .add_dependency(dependent, source, ASPECT_A)?;
+                .append_dependency(dependent, source, ASPECT_A)?;
             builder.insert_label("source", source);
             builder.insert_label("dependent", dependent);
             builder.set_evaluator(BasicEvaluator { source });
@@ -51,13 +52,8 @@ fn signal_harness_bridge_executes_serial_fixture() {
     let adapter = SignalHarnessBridge;
     let runner = HarnessRunner::new(adapter);
     let fixture = basic_fixture();
-    let mutation = MutationBatch::new("mark-source-dirty").push(SignalMutationAction::new(
-        "dirty-source",
-        |runtime: &mut SignalHarnessRuntime| {
-            let source = runtime.resolve("source")?;
-            mark_dirty(runtime.graph_mut(), source, ASPECT_A)
-        },
-    ));
+    let mutation = MutationBatch::new("mark-source-dirty")
+        .push(SignalMutationAction::mark_dirty("dirty-source", "source", ASPECT_A));
     let request = ExecutionRequest::new("pull-dependent", vec!["dependent".to_string()]);
     let profile =
         ExecutionProfile::serial("serial").with_diagnostics_level(DiagnosticsLevel::Development);

@@ -86,7 +86,7 @@ fn invalidation_and_gc_telemetry_record_activity() {
     let mut graph = SignalGraph::with_gc_threshold(1);
     let a = graph.node().build();
     let b = graph.node().build();
-    graph.add_dependency(b, a, ASPECT_B).unwrap();
+    graph.append_dependency(b, a, ASPECT_B).unwrap();
 
     mark_dirty(&mut graph, a, ASPECT_B).unwrap();
     graph.unregister_node(a).unwrap();

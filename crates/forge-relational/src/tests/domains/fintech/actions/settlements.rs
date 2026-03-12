@@ -1,7 +1,7 @@
 use serde_json::json;
 
 use crate::facade::{
-    BranchId, CommitOutcome, EntityMutationIntent, RecordPayload, MutationIntent,
+    BranchId, CommitResult, EntityMutationIntent, RecordPayload, MutationIntent,
     TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
 };
 
@@ -10,7 +10,7 @@ use super::super::fixture::FintechWorld;
 pub(crate) fn repair_seeded_failed_settlement(
     world: &mut FintechWorld,
     branch_id: BranchId,
-) -> CommitOutcome {
+) -> CommitResult {
     let case = world.failed_settlement_repair_case();
     repair_settlement_with_payloads(
         world,
@@ -27,7 +27,7 @@ pub(crate) fn repair_settlement_with_payloads(
     settlement_id: crate::facade::EntityId,
     cash_event_id: crate::facade::EntityId,
     audit_record_id: crate::facade::EntityId,
-) -> CommitOutcome {
+) -> CommitResult {
     let mut txn = world.runtime.begin_transaction(TransactionOptions {
         target_branch: Some(branch_id),
         ..TransactionOptions::default()

@@ -46,26 +46,29 @@ impl SignalFixtureFactory {
 #[derive(Clone)]
 pub struct SignalMutationAction {
     name: String,
-    apply: Arc<dyn Fn(&mut SignalHarnessRuntime) -> Result<(), SignalError> + Send + Sync>,
+    kind: SignalMutationKind,
+}
+
+#[derive(Clone)]
+pub(crate) enum SignalMutationKind {
+    MarkDirty {
+        label: String,
+        aspect: Aspect,
+    },
+    MarkDirtyWithRegions {
+        label: String,
+        aspect: Aspect,
+        changed_regions: Vec<ChangedRegion>,
+    },
 }
 
 impl SignalMutationAction {
-    pub fn new<F>(name: impl Into<String>, apply: F) -> Self
-    where
-        F: Fn(&mut SignalHarnessRuntime) -> Result<(), SignalError> + Send + Sync + 'static,
-    {
-        Self {
-            name: name.into(),
-            apply: Arc::new(apply),
-        }
-    }
-
     pub fn name(&self) -> &str {
         &self.name
     }
 
-    pub(crate) fn apply(&self, runtime: &mut SignalHarnessRuntime) -> Result<(), SignalError> {
-        (self.apply)(runtime)
+    pub(crate) fn kind(&self) -> &SignalMutationKind {
+        &self.kind
     }
 
     pub fn mark_dirty(
@@ -73,11 +76,13 @@ impl SignalMutationAction {
         label: impl Into<String>,
         aspect: Aspect,
     ) -> Self {
-        let label = label.into();
-        Self::new(name, move |runtime| {
-            let node = runtime.resolve(&label)?;
-            mark_dirty(runtime.graph_mut(), node, aspect)
-        })
+        Self {
+            name: name.into(),
+            kind: SignalMutationKind::MarkDirty {
+                label: label.into(),
+                aspect,
+            },
+        }
     }
 
     pub fn mark_dirty_with_regions(
@@ -86,11 +91,14 @@ impl SignalMutationAction {
         aspect: Aspect,
         changed_regions: Vec<ChangedRegion>,
     ) -> Self {
-        let label = label.into();
-        Self::new(name, move |runtime| {
-            let node = runtime.resolve(&label)?;
-            mark_dirty_with_regions(runtime.graph_mut(), node, aspect, &changed_regions)
-        })
+        Self {
+            name: name.into(),
+            kind: SignalMutationKind::MarkDirtyWithRegions {
+                label: label.into(),
+                aspect,
+                changed_regions,
+            },
+        }
     }
 }
 

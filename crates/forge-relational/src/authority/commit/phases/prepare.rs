@@ -1,12 +1,11 @@
-use crate::authority::commit::plan_building::bulk_reservations_for_plan;
-use crate::authority::commit::touched_scope::touched_partitions_for_plan_set;
+use crate::authority::commit::structural_summary::CommitStructuralSummary;
 use crate::storage::overlay::WorkingState;
 use crate::transactions::data::{MergedCommitPlan, TransactionCommitError};
 use crate::transactions::logic::RelationalTransaction;
 
 pub(crate) struct PreparedWorkingStateScope {
-    pub(crate) planning_state: crate::logic::runtime::WorkingState,
     pub(crate) merged_plan: MergedCommitPlan,
+    pub(crate) structural_summary: CommitStructuralSummary,
     pub(crate) working_state: WorkingState,
 }
 
@@ -19,16 +18,20 @@ pub(crate) fn prepare_working_state_scope(
     );
     let merged_plan = transaction
         .build_merged_plan_for_state(&planning_state)
-        .map_err(TransactionCommitError::Conflict)?;
-    let touched_partitions =
-        touched_partitions_for_plan_set(&transaction.runtime.current_state(), &merged_plan);
+        .map_err(TransactionCommitError::conflict)?;
+    let structural_summary = CommitStructuralSummary::derive(
+        &transaction.runtime.current_state(),
+        &planning_state,
+        &merged_plan,
+        transaction.options.merge_parent_branches.len(),
+    );
     let working_state = transaction
         .runtime
-        .working_state_for_touched_partitions(touched_partitions.iter().copied());
+        .working_state_for_touched_partitions(structural_summary.touched_partitions.iter().copied());
 
     Ok(PreparedWorkingStateScope {
-        planning_state,
         merged_plan,
+        structural_summary,
         working_state,
     })
 }
@@ -36,8 +39,7 @@ pub(crate) fn prepare_working_state_scope(
 pub(crate) fn record_preparation_counters(
     runtime: &mut crate::logic::runtime::RelationalRuntime,
     working_state: &WorkingState,
-    planning_state: &crate::logic::runtime::WorkingState,
-    merged_plan: &MergedCommitPlan,
+    structural_summary: &CommitStructuralSummary,
 ) {
     let mut counters = runtime
         .services
@@ -45,11 +47,10 @@ pub(crate) fn record_preparation_counters(
         .complexity_counters
         .lock()
         .expect("complexity counter lock poisoned");
+    counters.commit_topology_flags = structural_summary.commit_topology.mask();
     counters.partitions_touched_by_commit = working_state.touched_partitions().len();
-    let (bulk_entity_slots_reserved, bulk_relation_slots_reserved) =
-        bulk_reservations_for_plan(planning_state, merged_plan);
-    counters.bulk_entity_slots_reserved = bulk_entity_slots_reserved;
-    counters.bulk_relation_slots_reserved = bulk_relation_slots_reserved;
+    counters.bulk_entity_slots_reserved = structural_summary.bulk_entity_slots_reserved;
+    counters.bulk_relation_slots_reserved = structural_summary.bulk_relation_slots_reserved;
 }
 
 pub(crate) fn record_mutation_counters(

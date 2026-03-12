@@ -336,7 +336,7 @@ fn durability_contract_persisted_commit_fails_closed_when_store_path_is_not_dire
 
     assert!(matches!(
         error,
-        crate::facade::TransactionCommitError::Publication(_)
+        crate::facade::TransactionCommitError::Publication { .. }
     ));
     assert!(runtime.history_access().latest_commit().is_none());
 }

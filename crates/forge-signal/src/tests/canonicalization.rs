@@ -11,9 +11,9 @@ fn dirty_partition_scopes_are_classified_before_stale_output_diff_trace() {
     let branch = graph.node().build();
     let target = graph.node().build();
     graph
-        .add_partition_detail_dependency(branch, source, ASPECT_A, "wing", "rib-12")
+        .append_partition_detail_dependency(branch, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
-    graph.add_dependency(target, branch, ASPECT_A).unwrap();
+    graph.append_dependency(target, branch, ASPECT_A).unwrap();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, source, &mut compute).unwrap();
@@ -62,7 +62,7 @@ fn maybe_stale_nodes_with_dirty_partition_scopes_do_not_fast_validate_clean() {
     let source = graph.node().partitioned_output().build();
     let dependent = graph.node().build();
     graph
-        .add_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
+        .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));

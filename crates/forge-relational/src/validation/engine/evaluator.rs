@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{HashMap, HashSet};
 
 use crate::diagnostics::data::DiagnosticCode;
 use crate::storage::data::RecordLifecycleState;
@@ -15,11 +15,10 @@ pub(crate) fn evaluate_rule(
     context: &InvariantExecutionContext<'_>,
     class: InvariantClass,
     rule: &InvariantRule,
-    violations: &mut Vec<InvariantViolation>,
-) {
+)-> Option<InvariantViolation> {
     match rule {
         InvariantRule::LiveRecordRequiresSidecar(kind) => {
-            evaluate_live_record_sidecar_rule(context, class, kind, violations);
+            evaluate_live_record_sidecar_rule(context, class, kind)
         }
         InvariantRule::MaxMergedIntents(limit) => {
             let merged_len = context
@@ -27,21 +26,23 @@ pub(crate) fn evaluate_rule(
                 .map(|plan| plan.merged_intents.len())
                 .unwrap_or(0);
             if merged_len > *limit {
-                violations.push(InvariantViolation {
+                Some(InvariantViolation {
                     class,
                     code: DiagnosticCode::InvariantViolation,
                     detail: format!(
                         "merged commit plan has {} intents, limit is {}",
                         merged_len, limit
                     ),
-                });
+                })
+            } else {
+                None
             }
         }
         InvariantRule::MaxSnapshotEntities(limit) => {
-            evaluate_max_snapshot_entities(context, class, *limit, violations);
+            evaluate_max_snapshot_entities(context, class, *limit)
         }
         InvariantRule::UniqueEntityPayloadField(field) => {
-            evaluate_unique_entity_payload_field(context, class, field, violations);
+            evaluate_unique_entity_payload_field(context, class, field)
         }
     }
 }
@@ -50,13 +51,11 @@ fn evaluate_live_record_sidecar_rule(
     context: &InvariantExecutionContext<'_>,
     class: InvariantClass,
     kind: &RecordKindTag,
-    violations: &mut Vec<InvariantViolation>,
-) {
+)-> Option<InvariantViolation> {
     match kind {
         RecordKindTag::Entity => evaluate_live_record_sidecar::<EntityRecordKind>(
             context,
             class,
-            violations,
             |state, partition_id| state.touched_entity_slots(partition_id),
             |slot_view| slot_view.kind_id().is_some(),
             "kind id",
@@ -67,7 +66,6 @@ fn evaluate_live_record_sidecar_rule(
         RecordKindTag::Relation => evaluate_live_record_sidecar::<RelationRecordKind>(
             context,
             class,
-            violations,
             |state, partition_id| state.touched_relation_slots(partition_id),
             |slot_view| slot_view.extra().is_some(),
             "endpoints",
@@ -81,7 +79,6 @@ fn evaluate_live_record_sidecar_rule(
 fn evaluate_live_record_sidecar<K: RecordKind>(
     context: &InvariantExecutionContext<'_>,
     class: InvariantClass,
-    violations: &mut Vec<InvariantViolation>,
     touched_slots: impl Fn(
         &dyn crate::logic::runtime::PartitionAccess,
         crate::identity::data::PartitionId,
@@ -89,41 +86,70 @@ fn evaluate_live_record_sidecar<K: RecordKind>(
     has_required_sidecar: impl Fn(&SlotView<'_, K>) -> bool,
     missing_label: &str,
     count_scans: impl Fn(&InvariantExecutionContext<'_>, usize),
-) {
+)-> Option<InvariantViolation> {
     for partition_id in context.state.partition_ids() {
         let partition = context
             .state
             .get_partition(partition_id)
             .expect("partition for invariant scan");
-        let slots = touched_slots(context.state, partition_id)
-            .unwrap_or_else(|| (0..K::arena(partition).slot_count()).collect());
-        count_scans(context, slots.len());
-        for slot in slots {
-            let Some(slot_view) = K::arena(partition).get_slot(slot) else {
-                continue;
-            };
-            if slot_view.lifecycle() == RecordLifecycleState::Live
-                && !has_required_sidecar(&slot_view)
-            {
-                violations.push(InvariantViolation {
+        if let Some(slots) = touched_slots(context.state, partition_id) {
+            count_scans(context, slots.len());
+            for slot in slots {
+                if let Some(violation) = sidecar_violation_for_slot(
                     class,
-                    code: DiagnosticCode::SidecarConsistencyFailure,
-                    detail: format!(
-                        "live slot {} in partition {} missing {}",
-                        slot, partition.partition_id.0, missing_label
-                    ),
-                });
+                    partition,
+                    slot,
+                    &has_required_sidecar,
+                    missing_label,
+                ) {
+                    return Some(violation);
+                }
+            }
+        } else {
+            let arena = K::arena(partition);
+            count_scans(context, arena.slot_count());
+            for slot in 0..arena.slot_count() {
+                if let Some(violation) = sidecar_violation_for_slot(
+                    class,
+                    partition,
+                    slot,
+                    &has_required_sidecar,
+                    missing_label,
+                ) {
+                    return Some(violation);
+                }
             }
         }
     }
+    None
+}
+
+fn sidecar_violation_for_slot<K: RecordKind>(
+    class: InvariantClass,
+    partition: &crate::storage::logic::state::PartitionState,
+    slot: usize,
+    has_required_sidecar: &impl Fn(&SlotView<'_, K>) -> bool,
+    missing_label: &str,
+) -> Option<InvariantViolation> {
+    let slot_view = K::arena(partition).get_slot(slot)?;
+    if slot_view.lifecycle() == RecordLifecycleState::Live && !has_required_sidecar(&slot_view) {
+        return Some(InvariantViolation {
+            class,
+            code: DiagnosticCode::SidecarConsistencyFailure,
+            detail: format!(
+                "live slot {} in partition {} missing {}",
+                slot, partition.partition_id.0, missing_label
+            ),
+        });
+    }
+    None
 }
 
 fn evaluate_max_snapshot_entities(
     context: &InvariantExecutionContext<'_>,
     class: InvariantClass,
     limit: usize,
-    violations: &mut Vec<InvariantViolation>,
-) {
+)-> Option<InvariantViolation> {
     let state_view = context.state_view();
     let mut visible_entities = 0;
     if state_view.version_id() == context.current_version_id {
@@ -149,7 +175,7 @@ fn evaluate_max_snapshot_entities(
         }
     }
     if visible_entities > limit {
-        violations.push(InvariantViolation {
+        return Some(InvariantViolation {
             class,
             code: DiagnosticCode::InvariantViolation,
             detail: format!(
@@ -160,36 +186,19 @@ fn evaluate_max_snapshot_entities(
             ),
         });
     }
+    None
 }
 
 fn evaluate_unique_entity_payload_field(
     context: &InvariantExecutionContext<'_>,
     class: InvariantClass,
     field: &str,
-    violations: &mut Vec<InvariantViolation>,
-) {
+)-> Option<InvariantViolation> {
     let state_view = context.state_view();
-    if let Some(planned_values) = planned_entity_field_values(context.merged_plan, field) {
-        let mut planned_value_to_entity = BTreeMap::new();
-        for (entity_id, value) in planned_values {
-            context.metrics().count_entity_slot_scans(1);
-            if let Some(existing_entity_id) =
-                planned_value_to_entity.insert(value.clone(), entity_id)
-            {
-                if existing_entity_id != entity_id || entity_id.is_none() {
-                    violations.push(duplicate_field_violation(class, field, &value));
-                    continue;
-                }
-            }
-            if context
-                .indexes()
-                .conflicts_with_entity_value(field, &value, entity_id)
-            {
-                violations.push(duplicate_field_violation(class, field, &value));
-            }
-        }
+    if let Some(violation) = planned_unique_entity_payload_violation(context, class, field) {
+        return Some(violation);
     } else if let Some(touched_entity_ids) = state_view.touched_visible_entity_ids() {
-        let mut touched_value_to_entity = BTreeMap::new();
+        let mut touched_value_to_entity = HashMap::with_capacity(touched_entity_ids.len());
         let touched_set = InvariantStateView::touched_entity_set(&touched_entity_ids);
         for entity_id in touched_entity_ids {
             context.metrics().count_entity_slot_scans(1);
@@ -203,22 +212,22 @@ fn evaluate_unique_entity_payload_field(
             else {
                 continue;
             };
-            if touched_value_to_entity
-                .insert(value.to_string(), entity_id)
-                .is_some()
-            {
-                violations.push(duplicate_field_violation(class, field, value));
-                continue;
+            if touched_value_to_entity.insert(value.to_owned(), entity_id).is_some() {
+                return Some(duplicate_field_violation(class, field, value));
             }
             if context
                 .indexes()
                 .conflicts_with_entity_value_outside(field, value, &touched_set)
             {
-                violations.push(duplicate_field_violation(class, field, value));
+                return Some(duplicate_field_violation(class, field, value));
             }
         }
+    } else if state_view.version_id() == context.current_version_id {
+        if let Some(value) = context.indexes().first_duplicate_entity_value(field) {
+            return Some(duplicate_field_violation(class, field, value));
+        }
     } else {
-        let mut seen = BTreeSet::new();
+        let mut seen = HashSet::new();
         for partition_id in state_view.state().partition_ids() {
             let partition = state_view
                 .state()
@@ -241,11 +250,12 @@ fn evaluate_unique_entity_payload_field(
                     continue;
                 };
                 if !seen.insert(value.to_string()) {
-                    violations.push(duplicate_field_violation(class, field, value));
+                    return Some(duplicate_field_violation(class, field, value));
                 }
             }
         }
     }
+    None
 }
 
 fn planned_entity_field_values(
@@ -294,6 +304,30 @@ fn planned_entity_field_values(
         }
     }
     Some(values)
+}
+
+fn planned_unique_entity_payload_violation(
+    context: &InvariantExecutionContext<'_>,
+    class: InvariantClass,
+    field: &str,
+) -> Option<InvariantViolation> {
+    let planned_values = planned_entity_field_values(context.merged_plan, field)?;
+    let mut planned_value_to_entity = HashMap::with_capacity(planned_values.len());
+    for (entity_id, value) in planned_values {
+        context.metrics().count_entity_slot_scans(1);
+        if let Some(existing_entity_id) = planned_value_to_entity.insert(value.clone(), entity_id) {
+            if existing_entity_id != entity_id || entity_id.is_none() {
+                return Some(duplicate_field_violation(class, field, &value));
+            }
+        }
+        if context
+            .indexes()
+            .conflicts_with_entity_value(field, &value, entity_id)
+        {
+            return Some(duplicate_field_violation(class, field, &value));
+        }
+    }
+    None
 }
 
 fn payload_field_value(

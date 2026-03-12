@@ -20,6 +20,7 @@ pub struct RuntimeComplexityCounters {
     pub partitions_cloned: usize,
     pub entity_slots_cloned: usize,
     pub relation_slots_cloned: usize,
+    pub commit_topology_flags: u32,
     pub partitions_touched_by_commit: usize,
     pub entity_slots_touched_by_commit: usize,
     pub relation_slots_touched_by_commit: usize,

@@ -27,23 +27,23 @@ impl InvariantRule {
     pub(crate) fn metadata(&self) -> InvariantRuleMetadata {
         match self {
             Self::LiveRecordRequiresSidecar(_) => InvariantRuleMetadata {
-                groups: InvariantGroupSet::of(InvariantGroup::Structural)
-                    .union(InvariantGroupSet::of(InvariantGroup::Mutation)),
-                cost: InvariantCostClass::TargetedScan,
+                groups: InvariantGroupSet::of(InvariantGroup::StorageCoherence)
+                    .union(InvariantGroupSet::of(InvariantGroup::IdentityCoherence)),
+                cost: InvariantCostClass::Touched,
             },
             Self::MaxMergedIntents(_) => InvariantRuleMetadata {
-                groups: InvariantGroupSet::of(InvariantGroup::Mutation),
-                cost: InvariantCostClass::Constant,
+                groups: InvariantGroupSet::of(InvariantGroup::PublicationCoherence),
+                cost: InvariantCostClass::Touched,
             },
             Self::MaxSnapshotEntities(_) => InvariantRuleMetadata {
-                groups: InvariantGroupSet::of(InvariantGroup::Snapshot)
-                    .union(InvariantGroupSet::of(InvariantGroup::Publication)),
-                cost: InvariantCostClass::FullScan,
+                groups: InvariantGroupSet::of(InvariantGroup::VersionVisibility)
+                    .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence)),
+                cost: InvariantCostClass::Global,
             },
             Self::UniqueEntityPayloadField(_) => InvariantRuleMetadata {
-                groups: InvariantGroupSet::of(InvariantGroup::Uniqueness)
-                    .union(InvariantGroupSet::of(InvariantGroup::Mutation)),
-                cost: InvariantCostClass::TargetedScan,
+                groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance)
+                    .union(InvariantGroupSet::of(InvariantGroup::IdentityCoherence)),
+                cost: InvariantCostClass::Touched,
             },
         }
     }

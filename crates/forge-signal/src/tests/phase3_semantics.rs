@@ -8,7 +8,7 @@ fn output_identity_unchanged_suppresses_downstream_propagation() {
     let mut graph = SignalGraph::new();
     let source = graph.node().output_identity().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
 
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| {
         Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("artifact"))
@@ -41,8 +41,8 @@ fn output_identity_suppression_does_not_hide_other_real_upstream_changes() {
     let source_a = graph.node().output_identity().build();
     let source_b = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source_a, ASPECT_A).unwrap();
-    graph.add_dependency(dependent, source_b, ASPECT_B).unwrap();
+    graph.append_dependency(dependent, source_a, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source_b, ASPECT_B).unwrap();
 
     let mut source_a_v1 = |_id: NodeId, _graph: &SignalGraph| {
         Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("artifact-a"))
@@ -363,10 +363,10 @@ fn partition_subscribers_only_dirty_on_matching_partition() {
     let wing_subscriber = graph.node().build();
     let tail_subscriber = graph.node().build();
     graph
-        .add_partition_dependency(wing_subscriber, source, ASPECT_A, "wing")
+        .append_partition_dependency(wing_subscriber, source, ASPECT_A, "wing")
         .unwrap();
     graph
-        .add_partition_dependency(tail_subscriber, source, ASPECT_A, "tail")
+        .append_partition_dependency(tail_subscriber, source, ASPECT_A, "tail")
         .unwrap();
 
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| {
@@ -398,7 +398,7 @@ fn detail_sensitive_partition_subscriber_reverts_clean_when_detail_does_not_matc
     let source = graph.node().partitioned_output().build();
     let subscriber = graph.node().build();
     graph
-        .add_partition_detail_dependency(subscriber, source, ASPECT_A, "wing", "rib-12")
+        .append_partition_detail_dependency(subscriber, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
 
     let mut source_rib_12 = |_id: NodeId, _graph: &SignalGraph| {
@@ -446,15 +446,15 @@ fn mixed_whole_aspect_and_partition_subscribers_behave_deterministically() {
     let whole_aspect_subscriber = graph.node().build();
     let matching_partition_subscriber = graph.node().build();
     let non_matching_partition_subscriber = graph.node().build();
-    graph
-        .add_dependency(whole_aspect_subscriber, source, ASPECT_A)
+    let mut dependencies = DependencyBatchBuilder::new(&mut graph);
+    dependencies
+        .append_dependency(whole_aspect_subscriber, source, ASPECT_A)
+        .unwrap()
+        .append_partition_dependency(matching_partition_subscriber, source, ASPECT_A, "wing")
+        .unwrap()
+        .append_partition_dependency(non_matching_partition_subscriber, source, ASPECT_A, "tail")
         .unwrap();
-    graph
-        .add_partition_dependency(matching_partition_subscriber, source, ASPECT_A, "wing")
-        .unwrap();
-    graph
-        .add_partition_dependency(non_matching_partition_subscriber, source, ASPECT_A, "tail")
-        .unwrap();
+    dependencies.commit().unwrap();
 
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| {
         Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
@@ -518,10 +518,10 @@ fn partition_scoped_cleanup_does_not_hide_other_dirty_upstreams() {
     let source_other = graph.node().build();
     let dependent = graph.node().build();
     graph
-        .add_partition_detail_dependency(dependent, source_partitioned, ASPECT_A, "wing", "rib-12")
+        .append_partition_detail_dependency(dependent, source_partitioned, ASPECT_A, "wing", "rib-12")
         .unwrap();
     graph
-        .add_dependency(dependent, source_other, ASPECT_B)
+        .append_dependency(dependent, source_other, ASPECT_B)
         .unwrap();
 
     let mut partitioned_v1 = |_id: NodeId, _graph: &SignalGraph| {
@@ -565,14 +565,13 @@ fn transaction_mark_dirty_with_regions_routes_partition_matches() {
     let source = runtime.graph_mut().node().partitioned_output().build();
     let matching = runtime.graph_mut().node().build();
     let non_matching = runtime.graph_mut().node().build();
-    runtime
-        .graph_mut()
-        .add_partition_dependency(matching, source, ASPECT_A, "wing")
+    let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
+    dependencies
+        .append_partition_dependency(matching, source, ASPECT_A, "wing")
+        .unwrap()
+        .append_partition_dependency(non_matching, source, ASPECT_A, "tail")
         .unwrap();
-    runtime
-        .graph_mut()
-        .add_partition_dependency(non_matching, source, ASPECT_A, "tail")
-        .unwrap();
+    dependencies.commit().unwrap();
 
     runtime
         .transaction(&mut (), |tx| {
@@ -597,14 +596,13 @@ fn partition_scoped_runtime_reads_do_not_widen_captured_dependencies() {
     let source = runtime.graph_mut().node().partitioned_output().build();
     let matching = runtime.graph_mut().node().build();
     let non_matching = runtime.graph_mut().node().build();
-    runtime
-        .graph_mut()
-        .add_partition_dependency(matching, source, ASPECT_A, "wing")
+    let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
+    dependencies
+        .append_partition_dependency(matching, source, ASPECT_A, "wing")
+        .unwrap()
+        .append_partition_dependency(non_matching, source, ASPECT_A, "tail")
         .unwrap();
-    runtime
-        .graph_mut()
-        .add_partition_dependency(non_matching, source, ASPECT_A, "tail")
-        .unwrap();
+    dependencies.commit().unwrap();
 
     runtime
         .transaction(&mut (), |tx| {
@@ -669,11 +667,11 @@ fn transaction_rollback_after_partition_local_evaluation_restores_clean_states()
     let non_matching = runtime.graph_mut().node().build();
     runtime
         .graph_mut()
-        .add_partition_detail_dependency(matching, source, ASPECT_A, "wing", "rib-12")
+        .append_partition_detail_dependency(matching, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
     runtime
         .graph_mut()
-        .add_partition_dependency(non_matching, source, ASPECT_A, "tail")
+        .append_partition_dependency(non_matching, source, ASPECT_A, "tail")
         .unwrap();
 
     runtime
@@ -747,11 +745,11 @@ fn committed_partition_local_evaluation_preserves_changed_region_explanation_and
     let non_matching = runtime.graph_mut().node().build();
     runtime
         .graph_mut()
-        .add_partition_detail_dependency(matching, source, ASPECT_A, "wing", "rib-12")
+        .append_partition_detail_dependency(matching, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
     runtime
         .graph_mut()
-        .add_partition_dependency(non_matching, source, ASPECT_A, "tail")
+        .append_partition_dependency(non_matching, source, ASPECT_A, "tail")
         .unwrap();
 
     runtime
@@ -829,11 +827,11 @@ fn transaction_partition_invalidations_union_dirty_scopes_until_runtime_evaluati
     let dependent = runtime.graph_mut().node().build();
     runtime
         .graph_mut()
-        .add_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
+        .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
     runtime
         .graph_mut()
-        .add_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-13")
+        .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-13")
         .unwrap();
 
     runtime
@@ -897,7 +895,7 @@ fn sparse_partition_fanout_keeps_most_subscribers_out_of_dirty_state() {
     for index in 0..128 {
         let subscriber = graph.node().build();
         graph
-            .add_partition_dependency(subscriber, source, ASPECT_A, format!("partition-{index}"))
+            .append_partition_dependency(subscriber, source, ASPECT_A, format!("partition-{index}"))
             .unwrap();
         subscribers.push(subscriber);
     }

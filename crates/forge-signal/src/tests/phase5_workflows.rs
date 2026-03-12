@@ -11,7 +11,7 @@ fn branch_debug_session_mixed_churn_stays_forensically_coherent() {
     let dependent = runtime.graph_mut().node().output_identity().build();
     runtime
         .graph_mut()
-        .add_dependency(dependent, source, ASPECT_A)
+        .append_dependency(dependent, source, ASPECT_A)
         .unwrap();
     let family = define_keyed_computation(&mut runtime, "workflow-projection", ());
     let keyed_def = family.keyed("wing-left");
@@ -330,7 +330,7 @@ fn posthoc_forensics_after_long_session_answers_branch_and_artifact_questions() 
     let dependent = runtime.graph_mut().node().output_identity().build();
     runtime
         .graph_mut()
-        .add_dependency(dependent, source, ASPECT_A)
+        .append_dependency(dependent, source, ASPECT_A)
         .unwrap();
     let family = define_keyed_computation(&mut runtime, "posthoc-session", ());
     let keyed_def = family.keyed("skin-panel");
@@ -499,22 +499,17 @@ fn game_engine_frame_session_handles_threshold_flapping_branch_churn_and_posthoc
         .output_identity()
         .build();
     let render = runtime.graph_mut().node().output_identity().build();
-    runtime
-        .graph_mut()
-        .add_dependency(culled, source, ASPECT_A)
+    let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
+    dependencies
+        .append_dependency(culled, source, ASPECT_A)
+        .unwrap()
+        .append_dependency(lod, source, ASPECT_B)
+        .unwrap()
+        .append_dependency(render, culled, ASPECT_A)
+        .unwrap()
+        .append_dependency(render, lod, ASPECT_B)
         .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(lod, source, ASPECT_B)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(render, culled, ASPECT_A)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(render, lod, ASPECT_B)
-        .unwrap();
+    dependencies.commit().unwrap();
     let mut runtime_ctx = ();
 
     runtime
@@ -709,18 +704,15 @@ fn fintech_tick_correction_session_preserves_auditability_under_branching_replay
         .condition(EvaluationCondition::DeltaThreshold(2.0))
         .output_identity()
         .build();
-    runtime
-        .graph_mut()
-        .add_dependency(price, ticks, ASPECT_A)
+    let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
+    dependencies
+        .append_dependency(price, ticks, ASPECT_A)
+        .unwrap()
+        .append_dependency(alert, ticks, ASPECT_B)
+        .unwrap()
+        .append_dependency(throttle, ticks, ASPECT_A)
         .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(alert, ticks, ASPECT_B)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(throttle, ticks, ASPECT_A)
-        .unwrap();
+    dependencies.commit().unwrap();
     let family = define_keyed_computation(&mut runtime, "pricing-book", ());
     let risk_def = family.keyed("book-a");
     let risk = risk_def.node(&mut runtime);
@@ -1043,7 +1035,7 @@ fn retained_vs_reconstructed_artifacts_match_after_long_churn() {
         let dependent = runtime.graph_mut().node().output_identity().build();
         runtime
             .graph_mut()
-            .add_dependency(dependent, source, ASPECT_A)
+            .append_dependency(dependent, source, ASPECT_A)
             .unwrap();
         let mut runtime_ctx = ();
 
@@ -1131,8 +1123,8 @@ fn threshold_flap_storm_with_on_demand_and_restore_keeps_replay_coherent() {
         .output_identity()
         .build();
     let deferred = graph.node().on_demand().output_identity().build();
-    graph.add_dependency(threshold, source, ASPECT_A).unwrap();
-    graph.add_dependency(deferred, threshold, ASPECT_A).unwrap();
+    graph.append_dependency(threshold, source, ASPECT_A).unwrap();
+    graph.append_dependency(deferred, threshold, ASPECT_A).unwrap();
 
     evaluate(&mut graph, source, &mut |_id, _graph| {
         Ok(NodeEvaluationResult::from_version(version_ab(10, 0)).with_output_identity("base"))
@@ -1200,7 +1192,7 @@ fn inspect_only_at_end_after_50_step_session_preserves_forensic_truth() {
     let dependent = runtime.graph_mut().node().output_identity().build();
     runtime
         .graph_mut()
-        .add_dependency(dependent, source, ASPECT_A)
+        .append_dependency(dependent, source, ASPECT_A)
         .unwrap();
     let mut runtime_ctx = ();
     let main = runtime.observe().current_branch();
@@ -1333,22 +1325,17 @@ fn parallel_branch_memo_rollback_session_preserves_branch_local_replay_and_cache
         .output_identity()
         .build();
     let fused = runtime.graph_mut().node().output_identity().build();
-    runtime
-        .graph_mut()
-        .add_dependency(gated, source, ASPECT_A)
+    let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
+    dependencies
+        .append_dependency(gated, source, ASPECT_A)
+        .unwrap()
+        .append_dependency(filtered, source, ASPECT_B)
+        .unwrap()
+        .append_dependency(fused, gated, ASPECT_A)
+        .unwrap()
+        .append_dependency(fused, filtered, ASPECT_B)
         .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(filtered, source, ASPECT_B)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(fused, gated, ASPECT_A)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(fused, filtered, ASPECT_B)
-        .unwrap();
+    dependencies.commit().unwrap();
     let family = define_keyed_computation(&mut runtime, "parallel-branch-memo", ());
     let keyed_def = family.keyed("mesh-cache");
     let keyed = keyed_def.node(&mut runtime);
@@ -1605,22 +1592,17 @@ fn long_session_replay_and_lineage_stay_equivalent_between_serial_and_parallel_e
             .output_identity()
             .build();
         let sink = runtime.graph_mut().node().output_identity().build();
-        runtime
-            .graph_mut()
-            .add_dependency(a_gate, source, ASPECT_A)
+        let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
+        dependencies
+            .append_dependency(a_gate, source, ASPECT_A)
+            .unwrap()
+            .append_dependency(b_gate, source, ASPECT_B)
+            .unwrap()
+            .append_dependency(sink, a_gate, ASPECT_A)
+            .unwrap()
+            .append_dependency(sink, b_gate, ASPECT_B)
             .unwrap();
-        runtime
-            .graph_mut()
-            .add_dependency(b_gate, source, ASPECT_B)
-            .unwrap();
-        runtime
-            .graph_mut()
-            .add_dependency(sink, a_gate, ASPECT_A)
-            .unwrap();
-        runtime
-            .graph_mut()
-            .add_dependency(sink, b_gate, ASPECT_B)
-            .unwrap();
+        dependencies.commit().unwrap();
         let mut runtime_ctx = ();
 
         runtime
@@ -1789,7 +1771,7 @@ fn non_active_branch_inspection_after_heavy_foreground_churn_uses_stored_branch_
         .build();
     runtime
         .graph_mut()
-        .add_dependency(filtered, source, ASPECT_B)
+        .append_dependency(filtered, source, ASPECT_B)
         .unwrap();
     let mut runtime_ctx = ();
 
@@ -1912,14 +1894,13 @@ fn dynamic_rewire_threshold_session_with_parallel_restore_preserves_subscriber_s
         .output_identity()
         .build();
     let target = runtime.graph_mut().node().output_identity().build();
-    runtime
-        .graph_mut()
-        .add_dependency(left_gate, left, ASPECT_A)
+    let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
+    dependencies
+        .append_dependency(left_gate, left, ASPECT_A)
+        .unwrap()
+        .append_dependency(right_gate, right, ASPECT_B)
         .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(right_gate, right, ASPECT_B)
-        .unwrap();
+    dependencies.commit().unwrap();
     let executor = StageExecutor::aggressive_parallel();
     let mut runtime_ctx = ();
 

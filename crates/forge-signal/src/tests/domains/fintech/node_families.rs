@@ -1,4 +1,5 @@
 use crate::facade::*;
+use crate::tests::support::DependencyBatchBuilder;
 
 use super::aspects::{full_mask, market_mask, pricing_mask, ALERT};
 use super::execution_tier::FintechTier;
@@ -76,50 +77,31 @@ pub(super) fn build_instrument_nodes(runtime: &mut FintechRuntime) -> Instrument
         .tolerance(2)
         .build();
 
-    runtime
-        .graph_mut()
-        .add_dependency(normalized, market, super::aspects::PRICE)
+    let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
+    dependencies
+        .append_dependency(normalized, market, super::aspects::PRICE)
+        .unwrap()
+        .append_dependency(normalized, market, super::aspects::VOL)
+        .unwrap()
+        .append_dependency(normalized, market, super::aspects::CURVE)
+        .unwrap()
+        .append_dependency(normalized, market, super::aspects::LIQUIDITY)
+        .unwrap()
+        .append_dependency(price, normalized, super::aspects::PRICE)
+        .unwrap()
+        .append_dependency(price, normalized, super::aspects::VOL)
+        .unwrap()
+        .append_dependency(price, normalized, super::aspects::CURVE)
+        .unwrap()
+        .append_dependency(risk, price, super::aspects::RISK)
+        .unwrap()
+        .append_dependency(risk, normalized, super::aspects::LIQUIDITY)
+        .unwrap()
+        .append_dependency(alert, risk, super::aspects::ALERT)
+        .unwrap()
+        .append_dependency(threshold, price, super::aspects::PRICE)
         .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(normalized, market, super::aspects::VOL)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(normalized, market, super::aspects::CURVE)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(normalized, market, super::aspects::LIQUIDITY)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(price, normalized, super::aspects::PRICE)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(price, normalized, super::aspects::VOL)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(price, normalized, super::aspects::CURVE)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(risk, price, super::aspects::RISK)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(risk, normalized, super::aspects::LIQUIDITY)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(alert, risk, super::aspects::ALERT)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(threshold, price, super::aspects::PRICE)
-        .unwrap();
+    dependencies.commit().unwrap();
 
     InstrumentNodes {
         market,
@@ -144,14 +126,13 @@ pub(super) fn build_bucket_exposure_nodes(
             .reads_aspects(pricing_mask())
             .tolerance(3)
             .build();
-        runtime
-            .graph_mut()
-            .add_dependency(node, instrument.risk, super::aspects::RISK)
+        let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
+        dependencies
+            .append_dependency(node, instrument.risk, super::aspects::RISK)
+            .unwrap()
+            .append_dependency(node, instrument.threshold, super::aspects::PRICE)
             .unwrap();
-        runtime
-            .graph_mut()
-            .add_dependency(node, instrument.threshold, super::aspects::PRICE)
-            .unwrap();
+        dependencies.commit().unwrap();
         nodes.push(node);
     }
     nodes
@@ -191,26 +172,19 @@ pub(super) fn build_scenario_nodes(
             .reads_aspects(full_mask())
             .tolerance(4)
             .build();
-        runtime
-            .graph_mut()
-            .add_dependency(node, instrument.price, super::aspects::PRICE)
+        let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
+        dependencies
+            .append_dependency(node, instrument.price, super::aspects::PRICE)
+            .unwrap()
+            .append_dependency(node, instrument.risk, super::aspects::RISK)
+            .unwrap()
+            .append_dependency(node, instrument.alert, super::aspects::ALERT)
+            .unwrap()
+            .append_dependency(node, scenario_source, super::aspects::RISK)
+            .unwrap()
+            .append_dependency(node, scenario_source, super::aspects::VOL)
             .unwrap();
-        runtime
-            .graph_mut()
-            .add_dependency(node, instrument.risk, super::aspects::RISK)
-            .unwrap();
-        runtime
-            .graph_mut()
-            .add_dependency(node, instrument.alert, super::aspects::ALERT)
-            .unwrap();
-        runtime
-            .graph_mut()
-            .add_dependency(node, scenario_source, super::aspects::RISK)
-            .unwrap();
-        runtime
-            .graph_mut()
-            .add_dependency(node, scenario_source, super::aspects::VOL)
-            .unwrap();
+        dependencies.commit().unwrap();
         nodes.push(node);
     }
     nodes
@@ -235,14 +209,13 @@ pub(super) fn build_fx_nodes(runtime: &mut FintechRuntime) -> FxNodes {
         .reads_aspects(super::aspects::full_mask())
         .tolerance(2)
         .build();
-    runtime
-        .graph_mut()
-        .add_dependency(eur_jpy, eur_usd, super::aspects::PRICE)
+    let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
+    dependencies
+        .append_dependency(eur_jpy, eur_usd, super::aspects::PRICE)
+        .unwrap()
+        .append_dependency(eur_jpy, usd_jpy, super::aspects::PRICE)
         .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(eur_jpy, usd_jpy, super::aspects::PRICE)
-        .unwrap();
+    dependencies.commit().unwrap();
     FxNodes {
         eur_usd,
         usd_jpy,
@@ -284,42 +257,35 @@ pub(super) fn build_partition_locality_nodes(
         .tolerance(2)
         .build();
 
-    runtime
-        .graph_mut()
-        .add_partition_dependency(
+    let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
+    dependencies
+        .append_partition_dependency(
             rates_partition,
             market_regions,
             super::aspects::PRICE,
             "rates",
         )
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_partition_dependency(
+        .unwrap()
+        .append_partition_dependency(
             credit_partition,
             market_regions,
             super::aspects::PRICE,
             "credit",
         )
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_partition_detail_dependency(
+        .unwrap()
+        .append_partition_detail_dependency(
             rates_bucket_zero,
             market_regions,
             super::aspects::PRICE,
             "rates",
             "bucket-0",
         )
+        .unwrap()
+        .append_dependency(coarse_book, rates_partition, super::aspects::PRICE)
+        .unwrap()
+        .append_dependency(coarse_book, credit_partition, super::aspects::PRICE)
         .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(coarse_book, rates_partition, super::aspects::PRICE)
-        .unwrap();
-    runtime
-        .graph_mut()
-        .add_dependency(coarse_book, credit_partition, super::aspects::PRICE)
-        .unwrap();
+    dependencies.commit().unwrap();
 
     PartitionLocalityNodes {
         market_regions,

@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::facade::{
-    BulkEntityCreateIntent, CommitOutcome, CreateIntent, EntityId, InternedString, KindId,
+    BulkEntityCreateIntent, CommitResult, CreateIntent, EntityId, InternedString, KindId,
     PartitionId, RecordPayload, RelationalRuntime, MutationIntent, TransactionOptions,
     WorkerIntentBatch,
 };
@@ -299,7 +299,7 @@ where
     changed_entities(&txn.commit().unwrap())
 }
 
-fn changed_entities(outcome: &CommitOutcome) -> Vec<EntityId> {
+fn changed_entities(outcome: &CommitResult) -> Vec<EntityId> {
     outcome
         .changed_records
         .iter()

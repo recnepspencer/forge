@@ -47,7 +47,7 @@ pub(crate) fn resolve_commit_history(
                         .collect::<Vec<_>>(),
                 }),
             );
-            return Err(TransactionCommitError::Conflict(conflict));
+            return Err(TransactionCommitError::conflict(conflict));
         }
     };
     let commit_reference = CommitReference {

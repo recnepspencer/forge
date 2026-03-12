@@ -139,3 +139,5 @@ pub mod harness {
 pub(crate) use self::{diagnostics::*, evaluation::*, graph::*, planning::*, transaction::*, types::*};
 #[cfg(test)]
 pub(crate) use self::harness::*;
+#[cfg(test)]
+pub use crate::tests::support::GraphDependencyBatchExt;

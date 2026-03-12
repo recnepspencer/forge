@@ -49,6 +49,23 @@ fn complexity_budget_partition_local_commit_reports_touched_partitions() {
 }
 
 #[test]
+fn complexity_budget_commit_topology_inference_distinguishes_flat_and_graph_mutations() {
+    let mut runtime = runtime_with_test_schema();
+    let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
+    let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
+
+    runtime.performance_access().reset_counters();
+    let _ = update_entity(&mut runtime, left, "left-updated");
+    let flat = runtime.performance_access().counters();
+    assert_eq!(flat.commit_topology_flags, crate::facade::CommitTopology::FlatEntityBatch.mask());
+
+    runtime.performance_access().reset_counters();
+    let _ = create_relation_in_partition(&mut runtime, left, right, "cross", PartitionId(13));
+    let graph = runtime.performance_access().counters();
+    assert_eq!(graph.commit_topology_flags, crate::facade::CommitTopology::GraphMutation.mask());
+}
+
+#[test]
 fn complexity_budget_bulk_create_reserves_partition_local_capacity() {
     let mut runtime = runtime_with_test_schema();
     runtime.performance_access().reset_counters();
@@ -144,7 +161,7 @@ fn complexity_budget_relation_identity_validation_avoids_partition_scan() {
 
     assert!(matches!(
         error,
-        TransactionCommitError::Conflict(ref conflict)
+        TransactionCommitError::Conflict { error: ref conflict, .. }
             if conflict.code == DiagnosticCode::DuplicateRelationIdentity
     ));
     assert_eq!(counters.relation_identity_candidates_scanned, 1);
@@ -175,7 +192,7 @@ fn complexity_budget_unique_entity_invariant_uses_changed_set_lookup() {
 
     assert!(matches!(
         error,
-        TransactionCommitError::Conflict(ref conflict)
+        TransactionCommitError::Conflict { error: ref conflict, .. }
             if conflict.code == DiagnosticCode::InvariantViolation
     ));
     assert_eq!(counters.invariant_entity_slot_scans, 1);
@@ -207,7 +224,7 @@ fn complexity_budget_commit_boundary_unique_invariant_uses_merged_plan_lookup() 
 
     assert!(matches!(
         error,
-        TransactionCommitError::Conflict(ref conflict)
+        TransactionCommitError::Conflict { error: ref conflict, .. }
             if conflict.code == DiagnosticCode::InvariantViolation
     ));
     assert_eq!(counters.invariant_entity_slot_scans, 1);

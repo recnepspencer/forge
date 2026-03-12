@@ -31,7 +31,7 @@ fn scratch_reentry_failure_leaves_graph_reusable() {
     let mut graph = SignalGraph::new();
     let a = graph.node().build();
     let b = graph.node().build();
-    graph.add_dependency(b, a, ASPECT_B).unwrap();
+    graph.append_dependency(b, a, ASPECT_B).unwrap();
 
     let scratch = graph.acquire_scratch(ScratchLeaseKind::Evaluation).unwrap();
     assert!(graph.acquire_scratch(ScratchLeaseKind::Gc).is_err());

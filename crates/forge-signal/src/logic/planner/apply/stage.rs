@@ -5,7 +5,10 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::output::MemoizedResultOrigin;
 use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
-use crate::logic::evaluation::apply_prepared_evaluation_with_policy;
+use crate::logic::evaluation::{
+    apply_prepared_dependency_batch, apply_prepared_evaluation_after_dependencies_with_policy,
+    collect_effect_dependency_inputs_batch,
+};
 
 use super::super::execution::task_reporting::record_execution_failure;
 use super::super::execution::StageSlice;
@@ -173,12 +176,37 @@ fn run_serial_apply_pass(
     stage_identities: &[StageSemanticIdentity],
 ) -> Result<SerialApplyPass, SignalError> {
     let mut semantic_batch = StageSemanticBatch::default();
-    for patch in stage_execution.into_patches(stage_tasks) {
+    let patches = stage_execution.into_patches(stage_tasks);
+    let rewiring = patches
+        .iter()
+        .map(|patch| rewiring_summary_from_capture(graph, patch.node, &patch.prepared.dependencies))
+        .collect::<Result<Vec<_>, SignalError>>()?;
+    let dependency_updates = apply_prepared_dependency_batch(
+        graph,
+        &patches
+            .iter()
+            .map(|patch| (patch.node, &patch.prepared.dependencies))
+            .collect::<Vec<_>>(),
+    )?;
+    let dependency_inputs = collect_effect_dependency_inputs_batch(
+        graph,
+        &patches.iter().map(|patch| patch.node).collect::<Vec<_>>(),
+    )?;
+
+    for (((patch, rewiring), dependency_updates), dependency_inputs) in patches
+        .into_iter()
+        .zip(rewiring.into_iter())
+        .zip(dependency_updates.into_iter())
+        .zip(dependency_inputs.into_iter())
+    {
         semantic_batch.push_segment(segment_for_single_update(apply_stage_patch(
             graph,
             summary,
             stage_index,
             patch,
+            rewiring,
+            dependency_updates,
+            dependency_inputs,
             comparator_resolver,
             executor,
             stage_identities,
@@ -192,6 +220,9 @@ fn apply_stage_patch(
     summary: &PlanSummary,
     stage_index: u32,
     patch: super::super::precompute::PreparedTaskPatch,
+    rewiring: Option<crate::logic::explain::RewiringSummary>,
+    dependency_updates: u32,
+    dependency_inputs: crate::logic::evaluation::EffectDependencyInputs,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
     executor: StageExecutor,
     stage_identities: &[StageSemanticIdentity],
@@ -200,13 +231,14 @@ fn apply_stage_patch(
     let partition_aware = !patch.prepared.result.changed_regions.is_empty();
     let before_state = graph.get_state(patch.node)?;
     let before_trace = graph.get_entry(patch.node)?.get_trace_summary().cloned();
-    let rewiring = rewiring_summary_from_capture(graph, patch.node, &patch.prepared.dependencies)?;
-    let apply_result = apply_prepared_evaluation_with_policy(
+    let apply_result = apply_prepared_evaluation_after_dependencies_with_policy(
         graph,
         patch.node,
         patch.prepared,
         comparator_resolver,
         None,
+        dependency_updates,
+        Some(dependency_inputs),
     )
     .map_err(|err| {
         record_execution_failure(

@@ -24,6 +24,7 @@ impl<'runtime> InvariantEngine<'runtime> {
             request.state(),
             request.version_id(),
             request.execution_point(),
+            request.plan_contract(),
             request.merged_plan(),
         );
         let registrations = context
@@ -38,30 +39,24 @@ impl<'runtime> InvariantEngine<'runtime> {
             if !request.includes_registration(registration) {
                 continue;
             }
-            let applies = registration.applies_to_contract(context.plan_contract);
+            if !registration.applies_to_contract(context.plan_contract) {
+                continue;
+            }
             let rule = registration.rule.clone();
-            let mut violations = Vec::new();
-            let verdict = if applies {
-                evaluate_rule(
-                    &context,
-                    registration.execution_point.class(),
-                    &rule,
-                    &mut violations,
-                );
-                if violations.is_empty() {
-                    InvariantVerdict::Pass
-                } else {
-                    InvariantVerdict::Fail
-                }
+            let verdict = if let Some(violation) = evaluate_rule(
+                &context,
+                registration.execution_point.class(),
+                &rule,
+            ) {
+                registration.verdict_for_violation(violation)
             } else {
-                InvariantVerdict::NotApplicable
+                InvariantVerdict::Pass
             };
             results.push(InvariantCheckResult {
                 execution_point: registration.execution_point,
                 failure_effect: registration.failure_effect,
                 rule,
                 verdict,
-                violations,
             });
         }
         InvariantExecutionResult::new(results)
@@ -72,7 +67,6 @@ impl<'runtime> InvariantEngine<'runtime> {
 mod tests {
     use super::InvariantEngine;
     use super::super::{InvariantExecutionRequest, InvariantRequestProfile};
-    use crate::validation::engine::policy::InvariantExecutionPolicy;
     use crate::facade::{
         InvariantCatalog, InvariantRegistration, InvariantRule,
         PartitionId, RelationId, RelationalRuntimeApi, RelationalSchemaRegistry,
@@ -81,9 +75,7 @@ mod tests {
         DeleteRelationIntent, MergedCommitPlan, MutationIntent, RelationMutationIntent,
         TransactionId,
     };
-    use crate::validation::data::{
-        InvariantFailureEffect, InvariantGroup, InvariantGroupSet, InvariantVerdict,
-    };
+    use crate::validation::data::{InvariantGroup, InvariantGroupSet};
 
     fn runtime_with_invariants(invariant_catalog: InvariantCatalog) -> crate::facade::RelationalRuntime {
         RelationalRuntimeApi::builder()
@@ -112,12 +104,12 @@ mod tests {
         let results = InvariantEngine::new(&runtime).execute(
             InvariantExecutionRequest::from_profile(
                 InvariantRequestProfile::CommitBoundary,
+                &runtime,
                 &runtime.current_state(),
                 runtime.current_version_id(),
                 Some(&plan),
             )
-            .with_groups(InvariantGroupSet::of(InvariantGroup::History))
-            .with_policy(InvariantExecutionPolicy::AllowAll),
+            .with_may_break_mask(InvariantGroupSet::of(InvariantGroup::LineageIntegrity).mask()),
         );
 
         assert!(results.results().is_empty());
@@ -142,11 +134,6 @@ mod tests {
 
         let results = runtime.invariant_access().commit_boundary(&plan);
 
-        assert_eq!(results.results().len(), 1);
-        assert_eq!(results.results()[0].verdict, InvariantVerdict::NotApplicable);
-        assert_eq!(
-            results.results()[0].failure_effect,
-            InvariantFailureEffect::BlockCommit
-        );
+        assert!(results.results().is_empty());
     }
 }

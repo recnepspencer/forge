@@ -8,9 +8,9 @@ fn transitive_maybe_stale_nodes_do_not_carry_foreign_source_partition_scopes() {
     let direct = graph.node().build();
     let transitive = graph.node().build();
     graph
-        .add_partition_detail_dependency(direct, source, ASPECT_A, "wing", "rib-12")
+        .append_partition_detail_dependency(direct, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
-    graph.add_dependency(transitive, direct, ASPECT_A).unwrap();
+    graph.append_dependency(transitive, direct, ASPECT_A).unwrap();
 
     mark_dirty_with_regions(
         &mut graph,
@@ -35,7 +35,7 @@ fn local_scope_explanations_mark_untouched_partition_evidence_as_discarded() {
     let source = graph.node().partitioned_output().build();
     let dependent = graph.node().build();
     graph
-        .add_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
+        .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
 
     let bootstrap = graph
@@ -88,7 +88,7 @@ fn broader_partition_validation_scopes_report_translated_upstream_region_evidenc
     let source = graph.node().partitioned_output().build();
     let dependent = graph.node().build();
     graph
-        .add_partition_dependency(dependent, source, ASPECT_A, "wing")
+        .append_partition_dependency(dependent, source, ASPECT_A, "wing")
         .unwrap();
 
     let bootstrap = graph

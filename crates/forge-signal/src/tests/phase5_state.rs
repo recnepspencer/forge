@@ -6,7 +6,7 @@ fn graph_snapshot_round_trip_restores_versions_and_emits_restore_replay_and_line
     let mut graph = SignalGraph::new();
     let source = graph.node().output_identity().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
 
     let mut source_v1 =
         |_id: NodeId, _graph: &SignalGraph| {
@@ -84,7 +84,7 @@ fn runtime_branches_keep_evaluation_state_isolated_across_switches() {
     let mut graph = SignalGraph::new();
     let source = graph.node().output_identity().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
 
     let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
     let mut runtime_ctx = ();
@@ -1146,7 +1146,7 @@ fn snapshot_restore_lineage_defaults_to_compact_global_but_forensic_can_emit_per
     let dependent = runtime.graph_mut().node().build();
     runtime
         .graph_mut()
-        .add_dependency(dependent, source, ASPECT_A)
+        .append_dependency(dependent, source, ASPECT_A)
         .unwrap();
     let mut runtime_ctx = ();
 

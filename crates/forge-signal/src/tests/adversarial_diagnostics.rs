@@ -12,10 +12,10 @@ fn operational_profile_stays_bounded_under_snapshot_and_dependency_churn() {
     let dependent = graph.node().build();
 
     let bootstrap = |graph: &mut SignalGraph, use_source_b: bool| {
-        graph.remove_dependency(dependent, source_a, ASPECT_A).ok();
-        graph.remove_dependency(dependent, source_b, ASPECT_A).ok();
+        graph.drop_dependency(dependent, source_a, ASPECT_A).ok();
+        graph.drop_dependency(dependent, source_b, ASPECT_A).ok();
         graph
-            .add_dependency(
+            .append_dependency(
                 dependent,
                 if use_source_b { source_b } else { source_a },
                 ASPECT_A,
@@ -129,7 +129,7 @@ fn stress_development_profile_repeated_waves_remains_semantically_stable() {
         .collect();
     for (index, &dependent) in dependents.iter().enumerate() {
         graph
-            .add_partition_detail_dependency(
+            .append_partition_detail_dependency(
                 dependent,
                 source,
                 ASPECT_A,

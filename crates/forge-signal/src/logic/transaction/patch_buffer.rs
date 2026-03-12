@@ -125,7 +125,7 @@ mod tests {
         let mut graph = SignalGraph::new();
         let a = graph.create_node();
         let b = graph.create_node();
-        graph.add_dependency(b, a, ASPECT_B)?;
+        graph.append_dependency(b, a, ASPECT_B)?;
 
         let before_a = graph.get_state(a)?;
         let before_b = graph.get_state(b)?;
@@ -189,7 +189,7 @@ mod tests {
         let mut graph = SignalGraph::new();
         let a = graph.create_node();
         let b = graph.create_node();
-        graph.add_dependency(b, a, ASPECT_B)?;
+        graph.append_dependency(b, a, ASPECT_B)?;
 
         let mut baseline = DependencySnapshot::empty();
         baseline.record(a, ASPECT_B, 3, None);

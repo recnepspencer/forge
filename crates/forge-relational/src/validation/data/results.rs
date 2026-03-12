@@ -8,3 +8,8 @@ pub struct InvariantViolation {
     pub code: crate::diagnostics::data::DiagnosticCode,
     pub detail: String,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum InvariantAdvisory {
+    AuditOnly,
+}

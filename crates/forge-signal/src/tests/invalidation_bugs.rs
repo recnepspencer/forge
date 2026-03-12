@@ -7,10 +7,10 @@ fn partition_scoped_dependencies_on_same_source_check_all_matching_edges() {
     let source = graph.node().partitioned_output().build();
     let dependent = graph.node().build();
     graph
-        .add_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
+        .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
     graph
-        .add_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-13")
+        .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-13")
         .unwrap();
 
     evaluate(&mut graph, source, &mut |_id, _graph| {
@@ -46,10 +46,10 @@ fn repeated_partition_invalidations_union_dirty_scopes_until_evaluation() {
     let source = graph.node().partitioned_output().build();
     let dependent = graph.node().build();
     graph
-        .add_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
+        .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
     graph
-        .add_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-13")
+        .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-13")
         .unwrap();
 
     evaluate(&mut graph, source, &mut |_id, _graph| {
@@ -102,10 +102,10 @@ fn whole_aspect_invalidation_does_not_erase_other_aspects_partition_precision() 
     let source = graph.node().partitioned_output().build();
     let dependent = graph.node().build();
     graph
-        .add_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
+        .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
     graph
-        .add_partition_detail_dependency(dependent, source, ASPECT_B, "tail", "panel-7")
+        .append_partition_detail_dependency(dependent, source, ASPECT_B, "tail", "panel-7")
         .unwrap();
 
     evaluate(&mut graph, source, &mut |_id, _graph| {
@@ -149,12 +149,12 @@ fn reconverging_frontier_does_not_revisit_already_visited_nodes() {
     let d = graph.node().build();
     let e = graph.node().build();
 
-    graph.add_dependency(b, source, ASPECT_A).unwrap();
-    graph.add_dependency(c, source, ASPECT_A).unwrap();
-    graph.add_dependency(e, source, ASPECT_A).unwrap();
-    graph.add_dependency(d, b, ASPECT_A).unwrap();
-    graph.add_dependency(d, c, ASPECT_A).unwrap();
-    graph.add_dependency(e, d, ASPECT_A).unwrap();
+    graph.append_dependency(b, source, ASPECT_A).unwrap();
+    graph.append_dependency(c, source, ASPECT_A).unwrap();
+    graph.append_dependency(e, source, ASPECT_A).unwrap();
+    graph.append_dependency(d, b, ASPECT_A).unwrap();
+    graph.append_dependency(d, c, ASPECT_A).unwrap();
+    graph.append_dependency(e, d, ASPECT_A).unwrap();
 
     evaluate(&mut graph, source, &mut |_id, _graph| {
         Ok(NodeEvaluationResult::from_version(version_ab(1, 0)))
@@ -184,7 +184,7 @@ fn deep_invalidation_chain_completes_without_recursive_cycle_detection() {
     let mut previous = root;
     for _ in 0..20_000 {
         let next = graph.node().build();
-        graph.add_dependency(next, previous, ASPECT_A).unwrap();
+        graph.append_dependency(next, previous, ASPECT_A).unwrap();
         previous = next;
     }
 
@@ -201,11 +201,11 @@ fn unscoped_dependency_removal_removes_partition_scoped_edges() {
     let source = graph.node().partitioned_output().build();
     let dependent = graph.node().build();
     graph
-        .add_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
+        .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
 
     graph
-        .remove_dependency(dependent, source, ASPECT_A)
+        .drop_dependency(dependent, source, ASPECT_A)
         .unwrap();
 
     assert!(
@@ -220,7 +220,7 @@ fn whole_partition_invalidates_partition_detail_subscribers() {
     let source = graph.node().partitioned_output().build();
     let dependent = graph.node().build();
     graph
-        .add_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
+        .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
 
     evaluate(&mut graph, source, &mut |_id, _graph| {

@@ -35,6 +35,16 @@ pub(super) fn touched_partitions_for_plan_set(
     touched
 }
 
+pub(super) fn touched_partitions_for_flat_plan_set(
+    plan: &MergedCommitPlan,
+) -> std::collections::BTreeSet<PartitionId> {
+    let mut touched = std::collections::BTreeSet::new();
+    for intent in &plan.merged_intents {
+        intent.seed_touched_partitions(&mut touched);
+    }
+    touched
+}
+
 fn include_relation_scope(
     current_state: &impl PartitionAccess,
     touched: &mut std::collections::BTreeSet<PartitionId>,

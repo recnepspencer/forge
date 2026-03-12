@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use crate::data::output::IntoNodeEvaluationResult;
 use crate::facade::{evaluation::*, graph::*, transaction::*, types::*};
 use crate::logic::planner::{
@@ -19,6 +20,168 @@ pub fn mask_b() -> AspectMask {
 
 pub fn version_ab(a: u64, b: u64) -> AspectVersion {
     AspectVersion::from_updates([(ASPECT_A, a), (ASPECT_B, b)])
+}
+
+pub struct DependencyBatchBuilder<G>
+where
+    G: DerefMut<Target = SignalGraph>,
+{
+    graph: G,
+    pending: BTreeMap<NodeId, Vec<DependencyEdge>>,
+}
+
+impl<G> DependencyBatchBuilder<G>
+where
+    G: DerefMut<Target = SignalGraph>,
+{
+    pub fn new(graph: G) -> Self {
+        Self {
+            graph,
+            pending: BTreeMap::new(),
+        }
+    }
+
+    pub fn append_dependency(
+        &mut self,
+        downstream: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+    ) -> Result<&mut Self, SignalError> {
+        self.dependencies_for(downstream)?
+            .push(DependencyEdge::new(upstream, aspect));
+        Ok(self)
+    }
+
+    pub fn append_partition_dependency(
+        &mut self,
+        downstream: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+        partition: impl Into<PartitionToken>,
+    ) -> Result<&mut Self, SignalError> {
+        self.dependencies_for(downstream)?
+            .push(DependencyEdge::whole_partition(upstream, aspect, partition));
+        Ok(self)
+    }
+
+    pub fn append_partition_detail_dependency(
+        &mut self,
+        downstream: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+        partition: impl Into<PartitionToken>,
+        detail: impl Into<String>,
+    ) -> Result<&mut Self, SignalError> {
+        self.dependencies_for(downstream)?
+            .push(DependencyEdge::partition_detail(
+                upstream,
+                aspect,
+                partition,
+                detail,
+            ));
+        Ok(self)
+    }
+
+    pub fn commit(mut self) -> Result<(), SignalError> {
+        self.graph.deref_mut().set_dependencies_batch(self.pending)
+    }
+
+    fn dependencies_for(&mut self, node: NodeId) -> Result<&mut Vec<DependencyEdge>, SignalError> {
+        if !self.pending.contains_key(&node) {
+            self.pending
+                .insert(node, self.graph.deref_mut().dependencies_of(node)?.to_vec());
+        }
+        Ok(self.pending.get_mut(&node).expect("pending dependency batch should contain node"))
+    }
+}
+
+pub trait GraphDependencyBatchExt {
+    fn append_dependency(
+        &mut self,
+        downstream: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+    ) -> Result<(), SignalError>;
+
+    fn append_partition_dependency(
+        &mut self,
+        downstream: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+        partition: impl Into<PartitionToken>,
+    ) -> Result<(), SignalError>;
+
+    fn append_partition_detail_dependency(
+        &mut self,
+        downstream: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+        partition: impl Into<PartitionToken>,
+        detail: impl Into<String>,
+    ) -> Result<(), SignalError>;
+
+    fn drop_dependency(
+        &mut self,
+        downstream: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+    ) -> Result<(), SignalError>;
+}
+
+impl GraphDependencyBatchExt for SignalGraph {
+    fn append_dependency(
+        &mut self,
+        downstream: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+    ) -> Result<(), SignalError> {
+        self.edit_dependencies(downstream, |dependencies| {
+            dependencies.push(DependencyEdge::new(upstream, aspect));
+        })
+    }
+
+    fn append_partition_dependency(
+        &mut self,
+        downstream: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+        partition: impl Into<PartitionToken>,
+    ) -> Result<(), SignalError> {
+        self.edit_dependencies(downstream, |dependencies| {
+            dependencies.push(DependencyEdge::whole_partition(upstream, aspect, partition));
+        })
+    }
+
+    fn append_partition_detail_dependency(
+        &mut self,
+        downstream: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+        partition: impl Into<PartitionToken>,
+        detail: impl Into<String>,
+    ) -> Result<(), SignalError> {
+        self.edit_dependencies(downstream, |dependencies| {
+            dependencies.push(DependencyEdge::partition_detail(
+                upstream,
+                aspect,
+                partition,
+                detail,
+            ));
+        })
+    }
+
+    fn drop_dependency(
+        &mut self,
+        downstream: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+    ) -> Result<(), SignalError> {
+        self.edit_dependencies(downstream, |dependencies| {
+            dependencies.retain(|dependency| {
+                dependency.source() != upstream || dependency.aspect() != aspect
+            });
+        })
+    }
 }
 
 pub(crate) fn evaluate<F, O>(

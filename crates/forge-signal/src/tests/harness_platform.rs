@@ -81,7 +81,7 @@ fn signal_scenario_builder_drives_on_demand_behavior() {
     let dependent = scenario.build_node("dependent", |graph| graph.node().on_demand().build());
     scenario
         .graph_mut()
-        .add_dependency(dependent, source, ASPECT_A)
+        .append_dependency(dependent, source, ASPECT_A)
         .unwrap();
 
     let fixture = scenario
@@ -117,11 +117,11 @@ fn signal_harness_platform_surfaces_comparator_skips() {
     let dependent = scenario.build_node("dependent", |graph| graph.node().tolerance(2).build());
     scenario
         .graph_mut()
-        .add_dependency(middle, source, ASPECT_A)
+        .append_dependency(middle, source, ASPECT_A)
         .unwrap();
     scenario
         .graph_mut()
-        .add_dependency(dependent, middle, ASPECT_A)
+        .append_dependency(dependent, middle, ASPECT_A)
         .unwrap();
 
     let mut bootstrap_source = |_id: NodeId, graph: &SignalGraph| {
@@ -176,7 +176,7 @@ fn signal_harness_platform_captures_diagnostics_explanations_and_provenance() {
     let dependent = scenario.node("dependent");
     scenario
         .graph_mut()
-        .add_dependency(dependent, source, ASPECT_A)
+        .append_dependency(dependent, source, ASPECT_A)
         .unwrap();
     scenario
         .graph_mut()

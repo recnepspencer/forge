@@ -6,6 +6,7 @@ use crate::tests::support::*;
 fn concurrent_snapshot_and_version_reads_match_serial_truth() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
     let created = create_entity_outcome(&mut runtime, "before");
+    let created_version_id = created.version_id;
     let entity = changed_entities(&created)[0];
     let explicit_snapshot = runtime.visibility_authority().snapshot();
     let updated = update_entity(&mut runtime, entity, "after");
@@ -14,7 +15,7 @@ fn concurrent_snapshot_and_version_reads_match_serial_truth() {
         read_entity_name(read.get_entity(entity).unwrap()).unwrap().to_string()
     };
     let serial_version_name = {
-        let read = runtime.visibility_reads().read_version(created.version_id);
+        let read = runtime.visibility_reads().read_version(created_version_id);
         read_entity_name(read.get_entity(entity).unwrap()).unwrap().to_string()
     };
     let serial_latest_name = {
@@ -29,9 +30,10 @@ fn concurrent_snapshot_and_version_reads_match_serial_truth() {
             let runtime = Arc::clone(&runtime);
             let explicit_snapshot = explicit_snapshot.clone();
             let published_snapshot = updated.snapshot.clone();
+            let created_version_id = created_version_id;
             snapshot_threads.push(scope.spawn(move || {
                 let snapshot_read = runtime.visibility_reads().read_snapshot(&explicit_snapshot).unwrap();
-                let version_read = runtime.visibility_reads().read_version(created.version_id);
+                let version_read = runtime.visibility_reads().read_version(created_version_id);
                 let latest_read = runtime.visibility_reads().read_snapshot(&published_snapshot).unwrap();
                 (
                     read_entity_name(snapshot_read.get_entity(entity).unwrap())
@@ -60,6 +62,7 @@ fn concurrent_snapshot_and_version_reads_match_serial_truth() {
 fn concurrent_read_pressure_keeps_cache_diagnostics_coherent() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
     let created = create_entity_outcome(&mut runtime, "baseline");
+    let created_version_id = created.version_id;
     let entity = changed_entities(&created)[0];
     let explicit_snapshot = runtime.visibility_authority().snapshot();
     let updated = update_entity(&mut runtime, entity, "mutated");
@@ -75,6 +78,7 @@ fn concurrent_read_pressure_keeps_cache_diagnostics_coherent() {
             let runtime = Arc::clone(&runtime);
             let explicit_snapshot = explicit_snapshot.clone();
             let published_snapshot = updated.snapshot.clone();
+            let created_version_id = created_version_id;
             readers.push(scope.spawn(move || {
                 let snapshot_diag = runtime
                     .visibility_reads().inspect_snapshot_read_path(&explicit_snapshot)
@@ -82,7 +86,7 @@ fn concurrent_read_pressure_keeps_cache_diagnostics_coherent() {
                 let published_diag = runtime
                     .visibility_reads().inspect_snapshot_read_path(&published_snapshot)
                     .expect("published snapshot diagnostics");
-                let historical = runtime.visibility_reads().read_version(created.version_id);
+                let historical = runtime.visibility_reads().read_version(created_version_id);
                 let historical_name = read_entity_name(historical.get_entity(entity).unwrap())
                     .unwrap()
                     .to_string();

@@ -28,7 +28,7 @@ const PRICE: Aspect = Aspect::new(0);
 let mut graph = SignalGraph::new();
 let source = graph.node().build();
 let total = graph.node().on_demand().build();
-graph.add_dependency(total, source, PRICE)?;
+graph.set_dependencies(total, [DependencyEdge::new(source, PRICE)])?;
 
 let mut runtime = SignalRuntime::builder(graph).build();
 let mut ctx = ();

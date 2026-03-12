@@ -1,9 +1,27 @@
 use crate::identity::data::PartitionId;
+use crate::validation::data::{InvariantGroup, InvariantPlanContract};
 use super::{
     BulkRelationCreateIntent, CreateIntent, DeleteEntityIntent, EntityMutationIntent,
     ExistingRecordTarget, MutationIntent, RelationIdentity, RelationMutationIntent,
     ReplaceEntityIntent, RollbackEffect, UpdateEntityIntent,
 };
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CommitTopology {
+    FlatEntityBatch,
+    GraphMutation,
+    BranchMerge,
+}
+
+impl CommitTopology {
+    pub const fn mask(self) -> u32 {
+        match self {
+            Self::FlatEntityBatch => 1 << 0,
+            Self::GraphMutation => 1 << 1,
+            Self::BranchMerge => 1 << 2,
+        }
+    }
+}
 
 impl MutationIntent {
     pub(crate) fn seed_touched_partitions(
@@ -128,6 +146,27 @@ impl MutationIntent {
                 }
             }
             _ => {}
+        }
+    }
+}
+
+impl super::MergedCommitPlan {
+    pub fn invariant_contract(&self) -> InvariantPlanContract {
+        InvariantPlanContract::from_merged_plan(self)
+    }
+
+    pub fn inferred_topology(&self, merge_parent_count: usize) -> CommitTopology {
+        if merge_parent_count > 0 {
+            return CommitTopology::BranchMerge;
+        }
+
+        let may_break = self.invariant_contract().may_break_groups();
+        if may_break == InvariantGroup::StorageCoherence.mask() {
+            CommitTopology::FlatEntityBatch
+        } else if (may_break & InvariantGroup::AdjacencyIntegrity.mask()) != 0 {
+            CommitTopology::GraphMutation
+        } else {
+            CommitTopology::FlatEntityBatch
         }
     }
 }

@@ -11,7 +11,7 @@ pub(super) use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
 pub(super) use crate::config::data::{DurableLogPolicy, DurableLogRetentionMode};
 pub(super) use crate::config::data::{PatchSurfacePolicy, PublicationConfig};
 pub(super) use crate::facade::{
-    BranchId, CommitOutcome, DiagnosticCode, DiagnosticsArtifactKind,
+    BranchId, CommitResult, DiagnosticCode, DiagnosticsArtifactKind,
     DiagnosticsScope, DurabilityMode, DurableStoreLayout, EntityKindRegistration, EntityMutationIntent,
     EntityReadRecord, InvariantCatalog, InvariantClass,
     InvariantRegistration, InvariantRule,
@@ -145,7 +145,7 @@ pub(super) fn create_entity_in_partition(
     changed_entities(&txn.commit().unwrap())[0]
 }
 
-pub(super) fn create_entity_outcome(runtime: &mut RelationalRuntime, name: &str) -> CommitOutcome {
+pub(super) fn create_entity_outcome(runtime: &mut RelationalRuntime, name: &str) -> CommitResult {
     create_entity_outcome_on_branch(runtime, name, BranchId("main".to_string()))
 }
 
@@ -153,7 +153,7 @@ pub(super) fn create_entity_outcome_on_branch(
     runtime: &mut RelationalRuntime,
     name: &str,
     branch_id: BranchId,
-) -> CommitOutcome {
+) -> CommitResult {
     let mut txn = runtime.begin_transaction(TransactionOptions {
         target_branch: Some(branch_id),
         ..TransactionOptions::default()
@@ -165,7 +165,7 @@ pub(super) fn create_entity_outcome_on_branch(
 pub(super) fn delete_entity(
     runtime: &mut RelationalRuntime,
     entity_id: crate::facade::EntityId,
-) -> CommitOutcome {
+) -> CommitResult {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
         WorkerIntentBatch::new("delete").push(MutationIntent::Entity(
@@ -179,7 +179,7 @@ pub(super) fn update_entity(
     runtime: &mut RelationalRuntime,
     entity_id: crate::facade::EntityId,
     name: &str,
-) -> CommitOutcome {
+) -> CommitResult {
     update_entity_on_branch(runtime, entity_id, name, BranchId("main".to_string()))
 }
 
@@ -188,7 +188,7 @@ pub(super) fn update_entity_on_branch(
     entity_id: crate::facade::EntityId,
     name: &str,
     branch_id: BranchId,
-) -> CommitOutcome {
+) -> CommitResult {
     let mut txn = runtime.begin_transaction(TransactionOptions {
         target_branch: Some(branch_id),
         ..TransactionOptions::default()
@@ -242,7 +242,7 @@ pub(super) fn create_relation_outcome(
     source: crate::facade::EntityId,
     target: crate::facade::EntityId,
     client_key: &str,
-) -> CommitOutcome {
+) -> CommitResult {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
         WorkerIntentBatch::new("relation").push(MutationIntent::Create(
@@ -259,7 +259,7 @@ pub(super) fn create_relation_outcome(
     txn.commit().unwrap()
 }
 
-pub(super) fn changed_entities(outcome: &CommitOutcome) -> Vec<crate::facade::EntityId> {
+pub(super) fn changed_entities(outcome: &CommitResult) -> Vec<crate::facade::EntityId> {
     outcome
         .changed_records
         .iter()
@@ -270,7 +270,7 @@ pub(super) fn changed_entities(outcome: &CommitOutcome) -> Vec<crate::facade::En
         .collect()
 }
 
-pub(super) fn changed_relations(outcome: &CommitOutcome) -> Vec<RelationId> {
+pub(super) fn changed_relations(outcome: &CommitResult) -> Vec<RelationId> {
     outcome
         .changed_records
         .iter()
@@ -295,7 +295,7 @@ pub(super) fn merge_commit_from_branches(
     runtime: &mut RelationalRuntime,
     target_branch: BranchId,
     merge_parent_branches: Vec<BranchId>,
-) -> CommitOutcome {
+) -> CommitResult {
     let txn = runtime.begin_transaction(TransactionOptions {
         target_branch: Some(target_branch),
         merge_parent_branches,

@@ -102,7 +102,8 @@ pub use crate::symbols::data::{
 };
 pub use crate::transactions::data::{
     AuthoritativeApplyPlan, AuthorityMode, BulkEntityCreateIntent, BulkRelationCreateIntent,
-    CommitAuthority, CommitConflict, CommitOutcome, ConflictClass, CreateIntent,
+    CommitAuthority, CommitConflict, CommitLog, CommitOutcome, CommitPhase, CommitPhaseTiming,
+    CommitResult, CommitSummary, CommitTopology, CommitTraceEvent, ConflictClass, CreateIntent,
     CrossContextEndpointClass, DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent,
     MergedCommitPlan, MutationIntent, RecordRef, RelationMutationIntent, RelationScope,
     ReplaceEntityIntent, RollbackEffect, RollbackOutcome, SavepointId, TransactionCommitError,

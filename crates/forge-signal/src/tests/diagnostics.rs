@@ -86,7 +86,7 @@ fn graph_diagnostics_summary_is_deterministic_and_serializable() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
 
     let mut source_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(10, 0));
@@ -135,7 +135,7 @@ fn diagnostics_plan_summary_reports_contract_pruning() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().reads_aspects(mask_a()).build();
-    graph.add_dependency(dependent, source, ASPECT_B).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_B).unwrap();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, source, &mut compute).unwrap();
@@ -184,7 +184,7 @@ fn graph_diff_detects_state_and_structure_mismatch() {
     let mut graph_b = SignalGraph::new();
     let source = graph_b.node().build();
     let dependent = graph_b.node().build();
-    graph_b.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph_b.append_dependency(dependent, source, ASPECT_A).unwrap();
     evaluate(&mut graph_b, source, &mut compute).unwrap();
     evaluate(&mut graph_b, dependent, &mut compute).unwrap();
     mark_dirty(&mut graph_b, source, ASPECT_A).unwrap();
@@ -329,7 +329,7 @@ fn successful_execution_automatically_records_flow_and_history_diagnostics() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
 
     let source_compute = |ctx: &mut EvaluationContext<'_, ()>| Ok(ctx.finish(version_ab(1, 0)));
     let dependent_compute = |ctx: &mut EvaluationContext<'_, ()>| {
@@ -650,8 +650,13 @@ fn serial_and_parallel_reports_are_semantically_equivalent() {
     let a = graph_serial.node().build();
     let b = graph_serial.node().build();
     let c = graph_serial.node().build();
-    graph_serial.add_dependency(c, a, ASPECT_A).unwrap();
-    graph_serial.add_dependency(c, b, ASPECT_A).unwrap();
+    let mut dependencies = DependencyBatchBuilder::new(&mut graph_serial);
+    dependencies
+        .append_dependency(c, a, ASPECT_A)
+        .unwrap()
+        .append_dependency(c, b, ASPECT_A)
+        .unwrap();
+    dependencies.commit().unwrap();
 
     let mut graph_parallel = graph_serial.clone();
 
@@ -721,12 +726,13 @@ fn repeated_serial_parallel_lifecycle_parity_stays_stable() {
     let source = graph_serial.node().build();
     let wing = graph_serial.node().build();
     let tail = graph_serial.node().build();
-    graph_serial
-        .add_partition_dependency(wing, source, ASPECT_A, "wing")
+    let mut dependencies = DependencyBatchBuilder::new(&mut graph_serial);
+    dependencies
+        .append_partition_dependency(wing, source, ASPECT_A, "wing")
+        .unwrap()
+        .append_partition_dependency(tail, source, ASPECT_A, "tail")
         .unwrap();
-    graph_serial
-        .add_partition_dependency(tail, source, ASPECT_A, "tail")
-        .unwrap();
+    dependencies.commit().unwrap();
     let mut graph_parallel = graph_serial.clone();
 
     let evaluator = |ctx: &mut EvaluationContext<'_, ()>| {
@@ -874,12 +880,13 @@ fn repeated_partition_heavy_invalidation_retains_bounded_diagnostics() {
     let source = graph.node().partitioned_output().build();
     let wing = graph.node().build();
     let tail = graph.node().build();
-    graph
-        .add_partition_dependency(wing, source, ASPECT_A, "wing")
+    let mut dependencies = DependencyBatchBuilder::new(&mut graph);
+    dependencies
+        .append_partition_dependency(wing, source, ASPECT_A, "wing")
+        .unwrap()
+        .append_partition_dependency(tail, source, ASPECT_A, "tail")
         .unwrap();
-    graph
-        .add_partition_dependency(tail, source, ASPECT_A, "tail")
-        .unwrap();
+    dependencies.commit().unwrap();
 
     let evaluator = |ctx: &mut EvaluationContext<'_, ()>| {
         let result = if ctx.node() == source {

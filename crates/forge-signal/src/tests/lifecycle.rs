@@ -29,8 +29,8 @@ fn kv62_delete_mid_chain_no_panic() {
     let middle = graph.node().build();
     let feature = graph.node().build();
 
-    graph.add_dependency(middle, param, ASPECT_B).unwrap();
-    graph.add_dependency(feature, middle, ASPECT_B).unwrap();
+    graph.append_dependency(middle, param, ASPECT_B).unwrap();
+    graph.append_dependency(feature, middle, ASPECT_B).unwrap();
 
     let mut compute = |_id, _g: &SignalGraph| Ok(version_ab(1, 1));
     evaluate(&mut graph, param, &mut compute).unwrap();
@@ -56,8 +56,8 @@ fn unregister_severs_subscriptions() {
     let node = graph.node().build();
     let downstream = graph.node().build();
 
-    graph.add_dependency(node, upstream, ASPECT_B).unwrap();
-    graph.add_dependency(downstream, node, ASPECT_B).unwrap();
+    graph.append_dependency(node, upstream, ASPECT_B).unwrap();
+    graph.append_dependency(downstream, node, ASPECT_B).unwrap();
 
     graph.unregister_node(node).unwrap();
 
@@ -82,7 +82,7 @@ fn observation_reads_stay_pure_while_runtime_topology_reads_prune_stale_edges() 
     let upstream = graph.node().build();
     let downstream = graph.node().build();
 
-    graph.add_dependency(downstream, upstream, ASPECT_A).unwrap();
+    graph.append_dependency(downstream, upstream, ASPECT_A).unwrap();
     graph.unregister_node(upstream).unwrap();
     let stale_edge = graph.build_dependency_edge(upstream, ASPECT_A, None);
     graph
@@ -104,7 +104,7 @@ fn observation_subscriber_reads_stay_pure_while_runtime_reads_prune_stale_subscr
     let source = graph.node().build();
     let subscriber = graph.node().build();
 
-    graph.add_dependency(subscriber, source, ASPECT_A).unwrap();
+    graph.append_dependency(subscriber, source, ASPECT_A).unwrap();
     graph.unregister_node(subscriber).unwrap();
     graph.inject_retired_subscriber_for_test(source, subscriber).unwrap();
 

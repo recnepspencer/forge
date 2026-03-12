@@ -73,17 +73,16 @@ impl InvariantExecutionResult {
     ) -> Option<InvariantFailure> {
         self.results
             .iter()
-            .find(|result| {
-                result.failure_effect == effect
-                    && result.verdict == InvariantVerdict::Fail
-                    && !result.violations.is_empty()
-            })
-            .and_then(|result| {
-                result
-                    .violations
-                    .first()
-                    .cloned()
-                    .map(|violation| (result.execution_point, violation))
+            .find_map(|result| {
+                if result.failure_effect != effect {
+                    return None;
+                }
+                match &result.verdict {
+                    InvariantVerdict::Violation(violation) => {
+                        Some((result.execution_point, violation.clone()))
+                    }
+                    InvariantVerdict::Pass | InvariantVerdict::Advisory { .. } => None,
+                }
             })
             .map(|(execution_point, violation)| InvariantFailure {
                 execution_point,

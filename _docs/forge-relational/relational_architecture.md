@@ -551,6 +551,52 @@ The `Subsystem` trait also gives each subsystem a uniform lifecycle: the runtime
 
 ---
 
+## Cross-Cutting Runtime Principle: Batch-Scoped Structural Maintenance
+
+This principle applies across every later phase, especially invariant execution
+and commit architecture.
+
+> [!IMPORTANT]
+> If an intermediate structural state inside a batch has no semantic value on
+> its own, do **not** maintain it incrementally across each intent. Amortize
+> that work across the merged batch boundary and represent it as a batch-derived
+> summary or delta.
+
+The rule is simple:
+
+- if only the final committed truth is observable
+- and intermediate structural maintenance does not affect semantics mid-batch
+- then structural work should be accumulated once at the merged batch boundary
+- and downstream subsystems should consume that summary rather than reconstruct
+  it repeatedly
+
+This is important for future workloads like geometry kernels, chip simulators,
+and game engines, where hot loops may issue many semantically local mutations
+per second. Those workloads punish repeated structural rebuilding even when the
+final batch result is small.
+
+**What belongs in batch-derived summaries**
+
+Typical examples include:
+
+- invariant `may_break` masks
+- inferred commit topology
+- touched partition/record scope
+- adjacency impact summaries
+- uniqueness candidate values
+- bulk reservation counts
+- changed-record structural deltas
+
+**Architectural consequence**
+
+When repeated merged-plan scans or repeated changed-record scans appear, the
+default response should be to introduce a named batch summary object rather than
+letting each subsystem rediscover the same shape independently. This principle
+must guide the design of the invariant engine (Phase D) and the commit result /
+decision architecture (Phase E).
+
+---
+
 ## Phase D: Invariant Engine
 
 These changes create a first-class invariant scheduling system modeled directly on forge-topo's `GroupPolicyRuntime`. Every item in this phase should reference the kernel code.
@@ -733,6 +779,10 @@ The commit pipeline computes `union_mask = intents.fold(0u32, |acc, i| acc | i.c
 
 This is inspired by a frontend pattern where flat-list CRUD managers and tree-structured CRUD managers use topology-specific optimistic update strategies — the data shape determines the cache manipulation approach. (The frontend code is in a separate workspace — ask the user for examples if needed.) Instead of the caller declaring the topology explicitly, the pipeline **infers** it from the combined intent contracts. A flat entity batch that only touches `StorageCoherence` never pays for cascade checking or adjacency rebuild.
 
+This topology signal should be treated as a **batch summary**, not as a metric
+only. Once inferred, it must be threaded through downstream invariant and commit
+selection instead of being recomputed or left as observability-only metadata.
+
 ---
 
 ### D5 · Three-State Invariant Verdicts
@@ -796,6 +846,11 @@ boundary decides which request profile is appropriate for a geometry-kernel
 operation, chip-simulation step, game-engine frame audit, certification run, or
 authoritative commit.
 
+Batch-scoped structural summaries should be preferred here as well. The engine
+should consume already-derived merged-plan summaries such as contract masks,
+topology, touched scope, or uniqueness candidates rather than re-deriving those
+facts independently at each rule boundary.
+
 ---
 
 ## Phase E: Commit Architecture
@@ -841,6 +896,13 @@ pub(crate) enum CommitPhase {
 }
 ```
 
+The commit log should consume **batch-derived summaries**, not force each phase
+to rediscover the same structure. Commit topology, touched scope, invariant
+contract masks, changed-record deltas, adjacency deltas, and similar structural
+facts should be computed once and then recorded / reused across the commit log
+and result envelope. Intermediate per-intent structural maintenance should not
+be preserved when only the final batch truth has semantic value.
+
 The 7-phase pipeline in [pipeline.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/authority/commit/pipeline.rs) already has the right structure — each phase call opens a span, records decisions (conflict resolution, cascade triggers, schema validation), and closes the span. Debugging becomes `commit_log.phase_decisions(CommitPhase::AuthoritativeMutation)`.
 
 ---
@@ -869,6 +931,12 @@ pub struct CommitResult {
 ```
 
 `txn.commit()` returns `Result<CommitResult, RelationalError>`. Everything a caller needs — for debugging, replay, CDC, or auditing — comes back in one return value.
+
+The envelope should prefer **amortized batch artifacts** over recomputed views.
+If a structural fact was already derived at the merged-batch boundary, it
+belongs in the envelope or commit log as a reused artifact, not as something
+reconstructed separately by publication, indexing, visibility, lineage, and
+diagnostics layers.
 
 ---
 

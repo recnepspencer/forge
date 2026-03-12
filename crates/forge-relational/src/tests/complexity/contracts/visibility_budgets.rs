@@ -1,4 +1,5 @@
 use crate::tests::support::*;
+use crate::validation::data::InvariantVerdict;
 
 #[test]
 fn complexity_budget_snapshot_visibility_state_avoids_record_materialization() {
@@ -128,7 +129,7 @@ fn complexity_budget_snapshot_entity_limit_uses_live_bitsets_for_current_version
 
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].class(), InvariantClass::SnapshotAudit);
-    assert!(results[0].violations.is_empty());
+    assert_eq!(results[0].verdict, InvariantVerdict::Pass);
     assert_eq!(counters.invariant_entity_slot_scans, 0);
     assert_eq!(counters.invariant_entity_records_materialized, 0);
 }
