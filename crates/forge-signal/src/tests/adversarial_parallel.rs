@@ -6,6 +6,9 @@ use forge_harness::facade::{ComparisonMode, ComparisonProfile, ExecutionRequest}
 use serde_json::json;
 
 use crate::facade::*;
+use crate::data::comparator::{
+    DefaultComparatorPolicyResolver, DefaultComparatorResolver, VersionComparatorPolicy,
+};
 use crate::logic::planner::{ParallelApplyMode, ParallelExecutionPolicy};
 use crate::logic::prepared::{PreparedDependencyCapture, PreparedEvaluation};
 use crate::tests::support::{version_ab, ASPECT_A};
@@ -272,22 +275,23 @@ fn full_parallel_rewires_dynamic_dependencies_without_losing_parity() {
             &[selector, left, right, target_a, target_b],
             EvaluationRequestMode::ForceOnDemand,
         )?;
-        graph.execute_prepared_plan(&bootstrap, &move |node, view| {
+        graph.execute_prepared_plan(&bootstrap, &(), &move |ctx| {
+            let node = ctx.node();
             let result = if node == selector {
-                view.finish(version_ab(0, 0))
+                ctx.finish(version_ab(0, 0))
             } else if node == left {
-                view.finish(version_ab(10, 0))
+                ctx.finish(version_ab(10, 0))
             } else if node == right {
-                view.finish(version_ab(20, 0))
+                ctx.finish(version_ab(20, 0))
             } else {
-                let selector_version = view.read_aspect_version(selector, ASPECT_A)?;
+                let selector_version = ctx.read_aspect_version(selector, ASPECT_A)?;
                 let source = if selector_version.get(ASPECT_A) == 0 {
                     left
                 } else {
                     right
                 };
-                let chosen = view.read_aspect_version(source, ASPECT_A)?;
-                view.finish(NodeEvaluationResult::from_version(chosen))
+                let chosen = ctx.read_aspect_version(source, ASPECT_A)?;
+                ctx.finish(NodeEvaluationResult::from_version(chosen))
             };
             Ok(result)
         })?;
@@ -306,18 +310,20 @@ fn full_parallel_rewires_dynamic_dependencies_without_losing_parity() {
         let plan = graph.build_evaluation_plan(targets, EvaluationRequestMode::Default)?;
         graph.execute_prepared_plan_with_executor(
             &plan,
-            &move |node, view| {
+            &(),
+            &move |ctx| {
+                let node = ctx.node();
                 let result = if node == selector {
-                    view.finish(version_ab(1, 0))
+                    ctx.finish(version_ab(1, 0))
                 } else {
-                    let selector_version = view.read_aspect_version(selector, ASPECT_A)?;
+                    let selector_version = ctx.read_aspect_version(selector, ASPECT_A)?;
                     let source = if selector_version.get(ASPECT_A) == 0 {
                         unreachable!("selector should have recomputed before dynamic targets")
                     } else {
                         right
                     };
-                    let chosen = view.read_aspect_version(source, ASPECT_A)?;
-                    view.finish(NodeEvaluationResult::from_version(chosen))
+                    let chosen = ctx.read_aspect_version(source, ASPECT_A)?;
+                    ctx.finish(NodeEvaluationResult::from_version(chosen))
                 };
                 Ok(result)
             },
@@ -418,21 +424,28 @@ fn full_parallel_apply_failure_does_not_leak_partial_semantic_state() {
     let plan = graph
         .build_evaluation_plan(&requested, EvaluationRequestMode::Default)
         .unwrap();
-    let err = graph
-        .execute_prepared_plan_with_executor(
+    let err = {
+        let mut comparator = DefaultComparatorResolver;
+        let mut resolver = DefaultComparatorPolicyResolver {
+            fallback: VersionComparatorPolicy::Exact,
+            custom: &mut comparator,
+        };
+        crate::logic::planner::execute_prepared_plan_with_precompute(
+            &mut graph,
             &plan,
-            &(),
-            &move |ctx| {
-                let mut prepared = PreparedEvaluation::from_result(
-                    NodeEvaluationResult::from_version(version_ab(2, 0)),
-                );
-                if ctx.node() == unstable {
+            &move |node, _view| {
+                let mut prepared =
+                    PreparedEvaluation::from_result(NodeEvaluationResult::from_version(version_ab(
+                        2, 0,
+                    )));
+                if node == unstable {
                     let mut capture = PreparedDependencyCapture::new();
                     capture.record(NodeId::new(999_999, 0), ASPECT_A, None);
                     prepared = prepared.with_dependencies(capture);
                 }
                 Ok(prepared)
             },
+            &mut resolver,
             StageExecutor::full_parallel(1).with_parallel_policy(
                 ParallelExecutionPolicy::new(NonZeroUsize::new(1).unwrap())
                     .with_worker_count(2)
@@ -441,7 +454,8 @@ fn full_parallel_apply_failure_does_not_leak_partial_semantic_state() {
                     .with_max_concurrent_apply_groups(2),
             ),
         )
-        .unwrap_err();
+        .unwrap_err()
+    };
     assert!(
         matches!(err, SignalError::StaleHandle { .. }),
         "apply failure should surface stale dependency-capture error, got: {err}"
@@ -493,16 +507,17 @@ fn full_parallel_policy_matrix_preserves_semantic_artifacts_on_tolerance_heavy_p
             )
             .unwrap();
         graph
-            .execute_prepared_plan(&plan, &move |node, view| {
+            .execute_prepared_plan(&plan, &(), &move |ctx| {
+                let node = ctx.node();
                 let result = if node == source {
-                    view.finish(
+                    ctx.finish(
                         NodeEvaluationResult::from_version(version_ab(10, 0))
                             .with_changed_region(ChangedRegion::new("shell"))
                             .with_changed_region(ChangedRegion::new("core")),
                     )
                 } else {
-                    let version = view.read_aspect_version(source, ASPECT_A)?;
-                    view.finish(NodeEvaluationResult::from_version(version))
+                    let version = ctx.read_aspect_version(source, ASPECT_A)?;
+                    ctx.finish(NodeEvaluationResult::from_version(version))
                 };
                 Ok(result)
             })
@@ -528,16 +543,18 @@ fn full_parallel_policy_matrix_preserves_semantic_artifacts_on_tolerance_heavy_p
         graph
             .execute_prepared_plan_with_executor(
                 &plan,
-                &move |node, view| {
+                &(),
+                &move |ctx| {
+                    let node = ctx.node();
                     let result = if node == source {
-                        view.finish(
+                        ctx.finish(
                             NodeEvaluationResult::from_version(version_ab(12, 0))
                                 .with_changed_region(ChangedRegion::new("shell"))
                                 .with_changed_region(ChangedRegion::new("core")),
                         )
                     } else {
-                        let version = view.read_aspect_version(source, ASPECT_A)?;
-                        view.finish(NodeEvaluationResult::from_version(version))
+                        let version = ctx.read_aspect_version(source, ASPECT_A)?;
+                        ctx.finish(NodeEvaluationResult::from_version(version))
                     };
                     Ok(result)
                 },
@@ -576,16 +593,17 @@ fn logically_equivalent_region_orders_produce_identical_provenance_and_replay() 
             .build_evaluation_plan(&[source, target], EvaluationRequestMode::ForceOnDemand)
             .unwrap();
         graph
-            .execute_prepared_plan(&plan, &move |node, view| {
+            .execute_prepared_plan(&plan, &(), &move |ctx| {
+                let node = ctx.node();
                 let result = if node == source {
-                    view.finish(
+                    ctx.finish(
                         NodeEvaluationResult::from_version(version_ab(5, 0))
                             .with_changed_region(ChangedRegion::new("face"))
                             .with_changed_region(ChangedRegion::new("edge")),
                     )
                 } else {
-                    let version = view.read_aspect_version(source, ASPECT_A)?;
-                    view.finish(NodeEvaluationResult::from_version(version))
+                    let version = ctx.read_aspect_version(source, ASPECT_A)?;
+                    ctx.finish(NodeEvaluationResult::from_version(version))
                 };
                 Ok(result)
             })
@@ -616,16 +634,18 @@ fn logically_equivalent_region_orders_produce_identical_provenance_and_replay() 
         graph
             .execute_prepared_plan_with_executor(
                 &plan,
-                &move |node, view| {
+                &(),
+                &move |ctx| {
+                    let node = ctx.node();
                     let result = if node == source_a {
-                        view.finish(
+                        ctx.finish(
                             NodeEvaluationResult::from_version(version_ab(6, 0))
                                 .with_changed_region(ChangedRegion::new("edge"))
                                 .with_changed_region(ChangedRegion::new("face")),
                         )
                     } else {
-                        let version = view.read_aspect_version(source_a, ASPECT_A)?;
-                        view.finish(NodeEvaluationResult::from_version(version))
+                        let version = ctx.read_aspect_version(source_a, ASPECT_A)?;
+                        ctx.finish(NodeEvaluationResult::from_version(version))
                     };
                     Ok(result)
                 },
@@ -684,21 +704,22 @@ fn reordered_dependency_and_region_orders_stay_canonical_across_executor_matrix(
             )
             .unwrap();
         graph
-            .execute_prepared_plan(&plan, &move |node, view| {
+            .execute_prepared_plan(&plan, &(), &move |ctx| {
+                let node = ctx.node();
                 let result = if node == source {
-                    view.finish(
+                    ctx.finish(
                         NodeEvaluationResult::from_version(version_ab(20, 0))
                             .with_output_identity("geom-v1")
                             .with_changed_region(ChangedRegion::new("mesh").with_detail("face-b"))
                             .with_changed_region(ChangedRegion::new("shell").with_detail("face-a")),
                     )
                 } else if node == shell || node == core {
-                    let version = view.read_aspect_version(source, ASPECT_A)?;
-                    view.finish(NodeEvaluationResult::from_version(version))
+                    let version = ctx.read_aspect_version(source, ASPECT_A)?;
+                    ctx.finish(NodeEvaluationResult::from_version(version))
                 } else {
-                    let shell_v = view.read_aspect_version(shell, ASPECT_A)?;
-                    let core_v = view.read_aspect_version(core, ASPECT_A)?;
-                    view.finish(
+                    let shell_v = ctx.read_aspect_version(shell, ASPECT_A)?;
+                    let core_v = ctx.read_aspect_version(core, ASPECT_A)?;
+                    ctx.finish(
                         NodeEvaluationResult::from_version(AspectVersion::from_updates([(
                             ASPECT_A,
                             shell_v.get(ASPECT_A) + core_v.get(ASPECT_A),
@@ -727,9 +748,11 @@ fn reordered_dependency_and_region_orders_stay_canonical_across_executor_matrix(
         graph
             .execute_prepared_plan_with_executor(
                 &plan,
-                &move |node, view| {
+                &(),
+                &move |ctx| {
+                    let node = ctx.node();
                     let result = if node == source {
-                        view.finish(
+                        ctx.finish(
                             NodeEvaluationResult::from_version(version_ab(22, 0))
                                 .with_output_identity("geom-v2")
                                 .with_changed_region(
@@ -740,12 +763,12 @@ fn reordered_dependency_and_region_orders_stay_canonical_across_executor_matrix(
                                 ),
                         )
                     } else if node == shell || node == core {
-                        let version = view.read_aspect_version(source, ASPECT_A)?;
-                        view.finish(NodeEvaluationResult::from_version(version))
+                        let version = ctx.read_aspect_version(source, ASPECT_A)?;
+                        ctx.finish(NodeEvaluationResult::from_version(version))
                     } else {
-                        let shell_v = view.read_aspect_version(shell, ASPECT_A)?;
-                        let core_v = view.read_aspect_version(core, ASPECT_A)?;
-                        view.finish(
+                        let shell_v = ctx.read_aspect_version(shell, ASPECT_A)?;
+                        let core_v = ctx.read_aspect_version(core, ASPECT_A)?;
+                        ctx.finish(
                             NodeEvaluationResult::from_version(AspectVersion::from_updates([(
                                 ASPECT_A,
                                 shell_v.get(ASPECT_A) + core_v.get(ASPECT_A),
@@ -841,16 +864,17 @@ fn repeated_executor_policy_churn_keeps_tolerance_boundary_artifacts_stable() {
             )
             .unwrap();
         graph
-            .execute_prepared_plan(&plan, &move |node, view| {
+            .execute_prepared_plan(&plan, &(), &move |ctx| {
+                let node = ctx.node();
                 let result = if node == source {
-                    view.finish(NodeEvaluationResult::from_version(version_ab(100, 0)))
+                    ctx.finish(NodeEvaluationResult::from_version(version_ab(100, 0)))
                 } else if node == shell || node == core {
-                    let version = view.read_aspect_version(source, ASPECT_A)?;
-                    view.finish(NodeEvaluationResult::from_version(version))
+                    let version = ctx.read_aspect_version(source, ASPECT_A)?;
+                    ctx.finish(NodeEvaluationResult::from_version(version))
                 } else {
-                    let shell_v = view.read_aspect_version(shell, ASPECT_A)?;
-                    let core_v = view.read_aspect_version(core, ASPECT_A)?;
-                    view.finish(
+                    let shell_v = ctx.read_aspect_version(shell, ASPECT_A)?;
+                    let core_v = ctx.read_aspect_version(core, ASPECT_A)?;
+                    ctx.finish(
                         NodeEvaluationResult::from_version(AspectVersion::from_updates([(
                             ASPECT_A,
                             shell_v.get(ASPECT_A) + core_v.get(ASPECT_A),
@@ -879,19 +903,21 @@ fn repeated_executor_policy_churn_keeps_tolerance_boundary_artifacts_stable() {
         graph
             .execute_prepared_plan_with_executor(
                 &plan,
-                &move |node, view| {
+                &(),
+                &move |ctx| {
+                    let node = ctx.node();
                     let result = if node == source {
-                        view.finish(NodeEvaluationResult::from_version(version_ab(
+                        ctx.finish(NodeEvaluationResult::from_version(version_ab(
                             next_version,
                             0,
                         )))
                     } else if node == shell || node == core {
-                        let version = view.read_aspect_version(source, ASPECT_A)?;
-                        view.finish(NodeEvaluationResult::from_version(version))
+                        let version = ctx.read_aspect_version(source, ASPECT_A)?;
+                        ctx.finish(NodeEvaluationResult::from_version(version))
                     } else {
-                        let shell_v = view.read_aspect_version(shell, ASPECT_A)?;
-                        let core_v = view.read_aspect_version(core, ASPECT_A)?;
-                        view.finish(
+                        let shell_v = ctx.read_aspect_version(shell, ASPECT_A)?;
+                        let core_v = ctx.read_aspect_version(core, ASPECT_A)?;
+                        ctx.finish(
                             NodeEvaluationResult::from_version(AspectVersion::from_updates([(
                                 ASPECT_A,
                                 shell_v.get(ASPECT_A) + core_v.get(ASPECT_A),

@@ -2,10 +2,20 @@
 use std::num::NonZeroUsize;
 
 #[cfg(feature = "parallel")]
-use forge_signal::facade::{
-    mark_dirty_with_regions, ArtifactMaterializationMode, Aspect, AspectVersion, ChangedRegion,
-    DiagnosticsProfile, EvaluationRequestMode, NodeEvaluationResult, NodeId,
-    ParallelExecutionPolicy, SignalGraph, SignalRuntimePolicy, StageExecutor,
+use forge_signal::facade::diagnostics::{
+    ArtifactMaterializationMode, DiagnosticsProfile, SignalRuntimePolicy,
+};
+#[cfg(feature = "parallel")]
+use forge_signal::facade::evaluation::EvaluationRequestMode;
+#[cfg(feature = "parallel")]
+use forge_signal::facade::graph::SignalGraph;
+#[cfg(feature = "parallel")]
+use forge_signal::facade::planning::{ParallelExecutionPolicy, StageExecutor};
+#[cfg(feature = "parallel")]
+use forge_signal::facade::transaction::mark_dirty_with_regions;
+#[cfg(feature = "parallel")]
+use forge_signal::facade::types::{
+    Aspect, AspectVersion, ChangedRegion, DependencyEdge, NodeEvaluationResult, NodeId,
     CORE_STORAGE_PROFILE_ID,
 };
 #[cfg(feature = "parallel")]
@@ -53,12 +63,13 @@ fn canonical_runtime_artifacts(
     node: NodeId,
     runtime_policy: SignalRuntimePolicy,
 ) -> serde_json::Value {
-    let (explanation, explanation_mode) = graph.explain_artifact(node).unwrap();
-    let (provenance, provenance_mode) = graph.provenance_artifact(node).unwrap();
+    let observer = graph.observe();
+    let (explanation, explanation_mode) = observer.explain_artifact(node).unwrap();
+    let (provenance, provenance_mode) = observer.provenance_artifact(node).unwrap();
     let explanation = explanation.expect("snapshot fixture should have an explainable target");
-    let explanation_fact = graph.explanation_fact(node);
-    let diagnostics = graph.observe().diagnostics_summary(DiagnosticsProfile::Development);
-    let replay = graph
+    let explanation_fact = observer.explanation_fact(node);
+    let diagnostics = observer.diagnostics_summary(DiagnosticsProfile::Development);
+    let replay = observer
         .replay_events()
         .iter()
         .map(|event| {

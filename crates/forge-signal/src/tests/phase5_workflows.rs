@@ -1348,7 +1348,7 @@ fn parallel_branch_memo_rollback_session_preserves_branch_local_replay_and_cache
         .transaction(&mut runtime_ctx, |tx| {
             tx.read_with_executor(
                 source,
-                &|_node, view| {
+                &|view| {
                     Ok(view.finish(
                         NodeEvaluationResult::from_version(version_ab(10, 100))
                             .with_output_identity("seed-ab"),
@@ -1358,7 +1358,7 @@ fn parallel_branch_memo_rollback_session_preserves_branch_local_replay_and_cache
             )?;
             tx.read_with_executor(
                 gated,
-                &|_node, view| {
+                &|view| {
                     let version = view.read_aspect_version(source, ASPECT_A)?;
                     Ok(view.finish(
                         NodeEvaluationResult::from_version(version)
@@ -1369,7 +1369,7 @@ fn parallel_branch_memo_rollback_session_preserves_branch_local_replay_and_cache
             )?;
             tx.read_with_executor(
                 filtered,
-                &|_node, view| {
+                &|view| {
                     let version = view.read_aspect_version(source, ASPECT_B)?;
                     Ok(view.finish(
                         NodeEvaluationResult::from_version(version)
@@ -1380,7 +1380,7 @@ fn parallel_branch_memo_rollback_session_preserves_branch_local_replay_and_cache
             )?;
             tx.read_with_executor(
                 fused,
-                &|_node, view| {
+                &|view| {
                     let a = view.read_aspect_version(gated, ASPECT_A)?;
                     let b = view.read_aspect_version(filtered, ASPECT_B)?;
                     Ok(view.finish(
@@ -1421,7 +1421,7 @@ fn parallel_branch_memo_rollback_session_preserves_branch_local_replay_and_cache
                 }
                 tx.read_with_executor(
                     source,
-                    &|_node, view| {
+                    &|view| {
                         Ok(view.finish(
                             NodeEvaluationResult::from_version(version_ab(
                                 20 + step,
@@ -1434,7 +1434,7 @@ fn parallel_branch_memo_rollback_session_preserves_branch_local_replay_and_cache
                 )?;
                 tx.read_with_executor(
                     gated,
-                    &|_node, view| {
+                    &|view| {
                         let version = view.read_aspect_version(source, ASPECT_A)?;
                         Ok(view.finish(
                             NodeEvaluationResult::from_version(version)
@@ -1445,7 +1445,7 @@ fn parallel_branch_memo_rollback_session_preserves_branch_local_replay_and_cache
                 )?;
                 tx.read_with_executor(
                     filtered,
-                    &|_node, view| {
+                    &|view| {
                         let version = view.read_aspect_version(source, ASPECT_B)?;
                         Ok(view.finish(
                             NodeEvaluationResult::from_version(version)
@@ -1456,7 +1456,7 @@ fn parallel_branch_memo_rollback_session_preserves_branch_local_replay_and_cache
                 )?;
                 tx.read_with_executor(
                     fused,
-                    &|_node, view| {
+                    &|view| {
                         let a = view.read_aspect_version(gated, ASPECT_A)?;
                         let b = view.read_aspect_version(filtered, ASPECT_B)?;
                         Ok(view.finish(
@@ -1493,7 +1493,7 @@ fn parallel_branch_memo_rollback_session_preserves_branch_local_replay_and_cache
                 tx.mark_dirty(source, ASPECT_A)?;
                 tx.read_with_executor(
                     source,
-                    &|_node, view| {
+                    &|view| {
                         Ok(view.finish(
                             NodeEvaluationResult::from_version(version_ab(500 + step, 900))
                                 .with_output_identity(format!("bad-{step}")),
@@ -1503,7 +1503,7 @@ fn parallel_branch_memo_rollback_session_preserves_branch_local_replay_and_cache
                 )?;
                 tx.read_with_executor(
                     fused,
-                    &|_node, view| {
+                    &|view| {
                         let a = view.read_aspect_version(gated, ASPECT_A)?;
                         let b = view.read_aspect_version(filtered, ASPECT_B)?;
                         Ok(view.finish(
@@ -1609,7 +1609,7 @@ fn long_session_replay_and_lineage_stay_equivalent_between_serial_and_parallel_e
             .transaction(&mut runtime_ctx, |tx| {
                 tx.read_with_executor(
                     source,
-                    &|_node, view| {
+                    &|view| {
                         Ok(view.finish(
                             NodeEvaluationResult::from_version(version_ab(1, 10))
                                 .with_output_identity("seed-source"),
@@ -1619,7 +1619,7 @@ fn long_session_replay_and_lineage_stay_equivalent_between_serial_and_parallel_e
                 )?;
                 tx.read_with_executor(
                     a_gate,
-                    &|_node, view| {
+                    &|view| {
                         let version = view.read_aspect_version(source, ASPECT_A)?;
                         Ok(view.finish(
                             NodeEvaluationResult::from_version(version)
@@ -1630,7 +1630,7 @@ fn long_session_replay_and_lineage_stay_equivalent_between_serial_and_parallel_e
                 )?;
                 tx.read_with_executor(
                     b_gate,
-                    &|_node, view| {
+                    &|view| {
                         let version = view.read_aspect_version(source, ASPECT_B)?;
                         Ok(view.finish(
                             NodeEvaluationResult::from_version(version)
@@ -1641,7 +1641,7 @@ fn long_session_replay_and_lineage_stay_equivalent_between_serial_and_parallel_e
                 )?;
                 tx.read_with_executor(
                     sink,
-                    &|_node, view| {
+                    &|view| {
                         let a = view.read_aspect_version(a_gate, ASPECT_A)?;
                         let b = view.read_aspect_version(b_gate, ASPECT_B)?;
                         Ok(view.finish(
@@ -1673,7 +1673,7 @@ fn long_session_replay_and_lineage_stay_equivalent_between_serial_and_parallel_e
                     }
                     tx.read_with_executor(
                         source,
-                        &|_node, view| {
+                        &|view| {
                             Ok(view.finish(
                                 NodeEvaluationResult::from_version(version_ab(
                                     2 + step,
@@ -1686,7 +1686,7 @@ fn long_session_replay_and_lineage_stay_equivalent_between_serial_and_parallel_e
                     )?;
                     tx.read_with_executor(
                         a_gate,
-                        &|_node, view| {
+                        &|view| {
                             let version = view.read_aspect_version(source, ASPECT_A)?;
                             Ok(view.finish(
                                 NodeEvaluationResult::from_version(version)
@@ -1697,7 +1697,7 @@ fn long_session_replay_and_lineage_stay_equivalent_between_serial_and_parallel_e
                     )?;
                     tx.read_with_executor(
                         b_gate,
-                        &|_node, view| {
+                        &|view| {
                             let version = view.read_aspect_version(source, ASPECT_B)?;
                             Ok(view.finish(
                                 NodeEvaluationResult::from_version(version)
@@ -1708,7 +1708,7 @@ fn long_session_replay_and_lineage_stay_equivalent_between_serial_and_parallel_e
                     )?;
                     tx.read_with_executor(
                         sink,
-                        &|_node, view| {
+                        &|view| {
                             let a = view.read_aspect_version(a_gate, ASPECT_A)?;
                             let b = view.read_aspect_version(b_gate, ASPECT_B)?;
                             Ok(view.finish(
@@ -1908,7 +1908,7 @@ fn dynamic_rewire_threshold_session_with_parallel_restore_preserves_subscriber_s
         .transaction(&mut runtime_ctx, |tx| {
             tx.read_with_executor(
                 selector,
-                &|_node, view| {
+                &|view| {
                     Ok(view.finish(
                         NodeEvaluationResult::from_version(version_ab(1, 0))
                             .with_output_identity("route-left"),
@@ -1918,7 +1918,7 @@ fn dynamic_rewire_threshold_session_with_parallel_restore_preserves_subscriber_s
             )?;
             tx.read_with_executor(
                 left,
-                &|_node, view| {
+                &|view| {
                     Ok(view.finish(
                         NodeEvaluationResult::from_version(version_ab(10, 0))
                             .with_output_identity("left-seed"),
@@ -1928,7 +1928,7 @@ fn dynamic_rewire_threshold_session_with_parallel_restore_preserves_subscriber_s
             )?;
             tx.read_with_executor(
                 right,
-                &|_node, view| {
+                &|view| {
                     Ok(view.finish(
                         NodeEvaluationResult::from_version(version_ab(0, 20))
                             .with_output_identity("right-seed"),
@@ -1938,7 +1938,7 @@ fn dynamic_rewire_threshold_session_with_parallel_restore_preserves_subscriber_s
             )?;
             tx.read_with_executor(
                 left_gate,
-                &|_node, view| {
+                &|view| {
                     let version = view.read_aspect_version(left, ASPECT_A)?;
                     Ok(view.finish(
                         NodeEvaluationResult::from_version(version)
@@ -1949,7 +1949,7 @@ fn dynamic_rewire_threshold_session_with_parallel_restore_preserves_subscriber_s
             )?;
             tx.read_with_executor(
                 right_gate,
-                &|_node, view| {
+                &|view| {
                     let version = view.read_aspect_version(right, ASPECT_B)?;
                     Ok(view.finish(
                         NodeEvaluationResult::from_version(version)
@@ -1960,7 +1960,7 @@ fn dynamic_rewire_threshold_session_with_parallel_restore_preserves_subscriber_s
             )?;
             tx.read_with_executor(
                 target,
-                &|_node, view| {
+                &|view| {
                     let route = view.read_aspect_version(selector, ASPECT_A)?;
                     if route.get(ASPECT_A) % 2 == 1 {
                         let version = view.read_aspect_version(left_gate, ASPECT_A)?;
@@ -1998,7 +1998,7 @@ fn dynamic_rewire_threshold_session_with_parallel_restore_preserves_subscriber_s
                 }
                 tx.read_with_executor(
                     selector,
-                    &|_node, view| {
+                    &|view| {
                         Ok(view.finish(
                             NodeEvaluationResult::from_version(version_ab(2 + step, 0))
                                 .with_output_identity(format!("route-{step}")),
@@ -2008,7 +2008,7 @@ fn dynamic_rewire_threshold_session_with_parallel_restore_preserves_subscriber_s
                 )?;
                 tx.read_with_executor(
                     left,
-                    &|_node, view| {
+                    &|view| {
                         Ok(view.finish(
                             NodeEvaluationResult::from_version(version_ab(10 + step, 0))
                                 .with_output_identity(format!("left-{step}")),
@@ -2018,7 +2018,7 @@ fn dynamic_rewire_threshold_session_with_parallel_restore_preserves_subscriber_s
                 )?;
                 tx.read_with_executor(
                     right,
-                    &|_node, view| {
+                    &|view| {
                         Ok(view.finish(
                             NodeEvaluationResult::from_version(version_ab(0, 20 + step))
                                 .with_output_identity(format!("right-{step}")),
@@ -2028,7 +2028,7 @@ fn dynamic_rewire_threshold_session_with_parallel_restore_preserves_subscriber_s
                 )?;
                 tx.read_with_executor(
                     left_gate,
-                    &|_node, view| {
+                    &|view| {
                         let version = view.read_aspect_version(left, ASPECT_A)?;
                         Ok(view.finish(
                             NodeEvaluationResult::from_version(version)
@@ -2039,7 +2039,7 @@ fn dynamic_rewire_threshold_session_with_parallel_restore_preserves_subscriber_s
                 )?;
                 tx.read_with_executor(
                     right_gate,
-                    &|_node, view| {
+                    &|view| {
                         let version = view.read_aspect_version(right, ASPECT_B)?;
                         Ok(view.finish(
                             NodeEvaluationResult::from_version(version)
@@ -2050,7 +2050,7 @@ fn dynamic_rewire_threshold_session_with_parallel_restore_preserves_subscriber_s
                 )?;
                 tx.read_with_executor(
                     target,
-                    &|_node, view| {
+                    &|view| {
                         let route = view.read_aspect_version(selector, ASPECT_A)?;
                         if route.get(ASPECT_A) % 2 == 1 {
                             let version = view.read_aspect_version(left_gate, ASPECT_A)?;

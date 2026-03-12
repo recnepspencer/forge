@@ -810,12 +810,12 @@ fn repeated_serial_parallel_lifecycle_parity_stays_stable() {
             &parallel_flow.apply.report,
         ));
         assert_eq!(
-            serial_flow.apply.execution.prepared_evaluations_applied,
-            parallel_flow.apply.execution.prepared_evaluations_applied
+            serial_flow.apply.prepared_evaluations_applied,
+            parallel_flow.apply.prepared_evaluations_applied
         );
         assert_eq!(
-            serial_flow.apply.execution.dependency_capture_updates,
-            parallel_flow.apply.execution.dependency_capture_updates
+            serial_flow.apply.dependency_capture_updates,
+            parallel_flow.apply.dependency_capture_updates
         );
         assert_eq!(
             serial_flow.apply.tasks_validated_clean,

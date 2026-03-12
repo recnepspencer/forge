@@ -4,10 +4,18 @@ use std::num::NonZeroUsize;
 use std::time::Instant;
 
 #[cfg(feature = "parallel")]
-use forge_signal::facade::{
-    mark_dirty, mark_dirty_with_regions, Aspect, AspectVersion, ChangedRegion,
-    EvaluationRequestMode, ExecutionReport, NodeEvaluationResult,
-    ParallelExecutionPolicy, SignalGraph, SignalRuntimePolicy, StageExecutor,
+use forge_signal::facade::diagnostics::SignalRuntimePolicy;
+#[cfg(feature = "parallel")]
+use forge_signal::facade::evaluation::EvaluationRequestMode;
+#[cfg(feature = "parallel")]
+use forge_signal::facade::graph::SignalGraph;
+#[cfg(feature = "parallel")]
+use forge_signal::facade::planning::{ExecutionReport, ParallelExecutionPolicy, StageExecutor};
+#[cfg(feature = "parallel")]
+use forge_signal::facade::transaction::{mark_dirty, mark_dirty_with_regions};
+#[cfg(feature = "parallel")]
+use forge_signal::facade::types::{
+    Aspect, AspectVersion, ChangedRegion, DependencyEdge, NodeEvaluationResult,
     CORE_STORAGE_PROFILE_ID,
 };
 #[cfg(feature = "parallel")]

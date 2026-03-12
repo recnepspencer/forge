@@ -16,8 +16,8 @@ fn transaction_parallel_execution_increments_parallel_not_serial_runtime_usage()
         tx.mark_dirty(node, ASPECT_A).unwrap();
     }
     let report = tx
-        .evaluate_dirty_with_executor(&(), 
-            &|_node, view| Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0)))),
+        .evaluate_dirty_with_executor(
+            &|view| Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0)))),
             StageExecutor::aggressive_parallel(),
         )
         .unwrap();
