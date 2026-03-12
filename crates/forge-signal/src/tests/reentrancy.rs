@@ -12,8 +12,14 @@ fn nested_scratch_acquire_returns_structured_error() {
     let err = graph
         .acquire_scratch(ScratchLeaseKind::Invalidation)
         .expect_err("nested scratch lease must fail");
-    assert!(format!("{err}").contains("re-entrant"));
-    assert_eq!(graph.telemetry().scratch_reentry_error_count, 1);
+    assert!(matches!(
+        err,
+        SignalError::ScratchReentry {
+            active: ScratchLeaseKind::Evaluation,
+            attempted: ScratchLeaseKind::Invalidation,
+        }
+    ));
+    assert_eq!(graph.telemetry().storage.scratch_reentry_error_count, 1);
 
     graph
         .restore_scratch(ScratchLeaseKind::Evaluation, scratch)

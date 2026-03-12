@@ -10,24 +10,27 @@ fn lineage_contract_correspondence_stays_advisory_until_promoted() {
     let first = create_entity_outcome(&mut runtime, "left");
     let second = create_entity_outcome(&mut runtime, "right");
     let left_lineage = runtime
-        .lineage_for_record(changed_entities(&first)[0])
+        .lineage_access()
+        .for_record(changed_entities(&first)[0])
         .unwrap()
         .lineage_id;
     let right_lineage = runtime
-        .lineage_for_record(changed_entities(&second)[0])
+        .lineage_access()
+        .for_record(changed_entities(&second)[0])
         .unwrap()
         .lineage_id;
-    let candidate = runtime.record_correspondence_candidate(
+    let candidate = runtime.lineage_authority().record_correspondence_candidate(
         BranchId("main".to_string()),
         vec![left_lineage],
         vec![right_lineage],
         "candidate",
     );
-    let graph_before = runtime.lineage_graph(&BranchId("main".to_string()));
+    let graph_before = runtime.lineage_access().graph(&BranchId("main".to_string()));
     let resolution = runtime
+        .lineage_authority()
         .promote_correspondence(candidate.candidate_id, second.commit.clone())
         .unwrap();
-    let graph_after = runtime.lineage_graph(&BranchId("main".to_string()));
+    let graph_after = runtime.lineage_access().graph(&BranchId("main".to_string()));
 
     assert_eq!(graph_before.events.len(), 2);
     assert_eq!(graph_before.correspondence_candidates.len(), 1);
@@ -39,18 +42,20 @@ fn lineage_contract_correspondence_stays_advisory_until_promoted() {
 fn lineage_contract_failure_invalid_references_do_not_promote() {
     let mut runtime = runtime_with_test_schema();
     let commit = create_entity_outcome(&mut runtime, "anchor");
-    let candidate = runtime.record_correspondence_candidate(
+    let candidate = runtime.lineage_authority().record_correspondence_candidate(
         BranchId("main".to_string()),
         vec![crate::facade::LineageId(999)],
         vec![crate::facade::LineageId(1000)],
         "invalid",
     );
 
-    let resolution = runtime.promote_correspondence(candidate.candidate_id, commit.commit.clone());
+    let resolution = runtime
+        .lineage_authority()
+        .promote_correspondence(candidate.candidate_id, commit.commit.clone());
 
     assert!(resolution.is_none());
     assert!(runtime
-        .diagnostics()
+        .publication_access().diagnostics()
         .by_scope(crate::facade::DiagnosticsScope::Lineage)
         .iter()
         .any(|artifact| artifact
@@ -64,14 +69,14 @@ fn lineage_contract_branch_divergence_is_queryable() {
     let mut runtime = runtime_with_test_schema();
     let _main = create_entity_outcome(&mut runtime, "main");
     runtime
-        .create_branch(
+        .history_authority().create_branch(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
         .unwrap();
     let _feature =
         create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
-    let divergence = runtime.lineage_divergence_between_branches(
+    let divergence = runtime.lineage_access().divergence_between_branches(
         &BranchId("main".to_string()),
         &BranchId("feature".to_string()),
     );
@@ -86,7 +91,7 @@ fn lineage_contract_delete_emits_retire_event() {
     let created = create_entity_outcome(&mut runtime, "retired");
     let entity = changed_entities(&created)[0];
     let deleted = delete_entity(&mut runtime, entity);
-    let graph = runtime.lineage_graph(&BranchId("main".to_string()));
+    let graph = runtime.lineage_access().graph(&BranchId("main".to_string()));
 
     assert!(graph
         .events
@@ -103,20 +108,22 @@ fn lineage_contract_replace_emits_replace_edge() {
 
     let mut txn = runtime.begin_transaction(crate::facade::TransactionOptions::default());
     txn.push_batch(crate::facade::WorkerIntentBatch::new("replace").push(
-        crate::facade::TransactionIntent::ReplaceEntity {
-            entity_id: entity,
-            replacement: crate::transactions::data::EntitySpec {
-                partition_id: crate::facade::PartitionId::main(),
-                kind_id: crate::facade::KindId(1),
-                client_key: crate::symbols::data::InternedString::Raw("replacement".to_string()),
-                payload: crate::payloads::data::RecordPayload::StructuredJson(
-                    serde_json::json!({"name":"replacement"}),
-                ),
+        crate::facade::MutationIntent::Entity(crate::facade::EntityMutationIntent::Replace(
+            crate::facade::ReplaceEntityIntent {
+                entity_id: entity,
+                replacement: crate::transactions::data::EntitySpec {
+                    partition_id: crate::facade::PartitionId::main(),
+                    kind_id: crate::facade::KindId(1),
+                    client_key: crate::symbols::data::InternedString::Raw("replacement".to_string()),
+                    payload: crate::payloads::data::RecordPayload::StructuredJson(
+                        serde_json::json!({"name":"replacement"}),
+                    ),
+                },
             },
-        },
+        )),
     ));
     let outcome = txn.commit().unwrap();
-    let graph = runtime.lineage_graph(&BranchId("main".to_string()));
+    let graph = runtime.lineage_access().graph(&BranchId("main".to_string()));
 
     assert!(graph.events.iter().any(|event| {
         event.commit.commit_id == outcome.commit.commit_id
@@ -137,35 +144,39 @@ fn lineage_contract_multiple_same_shape_replacements_do_not_cross_wire_targets()
     let mut txn = runtime.begin_transaction(crate::facade::TransactionOptions::default());
     txn.push_batch(
         crate::facade::WorkerIntentBatch::new("replace-many")
-            .push(crate::facade::TransactionIntent::ReplaceEntity {
-                entity_id: left_entity,
-                replacement: crate::transactions::data::EntitySpec {
-                    partition_id: crate::facade::PartitionId::main(),
-                    kind_id: crate::facade::KindId(1),
-                    client_key: crate::symbols::data::InternedString::Raw(
-                        "replacement-left".to_string(),
-                    ),
-                    payload: crate::payloads::data::RecordPayload::StructuredJson(
-                        serde_json::json!({"name":"replacement"}),
-                    ),
-                },
-            })
-            .push(crate::facade::TransactionIntent::ReplaceEntity {
-                entity_id: right_entity,
-                replacement: crate::transactions::data::EntitySpec {
-                    partition_id: crate::facade::PartitionId::main(),
-                    kind_id: crate::facade::KindId(1),
-                    client_key: crate::symbols::data::InternedString::Raw(
-                        "replacement-right".to_string(),
-                    ),
-                    payload: crate::payloads::data::RecordPayload::StructuredJson(
-                        serde_json::json!({"name":"replacement"}),
-                    ),
-                },
-            }),
+            .push(crate::facade::MutationIntent::Entity(
+                crate::facade::EntityMutationIntent::Replace(crate::facade::ReplaceEntityIntent {
+                    entity_id: left_entity,
+                    replacement: crate::transactions::data::EntitySpec {
+                        partition_id: crate::facade::PartitionId::main(),
+                        kind_id: crate::facade::KindId(1),
+                        client_key: crate::symbols::data::InternedString::Raw(
+                            "replacement-left".to_string(),
+                        ),
+                        payload: crate::payloads::data::RecordPayload::StructuredJson(
+                            serde_json::json!({"name":"replacement"}),
+                        ),
+                    },
+                }),
+            ))
+            .push(crate::facade::MutationIntent::Entity(
+                crate::facade::EntityMutationIntent::Replace(crate::facade::ReplaceEntityIntent {
+                    entity_id: right_entity,
+                    replacement: crate::transactions::data::EntitySpec {
+                        partition_id: crate::facade::PartitionId::main(),
+                        kind_id: crate::facade::KindId(1),
+                        client_key: crate::symbols::data::InternedString::Raw(
+                            "replacement-right".to_string(),
+                        ),
+                        payload: crate::payloads::data::RecordPayload::StructuredJson(
+                            serde_json::json!({"name":"replacement"}),
+                        ),
+                    },
+                }),
+            )),
     );
     let outcome = txn.commit().unwrap();
-    let graph = runtime.lineage_graph(&BranchId("main".to_string()));
+    let graph = runtime.lineage_access().graph(&BranchId("main".to_string()));
     let replace_events = graph
         .events
         .iter()

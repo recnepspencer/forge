@@ -41,37 +41,37 @@ pub(super) fn build_instrument_nodes(runtime: &mut FintechRuntime) -> Instrument
     let market = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(full_mask())
+        .reads_aspects(full_mask())
         .build();
     let normalized = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(market_mask())
+        .reads_aspects(market_mask())
         .tolerance(1)
         .build();
     let price = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(pricing_mask())
+        .reads_aspects(pricing_mask())
         .tolerance(2)
         .build();
     let risk = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(pricing_mask())
+        .reads_aspects(pricing_mask())
         .tolerance(3)
         .build();
     let alert = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(full_mask())
+        .reads_aspects(full_mask())
         .aspect_filter(ALERT)
         .tolerance(1)
         .build();
     let threshold = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(pricing_mask())
+        .reads_aspects(pricing_mask())
         .condition(EvaluationCondition::DeltaThreshold(2.0))
         .tolerance(2)
         .build();
@@ -141,7 +141,7 @@ pub(super) fn build_bucket_exposure_nodes(
         let node = runtime
             .graph_mut()
             .node()
-            .depends_on_aspects(pricing_mask())
+            .reads_aspects(pricing_mask())
             .tolerance(3)
             .build();
         runtime
@@ -161,13 +161,13 @@ pub(super) fn build_aggregate_sources(runtime: &mut FintechRuntime) -> Aggregate
     let book_state = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(super::aspects::full_mask())
+        .reads_aspects(super::aspects::full_mask())
         .tolerance(2)
         .build();
     let desk_limit = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(super::aspects::full_mask())
+        .reads_aspects(super::aspects::full_mask())
         .tolerance(2)
         .build();
 
@@ -188,7 +188,7 @@ pub(super) fn build_scenario_nodes(
         let node = runtime
             .graph_mut()
             .node()
-            .depends_on_aspects(full_mask())
+            .reads_aspects(full_mask())
             .tolerance(4)
             .build();
         runtime
@@ -220,19 +220,19 @@ pub(super) fn build_fx_nodes(runtime: &mut FintechRuntime) -> FxNodes {
     let eur_usd = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(super::aspects::full_mask())
+        .reads_aspects(super::aspects::full_mask())
         .tolerance(1)
         .build();
     let usd_jpy = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(super::aspects::full_mask())
+        .reads_aspects(super::aspects::full_mask())
         .tolerance(1)
         .build();
     let eur_jpy = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(super::aspects::full_mask())
+        .reads_aspects(super::aspects::full_mask())
         .tolerance(2)
         .build();
     runtime
@@ -256,31 +256,31 @@ pub(super) fn build_partition_locality_nodes(
     let market_regions = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(pricing_mask())
+        .reads_aspects(pricing_mask())
         .partitioned_output()
         .build();
     let rates_partition = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(pricing_mask())
+        .reads_aspects(pricing_mask())
         .tolerance(1)
         .build();
     let credit_partition = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(pricing_mask())
+        .reads_aspects(pricing_mask())
         .tolerance(1)
         .build();
     let rates_bucket_zero = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(pricing_mask())
+        .reads_aspects(pricing_mask())
         .tolerance(1)
         .build();
     let coarse_book = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(pricing_mask())
+        .reads_aspects(pricing_mask())
         .tolerance(2)
         .build();
 
@@ -337,7 +337,7 @@ pub(super) fn build_bucket_sources(runtime: &mut FintechRuntime, buckets: usize)
             runtime
                 .graph_mut()
                 .node()
-                .depends_on_aspects(super::aspects::full_mask())
+                .reads_aspects(super::aspects::full_mask())
                 .tolerance(1)
                 .build(),
         );
@@ -355,7 +355,7 @@ pub(super) fn build_scenario_sources(
             runtime
                 .graph_mut()
                 .node()
-                .depends_on_aspects(super::aspects::full_mask())
+                .reads_aspects(super::aspects::full_mask())
                 .tolerance(2)
                 .build(),
         );

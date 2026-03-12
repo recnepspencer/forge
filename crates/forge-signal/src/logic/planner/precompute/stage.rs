@@ -77,7 +77,7 @@ pub(in crate::logic::planner) fn perform_stage_precompute(
 
 fn run_snapshot_pass(graph: &mut SignalGraph) -> SnapshotPass {
     let snapshot_start = std::time::Instant::now();
-    graph.telemetry_mut().execution_snapshots_built += 1;
+    graph.telemetry_mut().execution.execution_snapshots_built += 1;
     SnapshotPass {
         snapshot_nanos: snapshot_start.elapsed().as_nanos(),
     }

@@ -1,4 +1,4 @@
-use super::super::signal_graph::SignalGraph;
+use super::super::runtime::graph::NodeArena;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::data::graph) enum CompactionFamily {
@@ -27,14 +27,18 @@ impl CompactionEpochPlan {
     }
 }
 
-impl SignalGraph {
-    pub(in crate::data::graph) fn plan_compaction_epoch(&mut self) -> Option<CompactionEpochPlan> {
-        if !self.should_run_compaction_epoch() {
+impl NodeArena {
+    pub(in crate::data::graph) fn plan_compaction_epoch(
+        &mut self,
+        should_run: bool,
+        family_budget: u8,
+    ) -> Option<CompactionEpochPlan> {
+        if !should_run {
             return None;
         }
         let plan = CompactionEpochPlan {
             cursor_start: self.compaction.cursor,
-            family_budget: self.compaction_epoch_budget(),
+            family_budget,
         };
         self.compaction.cursor = (self.compaction.cursor + plan.family_budget) % 3;
         Some(plan)

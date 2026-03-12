@@ -43,6 +43,7 @@ pub struct EvaluationPlanSummary {
     pub stage_count: u32,
     pub task_count: u32,
     pub max_stage_width: u32,
+    pub contract_pruned_count: u32,
     pub stage_widths: Vec<u32>,
     pub direct_request_count: u32,
     pub transitive_task_count: u32,
@@ -94,6 +95,10 @@ pub struct ExplanationSummary {
     pub cause_note_samples: Vec<String>,
     pub triage_classes: Vec<String>,
     pub propagation_suppressed: bool,
+    pub contract_reads_mask: u128,
+    pub contract_produces_mask: u128,
+    pub contract_partition_scope_count: u32,
+    pub required_context: String,
     pub execution_record_id: Option<u64>,
     pub semantic_segment_id: Option<u64>,
     pub output_change: Option<OutputChange>,
@@ -211,6 +216,7 @@ impl EvaluationPlanSummary {
             plan.summary.stage_count,
             plan.summary.task_count,
             plan.summary.max_stage_width,
+            plan.summary.contract_pruned_count,
             plan.stages.iter().map(|stage| stage.tasks.len() as u32),
             plan.stages.iter().flat_map(|stage| stage.tasks.iter()),
             profile,
@@ -226,6 +232,7 @@ impl EvaluationPlanSummary {
             session.summary.stage_count,
             session.summary.task_count,
             session.summary.max_stage_width,
+            session.summary.contract_pruned_count,
             session
                 .stages
                 .iter()
@@ -240,6 +247,7 @@ impl EvaluationPlanSummary {
         stage_count: u32,
         task_count: u32,
         max_stage_width: u32,
+        contract_pruned_count: u32,
         stage_widths_iter: impl Iterator<Item = u32>,
         tasks_iter: impl Iterator<Item = &'a crate::logic::planner::EvaluationTask>,
         profile: DiagnosticsProfile,
@@ -264,6 +272,7 @@ impl EvaluationPlanSummary {
             stage_count,
             task_count,
             max_stage_width,
+            contract_pruned_count,
             stage_widths,
             direct_request_count,
             transitive_task_count: task_count.saturating_sub(direct_request_count),
@@ -403,6 +412,14 @@ impl ExplanationSummary {
             cause_note_samples,
             triage_classes,
             propagation_suppressed: explanation.propagation_suppressed,
+            contract_reads_mask: explanation.contract_reads.bits() as u128,
+            contract_produces_mask: explanation.contract_produces.bits() as u128,
+            contract_partition_scope_count: explanation
+                .contract_partition_scope
+                .as_ref()
+                .map(|scopes| scopes.len() as u32)
+                .unwrap_or(0),
+            required_context: format!("{:?}", explanation.required_context),
             execution_record_id: explanation.execution_record_id,
             semantic_segment_id: explanation.semantic_segment_id,
             output_change: explanation.output_change,

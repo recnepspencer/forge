@@ -12,14 +12,14 @@ fn derived_index_contract_success_branch_scoped_build_keeps_storage_fallback() {
     let mut runtime = runtime_with_test_schema();
     let main_outcome = create_entity_outcome(&mut runtime, "main-a");
     runtime
-        .create_branch(
+        .history_authority().create_branch(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
         .unwrap();
     let feature_outcome =
         create_entity_outcome_on_branch(&mut runtime, "feature-a", BranchId("feature".to_string()));
-    let index = runtime.register_index(DerivedIndexDefinition {
+    let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: crate::facade::DerivedIndexId(0),
         name: "entity.name".to_string(),
         kind: DerivedIndexKind::EntityPayloadField {
@@ -27,7 +27,7 @@ fn derived_index_contract_success_branch_scoped_build_keeps_storage_fallback() {
         },
         branch_scoped: true,
     });
-    let feature_build = runtime.build_indexes_for_commit(DerivedIndexBuildRequest {
+    let feature_build = runtime.index_authority().build_for_commit(DerivedIndexBuildRequest {
         source_commit_id: feature_outcome.commit.commit_id,
         branch_id: BranchId("feature".to_string()),
         index_ids: vec![index.index_id],
@@ -37,13 +37,15 @@ fn derived_index_contract_success_branch_scoped_build_keeps_storage_fallback() {
         vec![RecordRef::Entity(changed_entities(&main_outcome)[0])],
     );
     let fallback = runtime
+        .index_access()
         .read_with_storage_fallback(&main_outcome.snapshot, &packet)
         .unwrap();
 
     assert!(feature_build.failed_indexes.is_empty());
     assert_eq!(
         runtime
-            .latest_index_generation(index.index_id, &BranchId("feature".to_string()))
+            .index_access()
+            .latest_generation(index.index_id, &BranchId("feature".to_string()))
             .unwrap()
             .source_branch_id,
         BranchId("feature".to_string())
@@ -57,14 +59,14 @@ fn derived_index_contract_unscoped_generation_can_be_selected_across_branches() 
     let mut runtime = runtime_with_test_schema();
     let main_outcome = create_entity_outcome(&mut runtime, "main-a");
     runtime
-        .create_branch(
+        .history_authority().create_branch(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
         .unwrap();
     let feature_outcome =
         create_entity_outcome_on_branch(&mut runtime, "feature-a", BranchId("feature".to_string()));
-    let index = runtime.register_index(DerivedIndexDefinition {
+    let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: crate::facade::DerivedIndexId(0),
         name: "entity.name.global".to_string(),
         kind: DerivedIndexKind::EntityPayloadField {
@@ -72,24 +74,26 @@ fn derived_index_contract_unscoped_generation_can_be_selected_across_branches() 
         },
         branch_scoped: false,
     });
-    let build = runtime.build_indexes_for_commit(DerivedIndexBuildRequest {
+    let build = runtime.index_authority().build_for_commit(DerivedIndexBuildRequest {
         source_commit_id: feature_outcome.commit.commit_id,
         branch_id: BranchId("feature".to_string()),
         index_ids: vec![index.index_id],
     });
-    let snapshot = runtime.snapshot();
+    let snapshot = runtime.snapshot_access().snapshot();
     let packet = QueryWorkPacket::bulk(
         "entities",
         vec![RecordRef::Entity(changed_entities(&main_outcome)[0])],
     );
     let fallback = runtime
+        .index_access()
         .read_with_storage_fallback(&snapshot, &packet)
         .unwrap();
 
     assert!(build.failed_indexes.is_empty());
     assert_eq!(
         runtime
-            .latest_index_generation(index.index_id, &BranchId("main".to_string()))
+            .index_access()
+            .latest_generation(index.index_id, &BranchId("main".to_string()))
             .unwrap()
             .source_branch_id,
         BranchId("feature".to_string())
@@ -107,21 +111,23 @@ fn derived_index_contract_unscoped_generation_can_be_selected_across_branches() 
 fn derived_index_contract_failure_unknown_index_keeps_truth_reads_correct() {
     let mut runtime = runtime_with_test_schema();
     let outcome = create_entity_outcome(&mut runtime, "main-a");
-    let snapshot = runtime.snapshot();
+    let snapshot = runtime.snapshot_access().snapshot();
     let packet = QueryWorkPacket::bulk(
         "entities",
         vec![RecordRef::Entity(changed_entities(&outcome)[0])],
     );
-    let storage_only = runtime.execute_read_packet(&snapshot, &packet).unwrap();
+    let storage_only = runtime.visibility_reads().execute_read_packet(&snapshot, &packet).unwrap();
     let fallback_before = runtime
+        .index_access()
         .read_with_storage_fallback(&snapshot, &packet)
         .unwrap();
-    let build = runtime.build_indexes_for_commit(DerivedIndexBuildRequest {
+    let build = runtime.index_authority().build_for_commit(DerivedIndexBuildRequest {
         source_commit_id: outcome.commit.commit_id,
         branch_id: BranchId("main".to_string()),
         index_ids: vec![DerivedIndexId(999)],
     });
     let fallback_after = runtime
+        .index_access()
         .read_with_storage_fallback(&snapshot, &packet)
         .unwrap();
 

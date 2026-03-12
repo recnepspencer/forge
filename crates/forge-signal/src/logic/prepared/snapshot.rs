@@ -82,8 +82,11 @@ impl<'a> ExecutionReadView<'a> {
         aspect: Aspect,
         scope: PartitionSubscription,
     ) -> Result<AspectVersion, SignalError> {
-        self.capture_partition_dependency(source, aspect, scope);
-        Ok(self.graph().get_entry(source)?.get_aspect_version())
+        self.capture_partition_dependency(source, aspect, scope.clone());
+        Ok(self
+            .graph()
+            .get_entry(source)?
+            .get_partitioned_aspect_version(&scope))
     }
 
     pub fn finish(&self, result: impl IntoNodeEvaluationResult) -> PreparedEvaluation {

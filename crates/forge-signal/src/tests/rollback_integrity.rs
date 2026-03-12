@@ -152,20 +152,20 @@ fn failed_commit_discards_staged_key_registry_growth_and_created_keyed_nodes() {
         }))
         .unwrap();
 
+    let rollback_family = define_keyed_computation(&mut runtime, "rollback-fresh-family", ());
     let before_counts = runtime.config().test_registry_counts();
     let before_active = runtime.graph().active_node_count();
     let before_replay_len = runtime.graph().replay_events().len();
     let mut ctx = ();
 
-    let family_name = "rollback-fresh-family";
     let key_name = "rollback-fresh-key";
     let memo_name = "rollback-fresh-memo";
 
     let err = {
         let mut tx = runtime.begin();
-        let family = tx.register_computation_family(family_name);
-        let keyed = tx.keyed_node(&family, key_name);
-        let computation = KeyedComputation::new(family.clone(), key_name).with_memo_key(memo_name);
+        let keyed_def = rollback_family.keyed(key_name);
+        let keyed = keyed_def.node_in_transaction(&mut tx);
+        let computation = keyed_def.memoized(memo_name);
         tx.evaluate_keyed(keyed, &computation, &|_node, view| {
             Ok(view.finish(
                 NodeEvaluationResult::from_version(version_ab(7, 0))
@@ -213,10 +213,10 @@ fn failed_commit_preserves_preexisting_memo_cache_while_discarding_new_staged_gr
         .checkpoint_barrier(CheckpointBarrier::PerOperation)
         .build();
 
-    let stable_family = runtime.register_computation_family("stable-family");
-    let stable_keyed = runtime.keyed_node(&stable_family, "stable-key");
-    let stable_computation =
-        KeyedComputation::new(stable_family.clone(), "stable-key").with_memo_key("stable-memo");
+    let stable_family = define_keyed_computation(&mut runtime, "stable-family", ());
+    let stable_keyed_def = stable_family.keyed("stable-key");
+    let stable_keyed = stable_keyed_def.node(&mut runtime);
+    let stable_computation = stable_keyed_def.memoized("stable-memo");
     let stable_compute_calls = AtomicU32::new(0);
     let mut ctx = ();
 
@@ -233,6 +233,7 @@ fn failed_commit_preserves_preexisting_memo_cache_while_discarding_new_staged_gr
         })
         .unwrap();
 
+    let fresh_def = define_keyed_computation(&mut runtime, "fresh-family", ());
     let baseline_counts = runtime.config().test_registry_counts();
     runtime
         .event_bus_mut()
@@ -248,9 +249,9 @@ fn failed_commit_preserves_preexisting_memo_cache_while_discarding_new_staged_gr
 
     let err = runtime
         .transaction(&mut ctx, |tx| {
-            let family = tx.register_computation_family("fresh-family");
-            let keyed = tx.keyed_node(&family, "fresh-key");
-            let fresh = KeyedComputation::new(family.clone(), "fresh-key").with_memo_key("fresh");
+            let keyed_def = fresh_def.keyed("fresh-key");
+            let keyed = keyed_def.node_in_transaction(tx);
+            let fresh = keyed_def.memoized("fresh");
             tx.evaluate_keyed(keyed, &fresh, &|_node, view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(9, 0))
@@ -290,7 +291,7 @@ fn failed_commit_preserves_preexisting_memo_cache_while_discarding_new_staged_gr
         "baseline memoized result must survive failed commits and remain reusable afterward",
     );
     let metrics = runtime.metrics();
-    assert!(metrics.memoization_hits >= 1);
+    assert!(metrics.evaluation.memoization_hits >= 1);
     assert_eq!(
         runtime
             .graph()

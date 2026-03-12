@@ -1,18 +1,18 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use crate::facade::*;
-use crate::tests::support::{version_ab, ASPECT_A};
+use crate::tests::support::{define_keyed_computation, version_ab, ASPECT_A};
 
 #[test]
 fn many_families_sharing_same_key_remain_distinct() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
     let families: Vec<_> = (0..64)
-        .map(|index| runtime.register_computation_family(format!("family-{index}")))
+        .map(|index| define_keyed_computation(&mut runtime, format!("family-{index}"), ()))
         .collect();
 
     let mut seen = std::collections::BTreeSet::new();
     for family in &families {
-        let node = runtime.keyed_node(family, "shared-key");
+        let node = family.keyed("shared-key").node(&mut runtime);
         assert!(seen.insert(node));
     }
 }
@@ -20,15 +20,15 @@ fn many_families_sharing_same_key_remain_distinct() {
 #[test]
 fn many_keys_in_one_family_reuse_stably_across_large_lookup_sequences() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
-    let family = runtime.register_computation_family("airframe");
+    let family = define_keyed_computation(&mut runtime, "airframe", ());
     let mut first_pass = Vec::new();
 
     for index in 0..256 {
-        first_pass.push(runtime.keyed_node(&family, format!("component-{index}")));
+        first_pass.push(family.keyed(format!("component-{index}")).node(&mut runtime));
     }
 
     for index in 0..256 {
-        let reused = runtime.keyed_node(&family, format!("component-{index}"));
+        let reused = family.keyed(format!("component-{index}")).node(&mut runtime);
         assert_eq!(reused, first_pass[index]);
     }
 }
@@ -36,9 +36,10 @@ fn many_keys_in_one_family_reuse_stably_across_large_lookup_sequences() {
 #[test]
 fn repeated_failed_transactions_do_not_promote_memoized_results() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
-    let family = runtime.register_computation_family("fintech-pricing");
-    let node = runtime.keyed_node(&family, "book");
-    let computation = KeyedComputation::new(family.clone(), "book").with_memo_key("session-a");
+    let family = define_keyed_computation(&mut runtime, "fintech-pricing", ());
+    let keyed = family.keyed("book");
+    let node = keyed.node(&mut runtime);
+    let computation = keyed.memoized("session-a");
     let mut runtime_ctx = ();
     let compute_calls = AtomicU32::new(0);
 
@@ -78,21 +79,21 @@ fn repeated_failed_transactions_do_not_promote_memoized_results() {
         .unwrap();
 
     let metrics = runtime.metrics();
-    assert_eq!(metrics.memoization_misses, 21);
-    assert_eq!(metrics.memoization_hits, 1);
+    assert_eq!(metrics.evaluation.memoization_misses, 21);
+    assert_eq!(metrics.evaluation.memoization_hits, 1);
     assert_eq!(compute_calls.load(Ordering::Relaxed), 21);
 }
 
 #[test]
 fn keyed_telemetry_stays_coherent_under_mixed_hit_and_miss_workload() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
-    let family = runtime.register_computation_family("kernel");
+    let family = define_keyed_computation(&mut runtime, "kernel", ());
     let mut runtime_ctx = ();
 
     for index in 0..24 {
-        let node = runtime.keyed_node(&family, format!("part-{index}"));
-        let computation =
-            KeyedComputation::new(family.clone(), format!("part-{index}")).with_memo_key("shape");
+        let keyed = family.keyed(format!("part-{index}"));
+        let node = keyed.node(&mut runtime);
+        let computation = keyed.memoized("shape");
 
         runtime
             .transaction(&mut runtime_ctx, |tx| {
@@ -115,9 +116,9 @@ fn keyed_telemetry_stays_coherent_under_mixed_hit_and_miss_workload() {
     }
 
     let metrics = runtime.metrics();
-    assert_eq!(metrics.keyed_evaluation_count, 48);
-    assert_eq!(metrics.memoization_misses, 24);
-    assert_eq!(metrics.memoization_hits, 24);
+    assert_eq!(metrics.invalidation.keyed_evaluation_count, 48);
+    assert_eq!(metrics.evaluation.memoization_misses, 24);
+    assert_eq!(metrics.evaluation.memoization_hits, 24);
 }
 
 #[test]
@@ -125,7 +126,7 @@ fn keyed_telemetry_stays_coherent_under_mixed_hit_and_miss_workload() {
 fn stress_thousands_of_keyed_lookups_and_memo_keys() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
     let families: Vec<_> = (0..64)
-        .map(|index| runtime.register_computation_family(format!("family-{index}")))
+        .map(|index| define_keyed_computation(&mut runtime, format!("family-{index}"), ()))
         .collect();
     let mut runtime_ctx = ();
 
@@ -133,9 +134,9 @@ fn stress_thousands_of_keyed_lookups_and_memo_keys() {
         for family in &families {
             for key_index in 0..128 {
                 let key = format!("key-{key_index}");
-                let node = runtime.keyed_node(family, key.clone());
-                let computation = KeyedComputation::new(family.clone(), key)
-                    .with_memo_key(format!("memo-{round}-{key_index}"));
+                let keyed = family.keyed(key);
+                let node = keyed.node(&mut runtime);
+                let computation = keyed.memoized(format!("memo-{round}-{key_index}"));
                 runtime
                     .transaction(&mut runtime_ctx, |tx| {
                         tx.evaluate_keyed(node, &computation, &|_id, view| {
@@ -151,5 +152,5 @@ fn stress_thousands_of_keyed_lookups_and_memo_keys() {
         }
     }
 
-    assert!(runtime.metrics().keyed_evaluation_count > 1_000);
+    assert!(runtime.metrics().invalidation.keyed_evaluation_count > 1_000);
 }

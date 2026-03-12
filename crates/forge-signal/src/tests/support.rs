@@ -1,8 +1,10 @@
 use crate::data::output::IntoNodeEvaluationResult;
 use crate::facade::{
-    Aspect, AspectMask, AspectVersion, ComparatorPolicyResolver, DefaultComparatorPolicyResolver,
-    DefaultComparatorResolver, DefaultConditionResolver, EvaluationRequestMode, NodeId,
-    SignalError, SignalGraph, VersionComparatorPolicy, VersionComparatorResolver,
+    Aspect, AspectMask, AspectVersion, ComparatorPolicyResolver, ComputationSpec,
+    DefinedComputation, DefaultComparatorPolicyResolver, DefaultComparatorResolver,
+    DefaultConditionResolver, EvaluationRequestMode, ExecutionReadView, NodeContract, NodeId,
+    PreparedEvaluation, SignalError, SignalGraph, SignalRuntime, VersionComparatorPolicy,
+    VersionComparatorResolver,
 };
 use crate::logic::planner::{
     build_evaluation_plan_with_policy_resolver, execute_plan_with_policy_and_condition,
@@ -148,4 +150,38 @@ where
         None,
     )?;
     Ok(())
+}
+
+fn unsupported_keyed_evaluator(
+    _node: NodeId,
+    _view: &ExecutionReadView<'_>,
+) -> Result<PreparedEvaluation, SignalError> {
+    Err(SignalError::internal(
+        "test helper computation definition should not use its built-in evaluator",
+    ))
+}
+
+pub(crate) fn define_keyed_computation<D, I, E, Ctx, T>(
+    runtime: &mut SignalRuntime<D, I, E, Ctx, T>,
+    family: impl Into<crate::facade::ComputationFamily>,
+    tier: T,
+) -> DefinedComputation<
+    T,
+    fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError>,
+>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    runtime
+        .define_computation(ComputationSpec {
+            family: family.into(),
+            contract: NodeContract::wildcard(),
+            tier,
+            comparator: VersionComparatorPolicy::Exact,
+            evaluator: unsupported_keyed_evaluator
+                as fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError>,
+        })
+        .expect("test keyed computation should define cleanly")
 }

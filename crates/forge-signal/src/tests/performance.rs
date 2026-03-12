@@ -94,7 +94,7 @@ fn ondemand_defer_perf_10k_nodes() {
         elapsed.as_millis(),
         max_eval_ms
     );
-    assert_eq!(graph.telemetry().ondemand_deferred_count, 10_000);
+    assert_eq!(graph.telemetry().evaluation.ondemand_deferred_count, 10_000);
 }
 
 #[test]
@@ -102,19 +102,16 @@ fn ondemand_defer_perf_10k_nodes() {
 fn slot_layout_report() {
     use crate::data::node::NodeEntry;
 
-    #[allow(dead_code)]
     struct CurrentSlot {
         data: Option<NodeEntry>,
         generation: u32,
     }
 
-    #[allow(dead_code)]
     struct BoxedSlot {
         data: Option<Box<NodeEntry>>,
         generation: u32,
     }
 
-    #[allow(dead_code)]
     struct SplitOccupancySlot {
         generation: u32,
         occupied: bool,
@@ -124,6 +121,14 @@ fn slot_layout_report() {
     eprintln!("slot_size_current={}", size_of::<CurrentSlot>());
     eprintln!("slot_size_boxed={}", size_of::<BoxedSlot>());
     eprintln!("slot_size_split={}", size_of::<SplitOccupancySlot>());
+    let split_probe = SplitOccupancySlot {
+        generation: 7,
+        occupied: true,
+        data: Box::new(NodeEntry::new()),
+    };
+    black_box(split_probe.generation);
+    black_box(split_probe.occupied);
+    black_box(split_probe.data.is_tombstoned());
 
     let count = 200_000usize;
     let current_vacant = (0..count)

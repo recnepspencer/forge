@@ -197,7 +197,7 @@ fn arena_from_image<K: CheckpointArenaKind>(
     }
 }
 
-pub(super) fn partition_to_image(partition: PartitionState) -> PartitionCheckpointImage {
+pub(crate) fn partition_to_image(partition: PartitionState) -> PartitionCheckpointImage {
     PartitionCheckpointImage {
         partition_id: partition.partition_id,
         entity_arena: arena_to_image::<EntityRecordKind>(partition.entity_arena),

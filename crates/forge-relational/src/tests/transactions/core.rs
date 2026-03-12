@@ -1,3 +1,4 @@
+use crate::facade::MutationIntent;
 use crate::tests::support::*;
 
 #[test]
@@ -5,11 +6,11 @@ fn runtime_defaults_to_serialized_authority() {
     let runtime = runtime_with_test_schema();
 
     assert_eq!(
-        runtime.config().execution_model,
+        runtime.config().execution.execution_model,
         crate::facade::RelationalExecutionModel::SerialAuthority
     );
     assert_eq!(
-        runtime.config().commit_authority.authority.mode,
+        runtime.config().execution.commit_authority.authority.mode,
         crate::facade::AuthorityMode::SerializedCommit
     );
 }
@@ -21,14 +22,103 @@ fn harness_defaults_require_determinism_and_parity() {
 }
 
 #[test]
+fn tagged_record_ids_preserve_storage_identity() {
+    let entity_id = crate::facade::EntityId::new(PartitionId(7), 11, 3);
+    let relation_id = crate::facade::RelationId::new(PartitionId(9), 13, 4);
+
+    let entity_storage: crate::facade::EntityStorageId = entity_id.storage_id();
+    let relation_storage: crate::facade::RelationStorageId = relation_id.storage_id();
+
+    assert_eq!(entity_storage.partition_id, PartitionId(7));
+    assert_eq!(entity_storage.local_slot.0, 11);
+    assert_eq!(relation_storage.partition_id, PartitionId(9));
+    assert_eq!(relation_storage.local_slot.0, 13);
+    assert_ne!(entity_id.partition_id, relation_id.partition_id);
+}
+
+#[test]
+fn relational_error_wraps_authority_failures_with_context() {
+    let mut runtime = runtime_with_test_schema();
+    let entity = create_entity(&mut runtime, "first");
+    delete_entity(&mut runtime, entity);
+
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("stale-update").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id: entity,
+                payload: RecordPayload::StructuredJson(json!({"name":"stale"})),
+            }),
+        )),
+    );
+    let transaction_error = txn.commit().unwrap_err();
+    let wrapped: crate::facade::RelationalError = transaction_error.into();
+    assert!(matches!(wrapped, crate::facade::RelationalError::Transaction(_)));
+    assert_eq!(
+        wrapped.context().subsystem,
+        crate::facade::RelationalSubsystem::Transaction
+    );
+
+    let wrapped: crate::facade::RelationalError =
+        crate::facade::SchemaRegistryError::unknown_entity_kind(KindId(999)).into();
+    assert!(matches!(wrapped, crate::facade::RelationalError::Schema(_)));
+    assert_eq!(
+        wrapped.context().subsystem,
+        crate::facade::RelationalSubsystem::Schema
+    );
+
+    let wrapped: crate::facade::RelationalError =
+        crate::facade::BranchCreateError::branch_already_exists().into();
+    assert!(matches!(wrapped, crate::facade::RelationalError::History(_)));
+    assert_eq!(
+        wrapped.context().subsystem,
+        crate::facade::RelationalSubsystem::History
+    );
+
+    let wrapped: crate::facade::RelationalError = crate::facade::PublicationError::new(
+        crate::facade::PublicationStage::Visibility,
+        "publication failed",
+    )
+    .into();
+    assert!(matches!(wrapped, crate::facade::RelationalError::Publication(_)));
+
+    let wrapped: crate::facade::RelationalError = crate::facade::DurabilityError::new(
+        crate::facade::RecoveryFailureClass::DurableIoFailure,
+        "durability failed",
+    )
+    .into();
+    assert!(matches!(wrapped, crate::facade::RelationalError::Durability(_)));
+
+    let wrapped: crate::facade::RelationalError = crate::facade::ReplayError::new(
+        crate::facade::ReplayFailureClass::SchemaMismatch,
+        "replay failed",
+    )
+    .into();
+    assert!(matches!(wrapped, crate::facade::RelationalError::Replay(_)));
+}
+
+#[test]
+fn transaction_intent_is_the_shared_mutation_intent_type() {
+    let create = MutationIntent::Create(CreateIntent::Entity(crate::transactions::data::EntitySpec {
+        partition_id: PartitionId::main(),
+        kind_id: KindId(1),
+        client_key: InternedString::Raw("alias".to_string()),
+        payload: RecordPayload::StructuredJson(json!({"name":"alias"})),
+    }));
+    let transaction_intent: MutationIntent = create.clone();
+
+    assert_eq!(transaction_intent, create);
+}
+
+#[test]
 fn entity_slot_reuse_increments_generation() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
     let create_outcome = create_entity_outcome(&mut runtime, "first");
     let entity_a = changed_entities(&create_outcome)[0];
-    assert!(runtime.release_snapshot(&create_outcome.snapshot));
+    assert!(runtime.snapshot_access().release_snapshot(&create_outcome.snapshot));
     let delete_outcome = delete_entity(&mut runtime, entity_a);
-    assert!(runtime.release_snapshot(&delete_outcome.snapshot));
-    let retention = runtime.run_retention_pass();
+    assert!(runtime.snapshot_access().release_snapshot(&delete_outcome.snapshot));
+    let retention = runtime.retention_access().run_pass();
     let entity_b = create_entity(&mut runtime, "second");
 
     assert!(retention.entity_reclaimed <= 1);
@@ -44,10 +134,12 @@ fn stale_entity_ids_are_rejected() {
     delete_entity(&mut runtime, entity);
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
-        WorkerIntentBatch::new("update").push(TransactionIntent::UpdateEntity {
-            entity_id: entity,
-            payload: RecordPayload::StructuredJson(json!({"name":"stale"})),
-        }),
+        WorkerIntentBatch::new("update").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id: entity,
+                payload: RecordPayload::StructuredJson(json!({"name":"stale"})),
+            }),
+        )),
     );
     let error = txn.commit().unwrap_err();
 
@@ -62,13 +154,13 @@ fn unknown_entity_kind_fails_explicitly() {
     let mut runtime = runtime_with_test_schema();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
-        WorkerIntentBatch::new("unknown-kind").push(TransactionIntent::CreateEntity(
-            crate::transactions::data::EntitySpec {
+        WorkerIntentBatch::new("unknown-kind").push(MutationIntent::Create(
+            CreateIntent::Entity(crate::transactions::data::EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(999),
                 client_key: InternedString::Raw("bad".to_string()),
                 payload: RecordPayload::StructuredJson(json!({"name":"bad"})),
-            },
+            }),
         )),
     );
     let error = txn.commit().unwrap_err();
@@ -90,15 +182,15 @@ fn duplicate_relation_identity_is_rejected() {
 
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
-        WorkerIntentBatch::new("duplicate").push(TransactionIntent::CreateRelation(
-            crate::transactions::data::RelationSpec {
+        WorkerIntentBatch::new("duplicate").push(MutationIntent::Create(
+            CreateIntent::Relation(crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("r2".to_string()),
                 source,
                 target,
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"rel"}))),
-            },
+            }),
         )),
     );
     let error = txn.commit().unwrap_err();
@@ -119,7 +211,7 @@ fn savepoint_rollback_discards_inner_work_only() {
     txn.push_batch(batch_create("inner"));
     let rollback = txn.rollback_to_savepoint(savepoint).unwrap();
     let outcome = txn.commit().unwrap();
-    let read = runtime.read_snapshot(&outcome.snapshot).unwrap();
+    let read = runtime.visibility_reads().read_snapshot(&outcome.snapshot).unwrap();
 
     assert!(rollback.effects.iter().any(|effect| matches!(
         effect,
@@ -139,7 +231,7 @@ fn snapshot_audit_failure_discards_only_touched_overlay() {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(batch_create("blocked"));
     let error = txn.commit().unwrap_err();
-    let committed_read = runtime.read_snapshot(&baseline.snapshot).unwrap();
+    let committed_read = runtime.visibility_reads().read_snapshot(&baseline.snapshot).unwrap();
 
     assert!(matches!(
         error,
@@ -148,7 +240,7 @@ fn snapshot_audit_failure_discards_only_touched_overlay() {
     ));
     assert_eq!(committed_read.entities().len(), 1);
     assert!(committed_read.entities().iter().any(|record| read_entity_name(record) == Some("baseline")));
-    assert_eq!(runtime.latest_commit().unwrap().commit_id, baseline.commit.commit_id);
+    assert_eq!(runtime.history_access().latest_commit().unwrap().commit_id, baseline.commit.commit_id);
 }
 
 #[test]
@@ -181,7 +273,7 @@ fn audit_retained_relations_remain_visible_after_endpoint_delete() {
     let relation_outcome = create_relation_outcome(&mut runtime, source, target, "r1");
     let relation = changed_relations(&relation_outcome)[0];
     let deleted = delete_entity(&mut runtime, source);
-    let read = runtime.read_snapshot(&deleted.snapshot).unwrap();
+    let read = runtime.visibility_reads().read_snapshot(&deleted.snapshot).unwrap();
     let relation = read.get_relation(relation).unwrap();
 
     assert_eq!(
@@ -213,9 +305,9 @@ fn merged_plan_is_stable_across_batch_order() {
 fn snapshot_reads_are_immutable_after_later_mutation() {
     let mut runtime = runtime_with_test_schema();
     let first = create_entity(&mut runtime, "first");
-    let snapshot = runtime.snapshot();
+    let snapshot = runtime.snapshot_access().snapshot();
     let _second = create_entity(&mut runtime, "second");
-    let read = runtime.read_snapshot(&snapshot).unwrap();
+    let read = runtime.visibility_reads().read_snapshot(&snapshot).unwrap();
 
     assert!(read.get_entity(first).is_some());
     assert_eq!(read.entities().len(), 1);
@@ -226,12 +318,12 @@ fn snapshots_resolve_historical_entity_payloads_by_version() {
     let mut runtime = runtime_with_test_schema();
     let create_outcome = create_entity_outcome(&mut runtime, "before");
     let entity = changed_entities(&create_outcome)[0];
-    let snapshot = runtime.snapshot();
+    let snapshot = runtime.snapshot_access().snapshot();
     let update_outcome = update_entity(&mut runtime, entity, "after");
 
-    let old_read = runtime.read_snapshot(&snapshot).unwrap();
-    let current_read = runtime.read_snapshot(&update_outcome.snapshot).unwrap();
-    let version_read = runtime.read_version(create_outcome.version_id);
+    let old_read = runtime.visibility_reads().read_snapshot(&snapshot).unwrap();
+    let current_read = runtime.visibility_reads().read_snapshot(&update_outcome.snapshot).unwrap();
+    let version_read = runtime.visibility_reads().read_version(create_outcome.version_id);
 
     assert_eq!(
         read_entity_name(old_read.get_entity(entity).unwrap()),
@@ -253,12 +345,12 @@ fn historical_reads_preserve_generation_and_payload_after_slot_reuse() {
     let created = create_entity_outcome(&mut runtime, "before");
     let original = changed_entities(&created)[0];
     let deleted = delete_entity(&mut runtime, original);
-    assert!(runtime.release_snapshot(&created.snapshot));
-    assert!(runtime.release_snapshot(&deleted.snapshot));
-    let _ = runtime.run_retention_pass();
+    assert!(runtime.snapshot_access().release_snapshot(&created.snapshot));
+    assert!(runtime.snapshot_access().release_snapshot(&deleted.snapshot));
+    let _ = runtime.retention_access().run_pass();
     let replacement = create_entity(&mut runtime, "after");
 
-    let historical = runtime.read_version(created.version_id);
+    let historical = runtime.visibility_reads().read_version(created.version_id);
     let record = historical.get_entity(original).unwrap();
 
     assert_eq!(record.entity_id, original);
@@ -279,14 +371,14 @@ fn profile_resolution_and_provenance_are_explicit() {
         runtime.config().profile,
         RelationalRuntimeProfile::GeometryKernel
     );
-    assert_eq!(runtime.config().initial_entity_capacity, 999);
-    assert!(runtime.config().diagnostics.detailed_traces_enabled);
-    assert_eq!(runtime.config().storage_layout.entity_chunk_size, 2048);
+    assert_eq!(runtime.config().storage.initial_entity_capacity, 999);
+    assert!(runtime.config().diagnostics.profile.detailed_traces_enabled);
+    assert_eq!(runtime.config().storage.layout.entity_chunk_size, 2048);
     assert_eq!(
         runtime
             .config()
             .config_provenance
-            .source_for("initial_entity_capacity")
+            .source_for("storage.initial_entity_capacity")
             .unwrap()
             .source,
         crate::facade::ConfigValueSource::BuilderOverride
@@ -295,7 +387,7 @@ fn profile_resolution_and_provenance_are_explicit() {
         runtime
             .config()
             .config_provenance
-            .source_for("storage_layout")
+            .source_for("storage.layout")
             .unwrap()
             .source,
         crate::facade::ConfigValueSource::ProfileDefault
@@ -304,31 +396,31 @@ fn profile_resolution_and_provenance_are_explicit() {
         runtime
             .config()
             .config_provenance
-            .source_for("visibility_cache_policy")
+            .source_for("visibility.cache_policy")
             .unwrap()
             .source,
         crate::facade::ConfigValueSource::ProfileDefault
     );
-    assert!(runtime.config().visibility_cache_policy.enabled);
+    assert!(runtime.config().visibility.cache_policy.enabled);
 }
 
 #[test]
 fn snapshot_pins_block_reclaim_until_release() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
     let create_outcome = create_entity_outcome(&mut runtime, "pinned");
-    let create_snapshot = runtime.snapshot();
+    let create_snapshot = runtime.snapshot_access().snapshot();
     let entity = changed_entities(&create_outcome)[0];
     let _delete_outcome = delete_entity(&mut runtime, entity);
-    let delete_snapshot = runtime.snapshot();
-    let first_retention = runtime.run_retention_pass();
+    let delete_snapshot = runtime.snapshot_access().snapshot();
+    let first_retention = runtime.retention_access().run_pass();
 
     assert_eq!(first_retention.entity_reclaimed, 0);
     assert_eq!(runtime.storage_stats().deleted_entities, 1);
     assert_eq!(first_retention.entity_chunks_scanned, 1);
 
-    assert!(runtime.release_snapshot(&create_snapshot));
-    assert!(runtime.release_snapshot(&delete_snapshot));
-    let second_retention = runtime.run_retention_pass();
+    assert!(runtime.snapshot_access().release_snapshot(&create_snapshot));
+    assert!(runtime.snapshot_access().release_snapshot(&delete_snapshot));
+    let second_retention = runtime.retention_access().run_pass();
 
     assert!(second_retention.entity_reclaimed <= 1);
     assert_eq!(runtime.storage_stats().reusable_entity_slots, 1);
@@ -348,26 +440,26 @@ fn epoch_retention_backend_preserves_snapshot_visibility_until_release() {
         })
         .build();
     let create_outcome = create_entity_outcome(&mut runtime, "epoch-pinned");
-    let create_snapshot = runtime.snapshot();
+    let create_snapshot = runtime.snapshot_access().snapshot();
     let entity = changed_entities(&create_outcome)[0];
     let _delete_outcome = delete_entity(&mut runtime, entity);
-    let delete_snapshot = runtime.snapshot();
+    let delete_snapshot = runtime.snapshot_access().snapshot();
 
-    let first_retention = runtime.run_retention_pass();
+    let first_retention = runtime.retention_access().run_pass();
     assert_eq!(
-        runtime.config().retention_policy.backend,
+        runtime.config().storage.retention.backend,
         crate::facade::RetentionBackend::EpochChunkRetention
     );
     assert_eq!(first_retention.entity_reclaimed, 0);
     assert!(runtime
-        .read_snapshot(&create_snapshot)
+        .visibility_reads().read_snapshot(&create_snapshot)
         .unwrap()
         .get_entity(entity)
         .is_some());
 
-    assert!(runtime.release_snapshot(&create_snapshot));
-    assert!(runtime.release_snapshot(&delete_snapshot));
-    let second_retention = runtime.run_retention_pass();
+    assert!(runtime.snapshot_access().release_snapshot(&create_snapshot));
+    assert!(runtime.snapshot_access().release_snapshot(&delete_snapshot));
+    let second_retention = runtime.retention_access().run_pass();
 
     assert!(second_retention.entity_reclaimed <= 1);
     assert_eq!(runtime.storage_stats().reusable_entity_slots, 1);
@@ -377,7 +469,7 @@ fn epoch_retention_backend_preserves_snapshot_visibility_until_release() {
 fn read_records_expose_visibility_metadata() {
     let mut runtime = runtime_with_test_schema();
     let outcome = create_entity_outcome(&mut runtime, "visible");
-    let read = runtime.read_snapshot(&outcome.snapshot).unwrap();
+    let read = runtime.visibility_reads().read_snapshot(&outcome.snapshot).unwrap();
     let record = read.entities().first().unwrap();
 
     assert_eq!(record.created_at_version, outcome.version_id);

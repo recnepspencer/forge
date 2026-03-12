@@ -4,7 +4,10 @@ use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::checkpoint_policy::CheckpointPolicy;
 use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::graph::SignalGraph;
+use crate::data::tier::TierPolicy;
 use crate::diagnostics::policy::SignalRuntimePolicy;
+use crate::logic::checkpoint::CheckpointRuntime;
+use crate::logic::events::EventBus;
 
 use super::runtime_state::SignalRuntime;
 
@@ -22,6 +25,7 @@ where
     checkpoint_policy: CheckpointPolicy<D>,
     fallback_comparator: VersionComparatorPolicy,
     runtime_policy: SignalRuntimePolicy,
+    tier_policies: Vec<TierPolicy<T>>,
     _marker: PhantomData<fn(I, E, Ctx, T)>,
 }
 
@@ -37,6 +41,7 @@ where
             checkpoint_policy: CheckpointPolicy::new(CheckpointBarrier::PerOperation),
             fallback_comparator: VersionComparatorPolicy::Exact,
             runtime_policy: SignalRuntimePolicy::default(),
+            tier_policies: Vec::new(),
             _marker: PhantomData,
         }
     }
@@ -71,6 +76,12 @@ where
         self
     }
 
+    /// Seed an initial tier policy into runtime config before build completes.
+    pub fn tier_policy(mut self, policy: TierPolicy<T>) -> Self {
+        self.tier_policies.push(policy);
+        self
+    }
+
     /// Switch the runtime to a typed event payload.
     ///
     /// This is usually only needed once you start integrating an event bus.
@@ -80,6 +91,7 @@ where
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
+            tier_policies: self.tier_policies,
             _marker: PhantomData,
         }
     }
@@ -94,6 +106,7 @@ where
             checkpoint_policy: CheckpointPolicy::new(self.checkpoint_policy.barrier_for_default()),
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
+            tier_policies: Vec::new(),
             _marker: PhantomData,
         }
     }
@@ -108,6 +121,7 @@ where
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
+            tier_policies: self.tier_policies,
             _marker: PhantomData,
         }
     }
@@ -122,6 +136,7 @@ where
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
+            tier_policies: Vec::new(),
             _marker: PhantomData,
         }
     }
@@ -133,15 +148,21 @@ where
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
+            tier_policies: self.tier_policies,
             _marker: PhantomData,
         }
     }
 
     /// Build the runtime.
     pub fn build(self) -> SignalRuntime<D, I, E, Ctx, T> {
-        let mut runtime = SignalRuntime::with_policy(self.graph, self.checkpoint_policy);
+        let checkpoint = CheckpointRuntime::new(self.checkpoint_policy);
+        let event_bus = EventBus::new();
+        let mut runtime = SignalRuntime::new(self.graph, checkpoint, event_bus);
         runtime.set_fallback_comparator(self.fallback_comparator);
         runtime.set_runtime_policy(self.runtime_policy);
+        for policy in self.tier_policies {
+            runtime.set_tier_policy(policy);
+        }
         runtime
     }
 }

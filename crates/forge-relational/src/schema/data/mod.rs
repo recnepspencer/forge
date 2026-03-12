@@ -1,9 +1,13 @@
+mod registry_errors;
+
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
 use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
 use crate::identity::data::KindId;
+
+pub use registry_errors::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct SchemaId(pub String);
@@ -44,17 +48,6 @@ pub struct KindResolution {
     pub schema_version_id: SchemaVersionId,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SchemaRegistryError {
-    UnknownEntityKind(KindId),
-    UnknownRelationKind(KindId),
-    EntityRelationKindCollision(KindId),
-    SchemaVersionMismatch {
-        expected: SchemaVersionId,
-        actual: SchemaVersionId,
-    },
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct RelationalSchemaRegistry {
     pub entity_kinds: BTreeMap<KindId, EntityKindRegistration>,
@@ -71,7 +64,7 @@ impl RelationalSchemaRegistry {
         registration: EntityKindRegistration,
     ) -> Result<Self, SchemaRegistryError> {
         if self.relation_kinds.contains_key(&registration.kind_id) {
-            return Err(SchemaRegistryError::EntityRelationKindCollision(
+            return Err(SchemaRegistryError::entity_relation_kind_collision(
                 registration.kind_id,
             ));
         }
@@ -84,7 +77,7 @@ impl RelationalSchemaRegistry {
         registration: RelationKindRegistration,
     ) -> Result<Self, SchemaRegistryError> {
         if self.entity_kinds.contains_key(&registration.kind_id) {
-            return Err(SchemaRegistryError::EntityRelationKindCollision(
+            return Err(SchemaRegistryError::entity_relation_kind_collision(
                 registration.kind_id,
             ));
         }
@@ -102,7 +95,7 @@ impl RelationalSchemaRegistry {
                 schema_id: registration.schema_id.clone(),
                 schema_version_id: registration.schema_version_id,
             })
-            .ok_or(SchemaRegistryError::UnknownEntityKind(kind_id))
+            .ok_or_else(|| SchemaRegistryError::unknown_entity_kind(kind_id))
     }
 
     pub fn resolve_relation(&self, kind_id: KindId) -> Result<KindResolution, SchemaRegistryError> {
@@ -114,7 +107,7 @@ impl RelationalSchemaRegistry {
                 schema_id: registration.schema_id.clone(),
                 schema_version_id: registration.schema_version_id,
             })
-            .ok_or(SchemaRegistryError::UnknownRelationKind(kind_id))
+            .ok_or_else(|| SchemaRegistryError::unknown_relation_kind(kind_id))
     }
 
     pub fn relation_registration(
@@ -123,6 +116,6 @@ impl RelationalSchemaRegistry {
     ) -> Result<&RelationKindRegistration, SchemaRegistryError> {
         self.relation_kinds
             .get(&kind_id)
-            .ok_or(SchemaRegistryError::UnknownRelationKind(kind_id))
+            .ok_or_else(|| SchemaRegistryError::unknown_relation_kind(kind_id))
     }
 }

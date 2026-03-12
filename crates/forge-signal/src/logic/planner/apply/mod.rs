@@ -4,18 +4,11 @@ pub(crate) mod groups;
 pub(crate) mod full_parallel;
 pub(crate) mod rewiring;
 pub(crate) mod stage;
-#[cfg(feature = "parallel")]
-pub(crate) mod trace;
 
-#[cfg(feature = "parallel")]
-use std::collections::{HashMap, HashSet};
-
-#[cfg(feature = "parallel")]
-use crate::data::aspect::AspectMask;
 #[cfg(feature = "parallel")]
 use crate::data::comparator::{ComparatorPolicyResolver, VersionComparatorPolicy};
 #[cfg(feature = "parallel")]
-use crate::data::dependency::{DependencyEdge, DependencySnapshot};
+use crate::data::dependency::DependencyEdge;
 #[cfg(feature = "parallel")]
 use crate::data::error::SignalError;
 #[cfg(feature = "parallel")]
@@ -23,18 +16,12 @@ use crate::data::graph::SignalGraph;
 #[cfg(feature = "parallel")]
 use crate::data::handle::NodeId;
 #[cfg(feature = "parallel")]
-use crate::data::node::{NodeEntry, NodeState};
-#[cfg(feature = "parallel")]
 use crate::data::trace::TraceSummary;
 #[cfg(feature = "parallel")]
 use crate::logic::explain::{RewiringDependency, RewiringSummary};
 #[cfg(feature = "parallel")]
 use crate::logic::prepared::{PreparedEvaluation, PreparedEvaluationOrigin, PreparedEvaluationOutcome};
 
-#[cfg(feature = "parallel")]
-use self::groups::ApplyGroup;
-#[cfg(feature = "parallel")]
-use self::trace::{build_trace_summary, execution_metadata_for};
 #[cfg(feature = "parallel")]
 use super::precompute::PreparedTaskPatch;
 
@@ -107,57 +94,6 @@ pub(super) fn prepare_stage_patches(
 }
 
 #[cfg(feature = "parallel")]
-pub(super) fn materialize_apply_group(
-    graph: &mut SignalGraph,
-    group: &ApplyGroup,
-) -> Result<Vec<(NodeId, NodeEntry)>, SignalError> {
-    let mut entry_updates: HashMap<NodeId, NodeEntry> = HashMap::new();
-    let mut subscriber_sets: HashMap<NodeId, HashSet<NodeId>> = HashMap::new();
-
-    for task in &group.tasks {
-        stage_subscriber_updates(
-            graph,
-            task.node,
-            &task.current_dependencies,
-            &task.next_dependencies,
-            &mut subscriber_sets,
-        )?;
-        let before_entry = graph.get_entry(task.node)?.clone();
-        let snapshot = build_dep_snapshot_from_edges(graph, &task.next_dependencies)?;
-        let snapshot_id = graph.store_dependency_snapshot(snapshot.clone());
-        let dependencies_id = graph.store_dependency_edges(&task.next_dependencies);
-        let mut next_entry = before_entry.clone();
-        next_entry.set_dependencies_id(dependencies_id);
-        next_entry.set_dep_snapshot_id(snapshot_id);
-        apply_target_local_updates(
-            graph,
-            task.node,
-            &mut next_entry,
-            &task.prepared,
-            &snapshot,
-            task.before_trace.as_ref(),
-        )?;
-        entry_updates.insert(task.node, next_entry);
-    }
-
-    for (source, subscribers) in subscriber_sets {
-        let mut entry = if let Some(entry) = entry_updates.remove(&source) {
-            entry
-        } else {
-            graph.get_entry(source)?.clone()
-        };
-        let mut subscribers: Vec<_> = subscribers.into_iter().collect();
-        subscribers.sort_by_key(|node| (node.index(), node.generation()));
-        entry.set_subscribers_id(graph.store_subscribers(&subscribers));
-        entry_updates.insert(source, entry);
-    }
-
-    let mut updates = entry_updates.into_iter().collect::<Vec<_>>();
-    updates.sort_by_key(|(node, _)| (node.index(), node.generation()));
-    Ok(updates)
-}
-
-#[cfg(feature = "parallel")]
 fn can_materialize_concurrently(
     graph: &SignalGraph,
     patch: &PreparedTaskPatch,
@@ -180,45 +116,6 @@ fn can_materialize_concurrently(
         !(matches!(comparator, VersionComparatorPolicy::OutputIdentity)
             && output_identity_unchanged),
     )
-}
-
-#[cfg(feature = "parallel")]
-fn stage_subscriber_updates(
-    graph: &mut SignalGraph,
-    target: NodeId,
-    current_dependencies: &[DependencyEdge],
-    next_dependencies: &[DependencyEdge],
-    subscriber_sets: &mut HashMap<NodeId, HashSet<NodeId>>,
-) -> Result<(), SignalError> {
-    let current_sources = current_dependencies
-        .iter()
-        .map(|edge| edge.source())
-        .collect::<HashSet<_>>();
-    let next_sources = next_dependencies
-        .iter()
-        .map(|edge| edge.source())
-        .collect::<HashSet<_>>();
-    for source in current_sources.difference(&next_sources) {
-        subscriber_sets
-            .entry(*source)
-            .or_insert_with(|| current_subscribers(graph, *source))
-            .remove(&target);
-    }
-    for source in next_sources.difference(&current_sources) {
-        subscriber_sets
-            .entry(*source)
-            .or_insert_with(|| current_subscribers(graph, *source))
-            .insert(target);
-    }
-    Ok(())
-}
-
-#[cfg(feature = "parallel")]
-fn current_subscribers(graph: &mut SignalGraph, node: NodeId) -> HashSet<NodeId> {
-    graph
-        .runtime_subscribers_of(node)
-        .map(|subscribers| subscribers.iter().copied().collect())
-        .unwrap_or_default()
 }
 
 #[cfg(feature = "parallel")]
@@ -256,60 +153,6 @@ fn count_dependency_updates(
 }
 
 #[cfg(feature = "parallel")]
-fn apply_target_local_updates(
-    graph: &SignalGraph,
-    node: NodeId,
-    entry: &mut NodeEntry,
-    prepared: &PreparedEvaluation,
-    snapshot: &DependencySnapshot,
-    previous_trace: Option<&TraceSummary>,
-) -> Result<(), SignalError> {
-    match prepared.outcome {
-        PreparedEvaluationOutcome::Evaluate => {
-            if let Some(causality) = prepared.trace_data.causality.clone() {
-                entry.set_causality(Some(causality));
-            }
-            let mut result = prepared.result.clone();
-            result.labels.extend(prepared.trace_data.labels.clone());
-            let previous_output_identity =
-                previous_trace.and_then(|trace| trace.output_identity.clone());
-            let previous_continuity_token =
-                previous_trace.and_then(|trace| trace.continuity_token.clone());
-            let output_identity_unchanged = matches!(
-                (&previous_output_identity, &result.output_identity),
-                (Some(previous), Some(current)) if previous == current
-            );
-            let continuity_token_unchanged = matches!(
-                (&previous_continuity_token, &result.continuity_token),
-                (Some(previous), Some(current)) if previous == current
-            );
-            entry.set_aspect_version(result.aspect_version);
-            entry.set_trace_summary(Some(build_trace_summary(
-                graph,
-                node,
-                &result,
-                snapshot,
-                output_identity_unchanged,
-                continuity_token_unchanged,
-                execution_metadata_for(prepared),
-                !matches!(prepared.origin, PreparedEvaluationOrigin::MemoizedReuse),
-            )?));
-            entry.set_state(NodeState::Clean);
-            entry.set_dirty_aspects(AspectMask::EMPTY);
-            entry.clear_dirty_partition_scopes();
-        }
-        PreparedEvaluationOutcome::ValidatedClean
-        | PreparedEvaluationOutcome::RevertedCleanByCondition => {
-            entry.set_state(NodeState::Clean);
-            entry.set_dirty_aspects(AspectMask::EMPTY);
-            entry.clear_dirty_partition_scopes();
-        }
-        PreparedEvaluationOutcome::DeferredByCondition => entry.set_state(NodeState::MaybeStale),
-    }
-    Ok(())
-}
-
-#[cfg(feature = "parallel")]
 fn capture_to_dependency_edges(
     graph: &mut SignalGraph,
     capture: &PreparedDependencyCapture,
@@ -326,29 +169,6 @@ fn capture_to_dependency_edges(
         }
     }
     Ok(edges)
-}
-
-#[cfg(feature = "parallel")]
-fn build_dep_snapshot_from_edges(
-    graph: &SignalGraph,
-    dependencies: &[DependencyEdge],
-) -> Result<DependencySnapshot, SignalError> {
-    let mut snapshot = DependencySnapshot::empty();
-    for dep in dependencies {
-        if graph.is_alive(dep.source()) {
-            let version = graph
-                .get_entry(dep.source())?
-                .get_aspect_version()
-                .get(dep.aspect());
-            snapshot.record(
-                dep.source(),
-                dep.aspect(),
-                version,
-                dep.scope_ref().cloned(),
-            );
-        }
-    }
-    Ok(snapshot)
 }
 
 #[cfg(feature = "parallel")]

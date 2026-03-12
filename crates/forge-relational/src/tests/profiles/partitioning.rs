@@ -5,7 +5,7 @@ fn bulk_create_entities_match_equivalent_singular_creates() {
     let mut bulk_runtime = runtime_with_test_schema();
     let mut bulk_txn = bulk_runtime.begin_transaction(TransactionOptions::default());
     bulk_txn.push_batch(WorkerIntentBatch::new("bulk").push(
-        TransactionIntent::BulkCreateEntities {
+        MutationIntent::Create(CreateIntent::BulkEntities(BulkEntityCreateIntent {
             partition_id: PartitionId::main(),
             kind_id: KindId(1),
             client_keys: vec![
@@ -16,16 +16,16 @@ fn bulk_create_entities_match_equivalent_singular_creates() {
                 RecordPayload::StructuredJson(json!({"name":"a"})),
                 RecordPayload::StructuredJson(json!({"name":"b"})),
             ],
-        },
+        })),
     ));
     let bulk_outcome = bulk_txn.commit().unwrap();
 
     let singular_runtime = apply_batches(vec![batch_create("a"), batch_create("b")]);
-    let bulk_read = bulk_runtime.read_snapshot(&bulk_outcome.snapshot).unwrap();
+    let bulk_read = bulk_runtime.visibility_reads().read_snapshot(&bulk_outcome.snapshot).unwrap();
     let singular_read = singular_runtime
-        .read_snapshot(
+        .visibility_reads().read_snapshot(
             &singular_runtime
-                .latest_publication_bundle()
+                .publication_access().latest_bundle()
                 .unwrap()
                 .snapshot,
         )
@@ -54,8 +54,8 @@ fn cross_context_relations_preserve_partitioned_endpoints() {
     let target = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
     let relation =
         create_relation_in_partition(&mut runtime, source, target, "bridge", PartitionId(29));
-    let snapshot = runtime.snapshot();
-    let read = runtime.read_snapshot(&snapshot).unwrap();
+    let snapshot = runtime.snapshot_access().snapshot();
+    let read = runtime.visibility_reads().read_snapshot(&snapshot).unwrap();
     let relation_record = read.get_relation(relation).unwrap();
 
     assert_eq!(relation.partition_id, PartitionId(29));
@@ -93,14 +93,14 @@ fn cross_context_relations_respect_relation_kind_policy() {
     let target = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(WorkerIntentBatch::new("forbidden-cross-context").push(
-        TransactionIntent::CreateRelation(crate::transactions::data::RelationSpec {
+        MutationIntent::Create(CreateIntent::Relation(crate::transactions::data::RelationSpec {
             partition_id: PartitionId(29),
             kind_id: KindId(2),
             client_key: InternedString::Raw("bridge".to_string()),
             source,
             target,
             payload: None,
-        }),
+        })),
     ));
 
     let error = txn.commit().unwrap_err();

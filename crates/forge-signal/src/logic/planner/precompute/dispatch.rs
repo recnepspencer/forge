@@ -21,45 +21,81 @@ pub(in crate::logic::planner) fn dispatch_stage_precompute(
     executor: StageExecutor,
     #[cfg(feature = "parallel")] parallel_admission: StageParallelAdmission,
 ) -> Result<StageExecutionData, SignalError> {
-    match executor {
-        StageExecutor::Serial => Ok(StageExecutionData::Prepared(precompute_stage_serial(
+    #[cfg(not(feature = "parallel"))]
+    let _ = executor;
+
+    #[cfg(feature = "parallel")]
+    if parallel_admission.use_parallel {
+        return dispatch_stage_precompute_parallel(
             graph,
             tasks,
             precompute,
             comparator_resolver,
-        )?)),
-        #[cfg(feature = "parallel")]
-        _ if parallel_admission.use_parallel => {
-            if executor.is_full_parallel() {
-                Ok(StageExecutionData::Patched(build_parallel_stage_patches(
-                    graph,
-                    tasks,
-                    precompute,
-                    executor
-                        .parallel_policy()
-                        .expect("parallel policy should exist"),
-                    comparator_resolver,
-                )?))
-            } else {
-                Ok(StageExecutionData::Prepared(precompute_stage_parallel(
-                    graph,
-                    tasks,
-                    precompute,
-                    executor
-                        .parallel_policy()
-                        .expect("parallel policy should exist"),
-                    comparator_resolver,
-                )?))
-            }
-        }
-        #[cfg(feature = "parallel")]
-        StageExecutor::StagedParallelPrecompute { .. } | StageExecutor::FullParallel { .. } => {
-            Ok(StageExecutionData::Prepared(precompute_stage_serial(
+            executor,
+        );
+    }
+
+    dispatch_stage_precompute_serial(graph, tasks, precompute, comparator_resolver)
+}
+
+fn dispatch_stage_precompute_serial(
+    graph: &mut SignalGraph,
+    tasks: &[EvaluationTask],
+    precompute: &(impl Fn(
+        crate::data::handle::NodeId,
+        &crate::logic::prepared::ExecutionReadView<'_>,
+    ) -> Result<crate::logic::prepared::PreparedEvaluation, SignalError>
+        + Sync),
+    comparator_resolver: &mut impl ComparatorPolicyResolver,
+) -> Result<StageExecutionData, SignalError> {
+    Ok(StageExecutionData::Prepared(precompute_stage_serial(
+        graph,
+        tasks,
+        precompute,
+        comparator_resolver,
+    )?))
+}
+
+#[cfg(feature = "parallel")]
+fn dispatch_stage_precompute_parallel(
+    graph: &mut SignalGraph,
+    tasks: &[EvaluationTask],
+    precompute: &(impl Fn(
+        crate::data::handle::NodeId,
+        &crate::logic::prepared::ExecutionReadView<'_>,
+    ) -> Result<crate::logic::prepared::PreparedEvaluation, SignalError>
+        + Sync),
+    comparator_resolver: &mut impl ComparatorPolicyResolver,
+    executor: StageExecutor,
+) -> Result<StageExecutionData, SignalError> {
+    match executor {
+        StageExecutor::FullParallel { .. } => Ok(StageExecutionData::Patched(
+            build_parallel_stage_patches(
                 graph,
                 tasks,
                 precompute,
+                executor
+                    .parallel_policy()
+                    .expect("parallel policy should exist"),
                 comparator_resolver,
-            )?))
-        }
+            )?,
+        )),
+        StageExecutor::StagedParallelPrecompute { .. } => Ok(StageExecutionData::Prepared(
+            precompute_stage_parallel(
+                graph,
+                tasks,
+                precompute,
+                executor
+                    .parallel_policy()
+                    .expect("parallel policy should exist"),
+                comparator_resolver,
+            )?,
+        )),
+        StageExecutor::Serial => dispatch_stage_precompute_serial(
+            graph,
+            tasks,
+            precompute,
+            comparator_resolver,
+        ),
     }
 }

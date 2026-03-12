@@ -1,3 +1,5 @@
+mod replay_errors;
+
 use serde::{Deserialize, Serialize};
 
 use crate::diagnostics::data::RelationalDiagnosticArtifact;
@@ -5,6 +7,8 @@ use crate::history::data::{BranchId, CommitId, CommitReference};
 use crate::publication::data::diff::RelationalPatchRecord;
 use crate::schema::data::{RelationalSchemaRegistry, SchemaVersionId};
 use crate::transactions::data::MergedCommitPlan;
+
+pub use replay_errors::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CanonicalCommitEnvelope {
@@ -35,16 +39,6 @@ pub enum ReplayObservableSurface {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ReplayExecutionMode {
     SerialDeterministic,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ReplayFailureClass {
-    MissingCommit,
-    MissingParentChain,
-    BranchMismatch,
-    SchemaMismatch,
-    UnsupportedReplaySchema,
-    ObservableMismatch,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

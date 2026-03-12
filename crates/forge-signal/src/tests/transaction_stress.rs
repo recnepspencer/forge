@@ -1,13 +1,11 @@
 use crate::facade::*;
 use crate::tests::support::*;
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Domain {
     Cache,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Impact {
     One,
@@ -18,13 +16,15 @@ enum Ev {
     Tick,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Tier {
     Feature,
 }
 
 fn build_runtime(graph: SignalGraph) -> SignalRuntime<Domain, Impact, Ev, (), Tier> {
+    let _ = Domain::Cache;
+    let _ = Impact::One;
+    let _ = Tier::Feature;
     SignalRuntime::builder(graph)
         .with_domains::<Domain>()
         .with_impacts::<Impact>()
@@ -47,12 +47,12 @@ fn rollback_heavy_workload_leaves_runtime_consistent() {
         tx.emit_event(Ev::Tick);
         tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
         assert_eq!(
-            tx.rollback(&mut ctx).unwrap(),
+            tx.rollback(&mut ctx).unwrap().outcome,
             TransactionOutcome::RolledBack
         );
     }
 
-    assert_eq!(runtime.telemetry().transaction_rollback_count, 100);
+    assert_eq!(runtime.telemetry().transaction.transaction_rollback_count, 100);
 }
 
 #[test]
@@ -71,6 +71,9 @@ fn stress_100k_nodes_transaction_commit() {
     for node in nodes.iter().step_by(97) {
         tx.mark_dirty(*node, ASPECT_B).unwrap();
     }
-    assert_eq!(tx.commit(&mut ctx).unwrap(), TransactionOutcome::Committed);
-    assert!(runtime.telemetry().staged_node_patch_count > 0);
+    assert_eq!(
+        tx.commit(&mut ctx).unwrap().outcome,
+        TransactionOutcome::Committed
+    );
+    assert!(runtime.telemetry().transaction.staged_node_patch_count > 0);
 }

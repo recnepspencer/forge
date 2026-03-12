@@ -54,8 +54,8 @@ fn overlapping_mark_dirty_calls_do_not_revisit_already_staged_subgraphs() {
     tx.commit(&mut ctx).unwrap();
 
     let metrics = runtime.metrics();
-    assert_eq!(metrics.max_touched_nodes_in_txn, 3);
-    assert_eq!(metrics.transaction_mark_dirty_candidate_visits, 3);
+    assert_eq!(metrics.transaction.max_touched_nodes_in_txn, 3);
+    assert_eq!(metrics.transaction.transaction_mark_dirty_candidate_visits, 3);
 }
 
 #[test]
@@ -97,7 +97,7 @@ fn repeated_gc_compaction_cycles_stay_near_live_edge_storage() {
     );
 
     let metrics = runtime.graph().metrics();
-    assert!(metrics.graph_storage_compaction_count >= 1);
-    assert!(metrics.graph_storage_dependency_segments_rewritten >= dependency_segments as u64);
-    assert!(metrics.graph_storage_subscriber_segments_rewritten >= subscriber_segments as u64);
+    assert!(metrics.storage.graph_storage_compaction_count >= 1);
+    assert!(metrics.storage.graph_storage_dependency_segments_rewritten >= dependency_segments as u64);
+    assert!(metrics.storage.graph_storage_subscriber_segments_rewritten >= subscriber_segments as u64);
 }

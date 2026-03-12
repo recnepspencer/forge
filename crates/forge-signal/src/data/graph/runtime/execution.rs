@@ -52,8 +52,4 @@ impl SignalGraph {
         };
         execute_prepared_plan_with_policy(self, plan, precompute, &mut resolver, executor)
     }
-
-    pub(crate) fn partition_interner_mut(&mut self) -> &mut crate::data::output::PartitionInterner {
-        &mut self.partition_interner
-    }
 }

@@ -10,7 +10,7 @@ impl SignalGraph {
         node: NodeId,
     ) -> Result<&[DependencyEdge], SignalError> {
         let entry = self.get_entry(node)?;
-        Ok(self.dependency_edges.get(entry.get_dependencies_id()))
+        Ok(self.topology.dependency_edges.get(entry.get_dependencies_id()))
     }
 
     pub(in crate::data::graph) fn raw_subscribers_of(
@@ -18,7 +18,7 @@ impl SignalGraph {
         node: NodeId,
     ) -> Result<&[NodeId], SignalError> {
         let entry = self.get_entry(node)?;
-        Ok(self.subscriber_edges.get(entry.get_subscribers_id()))
+        Ok(self.topology.subscriber_edges.get(entry.get_subscribers_id()))
     }
 
     pub(crate) fn dependency_sources_of(&self, node: NodeId) -> Result<Vec<NodeId>, SignalError> {

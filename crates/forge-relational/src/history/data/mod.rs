@@ -1,7 +1,11 @@
+mod branch_creation;
+
 use serde::{Deserialize, Serialize};
 
 use crate::identity::data::VersionId;
 use crate::identity::data::{EntityId, RelationId};
+
+pub use branch_creation::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct CommitId(pub u64);
@@ -38,12 +42,6 @@ pub struct VersionNode {
 pub struct BranchHead {
     pub branch_id: BranchId,
     pub head: Option<CommitReference>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum BranchCreateError {
-    BranchAlreadyExists,
-    SourceBranchMissing,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

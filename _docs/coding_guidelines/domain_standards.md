@@ -14,6 +14,7 @@ These standards exist to preserve:
 > **Structural discipline is not optional.** It is a prerequisite for building a system that can scale in size, contributors, and lifespan.
 
 > **When principles conflict:** Domain alignment and single responsibility take precedence over layer templates or structural convenience. Never sacrifice clarity for template compliance. When uncertain whether something should be one file or two, default to two. Merging files later is trivial. Untangling responsibilities that grew together is surgery.
+> **Make this assumption:** if you are working on a long term roadmap, assume the file you are working will continue to grow. So organize your directories with future proofing in mind, not with an, "I'll refactor it later if it grows" mentality.
 
 ---
 

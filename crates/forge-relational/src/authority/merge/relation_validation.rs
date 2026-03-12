@@ -4,7 +4,7 @@ use crate::capabilities::{SchemaSource, StorageRead};
 use crate::logic::runtime::RuntimeInstrumentation;
 use crate::transactions::data::{
     CommitConflict, ConflictClass, ExistingRecordTarget, RelationIdentity, RelationSpec,
-    TransactionIntent,
+    CreateIntent, MutationIntent,
 };
 use crate::validation::logic::schema_error_to_commit_conflict;
 
@@ -15,45 +15,38 @@ pub(super) fn validate_relation_intent(
     schema_source: &impl SchemaSource,
     default_cross_context_policy: crate::config::data::CrossContextPolicy,
     instrumentation: &RuntimeInstrumentation,
-    intent: &TransactionIntent,
+    intent: &MutationIntent,
 ) -> Result<(), CommitConflict> {
     match intent {
-        TransactionIntent::CreateRelation(spec) => validate_relation_creation(
+        MutationIntent::Create(CreateIntent::Relation(spec)) => validate_relation_creation(
             state,
             schema_source,
             default_cross_context_policy,
             instrumentation,
             spec,
         ),
-        TransactionIntent::BulkCreateRelations {
-            partition_id,
-            kind_id,
-            endpoints,
-            ..
-        } => validate_bulk_relation_creation(
+        MutationIntent::Create(CreateIntent::BulkRelations(spec)) => validate_bulk_relation_creation(
             state,
             schema_source,
             default_cross_context_policy,
             instrumentation,
-            *partition_id,
-            *kind_id,
-            endpoints,
+            spec.partition_id,
+            spec.kind_id,
+            &spec.endpoints,
         ),
-        TransactionIntent::DeleteRelation { relation_id } => {
-            if relation_exists_in_state(state, *relation_id) {
+        MutationIntent::Relation(crate::transactions::data::RelationMutationIntent::Delete(spec)) => {
+            if relation_exists_in_state(state, spec.relation_id) {
                 Ok(())
             } else {
                 Err(CommitConflict::new(ConflictClass::StaleTarget {
-                        target: ExistingRecordTarget::Relation(*relation_id),
+                        target: ExistingRecordTarget::Relation(spec.relation_id),
                         context: "relation validation".to_string(),
                     }))
             }
         }
-        TransactionIntent::CreateEntity(_)
-        | TransactionIntent::BulkCreateEntities { .. }
-        | TransactionIntent::UpdateEntity { .. }
-        | TransactionIntent::ReplaceEntity { .. }
-        | TransactionIntent::DeleteEntity { .. } => Ok(()),
+        MutationIntent::Create(CreateIntent::Entity(_))
+        | MutationIntent::Create(CreateIntent::BulkEntities(_))
+        | MutationIntent::Entity(_) => Ok(()),
     }
 }
 

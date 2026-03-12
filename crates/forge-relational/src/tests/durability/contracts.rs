@@ -14,26 +14,26 @@ fn durability_contract_recovery_rebuilds_branch_heads_and_latest_commit() {
     let mut runtime = persisted_runtime_with_test_schema();
     let main = create_entity_outcome(&mut runtime, "main-a");
     runtime
-        .create_branch(
+        .history_authority().create_branch(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
         .unwrap();
     let feature =
         create_entity_outcome_on_branch(&mut runtime, "feature-a", BranchId("feature".to_string()));
-    let _checkpoint = runtime.checkpoint().unwrap();
-    let plan = runtime.recovery_plan();
+    let _checkpoint = runtime.durability_authority().checkpoint().unwrap();
+    let plan = runtime.durability_access().recovery_plan();
     let mut recovered = persisted_runtime_with_test_schema();
-    let outcome = recovered.recover(plan).unwrap();
+    let outcome = recovered.durability_authority().recover(plan).unwrap();
 
     assert_eq!(outcome.recovered_commits, 2);
     assert_eq!(outcome.latest_commit, Some(feature.commit.clone()));
     assert_eq!(
-        recovered.branch_head(&BranchId("feature".to_string())),
+        recovered.history_access().branch_head(&BranchId("feature".to_string())),
         Some(&feature.commit)
     );
     assert_eq!(
-        recovered.branch_head(&BranchId("main".to_string())),
+        recovered.history_access().branch_head(&BranchId("main".to_string())),
         Some(&main.commit)
     );
 }
@@ -42,7 +42,7 @@ fn durability_contract_recovery_rebuilds_branch_heads_and_latest_commit() {
 fn durability_contract_failure_schema_mismatch_is_explicit() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "main-a");
-    let plan = runtime.recovery_plan();
+    let plan = runtime.durability_access().recovery_plan();
     let mismatched_registry = RelationalSchemaRegistry::new()
         .register_entity_kind(EntityKindRegistration {
             kind_id: KindId(3),
@@ -54,7 +54,7 @@ fn durability_contract_failure_schema_mismatch_is_explicit() {
     let mut recovered = RelationalRuntimeApi::builder()
         .schema_registry(mismatched_registry)
         .build();
-    let error = recovered.recover(plan).unwrap_err();
+    let error = recovered.durability_authority().recover(plan).unwrap_err();
 
     assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
 }
@@ -65,12 +65,12 @@ fn durability_contract_failure_missing_parent_chain_is_explicit() {
     let parent = create_entity_outcome(&mut runtime, "main-a");
     let child = create_entity_outcome(&mut runtime, "main-b");
     let child_envelope = runtime
-        .canonical_commit_envelope(child.commit.commit_id)
+        .replay_access().canonical_commit_envelope(child.commit.commit_id)
         .cloned()
         .unwrap();
     let corrupt_plan = RecoveryPlan {
         config: runtime.config().clone(),
-        store: runtime.config().durability.store_layout.clone().map(|layout| {
+        store: runtime.config().durability.policy.store_layout.clone().map(|layout| {
             crate::facade::DurableStore {
                 layout,
                 segments: Vec::new(),
@@ -100,7 +100,7 @@ fn durability_contract_failure_missing_parent_chain_is_explicit() {
         },
     };
     let mut recovered = runtime_with_test_schema();
-    let error = recovered.recover(corrupt_plan).unwrap_err();
+    let error = recovered.durability_authority().recover(corrupt_plan).unwrap_err();
 
     assert_eq!(parent.commit.commit_id.0, 1);
     assert_eq!(error.class, RecoveryFailureClass::MissingParentChain);
@@ -111,7 +111,7 @@ fn durability_contract_recovery_preserves_merge_parent_order() {
     let mut runtime = persisted_runtime_with_test_schema();
     let main = create_entity_outcome(&mut runtime, "main");
     runtime
-        .create_branch(
+        .history_authority().create_branch(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -123,10 +123,11 @@ fn durability_contract_recovery_preserves_merge_parent_order() {
         BranchId("main".to_string()),
         vec![BranchId("feature".to_string())],
     );
-    let plan = runtime.recovery_plan();
+    let plan = runtime.durability_access().recovery_plan();
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.recover(plan).unwrap();
-    let recovered_merge = recovered
+    recovered.durability_authority().recover(plan).unwrap();
+    let replay = recovered.replay_access();
+    let recovered_merge = replay
         .canonical_commit_envelope(merge.commit.commit_id)
         .unwrap();
 
@@ -148,21 +149,21 @@ fn durability_contract_recovery_preserves_merge_parent_order() {
 fn durability_contract_checkpoint_tail_recovery_preserves_post_checkpoint_commits() {
     let mut runtime = persisted_runtime_with_test_schema();
     let main = create_entity_outcome(&mut runtime, "main-a");
-    let _checkpoint = runtime.checkpoint().unwrap();
+    let _checkpoint = runtime.durability_authority().checkpoint().unwrap();
     let later = create_entity_outcome(&mut runtime, "main-b");
-    let plan = runtime.recovery_plan();
+    let plan = runtime.durability_access().recovery_plan();
     let mut recovered = persisted_runtime_with_test_schema();
-    let outcome = recovered.recover(plan).unwrap();
+    let outcome = recovered.durability_authority().recover(plan).unwrap();
 
     assert_eq!(outcome.recovered_commits, 2);
     assert_eq!(outcome.latest_commit, Some(later.commit.clone()));
     assert_eq!(
-        recovered.branch_head(&BranchId("main".to_string())),
+        recovered.history_access().branch_head(&BranchId("main".to_string())),
         Some(&later.commit)
     );
     assert_eq!(
         recovered
-            .canonical_commit_envelope(main.commit.commit_id)
+            .replay_access().canonical_commit_envelope(main.commit.commit_id)
             .unwrap()
             .commit
             .commit_id,
@@ -174,7 +175,7 @@ fn durability_contract_checkpoint_tail_recovery_preserves_post_checkpoint_commit
 fn durability_contract_checkpoint_recovers_index_metadata() {
     let mut runtime = persisted_runtime_with_test_schema();
     let commit = create_entity_outcome(&mut runtime, "indexed");
-    let index = runtime.register_index(DerivedIndexDefinition {
+    let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: crate::facade::DerivedIndexId(0),
         name: "entity-name".to_string(),
         kind: DerivedIndexKind::EntityPayloadField {
@@ -182,18 +183,19 @@ fn durability_contract_checkpoint_recovers_index_metadata() {
         },
         branch_scoped: false,
     });
-    let build = runtime.build_indexes_for_commit(DerivedIndexBuildRequest {
+    let build = runtime.index_authority().build_for_commit(DerivedIndexBuildRequest {
         source_commit_id: commit.commit.commit_id,
         branch_id: BranchId("main".to_string()),
         index_ids: vec![index.index_id],
     });
-    runtime.checkpoint().unwrap();
-    let plan = runtime.recovery_plan();
+    runtime.durability_authority().checkpoint().unwrap();
+    let plan = runtime.durability_access().recovery_plan();
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.recover(plan).unwrap();
+    recovered.durability_authority().recover(plan).unwrap();
 
-    let generation = recovered
-        .latest_index_generation(index.index_id, &BranchId("main".to_string()))
+    let index_access = recovered.index_access();
+    let generation = index_access
+        .latest_generation(index.index_id, &BranchId("main".to_string()))
         .unwrap();
     assert_eq!(generation.generation_id, build.generations[0].generation_id);
     assert_eq!(generation.source_commit_id, commit.commit.commit_id);
@@ -205,27 +207,30 @@ fn durability_contract_checkpoint_recovers_lineage_metadata() {
     let first = create_entity_outcome(&mut runtime, "first");
     let second = create_entity_outcome(&mut runtime, "second");
     let first_lineage = runtime
-        .lineage_for_record(changed_entities(&first)[0])
+        .lineage_access()
+        .for_record(changed_entities(&first)[0])
         .unwrap()
         .lineage_id;
     let second_lineage = runtime
-        .lineage_for_record(changed_entities(&second)[0])
+        .lineage_access()
+        .for_record(changed_entities(&second)[0])
         .unwrap()
         .lineage_id;
-    let candidate = runtime.record_correspondence_candidate(
+    let candidate = runtime.lineage_authority().record_correspondence_candidate(
         BranchId("main".to_string()),
         vec![first_lineage],
         vec![second_lineage],
         "recover-me",
     );
     runtime
+        .lineage_authority()
         .promote_correspondence(candidate.candidate_id, second.commit.clone())
         .unwrap();
-    runtime.checkpoint().unwrap();
-    let plan = runtime.recovery_plan();
+    runtime.durability_authority().checkpoint().unwrap();
+    let plan = runtime.durability_access().recovery_plan();
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.recover(plan).unwrap();
-    let graph = recovered.lineage_graph(&BranchId("main".to_string()));
+    recovered.durability_authority().recover(plan).unwrap();
+    let graph = recovered.lineage_access().graph(&BranchId("main".to_string()));
 
     assert_eq!(graph.nodes.len(), 2);
     assert!(graph
@@ -242,16 +247,16 @@ fn durability_contract_checkpoint_recovers_lineage_metadata() {
 fn durability_contract_corrupt_latest_checkpoint_falls_back_to_prior_valid_checkpoint() {
     let mut runtime = persisted_runtime_with_test_schema();
     let first = create_entity_outcome(&mut runtime, "first");
-    runtime.checkpoint().unwrap();
+    runtime.durability_authority().checkpoint().unwrap();
     let second = create_entity_outcome(&mut runtime, "second");
-    runtime.checkpoint().unwrap();
-    let store = runtime.recovery_plan().store.unwrap();
+    runtime.durability_authority().checkpoint().unwrap();
+    let store = runtime.durability_access().recovery_plan().store.unwrap();
     let latest_checkpoint = store.checkpoints.last().unwrap();
     std::fs::write(&latest_checkpoint.path, b"{not-json").unwrap();
 
-    let plan = runtime.recovery_plan();
+    let plan = runtime.durability_access().recovery_plan();
     let mut recovered = persisted_runtime_with_test_schema();
-    let outcome = recovered.recover(plan).unwrap();
+    let outcome = recovered.durability_authority().recover(plan).unwrap();
 
     assert_eq!(outcome.latest_commit, Some(second.commit.clone()));
     assert!(!outcome
@@ -259,11 +264,11 @@ fn durability_contract_corrupt_latest_checkpoint_falls_back_to_prior_valid_check
         .skipped_corrupt_checkpoints
         .is_empty());
     assert_eq!(
-        recovered.branch_head(&BranchId("main".to_string())),
+        recovered.history_access().branch_head(&BranchId("main".to_string())),
         Some(&second.commit)
     );
     assert!(recovered
-        .canonical_commit_envelope(first.commit.commit_id)
+        .replay_access().canonical_commit_envelope(first.commit.commit_id)
         .is_some());
 }
 
@@ -272,12 +277,12 @@ fn durability_contract_compaction_only_removes_segments_covered_by_checkpoint() 
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "a");
     create_entity_outcome(&mut runtime, "b");
-    runtime.checkpoint().unwrap();
+    runtime.durability_authority().checkpoint().unwrap();
     create_entity_outcome(&mut runtime, "c");
-    let before = runtime.recovery_plan().store.unwrap();
+    let before = runtime.durability_access().recovery_plan().store.unwrap();
 
-    let compaction = runtime.compact_store().unwrap();
-    let after = runtime.recovery_plan().store.unwrap();
+    let compaction = runtime.durability_authority().compact_store().unwrap();
+    let after = runtime.durability_access().recovery_plan().store.unwrap();
 
     assert!(!before.segments.is_empty());
     assert!(after.segments.len() <= before.segments.len());
@@ -293,18 +298,18 @@ fn durability_contract_recovery_rebuilds_branch_pinned_retention_from_branch_hea
     let target_entity = changed_entities(&target)[0];
     let _relation = create_relation_outcome(&mut runtime, source_entity, target_entity, "r1");
     runtime
-        .create_branch(
+        .history_authority().create_branch(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
         .unwrap();
     let _deleted = delete_entity(&mut runtime, source_entity);
-    runtime.checkpoint().unwrap();
-    let plan = runtime.recovery_plan();
+    runtime.durability_authority().checkpoint().unwrap();
+    let plan = runtime.durability_access().recovery_plan();
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.recover(plan).unwrap();
+    recovered.durability_authority().recover(plan).unwrap();
 
-    let retention = recovered.inspect_retention_plan();
+    let retention = recovered.retention_access().inspect_plan();
     assert_eq!(retention.active_snapshot_count, 0);
     assert!(retention.branch_pinned_entities >= 1);
     assert!(retention.branch_pinned_relations >= 1);
@@ -333,5 +338,5 @@ fn durability_contract_persisted_commit_fails_closed_when_store_path_is_not_dire
         error,
         crate::facade::TransactionCommitError::Publication(_)
     ));
-    assert!(runtime.latest_commit().is_none());
+    assert!(runtime.history_access().latest_commit().is_none());
 }

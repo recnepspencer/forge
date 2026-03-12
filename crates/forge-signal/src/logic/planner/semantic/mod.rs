@@ -6,8 +6,10 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
+use crate::data::output::MemoizedResultOrigin;
 use crate::data::trace::TraceSummary;
 use crate::diagnostics::recorder::record_lineage_transition;
+use crate::logic::evaluation::EvaluationVerdict;
 use crate::logic::explain::RewiringSummary;
 
 use self::artifacts::record_semantic_artifacts;
@@ -15,9 +17,8 @@ use self::reporting::record_semantic_update;
 use super::reporting::classify_task_record;
 use super::types::{
     EvaluationTask, ExecutionRecordId, ExecutionReport, SemanticSegmentId, SemanticTaskRange,
-    StageExecutionRecord, TaskExecutionRecord,
+    StageExecutionRecord,
 };
-use crate::logic::prepared::{PreparedEvaluationOrigin, PreparedEvaluationOutcome};
 
 #[derive(Debug, Clone, Copy)]
 pub(in crate::logic::planner) struct StageSemanticIdentity {
@@ -37,8 +38,8 @@ pub(super) struct SemanticTaskUpdate {
     pub recomputed: bool,
     pub partition_aware: bool,
     pub rewiring: Option<RewiringSummary>,
-    pub prepared_outcome: PreparedEvaluationOutcome,
-    pub prepared_origin: PreparedEvaluationOrigin,
+    pub verdict: EvaluationVerdict,
+    pub memoized_origin: MemoizedResultOrigin,
 }
 
 #[derive(Debug, Clone)]
@@ -159,8 +160,8 @@ pub(super) fn finalize_stage_batch(
                 update.after_state,
                 update.before_trace.as_ref(),
                 graph.get_entry(update.node)?.get_trace_summary(),
-                update.prepared_outcome,
-                update.prepared_origin,
+                update.verdict.clone(),
+                update.memoized_origin,
             );
             record_semantic_update(graph, report, &task_record, &update);
             task_records.push(task_record);
@@ -185,11 +186,4 @@ fn stamp_trace_summary(
     summary.semantic_segment_id = Some(segment_id.0);
     graph.get_entry_mut(node)?.set_trace_summary(Some(summary));
     Ok(())
-}
-
-#[allow(dead_code)]
-fn _assert_task_records_are_sorted(records: &[TaskExecutionRecord]) -> bool {
-    records
-        .windows(2)
-        .all(|window| window[0].id.0 <= window[1].id.0)
 }

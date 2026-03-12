@@ -1,6 +1,6 @@
 use crate::capabilities::StorageRead;
 use crate::identity::data::{EntityId, RelationId};
-use crate::storage::logic::state::{EntityRecordKind, RecordId, RecordKind, RelationRecordKind};
+use crate::storage::logic::state::{EntityRecordKind, RecordKind, RelationRecordKind};
 
 pub(super) fn entity_exists_in_state(state: &impl StorageRead, entity_id: EntityId) -> bool {
     record_exists_in_state::<EntityRecordKind>(state, entity_id)
@@ -18,7 +18,7 @@ fn record_exists_in_state<K: RecordKind>(
     record_id: K::Id,
 ) -> bool {
     state
-        .get_partition(record_id.partition_id())
+        .get_partition(K::partition_of(&record_id))
         .and_then(|partition| K::arena(partition).get(&record_id))
         .is_some_and(|slot| slot.is_live())
 }

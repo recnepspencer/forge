@@ -8,7 +8,7 @@ use crate::authority::commit::phases::invariants::{
 };
 use crate::authority::commit::phases::mutation::run_authoritative_mutation;
 use crate::authority::commit::phases::prepare::{
-    prepare_draft_scope, record_preparation_counters,
+    prepare_working_state_scope, record_preparation_counters,
 };
 use crate::authority::commit::phases::publication::{
     append_durable_commit,
@@ -33,14 +33,14 @@ impl<'a> RelationalTransaction<'a> {
     /// Any failure before publication discards the touched-partition overlay without making the
     /// commit visible.
     pub fn commit(mut self) -> Result<CommitOutcome, TransactionCommitError> {
-        let prepared = prepare_draft_scope(&mut self)?;
+        let prepared = prepare_working_state_scope(&mut self)?;
         let planning_state = prepared.planning_state;
         let merged_plan = prepared.merged_plan;
-        let mut draft = prepared.draft;
-        record_preparation_counters(self.runtime, &draft, &planning_state, &merged_plan);
+        let mut working_state = prepared.working_state;
+        record_preparation_counters(self.runtime, &working_state, &planning_state, &merged_plan);
         run_commit_boundary_invariants(self.runtime, &merged_plan)?;
 
-        let mutation = run_authoritative_mutation(&mut self, &mut draft, &merged_plan)?;
+        let mutation = run_authoritative_mutation(&mut self, &mut working_state, &merged_plan)?;
         let version_id = mutation.version_id;
         let effect = mutation.effect;
 
@@ -51,7 +51,7 @@ impl<'a> RelationalTransaction<'a> {
         let merge_base_commits = history.merge_base_commits.clone();
 
         {
-            let overlay_state = self.runtime.overlay_state_view(&draft);
+            let overlay_state = self.runtime.overlay_state_view(&working_state);
             if let Err(error) =
                 run_snapshot_publication_invariants(self.runtime, &overlay_state, version_id, &merged_plan)
             {
@@ -66,7 +66,7 @@ impl<'a> RelationalTransaction<'a> {
 
         let publication = prepare_publication_artifacts(
             self.runtime,
-            &mut draft,
+            &mut working_state,
             &commit_reference,
             &branch_id,
             version_id,
@@ -85,7 +85,7 @@ impl<'a> RelationalTransaction<'a> {
 
         finalize_commit_publication(
             self.runtime,
-            draft,
+            working_state,
             FinalizeCommitInput {
                 changed_records: publication.changed_records.clone(),
                 version_id,

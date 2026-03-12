@@ -1,7 +1,5 @@
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
-use crate::data::node::NodeState;
-
 use super::super::scratch::{ScratchLeaseKind, TraversalScratch};
 use super::super::signal_graph::SignalGraph;
 
@@ -11,7 +9,7 @@ impl SignalGraph {
         self.with_scratch(ScratchLeaseKind::Churn, |graph, scratch| {
             graph.collect_retired_node_adjacency(id, scratch)?;
             graph.sever_retired_upstream_links(id, &scratch.node_buffer_a)?;
-            graph.mark_retired_downstream_dependents_dirty(&scratch.node_buffer_b)?;
+            graph.mark_retired_downstream_dependents_dirty(id, &scratch.node_buffer_b)?;
             graph.retire_node_slot(id);
             Ok(())
         })
@@ -49,11 +47,22 @@ impl SignalGraph {
 
     fn mark_retired_downstream_dependents_dirty(
         &mut self,
+        retired: NodeId,
         subscribers: &[NodeId],
     ) -> Result<(), SignalError> {
         for &subscriber in subscribers {
             if self.is_alive(subscriber) {
-                self.get_entry_mut(subscriber)?.set_state(NodeState::Dirty);
+                let dirty_dependencies = self
+                    .runtime_dependencies_of(subscriber)?
+                    .iter()
+                    .filter(|edge| edge.source() == retired)
+                    .map(|edge| (edge.aspect(), edge.scope_ref().cloned()))
+                    .collect::<Vec<_>>();
+                let entry = self.get_entry_mut(subscriber)?;
+                for (aspect, scope) in dirty_dependencies {
+                    let scopes = scope.into_iter().collect::<Vec<_>>();
+                    entry.transition_dirty(aspect, &scopes);
+                }
             }
         }
         Ok(())
@@ -61,27 +70,28 @@ impl SignalGraph {
 
     fn retire_node_slot(&mut self, id: NodeId) {
         debug_assert!(
-            !self.free_slots.contains(id.index() as usize),
+            !self.arena.free_slots.contains(id.index() as usize),
             "free list already contained slot {} before unregister",
             id.index()
         );
-        self.nodes[id.index() as usize].vacate();
-        self.active_nodes = self.active_nodes.saturating_sub(1);
-        self.record_retired_node();
-        if !self.nodes[id.index() as usize].is_retired() {
-            self.free_list.push(id.index());
-            self.free_slots.mark(id.index() as usize);
+        self.arena.nodes[id.index() as usize].vacate();
+        self.arena.active_nodes = self.arena.active_nodes.saturating_sub(1);
+        self.arena.record_retired_node();
+        if !self.arena.nodes[id.index() as usize].is_retired() {
+            self.arena.free_list.push(id.index());
+            self.arena.free_slots.mark(id.index() as usize);
         }
     }
 
     #[cfg(test)]
-    #[allow(dead_code)]
     pub(crate) fn inject_retired_dependency_for_test(
         &mut self,
         node: NodeId,
         source: NodeId,
         aspect: crate::data::aspect::Aspect,
     ) -> Result<(), SignalError> {
+        let current_sources = self.dependency_sources_of(node)?;
+        self.reconcile_subscriber_sets(node, &current_sources, &[])?;
         let edge = self.build_dependency_edge(source, aspect, None);
         self.set_dependency_edges_sorted(node, &[edge])
     }

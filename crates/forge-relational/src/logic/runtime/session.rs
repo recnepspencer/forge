@@ -1,26 +1,25 @@
-use crate::symbols::data::StringInterner;
 use crate::transactions::data::TransactionOptions;
 use crate::transactions::logic::RelationalTransaction;
 
 use std::collections::BTreeMap;
 
-use super::{RelationalRuntime, RuntimeInstrumentation, RuntimeSequenceState, SimulationState, SnapshotRegistry};
-use super::{DurabilityState, HistoryState, IndexState, LineageState, PublicationState};
+use super::RelationalRuntime;
+use crate::logic::runtime::{
+    DurabilitySubsystem, HistorySubsystem, IndexingSubsystem, LineageSubsystem,
+    PublicationSubsystem, RuntimeServices, RuntimeSubsystem, VisibilitySubsystem,
+};
 
 impl RelationalRuntime {
     pub fn new(config: super::RelationalRuntimeConfig) -> Self {
         Self {
-            history: HistoryState::new(config.main_branch.clone()),
-            indexes: IndexState::new(),
-            lineage: LineageState::new(),
-            durability: DurabilityState::new(&config),
-            sequence: RuntimeSequenceState::new(),
-            instrumentation: RuntimeInstrumentation::new(),
-            simulation: SimulationState::new(),
+            history: <HistorySubsystem as RuntimeSubsystem>::new(&config.history.main_branch),
+            indexes: <IndexingSubsystem as RuntimeSubsystem>::new(&()),
+            lineage: <LineageSubsystem as RuntimeSubsystem>::new(&()),
+            durability: <DurabilitySubsystem as RuntimeSubsystem>::new(&config),
+            services: <RuntimeServices as RuntimeSubsystem>::new(&()),
             partitions: BTreeMap::new(),
-            snapshots: SnapshotRegistry::new(&config),
-            publication: PublicationState::default(),
-            symbols: StringInterner::default(),
+            visibility: <VisibilitySubsystem as RuntimeSubsystem>::new(&config),
+            publication: <PublicationSubsystem as RuntimeSubsystem>::new(&()),
             config,
         }
     }
@@ -29,16 +28,13 @@ impl RelationalRuntime {
         Self {
             config: self.config.clone(),
             partitions: self.partitions.clone(),
-            snapshots: self.snapshots.fork(),
-            publication: self.publication.clone(),
-            history: self.history.clone(),
-            indexes: self.indexes.clone(),
-            lineage: self.lineage.clone(),
-            durability: self.durability.clone(),
-            sequence: self.sequence.clone(),
-            symbols: self.symbols.clone(),
-            instrumentation: self.instrumentation.fork(),
-            simulation: self.simulation.clone(),
+            visibility: RuntimeSubsystem::fork(&self.visibility),
+            publication: RuntimeSubsystem::fork(&self.publication),
+            history: RuntimeSubsystem::fork(&self.history),
+            indexes: RuntimeSubsystem::fork(&self.indexes),
+            lineage: RuntimeSubsystem::fork(&self.lineage),
+            durability: RuntimeSubsystem::fork(&self.durability),
+            services: RuntimeSubsystem::fork(&self.services),
         }
     }
 
@@ -46,9 +42,7 @@ impl RelationalRuntime {
         &'a mut self,
         options: TransactionOptions,
     ) -> RelationalTransaction<'a> {
-        let transaction_id =
-            crate::transactions::data::TransactionId(self.sequence.next_transaction_id);
-        self.sequence.next_transaction_id += 1;
+        let transaction_id = self.services.next_transaction_id();
         RelationalTransaction {
             runtime: self,
             transaction_id,

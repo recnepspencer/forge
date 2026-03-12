@@ -7,6 +7,8 @@ use std::thread::available_parallelism;
 use serde::{Deserialize, Serialize};
 
 use crate::data::handle::NodeId;
+use crate::data::output::MemoizedResultOrigin;
+use crate::logic::evaluation::{DeferralReason, EvaluationVerdict, SuppressionReason};
 use crate::logic::evaluation::EvaluationRequestMode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -67,6 +69,7 @@ pub struct PlanSummary {
     pub stage_count: u32,
     pub task_count: u32,
     pub max_stage_width: u32,
+    pub contract_pruned_count: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -140,11 +143,12 @@ pub struct TaskExecutionRecord {
     pub scheduled_reason: TaskReason,
     pub direct_request: bool,
     pub outcome: TaskExecutionOutcome,
+    pub verdict: Option<EvaluationVerdict>,
+    pub suppression_reason: Option<SuppressionReason>,
+    pub deferral_reason: Option<DeferralReason>,
     pub prune_reason: Option<ExecutionPruneReason>,
     pub recomputed: bool,
-    pub memoized_reuse: bool,
-    pub condition_deferred: bool,
-    pub condition_reverted_clean: bool,
+    pub memoized_origin: MemoizedResultOrigin,
     pub propagation_suppressed: bool,
 }
 
@@ -432,8 +436,12 @@ impl fmt::Display for PlanSummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "targets={} stages={} tasks={} max_stage_width={}",
-            self.requested_target_count, self.stage_count, self.task_count, self.max_stage_width
+            "targets={} stages={} tasks={} max_stage_width={} contract_pruned={}",
+            self.requested_target_count,
+            self.stage_count,
+            self.task_count,
+            self.max_stage_width,
+            self.contract_pruned_count
         )
     }
 }

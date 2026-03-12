@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
-use crate::data::aspect::{Aspect, AspectMask, AspectVersion, MAX_ASPECTS};
+use crate::data::aspect::{Aspect, AspectMask, AspectVersion, MAX_ASPECTS, PartitionVersionMap};
 use crate::data::core_profile::HOT_VEC_INLINE_CAPACITY;
 use crate::data::dependency::DependencySnapshotId;
 use crate::data::graph::{DependencySetId, SubscriberSetId};
-use crate::data::output::PartitionSubscription;
+use crate::data::output::{ChangedRegion, PartitionSubscription};
 use crate::data::trace::{CausalityMetadata, TraceSummary};
 
 use super::condition::NodeEvaluationConfig;
@@ -43,7 +43,7 @@ pub struct NodeEntry {
     #[serde(default)]
     dirty_partition_scopes:
         SmallVec<[(crate::data::aspect::Aspect, PartitionSubscription); HOT_VEC_INLINE_CAPACITY]>,
-    aspect_version: AspectVersion,
+    aspect_versions: PartitionVersionMap,
     /// Handle to graph-owned dependency edge storage.
     dependencies_id: DependencySetId,
     /// Handle to graph-owned subscriber storage.
@@ -73,7 +73,7 @@ impl NodeEntry {
             state: NodeState::Dirty,
             dirty_aspects: AspectMask::from_bits(((1u32 << MAX_ASPECTS) - 1) as _),
             dirty_partition_scopes: SmallVec::new(),
-            aspect_version: AspectVersion::zero(),
+            aspect_versions: PartitionVersionMap::zero(),
             dependencies_id: DependencySetId::EMPTY,
             subscribers_id: SubscriberSetId::EMPTY,
             dep_snapshot_id: DependencySnapshotId::EMPTY,
@@ -182,12 +182,28 @@ impl NodeEntry {
 
     /// The current aspect versions.
     pub fn get_aspect_version(&self) -> AspectVersion {
-        self.aspect_version
+        self.aspect_versions.global()
+    }
+
+    pub fn get_partitioned_aspect_version(&self, scope: &PartitionSubscription) -> AspectVersion {
+        self.aspect_versions.scoped(scope)
+    }
+
+    pub fn version_for_scope(&self, aspect: Aspect, scope: Option<&PartitionSubscription>) -> u64 {
+        self.aspect_versions.version_for_scope(aspect, scope)
     }
 
     /// Set the aspect version after evaluation.
     pub fn set_aspect_version(&mut self, version: AspectVersion) {
-        self.aspect_version = version;
+        self.aspect_versions.set_global(version);
+    }
+
+    pub fn apply_aspect_version(
+        &mut self,
+        version: AspectVersion,
+        changed_regions: &[ChangedRegion],
+    ) {
+        self.aspect_versions.apply_evaluation(version, changed_regions);
     }
 
     /// Graph-owned dependency set handle.

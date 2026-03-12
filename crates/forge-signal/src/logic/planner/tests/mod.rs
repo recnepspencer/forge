@@ -68,15 +68,15 @@ where
         ) -> Result<PreparedEvaluation, SignalError>
         + Sync,
 {
-    graph.telemetry_mut().plans_built += 1;
-    graph.telemetry_mut().stages_built += plan.stages.len() as u64;
-    graph.telemetry_mut().tasks_scheduled += plan.summary.task_count as u64;
-    graph.telemetry_mut().max_tasks_in_stage = graph
+    graph.telemetry_mut().planner.plans_built += 1;
+    graph.telemetry_mut().planner.stages_built += plan.stages.len() as u64;
+    graph.telemetry_mut().planner.tasks_scheduled += plan.summary.task_count as u64;
+    graph.telemetry_mut().execution.max_tasks_in_stage = graph
         .telemetry()
-        .max_tasks_in_stage
+        .execution.max_tasks_in_stage
         .max(plan.summary.max_stage_width as u64);
-    graph.telemetry_mut().serial_executor_usage_count += 1;
-    graph.telemetry_mut().maybe_stale_validation_tasks += plan
+    graph.telemetry_mut().execution.serial_executor_usage_count += 1;
+    graph.telemetry_mut().planner.maybe_stale_validation_tasks += plan
         .stages
         .iter()
         .flat_map(|stage| &stage.tasks)
@@ -89,7 +89,7 @@ where
     for stage in &plan.stages {
         let stage_start = std::time::Instant::now();
         let snapshot_start = std::time::Instant::now();
-        graph.telemetry_mut().execution_snapshots_built += 1;
+        graph.telemetry_mut().execution.execution_snapshots_built += 1;
         let mut prepared_tasks = Vec::with_capacity(stage.tasks.len());
         let mut precompute_telemetry = TestPrecomputeTelemetry::default();
         let precompute_start = std::time::Instant::now();
@@ -111,10 +111,10 @@ where
         apply_test_precompute_telemetry(graph, &precompute_telemetry);
         let snapshot_nanos = snapshot_start.elapsed().as_nanos();
         let precompute_nanos = precompute_start.elapsed().as_nanos();
-        graph.telemetry_mut().execution_snapshot_nanos += snapshot_nanos;
-        graph.telemetry_mut().stage_precompute_nanos += precompute_nanos;
-        graph.telemetry_mut().prepared_evaluations_produced += prepared_tasks.len() as u64;
-        graph.telemetry_mut().serial_precompute_task_count += prepared_tasks.len() as u64;
+        graph.telemetry_mut().execution.execution_snapshot_nanos += snapshot_nanos;
+        graph.telemetry_mut().execution.stage_precompute_nanos += precompute_nanos;
+        graph.telemetry_mut().execution.prepared_evaluations_produced += prepared_tasks.len() as u64;
+        graph.telemetry_mut().execution.serial_precompute_task_count += prepared_tasks.len() as u64;
         report.execution_snapshots_built += 1;
         report.execution_snapshot_nanos += snapshot_nanos;
         report.prepared_evaluations_produced += prepared_tasks.len() as u32;
@@ -152,9 +152,7 @@ where
             next_record_id += 1;
             let before_state = graph.get_state(task.node)?;
             let before_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
-            let prepared_outcome = prepared.outcome;
-            let prepared_origin = prepared.origin;
-            let dependency_updates =
+            let apply_result =
                 crate::logic::evaluation::apply_prepared_evaluation_with_policy(
                     graph,
                     task.node,
@@ -192,24 +190,28 @@ where
                 after_state,
                 before_trace.as_ref(),
                 after_trace.as_ref(),
-                prepared_outcome,
-                prepared_origin,
+                apply_result.report.verdict.clone(),
+                after_trace
+                    .as_ref()
+                    .map(|trace| trace.memoized_origin)
+                    .unwrap_or(crate::data::output::MemoizedResultOrigin::DirectCompute),
             );
             accumulate_report_counters(&mut report, &task_record);
             stage_record.task_records.push(task_record);
-            graph.telemetry_mut().prepared_evaluations_applied += 1;
-            graph.telemetry_mut().dependency_capture_updates += dependency_updates as u64;
+            graph.telemetry_mut().execution.prepared_evaluations_applied += 1;
+            graph.telemetry_mut().execution.dependency_capture_updates +=
+                apply_result.dependency_updates as u64;
             report.prepared_evaluations_applied += 1;
-            report.dependency_capture_updates += dependency_updates;
+            report.dependency_capture_updates += apply_result.dependency_updates;
         }
 
         stage_record.apply_duration_nanos = apply_start.elapsed().as_nanos();
         stage_record.duration_nanos = stage_start.elapsed().as_nanos();
         report.stage_apply_nanos += stage_record.apply_duration_nanos;
         report.semantic_finalize_nanos += stage_record.semantic_finalize_duration_nanos;
-        graph.telemetry_mut().stage_apply_nanos += stage_record.apply_duration_nanos;
-        graph.telemetry_mut().stage_execution_count += 1;
-        graph.telemetry_mut().stage_execution_nanos += stage_record.duration_nanos;
+        graph.telemetry_mut().execution.stage_apply_nanos += stage_record.apply_duration_nanos;
+        graph.telemetry_mut().execution.stage_execution_count += 1;
+        graph.telemetry_mut().execution.stage_execution_nanos += stage_record.duration_nanos;
         report.stages.push(stage_record);
     }
 
@@ -232,20 +234,20 @@ where
     F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
     O: crate::data::output::IntoNodeEvaluationResult,
 {
-    graph.telemetry_mut().plans_built += 1;
-    graph.telemetry_mut().stages_built += plan.stages.len() as u64;
-    graph.telemetry_mut().tasks_scheduled += plan.summary.task_count as u64;
-    graph.telemetry_mut().max_tasks_in_stage = graph
+    graph.telemetry_mut().planner.plans_built += 1;
+    graph.telemetry_mut().planner.stages_built += plan.stages.len() as u64;
+    graph.telemetry_mut().planner.tasks_scheduled += plan.summary.task_count as u64;
+    graph.telemetry_mut().execution.max_tasks_in_stage = graph
         .telemetry()
-        .max_tasks_in_stage
+        .execution.max_tasks_in_stage
         .max(plan.summary.max_stage_width as u64);
-    graph.telemetry_mut().serial_executor_usage_count += 1;
-    graph.telemetry_mut().evaluation_calls += 1;
-    graph.telemetry_mut().evaluation_stack_peak = graph
+    graph.telemetry_mut().execution.serial_executor_usage_count += 1;
+    graph.telemetry_mut().evaluation.evaluation_calls += 1;
+    graph.telemetry_mut().evaluation.evaluation_stack_peak = graph
         .telemetry()
-        .evaluation_stack_peak
+        .evaluation.evaluation_stack_peak
         .max(plan.summary.task_count as u64);
-    graph.telemetry_mut().maybe_stale_validation_tasks += plan
+    graph.telemetry_mut().planner.maybe_stale_validation_tasks += plan
         .stages
         .iter()
         .flat_map(|stage| &stage.tasks)
@@ -258,7 +260,7 @@ where
     for stage in &plan.stages {
         let stage_start = std::time::Instant::now();
         let snapshot_start = std::time::Instant::now();
-        graph.telemetry_mut().execution_snapshots_built += 1;
+        graph.telemetry_mut().execution.execution_snapshots_built += 1;
         let mut prepared_tasks = Vec::with_capacity(stage.tasks.len());
         let mut precompute_telemetry = TestPrecomputeTelemetry::default();
         let precompute_start = std::time::Instant::now();
@@ -280,10 +282,10 @@ where
         apply_test_precompute_telemetry(graph, &precompute_telemetry);
         let snapshot_nanos = snapshot_start.elapsed().as_nanos();
         let precompute_nanos = precompute_start.elapsed().as_nanos();
-        graph.telemetry_mut().execution_snapshot_nanos += snapshot_nanos;
-        graph.telemetry_mut().stage_precompute_nanos += precompute_nanos;
-        graph.telemetry_mut().prepared_evaluations_produced += prepared_tasks.len() as u64;
-        graph.telemetry_mut().serial_precompute_task_count += prepared_tasks.len() as u64;
+        graph.telemetry_mut().execution.execution_snapshot_nanos += snapshot_nanos;
+        graph.telemetry_mut().execution.stage_precompute_nanos += precompute_nanos;
+        graph.telemetry_mut().execution.prepared_evaluations_produced += prepared_tasks.len() as u64;
+        graph.telemetry_mut().execution.serial_precompute_task_count += prepared_tasks.len() as u64;
         report.execution_snapshots_built += 1;
         report.execution_snapshot_nanos += snapshot_nanos;
         report.prepared_evaluations_produced += prepared_tasks.len() as u32;
@@ -321,9 +323,7 @@ where
             next_record_id += 1;
             let before_state = graph.get_state(task.node)?;
             let before_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
-            let prepared_outcome = prepared.outcome;
-            let prepared_origin = prepared.origin;
-            let dependency_updates =
+            let apply_result =
                 crate::logic::evaluation::apply_prepared_evaluation_with_policy(
                     graph,
                     task.node,
@@ -361,24 +361,28 @@ where
                 after_state,
                 before_trace.as_ref(),
                 after_trace.as_ref(),
-                prepared_outcome,
-                prepared_origin,
+                apply_result.report.verdict.clone(),
+                after_trace
+                    .as_ref()
+                    .map(|trace| trace.memoized_origin)
+                    .unwrap_or(crate::data::output::MemoizedResultOrigin::DirectCompute),
             );
             accumulate_report_counters(&mut report, &task_record);
             stage_record.task_records.push(task_record);
-            graph.telemetry_mut().prepared_evaluations_applied += 1;
-            graph.telemetry_mut().dependency_capture_updates += dependency_updates as u64;
+            graph.telemetry_mut().execution.prepared_evaluations_applied += 1;
+            graph.telemetry_mut().execution.dependency_capture_updates +=
+                apply_result.dependency_updates as u64;
             report.prepared_evaluations_applied += 1;
-            report.dependency_capture_updates += dependency_updates;
+            report.dependency_capture_updates += apply_result.dependency_updates;
         }
 
         stage_record.apply_duration_nanos = apply_start.elapsed().as_nanos();
         stage_record.duration_nanos = stage_start.elapsed().as_nanos();
         report.stage_apply_nanos += stage_record.apply_duration_nanos;
         report.semantic_finalize_nanos += stage_record.semantic_finalize_duration_nanos;
-        graph.telemetry_mut().stage_apply_nanos += stage_record.apply_duration_nanos;
-        graph.telemetry_mut().stage_execution_count += 1;
-        graph.telemetry_mut().stage_execution_nanos += stage_record.duration_nanos;
+        graph.telemetry_mut().execution.stage_apply_nanos += stage_record.apply_duration_nanos;
+        graph.telemetry_mut().execution.stage_execution_count += 1;
+        graph.telemetry_mut().execution.stage_execution_nanos += stage_record.duration_nanos;
         report.stages.push(stage_record);
     }
 

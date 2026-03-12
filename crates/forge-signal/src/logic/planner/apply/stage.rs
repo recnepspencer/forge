@@ -3,9 +3,9 @@ use std::time::Instant;
 use crate::data::comparator::ComparatorPolicyResolver;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
+use crate::data::output::MemoizedResultOrigin;
 use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::logic::evaluation::apply_prepared_evaluation_with_policy;
-use crate::logic::prepared::{PreparedEvaluationOrigin, PreparedEvaluationOutcome};
 
 use super::super::execution::task_reporting::record_execution_failure;
 use super::super::execution::StageSlice;
@@ -44,23 +44,49 @@ where
         + Sync,
     R: ComparatorPolicyResolver,
 {
+    dispatch_stage_apply(
+        graph,
+        summary,
+        stage,
+        precomputed,
+        comparator_resolver,
+        executor,
+        stage_identities,
+        report,
+        stage_record,
+    )
+}
+
+fn dispatch_stage_apply<R>(
+    graph: &mut SignalGraph,
+    summary: &PlanSummary,
+    stage: &StageSlice<'_>,
+    precomputed: StagePrecomputeResult,
+    comparator_resolver: &mut R,
+    executor: StageExecutor,
+    stage_identities: &[StageSemanticIdentity],
+    report: &mut ExecutionReport,
+    stage_record: &mut StageExecutionRecord,
+) -> Result<(), SignalError>
+where
+    R: ComparatorPolicyResolver,
+{
     #[cfg(feature = "parallel")]
     if executor.is_full_parallel() && precomputed.parallel_admission.use_parallel {
-        return apply_full_parallel_stage(
+        return dispatch_stage_apply_parallel(
             graph,
-            stage.index,
-            stage.tasks,
-            precomputed.execution.into_patches(stage.tasks),
+            summary,
+            stage,
+            precomputed,
             comparator_resolver,
             executor,
-            summary,
             stage_identities,
             report,
             stage_record,
         );
     }
 
-    apply_stage_serially(
+    dispatch_stage_apply_serial(
         graph,
         summary,
         stage,
@@ -73,8 +99,37 @@ where
     )
 }
 
+#[cfg(feature = "parallel")]
+fn dispatch_stage_apply_parallel<R>(
+    graph: &mut SignalGraph,
+    summary: &PlanSummary,
+    stage: &StageSlice<'_>,
+    precomputed: StagePrecomputeResult,
+    comparator_resolver: &mut R,
+    executor: StageExecutor,
+    stage_identities: &[StageSemanticIdentity],
+    report: &mut ExecutionReport,
+    stage_record: &mut StageExecutionRecord,
+) -> Result<(), SignalError>
+where
+    R: ComparatorPolicyResolver,
+{
+    apply_full_parallel_stage(
+        graph,
+        stage.index,
+        stage.tasks,
+        precomputed.execution.into_patches(stage.tasks),
+        comparator_resolver,
+        executor,
+        summary,
+        stage_identities,
+        report,
+        stage_record,
+    )
+}
+
 #[allow(clippy::too_many_arguments)]
-pub(in crate::logic::planner) fn apply_stage_serially(
+pub(in crate::logic::planner) fn dispatch_stage_apply_serial(
     graph: &mut SignalGraph,
     summary: &PlanSummary,
     stage: &StageSlice<'_>,
@@ -142,15 +197,11 @@ fn apply_stage_patch(
     stage_identities: &[StageSemanticIdentity],
 ) -> Result<SemanticTaskUpdate, SignalError> {
     let identity = stage_identities[patch.task_index];
-    let recomputed = matches!(patch.prepared.outcome, PreparedEvaluationOutcome::Evaluate)
-        && !matches!(patch.prepared.origin, PreparedEvaluationOrigin::MemoizedReuse);
-    let prepared_outcome = patch.prepared.outcome;
-    let prepared_origin = patch.prepared.origin;
     let partition_aware = !patch.prepared.result.changed_regions.is_empty();
     let before_state = graph.get_state(patch.node)?;
     let before_trace = graph.get_entry(patch.node)?.get_trace_summary().cloned();
     let rewiring = rewiring_summary_from_capture(graph, patch.node, &patch.prepared.dependencies)?;
-    let dependency_updates = apply_prepared_evaluation_with_policy(
+    let apply_result = apply_prepared_evaluation_with_policy(
         graph,
         patch.node,
         patch.prepared,
@@ -173,6 +224,11 @@ fn apply_stage_patch(
         err
     })?;
     let after_state = graph.get_state(patch.node)?;
+    let memoized_origin = graph
+        .get_entry(patch.node)?
+        .get_trace_summary()
+        .map(|trace| trace.memoized_origin)
+        .unwrap_or(MemoizedResultOrigin::DirectCompute);
     Ok(SemanticTaskUpdate {
         task_index: patch.task_index,
         node: patch.node,
@@ -180,11 +236,14 @@ fn apply_stage_patch(
         before_state,
         before_trace,
         after_state,
-        dependency_updates,
-        recomputed,
+        dependency_updates: apply_result.dependency_updates,
+        recomputed: matches!(
+            apply_result.report.verdict,
+            crate::logic::evaluation::EvaluationVerdict::Recomputed
+        ),
         partition_aware,
         rewiring,
-        prepared_outcome,
-        prepared_origin,
+        verdict: apply_result.report.verdict,
+        memoized_origin,
     })
 }

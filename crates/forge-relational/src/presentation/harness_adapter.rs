@@ -9,15 +9,14 @@ use forge_harness::facade::{
 };
 use serde_json::json;
 
-use crate::facade::{PartitionId, RelationalRuntime, RelationalRuntimeApi};
-use crate::payloads::data::RecordPayload;
 use crate::query::data::QueryWorkPacket;
-use crate::symbols::data::InternedString;
-use crate::transactions::data::{RecordRef, TransactionIntent, TransactionOptions, WorkerIntentBatch};
+use crate::transactions::data::{RecordRef, TransactionOptions};
+use crate::facade::{RelationalRuntime, RelationalRuntimeApi, WorkerIntentBatch};
 
 use super::harness_data::{
-    RelationalFixture, RelationalHarnessAdapter, RelationalHarnessError, RelationalMutation,
+    RelationalFixture, RelationalHarnessAdapter, RelationalHarnessError,
 };
+use super::harness_batches::{entity_fixture_batch, relation_fixture_batch};
 use super::harness_targets::{
     commit_error_to_harness_error, default_harness_schema_registry, parse_target, resolve_targets,
 };
@@ -25,7 +24,7 @@ use super::harness_targets::{
 impl HarnessAdapter for RelationalHarnessAdapter {
     type Runtime = RelationalRuntime;
     type Fixture = RelationalFixture;
-    type Mutation = RelationalMutation;
+    type Mutation = WorkerIntentBatch;
     type TargetId = String;
     type Error = RelationalHarnessError;
 
@@ -71,18 +70,7 @@ impl HarnessAdapter for RelationalHarnessAdapter {
             return Ok(());
         }
         let mut txn = runtime.begin_transaction(TransactionOptions::default());
-        let mut batch = WorkerIntentBatch::new("fixture");
-        for entity in &fixture.fixture.entities {
-            batch.intents.push(TransactionIntent::CreateEntity(
-                crate::transactions::data::EntitySpec {
-                    partition_id: PartitionId::main(),
-                    kind_id: entity.kind_id,
-                    client_key: InternedString::Raw(entity.client_key.clone()),
-                    payload: RecordPayload::StructuredJson(entity.payload.clone()),
-                },
-            ));
-        }
-        txn.push_batch(batch);
+        txn.push_batch(entity_fixture_batch(&fixture.fixture.entities));
         let outcome = txn.commit().map_err(commit_error_to_harness_error)?;
         let entity_ids = outcome
             .changed_records
@@ -94,34 +82,7 @@ impl HarnessAdapter for RelationalHarnessAdapter {
             .collect::<Vec<_>>();
         if !fixture.fixture.relations.is_empty() {
             let mut relation_txn = runtime.begin_transaction(TransactionOptions::default());
-            let mut relation_batch = WorkerIntentBatch::new("fixture-relations");
-            for relation in &fixture.fixture.relations {
-                let source = entity_ids
-                    .get(relation.source_slot as usize)
-                    .copied()
-                    .ok_or_else(|| {
-                        RelationalHarnessError("fixture relation source is missing".to_string())
-                    })?;
-                let target = entity_ids
-                    .get(relation.target_slot as usize)
-                    .copied()
-                    .ok_or_else(|| {
-                        RelationalHarnessError("fixture relation target is missing".to_string())
-                    })?;
-                relation_batch
-                    .intents
-                    .push(TransactionIntent::CreateRelation(
-                        crate::transactions::data::RelationSpec {
-                            partition_id: PartitionId::main(),
-                            kind_id: relation.kind_id,
-                            client_key: InternedString::Raw(relation.client_key.clone()),
-                            source,
-                            target,
-                            payload: Some(RecordPayload::StructuredJson(relation.payload.clone())),
-                        },
-                    ));
-            }
-            relation_txn.push_batch(relation_batch);
+            relation_txn.push_batch(relation_fixture_batch(&fixture.fixture.relations, &entity_ids)?);
             relation_txn
                 .commit()
                 .map_err(commit_error_to_harness_error)?;
@@ -136,9 +97,7 @@ impl HarnessAdapter for RelationalHarnessAdapter {
     ) -> Result<(), Self::Error> {
         let mut txn = runtime.begin_transaction(TransactionOptions::default());
         for operation in &batch.operations {
-            match operation {
-                RelationalMutation::Batch(worker_batch) => txn.push_batch(worker_batch.clone()),
-            }
+            txn.push_batch(operation.clone());
         }
         txn.commit().map_err(commit_error_to_harness_error)?;
         Ok(())
@@ -153,8 +112,8 @@ impl HarnessAdapter for RelationalHarnessAdapter {
     ) -> Result<RunRecord<Self::TargetId>, Self::Error> {
         let scenario_id_value = forge_harness::facade::scenario_id(&fixture.name);
         let run_id_value = run_id(&scenario_id_value, &profile.name, &request.name);
-        let snapshot = runtime.snapshot();
-        let mut read_view = runtime.read_version(snapshot.version_id);
+        let snapshot = runtime.snapshot_access().snapshot();
+        let mut read_view = runtime.visibility_reads().read_version(snapshot.version_id);
         read_view.snapshot = snapshot.clone();
         let targets = resolve_targets(request);
         let packet = QueryWorkPacket::bulk(
@@ -198,11 +157,13 @@ impl HarnessAdapter for RelationalHarnessAdapter {
             extensions: BTreeMap::from([
                 (
                     "relational_patch".to_string(),
-                    serde_json::to_value(runtime.latest_patch()).unwrap_or_else(|_| json!(null)),
+                    serde_json::to_value(runtime.publication_access().latest_patch())
+                        .unwrap_or_else(|_| json!(null)),
                 ),
                 (
                     "relational_replay".to_string(),
-                    serde_json::to_value(runtime.latest_replay()).unwrap_or_else(|_| json!(null)),
+                    serde_json::to_value(runtime.publication_access().latest_replay())
+                        .unwrap_or_else(|_| json!(null)),
                 ),
             ]),
         })
@@ -218,8 +179,8 @@ impl HarnessAdapter for RelationalHarnessAdapter {
         let scenario_id_value = forge_harness::facade::scenario_id(&fixture.name);
         let run_id_value = run_id(&scenario_id_value, &profile.name, &request.name);
         let mut clone = runtime.fork();
-        let snapshot = clone.snapshot();
-        let mut read_view = clone.read_version(snapshot.version_id);
+        let snapshot = clone.snapshot_access().snapshot();
+        let mut read_view = clone.visibility_reads().read_version(snapshot.version_id);
         read_view.snapshot = snapshot.clone();
         let observations = resolve_targets(request)
             .into_iter()
@@ -277,7 +238,8 @@ impl DiagnosticsHarnessAdapter for RelationalHarnessAdapter {
             level: profile.diagnostics_level,
             time_marker: profile.time_marker.clone(),
             attachments: Vec::new(),
-            summary: serde_json::to_value(runtime.diagnostics()).unwrap_or_else(|_| json!({})),
+            summary: serde_json::to_value(runtime.publication_access().diagnostics())
+                .unwrap_or_else(|_| json!({})),
             extensions: BTreeMap::new(),
         })
     }
@@ -291,6 +253,7 @@ impl ReplayHarnessAdapter for RelationalHarnessAdapter {
         replay: &ReplayRequest<Self::TargetId>,
     ) -> Result<ReplayRecord<Self::TargetId>, Self::Error> {
         let latest_replay = runtime
+            .publication_access()
             .latest_replay()
             .cloned()
             .ok_or_else(|| RelationalHarnessError("no replay artifact available".to_string()))?;

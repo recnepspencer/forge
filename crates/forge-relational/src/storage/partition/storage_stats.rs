@@ -50,11 +50,6 @@ impl RelationalRuntime {
             relation_counts.deleted += counts.deleted;
             relation_counts.reusable += counts.reusable;
         }
-        let residency = self
-            .snapshots
-            .visibility_residency
-            .read()
-            .expect("visibility residency lock poisoned");
         StorageStats {
             entity_slots: self.entity_slot_count(),
             entity_chunks: chunked_summary.entity_chunks.len(),
@@ -66,28 +61,11 @@ impl RelationalRuntime {
             live_relations: relation_counts.live,
             deleted_relations: relation_counts.deleted,
             reusable_relation_slots: relation_counts.reusable,
-            snapshot_count: self.snapshots.active.len(),
-            published_snapshot_handle_count: self.snapshots.published_handles.len(),
-            cached_visibility_version_count: self
-                .snapshots
-                .visibility_states
-                .read()
-                .expect("visibility state lock poisoned")
-                .len(),
-            protected_visibility_version_count: residency
-                .values()
-                .filter(|entry| {
-                    entry.branch_head_refs > 0
-                        || entry.replay_refs > 0
-                        || entry.active_snapshot_refs > 0
-                })
-                .count(),
-            recent_visibility_cache_count: self
-                .snapshots
-                .recent_policy
-                .lock()
-                .expect("recent visibility policy lock poisoned")
-                .resident_count,
+            snapshot_count: self.visibility.active_snapshot_count(),
+            published_snapshot_handle_count: self.visibility.published_snapshot_handle_count(),
+            cached_visibility_version_count: self.visibility.cache.cached_version_count(),
+            protected_visibility_version_count: self.visibility.cache.protected_version_count(),
+            recent_visibility_cache_count: self.visibility.cache.recent_visibility_count(),
         }
     }
 }

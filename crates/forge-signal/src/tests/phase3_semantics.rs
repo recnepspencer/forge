@@ -32,7 +32,7 @@ fn output_identity_unchanged_suppresses_downstream_propagation() {
     let explanation = graph.explain(source).unwrap();
     assert_eq!(explanation.output_change, Some(OutputChange::Unchanged));
     assert!(explanation.propagation_suppressed);
-    assert_eq!(graph.metrics().suppressed_downstream_propagations, 1);
+    assert_eq!(graph.metrics().evaluation.suppressed_downstream_propagations, 1);
 }
 
 #[test]
@@ -118,17 +118,42 @@ fn changed_regions_flow_into_trace_and_explanation() {
             .changed_partition_count,
         1
     );
-    assert_eq!(graph.metrics().partition_aware_recomputations, 1);
+    assert_eq!(graph.metrics().invalidation.partition_aware_recomputations, 1);
 }
 
 #[test]
 fn keyed_node_lookup_reuses_same_runtime_entry() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
-    let family = runtime.register_computation_family("fighter-projection");
+    let family = define_keyed_computation(&mut runtime, "fighter-projection", ());
 
-    let node_a = runtime.keyed_node(&family, "left-wing");
-    let node_b = runtime.keyed_node(&family, "left-wing");
-    let node_c = runtime.keyed_node(&family, "right-wing");
+    let node_a = family.keyed("left-wing").node(&mut runtime);
+    let node_b = family.keyed("left-wing").node(&mut runtime);
+    let node_c = family.keyed("right-wing").node(&mut runtime);
+
+    assert_eq!(node_a, node_b);
+    assert_ne!(node_a, node_c);
+}
+
+#[test]
+fn defined_computation_keyed_lookup_reuses_same_runtime_entry() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let volumes = runtime
+        .define_computation(ComputationSpec {
+            family: "fighter-projection".into(),
+            contract: NodeContract::reads([ASPECT_A]).with_produces([ASPECT_B]),
+            tier: (),
+            comparator: VersionComparatorPolicy::Exact,
+            evaluator: |_id: NodeId, view: &ExecutionReadView<'_>| {
+                Ok::<PreparedEvaluation, SignalError>(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 0)),
+                ))
+            },
+        })
+        .unwrap();
+
+    let node_a = volumes.keyed("left-wing").node(&mut runtime);
+    let node_b = volumes.keyed("left-wing").node(&mut runtime);
+    let node_c = volumes.keyed("right-wing").node(&mut runtime);
 
     assert_eq!(node_a, node_b);
     assert_ne!(node_a, node_c);
@@ -137,9 +162,10 @@ fn keyed_node_lookup_reuses_same_runtime_entry() {
 #[test]
 fn keyed_evaluation_can_reuse_memoized_result() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
-    let family = runtime.register_computation_family("projection");
-    let node = runtime.keyed_node(&family, "bulkhead");
-    let computation = KeyedComputation::new(family.clone(), "bulkhead").with_memo_key("shape-v1");
+    let family = define_keyed_computation(&mut runtime, "projection", ());
+    let keyed = family.keyed("bulkhead");
+    let node = keyed.node(&mut runtime);
+    let computation = keyed.memoized("shape-v1");
     let mut runtime_ctx = ();
     let compute_calls = AtomicU32::new(0);
 
@@ -176,22 +202,64 @@ fn keyed_evaluation_can_reuse_memoized_result() {
         Some(MemoizedResultOrigin::MemoizedFromCache)
     );
     let metrics = runtime.metrics();
-    assert_eq!(metrics.keyed_evaluation_count, 2);
-    assert_eq!(metrics.memoization_hits, 1);
-    assert_eq!(metrics.memoization_misses, 1);
+    assert_eq!(metrics.invalidation.keyed_evaluation_count, 2);
+    assert_eq!(metrics.evaluation.memoization_hits, 1);
+    assert_eq!(metrics.evaluation.memoization_misses, 1);
+}
+
+#[test]
+fn defined_computation_evaluate_memoized_reuses_cached_result() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let compute_calls = AtomicU32::new(0);
+    let projection = runtime
+        .define_computation(ComputationSpec {
+            family: "projection".into(),
+            contract: NodeContract::reads([ASPECT_A]).with_produces([ASPECT_B]),
+            tier: (),
+            comparator: VersionComparatorPolicy::OutputIdentity,
+            evaluator: |_id, view: &ExecutionReadView<'_>| {
+                compute_calls.fetch_add(1, Ordering::Relaxed);
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 0))
+                        .with_output_identity("bulkhead-artifact")
+                        .with_output_change(OutputChange::Refreshed),
+                ))
+            },
+        })
+        .unwrap();
+    let bulkhead = projection.keyed("bulkhead");
+    let node = bulkhead.node(&mut runtime);
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| bulkhead.evaluate_memoized(tx, "shape-v1"))
+        .unwrap();
+
+    mark_dirty(runtime.graph_mut(), node, ASPECT_A).unwrap();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| bulkhead.evaluate_memoized(tx, "shape-v1"))
+        .unwrap();
+
+    assert_eq!(compute_calls.load(Ordering::Relaxed), 1);
+    let explanation = runtime.explain(node).unwrap();
+    assert_eq!(
+        explanation.memoized_origin,
+        Some(MemoizedResultOrigin::MemoizedFromCache)
+    );
 }
 
 #[test]
 fn memoization_is_scoped_by_family() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
-    let family_a = runtime.register_computation_family("projection-a");
-    let family_b = runtime.register_computation_family("projection-b");
-    let node_a = runtime.keyed_node(&family_a, "bulkhead");
-    let node_b = runtime.keyed_node(&family_b, "bulkhead");
-    let computation_a =
-        KeyedComputation::new(family_a.clone(), "bulkhead").with_memo_key("shape-v1");
-    let computation_b =
-        KeyedComputation::new(family_b.clone(), "bulkhead").with_memo_key("shape-v1");
+    let family_a = define_keyed_computation(&mut runtime, "projection-a", ());
+    let family_b = define_keyed_computation(&mut runtime, "projection-b", ());
+    let keyed_a = family_a.keyed("bulkhead");
+    let keyed_b = family_b.keyed("bulkhead");
+    let node_a = keyed_a.node(&mut runtime);
+    let node_b = keyed_b.node(&mut runtime);
+    let computation_a = keyed_a.memoized("shape-v1");
+    let computation_b = keyed_b.memoized("shape-v1");
     let mut runtime_ctx = ();
     let compute_calls = AtomicU32::new(0);
 
@@ -225,9 +293,10 @@ fn memoization_is_scoped_by_family() {
 #[test]
 fn memoization_write_is_discarded_on_rollback() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
-    let family = runtime.register_computation_family("projection");
-    let node = runtime.keyed_node(&family, "bulkhead");
-    let computation = KeyedComputation::new(family.clone(), "bulkhead").with_memo_key("shape-v1");
+    let family = define_keyed_computation(&mut runtime, "projection", ());
+    let keyed = family.keyed("bulkhead");
+    let node = keyed.node(&mut runtime);
+    let computation = keyed.memoized("shape-v1");
     let mut runtime_ctx = ();
     let compute_calls = AtomicU32::new(0);
 
@@ -257,8 +326,8 @@ fn memoization_write_is_discarded_on_rollback() {
 
     assert_eq!(compute_calls.load(Ordering::Relaxed), 2);
     let metrics = runtime.metrics();
-    assert_eq!(metrics.memoization_hits, 0);
-    assert_eq!(metrics.memoization_misses, 2);
+    assert_eq!(metrics.evaluation.memoization_hits, 0);
+    assert_eq!(metrics.evaluation.memoization_misses, 2);
 }
 
 #[test]
@@ -319,8 +388,8 @@ fn partition_subscribers_only_dirty_on_matching_partition() {
         graph.get_state(tail_subscriber).unwrap(),
         NodeState::MaybeStale
     );
-    assert_eq!(graph.metrics().partition_match_dirty_count, 1);
-    assert_eq!(graph.metrics().partition_scoped_invalidation_checks, 2);
+    assert_eq!(graph.metrics().invalidation.partition_match_dirty_count, 1);
+    assert_eq!(graph.metrics().invalidation.partition_scoped_invalidation_checks, 2);
 }
 
 #[test]
@@ -367,7 +436,7 @@ fn detail_sensitive_partition_subscriber_reverts_clean_when_detail_does_not_matc
         if subscription.partition == PartitionToken::new("wing")
             && subscription.detail.as_deref() == Some("rib-12")
     ));
-    assert_eq!(graph.metrics().partition_scope_revert_clean_count, 1);
+    assert_eq!(graph.metrics().invalidation.partition_scope_revert_clean_count, 1);
 }
 
 #[test]
@@ -865,6 +934,6 @@ fn sparse_partition_fanout_keeps_most_subscribers_out_of_dirty_state() {
 
     assert_eq!(dirty_count, 1);
     assert_eq!(maybe_stale_count, 127);
-    assert_eq!(graph.metrics().partition_scoped_invalidation_checks, 128);
-    assert_eq!(graph.metrics().partition_match_dirty_count, 1);
+    assert_eq!(graph.metrics().invalidation.partition_scoped_invalidation_checks, 128);
+    assert_eq!(graph.metrics().invalidation.partition_match_dirty_count, 1);
 }

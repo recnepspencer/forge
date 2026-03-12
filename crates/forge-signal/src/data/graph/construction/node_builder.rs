@@ -2,7 +2,10 @@ use crate::data::aspect::AspectMask;
 use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
-use crate::data::node::{EvaluationCondition, NodeEvaluationConfig};
+use crate::data::node::{
+    ContextRequirement, EvaluationCondition, NodeContract, NodeEvaluationConfig,
+};
+use crate::data::output::PartitionSubscription;
 
 /// Fluent node builder for accessible public graph configuration.
 ///
@@ -22,12 +25,36 @@ impl<'a> NodeBuilder<'a> {
         }
     }
 
-    /// Declarative aspect intent for this node.
-    ///
-    /// This documents which kinds of upstream change matter to the node. It
-    /// does not replace explicit dependency wiring.
-    pub fn depends_on_aspects(mut self, aspects: impl Into<AspectMask>) -> Self {
-        self.config.depends_on_aspects = Some(aspects.into());
+    /// Replace the full node contract.
+    pub fn with_contract(mut self, contract: NodeContract) -> Self {
+        self.config.contract = contract;
+        self
+    }
+
+    /// Declare which upstream aspects this node reads.
+    pub fn reads_aspects(mut self, aspects: impl Into<AspectMask>) -> Self {
+        self.config.contract = self.config.contract.with_reads(aspects);
+        self
+    }
+
+    /// Declare which aspects this node produces.
+    pub fn produces_aspects(mut self, aspects: impl Into<AspectMask>) -> Self {
+        self.config.contract = self.config.contract.with_produces(aspects);
+        self
+    }
+
+    /// Declare a partition scope contract for this node.
+    pub fn with_partition_scope(
+        mut self,
+        partition_scope: impl Into<PartitionSubscription>,
+    ) -> Self {
+        self.config.contract = self.config.contract.with_partition_scope(partition_scope);
+        self
+    }
+
+    /// Declare additional context required to evaluate this node.
+    pub fn requires_context(mut self, required_context: ContextRequirement) -> Self {
+        self.config.contract = self.config.contract.with_required_context(required_context);
         self
     }
 

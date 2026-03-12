@@ -5,7 +5,6 @@ use crate::data::event_subscriber::{EventSubscriber, SubscriberId};
 use crate::data::subscriber_context::SubscriberContext;
 use crate::facade::*;
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Domain {
     Audit,

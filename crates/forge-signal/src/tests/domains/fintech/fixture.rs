@@ -517,7 +517,7 @@ pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
         let aggregate = runtime
             .graph_mut()
             .node()
-            .depends_on_aspects(super::aspects::full_mask())
+            .reads_aspects(super::aspects::full_mask())
             .tolerance(5)
             .build();
         runtime
@@ -560,7 +560,7 @@ pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
         let aggregate = runtime
             .graph_mut()
             .node()
-            .depends_on_aspects(super::aspects::full_mask())
+            .reads_aspects(super::aspects::full_mask())
             .tolerance(6)
             .build();
         runtime
@@ -595,7 +595,7 @@ pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
         let aggregate = runtime
             .graph_mut()
             .node()
-            .depends_on_aspects(super::aspects::full_mask())
+            .reads_aspects(super::aspects::full_mask())
             .tolerance(5)
             .build();
         for instrument in &instruments {
@@ -616,7 +616,7 @@ pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
         let aggregate = runtime
             .graph_mut()
             .node()
-            .depends_on_aspects(super::aspects::full_mask())
+            .reads_aspects(super::aspects::full_mask())
             .tolerance(5)
             .build();
         for instrument in &instruments {

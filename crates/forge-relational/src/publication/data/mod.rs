@@ -1,7 +1,9 @@
 pub mod diff;
+mod publication_error;
 
 #[allow(unused_imports)]
 pub use self::diff::*;
+pub use publication_error::*;
 
 use serde::{Deserialize, Serialize};
 
@@ -16,12 +18,6 @@ pub enum PublicationStage {
     InvariantCheck,
     BundleAssembly,
     Visibility,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PublicationError {
-    pub stage: PublicationStage,
-    pub detail: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

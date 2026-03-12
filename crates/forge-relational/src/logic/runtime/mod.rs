@@ -28,35 +28,27 @@ pub use crate::validation::data::{
     InvariantFailureEffect, InvariantRule, InvariantViolation, StorageInvariantReport,
 };
 
-pub(crate) use crate::storage::logic::state::{PartitionAccess, RelationalDraft, WorkingState};
+pub(crate) use crate::storage::logic::state::{PartitionAccess, WorkingState};
 pub(crate) use state::{
-    DurabilityState, HistoryState, IndexState, LineageState, PublicationState,
-    ReplayRetentionState, RuntimeInstrumentation, RuntimeSequenceState, SimulationState,
-    SnapshotHandleBinding, SnapshotRegistry, VisibilityResidency,
+    DurabilitySubsystem, HistorySubsystem, IndexingSubsystem, LineageSubsystem,
+    PublicationSubsystem, ReplayRetentionState, RuntimeInstrumentation, RuntimeServices,
+    RuntimeSubsystem, SnapshotHandleBinding, VisibilityResidency, VisibilitySubsystem,
 };
 pub use state::RelationalRuntime;
+#[allow(unused_imports)]
+pub use snapshots::SnapshotAccess;
 
-pub struct SnapshotGuard<'runtime> {
-    runtime: &'runtime mut RelationalRuntime,
+#[derive(Debug, Clone)]
+pub struct SnapshotGuard {
     handle: SnapshotHandle,
 }
 
-impl SnapshotGuard<'_> {
+impl SnapshotGuard {
     pub fn handle(&self) -> &SnapshotHandle {
         &self.handle
     }
 
     pub fn snapshot_id(&self) -> SnapshotId {
         self.handle.snapshot_id
-    }
-
-    pub fn read(&self) -> Option<RelationalReadView> {
-        self.runtime.read_snapshot(&self.handle)
-    }
-}
-
-impl Drop for SnapshotGuard<'_> {
-    fn drop(&mut self) {
-        let _ = self.runtime.release_snapshot(&self.handle);
     }
 }

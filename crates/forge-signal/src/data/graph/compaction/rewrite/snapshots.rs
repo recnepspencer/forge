@@ -4,9 +4,9 @@ use super::{remap_live_entry_handles, SignalGraph};
 
 impl SignalGraph {
     pub(super) fn compact_dependency_snapshot_storage(&mut self) {
-        let old_dependency_snapshots = std::mem::take(&mut self.dependency_snapshots);
-        self.telemetry.graph_storage_compaction_count += 1;
-        self.telemetry.graph_storage_snapshot_rewrites +=
+        let old_dependency_snapshots = std::mem::take(&mut self.topology.dependency_snapshots);
+        self.observation.telemetry.storage.graph_storage_compaction_count += 1;
+        self.observation.telemetry.storage.graph_storage_snapshot_rewrites +=
             old_dependency_snapshots.live_snapshot_count() as u64;
 
         let mut compacted_dependency_snapshots = DependencySnapshotStore::default();
@@ -17,6 +17,6 @@ impl SignalGraph {
             |entry, snapshot_id| entry.set_dep_snapshot_id(snapshot_id),
         );
 
-        self.dependency_snapshots = compacted_dependency_snapshots;
+        self.topology.dependency_snapshots = compacted_dependency_snapshots;
     }
 }

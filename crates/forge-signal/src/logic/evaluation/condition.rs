@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::aspect::AspectMask;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
+use crate::data::node::ContextRequirement;
 
 /// Request mode for one evaluation call.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -20,6 +21,7 @@ pub struct ConditionEvaluationContext {
     pub request_mode: EvaluationRequestMode,
     pub dirty_aspects: AspectMask,
     pub max_dependency_delta: u64,
+    pub required_context: ContextRequirement,
 }
 
 /// Host callback contract for runtime evaluation conditions.

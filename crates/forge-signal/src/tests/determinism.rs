@@ -16,12 +16,15 @@ fn kv63_circular_reference_detected() {
         "Circular reference A↔B should produce an error"
     );
 
-    let err_msg = format!("{}", result.unwrap_err());
-    assert!(
-        err_msg.contains("Circular reference"),
-        "Error should mention circular reference: {}",
-        err_msg
-    );
+    match result.unwrap_err() {
+        SignalError::CycleDetected { path } => {
+            assert!(
+                path.contains(&a) && path.contains(&b),
+                "cycle path should retain both nodes, got: {path:?}"
+            );
+        }
+        err => panic!("expected typed cycle error, got: {err}"),
+    }
 }
 
 #[test]

@@ -131,6 +131,50 @@ fn diagnostics_entrypoint_exposes_one_discoverable_surface() {
 }
 
 #[test]
+fn diagnostics_plan_summary_reports_contract_pruning() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().build();
+    let dependent = graph.node().reads_aspects(mask_a()).build();
+    graph.add_dependency(dependent, source, ASPECT_B).unwrap();
+
+    let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
+    evaluate(&mut graph, source, &mut compute).unwrap();
+    evaluate(&mut graph, dependent, &mut compute).unwrap();
+    mark_dirty(&mut graph, source, ASPECT_B).unwrap();
+
+    let plan = graph
+        .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
+        .unwrap();
+    let summary = plan.diagnostics_summary(DiagnosticsProfile::Development);
+
+    assert_eq!(summary.task_count, 0);
+    assert_eq!(summary.contract_pruned_count, 1);
+}
+
+#[test]
+fn explanation_summary_includes_contract_metadata() {
+    let mut graph = SignalGraph::new();
+    let node = graph
+        .node()
+        .reads_aspects([ASPECT_A])
+        .produces_aspects([ASPECT_B])
+        .requires_context(ContextRequirement::DomainContext)
+        .with_partition_scope(PartitionSubscription::whole_partition("wing"))
+        .build();
+
+    let explanation = graph.explain(node).unwrap();
+    let summary = explanation.diagnostics_summary(DiagnosticsProfile::Development);
+
+    assert_eq!(summary.contract_reads_mask, AspectMask::from([ASPECT_A]).bits() as u128);
+    assert_eq!(
+        summary.contract_produces_mask,
+        AspectMask::from([ASPECT_B]).bits() as u128
+    );
+    assert_eq!(summary.contract_partition_scope_count, 1);
+    assert_eq!(summary.required_context, "DomainContext");
+}
+
+#[test]
 fn graph_diff_detects_state_and_structure_mismatch() {
     let mut graph_a = SignalGraph::new();
     let node_a = graph_a.node().build();
@@ -742,12 +786,12 @@ fn repeated_serial_parallel_lifecycle_parity_stays_stable() {
             &parallel_flow.apply.report,
         ));
         assert_eq!(
-            serial_flow.apply.prepared_evaluations_applied,
-            parallel_flow.apply.prepared_evaluations_applied
+            serial_flow.apply.execution.prepared_evaluations_applied,
+            parallel_flow.apply.execution.prepared_evaluations_applied
         );
         assert_eq!(
-            serial_flow.apply.dependency_capture_updates,
-            parallel_flow.apply.dependency_capture_updates
+            serial_flow.apply.execution.dependency_capture_updates,
+            parallel_flow.apply.execution.dependency_capture_updates
         );
         assert_eq!(
             serial_flow.apply.tasks_validated_clean,
@@ -770,9 +814,10 @@ fn repeated_memoized_execution_retains_bounded_diagnostics() {
     runtime
         .graph_mut()
         .set_diagnostics_profile(DiagnosticsProfile::Operational);
-    let family = runtime.register_computation_family("projection");
-    let node = runtime.keyed_node(&family, "bulkhead");
-    let computation = KeyedComputation::new(family.clone(), "bulkhead").with_memo_key("shape-v1");
+    let family = define_keyed_computation(&mut runtime, "projection", ());
+    let keyed = family.keyed("bulkhead");
+    let node = keyed.node(&mut runtime);
+    let computation = keyed.memoized("shape-v1");
     let mut runtime_ctx = ();
 
     for cycle in 0..50 {
@@ -801,7 +846,7 @@ fn repeated_memoized_execution_retains_bounded_diagnostics() {
         .recent_history()
         .iter()
         .all(|summary| summary.nodes.is_empty()));
-    assert!(runtime.metrics().memoization_hits >= 1);
+    assert!(runtime.metrics().evaluation.memoization_hits >= 1);
 }
 
 #[test]

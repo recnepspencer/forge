@@ -31,7 +31,8 @@ pub fn mark_dirty_with_regions(
     let graph = graph.deref_mut();
     graph.note_change_input(source, changed_aspect, changed_regions);
     let result = graph.with_scratch(ScratchLeaseKind::Invalidation, |graph, scratch| {
-        let len = graph.arena_capacity();
+        let (arena, _, _, _) = graph.as_parts_mut();
+        let len = arena.len();
         scratch.visited.next_pass(len);
         scratch.cycle_visiting.next_pass(len);
         scratch.cycle_finished.next_pass(len);
@@ -174,8 +175,15 @@ fn mark_direct_subscribers(
     direct_subs: &[NodeId],
 ) -> Result<InvalidationStats, SignalError> {
     let mut stats = InvalidationStats::default();
+    let changed_mask = crate::data::aspect::AspectMask::from_aspect(changed_aspect);
     for &sub in direct_subs {
-        let checks_before = graph.telemetry().partition_scoped_invalidation_checks;
+        let contract_cares = graph
+            .get_contract(sub)?
+            .cares_about_change(changed_mask, changed_scopes);
+        if !contract_cares {
+            continue;
+        }
+        let checks_before = graph.telemetry().invalidation.partition_scoped_invalidation_checks;
         let dirty_match = subscribes_to_aspect(
             graph,
             sub,
@@ -192,6 +200,7 @@ fn mark_direct_subscribers(
         };
         stats.partition_scoped_checks += graph
             .telemetry()
+            .invalidation
             .partition_scoped_invalidation_checks
             .saturating_sub(checks_before) as u32;
         match new_state {
@@ -219,13 +228,13 @@ fn mark_direct_subscribers(
                 ),
             );
         }
-        graph.telemetry_mut().invalidation_nodes_visited += 1;
+        graph.telemetry_mut().invalidation.invalidation_nodes_visited += 1;
         match dirty_match {
             SubscriptionDirtyMatch::WholePartition => {
-                graph.telemetry_mut().partition_match_dirty_count += 1;
+                graph.telemetry_mut().invalidation.partition_match_dirty_count += 1;
             }
             SubscriptionDirtyMatch::PartitionAndDetail => {
-                graph.telemetry_mut().detail_match_dirty_count += 1;
+                graph.telemetry_mut().invalidation.detail_match_dirty_count += 1;
             }
             _ => {}
         }
@@ -237,13 +246,14 @@ fn intern_changed_regions(
     graph: &mut SignalGraph,
     changed_regions: &[ChangedRegion],
 ) -> Vec<InternedPartitionSubscription> {
-    let token_count_before = graph.partition_interner_mut().token_count();
+    let (_, _, _, observation) = graph.as_parts_mut();
+    let token_count_before = observation.partition_interner_mut().token_count();
     let interned = changed_regions
         .iter()
-        .map(|region| graph.partition_interner_mut().intern_changed_region(region))
+        .map(|region| observation.partition_interner_mut().intern_changed_region(region))
         .collect::<Vec<_>>();
-    let token_count_after = graph.partition_interner_mut().token_count();
-    graph.telemetry_mut().partition_interner_growth_delta +=
+    let token_count_after = observation.partition_interner_mut().token_count();
+    observation.telemetry_mut().invalidation.partition_interner_growth_delta +=
         token_count_after.saturating_sub(token_count_before) as u64;
     interned
 }
@@ -296,7 +306,7 @@ fn propagate_maybe_stale(
                 .filter_map(|idx| graph.live_node_id_at(idx)),
         );
         for &node in &scratch.node_buffer_a {
-            graph.telemetry_mut().invalidation_nodes_visited += 1;
+            graph.telemetry_mut().invalidation.invalidation_nodes_visited += 1;
             if scratch.visited.is_marked(node.index() as usize) {
                 continue;
             }

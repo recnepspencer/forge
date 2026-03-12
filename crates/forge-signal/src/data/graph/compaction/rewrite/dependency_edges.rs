@@ -4,9 +4,9 @@ use super::{remap_live_entry_handles, SignalGraph};
 
 impl SignalGraph {
     pub(super) fn compact_dependency_edge_storage(&mut self) {
-        let old_dependency_edges = std::mem::take(&mut self.dependency_edges);
-        self.telemetry.graph_storage_compaction_count += 1;
-        self.telemetry.graph_storage_dependency_segments_rewritten +=
+        let old_dependency_edges = std::mem::take(&mut self.topology.dependency_edges);
+        self.observation.telemetry.storage.graph_storage_compaction_count += 1;
+        self.observation.telemetry.storage.graph_storage_dependency_segments_rewritten +=
             old_dependency_edges.live_segment_count() as u64;
 
         let mut compacted_dependency_edges = DependencyEdgeStore::default();
@@ -20,6 +20,6 @@ impl SignalGraph {
             |entry, dependencies_id| entry.set_dependencies_id(dependencies_id),
         );
 
-        self.dependency_edges = compacted_dependency_edges;
+        self.topology.dependency_edges = compacted_dependency_edges;
     }
 }

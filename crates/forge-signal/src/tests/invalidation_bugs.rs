@@ -171,7 +171,7 @@ fn reconverging_frontier_does_not_revisit_already_visited_nodes() {
     mark_dirty(&mut graph, source, ASPECT_A).unwrap();
 
     assert_eq!(
-        graph.telemetry().invalidation_nodes_visited,
+        graph.telemetry().invalidation.invalidation_nodes_visited,
         4,
         "reconverging downstream nodes should only count once during transitive invalidation"
     );

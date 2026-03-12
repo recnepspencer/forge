@@ -1,931 +1,1056 @@
-# forge-relational Hardening Spec
+# forge-relational DX Engineering Spec
 
-> **Scope**: Pre-production breaking refactor. No backward compatibility constraints. Maximize compile-time safety, minimize duplication, align with patterns already proven in `forge-kernel`.
->
-> **Methodology**: Full non-test source read (~8,000 LOC across 30+ files). Exact struct definitions, field counts, duplication sites, and line estimates derived from source.
+This document is a complete refactoring specification for `forge-relational`. It synthesizes an exhaustive architectural review (~158 source files) with transferable patterns from `forge-core`, `forge-topo`, and `forge-kernel`. Every item will be implemented. Breaking changes are permitted — this runtime has never shipped to production.
 
-## Recommended Execution Order
+The spec is organized into **six execution phases** ordered by dependency: each phase's outputs become the inputs of the next. Within each phase, items can be done in any order.
 
-The workstreams below were originally grouped by subsystem. For execution, the faster order is:
-
-1. **Core record substrate first**: generic arena, shared slot accessors, and zero-allocation sort keys.
-2. **Mutation surface cleanup second**: mutation effect accumulation, borrow-splitting workspace, and config bundling.
-3. **Commit pipeline hardening third**: RAII draft semantics and draft-based commit flow after the mutation seam is stable.
-4. **Intent modularization fourth**: self-describing intent helpers and handler modules after mutation/commit surfaces stop moving.
-5. **Public artifact normalization and polish fifth**: `PatchRecord` cleanup, diagnostics builders, registry cleanup, and path hygiene.
-6. **Long-tail reductions last**: checkpoint image generics, enum consolidation, and remaining structural cleanup.
-
-This ordering frontloads the highest-leverage internal duplication cuts without forcing early churn through publication, replay, durability, and facade surfaces.
+> [!IMPORTANT]
+> The kernel crate references in this document are intentional. When AI agents or engineers implement these changes, they should read the referenced kernel files to understand the source patterns before adapting them. The kernel is the working proof that these patterns compose well at scale.
 
 ---
 
-## Table of Contents
+## Phase A: Foundation Types
 
-1. [Milestone 1: Core Record Substrate](#milestone-1-core-record-substrate) — includes `VersionBound`, branded `SlotView`, `SnapshotGuard`
-2. [Milestone 2: Mutation Surface Cleanup](#milestone-2-mutation-surface-cleanup) — includes adjacency deltas as data
-3. [Milestone 3: Commit Pipeline Hardening](#milestone-3-commit-pipeline-hardening)
-4. [Milestone 4: Intent Dispatch](#milestone-4-intent-dispatch)
-5. [Milestone 5: Public Artifact Normalization & Structural Cleanup](#milestone-5-public-artifact-normalization--structural-cleanup)
-6. [Milestone 6: The Long Tail](#milestone-6-the-long-tail-extreme-reduction)
-7. [Dependency Graph](#dependency-graph)
-8. [Precedent Map](#precedent-map)
-9. [Deferred Safety Items](./relational_compile_time_safety.md) _(separate document)_
+These changes have zero backward dependencies and affect the most downstream code. Doing them first minimizes merge conflict surface for everything that follows.
 
 ---
 
-## Milestone 1: Core Record Substrate
+### A1 · Phantom-Tagged Identity Types
 
-### 1.1 Problem Statement
+**What the kernel does**
 
-`EntityArena` ([state.rs:65–85](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/logic/state.rs#L65-L85)) has **19 `Vec` fields**. `RelationArena` ([state.rs:246–265](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/logic/state.rs#L246-L265)) has **18 `Vec` fields**. They share 16 fields identically. The differences:
-
-| Field                     | `EntityArena`                        | `RelationArena`                       |
-| :------------------------ | :----------------------------------- | :------------------------------------ |
-| `metadata_history`        | `Vec<Vec<VersionedEntityMetadata>>`  | `Vec<Vec<VersionedRelationMetadata>>` |
-| `structural_fingerprints` | `Vec<Option<StructuralFingerprint>>` | _(absent)_                            |
-| `lineage_ids`             | `Vec<Option<LineageId>>`             | _(absent)_                            |
-| `endpoints`               | _(absent)_                           | `Vec<Option<RelationEndpoints>>`      |
-
-Every method on these structs — `with_capacity`, `reserve_additional`, `allocate`, `retire`, `lifecycle_counts`, `apply_payload_update` — is duplicated verbatim except for the metadata type and the extra/missing fields.
-
-Beyond the structs themselves, **22 function pairs** across 12 files duplicate logic between entity and relation codepaths, totaling **~865 lines** of near-identical code. Full enumeration:
-
-<details>
-<summary>Click to expand: all 22 duplicated function pairs</summary>
-
-| #   | Entity Function                                    | Relation Function                                   | File                                                                                                                                                          | ~Lines |
-| :-- | :------------------------------------------------- | :-------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------ | :----- |
-| 1   | `EntityArena` struct + 5 methods                   | `RelationArena` struct + 5 methods                  | [state.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/logic/state.rs)                           | 200    |
-| 2   | `allocate_entity`                                  | `allocate_relation`                                 | [apply_mutation.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/logic/runtime/apply_mutation.rs)         | 40     |
-| 3   | `ensure_entity_target_is_current`                  | `ensure_relation_target_is_current`                 | [guards.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/logic/runtime/apply/guards.rs)                   | 20     |
-| 4   | `write_entity_aspect_versions`                     | `write_relation_aspect_versions`                    | [aspects.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/logic/runtime/apply/aspects.rs)                 | 15     |
-| 5   | `entity_exists_in_state`                           | `relation_exists_in_state`                          | [merge.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/logic/runtime/merge.rs)                           | 15     |
-| 6   | `entity_key`                                       | `relation_key`                                      | [merge.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/logic/runtime/merge.rs)                           | 10     |
-| 7   | `materialize_current_entity_record`                | `materialize_current_relation_record`               | [read.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/snapshots/logic/read.rs)                           | 40     |
-| 8   | `materialize_entity_record_at_version`             | `materialize_relation_record_at_version`            | [read.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/snapshots/logic/read.rs)                           | 40     |
-| 9   | `visible_entities_from_state`                      | `visible_relations_from_state`                      | [read.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/snapshots/logic/read.rs)                           | 20     |
-| 10  | `visible_entities_of_kind_in_partition_from_state` | `visible_relations_of_kind_in_partition_from_state` | [read.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/snapshots/logic/read.rs)                           | 40     |
-| 11  | `pin_entity`                                       | `pin_relation`                                      | [lifecycle.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/snapshots/logic/lifecycle.rs)                 | 40     |
-| 12  | `unpin_entity`                                     | `unpin_relation`                                    | [lifecycle.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/snapshots/logic/lifecycle.rs)                 | 40     |
-| 13  | `pin_branch_entity` / `unpin_branch_entity`        | `pin_branch_relation` / `unpin_branch_relation`     | [lifecycle.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/snapshots/logic/lifecycle.rs)                 | 30     |
-| 14  | `adjust_entity_pin`                                | `adjust_relation_pin`                               | [lifecycle.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/snapshots/logic/lifecycle.rs#L1000-L1096)     | 50     |
-| 15  | `refresh_entity_retention_state`                   | `refresh_relation_retention_state`                  | [lifecycle.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/snapshots/logic/lifecycle.rs#L816-L894)       | 40     |
-| 16  | Entity reclaim loop (lines 160–210)                | Relation reclaim loop (lines 217–266)               | [retention.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/logic/retention.rs)                   | 60     |
-| 17  | Entity retention inspect (lines 24–61)             | Relation retention inspect (lines 63–99)            | [retention.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/logic/retention.rs)                   | 40     |
-| 18  | Entity trim history (lines 922–955)                | Relation trim history (lines 957–990)               | [lifecycle.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/snapshots/logic/lifecycle.rs)                 | 40     |
-| 19  | `entity_aspect_versions`                           | `relation_aspect_versions`                          | [introspection.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/logic/introspection.rs#L201-L237) | 20     |
-| 20  | `entity_aspects_at_version`                        | `relation_aspects_at_version`                       | [introspection.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/logic/introspection.rs#L239-L263) | 15     |
-| 21  | `summarize_entity_chunks`                          | `summarize_relation_chunks`                         | [chunks.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/logic/chunks.rs)                         | 30     |
-| 22  | `LiveEntityRequiresKind`                           | `LiveRelationRequiresEndpoints`                     | [rules.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/validation/logic/rules.rs)                        | 20     |
-
-</details>
-
-### 1.2 Exact Type Definitions
-
-#### `RecordId` trait
+forge-topo uses distinct handle types per entity kind (`BodyId`, `FaceId`, `EdgeId`, `VertexId`, `HalfEdgeId`, `LoopId`, `ShellId`, `LumpId`, `RegionId`) — see [handles.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-topo/src/handles.rs). Each is a newtype around a raw index, but they are compile-time distinct and cannot be confused. The substrate in forge-relational already has a `RecordId` trait in [record_arena.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/substrate/record_arena.rs) that unifies `EntityId` and `RelationId` via:
 
 ```rust
 pub(crate) trait RecordId: Copy + Ord + Hash + Debug + 'static {
     fn partition_id(&self) -> PartitionId;
-    fn local_slot(&self) -> usize;           // replaces `.local_slot.0 as usize` everywhere
-    fn generation(&self) -> u32;             // replaces `.generation.0` everywhere
-    fn with_slot_and_generation(partition: PartitionId, slot: u64, gen: u32) -> Self;
+    fn local_slot(&self) -> usize;
+    fn generation(&self) -> u32;
 }
-
-impl RecordId for EntityId {
-    fn partition_id(&self) -> PartitionId { self.partition_id }
-    fn local_slot(&self) -> usize { self.local_slot.0 as usize }
-    fn generation(&self) -> u32 { self.generation.0 }
-    fn with_slot_and_generation(partition: PartitionId, slot: u64, gen: u32) -> Self {
-        EntityId { partition_id: partition, local_slot: LocalSlot(slot), generation: Generation(gen) }
-    }
-}
-// Identical impl for RelationId
 ```
 
-#### `RecordKind` trait
+This trait exists _because_ the four identity types in [identity/data/mod.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/identity/data/mod.rs) (`EntityId`, `RelationId`, `EntityStorageId`, `RelationStorageId`) are structurally identical — same fields, same derives, same constructors — but the compiler doesn't know that.
+
+**What changes**
+
+Replace the four duplicated structs with two phantom-tagged generics:
 
 ```rust
-pub(crate) trait RecordKind: 'static {
-    type Id: RecordId;
-    type Extra: Default + Clone + Debug;      // () for Entity, Option<RelationEndpoints> for Relation
-    type Meta: Clone + Debug;                 // VersionedEntityMetadata / VersionedRelationMetadata
-    type ReadRecord: Debug + PartialEq;       // EntityReadRecord / RelationReadRecord
-
-    fn arena(partition: &PartitionState) -> &RecordArena<Self>;
-    fn arena_mut(partition: &mut PartitionState) -> &mut RecordArena<Self>;
-
-    /// Build metadata for a new allocation. Called inside RecordArena::allocate.
-    fn build_metadata(kind_id: KindId, generation: u32, version_id: VersionId, extra: &Self::Extra) -> Self::Meta;
-
-    /// Build a readable record from slot data. Called inside materialize.
-    fn build_read_record(
-        id: Self::Id,
-        kind_id: Option<KindId>,
-        payload: Option<RecordPayload>,
-        lifecycle: RecordLifecycleState,
-        created_at: VersionId,
-        extra: &Self::Extra,
-    ) -> Self::ReadRecord;
+pub struct RecordId<K: RecordDomain> {
+    pub partition_id: PartitionId,
+    pub local_slot: LocalSlot,
+    pub generation: Generation,
+    _marker: PhantomData<K>,
 }
+
+pub struct StorageId<K: RecordDomain> {
+    pub partition_id: PartitionId,
+    pub local_slot: LocalSlot,
+    _marker: PhantomData<K>,
+}
+
+pub enum EntityDomain {}
+pub enum RelationDomain {}
+
+pub type EntityId = RecordId<EntityDomain>;
+pub type RelationId = RecordId<RelationDomain>;
+pub type EntityStorageId = StorageId<EntityDomain>;
+pub type RelationStorageId = StorageId<RelationDomain>;
 ```
 
-#### `RecordArena<K>`
-
-```rust
-#[derive(Debug, Clone)]
-pub(crate) struct RecordArena<K: RecordKind> {
-    // ── Identity ──
-    pub(crate) partition_ids: Vec<PartitionId>,
-    pub(crate) generations: Vec<u32>,
-
-    // ── Lifecycle ──
-    pub(crate) lifecycle: Vec<RecordLifecycleState>,
-    pub(crate) created_at: Vec<VersionId>,
-    pub(crate) retired_at: Vec<Option<VersionId>>,
-    pub(crate) live_bitset: DenseSlotBitSet,
-    pub(crate) reclaimable_bitset: DenseSlotBitSet,
-    pub(crate) free_list: Vec<u64>,
-
-    // ── Data ──
-    pub(crate) kind_ids: Vec<Option<KindId>>,
-    pub(crate) payloads: Vec<Option<RecordPayload>>,
-    pub(crate) payload_history: Vec<Vec<VersionedPayload>>,
-    pub(crate) metadata_history: Vec<Vec<K::Meta>>,
-    pub(crate) aspect_versions: Vec<BTreeMap<Symbol, u64>>,
-    pub(crate) diagnostics_enrichment: Vec<BTreeMap<Symbol, String>>,
-
-    // ── Retention pins ──
-    pub(crate) snapshot_pins: Vec<u32>,
-    pub(crate) branch_pins: Vec<u32>,
-    pub(crate) replay_pins: Vec<u32>,
-
-    // ── Kind-specific extra (endpoints for relations, fingerprints+lineage for entities) ──
-    pub(crate) extra: Vec<K::Extra>,
-}
-```
-
-#### `SlotView` accessor (branded lifetime)
-
-> [!NOTE]
-> **Why the `'arena` lifetime matters (Generative Lifetime Branding)**
->
-> A `SlotView` is a "cursor" pointing into a specific arena at a specific slot. Without the `'arena` lifetime, you could store a `SlotView`, mutate or reallocate the arena, and then read from the stale cursor — accessing garbage memory or a completely different record.
->
-> The `'arena` lifetime brands the `SlotView` to the borrow of the arena that created it. The Rust compiler statically proves that no `SlotView` can outlive its source arena borrow, and no arena mutation can happen while any `SlotView` exists. This eliminates **phantom reads** and **double-free slot access** — two of the most devastating rare bugs in generational arena systems — at zero runtime cost.
-
-```rust
-pub(crate) struct SlotView<'arena, K: RecordKind> {
-    arena: &'arena RecordArena<K>,
-    index: usize,
-}
-
-impl<K: RecordKind> SlotView<'_, K> {
-    pub fn generation(&self) -> u32 { self.arena.generations[self.index] }
-    pub fn lifecycle(&self) -> RecordLifecycleState { self.arena.lifecycle[self.index] }
-    pub fn is_live(&self) -> bool { self.lifecycle() == RecordLifecycleState::Live }
-    pub fn kind_id(&self) -> Option<KindId> { self.arena.kind_ids[self.index] }
-    pub fn payload(&self) -> Option<&RecordPayload> { self.arena.payloads[self.index].as_ref() }
-    pub fn retired_at(&self) -> Option<VersionId> { self.arena.retired_at[self.index] }
-    pub fn extra(&self) -> &K::Extra { &self.arena.extra[self.index] }
-    pub fn snapshot_pins(&self) -> u32 { self.arena.snapshot_pins[self.index] }
-    pub fn branch_pins(&self) -> u32 { self.arena.branch_pins[self.index] }
-    pub fn replay_pins(&self) -> u32 { self.arena.replay_pins[self.index] }
-
-    /// Validates that the given ID still refers to the record at this slot.
-    /// The generation check prevents ABA-style hazards where a slot was
-    /// freed and reallocated to a completely different record.
-    pub fn is_current(&self, id: &K::Id) -> bool {
-        self.generation() == id.generation() && self.is_live()
-    }
-
-    /// Version-visible read: checks whether this record is visible at the
-    /// given version boundary. Uses `VersionBound` (see §1.6) to prevent
-    /// fencepost errors in visibility logic.
-    pub fn is_visible_at(&self, bound: VersionBound) -> bool {
-        bound.includes_created(self.arena.created_at[self.index])
-            && self.arena.retired_at[self.index]
-                .map_or(true, |retired| bound.retains_retired(retired))
-    }
-}
-```
-
-### 1.3 Entity `Extra` Type
-
-`EntityArena` has two fields that `RelationArena` doesn't: `structural_fingerprints` and `lineage_ids`. These become the `Extra`:
-
-```rust
-#[derive(Debug, Clone, Default)]
-pub(crate) struct EntityExtra {
-    pub(crate) structural_fingerprint: Option<StructuralFingerprint>,
-    pub(crate) lineage_id: Option<LineageId>,
-}
-
-// Relation's Extra is just endpoints:
-pub(crate) type RelationExtra = Option<RelationEndpoints>;
-```
-
-### 1.6 `VersionBound` — Fencepost Elimination
-
-> [!NOTE]
-> **Why a newtype instead of raw comparison (Single Decision Point)**
->
-> The most common off-by-one bug in MVCC systems is the "fencepost error": should a record retired _at_ version V5 be visible to a reader pinned at V5? The answer depends on whether you use `<` or `<=`, and the decision is currently made independently at every call site using raw `VersionId` comparisons.
->
-> `VersionBound` centralizes this decision into exactly two methods. Then `VersionId` itself does **not** implement `PartialOrd`, so the raw comparison operators `<` and `<=` are physically unavailable. Every visibility check in the codebase must go through `VersionBound`, making it impossible to accidentally use the wrong comparison.
-
-```rust
-/// The single source of truth for "is this version visible at this boundary?"
-/// VersionId intentionally does NOT implement PartialOrd — all comparisons
-/// go through this type to prevent fencepost bugs.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct VersionBound(VersionId);
-
-impl VersionBound {
-    pub fn new(version: VersionId) -> Self { Self(version) }
-
-    /// A record created at `created_at` is visible if it was created at or
-    /// before this boundary.
-    pub fn includes_created(&self, created_at: VersionId) -> bool {
-        created_at.0 <= self.0.0
-    }
-
-    /// A record retired at `retired_at` is still visible if it was retired
-    /// strictly after this boundary (it was alive at this version).
-    pub fn retains_retired(&self, retired_at: VersionId) -> bool {
-        retired_at.0 > self.0.0
-    }
-}
-```
-
-**Impact**: Replaces ~15 scattered raw comparisons across `read.rs`, `lifecycle.rs`, `retention.rs`, and `introspection.rs` with calls to `VersionBound::includes_created` / `retains_retired`.
-
-### 1.7 `SnapshotGuard` — RAII Snapshot Pinning
-
-> [!NOTE]
-> **Why RAII instead of manual pin/unpin (Resource Leak Prevention)**
->
-> The current API returns a raw `SnapshotId` from `pin_snapshot()`. If any code path — including panics, early returns via `?`, or forgotten cleanup — fails to call `unpin_snapshot()`, the snapshot is permanently pinned. The retention system can never reclaim records visible at that version, causing unbounded memory growth.
->
-> `SnapshotGuard` uses Rust's `Drop` trait to automatically unpin when the guard goes out of scope. It is physically impossible to leak a pin, even under panic. This is the same pattern as `MutexGuard`, `File` handles, and the `ScratchGuard` pattern in `forge-signal`.
-
-```rust
-/// RAII guard that automatically unpins a snapshot when dropped.
-/// The `'runtime` lifetime prevents the guard from outliving the runtime.
-pub struct SnapshotGuard<'runtime> {
-    runtime: &'runtime mut RelationalRuntime,
-    snapshot_id: SnapshotId,
-}
-
-impl<'runtime> SnapshotGuard<'runtime> {
-    pub fn snapshot_id(&self) -> SnapshotId { self.snapshot_id }
-
-    /// Access the snapshot for reading.
-    pub fn read(&self) -> SnapshotReader<'_> {
-        self.runtime.snapshot_reader(self.snapshot_id)
-    }
-}
-
-impl Drop for SnapshotGuard<'_> {
-    fn drop(&mut self) {
-        // Automatically unpin. Even panics trigger Drop.
-        self.runtime.unpin_snapshot(self.snapshot_id);
-    }
-}
-
-impl RelationalRuntime {
-    /// Pin a snapshot and return a guard that auto-unpins on drop.
-    pub fn pin_snapshot(&mut self, version: VersionId) -> SnapshotGuard<'_> {
-        let id = self.pin_snapshot_inner(version);
-        SnapshotGuard { runtime: self, snapshot_id: id }
-    }
-}
-```
-
-**Impact**: Replaces all manual `pin_snapshot`/`unpin_snapshot` pairs in `lifecycle.rs` and downstream consumers.
-
-### 1.8 Sort Key Fix
-
-**Current** ([merge.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/logic/runtime/merge.rs)):
-
-```rust
-fn entity_key(entity_id: EntityId) -> String {
-    format!("{:08}:{:020}:{:010}", partition_id.0, local_slot.0, generation.0)
-}
-```
-
-**After** (generic, zero-allocation):
-
-```rust
-fn record_key<K: RecordKind>(id: K::Id) -> (u32, usize, u32) {
-    (id.partition_id().0, id.local_slot(), id.generation())
-}
-```
-
-Tuples implement `Ord` via lexicographic comparison automatically.
-
-### 1.9 Files Modified
-
-| File                                              | Change                                                                                        |
-| :------------------------------------------------ | :-------------------------------------------------------------------------------------------- |
-| `storage/substrate/record_arena.rs`               | Replace `EntityArena` + `RelationArena` with `RecordArena<K>`. Add `SlotView`.               |
-| `storage/partition/adjacency.rs`                  | No change (adjacency is entity-specific, stays on `PartitionState`).                          |
-| `storage/overlay/partition.rs`                    | `PartitionState` holds `RecordArena<EntityKind>` + `RecordArena<RelationKind>`.               |
-| `visibility/retention/reclaim.rs`                 | Replace dual entity/relation loops with single generic reclaim helpers.                       |
-| `visibility/materialization/aspect_introspection.rs` | Merge duplicated aspect introspection helpers onto the generic substrate.                   |
-| `storage/partition/chunks.rs`                     | Merge `summarize_entity_chunks`/`summarize_relation_chunks` into one generic.                 |
-| `authority/mutation/record_changes.rs`            | Merge `allocate_entity`/`allocate_relation` into `allocate_record::<K>()`.                    |
-| `authority/mutation/stale_targets.rs`             | Merge 2 functions into `ensure_target_is_current::<K>()`.                                     |
-| `authority/mutation/aspect_versions.rs`           | Merge 2 functions into `write_aspect_versions::<K>()`.                                        |
-| `authority/merge/canonical_keys.rs`               | Canonical intent ordering after generic record identity cleanup.                               |
-| `authority/merge/record_lookup.rs`                | Shared entity/relation existence checks on the generic substrate.                              |
-| `visibility/materialization/read_records.rs`      | Merge 8 functions into 4 generics.                                                            |
-| `visibility/pins/*`                               | Merge `pin_entity`/`pin_relation`, `unpin_entity`/`unpin_relation`, all adjust/refresh pairs. |
-| `validation/logic/rules.rs`                       | Merge duplicated invariant logic.                                                             |
+The `RecordId` trait becomes unnecessary — generic code takes `RecordId<K>` directly. All `impl` blocks, `new()` constructors, and `storage_id()` methods consolidate to one place. Any future field addition (e.g., `shard_id`) is a single edit.
 
 ---
 
-## Milestone 2: Mutation Surface Cleanup
+### A2 · Compiler-Enforced Slot Construction for RecordArena
 
-This milestone intentionally stops at the mutation seam. It does **not** include the RAII draft or full commit rewrite; those move to Milestone 3 so the commit refactor lands after the mutation APIs stabilize.
+**The problem**
 
-### 2.1 Mutation Effect Envelope (modeled on `OperationResult<T>`)
+[record_arena.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/substrate/record_arena.rs) defines `RecordArena<K>` with **18 parallel `Vec`s**. Adding a new column requires edits in **7 locations across 3 files** — the struct definition, `with_capacity`, `reserve_additional`, `allocate_common` (two code paths: reclaim and fresh), `reset_reclaimed_slot` in both `EntityRecordKind` and `RelationRecordKind`, and `SlotView`. The compiler catches **none** of these if you forget one, because each field is independently typed.
 
-**Precedent**: [OperationResult\<T\>](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/envelope/data/operation_result.rs#L29-L58) wraps a primary return value alongside warnings, metrics, decision logs, and lineage deltas. Callers call `accumulate()` to merge child results into parent envelopes.
+The current `allocate_common` is 78 lines with two branches (reclaim path at lines 391-428, fresh path at lines 430-459) that must both stay in sync with each other and with all 18 fields. This is a silent-corruption bug surface.
 
-**Current problem**: `apply_entity_intent` takes 10 parameters including `&mut Vec<RecordRef>`, `&mut Vec<PatchRecord>`, `&mut Vec<RelationalDiagnosticsEntry>`. Adding any new output type (e.g., lineage events) means updating the signature of **every mutation function in the chain**.
+> [!CAUTION]
+> Do NOT introduce a `ColumnGroup` trait or wrap the vecs in intermediate structs. That adds abstraction over the SoA storage that obscures hot-path indexing (e.g., `arena.generations[slot]` becomes `arena.identity.generations[slot]`). The read path must stay transparent. This fix targets **construction and reset** only.
 
-```rust
-/// Returned by every mutation handler. Caller accumulates into parent.
-#[derive(Debug, Default)]
-pub(crate) struct MutationEffect {
-    pub changed_records: Vec<RecordRef>,
-    pub patch_records: Vec<PatchRecord>,
-    pub diagnostics: Vec<RelationalDiagnosticsEntry>,
-    /// Adjacency changes produced by this mutation. Applied centrally
-    /// by the commit pipeline — see §2.5.
-    pub adjacency_deltas: Vec<AdjacencyDelta>,
-}
+**What changes**
 
-impl MutationEffect {
-    pub fn accumulate(&mut self, child: MutationEffect) {
-        self.changed_records.extend(child.changed_records);
-        self.patch_records.extend(child.patch_records);
-        self.diagnostics.extend(child.diagnostics);
-        self.adjacency_deltas.extend(child.adjacency_deltas);
-    }
-}
-```
-
-### 2.2 Borrow-Splitting Workspace
-
-`MutationWorkspace` is now a narrow split-borrow context, not a parameter bag and not a wide tuple escape hatch. The important rule is: expose only the borrow combinations the mutation layer actually needs.
+Introduce a `SlotInit<K>` struct that carries the caller-supplied data for a new slot. The compiler enforces completeness at every construction site:
 
 ```rust
-pub(crate) struct MutationWorkspace<'a> {
-    pub draft: &'a mut RelationalDraft,
-    pub symbols: &'a mut StringInterner,
-    pub config: &'a MutationConfig,         // bundles cascade_delete, patch_surface_policy, etc.
-    pub schema: &'a RelationalSchemaRegistry,
+/// Data required to initialize a new slot. The compiler errors at every
+/// call site if a new field is added here but not supplied.
+pub(crate) struct SlotInit<K: RecordKind> {
+    pub partition_id: PartitionId,
+    pub kind_id: KindId,
+    pub payload: Option<RecordPayload>,
     pub version_id: VersionId,
-}
-
-impl MutationWorkspace<'_> {
-    pub fn draft_and_symbols_mut(&mut self)
-        -> (&mut RelationalDraft, &mut StringInterner) { ... }
-
-    pub fn draft_and_schema(&mut self)
-        -> (&mut RelationalDraft, &RelationalSchemaRegistry) { ... }
-
-    pub fn draft_symbols_and_schema(&mut self)
-        -> (&mut RelationalDraft, &mut StringInterner, &RelationalSchemaRegistry) { ... }
+    pub extra: K::Extra,
 }
 ```
 
-This keeps leaf handlers explicit about which coupled borrows they really need, while preventing the old `as_parts_mut()` pattern from becoming a permanent all-access escape hatch.
-
-### 2.5 Adjacency Deltas as Return Data
-
-**Problem**: When a cascade delete retires a relation, the adjacency index must be updated. But the relation mutation code and the adjacency index code live in different modules. If a developer writes a new cascade path and forgets the adjacency update, the relation disappears from the arena but its adjacency entry remains — a ghost edge.
-
-**Fix**: Instead of mutation functions directly calling `adjacency.remove_edge()` as a side effect (which is easy to forget), they return adjacency changes as data in `MutationEffect`. The commit pipeline processes them in one place.
+The arena gets two new methods that replace the monolithic `allocate_common`:
 
 ```rust
-/// Describes an adjacency change that a mutation produced.
-/// The commit pipeline applies these centrally — mutation handlers
-/// never touch AdjacencyIndex directly.
-pub(crate) struct AdjacencyDelta {
-    pub relation_id: RelationId,
-    pub kind: AdjacencyDeltaKind,
-}
+impl<K: RecordKind> RecordArena<K> {
+    /// Allocate a new slot from init data. Handles both reclaim and fresh paths.
+    /// Cold-path fields (pins, diagnostics, aspect versions) are always
+    /// initialized to their default — callers never supply them.
+    pub(crate) fn push_slot(&mut self, init: SlotInit<K>) -> (usize, u32, bool) {
+        // ... reclaim or push to all 18 vecs, but driven by init struct
+    }
 
-pub(crate) enum AdjacencyDeltaKind {
-    /// Relation was created — add to adjacency index.
-    Created { source: EntityId, target: EntityId },
-    /// Relation was deleted — remove from adjacency index.
-    Deleted { source: EntityId, target: EntityId },
-}
-```
-
-The commit pipeline (Milestone 3) applies all deltas after mutation completes:
-
-```rust
-// In commit(), after apply_plan() returns effects:
-for delta in &effects.adjacency_deltas {
-    match delta.kind {
-        AdjacencyDeltaKind::Created { source, target } => {
-            adjacency.add_edge(delta.relation_id, source, target);
-        }
-        AdjacencyDeltaKind::Deleted { source, target } => {
-            adjacency.remove_edge(delta.relation_id, source, target);
-        }
+    /// Reset a reclaimed slot to clean state. Driven by the same
+    /// cold-path-fields-to-default discipline as push_slot.
+    pub(crate) fn reset_slot(&mut self, slot: usize) {
+        // ... clear all cold-path fields, push to free_list
     }
 }
 ```
 
-**Why this works**: Mutation handlers can't forget to update adjacency because they never do it in the first place — they just return the delta. The commit pipeline is the single place where adjacency updates happen, and it processes whatever deltas were returned.
+The 18 flat vecs stay exactly as they are — `SlotView` still indexes directly into `arena.generations[slot]`. What changes is that **construction and reset** go through a struct the compiler checks for completeness. The hot read path is completely untouched.
 
-### 2.6 `MutationConfig` (extracted from scattered parameters)
+Adding a new hot-path column now means:
 
-Currently, `patch_surface_policy`, `cascade_delete_policy`, `adjacency_policy`, and `cross_context_policy` are passed as separate parameters or read from `self.config` at different levels. Bundle them:
+1. Add the field to `RecordArena` (struct)
+2. Add the field to `SlotInit` — **the compiler immediately errors** at every call site that constructs a `SlotInit` without the new field
+3. Handle it in `push_slot` and `reset_slot`
+4. Add it to `SlotView`
 
-```rust
-pub(crate) struct MutationConfig {
-    pub patch_surface_policy: PatchSurfacePolicy,
-    pub cascade_delete_policy: CascadeDeletePolicy,
-    pub adjacency_policy: AdjacencyPolicy,
-    pub cross_context_policy: CrossContextPolicy,
-}
-```
-
-### 2.7 Files Modified
-
-| File                                  | Change                                                                                                                  |
-| :------------------------------------ | :---------------------------------------------------------------------------------------------------------------------- |
-| `authority/mutation/record_changes.rs` | Low-level allocation/retire helpers emit `MutationEffect` data instead of writing scattered output vectors.           |
-| `authority/mutation/execution.rs`      | Orchestrator. Creates `MutationWorkspace`, calls intent handlers, accumulates.                                        |
-| `authority/mutation/intents/*.rs`        | Return `MutationEffect` from per-intent handlers behind a central dispatcher.                                        |
-| `config/data/mod.rs`                   | Add `MutationConfig` struct.                                                                                          |
+That's 4 edit sites with **2 of them compiler-enforced**. Down from 7 edit sites with 0 compiler-enforced.
 
 ---
 
-## Milestone 3: Commit Pipeline Hardening
+### A3 · Unified Error Hierarchy with Structured Context
 
-This milestone deliberately lands **before** intent modularization. The commit path already has the highest semantic risk, and it becomes easier to simplify once mutation effects and workspace boundaries stop changing.
+**What the kernel does**
 
-### 3.1 RAII Draft (modeled on `KernelDraft`)
+forge-core centralizes its error taxonomy in [errors/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/errors) with `KernelError` as the main error enum. Every subsystem's errors are variants, and they carry structured context. The `OperationResult<T>` envelope wraps errors alongside warnings, giving callers a single type to match.
 
-**Precedent**: [KernelDraft](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/engine/transaction/logic/draft.rs#L27-L32) stores the original `TopologyState` at construction time. `commit(self)` validates + returns new state. `rollback(self)` returns the original. Drop without commit = implicit rollback.
+**Current state**
 
-**The current problem**: `commit()` in `authority/commit/pipeline.rs` mutates a touched-partition draft through a long multi-phase pipeline. The visibility contract is right, but the safety story is still spread across a large function with too many phase-local assumptions.
+forge-relational has errors scattered across 8+ modules with no common base: `TransactionCommitError`, `DurabilityError`, `BranchCreateError`, `SchemaRegistryError`, `PublicationError`, `PatchStreamReadError`, `CommitConflict`, `ReplayFailureClass`. Callers can't catch "any relational error" without matching six types. No common `From` chain means `?` doesn't propagate across subsystem boundaries.
+
+**What changes**
+
+Two layers. First, the wrapper enum for `?` propagation:
 
 ```rust
-/// Owns the pre-mutation partition state. Consuming `commit()` applies mutations.
-/// Dropping without `commit()` is a safe no-op (original runtime is untouched).
-pub(crate) struct RelationalDraft {
-    /// The cloned partition state to mutate speculatively.
-    working: BTreeMap<PartitionId, PartitionState>,
-    /// Record of touched partitions for targeted re-application.
-    touched_partitions: BTreeSet<PartitionId>,
-}
-
-impl RelationalDraft {
-    /// Snapshot the partitions that this plan will touch.
-    pub fn new(
-        runtime_partitions: &BTreeMap<PartitionId, PartitionState>,
-        touched: &BTreeSet<PartitionId>,
-    ) -> Self {
-        let working = touched.iter()
-            .filter_map(|pid| runtime_partitions.get(pid).map(|p| (*pid, p.clone())))
-            .collect();
-        Self { working, touched_partitions: touched.clone() }
-    }
-
-    pub fn partition(&self, id: PartitionId) -> Option<&PartitionState> { self.working.get(&id) }
-    pub fn partition_mut(&mut self, id: PartitionId) -> Option<&mut PartitionState> { self.working.get_mut(&id) }
-
-    /// Consume the draft, returning the mutated partitions for merge into the runtime.
-    pub fn commit(self) -> BTreeMap<PartitionId, PartitionState> { self.working }
-    // Dropping without calling commit() → partitions are simply discarded. Runtime untouched.
+#[derive(Debug, thiserror::Error)]
+pub enum RelationalError {
+    #[error("transaction: {0}")]
+    Transaction(#[from] TransactionCommitError),
+    #[error("durability: {0}")]
+    Durability(#[from] DurabilityError),
+    #[error("history: {0}")]
+    History(#[from] BranchCreateError),
+    #[error("schema: {0}")]
+    Schema(#[from] SchemaRegistryError),
+    #[error("publication: {0}")]
+    Publication(#[from] PublicationError),
+    #[error("replay: {0}")]
+    Replay(#[from] ReplayFailureClass),
 }
 ```
 
-> [!IMPORTANT]
-> **Key difference from `KernelDraft`**: We only clone the _touched_ partitions, not the entire runtime. With large partition sets, cloning everything would be expensive. The touched-partition planner now lives alongside commit planning in `authority/commit/*` and scopes the draft snapshot.
-
-### 3.2 Draft-Based Commit
-
-With `RelationalDraft` and the stabilized mutation seam from Milestone 2, `commit()` becomes a thin orchestrator over named phases. The important architectural rule is: phase-local mechanics live under `authority/commit/phases/*`, while `pipeline.rs` sequences them.
+Second — and this is where the real win lives — each subsystem error carries structured context, not just a message string:
 
 ```rust
-pub fn commit(&mut self, tx: RelationalTransaction) -> Result<CommitOutcome, TransactionCommitError> {
-    let prepared = phases::prepare::prepare_draft_scope(&mut tx)?;
-    phases::prepare::record_preparation_counters(...);
-    phases::invariants::run_commit_boundary_invariants(...)?;
-
-    let effect = apply_plan_to_draft(...)?;
-    phases::prepare::record_mutation_counters(...);
-    phases::invariants::run_mutation_sensitive_invariants(...)?;
-
-    let history = phases::history::resolve_commit_history(...)?;
-    let patch = assemble_patch(...);
-    phases::publication::enforce_patch_budget(...)?;
-    phases::invariants::run_snapshot_publication_invariants(...)?;
-
-    let artifacts = runtime.assemble_publication_bundle(...);
-    let envelope = phases::publication::canonical_commit_envelope(...);
-    phases::publication::append_durable_commit(...)?;
-    phases::finalize::finalize_commit_publication(...);
+/// Structured context attached to every subsystem error.
+/// Machine-readable fields for diagnostics, not just human-readable strings.
+pub struct ErrorContext {
+    /// Which subsystem boundary produced this error.
+    pub subsystem: RelationalSubsystem,
+    /// Which runtime operation was in progress.
+    pub operation: ErrorOperation,
+    /// Affected record(s), if any.
+    pub affected_records: Vec<RecordRef>,
+    /// Affected version/transaction, if any.
+    pub version_context: Option<VersionId>,
+    /// Machine-actionable suggested fix, if known.
+    pub suggested_fix: Option<SuggestedFix>,
 }
 ```
 
-If any step before `finalize_commit_publication(...)` returns `Err`, the draft is dropped and live runtime partitions remain untouched.
+Authority-path errors (commit conflicts, invariant violations, cascade failures) must carry `ErrorContext`. This makes errors machine-queryable for AI agents and debuggable for humans without parsing message strings.
 
-### 3.3 Files Modified
-
-| File                              | Change                                                                          |
-| :-------------------------------- | :------------------------------------------------------------------------------ |
-| `storage/overlay/overlay.rs`      | `RelationalDraft` becomes the owning touched-partition mutation state.          |
-| `authority/commit/pipeline.rs`    | Phase orchestration only; draft commit no longer owns all helper mechanics.     |
-| `authority/commit/phases/prepare.rs` | Draft scope construction and pre-mutation counters.                         |
-| `authority/commit/phases/invariants.rs` | Commit-boundary, mutation-sensitive, and publication invariant phases.   |
-| `authority/commit/phases/history.rs` | Branch/parent/merge-base resolution and commit-reference assembly.           |
-| `authority/commit/phases/publication.rs` | Patch-budget, durable append, changed-record canonicalization, envelope build. |
-| `authority/commit/phases/finalize.rs` | Centralized adjacency application and runtime publication/finalization.     |
-| `authority/commit/publication.rs` | Patch assembly, diagnostics summary assembly, and post-publication runtime updates. |
-| `authority/commit/touched_scope.rs` | Touched-partition planning and adjacency-aware draft scope expansion.        |
-| `authority/commit/plan_building.rs` | Planning stays pure and scopes draft/bulk reservation inputs.                 |
-| `authority/commit/savepoints.rs`  | Minor: rollback uses draft semantics instead of `WorkingState`.                 |
+Subsystem errors remain available for precise matching. The unified wrapper gives `?` propagation. The structured context gives actionable diagnostics.
 
 ---
 
-## Milestone 4: Intent Dispatch
+## Phase B: Internal Cleanup
 
-This now follows the commit hardening work. The goal is to modularize intent handling once the mutation and commit boundaries have stopped shifting.
+These changes improve local DX within individual modules. They don't require the runtime decomposition and are simpler to execute as standalone PRs.
 
-### 4.1 Self-Describing Intent Enum
+---
 
-**Current direction**: the public transaction API still accepts `TransactionIntent` as the serialization/input boundary, but authority internals now convert immediately into a typed family:
+### B1 · MutationWorkspace Combinator Audit
 
-- `MutationIntent`
-- `CreateIntent`
-- `EntityMutationIntent`
-- `RelationMutationIntent`
-- typed bulk/update/delete payload structs
+**Current state**
 
-That split removed the need for leaf mutation handlers to receive the umbrella enum directly. Remaining `TransactionIntent` matching is now mostly confined to the facade/input normalization layer and a few explicit merge-key/validation sites.
+[MutationWorkspace](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/authority/mutation/types.rs) exposes access through closure-based split-borrow combinators:
 
-Before the split, `TransactionIntent` was matched exhaustively in **10+ files**. The highest-signal sites were:
+```rust
+fn with_draft_and_symbols<R>(&mut self, f: impl FnOnce(&mut RelationalDraft, &mut StringInterner) -> R) -> R;
+fn with_draft_and_schema<R>(&mut self, f: impl FnOnce(&mut RelationalDraft, &RelationalSchemaRegistry) -> R) -> R;
+fn with_draft_symbols_and_schema<R>(...) -> R;
+```
 
-1. `authority/mutation/intents/*.rs` — one handler per intent variant
-2. `authority/mutation/intents/dispatch.rs` — central match that routes to the per-intent handler
-3. `authority/merge/canonical_keys.rs::canonical_intent_key` — 8-arm match building sort keys
-4. `authority/merge/intent_validation.rs::validate_intent` — intent-family validation wiring
-5. `authority/merge/conflict_detection.rs::detect_conflicting_updates` — sweeps for conflicting authority
-6. `authority/commit/plan_building.rs::normalize_intents_for_merge` — symbol normalization sweeps
-7. `authority/commit/touched_scope.rs::touched_partitions_for_plan_set` — extracts touched partition IDs for draft scope
-8. `authority/commit/plan_building.rs::bulk_reservations_for_plan` — counts allocations
-9. `authority/commit/savepoints.rs` rollback — generates rollback effects
-10. [rules.rs `planned_entity_field_values`](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/validation/logic/rules.rs) — extracts field values
+**Design decision: preserve closure-based split-borrow**
+
+The closure-based pattern is the correct Rust idiom for this problem. It enforces that callers can only hold split borrows for a scoped lifetime, which prevents the exact class of "accidentally hold `&mut draft` across a function that also needs `&mut symbols`" bugs that raw getter APIs would reintroduce. Replacing closures with exposed raw accessors would be a regression in borrow safety — the workspace is a coherent authority boundary, and the closures express that.
 
 > [!WARNING]
-> **Naive trap**: Do NOT replace the serialization boundary with `Box<dyn MutationAction>`. The durable log still needs a concrete serializable intent shape. `TransactionIntent` stays as the external/log boundary; typed intent families are the internal authority model.
+> Do NOT replace the closure-based split-borrow pattern with raw getter methods. The closures enforce scoped borrow lifetimes that raw getters cannot. This was explicitly reviewed and confirmed as the right approach for Rust's ownership model.
 
-**Fix**: keep the public boundary concrete, but move authority logic onto the typed family and keep only thin input-side helpers on `TransactionIntent`:
+**What changes**
 
-```rust
-impl TransactionIntent {
-    /// Convert the public input intent into the internal typed authority shape.
-    pub fn to_mutation_intent(&self) -> MutationIntent { ... }
+Audit and prune the combinator surface. The N-choose-K explosion is the real problem — not the closure pattern itself. Remove combinator methods whose borrow combinations are unused or redundant. The target state is the **minimal set of combinators** that the mutation handlers actually need, not a combinator for every possible permutation.
 
-    /// Input-boundary helpers still live here when they are genuinely shared.
-    pub fn collect_raw_client_keys(&self, values: &mut Vec<String>) { ... }
-    pub fn normalize_client_keys(&mut self, interner: &mut StringInterner, policy: SymbolPolicy) { ... }
-}
-```
-
-Adding a new mutation kind should now mean:
-
-1. one new typed intent leaf
-2. one new `to_mutation_intent()` arm at the input boundary
-3. one new handler module
-4. any truly domain-specific merge/validation additions
-
-### 4.2 Bento Box Handler Modules
-
-**Precedent**: [operations/boolean/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/operations/boolean/mod.rs) — each operation has `schema.rs` (inputs), `result.rs` (outputs), `contract.rs` (invariants), and `feature.rs` (execution).
-
-```
-authority/mutation/intents/
-├── create_entity.rs         ← allocate + emit PatchRecord
-├── bulk_create_entities.rs  ← loop allocate + emit
-├── update_entity.rs         ← guard + apply_payload_update + emit
-├── replace_entity.rs        ← guard + retire + allocate + emit
-├── delete_entity.rs         ← guard + cascade + retire + emit
-├── create_relation.rs       ← validate endpoints + allocate + adjacency + emit
-├── bulk_create_relations.rs ← loop
-├── delete_relation.rs       ← guard + retire + adjacency remove + emit
-├── dispatch.rs              ← single match → handler::apply()
-└── mod.rs
-```
-
-Each handler now receives only its own typed payload:
+If the audit reveals that most handlers need the same 3-way split, consolidate to a single `with_mutation_context` combinator rather than maintaining separate 2-way and 3-way variants:
 
 ```rust
-pub(crate) fn apply(
-    intent: &DeleteEntityIntent,
-    workspace: &mut MutationWorkspace,
-) -> Result<MutationEffect, CommitConflict> { ... }
-```
-
-The top-level dispatch function:
-
-```rust
-pub(crate) fn dispatch_intent(
-    intent: &MutationIntent,
-    workspace: &mut MutationWorkspace,
-) -> Result<MutationEffect, CommitConflict> {
-    match intent {
-        MutationIntent::Create(CreateIntent::Entity(spec)) => {
-            create_entity::apply(spec, workspace)
-        }
-        MutationIntent::Entity(EntityMutationIntent::Delete(intent)) => {
-            delete_entity::apply(intent, workspace)
-        }
-        // ... one arm per typed family / leaf intent
+impl MutationWorkspace<'_> {
+    /// The primary mutation context: draft + symbols + schema.
+    /// Most intent handlers need all three.
+    pub(crate) fn with_context<R>(
+        &mut self,
+        f: impl FnOnce(&mut RelationalDraft, &mut StringInterner, &RelationalSchemaRegistry) -> R,
+    ) -> R {
+        f(self.draft, self.symbols, self.schema)
     }
-}
-```
 
-### 4.3 `authority/mutation/execution.rs` Simplification
-
-**Current**: `authority/mutation/execution.rs` iterates intents, dispatches across the entity/relation handlers, and accumulates effects.
-
-**After**:
-
-```rust
-pub(crate) fn apply_plan(
-    plan: &MergedCommitPlan,
-    workspace: &mut MutationWorkspace,
-) -> Result<MutationEffect, CommitConflict> {
-    let mut total = MutationEffect::default();
-    for intent in &plan.merged_intents {
-        let effect = dispatch_intent(intent, workspace)?;
-        total.accumulate(effect);
-    }
-    Ok(total)
+    /// Read-only accessors remain direct (no closure needed for shared refs).
+    pub(crate) fn config(&self) -> &MutationConfig { &self.config }
+    pub(crate) fn version_id(&self) -> VersionId { self.version_id }
 }
 ```
 
 ---
 
-## Milestone 5: Public Artifact Normalization & Structural Cleanup
+### B2 · RelationalDraft Delegation Cleanup
 
-This milestone now absorbs the `PatchRecord` cleanup that was previously bundled into Milestone 1. That keeps phase one internal and lets the public artifact churn land after core storage, mutation, commit, and intent seams have settled.
+**Current state**
 
-### 5.0 `PatchRecord` Fix
+[RelationalDraft](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/overlay/overlay.rs) wraps `WorkingState` and re-implements 10 methods that delegate 1:1 to `self.working`. It also implements `PartitionAccess` by delegating entirely to `self.working`.
 
-**Current** ([diff.rs:72–79](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/publication/data/diff.rs#L72-L79)):
+**What changes**
+
+Merge `touched_partitions` into `WorkingState` itself — `WorkingState` already tracks `mutation_journal: BTreeMap<PartitionId, PartitionMutationJournal>` which is effectively the same information. Then `RelationalDraft` either becomes a type alias or reduces to a thin wrapper with only the 1-2 methods that add behavior (like `commit()`), using `Deref` or the `delegate` crate for the rest.
+
+---
+
+### B3 · Nested Config Sections
+
+**What the kernel does**
+
+forge-kernel's [configuration module](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/configuration) separates config into nested domains. The kernel has `ModelingContext` with `ToleranceConfig`, `ValidationConfig`, and `FeatureConfig` as nested sections — not a flat struct with 25+ fields.
+
+**Current state**
+
+[RelationalRuntimeConfig](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/config/data/mod.rs) has **27 fields** at one level. `RelationalConfigOverride` has a parallel set of `Option<T>` fields.
+
+**What changes**
+
+Group into nested config sections that mirror the subsystem decomposition (Phase C):
 
 ```rust
-pub struct PatchRecord {
-    pub kind: PatchRecordKind,          // EntityCreated | EntityUpdated | RelationCreated | ...
-    pub entity_id: Option<EntityId>,    // Some for entities, None for relations
-    pub relation_id: Option<RelationId>,// Some for relations, None for entities
-    pub aspects: Vec<AspectKey>,
-    pub detail: PatchDetail,
+pub struct RelationalRuntimeConfig {
+    pub profile: RelationalRuntimeProfile,
+    pub runtime_name: String,
+    pub identity: IdentityConfig,         // initial capacities, partition setup
+    pub concurrency: ConcurrencyConfig,   // mvcc, retention, visibility cache
+    pub storage: StorageConfig,           // layout, adjacency, payload policy
+    pub history: HistoryConfig,           // version graph, retention, branching
+    pub publication: PublicationConfig,    // patch surface, coherent publication
+    pub durability: DurabilityConfig,     // log, checkpoints, store layout
+    pub schema: SchemaConfig,             // registry, invariants, symbols
+    pub execution: ExecutionConfig,       // planning, commit authority, compiled lane
+    pub diagnostics: DiagnosticsConfig,
+    pub provenance: ConfigProvenance,
 }
 ```
 
-**After**:
+The override struct uses `Option<>` at the section level. This structure must align with the subsystem boundaries defined in Phase C.
+
+> [!IMPORTANT]
+> **Durability policy distinction.** The canonical durable artifact model (commit envelopes, patch records, checkpoint images) is fixed — it does not change per-profile. What becomes configurable is durability _policy_: flush frequency, checkpoint interval, retention depth, recovery strategy. Future workload presets (e.g., `AiWorkflow` vs `CertificationCore`) configure policy, not pluggable checkpoint semantics. `DurabilityConfig` must reflect this split: immutable schema + configurable policy.
+
+---
+
+### B4 · Unified Intent Hierarchy
+
+**Current state**
+
+[transactions/data/mod.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/transactions/data/mod.rs) maintains **two parallel enum hierarchies** representing the exact same mutation semantics:
+
+- `TransactionIntent` — 8 flat variants (lines 147-177)
+- `MutationIntent` → `CreateIntent` / `EntityMutationIntent` / `RelationMutationIntent` — 3 sub-enums with the same 8 leaf types (lines 218-243)
+- Plus 7 separate intent structs (`BulkEntityCreateIntent`, `UpdateEntityIntent`, etc.) that mirror fields already in `TransactionIntent`
+
+`to_mutation_intent()` is a **55-line match** mechanically converting one to the other. `From<MutationIntent> for TransactionIntent` is a **38-line match** doing the reverse. That's ~100 lines of pure translation code. On top of that, every method on `MutationIntent` (`seed_touched_partitions`, `bulk_entity_reservation`, `rollback_effect`, `existing_record_target`, `collect_relation_identities`, `collect_planned_entity_field_values`) repeats the N-variant match-and-extract pattern, totaling ~170 lines of field extraction.
+
+**What changes**
+
+Collapse to a single `MutationIntent` enum. `TransactionIntent` becomes a type alias. The ~100 lines of translation and the redundant intent structs vanish.
+
+Once the hierarchy is unified, each intent variant can directly declare its invariant contract (from D4):
 
 ```rust
-pub struct PatchRecord {
-    pub kind: PatchRecordKind,    // Created | Updated | Deleted | RetainedForAudit
-    pub target: RecordRef,        // Entity(EntityId) | Relation(RelationId)
-    pub aspects: Vec<AspectKey>,
-    pub detail: PatchDetail,
-}
-```
-
-`PatchRecordKind` drops the entity/relation prefix because `RecordRef` already carries that information:
-
-```rust
-pub enum PatchRecordKind { Created, Updated, Deleted, RetainedForAudit }
-```
-
-**Downstream impact**: `commit_record_set` in [history/logic/mod.rs:210–221](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/history/logic/mod.rs#L210-L221) currently matches `(record.entity_id, record.relation_id)` with a `_ => None` arm — this becomes a direct `match record.target { ... }`.
-
-### 5.1 Diagnostics Counter Helper
-
-**Current** (25+ occurrences):
-
-```rust
-self.instrumentation.complexity_counters.lock()
-    .expect("complexity counter lock poisoned").visibility_cache_hits += 1;
-```
-
-**After**:
-
-```rust
-impl RuntimeInstrumentation {
-    pub fn count(&self, f: impl FnOnce(&mut RuntimeComplexityCounters)) {
-        f(&mut *self.complexity_counters.lock().expect("complexity counter lock poisoned"));
+impl MutationIntent {
+    pub const fn invariant_contract(&self) -> u32 {
+        match self {
+            Self::Create(CreateIntent::Entity(_)) =>
+                RelationalInvariantGroup::StorageCoherence.mask()
+                | RelationalInvariantGroup::IdentityCoherence.mask()
+                | RelationalInvariantGroup::SchemaCompliance.mask(),
+            Self::Entity(EntityMutationIntent::Delete(_)) =>
+                RelationalInvariantGroup::AdjacencyIntegrity.mask()
+                | RelationalInvariantGroup::StorageCoherence.mask()
+                | RelationalInvariantGroup::LineageIntegrity.mask(),
+            // ...
+        }
     }
 }
-// Usage:
-self.instrumentation.count(|c| c.visibility_cache_hits += 1);
 ```
 
-### 5.2 Diagnostics Builder
+The commit pipeline computes `union_mask = intents.fold(0u32, |acc, i| acc | i.invariant_contract())` and intersects with `run_at` to skip untouched invariant groups. The intent IS the mode — it carries its own semantics; the pipeline is generic over it.
 
-**Current** (~15 occurrences):
+---
+
+### B5 · Declarative Effect Assembly
+
+**Current state**
+
+Every intent handler in [authority/mutation/intents/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/authority/mutation/intents) follows the same boilerplate pattern:
 
 ```rust
-self.push_bounded_diagnostic(
-    DiagnosticsScope::Transaction,
-    DiagnosticsArtifactKind::Failure,
-    vec![RelationalDiagnosticsEntry {
-        code: DiagnosticCode::StaleHandle,
-        message: "entity handle expired".to_string(),
-        fields: json!({ "entity_id": id.local_slot.0 }),
-    }],
-);
+fn apply(spec, workspace) -> Result<MutationEffect, CommitConflict> {
+    let mut effect = MutationEffect::default();
+    // 1. Do the actual domain mutation
+    workspace.with_draft_and_symbols(|draft, symbols| { ... });
+    // 2. Manually record the change (always same shape)
+    effect.record_change(RecordRef::Entity(entity_id));
+    // 3. Manually build the diagnostic (always same structure, different code/message)
+    effect.record_diagnostic(RelationalDiagnosticsEntry { code: ..., message: ..., fields: ... });
+    // 4. Manually build the patch record (kind maps 1:1 to intent kind)
+    effect.record_patch(PatchRecord { kind: ..., target: ..., aspects: ..., detail: ... });
+    Ok(effect)
+}
 ```
 
-**After**:
+Steps 2-4 are mechanically determined by the intent type + which records were touched. Every new intent handler must copy this ceremony. The diagnostic code, message, and patch kind are all derivable from the intent variant.
+
+**What changes**
+
+Split the intent handler return into domain effect (what actually changed) and framework-assembled observability (diagnostics, patches, change records):
+
+```rust
+/// What the intent handler returns — only the domain-specific mutation outcome.
+pub(crate) enum DomainEffect {
+    CreatedEntity { entity_id: EntityId, aspects: Vec<Symbol> },
+    DeletedEntity { entity_id: EntityId, cascade: Vec<RelationId> },
+    UpdatedEntity { entity_id: EntityId, aspects: Vec<Symbol> },
+    CreatedRelation { relation_id: RelationId, source: EntityId, target: EntityId },
+    // ...
+}
+
+impl DomainEffect {
+    /// Framework derives the patch records from the domain effect.
+    fn to_patches(&self, policy: PatchSurfacePolicy) -> Vec<PatchRecord> { ... }
+    /// Framework derives the diagnostic entries from the domain effect.
+    fn to_diagnostics(&self) -> Vec<RelationalDiagnosticsEntry> { ... }
+    /// Framework derives the change records from the domain effect.
+    fn changed_records(&self) -> Vec<RecordRef> { ... }
+}
+```
+
+The dispatch layer assembles the full `MutationEffect` from the `DomainEffect`:
+
+```rust
+fn dispatch_and_assemble(
+    intent: &MutationIntent,
+    workspace: &mut MutationWorkspace<'_>,
+) -> Result<MutationEffect, CommitConflict> {
+    let domain = dispatch_intent(intent, workspace)?;
+    Ok(MutationEffect::from_domain(domain, workspace.patch_surface_policy()))
+}
+```
+
+Adding a new intent type means writing only the domain mutation logic — the framework handles observability. This pattern is inspired by frontend optimistic-mutation factories where `mode` drives generic cache update / rollback / invalidation behavior, and the handler only carries the API call. (The frontend code is in a separate workspace — ask the user for examples if needed.)
+
+---
+
+## Phase C: Runtime Decomposition
+
+This is the keystone phase. Every subsequent phase (D, E, F) depends on the subsystem split being complete. Phases A and B should be done first to minimize conflicts.
+
+---
+
+### C1 · God Struct → Subsystem Split
+
+**What the kernel does**
+
+forge-kernel organizes into autonomous subsystem directories: [configuration/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/configuration), [context/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/context), [engine/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/engine), [proof/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/proof), [registry/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/registry). Each subsystem owns its state and exposes a focused API. The kernel's top-level struct doesn't contain 12 unrelated state fields.
+
+forge-core follows the same pattern — [envelope/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/envelope), [policy/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/policy), [tracing/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/tracing) are each self-contained with `data/`, `logic/`, `facade.rs` internals.
+
+**Current state**
+
+[RelationalRuntime](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/logic/runtime/state.rs) has **12 aggregate fields** and **903 lines** of methods touching unrelated concerns. Every `&mut self` borrows the entire runtime.
+
+**What changes**
+
+Extract each aggregate field into an autonomous subsystem wrapper:
+
+```rust
+pub struct RelationalRuntime {
+    pub(crate) config: RelationalRuntimeConfig,
+    pub(crate) storage: StorageSubsystem,
+    pub(crate) visibility: VisibilitySubsystem,
+    pub(crate) publication: PublicationSubsystem,
+    pub(crate) history: HistorySubsystem,
+    pub(crate) indexes: IndexSubsystem,
+    pub(crate) lineage: LineageSubsystem,
+    pub(crate) durability: DurabilitySubsystem,
+    pub(crate) sequence: SequenceSubsystem,
+    pub(crate) symbols: StringInterner,
+    pub(crate) instrumentation: InstrumentationSubsystem,
+    pub(crate) simulation: SimulationSubsystem,
+}
+```
+
+Each subsystem owns its state, exposes its own API, and can be borrowed independently. The commit pipeline then borrows only the subsystems it needs:
+
+```rust
+fn commit(mut self) -> Result<CommitOutcome, TransactionCommitError> {
+    let mutation = run_authoritative_mutation(&mut self.draft, &mut self.runtime.storage)?;
+    let history = resolve_commit_history(&mut self.runtime.history, version_id)?;
+    append_durable_commit(&mut self.runtime.durability, &envelope)?;
+    finalize_publish(&mut self.runtime.visibility, &mut self.runtime.history, draft)?;
+}
+```
+
+This makes the commit pipeline phases (already well-designed in [pipeline.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/authority/commit/pipeline.rs)) self-documenting — each phase's signature declares exactly which subsystems it touches.
+
+---
+
+### C2 · Visibility Cache Encapsulation
+
+**What the kernel does**
+
+forge-core contains cache management patterns where invalidation logic is contained within the cache domain — callers don't manually juggle locks.
+
+**Current state**
+
+The visibility cache in [state.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/logic/runtime/state.rs) lines 522–815 has ~300 lines of manual `RwLock`/`Mutex` lock-acquire-drop-reacquire ceremony. The `evict_visibility_cache_if_needed` method acquires and drops the same `Mutex` **4 separate times** in a single loop iteration. Lock ordering is implicit and undocumented.
+
+**What changes**
+
+As part of the subsystem split from C1, consolidate `SnapshotRegistry`'s internal locks into a single `VisibilityCache` struct:
+
+```rust
+pub(crate) struct VisibilitySubsystem {
+    cache: VisibilityCache,
+    active: BTreeMap<SnapshotId, SnapshotHandleBinding>,
+    published_handles: BTreeMap<SnapshotId, VersionId>,
+    replay_retained: BTreeMap<VersionId, ReplayRetentionState>,
+    next_snapshot_id: u64,
+}
+
+struct VisibilityCache {
+    inner: Mutex<VisibilityCacheInner>,
+}
+
+struct VisibilityCacheInner {
+    states: BTreeMap<VersionId, SnapshotState>,
+    residency: BTreeMap<VersionId, VisibilityResidency>,
+    recent_window: DeterministicVersionWindowPolicy,
+}
+
+impl VisibilityCache {
+    fn lookup_or_reconstruct(&self, version_id: VersionId, ...) -> Option<SnapshotState>;
+    fn pin(&self, version_id: VersionId, reason: PinReason);
+    fn unpin(&self, version_id: VersionId, reason: PinReason);
+    fn evict_excess(&self, counters: &InstrumentationSubsystem);
+}
+```
+
+Single lock scope, semantic methods, no manual lock juggling.
+
+---
+
+### C3 · SnapshotGuard Scope Narrowing
+
+**Current state**
+
+[SnapshotGuard](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/logic/runtime/mod.rs) holds `&'runtime mut RelationalRuntime`. While a guard exists, nothing else can use the runtime. The vision doc says "snapshot reads during active mutation" is first-class — this directly contradicts that.
+
+**What changes**
+
+After the subsystem split, `SnapshotGuard` only needs `&'runtime VisibilitySubsystem`:
+
+```rust
+pub struct SnapshotGuard<'runtime> {
+    visibility: &'runtime VisibilitySubsystem,
+    handle: SnapshotHandle,
+}
+```
+
+The rest of the runtime remains accessible. This matches PostgreSQL's model where snapshot management is independent of query execution.
+
+---
+
+### C4 · Fork-Safe Runtime Construction
+
+**Current state**
+
+[session.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/logic/runtime/session.rs) `new()` manually initializes 11 fields and `fork()` manually clones them — some with `.clone()`, some with `.fork()` (snapshots, instrumentation). Adding a subsystem field requires editing both methods. The compiler catches neither omission. After the C1 subsystem decomposition, this gets worse as subsystem count grows.
+
+This is the same class of bug as the `RecordArena` column problem (A2), but at the runtime level.
+
+**What changes**
+
+Each subsystem implements a `Subsystem` trait that declares its construction and forking behavior:
+
+```rust
+pub(crate) trait Subsystem: Sized {
+    type Config;
+    fn new(config: &Self::Config) -> Self;
+    fn fork(&self) -> Self;
+}
+```
+
+The `RelationalRuntime` struct uses these trait impls directly, and — critically — both `Runtime::new()` and `Runtime::fork()` are exhaustive struct expressions that the compiler checks for completeness:
 
 ```rust
 impl RelationalRuntime {
-    fn diagnostic(&mut self, scope: DiagnosticsScope) -> DiagnosticBuilder<'_> { ... }
-}
-// Usage:
-self.diagnostic(DiagnosticsScope::Transaction)
-    .failure()
-    .entry(DiagnosticCode::StaleHandle, "entity handle expired", json!({ "entity_id": id.local_slot() }))
-    .emit();
-```
-
-### 5.3 Replay Outcome Factory
-
-**Current**: 7 early-return blocks across [replay/logic/mod.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/replay/logic/mod.rs), each constructing `RelationalReplayOutcome` with 7 fields, 6 of which are identical boilerplate.
-
-**After**:
-
-```rust
-impl RelationalReplayOutcome {
-    fn fail(request: RelationalReplayRequest, envelope: Option<&CanonicalCommitEnvelope>,
-            failure: ReplayFailureClass) -> Self {
+    pub fn new(config: RelationalRuntimeConfig) -> Self {
         Self {
-            requested: request,
-            commit: envelope.map(|e| e.commit.clone()),
-            reconstructed_parent_chain: envelope.map(|e| e.commit.parents.clone()).unwrap_or_default(),
-            snapshot_version: envelope.map(|e| e.commit.version_id),
-            compared_surfaces: Vec::new(),
-            mismatches: Vec::new(),
-            failure: Some(failure),
+            storage: StorageSubsystem::new(&config),
+            visibility: VisibilitySubsystem::new(&config),
+            history: HistorySubsystem::new(&config),
+            // ... compiler errors if a new subsystem field is added and not initialized
+            config,
+        }
+    }
+
+    pub fn fork(&self) -> Self {
+        Self {
+            storage: self.storage.fork(),
+            visibility: self.visibility.fork(),
+            history: self.history.fork(),
+            // ... compiler errors if a new subsystem field is missing
+            config: self.config.clone(),
         }
     }
 }
 ```
 
-### 5.4 `SnapshotRegistry` Interior Mutability Audit
+The `Subsystem` trait also gives each subsystem a uniform lifecycle: the runtime can iterate subsystem diagnostics, reset subsystem state for testing, or snapshot subsystem metrics through a common protocol.
 
-**Current** (`logic/runtime/state.rs` and `logic/runtime/mod.rs`):
+---
+
+## Phase D: Invariant Engine
+
+These changes create a first-class invariant scheduling system modeled directly on forge-topo's `GroupPolicyRuntime`. Every item in this phase should reference the kernel code.
+
+---
+
+### D1 · Bitmask Invariant Groups
+
+**Kernel reference**
+
+Read [invariant_group.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/policy/data/invariant_group.rs) in forge-core: `InvariantGroup` is a `#[repr(u8)]` enum where each variant gets a stable bit position. Groups are scheduled via O(1) bitmask operations (`mask()` returns `1u32 << (*self as u8)`). The `APPLICABLE_BY_KIND` const array is a bitmask lookup table indexed by topology kind.
+
+Also read [validation_checkpoint.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/policy/data/validation_checkpoint.rs): `ValidationCheckpoint` uses `#[repr(u8)]` with a `const COUNT` for fixed-size arrays.
+
+**What changes**
+
+Define relational equivalents:
 
 ```rust
-pub(crate) struct SnapshotRegistry {
-    pub(crate) visibility_states: Arc<RwLock<BTreeMap<VersionId, SnapshotState>>>,
-    pub(crate) visibility_residency: Arc<RwLock<BTreeMap<VersionId, VisibilityResidency>>>,
-    pub(crate) recent_policy: Arc<Mutex<DeterministicVersionWindowPolicy>>,
-    ...
+#[repr(u8)]
+pub enum RelationalInvariantGroup {
+    StorageCoherence = 0,        // slot validity, lifecycle consistency
+    VersionVisibility = 1,       // version bounds, snapshot correctness
+    AdjacencyIntegrity = 2,      // source/target alive, bidirectional links
+    IdentityCoherence = 3,       // generational freshness, no stale refs
+    SchemaCompliance = 4,        // kind registration, payload validation
+    LineageIntegrity = 5,        // no orphan lineage, no broken chains
+    PublicationCoherence = 6,    // patch stream ordering, bundle completeness
+    DurabilityConsistency = 7,   // log vs checkpoint agreement
+}
+
+impl RelationalInvariantGroup {
+    pub const COUNT: usize = 8;
+    pub const fn mask(&self) -> u32 { 1u32 << (*self as u8) }
+}
+
+#[repr(u8)]
+pub enum RelationalCheckpoint {
+    PreCommit = 0,
+    PostMutation = 1,
+    PrePublication = 2,
+    PostCommit = 3,
+    OnDemand = 4,
+}
+
+impl RelationalCheckpoint {
+    pub const COUNT: usize = 5;
 }
 ```
 
-`RelationalRuntime` derives `Clone`. Cloning the runtime clones the `Arc`s, giving the clone _shared_ interior-mutable caches with the original. Any code that clones the runtime and expects independent state will silently see cross-instance mutations.
+---
 
-**Fix**: Since we're pre-prod, **remove `Clone` from `RelationalRuntime`**. It's a heavy struct that should never be casually cloned. If scoped snapshots need a "fork," provide an explicit `fork()` method that deep-copies the caches. Then replace shared-ownership cache wrappers with runtime-owned state:
+### D2 · Invariant Cost Classification
+
+**Kernel reference**
+
+Read the `ValidatorCost` enum in [invariant_group.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/policy/data/invariant_group.rs): `Cheap` (O(n) single pass), `Medium` (O(n log n)), `Expensive` (O(n²)). The `GroupPolicyRuntime` uses per-checkpoint cost ceilings.
+
+**What changes**
 
 ```rust
-pub(crate) struct SnapshotRegistry {
-    pub(crate) visibility_states: RwLock<BTreeMap<VersionId, SnapshotState>>,
-    pub(crate) visibility_residency: RwLock<BTreeMap<VersionId, VisibilityResidency>>,
-    pub(crate) recent_policy: Mutex<DeterministicVersionWindowPolicy>,
-    ...
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum InvariantCost {
+    Touched,     // O(touched) — proportional to mutation size
+    Partition,   // O(partition) — per-partition scan
+    Global,      // O(global) — full storage scan
 }
 ```
 
-This removes cross-runtime shared cache state while keeping runtime-owned synchronization local to the engine.
-
-### 5.5 Aspect Key Sorting Bug
-
-**Current** (`visibility/materialization/aspect_introspection.rs`):
-
-```rust
-aspects.sort_by(|left, right| format!("{left:?}").cmp(&format!("{right:?}")));
-```
-
-Sorting `AspectKey` values by their `Debug` representation is fragile, allocates strings on every comparison, and produces inconsistent ordering if the `Debug` format changes. `AspectKey` wraps `InternedString` which should derive `Ord` directly.
-
-**Fix**: Implement `Ord` for `InternedString` and `AspectKey`, then:
-
-```rust
-aspects.sort();
-aspects.dedup();
-```
-
-### 5.6 Module Path Cleanup
-
-**Current**: mutation logic now lives under `authority/mutation/*`, but the remaining cleanup goal is the same: avoid path shims and keep module boundaries real.
-
-```rust
-mod execution;
-mod record_changes;
-```
-
-Hygiene: keep mutation helpers under `authority/mutation/` with a proper `mod.rs`, rather than path shims or flat runtime siblings.
+Each `RelationalInvariantGroup` variant declares its cost tier.
 
 ---
 
-## Milestone 6: The Long Tail (Extreme Reduction)
+### D3 · Invariant Policy Runtime (O(1) Dispatch)
 
-_These are bottom-of-the-barrel structural reductions found during a secondary deep-read of `Durability`, `Query`, and `Validation` modules._
+**Kernel reference**
 
-### 6.1 Generic Checkpoint Images
-
-**Current** ([durability/data/mod.rs:102–157](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/Durability/data/mod.rs#L102-L157)): `EntityArenaCheckpointImage` (19 fields) and `RelationArenaCheckpointImage` (18 fields) duplicate the same serialization schema. Then `checkpoint_images.rs` duplicates the tedious `map(|e| ...)` loops to convert between live arenas and images.
-**Fix**:
+Read [group_policy_runtime.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-topo/src/validators/group_policy_runtime.rs) in forge-topo. `GroupPolicyRuntime` is built once at construction via `resolve()`, then `should_run()` is a single `#[inline]` array-index + bitwise AND:
 
 ```rust
-pub struct RecordArenaCheckpointImage<K: RecordKind> {
-    pub generations: Vec<u32>,
-    pub lifecycle: Vec<RecordLifecycleState>,
-    // ... all shared fields
-    pub metadata_history: Vec<Vec<K::MetaImage>>, // Associated types for serialization
-    pub extra: Vec<K::ExtraImage>,
+#[inline]
+pub fn should_run(&self, group: InvariantGroup, checkpoint: ValidationCheckpoint) -> bool {
+    self.run_at[checkpoint as usize] & group.mask() != 0
 }
 ```
 
-**Impact**: ~150 lines eliminated in `checkpoint_images.rs` + ~40 lines in `data/mod.rs`.
+The `resolve()` method computes skip masks, deferred masks, and per-checkpoint run masks from applicability tables, user overrides, and topology context — all via bitwise operations.
 
-### 6.2 Consolidated `RecordRef` Query Targets
+**What changes**
 
-`QueryWorkPacket` now uses `Vec<RecordRef>` directly. The duplicate `ReadTarget` enum is gone, and query planning, packet execution, harness parsing, and tests all match on `RecordRef::{Entity, Relation}`.
+Create `RelationalInvariantRuntime` with the identical pattern:
 
-### 6.3 Generic Invariants
+```rust
+pub(crate) struct RelationalInvariantRuntime {
+    skip_mask: u32,
+    deferred_mask: u32,
+    run_at: [u32; RelationalCheckpoint::COUNT],
+    max_cost: [InvariantCost; RelationalCheckpoint::COUNT],
+}
 
-`InvariantRule` now uses `LiveRecordRequiresSidecar(RecordKindTag)`. The evaluation path shares one generic scan loop over the Phase 1 record substrate instead of duplicating entity/relation sidecar checks.
+impl RelationalInvariantRuntime {
+    pub fn resolve(profile: RelationalRuntimeProfile, ...) -> Self;
 
-### 6.4 Flattened Durable Envelopes
+    #[inline]
+    pub fn should_run(&self, group: RelationalInvariantGroup, cp: RelationalCheckpoint) -> bool {
+        self.run_at[cp as usize] & group.mask() != 0
+    }
 
-Durability now stores raw `CanonicalCommitEnvelope` values in both in-memory log state and segment files. The one-field `DurableCommitEnvelope` wrapper is gone, and recovery/replay/lineage/index consumers use `entry.commit...` directly.
+    #[inline]
+    pub fn max_cost_at(&self, cp: RelationalCheckpoint) -> InvariantCost {
+        self.max_cost[cp as usize]
+    }
+}
+```
+
+This replaces the current `InvariantCatalog` + `Vec<InvariantRule>` approach.
 
 ---
 
-## Dependency Graph
+### D4 · Intent Contracts
 
-```mermaid
-graph TD
-    M1["Milestone 1\nCore Record Substrate\n+ RecordArena + SlotView + Tuples"]
-    M2["Milestone 2\nMutation Surface Cleanup\n+ MutationEffect + Workspace"]
-    M3["Milestone 3\nCommit Pipeline Hardening\n+ RelationalDraft + Draft Commit"]
-    M4["Milestone 4\nIntent Dispatch\n+ Self-describing Intents + Handlers"]
-    M5["Milestone 5\nPatchRecord + Diagnostics\n+ Registry + Paths"]
-    M6["Milestone 6\nThe Long Tail\n+ Checkpoint Images"]
+**Kernel reference**
 
-    M1 --> M2
-    M2 --> M3
-    M2 --> M4
-    M3 --> M4
-    M1 --> M5
-    M3 --> M5
-    M4 --> M5
-    M1 --> M6
+Read [contract_registry.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-topo/src/validators/contract_registry.rs) in forge-topo. Every topology operator declares which invariant groups it `MayBreak` and which are `Unrelated`:
+
+```rust
+pub const FULL_TOPO_WIRING: InvariantContract = InvariantContract {
+    relation: |id| match id.group() {
+        InvariantGroup::PointerCoherence => InvariantRelation::MayBreak,
+        InvariantGroup::ShellClosure => InvariantRelation::Unrelated,
+        // ...
+    },
+};
+```
+
+The checkpoint validator ORs together the `may_break` masks of all operators in the transaction and only runs those groups. This makes invariant execution proportional to _what actually changed_.
+
+**What changes**
+
+Define contracts for each mutation intent type:
+
+```rust
+pub const CREATE_ENTITY_CONTRACT: RelationalInvariantContract = RelationalInvariantContract {
+    may_break: RelationalInvariantGroup::StorageCoherence.mask()
+             | RelationalInvariantGroup::IdentityCoherence.mask()
+             | RelationalInvariantGroup::SchemaCompliance.mask(),
+};
+
+pub const DELETE_ENTITY_CONTRACT: RelationalInvariantContract = RelationalInvariantContract {
+    may_break: RelationalInvariantGroup::AdjacencyIntegrity.mask()
+             | RelationalInvariantGroup::StorageCoherence.mask()
+             | RelationalInvariantGroup::LineageIntegrity.mask(),
+};
+```
+
+The commit pipeline computes `union_mask = intents.fold(0u32, |acc, i| acc | i.contract().may_break)` then intersects with `run_at` to skip untouched groups entirely.
+
+**Commit topology inference.** The union mask also drives **pipeline phase selection**, not just invariant group selection. Different mutation topologies need different pipeline phases:
+
+| Topology | Detected when union mask includes | Pipeline phases enabled |
+|---|---|---|
+| **Flat entity batch** | `StorageCoherence` only | Mutation, history, publication — skip cascade/adjacency |
+| **Graph mutation** | `AdjacencyIntegrity` | Mutation, cascade checking, adjacency rebuild, history, publication |
+| **Branch merge** | `MergeCoherence` | Three-way diff, conflict resolution, all standard phases |
+
+This is inspired by a frontend pattern where flat-list CRUD managers and tree-structured CRUD managers use topology-specific optimistic update strategies — the data shape determines the cache manipulation approach. (The frontend code is in a separate workspace — ask the user for examples if needed.) Instead of the caller declaring the topology explicitly, the pipeline **infers** it from the combined intent contracts. A flat entity batch that only touches `StorageCoherence` never pays for cascade checking or adjacency rebuild.
+
+---
+
+### D5 · Three-State Invariant Verdicts
+
+**Kernel reference**
+
+Read [policy_result.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/policy/data/policy_result.rs) in forge-core. `PolicyResult<T>` distinguishes `Success(T)`, `Ambiguous { query, potential_value }`, and `HardError(E)`. The middle state carries structured context that the kernel can inspect and override.
+
+**What changes**
+
+Invariant checks return `InvariantVerdict` instead of `Result<(), InvariantViolation>`:
+
+```rust
+pub enum InvariantVerdict<T = ()> {
+    Pass(T),
+    Advisory {
+        violation: InvariantViolation,
+        proceed_value: T,
+        advisory: InvariantAdvisory,
+    },
+    Violation(InvariantViolation),
+}
+```
+
+This bridges the gap between the vision doc's invariant categories (`AlwaysOnStructural` → always `Violation`, `SnapshotAudit` → can be `Advisory`) and the runtime profile (`CertificationCore` blocks on advisories, `AiWorkflow` proceeds).
+
+---
+
+### D6 · State-Derived Invariant Context
+
+**Kernel reference**
+
+Read [topology_context_from_shell_metadata](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-topo/src/validators/group_policy_runtime.rs#L141-195) in forge-topo. Before resolving the validation policy, forge-topo derives a `TopologyContext` from the actual model state by reading `ShellKind` metadata (O(shells), ~1-4). The policy adapts to the actual state of the model, not just static configuration.
+
+**What changes**
+
+```rust
+pub(crate) fn derive_invariant_context(runtime: &RelationalRuntime) -> InvariantContext {
+    let entity_count = runtime.storage.entity_slot_count();
+    let relation_count = runtime.storage.relation_slot_count();
+    let version_depth = runtime.history.commit_count();
+    let active_snapshots = runtime.visibility.active_snapshot_count();
+
+    InvariantContext {
+        scale: match entity_count {
+            0..=1_000 => Scale::Small,
+            1_001..=100_000 => Scale::Medium,
+            _ => Scale::Large,
+        },
+        version_depth,
+        snapshot_pressure: active_snapshots > 10,
+    }
+}
+```
+
+The invariant runtime adjusts cost ceilings based on this context — at large scale, pre-commit checks downgrade from `Global` to `Partition` automatically.
+
+---
+
+## Phase E: Commit Architecture
+
+These changes upgrade the commit pipeline's diagnostic and return-value story. They depend on the subsystem split (C) and invariant engine (D).
+
+---
+
+### E1 · Commit Decision Log
+
+**Kernel reference**
+
+Read [decision_log.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/tracing/decision_log/decision_log.rs) in forge-core (685 lines). `DecisionLog` is a span-aware, queryable trace:
+
+- **Flat `Vec<TraceEvent>` storage** with tree reconstruction via StartSpan/EndSpan markers
+- **O(1) decision lookup** via `decision_index: HashMap<DecisionId, usize>`
+- **Running summary** updated incrementally on `record()` — `summary()` is O(1)
+- **Merge with ID rebasing** — two logs combine without collisions
+- **Diffable `TraceSummary`** via `TraceSummary::diff()` for regression detection
+
+Also read [traced_decision.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/tracing/decision/traced_decision.rs) for the per-decision schema (kind, tier, margin, entity scope, span assignment, topology delta) and [span.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/tracing/decision/span.rs) for the `TraceEvent` protocol.
+
+**What changes**
+
+Create a `CommitLog` that wraps each commit pipeline phase in a span:
+
+```rust
+pub(crate) struct CommitLog {
+    events: Vec<CommitTraceEvent>,
+    span_stack: Vec<CommitSpanId>,
+    running_summary: CommitSummary,
+}
+
+pub(crate) enum CommitPhase {
+    DraftPreparation,
+    PlanMerge,
+    InvariantPreCheck,
+    AuthoritativeMutation,
+    HistoryResolution,
+    InvariantPostCheck,
+    ArtifactAssembly,
+    Publication,
+}
+```
+
+The 7-phase pipeline in [pipeline.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/authority/commit/pipeline.rs) already has the right structure — each phase call opens a span, records decisions (conflict resolution, cascade triggers, schema validation), and closes the span. Debugging becomes `commit_log.phase_decisions(CommitPhase::AuthoritativeMutation)`.
+
+---
+
+### E2 · Commit Result Envelope
+
+**Kernel reference**
+
+Read [operation_result.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/envelope/data/operation_result.rs) in forge-core. Every kernel operation returns `OperationResult<T>` wrapping value + warnings + decision log + metrics + lineage delta + state hashes + validation results. An AI agent can reconstruct the full state transition from this envelope alone.
+
+**What changes**
+
+Wrap `CommitOutcome` in a `CommitResult` envelope:
+
+```rust
+pub struct CommitResult {
+    pub outcome: CommitOutcome,
+    pub diagnostics: Vec<RelationalDiagnosticsEntry>,
+    pub patch: Vec<PatchRecord>,
+    pub envelope: CanonicalCommitEnvelope,
+    pub commit_log: CommitLog,
+    pub phase_timing: CommitPhaseTiming,
+    pub invariant_results: Vec<InvariantCheckResult>,
+    pub complexity_delta: RuntimeComplexityCounters,
+}
+```
+
+`txn.commit()` returns `Result<CommitResult, RelationalError>`. Everything a caller needs — for debugging, replay, CDC, or auditing — comes back in one return value.
+
+---
+
+## Phase F: API Surface
+
+This is the final phase. It reflects the internal structure established by all previous phases into the public facade.
+
+---
+
+### F1 · Facade Namespace Organization
+
+**What the kernel does**
+
+forge-core exposes each domain through its own `facade.rs` — [policy/facade.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/policy/facade.rs), [envelope/facade.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/envelope/facade.rs) — with the crate root re-exporting from each. forge-topo's [validators/facade.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-topo/src/validators/facade.rs) does the same: focused re-exports grouped by domain.
+
+**Current state**
+
+[facade.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/facade.rs) is 106 lines re-exporting ~150 types in a completely flat namespace. Autocomplete is useless when 150 items compete.
+
+**What changes**
+
+Organize exports into sub-namespaces matching the subsystem decomposition:
+
+```rust
+pub mod facade {
+    pub mod identity { /* EntityId, RelationId, PartitionId, Generation, ... */ }
+    pub mod transactions { /* TransactionId, CommitOutcome, CommitResult, SavepointId, ... */ }
+    pub mod history { /* BranchId, CommitId, VersionNode, ... */ }
+    pub mod snapshots { /* SnapshotHandle, SnapshotId, SnapshotGuard, ... */ }
+    pub mod publication { /* PatchRecord, PatchStreamBatch, ... */ }
+    pub mod lineage { /* LineageEventRecord, CorrespondenceCandidate, ... */ }
+    pub mod config { /* RelationalRuntimeConfig, profiles, policies */ }
+    pub mod durability { /* DurableCheckpoint, RecoveryPlan, ... */ }
+    pub mod schema { /* SchemaId, EntityKindRegistration, ... */ }
+    pub mod diagnostics { /* DiagnosticCode, RelationalDiagnosticsEntry, ... */ }
+    pub mod invariants { /* RelationalInvariantGroup, InvariantVerdict, ... */ }
+    pub mod errors { /* RelationalError, ... */ }
+
+    // Top-level convenience re-exports for the most common entry points
+    pub use self::identity::{EntityId, RelationId};
+    pub use self::transactions::{CommitOutcome, CommitResult};
+    pub use self::history::BranchId;
+    pub use self::errors::RelationalError;
+}
 ```
 
 ---
 
-## Precedent Map
+### F2 · Type-Driven Read Surface (RecordProjection)
 
-| This Spec                                    | Forge Precedent                 | Source                                                                                                                                              |
-| :------------------------------------------- | :------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `RecordArena<K>` (generic SoA)               | `TopologyArena`                 | `forge-topo`                                                                                                                                        |
-| `RelationalDraft` (RAII commit/rollback)     | `KernelDraft`                   | [draft.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/engine/transaction/logic/draft.rs)          |
-| `MutationEffect` (return-based accumulation) | `OperationResult<T>`            | [operation_result.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/envelope/data/operation_result.rs) |
-| Focused `MutationWorkspace` split borrows    | `BRepWorkspace` borrow splitting | [workspace.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/engine/transaction/logic/workspace.rs)  |
-| Bento Box intent modules                     | `operations/boolean/`           | [boolean/mod.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/operations/boolean/mod.rs)            |
-| `FeaturePipeline::execute` phases            | `FeaturePipeline`               | [executor.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/engine/pipeline/executor.rs)             |
+**Current state**
+
+[read_records/mod.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/visibility/materialization/read_records/mod.rs) contains **266 lines of methods** on `impl RelationalRuntime` that all follow the same pattern: take `&impl PartitionAccess` + `partition_id` + `kind_id` + `version_id`, iterate slots, check kind/visibility, materialize records. Every consumer must thread all four parameters and handle the iteration manually.
+
+`PartitionAccess` is the right low-level trait (like `HttpClient` is the right low-level primitive). But there's no composable surface on top of it — and more importantly, there's no way for a domain type to **declare up front** what it needs from the runtime.
+
+**Design principle: read/write contract duality**
+
+On the write path (B4/D4), each `MutationIntent` declares its invariant contract — "what I may break":
+
+```rust
+impl MutationIntent {
+    pub const fn invariant_contract(&self) -> u32 { /* aspect mask */ }
+}
+```
+
+The read path needs the exact **dual**: each domain type declares "what I depend on." These two declarations are opposite faces of the same coin — and the bridge layer computes their intersection for aspect-aware invalidation:
+
+```
+WRITE: UpdateEntity { touched_aspects: [Geometry] }
+                          ↓
+BRIDGE: "Which projections does this invalidate?"
+         intersection(write.touched, read.required)
+                          ↓
+READ:  Body::required_aspects() → [Geometry, Metadata]   → INVALIDATE (Geometry ∩)
+       DisplayName::required_aspects() → [Metadata]       → SKIP       (no intersection)
+```
+
+**What changes**
+
+The domain type itself declares its read contract via a `RecordProjection` trait:
+
+```rust
+/// The type IS the read contract.
+/// Dual of MutationIntent::invariant_contract() on the write path.
+pub trait RecordProjection: Sized {
+    /// Which kind this projection reads from.
+    const KIND: KindId;
+
+    /// Which payload aspects this type depends on.
+    /// Used by SnapshotView for materialization,
+    /// and by the bridge layer for aspect-aware invalidation.
+    fn required_aspects() -> &'static [AspectKey];
+
+    /// Construct from a read record. Returns None if record doesn't match.
+    fn from_record(record: &EntityReadRecord) -> Option<Self>;
+}
+
+// Example domain type — declares everything up front
+impl RecordProjection for Body {
+    const KIND: KindId = BODY_KIND;
+    fn required_aspects() -> &'static [AspectKey] {
+        &[AspectKey::GEOMETRY, AspectKey::METADATA]
+    }
+    fn from_record(record: &EntityReadRecord) -> Option<Self> {
+        Some(Body {
+            id: record.entity_id,
+            geometry: record.payload.get("geometry")?,
+            name: record.payload.get("name")?.as_str()?.to_string(),
+        })
+    }
+}
+```
+
+`SnapshotView` uses this trait to collapse the entire read chain into a single generic call — kind, aspects, construction, and version resolution are all derived from the type:
+
+```rust
+pub struct SnapshotView<'runtime> {
+    runtime: &'runtime RelationalRuntime,
+    version_id: VersionId,
+    state: BorrowedWorkingState<'runtime>,
+}
+
+impl<'runtime> SnapshotView<'runtime> {
+    /// Type-driven projection — kind, aspects, and construction
+    /// all derived from T's RecordProjection declaration.
+    pub fn project<T: RecordProjection>(&self) -> Vec<T> {
+        self.state.partition_ids().iter().flat_map(|pid| {
+            self.runtime
+                .visible_entities_of_kind_in_partition_from_state(
+                    &self.state, *pid, T::KIND, self.version_id,
+                )
+                .into_iter()
+                .filter_map(T::from_record)
+        }).collect()
+    }
+
+    /// Projection with partition filter.
+    pub fn project_in<T: RecordProjection>(&self, partition_id: PartitionId) -> Vec<T> {
+        self.runtime
+            .visible_entities_of_kind_in_partition_from_state(
+                &self.state, partition_id, T::KIND, self.version_id,
+            )
+            .into_iter()
+            .filter_map(T::from_record)
+            .collect()
+    }
+
+    /// Single-entity lookup — also type-driven.
+    pub fn get<T: RecordProjection>(&self, entity_id: EntityId) -> Option<T> {
+        let record = self.runtime.entity_record_for_id_at_version(
+            &self.state, entity_id, self.version_id,
+        )?;
+        T::from_record(&record)
+    }
+
+    /// Escape hatch for ad-hoc reads that don't have a projection type.
+    pub fn entities_of_kind(&self, kind_id: KindId) -> EntityQuery<'_> {
+        EntityQuery { view: self, kind_id, partition_filter: None }
+    }
+}
+```
+
+Consumer code collapses from:
+
+```rust
+// Before — consumer threads 4 params and iterates manually
+let state = runtime.current_state();
+let version_id = runtime.current_version_id();
+for partition_id in state.partition_ids() {
+    let records = runtime.visible_entities_of_kind_in_partition_from_state(
+        &state, partition_id, body_kind_id, version_id,
+    );
+    for record in records { ... }
+}
+```
+
+To:
+
+```rust
+// After — type declares its contract, framework handles the rest
+let bodies: Vec<Body> = snapshot.view().project();
+```
+
+One line. Kind, aspects, construction, version, partition iteration — all derived from `Body`'s `RecordProjection` impl.
+
+> [!IMPORTANT]
+> **Contract duality with the bridge layer.** `RecordProjection::required_aspects()` is the read-side contract. `MutationIntent::invariant_contract()` (D4) is the write-side contract. They are duals — the bridge layer intersects them for aspect-aware invalidation. When a commit touches aspects `[Geometry]`, only projections whose `required_aspects()` include `Geometry` are invalidated. This means adding a new domain type automatically wires its invalidation behavior — no manual bridge configuration needed.
 
 ---
 
-## Impact Summary
+## What Must Be Preserved
 
-| Milestone | Est. Lines Eliminated | Est. Lines Added | Net        | Bug Classes Eliminated                                                              |
-| :-------- | :-------------------- | :--------------- | :--------- | :---------------------------------------------------------------------------------- |
-| 1         | ~800                  | ~220             | **−580**   | Forgot-the-relation-side, OOB panics, hot-path string allocs                        |
-| 2         | ~150                  | ~100             | **−50**    | Parameter bloat drift, mutation-output shotgun surgery                              |
-| 3         | ~290                  | ~80              | **−210**   | Half-applied commit state, rollback/publication phase drift                         |
-| 4         | ~300                  | ~150             | **−150**   | Match-explosion maintenance, new-intent shotgun surgery                             |
-| 5         | ~170                  | ~90              | **−80**    | Impossible `PatchRecord` states, debug-sorted aspect keys, shared cache via `Clone` |
-| 6         | ~250                  | ~40              | **−210**   | Checkpoint desync, redundant enum mapping                                           |
-| **Total** | **~1,960**            | **~680**         | **−1,280** |                                                                                     |
+These patterns are already strong. Every refactoring item above must preserve them:
+
+| Pattern                            | Location                                                                                                                                              | Why it's good                                        |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `RecordKind` trait system          | [record_arena.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/substrate/record_arena.rs) | Right level of SoA generics                          |
+| `PartitionAccess` trait            | [access.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/overlay/access.rs)               | Stays as the low-level read primitive underneath `SnapshotView` |
+| 7-phase commit pipeline            | [pipeline.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/authority/commit/pipeline.rs)          | Readable, auditable, correctly separated             |
+| `MutationEffect::accumulate`       | [types.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/authority/mutation/types.rs)              | Good fold/reduce for composing intent results        |
+| `SlotView<'a, K>`                  | [record_arena.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/substrate/record_arena.rs) | Zero-cost borrow lens into the arena                 |
+| `BTreeMap` in all observable paths | everywhere                                                                                                                                            | Deterministic iteration per vision doc               |
+| `DenseSlotBitSet`                  | [bitsets.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/partition/bitsets.rs)           | Proper bitset for lifecycle tracking                 |
+| Per-slot versioned history         | [record_arena.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/substrate/record_arena.rs) | Appropriate for MVCC model                           |
+| Config provenance tracking         | [config/data/mod.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/config/data/mod.rs)             | Knowing _why_ each config value is set               |

@@ -3,7 +3,6 @@ use std::collections::BTreeSet;
 use crate::payloads::data::RecordPayload;
 use crate::schema::data::SchemaRegistryError;
 use crate::storage::logic::state::{EntityArena, PartitionAccess, VersionedValue};
-use crate::storage::substrate::RecordId;
 use crate::transactions::data::CommitConflict;
 use crate::validation::data::{InvariantCheckResult, InvariantFailureEffect};
 
@@ -47,12 +46,12 @@ pub(crate) fn entity_payload_for_state(
     version_id: crate::identity::data::VersionId,
 ) -> Option<&RecordPayload> {
     let partition = state.get_partition(entity_id.partition_id)?;
-    let slot = entity_id.local_slot();
+    let slot = entity_id.local_slot.0 as usize;
     if partition
         .entity_arena
         .get(&entity_id)
         .map(|slot_view| slot_view.generation())
-        != Some(entity_id.generation())
+        != Some(entity_id.generation.0)
     {
         return None;
     }

@@ -6,9 +6,10 @@ use std::collections::HashMap;
 use std::hash::Hash;
 
 use crate::data::node::NodeEntry;
+use crate::data::handle::NodeId;
 
 use super::schedule::CompactionFamily;
-use super::super::signal_graph::SignalGraph;
+use super::super::runtime::graph::{EdgeTopology, SignalGraph};
 
 impl SignalGraph {
     #[cfg(test)]
@@ -27,6 +28,68 @@ impl SignalGraph {
     }
 }
 
+impl EdgeTopology {
+    pub(in crate::data::graph) fn prune_dead_dependency_edges(
+        graph: &mut SignalGraph,
+        node: NodeId,
+    ) -> Result<(), crate::data::error::SignalError> {
+        if graph.arena.compaction.tombstone_count == 0 {
+            return Ok(());
+        }
+        Self::prune_dependency_edges(graph, node)
+    }
+
+    pub(in crate::data::graph) fn prune_dead_subscriber_edges(
+        graph: &mut SignalGraph,
+        node: NodeId,
+    ) -> Result<(), crate::data::error::SignalError> {
+        if graph.arena.compaction.tombstone_count == 0 {
+            return Ok(());
+        }
+        Self::prune_subscriber_edges(graph, node)
+    }
+
+    fn prune_dependency_edges(
+        graph: &mut SignalGraph,
+        node: NodeId,
+    ) -> Result<(), crate::data::error::SignalError> {
+        let has_stale = {
+            let current = graph.raw_dependencies_of(node)?;
+            current.iter().any(|edge| !graph.is_alive(edge.source()))
+        };
+        if has_stale {
+            let updated = graph
+                .raw_dependencies_of(node)?
+                .iter()
+                .filter(|edge| graph.is_alive(edge.source()))
+                .cloned()
+                .collect::<Vec<_>>();
+            graph.set_dependency_edges_sorted(node, &updated)?;
+        }
+        Ok(())
+    }
+
+    fn prune_subscriber_edges(
+        graph: &mut SignalGraph,
+        node: NodeId,
+    ) -> Result<(), crate::data::error::SignalError> {
+        let has_stale = {
+            let current = graph.raw_subscribers_of(node)?;
+            current.iter().any(|subscriber| !graph.is_alive(*subscriber))
+        };
+        if has_stale {
+            let updated = graph
+                .raw_subscribers_of(node)?
+                .iter()
+                .copied()
+                .filter(|subscriber| graph.is_alive(*subscriber))
+                .collect::<Vec<_>>();
+            graph.set_subscribers_sorted(node, &updated)?;
+        }
+        Ok(())
+    }
+}
+
 fn remap_live_entry_handles<OldId, NewId>(
     graph: &mut SignalGraph,
     mut read_id: impl FnMut(&NodeEntry) -> OldId,
@@ -38,7 +101,7 @@ fn remap_live_entry_handles<OldId, NewId>(
 {
     let mut id_map = HashMap::new();
 
-    for index in 0..graph.nodes.len() {
+    for index in 0..graph.arena.nodes.len() {
         let Some(node) = graph.live_node_id_at(index) else {
             continue;
         };

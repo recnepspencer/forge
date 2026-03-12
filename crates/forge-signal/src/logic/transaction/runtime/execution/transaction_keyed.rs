@@ -1,20 +1,21 @@
 use std::sync::Mutex;
+use std::time::Instant;
 
-use crate::data::comparator::TierPolicyResolver;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::output::KeyedComputation;
 use crate::diagnostics::ExecutionFailurePhase;
 use crate::logic::evaluation::EvaluationRequestMode;
-use crate::logic::planner::{
-    build_evaluation_plan_with_policy_resolver, execute_prepared_plan_with_policy, StageExecutor,
-};
+use crate::logic::planner::StageExecutor;
 use crate::logic::prepared::{
     ExecutionReadView, PreparedEvaluation, PreparedEvaluationOrigin, PreparedKeyedContext,
     PreparedMemoDecision,
 };
 
 use super::super::transaction::SignalTransaction;
+use super::shared::{
+    absorb_execution_report_telemetry, execute_targets_with_runtime_config_detailed,
+};
 
 impl<'a, D, I, E, Ctx, T> SignalTransaction<'a, D, I, E, Ctx, T>
 where
@@ -49,7 +50,7 @@ where
     where
         F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
     {
-        self.telemetry.keyed_evaluation_count += 1;
+        self.telemetry.invalidation.keyed_evaluation_count += 1;
         self.stage_evaluate_candidates(node)?;
         let family_id = self.config.key_registry.intern_family(&computation.family);
         let key_id = self.config.key_registry.intern_key(&computation.key);
@@ -57,23 +58,6 @@ where
             .memo_key
             .as_ref()
             .map(|memo_key| self.config.key_registry.intern_memo_key(memo_key));
-        let mut resolver = TierPolicyResolver::new(
-            self.config.node_meta(),
-            self.config.tier_policies(),
-            self.config.fallback_comparator(),
-        );
-        let plan = match build_evaluation_plan_with_policy_resolver(
-            self.graph,
-            &[node],
-            request_mode,
-            &mut resolver,
-        ) {
-            Ok(plan) => plan,
-            Err(err) => {
-                self.record_failure_from_error(ExecutionFailurePhase::Planning, &err, None);
-                return Err(err);
-            }
-        };
         let base_keyed_context = PreparedKeyedContext {
             family: Some(computation.family.clone()),
             key: Some(computation.key.clone()),
@@ -97,11 +81,14 @@ where
                     )
                 })
             {
-                self.telemetry.memoization_hits += 1;
+                self.telemetry.evaluation.memoization_hits += 1;
                 let cached_result = cached.clone();
-                let report = match execute_prepared_plan_with_policy(
+                let execution_start = Instant::now();
+                let report = match execute_targets_with_runtime_config_detailed(
                     self.graph,
-                    &plan,
+                    self.config,
+                    &[node],
+                    request_mode,
                     &|_current, _view| {
                         Ok(PreparedEvaluation::from_result(cached_result.clone())
                             .with_origin(PreparedEvaluationOrigin::MemoizedReuse)
@@ -112,29 +99,34 @@ where
                                 ..base_keyed_context.clone()
                             }))
                     },
-                    &mut resolver,
                     StageExecutor::Serial,
                 ) {
                     Ok(report) => report,
-                    Err(err) => {
+                    Err(failure) => {
+                        let err = failure.error;
                         self.record_failure_from_error(
                             ExecutionFailurePhase::Apply,
                             &err,
-                            Some(plan.summary.clone()),
+                            Some(failure.plan_summary),
                         );
                         return Err(err);
                     }
                 };
-                self.absorb_execution_report_telemetry(&report);
+                self.execution_state
+                    .record_report(&report, execution_start.elapsed().as_nanos());
+                absorb_execution_report_telemetry(self.telemetry, &report);
                 return self.apply_result(Ok(()));
             }
-            self.telemetry.memoization_misses += 1;
+            self.telemetry.evaluation.memoization_misses += 1;
         }
 
         let last_result = Mutex::new(None);
-        let result = match execute_prepared_plan_with_policy(
+        let execution_start = Instant::now();
+        let result = match execute_targets_with_runtime_config_detailed(
             self.graph,
-            &plan,
+            self.config,
+            &[node],
+            request_mode,
             &|current, view| {
                 let prepared = precompute(current, view)?
                     .with_memo_decision(PreparedMemoDecision::Miss)
@@ -147,22 +139,24 @@ where
                 }
                 Ok(prepared)
             },
-            &mut resolver,
             StageExecutor::Serial,
         ) {
             Ok(report) => Ok(report),
-            Err(err) => {
+            Err(failure) => {
+                let err = failure.error;
                 self.record_failure_from_error(
                     ExecutionFailurePhase::Apply,
                     &err,
-                    Some(plan.summary.clone()),
+                    Some(failure.plan_summary),
                 );
                 Err(err)
             }
         };
         let result = match result {
             Ok(report) => {
-                self.absorb_execution_report_telemetry(&report);
+                self.execution_state
+                    .record_report(&report, execution_start.elapsed().as_nanos());
+                absorb_execution_report_telemetry(self.telemetry, &report);
                 self.apply_result(Ok(()))
             }
             Err(err) => self.apply_result(Err(err)),

@@ -1,7 +1,10 @@
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 
 use super::aspect::{Aspect, MAX_ASPECTS};
 use super::mask::AspectMask;
+use crate::data::output::{ChangedRegion, PartitionSubscription, PartitionToken};
 
 /// Per-aspect version counters carried by each signal node.
 ///
@@ -68,5 +71,66 @@ impl AspectVersion {
     /// Borrow all aspect slots.
     pub const fn slots(&self) -> &[u64; MAX_ASPECTS] {
         &self.slots
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PartitionVersionMap {
+    global: AspectVersion,
+    #[serde(default)]
+    partitions: BTreeMap<PartitionToken, AspectVersion>,
+}
+
+impl Default for PartitionVersionMap {
+    fn default() -> Self {
+        Self::zero()
+    }
+}
+
+impl PartitionVersionMap {
+    pub const fn zero() -> Self {
+        Self {
+            global: AspectVersion::zero(),
+            partitions: BTreeMap::new(),
+        }
+    }
+
+    pub const fn global(&self) -> AspectVersion {
+        self.global
+    }
+
+    pub fn scoped(&self, scope: &PartitionSubscription) -> AspectVersion {
+        self.partitions
+            .get(&scope.partition)
+            .copied()
+            .unwrap_or(self.global)
+    }
+
+    pub fn version_for_scope(&self, aspect: Aspect, scope: Option<&PartitionSubscription>) -> u64 {
+        match scope {
+            Some(scope) => self.scoped(scope).get(aspect),
+            None => self.global.get(aspect),
+        }
+    }
+
+    pub fn set_global(&mut self, version: AspectVersion) {
+        self.global = version;
+        for partition in self.partitions.values_mut() {
+            *partition = version;
+        }
+    }
+
+    pub fn apply_evaluation(
+        &mut self,
+        version: AspectVersion,
+        changed_regions: &[ChangedRegion],
+    ) {
+        self.global = version;
+        if changed_regions.is_empty() {
+            return;
+        }
+        for region in changed_regions {
+            self.partitions.insert(region.partition.clone(), version);
+        }
     }
 }

@@ -4,3 +4,7 @@ mod transaction_types;
 
 pub use transaction_types::{SignalTransaction, TransactionOutcome};
 pub(in crate::logic::transaction::runtime) use transaction_types::TransactionSemanticDelta;
+pub use transaction_types::{
+    EvaluationSummary, TransactionReplayEntry, TransactionResult, TransactionTiming,
+};
+pub(in crate::logic::transaction::runtime) use transaction_types::TransactionExecutionState;

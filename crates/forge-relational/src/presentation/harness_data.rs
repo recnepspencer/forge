@@ -3,7 +3,6 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 
 use crate::facade::KindId;
-use crate::transactions::data::WorkerIntentBatch;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RelationalHarnessExpectations {
@@ -71,11 +70,6 @@ pub struct FixtureRelation {
     pub source_slot: u64,
     pub target_slot: u64,
     pub payload: serde_json::Value,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum RelationalMutation {
-    Batch(WorkerIntentBatch),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

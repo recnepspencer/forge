@@ -153,7 +153,7 @@ fn many_thin_stages_remain_serial_under_parallel_threshold() {
     let plan = graph
         .build_evaluation_plan(&[chain[chain.len() - 1]], EvaluationRequestMode::Default)
         .unwrap();
-    let before = graph.telemetry().parallel_stage_dispatch_count;
+    let before = graph.telemetry().execution.parallel_stage_dispatch_count;
     let report = graph
         .execute_prepared_plan_with_executor(
             &plan,
@@ -162,7 +162,7 @@ fn many_thin_stages_remain_serial_under_parallel_threshold() {
         )
         .unwrap();
 
-    assert_eq!(graph.telemetry().parallel_stage_dispatch_count, before);
+    assert_eq!(graph.telemetry().execution.parallel_stage_dispatch_count, before);
     assert!(report.stages.iter().all(|stage| {
         matches!(
             stage.outcome,
@@ -191,7 +191,7 @@ fn wide_stage_crosses_parallel_threshold() {
         .build_evaluation_plan(&requested, EvaluationRequestMode::Default)
         .unwrap();
     assert_eq!(plan.summary.max_stage_width, 2);
-    let before = graph.telemetry().parallel_stage_dispatch_count;
+    let before = graph.telemetry().execution.parallel_stage_dispatch_count;
     let report = graph
         .execute_prepared_plan_with_executor(
             &plan,
@@ -200,7 +200,7 @@ fn wide_stage_crosses_parallel_threshold() {
         )
         .unwrap();
 
-    assert_eq!(graph.telemetry().parallel_stage_dispatch_count, before + 1);
+    assert_eq!(graph.telemetry().execution.parallel_stage_dispatch_count, before + 1);
     assert_eq!(report.stages.len(), 1);
     assert!(report.stages.iter().any(|stage| {
         matches!(
@@ -438,7 +438,7 @@ fn full_parallel_apply_failure_does_not_leak_partial_semantic_state() {
         )
         .unwrap_err();
     assert!(
-        format!("{err}").contains("stale NodeId"),
+        matches!(err, SignalError::StaleHandle { .. }),
         "apply failure should surface stale dependency-capture error, got: {err}"
     );
 

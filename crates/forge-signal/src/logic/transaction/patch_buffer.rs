@@ -7,6 +7,7 @@ use std::collections::{BTreeSet, HashMap};
 #[derive(Debug, Clone)]
 struct NodePatch {
     original: NodeEntry,
+    original_dependency_sources: Vec<NodeId>,
 }
 
 /// Sparse patch storage with O(touched) rollback/clear semantics.
@@ -32,8 +33,15 @@ impl SparsePatchBuffer {
         let index = node.index() as usize;
         if !self.index_by_node.contains_key(&index) {
             let original = graph.get_entry(node)?.clone();
+            let original_dependency_sources = graph.dependency_sources_of(node)?;
             self.index_by_node.insert(index, self.patches.len());
-            self.patches.push((index, NodePatch { original }));
+            self.patches.push((
+                index,
+                NodePatch {
+                    original,
+                    original_dependency_sources,
+                },
+            ));
         }
         Ok(())
     }
@@ -77,7 +85,7 @@ impl SparsePatchBuffer {
         Ok(())
     }
 
-    pub(super) fn rollback_and_collect_current_dependency_sources(
+    pub(super) fn rollback_and_collect_dependency_sources_for_rollback(
         &mut self,
         graph: &mut SignalGraph,
     ) -> Result<Vec<NodeId>, SignalError> {
@@ -88,6 +96,9 @@ impl SparsePatchBuffer {
             let node = graph
                 .live_node_id_at(index)
                 .ok_or_else(|| SignalError::internal("rollback encountered stale patch node"))?;
+            for source in patch.original_dependency_sources {
+                sources.insert(source);
+            }
             for source in graph.dependency_sources_of(node)? {
                 sources.insert(source);
             }

@@ -10,10 +10,10 @@ fn evaluation_telemetry_records_activity() {
     evaluate(&mut graph, a, &mut compute).unwrap();
 
     let t = graph.telemetry();
-    assert!(t.evaluation_calls >= 1);
-    assert!(t.nodes_evaluated >= 1);
-    assert!(t.nodes_recomputed >= 1);
-    assert!(t.evaluation_stack_peak >= 1);
+    assert!(t.evaluation.evaluation_calls >= 1);
+    assert!(t.evaluation.nodes_evaluated >= 1);
+    assert!(t.evaluation.nodes_recomputed >= 1);
+    assert!(t.evaluation.evaluation_stack_peak >= 1);
 }
 
 #[test]
@@ -25,8 +25,8 @@ fn condition_telemetry_records_deferrals() {
     evaluate(&mut graph, node, &mut compute).unwrap();
 
     let t = graph.telemetry();
-    assert_eq!(t.condition_skip_count, 1);
-    assert_eq!(t.ondemand_deferred_count, 1);
+    assert_eq!(t.evaluation.condition_skip_count, 1);
+    assert_eq!(t.evaluation.ondemand_deferred_count, 1);
 }
 
 #[test]
@@ -77,8 +77,8 @@ fn event_bus_telemetry_counts_flush_and_rollback() {
         .unwrap();
     bus.rollback(&mut runtime);
 
-    assert_eq!(bus.telemetry().event_flushes, 1);
-    assert_eq!(bus.telemetry().rollback_count, 1);
+    assert_eq!(bus.telemetry().checkpoint.event_flushes, 1);
+    assert_eq!(bus.telemetry().checkpoint.rollback_count, 1);
 }
 
 #[test]
@@ -93,7 +93,7 @@ fn invalidation_and_gc_telemetry_record_activity() {
     graph.run_gc_epoch();
 
     let t = graph.telemetry();
-    assert!(t.invalidation_nodes_visited >= 1);
-    assert_eq!(t.gc_epoch_count, 1);
-    assert!(t.gc_epoch_nanos > 0);
+    assert!(t.invalidation.invalidation_nodes_visited >= 1);
+    assert_eq!(t.storage.gc_epoch_count, 1);
+    assert!(t.storage.gc_epoch_nanos > 0);
 }

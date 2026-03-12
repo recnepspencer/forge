@@ -13,10 +13,10 @@ fn branch_debug_session_mixed_churn_stays_forensically_coherent() {
         .graph_mut()
         .add_dependency(dependent, source, ASPECT_A)
         .unwrap();
-    let family = runtime.register_computation_family("workflow-projection");
-    let keyed = runtime.keyed_node(&family, "wing-left");
-    let keyed_computation =
-        KeyedComputation::new(family.clone(), "wing-left").with_memo_key("shape-v1");
+    let family = define_keyed_computation(&mut runtime, "workflow-projection", ());
+    let keyed_def = family.keyed("wing-left");
+    let keyed = keyed_def.node(&mut runtime);
+    let keyed_computation = keyed_def.memoized("shape-v1");
     let mut runtime_ctx = ();
 
     runtime
@@ -190,9 +190,10 @@ fn undo_redo_style_session_with_failures_and_memo_reuse_preserves_branch_local_t
     let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
     runtime.set_runtime_policy(policy);
     let source = runtime.graph_mut().node().output_identity().build();
-    let family = runtime.register_computation_family("undo-redo-session");
-    let keyed = runtime.keyed_node(&family, "bulkhead");
-    let computation = KeyedComputation::new(family.clone(), "bulkhead").with_memo_key("shape-v1");
+    let family = define_keyed_computation(&mut runtime, "undo-redo-session", ());
+    let keyed_def = family.keyed("bulkhead");
+    let keyed = keyed_def.node(&mut runtime);
+    let computation = keyed_def.memoized("shape-v1");
     let compute_calls = AtomicU32::new(0);
     let mut runtime_ctx = ();
 
@@ -331,9 +332,10 @@ fn posthoc_forensics_after_long_session_answers_branch_and_artifact_questions() 
         .graph_mut()
         .add_dependency(dependent, source, ASPECT_A)
         .unwrap();
-    let family = runtime.register_computation_family("posthoc-session");
-    let keyed = runtime.keyed_node(&family, "skin-panel");
-    let computation = KeyedComputation::new(family.clone(), "skin-panel").with_memo_key("shape-a");
+    let family = define_keyed_computation(&mut runtime, "posthoc-session", ());
+    let keyed_def = family.keyed("skin-panel");
+    let keyed = keyed_def.node(&mut runtime);
+    let computation = keyed_def.memoized("shape-a");
     let mut runtime_ctx = ();
 
     runtime
@@ -717,10 +719,10 @@ fn fintech_tick_correction_session_preserves_auditability_under_branching_replay
         .graph_mut()
         .add_dependency(throttle, ticks, ASPECT_A)
         .unwrap();
-    let family = runtime.register_computation_family("pricing-book");
-    let risk = runtime.keyed_node(&family, "book-a");
-    let risk_computation =
-        KeyedComputation::new(family.clone(), "book-a").with_memo_key("book-a-day-1");
+    let family = define_keyed_computation(&mut runtime, "pricing-book", ());
+    let risk_def = family.keyed("book-a");
+    let risk = risk_def.node(&mut runtime);
+    let risk_computation = risk_def.memoized("book-a-day-1");
     let compute_calls = AtomicU32::new(0);
     let mut runtime_ctx = ();
 
@@ -1343,9 +1345,10 @@ fn parallel_branch_memo_rollback_session_preserves_branch_local_replay_and_cache
         .graph_mut()
         .add_dependency(fused, filtered, ASPECT_B)
         .unwrap();
-    let family = runtime.register_computation_family("parallel-branch-memo");
-    let keyed = runtime.keyed_node(&family, "mesh-cache");
-    let memo = KeyedComputation::new(family.clone(), "mesh-cache").with_memo_key("lod-0");
+    let family = define_keyed_computation(&mut runtime, "parallel-branch-memo", ());
+    let keyed_def = family.keyed("mesh-cache");
+    let keyed = keyed_def.node(&mut runtime);
+    let memo = keyed_def.memoized("lod-0");
     let compute_calls = AtomicU32::new(0);
     let executor = StageExecutor::aggressive_parallel();
     let mut runtime_ctx = ();

@@ -1,13 +1,11 @@
 use crate::facade::*;
 use crate::tests::support::*;
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Domain {
     Cache,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Impact {
     One,
@@ -24,6 +22,8 @@ enum Tier {
 }
 
 fn build_runtime(graph: SignalGraph) -> SignalRuntime<Domain, Impact, Ev, (), Tier> {
+    let _ = Domain::Cache;
+    let _ = Impact::One;
     SignalRuntime::builder(graph)
         .with_domains::<Domain>()
         .with_impacts::<Impact>()
@@ -367,11 +367,11 @@ fn metrics_snapshots_reflect_runtime_activity() {
         })
         .unwrap();
 
-    assert_eq!(outcome, TransactionOutcome::Committed);
-    assert!(runtime.metrics().transaction_begin_count >= 1);
-    assert!(runtime.metrics().transaction_commit_count >= 1);
-    assert!(runtime.metrics().event_flushes >= 1);
-    assert!(runtime.graph().metrics().invalidation_nodes_visited >= 1);
+    assert_eq!(outcome.outcome, TransactionOutcome::Committed);
+    assert!(runtime.metrics().transaction.transaction_begin_count >= 1);
+    assert!(runtime.metrics().transaction.transaction_commit_count >= 1);
+    assert!(runtime.metrics().checkpoint.event_flushes >= 1);
+    assert!(runtime.graph().metrics().invalidation.invalidation_nodes_visited >= 1);
 }
 
 #[test]
@@ -427,7 +427,7 @@ fn rollback_preserves_committed_explanation_and_increments_rollback_metric() {
     evaluate(runtime.graph_mut(), source, &mut source_v1).unwrap();
     evaluate(runtime.graph_mut(), dependent, &mut dependent_v1).unwrap();
     let before = runtime.explain(dependent).unwrap();
-    let rollback_before = runtime.metrics().transaction_rollback_count;
+    let rollback_before = runtime.metrics().transaction.transaction_rollback_count;
 
     let err = runtime.transaction(&mut (), |tx| {
         tx.mark_dirty(source, ASPECT_A)?;
@@ -444,7 +444,7 @@ fn rollback_preserves_committed_explanation_and_increments_rollback_metric() {
     assert_eq!(before.trace_summary, after.trace_summary);
     assert_eq!(before.upstream, after.upstream);
     assert_eq!(
-        runtime.metrics().transaction_rollback_count,
+        runtime.metrics().transaction.transaction_rollback_count,
         rollback_before + 1
     );
 }

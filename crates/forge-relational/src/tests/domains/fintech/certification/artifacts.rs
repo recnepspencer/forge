@@ -19,7 +19,7 @@ pub(super) fn read_summary(
     let read = session
         .world
         .runtime
-        .read_snapshot(&snapshot)
+        .visibility_reads().read_snapshot(&snapshot)
         .ok_or_else(|| format!("snapshot `{}` is unavailable", snapshot.snapshot_id.0))?;
     let corrected_trades = read
         .entities()
@@ -97,7 +97,7 @@ fn branch_summary(session: &CertifiedRelationalFintechSession) -> Value {
     let latest_commit = session
         .world
         .runtime
-        .latest_commit()
+        .history_access().latest_commit()
         .map(|commit| commit.commit_id.0);
     let branches = session
         .named_branches
@@ -107,7 +107,7 @@ fn branch_summary(session: &CertifiedRelationalFintechSession) -> Value {
                 alias.clone(),
                 json!({
                     "branch_id": branch.0,
-                    "head_commit": session.world.runtime.branch_head(branch).map(|head| head.commit_id.0),
+                    "head_commit": session.world.runtime.history_access().branch_head(branch).map(|head| head.commit_id.0),
                 }),
             )
         })
@@ -119,10 +119,10 @@ fn branch_summary(session: &CertifiedRelationalFintechSession) -> Value {
 }
 
 fn diagnostics_summary(session: &CertifiedRelationalFintechSession) -> Value {
-    let recovery = session.world.runtime.recovery_plan();
+    let recovery = session.world.runtime.durability_access().recovery_plan();
     json!({
-        "latest_patch_present": session.world.runtime.latest_patch().is_some(),
-        "latest_replay_present": session.world.runtime.latest_replay().is_some(),
+        "latest_patch_present": session.world.runtime.publication_access().latest_patch().is_some(),
+        "latest_replay_present": session.world.runtime.publication_access().latest_replay().is_some(),
         "checkpoint_count": recovery
             .store
             .as_ref()
@@ -134,21 +134,22 @@ fn diagnostics_summary(session: &CertifiedRelationalFintechSession) -> Value {
 }
 
 fn patch_summary(session: &CertifiedRelationalFintechSession) -> Value {
-    let bundle = session.world.runtime.latest_publication_bundle();
+    let publication = session.world.runtime.publication_access();
+    let bundle = publication.latest_bundle();
     json!({
-        "latest_commit": session.world.runtime.latest_commit().map(|commit| commit.commit_id.0),
+        "latest_commit": session.world.runtime.history_access().latest_commit().map(|commit| commit.commit_id.0),
         "publication_snapshot": bundle.as_ref().map(|bundle| bundle.snapshot.snapshot_id.0),
-        "patch_position": session.world.runtime.latest_patch().map(|patch| patch.position.0),
-        "patch_record_count": session.world.runtime.latest_patch().map(|patch| patch.records.len()),
-        "replay_commit": session.world.runtime.latest_replay().map(|replay| replay.commit_id.0),
+        "patch_position": session.world.runtime.publication_access().latest_patch().map(|patch| patch.position.0),
+        "patch_record_count": session.world.runtime.publication_access().latest_patch().map(|patch| patch.records.len()),
+        "replay_commit": session.world.runtime.publication_access().latest_replay().map(|replay| replay.commit_id.0),
         "bundle_matches_latest_patch": bundle
             .as_ref()
-            .zip(session.world.runtime.latest_patch())
+            .zip(session.world.runtime.publication_access().latest_patch())
             .map(|(bundle, patch)| bundle.patch == *patch)
             .unwrap_or(false),
         "bundle_matches_latest_replay": bundle
             .as_ref()
-            .zip(session.world.runtime.latest_replay())
+            .zip(session.world.runtime.publication_access().latest_replay())
             .map(|(bundle, replay)| bundle.replay == *replay)
             .unwrap_or(false),
     })

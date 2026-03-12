@@ -19,14 +19,14 @@ pub(crate) fn capture_observability_probe(
         stage,
         latest_commit_id: world
             .runtime
-            .latest_commit()
+            .history_access().latest_commit()
             .map(|commit| commit.commit_id.0),
-        latest_patch_present: world.runtime.latest_patch().is_some(),
-        latest_replay_present: world.runtime.latest_replay().is_some(),
-        diagnostics_artifact_count: world.runtime.diagnostics().artifacts().len(),
+        latest_patch_present: world.runtime.publication_access().latest_patch().is_some(),
+        latest_replay_present: world.runtime.publication_access().latest_replay().is_some(),
+        diagnostics_artifact_count: world.runtime.publication_access().diagnostics().artifacts().len(),
         publication_snapshot_id: world
             .runtime
-            .latest_publication_bundle()
+            .publication_access().latest_bundle()
             .map(|bundle| bundle.snapshot.snapshot_id.0),
     }
 }

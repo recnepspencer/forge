@@ -104,8 +104,8 @@ impl<D: Copy + Ord, I: Copy + Ord> CheckpointRuntime<D, I> {
             evaluator.refresh(*domain, impact, ctx)?;
         }
 
-        self.telemetry.checkpoint_flushes += 1;
-        self.telemetry.checkpoint_flush_nanos += flush_start.elapsed().as_nanos();
+        self.telemetry.checkpoint.checkpoint_flushes += 1;
+        self.telemetry.checkpoint.checkpoint_flush_nanos += flush_start.elapsed().as_nanos();
 
         Ok(domains.len())
     }

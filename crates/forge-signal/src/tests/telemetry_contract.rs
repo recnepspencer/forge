@@ -28,9 +28,9 @@ fn transaction_parallel_execution_increments_parallel_not_serial_runtime_usage()
         .stages
         .iter()
         .any(|stage| matches!(stage.outcome, StageExecutionOutcome::CompletedParallel)));
-    assert_eq!(metrics.serial_executor_usage_count, 0);
-    assert_eq!(metrics.parallel_executor_usage_count, 1);
-    assert!(metrics.parallel_stage_dispatch_count >= 1);
+    assert_eq!(metrics.execution.serial_executor_usage_count, 0);
+    assert_eq!(metrics.execution.parallel_executor_usage_count, 1);
+    assert!(metrics.execution.parallel_stage_dispatch_count >= 1);
 }
 
 #[test]
@@ -55,6 +55,6 @@ fn direct_whole_partition_changes_are_counted_as_partition_matches() {
     .unwrap();
 
     let metrics = graph.metrics();
-    assert_eq!(metrics.partition_match_dirty_count, 1);
-    assert_eq!(metrics.detail_match_dirty_count, 1);
+    assert_eq!(metrics.invalidation.partition_match_dirty_count, 1);
+    assert_eq!(metrics.invalidation.detail_match_dirty_count, 1);
 }

@@ -11,19 +11,19 @@ use crate::tests::support::*;
 fn replay_contract_success_reproduces_canonical_surfaces() {
     let mut runtime = runtime_with_test_schema();
     let outcome = create_entity_outcome(&mut runtime, "replayable");
-    let replay = runtime.replay_commit(RelationalReplayRequest {
+    let replay = runtime.replay_authority().replay_commit(RelationalReplayRequest {
         commit_id: outcome.commit.commit_id,
         branch_id: BranchId("main".to_string()),
         execution_mode: ReplayExecutionMode::SerialDeterministic,
     });
 
-    assert!(runtime.compare_replay_outcome(&replay));
+    assert!(runtime.replay_access().compare_outcome(&replay));
     assert_eq!(
         replay.reconstructed_parent_chain,
         vec![outcome.commit.commit_id]
     );
     assert!(runtime
-        .diagnostics()
+        .publication_access().diagnostics()
         .by_scope(DiagnosticsScope::Replay)
         .iter()
         .any(|artifact| artifact.kind == DiagnosticsArtifactKind::Comparison));
@@ -33,7 +33,7 @@ fn replay_contract_success_reproduces_canonical_surfaces() {
 fn replay_contract_failure_wrong_branch_is_explicit() {
     let mut runtime = runtime_with_test_schema();
     let outcome = create_entity_outcome(&mut runtime, "replayable");
-    let replay = runtime.replay_commit(RelationalReplayRequest {
+    let replay = runtime.replay_authority().replay_commit(RelationalReplayRequest {
         commit_id: outcome.commit.commit_id,
         branch_id: BranchId("wrong".to_string()),
         execution_mode: ReplayExecutionMode::SerialDeterministic,
@@ -50,7 +50,7 @@ fn replay_contract_failure_missing_parent_chain_is_explicit() {
 
     assert!(runtime.remove_commit_envelope_for_test(parent.commit.commit_id));
 
-    let replay = runtime.replay_commit(RelationalReplayRequest {
+    let replay = runtime.replay_authority().replay_commit(RelationalReplayRequest {
         commit_id: child.commit.commit_id,
         branch_id: BranchId("main".to_string()),
         execution_mode: ReplayExecutionMode::SerialDeterministic,
@@ -64,7 +64,7 @@ fn replay_contract_success_preserves_merge_parent_order() {
     let mut runtime = runtime_with_test_schema();
     let main = create_entity_outcome(&mut runtime, "main");
     runtime
-        .create_branch(
+        .history_authority().create_branch(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -76,16 +76,16 @@ fn replay_contract_success_preserves_merge_parent_order() {
         BranchId("main".to_string()),
         vec![BranchId("feature".to_string())],
     );
-    let replay = runtime.replay_commit(RelationalReplayRequest {
+    let replay = runtime.replay_authority().replay_commit(RelationalReplayRequest {
         commit_id: merge.commit.commit_id,
         branch_id: BranchId("main".to_string()),
         execution_mode: ReplayExecutionMode::SerialDeterministic,
     });
 
-    assert!(runtime.compare_replay_outcome(&replay));
+    assert!(runtime.replay_access().compare_outcome(&replay));
     assert_eq!(
         runtime
-            .canonical_commit_envelope(merge.commit.commit_id)
+            .replay_access().canonical_commit_envelope(merge.commit.commit_id)
             .unwrap()
             .commit
             .parents,
@@ -93,7 +93,7 @@ fn replay_contract_success_preserves_merge_parent_order() {
     );
     assert_eq!(
         runtime
-            .canonical_commit_envelope(merge.commit.commit_id)
+            .replay_access().canonical_commit_envelope(merge.commit.commit_id)
             .unwrap()
             .merge_base_commits,
         vec![main.commit.commit_id]
@@ -114,7 +114,7 @@ fn replay_contract_reports_structured_patch_drift_when_canonical_envelope_is_tam
         })
     );
 
-    let replay = runtime.replay_commit(RelationalReplayRequest {
+    let replay = runtime.replay_authority().replay_commit(RelationalReplayRequest {
         commit_id: outcome.commit.commit_id,
         branch_id: BranchId("main".to_string()),
         execution_mode: ReplayExecutionMode::SerialDeterministic,

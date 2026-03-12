@@ -1,3 +1,5 @@
+pub mod access;
+pub mod authority;
 pub(crate) mod checkpoints;
 pub mod data;
 pub mod facade;

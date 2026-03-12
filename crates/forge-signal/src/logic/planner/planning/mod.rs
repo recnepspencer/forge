@@ -11,7 +11,7 @@ use crate::data::error::SignalError;
 use crate::data::graph::TraversalScratch;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
-use crate::data::node::NodeState;
+use crate::data::node::{ContextRequirement, NodeState};
 use crate::logic::evaluation::EvaluationRequestMode;
 
 use super::types::{
@@ -123,6 +123,11 @@ struct PlannedNode {
     direct_request: bool,
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+struct PlanningStats {
+    contract_pruned_count: u32,
+}
+
 fn visit_node(
     graph: &mut SignalGraph,
     node: NodeId,
@@ -133,6 +138,7 @@ fn visit_node(
     visiting: &mut DenseBitset,
     planned: &mut [Option<PlannedNode>],
     planned_nodes: &mut Vec<NodeId>,
+    stats: &mut PlanningStats,
 ) -> Result<(), SignalError> {
     let node_index = node.index() as usize;
     if visiting.contains(node_index) {
@@ -146,12 +152,23 @@ fn visit_node(
     }
     visiting.mark(node_index);
 
-    let state = graph.get_state(node)?;
-    let should_include = matches!(state, NodeState::Dirty | NodeState::MaybeStale)
+    let entry = graph.get_entry(node)?;
+    verify_required_context(node, graph.get_contract(node)?.required_context)?;
+    let state = *entry.get_state();
+    let dirty_partition_scopes = entry.get_dirty_partition_scopes();
+    let contract_reads_dirty = graph
+        .get_contract(node)?
+        .cares_about_change(entry.get_dirty_aspects(), &dirty_partition_scopes);
+    let should_include = (matches!(state, NodeState::Dirty | NodeState::MaybeStale)
+        && contract_reads_dirty)
         || (direct_request && matches!(request_mode, EvaluationRequestMode::ForceOnDemand));
     if should_include {
         planned[node_index] = Some(PlannedNode { direct_request });
         planned_nodes.push(node);
+    } else {
+        stats.contract_pruned_count += 1;
+        visiting.clear(node_index);
+        return Ok(());
     }
 
     match state {
@@ -167,6 +184,7 @@ fn visit_node(
                     visiting,
                     planned,
                     planned_nodes,
+                    stats,
                 )?;
             }
         }
@@ -188,6 +206,7 @@ fn visit_node(
                     visiting,
                     planned,
                     planned_nodes,
+                    stats,
                 )?;
             }
         }
@@ -206,6 +225,7 @@ fn visit_node(
                         visiting,
                         planned,
                         planned_nodes,
+                        stats,
                     )?;
                 }
             }
@@ -215,6 +235,18 @@ fn visit_node(
 
     visiting.clear(node_index);
     Ok(())
+}
+
+fn verify_required_context(
+    node: NodeId,
+    requirement: ContextRequirement,
+) -> Result<(), SignalError> {
+    match requirement {
+        ContextRequirement::None | ContextRequirement::DomainContext => Ok(()),
+        ContextRequirement::RelationalSnapshot => {
+            Err(SignalError::contract_violation(node, requirement))
+        }
+    }
 }
 
 struct DepthCache {
@@ -239,10 +271,12 @@ fn populate_plan_buffers(
     out_tasks: &mut Vec<EvaluationTask>,
     out_stages: &mut Vec<StageCursor>,
 ) -> Result<PlanSummary, SignalError> {
-    let arena_capacity = graph.arena_capacity();
+    let (arena, _, _, _) = graph.as_parts_mut();
+    let arena_capacity = arena.len();
     let mut planned = vec![None::<PlannedNode>; arena_capacity];
     let mut planned_nodes = Vec::<NodeId>::new();
     let mut visiting = DenseBitset::new();
+    let mut planning_stats = PlanningStats::default();
     visiting.ensure_len(arena_capacity);
 
     out_targets.clear();
@@ -262,6 +296,7 @@ fn populate_plan_buffers(
             &mut visiting,
             &mut planned,
             &mut planned_nodes,
+            &mut planning_stats,
         )?;
     }
 
@@ -313,6 +348,7 @@ fn populate_plan_buffers(
             .map(|stage| (stage.end - stage.start) as u32)
             .max()
             .unwrap_or(0),
+        contract_pruned_count: planning_stats.contract_pruned_count,
     })
 }
 

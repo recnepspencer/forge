@@ -1,8 +1,10 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use crate::facade::{KeyedComputation, MemoizedResultOrigin, NodeEvaluationResult, StageExecutor};
+use crate::tests::support::define_keyed_computation;
 
 use super::aspects::{ALERT, PRICE, RISK};
+use super::execution_tier::FintechTier;
 use super::scales::FintechScale;
 use super::scenarios::setup_seeded_world;
 
@@ -18,12 +20,11 @@ fn fintech_keyed_audit_cache_reuses_stable_memo_entries_without_cross_shape_corr
         .read_top_scenario_with_executor(StageExecutor::Serial)
         .unwrap();
 
-    let family = world
-        .runtime
-        .register_computation_family("fintech-audit-cache");
-    let cache = world.runtime.keyed_node(&family, "desk-0");
-    let baseline = KeyedComputation::new(family.clone(), "desk-0").with_memo_key("baseline");
-    let stressed = KeyedComputation::new(family.clone(), "desk-0").with_memo_key("stress");
+    let family = define_keyed_computation(&mut world.runtime, "fintech-audit-cache", FintechTier::Audit);
+    let cache_def = family.keyed("desk-0");
+    let cache = cache_def.node(&mut world.runtime);
+    let baseline = cache_def.memoized("baseline");
+    let stressed = cache_def.memoized("stress");
     let compute_calls = AtomicU32::new(0);
 
     let top_desk = world.top_desk();
@@ -109,6 +110,6 @@ fn fintech_keyed_audit_cache_reuses_stable_memo_entries_without_cross_shape_corr
     );
 
     let metrics = world.runtime.metrics();
-    assert_eq!(metrics.memoization_misses, 2);
-    assert_eq!(metrics.memoization_hits, 1);
+    assert_eq!(metrics.evaluation.memoization_misses, 2);
+    assert_eq!(metrics.evaluation.memoization_hits, 1);
 }

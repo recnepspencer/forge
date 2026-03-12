@@ -1,6 +1,7 @@
 use crate::facade::{
-    CommitOutcome, EntityId, InternedString, KindId, PartitionId, RecordPayload, RelationId,
-    RelationalRuntime, TransactionIntent, TransactionOptions, WorkerIntentBatch,
+    BulkRelationCreateIntent, CommitOutcome, CreateIntent, EntityId, InternedString, KindId,
+    PartitionId, RecordPayload, RelationId, RelationalRuntime, MutationIntent,
+    TransactionOptions, WorkerIntentBatch,
 };
 use serde_json::json;
 
@@ -193,13 +194,13 @@ where
     }
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(WorkerIntentBatch::new(batch_name).push(
-        TransactionIntent::BulkCreateRelations {
+        MutationIntent::Create(CreateIntent::BulkRelations(BulkRelationCreateIntent {
             partition_id,
             kind_id: KindId(2),
             client_keys,
             endpoints,
             payloads,
-        },
+        })),
     ));
     changed_relations(&txn.commit().unwrap())
 }

@@ -1,5 +1,5 @@
 use crate::capabilities::StorageRead;
-use crate::storage::logic::state::{EntityRecordKind, RecordId, RecordKind, RelationRecordKind};
+use crate::storage::logic::state::{EntityRecordKind, RecordKind, RelationRecordKind};
 use crate::transactions::data::{CommitConflict, ConflictClass, ExistingRecordTarget};
 
 pub(super) fn ensure_entity_target_is_current(
@@ -21,21 +21,23 @@ fn ensure_target_is_current<K: RecordKind>(
     record_id: K::Id,
     record_kind: &str,
 ) -> Result<(), CommitConflict> {
-    let slot = record_id.local_slot();
-    let Some(partition) = staged.get_partition(record_id.partition_id()) else {
+    let slot = K::slot_of(&record_id);
+    let partition_id = K::partition_of(&record_id);
+    let generation = K::generation_of(&record_id);
+    let Some(partition) = staged.get_partition(partition_id) else {
         return stale_handle_conflict(
             record_kind,
             if record_kind == "entity" {
                 ExistingRecordTarget::Entity(crate::identity::data::EntityId::new(
-                    record_id.partition_id(),
+                    partition_id,
                     slot as u64,
-                    record_id.generation(),
+                    generation,
                 ))
             } else {
                 ExistingRecordTarget::Relation(crate::identity::data::RelationId::new(
-                    record_id.partition_id(),
+                    partition_id,
                     slot as u64,
-                    record_id.generation(),
+                    generation,
                 ))
             },
         );
@@ -46,15 +48,15 @@ fn ensure_target_is_current<K: RecordKind>(
             record_kind,
             if record_kind == "entity" {
                 ExistingRecordTarget::Entity(crate::identity::data::EntityId::new(
-                    record_id.partition_id(),
+                    partition_id,
                     slot as u64,
-                    record_id.generation(),
+                    generation,
                 ))
             } else {
                 ExistingRecordTarget::Relation(crate::identity::data::RelationId::new(
-                    record_id.partition_id(),
+                    partition_id,
                     slot as u64,
-                    record_id.generation(),
+                    generation,
                 ))
             },
         );

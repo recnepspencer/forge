@@ -194,11 +194,11 @@ pub(super) fn apply_test_precompute_telemetry(
     graph: &mut SignalGraph,
     telemetry: &TestPrecomputeTelemetry,
 ) {
-    graph.telemetry_mut().nodes_evaluated += telemetry.nodes_evaluated;
-    graph.telemetry_mut().condition_skip_count += telemetry.condition_skip_count;
-    graph.telemetry_mut().ondemand_deferred_count += telemetry.ondemand_deferred_count;
-    graph.telemetry_mut().debounce_deferred_count += telemetry.debounce_deferred_count;
-    graph.telemetry_mut().partition_scope_revert_clean_count +=
+    graph.telemetry_mut().evaluation.nodes_evaluated += telemetry.nodes_evaluated;
+    graph.telemetry_mut().evaluation.condition_skip_count += telemetry.condition_skip_count;
+    graph.telemetry_mut().evaluation.ondemand_deferred_count += telemetry.ondemand_deferred_count;
+    graph.telemetry_mut().evaluation.debounce_deferred_count += telemetry.debounce_deferred_count;
+    graph.telemetry_mut().invalidation.partition_scope_revert_clean_count +=
         telemetry.partition_scope_revert_clean_count;
 }
 
@@ -225,6 +225,7 @@ fn preview_condition_action(
         request_mode,
         dirty_aspects,
         max_dependency_delta,
+        required_context: graph.get_contract(node)?.required_context,
     };
 
     match &entry.get_eval_config().condition {
@@ -286,10 +287,10 @@ fn max_dependency_delta(graph: &SignalGraph, node: NodeId) -> Result<u64, Signal
         if !graph.is_alive(snapshot_entry.source) {
             continue;
         }
-        let current_version = graph
-            .get_entry(snapshot_entry.source)?
-            .get_aspect_version()
-            .get(snapshot_entry.aspect);
+        let current_version = graph.get_entry(snapshot_entry.source)?.version_for_scope(
+            snapshot_entry.aspect,
+            snapshot_entry.scope.as_ref(),
+        );
         max_delta = max_delta.max(current_version.abs_diff(snapshot_entry.cached_version));
     }
     Ok(max_delta)
@@ -345,10 +346,10 @@ fn preview_upstream_state(
                 partition_scope_revert_clean_count,
             });
         }
-        let current_version = graph
-            .get_entry(snapshot_entry.source)?
-            .get_aspect_version()
-            .get(snapshot_entry.aspect);
+        let current_version = graph.get_entry(snapshot_entry.source)?.version_for_scope(
+            snapshot_entry.aspect,
+            snapshot_entry.scope.as_ref(),
+        );
         if let Some(scope) = &snapshot_entry.scope {
             if current_version == snapshot_entry.cached_version {
                 continue;

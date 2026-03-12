@@ -81,16 +81,16 @@ mod tests {
         let target_entity_id = EntityId::new(target_partition_id, 0, 1);
 
         let mut relation_arena = RelationArena::with_capacity(1);
-        let (slot, generation, _) = relation_arena.allocate_common(
-            relation_partition_id,
-            KindId(9),
-            None,
-            VersionId(1),
-            Some(RelationEndpoints {
+        let (slot, generation, _) = relation_arena.push_slot(crate::storage::substrate::SlotInit {
+            partition_id: relation_partition_id,
+            kind_id: KindId(9),
+            payload: None,
+            version_id: VersionId(1),
+            extra: Some(RelationEndpoints {
                 source: source_entity_id,
                 target: target_entity_id,
             }),
-        );
+        });
         let relation_id = RelationId::new(relation_partition_id, slot as u64, generation);
 
         let mut source_adjacency = AdjacencySet::new(&adjacency_policy);

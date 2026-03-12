@@ -58,7 +58,8 @@ pub(crate) fn preview_maybe_stale(
             continue;
         }
 
-        let current_version = source_entry.get_aspect_version().get(snapshot_entry.aspect);
+        let current_version =
+            source_entry.version_for_scope(snapshot_entry.aspect, snapshot_entry.scope.as_ref());
         if let Some(scope) = &snapshot_entry.scope {
             if current_version == snapshot_entry.cached_version {
                 continue;

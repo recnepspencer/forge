@@ -16,12 +16,8 @@ use super::super::storage::Slot;
 use super::super::{DependencyEdgeStore, SubscriberEdgeStore};
 use super::scratch::{ScratchLeaseKind, TraversalScratch};
 
-/// The reactive signal graph.
-///
-/// An arena of `NodeEntry` values with graph-owned dependency, subscriber,
-/// and snapshot storage.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SignalGraph {
+pub(crate) struct NodeArena {
     pub(in crate::data::graph) nodes: Vec<Slot>,
     pub(in crate::data::graph) free_list: Vec<u32>,
     #[serde(skip, default)]
@@ -29,22 +25,46 @@ pub struct SignalGraph {
     pub(in crate::data::graph) active_nodes: u32,
     #[serde(default)]
     pub(in crate::data::graph) compaction: CompactionState,
-    #[serde(skip, default)]
-    pub(in crate::data::graph) scratch: TraversalScratch,
-    #[serde(skip, default)]
-    pub(in crate::data::graph) scratch_lease: Option<ScratchLeaseKind>,
-    #[serde(skip, default)]
-    pub(in crate::data::graph) telemetry: RuntimeTelemetry,
-    #[serde(default)]
-    pub(in crate::data::graph) partition_interner: PartitionInterner,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub(crate) struct EdgeTopology {
     #[serde(default)]
     pub(in crate::data::graph) dependency_snapshots: DependencySnapshotStore,
     #[serde(default)]
     pub(in crate::data::graph) dependency_edges: DependencyEdgeStore,
     #[serde(default)]
     pub(in crate::data::graph) subscriber_edges: SubscriberEdgeStore,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub(crate) struct TraversalResources {
+    #[serde(skip, default)]
+    pub(in crate::data::graph) scratch: TraversalScratch,
+    #[serde(skip, default)]
+    pub(in crate::data::graph) scratch_lease: Option<ScratchLeaseKind>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub(crate) struct RuntimeObservation {
+    #[serde(skip, default)]
+    pub(in crate::data::graph) telemetry: RuntimeTelemetry,
+    #[serde(default)]
+    pub(in crate::data::graph) partition_interner: PartitionInterner,
     #[serde(skip, default)]
     pub(in crate::data::graph) diagnostics: DiagnosticsState,
+}
+
+/// The reactive signal graph.
+///
+/// An arena of `NodeEntry` values with graph-owned dependency, subscriber,
+/// and snapshot storage.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SignalGraph {
+    pub(in crate::data::graph) arena: NodeArena,
+    pub(in crate::data::graph) topology: EdgeTopology,
+    pub(in crate::data::graph) traversal: TraversalResources,
+    pub(in crate::data::graph) observation: RuntimeObservation,
 }
 
 const NODE_ARENA_RESERVE_CHUNK: usize = 1024;
@@ -58,48 +78,56 @@ impl Default for SignalGraph {
 impl SignalGraph {
     pub fn new() -> Self {
         Self {
-            nodes: Vec::new(),
-            free_list: Vec::new(),
-            free_slots: DenseBitset::default(),
-            active_nodes: 0,
-            compaction: CompactionState::default(),
-            scratch: TraversalScratch::default(),
-            scratch_lease: None,
-            telemetry: RuntimeTelemetry::default(),
-            partition_interner: PartitionInterner::default(),
-            dependency_snapshots: DependencySnapshotStore::default(),
-            dependency_edges: DependencyEdgeStore::default(),
-            subscriber_edges: SubscriberEdgeStore::default(),
-            diagnostics: DiagnosticsState::default(),
+            arena: NodeArena {
+                nodes: Vec::new(),
+                free_list: Vec::new(),
+                free_slots: DenseBitset::default(),
+                active_nodes: 0,
+                compaction: CompactionState::default(),
+            },
+            topology: EdgeTopology::default(),
+            traversal: TraversalResources::default(),
+            observation: RuntimeObservation::default(),
         }
     }
 
     pub fn with_gc_threshold(gc_threshold: u32) -> Self {
-        Self {
-            compaction: CompactionState::new(gc_threshold),
-            ..Self::new()
-        }
+        let mut graph = Self::new();
+        graph.arena.compaction = CompactionState::new(gc_threshold);
+        graph
     }
 
     pub(crate) fn clone_stateful(&self) -> Self {
-        let mut cloned = self.clone();
-        cloned.telemetry = self.telemetry.clone();
-        cloned.diagnostics = self.diagnostics.clone();
-        cloned
+        self.clone()
+    }
+
+    pub(crate) fn as_parts_mut(
+        &mut self,
+    ) -> (
+        &mut NodeArena,
+        &mut EdgeTopology,
+        &mut TraversalResources,
+        &mut RuntimeObservation,
+    ) {
+        (
+            &mut self.arena,
+            &mut self.topology,
+            &mut self.traversal,
+            &mut self.observation,
+        )
     }
 
     pub(crate) fn acquire_scratch(
         &mut self,
         kind: ScratchLeaseKind,
     ) -> Result<TraversalScratch, SignalError> {
-        if let Some(active) = self.scratch_lease {
-            self.telemetry.scratch_reentry_error_count += 1;
-            return Err(SignalError::invalid_input(format!(
-                "signal scratch is already leased for {active:?}; re-entrant {kind:?} traversal is forbidden"
-            )));
+        let (_, _, traversal, observation) = self.as_parts_mut();
+        if let Some(active) = traversal.scratch_lease {
+            observation.telemetry.storage.scratch_reentry_error_count += 1;
+            return Err(SignalError::scratch_reentry(active, kind));
         }
-        self.scratch_lease = Some(kind);
-        Ok(std::mem::take(&mut self.scratch))
+        traversal.scratch_lease = Some(kind);
+        Ok(std::mem::take(&mut traversal.scratch))
     }
 
     pub(crate) fn restore_scratch(
@@ -107,18 +135,17 @@ impl SignalGraph {
         kind: ScratchLeaseKind,
         scratch: TraversalScratch,
     ) -> Result<(), SignalError> {
-        match self.scratch_lease {
+        let (_, _, traversal, _) = self.as_parts_mut();
+        match traversal.scratch_lease {
             Some(active) if active == kind => {
-                self.scratch = scratch;
-                self.scratch_lease = None;
+                traversal.scratch = scratch;
+                traversal.scratch_lease = None;
                 Ok(())
             }
-            Some(active) => Err(SignalError::internal(format!(
-                "signal scratch lease mismatch: expected {active:?}, restored {kind:?}"
+            Some(active) => Err(SignalError::scratch_mismatch(active, kind)),
+            None => Err(SignalError::internal(format!(
+                "signal scratch restore called without active lease for {kind:?}"
             ))),
-            None => Err(SignalError::internal(
-                "signal scratch restore called without active lease",
-            )),
         }
     }
 
@@ -134,28 +161,28 @@ impl SignalGraph {
     }
 
     pub(in crate::data::graph) fn allocate_node(&mut self, entry: NodeEntry) -> NodeId {
-        while let Some(index) = self.free_list.pop() {
-            if index as usize >= self.nodes.len() {
+        while let Some(index) = self.arena.free_list.pop() {
+            if index as usize >= self.arena.nodes.len() {
                 continue;
             }
-            self.free_slots.clear(index as usize);
-            let slot = &mut self.nodes[index as usize];
+            self.arena.free_slots.clear(index as usize);
+            let slot = &mut self.arena.nodes[index as usize];
             if slot.is_retired() {
                 continue;
             }
             let generation = slot.occupy(entry);
-            self.active_nodes += 1;
+            self.arena.active_nodes += 1;
             return NodeId::new(index, generation);
         }
 
-        let index = self.nodes.len() as u32;
-        if self.nodes.len() == self.nodes.capacity() {
-            self.nodes.reserve(NODE_ARENA_RESERVE_CHUNK);
+        let index = self.arena.nodes.len() as u32;
+        if self.arena.nodes.len() == self.arena.nodes.capacity() {
+            self.arena.nodes.reserve(NODE_ARENA_RESERVE_CHUNK);
         }
         let mut slot = Slot::vacant();
         let generation = slot.occupy(entry);
-        self.nodes.push(slot);
-        self.active_nodes += 1;
+        self.arena.nodes.push(slot);
+        self.arena.active_nodes += 1;
         NodeId::new(index, generation)
     }
 
@@ -166,44 +193,51 @@ impl SignalGraph {
             .collect::<Vec<_>>();
         indices.sort_unstable();
         indices.dedup();
-        self.telemetry.rolled_back_created_node_count += indices.len() as u64;
+        self.observation.telemetry.storage.rolled_back_created_node_count += indices.len() as u64;
 
         for index in indices.iter().rev().copied() {
-            let Some(slot) = self.nodes.get_mut(index) else {
+            let Some(slot) = self.arena.nodes.get_mut(index) else {
                 continue;
             };
             if slot.is_occupied() {
                 slot.vacate();
-                self.active_nodes = self.active_nodes.saturating_sub(1);
+                self.arena.active_nodes = self.arena.active_nodes.saturating_sub(1);
             }
-            if !slot.is_retired() && !self.free_slots.contains(index) {
-                self.free_list.push(index as u32);
-                self.free_slots.mark(index);
+            if !slot.is_retired() && !self.arena.free_slots.contains(index) {
+                self.arena.free_list.push(index as u32);
+                self.arena.free_slots.mark(index);
             }
         }
 
-        while self.nodes.last().is_some_and(|slot| !slot.is_occupied()) {
-            self.free_slots.clear(self.nodes.len() - 1);
-            self.nodes.pop();
+        while self
+            .arena
+            .nodes
+            .last()
+            .is_some_and(|slot| !slot.is_occupied())
+        {
+            self.arena.free_slots.clear(self.arena.nodes.len() - 1);
+            self.arena.nodes.pop();
         }
-        self.free_list
-            .retain(|index| (*index as usize) < self.nodes.len());
+        self.arena
+            .free_list
+            .retain(|index| (*index as usize) < self.arena.nodes.len());
     }
 
     pub(in crate::data::graph) fn validate_handle(&self, id: NodeId) -> Result<(), SignalError> {
         let idx = id.index() as usize;
-        if idx >= self.nodes.len() {
-            return Err(stale_error(id));
+        if idx >= self.arena.nodes.len() {
+            return Err(stale_error(id, id.generation()));
         }
-        let slot = &self.nodes[idx];
+        let slot = &self.arena.nodes[idx];
         if slot.generation != id.generation() || !slot.is_occupied() {
-            return Err(stale_error(id));
+            return Err(stale_error(id, slot.generation));
         }
         Ok(())
     }
 
     pub(crate) fn live_node_ids(&self) -> Vec<NodeId> {
-        self.nodes
+        self.arena
+            .nodes
             .iter()
             .enumerate()
             .filter_map(|(index, slot)| {
@@ -217,15 +251,15 @@ impl SignalGraph {
     #[cfg(test)]
     pub(crate) fn storage_counts(&self) -> ((usize, usize), (usize, usize), usize) {
         (
-            self.dependency_edges.storage_counts(),
-            self.subscriber_edges.storage_counts(),
-            self.dependency_snapshots.snapshot_count(),
+            self.topology.dependency_edges.storage_counts(),
+            self.topology.subscriber_edges.storage_counts(),
+            self.topology.dependency_snapshots.snapshot_count(),
         )
     }
 
     #[cfg(test)]
     pub(crate) fn free_list_snapshot(&self) -> Vec<u32> {
-        self.free_list.clone()
+        self.arena.free_list.clone()
     }
 
     #[cfg(test)]
@@ -235,6 +269,7 @@ impl SignalGraph {
         generation: u32,
     ) -> Result<(), SignalError> {
         let slot = self
+            .arena
             .nodes
             .get_mut(index as usize)
             .ok_or_else(|| SignalError::invalid_input(format!("unknown slot `{index}`")))?;
@@ -246,6 +281,7 @@ impl SignalGraph {
     #[cfg(test)]
     pub(crate) fn is_slot_retired_for_test(&self, index: u32) -> Result<bool, SignalError> {
         let slot = self
+            .arena
             .nodes
             .get(index as usize)
             .ok_or_else(|| SignalError::invalid_input(format!("unknown slot `{index}`")))?;
@@ -253,6 +289,22 @@ impl SignalGraph {
     }
 }
 
-pub(super) fn stale_error(id: NodeId) -> SignalError {
-    SignalError::invalid_input(format!("stale NodeId: {id}"))
+impl NodeArena {
+    pub(crate) fn len(&self) -> usize {
+        self.nodes.len()
+    }
+}
+
+impl RuntimeObservation {
+    pub(crate) fn telemetry_mut(&mut self) -> &mut RuntimeTelemetry {
+        &mut self.telemetry
+    }
+
+    pub(crate) fn partition_interner_mut(&mut self) -> &mut PartitionInterner {
+        &mut self.partition_interner
+    }
+}
+
+pub(in crate::data::graph) fn stale_error(id: NodeId, expected_generation: u32) -> SignalError {
+    SignalError::stale_handle(id, expected_generation)
 }

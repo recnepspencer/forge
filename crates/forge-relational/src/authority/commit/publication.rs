@@ -24,7 +24,7 @@ pub(super) fn assemble_patch(
         ordering: PatchOrdering::CanonicalCommitOrder,
         publication_mode: PatchPublicationMode::CommitNative,
         position: PatchStreamPosition(commit_id.0),
-        compatibility: match config.publication.patch_surface_policy {
+        compatibility: match config.publication.policy.patch_surface_policy {
             crate::config::data::PatchSurfacePolicy::StructuredPatchSurface => {
                 PatchCompatibilityClass::StructuredCompatible
             }
@@ -49,7 +49,7 @@ pub(super) fn diagnostics_summary_artifact(
             .diagnostics
             .clone()
             .into_iter()
-            .take(config.diagnostics.max_entries_per_artifact)
+            .take(config.diagnostics.profile.max_entries_per_artifact)
             .collect(),
     }
 }
@@ -72,20 +72,24 @@ pub(super) fn finalize_published_commit(
     for (partition_id, partition_state) in committed_partitions {
         runtime.partitions.insert(partition_id, partition_state);
     }
-    runtime.refresh_unique_field_index_for_records(changed_records, version_id);
     runtime
-        .snapshots
-        .published_handles
-        .insert(artifacts.snapshot.snapshot_id, version_id);
-    runtime.trim_live_history_for_records(changed_records, version_id);
-    runtime.history.next_commit_id += 1;
-    runtime.history.next_version_id += 1;
+        .index_authority()
+        .refresh_unique_field_index_for_records(changed_records, version_id);
+    runtime
+        .visibility
+        .insert_published_handle(artifacts.snapshot.snapshot_id, version_id);
+    runtime
+        .retention_access()
+        .trim_live_history_for_records(changed_records, version_id);
+    runtime.history.advance_commit_sequence();
     runtime
         .history
         .branch_heads
         .insert(branch_id.clone(), Some(commit_reference.clone()));
-    runtime.move_branch_head_visibility_residency(previous_branch_head_version, Some(version_id));
-    runtime.advance_branch_pins_for_changed_records(
+    runtime
+        .visibility_pins()
+        .move_branch_head_visibility_residency(previous_branch_head_version, Some(version_id));
+    runtime.visibility_pins().advance_branch_pins_for_changed_records(
         previous_branch_head_version,
         version_id,
         changed_records,
@@ -105,10 +109,10 @@ pub(super) fn finalize_published_commit(
         .patch_stream_index
         .insert(patch_position, commit_id);
     runtime.prune_published_snapshot_handles_if_needed();
-    runtime.compact_durable_log_if_needed();
+    runtime.durability_authority().compact_log_if_needed();
     runtime.publication.latest_bundle = Some(artifacts.bundle.clone());
     runtime.push_diagnostic_artifact(artifacts.diagnostics_summary);
-    let _ = runtime.run_retention_pass();
+    let _ = runtime.retention_access().run_pass();
     runtime.push_bounded_diagnostic(
         DiagnosticsScope::PatchPublication,
         DiagnosticsArtifactKind::MinimalSummary,

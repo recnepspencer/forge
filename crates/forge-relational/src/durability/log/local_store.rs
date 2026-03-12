@@ -31,20 +31,20 @@ impl RelationalRuntime {
             return load_or_initialize_store(store.layout.clone());
         }
         let Some(layout) = self.durable_store_layout() else {
-            return Err(DurabilityError {
-                class: RecoveryFailureClass::DurableIoFailure,
-                detail: "persisted durability mode requires a durable store layout".to_string(),
-            });
+            return Err(DurabilityError::new(
+                RecoveryFailureClass::DurableIoFailure,
+                "persisted durability mode requires a durable store layout",
+            ));
         };
         load_or_initialize_store(layout)
     }
 
     pub(crate) fn load_store_from_disk(&self) -> Result<DurableStore, DurabilityError> {
         let Some(layout) = self.durable_store_layout() else {
-            return Err(DurabilityError {
-                class: RecoveryFailureClass::DurableIoFailure,
-                detail: "persisted durability mode requires a durable store layout".to_string(),
-            });
+            return Err(DurabilityError::new(
+                RecoveryFailureClass::DurableIoFailure,
+                "persisted durability mode requires a durable store layout",
+            ));
         };
         load_or_initialize_store(layout)
     }
@@ -129,9 +129,11 @@ pub(crate) fn load_or_initialize_store(
 
 pub(crate) fn read_json<T: for<'de> Deserialize<'de>>(path: &Path) -> Result<T, DurabilityError> {
     let bytes = fs::read(path).map_err(io_error)?;
-    serde_json::from_slice(&bytes).map_err(|error| DurabilityError {
-        class: RecoveryFailureClass::CorruptCheckpoint,
-        detail: format!("failed to deserialize {}: {error}", path.display()),
+    serde_json::from_slice(&bytes).map_err(|error| {
+        DurabilityError::new(
+            RecoveryFailureClass::CorruptCheckpoint,
+            format!("failed to deserialize {}: {error}", path.display()),
+        )
     })
 }
 
@@ -140,9 +142,11 @@ pub(crate) fn write_json<T: Serialize>(path: &Path, value: &T) -> Result<(), Dur
         fs::create_dir_all(parent).map_err(io_error)?;
     }
     let temp_path = path.with_extension("tmp");
-    let bytes = serde_json::to_vec_pretty(value).map_err(|error| DurabilityError {
-        class: RecoveryFailureClass::DurableIoFailure,
-        detail: format!("failed to serialize {}: {error}", path.display()),
+    let bytes = serde_json::to_vec_pretty(value).map_err(|error| {
+        DurabilityError::new(
+            RecoveryFailureClass::DurableIoFailure,
+            format!("failed to serialize {}: {error}", path.display()),
+        )
     })?;
     fs::write(&temp_path, bytes).map_err(io_error)?;
     fs::rename(&temp_path, path).map_err(io_error)?;
@@ -150,8 +154,5 @@ pub(crate) fn write_json<T: Serialize>(path: &Path, value: &T) -> Result<(), Dur
 }
 
 pub(crate) fn io_error(error: std::io::Error) -> DurabilityError {
-    DurabilityError {
-        class: RecoveryFailureClass::DurableIoFailure,
-        detail: error.to_string(),
-    }
+    DurabilityError::new(RecoveryFailureClass::DurableIoFailure, error.to_string())
 }

@@ -1,56 +1,43 @@
-use serde_json::json;
-
 use crate::authority::mutation::aspect_versions::{
-    aspect_keys_for_payload, write_entity_aspect_versions,
+    write_entity_aspect_versions,
 };
-use crate::authority::mutation::patch_details::patch_detail_for_entity;
+use crate::authority::mutation::outcomes::{MutationEvent, MutationOutcome, RecordMutation};
 use crate::authority::mutation::stale_targets::ensure_entity_target_is_current;
-use crate::authority::mutation::{MutationEffect, MutationWorkspace};
-use crate::diagnostics::data::{DiagnosticCode, RelationalDiagnosticsEntry};
-use crate::publication::data::diff::{PatchRecord, PatchRecordKind};
-use crate::transactions::data::{CommitConflict, RecordRef, UpdateEntityIntent};
+use crate::authority::mutation::MutationWorkspace;
+use crate::transactions::data::{CommitConflict, UpdateEntityIntent};
 
 pub(super) fn apply(
     intent: &UpdateEntityIntent,
     workspace: &mut MutationWorkspace<'_>,
-) -> Result<MutationEffect, CommitConflict> {
+) -> Result<MutationOutcome, CommitConflict> {
     let version_id = workspace.version_id();
-    let patch_surface_policy = workspace.patch_surface_policy();
     let payload = intent.payload.canonicalized();
     let slot = intent.entity_id.local_slot.0 as usize;
-    workspace.with_draft_and_symbols(|draft, symbols| {
-        ensure_entity_target_is_current(draft, intent.entity_id)?;
-        draft.mark_entity_slot_touched(intent.entity_id.partition_id, slot);
-        let partition = draft.get_partition_mut(intent.entity_id.partition_id);
+    workspace.with_context(|context| {
+        ensure_entity_target_is_current(context.state, intent.entity_id)?;
+        context
+            .state
+            .mark_entity_slot_touched(intent.entity_id.partition_id, slot);
+        let partition = context.state.get_partition_mut(intent.entity_id.partition_id);
         partition
             .entity_arena
             .apply_payload_update(slot, payload.clone(), version_id);
-        write_entity_aspect_versions(draft, intent.entity_id, version_id, &payload, symbols);
+        write_entity_aspect_versions(
+            context.state,
+            intent.entity_id,
+            version_id,
+            &payload,
+            context.symbols,
+        );
         Ok::<(), CommitConflict>(())
     })?;
-
-    let mut effect = MutationEffect::default();
-    let aspects =
-        workspace.with_draft_and_symbols(|_, symbols| aspect_keys_for_payload(Some(&payload), symbols));
-    effect.record_change(RecordRef::Entity(intent.entity_id));
-    effect.record_diagnostic(RelationalDiagnosticsEntry {
-        code: DiagnosticCode::EntityUpdated,
-        message: "entity updated".to_string(),
-        fields: json!({
-            "partition_id": intent.entity_id.partition_id.0,
-            "entity_slot": intent.entity_id.local_slot.0,
-        }),
+    let mut outcome = MutationOutcome::default();
+    outcome.record_change(RecordMutation::EntityUpdated {
+        entity_id: intent.entity_id,
+        payload,
     });
-    effect.record_patch(PatchRecord {
-        kind: PatchRecordKind::Updated,
-        target: RecordRef::Entity(intent.entity_id),
-        aspects,
-        detail: patch_detail_for_entity(
-            patch_surface_policy,
-            PatchRecordKind::Updated,
-            intent.entity_id,
-            Some(&payload),
-        ),
+    outcome.record_event(MutationEvent::EntityUpdated {
+        entity_id: intent.entity_id,
     });
-    Ok(effect)
+    Ok(outcome)
 }

@@ -24,6 +24,7 @@ mod capabilities;
 mod config;
 mod diagnostics;
 mod durability;
+mod errors;
 mod history;
 mod identity;
 mod indexes;

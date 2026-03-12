@@ -1,8 +1,8 @@
 use serde_json::json;
 
 use crate::facade::{
-    BranchId, CommitOutcome, EntityId, RecordPayload, TransactionIntent, TransactionOptions,
-    WorkerIntentBatch,
+    BranchId, CommitOutcome, EntityId, EntityMutationIntent, RecordPayload, MutationIntent,
+    TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
 };
 
 use super::super::fixture::FintechWorld;
@@ -17,17 +17,19 @@ pub(crate) fn correct_trade_with_replacement(
         ..TransactionOptions::default()
     });
     txn.push_batch(
-        WorkerIntentBatch::new("replace-trade").push(TransactionIntent::UpdateEntity {
-            entity_id: trade_id,
-            payload: RecordPayload::StructuredJson(json!({
-                "entity_type": "trade",
-                "desk": "macro-flow",
-                "book": "analysis-risk",
-                "notional": 1_750_000,
-                "ccy": "USD",
-                "corrected": true,
-            })),
-        }),
+        WorkerIntentBatch::new("replace-trade").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id: trade_id,
+                payload: RecordPayload::StructuredJson(json!({
+                    "entity_type": "trade",
+                    "desk": "macro-flow",
+                    "book": "analysis-risk",
+                    "notional": 1_750_000,
+                    "ccy": "USD",
+                    "corrected": true,
+                })),
+            }),
+        )),
     );
     txn.commit().unwrap()
 }

@@ -41,11 +41,7 @@ pub(crate) struct RelationCreateKey {
     pub(crate) client_key: crate::symbols::data::InternedString,
 }
 
-pub(crate) fn canonical_intent_key(intent: &crate::transactions::data::TransactionIntent) -> CanonicalIntentKey {
-    canonical_mutation_intent_key(&intent.to_mutation_intent())
-}
-
-pub(crate) fn canonical_mutation_intent_key(intent: &MutationIntent) -> CanonicalIntentKey {
+pub(crate) fn canonical_intent_key(intent: &MutationIntent) -> CanonicalIntentKey {
     match intent {
         MutationIntent::Create(CreateIntent::Entity(spec)) => CanonicalIntentKey::CreateEntity {
             partition_id: spec.partition_id,

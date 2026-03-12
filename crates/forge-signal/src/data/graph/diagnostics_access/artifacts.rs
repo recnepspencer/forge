@@ -21,11 +21,11 @@ impl SignalGraph {
     }
 
     pub fn explanation_fact(&self, node: NodeId) -> Option<&ExplanationFact> {
-        self.diagnostics.explanation_facts().get(&node)
+        self.observation.diagnostics.explanation_facts().get(&node)
     }
 
     pub fn provenance_fact(&self, node: NodeId) -> Option<&ProvenanceFact> {
-        self.diagnostics.provenance_facts().get(&node)
+        self.observation.diagnostics.provenance_facts().get(&node)
     }
 
     pub fn capture_snapshot(&mut self) -> SignalSnapshotV1 {
@@ -70,10 +70,11 @@ impl SignalGraph {
 
     pub fn restore_snapshot(&mut self, snapshot: &SignalSnapshotV1) -> Result<(), SignalError> {
         self.validate_snapshot_compatibility(snapshot)?;
-        let current_diagnostics = self.diagnostics.clone();
+        let current_diagnostics = self.observation.diagnostics.clone();
         let mut restored = snapshot.graph.clone();
-        restored.telemetry = snapshot.graph_telemetry.clone();
+        restored.observation.telemetry = snapshot.graph_telemetry.clone();
         restored
+            .observation
             .diagnostics
             .restore_snapshot_payload_preserving_history_from(
                 snapshot.diagnostics.clone(),
@@ -163,9 +164,9 @@ impl SignalGraph {
     #[cfg(test)]
     pub(crate) fn test_storage_counts(&self) -> ((usize, usize), (usize, usize), usize) {
         (
-            self.dependency_edges.storage_counts(),
-            self.subscriber_edges.storage_counts(),
-            self.dependency_snapshots.snapshot_count(),
+            self.topology.dependency_edges.storage_counts(),
+            self.topology.subscriber_edges.storage_counts(),
+            self.topology.dependency_snapshots.snapshot_count(),
         )
     }
 }

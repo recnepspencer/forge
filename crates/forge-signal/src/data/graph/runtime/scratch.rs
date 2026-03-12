@@ -1,11 +1,8 @@
 use crate::data::handle::NodeId;
-use crate::logic::planner::{
-    EvaluationTask, StageCursor, StageExecutionRecord, TaskExecutionRecord,
-};
+use crate::logic::planner::{EvaluationTask, StageCursor};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(not(test), allow(dead_code))]
-pub(crate) enum ScratchLeaseKind {
+pub enum ScratchLeaseKind {
     Evaluation,
     Invalidation,
     Gc,
@@ -23,10 +20,6 @@ pub(crate) struct TraversalScratch {
     pub(crate) planner_targets: Vec<NodeId>,
     pub(crate) planner_tasks: Vec<EvaluationTask>,
     pub(crate) planner_stages: Vec<StageCursor>,
-    #[allow(dead_code)]
-    pub(crate) report_stages: Vec<StageExecutionRecord>,
-    #[allow(dead_code)]
-    pub(crate) report_tasks: Vec<TaskExecutionRecord>,
 }
 
 #[derive(Debug, Clone, Default)]

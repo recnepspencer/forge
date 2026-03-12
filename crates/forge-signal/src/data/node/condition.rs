@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use crate::data::aspect::AspectMask;
 use crate::data::comparator::VersionComparatorPolicy;
 
+use super::contract::NodeContract;
+
 /// Evaluation condition descriptor for a node.
 ///
 /// This is a policy declaration. Runtime gating integration is tier/runtime
@@ -27,10 +29,9 @@ pub enum EvaluationCondition {
 /// Per-node evaluation configuration.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NodeEvaluationConfig {
-    /// Declarative aspect intent for hosts/builders. This does not replace
-    /// explicit dependency wiring in the graph.
+    /// Declarative contract for this node's read/write and context behavior.
     #[serde(default)]
-    pub depends_on_aspects: Option<AspectMask>,
+    pub contract: NodeContract,
     /// Condition used to gate node evaluation.
     pub condition: EvaluationCondition,
     /// Comparator policy used to decide whether dependency version changes
@@ -45,7 +46,7 @@ pub struct NodeEvaluationConfig {
 impl Default for NodeEvaluationConfig {
     fn default() -> Self {
         Self {
-            depends_on_aspects: None,
+            contract: NodeContract::default(),
             condition: EvaluationCondition::Always,
             comparator: None,
             partitioned_output: false,

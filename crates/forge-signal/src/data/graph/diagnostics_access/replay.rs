@@ -6,7 +6,23 @@ use crate::state::SignalBranchHandle;
 
 impl SignalGraph {
     pub fn replay_events(&self) -> &std::collections::VecDeque<ReplayEvent> {
-        self.diagnostics.replay_events()
+        self.observation.diagnostics.replay_events()
+    }
+
+    pub fn replay_where(
+        &self,
+        mut predicate: impl FnMut(&ReplayEvent) -> bool,
+    ) -> ReplaySlice {
+        ReplaySlice {
+            start: None,
+            end: None,
+            frames: self
+                .replay_events()
+                .iter()
+                .filter(|frame| predicate(frame))
+                .cloned()
+                .collect(),
+        }
     }
 
     pub fn replay_slice(
@@ -14,56 +30,25 @@ impl SignalGraph {
         start: Option<ReplayCursor>,
         end: Option<ReplayCursor>,
     ) -> ReplaySlice {
-        let frames = self
-            .replay_events()
-            .iter()
-            .filter(|frame| start.is_none_or(|cursor| frame.cursor >= cursor))
-            .filter(|frame| end.is_none_or(|cursor| frame.cursor <= cursor))
-            .cloned()
-            .collect();
-        ReplaySlice { start, end, frames }
+        let mut slice = self.replay_where(|frame| {
+            start.is_none_or(|cursor| frame.cursor >= cursor)
+                && end.is_none_or(|cursor| frame.cursor <= cursor)
+        });
+        slice.start = start;
+        slice.end = end;
+        slice
     }
 
     pub fn replay_for_branch(&self, branch_id: crate::state::SignalBranchId) -> ReplaySlice {
-        let frames = self
-            .replay_events()
-            .iter()
-            .filter(|frame| frame.branch_id == branch_id)
-            .cloned()
-            .collect();
-        ReplaySlice {
-            start: None,
-            end: None,
-            frames,
-        }
+        self.replay_where(|frame| frame.branch_id == branch_id)
     }
 
     pub fn replay_for_node(&self, node: NodeId) -> ReplaySlice {
-        let frames = self
-            .replay_events()
-            .iter()
-            .filter(|frame| frame.node == Some(node))
-            .cloned()
-            .collect();
-        ReplaySlice {
-            start: None,
-            end: None,
-            frames,
-        }
+        self.replay_where(|frame| frame.node == Some(node))
     }
 
     pub fn replay_for_artifact(&self, artifact_id: LineageArtifactId) -> ReplaySlice {
-        let frames = self
-            .replay_events()
-            .iter()
-            .filter(|frame| frame.lineage_artifact_id == Some(artifact_id))
-            .cloned()
-            .collect();
-        ReplaySlice {
-            start: None,
-            end: None,
-            frames,
-        }
+        self.replay_where(|frame| frame.lineage_artifact_id == Some(artifact_id))
     }
 
     pub fn replay_from_cursor(&self, start: ReplayCursor) -> ReplaySlice {
@@ -87,24 +72,24 @@ impl SignalGraph {
         };
         let start = index.saturating_sub(4);
         let end = (index + 5).min(self.replay_events().len());
-        ReplaySlice {
-            start: self.replay_events().get(start).map(|event| event.cursor),
-            end: self
-                .replay_events()
-                .get(end.saturating_sub(1))
-                .map(|event| event.cursor),
-            frames: self
-                .replay_events()
-                .iter()
-                .skip(start)
-                .take(end.saturating_sub(start))
-                .cloned()
-                .collect(),
-        }
+        let cursors = self
+            .replay_events()
+            .iter()
+            .skip(start)
+            .take(end.saturating_sub(start))
+            .map(|event| event.cursor)
+            .collect::<std::collections::BTreeSet<_>>();
+        let mut slice = self.replay_where(|event| cursors.contains(&event.cursor));
+        slice.start = self.replay_events().get(start).map(|event| event.cursor);
+        slice.end = self
+            .replay_events()
+            .get(end.saturating_sub(1))
+            .map(|event| event.cursor);
+        slice
     }
 
     pub fn lineage_records(&self) -> &std::collections::VecDeque<LineageRecord> {
-        self.diagnostics.lineage_records()
+        self.observation.diagnostics.lineage_records()
     }
 
     pub fn lineage_for_node(&self, node: NodeId) -> Vec<LineageRecord> {
@@ -166,18 +151,27 @@ impl SignalGraph {
     }
 
     pub fn current_branch(&self) -> SignalBranchHandle {
-        self.diagnostics.active_branch()
+        self.observation.diagnostics.active_branch()
     }
 
     pub fn known_branches(&self) -> Vec<SignalBranchHandle> {
-        self.diagnostics.branch_catalog().values().cloned().collect()
+        self.observation
+            .diagnostics
+            .branch_catalog()
+            .values()
+            .cloned()
+            .collect()
     }
 
     pub fn branch_handle(
         &self,
         branch_id: crate::state::SignalBranchId,
     ) -> Option<SignalBranchHandle> {
-        self.diagnostics.branch_catalog().get(&branch_id).cloned()
+        self.observation
+            .diagnostics
+            .branch_catalog()
+            .get(&branch_id)
+            .cloned()
     }
 
     pub fn branch_head_snapshot_id(

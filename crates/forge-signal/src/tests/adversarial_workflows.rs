@@ -371,13 +371,13 @@ fn build_geometry_fixture(policy: SignalRuntimePolicy) -> GeometryFixture {
     let delta_gate = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(mask_a())
+        .reads_aspects(mask_a())
         .delta_threshold(2.0)
         .build();
     let filtered_gate = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(mask_b())
+        .reads_aspects(mask_b())
         .aspect_filter(mask_b())
         .build();
     let demand_gate = runtime.graph_mut().node().on_demand().build();
@@ -408,9 +408,10 @@ fn build_geometry_fixture(policy: SignalRuntimePolicy) -> GeometryFixture {
         .add_dependency(fused, demand_gate, ASPECT_A)
         .unwrap();
 
-    let family = runtime.register_computation_family("geom-workflow");
-    let keyed = runtime.keyed_node(&family, "feature-panel");
-    let memo_key = KeyedComputation::new(family.clone(), "feature-panel").with_memo_key("mesh-v1");
+    let family = define_keyed_computation(&mut runtime, "geom-workflow", ());
+    let keyed_def = family.keyed("feature-panel");
+    let keyed = keyed_def.node(&mut runtime);
+    let memo_key = keyed_def.memoized("mesh-v1");
 
     GeometryFixture {
         runtime,
@@ -434,13 +435,13 @@ fn build_fintech_fixture(policy: SignalRuntimePolicy) -> FintechFixture {
     let throttle = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(mask_a())
+        .reads_aspects(mask_a())
         .delta_threshold(2.0)
         .build();
     let alert = runtime
         .graph_mut()
         .node()
-        .depends_on_aspects(mask_b())
+        .reads_aspects(mask_b())
         .aspect_filter(mask_b())
         .build();
     let risk = runtime.graph_mut().node().output_identity().build();
@@ -462,9 +463,10 @@ fn build_fintech_fixture(policy: SignalRuntimePolicy) -> FintechFixture {
         .add_dependency(risk, alert, ASPECT_B)
         .unwrap();
 
-    let family = runtime.register_computation_family("fintech-workflow");
-    let keyed = runtime.keyed_node(&family, "risk-book");
-    let memo_key = KeyedComputation::new(family.clone(), "risk-book").with_memo_key("risk-v1");
+    let family = define_keyed_computation(&mut runtime, "fintech-workflow", ());
+    let keyed_def = family.keyed("risk-book");
+    let keyed = keyed_def.node(&mut runtime);
+    let memo_key = keyed_def.memoized("risk-v1");
 
     FintechFixture {
         runtime,

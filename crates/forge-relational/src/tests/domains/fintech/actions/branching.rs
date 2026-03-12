@@ -10,7 +10,7 @@ pub(crate) fn open_audit_branch(world: &mut FintechWorld) -> BranchId {
     let branch = BranchId("audit".to_string());
     world
         .runtime
-        .create_branch(branch.clone(), &BranchId("main".to_string()))
+        .history_authority().create_branch(branch.clone(), &BranchId("main".to_string()))
         .unwrap();
     branch
 }

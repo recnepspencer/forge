@@ -117,23 +117,21 @@ pub(crate) fn assert_metadata_preserved_after_recovery(
 }
 
 pub(crate) fn assert_observability_surfaces_agree(world: &FintechWorld) {
-    let bundle = world
-        .runtime
-        .latest_publication_bundle()
+    let publication = world.runtime.publication_access();
+    let bundle = publication
+        .latest_bundle()
         .expect("publication bundle should exist after hostile workflow");
-    let patch = world
-        .runtime
+    let patch = publication
         .latest_patch()
         .expect("latest patch should exist after hostile workflow");
-    let replay = world
-        .runtime
+    let replay = publication
         .latest_replay()
         .expect("latest replay should exist after hostile workflow");
-    let commit = world
-        .runtime
+    let history = world.runtime.history_access();
+    let commit = history
         .latest_commit()
         .expect("latest commit should exist after hostile workflow");
-    let diagnostics = world.runtime.diagnostics();
+    let diagnostics = world.runtime.publication_access().diagnostics();
 
     assert_eq!(bundle.commit, *commit);
     assert_eq!(bundle.patch, *patch);

@@ -1,8 +1,8 @@
 use serde_json::json;
 
 use crate::facade::{
-    BranchId, CommitOutcome, RecordPayload, TransactionIntent, TransactionOptions,
-    WorkerIntentBatch,
+    BranchId, CommitOutcome, EntityMutationIntent, RecordPayload, MutationIntent,
+    TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
 };
 
 use super::super::fixture::{FintechCaseRole, FintechWorld};
@@ -20,7 +20,7 @@ pub(crate) fn emit_case_audit_record(
     });
     txn.push_batch(
         WorkerIntentBatch::new(format!("audit-{}", event.replace(' ', "-"))).push(
-            TransactionIntent::UpdateEntity {
+            MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
                 entity_id: case.audit_record,
                 payload: RecordPayload::StructuredJson(json!({
                     "entity_type": "audit_record",
@@ -28,7 +28,7 @@ pub(crate) fn emit_case_audit_record(
                     "event": event,
                     "recorded_by": "fintech-domain-workflow",
                 })),
-            },
+            })),
         ),
     );
     txn.commit().unwrap()

@@ -8,13 +8,13 @@ use super::super::fixture::FintechWorld;
 pub(crate) fn checkpoint_world(
     world: &mut FintechWorld,
 ) -> Result<DurableCheckpoint, DurabilityError> {
-    world.runtime.checkpoint()
+    world.runtime.durability_authority().checkpoint()
 }
 
 pub(crate) fn recover_persisted_world(
     world: &FintechWorld,
 ) -> Result<(RelationalRuntime, RecoveryOutcome), String> {
-    recover_runtime_from_plan(world.runtime.recovery_plan())
+    recover_runtime_from_plan(world.runtime.durability_access().recovery_plan())
 }
 
 pub(crate) fn recover_runtime_from_plan(
@@ -22,7 +22,7 @@ pub(crate) fn recover_runtime_from_plan(
 ) -> Result<(RelationalRuntime, RecoveryOutcome), String> {
     let mut recovered = RelationalRuntime::new(plan.config.clone());
     let outcome = recovered
-        .recover(plan)
+        .durability_authority().recover(plan)
         .map_err(|error| format!("failed to recover persisted fintech world: {error:?}"))?;
     Ok((recovered, outcome))
 }
@@ -30,5 +30,5 @@ pub(crate) fn recover_runtime_from_plan(
 pub(crate) fn compact_world_store(
     world: &mut FintechWorld,
 ) -> Result<CompactionOutcome, DurabilityError> {
-    world.runtime.compact_store()
+    world.runtime.durability_authority().compact_store()
 }

@@ -5,7 +5,7 @@ use std::fmt;
 use crate::data::aspect::{Aspect, AspectMask};
 use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::handle::NodeId;
-use crate::data::node::{EvaluationCondition, NodeState};
+use crate::data::node::{ContextRequirement, EvaluationCondition, NodeState};
 use crate::data::output::{
     ChangedRegion, MemoizedResultOrigin, OutputChange, OutputIdentity, PartitionSubscription,
 };
@@ -138,6 +138,10 @@ pub struct NodeExplanation {
     pub materialization_mode: ArtifactMaterializationMode,
     pub state: NodeState,
     pub dirty_aspects: AspectMask,
+    pub contract_reads: AspectMask,
+    pub contract_produces: AspectMask,
+    pub contract_partition_scope: Option<Vec<PartitionSubscription>>,
+    pub required_context: ContextRequirement,
     pub condition: EvaluationCondition,
     pub trace_summary: Option<TraceSummary>,
     pub execution_record_id: Option<u64>,
@@ -161,6 +165,14 @@ impl fmt::Display for NodeExplanation {
             f,
             "Node {} state={:?} condition={:?}",
             self.node, self.state, self.condition
+        )?;
+        writeln!(
+            f,
+            "Contract: reads={:?} produces={:?} required_context={:?} partition_scopes={}",
+            self.contract_reads,
+            self.contract_produces,
+            self.required_context,
+            self.contract_partition_scope.as_ref().map(|scopes| scopes.len()).unwrap_or(0)
         )?;
         writeln!(f, "Materialization: {:?}", self.materialization_mode)?;
         if !self.dirty_aspects.is_empty() {

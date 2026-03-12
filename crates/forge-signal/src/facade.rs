@@ -27,7 +27,10 @@ pub use crate::data::evaluator::CheckpointEvaluator;
 pub use crate::data::event_subscriber::{EventSubscriber, SubscriberId};
 pub use crate::data::graph::{NodeBuilder, SignalGraph};
 pub use crate::data::handle::NodeId;
-pub use crate::data::node::{EvaluationCondition, NodeEntry, NodeEvaluationConfig, NodeState};
+pub use crate::data::node::{
+    ContextRequirement, EvaluationCondition, NodeContract, NodeEntry, NodeEvaluationConfig,
+    NodeState,
+};
 pub use crate::data::node_meta::NodeMetaStore;
 pub use crate::data::output::{
     ChangedRegion, ComputationFamily, ComputationKey, KeyedComputation, MemoizedResultOrigin,
@@ -67,9 +70,9 @@ pub use crate::diagnostics::{
 pub use crate::logic::checkpoint::CheckpointRuntime;
 pub use crate::logic::context::EvaluationContext;
 pub use crate::logic::evaluation::{
-    apply_evaluation_result_with_policy_and_condition, ConditionEvaluationContext,
-    ConditionResolver, DefaultConditionResolver, EvaluationExecutionMetadata,
-    EvaluationRequestMode,
+    AppliedEffectReport, ConditionEvaluationContext, ConditionResolver, DefaultConditionResolver,
+    DeferralReason, EvaluationEffect, EvaluationExecutionMetadata, EvaluationRequestMode,
+    EvaluationVerdict, SuppressionReason,
 };
 pub use crate::logic::events::{EventBus, EventFlushError, SubscriberRegistryError};
 pub use crate::logic::explain::{
@@ -92,8 +95,10 @@ pub use crate::logic::prepared::{
     StageApplyResult, StageSnapshot,
 };
 pub use crate::logic::transaction::{
-    emit_event_in_txn, flush_checkpoint_in_txn, SignalRuntime, SignalRuntimeBuilder,
-    SignalRuntimeConfig, SignalTransaction, TransactionOutcome,
+    emit_event_in_txn, flush_checkpoint_in_txn, ComputationSpec, DefinedComputation,
+    DefinedKeyedComputation, SignalRuntime, SignalRuntimeBuilder, SignalRuntimeConfig,
+    SignalTransaction, TransactionOutcome, TransactionReplayEntry, TransactionResult,
+    TransactionTiming, EvaluationSummary,
 };
 pub use crate::presentation::contracts::{
     DependencyGraphContract, RawPathComputeContract, StructuralStateBoundaryContract,
@@ -101,7 +106,7 @@ pub use crate::presentation::contracts::{
 pub use crate::presentation::deployment::{SignalDeploymentPlan, SignalDeploymentPreset};
 pub use crate::presentation::harness::{
     signal_bench, signal_parity_suite, SignalEvaluationDriver, SignalFixtureFactory,
-    SignalHarnessAdapter, SignalHarnessAssert, SignalHarnessRuntime, SignalHarnessRuntimeBuilder,
+    SignalHarnessAssert, SignalHarnessBridge, SignalHarnessRuntime, SignalHarnessRuntimeBuilder,
     SignalHarnessSession, SignalMutationAction, SignalMutationBatch, SignalProfileCatalog,
     SignalScenario,
 };

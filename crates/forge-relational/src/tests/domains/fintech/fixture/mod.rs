@@ -104,14 +104,17 @@ impl FintechWorld {
 
     pub(super) fn latest_snapshot(&self) -> SnapshotHandle {
         self.runtime
-            .latest_publication_bundle()
+            .publication_access().latest_bundle()
             .unwrap()
             .snapshot
             .clone()
     }
 
     pub(super) fn read_latest(&self) -> RelationalReadView {
-        self.runtime.read_snapshot(&self.latest_snapshot()).unwrap()
+        self.runtime
+            .visibility_reads()
+            .read_snapshot(&self.latest_snapshot())
+            .unwrap()
     }
 
     pub(super) fn packet_for_portfolio_probe(&self) -> QueryWorkPacket {
@@ -251,7 +254,7 @@ impl FintechWorld {
 pub(super) fn create_analysis_branch(runtime: &mut RelationalRuntime) -> BranchId {
     let branch = BranchId("analysis".to_string());
     runtime
-        .create_branch(branch.clone(), &BranchId("main".to_string()))
+        .history_authority().create_branch(branch.clone(), &BranchId("main".to_string()))
         .unwrap();
     branch
 }

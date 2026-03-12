@@ -18,7 +18,7 @@ pub(crate) struct PublicationPreparation {
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn prepare_publication_artifacts(
     runtime: &mut crate::logic::runtime::RelationalRuntime,
-    draft: &mut crate::logic::runtime::RelationalDraft,
+    working_state: &mut crate::logic::runtime::WorkingState,
     commit_reference: &CommitReference,
     branch_id: &crate::history::data::BranchId,
     version_id: crate::identity::data::VersionId,
@@ -37,8 +37,8 @@ pub(crate) fn prepare_publication_artifacts(
         diagnostics_summary.clone(),
     );
     let published_snapshot = artifacts.snapshot.clone();
-    let lineage_event_ids = runtime.ensure_lineage_for_commit(
-        draft,
+    let lineage_event_ids = runtime.lineage_authority().ensure_lineage_for_commit(
+        working_state,
         commit_reference,
         &merged_plan.merged_intents,
         &effect.changed_records,

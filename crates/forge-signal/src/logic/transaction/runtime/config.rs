@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
+use crate::data::node::{NodeContract, NodeEvaluationConfig};
 use crate::data::node_meta::NodeMetaStore;
 use crate::data::output::{
     ComputationFamily, ComputationKey, NodeEvaluationResult, StructuralMemoKey,
@@ -18,8 +19,16 @@ pub struct SignalRuntimeConfig<T: Copy + Ord> {
     tier_policies: TierPolicyTable<T>,
     fallback_comparator: VersionComparatorPolicy,
     pub(super) key_registry: RuntimeKeyRegistry,
+    computations: BTreeMap<RuntimeStringId, ComputationRegistration<T>>,
     keyed_nodes: BTreeMap<(RuntimeStringId, RuntimeStringId), NodeId>,
     memo_cache: BTreeMap<(RuntimeStringId, RuntimeStringId, RuntimeStringId), NodeEvaluationResult>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ComputationRegistration<T: Copy + Ord> {
+    contract: NodeContract,
+    tier: T,
+    comparator: VersionComparatorPolicy,
 }
 
 impl<T: Copy + Ord> Default for SignalRuntimeConfig<T> {
@@ -29,6 +38,7 @@ impl<T: Copy + Ord> Default for SignalRuntimeConfig<T> {
             tier_policies: TierPolicyTable::default(),
             fallback_comparator: VersionComparatorPolicy::Exact,
             key_registry: RuntimeKeyRegistry::default(),
+            computations: BTreeMap::new(),
             keyed_nodes: BTreeMap::new(),
             memo_cache: BTreeMap::new(),
         }
@@ -77,16 +87,33 @@ impl<T: Copy + Ord> SignalRuntimeConfig<T> {
         &self.fallback_comparator
     }
 
-    pub fn register_computation_family(
+    pub fn define_computation(
         &mut self,
         family: impl Into<ComputationFamily>,
-    ) -> ComputationFamily {
+        contract: NodeContract,
+        tier: T,
+        comparator: VersionComparatorPolicy,
+    ) -> Result<ComputationFamily, crate::data::error::SignalError> {
         let family = family.into();
-        self.key_registry.intern_family(&family);
-        family
+        let family_id = self.key_registry.intern_family(&family);
+        let registration = ComputationRegistration {
+            contract,
+            tier,
+            comparator,
+        };
+        if let Some(existing) = self.computations.get(&family_id) {
+            if existing != &registration {
+                return Err(crate::data::error::SignalError::invalid_input(format!(
+                    "computation family '{family:?}' already defined with a different spec",
+                )));
+            }
+            return Ok(family);
+        }
+        self.computations.insert(family_id, registration);
+        Ok(family)
     }
 
-    pub fn keyed_node(
+    pub(super) fn resolve_defined_node(
         &mut self,
         graph: &mut SignalGraph,
         family: &ComputationFamily,
@@ -100,13 +127,13 @@ impl<T: Copy + Ord> SignalRuntimeConfig<T> {
         if let Some(node) = self.keyed_nodes.get(&registry_key).copied() {
             return node;
         }
-        let node = graph.node().build();
+        let node = self.create_keyed_node(graph, registry_key.0);
         self.sync_graph_capacity(graph);
         self.keyed_nodes.insert(registry_key, node);
         node
     }
 
-    pub fn keyed_node_with_created(
+    pub(super) fn resolve_defined_node_with_created(
         &mut self,
         graph: &mut SignalGraph,
         family: &ComputationFamily,
@@ -120,10 +147,27 @@ impl<T: Copy + Ord> SignalRuntimeConfig<T> {
         if let Some(node) = self.keyed_nodes.get(&registry_key).copied() {
             return (node, false);
         }
-        let node = graph.node().build();
+        let node = self.create_keyed_node(graph, registry_key.0);
         self.sync_graph_capacity(graph);
         self.keyed_nodes.insert(registry_key, node);
         (node, true)
+    }
+
+    fn create_keyed_node(&mut self, graph: &mut SignalGraph, family_id: RuntimeStringId) -> NodeId {
+        let node = match self.computations.get(&family_id) {
+            Some(registration) => {
+                let mut config = NodeEvaluationConfig::default();
+                config.contract = registration.contract.clone();
+                config.comparator = Some(registration.comparator.clone());
+                graph.create_node_with_config(config)
+            }
+            None => graph.node().build(),
+        };
+        self.sync_graph_capacity(graph);
+        if let Some(registration) = self.computations.get(&family_id) {
+            self.node_meta.set_tier(node, registration.tier);
+        }
+        node
     }
 
     pub(super) fn lookup_memoized_result(

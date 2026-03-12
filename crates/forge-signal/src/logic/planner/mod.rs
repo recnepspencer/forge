@@ -36,5 +36,4 @@ pub use model::{
 pub(crate) use model::EvaluationSession;
 pub(crate) use model::StageCursor;
 #[cfg(feature = "parallel")]
-#[allow(unused_imports)]
 pub use model::{ParallelApplyMode, ParallelExecutionKind, ParallelExecutionPolicy};

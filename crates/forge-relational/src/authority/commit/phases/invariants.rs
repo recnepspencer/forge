@@ -68,10 +68,10 @@ pub(crate) fn run_snapshot_publication_invariants(
         Some(merged_plan),
     );
     if let Some(error) = first_publication_invariant_error(&snapshot_results) {
-        return Err(PublicationError {
-            stage: PublicationStage::InvariantCheck,
-            detail: error.detail,
-        });
+        return Err(PublicationError::new(
+            PublicationStage::InvariantCheck,
+            error.detail,
+        ));
     }
     Ok(())
 }

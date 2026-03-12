@@ -6,12 +6,13 @@ use super::{
     bulk_create_entities, bulk_create_relations, create_entity, create_relation, delete_entity,
     delete_relation, replace_entity, update_entity,
 };
-use crate::authority::mutation::{MutationEffect, MutationWorkspace};
+use crate::authority::mutation::outcomes::MutationOutcome;
+use crate::authority::mutation::MutationWorkspace;
 
 pub(crate) fn dispatch_intent(
     intent: &MutationIntent,
     workspace: &mut MutationWorkspace<'_>,
-) -> Result<MutationEffect, CommitConflict> {
+) -> Result<MutationOutcome, CommitConflict> {
     match intent {
         MutationIntent::Create(CreateIntent::Entity(spec)) => create_entity::apply(spec, workspace),
         MutationIntent::Create(CreateIntent::BulkEntities(spec)) => {

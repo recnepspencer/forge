@@ -1,10 +1,11 @@
 use crate::data::dependency::DependencySnapshot;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
-use crate::data::node::{NodeEntry, NodeEvaluationConfig, NodeState};
+use crate::data::node::{NodeContract, NodeEntry, NodeEvaluationConfig, NodeState};
 use crate::data::trace::CausalityMetadata;
 
 use super::super::node_builder::NodeBuilder;
+use super::super::signal_graph::stale_error;
 use super::super::signal_graph::SignalGraph;
 
 impl SignalGraph {
@@ -31,19 +32,28 @@ impl SignalGraph {
 
     pub fn get_entry(&self, id: NodeId) -> Result<&NodeEntry, SignalError> {
         self.validate_handle(id)?;
-        let slot = &self.nodes[id.index() as usize];
-        slot.data.as_ref().ok_or_else(|| stale_error(id))
+        let slot = &self.arena.nodes[id.index() as usize];
+        slot.data
+            .as_ref()
+            .ok_or_else(|| stale_error(id, slot.generation))
     }
 
     pub fn get_entry_mut(&mut self, id: NodeId) -> Result<&mut NodeEntry, SignalError> {
         self.validate_handle(id)?;
-        let slot = &mut self.nodes[id.index() as usize];
-        slot.data.as_mut().ok_or_else(|| stale_error(id))
+        let slot = &mut self.arena.nodes[id.index() as usize];
+        let generation = slot.generation;
+        slot.data
+            .as_mut()
+            .ok_or_else(|| stale_error(id, generation))
+    }
+
+    pub fn get_contract(&self, id: NodeId) -> Result<&NodeContract, SignalError> {
+        Ok(&self.get_entry(id)?.get_eval_config().contract)
     }
 
     pub(crate) fn get_dep_snapshot(&self, id: NodeId) -> Result<&DependencySnapshot, SignalError> {
         let entry = self.get_entry(id)?;
-        Ok(self.dependency_snapshots.get(entry.get_dep_snapshot_id()))
+        Ok(self.topology.dependency_snapshots.get(entry.get_dep_snapshot_id()))
     }
 
     pub(crate) fn set_dep_snapshot(
@@ -51,7 +61,7 @@ impl SignalGraph {
         id: NodeId,
         snapshot: DependencySnapshot,
     ) -> Result<(), SignalError> {
-        let snapshot_id = self.dependency_snapshots.insert(snapshot);
+        let snapshot_id = self.topology.dependency_snapshots.insert(snapshot);
         self.get_entry_mut(id)?.set_dep_snapshot_id(snapshot_id);
         self.record_graph_storage_pressure();
         Ok(())
@@ -59,23 +69,23 @@ impl SignalGraph {
 
     pub fn is_alive(&self, id: NodeId) -> bool {
         let idx = id.index() as usize;
-        if idx >= self.nodes.len() {
+        if idx >= self.arena.nodes.len() {
             return false;
         }
-        let slot = &self.nodes[idx];
+        let slot = &self.arena.nodes[idx];
         slot.generation == id.generation() && slot.is_occupied()
     }
 
     pub fn active_node_count(&self) -> usize {
-        self.active_nodes as usize
+        self.arena.active_nodes as usize
     }
 
     pub fn arena_capacity(&self) -> usize {
-        self.nodes.len()
+        self.arena.nodes.len()
     }
 
     pub(crate) fn live_node_id_at(&self, index: usize) -> Option<NodeId> {
-        let slot = self.nodes.get(index)?;
+        let slot = self.arena.nodes.get(index)?;
         if !slot.is_occupied() {
             return None;
         }
@@ -104,8 +114,4 @@ impl SignalGraph {
         self.get_entry_mut(node)?.set_causality(causality);
         Ok(())
     }
-}
-
-pub(super) fn stale_error(id: NodeId) -> SignalError {
-    SignalError::invalid_input(format!("stale NodeId: {id}"))
 }

@@ -1,21 +1,21 @@
 use std::collections::BTreeMap;
 
 use crate::capabilities::{InstrumentationSource, RuntimeConfigSource};
-use crate::transactions::logic::RelationalTransaction;
 use crate::history::data::{BranchId, CommitId};
 use crate::authority::merge::{
     canonical_intent_key, detect_conflicting_updates, validate_intent,
 };
 use crate::logic::runtime::{PartitionAccess, WorkingState};
 use crate::symbols::data::SymbolPolicy;
-use crate::transactions::data::{CommitConflict, ConflictClass, MergedCommitPlan, MutationIntent, TransactionIntent};
+use crate::transactions::data::{CommitConflict, ConflictClass, MergedCommitPlan, MutationIntent};
+use crate::transactions::logic::RelationalTransaction;
 
 impl<'a> RelationalTransaction<'a> {
     pub fn merged_plan(&mut self) -> Result<&MergedCommitPlan, CommitConflict> {
         if self.last_merged_plan.is_none() {
             let current_state = WorkingState::new(
                 self.runtime.partitions.clone(),
-                self.runtime.runtime_config().adjacency_policy.clone(),
+                self.runtime.runtime_config().storage.adjacency_policy.clone(),
             );
             let plan = self.build_merged_plan_for_state(&current_state)?;
             self.last_merged_plan = Some(plan);
@@ -37,16 +37,12 @@ impl<'a> RelationalTransaction<'a> {
             validate_intent(
                 current_state,
                 self.runtime.runtime_config(),
-                self.runtime.runtime_config().cross_context_policy,
+                self.runtime.runtime_config().storage.cross_context_policy,
                 self.runtime.runtime_instrumentation(),
                 intent,
             )?;
         }
         intents.sort_by_key(canonical_intent_key);
-        let intents = intents
-            .iter()
-            .map(TransactionIntent::to_mutation_intent)
-            .collect::<Vec<MutationIntent>>();
         detect_conflicting_updates(&intents)?;
         Ok(MergedCommitPlan {
             transaction_id: self.transaction_id,
@@ -62,9 +58,9 @@ impl<'a> RelationalTransaction<'a> {
         let mut merge_bases = Vec::new();
         let target_head = self
             .runtime
-            .branch_head(target_branch)
+            .history_access().branch_head(target_branch)
             .map(|head| head.commit_id);
-        if let Some(head) = self.runtime.branch_head(target_branch) {
+        if let Some(head) = self.runtime.history_access().branch_head(target_branch) {
             parents.push(head.commit_id);
         }
         let mut merge_branches = self.options.merge_parent_branches.clone();
@@ -74,14 +70,15 @@ impl<'a> RelationalTransaction<'a> {
             if &merge_branch == target_branch {
                 continue;
             }
-            let Some(head) = self.runtime.branch_head(&merge_branch) else {
+            let history = self.runtime.history_access();
+            let Some(head) = history.branch_head(&merge_branch) else {
                 return Err(CommitConflict::new(ConflictClass::InvalidMergeParent {
                         detail: format!("merge parent branch {:?} has no head", merge_branch),
                     }));
             };
             if !parents.contains(&head.commit_id) {
                 if let Some(target_head) = target_head {
-                    let inspection = self.runtime.inspect_merge(&merge_branch, target_branch);
+                    let inspection = history.inspect_merge(&merge_branch, target_branch);
                     if !inspection.conflicting_records.is_empty() {
                         return Err(CommitConflict::new(ConflictClass::MergeConflictOverlap {
                                 detail: format!(
@@ -91,7 +88,7 @@ impl<'a> RelationalTransaction<'a> {
                             }));
                     }
                     let Some(merge_base) = self
-                        .runtime
+                        .runtime.history_access()
                         .latest_common_ancestor(target_head, head.commit_id)
                     else {
                         return Err(CommitConflict::new(ConflictClass::MissingMergeBase {
@@ -111,13 +108,13 @@ impl<'a> RelationalTransaction<'a> {
         Ok((parents, merge_bases))
     }
 
-    fn normalize_intents_for_merge(&mut self, intents: &mut [TransactionIntent]) {
-        let symbol_policy = self.runtime.runtime_config().symbol_policy;
+    fn normalize_intents_for_merge(&mut self, intents: &mut [MutationIntent]) {
+        let symbol_policy = self.runtime.runtime_config().identity.symbol_policy;
         if symbol_policy == SymbolPolicy::Disabled {
             return;
         }
 
-        let interner = &mut self.runtime.symbols;
+        let interner = &mut self.runtime.services.symbols;
         let mut raw_values = Vec::new();
         for intent in intents.iter() {
             intent.collect_raw_client_keys(&mut raw_values);
@@ -131,7 +128,7 @@ impl<'a> RelationalTransaction<'a> {
         for intent in intents {
             intent.normalize_client_keys(interner, symbol_policy);
         }
-        self.runtime.config.symbol_table = interner.snapshot();
+        self.runtime.config.identity.symbol_table = interner.snapshot();
     }
 }
 

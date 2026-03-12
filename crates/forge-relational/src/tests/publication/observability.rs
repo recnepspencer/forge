@@ -4,7 +4,7 @@ use crate::tests::support::*;
 fn diagnostics_and_replay_are_emitted_for_commit() {
     let mut runtime = runtime_with_test_schema();
     let _entity = create_entity(&mut runtime, "first");
-    let diagnostics = runtime.diagnostics();
+    let diagnostics = runtime.publication_access().diagnostics();
 
     assert!(diagnostics.artifacts().iter().any(|artifact| {
         artifact.scope == DiagnosticsScope::Transaction
@@ -15,10 +15,10 @@ fn diagnostics_and_replay_are_emitted_for_commit() {
         .iter()
         .flat_map(|artifact| artifact.entries.iter())
         .any(|entry| entry.code == DiagnosticCode::EntityCreated));
-    assert!(runtime.latest_patch().is_some());
-    assert!(runtime.latest_replay().is_some());
+    assert!(runtime.publication_access().latest_patch().is_some());
+    assert!(runtime.publication_access().latest_replay().is_some());
     assert_eq!(
-        runtime.latest_replay().unwrap().schema_registry,
+        runtime.publication_access().latest_replay().unwrap().schema_registry,
         test_schema_registry()
     );
 }
@@ -27,14 +27,15 @@ fn diagnostics_and_replay_are_emitted_for_commit() {
 fn publication_bundle_is_the_single_visible_commit_surface() {
     let mut runtime = runtime_with_test_schema();
     let outcome = create_entity_outcome(&mut runtime, "first");
-    let bundle = runtime.latest_publication_bundle().unwrap();
+    let publication = runtime.publication_access();
+    let bundle = publication.latest_bundle().unwrap();
 
     assert_eq!(outcome.publication_status, PublicationStatus::Published);
     assert_eq!(bundle.snapshot, outcome.snapshot);
     assert_eq!(bundle.commit, outcome.commit);
-    assert_eq!(bundle.commit, *runtime.latest_commit().unwrap());
-    assert_eq!(bundle.patch, *runtime.latest_patch().unwrap());
-    assert_eq!(bundle.replay, *runtime.latest_replay().unwrap());
+    assert_eq!(bundle.commit, *runtime.history_access().latest_commit().unwrap());
+    assert_eq!(bundle.patch, *runtime.publication_access().latest_patch().unwrap());
+    assert_eq!(bundle.replay, *runtime.publication_access().latest_replay().unwrap());
 }
 
 #[test]
@@ -42,9 +43,9 @@ fn publication_snapshot_handle_reads_without_becoming_a_pinned_snapshot() {
     let mut runtime = runtime_with_test_schema();
     let outcome = create_entity_outcome(&mut runtime, "first");
 
-    let retention = runtime.inspect_retention_plan();
-    let read = runtime.read_snapshot(&outcome.snapshot).unwrap();
-    let inspection = runtime.inspect_snapshot(&outcome.snapshot).unwrap();
+    let retention = runtime.retention_access().inspect_plan();
+    let read = runtime.visibility_reads().read_snapshot(&outcome.snapshot).unwrap();
+    let inspection = runtime.visibility_reads().inspect_snapshot(&outcome.snapshot).unwrap();
     let packet = QueryWorkPacket::bulk(
         "entities",
         vec![RecordRef::Entity(changed_entities(&outcome)[0])],
@@ -60,10 +61,10 @@ fn publication_snapshot_handle_reads_without_becoming_a_pinned_snapshot() {
         .plan_read_packet(&outcome.snapshot, &packet)
         .is_some());
     assert!(runtime
-        .execute_read_packet(&outcome.snapshot, &packet)
+        .visibility_reads().execute_read_packet(&outcome.snapshot, &packet)
         .is_some());
-    assert!(runtime.release_snapshot(&outcome.snapshot));
-    assert!(runtime.read_snapshot(&outcome.snapshot).is_none());
+    assert!(runtime.snapshot_access().release_snapshot(&outcome.snapshot));
+    assert!(runtime.visibility_reads().read_snapshot(&outcome.snapshot).is_none());
 }
 
 #[test]
@@ -75,13 +76,13 @@ fn released_publication_handles_stop_counting_as_readable_runtime_state() {
     let before = runtime.storage_stats();
     assert_eq!(before.published_snapshot_handle_count, 2);
 
-    assert!(runtime.release_snapshot(&first.snapshot));
+    assert!(runtime.snapshot_access().release_snapshot(&first.snapshot));
     let after_first_release = runtime.storage_stats();
     assert_eq!(after_first_release.published_snapshot_handle_count, 1);
-    assert!(runtime.read_snapshot(&first.snapshot).is_none());
-    assert!(runtime.read_snapshot(&second.snapshot).is_some());
+    assert!(runtime.visibility_reads().read_snapshot(&first.snapshot).is_none());
+    assert!(runtime.visibility_reads().read_snapshot(&second.snapshot).is_some());
 
-    assert!(runtime.release_snapshot(&second.snapshot));
+    assert!(runtime.snapshot_access().release_snapshot(&second.snapshot));
     let after_second_release = runtime.storage_stats();
     assert_eq!(after_second_release.published_snapshot_handle_count, 0);
 }
@@ -104,9 +105,9 @@ fn publication_handle_retention_is_bounded_by_policy() {
     let stats = runtime.storage_stats();
 
     assert_eq!(stats.published_snapshot_handle_count, 2);
-    assert!(runtime.read_snapshot(&first.snapshot).is_none());
-    assert!(runtime.read_snapshot(&second.snapshot).is_some());
-    assert!(runtime.read_snapshot(&third.snapshot).is_some());
+    assert!(runtime.visibility_reads().read_snapshot(&first.snapshot).is_none());
+    assert!(runtime.visibility_reads().read_snapshot(&second.snapshot).is_some());
+    assert!(runtime.visibility_reads().read_snapshot(&third.snapshot).is_some());
 }
 
 #[test]
@@ -124,14 +125,14 @@ fn snapshot_audit_failure_blocks_publication() {
         TransactionCommitError::Publication(ref publication)
             if publication.stage == PublicationStage::InvariantCheck
     ));
-    assert!(runtime.latest_publication_bundle().is_none());
+    assert!(runtime.publication_access().latest_bundle().is_none());
 }
 
 #[test]
 fn bulk_packets_are_the_primary_read_surface() {
     let mut runtime = runtime_with_test_schema();
     let entity = create_entity(&mut runtime, "first");
-    let snapshot = runtime.snapshot();
+    let snapshot = runtime.snapshot_access().snapshot();
     let plan = runtime
         .plan_read_packet(
             &snapshot,
@@ -139,7 +140,7 @@ fn bulk_packets_are_the_primary_read_surface() {
         )
         .unwrap();
     let result = runtime
-        .execute_read_packet(
+        .visibility_reads().execute_read_packet(
             &snapshot,
             &QueryWorkPacket::bulk("entities", vec![RecordRef::Entity(entity)]),
         )
@@ -160,8 +161,7 @@ fn harness_runner_captures_snapshot_diagnostics_and_replay() {
         },
     )
     .compile();
-    let batch =
-        MutationBatch::new("mutate").push(RelationalMutation::Batch(batch_create("from-harness")));
+    let batch = MutationBatch::new("mutate").push(batch_create("from-harness"));
     let request = ExecutionRequest::target("inspect", "entity:0:1".to_string());
     let profile = ExecutionProfile::forensic("forensic");
     let mut runtime = adapter.create_runtime().unwrap();
@@ -195,9 +195,9 @@ fn harness_runner_captures_snapshot_diagnostics_and_replay() {
 fn runtime_packet_execution_and_storage_stats_are_readable() {
     let mut runtime = runtime_with_test_schema();
     let entity = create_entity(&mut runtime, "first");
-    let snapshot = runtime.snapshot();
+    let snapshot = runtime.snapshot_access().snapshot();
     let packet = QueryWorkPacket::bulk("entities", vec![RecordRef::Entity(entity)]);
-    let result = runtime.execute_read_packet(&snapshot, &packet).unwrap();
+    let result = runtime.visibility_reads().execute_read_packet(&snapshot, &packet).unwrap();
     let stats = runtime.storage_stats();
 
     assert_eq!(result.entities.len(), 1);
@@ -218,8 +218,7 @@ fn repeated_serial_runs_are_harness_comparable() {
         },
     )
     .compile();
-    let batch =
-        MutationBatch::new("mutate").push(RelationalMutation::Batch(batch_create("stable")));
+    let batch = MutationBatch::new("mutate").push(batch_create("stable"));
     let request = ExecutionRequest::target("inspect", "entity:0:1".to_string());
     let profile = ExecutionProfile::forensic("forensic");
     let run_a = runner
@@ -259,7 +258,16 @@ fn cross_order_equivalent_mutations_converge() {
     let runtime_a = apply_batches(vec![batch_create("a"), batch_create("b")]);
     let runtime_b = apply_batches(vec![batch_create("b"), batch_create("a")]);
 
-    assert_eq!(runtime_a.latest_patch(), runtime_b.latest_patch());
-    assert_eq!(runtime_a.latest_replay(), runtime_b.latest_replay());
-    assert_eq!(runtime_a.diagnostics(), runtime_b.diagnostics());
+    assert_eq!(
+        runtime_a.publication_access().latest_patch(),
+        runtime_b.publication_access().latest_patch()
+    );
+    assert_eq!(
+        runtime_a.publication_access().latest_replay(),
+        runtime_b.publication_access().latest_replay()
+    );
+    assert_eq!(
+        runtime_a.publication_access().diagnostics(),
+        runtime_b.publication_access().diagnostics()
+    );
 }

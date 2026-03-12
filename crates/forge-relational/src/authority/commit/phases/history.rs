@@ -24,7 +24,7 @@ pub(crate) fn resolve_commit_history(
         .options
         .target_branch
         .clone()
-        .unwrap_or_else(|| transaction.runtime.runtime_config().main_branch.clone());
+        .unwrap_or_else(|| transaction.runtime.runtime_config().history.main_branch.clone());
     let previous_branch_head_version = transaction
         .runtime
         .branch_head_ref(&branch_id)

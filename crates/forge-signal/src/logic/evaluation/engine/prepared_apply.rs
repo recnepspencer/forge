@@ -3,13 +3,16 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::output::{MemoizedResultOrigin, NodeEvaluationResult};
+use crate::logic::evaluation::{DeferralReason, PreparedApplyResult, SuppressionReason};
 use crate::logic::prepared::{
     PreparedDependencyCapture, PreparedEvaluation, PreparedEvaluationOrigin,
     PreparedEvaluationOutcome,
 };
 
+use super::apply::{
+    apply_effect_with_policy_and_condition, verdict_for_evaluated_result,
+};
 use super::metadata::EvaluationExecutionMetadata;
-use super::result_apply::apply_evaluation_result_with_policy;
 
 pub(crate) fn apply_prepared_evaluation_with_policy(
     graph: &mut SignalGraph,
@@ -17,13 +20,10 @@ pub(crate) fn apply_prepared_evaluation_with_policy(
     prepared: PreparedEvaluation,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
     execution_metadata: Option<&EvaluationExecutionMetadata>,
-) -> Result<u32, SignalError> {
+) -> Result<PreparedApplyResult, SignalError> {
     let dependency_updates = apply_prepared_dependencies(graph, node, &prepared.dependencies)?;
     match prepared.outcome {
         PreparedEvaluationOutcome::Evaluate => {
-            if let Some(causality) = prepared.trace_data.causality.clone() {
-                graph.get_entry_mut(node)?.set_causality(Some(causality));
-            }
             let mut result = prepared.result;
             result.labels.extend(prepared.trace_data.labels);
             let metadata = match (execution_metadata, prepared.origin) {
@@ -40,30 +40,83 @@ pub(crate) fn apply_prepared_evaluation_with_policy(
                         comparator_resolver,
                         synthesized,
                         dependency_updates,
+                        prepared.keyed,
+                        prepared.trace_data.causality,
                     );
                 }
                 _ => None,
             };
-            apply_evaluation_result_with_policy(
+            let recomputed = !matches!(prepared.origin, PreparedEvaluationOrigin::MemoizedReuse);
+            let verdict = verdict_for_evaluated_result(graph, node, &result, recomputed)?;
+            let mut apply_result = apply_effect_with_policy_and_condition(
                 graph,
                 node,
                 result,
                 comparator_resolver,
                 metadata,
-                !matches!(prepared.origin, PreparedEvaluationOrigin::MemoizedReuse),
+                verdict,
+                recomputed,
+                prepared.keyed,
+                prepared.trace_data.causality,
             )?;
+            apply_result.dependency_updates = dependency_updates;
+            Ok(apply_result)
         }
         PreparedEvaluationOutcome::ValidatedClean => {
-            revert_to_clean(graph, node)?;
+            let current_version = graph.get_entry(node)?.get_aspect_version();
+            let mut apply_result = apply_effect_with_policy_and_condition(
+                graph,
+                node,
+                NodeEvaluationResult::from_version(current_version),
+                comparator_resolver,
+                execution_metadata,
+                crate::logic::evaluation::EvaluationVerdict::Suppressed {
+                    reason: SuppressionReason::ValidatedClean,
+                },
+                false,
+                prepared.keyed,
+                prepared.trace_data.causality,
+            )?;
+            apply_result.dependency_updates = dependency_updates;
+            Ok(apply_result)
         }
         PreparedEvaluationOutcome::DeferredByCondition => {
-            defer_due_to_condition(graph, node)?;
+            let current_version = graph.get_entry(node)?.get_aspect_version();
+            let mut apply_result = apply_effect_with_policy_and_condition(
+                graph,
+                node,
+                NodeEvaluationResult::from_version(current_version),
+                comparator_resolver,
+                execution_metadata,
+                crate::logic::evaluation::EvaluationVerdict::Deferred {
+                    reason: DeferralReason::ConditionNotMet,
+                },
+                false,
+                prepared.keyed,
+                prepared.trace_data.causality,
+            )?;
+            apply_result.dependency_updates = dependency_updates;
+            Ok(apply_result)
         }
         PreparedEvaluationOutcome::RevertedCleanByCondition => {
-            revert_to_clean_due_to_condition(graph, node)?;
+            let current_version = graph.get_entry(node)?.get_aspect_version();
+            let mut apply_result = apply_effect_with_policy_and_condition(
+                graph,
+                node,
+                NodeEvaluationResult::from_version(current_version),
+                comparator_resolver,
+                execution_metadata,
+                crate::logic::evaluation::EvaluationVerdict::Suppressed {
+                    reason: SuppressionReason::ConditionRevertedClean,
+                },
+                false,
+                prepared.keyed,
+                prepared.trace_data.causality,
+            )?;
+            apply_result.dependency_updates = dependency_updates;
+            Ok(apply_result)
         }
     }
-    Ok(dependency_updates)
 }
 
 fn apply_prepared_with_synthesized_metadata(
@@ -73,16 +126,23 @@ fn apply_prepared_with_synthesized_metadata(
     comparator_resolver: &mut impl ComparatorPolicyResolver,
     metadata: EvaluationExecutionMetadata,
     dependency_updates: u32,
-) -> Result<u32, SignalError> {
-    apply_evaluation_result_with_policy(
+    keyed_context: Option<crate::logic::prepared::PreparedKeyedContext>,
+    causality: Option<crate::data::trace::CausalityMetadata>,
+) -> Result<PreparedApplyResult, SignalError> {
+    let verdict = verdict_for_evaluated_result(graph, node, &result, false)?;
+    let mut apply_result = apply_effect_with_policy_and_condition(
         graph,
         node,
         result,
         comparator_resolver,
         Some(&metadata),
+        verdict,
         false,
+        keyed_context,
+        causality,
     )?;
-    Ok(dependency_updates)
+    apply_result.dependency_updates = dependency_updates;
+    Ok(apply_result)
 }
 
 fn apply_prepared_dependencies(
@@ -103,25 +163,4 @@ fn apply_prepared_dependencies(
         .collect::<Vec<_>>();
     let report = graph.reconcile_dependencies(node, &desired)?;
     Ok(report.update_count())
-}
-
-pub(super) fn revert_to_clean(graph: &mut SignalGraph, node: NodeId) -> Result<(), SignalError> {
-    graph.telemetry_mut().skipped_by_comparator += 1;
-    graph.get_entry_mut(node)?.transition_clean();
-    Ok(())
-}
-
-fn revert_to_clean_due_to_condition(
-    graph: &mut SignalGraph,
-    node: NodeId,
-) -> Result<(), SignalError> {
-    graph.get_entry_mut(node)?.transition_clean();
-    Ok(())
-}
-
-fn defer_due_to_condition(graph: &mut SignalGraph, node: NodeId) -> Result<(), SignalError> {
-    graph
-        .get_entry_mut(node)?
-        .set_state(crate::data::node::NodeState::MaybeStale);
-    Ok(())
 }

@@ -4,7 +4,7 @@ use crate::data::output::MemoizedResultOrigin;
 use crate::data::trace::TraceSummary;
 use crate::diagnostics::failure::ExecutionFailureContext;
 use crate::diagnostics::recorder::DiagnosticsRecorder;
-use crate::logic::prepared::{PreparedEvaluationOrigin, PreparedEvaluationOutcome};
+use crate::logic::evaluation::{EvaluationVerdict, SuppressionReason};
 
 use super::super::types::{
     EvaluationTask, ExecutionPruneReason, ExecutionRecordId, ExecutionReport, SemanticSegmentId,
@@ -19,78 +19,43 @@ pub(crate) fn classify_task_record(
     after_state: NodeState,
     before_trace: Option<&TraceSummary>,
     after_trace: Option<&TraceSummary>,
-    prepared_outcome: PreparedEvaluationOutcome,
-    prepared_origin: PreparedEvaluationOrigin,
+    verdict: EvaluationVerdict,
+    memoized_origin: MemoizedResultOrigin,
 ) -> TaskExecutionRecord {
     let trace_changed = before_trace != after_trace;
-    let recomputed = matches!(prepared_outcome, PreparedEvaluationOutcome::Evaluate)
-        && !matches!(prepared_origin, PreparedEvaluationOrigin::MemoizedReuse);
-    let memoized_reuse = matches!(prepared_origin, PreparedEvaluationOrigin::MemoizedReuse)
-        || after_trace
-            .map(|trace| trace.memoized_origin == MemoizedResultOrigin::MemoizedFromCache)
-            .unwrap_or(false);
+    let recomputed = matches!(verdict, EvaluationVerdict::Recomputed);
+    let memoized_reuse = memoized_origin == MemoizedResultOrigin::MemoizedFromCache;
     let propagation_suppressed = after_trace
         .map(|trace| trace.propagation_suppressed)
         .unwrap_or(false);
-
-    let (outcome, prune_reason, condition_deferred, condition_reverted_clean) =
-        match prepared_outcome {
-            PreparedEvaluationOutcome::ValidatedClean => (
+    let suppression_reason = match verdict {
+        EvaluationVerdict::Suppressed { reason } => Some(reason),
+        _ => None,
+    };
+    let deferral_reason = match verdict {
+        EvaluationVerdict::Deferred { reason } => Some(reason),
+        _ => None,
+    };
+    let (outcome, prune_reason) = match verdict {
+        EvaluationVerdict::Recomputed => (TaskExecutionOutcome::Recomputed, None),
+        EvaluationVerdict::Deferred { .. } => (TaskExecutionOutcome::ConditionDeferred, None),
+        EvaluationVerdict::Suppressed { reason } => match reason {
+            SuppressionReason::ValidatedClean => (
                 TaskExecutionOutcome::ValidatedClean,
                 Some(ExecutionPruneReason::CleanAfterValidation),
-                false,
-                false,
             ),
-            PreparedEvaluationOutcome::DeferredByCondition => {
-                (TaskExecutionOutcome::ConditionDeferred, None, true, false)
+            SuppressionReason::ConditionRevertedClean => {
+                (TaskExecutionOutcome::ConditionRevertedClean, None)
             }
-            PreparedEvaluationOutcome::RevertedCleanByCondition => (
-                TaskExecutionOutcome::ConditionRevertedClean,
-                None,
-                false,
-                true,
+            _ if memoized_reuse => (TaskExecutionOutcome::MemoizedReuse, None),
+            _ if propagation_suppressed => (TaskExecutionOutcome::PropagationSuppressed, None),
+            _ if !trace_changed && matches!((before_state, after_state), (NodeState::Clean, NodeState::Clean)) => (
+                TaskExecutionOutcome::Pruned,
+                Some(ExecutionPruneReason::CleanAtPlanTime),
             ),
-            PreparedEvaluationOutcome::Evaluate => match (before_state, after_state) {
-                (NodeState::Clean, NodeState::Clean)
-                    if trace_changed || recomputed || memoized_reuse =>
-                {
-                    if memoized_reuse {
-                        (TaskExecutionOutcome::MemoizedReuse, None, false, false)
-                    } else if propagation_suppressed {
-                        (
-                            TaskExecutionOutcome::PropagationSuppressed,
-                            None,
-                            false,
-                            false,
-                        )
-                    } else {
-                        (TaskExecutionOutcome::Recomputed, None, false, false)
-                    }
-                }
-                (NodeState::Clean, NodeState::Clean) => (
-                    TaskExecutionOutcome::Pruned,
-                    Some(ExecutionPruneReason::CleanAtPlanTime),
-                    false,
-                    false,
-                ),
-                (_, NodeState::Clean) if memoized_reuse => {
-                    (TaskExecutionOutcome::MemoizedReuse, None, false, false)
-                }
-                (_, NodeState::Clean) if propagation_suppressed => (
-                    TaskExecutionOutcome::PropagationSuppressed,
-                    None,
-                    false,
-                    false,
-                ),
-                (_, NodeState::Clean) if recomputed => {
-                    (TaskExecutionOutcome::Recomputed, None, false, false)
-                }
-                (_, NodeState::MaybeStale) => {
-                    (TaskExecutionOutcome::ConditionDeferred, None, true, false)
-                }
-                _ => (TaskExecutionOutcome::Recomputed, None, false, false),
-            },
-        };
+            _ => (TaskExecutionOutcome::PropagationSuppressed, None),
+        },
+    };
 
     TaskExecutionRecord {
         id,
@@ -99,11 +64,12 @@ pub(crate) fn classify_task_record(
         scheduled_reason: task.reason,
         direct_request: task.direct_request,
         outcome,
+        verdict: Some(verdict),
+        suppression_reason,
+        deferral_reason,
         prune_reason,
         recomputed,
-        memoized_reuse,
-        condition_deferred,
-        condition_reverted_clean,
+        memoized_origin,
         propagation_suppressed,
     }
 }

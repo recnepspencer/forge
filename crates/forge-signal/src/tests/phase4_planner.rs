@@ -49,6 +49,47 @@ fn build_evaluation_plan_omits_clean_target() {
 }
 
 #[test]
+fn build_evaluation_plan_prunes_dirty_target_when_contract_reads_do_not_intersect() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().build();
+    let dependent = graph.node().reads_aspects(mask_a()).build();
+    graph.add_dependency(dependent, source, ASPECT_B).unwrap();
+
+    let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
+    evaluate(&mut graph, source, &mut compute).unwrap();
+    evaluate(&mut graph, dependent, &mut compute).unwrap();
+    mark_dirty(&mut graph, source, ASPECT_B).unwrap();
+
+    let plan = graph
+        .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
+        .unwrap();
+
+    assert_eq!(plan.summary.task_count, 0);
+    assert!(plan.stages.is_empty());
+}
+
+#[test]
+fn build_evaluation_plan_rejects_missing_relational_snapshot_context() {
+    let mut graph = SignalGraph::new();
+    let node = graph
+        .node()
+        .requires_context(ContextRequirement::RelationalSnapshot)
+        .build();
+
+    let err = graph
+        .build_evaluation_plan(&[node], EvaluationRequestMode::Default)
+        .unwrap_err();
+
+    assert!(matches!(
+        err,
+        SignalError::ContractViolation {
+            node: contract_node,
+            requirement: ContextRequirement::RelationalSnapshot,
+        } if contract_node == node
+    ));
+}
+
+#[test]
 fn force_on_demand_plans_and_executes_clean_target() {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
@@ -181,9 +222,9 @@ fn public_evaluate_routes_through_planner_and_records_execution_metadata() {
     assert!(trace.execution_record_id.is_some());
 
     let metrics = graph.metrics();
-    assert!(metrics.plans_built >= 1);
-    assert!(metrics.tasks_scheduled >= 1);
-    assert!(metrics.serial_executor_usage_count >= 1);
+    assert!(metrics.planner.plans_built >= 1);
+    assert!(metrics.planner.tasks_scheduled >= 1);
+    assert!(metrics.execution.serial_executor_usage_count >= 1);
 }
 
 #[test]

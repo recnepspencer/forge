@@ -23,6 +23,10 @@ fn rollback_after_dependency_rewiring_restores_original_topology() {
     let after = runtime.graph().dependencies_of(dependent).unwrap().to_vec();
     assert_eq!(before, after);
     assert!(!after.iter().any(|edge| edge.source() == source_b));
+    runtime
+        .graph()
+        .assert_bidirectional_consistency()
+        .unwrap();
 }
 
 #[test]
@@ -54,7 +58,7 @@ fn same_stage_dependency_rewiring_updates_dependency_edges_and_subscriber_sets_t
             )
         })
         .unwrap();
-    let rewiring_apply_count_before = graph.metrics().rewiring_apply_count;
+    let rewiring_apply_count_before = graph.metrics().execution.rewiring_apply_count;
 
     mark_dirty(&mut graph, left, ASPECT_A).unwrap();
     mark_dirty(&mut graph, right, ASPECT_A).unwrap();
@@ -93,7 +97,7 @@ fn same_stage_dependency_rewiring_updates_dependency_edges_and_subscriber_sets_t
     assert_eq!(c_subs, vec![left]);
     assert_eq!(report.dependency_capture_updates, 4);
     assert_eq!(
-        graph.metrics().rewiring_apply_count - rewiring_apply_count_before,
+        graph.metrics().execution.rewiring_apply_count - rewiring_apply_count_before,
         2
     );
     let left_explanation = graph.explain(left).unwrap();
@@ -104,4 +108,5 @@ fn same_stage_dependency_rewiring_updates_dependency_edges_and_subscriber_sets_t
         .causal_links
         .iter()
         .any(|link| matches!(link.disposition, CausalDisposition::Topology)));
+    graph.assert_bidirectional_consistency().unwrap();
 }

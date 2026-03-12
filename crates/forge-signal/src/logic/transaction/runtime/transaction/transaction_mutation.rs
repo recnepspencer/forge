@@ -8,12 +8,11 @@ use crate::data::error::SignalError;
 use crate::data::evaluator::CheckpointEvaluator;
 use crate::data::handle::NodeId;
 use crate::data::output::ChangedRegion;
-use crate::data::output::{ComputationFamily, ComputationKey};
 use crate::diagnostics::replay::ReplayEventKind;
 use crate::diagnostics::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::logic::invalidation::{mark_dirty, mark_dirty_with_regions};
 
-use super::transaction_types::{SignalTransaction, StagedEventOperation};
+use super::transaction_types::{SignalTransaction, StagedEventOperation, TransactionReplayEntry};
 
 impl<'a, D, I, E, Ctx, T> SignalTransaction<'a, D, I, E, Ctx, T>
 where
@@ -25,19 +24,14 @@ where
         self.graph
     }
 
-    pub fn register_computation_family(
+    pub(in crate::logic::transaction::runtime) fn resolve_defined_node(
         &mut self,
-        family: impl Into<ComputationFamily>,
-    ) -> ComputationFamily {
-        self.config.register_computation_family(family)
-    }
-
-    pub fn keyed_node(
-        &mut self,
-        family: &ComputationFamily,
-        key: impl Into<ComputationKey>,
+        family: &crate::data::output::ComputationFamily,
+        key: impl Into<crate::data::output::ComputationKey>,
     ) -> NodeId {
-        let (node, created) = self.config.keyed_node_with_created(self.graph, family, key);
+        let (node, created) = self
+            .config
+            .resolve_defined_node_with_created(self.graph, family, key);
         if created {
             self.created_nodes.push(node);
         }
@@ -143,7 +137,7 @@ where
             if !self.mark_dirty_seen.mark(node.index() as usize) {
                 continue;
             }
-            self.telemetry.transaction_mark_dirty_candidate_visits += 1;
+            self.telemetry.transaction.transaction_mark_dirty_candidate_visits += 1;
             if !self.graph.is_alive(node) {
                 continue;
             }
@@ -200,11 +194,11 @@ where
         let summary = ExecutionFailureContext::from_error(phase, err, plan_summary)
             .summarize(None, self.graph.diagnostics_profile());
         self.semantic_delta.failure_summary = Some(summary);
-        self.semantic_delta.replay_events.push((
-            ReplayEventKind::FailureRecorded,
-            err.to_string(),
-            None,
-            None,
-        ));
+        self.semantic_delta.replay_events.push(TransactionReplayEntry {
+            kind: ReplayEventKind::FailureRecorded,
+            detail: err.to_string(),
+            execution_record_id: None,
+            semantic_segment_id: None,
+        });
     }
 }

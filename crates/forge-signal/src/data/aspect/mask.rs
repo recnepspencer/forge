@@ -12,6 +12,8 @@ pub struct AspectMask(AspectMaskBits);
 impl AspectMask {
     /// Empty mask.
     pub const EMPTY: Self = Self(0);
+    /// All supported aspect bits.
+    pub const ALL: Self = Self(((1u128 << super::aspect::MAX_ASPECTS) - 1) as AspectMaskBits);
 
     /// Build a mask from one aspect.
     pub const fn from_aspect(aspect: Aspect) -> Self {

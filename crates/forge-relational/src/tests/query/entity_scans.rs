@@ -8,10 +8,10 @@ fn entity_kind_scans_can_be_partition_scoped_without_cross_partition_leakage() {
     let mut runtime = runtime_with_test_schema();
     let left = create_entity_in_partition(&mut runtime, "left-a", PartitionId(7));
     let _right = create_entity_in_partition(&mut runtime, "right-a", PartitionId(11));
-    let version_id = runtime.latest_commit().unwrap().version_id;
+    let version_id = runtime.history_access().latest_commit().unwrap().version_id;
 
     let scoped =
-        runtime.visible_entities_of_kind_in_partition(PartitionId(7), KindId(1), version_id);
+        runtime.visibility_reads().visible_entities_of_kind_in_partition(PartitionId(7), KindId(1), version_id);
 
     assert_eq!(scoped.len(), 1);
     assert_eq!(scoped[0].entity_id, left);
@@ -30,12 +30,12 @@ fn entity_kind_scans_are_deterministic_across_equivalent_insert_order() {
     let reversed_b = create_entity_in_partition(&mut reversed, "b", PartitionId(3));
     let reversed_a = create_entity_in_partition(&mut reversed, "a", PartitionId(3));
 
-    let ordered_records = ordered.visible_entities_of_kind_in_partition(
+    let ordered_records = ordered.visibility_reads().visible_entities_of_kind_in_partition(
         PartitionId(3),
         KindId(1),
         ordered.current_version_id(),
     );
-    let reversed_records = reversed.visible_entities_of_kind_in_partition(
+    let reversed_records = reversed.visibility_reads().visible_entities_of_kind_in_partition(
         PartitionId(3),
         KindId(1),
         reversed.current_version_id(),
@@ -57,7 +57,7 @@ fn entity_kind_scans_are_deterministic_across_equivalent_insert_order() {
     );
     assert_eq!(
         ordered
-            .visible_entities_of_kind_in_partition(
+            .visibility_reads().visible_entities_of_kind_in_partition(
                 PartitionId(3),
                 KindId(1),
                 ordered.current_version_id()
@@ -80,12 +80,12 @@ fn entity_kind_scans_preserve_historical_partition_visibility() {
         create_entity_outcome_on_branch(&mut runtime, "base", BranchId("main".to_string()));
     let main_entity = changed_entities(&baseline)[0];
     let left = create_entity_in_partition(&mut runtime, "left", PartitionId(17));
-    let historical_version = runtime.latest_commit().unwrap().version_id;
+    let historical_version = runtime.history_access().latest_commit().unwrap().version_id;
     let _other_partition = create_entity_in_partition(&mut runtime, "other", PartitionId(23));
     let _update = update_entity(&mut runtime, main_entity, "base-updated");
     let _later_left = create_entity_in_partition(&mut runtime, "left-later", PartitionId(17));
 
-    let historical = runtime.visible_entities_of_kind_in_partition(
+    let historical = runtime.visibility_reads().visible_entities_of_kind_in_partition(
         PartitionId(17),
         KindId(1),
         historical_version,

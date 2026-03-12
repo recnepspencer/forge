@@ -27,10 +27,10 @@ pub(crate) fn enforce_patch_budget(
                 "max_patch_records_per_commit": max_patch_records_per_commit,
             }),
         );
-        return Err(TransactionCommitError::Publication(PublicationError {
-            stage: PublicationStage::BundleAssembly,
-            detail: "patch record budget exceeded".to_string(),
-        }));
+        return Err(TransactionCommitError::Publication(PublicationError::new(
+            PublicationStage::BundleAssembly,
+            "patch record budget exceeded",
+        )));
     }
     Ok(())
 }
@@ -77,10 +77,10 @@ pub(crate) fn append_durable_commit(
                 "branch_id": branch_id.0,
             }),
         );
-        return Err(TransactionCommitError::Publication(PublicationError {
-            stage: PublicationStage::Visibility,
-            detail: error.detail,
-        }));
+        return Err(TransactionCommitError::Publication(PublicationError::new(
+            PublicationStage::Visibility,
+            error.detail,
+        )));
     }
     Ok(())
 }

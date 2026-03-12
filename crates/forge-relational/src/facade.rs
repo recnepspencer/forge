@@ -23,9 +23,13 @@ pub use crate::durability::data::{
     RecoveryCoverage, RecoveryCursor, RecoveryFailureClass, RecoveryIntegrityReport, RecoveryPlan,
     SegmentRetentionClass,
 };
+pub use crate::errors::data::{
+    ErrorContext, ErrorOperation, RelationalError, RelationalSubsystem, SuggestedFix,
+};
 pub use crate::history::data::{
-    BranchCreateError, BranchHead, BranchId, CommitId, CommitReference, HistoryRetentionClass,
-    MergeConflictRecord, MergeInspection, VersionGraphPolicy, VersionGraphSnapshot, VersionNode,
+    BranchCreateError, BranchCreateErrorClass, BranchHead, BranchId, CommitId, CommitReference,
+    HistoryRetentionClass, MergeConflictRecord, MergeInspection, VersionGraphPolicy,
+    VersionGraphSnapshot, VersionNode,
 };
 pub use crate::identity::data::{
     EntityId, EntityStorageId, Generation, KindId, LineageId, LocalSlot, PartitionId, RelationId,
@@ -64,7 +68,6 @@ pub use crate::presentation::contracts::{
 pub use crate::presentation::harness::{
     default_harness_expectations, FixtureEntity, FixtureRelation, RelationalFixture,
     RelationalHarnessAdapter, RelationalHarnessExpectations, RelationalHarnessPlan,
-    RelationalMutation,
 };
 pub use crate::publication::data::diff::{
     AspectKey, PatchFragmentBudget, PatchOrdering, PatchPublicationMode, PatchRecord,
@@ -79,12 +82,14 @@ pub use crate::query::data::{
     ReductionDiscipline,
 };
 pub use crate::replay::data::{
-    CanonicalCommitEnvelope, RelationalReplayOutcome, RelationalReplayRequest, ReplayExecutionMode,
-    ReplayFailureClass, ReplayMismatch, ReplayMismatchClass, ReplayObservableSurface,
+    CanonicalCommitEnvelope, RelationalReplayOutcome, RelationalReplayRequest, ReplayError,
+    ReplayExecutionMode, ReplayFailureClass, ReplayMismatch, ReplayMismatchClass,
+    ReplayObservableSurface,
 };
 pub use crate::schema::data::{
     EntityKindRegistration, KindResolution, RelationKindRegistration, RelationPayloadClass,
-    RelationalSchemaRegistry, SchemaId, SchemaRegistryError, SchemaVersionId,
+    RelationalSchemaRegistry, SchemaId, SchemaRegistryError, SchemaRegistryErrorClass,
+    SchemaVersionId,
 };
 pub use crate::snapshots::data::{
     SnapshotHandle, SnapshotId, SnapshotInspectionSummary, SnapshotReadPolicy,
@@ -99,7 +104,7 @@ pub use crate::transactions::data::{
     CrossContextEndpointClass, DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent,
     MergedCommitPlan, MutationIntent, RecordRef, RelationMutationIntent, RelationScope,
     ReplaceEntityIntent, RollbackEffect, RollbackOutcome, SavepointId, TransactionCommitError,
-    TransactionId, TransactionIntent, TransactionIntentBatch, TransactionOptions, UndoRecord,
+    TransactionId, TransactionOptions, UndoRecord,
     UpdateEntityIntent, WorkerIntentBatch,
 };
 pub use crate::transactions::logic::RelationalTransaction;

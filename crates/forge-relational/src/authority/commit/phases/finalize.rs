@@ -5,7 +5,7 @@ use crate::identity::data::VersionId;
 use crate::publication::data::diff::PatchStreamPosition;
 use crate::replay::data::CanonicalCommitEnvelope;
 use crate::storage::logic::state::PublicationArtifacts;
-use crate::storage::overlay::RelationalDraft;
+use crate::storage::overlay::WorkingState;
 use crate::transactions::data::RecordRef;
 
 pub(crate) struct FinalizeCommitInput {
@@ -25,13 +25,13 @@ pub(crate) struct FinalizeCommitInput {
 
 pub(crate) fn finalize_commit_publication(
     runtime: &mut crate::logic::runtime::RelationalRuntime,
-    mut draft: RelationalDraft,
+    mut working_state: WorkingState,
     input: FinalizeCommitInput,
 ) {
-    apply_adjacency_deltas(&mut draft, &input.adjacency_deltas);
+    apply_adjacency_deltas(&mut working_state, &input.adjacency_deltas);
     finalize_published_commit(
         runtime,
-        draft.commit(),
+        working_state.into_partitions(),
         &input.changed_records,
         input.version_id,
         input.previous_branch_head_version,

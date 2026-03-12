@@ -234,9 +234,10 @@ fn lineage_distinguishes_replacement_refresh_and_memoized_reuse() {
     );
 
     let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
-    let family = runtime.register_computation_family("projection");
-    let keyed = runtime.keyed_node(&family, "bulkhead");
-    let computation = KeyedComputation::new(family.clone(), "bulkhead").with_memo_key("shape-v1");
+    let family = define_keyed_computation(&mut runtime, "projection", ());
+    let bulkhead = family.keyed("bulkhead");
+    let keyed = bulkhead.node(&mut runtime);
+    let computation = bulkhead.memoized("shape-v1");
     let mut runtime_ctx = ();
 
     runtime
@@ -337,7 +338,16 @@ fn restore_branch_snapshot_rejects_cross_branch_payloads_and_keeps_catalog_consi
     let main_snapshot = runtime.capture_snapshot();
 
     let err = runtime.restore_branch_snapshot(feature.clone(), &main_snapshot);
-    assert!(err.is_err(), "cross-branch restore should be rejected");
+    assert!(
+        matches!(
+            err,
+            Err(SignalError::IncompatibleSnapshot {
+                reason: _,
+                ..
+            })
+        ),
+        "cross-branch restore should be rejected"
+    );
 
     let feature_snapshot = runtime.capture_branch_snapshot(feature.clone()).unwrap();
     assert_eq!(feature_snapshot.meta.branch_id, feature.id);

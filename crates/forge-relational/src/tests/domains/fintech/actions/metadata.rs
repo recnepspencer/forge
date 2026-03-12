@@ -6,7 +6,7 @@ use crate::facade::{
 use super::super::fixture::{FintechCaseRole, FintechWorld};
 
 pub(crate) fn register_case_book_index(world: &mut FintechWorld) -> DerivedIndexDefinition {
-    world.runtime.register_index(DerivedIndexDefinition {
+    world.runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "fintech.trade.book".to_string(),
         kind: DerivedIndexKind::EntityPayloadField {
@@ -24,7 +24,8 @@ pub(crate) fn build_branch_scoped_case_index(
 ) -> DerivedIndexBuildOutcome {
     world
         .runtime
-        .build_indexes_for_commit(DerivedIndexBuildRequest {
+        .index_authority()
+        .build_for_commit(DerivedIndexBuildRequest {
             source_commit_id: source_commit.commit_id,
             branch_id,
             index_ids: vec![index_id],
@@ -39,15 +40,17 @@ pub(crate) fn promote_case_correspondence(
 ) -> LineageResolutionStatus {
     let left_lineage = world
         .runtime
-        .lineage_for_record(world.workflow_case(left).trade)
+        .lineage_access()
+        .for_record(world.workflow_case(left).trade)
         .expect("left case trade should have lineage")
         .lineage_id;
     let right_lineage = world
         .runtime
-        .lineage_for_record(world.workflow_case(right).trade)
+        .lineage_access()
+        .for_record(world.workflow_case(right).trade)
         .expect("right case trade should have lineage")
         .lineage_id;
-    let candidate = world.runtime.record_correspondence_candidate(
+    let candidate = world.runtime.lineage_authority().record_correspondence_candidate(
         BranchId("main".to_string()),
         vec![left_lineage],
         vec![right_lineage],
@@ -55,6 +58,7 @@ pub(crate) fn promote_case_correspondence(
     );
     world
         .runtime
+        .lineage_authority()
         .promote_correspondence(candidate.candidate_id, commit)
         .expect("candidate should promote")
         .status

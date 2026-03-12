@@ -247,8 +247,8 @@ where
 
         self.pending.clear();
         self.context.finalize();
-        self.telemetry.event_flushes += 1;
-        self.telemetry.event_flush_nanos += flush_start.elapsed().as_nanos();
+        self.telemetry.checkpoint.event_flushes += 1;
+        self.telemetry.checkpoint.event_flush_nanos += flush_start.elapsed().as_nanos();
         Ok(completed_subscribers)
     }
 
@@ -265,7 +265,7 @@ where
         }
         self.rollback_ready.fill(false);
         self.begin_ready.fill(false);
-        self.telemetry.rollback_count += 1;
+        self.telemetry.checkpoint.rollback_count += 1;
     }
 
     /// Deterministic resolved order for diagnostics/tests.

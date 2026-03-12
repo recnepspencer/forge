@@ -48,12 +48,7 @@ impl RelationalRuntime {
         handle: &crate::snapshots::data::SnapshotHandle,
         packet: &QueryWorkPacket,
     ) -> Option<ReadPacketPlan> {
-        if !self.snapshots.active.contains_key(&handle.snapshot_id)
-            && !self
-                .snapshots
-                .published_handles
-                .contains_key(&handle.snapshot_id)
-        {
+        if !self.visibility.is_known_snapshot(handle.snapshot_id) {
             return None;
         }
         let mut entity_chunk_indexes = Vec::new();
@@ -64,7 +59,7 @@ impl RelationalRuntime {
                 RecordRef::Entity(entity_id) => {
                     let chunk_index = slot_chunk_index(
                         entity_id.local_slot.0 as usize,
-                        self.config.storage_layout.entity_chunk_size,
+                        self.config.storage.layout.entity_chunk_size,
                     );
                     if !entity_chunk_indexes.contains(&chunk_index) {
                         entity_chunk_indexes.push(chunk_index);
@@ -73,7 +68,7 @@ impl RelationalRuntime {
                 RecordRef::Relation(relation_id) => {
                     let chunk_index = slot_chunk_index(
                         relation_id.local_slot.0 as usize,
-                        self.config.storage_layout.relation_chunk_size,
+                        self.config.storage.layout.relation_chunk_size,
                     );
                     if !relation_chunk_indexes.contains(&chunk_index) {
                         relation_chunk_indexes.push(chunk_index);
@@ -101,13 +96,13 @@ fn summarize_entity_chunks(
         if version_id == current_version {
             summaries.extend(summarize_current_entity_chunks(
                 partition,
-                runtime.config.storage_layout.entity_chunk_size,
+                runtime.config.storage.layout.entity_chunk_size,
             ));
             continue;
         }
         summaries.extend(summarize_chunks(
             partition.entity_arena.slot_count(),
-            runtime.config.storage_layout.entity_chunk_size,
+            runtime.config.storage.layout.entity_chunk_size,
             |slot| partition.entity_arena.created_at.get(slot).copied(),
             |slot| partition.entity_arena.retired_at_for_slot(slot),
             |slot| partition.entity_arena.get_slot(slot).map(|slot_view| slot_view.lifecycle()),
@@ -144,13 +139,13 @@ fn summarize_relation_chunks(
         if version_id == current_version {
             summaries.extend(summarize_current_relation_chunks(
                 partition,
-                runtime.config.storage_layout.relation_chunk_size,
+                runtime.config.storage.layout.relation_chunk_size,
             ));
             continue;
         }
         summaries.extend(summarize_chunks(
             partition.relation_arena.slot_count(),
-            runtime.config.storage_layout.relation_chunk_size,
+            runtime.config.storage.layout.relation_chunk_size,
             |slot| partition.relation_arena.created_at.get(slot).copied(),
             |slot| partition.relation_arena.retired_at_for_slot(slot),
             |slot| partition.relation_arena.get_slot(slot).map(|slot_view| slot_view.lifecycle()),

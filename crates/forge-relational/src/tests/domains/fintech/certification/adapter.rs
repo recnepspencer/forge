@@ -143,7 +143,7 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
         session.executed_steps.push(step.name.clone());
         match &step.operation {
             FintechWorkflowStep::CaptureMainSnapshot { alias } => {
-                let snapshot = session.world.runtime.snapshot();
+                let snapshot = session.world.runtime.snapshot_access().snapshot();
                 session
                     .named_snapshots
                     .insert((*alias).to_string(), snapshot);
@@ -236,13 +236,13 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
                 let commit_id = session
                     .world
                     .runtime
-                    .latest_commit()
+                    .history_access().latest_commit()
                     .ok_or_else(|| "latest commit unavailable for replay capture".to_string())?
                     .commit_id;
                 let replay = session
                     .world
                     .runtime
-                    .replay_commit(RelationalReplayRequest {
+                    .replay_authority().replay_commit(RelationalReplayRequest {
                         commit_id,
                         branch_id: branch,
                         execution_mode: ReplayExecutionMode::SerialDeterministic,
@@ -262,7 +262,7 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
         session
             .world
             .runtime
-            .checkpoint()
+            .durability_authority().checkpoint()
             .map(|_| ())
             .map_err(|error| error.detail)
     }

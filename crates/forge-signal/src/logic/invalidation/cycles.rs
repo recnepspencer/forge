@@ -31,7 +31,7 @@ fn detect_cycle_from(
             continue;
         }
         if scratch.cycle_visiting.is_marked(index) {
-            return Err(circular_reference_error(current));
+            return Err(circular_reference_error(scratch, current));
         }
 
         scratch.cycle_visiting.mark(index);
@@ -45,9 +45,12 @@ fn detect_cycle_from(
     Ok(())
 }
 
-fn circular_reference_error(node: NodeId) -> SignalError {
-    SignalError::InvalidInput {
-        message: format!("Circular reference detected at signal node: {}", node),
-        context: None,
-    }
+fn circular_reference_error(scratch: &TraversalScratch, node: NodeId) -> SignalError {
+    let mut path = scratch
+        .cycle_stack
+        .iter()
+        .map(|(cycle_node, _)| *cycle_node)
+        .collect::<Vec<_>>();
+    path.push(node);
+    SignalError::cycle_detected(path)
 }

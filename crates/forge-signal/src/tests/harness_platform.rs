@@ -35,7 +35,7 @@ fn capture_performance_after_run(
     request: &ExecutionRequest<String>,
     profile: &ExecutionProfile,
 ) -> serde_json::Value {
-    let adapter = SignalHarnessAdapter;
+    let adapter = SignalHarnessBridge;
     let mut session = adapter.create_runtime().unwrap();
     adapter.load_fixture(&mut session, fixture).unwrap();
     adapter
@@ -163,7 +163,12 @@ fn signal_harness_platform_surfaces_comparator_skips() {
         "dependent",
         ObservationStatus::Clean,
     );
-    assert!(performance["skipped_by_comparator"].as_u64().unwrap_or(0) >= 1);
+    assert!(
+        performance["evaluation"]["skipped_by_comparator"]
+            .as_u64()
+            .unwrap_or(0)
+            >= 1
+    );
 }
 
 #[test]

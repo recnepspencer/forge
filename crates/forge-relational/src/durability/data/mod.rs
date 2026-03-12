@@ -218,6 +218,10 @@ pub struct RecoveryIntegrityReport {
     pub corrupt_segment_id: Option<DurableSegmentId>,
 }
 
+mod recovery_errors;
+
+pub use recovery_errors::*;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RecoveryCompatibilityCheck {
     pub schema_match: bool,
@@ -235,24 +239,6 @@ pub struct RecoveryPlan {
     pub cursor: RecoveryCursor,
     pub integrity_report: RecoveryIntegrityReport,
     pub compatibility: RecoveryCompatibilityCheck,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum RecoveryFailureClass {
-    SchemaMismatch,
-    ProfileMismatch,
-    RuntimeNameMismatch,
-    CorruptCheckpoint,
-    CorruptSegment,
-    MissingParentChain,
-    ReplayFailure,
-    DurableIoFailure,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DurabilityError {
-    pub class: RecoveryFailureClass,
-    pub detail: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

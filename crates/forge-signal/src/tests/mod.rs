@@ -16,7 +16,7 @@ mod domains;
 mod evaluation_context;
 mod event_epochs;
 mod graph_core;
-mod harness_adapter;
+mod harness_bridge;
 mod harness_platform;
 mod invalidation_bugs;
 mod lifecycle;

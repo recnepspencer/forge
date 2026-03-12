@@ -7,18 +7,18 @@ fn concurrent_snapshot_and_version_reads_match_serial_truth() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
     let created = create_entity_outcome(&mut runtime, "before");
     let entity = changed_entities(&created)[0];
-    let explicit_snapshot = runtime.snapshot();
+    let explicit_snapshot = runtime.snapshot_access().snapshot();
     let updated = update_entity(&mut runtime, entity, "after");
     let serial_snapshot_name = {
-        let read = runtime.read_snapshot(&explicit_snapshot).unwrap();
+        let read = runtime.visibility_reads().read_snapshot(&explicit_snapshot).unwrap();
         read_entity_name(read.get_entity(entity).unwrap()).unwrap().to_string()
     };
     let serial_version_name = {
-        let read = runtime.read_version(created.version_id);
+        let read = runtime.visibility_reads().read_version(created.version_id);
         read_entity_name(read.get_entity(entity).unwrap()).unwrap().to_string()
     };
     let serial_latest_name = {
-        let read = runtime.read_snapshot(&updated.snapshot).unwrap();
+        let read = runtime.visibility_reads().read_snapshot(&updated.snapshot).unwrap();
         read_entity_name(read.get_entity(entity).unwrap()).unwrap().to_string()
     };
     let runtime = Arc::new(runtime);
@@ -30,9 +30,9 @@ fn concurrent_snapshot_and_version_reads_match_serial_truth() {
             let explicit_snapshot = explicit_snapshot.clone();
             let published_snapshot = updated.snapshot.clone();
             snapshot_threads.push(scope.spawn(move || {
-                let snapshot_read = runtime.read_snapshot(&explicit_snapshot).unwrap();
-                let version_read = runtime.read_version(created.version_id);
-                let latest_read = runtime.read_snapshot(&published_snapshot).unwrap();
+                let snapshot_read = runtime.visibility_reads().read_snapshot(&explicit_snapshot).unwrap();
+                let version_read = runtime.visibility_reads().read_version(created.version_id);
+                let latest_read = runtime.visibility_reads().read_snapshot(&published_snapshot).unwrap();
                 (
                     read_entity_name(snapshot_read.get_entity(entity).unwrap())
                         .unwrap()
@@ -61,7 +61,7 @@ fn concurrent_read_pressure_keeps_cache_diagnostics_coherent() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
     let created = create_entity_outcome(&mut runtime, "baseline");
     let entity = changed_entities(&created)[0];
-    let explicit_snapshot = runtime.snapshot();
+    let explicit_snapshot = runtime.snapshot_access().snapshot();
     let updated = update_entity(&mut runtime, entity, "mutated");
     let _ = create_entity_outcome(&mut runtime, "churn-1");
     let _ = create_entity_outcome(&mut runtime, "churn-2");
@@ -77,12 +77,12 @@ fn concurrent_read_pressure_keeps_cache_diagnostics_coherent() {
             let published_snapshot = updated.snapshot.clone();
             readers.push(scope.spawn(move || {
                 let snapshot_diag = runtime
-                    .inspect_snapshot_read_path(&explicit_snapshot)
+                    .visibility_reads().inspect_snapshot_read_path(&explicit_snapshot)
                     .expect("explicit snapshot diagnostics");
                 let published_diag = runtime
-                    .inspect_snapshot_read_path(&published_snapshot)
+                    .visibility_reads().inspect_snapshot_read_path(&published_snapshot)
                     .expect("published snapshot diagnostics");
-                let historical = runtime.read_version(created.version_id);
+                let historical = runtime.visibility_reads().read_version(created.version_id);
                 let historical_name = read_entity_name(historical.get_entity(entity).unwrap())
                     .unwrap()
                     .to_string();

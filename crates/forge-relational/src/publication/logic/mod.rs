@@ -1,93 +1,22 @@
-use serde_json::{json, Value};
+mod access;
+
+use serde_json::Value;
 
 use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticsArtifactKind, DiagnosticsScope,
-    RelationalDiagnosticArtifact, RelationalDiagnosticsEntry, RelationalDiagnosticsFacade,
+    RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
 };
 use crate::logic::runtime::{RelationalReplayRecord, RelationalRuntime, ReplaySchemaVersion};
-use crate::publication::data::diff::{
-    PatchStreamBatch, PatchStreamReadError, PatchStreamReadErrorClass, PatchStreamRequest,
-};
 use crate::publication::data::{PublicationBundle, PublicationStatus};
-use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
+use crate::snapshots::data::{SnapshotHandle, SnapshotReadPolicy};
 use crate::storage::logic::state::PublicationArtifacts;
 
+pub use access::PublicationAccess;
+pub(crate) use access::publication_failure_diagnostic;
+
 impl RelationalRuntime {
-    pub fn diagnostics(&self) -> RelationalDiagnosticsFacade {
-        RelationalDiagnosticsFacade {
-            artifacts: self.publication.diagnostics.clone(),
-        }
-    }
-
-    pub fn latest_publication_bundle(&self) -> Option<&PublicationBundle<RelationalReplayRecord>> {
-        self.publication.latest_bundle.as_ref()
-    }
-
-    pub fn latest_patch(&self) -> Option<&crate::publication::data::diff::RelationalPatchRecord> {
-        self.publication
-            .latest_bundle
-            .as_ref()
-            .map(|bundle| &bundle.patch)
-    }
-
-    pub fn latest_replay(&self) -> Option<&RelationalReplayRecord> {
-        self.publication
-            .latest_bundle
-            .as_ref()
-            .map(|bundle| &bundle.replay)
-    }
-
-    pub fn read_patch_stream(
-        &self,
-        request: PatchStreamRequest,
-    ) -> Result<PatchStreamBatch, PatchStreamReadError> {
-        if request.max_commits == 0 {
-            return Err(PatchStreamReadError {
-                class: PatchStreamReadErrorClass::InvalidBatchSize,
-                detail: "patch stream request must ask for at least one commit".to_string(),
-            });
-        }
-
-        let latest_position = self
-            .history
-            .patch_stream_index
-            .last_key_value()
-            .map(|(position, _)| *position);
-        let latest_commit_id = self.latest_commit().map(|commit| commit.commit_id);
-
-        if let Some(after_position) = request.after_position {
-            if !self
-                .history
-                .patch_stream_index
-                .contains_key(&after_position)
-            {
-                return Err(PatchStreamReadError {
-                    class: PatchStreamReadErrorClass::UnknownResumePosition,
-                    detail: format!("unknown patch stream resume position {}", after_position.0),
-                });
-            }
-        }
-
-        let start = request
-            .after_position
-            .map(|position| std::ops::Bound::Excluded(position))
-            .unwrap_or(std::ops::Bound::Unbounded);
-        let patches = self
-            .history
-            .patch_stream_index
-            .range((start, std::ops::Bound::Unbounded))
-            .filter_map(|(_, commit_id)| self.history.commit_envelopes.get(commit_id))
-            .map(|envelope| envelope.patch.clone())
-            .take(request.max_commits)
-            .collect::<Vec<_>>();
-
-        Ok(PatchStreamBatch {
-            resumed_after: request.after_position,
-            next_position: patches.last().map(|patch| patch.position),
-            latest_position,
-            latest_commit_id,
-            patches,
-        })
+    pub fn publication_access(&self) -> PublicationAccess<'_> {
+        PublicationAccess::new(self)
     }
 
     pub(crate) fn push_diagnostic_artifact(&mut self, artifact: RelationalDiagnosticArtifact) {
@@ -98,14 +27,14 @@ impl RelationalRuntime {
         let limit = self
             .config
             .publication
+            .policy
             .max_published_snapshot_handles
             .max(1);
-        while self.snapshots.published_handles.len() > limit {
-            let Some(oldest_snapshot_id) = self.snapshots.published_handles.keys().next().copied()
-            else {
+        while self.visibility.published_snapshot_handle_count() > limit {
+            let Some(oldest_snapshot_id) = self.visibility.oldest_published_snapshot_id() else {
                 break;
             };
-            self.snapshots.published_handles.remove(&oldest_snapshot_id);
+            self.visibility.remove_published_handle(oldest_snapshot_id);
         }
     }
 
@@ -129,8 +58,7 @@ impl RelationalRuntime {
         patch: crate::publication::data::diff::RelationalPatchRecord,
         diagnostics_summary: RelationalDiagnosticArtifact,
     ) -> PublicationArtifacts {
-        let snapshot_id = SnapshotId(self.snapshots.next_snapshot_id);
-        self.snapshots.next_snapshot_id += 1;
+        let snapshot_id = self.visibility.allocate_snapshot_id();
         let snapshot = SnapshotHandle {
             snapshot_id,
             version_id,
@@ -142,7 +70,7 @@ impl RelationalRuntime {
             version_id,
             snapshot_id,
             patch: patch.clone(),
-            schema_registry: self.config.schema_registry.clone(),
+            schema_registry: self.config.schema.registry.clone(),
         };
         let bundle = PublicationBundle {
             commit: commit_reference,
@@ -230,7 +158,7 @@ impl<'runtime> DiagnosticArtifactBuilder<'runtime> {
     }
 
     pub(crate) fn emit(self) -> RelationalDiagnosticArtifact {
-        let max_entries = self.runtime.config.diagnostics.max_entries_per_artifact;
+        let max_entries = self.runtime.config.diagnostics.profile.max_entries_per_artifact;
         let artifact = RelationalDiagnosticArtifact {
             scope: self.scope,
             kind: self.kind,
@@ -239,13 +167,5 @@ impl<'runtime> DiagnosticArtifactBuilder<'runtime> {
         };
         self.runtime.push_diagnostic_artifact(artifact.clone());
         artifact
-    }
-}
-
-pub(crate) fn publication_failure_diagnostic(detail: String) -> RelationalDiagnosticsEntry {
-    RelationalDiagnosticsEntry {
-        code: crate::diagnostics::data::DiagnosticCode::InvariantViolation,
-        message: detail,
-        fields: json!({ "execution_point": "snapshot_publication" }),
     }
 }

@@ -2,25 +2,21 @@ use crate::easy::ReactiveGraph;
 use crate::facade::*;
 use crate::tests::support::*;
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Domain {
     Cache,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Impact {
     One,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Ev {
     Tick,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Tier {
     Feature,
@@ -44,6 +40,9 @@ fn runtime_builder_uses_expected_defaults() {
 #[test]
 fn runtime_builder_supports_typed_runtime_configuration() {
     let graph = SignalGraph::new();
+    let _ = Impact::One;
+    let _ = Ev::Tick;
+    let _ = Tier::Feature;
     let runtime = SignalRuntime::builder(graph)
         .with_domains::<Domain>()
         .with_impacts::<Impact>()
@@ -74,7 +73,7 @@ fn transaction_helper_commits_on_success() {
         })
         .unwrap();
 
-    assert_eq!(outcome, TransactionOutcome::Committed);
+    assert_eq!(outcome.outcome, TransactionOutcome::Committed);
     assert_eq!(
         runtime.graph().get_state(dependent).unwrap(),
         NodeState::Dirty
@@ -106,20 +105,74 @@ fn graph_node_builder_sets_accessible_configuration() {
     let mut graph = SignalGraph::new();
     let node = graph
         .node()
-        .depends_on_aspects([ASPECT_A, ASPECT_B])
+        .reads_aspects([ASPECT_A, ASPECT_B])
+        .produces_aspects([ASPECT_B])
+        .requires_context(ContextRequirement::DomainContext)
         .on_demand()
         .tolerance(2)
         .build();
 
     let config = graph.get_entry(node).unwrap().get_eval_config().clone();
     assert_eq!(
-        config.depends_on_aspects,
-        Some(AspectMask::from([ASPECT_A, ASPECT_B]))
+        config.contract.reads,
+        AspectMask::from([ASPECT_A, ASPECT_B])
+    );
+    assert_eq!(config.contract.produces, AspectMask::from([ASPECT_B]));
+    assert_eq!(
+        config.contract.required_context,
+        ContextRequirement::DomainContext
     );
     assert_eq!(config.condition, EvaluationCondition::OnDemand);
     assert_eq!(
         config.comparator,
         Some(VersionComparatorPolicy::Tolerance { epsilon: 2 })
+    );
+}
+
+#[test]
+fn graph_node_builder_accepts_explicit_node_contract() {
+    let mut graph = SignalGraph::new();
+    let contract = NodeContract::reads([ASPECT_A])
+        .with_produces([ASPECT_B])
+        .with_required_context(ContextRequirement::RelationalSnapshot);
+    let node = graph.node().with_contract(contract.clone()).build();
+
+    let stored = graph.get_contract(node).unwrap().clone();
+    assert_eq!(stored, contract);
+}
+
+#[test]
+fn define_computation_applies_contract_comparator_and_tier_to_created_nodes() {
+    let graph = SignalGraph::new();
+    let mut runtime = SignalRuntime::builder(graph).with_tiers::<Tier>().build();
+    let contract = NodeContract::reads([ASPECT_A])
+        .with_produces([ASPECT_B])
+        .with_required_context(ContextRequirement::DomainContext);
+    let computation = runtime
+        .define_computation(ComputationSpec {
+            family: "geometry".into(),
+            contract: contract.clone(),
+            tier: Tier::Feature,
+            comparator: VersionComparatorPolicy::OutputIdentity,
+            evaluator: |_node: NodeId, view: &ExecutionReadView<'_>| {
+                Ok::<PreparedEvaluation, SignalError>(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 0)),
+                ))
+            },
+        })
+        .unwrap();
+
+    let node = computation.keyed("bulkhead").node(&mut runtime);
+    let stored = runtime.graph().get_entry(node).unwrap().get_eval_config().clone();
+
+    assert_eq!(runtime.graph().get_contract(node).unwrap(), &contract);
+    assert_eq!(
+        stored.comparator,
+        Some(VersionComparatorPolicy::OutputIdentity)
+    );
+    assert_eq!(
+        runtime.config().node_meta().tier_for_node(node),
+        Some(Tier::Feature)
     );
 }
 

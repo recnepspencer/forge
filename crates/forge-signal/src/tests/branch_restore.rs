@@ -10,11 +10,12 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
     let mut runtime_ctx = ();
     let main = runtime.current_branch();
     let feature = runtime.create_branch("feature").unwrap();
-    let family = runtime.register_computation_family("shared-family");
-    let computation = KeyedComputation::new(family.clone(), "shared-key").with_memo_key("shared");
+    let family = define_keyed_computation(&mut runtime, "shared-family", ());
+    let keyed = family.keyed("shared-key");
+    let computation = keyed.memoized("shared");
 
     runtime.switch_branch(feature.clone()).unwrap();
-    let feature_node = runtime.keyed_node(&family, "shared-key");
+    let feature_node = keyed.node(&mut runtime);
     let feature_compute_calls = AtomicU32::new(0);
     runtime
         .transaction(&mut runtime_ctx, |tx| {
@@ -29,7 +30,7 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
     let feature_snapshot = runtime.capture_snapshot();
 
     runtime.switch_branch(main).unwrap();
-    let main_node = runtime.keyed_node(&family, "shared-key");
+    let main_node = keyed.node(&mut runtime);
     let main_compute_calls = AtomicU32::new(0);
     runtime
         .transaction(&mut runtime_ctx, |tx| {
@@ -73,11 +74,12 @@ fn restore_branch_snapshot_keeps_sibling_branch_keyed_bindings_isolated() {
     let main = runtime.current_branch();
     let feature = runtime.create_branch("feature").unwrap();
     let sibling = runtime.create_branch("sibling").unwrap();
-    let family = runtime.register_computation_family("shared-family");
-    let computation = KeyedComputation::new(family.clone(), "shared-key").with_memo_key("shared");
+    let family = define_keyed_computation(&mut runtime, "shared-family", ());
+    let keyed = family.keyed("shared-key");
+    let computation = keyed.memoized("shared");
 
     runtime.switch_branch(feature.clone()).unwrap();
-    let feature_node = runtime.keyed_node(&family, "shared-key");
+    let feature_node = keyed.node(&mut runtime);
     runtime
         .transaction(&mut runtime_ctx, |tx| {
             tx.evaluate_keyed(feature_node, &computation, &|_node, view| {
@@ -89,7 +91,7 @@ fn restore_branch_snapshot_keeps_sibling_branch_keyed_bindings_isolated() {
     let feature_snapshot = runtime.capture_snapshot();
 
     runtime.switch_branch(sibling.clone()).unwrap();
-    let sibling_node = runtime.keyed_node(&family, "shared-key");
+    let sibling_node = keyed.node(&mut runtime);
     runtime
         .transaction(&mut runtime_ctx, |tx| {
             tx.evaluate_keyed(sibling_node, &computation, &|_node, view| {
@@ -105,7 +107,7 @@ fn restore_branch_snapshot_keeps_sibling_branch_keyed_bindings_isolated() {
         .restore_branch_snapshot(feature.clone(), &feature_snapshot)
         .unwrap();
     runtime.switch_branch(feature.clone()).unwrap();
-    assert_eq!(runtime.keyed_node(&family, "shared-key"), feature_node);
+    assert_eq!(keyed.node(&mut runtime), feature_node);
     assert_eq!(
         runtime
             .graph()
@@ -120,7 +122,7 @@ fn restore_branch_snapshot_keeps_sibling_branch_keyed_bindings_isolated() {
         .restore_branch_snapshot(sibling.clone(), &sibling_snapshot)
         .unwrap();
     runtime.switch_branch(sibling).unwrap();
-    assert_eq!(runtime.keyed_node(&family, "shared-key"), sibling_node);
+    assert_eq!(keyed.node(&mut runtime), sibling_node);
     assert_eq!(
         runtime
             .graph()

@@ -67,7 +67,7 @@ fn ondemand_blocks_default_evaluate() {
 
     assert_eq!(compute_calls, 0);
     assert_eq!(graph.get_state(node).unwrap(), NodeState::MaybeStale);
-    assert_eq!(graph.telemetry().ondemand_deferred_count, 1);
+    assert_eq!(graph.telemetry().evaluation.ondemand_deferred_count, 1);
 }
 
 #[test]
@@ -135,6 +135,100 @@ fn aspect_filter_recomputes_on_matched_aspect() {
     evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
 
     assert_eq!(dependent_calls, 2);
+    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Clean);
+}
+
+#[test]
+fn invalidation_skips_direct_subscriber_when_contract_reads_do_not_care() {
+    let mut graph = SignalGraph::new();
+    let source = graph.create_node();
+    let dependent = graph.node().reads_aspects(mask_a()).build();
+    graph.add_dependency(dependent, source, ASPECT_B).unwrap();
+
+    let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
+    evaluate(&mut graph, source, &mut compute).unwrap();
+    evaluate(&mut graph, dependent, &mut compute).unwrap();
+
+    mark_dirty(&mut graph, source, ASPECT_B).unwrap();
+
+    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Clean);
+}
+
+#[test]
+fn invalidation_skips_direct_subscriber_when_contract_partition_scope_does_not_care() {
+    let mut graph = SignalGraph::new();
+    let source = graph.create_node();
+    let dependent = graph
+        .node()
+        .reads_aspects(mask_a())
+        .with_partition_scope(PartitionSubscription::partition_and_detail("wing", "rib-12"))
+        .build();
+    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+
+    let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
+    evaluate(&mut graph, source, &mut compute).unwrap();
+    evaluate(&mut graph, dependent, &mut compute).unwrap();
+
+    mark_dirty_with_regions(
+        &mut graph,
+        source,
+        ASPECT_A,
+        &[ChangedRegion {
+            partition: PartitionToken::new("tail"),
+            detail: Some("rib-2".to_owned()),
+        }],
+    )
+    .unwrap();
+
+    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Clean);
+}
+
+#[test]
+fn invalidation_respects_mixed_aspect_and_partition_contracts() {
+    let mut graph = SignalGraph::new();
+    let source = graph.create_node();
+    let dependent = graph
+        .node()
+        .reads_aspects(mask_a())
+        .with_contract(
+            NodeContract::reads(mask_a())
+                .with_partition_scopes([
+                    PartitionSubscription::partition_and_detail("wing", "rib-12"),
+                    PartitionSubscription::partition_and_detail("tail", "rib-2"),
+                ]),
+        )
+        .build();
+    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+
+    let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
+    evaluate(&mut graph, source, &mut compute).unwrap();
+    evaluate(&mut graph, dependent, &mut compute).unwrap();
+
+    mark_dirty_with_regions(
+        &mut graph,
+        source,
+        ASPECT_A,
+        &[ChangedRegion {
+            partition: PartitionToken::new("wing"),
+            detail: Some("rib-12".to_owned()),
+        }],
+    )
+    .unwrap();
+    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Dirty);
+
+    evaluate(&mut graph, source, &mut compute).unwrap();
+    evaluate(&mut graph, dependent, &mut compute).unwrap();
+
+    mark_dirty_with_regions(
+        &mut graph,
+        source,
+        ASPECT_A,
+        &[ChangedRegion {
+            partition: PartitionToken::new("wing"),
+            detail: Some("rib-99".to_owned()),
+        }],
+    )
+    .unwrap();
     assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Clean);
 }
 
@@ -249,7 +343,7 @@ fn debounce_not_ready_defers_recompute() {
 
     assert_eq!(compute_calls, 0);
     assert_eq!(graph.get_state(node).unwrap(), NodeState::MaybeStale);
-    assert_eq!(graph.telemetry().debounce_deferred_count, 1);
+    assert_eq!(graph.telemetry().evaluation.debounce_deferred_count, 1);
 }
 
 #[test]

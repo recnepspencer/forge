@@ -17,38 +17,38 @@ impl SignalGraph {
     }
 
     pub fn telemetry(&self) -> &crate::data::telemetry::RuntimeTelemetry {
-        &self.telemetry
+        &self.observation.telemetry
     }
 
     pub fn telemetry_mut(&mut self) -> &mut crate::data::telemetry::RuntimeTelemetry {
-        &mut self.telemetry
+        &mut self.observation.telemetry
     }
 
     pub fn reset_telemetry(&mut self) {
-        self.telemetry = crate::data::telemetry::RuntimeTelemetry::default();
+        self.observation.telemetry = crate::data::telemetry::RuntimeTelemetry::default();
     }
 
     pub fn metrics(&self) -> GraphMetrics {
         GraphMetrics::from_runtime_telemetry(
             self.telemetry(),
-            self.partition_interner.token_count(),
+            self.observation.partition_interner.token_count(),
         )
     }
 
     pub fn diagnostics_profile(&self) -> DiagnosticsProfile {
-        self.diagnostics.profile()
+        self.observation.diagnostics.profile()
     }
 
     pub fn runtime_policy(&self) -> SignalRuntimePolicy {
-        self.diagnostics.policy()
+        self.observation.diagnostics.policy()
     }
 
     pub fn set_diagnostics_profile(&mut self, profile: DiagnosticsProfile) {
-        self.diagnostics.set_profile(profile);
+        self.observation.diagnostics.set_profile(profile);
     }
 
     pub fn set_runtime_policy(&mut self, policy: SignalRuntimePolicy) {
-        self.diagnostics.set_policy(policy);
+        self.observation.diagnostics.set_policy(policy);
     }
 
     pub fn diagnostics_summary(&self, profile: DiagnosticsProfile) -> GraphSummary {
@@ -71,31 +71,31 @@ impl SignalGraph {
     }
 
     pub fn latest_flow_diagnostics(&self) -> Option<&FlowSummary> {
-        self.diagnostics.latest_flow()
+        self.observation.diagnostics.latest_flow()
     }
 
     pub fn latest_failure_diagnostics(&self) -> Option<&FailureSummary> {
-        self.diagnostics.latest_failure()
+        self.observation.diagnostics.latest_failure()
     }
 
     pub fn latest_rollback_diagnostics(&self) -> Option<&RollbackDiagnostic> {
-        self.diagnostics.latest_rollback()
+        self.observation.diagnostics.latest_rollback()
     }
 
     pub fn recent_execution_history_diagnostics(
         &self,
     ) -> &std::collections::VecDeque<ExecutionHistorySummary> {
-        self.diagnostics.recent_history()
+        self.observation.diagnostics.recent_history()
     }
 
     pub(crate) fn diagnostics_state(&self) -> &crate::diagnostics::state::DiagnosticsState {
-        &self.diagnostics
+        &self.observation.diagnostics
     }
 
     pub(crate) fn diagnostics_state_mut(
         &mut self,
     ) -> &mut crate::diagnostics::state::DiagnosticsState {
-        &mut self.diagnostics
+        &mut self.observation.diagnostics
     }
 
     pub(crate) fn note_change_input(
@@ -109,7 +109,7 @@ impl SignalGraph {
             .ok()
             .and_then(|entry| entry.get_causality())
             .map(|causality| causality.kind.clone());
-        self.diagnostics
+        self.observation.diagnostics
             .note_change_input(node, aspect, changed_regions, causality_kind);
     }
 
@@ -119,7 +119,7 @@ impl SignalGraph {
         maybe_stale_direct_subscribers: u32,
         partition_scoped_checks: u32,
     ) {
-        self.diagnostics.record_invalidation_result(
+        self.observation.diagnostics.record_invalidation_result(
             invalidated_direct_subscribers,
             maybe_stale_direct_subscribers,
             partition_scoped_checks,
@@ -127,6 +127,6 @@ impl SignalGraph {
     }
 
     pub(crate) fn clear_pending_diagnostics_input(&mut self) {
-        self.diagnostics.clear_pending_input();
+        self.observation.diagnostics.clear_pending_input();
     }
 }

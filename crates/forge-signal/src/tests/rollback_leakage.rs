@@ -10,7 +10,6 @@ use crate::diagnostics::ExecutionFailurePhase;
 use crate::facade::*;
 use crate::tests::support::*;
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Domain {
     Audit,
@@ -162,15 +161,15 @@ fn failed_commit_cannot_leak_key_registry_growth() {
         .event_bus_mut()
         .subscribe(Box::new(FailingSubscriber))
         .unwrap();
+    let tripwire_family = define_keyed_computation(&mut runtime, "tripwire-family", ());
     let before = runtime.config().test_registry_counts();
     let mut ctx = ();
 
     let err = runtime
         .transaction(&mut ctx, |tx| {
-            let family = tx.register_computation_family("tripwire-family");
-            let keyed = tx.keyed_node(&family, "tripwire-key");
-            let computation =
-                KeyedComputation::new(family.clone(), "tripwire-key").with_memo_key("tripwire");
+            let keyed_def = tripwire_family.keyed("tripwire-key");
+            let keyed = keyed_def.node_in_transaction(tx);
+            let computation = keyed_def.memoized("tripwire");
             tx.evaluate_keyed(keyed, &computation, &|_node, view| {
                 Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
             })?;
@@ -191,9 +190,10 @@ fn failed_commit_preserves_preexisting_memoized_state() {
         .with_events::<Ev>()
         .checkpoint_barrier(CheckpointBarrier::PerOperation)
         .build();
-    let family = runtime.register_computation_family("stable-family");
-    let keyed = runtime.keyed_node(&family, "stable-key");
-    let computation = KeyedComputation::new(family.clone(), "stable-key").with_memo_key("stable");
+    let family = define_keyed_computation(&mut runtime, "stable-family", ());
+    let keyed_def = family.keyed("stable-key");
+    let keyed = keyed_def.node(&mut runtime);
+    let computation = keyed_def.memoized("stable");
     let mut ctx = ();
     let compute_calls = AtomicU32::new(0);
 
@@ -211,12 +211,13 @@ fn failed_commit_preserves_preexisting_memoized_state() {
         .event_bus_mut()
         .subscribe(Box::new(FailingSubscriber))
         .unwrap();
+    let fresh_def = define_keyed_computation(&mut runtime, "fresh-family", ());
 
     let err = runtime
         .transaction(&mut ctx, |tx| {
-            let family = tx.register_computation_family("fresh-family");
-            let other = tx.keyed_node(&family, "fresh-key");
-            let fresh = KeyedComputation::new(family.clone(), "fresh-key").with_memo_key("fresh");
+            let keyed_def = fresh_def.keyed("fresh-key");
+            let other = keyed_def.node_in_transaction(tx);
+            let fresh = keyed_def.memoized("fresh");
             tx.evaluate_keyed(other, &fresh, &|_node, view| {
                 Ok(view.finish(NodeEvaluationResult::from_version(version_ab(7, 0))))
             })?;

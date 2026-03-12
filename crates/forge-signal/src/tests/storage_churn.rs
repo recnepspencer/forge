@@ -37,9 +37,9 @@ fn compaction_and_slot_reuse_are_observable_through_storage_metrics() {
         .unwrap();
 
     let metrics = runtime.graph().metrics();
-    assert!(metrics.graph_storage_compaction_count >= 1);
-    assert!(metrics.graph_storage_dependency_segments_rewritten >= 1);
-    assert!(metrics.graph_storage_subscriber_segments_rewritten >= 1);
-    assert!(metrics.partition_interner_growth_delta >= 1);
-    assert!(metrics.subscriber_index_rebuild_count >= 1);
+    assert!(metrics.storage.graph_storage_compaction_count >= 1);
+    assert!(metrics.storage.graph_storage_dependency_segments_rewritten >= 1);
+    assert!(metrics.storage.graph_storage_subscriber_segments_rewritten >= 1);
+    assert!(metrics.invalidation.partition_interner_growth_delta >= 1);
+    assert!(metrics.storage.subscriber_index_rebuild_count >= 1);
 }

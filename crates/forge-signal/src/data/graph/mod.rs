@@ -15,5 +15,6 @@ pub(crate) use storage::{
     DependencyEdgeStore, DependencySetId, SubscriberEdgeStore, SubscriberSetId,
 };
 pub use construction::NodeBuilder;
-pub(crate) use runtime::{ScratchLeaseKind, TraversalScratch};
+pub use runtime::ScratchLeaseKind;
+pub(crate) use runtime::TraversalScratch;
 pub use runtime::SignalGraph;

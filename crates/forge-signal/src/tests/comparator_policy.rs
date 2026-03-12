@@ -40,7 +40,7 @@ fn tolerance_comparator_skips_small_version_delta() {
     evaluate(&mut graph, b, &mut compute_b).unwrap();
     evaluate(&mut graph, c, &mut compute_c).unwrap();
 
-    assert!(graph.telemetry().skipped_by_comparator >= 1);
+    assert!(graph.telemetry().evaluation.skipped_by_comparator >= 1);
 }
 
 struct ForceChangeResolver;

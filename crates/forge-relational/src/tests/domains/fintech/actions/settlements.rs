@@ -1,8 +1,8 @@
 use serde_json::json;
 
 use crate::facade::{
-    BranchId, CommitOutcome, RecordPayload, TransactionIntent, TransactionOptions,
-    WorkerIntentBatch,
+    BranchId, CommitOutcome, EntityMutationIntent, RecordPayload, MutationIntent,
+    TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
 };
 
 use super::super::fixture::FintechWorld;
@@ -33,7 +33,7 @@ pub(crate) fn repair_settlement_with_payloads(
         ..TransactionOptions::default()
     });
     txn.push_batch(WorkerIntentBatch::new("repair-settlement").push(
-        TransactionIntent::UpdateEntity {
+        MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
             entity_id: settlement_id,
             payload: RecordPayload::StructuredJson(json!({
                 "entity_type": "settlement",
@@ -41,10 +41,10 @@ pub(crate) fn repair_settlement_with_payloads(
                 "status": "repaired",
                 "repair_completed": true,
             })),
-        },
+        })),
     ));
     txn.push_batch(WorkerIntentBatch::new("repair-cash-event").push(
-        TransactionIntent::UpdateEntity {
+        MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
             entity_id: cash_event_id,
             payload: RecordPayload::StructuredJson(json!({
                 "entity_type": "cash_event",
@@ -52,17 +52,17 @@ pub(crate) fn repair_settlement_with_payloads(
                 "kind": "repair-funding",
                 "status": "applied",
             })),
-        },
+        })),
     ));
     txn.push_batch(WorkerIntentBatch::new("repair-audit-record").push(
-        TransactionIntent::UpdateEntity {
+        MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
             entity_id: audit_record_id,
             payload: RecordPayload::StructuredJson(json!({
                 "entity_type": "audit_record",
                 "case": "failed-settlement-repair",
                 "event": "settlement-repaired",
             })),
-        },
+        })),
     ));
     txn.commit().unwrap()
 }

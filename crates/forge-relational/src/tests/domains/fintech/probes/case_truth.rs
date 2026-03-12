@@ -46,7 +46,7 @@ pub(crate) fn read_snapshot_probe(
     let packet = world.packet_for_case_probe(case);
     let result = world
         .runtime
-        .execute_read_packet(snapshot, &packet)
+        .visibility_reads().execute_read_packet(snapshot, &packet)
         .expect("snapshot probe should be readable");
     CaseTruthProbe {
         case_role: case,
@@ -109,7 +109,7 @@ pub(crate) fn read_version_probe(
     stage: ProbeStage,
 ) -> CaseTruthProbe {
     let packet = world.packet_for_case_probe(case);
-    let read = world.runtime.read_version(version_id);
+    let read = world.runtime.visibility_reads().read_version(version_id);
     let result = read.execute_packet(&packet);
     CaseTruthProbe {
         case_role: case,

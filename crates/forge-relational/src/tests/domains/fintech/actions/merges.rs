@@ -1,8 +1,8 @@
 use serde_json::json;
 
 use crate::facade::{
-    BranchId, CommitOutcome, RecordPayload, TransactionIntent, TransactionOptions,
-    WorkerIntentBatch,
+    BranchId, CommitOutcome, EntityMutationIntent, RecordPayload, MutationIntent,
+    TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
 };
 
 use super::super::fixture::{FintechCaseRole, FintechWorld};
@@ -19,7 +19,7 @@ pub(crate) fn diverge_case_trade_on_branch(
         ..TransactionOptions::default()
     });
     txn.push_batch(WorkerIntentBatch::new("diverge-case-trade").push(
-        TransactionIntent::UpdateEntity {
+        MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
             entity_id: case.trade,
             payload: RecordPayload::StructuredJson(json!({
                 "entity_type": "trade",
@@ -30,7 +30,7 @@ pub(crate) fn diverge_case_trade_on_branch(
                 "ccy": "USD",
                 "diverged": true,
             })),
-        },
+        })),
     ));
     txn.commit().unwrap()
 }

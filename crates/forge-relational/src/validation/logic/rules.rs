@@ -56,7 +56,7 @@ pub(crate) fn evaluate_rule(
                     let partition = state
                         .get_partition(partition_id)
                         .expect("partition for invariant scan");
-                    runtime.instrumentation.count(|counters| {
+                    runtime.services.instrumentation.count(|counters| {
                         counters.invariant_entity_slot_scans += partition.entity_arena.slot_count();
                     });
                     visible_entities += (0..partition.entity_arena.slot_count())
@@ -109,6 +109,7 @@ fn evaluate_live_record_sidecar_rule(
             "kind id",
             |runtime, slots| {
                 runtime
+                    .services
                     .instrumentation
                     .count(|counters| counters.invariant_entity_slot_scans += slots);
             },
@@ -123,6 +124,7 @@ fn evaluate_live_record_sidecar_rule(
             "endpoints",
             |runtime, slots| {
                 runtime
+                    .services
                     .instrumentation
                     .count(|counters| counters.invariant_relation_slot_scans += slots);
             },
@@ -180,6 +182,7 @@ fn evaluate_unique_entity_payload_field(
         let mut planned_value_to_entity = BTreeMap::new();
         for (entity_id, value) in planned_values {
             runtime
+                .services
                 .instrumentation
                 .complexity_counters
                 .lock()
@@ -212,6 +215,7 @@ fn evaluate_unique_entity_payload_field(
         let touched_set = touched_entity_set(&touched_entity_ids);
         for entity_id in touched_entity_ids {
             runtime
+                .services
                 .instrumentation
                 .complexity_counters
                 .lock()
@@ -255,6 +259,7 @@ fn evaluate_unique_entity_payload_field(
                 .get_partition(partition_id)
                 .expect("partition for invariant scan");
             runtime
+                .services
                 .instrumentation
                 .complexity_counters
                 .lock()

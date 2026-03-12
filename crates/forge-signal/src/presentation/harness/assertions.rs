@@ -75,7 +75,11 @@ impl SignalHarnessAssert {
     }
 
     pub fn performance_metric(bundle: &HarnessObservedBundle<String>, metric: &str) -> Option<u64> {
-        bundle.performance.as_ref()?.get(metric)?.as_u64()
+        let mut value = bundle.performance.as_ref()?;
+        for segment in metric.split('.') {
+            value = value.get(segment)?;
+        }
+        value.as_u64()
     }
 
     pub fn diagnostics_field<'a>(

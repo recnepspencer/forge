@@ -1,17 +1,28 @@
 use crate::data::aspect::AspectVersion;
-use crate::data::comparator::TierPolicyResolver;
 use crate::data::error::SignalError;
-use crate::data::graph::ScratchLeaseKind;
 use crate::data::handle::NodeId;
 use crate::diagnostics::ExecutionFailurePhase;
 use crate::logic::evaluation::EvaluationRequestMode;
 use crate::logic::planner::{
-    build_evaluation_session_with_policy_resolver, execute_evaluation_session_with_policy,
-    execute_prepared_plan_with_policy, EvaluationPlan, ExecutionReport, StageExecutor,
+    EvaluationPlan, ExecutionReport, StageExecutor,
 };
 use crate::logic::prepared::{ExecutionReadView, PreparedEvaluation};
+use std::time::Instant;
 
 use super::super::transaction::SignalTransaction;
+use super::shared::{
+    absorb_execution_report_telemetry, execute_plan_with_runtime_config,
+    execute_targets_with_runtime_config_detailed,
+};
+
+enum TransactionExecutionIntent<'a> {
+    Targets {
+        targets: &'a [NodeId],
+        request_mode: EvaluationRequestMode,
+        stage_task_candidates: bool,
+    },
+    Dirty,
+}
 
 impl<'a, D, I, E, Ctx, T> SignalTransaction<'a, D, I, E, Ctx, T>
 where
@@ -41,44 +52,15 @@ where
     where
         F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
     {
-        self.stage_evaluate_candidates(node)?;
-        let mut resolver = TierPolicyResolver::new(
-            self.config.node_meta(),
-            self.config.tier_policies(),
-            self.config.fallback_comparator(),
-        );
-        let report = match self.graph.with_scratch(ScratchLeaseKind::Evaluation, |graph, scratch| {
-            let session = build_evaluation_session_with_policy_resolver(
-                graph,
-                scratch,
-                &[node],
+        self.execute_evaluation(
+            TransactionExecutionIntent::Targets {
+                targets: std::slice::from_ref(&node),
                 request_mode,
-                &mut resolver,
-            )?;
-            execute_evaluation_session_with_policy(
-                graph,
-                &session,
-                precompute,
-                &mut resolver,
-                executor,
-            )
-        }) {
-            Ok(report) => report,
-            Err(err) => {
-                if let Some(summary) = self.graph.latest_failure_diagnostics().cloned() {
-                    self.semantic_delta.failure_summary = Some(summary);
-                } else {
-                    self.record_failure_from_error(
-                        ExecutionFailurePhase::Apply,
-                        &err,
-                        None,
-                    );
-                }
-                return Err(err);
-            }
-        };
-        self.absorb_execution_report_telemetry(&report);
-        Ok(report)
+                stage_task_candidates: false,
+            },
+            precompute,
+            executor,
+        )
     }
 
     pub fn execute_prepared_plan_with_executor<F>(
@@ -90,16 +72,12 @@ where
     where
         F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
     {
-        let mut resolver = TierPolicyResolver::new(
-            self.config.node_meta(),
-            self.config.tier_policies(),
-            self.config.fallback_comparator(),
-        );
-        let report = match execute_prepared_plan_with_policy(
+        let execution_start = Instant::now();
+        let report = match execute_plan_with_runtime_config(
             self.graph,
+            self.config,
             plan,
             precompute,
-            &mut resolver,
             executor,
         ) {
             Ok(report) => report,
@@ -116,7 +94,9 @@ where
                 return Err(err);
             }
         };
-        self.absorb_execution_report_telemetry(&report);
+        self.execution_state
+            .record_report(&report, execution_start.elapsed().as_nanos());
+        absorb_execution_report_telemetry(self.telemetry, &report);
         Ok(report)
     }
 
@@ -167,63 +147,7 @@ where
     where
         F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
     {
-        let targets = self.collect_dirty_targets();
-        if targets.is_empty() {
-            return Ok(crate::logic::transaction::helpers::empty_execution_report());
-        }
-        let stage_targets = targets
-            .iter()
-            .copied()
-            .map(|node| crate::logic::planner::EvaluationTask {
-                node,
-                request_mode: EvaluationRequestMode::Default,
-                direct_request: true,
-                reason: crate::logic::planner::TaskReason::RequestedTarget,
-            })
-            .collect::<Vec<_>>();
-        self.stage_task_candidates(&stage_targets)?;
-        let mut planning_resolver = TierPolicyResolver::new(
-            self.config.node_meta(),
-            self.config.tier_policies(),
-            self.config.fallback_comparator(),
-        );
-        let mut execution_resolver = TierPolicyResolver::new(
-            self.config.node_meta(),
-            self.config.tier_policies(),
-            self.config.fallback_comparator(),
-        );
-        let report = match self.graph.with_scratch(ScratchLeaseKind::Evaluation, |graph, scratch| {
-            let session = build_evaluation_session_with_policy_resolver(
-                graph,
-                scratch,
-                &targets,
-                EvaluationRequestMode::Default,
-                &mut planning_resolver,
-            )?;
-            execute_evaluation_session_with_policy(
-                graph,
-                &session,
-                precompute,
-                &mut execution_resolver,
-                executor,
-            )
-        }) {
-            Ok(report) => report,
-            Err(err) => {
-                if let Some(summary) = self.graph.latest_failure_diagnostics().cloned() {
-                    self.semantic_delta.failure_summary = Some(summary);
-                } else {
-                    self.record_failure_from_error(
-                        ExecutionFailurePhase::Apply,
-                        &err,
-                        None,
-                    );
-                }
-                return Err(err);
-            }
-        };
-        self.absorb_execution_report_telemetry(&report);
-        Ok(report)
+        self.execute_evaluation(TransactionExecutionIntent::Dirty, precompute, executor)
     }
 
     fn collect_dirty_targets(&self) -> Vec<NodeId> {
@@ -248,49 +172,87 @@ where
         }
     }
 
-    pub(super) fn absorb_execution_report_telemetry(&mut self, report: &ExecutionReport) {
-        self.telemetry.plans_built += 1;
-        self.telemetry.stages_built += report.stage_count as u64;
-        self.telemetry.tasks_scheduled += report.task_count as u64;
-        self.telemetry.tasks_pruned_before_execution += report.tasks_pruned as u64;
-        self.telemetry.maybe_stale_validation_tasks += report
-            .stages
-            .iter()
-            .flat_map(|stage| &stage.task_records)
-            .filter(|record| {
-                matches!(
-                    record.scheduled_reason,
-                    crate::logic::planner::TaskReason::MaybeStaleValidation
-                )
-            })
-            .count() as u64;
-        self.telemetry.stage_execution_count += report.stage_count as u64;
-        #[cfg(feature = "parallel")]
-        let parallel_stages = report
-            .stages
-            .iter()
-            .filter(|stage| {
-                matches!(
-                    stage.outcome,
-                    crate::logic::planner::StageExecutionOutcome::CompletedParallel
-                )
-            })
-            .count() as u64;
-        #[cfg(not(feature = "parallel"))]
-        let parallel_stages = 0_u64;
-        if parallel_stages > 0 {
-            self.telemetry.parallel_executor_usage_count += 1;
-            self.telemetry.parallel_stage_dispatch_count += parallel_stages;
-        } else {
-            self.telemetry.serial_executor_usage_count += 1;
-        }
-        self.telemetry.max_tasks_in_stage = self.telemetry.max_tasks_in_stage.max(
-            report
-                .stages
-                .iter()
-                .map(|stage| stage.task_records.len() as u64)
-                .max()
-                .unwrap_or(0),
-        );
+    fn execute_evaluation<F>(
+        &mut self,
+        intent: TransactionExecutionIntent<'_>,
+        precompute: &F,
+        executor: StageExecutor,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    {
+        let owned_targets;
+        let (targets, request_mode) = match intent {
+            TransactionExecutionIntent::Targets {
+                targets,
+                request_mode,
+                stage_task_candidates,
+            } => {
+                if stage_task_candidates {
+                    let stage_targets = targets
+                        .iter()
+                        .copied()
+                        .map(|node| crate::logic::planner::EvaluationTask {
+                            node,
+                            request_mode,
+                            direct_request: true,
+                            reason: crate::logic::planner::TaskReason::RequestedTarget,
+                        })
+                        .collect::<Vec<_>>();
+                    self.stage_task_candidates(&stage_targets)?;
+                } else if let [node] = targets {
+                    self.stage_evaluate_candidates(*node)?;
+                }
+                (targets, request_mode)
+            }
+            TransactionExecutionIntent::Dirty => {
+                owned_targets = self.collect_dirty_targets();
+                if owned_targets.is_empty() {
+                    return Ok(crate::logic::transaction::helpers::empty_execution_report());
+                }
+                let stage_targets = owned_targets
+                    .iter()
+                    .copied()
+                    .map(|node| crate::logic::planner::EvaluationTask {
+                        node,
+                        request_mode: EvaluationRequestMode::Default,
+                        direct_request: true,
+                        reason: crate::logic::planner::TaskReason::RequestedTarget,
+                    })
+                    .collect::<Vec<_>>();
+                self.stage_task_candidates(&stage_targets)?;
+                (&owned_targets[..], EvaluationRequestMode::Default)
+            }
+        };
+
+        let execution_start = Instant::now();
+        let report = match execute_targets_with_runtime_config_detailed(
+            self.graph,
+            self.config,
+            targets,
+            request_mode,
+            precompute,
+            executor,
+        ) {
+            Ok(report) => report,
+            Err(failure) => {
+                let err = failure.error;
+                if let Some(summary) = self.graph.latest_failure_diagnostics().cloned() {
+                    self.semantic_delta.failure_summary = Some(summary);
+                } else {
+                    self.record_failure_from_error(
+                        ExecutionFailurePhase::Apply,
+                        &err,
+                        Some(failure.plan_summary),
+                    );
+                }
+                return Err(err);
+            }
+        };
+        self.execution_state
+            .record_report(&report, execution_start.elapsed().as_nanos());
+        absorb_execution_report_telemetry(self.telemetry, &report);
+        Ok(report)
     }
+
 }

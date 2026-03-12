@@ -17,7 +17,7 @@ impl RelationalRuntime {
         commit_id: CommitId,
         mut partition_ids: Vec<PartitionId>,
     ) -> Result<CompiledExecutionArtifact, CompiledArtifactError> {
-        if self.config.compiled_lane_policy != CompiledLanePolicy::DerivedCompiledLane {
+        if self.config.execution.compiled_lane_policy != CompiledLanePolicy::DerivedCompiledLane {
             return Err(CompiledArtifactError {
                 compatibility: CompiledArtifactCompatibility::CompiledLaneDisabled,
                 detail: "compiled execution lane is disabled for this profile".to_string(),
@@ -33,7 +33,7 @@ impl RelationalRuntime {
         partition_ids.dedup();
         let compiled_record_count = envelope.patch.records.len();
         let artifact = CompiledExecutionArtifact {
-            artifact_id: self.simulation.next_compiled_artifact_id,
+            artifact_id: self.services.next_compiled_artifact_id(),
             source_commit_id: commit_id,
             source_version_id: envelope.commit.version_id,
             source_branch_id: envelope.branch_context.clone(),
@@ -41,10 +41,7 @@ impl RelationalRuntime {
             topology_freeze_mode: TopologyFreezeMode::FreezeAtCommit,
             compiled_record_count,
         };
-        self.simulation.next_compiled_artifact_id += 1;
-        self.simulation
-            .compiled_artifacts
-            .insert(artifact.artifact_id, artifact.clone());
+        self.services.store_compiled_artifact(artifact.clone());
         self.push_bounded_diagnostic(
             DiagnosticsScope::History,
             DiagnosticsArtifactKind::MinimalSummary,
@@ -64,17 +61,21 @@ impl RelationalRuntime {
     }
 
     pub fn compiled_artifact(&self, artifact_id: u64) -> Option<&CompiledExecutionArtifact> {
-        self.simulation.compiled_artifacts.get(&artifact_id)
+        self.services
+            .compiled_artifact(artifact_id)
     }
 
     pub fn compiled_artifact_compatibility(
         &self,
         artifact_id: u64,
     ) -> CompiledArtifactCompatibility {
-        if self.config.compiled_lane_policy != CompiledLanePolicy::DerivedCompiledLane {
+        if self.config.execution.compiled_lane_policy != CompiledLanePolicy::DerivedCompiledLane {
             return CompiledArtifactCompatibility::CompiledLaneDisabled;
         }
-        let Some(artifact) = self.simulation.compiled_artifacts.get(&artifact_id) else {
+        let Some(artifact) = self
+            .services
+            .compiled_artifact(artifact_id)
+        else {
             return CompiledArtifactCompatibility::MissingSourceCommit;
         };
         let Some(commit) = self

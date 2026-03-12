@@ -27,24 +27,24 @@ impl RelationalRuntime {
             InvariantExecutionPoint::MutationSensitive => vec![(
                 InvariantClass::AlwaysOnStructural,
                 InvariantFailureEffect::BlockCommit,
-                &self.config.invariant_catalog.always_on_structural,
+                &self.config.schema.invariant_catalog.always_on_structural,
             )],
             InvariantExecutionPoint::CommitBoundary => vec![(
                 InvariantClass::CommitBoundary,
                 InvariantFailureEffect::BlockCommit,
-                &self.config.invariant_catalog.commit_boundary,
+                &self.config.schema.invariant_catalog.commit_boundary,
             )],
             InvariantExecutionPoint::SnapshotPublication => vec![(
                 InvariantClass::SnapshotAudit,
                 InvariantFailureEffect::BlockPublication,
-                &self.config.invariant_catalog.snapshot_audit,
+                &self.config.schema.invariant_catalog.snapshot_audit,
             )],
             InvariantExecutionPoint::HarnessAudit => {
                 if include_harness_heavy {
                     vec![(
                         InvariantClass::HarnessHeavy,
                         InvariantFailureEffect::AuditOnly,
-                        &self.config.invariant_catalog.harness_heavy,
+                        &self.config.schema.invariant_catalog.harness_heavy,
                     )]
                 } else {
                     Vec::new()

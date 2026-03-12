@@ -11,14 +11,17 @@ pub(super) use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
 pub(super) use crate::config::data::{DurableLogPolicy, DurableLogRetentionMode};
 pub(super) use crate::config::data::{PatchSurfacePolicy, PublicationConfig};
 pub(super) use crate::facade::{
-    BranchCreateError, BranchId, CommitOutcome, DiagnosticCode, DiagnosticsArtifactKind,
-    DiagnosticsScope, DurabilityMode, DurableStoreLayout, EntityKindRegistration, EntityReadRecord,
-    InvariantCatalog, InvariantClass, InvariantExecutionPoint, InvariantRule, KindId, PartitionId,
-    PatchStreamPosition, PatchStreamRequest, PublicationStage, PublicationStatus, QueryWorkPacket,
-    RecordRef, RelationId, RelationKindRegistration, RelationalHarnessAdapter, RelationalMutation,
-    RelationalRuntime, RelationalRuntimeApi, RelationalRuntimeProfile, RelationalSchemaRegistry,
-    ReplayMismatchClass, SchemaId, SchemaVersionId, StorageLayoutConfig, TransactionCommitError,
-    TransactionIntent, TransactionOptions, VisibilityCachePolicy, WorkerIntentBatch,
+    BranchId, CommitOutcome, DiagnosticCode, DiagnosticsArtifactKind,
+    DiagnosticsScope, DurabilityMode, DurableStoreLayout, EntityKindRegistration, EntityMutationIntent,
+    EntityReadRecord, InvariantCatalog, InvariantClass, InvariantExecutionPoint, InvariantRule,
+    KindId, PartitionId, PatchStreamPosition, PatchStreamRequest, PublicationStage,
+    PublicationStatus, QueryWorkPacket, RecordRef, RelationId, RelationKindRegistration,
+    RelationMutationIntent, RelationalHarnessAdapter, RelationalRuntime,
+    RelationalRuntimeApi, RelationalRuntimeProfile, RelationalSchemaRegistry, ReplayMismatchClass,
+    SchemaId, SchemaVersionId, StorageLayoutConfig, TransactionCommitError, MutationIntent,
+    TransactionOptions, UpdateEntityIntent, DeleteEntityIntent, DeleteRelationIntent, CreateIntent,
+    BulkEntityCreateIntent, ReplaceEntityIntent, VisibilityCachePolicy,
+    WorkerIntentBatch,
 };
 pub(super) use crate::payloads::data::RecordPayload;
 pub(super) use crate::publication::data::diff::{PatchCompatibilityClass, PatchDetail};
@@ -107,13 +110,13 @@ pub(super) fn runtime_with_test_schema_and_invariants(
 }
 
 pub(super) fn batch_create(name: &str) -> WorkerIntentBatch {
-    WorkerIntentBatch::new(format!("batch-{name}")).push(TransactionIntent::CreateEntity(
-        crate::transactions::data::EntitySpec {
+    WorkerIntentBatch::new(format!("batch-{name}")).push(MutationIntent::Create(
+        CreateIntent::Entity(crate::transactions::data::EntitySpec {
             partition_id: PartitionId::main(),
             kind_id: KindId(1),
             client_key: InternedString::Raw(name.to_string()),
             payload: RecordPayload::StructuredJson(json!({ "name": name })),
-        },
+        }),
     ))
 }
 
@@ -131,12 +134,12 @@ pub(super) fn create_entity_in_partition(
 ) -> crate::facade::EntityId {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(WorkerIntentBatch::new(format!("batch-{name}")).push(
-        TransactionIntent::CreateEntity(crate::transactions::data::EntitySpec {
+        MutationIntent::Create(CreateIntent::Entity(crate::transactions::data::EntitySpec {
             partition_id,
             kind_id: KindId(1),
             client_key: InternedString::Raw(name.to_string()),
             payload: RecordPayload::StructuredJson(json!({ "name": name })),
-        }),
+        })),
     ));
     changed_entities(&txn.commit().unwrap())[0]
 }
@@ -164,7 +167,9 @@ pub(super) fn delete_entity(
 ) -> CommitOutcome {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
-        WorkerIntentBatch::new("delete").push(TransactionIntent::DeleteEntity { entity_id }),
+        WorkerIntentBatch::new("delete").push(MutationIntent::Entity(
+            EntityMutationIntent::Delete(DeleteEntityIntent { entity_id }),
+        )),
     );
     txn.commit().unwrap()
 }
@@ -188,10 +193,12 @@ pub(super) fn update_entity_on_branch(
         ..TransactionOptions::default()
     });
     txn.push_batch(
-        WorkerIntentBatch::new("update").push(TransactionIntent::UpdateEntity {
-            entity_id,
-            payload: RecordPayload::StructuredJson(json!({ "name": name })),
-        }),
+        WorkerIntentBatch::new("update").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id,
+                payload: RecordPayload::StructuredJson(json!({ "name": name })),
+            }),
+        )),
     );
     txn.commit().unwrap()
 }
@@ -214,15 +221,15 @@ pub(super) fn create_relation_in_partition(
 ) -> RelationId {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
-        WorkerIntentBatch::new("relation").push(TransactionIntent::CreateRelation(
-            crate::transactions::data::RelationSpec {
+        WorkerIntentBatch::new("relation").push(MutationIntent::Create(
+            CreateIntent::Relation(crate::transactions::data::RelationSpec {
                 partition_id,
                 kind_id: KindId(2),
                 client_key: InternedString::Raw(client_key.to_string()),
                 source,
                 target,
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"rel"}))),
-            },
+            }),
         )),
     );
     let outcome = txn.commit().unwrap();
@@ -237,15 +244,15 @@ pub(super) fn create_relation_outcome(
 ) -> CommitOutcome {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
-        WorkerIntentBatch::new("relation").push(TransactionIntent::CreateRelation(
-            crate::transactions::data::RelationSpec {
+        WorkerIntentBatch::new("relation").push(MutationIntent::Create(
+            CreateIntent::Relation(crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw(client_key.to_string()),
                 source,
                 target,
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"rel"}))),
-            },
+            }),
         )),
     );
     txn.commit().unwrap()

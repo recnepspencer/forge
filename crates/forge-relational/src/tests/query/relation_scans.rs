@@ -17,12 +17,13 @@ fn relation_kind_scans_return_only_visible_relations_of_that_kind() {
     let deleted = {
         let mut txn = runtime.begin_transaction(TransactionOptions::default());
         txn.push_batch(
-            WorkerIntentBatch::new("delete-r1")
-                .push(TransactionIntent::DeleteRelation { relation_id: r1 }),
+            WorkerIntentBatch::new("delete-r1").push(MutationIntent::Relation(
+                RelationMutationIntent::Delete(DeleteRelationIntent { relation_id: r1 }),
+            )),
         );
         txn.commit().unwrap()
     };
-    let visible = runtime.visible_relations_of_kind(KindId(2), deleted.version_id);
+    let visible = runtime.visibility_reads().visible_relations_of_kind(KindId(2), deleted.version_id);
 
     assert_eq!(visible.len(), 1);
     assert_eq!(visible[0].relation_id, r2);
@@ -36,7 +37,7 @@ fn relation_kind_scans_are_deterministic_across_equivalent_insert_order() {
     let a_third = create_entity(&mut runtime_a, "third");
     let _ = create_relation(&mut runtime_a, a_left, a_right, "r1");
     let _ = create_relation(&mut runtime_a, a_right, a_third, "r2");
-    let scan_a = runtime_a.visible_relations_of_kind(KindId(2), runtime_a.current_version_id());
+    let scan_a = runtime_a.visibility_reads().visible_relations_of_kind(KindId(2), runtime_a.current_version_id());
 
     let mut runtime_b = runtime_with_test_schema();
     let b_left = create_entity(&mut runtime_b, "left");
@@ -44,7 +45,7 @@ fn relation_kind_scans_are_deterministic_across_equivalent_insert_order() {
     let b_third = create_entity(&mut runtime_b, "third");
     let _ = create_relation(&mut runtime_b, b_right, b_third, "r2");
     let _ = create_relation(&mut runtime_b, b_left, b_right, "r1");
-    let scan_b = runtime_b.visible_relations_of_kind(KindId(2), runtime_b.current_version_id());
+    let scan_b = runtime_b.visibility_reads().visible_relations_of_kind(KindId(2), runtime_b.current_version_id());
 
     assert_eq!(scan_a.len(), scan_b.len());
     assert_eq!(

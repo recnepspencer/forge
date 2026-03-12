@@ -1,5 +1,5 @@
 use crate::capabilities::{SchemaSource, StorageRead};
-use crate::transactions::data::{CommitConflict, ConflictClass, TransactionIntent};
+use crate::transactions::data::{CommitConflict, ConflictClass, CreateIntent, EntityMutationIntent, MutationIntent};
 use crate::validation::logic::schema_error_to_commit_conflict;
 
 use super::record_lookup::entity_exists_in_state;
@@ -7,26 +7,30 @@ use super::record_lookup::entity_exists_in_state;
 pub(super) fn validate_entity_intent(
     state: &impl StorageRead,
     schema_source: &impl SchemaSource,
-    intent: &TransactionIntent,
+    intent: &MutationIntent,
 ) -> Result<(), CommitConflict> {
     let schema_registry = schema_source.schema_registry();
     match intent {
-        TransactionIntent::CreateEntity(spec) => schema_registry
+        MutationIntent::Create(CreateIntent::Entity(spec)) => schema_registry
             .resolve_entity(spec.kind_id)
             .map(|_| ())
             .map_err(schema_error_to_commit_conflict),
-        TransactionIntent::BulkCreateEntities { kind_id, .. } => schema_registry
-            .resolve_entity(*kind_id)
+        MutationIntent::Create(CreateIntent::BulkEntities(spec)) => schema_registry
+            .resolve_entity(spec.kind_id)
             .map(|_| ())
             .map_err(schema_error_to_commit_conflict),
-        TransactionIntent::UpdateEntity { entity_id, .. }
-        | TransactionIntent::DeleteEntity { entity_id }
-        | TransactionIntent::ReplaceEntity { entity_id, .. } => {
-            validate_existing_entity_intent(state, schema_source, *entity_id, intent)
+        MutationIntent::Entity(EntityMutationIntent::Update(spec)) => {
+            validate_existing_entity_intent(state, schema_source, spec.entity_id, intent)
         }
-        TransactionIntent::CreateRelation(_)
-        | TransactionIntent::BulkCreateRelations { .. }
-        | TransactionIntent::DeleteRelation { .. } => Ok(()),
+        MutationIntent::Entity(EntityMutationIntent::Replace(spec)) => {
+            validate_existing_entity_intent(state, schema_source, spec.entity_id, intent)
+        }
+        MutationIntent::Entity(EntityMutationIntent::Delete(spec)) => {
+            validate_existing_entity_intent(state, schema_source, spec.entity_id, intent)
+        }
+        MutationIntent::Create(CreateIntent::Relation(_))
+        | MutationIntent::Create(CreateIntent::BulkRelations(_))
+        | MutationIntent::Relation(_) => Ok(()),
     }
 }
 
@@ -34,7 +38,7 @@ fn validate_existing_entity_intent(
     state: &impl StorageRead,
     schema_source: &impl SchemaSource,
     entity_id: crate::identity::data::EntityId,
-    intent: &TransactionIntent,
+    intent: &MutationIntent,
 ) -> Result<(), CommitConflict> {
     let schema_registry = schema_source.schema_registry();
     if !entity_exists_in_state(state, entity_id) {
@@ -45,16 +49,13 @@ fn validate_existing_entity_intent(
     }
 
     match intent {
-        TransactionIntent::ReplaceEntity { replacement, .. } => schema_registry
-            .resolve_entity(replacement.kind_id)
+        MutationIntent::Entity(EntityMutationIntent::Replace(spec)) => schema_registry
+            .resolve_entity(spec.replacement.kind_id)
             .map(|_| ())
             .map_err(schema_error_to_commit_conflict),
-        TransactionIntent::CreateEntity(_)
-        | TransactionIntent::BulkCreateEntities { .. }
-        | TransactionIntent::UpdateEntity { .. }
-        | TransactionIntent::DeleteEntity { .. }
-        | TransactionIntent::CreateRelation(_)
-        | TransactionIntent::BulkCreateRelations { .. }
-        | TransactionIntent::DeleteRelation { .. } => Ok(()),
+        MutationIntent::Create(_)
+        | MutationIntent::Entity(EntityMutationIntent::Update(_))
+        | MutationIntent::Entity(EntityMutationIntent::Delete(_))
+        | MutationIntent::Relation(_) => Ok(()),
     }
 }

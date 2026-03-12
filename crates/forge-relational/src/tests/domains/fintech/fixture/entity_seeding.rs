@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
 use crate::facade::{
-    CommitOutcome, EntityId, InternedString, KindId, PartitionId, RecordPayload, RelationalRuntime,
-    TransactionIntent, TransactionOptions, WorkerIntentBatch,
+    BulkEntityCreateIntent, CommitOutcome, CreateIntent, EntityId, InternedString, KindId,
+    PartitionId, RecordPayload, RelationalRuntime, MutationIntent, TransactionOptions,
+    WorkerIntentBatch,
 };
 use serde_json::json;
 
@@ -288,12 +289,12 @@ where
         .unzip();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(WorkerIntentBatch::new(batch_name).push(
-        TransactionIntent::BulkCreateEntities {
+        MutationIntent::Create(CreateIntent::BulkEntities(BulkEntityCreateIntent {
             partition_id,
             kind_id: KindId(1),
             client_keys,
             payloads,
-        },
+        })),
     ));
     changed_entities(&txn.commit().unwrap())
 }

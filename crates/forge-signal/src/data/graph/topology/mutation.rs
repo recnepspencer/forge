@@ -22,6 +22,63 @@ impl DependencyReconciliationReport {
 }
 
 impl SignalGraph {
+    pub(crate) fn assert_bidirectional_consistency(&self) -> Result<(), SignalError> {
+        for (index, slot) in self.arena.nodes.iter().enumerate() {
+            let Some(entry) = slot.data.as_ref() else {
+                continue;
+            };
+            if entry.is_tombstoned() {
+                continue;
+            }
+            let node = NodeId::new(index as u32, slot.generation);
+
+            for dependency in self.topology.dependency_edges.get(entry.get_dependencies_id()) {
+                if !self.is_alive(dependency.source()) {
+                    continue;
+                }
+                if !self
+                    .topology
+                    .subscriber_edges
+                    .get(self.get_entry(dependency.source())?.get_subscribers_id())
+                    .contains(&node)
+                {
+                    return Err(SignalError::internal(format!(
+                        "topology inconsistency: missing subscriber edge {} -> {}",
+                        dependency.source(),
+                        node
+                    )));
+                }
+            }
+
+            for &subscriber in self.topology.subscriber_edges.get(entry.get_subscribers_id()) {
+                if !self.is_alive(subscriber) {
+                    continue;
+                }
+                if !self
+                    .topology
+                    .dependency_edges
+                    .get(self.get_entry(subscriber)?.get_dependencies_id())
+                    .iter()
+                    .any(|dependency| dependency.source() == node)
+                {
+                    return Err(SignalError::internal(format!(
+                        "topology inconsistency: missing dependency edge {} -> {}",
+                        node, subscriber
+                    )));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    fn debug_assert_bidirectional_consistency(&self) {
+        #[cfg(debug_assertions)]
+        self.assert_bidirectional_consistency()
+            .expect("signal topology should remain bidirectionally consistent");
+    }
+
     pub fn add_dependency(
         &mut self,
         downstream: NodeId,
@@ -36,6 +93,7 @@ impl SignalGraph {
         if inserted {
             self.add_subscriber_edge(upstream, downstream)?;
         }
+        self.debug_assert_bidirectional_consistency();
         Ok(())
     }
 
@@ -92,6 +150,7 @@ impl SignalGraph {
         if removed && !self.has_dependency_on(downstream, upstream)? {
             self.remove_subscriber_edge(upstream, downstream)?;
         }
+        self.debug_assert_bidirectional_consistency();
         Ok(())
     }
 
@@ -110,6 +169,7 @@ impl SignalGraph {
         if removed && !self.has_dependency_on(downstream, upstream)? {
             self.remove_subscriber_edge(upstream, downstream)?;
         }
+        self.debug_assert_bidirectional_consistency();
         Ok(())
     }
 
@@ -121,9 +181,13 @@ impl SignalGraph {
     ) -> DependencyEdge {
         match scope {
             Some(scope) => {
-                let token_count_before = self.partition_interner.token_count();
-                let interned_scope = self.partition_interner.intern_subscription(&scope);
-                self.telemetry.partition_interner_growth_delta += self
+                let token_count_before = self.observation.partition_interner.token_count();
+                let interned_scope = self
+                    .observation
+                    .partition_interner
+                    .intern_subscription(&scope);
+                self.observation.telemetry.invalidation.partition_interner_growth_delta += self
+                    .observation
                     .partition_interner
                     .token_count()
                     .saturating_sub(token_count_before) as u64;
@@ -169,6 +233,7 @@ impl SignalGraph {
 
         self.set_dependency_edges_sorted(node, desired)?;
         self.reconcile_subscriber_sets(node, &current_sources, &desired_sources)?;
+        self.debug_assert_bidirectional_consistency();
         Ok(report)
     }
 
@@ -194,7 +259,7 @@ impl SignalGraph {
         node: NodeId,
         edges: &[DependencyEdge],
     ) -> Result<(), SignalError> {
-        let dependencies_id = self.dependency_edges.insert_from_slice(edges);
+        let dependencies_id = self.topology.dependency_edges.insert_from_slice(edges);
         self.get_entry_mut(node)?.set_dependencies_id(dependencies_id);
         self.record_graph_storage_pressure();
         Ok(())
@@ -251,7 +316,7 @@ impl SignalGraph {
         node: NodeId,
         subscribers: &[NodeId],
     ) -> Result<(), SignalError> {
-        let subscribers_id = self.subscriber_edges.insert_from_slice(subscribers);
+        let subscribers_id = self.topology.subscriber_edges.insert_from_slice(subscribers);
         self.get_entry_mut(node)?.set_subscribers_id(subscribers_id);
         self.record_graph_storage_pressure();
         Ok(())
@@ -271,7 +336,7 @@ impl SignalGraph {
 
     #[cfg(test)]
     pub(crate) fn rebuild_subscriber_index_from_dependencies(&mut self) -> Result<(), SignalError> {
-        self.telemetry.subscriber_index_rebuild_count += 1;
+        self.observation.telemetry.storage.subscriber_index_rebuild_count += 1;
         let live_nodes = self.live_node_ids();
         let mut rebuilt = vec![Vec::<NodeId>::new(); self.arena_capacity()];
 
@@ -296,6 +361,7 @@ impl SignalGraph {
             self.set_subscribers_sorted(node, &subscribers)?;
         }
 
+        self.debug_assert_bidirectional_consistency();
         Ok(())
     }
 
@@ -329,10 +395,11 @@ impl SignalGraph {
             }
         }
 
+        self.debug_assert_bidirectional_consistency();
         Ok(())
     }
 
-    fn reconcile_subscriber_sets(
+    pub(in crate::data::graph) fn reconcile_subscriber_sets(
         &mut self,
         node: NodeId,
         current_sources: &[NodeId],
@@ -369,7 +436,7 @@ impl SignalGraph {
         if !mutate(&mut updated) {
             return Ok(false);
         }
-        let dependencies_id = self.dependency_edges.insert_from_slice(&updated);
+        let dependencies_id = self.topology.dependency_edges.insert_from_slice(&updated);
         self.get_entry_mut(node)?.set_dependencies_id(dependencies_id);
         self.record_graph_storage_pressure();
         Ok(true)
@@ -384,7 +451,7 @@ impl SignalGraph {
         if !mutate(&mut updated) {
             return Ok(false);
         }
-        let subscribers_id = self.subscriber_edges.insert_from_slice(&updated);
+        let subscribers_id = self.topology.subscriber_edges.insert_from_slice(&updated);
         self.get_entry_mut(node)?.set_subscribers_id(subscribers_id);
         self.record_graph_storage_pressure();
         Ok(true)

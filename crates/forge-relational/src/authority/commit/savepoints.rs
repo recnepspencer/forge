@@ -22,8 +22,7 @@ impl<'a> RelationalTransaction<'a> {
             self.options.allow_nested_savepoints,
             "nested savepoints are disabled for this transaction"
         );
-        let savepoint_id = SavepointId(self.runtime.sequence.next_savepoint_id);
-        self.runtime.sequence.next_savepoint_id += 1;
+        let savepoint_id = self.runtime.services.next_savepoint_id();
         self.savepoints.push((savepoint_id, self.batches.len()));
         savepoint_id
     }

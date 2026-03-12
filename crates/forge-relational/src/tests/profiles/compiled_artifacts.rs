@@ -6,7 +6,8 @@ fn chip_profile_emits_dense_patch_surface_details() {
     let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
     let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
     let _ = create_relation_in_partition(&mut runtime, left, right, "bridge", PartitionId(29));
-    let patch = runtime.latest_patch().unwrap();
+    let publication = runtime.publication_access();
+    let patch = publication.latest_patch().unwrap();
 
     assert_eq!(
         patch.compatibility,
@@ -28,10 +29,10 @@ fn chip_profile_preserves_relation_traversal_with_compressed_adjacency_backend()
         create_relation_in_partition(&mut runtime, source, target_a, "r-a", PartitionId(7));
     let relation_b =
         create_relation_in_partition(&mut runtime, source, target_b, "r-b", PartitionId(12));
-    let version_id = runtime.latest_commit().unwrap().version_id;
+    let version_id = runtime.history_access().latest_commit().unwrap().version_id;
 
     assert_eq!(
-        runtime.config().adjacency_policy.backend,
+        runtime.config().storage.adjacency_policy.backend,
         crate::facade::AdjacencyBackend::CompressedFanoutAdjacency
     );
     assert_eq!(
@@ -50,7 +51,7 @@ fn chip_profile_compiled_artifacts_are_derived_from_committed_truth() {
     let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
     let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
     let _ = create_relation_in_partition(&mut runtime, left, right, "bridge", PartitionId(29));
-    let commit = runtime.latest_commit().unwrap().clone();
+    let commit = runtime.history_access().latest_commit().unwrap().clone();
 
     let artifact = runtime
         .compile_execution_artifact(

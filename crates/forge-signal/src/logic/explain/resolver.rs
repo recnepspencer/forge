@@ -33,6 +33,7 @@ pub fn explain_with_policy_resolver(
     }
     let state = *entry.get_state();
     let dirty_aspects = entry.get_dirty_aspects();
+    let contract = graph.get_contract(node)?.clone();
     let condition = entry.get_eval_config().condition.clone();
     let trace_summary = entry.get_trace_summary().cloned();
     let output_identity = trace_summary
@@ -94,10 +95,10 @@ pub fn explain_with_policy_resolver(
         );
         let current_version = if graph.is_alive(dependency.source()) {
             Some(
-                graph
-                    .get_entry(dependency.source())?
-                    .get_aspect_version()
-                    .get(dependency.aspect()),
+                graph.get_entry(dependency.source())?.version_for_scope(
+                    dependency.aspect(),
+                    dependency.scope_ref(),
+                ),
             )
         } else {
             None
@@ -265,6 +266,10 @@ pub fn explain_with_policy_resolver(
         materialization_mode: ArtifactMaterializationMode::Reconstructed,
         state,
         dirty_aspects,
+        contract_reads: contract.reads,
+        contract_produces: contract.produces,
+        contract_partition_scope: contract.partition_scope.clone(),
+        required_context: contract.required_context,
         condition,
         trace_summary,
         execution_record_id,

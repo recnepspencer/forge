@@ -56,8 +56,10 @@ impl RelationalRuntime {
             read_policy,
         };
         let current_state = self.current_state();
-        let entity_partitions = self.visible_entity_slots_from_state(&current_state, version_id);
-        let relation_partitions = self.visible_relation_slots_from_state(&current_state, version_id);
+        let reader = self.visibility_reads();
+        let entity_partitions = reader.visible_entity_slots_from_state(&current_state, version_id);
+        let relation_partitions =
+            reader.visible_relation_slots_from_state(&current_state, version_id);
         let mut pinned_partitions = BTreeMap::new();
         let mut pinned_entity_count = 0;
         for (partition_id, entity_slots) in entity_partitions {
