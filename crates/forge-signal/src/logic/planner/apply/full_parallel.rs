@@ -5,12 +5,18 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::output::MemoizedResultOrigin;
 use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
-use crate::logic::evaluation::apply_prepared_evaluation_with_policy;
+use crate::logic::evaluation::{
+    apply_prepared_evaluation_with_policy,
+    apply_prepared_evaluation_after_dependencies_with_policy,
+    collect_effect_dependency_inputs_batch,
+    EffectDependencyInputs,
+    PendingDependencySnapshot,
+};
 
 use super::groups::build_stage_apply_plan;
 use super::super::execution::task_reporting::record_execution_failure;
 use super::super::semantic::{
-    finalize_stage_batch, segment_for_single_update, segment_for_updates, SemanticTaskUpdate,
+    finalize_stage_batch, segment_for_single_update, SemanticTaskUpdate,
     StageSemanticBatch, StageSemanticIdentity,
 };
 use super::super::types::{
@@ -35,8 +41,21 @@ pub(super) fn apply_full_parallel_stage(
         .parallel_policy()
         .expect("full parallel execution should carry a policy");
     let prepared = prepare_stage_patches(graph, patches, comparator_resolver)?;
+    graph.reconcile_dependencies_batch(
+        &prepared
+            .tasks
+            .iter()
+            .map(|task| (task.node, task.next_dependencies.clone()))
+            .collect::<Vec<_>>(),
+    )?;
+    let dependency_inputs = collect_effect_dependency_inputs_batch(
+        graph,
+        &prepared.tasks.iter().map(|task| task.node).collect::<Vec<_>>(),
+    )?;
     let apply_plan = build_stage_apply_plan(prepared.tasks, policy);
     let mut semantic_batch = StageSemanticBatch::default();
+    let mut dependency_inputs = dependency_inputs.into_iter();
+    let mut pending_snapshots = Vec::<PendingDependencySnapshot>::new();
     for group in apply_plan.groups {
         stage_record.apply_mode = Some(ParallelApplyMode::SerialFallback);
         stage_record.serial_fallback_group_count += 1;
@@ -51,6 +70,10 @@ pub(super) fn apply_full_parallel_stage(
                 plan_summary,
                 stage_identities,
                 &mut semantic_batch,
+                dependency_inputs
+                    .next()
+                    .expect("parallel task patches should have dependency inputs"),
+                &mut pending_snapshots,
             )?;
         }
     }
@@ -72,6 +95,14 @@ pub(super) fn apply_full_parallel_stage(
             &mut semantic_batch,
         )?;
     }
+    if !pending_snapshots.is_empty() {
+        graph.set_dep_snapshot_batch(
+            &pending_snapshots
+                .iter()
+                .map(|pending| (pending.node, pending.snapshot.clone()))
+                .collect::<Vec<_>>(),
+        )?;
+    }
 
     let semantic_finalize_start = Instant::now();
     finalize_stage_batch(graph, stage_tasks, semantic_batch, report, stage_record)?;
@@ -84,6 +115,73 @@ fn apply_task_patch(
     graph: &mut SignalGraph,
     stage_index: u32,
     patch: TaskPatch,
+    comparator_resolver: &mut impl ComparatorPolicyResolver,
+    executor: StageExecutor,
+    plan_summary: &PlanSummary,
+    stage_identities: &[StageSemanticIdentity],
+    semantic_batch: &mut StageSemanticBatch,
+    dependency_inputs: EffectDependencyInputs,
+    pending_snapshots: &mut Vec<PendingDependencySnapshot>,
+) -> Result<(), SignalError> {
+    let identity = stage_identities[patch.task_index];
+    let apply_result = apply_prepared_evaluation_after_dependencies_with_policy(
+        graph,
+        patch.node,
+        patch.prepared,
+        comparator_resolver,
+        None,
+        patch.dependency_updates,
+        Some(dependency_inputs),
+        true,
+    )
+    .map_err(|err| {
+        record_execution_failure(
+            graph,
+            ExecutionFailureContext::new(
+                ExecutionFailurePhase::Apply,
+                Some(stage_index),
+                Some(patch.node),
+                Some(executor),
+                Some(identity.record_id),
+                Some(plan_summary.clone()),
+                err.to_string(),
+            ),
+        );
+        err
+    })?;
+    if let Some(snapshot) = apply_result.pending_snapshot {
+        pending_snapshots.push(snapshot);
+    }
+    let after_state = graph.get_state(patch.node)?;
+    semantic_batch.push_segment(segment_for_single_update(SemanticTaskUpdate {
+        task_index: patch.task_index,
+        node: patch.node,
+        identity,
+        before_state: patch.before_state,
+        before_trace: patch.before_trace,
+        after_state,
+        dependency_updates: apply_result.dependency_updates,
+        recomputed: matches!(
+            apply_result.report.verdict,
+            crate::logic::evaluation::EvaluationVerdict::Recomputed
+        ),
+        partition_aware: patch.partition_aware,
+        rewiring: patch.rewiring,
+        verdict: apply_result.report.verdict,
+        memoized_origin: graph
+            .get_entry(patch.node)?
+            .get_trace_summary()
+            .map(|trace| trace.memoized_origin)
+            .unwrap_or(MemoizedResultOrigin::DirectCompute),
+    }));
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn apply_serial_fallback_patch(
+    graph: &mut SignalGraph,
+    stage_index: u32,
+    patch: super::super::precompute::PreparedTaskPatch,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
     executor: StageExecutor,
     plan_summary: &PlanSummary,
@@ -121,16 +219,16 @@ fn apply_task_patch(
         task_index: patch.task_index,
         node: patch.node,
         identity,
-        before_state: patch.before_state,
-        before_trace: patch.before_trace,
+        before_state,
+        before_trace,
         after_state,
         dependency_updates: apply_result.dependency_updates,
         recomputed: matches!(
             apply_result.report.verdict,
             crate::logic::evaluation::EvaluationVerdict::Recomputed
         ),
-        partition_aware: patch.partition_aware,
-        rewiring: patch.rewiring,
+        partition_aware,
+        rewiring: None,
         verdict: apply_result.report.verdict,
         memoized_origin: graph
             .get_entry(patch.node)?

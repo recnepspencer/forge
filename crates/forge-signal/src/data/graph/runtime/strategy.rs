@@ -15,7 +15,7 @@ impl ParallelismHint {
             Self::Preferred => {
                 #[cfg(feature = "parallel")]
                 {
-                    StageExecutor::Parallel
+                    StageExecutor::parallel(1)
                 }
                 #[cfg(not(feature = "parallel"))]
                 {

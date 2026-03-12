@@ -33,6 +33,7 @@ pub(crate) fn apply_prepared_evaluation_with_policy(
         execution_metadata,
         dependency_updates,
         None,
+        false,
     )
 }
 
@@ -56,6 +57,7 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
     execution_metadata: Option<&EvaluationExecutionMetadata>,
     dependency_updates: u32,
     dependency_inputs: Option<EffectDependencyInputs>,
+    defer_snapshot_commit: bool,
 ) -> Result<PreparedApplyResult, SignalError> {
     match prepared.outcome {
         PreparedEvaluationOutcome::Evaluate => {
@@ -94,6 +96,7 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
                 prepared.keyed,
                 prepared.trace_data.causality,
                 dependency_inputs,
+                defer_snapshot_commit,
             )?;
             apply_result.dependency_updates = dependency_updates;
             Ok(apply_result)
@@ -113,6 +116,7 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
                 prepared.keyed,
                 prepared.trace_data.causality,
                 dependency_inputs,
+                defer_snapshot_commit,
             )?;
             apply_result.dependency_updates = dependency_updates;
             Ok(apply_result)
@@ -132,6 +136,7 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
                 prepared.keyed,
                 prepared.trace_data.causality,
                 dependency_inputs,
+                defer_snapshot_commit,
             )?;
             apply_result.dependency_updates = dependency_updates;
             Ok(apply_result)
@@ -151,6 +156,7 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
                 prepared.keyed,
                 prepared.trace_data.causality,
                 dependency_inputs,
+                defer_snapshot_commit,
             )?;
             apply_result.dependency_updates = dependency_updates;
             Ok(apply_result)
@@ -180,6 +186,7 @@ fn apply_prepared_with_synthesized_metadata(
         keyed_context,
         causality,
         None,
+        false,
     )?;
     apply_result.dependency_updates = dependency_updates;
     Ok(apply_result)

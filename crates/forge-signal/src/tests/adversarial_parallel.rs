@@ -7,6 +7,7 @@ use serde_json::json;
 
 use crate::facade::*;
 use crate::logic::planner::{ParallelApplyMode, ParallelExecutionPolicy};
+use crate::logic::prepared::{PreparedDependencyCapture, PreparedEvaluation};
 use crate::tests::support::{version_ab, ASPECT_A};
 
 use crate::presentation::harness::{signal_parity_suite, SignalProfileCatalog, SignalScenario};

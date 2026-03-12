@@ -239,14 +239,29 @@ pub struct CommitPhaseTiming {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CommitResult {
-    pub outcome: CommitOutcome,
+pub struct CommitPublication {
     pub diagnostics: Vec<RelationalDiagnosticArtifact>,
     pub patch: Vec<PatchRecord>,
     pub envelope: CanonicalCommitEnvelope,
-    pub phase_timing: CommitPhaseTiming,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CommitValidation {
     pub invariant_results: Vec<InvariantCheckResult>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CommitExecution {
+    pub phase_timing: CommitPhaseTiming,
     pub complexity_delta: RuntimeComplexityCounters,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CommitResult {
+    pub outcome: CommitOutcome,
+    pub publication: CommitPublication,
+    pub validation: CommitValidation,
+    pub execution: CommitExecution,
 }
 
 impl Deref for CommitResult {
@@ -254,6 +269,66 @@ impl Deref for CommitResult {
 
     fn deref(&self) -> &Self::Target {
         &self.outcome
+    }
+}
+
+impl CommitOutcome {
+    pub fn summary(&self) -> &CommitLog {
+        &self.commit_log
+    }
+}
+
+impl CommitResult {
+    pub fn commit_log(&self) -> &CommitLog {
+        &self.outcome.commit_log
+    }
+
+    pub fn publication(&self) -> &CommitPublication {
+        &self.publication
+    }
+
+    pub fn validation(&self) -> &CommitValidation {
+        &self.validation
+    }
+
+    pub fn execution(&self) -> &CommitExecution {
+        &self.execution
+    }
+
+    pub fn diagnostics(&self) -> &[RelationalDiagnosticArtifact] {
+        &self.publication.diagnostics
+    }
+
+    pub fn patch(&self) -> &[PatchRecord] {
+        &self.publication.patch
+    }
+
+    pub fn envelope(&self) -> &CanonicalCommitEnvelope {
+        &self.publication.envelope
+    }
+
+    pub fn invariant_results(&self) -> &[InvariantCheckResult] {
+        &self.validation.invariant_results
+    }
+
+    pub fn phase_timing(&self) -> &CommitPhaseTiming {
+        &self.execution.phase_timing
+    }
+
+    pub fn complexity_delta(&self) -> &RuntimeComplexityCounters {
+        &self.execution.complexity_delta
+    }
+
+    pub fn patch_position(&self) -> crate::publication::data::diff::PatchStreamPosition {
+        self.publication.envelope.patch.position
+    }
+
+    pub fn final_snapshot_id(&self) -> crate::snapshots::data::SnapshotId {
+        self.outcome.snapshot.snapshot_id
+    }
+
+    pub fn merge_parent_count(&self) -> usize {
+        self.outcome.commit.parents.len().saturating_sub(1)
     }
 }
 

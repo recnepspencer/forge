@@ -8,13 +8,14 @@ use crate::authority::commit::phases::prepare::{
     prepare_working_state_scope, record_preparation_counters,
 };
 use crate::authority::commit::phases::publication::{
-    append_durable_commit,
+    append_durable_commit, enforce_patch_budget,
 };
+use crate::authority::commit::publication::assemble_patch;
 use crate::publication::data::PublicationStatus;
 use crate::transactions::logic::RelationalTransaction;
 use crate::transactions::data::{
-    CommitLog, CommitOutcome, CommitPhase, CommitPhaseTiming, CommitResult,
-    TransactionCommitError,
+    CommitExecution, CommitLog, CommitOutcome, CommitPhase, CommitPhaseTiming,
+    CommitPublication, CommitResult, CommitValidation, TransactionCommitError,
 };
 use std::time::Instant;
 
@@ -48,7 +49,7 @@ impl<'a> RelationalTransaction<'a> {
         commit_log.begin_phase(CommitPhase::DraftPreparation);
         let phase_started = Instant::now();
         let prepared = prepare_working_state_scope(&mut self)
-            .map_err(|error| error.with_commit_log(commit_log.clone()))?;
+            .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::DraftPreparation, error))?;
         let merged_plan = prepared.merged_plan;
         let structural_summary = prepared.structural_summary;
         let mut working_state = prepared.working_state;
@@ -69,10 +70,15 @@ impl<'a> RelationalTransaction<'a> {
 
         commit_log.begin_phase(CommitPhase::InvariantPreCheck);
         let phase_started = Instant::now();
-        let pre_commit_invariants = self.runtime
+        let pre_commit_invariants = self
+            .runtime
             .invariant_authority()
             .enforce_commit_boundary(&merged_plan)
-            .map_err(|error| error.with_commit_log(commit_log.clone()))?;
+            .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::InvariantPreCheck, error))?;
+        commit_log.record_invariant_outcomes(
+            crate::validation::data::InvariantExecutionPoint::CommitBoundary,
+            &pre_commit_invariants,
+        );
         invariant_results.extend(pre_commit_invariants.into_results());
         commit_log.complete_phase(CommitPhase::InvariantPreCheck);
         phase_timing.invariant_pre_check_micros = elapsed_micros(phase_started);
@@ -80,9 +86,13 @@ impl<'a> RelationalTransaction<'a> {
         commit_log.begin_phase(CommitPhase::AuthoritativeMutation);
         let phase_started = Instant::now();
         let mutation = run_authoritative_mutation(&mut self, &mut working_state, &merged_plan)
-            .map_err(|error| error.with_commit_log(commit_log.clone()))?;
+            .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::AuthoritativeMutation, error))?;
         let version_id = mutation.version_id;
         let effect = mutation.effect;
+        commit_log.record_invariant_outcomes(
+            crate::validation::data::InvariantExecutionPoint::MutationSensitive,
+            &mutation.invariant_results,
+        );
         invariant_results.extend(mutation.invariant_results.into_results());
         commit_log.complete_phase(CommitPhase::AuthoritativeMutation);
         phase_timing.authoritative_mutation_micros = elapsed_micros(phase_started);
@@ -90,11 +100,16 @@ impl<'a> RelationalTransaction<'a> {
         commit_log.begin_phase(CommitPhase::HistoryResolution);
         let phase_started = Instant::now();
         let history = resolve_commit_history(&mut self, version_id)
-            .map_err(|error| error.with_commit_log(commit_log.clone()))?;
+            .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::HistoryResolution, error))?;
         let commit_id = history.commit_id;
         let branch_id = history.branch_id.clone();
         let commit_reference = history.commit_reference.clone();
         let merge_base_commits = history.merge_base_commits.clone();
+        commit_log.record_merge_parents_resolved(
+            &branch_id.0,
+            history.requested_merge_parent_count,
+            history.effective_merge_parent_count,
+        );
         commit_log.record_history_resolution(
             &branch_id.0,
             commit_reference.parents.len(),
@@ -116,7 +131,11 @@ impl<'a> RelationalTransaction<'a> {
                     &merged_plan,
                 )
                 .map_err(TransactionCommitError::publication)
-                .map_err(|error| error.with_commit_log(commit_log.clone()))?;
+                .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::InvariantPostCheck, error))?;
+            commit_log.record_invariant_outcomes(
+                crate::validation::data::InvariantExecutionPoint::SnapshotPublication,
+                &post_invariants,
+            );
             invariant_results.extend(post_invariants.into_results());
             commit_log.complete_phase(CommitPhase::InvariantPostCheck);
             phase_timing.invariant_post_check_micros = elapsed_micros(phase_started);
@@ -124,9 +143,17 @@ impl<'a> RelationalTransaction<'a> {
 
         commit_log.begin_phase(CommitPhase::ArtifactAssembly);
         let phase_started = Instant::now();
+        let patch = assemble_patch(&self.runtime.config, commit_reference.commit_id, &effect);
+        commit_log.record_patch_budget(
+            patch.records.len(),
+            self.runtime.config.publication.policy.max_patch_records_per_commit,
+        );
+        enforce_patch_budget(self.runtime, &patch)
+            .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::ArtifactAssembly, error))?;
         let publication = prepare_publication_artifacts(
             self.runtime,
             &mut working_state,
+            patch,
             &commit_reference,
             &branch_id,
             version_id,
@@ -135,7 +162,7 @@ impl<'a> RelationalTransaction<'a> {
             &merged_plan,
             effect,
         )
-        .map_err(|error| error.with_commit_log(commit_log.clone()))?;
+        .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::ArtifactAssembly, error))?;
         commit_log.record_changed_records(
             publication.changed_records.len(),
             publication.adjacency_deltas.len(),
@@ -150,13 +177,18 @@ impl<'a> RelationalTransaction<'a> {
 
         commit_log.begin_phase(CommitPhase::DurableAppend);
         let phase_started = Instant::now();
+        commit_log.record_durable_append_prepared(
+            commit_id,
+            &branch_id.0,
+            publication.patch.position,
+        );
         append_durable_commit(
             self.runtime,
             &publication.canonical_commit_envelope,
             commit_id,
             &branch_id,
         )
-        .map_err(|error| error.with_commit_log(commit_log.clone()))?;
+        .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::DurableAppend, error))?;
         commit_log.complete_phase(CommitPhase::DurableAppend);
         phase_timing.durable_append_micros = elapsed_micros(phase_started);
 
@@ -181,6 +213,14 @@ impl<'a> RelationalTransaction<'a> {
                 merge_parent_branches: self.options.merge_parent_branches.clone(),
                 adjacency_deltas: publication.adjacency_deltas,
             },
+        );
+        commit_log.record_commit_published(
+            commit_id,
+            &commit_reference.branch_id.0,
+            publication.published_snapshot.snapshot_id,
+            publication.patch.position,
+            publication.changed_records.len(),
+            commit_reference.parents.len().saturating_sub(1),
         );
         commit_log.complete_phase(CommitPhase::Publication);
         phase_timing.publication_micros = elapsed_micros(phase_started);
@@ -207,14 +247,34 @@ impl<'a> RelationalTransaction<'a> {
 
         Ok(CommitResult {
             outcome: commit_outcome,
-            diagnostics,
-            patch: patch_records,
-            envelope: canonical_commit_envelope,
-            phase_timing,
-            invariant_results,
-            complexity_delta: complexity_delta(complexity_before, complexity_after),
+            publication: CommitPublication {
+                diagnostics,
+                patch: patch_records,
+                envelope: canonical_commit_envelope,
+            },
+            validation: CommitValidation { invariant_results },
+            execution: CommitExecution {
+                phase_timing,
+                complexity_delta: complexity_delta(complexity_before, complexity_after),
+            },
         })
     }
+}
+
+fn attach_rejection(
+    commit_log: &mut CommitLog,
+    phase: CommitPhase,
+    error: TransactionCommitError,
+) -> TransactionCommitError {
+    match &error {
+        TransactionCommitError::Conflict { error, .. } => {
+            commit_log.record_rejection(phase, Some(error.code()), None, error.detail());
+        }
+        TransactionCommitError::Publication { error, .. } => {
+            commit_log.record_rejection(phase, None, Some(error.stage), error.detail.clone());
+        }
+    }
+    error.with_commit_log(commit_log.clone())
 }
 
 fn elapsed_micros(started: Instant) -> u64 {

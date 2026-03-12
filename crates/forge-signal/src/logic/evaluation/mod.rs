@@ -10,7 +10,9 @@ pub use effect::{
     AppliedEffectReport, DeferralReason, EvaluationEffect, EvaluationVerdict, SuppressionReason,
 };
 pub use output::{EvaluationOutput, IntoEvaluationOutput};
-pub(crate) use effect::{EffectComparison, EffectDependencyInputs, PreparedApplyResult};
+pub(crate) use effect::{
+    EffectComparison, EffectDependencyInputs, PendingDependencySnapshot, PreparedApplyResult,
+};
 #[cfg(any(test, feature = "parallel"))]
 pub(crate) use engine::apply_prepared_evaluation_with_policy;
 pub(crate) use engine::{

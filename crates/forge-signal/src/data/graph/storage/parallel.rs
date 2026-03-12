@@ -1,4 +1,5 @@
 use crate::data::dependency::{DependencyEdge, DependencySnapshot, DependencySnapshotId};
+use crate::data::handle::NodeId;
 
 use super::super::signal_graph::SignalGraph;
 use super::{DependencySetId, SubscriberSetId};

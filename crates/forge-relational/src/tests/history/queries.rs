@@ -200,6 +200,18 @@ fn merge_commit_rejects_overlapping_authority_since_merge_base() {
         TransactionCommitError::Conflict { error: ref conflict, .. }
             if conflict.code == DiagnosticCode::MergeConflictOverlap
     ));
+    assert!(error
+        .commit_log()
+        .events()
+        .iter()
+        .any(|event| matches!(
+            event,
+            crate::facade::CommitTraceEvent::CommitRejected {
+                phase: crate::facade::CommitPhase::HistoryResolution,
+                diagnostic_code: Some(DiagnosticCode::MergeConflictOverlap),
+                ..
+            }
+        )));
     assert!(runtime
         .publication_access().diagnostics()
         .by_scope(DiagnosticsScope::History)

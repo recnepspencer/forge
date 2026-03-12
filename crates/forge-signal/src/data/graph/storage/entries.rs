@@ -67,6 +67,30 @@ impl SignalGraph {
         Ok(())
     }
 
+    pub(crate) fn set_dep_snapshot_batch(
+        &mut self,
+        snapshots: &[(NodeId, DependencySnapshot)],
+    ) -> Result<(), SignalError> {
+        if snapshots.is_empty() {
+            return Ok(());
+        }
+
+        for (node, _) in snapshots {
+            self.validate_handle(*node)?;
+        }
+
+        let snapshot_ids = snapshots
+            .iter()
+            .map(|(_, snapshot)| self.topology.dependency_snapshots.insert(snapshot.clone()))
+            .collect::<Vec<_>>();
+
+        for ((node, _), snapshot_id) in snapshots.iter().zip(snapshot_ids) {
+            self.get_entry_mut(*node)?.set_dep_snapshot_id(snapshot_id);
+        }
+        self.record_graph_storage_pressure();
+        Ok(())
+    }
+
     pub fn is_alive(&self, id: NodeId) -> bool {
         let idx = id.index() as usize;
         if idx >= self.arena.nodes.len() {

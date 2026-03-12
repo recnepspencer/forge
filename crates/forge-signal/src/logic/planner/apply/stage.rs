@@ -26,6 +26,7 @@ use super::full_parallel::apply_full_parallel_stage;
 
 struct SerialApplyPass {
     semantic_batch: StageSemanticBatch,
+    pending_snapshots: Vec<crate::logic::evaluation::PendingDependencySnapshot>,
 }
 
 pub(in crate::logic::planner) fn apply_stage<F, R>(
@@ -153,6 +154,15 @@ pub(in crate::logic::planner) fn dispatch_stage_apply_serial(
         executor,
         stage_identities,
     )?;
+    if !apply_pass.pending_snapshots.is_empty() {
+        graph.set_dep_snapshot_batch(
+            &apply_pass
+                .pending_snapshots
+                .iter()
+                .map(|pending| (pending.node, pending.snapshot.clone()))
+                .collect::<Vec<_>>(),
+        )?;
+    }
     let semantic_finalize_start = Instant::now();
     finalize_stage_batch(
         graph,
@@ -176,6 +186,7 @@ fn run_serial_apply_pass(
     stage_identities: &[StageSemanticIdentity],
 ) -> Result<SerialApplyPass, SignalError> {
     let mut semantic_batch = StageSemanticBatch::default();
+    let mut pending_snapshots = Vec::with_capacity(stage_tasks.len());
     let patches = stage_execution.into_patches(stage_tasks);
     let rewiring = patches
         .iter()
@@ -210,9 +221,13 @@ fn run_serial_apply_pass(
             comparator_resolver,
             executor,
             stage_identities,
+            &mut pending_snapshots,
         )?));
     }
-    Ok(SerialApplyPass { semantic_batch })
+    Ok(SerialApplyPass {
+        semantic_batch,
+        pending_snapshots,
+    })
 }
 
 fn apply_stage_patch(
@@ -226,6 +241,7 @@ fn apply_stage_patch(
     comparator_resolver: &mut impl ComparatorPolicyResolver,
     executor: StageExecutor,
     stage_identities: &[StageSemanticIdentity],
+    pending_snapshots: &mut Vec<crate::logic::evaluation::PendingDependencySnapshot>,
 ) -> Result<SemanticTaskUpdate, SignalError> {
     let identity = stage_identities[patch.task_index];
     let partition_aware = !patch.prepared.result.changed_regions.is_empty();
@@ -239,6 +255,7 @@ fn apply_stage_patch(
         None,
         dependency_updates,
         Some(dependency_inputs),
+        true,
     )
     .map_err(|err| {
         record_execution_failure(
@@ -255,6 +272,9 @@ fn apply_stage_patch(
         );
         err
     })?;
+    if let Some(snapshot) = apply_result.pending_snapshot {
+        pending_snapshots.push(snapshot);
+    }
     let after_state = graph.get_state(patch.node)?;
     let memoized_origin = graph
         .get_entry(patch.node)?

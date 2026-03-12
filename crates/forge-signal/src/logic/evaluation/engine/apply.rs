@@ -23,6 +23,7 @@ pub(crate) fn apply_effect_with_policy_and_condition(
     keyed_context: Option<PreparedKeyedContext>,
     causality: Option<crate::data::trace::CausalityMetadata>,
     dependency_inputs: Option<EffectDependencyInputs>,
+    defer_snapshot_commit: bool,
 ) -> Result<PreparedApplyResult, SignalError> {
     let dependency_inputs = match dependency_inputs {
         Some(inputs) => inputs,
@@ -50,10 +51,19 @@ pub(crate) fn apply_effect_with_policy_and_condition(
         let entry = graph.get_entry(node)?;
         comparator_resolver.policy_for_node(node, entry.get_eval_config().comparator.as_ref())
     };
-    let report = graph.apply_effect(effect, comparator, comparator_resolver)?;
+    let pending_snapshot = if defer_snapshot_commit {
+        Some(crate::logic::evaluation::PendingDependencySnapshot {
+            node,
+            snapshot: effect.dependency_snapshot.clone(),
+        })
+    } else {
+        None
+    };
+    let report = graph.apply_effect(effect, comparator, comparator_resolver, defer_snapshot_commit)?;
     Ok(PreparedApplyResult {
         dependency_updates: 0,
         report,
+        pending_snapshot,
     })
 }
 

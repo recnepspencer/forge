@@ -16,11 +16,16 @@ use crate::data::graph::SignalGraph;
 #[cfg(feature = "parallel")]
 use crate::data::handle::NodeId;
 #[cfg(feature = "parallel")]
+use crate::data::node::NodeState;
+#[cfg(feature = "parallel")]
 use crate::data::trace::TraceSummary;
 #[cfg(feature = "parallel")]
 use crate::logic::explain::{RewiringDependency, RewiringSummary};
 #[cfg(feature = "parallel")]
-use crate::logic::prepared::{PreparedEvaluation, PreparedEvaluationOrigin, PreparedEvaluationOutcome};
+use crate::logic::prepared::{
+    PreparedDependencyCapture, PreparedEvaluation, PreparedEvaluationOrigin,
+    PreparedEvaluationOutcome,
+};
 
 #[cfg(feature = "parallel")]
 use super::precompute::PreparedTaskPatch;
@@ -71,6 +76,7 @@ pub(super) fn prepare_stage_patches(
         let recomputed = matches!(prepared.outcome, PreparedEvaluationOutcome::Evaluate)
             && !matches!(prepared.origin, PreparedEvaluationOrigin::MemoizedReuse);
         let partition_aware = !prepared.result.changed_regions.is_empty();
+        let rewiring = rewiring_summary_from_edges(&current_dependencies, &next_dependencies);
 
         tasks.push(TaskPatch {
             task_index: patch.task_index,
@@ -83,7 +89,7 @@ pub(super) fn prepare_stage_patches(
             partition_aware,
             current_dependencies,
             next_dependencies,
-            rewiring: rewiring_summary_from_edges(&current_dependencies, &next_dependencies),
+            rewiring,
         });
     }
 

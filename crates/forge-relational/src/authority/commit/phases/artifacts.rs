@@ -1,7 +1,7 @@
 use crate::authority::commit::phases::publication::{
-    canonical_commit_envelope, canonicalize_changed_records, enforce_patch_budget,
+    canonical_commit_envelope, canonicalize_changed_records,
 };
-use crate::authority::commit::publication::{assemble_patch, diagnostics_summary_artifact};
+use crate::authority::commit::publication::diagnostics_summary_artifact;
 use crate::history::data::CommitReference;
 use crate::publication::data::diff::RelationalPatchRecord;
 use crate::transactions::data::{MergedCommitPlan, RecordRef, TransactionCommitError};
@@ -20,6 +20,7 @@ pub(crate) struct PublicationPreparation {
 pub(crate) fn prepare_publication_artifacts(
     runtime: &mut crate::logic::runtime::RelationalRuntime,
     working_state: &mut crate::logic::runtime::WorkingState,
+    patch: RelationalPatchRecord,
     commit_reference: &CommitReference,
     branch_id: &crate::history::data::BranchId,
     version_id: crate::identity::data::VersionId,
@@ -28,8 +29,6 @@ pub(crate) fn prepare_publication_artifacts(
     merged_plan: &MergedCommitPlan,
     effect: crate::authority::mutation::MutationEffect,
 ) -> Result<PublicationPreparation, TransactionCommitError> {
-    let patch = assemble_patch(&runtime.config, commit_reference.commit_id, &effect);
-    enforce_patch_budget(runtime, &patch)?;
     let diagnostics_summary = diagnostics_summary_artifact(&runtime.config, &effect);
     let artifacts = runtime.publication_authority().assemble_publication_bundle(
         commit_reference.clone(),

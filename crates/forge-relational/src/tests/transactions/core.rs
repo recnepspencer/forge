@@ -116,13 +116,22 @@ fn commit_log_records_structural_summary_and_phase_progress() {
     let outcome = create_entity_outcome(&mut runtime, "logged");
 
     assert_eq!(
-        outcome.commit_log.summary().commit_topology_mask,
+        outcome.commit_log().summary().commit_topology_mask,
         crate::facade::CommitTopology::FlatEntityBatch.mask()
     );
-    assert!(outcome.commit_log.summary().invariant_group_mask != 0);
-    assert!(outcome.commit_log.summary().touched_partition_count >= 1);
+    assert!(outcome.commit_log().summary().invariant_group_mask != 0);
+    assert!(outcome.commit_log().summary().touched_partition_count >= 1);
+    assert!(outcome.commit_log().summary().invariant_result_count >= 1);
+    assert_eq!(
+        outcome.commit_log().summary().patch_position,
+        Some(outcome.patch_position())
+    );
+    assert_eq!(
+        outcome.commit_log().summary().final_snapshot_id,
+        Some(outcome.final_snapshot_id())
+    );
     assert!(outcome
-        .commit_log
+        .commit_log()
         .events()
         .iter()
         .any(|event| matches!(
@@ -130,7 +139,7 @@ fn commit_log_records_structural_summary_and_phase_progress() {
             crate::facade::CommitTraceEvent::PhaseStarted(crate::facade::CommitPhase::DraftPreparation)
         )));
     assert!(outcome
-        .commit_log
+        .commit_log()
         .events()
         .iter()
         .any(|event| matches!(
@@ -138,12 +147,66 @@ fn commit_log_records_structural_summary_and_phase_progress() {
             crate::facade::CommitTraceEvent::PhaseCompleted(crate::facade::CommitPhase::Publication)
         )));
     assert!(outcome
-        .commit_log
+        .commit_log()
         .events()
         .iter()
         .any(|event| matches!(
             event,
             crate::facade::CommitTraceEvent::HistoryResolved { .. }
+        )));
+    assert!(outcome
+        .commit_log()
+        .events()
+        .iter()
+        .any(|event| matches!(
+            event,
+            crate::facade::CommitTraceEvent::MergeParentsResolved { .. }
+        )));
+    assert!(outcome
+        .commit_log()
+        .events()
+        .iter()
+        .any(|event| matches!(
+            event,
+            crate::facade::CommitTraceEvent::InvariantEvaluated {
+                execution_point: crate::facade::InvariantExecutionPoint::CommitBoundary,
+                ..
+            }
+        )));
+    assert!(outcome
+        .commit_log()
+        .events()
+        .iter()
+        .any(|event| matches!(
+            event,
+            crate::facade::CommitTraceEvent::InvariantEvaluated {
+                execution_point: crate::facade::InvariantExecutionPoint::MutationSensitive,
+                ..
+            }
+        )));
+    assert!(outcome
+        .commit_log()
+        .events()
+        .iter()
+        .any(|event| matches!(
+            event,
+            crate::facade::CommitTraceEvent::PatchBudgetEvaluated { .. }
+        )));
+    assert!(outcome
+        .commit_log()
+        .events()
+        .iter()
+        .any(|event| matches!(
+            event,
+            crate::facade::CommitTraceEvent::DurableAppendPrepared { .. }
+        )));
+    assert!(outcome
+        .commit_log
+        .events()
+        .iter()
+        .any(|event| matches!(
+            event,
+            crate::facade::CommitTraceEvent::CommitPublished { .. }
         )));
     assert!(outcome
         .commit_log
@@ -160,12 +223,15 @@ fn commit_returns_envelope_with_patch_diagnostics_invariants_and_complexity() {
     let mut runtime = runtime_with_test_schema();
     let result = create_entity_outcome(&mut runtime, "enveloped");
 
-    assert!(!result.patch.is_empty());
-    assert!(!result.envelope.patch.records.is_empty());
-    assert!(!result.diagnostics.is_empty());
-    assert!(!result.invariant_results.is_empty());
-    assert!(result.complexity_delta.partitions_touched_by_commit >= 1);
-    assert_eq!(result.outcome.commit.commit_id, result.envelope.commit.commit_id);
+    assert!(!result.patch().is_empty());
+    assert!(!result.envelope().patch.records.is_empty());
+    assert!(!result.diagnostics().is_empty());
+    assert!(!result.invariant_results().is_empty());
+    assert!(result.complexity_delta().partitions_touched_by_commit >= 1);
+    assert_eq!(result.outcome.commit.commit_id, result.envelope().commit.commit_id);
+    assert_eq!(result.patch_position(), result.envelope().patch.position);
+    assert_eq!(result.final_snapshot_id(), result.snapshot.snapshot_id);
+    assert_eq!(result.merge_parent_count(), 0);
 }
 
 #[test]
@@ -190,6 +256,62 @@ fn failed_commit_carries_attempt_log() {
         error.commit_log().events()[0],
         crate::facade::CommitTraceEvent::PhaseStarted(crate::facade::CommitPhase::DraftPreparation)
     ));
+    assert!(error
+        .commit_log()
+        .events()
+        .iter()
+        .any(|event| matches!(
+            event,
+            crate::facade::CommitTraceEvent::CommitRejected {
+                diagnostic_code: Some(crate::facade::DiagnosticCode::StaleHandle),
+                ..
+            }
+        )));
+}
+
+#[test]
+fn patch_budget_failure_carries_artifact_phase_decision_trace() {
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(test_schema_registry())
+        .publication(PublicationConfig {
+            coherent_publication_required: true,
+            max_patch_records_per_commit: 0,
+            max_published_snapshot_handles: 8,
+            patch_surface_policy: PatchSurfacePolicy::StructuredPatchSurface,
+        })
+        .build();
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(batch_create("budget-fail"));
+    let error = txn.commit().unwrap_err();
+
+    assert!(matches!(
+        error,
+        TransactionCommitError::Publication { error: ref publication, .. }
+            if publication.stage == PublicationStage::BundleAssembly
+    ));
+    assert!(error
+        .commit_log()
+        .events()
+        .iter()
+        .any(|event| matches!(
+            event,
+            crate::facade::CommitTraceEvent::PatchBudgetEvaluated {
+                patch_record_count: 1,
+                max_patch_records_per_commit: 0,
+            }
+        )));
+    assert!(error
+        .commit_log()
+        .events()
+        .iter()
+        .any(|event| matches!(
+            event,
+            crate::facade::CommitTraceEvent::CommitRejected {
+                phase: crate::facade::CommitPhase::ArtifactAssembly,
+                publication_stage: Some(crate::facade::PublicationStage::BundleAssembly),
+                ..
+            }
+        )));
 }
 
 #[test]

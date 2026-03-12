@@ -19,11 +19,14 @@ impl SignalGraph {
         mut effect: EvaluationEffect,
         comparator: VersionComparatorPolicy,
         comparator_resolver: &mut impl ComparatorPolicyResolver,
+        defer_snapshot_commit: bool,
     ) -> Result<AppliedEffectReport, SignalError> {
         let comparison = self.compare_effect(&effect, comparator)?;
         let trace = self.build_effect_trace(&effect, comparison)?;
         self.transition_effect_state(&mut effect, trace)?;
-        self.commit_effect_snapshot(&mut effect)?;
+        if !defer_snapshot_commit {
+            self.commit_effect_snapshot(&mut effect)?;
+        }
         let suppressed_downstream = self.apply_effect_suppression(
             effect.node,
             &effect.verdict,

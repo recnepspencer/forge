@@ -13,6 +13,8 @@ pub(crate) struct ResolvedCommitHistory {
     pub(crate) previous_branch_head_version: Option<VersionId>,
     pub(crate) commit_reference: CommitReference,
     pub(crate) merge_base_commits: Vec<CommitId>,
+    pub(crate) requested_merge_parent_count: usize,
+    pub(crate) effective_merge_parent_count: usize,
 }
 
 pub(crate) fn resolve_commit_history(
@@ -25,6 +27,7 @@ pub(crate) fn resolve_commit_history(
         .target_branch
         .clone()
         .unwrap_or_else(|| transaction.runtime.runtime_config().history.main_branch.clone());
+    let requested_merge_parent_count = transaction.options.merge_parent_branches.len();
     let previous_branch_head_version = transaction
         .runtime
         .history_access()
@@ -50,6 +53,9 @@ pub(crate) fn resolve_commit_history(
             return Err(TransactionCommitError::conflict(conflict));
         }
     };
+    let effective_merge_parent_count = parents.len().saturating_sub(
+        usize::from(previous_branch_head_version.is_some()),
+    );
     let commit_reference = CommitReference {
         commit_id,
         version_id,
@@ -62,5 +68,7 @@ pub(crate) fn resolve_commit_history(
         previous_branch_head_version,
         commit_reference,
         merge_base_commits,
+        requested_merge_parent_count,
+        effective_merge_parent_count,
     })
 }
