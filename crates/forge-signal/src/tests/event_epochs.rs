@@ -153,7 +153,7 @@ impl EventSubscriber for BarrierFailGate {
 
 #[test]
 fn transaction_flushes_deliver_events_in_epoch_order() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults()
         .with_domains::<Domain>()
         .with_events::<Ev>()
         .build();
@@ -186,7 +186,7 @@ fn transaction_flushes_deliver_events_in_epoch_order() {
 
 #[test]
 fn failed_later_epoch_keeps_earlier_epoch_committed_and_does_not_replay_stale_events() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults()
         .with_domains::<Domain>()
         .with_events::<Ev>()
         .build();
@@ -249,7 +249,7 @@ fn failed_later_epoch_keeps_earlier_epoch_committed_and_does_not_replay_stale_ev
             .is_none(),
         "failed later epoch must not leave staged subscriber context behind"
     );
-    let failure = runtime.latest_failure_diagnostics().unwrap();
+    let failure = runtime.observe().latest_failure_diagnostics().unwrap();
     assert_eq!(failure.event_epochs.len(), 2);
     assert_eq!(failure.event_epochs[0].committed_subscriber_count, 2);
     assert_eq!(failure.event_epochs[1].committed_subscriber_count, 1);

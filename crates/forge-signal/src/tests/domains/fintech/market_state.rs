@@ -1,4 +1,4 @@
-use crate::facade::{AspectVersion, NodeEvaluationResult, SignalError};
+use crate::facade::*;
 
 use super::aspects::{ALERT, CURVE, LIQUIDITY, PRICE, RISK, VOL};
 use super::fixture::FintechDomainFixture;
@@ -35,7 +35,7 @@ pub(super) fn seed_market_regime(
         for instrument in &fixture.instruments {
             let point = model.market_point(instrument.instrument_index, instrument.book_index);
             let label = format!("market-{}-{:?}", instrument.instrument_index, regime);
-            tx.read(instrument.core.market, &move |_node, view| {
+            tx.read(instrument.core.market, &move |view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(point_version(point))
                         .with_output_identity(label.clone()),
@@ -44,7 +44,7 @@ pub(super) fn seed_market_regime(
         }
 
         let fx = model.fx_market();
-        tx.read(fixture.fx.eur_usd, &move |_node, view| {
+        tx.read(fixture.fx.eur_usd, &move |view| {
             Ok(view.finish(
                 NodeEvaluationResult::from_version(AspectVersion::from_updates([(
                     PRICE, fx.eur_usd,
@@ -52,7 +52,7 @@ pub(super) fn seed_market_regime(
                 .with_output_identity("eur-usd"),
             ))
         })?;
-        tx.read(fixture.fx.usd_jpy, &move |_node, view| {
+        tx.read(fixture.fx.usd_jpy, &move |view| {
             Ok(view.finish(
                 NodeEvaluationResult::from_version(AspectVersion::from_updates([(
                     PRICE, fx.usd_jpy,
@@ -64,7 +64,7 @@ pub(super) fn seed_market_regime(
         let curve_series = model.curve_bucket_series(fixture.curve_buckets.len());
         for (index, node) in fixture.curve_buckets.iter().enumerate() {
             let value = curve_series[index];
-            tx.read(*node, &move |_node, view| {
+            tx.read(*node, &move |view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(AspectVersion::from_updates([(
                         CURVE, value,
@@ -77,7 +77,7 @@ pub(super) fn seed_market_regime(
         let vol_series = model.vol_surface_series(fixture.vol_surface_buckets.len());
         for (index, node) in fixture.vol_surface_buckets.iter().enumerate() {
             let value = vol_series[index];
-            tx.read(*node, &move |_node, view| {
+            tx.read(*node, &move |view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(AspectVersion::from_updates([(VOL, value)]))
                         .with_output_identity(format!("surface-{index}")),
@@ -88,7 +88,7 @@ pub(super) fn seed_market_regime(
         let scenario_shocks = model.scenario_shocks(fixture.scenario_sources.len());
         for (index, node) in fixture.scenario_sources.iter().enumerate() {
             let shock = scenario_shocks[index];
-            tx.read(*node, &move |_node, view| {
+            tx.read(*node, &move |view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(scenario_version(shock))
                         .with_output_identity(format!("scenario-shock-{index}-{seed}")),
@@ -104,7 +104,7 @@ pub(super) fn seed_market_regime(
             .enumerate()
         {
             let state = book_states[index];
-            tx.read(sources.book_state, &move |_node, view| {
+            tx.read(sources.book_state, &move |view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(aggregate_version(state))
                         .with_output_identity(format!("book-state-{index}-{seed}")),
@@ -120,7 +120,7 @@ pub(super) fn seed_market_regime(
             .enumerate()
         {
             let state = desk_limits[index];
-            tx.read(sources.desk_limit, &move |_node, view| {
+            tx.read(sources.desk_limit, &move |view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(aggregate_version(state))
                         .with_output_identity(format!("desk-limit-{index}-{seed}")),

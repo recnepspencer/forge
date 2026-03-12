@@ -1,4 +1,4 @@
-use crate::facade::NodeId;
+use crate::facade::*;
 
 use super::partition_surface::PartitionSurfaceNodes;
 

@@ -201,10 +201,10 @@ impl GraphSummary {
             nodes_with_trace_summary,
             nodes_with_execution_record,
             nodes_with_causality,
-            partition_interner_size: graph.metrics().partition_interner_size as u32,
+            partition_interner_size: graph.observe().metrics().partition_interner_size as u32,
             sample_dirty_nodes,
             sample_nodes_with_execution_record,
-            metrics: graph.metrics(),
+            metrics: graph.observe().metrics(),
         }
     }
 }

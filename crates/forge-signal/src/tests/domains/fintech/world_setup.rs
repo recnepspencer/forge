@@ -1,7 +1,7 @@
 use super::market_seed::MarketSeed;
 use super::scales::FintechScale;
 use super::scenarios::setup_world;
-use crate::facade::StageExecutor;
+use crate::facade::*;
 
 #[test]
 fn fintech_intraday_world_setup_builds_seeded_branchable_graph() {

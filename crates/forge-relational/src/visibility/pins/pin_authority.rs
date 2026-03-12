@@ -9,6 +9,11 @@ use crate::storage::substrate::PinClass as SubstratePinClass;
 use crate::visibility::retention::{
     refresh_entity_retention_state, refresh_relation_retention_state,
 };
+use crate::visibility::cache_state::{
+    bump_visibility_ref, evict_cache_if_needed, maybe_remove_unprotected_state,
+    protect_branch_head_version,
+};
+use crate::visibility::snapshot_states::build_partition_pins_for_version;
 
 pub(crate) struct VisibilityPinAuthority<'runtime> {
     runtime: &'runtime mut RelationalRuntime,
@@ -53,7 +58,7 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
         &mut self,
         version_id: crate::identity::data::VersionId,
     ) {
-        let pinned_partitions = self.runtime.build_partition_pins_for_version(version_id);
+        let pinned_partitions = build_partition_pins_for_version(self.runtime, version_id);
         for (partition_id, pins) in pinned_partitions {
             for slot in pins.entity_slots.iter_set_slots() {
                 self.pin_branch_entity(crate::identity::data::EntityId::new(
@@ -164,7 +169,7 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
             partition.entity_arena.clear_named_pins(PinClass::Branch);
             partition.relation_arena.clear_named_pins(PinClass::Branch);
         }
-        let head_versions = self.runtime.branch_head_versions();
+        let head_versions = self.runtime.history_access().branch_head_versions();
         for version_id in head_versions {
             self.pin_branch_version(version_id);
         }
@@ -177,21 +182,20 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
             .cache
             .clear_branch_head_residency(&tracked_versions);
         for version_id in tracked_versions {
-            self.runtime
-                .maybe_remove_unprotected_visibility_state(version_id);
+            maybe_remove_unprotected_state(self.runtime, version_id);
         }
         if !self.runtime.protect_branch_heads() {
-            self.runtime.evict_visibility_cache_if_needed();
+            evict_cache_if_needed(self.runtime);
             return;
         }
-        let head_versions = self.runtime.branch_head_versions();
+        let head_versions = self.runtime.history_access().branch_head_versions();
         for version_id in head_versions {
-            self.runtime.protect_branch_head_version(version_id);
+            protect_branch_head_version(self.runtime, version_id);
             self.runtime.services.instrumentation.count(|counters| {
                 counters.visibility_cache_branch_head_promotions += 1;
             });
         }
-        self.runtime.evict_visibility_cache_if_needed();
+        evict_cache_if_needed(self.runtime);
     }
 
     pub(crate) fn move_branch_head_visibility_residency(
@@ -203,17 +207,17 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
             return;
         }
         if let Some(version_id) = previous_head {
-            self.runtime.bump_visibility_ref(version_id, |residency| {
+            bump_visibility_ref(self.runtime, version_id, |residency| {
                 residency.branch_head_refs = residency.branch_head_refs.saturating_sub(1);
             });
         }
         if let Some(version_id) = next_head {
-            self.runtime.protect_branch_head_version(version_id);
+            protect_branch_head_version(self.runtime, version_id);
             self.runtime.services.instrumentation.count(|counters| {
                 counters.visibility_cache_branch_head_promotions += 1;
             });
         }
-        self.runtime.evict_visibility_cache_if_needed();
+        evict_cache_if_needed(self.runtime);
     }
 
     fn pin_entity(&mut self, entity_id: crate::identity::data::EntityId) {

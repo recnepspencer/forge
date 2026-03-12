@@ -1,7 +1,4 @@
-use crate::facade::{
-    AspectVersion, ChangedRegion, NodeEvaluationResult, NodeId, SignalBranchHandle, SignalGraph,
-    SignalRuntime, SignalRuntimePolicy, SignalSnapshotId, SignalSnapshotV1, StageExecutor,
-};
+use crate::facade::*;
 
 use super::audit_surface::PrimaryAuditSurface;
 use super::branch_checkpoint::BranchCheckpoint;
@@ -26,24 +23,35 @@ pub(super) struct InstrumentFixture {
     pub scenarios: Vec<NodeId>,
 }
 
-pub(super) struct FintechWorld {
-    pub runtime: FintechRuntime,
-    pub handles: FintechWorldHandles,
-    pub fx: FxNodes,
-    pub aggregate_sources: Vec<AggregateSourceNodes>,
-    pub curve_buckets: Vec<NodeId>,
-    pub vol_surface_buckets: Vec<NodeId>,
-    pub scenario_sources: Vec<NodeId>,
-    pub instruments: Vec<InstrumentFixture>,
-    pub book_aggregates: Vec<NodeId>,
-    pub desk_aggregates: Vec<NodeId>,
-    pub scenario_aggregates: Vec<NodeId>,
-    pub bucket_aggregates: Vec<NodeId>,
+pub(crate) struct FintechWorld {
+    pub(super) runtime: FintechRuntime,
+    pub(super) handles: FintechWorldHandles,
+    pub(super) fx: FxNodes,
+    pub(super) aggregate_sources: Vec<AggregateSourceNodes>,
+    pub(super) curve_buckets: Vec<NodeId>,
+    pub(super) vol_surface_buckets: Vec<NodeId>,
+    pub(super) scenario_sources: Vec<NodeId>,
+    pub(super) instruments: Vec<InstrumentFixture>,
+    pub(super) book_aggregates: Vec<NodeId>,
+    pub(super) desk_aggregates: Vec<NodeId>,
+    pub(super) scenario_aggregates: Vec<NodeId>,
+    pub(super) bucket_aggregates: Vec<NodeId>,
 }
 
 pub(super) type FintechDomainFixture = FintechWorld;
 
 impl FintechWorld {
+    pub(crate) fn set_runtime_policy(
+        &mut self,
+        policy: SignalRuntimePolicy,
+    ) {
+        self.runtime.set_runtime_policy(policy);
+    }
+
+    pub(crate) fn runtime_metrics(&self) -> RuntimeMetrics {
+        self.runtime.observe().metrics()
+    }
+
     pub(super) fn live_node_count(&self) -> usize {
         self.runtime.graph().live_node_ids().len()
     }
@@ -52,32 +60,32 @@ impl FintechWorld {
         &mut self,
         regime: MarketRegime,
         seed: u64,
-    ) -> Result<(), crate::facade::SignalError> {
+    ) -> Result<(), SignalError> {
         super::market_state::seed_market_regime(self, regime, seed)
     }
 
     pub(super) fn seed_market(
         &mut self,
         market_seed: MarketSeed,
-    ) -> Result<(), crate::facade::SignalError> {
+    ) -> Result<(), SignalError> {
         self.seed_regime(market_seed.regime, market_seed.seed)
     }
 
     pub(super) fn open_branch(
         &mut self,
         name: &str,
-    ) -> Result<SignalBranchHandle, crate::facade::SignalError> {
+    ) -> Result<SignalBranchHandle, SignalError> {
         super::branch_history::create_branch(self, name)
     }
 
     pub(super) fn current_branch(&self) -> SignalBranchHandle {
-        self.runtime.current_branch()
+        self.runtime.observe().current_branch()
     }
 
     pub(super) fn switch_branch(
         &mut self,
         branch: SignalBranchHandle,
-    ) -> Result<(), crate::facade::SignalError> {
+    ) -> Result<(), SignalError> {
         self.runtime.switch_branch(branch)
     }
 
@@ -85,7 +93,7 @@ impl FintechWorld {
         &self,
         branch: SignalBranchHandle,
     ) -> Option<SignalSnapshotId> {
-        self.runtime.branch_head_snapshot_id(branch.id)
+        self.runtime.observe().branch_head_snapshot_id(branch.id)
     }
 
     pub(super) fn capture_world_snapshot(&mut self) -> SignalSnapshotV1 {
@@ -95,7 +103,7 @@ impl FintechWorld {
     pub(super) fn capture_branch_snapshot(
         &mut self,
         branch: SignalBranchHandle,
-    ) -> Result<SignalSnapshotV1, crate::facade::SignalError> {
+    ) -> Result<SignalSnapshotV1, SignalError> {
         super::branch_history::capture_branch_snapshot(self, branch)
     }
 
@@ -103,25 +111,25 @@ impl FintechWorld {
         &mut self,
         branch: SignalBranchHandle,
         snapshot: &SignalSnapshotV1,
-    ) -> Result<(), crate::facade::SignalError> {
+    ) -> Result<(), SignalError> {
         super::branch_history::restore_branch_snapshot(self, branch, snapshot)
     }
 
     pub(super) fn replay_for_branch(
         &self,
         branch: SignalBranchHandle,
-    ) -> crate::facade::ReplaySlice {
+    ) -> ReplaySlice {
         super::branch_history::replay_for_branch(self, branch)
     }
 
     pub(super) fn replay_around_saved_snapshot(
         &self,
         snapshot: &SignalSnapshotV1,
-    ) -> crate::facade::ReplaySlice {
+    ) -> ReplaySlice {
         super::branch_history::replay_around_snapshot(self, snapshot)
     }
 
-    pub(super) fn main_risk_lineage(&self) -> Vec<crate::facade::LineageRecord> {
+    pub(super) fn main_risk_lineage(&self) -> Vec<LineageRecord> {
         super::branch_history::lineage_for_main_risk(self)
     }
 
@@ -129,23 +137,23 @@ impl FintechWorld {
         super::world_shape::assert_world_shape(self, scale)
     }
 
-    pub(super) fn top_desk(&self) -> crate::facade::NodeId {
+    pub(super) fn top_desk(&self) -> NodeId {
         self.handles.aggregate.top_desk
     }
 
-    pub(super) fn top_scenario(&self) -> crate::facade::NodeId {
+    pub(super) fn top_scenario(&self) -> NodeId {
         self.handles.aggregate.top_scenario
     }
 
-    pub(super) fn main_risk_node(&self) -> crate::facade::NodeId {
+    pub(super) fn main_risk_node(&self) -> NodeId {
         self.handles.primary.risk
     }
 
-    pub(super) fn primary_threshold_node(&self) -> crate::facade::NodeId {
+    pub(super) fn primary_threshold_node(&self) -> NodeId {
         self.handles.primary.threshold
     }
 
-    pub(super) fn primary_market_source(&self) -> crate::facade::NodeId {
+    pub(super) fn primary_market_source(&self) -> NodeId {
         self.handles.primary.market_source
     }
 
@@ -155,66 +163,66 @@ impl FintechWorld {
 
     pub(super) fn node_state(
         &self,
-        node: crate::facade::NodeId,
-    ) -> Result<crate::facade::NodeState, crate::facade::SignalError> {
+        node: NodeId,
+    ) -> Result<NodeState, SignalError> {
         self.runtime.graph().get_state(node)
     }
 
-    pub(super) fn partitioned_market_source(&self) -> crate::facade::NodeId {
+    pub(super) fn partitioned_market_source(&self) -> NodeId {
         self.handles.partition.market_regions
     }
 
-    pub(super) fn rates_partition_node(&self) -> crate::facade::NodeId {
+    pub(super) fn rates_partition_node(&self) -> NodeId {
         self.handles.partition.rates_partition
     }
 
-    pub(super) fn credit_partition_node(&self) -> crate::facade::NodeId {
+    pub(super) fn credit_partition_node(&self) -> NodeId {
         self.handles.partition.credit_partition
     }
 
-    pub(super) fn rates_bucket_zero_node(&self) -> crate::facade::NodeId {
+    pub(super) fn rates_bucket_zero_node(&self) -> NodeId {
         self.handles.partition.rates_bucket_zero
     }
 
-    pub(super) fn coarse_partition_book_node(&self) -> crate::facade::NodeId {
+    pub(super) fn coarse_partition_book_node(&self) -> NodeId {
         self.handles.partition.coarse_book
     }
 
     pub(super) fn read_node_with_executor(
         &mut self,
-        node: crate::facade::NodeId,
+        node: NodeId,
         executor: StageExecutor,
-    ) -> Result<AspectVersion, crate::facade::SignalError> {
+    ) -> Result<AspectVersion, SignalError> {
         let evaluation = self.evaluation_shape();
-        let precompute = evaluation.precompute();
-        self.runtime.read_with_executor(node, &precompute, executor)
+        let evaluator = evaluation.evaluator();
+        self.runtime.read_with_executor(node, &(), &evaluator, executor)
     }
 
-    pub(super) fn read_top_desk_with_executor(
+    pub(crate) fn read_top_desk_with_executor(
         &mut self,
         executor: StageExecutor,
-    ) -> Result<AspectVersion, crate::facade::SignalError> {
+    ) -> Result<AspectVersion, SignalError> {
         self.read_node_with_executor(self.top_desk(), executor)
     }
 
-    pub(super) fn read_top_scenario_with_executor(
+    pub(crate) fn read_top_scenario_with_executor(
         &mut self,
         executor: StageExecutor,
-    ) -> Result<AspectVersion, crate::facade::SignalError> {
+    ) -> Result<AspectVersion, SignalError> {
         self.read_node_with_executor(self.top_scenario(), executor)
     }
 
     pub(super) fn read_primary_threshold_with_executor(
         &mut self,
         executor: StageExecutor,
-    ) -> Result<AspectVersion, crate::facade::SignalError> {
+    ) -> Result<AspectVersion, SignalError> {
         self.read_node_with_executor(self.primary_threshold_node(), executor)
     }
 
     pub(super) fn read_primary_market_source_with_executor(
         &mut self,
         executor: StageExecutor,
-    ) -> Result<AspectVersion, crate::facade::SignalError> {
+    ) -> Result<AspectVersion, SignalError> {
         self.read_node_with_executor(self.primary_market_source(), executor)
     }
 
@@ -222,7 +230,7 @@ impl FintechWorld {
         &mut self,
         index: usize,
         executor: StageExecutor,
-    ) -> Result<AspectVersion, crate::facade::SignalError> {
+    ) -> Result<AspectVersion, SignalError> {
         self.read_node_with_executor(self.bucket_aggregates[index], executor)
     }
 
@@ -230,14 +238,14 @@ impl FintechWorld {
         &mut self,
         index: usize,
         executor: StageExecutor,
-    ) -> Result<AspectVersion, crate::facade::SignalError> {
+    ) -> Result<AspectVersion, SignalError> {
         self.read_node_with_executor(self.scenario_aggregates[index], executor)
     }
 
     pub(super) fn read_primary_audit_surface(
         &mut self,
         executor: StageExecutor,
-    ) -> Result<PrimaryAuditSurface, crate::facade::SignalError> {
+    ) -> Result<PrimaryAuditSurface, SignalError> {
         let desk = self.read_top_desk_with_executor(executor)?;
         let scenario = self.read_top_scenario_with_executor(executor)?;
         Ok(PrimaryAuditSurface::new(desk, scenario))
@@ -246,42 +254,42 @@ impl FintechWorld {
     pub(super) fn read_rates_partition_with_executor(
         &mut self,
         executor: StageExecutor,
-    ) -> Result<AspectVersion, crate::facade::SignalError> {
+    ) -> Result<AspectVersion, SignalError> {
         self.read_node_with_executor(self.rates_partition_node(), executor)
     }
 
     pub(super) fn read_credit_partition_with_executor(
         &mut self,
         executor: StageExecutor,
-    ) -> Result<AspectVersion, crate::facade::SignalError> {
+    ) -> Result<AspectVersion, SignalError> {
         self.read_node_with_executor(self.credit_partition_node(), executor)
     }
 
     pub(super) fn read_rates_bucket_zero_with_executor(
         &mut self,
         executor: StageExecutor,
-    ) -> Result<AspectVersion, crate::facade::SignalError> {
+    ) -> Result<AspectVersion, SignalError> {
         self.read_node_with_executor(self.rates_bucket_zero_node(), executor)
     }
 
     pub(super) fn read_coarse_partition_book_with_executor(
         &mut self,
         executor: StageExecutor,
-    ) -> Result<AspectVersion, crate::facade::SignalError> {
+    ) -> Result<AspectVersion, SignalError> {
         self.read_node_with_executor(self.coarse_partition_book_node(), executor)
     }
 
     pub(super) fn refresh_primary_audit_surface(
         &mut self,
         executor: StageExecutor,
-    ) -> Result<PrimaryAuditSurface, crate::facade::SignalError> {
+    ) -> Result<PrimaryAuditSurface, SignalError> {
         let top_desk = self.top_desk();
         let top_scenario = self.top_scenario();
         let evaluation = self.evaluation_shape();
-        let precompute = evaluation.precompute();
+        let evaluator = evaluation.evaluator();
         self.runtime.transaction(&mut (), |tx| {
-            tx.read_with_executor(top_desk, &precompute, executor)?;
-            tx.read_with_executor(top_scenario, &precompute, executor)?;
+            tx.read_with_executor(top_desk, &evaluator, executor)?;
+            tx.read_with_executor(top_scenario, &evaluator, executor)?;
             Ok(())
         })?;
         self.read_primary_audit_surface(executor)
@@ -290,18 +298,18 @@ impl FintechWorld {
     pub(super) fn inject_primary_market_rollback(
         &mut self,
         executor: StageExecutor,
-    ) -> Result<(), crate::facade::SignalError> {
+    ) -> Result<(), SignalError> {
         let top_desk = self.top_desk();
         let evaluation = self.evaluation_shape();
-        let precompute = evaluation.precompute();
+        let evaluator = evaluation.evaluator();
         let source = self.primary_market_source();
         let err = self.runtime.transaction(&mut (), |tx| {
             tx.mark_dirty(source, super::aspects::PRICE)?;
             tx.mark_dirty(source, super::aspects::VOL)?;
-            tx.read(source, &|_node, view| {
+            tx.read(source, &|view| {
                 Ok(view.finish(
-                    crate::facade::NodeEvaluationResult::from_version(
-                        crate::facade::AspectVersion::from_updates([
+                    NodeEvaluationResult::from_version(
+                        AspectVersion::from_updates([
                             (super::aspects::PRICE, 99_999),
                             (super::aspects::VOL, 99_999),
                             (super::aspects::CURVE, 99_999),
@@ -313,30 +321,30 @@ impl FintechWorld {
                     .with_output_identity("bad-branch-correction"),
                 ))
             })?;
-            tx.read_with_executor(top_desk, &precompute, executor)?;
-            Err(crate::facade::SignalError::invalid_input(
+            tx.read_with_executor(top_desk, &evaluator, executor)?;
+            Err(SignalError::invalid_input(
                 "synthetic analysis rollback",
             ))
         });
         match err {
-            Ok(_) => Err(crate::facade::SignalError::invalid_input(
+            Ok(_) => Err(SignalError::invalid_input(
                 "synthetic rollback unexpectedly committed",
             )),
             Err(_) => Ok(()),
         }
     }
 
-    pub(super) fn bump_primary_market(
+    pub(crate) fn bump_primary_market(
         &mut self,
         price_delta: i64,
         vol_delta: i64,
         curve_delta: i64,
         liquidity_delta: i64,
         executor: StageExecutor,
-    ) -> Result<AspectVersion, crate::facade::SignalError> {
+    ) -> Result<AspectVersion, SignalError> {
         let source = self.primary_market_source();
         let current = self.read_node_with_executor(source, executor)?;
-        let bumped = crate::facade::AspectVersion::from_updates([
+        let bumped = AspectVersion::from_updates([
             (
                 super::aspects::PRICE,
                 apply_signed_delta(current.get(super::aspects::PRICE), price_delta),
@@ -366,9 +374,9 @@ impl FintechWorld {
             tx.mark_dirty(source, super::aspects::CURVE)?;
             tx.mark_dirty(source, super::aspects::LIQUIDITY)?;
             tx.mark_dirty(source, super::aspects::RISK)?;
-            tx.read(source, &|_node, view| {
+            tx.read(source, &|view| {
                 Ok(view.finish(
-                    crate::facade::NodeEvaluationResult::from_version(bumped)
+                    NodeEvaluationResult::from_version(bumped)
                         .with_output_identity("primary-market-bump"),
                 ))
             })?;
@@ -384,10 +392,10 @@ impl FintechWorld {
         detail: Option<PartitionDetail>,
         price_delta: i64,
         executor: StageExecutor,
-    ) -> Result<AspectVersion, crate::facade::SignalError> {
+    ) -> Result<AspectVersion, SignalError> {
         let source = self.partitioned_market_source();
         let current = self.read_node_with_executor(source, executor)?;
-        let bumped = crate::facade::AspectVersion::from_updates([
+        let bumped = AspectVersion::from_updates([
             (
                 super::aspects::PRICE,
                 apply_signed_delta(current.get(super::aspects::PRICE), price_delta),
@@ -404,7 +412,7 @@ impl FintechWorld {
 
         self.runtime.transaction(&mut (), |tx| {
             tx.mark_dirty_with_regions(source, super::aspects::PRICE, &[changed_region.clone()])?;
-            tx.read(source, &|_node, view| {
+            tx.read(source, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(bumped)
                         .with_output_identity(format!(
@@ -425,7 +433,7 @@ impl FintechWorld {
         &mut self,
         price_delta: i64,
         executor: StageExecutor,
-    ) -> Result<AspectVersion, crate::facade::SignalError> {
+    ) -> Result<AspectVersion, SignalError> {
         self.apply_partition_shock(
             MarketPartition::Rates,
             Some(PartitionDetail::Bucket0),
@@ -438,14 +446,14 @@ impl FintechWorld {
         &mut self,
         price_delta: i64,
         executor: StageExecutor,
-    ) -> Result<AspectVersion, crate::facade::SignalError> {
+    ) -> Result<AspectVersion, SignalError> {
         self.apply_partition_shock(MarketPartition::Credit, None, price_delta, executor)
     }
 
     pub(super) fn capture_active_checkpoint(
         &mut self,
         executor: StageExecutor,
-    ) -> Result<BranchCheckpoint, crate::facade::SignalError> {
+    ) -> Result<BranchCheckpoint, SignalError> {
         let branch = self.current_branch();
         let audit = self.read_primary_audit_surface(executor)?;
         let snapshot = self.capture_branch_snapshot(branch.clone())?;
@@ -455,7 +463,7 @@ impl FintechWorld {
     pub(super) fn restore_checkpoint(
         &mut self,
         checkpoint: &BranchCheckpoint,
-    ) -> Result<(), crate::facade::SignalError> {
+    ) -> Result<(), SignalError> {
         self.restore_saved_snapshot(checkpoint.branch.clone(), &checkpoint.snapshot)
     }
 
@@ -463,7 +471,7 @@ impl FintechWorld {
         &mut self,
         branch: SignalBranchHandle,
         snapshot: &SignalSnapshotV1,
-    ) -> Result<(), crate::facade::SignalError> {
+    ) -> Result<(), SignalError> {
         self.restore_saved_snapshot(branch, snapshot)
     }
 
@@ -471,7 +479,7 @@ impl FintechWorld {
         &mut self,
         branch: SignalBranchHandle,
         snapshot: &SignalSnapshotV1,
-    ) -> Result<(), crate::facade::SignalError> {
+    ) -> Result<(), SignalError> {
         let mut incompatible = snapshot.clone();
         incompatible.meta.core_storage_profile = "incompatible-fintech-test-profile".to_string();
         self.restore_saved_snapshot(branch, &incompatible)
@@ -479,7 +487,7 @@ impl FintechWorld {
 }
 
 pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults()
         .with_tiers::<super::execution_tier::FintechTier>()
         .build();
     runtime.set_runtime_policy(
@@ -649,7 +657,7 @@ pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
 
     runtime
         .transaction(&mut (), |tx| {
-            tx.read(partition.market_regions, &|_node, view| {
+            tx.read(partition.market_regions, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(AspectVersion::from_updates([
                         (super::aspects::PRICE, 0),

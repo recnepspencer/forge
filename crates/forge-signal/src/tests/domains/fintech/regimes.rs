@@ -1,5 +1,5 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum MarketRegime {
+pub(crate) enum MarketRegime {
     Calm,
     HighVol,
     SpreadBlowout,

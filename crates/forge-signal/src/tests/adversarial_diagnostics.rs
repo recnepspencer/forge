@@ -32,21 +32,21 @@ fn operational_profile_stays_bounded_under_snapshot_and_dependency_churn() {
             .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
             .unwrap();
         graph
-            .execute_prepared_plan(&plan, &|node, view| {
-                let result = if node == source_a {
-                    view.finish(version_ab(1 + wave as u64, 0))
-                } else if node == source_b {
-                    view.finish(version_ab(10 + wave as u64, 0))
+            .execute_prepared_plan(&plan, &(), &|ctx| {
+                let result = if ctx.node() == source_a {
+                    ctx.finish(version_ab(1 + wave as u64, 0))
+                } else if ctx.node() == source_b {
+                    ctx.finish(version_ab(10 + wave as u64, 0))
                 } else {
-                    let version = view.read_aspect_version(target_source, ASPECT_A)?;
-                    view.finish(NodeEvaluationResult::from_version(version))
+                    let version = ctx.read_aspect_version(target_source, ASPECT_A)?;
+                    ctx.finish(NodeEvaluationResult::from_version(version))
                 };
                 Ok(result)
             })
             .unwrap();
     }
 
-    let diagnostics = graph.diagnostics();
+    let diagnostics = graph.observe().diagnostics();
     let policy = DiagnosticsPolicy::from_profile(DiagnosticsProfile::Operational);
     assert!(diagnostics.recent_history().len() <= policy.history_limit);
     assert!(diagnostics.latest_failure().is_none());
@@ -56,7 +56,7 @@ fn operational_profile_stays_bounded_under_snapshot_and_dependency_churn() {
 
 #[test]
 fn repeated_failure_and_rollback_loops_preserve_explanation_after_churn() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     runtime
         .graph_mut()
         .set_diagnostics_profile(DiagnosticsProfile::Development);
@@ -69,10 +69,10 @@ fn repeated_failure_and_rollback_loops_preserve_explanation_after_churn() {
         .transaction(&mut runtime_ctx, |tx| {
             tx.evaluate_with_plan(
                 dependent,
-                &|node, view| {
-                    let result = if node == source_a {
+                &|view| {
+                    let result = if view.node() == source_a {
                         view.finish(version_ab(1, 0))
-                    } else if node == source_b {
+                    } else if view.node() == source_b {
                         view.finish(version_ab(2, 0))
                     } else {
                         let version = view.read_aspect_version(source_a, ASPECT_A)?;
@@ -91,10 +91,10 @@ fn repeated_failure_and_rollback_loops_preserve_explanation_after_churn() {
             tx.mark_dirty(if wave % 2 == 0 { source_a } else { source_b }, ASPECT_A)?;
             tx.evaluate_with_plan(
                 dependent,
-                &|node, view| {
-                    let result = if node == source_a {
+                &|view| {
+                    let result = if view.node() == source_a {
                         view.finish(version_ab(1 + wave as u64, 0))
-                    } else if node == source_b {
+                    } else if view.node() == source_b {
                         view.finish(version_ab(100 + wave as u64, 0))
                     } else if wave % 2 == 0 {
                         let version = view.read_aspect_version(source_b, ASPECT_A)?;
@@ -112,9 +112,9 @@ fn repeated_failure_and_rollback_loops_preserve_explanation_after_churn() {
         assert!(err.is_err());
     }
 
-    let diagnostics = runtime.diagnostics();
+    let diagnostics = runtime.observe().diagnostics();
     assert!(diagnostics.latest_rollback().is_some());
-    let explanation = runtime.explain(dependent).unwrap();
+    let explanation = runtime.observe().explain(dependent).unwrap();
     assert!(!explanation.upstream.is_empty());
 }
 
@@ -151,9 +151,9 @@ fn stress_development_profile_repeated_waves_remains_semantically_stable() {
             .build_evaluation_plan(&dependents, EvaluationRequestMode::Default)
             .unwrap();
         graph
-            .execute_prepared_plan(&plan, &|node, view| {
-                let result = if node == source {
-                    view.finish(
+            .execute_prepared_plan(&plan, &(), &|ctx| {
+                let result = if ctx.node() == source {
+                    ctx.finish(
                         NodeEvaluationResult::from_version(version_ab(wave as u64 + 1, 0))
                             .with_output_identity("wing-artifact")
                             .with_changed_region(
@@ -162,7 +162,7 @@ fn stress_development_profile_repeated_waves_remains_semantically_stable() {
                             ),
                     )
                 } else {
-                    let version = view.read_partitioned_aspect_version(
+                    let version = ctx.read_partitioned_aspect_version(
                         source,
                         ASPECT_A,
                         PartitionSubscription::partition_and_detail(
@@ -170,15 +170,15 @@ fn stress_development_profile_repeated_waves_remains_semantically_stable() {
                             format!("rib-{}", wave % 64),
                         ),
                     )?;
-                    view.finish(NodeEvaluationResult::from_version(version))
+                    ctx.finish(NodeEvaluationResult::from_version(version))
                 };
                 Ok(result)
             })
             .unwrap();
     }
 
-    assert!(graph.diagnostics().recent_history().len() > 1);
-    assert!(graph.latest_failure_diagnostics().is_none());
+    assert!(graph.observe().diagnostics().recent_history().len() > 1);
+    assert!(graph.observe().latest_failure_diagnostics().is_none());
 }
 
 #[test]
@@ -199,7 +199,7 @@ fn execution_history_prefers_most_recent_records_over_low_arena_indices() {
             .set_trace_summary(Some(trace));
     }
 
-    let history = graph.execution_history_summary(DiagnosticsProfile::Development);
+    let history = graph.observe().execution_history_summary(DiagnosticsProfile::Development);
     let retained = history
         .nodes
         .iter()

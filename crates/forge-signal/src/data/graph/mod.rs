@@ -15,6 +15,9 @@ pub(crate) use storage::{
     DependencyEdgeStore, DependencySetId, SubscriberEdgeStore, SubscriberSetId,
 };
 pub use construction::NodeBuilder;
+pub use runtime::{
+    EvaluationStrategy, GcPressure, GraphObserver, ObservationLevel, ParallelismHint,
+};
 pub use runtime::ScratchLeaseKind;
 pub(crate) use runtime::TraversalScratch;
 pub use runtime::SignalGraph;

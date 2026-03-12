@@ -30,7 +30,7 @@ pub(crate) fn prepare_publication_artifacts(
     let patch = assemble_patch(&runtime.config, commit_reference.commit_id, &effect);
     enforce_patch_budget(runtime, &patch)?;
     let diagnostics_summary = diagnostics_summary_artifact(&runtime.config, &effect);
-    let artifacts = runtime.assemble_publication_bundle(
+    let artifacts = runtime.publication_authority().assemble_publication_bundle(
         commit_reference.clone(),
         version_id,
         patch.clone(),

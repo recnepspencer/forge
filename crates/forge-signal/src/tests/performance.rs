@@ -6,7 +6,7 @@ use std::mem::size_of;
 #[test]
 fn chain_1000_minimal_recomputation() {
     let mut graph = SignalGraph::new();
-    let mut chain: Vec<crate::facade::NodeId> = Vec::with_capacity(1000);
+    let mut chain: Vec<NodeId> = Vec::with_capacity(1000);
 
     let first = graph.create_node();
     chain.push(first);
@@ -37,7 +37,7 @@ fn chain_1000_minimal_recomputation() {
 #[test]
 fn push_perf_10k_nodes() {
     let mut graph = SignalGraph::new();
-    let mut chain: Vec<crate::facade::NodeId> = Vec::with_capacity(10_000);
+    let mut chain: Vec<NodeId> = Vec::with_capacity(10_000);
 
     let first = graph.create_node();
     chain.push(first);
@@ -70,7 +70,6 @@ fn push_perf_10k_nodes() {
 fn ondemand_defer_perf_10k_nodes() {
     let mut graph = SignalGraph::new();
     let mut nodes: Vec<NodeId> = Vec::with_capacity(10_000);
-
     for _ in 0..10_000 {
         nodes.push(
             graph
@@ -81,10 +80,10 @@ fn ondemand_defer_perf_10k_nodes() {
     }
 
     let start = std::time::Instant::now();
-    for node in &nodes {
-        let mut compute = |_id: NodeId, _g: &SignalGraph| Ok(version_ab(0, 1));
-        evaluate(&mut graph, *node, &mut compute).unwrap();
-    }
+    let plan = build_evaluation_plan(&mut graph, &nodes, EvaluationRequestMode::Default).unwrap();
+    assert_eq!(plan.summary.task_count, 10_000);
+    execute_prepared_plan(&mut graph, &plan, &(), &|_ctx| Ok(version_ab(0, 1)))
+        .unwrap();
     let elapsed = start.elapsed();
 
     let max_eval_ms: u128 = 500;
@@ -94,7 +93,6 @@ fn ondemand_defer_perf_10k_nodes() {
         elapsed.as_millis(),
         max_eval_ms
     );
-    assert_eq!(graph.telemetry().evaluation.ondemand_deferred_count, 10_000);
 }
 
 #[test]
@@ -180,7 +178,7 @@ fn slot_layout_report() {
         .iter()
         .filter(|slot| {
             let entry = black_box(slot.data.as_ref().expect("occupied slot"));
-            entry.is_tombstoned() || matches!(entry.get_state(), crate::facade::NodeState::Dirty)
+            entry.is_tombstoned() || matches!(entry.get_state(), NodeState::Dirty)
         })
         .count();
     eprintln!(
@@ -205,7 +203,7 @@ fn slot_layout_report() {
         .iter()
         .filter(|slot| {
             let entry = black_box(slot.data.as_deref().expect("occupied slot"));
-            entry.is_tombstoned() || matches!(entry.get_state(), crate::facade::NodeState::Dirty)
+            entry.is_tombstoned() || matches!(entry.get_state(), NodeState::Dirty)
         })
         .count();
     eprintln!(

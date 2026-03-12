@@ -54,7 +54,7 @@ fn cross_context_relations_preserve_partitioned_endpoints() {
     let target = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
     let relation =
         create_relation_in_partition(&mut runtime, source, target, "bridge", PartitionId(29));
-    let snapshot = runtime.snapshot_access().snapshot();
+    let snapshot = runtime.visibility_authority().snapshot();
     let read = runtime.visibility_reads().read_snapshot(&snapshot).unwrap();
     let relation_record = read.get_relation(relation).unwrap();
 
@@ -121,8 +121,8 @@ fn partition_registry_and_stats_expose_partition_owned_state() {
     let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
     let _ = create_relation_in_partition(&mut runtime, left, right, "bridge", PartitionId(29));
 
-    let partition_ids = runtime.partition_ids();
-    let stats = runtime.partition_storage_stats();
+    let partition_ids = runtime.storage_access().partition_ids();
+    let stats = runtime.storage_access().partition_storage_stats();
 
     assert_eq!(
         partition_ids,

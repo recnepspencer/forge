@@ -4,9 +4,9 @@ use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeContract;
 use crate::data::output::{ComputationFamily, ComputationKey, KeyedComputation, StructuralMemoKey};
-use crate::logic::evaluation::EvaluationRequestMode;
+use crate::logic::context::EvaluationContext;
+use crate::logic::evaluation::{EvaluationRequestMode, IntoEvaluationOutput};
 use crate::logic::planner::ExecutionReport;
-use crate::logic::prepared::{ExecutionReadView, PreparedEvaluation};
 
 use super::state::SignalRuntime;
 use super::transaction::SignalTransaction;
@@ -111,45 +111,55 @@ impl<'a, T: Copy, F> DefinedKeyedComputation<'a, T, F> {
 impl<'a, T, F> DefinedKeyedComputation<'a, T, F>
 where
     T: Copy + Ord,
-    F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
 {
-    pub fn execute<D, I, E, Ctx>(
+    pub fn execute<D, I, E, Ctx, O>(
         &self,
         runtime: &mut SignalRuntime<D, I, E, Ctx, T>,
+        runtime_ctx: &Ctx,
     ) -> Result<ExecutionReport, SignalError>
     where
         D: Copy + Ord + std::fmt::Debug + 'static,
         I: Copy + Ord,
+        Ctx: Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
         let node = self.node(runtime);
-        runtime.evaluate_with_plan(node, &self.definition.evaluator, EvaluationRequestMode::Default)
+        runtime.evaluate_with_plan(node, runtime_ctx, &self.definition.evaluator, EvaluationRequestMode::Default)
     }
 
-    pub fn read<D, I, E, Ctx>(
+    pub fn read<D, I, E, Ctx, O>(
         &self,
         runtime: &mut SignalRuntime<D, I, E, Ctx, T>,
+        runtime_ctx: &Ctx,
     ) -> Result<AspectVersion, SignalError>
     where
         D: Copy + Ord + std::fmt::Debug + 'static,
         I: Copy + Ord,
+        Ctx: Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
         let node = self.node(runtime);
-        runtime.read(node, &self.definition.evaluator)
+        runtime.read(node, runtime_ctx, &self.definition.evaluator)
     }
 
-    pub fn evaluate<D, I, E, Ctx>(
+    pub fn evaluate<D, I, E, Ctx, O>(
         &self,
         tx: &mut SignalTransaction<'_, D, I, E, Ctx, T>,
     ) -> Result<(), SignalError>
     where
         D: Copy + Ord + std::fmt::Debug + 'static,
         I: Copy + Ord,
+        Ctx: Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
         let node = self.node_in_transaction(tx);
         tx.evaluate_keyed(node, &self.metadata(), &self.definition.evaluator)
     }
 
-    pub fn evaluate_memoized<D, I, E, Ctx>(
+    pub fn evaluate_memoized<D, I, E, Ctx, O>(
         &self,
         tx: &mut SignalTransaction<'_, D, I, E, Ctx, T>,
         memo_key: impl Into<StructuralMemoKey>,
@@ -157,6 +167,9 @@ where
     where
         D: Copy + Ord + std::fmt::Debug + 'static,
         I: Copy + Ord,
+        Ctx: Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
         let node = self.node_in_transaction(tx);
         tx.evaluate_keyed(node, &self.memoized(memo_key), &self.definition.evaluator)

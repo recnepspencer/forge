@@ -13,7 +13,8 @@ pub(super) use crate::config::data::{PatchSurfacePolicy, PublicationConfig};
 pub(super) use crate::facade::{
     BranchId, CommitOutcome, DiagnosticCode, DiagnosticsArtifactKind,
     DiagnosticsScope, DurabilityMode, DurableStoreLayout, EntityKindRegistration, EntityMutationIntent,
-    EntityReadRecord, InvariantCatalog, InvariantClass, InvariantExecutionPoint, InvariantRule,
+    EntityReadRecord, InvariantCatalog, InvariantClass, InvariantExecutionPoint,
+    InvariantRegistration, InvariantRule,
     KindId, PartitionId, PatchStreamPosition, PatchStreamRequest, PublicationStage,
     PublicationStatus, QueryWorkPacket, RecordRef, RelationId, RelationKindRegistration,
     RelationMutationIntent, RelationalHarnessAdapter, RelationalRuntime,

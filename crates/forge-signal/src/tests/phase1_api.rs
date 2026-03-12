@@ -25,7 +25,7 @@ enum Tier {
 #[test]
 fn runtime_builder_uses_expected_defaults() {
     let graph = SignalGraph::new();
-    let runtime = SignalRuntime::builder(graph).build();
+    let runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
 
     assert_eq!(
         runtime.checkpoint().policy().barrier_for(()),
@@ -43,7 +43,7 @@ fn runtime_builder_supports_typed_runtime_configuration() {
     let _ = Impact::One;
     let _ = Ev::Tick;
     let _ = Tier::Feature;
-    let runtime = SignalRuntime::builder(graph)
+    let runtime = SignalRuntime::builder(graph).with_kernel_defaults()
         .with_domains::<Domain>()
         .with_impacts::<Impact>()
         .with_events::<Ev>()
@@ -65,7 +65,7 @@ fn transaction_helper_commits_on_success() {
     let dependent = graph.node().build();
     graph.add_dependency(dependent, source, ASPECT_A).unwrap();
 
-    let mut runtime = SignalRuntime::builder(graph).build();
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
     let outcome = runtime
         .transaction(&mut (), |transaction| {
             transaction.mark_dirty(source, ASPECT_A)?;
@@ -88,7 +88,7 @@ fn transaction_helper_rolls_back_on_error() {
     graph.add_dependency(dependent, source, ASPECT_A).unwrap();
     let before = graph.get_state(dependent).unwrap();
 
-    let mut runtime = SignalRuntime::builder(graph).build();
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
     let err = runtime
         .transaction(&mut (), |transaction| {
             transaction.mark_dirty(source, ASPECT_A)?;
@@ -144,7 +144,7 @@ fn graph_node_builder_accepts_explicit_node_contract() {
 #[test]
 fn define_computation_applies_contract_comparator_and_tier_to_created_nodes() {
     let graph = SignalGraph::new();
-    let mut runtime = SignalRuntime::builder(graph).with_tiers::<Tier>().build();
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().with_tiers::<Tier>().build();
     let contract = NodeContract::reads([ASPECT_A])
         .with_produces([ASPECT_B])
         .with_required_context(ContextRequirement::DomainContext);
@@ -154,8 +154,8 @@ fn define_computation_applies_contract_comparator_and_tier_to_created_nodes() {
             contract: contract.clone(),
             tier: Tier::Feature,
             comparator: VersionComparatorPolicy::OutputIdentity,
-            evaluator: |_node: NodeId, view: &ExecutionReadView<'_>| {
-                Ok::<PreparedEvaluation, SignalError>(view.finish(
+            evaluator: |_ctx: &mut EvaluationContext<'_, ()>| {
+                Ok::<EvaluationOutput, SignalError>(EvaluationOutput::from_result(
                     NodeEvaluationResult::from_version(version_ab(1, 0)),
                 ))
             },

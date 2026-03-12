@@ -1,8 +1,6 @@
 use crate::snapshots::data::{SnapshotHandle, SnapshotId};
 
-mod invariants;
 mod session;
-mod snapshots;
 mod state;
 
 pub use crate::config::data::RelationalRuntimeConfig;
@@ -25,8 +23,9 @@ pub use crate::storage::data::{
 #[allow(unused_imports)]
 pub use crate::validation::data::{
     InvariantCatalog, InvariantCheckResult, InvariantClass, InvariantExecutionPoint,
-    InvariantFailureEffect, InvariantRule, InvariantViolation, StorageInvariantReport,
+    InvariantFailureEffect, InvariantRegistration, InvariantRule, InvariantViolation,
 };
+pub use crate::validation::engine::HarnessAuditMode;
 
 pub(crate) use crate::storage::logic::state::{PartitionAccess, WorkingState};
 pub(crate) use state::{
@@ -35,8 +34,6 @@ pub(crate) use state::{
     RuntimeSubsystem, SnapshotHandleBinding, VisibilityResidency, VisibilitySubsystem,
 };
 pub use state::RelationalRuntime;
-#[allow(unused_imports)]
-pub use snapshots::SnapshotAccess;
 
 #[derive(Debug, Clone)]
 pub struct SnapshotGuard {
@@ -44,6 +41,10 @@ pub struct SnapshotGuard {
 }
 
 impl SnapshotGuard {
+    pub(crate) fn new(handle: SnapshotHandle) -> Self {
+        Self { handle }
+    }
+
     pub fn handle(&self) -> &SnapshotHandle {
         &self.handle
     }

@@ -1,7 +1,7 @@
 use super::scales::FintechScale;
 use super::scenarios::setup_world;
 use crate::diagnostics::ReplayEventKind;
-use crate::facade::{ReplaySlice, SignalSnapshotId, StageExecutor};
+use crate::facade::*;
 
 fn rollback_count(replay: &ReplaySlice) -> usize {
     replay

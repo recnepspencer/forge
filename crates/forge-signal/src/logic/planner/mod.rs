@@ -20,7 +20,9 @@ pub(crate) use self::precompute::{admission as stage_admission, executor_pool};
 pub(crate) use self::semantic::stage_recording;
 
 pub use execution::{execute_prepared_plan, execute_prepared_plan_with_policy};
-pub(crate) use execution::execute_evaluation_session_with_policy;
+pub(crate) use execution::{
+    execute_evaluation_session_with_policy, execute_prepared_plan_with_precompute,
+};
 pub(crate) use plan_builder::build_evaluation_session_with_policy_resolver;
 pub use plan_builder::{build_evaluation_plan, build_evaluation_plan_with_policy_resolver};
 #[cfg(test)]

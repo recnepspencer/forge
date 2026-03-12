@@ -27,12 +27,13 @@ where
         Ok(DefinedComputation::from_spec(spec))
     }
 
-    pub fn begin<'a>(&'a mut self) -> SignalTransaction<'a, D, I, E, Ctx, T> {
+    pub fn begin<'a>(&'a mut self, runtime_ctx: &'a mut Ctx) -> SignalTransaction<'a, D, I, E, Ctx, T> {
         self.telemetry.transaction.transaction_begin_count += 1;
         self.config.sync_graph_capacity(&self.graph);
         let baseline_config = self.config.clone();
         let baseline_diagnostics_state = self.graph.diagnostics_state().clone();
         SignalTransaction {
+            runtime_ctx,
             config: &mut self.config,
             graph: &mut self.graph,
             checkpoint: &mut self.checkpoint,
@@ -69,11 +70,11 @@ where
     where
         F: FnOnce(&mut SignalTransaction<'_, D, I, E, Ctx, T>) -> Result<(), SignalError>,
     {
-        let mut transaction = self.begin();
+        let mut transaction = self.begin(runtime_ctx);
         match apply(&mut transaction) {
-            Ok(()) => transaction.commit(runtime_ctx),
+            Ok(()) => transaction.commit(),
             Err(err) => {
-                let rollback_result = transaction.rollback(runtime_ctx);
+                let rollback_result = transaction.rollback();
                 match rollback_result {
                     Ok(_) => Err(err),
                     Err(rollback_err) => Err(rollback_err),

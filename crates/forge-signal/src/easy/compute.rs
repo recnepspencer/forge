@@ -2,10 +2,8 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::marker::PhantomData;
 
-use crate::facade::{
-    AspectVersion, NodeEvaluationResult, NodeId, PreparedDependencyCapture, PreparedEvaluation,
-    SignalError,
-};
+use crate::facade::types::*;
+use crate::logic::prepared::{PreparedDependencyCapture, PreparedEvaluation};
 
 use super::signal::{Signal, DEFAULT_ASPECT};
 

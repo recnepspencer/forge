@@ -1,1 +1,1 @@
-mod fintech;
+pub(crate) mod fintech;

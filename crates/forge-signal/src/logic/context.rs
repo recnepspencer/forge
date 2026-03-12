@@ -1,90 +1,150 @@
-//! Parallel-safe evaluation context for dependency tracking.
-//!
-//! Explicit dependency discovery during node evaluation.
+//! Context-aware evaluation surface for dependency tracking.
 //!
 //! INVARIANTS:
-//! - Context is passed by value, not stored in thread-locals (D8 safe)
-//! - All upstream reads are recorded for graph wiring
-//! - Each context tracks exactly one evaluating node
-//!
-//! DEPENDENCIES: `handles` (NodeId), `schema` (Aspect, DependencyEdge, AspectVersion),
-//!               `graph` (SignalGraph)
+//! - Context is passed explicitly, never through thread-locals.
+//! - Domain context is framework-owned and ambient for the lifetime of evaluation.
+//! - All upstream reads are recorded for graph wiring.
 
-use crate::data::error::SignalError;
-
-use crate::data::aspect::Aspect;
-use crate::data::dependency::DependencyEdge;
-use crate::data::graph::SignalGraph;
-use crate::data::handle::NodeId;
 use std::collections::HashSet;
 
-/// Explicit evaluation context for parallel-safe dependency tracking.
-///
-/// Replaces thread-local stacks for dependency discovery. Under Rayon
-/// work-stealing, each task receives its own `EvaluationContext` by value,
-/// so dependency recording is safe regardless of the executing OS thread.
-///
-/// # Usage
-/// ```ignore
-/// let mut ctx = EvaluationContext::new(my_node_id);
-/// let upstream_ver = ctx.read(&graph, upstream_id, Aspect::new(0))?;
-/// // ... use upstream data ...
-/// let deps = ctx.finalize();
-/// // Wire deps into the graph
-/// ```
-pub struct EvaluationContext {
-    /// The node currently being evaluated.
-    evaluating: NodeId,
-    /// Dependencies discovered during this evaluation.
-    discovered_deps: Vec<DependencyEdge>,
-    discovered_dep_keys: HashSet<(NodeId, Aspect)>,
+use crate::data::aspect::{Aspect, AspectVersion};
+use crate::data::error::SignalError;
+use crate::data::graph::SignalGraph;
+use crate::data::handle::NodeId;
+use crate::data::output::{IntoNodeEvaluationResult, PartitionSubscription};
+use crate::data::trace::CausalityMetadata;
+use crate::logic::evaluation::{EvaluationOutput, IntoEvaluationOutput};
+use crate::logic::prepared::{PreparedDependencyCapture, PreparedTraceData};
+
+pub struct EvaluationContext<'graph, Ctx> {
+    graph: &'graph SignalGraph,
+    node: NodeId,
+    domain_context: &'graph Ctx,
+    discovered_deps: PreparedDependencyCapture,
+    discovered_dep_keys: HashSet<(NodeId, Aspect, Option<PartitionSubscription>)>,
 }
 
-impl EvaluationContext {
-    /// Create a new context for evaluating the given node.
-    pub fn new(evaluating: NodeId) -> Self {
+impl<'graph, Ctx> EvaluationContext<'graph, Ctx> {
+    pub fn new(graph: &'graph SignalGraph, node: NodeId, domain_context: &'graph Ctx) -> Self {
         Self {
-            evaluating,
-            discovered_deps: Vec::new(),
+            graph,
+            node,
+            domain_context,
+            discovered_deps: PreparedDependencyCapture::default(),
             discovered_dep_keys: HashSet::new(),
         }
     }
 
-    /// The node this context is evaluating.
-    pub fn evaluating(&self) -> NodeId {
-        self.evaluating
+    pub fn graph(&self) -> &'graph SignalGraph {
+        self.graph
     }
 
-    /// Read an upstream signal's aspect version, recording the dependency.
-    ///
-    /// The dependency is recorded for later wiring into the graph via
-    /// `finalize()`. This ensures dependency discovery works correctly
-    /// under Rayon work-stealing (Doctrine D8).
+    pub fn node(&self) -> NodeId {
+        self.node
+    }
+
+    pub fn evaluating(&self) -> NodeId {
+        self.node()
+    }
+
+    pub fn domain(&self) -> &'graph Ctx {
+        self.domain_context
+    }
+
     pub fn read(
         &mut self,
-        graph: &SignalGraph,
         signal: NodeId,
         aspect: Aspect,
     ) -> Result<u64, SignalError> {
-        let edge = DependencyEdge::new(signal, aspect);
+        self.capture_dependency(signal, aspect);
+        Ok(self.graph.get_entry(signal)?.get_aspect_version().get(aspect))
+    }
 
-        if self.discovered_dep_keys.insert((signal, aspect)) {
-            self.discovered_deps.push(edge);
+    pub fn read_aspect_version(
+        &mut self,
+        source: NodeId,
+        aspect: Aspect,
+    ) -> Result<AspectVersion, SignalError> {
+        self.capture_dependency(source, aspect);
+        Ok(self.graph.get_entry(source)?.get_aspect_version())
+    }
+
+    pub fn read_partitioned_aspect_version(
+        &mut self,
+        source: NodeId,
+        aspect: Aspect,
+        scope: PartitionSubscription,
+    ) -> Result<AspectVersion, SignalError> {
+        self.capture_partition_dependency(source, aspect, scope.clone());
+        Ok(self
+            .graph
+            .get_entry(source)?
+            .get_partitioned_aspect_version(&scope))
+    }
+
+    pub fn capture_dependency(&mut self, source: NodeId, aspect: Aspect) {
+        if self.discovered_dep_keys.insert((source, aspect, None)) {
+            self.discovered_deps.record(source, aspect, None);
         }
-
-        let entry = graph.get_entry(signal)?;
-        Ok(entry.get_aspect_version().get(aspect))
     }
 
-    /// Consume the context and return all discovered dependencies.
-    ///
-    /// The caller uses these to wire edges in the `SignalGraph`.
-    pub fn finalize(self) -> Vec<DependencyEdge> {
-        self.discovered_deps
+    pub fn capture_partition_dependency(
+        &mut self,
+        source: NodeId,
+        aspect: Aspect,
+        scope: PartitionSubscription,
+    ) {
+        if self
+            .discovered_dep_keys
+            .insert((source, aspect, Some(scope.clone())))
+        {
+            self.discovered_deps.record(source, aspect, Some(scope));
+        }
     }
 
-    /// The number of dependencies discovered so far.
+    pub fn finish(&self, result: impl IntoEvaluationOutput) -> EvaluationOutput {
+        result.into_evaluation_output()
+    }
+
+    pub fn finish_with(
+        &self,
+        result: impl IntoNodeEvaluationResult,
+        trace_data: PreparedTraceData,
+    ) -> EvaluationOutput {
+        let mut output = EvaluationOutput::from_result(result);
+        output.set_trace_data(trace_data);
+        output
+    }
+
     pub fn discovered_count(&self) -> usize {
         self.discovered_deps.len()
+    }
+
+    pub(crate) fn into_prepared(
+        self,
+        output: impl IntoEvaluationOutput,
+    ) -> crate::logic::prepared::PreparedEvaluation {
+        output
+            .into_evaluation_output()
+            .into_prepared(self.discovered_deps)
+    }
+}
+
+impl EvaluationOutput {
+    pub fn with_trace_labels(
+        mut self,
+        labels: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Self {
+        self.trace_data.labels.extend(labels.into_iter().map(Into::into));
+        self
+    }
+
+    pub fn with_causality_opt(mut self, causality: Option<CausalityMetadata>) -> Self {
+        self.trace_data.causality = causality;
+        self
+    }
+
+    pub(crate) fn set_trace_data(&mut self, trace_data: PreparedTraceData) {
+        self.trace_data = trace_data;
     }
 }

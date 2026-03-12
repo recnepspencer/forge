@@ -4,33 +4,6 @@ use crate::storage::data::RelationalReadView;
 use crate::lineage::data::LineageEventRecord;
 use crate::identity::data::VersionId;
 
-#[allow(dead_code)]
-pub(crate) trait IndexSource {
-    fn unique_entity_field_index(
-        &self,
-    ) -> &std::collections::BTreeMap<
-        String,
-        std::collections::BTreeMap<
-            String,
-            std::collections::BTreeSet<crate::identity::data::EntityId>,
-        >,
-    >;
-}
-
-impl IndexSource for RelationalRuntime {
-    fn unique_entity_field_index(
-        &self,
-    ) -> &std::collections::BTreeMap<
-        String,
-        std::collections::BTreeMap<
-            String,
-            std::collections::BTreeSet<crate::identity::data::EntityId>,
-        >,
-    > {
-        &self.indexes.entity_unique_field_index
-    }
-}
-
 pub(crate) trait ReplayRead {
     fn read_view_at_version(&self, version_id: VersionId) -> RelationalReadView;
     fn index_generations_at_version(&self, version_id: VersionId) -> Vec<DerivedIndexGeneration>;

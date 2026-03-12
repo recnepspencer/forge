@@ -35,6 +35,10 @@ impl PreparedDependencyCapture {
         &self.edges
     }
 
+    pub fn len(&self) -> usize {
+        self.edges.len()
+    }
+
     pub fn into_sorted_unique(mut self) -> Self {
         self.edges.sort_by(compare_prepared_dependency_edges);
         self.edges.dedup_by(|left, right| {

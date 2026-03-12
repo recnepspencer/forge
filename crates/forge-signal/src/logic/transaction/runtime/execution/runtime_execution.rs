@@ -1,16 +1,17 @@
 use crate::data::aspect::AspectVersion;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
+use crate::logic::context::EvaluationContext;
+use crate::logic::evaluation::IntoEvaluationOutput;
 use crate::logic::evaluation::EvaluationRequestMode;
 use crate::logic::planner::{
     build_evaluation_plan_with_policy_resolver, EvaluationPlan, ExecutionReport, StageExecutor,
 };
-use crate::logic::prepared::{ExecutionReadView, PreparedEvaluation};
 
 use super::super::state::SignalRuntime;
 use super::shared::{
-    absorb_execution_report_telemetry, execute_plan_with_runtime_config,
-    execute_targets_with_runtime_config,
+    absorb_execution_report_telemetry, apply_strategy_maintenance,
+    execute_plan_with_runtime_config, execute_targets_with_runtime_config, executor_for_strategy,
 };
 
 enum ExecutionIntent<'a> {
@@ -25,6 +26,7 @@ impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
+    Ctx: Sync,
     T: Copy + Ord,
 {
     pub fn build_evaluation_plan(
@@ -45,127 +47,166 @@ where
         )
     }
 
-    pub fn execute_prepared_plan<F>(
+    pub fn execute_prepared_plan<F, O>(
         &mut self,
         plan: &EvaluationPlan,
-        precompute: &F,
+        runtime_ctx: &Ctx,
+        evaluator: &F,
     ) -> Result<ExecutionReport, SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
-        self.execute_prepared_plan_with_executor(plan, precompute, StageExecutor::Serial)
+        let strategy = self.derive_evaluation_strategy();
+        let report =
+            self.execute_prepared_plan_with_executor(plan, runtime_ctx, evaluator, executor_for_strategy(strategy))?;
+        apply_strategy_maintenance(&mut self.graph, strategy);
+        Ok(report)
     }
 
-    pub fn execute_prepared_plan_with_executor<F>(
+    pub fn execute_prepared_plan_with_executor<F, O>(
         &mut self,
         plan: &EvaluationPlan,
-        precompute: &F,
+        runtime_ctx: &Ctx,
+        evaluator: &F,
         executor: StageExecutor,
     ) -> Result<ExecutionReport, SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
         let report = execute_plan_with_runtime_config(
             &mut self.graph,
             &self.config,
+            runtime_ctx,
             plan,
-            precompute,
+            evaluator,
             executor,
         )?;
         absorb_execution_report_telemetry(&mut self.telemetry, &report);
         Ok(report)
     }
 
-    pub fn evaluate_with_plan<F>(
+    pub fn evaluate_with_plan<F, O>(
         &mut self,
         node: NodeId,
-        precompute: &F,
+        runtime_ctx: &Ctx,
+        evaluator: &F,
         request_mode: EvaluationRequestMode,
     ) -> Result<ExecutionReport, SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
-        self.evaluate_with_plan_and_executor(node, precompute, request_mode, StageExecutor::Serial)
+        let strategy = self.derive_evaluation_strategy();
+        let report = self.evaluate_with_plan_and_executor(
+            node,
+            runtime_ctx,
+            evaluator,
+            request_mode,
+            executor_for_strategy(strategy),
+        )?;
+        apply_strategy_maintenance(&mut self.graph, strategy);
+        Ok(report)
     }
 
-    pub fn evaluate_with_plan_and_executor<F>(
+    pub fn evaluate_with_plan_and_executor<F, O>(
         &mut self,
         node: NodeId,
-        precompute: &F,
+        runtime_ctx: &Ctx,
+        evaluator: &F,
         request_mode: EvaluationRequestMode,
         executor: StageExecutor,
     ) -> Result<ExecutionReport, SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
         self.execute_evaluation(
             ExecutionIntent::Targets {
                 targets: std::slice::from_ref(&node),
                 request_mode,
             },
-            precompute,
+            runtime_ctx,
+            evaluator,
             executor,
         )
     }
 
-    pub fn read<F>(&mut self, node: NodeId, precompute: &F) -> Result<AspectVersion, SignalError>
+    pub fn read<F, O>(&mut self, node: NodeId, runtime_ctx: &Ctx, evaluator: &F) -> Result<AspectVersion, SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
-        self.read_with_executor(node, precompute, StageExecutor::Serial)
+        let strategy = self.derive_evaluation_strategy();
+        let version = self.read_with_executor(node, runtime_ctx, evaluator, executor_for_strategy(strategy))?;
+        apply_strategy_maintenance(&mut self.graph, strategy);
+        Ok(version)
     }
 
-    pub fn get<F>(&mut self, node: NodeId, precompute: &F) -> Result<AspectVersion, SignalError>
+    pub fn get<F, O>(&mut self, node: NodeId, runtime_ctx: &Ctx, evaluator: &F) -> Result<AspectVersion, SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
-        self.read(node, precompute)
+        self.read(node, runtime_ctx, evaluator)
     }
 
-    pub fn read_with_executor<F>(
+    pub fn read_with_executor<F, O>(
         &mut self,
         node: NodeId,
-        precompute: &F,
+        runtime_ctx: &Ctx,
+        evaluator: &F,
         executor: StageExecutor,
     ) -> Result<AspectVersion, SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
         self.evaluate_with_plan_and_executor(
             node,
-            precompute,
+            runtime_ctx,
+            evaluator,
             EvaluationRequestMode::Default,
             executor,
         )?;
         Ok(self.graph.get_entry(node)?.get_aspect_version())
     }
 
-    pub fn evaluate_dirty<F>(&mut self, precompute: &F) -> Result<ExecutionReport, SignalError>
+    pub fn evaluate_dirty<F, O>(&mut self, runtime_ctx: &Ctx, evaluator: &F) -> Result<ExecutionReport, SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
-        self.evaluate_dirty_with_executor(precompute, StageExecutor::Serial)
+        let strategy = self.derive_evaluation_strategy();
+        let report = self.evaluate_dirty_with_executor(runtime_ctx, evaluator, executor_for_strategy(strategy))?;
+        apply_strategy_maintenance(&mut self.graph, strategy);
+        Ok(report)
     }
 
-    pub fn evaluate_dirty_with_executor<F>(
+    pub fn evaluate_dirty_with_executor<F, O>(
         &mut self,
-        precompute: &F,
+        runtime_ctx: &Ctx,
+        evaluator: &F,
         executor: StageExecutor,
     ) -> Result<ExecutionReport, SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
-        self.execute_evaluation(ExecutionIntent::Dirty, precompute, executor)
+        self.execute_evaluation(ExecutionIntent::Dirty, runtime_ctx, evaluator, executor)
     }
 
-    fn execute_evaluation<F>(
+    fn execute_evaluation<F, O>(
         &mut self,
         intent: ExecutionIntent<'_>,
-        precompute: &F,
+        runtime_ctx: &Ctx,
+        evaluator: &F,
         executor: StageExecutor,
     ) -> Result<ExecutionReport, SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
         let owned_targets;
         let (targets, request_mode) = match intent {
@@ -184,9 +225,10 @@ where
         let report = execute_targets_with_runtime_config(
             &mut self.graph,
             &self.config,
+            runtime_ctx,
             targets,
             request_mode,
-            precompute,
+            evaluator,
             executor,
         )?;
         absorb_execution_report_telemetry(&mut self.telemetry, &report);

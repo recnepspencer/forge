@@ -132,7 +132,7 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    let branch = runtime.current_branch();
+    let branch = runtime.observe().current_branch();
     let snapshot = runtime.capture_branch_snapshot(branch.clone()).unwrap();
     let mut truth = model.branch(branch.id).clone();
     truth.head_snapshot = Some(snapshot.meta.snapshot_id);
@@ -206,7 +206,7 @@ impl SignalAdversarialHarness {
         self.steps.push(WorkflowStep {
             index,
             label: label.into(),
-            active_branch: runtime.current_branch().name,
+            active_branch: runtime.observe().current_branch().name,
             failure_injection,
         });
     }
@@ -254,51 +254,49 @@ impl SignalAdversarialHarness {
     }
 }
 
-fn geometry_precompute(
+fn geometry_evaluator(
     fixture: &GeometryFixture,
-) -> impl Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync {
+) -> impl for<'ctx> Fn(&mut crate::logic::context::EvaluationContext<'ctx, ()>) -> Result<crate::logic::evaluation::EvaluationOutput, SignalError>
+       + Sync {
     let source_a = fixture.source_a;
     let source_b = fixture.source_b;
     let delta_gate = fixture.delta_gate;
     let filtered_gate = fixture.filtered_gate;
     let demand_gate = fixture.demand_gate;
     let fused = fixture.fused;
-    move |node, view| {
+    move |ctx| {
+        let node = ctx.node();
         if node == delta_gate {
-            let a = view.read_aspect_version(source_a, ASPECT_A)?.get(ASPECT_A);
-            return Ok(view.finish(
+            let a = ctx.read_aspect_version(source_a, ASPECT_A)?.get(ASPECT_A);
+            return Ok(ctx.finish(
                 NodeEvaluationResult::from_version(version_ab(a, 0))
                     .with_output_identity(format!("geom-delta-{a}"))
                     .with_continuity_token("geom-delta"),
             ));
         }
         if node == filtered_gate {
-            let b = view.read_aspect_version(source_b, ASPECT_B)?.get(ASPECT_B);
-            return Ok(view.finish(
+            let b = ctx.read_aspect_version(source_b, ASPECT_B)?.get(ASPECT_B);
+            return Ok(ctx.finish(
                 NodeEvaluationResult::from_version(version_ab(0, b))
                     .with_output_identity(format!("geom-filter-{b}"))
                     .with_continuity_token("geom-filter"),
             ));
         }
         if node == demand_gate {
-            let a = view.read_aspect_version(source_a, ASPECT_A)?.get(ASPECT_A);
-            return Ok(view.finish(
+            let a = ctx.read_aspect_version(source_a, ASPECT_A)?.get(ASPECT_A);
+            return Ok(ctx.finish(
                 NodeEvaluationResult::from_version(version_ab(a, 0))
                     .with_output_identity(format!("geom-demand-{a}"))
                     .with_continuity_token("geom-demand"),
             ));
         }
         if node == fused {
-            let a = view
-                .read_aspect_version(delta_gate, ASPECT_A)?
-                .get(ASPECT_A);
-            let b = view
+            let a = ctx.read_aspect_version(delta_gate, ASPECT_A)?.get(ASPECT_A);
+            let b = ctx
                 .read_aspect_version(filtered_gate, ASPECT_B)?
                 .get(ASPECT_B);
-            let demand = view
-                .read_aspect_version(demand_gate, ASPECT_A)?
-                .get(ASPECT_A);
-            return Ok(view.finish(
+            let demand = ctx.read_aspect_version(demand_gate, ASPECT_A)?.get(ASPECT_A);
+            return Ok(ctx.finish(
                 NodeEvaluationResult::from_version(version_ab(a.max(demand), b))
                     .with_output_identity(format!("geom-fused-{a}-{b}-{demand}"))
                     .with_continuity_token("geom-fused"),
@@ -310,37 +308,39 @@ fn geometry_precompute(
     }
 }
 
-fn fintech_precompute(
+fn fintech_evaluator(
     fixture: &FintechFixture,
-) -> impl Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync {
+) -> impl for<'ctx> Fn(&mut crate::logic::context::EvaluationContext<'ctx, ()>) -> Result<crate::logic::evaluation::EvaluationOutput, SignalError>
+       + Sync {
     let ticks = fixture.ticks;
     let volatility = fixture.volatility;
     let throttle = fixture.throttle;
     let alert = fixture.alert;
     let risk = fixture.risk;
-    move |node, view| {
+    move |ctx| {
+        let node = ctx.node();
         if node == throttle {
-            let a = view.read_aspect_version(ticks, ASPECT_A)?.get(ASPECT_A);
-            return Ok(view.finish(
+            let a = ctx.read_aspect_version(ticks, ASPECT_A)?.get(ASPECT_A);
+            return Ok(ctx.finish(
                 NodeEvaluationResult::from_version(version_ab(a, 0))
                     .with_output_identity(format!("throttle-{a}"))
                     .with_continuity_token("throttle"),
             ));
         }
         if node == alert {
-            let b = view
+            let b = ctx
                 .read_aspect_version(volatility, ASPECT_B)?
                 .get(ASPECT_B);
-            return Ok(view.finish(
+            return Ok(ctx.finish(
                 NodeEvaluationResult::from_version(version_ab(0, b))
                     .with_output_identity(format!("alert-{b}"))
                     .with_continuity_token("alert"),
             ));
         }
         if node == risk {
-            let a = view.read_aspect_version(throttle, ASPECT_A)?.get(ASPECT_A);
-            let b = view.read_aspect_version(alert, ASPECT_B)?.get(ASPECT_B);
-            return Ok(view.finish(
+            let a = ctx.read_aspect_version(throttle, ASPECT_A)?.get(ASPECT_A);
+            let b = ctx.read_aspect_version(alert, ASPECT_B)?.get(ASPECT_B);
+            return Ok(ctx.finish(
                 NodeEvaluationResult::from_version(version_ab(a, b))
                     .with_output_identity(format!("risk-{a}-{b}"))
                     .with_continuity_token("risk-surface"),
@@ -353,7 +353,7 @@ fn fintech_precompute(
 }
 
 fn build_geometry_fixture(policy: SignalRuntimePolicy) -> GeometryFixture {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     runtime.set_runtime_policy(policy);
 
     let source_a = runtime
@@ -427,7 +427,7 @@ fn build_geometry_fixture(policy: SignalRuntimePolicy) -> GeometryFixture {
 }
 
 fn build_fintech_fixture(policy: SignalRuntimePolicy) -> FintechFixture {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     runtime.set_runtime_policy(policy);
 
     let ticks = runtime.graph_mut().node().output_identity().build();
@@ -488,13 +488,13 @@ fn seed_geometry_baseline(
     fixture
         .runtime
         .transaction(&mut ctx, |tx: &mut DefaultTx<'_>| {
-            tx.read(fixture.source_a, &|_node, view: &ExecutionReadView<'_>| {
+            tx.read(fixture.source_a, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(1, 0))
                         .with_output_identity("geom-source-a-1"),
                 ))
             })?;
-            tx.read(fixture.source_b, &|_node, view: &ExecutionReadView<'_>| {
+            tx.read(fixture.source_b, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(0, 1))
                         .with_output_identity("geom-source-b-1"),
@@ -503,7 +503,7 @@ fn seed_geometry_baseline(
             tx.evaluate_keyed(
                 fixture.keyed,
                 &fixture.memo_key,
-                &|_id, view: &ExecutionReadView<'_>| {
+                &|view| {
                     Ok(view.finish(
                         NodeEvaluationResult::from_version(version_ab(1, 1))
                             .with_output_identity("geom-keyed-1")
@@ -517,19 +517,17 @@ fn seed_geometry_baseline(
 
     fixture
         .runtime
-        .evaluate_dirty_with_executor(&geometry_precompute(fixture), StageExecutor::Serial)
+        .evaluate_dirty_with_executor(&(), &geometry_evaluator(fixture), StageExecutor::Serial)
         .unwrap();
     fixture
         .runtime
-        .evaluate_with_plan_and_executor(
-            fixture.demand_gate,
-            &geometry_precompute(fixture),
+        .evaluate_with_plan_and_executor(fixture.demand_gate, &(), &geometry_evaluator(fixture),
             EvaluationRequestMode::ForceOnDemand,
             StageExecutor::Serial,
         )
         .unwrap();
 
-    let main = fixture.runtime.current_branch();
+    let main = fixture.runtime.observe().current_branch();
     model.active = main.id;
     model.branches.insert(
         main.id,
@@ -555,7 +553,7 @@ fn seed_fintech_baseline(
     fixture
         .runtime
         .transaction(&mut ctx, |tx: &mut DefaultTx<'_>| {
-            tx.read(fixture.ticks, &|_node, view: &ExecutionReadView<'_>| {
+            tx.read(fixture.ticks, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(1, 0))
                         .with_output_identity("tick-1"),
@@ -563,7 +561,7 @@ fn seed_fintech_baseline(
             })?;
             tx.read(
                 fixture.volatility,
-                &|_node, view: &ExecutionReadView<'_>| {
+                &|view| {
                     Ok(view.finish(
                         NodeEvaluationResult::from_version(version_ab(0, 1))
                             .with_output_identity("vol-1"),
@@ -573,7 +571,7 @@ fn seed_fintech_baseline(
             tx.evaluate_keyed(
                 fixture.keyed,
                 &fixture.memo_key,
-                &|_id, view: &ExecutionReadView<'_>| {
+                &|view| {
                     Ok(view.finish(
                         NodeEvaluationResult::from_version(version_ab(1, 1))
                             .with_output_identity("risk-keyed-1")
@@ -587,10 +585,10 @@ fn seed_fintech_baseline(
 
     fixture
         .runtime
-        .evaluate_dirty_with_executor(&fintech_precompute(fixture), StageExecutor::Serial)
+        .evaluate_dirty_with_executor(&(), &fintech_evaluator(fixture), StageExecutor::Serial)
         .unwrap();
 
-    let main = fixture.runtime.current_branch();
+    let main = fixture.runtime.observe().current_branch();
     model.active = main.id;
     model.branches.insert(
         main.id,
@@ -687,17 +685,17 @@ fn assert_runtime_invariants(
         ));
     }
     if expected.head_snapshot.is_some()
-        && graph.branch_head_snapshot_id(current_branch.id).is_none()
+        && graph.observe().branch_head_snapshot_id(current_branch.id).is_none()
     {
         errors.push(format!(
             "branch `{}` lost its head snapshot metadata",
             current_branch.name,
         ));
     }
-    if graph.recent_execution_history_diagnostics().len() > policy.history_limit {
+    if graph.observe().recent_execution_history_diagnostics().len() > policy.history_limit {
         errors.push(format!(
             "history retention exceeded policy: {} > {}",
-            graph.recent_execution_history_diagnostics().len(),
+            graph.observe().recent_execution_history_diagnostics().len(),
             policy.history_limit
         ));
     }
@@ -745,7 +743,7 @@ fn geometry_session(
     harness.record(&fixture.runtime, 1, "create-feature-branch", None);
     let feature_snapshot = fixture
         .runtime
-        .capture_branch_snapshot(fixture.runtime.current_branch())
+        .capture_branch_snapshot(fixture.runtime.observe().current_branch())
         .unwrap();
     if !matches!(executor, StageExecutor::Serial) {
         trace_adv(format!(
@@ -773,7 +771,7 @@ fn geometry_session(
     model.active = analysis.id;
     let analysis_snapshot = fixture
         .runtime
-        .capture_branch_snapshot(fixture.runtime.current_branch())
+        .capture_branch_snapshot(fixture.runtime.observe().current_branch())
         .unwrap();
     if !matches!(executor, StageExecutor::Serial) {
         trace_adv(format!(
@@ -806,7 +804,7 @@ fn geometry_session(
                 workflow,
                 seed.0,
                 step,
-                fixture.runtime.current_branch().name
+                fixture.runtime.observe().current_branch().name
             ));
         }
         let action = match workflow {
@@ -822,7 +820,7 @@ fn geometry_session(
                 fixture.runtime.switch_branch(target.clone()).unwrap();
                 model.active = target.id;
                 model.branch_mut(target.id).head_snapshot =
-                    fixture.runtime.branch_head_snapshot_id(target.id);
+                    fixture.runtime.observe().branch_head_snapshot_id(target.id);
                 harness.record(&fixture.runtime, step + 3, "switch-branch", None);
             }
             1 => {
@@ -839,7 +837,7 @@ fn geometry_session(
                         )?;
                         tx.read(
                             fixture.source_a,
-                            &move |_node, view: &ExecutionReadView<'_>| {
+                            &move |view| {
                                 Ok(view.finish(
                                     NodeEvaluationResult::from_version(version_ab(next_a, 0))
                                         .with_output_identity(format!("geom-source-a-{next_a}")),
@@ -852,7 +850,7 @@ fn geometry_session(
                 model.branch_mut(model.active).a = next_a;
                 fixture
                     .runtime
-                    .evaluate_dirty_with_executor(&geometry_precompute(&fixture), executor)
+                    .evaluate_dirty_with_executor(&(), &geometry_evaluator(&fixture), executor)
                     .unwrap();
                 if rng.coin() {
                     capture_active_branch_snapshot(
@@ -878,7 +876,7 @@ fn geometry_session(
                         )?;
                         tx.read(
                             fixture.source_b,
-                            &move |_node, view: &ExecutionReadView<'_>| {
+                            &move |view| {
                                 Ok(view.finish(
                                     NodeEvaluationResult::from_version(version_ab(0, next_b))
                                         .with_output_identity(format!("geom-source-b-{next_b}")),
@@ -891,7 +889,7 @@ fn geometry_session(
                 model.branch_mut(model.active).b = next_b;
                 fixture
                     .runtime
-                    .evaluate_dirty_with_executor(&geometry_precompute(&fixture), executor)
+                    .evaluate_dirty_with_executor(&(), &geometry_evaluator(&fixture), executor)
                     .unwrap();
                 if rng.coin() {
                     capture_active_branch_snapshot(
@@ -913,7 +911,7 @@ fn geometry_session(
                         tx.mark_dirty(fixture.source_a, ASPECT_A)?;
                         tx.read(
                             fixture.source_a,
-                            &move |_node, view: &ExecutionReadView<'_>| {
+                            &move |view| {
                                 Ok(view.finish(
                                     NodeEvaluationResult::from_version(version_ab(bad_a, 0))
                                         .with_output_identity(format!("geom-source-a-bad-{bad_a}")),
@@ -933,9 +931,7 @@ fn geometry_session(
             4 => {
                 fixture
                     .runtime
-                    .evaluate_with_plan_and_executor(
-                        fixture.demand_gate,
-                        &geometry_precompute(&fixture),
+                    .evaluate_with_plan_and_executor(fixture.demand_gate, &(), &geometry_evaluator(&fixture),
                         EvaluationRequestMode::ForceOnDemand,
                         executor,
                     )
@@ -943,7 +939,7 @@ fn geometry_session(
                 harness.record(&fixture.runtime, step + 3, "force-on-demand", None);
             }
             _ => {
-                let active = fixture.runtime.current_branch();
+                let active = fixture.runtime.observe().current_branch();
                 let candidates = branch_history
                     .get(&active.id)
                     .expect("branch restore should always have branch-local snapshot history");
@@ -973,7 +969,7 @@ fn geometry_session(
                     .clone();
                 *model.branch_mut(active.id) = restored;
                 model.branch_mut(active.id).head_snapshot =
-                    fixture.runtime.branch_head_snapshot_id(active.id);
+                    fixture.runtime.observe().branch_head_snapshot_id(active.id);
                 harness.record(
                     &fixture.runtime,
                     step + 3,
@@ -986,7 +982,7 @@ fn geometry_session(
         let report = assert_runtime_invariants(
             fixture.runtime.graph(),
             &model,
-            fixture.runtime.current_branch(),
+            fixture.runtime.observe().current_branch(),
             fixture.source_a,
             ASPECT_A,
             fixture.source_b,
@@ -1017,8 +1013,8 @@ fn geometry_session(
 
     let replay = fixture
         .runtime
-        .replay_for_branch(fixture.runtime.current_branch().id);
-    let lineage = fixture.runtime.graph().lineage_for_node(fixture.fused);
+        .replay_for_branch(fixture.runtime.observe().current_branch().id);
+    let lineage = fixture.runtime.graph().observe().lineage_for_node(fixture.fused);
     (harness, replay, lineage)
 }
 
@@ -1058,7 +1054,7 @@ fn fintech_session(
     model.active = what_if.id;
     let what_if_snapshot = fixture
         .runtime
-        .capture_branch_snapshot(fixture.runtime.current_branch())
+        .capture_branch_snapshot(fixture.runtime.observe().current_branch())
         .unwrap();
     if !matches!(executor, StageExecutor::Serial) {
         trace_adv(format!(
@@ -1087,7 +1083,7 @@ fn fintech_session(
     model.active = correction.id;
     let correction_snapshot = fixture
         .runtime
-        .capture_branch_snapshot(fixture.runtime.current_branch())
+        .capture_branch_snapshot(fixture.runtime.observe().current_branch())
         .unwrap();
     if !matches!(executor, StageExecutor::Serial) {
         trace_adv(format!(
@@ -1120,7 +1116,7 @@ fn fintech_session(
                 workflow,
                 seed.0,
                 step,
-                fixture.runtime.current_branch().name
+                fixture.runtime.observe().current_branch().name
             ));
         }
         let action = match workflow {
@@ -1136,7 +1132,7 @@ fn fintech_session(
                 fixture.runtime.switch_branch(target.clone()).unwrap();
                 model.active = target.id;
                 model.branch_mut(target.id).head_snapshot =
-                    fixture.runtime.branch_head_snapshot_id(target.id);
+                    fixture.runtime.observe().branch_head_snapshot_id(target.id);
                 harness.record(&fixture.runtime, step + 3, "switch-branch", None);
             }
             1 => {
@@ -1149,7 +1145,7 @@ fn fintech_session(
                         tx.mark_dirty(fixture.ticks, ASPECT_A)?;
                         tx.read(
                             fixture.ticks,
-                            &move |_node, view: &ExecutionReadView<'_>| {
+                            &move |view| {
                                 Ok(view.finish(
                                     NodeEvaluationResult::from_version(version_ab(next_a, 0))
                                         .with_output_identity(format!("ticks-{next_a}")),
@@ -1159,7 +1155,7 @@ fn fintech_session(
                         tx.evaluate_keyed(
                             fixture.keyed,
                             &fixture.memo_key,
-                            &|_id, view: &ExecutionReadView<'_>| {
+                            &|view| {
                                 Ok(view.finish(
                                     NodeEvaluationResult::from_version(version_ab(
                                         next_a, current.b,
@@ -1178,7 +1174,7 @@ fn fintech_session(
                 model.branch_mut(model.active).a = next_a;
                 fixture
                     .runtime
-                    .evaluate_dirty_with_executor(&fintech_precompute(&fixture), executor)
+                    .evaluate_dirty_with_executor(&(), &fintech_evaluator(&fixture), executor)
                     .unwrap();
                 if rng.coin() {
                     capture_active_branch_snapshot(
@@ -1200,7 +1196,7 @@ fn fintech_session(
                         tx.mark_dirty(fixture.volatility, ASPECT_B)?;
                         tx.read(
                             fixture.volatility,
-                            &move |_node, view: &ExecutionReadView<'_>| {
+                            &move |view| {
                                 Ok(view.finish(
                                     NodeEvaluationResult::from_version(version_ab(0, next_b))
                                         .with_output_identity(format!("volatility-{next_b}")),
@@ -1213,7 +1209,7 @@ fn fintech_session(
                 model.branch_mut(model.active).b = next_b;
                 fixture
                     .runtime
-                    .evaluate_dirty_with_executor(&fintech_precompute(&fixture), executor)
+                    .evaluate_dirty_with_executor(&(), &fintech_evaluator(&fixture), executor)
                     .unwrap();
                 if rng.coin() {
                     capture_active_branch_snapshot(
@@ -1233,7 +1229,7 @@ fn fintech_session(
                         tx.mark_dirty(fixture.ticks, ASPECT_A)?;
                         tx.read(
                             fixture.ticks,
-                            &move |_node, view: &ExecutionReadView<'_>| {
+                            &move |view| {
                                 Ok(view.finish(
                                     NodeEvaluationResult::from_version(version_ab(
                                         current.a + 10,
@@ -1254,7 +1250,7 @@ fn fintech_session(
                 );
             }
             4 => {
-                let active = fixture.runtime.current_branch();
+                let active = fixture.runtime.observe().current_branch();
                 let candidates = branch_history
                     .get(&active.id)
                     .expect("branch restore should always have branch-local snapshot history");
@@ -1284,7 +1280,7 @@ fn fintech_session(
                     .clone();
                 *model.branch_mut(active.id) = restored;
                 model.branch_mut(active.id).head_snapshot =
-                    fixture.runtime.branch_head_snapshot_id(active.id);
+                    fixture.runtime.observe().branch_head_snapshot_id(active.id);
                 harness.record(
                     &fixture.runtime,
                     step + 3,
@@ -1295,7 +1291,7 @@ fn fintech_session(
             _ => {
                 fixture
                     .runtime
-                    .evaluate_dirty_with_executor(&fintech_precompute(&fixture), executor)
+                    .evaluate_dirty_with_executor(&(), &fintech_evaluator(&fixture), executor)
                     .unwrap();
                 harness.record(&fixture.runtime, step + 3, "drain-dirty", None);
             }
@@ -1304,7 +1300,7 @@ fn fintech_session(
         let report = assert_runtime_invariants(
             fixture.runtime.graph(),
             &model,
-            fixture.runtime.current_branch(),
+            fixture.runtime.observe().current_branch(),
             fixture.ticks,
             ASPECT_A,
             fixture.volatility,
@@ -1335,8 +1331,8 @@ fn fintech_session(
 
     let replay = fixture
         .runtime
-        .replay_for_branch(fixture.runtime.current_branch().id);
-    let lineage = fixture.runtime.graph().lineage_for_node(fixture.risk);
+        .replay_for_branch(fixture.runtime.observe().current_branch().id);
+    let lineage = fixture.runtime.graph().observe().lineage_for_node(fixture.risk);
     (harness, replay, lineage)
 }
 
@@ -1556,7 +1552,7 @@ fn focused_parallel_branch_restore_and_evaluate_dirty_regression() {
         .runtime
         .transaction(&mut ctx, |tx: &mut DefaultTx<'_>| {
             tx.mark_dirty(fixture.source_a, ASPECT_A)?;
-            tx.read(fixture.source_a, &|_node, view: &ExecutionReadView<'_>| {
+            tx.read(fixture.source_a, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(4, 1))
                         .with_output_identity("source-a-4"),
@@ -1569,8 +1565,8 @@ fn focused_parallel_branch_restore_and_evaluate_dirty_regression() {
 
     fixture
         .runtime
-        .evaluate_dirty_with_executor(
-            &geometry_precompute(&fixture),
+        .evaluate_dirty_with_executor(&(), 
+            &geometry_evaluator(&fixture),
             StageExecutor::aggressive_parallel(),
         )
         .unwrap();
@@ -1590,7 +1586,7 @@ fn focused_parallel_branch_restore_and_evaluate_dirty_regression() {
         .unwrap();
     trace_adv("[parallel-test] focused-regression:main-restored");
 
-    let replay = fixture.runtime.replay_for_branch(feature.id);
+    let replay = fixture.runtime.observe().replay_for_branch(feature.id);
     assert!(
         !replay.frames.is_empty(),
         "parallel branch restore regression should leave observable replay"
@@ -1648,7 +1644,7 @@ fn event_flush_failure_workflow_does_not_advance_branch_truth() {
         FailureInjectionPoint::DuringEventFlush,
         FailureInjectionPoint::DuringEventFlush
     ));
-    let mut runtime: EventRuntime = SignalRuntime::builder(SignalGraph::new())
+    let mut runtime: EventRuntime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults()
         .with_domains::<EventDomain>()
         .with_events::<WorkflowEvent>()
         .runtime_policy(SignalRuntimePolicy::development().with_history_limit(4))
@@ -1662,18 +1658,18 @@ fn event_flush_failure_workflow_does_not_advance_branch_truth() {
     let baseline = runtime.capture_snapshot();
     let feature = runtime.create_branch("event-feature").unwrap();
     runtime.switch_branch(feature.clone()).unwrap();
-    let head_before = runtime.branch_head_snapshot_id(feature.id);
-    let replay_before = runtime.replay_for_branch(feature.id);
+    let head_before = runtime.observe().branch_head_snapshot_id(feature.id);
+    let replay_before = runtime.observe().replay_for_branch(feature.id);
 
     let mut ctx = ();
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
     tx.mark_dirty(source, ASPECT_A).unwrap();
     tx.emit_event(WorkflowEvent::Tick);
     tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
-    let outcome = tx.commit(&mut ctx);
+    let outcome = tx.commit();
     assert!(outcome.is_err());
 
-    assert_eq!(runtime.branch_head_snapshot_id(feature.id), head_before);
+    assert_eq!(runtime.observe().branch_head_snapshot_id(feature.id), head_before);
     assert_eq!(
         runtime
             .graph()
@@ -1683,7 +1679,7 @@ fn event_flush_failure_workflow_does_not_advance_branch_truth() {
             .get(ASPECT_A),
         0
     );
-    let replay_after = runtime.replay_for_branch(feature.id);
+    let replay_after = runtime.observe().replay_for_branch(feature.id);
     assert!(
         replay_after.frames.len() >= replay_before.frames.len(),
         "flush failure should be visible without silently advancing branch truth"
@@ -1698,7 +1694,7 @@ fn event_flush_failure_workflow_does_not_advance_branch_truth() {
         )
         .unwrap();
     runtime
-        .restore_branch_snapshot(runtime.current_branch(), &baseline)
+        .restore_branch_snapshot(runtime.observe().current_branch(), &baseline)
         .unwrap();
 }
 

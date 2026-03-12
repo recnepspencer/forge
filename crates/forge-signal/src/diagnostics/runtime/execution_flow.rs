@@ -30,7 +30,7 @@ pub(crate) fn record_semantic_execution(
     let explanation = if DiagnosticsPolicy::from_profile(profile).retain_flow_explanation {
         first_target
             .as_ref()
-            .and_then(|target| graph.explain(*target).ok())
+            .and_then(|target| graph.observe().explain(*target).ok())
             .map(|explanation| ExplanationSummary::from_explanation(&explanation, profile))
     } else {
         None
@@ -64,7 +64,7 @@ pub(crate) fn record_semantic_execution(
         .flat_map(|stage| stage.task_records.iter())
     {
         let cursor = graph.diagnostics_state_mut().allocate_replay_cursor();
-        let branch_id = graph.current_branch().id;
+        let branch_id = graph.observe().current_branch().id;
         let lineage_artifact_id = graph
             .get_entry(task.node)
             .ok()
@@ -108,7 +108,7 @@ fn sample_flow_causes(
 
     let mut samples = Vec::new();
     for node in nodes {
-        let Ok(explanation) = graph.explain(node) else {
+        let Ok(explanation) = graph.observe().explain(node) else {
             continue;
         };
         let mut suspect_classes = Vec::new();

@@ -1,6 +1,5 @@
 mod cache;
 mod replay_retention;
-mod runtime_cache;
 mod snapshot_handles;
 
 pub(crate) use cache::{VisibilityCache, VisibilityResidency};

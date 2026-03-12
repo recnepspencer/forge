@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 use crate::data::aspect::AspectVersion;
-use crate::data::handle::NodeId;
 use crate::data::output::{
     ComputationFamily, ComputationKey, IntoNodeEvaluationResult, MemoizedResultOrigin,
     NodeEvaluationResult, StructuralMemoKey,
@@ -90,6 +89,7 @@ impl PreparedEvaluation {
         }
     }
 
+    #[cfg(test)]
     pub fn deferred_by_condition() -> Self {
         Self {
             result: NodeEvaluationResult::from_version(AspectVersion::zero()),
@@ -102,6 +102,7 @@ impl PreparedEvaluation {
         }
     }
 
+    #[cfg(test)]
     pub fn reverted_clean_by_condition() -> Self {
         Self {
             result: NodeEvaluationResult::from_version(AspectVersion::zero()),
@@ -119,11 +120,6 @@ impl PreparedEvaluation {
         self
     }
 
-    pub fn with_trace_data(mut self, trace_data: PreparedTraceData) -> Self {
-        self.trace_data = trace_data;
-        self
-    }
-
     pub fn with_origin(mut self, origin: PreparedEvaluationOrigin) -> Self {
         self.origin = origin;
         self
@@ -138,21 +134,4 @@ impl PreparedEvaluation {
         self.keyed = Some(keyed);
         self
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub struct PreparedStage {
-    pub tasks: Vec<PreparedTaskRecord>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PreparedTaskRecord {
-    pub node: NodeId,
-    pub prepared: PreparedEvaluation,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub struct StageApplyResult {
-    pub applied_tasks: u32,
-    pub dependency_edge_updates: u32,
 }

@@ -3,7 +3,7 @@ use crate::tests::support::*;
 #[test]
 fn complexity_contract_registry_covers_runtime_hot_paths() {
     let runtime = runtime_with_test_schema();
-    let contracts = runtime.complexity_contracts();
+    let contracts = runtime.performance_access().contracts();
 
     assert!(contracts.len() >= 6);
     assert!(contracts
@@ -35,15 +35,15 @@ fn complexity_budget_partition_local_commit_reports_touched_partitions() {
     let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
     let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
 
-    runtime.reset_complexity_counters();
+    runtime.performance_access().reset_counters();
     let _ = update_entity(&mut runtime, left, "left-updated");
-    let single_partition = runtime.complexity_counters();
+    let single_partition = runtime.performance_access().counters();
     assert_eq!(single_partition.partitions_touched_by_commit, 1);
     assert_eq!(single_partition.full_state_clones, 0);
 
-    runtime.reset_complexity_counters();
+    runtime.performance_access().reset_counters();
     let _ = create_relation_in_partition(&mut runtime, left, right, "cross", PartitionId(13));
-    let cross_partition = runtime.complexity_counters();
+    let cross_partition = runtime.performance_access().counters();
     assert_eq!(cross_partition.partitions_touched_by_commit, 3);
     assert_eq!(cross_partition.full_state_clones, 0);
 }
@@ -51,7 +51,7 @@ fn complexity_budget_partition_local_commit_reports_touched_partitions() {
 #[test]
 fn complexity_budget_bulk_create_reserves_partition_local_capacity() {
     let mut runtime = runtime_with_test_schema();
-    runtime.reset_complexity_counters();
+    runtime.performance_access().reset_counters();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(WorkerIntentBatch::new("bulk-entities").push(
         MutationIntent::Create(CreateIntent::BulkEntities(BulkEntityCreateIntent {
@@ -70,7 +70,7 @@ fn complexity_budget_bulk_create_reserves_partition_local_capacity() {
         })),
     ));
     let _ = txn.commit().unwrap();
-    let counters = runtime.complexity_counters();
+    let counters = runtime.performance_access().counters();
 
     assert_eq!(counters.bulk_entity_slots_reserved, 3);
     assert_eq!(counters.bulk_relation_slots_reserved, 0);
@@ -84,9 +84,9 @@ fn complexity_budget_mutation_structural_invariants_are_touched_slot_bounded() {
         let _ = create_entity(&mut runtime, &format!("e{index}"));
     }
 
-    runtime.reset_complexity_counters();
+    runtime.performance_access().reset_counters();
     let _ = update_entity(&mut runtime, target, "target-updated");
-    let counters = runtime.complexity_counters();
+    let counters = runtime.performance_access().counters();
 
     assert_eq!(counters.entity_slots_touched_by_commit, 1);
     assert_eq!(counters.relation_slots_touched_by_commit, 0);
@@ -99,9 +99,9 @@ fn complexity_budget_relation_structural_invariants_are_touched_slot_bounded() {
     let source = create_entity(&mut runtime, "source");
     let target = create_entity(&mut runtime, "target");
 
-    runtime.reset_complexity_counters();
+    runtime.performance_access().reset_counters();
     let _ = create_relation(&mut runtime, source, target, "r0");
-    let counters = runtime.complexity_counters();
+    let counters = runtime.performance_access().counters();
 
     assert_eq!(counters.entity_slots_touched_by_commit, 0);
     assert_eq!(counters.relation_slots_touched_by_commit, 1);
@@ -125,7 +125,7 @@ fn complexity_budget_relation_identity_validation_avoids_partition_scan() {
         );
     }
 
-    runtime.reset_complexity_counters();
+    runtime.performance_access().reset_counters();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
         WorkerIntentBatch::new("duplicate").push(MutationIntent::Create(
@@ -140,7 +140,7 @@ fn complexity_budget_relation_identity_validation_avoids_partition_scan() {
         )),
     );
     let error = txn.commit().unwrap_err();
-    let counters = runtime.complexity_counters();
+    let counters = runtime.performance_access().counters();
 
     assert!(matches!(
         error,
@@ -153,14 +153,17 @@ fn complexity_budget_relation_identity_validation_avoids_partition_scan() {
 #[test]
 fn complexity_budget_unique_entity_invariant_uses_changed_set_lookup() {
     let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
-        always_on_structural: vec![InvariantRule::UniqueEntityPayloadField("name".to_string())],
+        registrations: vec![InvariantRegistration::block_commit(
+            InvariantRule::UniqueEntityPayloadField("name".to_string()),
+            InvariantExecutionPoint::MutationSensitive,
+        )],
         ..InvariantCatalog::default()
     });
     let target = create_entity(&mut runtime, "target");
     let _other = create_entity(&mut runtime, "other");
     runtime.index_authority().rebuild_unique_field_indexes();
 
-    runtime.reset_complexity_counters();
+    runtime.performance_access().reset_counters();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(WorkerIntentBatch::new("duplicate-name").push(
         MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
@@ -169,7 +172,7 @@ fn complexity_budget_unique_entity_invariant_uses_changed_set_lookup() {
         })),
     ));
     let error = txn.commit().unwrap_err();
-    let counters = runtime.complexity_counters();
+    let counters = runtime.performance_access().counters();
 
     assert!(matches!(
         error,
@@ -183,14 +186,17 @@ fn complexity_budget_unique_entity_invariant_uses_changed_set_lookup() {
 #[test]
 fn complexity_budget_commit_boundary_unique_invariant_uses_merged_plan_lookup() {
     let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
-        commit_boundary: vec![InvariantRule::UniqueEntityPayloadField("name".to_string())],
+        registrations: vec![InvariantRegistration::block_commit(
+            InvariantRule::UniqueEntityPayloadField("name".to_string()),
+            InvariantExecutionPoint::CommitBoundary,
+        )],
         ..InvariantCatalog::default()
     });
     let target = create_entity(&mut runtime, "target");
     let _other = create_entity(&mut runtime, "other");
     runtime.index_authority().rebuild_unique_field_indexes();
 
-    runtime.reset_complexity_counters();
+    runtime.performance_access().reset_counters();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(WorkerIntentBatch::new("duplicate-name").push(
         MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
@@ -199,7 +205,7 @@ fn complexity_budget_commit_boundary_unique_invariant_uses_merged_plan_lookup() 
         })),
     ));
     let error = txn.commit().unwrap_err();
-    let counters = runtime.complexity_counters();
+    let counters = runtime.performance_access().counters();
 
     assert!(matches!(
         error,
@@ -217,11 +223,11 @@ fn complexity_contract_current_state_clone_is_declared_and_measured() {
         let _ = create_entity(&mut runtime, &format!("e{index}"));
     }
 
-    runtime.reset_complexity_counters();
+    runtime.performance_access().reset_counters();
     let entity = create_entity(&mut runtime, "target");
-    runtime.reset_complexity_counters();
+    runtime.performance_access().reset_counters();
     let _ = update_entity(&mut runtime, entity, "target-updated");
-    let counters = runtime.complexity_counters();
+    let counters = runtime.performance_access().counters();
 
     assert_eq!(counters.full_state_clones, 0);
     assert_eq!(counters.partitions_cloned, 0);

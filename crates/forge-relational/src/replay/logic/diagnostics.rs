@@ -18,7 +18,7 @@ pub(super) fn record_replay_diagnostic(
         Some(_) => DiagnosticCode::InvariantViolation,
         None => DiagnosticCode::CommitPublished,
     };
-    let builder = runtime.diagnostic(DiagnosticsScope::Replay);
+    let builder = runtime.publication_authority().diagnostic(DiagnosticsScope::Replay);
     let builder = if outcome.failure.is_some() {
         builder.failure()
     } else {

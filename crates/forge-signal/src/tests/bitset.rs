@@ -1,4 +1,4 @@
-use crate::facade::{BitsetFrontier, DenseBitset};
+use crate::facade::*;
 
 #[test]
 fn dense_bitset_marks_and_merges_deterministically() {

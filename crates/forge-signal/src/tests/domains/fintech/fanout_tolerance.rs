@@ -1,7 +1,7 @@
 use super::regimes::MarketRegime;
 use super::scales::FintechScale;
 use super::scenarios::setup_seeded_world_with;
-use crate::facade::StageExecutor;
+use crate::facade::*;
 
 #[test]
 fn fintech_high_fanout_tolerance_session_recovers_after_masking_pressure() {

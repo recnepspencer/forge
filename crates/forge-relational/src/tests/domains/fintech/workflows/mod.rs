@@ -197,7 +197,7 @@ fn fintech_world_exposes_named_domain_probes_for_correction_risk_and_settlement(
 fn fintech_analysis_workflow_preserves_branching_snapshots_and_trade_correction() {
     let mut world = setup_smoke_world();
     let analysis = open_analysis_branch(&mut world);
-    let baseline_snapshot = world.runtime.snapshot_access().snapshot();
+    let baseline_snapshot = world.runtime.visibility_authority().snapshot();
     let baseline_probe = read_snapshot_probe(
         &world,
         super::fixture::FintechCaseRole::LateTradeCorrection,

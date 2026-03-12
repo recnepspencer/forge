@@ -1,7 +1,6 @@
 use crate::diagnostics::data::{DiagnosticCode, DiagnosticsScope};
 use crate::logic::runtime::RelationalRuntime;
 
-#[allow(dead_code)]
 pub(crate) trait DiagnosticsSink {
     fn emit_diagnostic_entry(
         &mut self,
@@ -20,6 +19,6 @@ impl DiagnosticsSink for RelationalRuntime {
         message: impl Into<String>,
         fields: serde_json::Value,
     ) {
-        self.diagnostic(scope).failure().emit_entry(code, message, fields);
+        self.publication_authority().diagnostic(scope).failure().emit_entry(code, message, fields);
     }
 }

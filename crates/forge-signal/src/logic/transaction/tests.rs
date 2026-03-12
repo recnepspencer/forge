@@ -4,8 +4,7 @@ use crate::data::error::SignalError;
 use crate::data::event_subscriber::{EventSubscriber, SubscriberId};
 use crate::data::subscriber_context::SubscriberContext;
 use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger, TierPolicy};
-use crate::facade::{mark_dirty, EvaluationRequestMode, NodeEvaluationResult, NodeState};
-use crate::logic::prepared::PreparedEvaluation;
+use crate::facade::*;
 use crate::logic::transaction::{SignalRuntime, TransactionOutcome};
 use crate::tests::support::*;
 
@@ -32,7 +31,7 @@ enum Tier {
 fn build_runtime(
     graph: crate::data::graph::SignalGraph,
 ) -> SignalRuntime<Domain, Impact, Ev, (), Tier> {
-    SignalRuntime::builder(graph)
+    SignalRuntime::builder(graph).with_kernel_defaults()
         .with_domains::<Domain>()
         .with_impacts::<Impact>()
         .with_events::<Ev>()
@@ -77,12 +76,12 @@ fn begin_commit_applies_staged_state_once() {
     let mut runtime = build_runtime(graph);
 
     let mut ctx = ();
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
     tx.mark_dirty(a, ASPECT_B).unwrap();
     tx.emit_event(Ev::Tick);
     tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
     assert_eq!(
-        tx.commit(&mut ctx).unwrap().outcome,
+        tx.commit().unwrap().outcome,
         TransactionOutcome::Committed
     );
     assert_eq!(runtime.telemetry().transaction.transaction_commit_count, 1);
@@ -95,12 +94,12 @@ fn commit_result_without_evaluation_reports_empty_execution_summary() {
     let mut runtime = build_runtime(graph);
 
     let mut ctx = ();
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
     tx.mark_dirty(a, ASPECT_B).unwrap();
     tx.emit_event(Ev::Tick);
     tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
 
-    let result = tx.commit(&mut ctx).unwrap();
+    let result = tx.commit().unwrap();
     assert_eq!(result.outcome, TransactionOutcome::Committed);
     assert!(result.execution_report.is_none());
     assert_eq!(result.evaluation_summary.nodes_evaluated, 0);
@@ -120,15 +119,15 @@ fn commit_result_with_evaluation_carries_execution_summary() {
     let mut runtime = build_runtime(graph);
 
     let mut ctx = ();
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
     tx.evaluate_with_plan(
         source,
-        &|_id, view| Ok(view.finish(version_ab(1, 0))),
+        &|view| Ok(view.finish(version_ab(1, 0))),
         EvaluationRequestMode::Default,
     )
     .unwrap();
 
-    let result = tx.commit(&mut ctx).unwrap();
+    let result = tx.commit().unwrap();
     assert_eq!(result.outcome, TransactionOutcome::Committed);
     assert!(result.execution_report.is_some());
     assert!(result.evaluation_summary.nodes_evaluated >= 1);
@@ -146,10 +145,10 @@ fn begin_rollback_preserves_committed_state() {
     let mut runtime = build_runtime(graph);
 
     let mut ctx = ();
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
     tx.mark_dirty(a, ASPECT_B).unwrap();
     assert_eq!(
-        tx.rollback(&mut ctx).unwrap().outcome,
+        tx.rollback().unwrap().outcome,
         TransactionOutcome::RolledBack
     );
     assert_eq!(runtime.graph().get_state(a).unwrap(), before);
@@ -162,10 +161,10 @@ fn rollback_result_carries_rollback_diagnostic() {
     let mut runtime = build_runtime(graph);
 
     let mut ctx = ();
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
     tx.mark_dirty(a, ASPECT_B).unwrap();
 
-    let result = tx.rollback(&mut ctx).unwrap();
+    let result = tx.rollback().unwrap();
     assert_eq!(result.outcome, TransactionOutcome::RolledBack);
     assert!(result.rollback.is_some());
     assert!(result.execution_report.is_none());
@@ -183,12 +182,12 @@ fn failed_event_flush_does_not_commit_graph_state() {
         .unwrap();
 
     let mut ctx = ();
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
     tx.mark_dirty(a, ASPECT_B).unwrap();
     tx.emit_event(Ev::Tick);
     tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
 
-    let err = tx.commit(&mut ctx).unwrap_err();
+    let err = tx.commit().unwrap_err();
     let msg = format!("{err}");
     assert!(msg.contains("event bus flush failed"));
     assert_eq!(runtime.graph().get_state(a).unwrap(), before);
@@ -206,13 +205,13 @@ fn commit_failure_discards_checkpoint_state() {
         .unwrap();
 
     let mut ctx = ();
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
     tx.mark_dirty(a, ASPECT_B).unwrap();
     tx.record_effect::<TestEffectMap>(&TestEffect::CacheOne);
     tx.emit_event(Ev::Tick);
     tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
 
-    let _ = tx.commit(&mut ctx).unwrap_err();
+    let _ = tx.commit().unwrap_err();
     assert!(runtime.checkpoint().dirty().is_empty());
 }
 
@@ -242,13 +241,13 @@ fn poisoned_transaction_returns_poisoned_outcome() {
     let graph = crate::data::graph::SignalGraph::new();
     let mut runtime = build_runtime(graph);
     let mut ctx = ();
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
 
     // Invalid handle poisons transaction.
     let invalid = crate::data::handle::NodeId::new(999_999, 0);
     assert!(tx.mark_dirty(invalid, ASPECT_B).is_err());
     assert_eq!(
-        tx.commit(&mut ctx).unwrap().outcome,
+        tx.commit().unwrap().outcome,
         TransactionOutcome::Poisoned
     );
 }
@@ -260,13 +259,13 @@ fn poisoned_rollback_rewinds_graph() {
     let before = graph.get_state(a).unwrap();
     let mut runtime = build_runtime(graph);
     let mut ctx = ();
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
 
     tx.mark_dirty(a, ASPECT_B).unwrap();
     let invalid = crate::data::handle::NodeId::new(999_999, 0);
     assert!(tx.mark_dirty(invalid, ASPECT_B).is_err());
     assert_eq!(
-        tx.rollback(&mut ctx).unwrap().outcome,
+        tx.rollback().unwrap().outcome,
         TransactionOutcome::Poisoned
     );
     assert_eq!(runtime.graph().get_state(a).unwrap(), before);
@@ -279,12 +278,12 @@ fn poisoned_rollback_does_not_increment_explicit_rollback_metric() {
     let mut ctx = ();
     let rollback_before = runtime.telemetry().transaction.transaction_rollback_count;
     let poison_before = runtime.telemetry().transaction.transaction_poison_count;
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
 
     let invalid = crate::data::handle::NodeId::new(999_999, 0);
     assert!(tx.mark_dirty(invalid, ASPECT_B).is_err());
     assert_eq!(
-        tx.rollback(&mut ctx).unwrap().outcome,
+        tx.rollback().unwrap().outcome,
         TransactionOutcome::Poisoned
     );
 
@@ -312,9 +311,9 @@ fn failure_during_event_begin_rewinds_graph() {
         .unwrap();
 
     let mut ctx = ();
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
     tx.mark_dirty(a, ASPECT_B).unwrap();
-    let err = tx.commit(&mut ctx).unwrap_err();
+    let err = tx.commit().unwrap_err();
     assert!(format!("{err}").contains("event bus begin failed"));
     assert_eq!(runtime.graph().get_state(a).unwrap(), before);
 }
@@ -331,13 +330,14 @@ fn commit_failure_reports_rolled_back_patch_count() {
         .unwrap();
 
     let mut ctx = ();
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
     tx.mark_dirty(a, ASPECT_B).unwrap();
     tx.emit_event(Ev::Tick);
     tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
 
-    let _ = tx.commit(&mut ctx).unwrap_err();
+    let _ = tx.commit().unwrap_err();
     let rollback = runtime
+        .observe()
         .diagnostics()
         .latest_rollback()
         .expect("rollback diagnostics should be recorded");
@@ -357,19 +357,19 @@ fn hostile_rollback_and_commit_cycles_do_not_leak_semantic_events() {
     let baseline_events = runtime.graph().replay_events().len();
     for cycle in 0..12 {
         let before_state = runtime.graph().get_state(a).unwrap();
-        let mut tx = runtime.begin();
+        let mut tx = runtime.begin(&mut ctx);
         tx.mark_dirty(a, ASPECT_B).unwrap();
         tx.emit_event(Ev::Tick);
         if cycle % 2 == 0 {
             assert_eq!(
-                tx.rollback(&mut ctx).unwrap().outcome,
+                tx.rollback().unwrap().outcome,
                 TransactionOutcome::RolledBack
             );
             assert_eq!(runtime.graph().get_state(a).unwrap(), before_state);
         } else {
             tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
             assert_eq!(
-                tx.commit(&mut ctx).unwrap().outcome,
+                tx.commit().unwrap().outcome,
                 TransactionOutcome::Committed
             );
         }
@@ -401,12 +401,12 @@ fn hostile_commit_failure_does_not_leak_committed_semantic_outcome() {
 
     let replay_len_before = runtime.graph().replay_events().len();
     let mut ctx = ();
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
     tx.mark_dirty(a, ASPECT_B).unwrap();
     tx.emit_event(Ev::Tick);
     tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
 
-    let err = tx.commit(&mut ctx).unwrap_err();
+    let err = tx.commit().unwrap_err();
     assert!(format!("{err}").contains("event bus flush failed"));
     let replay_events = runtime.graph().replay_events();
     assert!(replay_events.len() >= replay_len_before + 2);
@@ -437,11 +437,11 @@ fn transaction_created_keyed_nodes_are_removed_on_rollback() {
     let active_before = runtime.graph().active_node_count();
     let mut ctx = ();
 
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
     let created = positions.keyed("wing-root").node_in_transaction(&mut tx);
     assert!(tx.staged_graph().is_alive(created));
     assert_eq!(
-        tx.rollback(&mut ctx).unwrap().outcome,
+        tx.rollback().unwrap().outcome,
         TransactionOutcome::RolledBack
     );
 
@@ -464,16 +464,16 @@ fn repeated_created_node_rollbacks_do_not_accumulate_storage_debris() {
     ) = runtime.graph().storage_counts();
 
     for _ in 0..12 {
-        let mut tx = runtime.begin();
+        let mut tx = runtime.begin(&mut ctx);
         let created = positions.keyed("wing-root").node_in_transaction(&mut tx);
         tx.evaluate_with_plan(
             created,
-            &|_node, view| Ok(view.finish(version_ab(1, 0))),
+            &|view| Ok(view.finish(version_ab(1, 0))),
             EvaluationRequestMode::ForceOnDemand,
         )
         .unwrap();
         assert_eq!(
-            tx.rollback(&mut ctx).unwrap().outcome,
+            tx.rollback().unwrap().outcome,
             TransactionOutcome::RolledBack
         );
     }
@@ -506,10 +506,10 @@ fn mark_dirty_after_evaluate_staging_still_stages_downstream_rollback_coverage()
     evaluate(runtime.graph_mut(), source, &mut seed).unwrap();
     evaluate(runtime.graph_mut(), downstream, &mut seed).unwrap();
 
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
     tx.evaluate_with_plan(
         source,
-        &|_node, view| Ok(view.finish(version_ab(2, 0))),
+        &|view| Ok(view.finish(version_ab(2, 0))),
         EvaluationRequestMode::Default,
     )
     .unwrap();
@@ -520,7 +520,7 @@ fn mark_dirty_after_evaluate_staging_still_stages_downstream_rollback_coverage()
         NodeState::Dirty
     );
     assert_eq!(
-        tx.rollback(&mut ctx).unwrap().outcome,
+        tx.rollback().unwrap().outcome,
         TransactionOutcome::RolledBack
     );
     assert_eq!(
@@ -541,20 +541,20 @@ fn evaluate_dirty_rollback_restores_preexisting_dirty_nodes() {
     let mut runtime = build_runtime(graph);
     let mut ctx = ();
 
-    let mut tx = runtime.begin();
-    tx.evaluate_dirty(&|node, view| {
+    let mut tx = runtime.begin(&mut ctx);
+    tx.evaluate_dirty(&|view| {
         let current = view
             .graph()
-            .get_entry(node)?
+            .get_entry(view.node())?
             .get_aspect_version()
             .get(ASPECT_A);
-        Ok(PreparedEvaluation::from_result(
+        Ok(crate::logic::evaluation::EvaluationOutput::from_result(
             NodeEvaluationResult::from_version(version_ab(current + 1, 0)),
         ))
     })
     .unwrap();
     assert_eq!(
-        tx.rollback(&mut ctx).unwrap().outcome,
+        tx.rollback().unwrap().outcome,
         TransactionOutcome::RolledBack
     );
 
@@ -686,7 +686,7 @@ fn runtime_builder_applies_seeded_tier_policy() {
         DirtyPropagation::Immediate,
         EvaluationTrigger::LazyPull,
     );
-    let runtime = SignalRuntime::builder(crate::data::graph::SignalGraph::new())
+    let runtime = SignalRuntime::builder(crate::data::graph::SignalGraph::new()).with_kernel_defaults()
         .with_tiers::<Tier>()
         .tier_policy(policy.clone())
         .build();
@@ -720,10 +720,10 @@ fn rollback_removes_dynamic_dependency_capture_ghost_subscribers() {
 
     assert!(runtime.graph().subscribers_of(source_b).unwrap().is_empty());
 
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
     tx.evaluate_with_plan(
         target,
-        &|_node, view| {
+        &|view| {
             let _ = view.read_aspect_version(source_a, ASPECT_A)?;
             let _ = view.read_aspect_version(source_b, ASPECT_A)?;
             Ok(view.finish(version_ab(11, 0)))
@@ -738,7 +738,7 @@ fn rollback_removes_dynamic_dependency_capture_ghost_subscribers() {
     );
 
     assert_eq!(
-        tx.rollback(&mut ctx).unwrap().outcome,
+        tx.rollback().unwrap().outcome,
         TransactionOutcome::RolledBack
     );
     assert!(
@@ -777,10 +777,10 @@ fn rollback_restores_original_source_subscriber_membership_after_rewire() {
     assert_eq!(runtime.graph().subscribers_of(source_a).unwrap(), &[target]);
     assert!(runtime.graph().subscribers_of(source_b).unwrap().is_empty());
 
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
     tx.evaluate_with_plan(
         target,
-        &|_node, view| {
+        &|view| {
             let _ = view.read_aspect_version(source_b, ASPECT_A)?;
             Ok(view.finish(version_ab(11, 0)))
         },
@@ -792,7 +792,7 @@ fn rollback_restores_original_source_subscriber_membership_after_rewire() {
     assert_eq!(tx.staged_graph().subscribers_of(source_b).unwrap(), &[target]);
 
     assert_eq!(
-        tx.rollback(&mut ctx).unwrap().outcome,
+        tx.rollback().unwrap().outcome,
         TransactionOutcome::RolledBack
     );
 

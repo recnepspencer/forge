@@ -1,15 +1,14 @@
 use std::collections::BTreeMap;
 
-use crate::snapshots::data::{SnapshotHandle, SnapshotReadPolicy};
 use crate::storage::overlay::{
-    BorrowedWorkingState, OverlayStateView, PartitionState, SnapshotState, WorkingState,
+    BorrowedWorkingState, OverlayStateView, PartitionState, WorkingState,
 };
 
 use super::{
     DurabilitySubsystem, HistorySubsystem, IndexingSubsystem, LineageSubsystem,
     PublicationSubsystem, RuntimeServices, VisibilitySubsystem,
 };
-use crate::logic::runtime::{RelationalRuntimeConfig, RuntimeComplexityCounters};
+use crate::logic::runtime::RelationalRuntimeConfig;
 
 #[derive(Debug)]
 pub struct RelationalRuntime {
@@ -27,20 +26,6 @@ pub struct RelationalRuntime {
 impl RelationalRuntime {
     pub(crate) fn active_snapshot_count(&self) -> usize {
         self.visibility.active_snapshot_count()
-    }
-
-    pub(crate) fn branch_head_versions(&self) -> Vec<crate::identity::data::VersionId> {
-        self.history
-            .branch_heads
-            .values()
-            .filter_map(|head| head.as_ref().map(|head| head.version_id))
-            .collect()
-    }
-
-    pub(crate) fn durable_store_layout(
-        &self,
-    ) -> Option<crate::durability::data::DurableStoreLayout> {
-        self.config.durability.policy.store_layout.clone()
     }
 
     pub(crate) fn set_durable_store(
@@ -143,24 +128,6 @@ impl RelationalRuntime {
         self.config.storage.layout.relation_chunk_size.max(1)
     }
 
-    pub fn complexity_counters(&self) -> RuntimeComplexityCounters {
-        self.services
-            .instrumentation
-            .complexity_counters
-            .lock()
-            .expect("complexity counter lock poisoned")
-            .clone()
-    }
-
-    pub fn reset_complexity_counters(&self) {
-        *self
-            .services
-            .instrumentation
-            .complexity_counters
-            .lock()
-            .expect("complexity counter lock poisoned") = RuntimeComplexityCounters::default();
-    }
-
     pub(crate) fn primary_schema_version(&self) -> crate::schema::data::SchemaVersionId {
         self.config
             .schema
@@ -221,20 +188,6 @@ impl RelationalRuntime {
             .chain(self.visibility.replay_retention.versions())
             .min()
             .unwrap_or(published_version)
-    }
-
-    pub(crate) fn snapshot_state_for_current(
-        &mut self,
-        version_id: crate::identity::data::VersionId,
-    ) -> (SnapshotHandle, SnapshotState) {
-        let snapshot_id = self.visibility.allocate_snapshot_id();
-        let state = self.build_visibility_state(
-            version_id,
-            snapshot_id,
-            SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
-        );
-        self.visibility_pins().pin_snapshot_state(&state);
-        (state.handle.clone(), state)
     }
 
     #[cfg(test)]

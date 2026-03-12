@@ -4,12 +4,7 @@ use forge_harness::facade::{
     ProvenanceHarnessAdapter, ReplayHarnessAdapter, ReplayRequest, ScenarioPlan,
 };
 
-use crate::facade::{
-    mark_dirty, ArtifactMaterializationMode, Aspect, AspectVersion, ExecutionReadView, NodeId,
-    PreparedEvaluation, SignalEvaluationDriver, SignalFixtureFactory, SignalHarnessBridge,
-    SignalHarnessRuntime, SignalHarnessRuntimeBuilder, SignalMutationAction,
-    CORE_STORAGE_PROFILE_ID,
-};
+use crate::facade::*;
 
 const ASPECT_A: Aspect = Aspect::new(0);
 
@@ -18,19 +13,14 @@ struct BasicEvaluator {
 }
 
 impl SignalEvaluationDriver for BasicEvaluator {
-    fn evaluate<'a>(
+    fn evaluate(
         &self,
-        node: NodeId,
-        _view: &ExecutionReadView<'a>,
-    ) -> Result<PreparedEvaluation, crate::facade::SignalError> {
-        if node == self.source {
-            Ok(PreparedEvaluation::from_result(
-                AspectVersion::from_updates([(ASPECT_A, 1)]),
-            ))
+        ctx: &mut EvaluationContext<'_, ()>,
+    ) -> Result<EvaluationOutput, SignalError> {
+        if ctx.node() == self.source {
+            Ok(EvaluationOutput::from_result(AspectVersion::from_updates([(ASPECT_A, 1)])))
         } else {
-            Ok(PreparedEvaluation::from_result(
-                AspectVersion::from_updates([(ASPECT_A, 2)]),
-            ))
+            Ok(EvaluationOutput::from_result(AspectVersion::from_updates([(ASPECT_A, 2)])))
         }
     }
 }
@@ -214,7 +204,7 @@ fn signal_runtime_materializes_native_explanation_and_provenance_facts() {
         provenance_fact.vertices.len() >= provenance_fact.edges.len().min(1) + 1,
         "provenance graph should expose structured vertices, not only flattened edges"
     );
-    let explanation = runtime.graph.explain(node).unwrap();
+    let explanation = runtime.graph.observe().explain(node).unwrap();
     assert_eq!(explanation, explanation_fact.explanation);
 }
 

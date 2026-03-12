@@ -42,16 +42,16 @@ fn local_scope_explanations_mark_untouched_partition_evidence_as_discarded() {
         .build_evaluation_plan(&[source, dependent], EvaluationRequestMode::ForceOnDemand)
         .unwrap();
     graph
-        .execute_prepared_plan(&bootstrap, &|node, view| {
-            let result = if node == dependent {
-                let version = view.read_partitioned_aspect_version(
+        .execute_prepared_plan(&bootstrap, &(), &|ctx| {
+            let result = if ctx.node() == dependent {
+                let version = ctx.read_partitioned_aspect_version(
                     source,
                     ASPECT_A,
                     PartitionSubscription::partition_and_detail("wing", "rib-12"),
                 )?;
-                view.finish(NodeEvaluationResult::from_version(version))
+                ctx.finish(NodeEvaluationResult::from_version(version))
             } else {
-                view.finish(NodeEvaluationResult::from_version(version_ab(1, 0)))
+                ctx.finish(NodeEvaluationResult::from_version(version_ab(1, 0)))
             };
             Ok(result)
         })
@@ -68,15 +68,15 @@ fn local_scope_explanations_mark_untouched_partition_evidence_as_discarded() {
         .build_evaluation_plan(&[source], EvaluationRequestMode::Default)
         .unwrap();
     graph
-        .execute_prepared_plan(&source_plan, &|_node, view| {
-            Ok(view.finish(
+        .execute_prepared_plan(&source_plan, &(), &|ctx| {
+            Ok(ctx.finish(
                 NodeEvaluationResult::from_version(version_ab(2, 0))
                     .with_changed_region(ChangedRegion::new("wing").with_detail("rib-13")),
             ))
         })
         .unwrap();
 
-    let explanation = graph.explain(dependent).unwrap();
+    let explanation = graph.observe().explain(dependent).unwrap();
     assert!(explanation.causal_links.iter().any(|link| {
         link.kind == "ScopeUntouched" && matches!(link.scope.kind, ScopeProvenanceKind::Discarded)
     }));
@@ -95,16 +95,16 @@ fn broader_partition_validation_scopes_report_translated_upstream_region_evidenc
         .build_evaluation_plan(&[source, dependent], EvaluationRequestMode::ForceOnDemand)
         .unwrap();
     graph
-        .execute_prepared_plan(&bootstrap, &|node, view| {
-            let result = if node == dependent {
-                let version = view.read_partitioned_aspect_version(
+        .execute_prepared_plan(&bootstrap, &(), &|ctx| {
+            let result = if ctx.node() == dependent {
+                let version = ctx.read_partitioned_aspect_version(
                     source,
                     ASPECT_A,
                     PartitionSubscription::whole_partition("wing"),
                 )?;
-                view.finish(NodeEvaluationResult::from_version(version))
+                ctx.finish(NodeEvaluationResult::from_version(version))
             } else {
-                view.finish(NodeEvaluationResult::from_version(version_ab(1, 0)))
+                ctx.finish(NodeEvaluationResult::from_version(version_ab(1, 0)))
             };
             Ok(result)
         })
@@ -121,15 +121,15 @@ fn broader_partition_validation_scopes_report_translated_upstream_region_evidenc
         .build_evaluation_plan(&[source], EvaluationRequestMode::Default)
         .unwrap();
     graph
-        .execute_prepared_plan(&source_plan, &|_node, view| {
-            Ok(view.finish(
+        .execute_prepared_plan(&source_plan, &(), &|ctx| {
+            Ok(ctx.finish(
                 NodeEvaluationResult::from_version(version_ab(2, 0))
                     .with_changed_region(ChangedRegion::new("wing").with_detail("rib-13")),
             ))
         })
         .unwrap();
 
-    let explanation = graph.explain(dependent).unwrap();
+    let explanation = graph.observe().explain(dependent).unwrap();
     assert!(explanation.causal_links.iter().any(|link| {
         link.kind == "Changed"
             && matches!(link.scope.kind, ScopeProvenanceKind::Translated)

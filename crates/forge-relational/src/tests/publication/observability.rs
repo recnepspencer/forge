@@ -58,12 +58,13 @@ fn publication_snapshot_handle_reads_without_becoming_a_pinned_snapshot() {
     assert_eq!(inspection.pinned_entity_count, 0);
     assert_eq!(inspection.entity_count, 1);
     assert!(runtime
+        .storage_access()
         .plan_read_packet(&outcome.snapshot, &packet)
         .is_some());
     assert!(runtime
         .visibility_reads().execute_read_packet(&outcome.snapshot, &packet)
         .is_some());
-    assert!(runtime.snapshot_access().release_snapshot(&outcome.snapshot));
+    assert!(runtime.visibility_authority().release_snapshot(&outcome.snapshot));
     assert!(runtime.visibility_reads().read_snapshot(&outcome.snapshot).is_none());
 }
 
@@ -73,17 +74,17 @@ fn released_publication_handles_stop_counting_as_readable_runtime_state() {
     let first = create_entity_outcome(&mut runtime, "first");
     let second = create_entity_outcome(&mut runtime, "second");
 
-    let before = runtime.storage_stats();
+    let before = runtime.storage_access().storage_stats();
     assert_eq!(before.published_snapshot_handle_count, 2);
 
-    assert!(runtime.snapshot_access().release_snapshot(&first.snapshot));
-    let after_first_release = runtime.storage_stats();
+    assert!(runtime.visibility_authority().release_snapshot(&first.snapshot));
+    let after_first_release = runtime.storage_access().storage_stats();
     assert_eq!(after_first_release.published_snapshot_handle_count, 1);
     assert!(runtime.visibility_reads().read_snapshot(&first.snapshot).is_none());
     assert!(runtime.visibility_reads().read_snapshot(&second.snapshot).is_some());
 
-    assert!(runtime.snapshot_access().release_snapshot(&second.snapshot));
-    let after_second_release = runtime.storage_stats();
+    assert!(runtime.visibility_authority().release_snapshot(&second.snapshot));
+    let after_second_release = runtime.storage_access().storage_stats();
     assert_eq!(after_second_release.published_snapshot_handle_count, 0);
 }
 
@@ -102,7 +103,7 @@ fn publication_handle_retention_is_bounded_by_policy() {
     let second = create_entity_outcome(&mut runtime, "second");
     let third = create_entity_outcome(&mut runtime, "third");
 
-    let stats = runtime.storage_stats();
+    let stats = runtime.storage_access().storage_stats();
 
     assert_eq!(stats.published_snapshot_handle_count, 2);
     assert!(runtime.visibility_reads().read_snapshot(&first.snapshot).is_none());
@@ -113,7 +114,10 @@ fn publication_handle_retention_is_bounded_by_policy() {
 #[test]
 fn snapshot_audit_failure_blocks_publication() {
     let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
-        snapshot_audit: vec![InvariantRule::MaxSnapshotEntities(0)],
+        registrations: vec![InvariantRegistration::block_publication(
+            InvariantRule::MaxSnapshotEntities(0),
+            InvariantExecutionPoint::SnapshotPublication,
+        )],
         ..InvariantCatalog::default()
     });
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
@@ -132,8 +136,9 @@ fn snapshot_audit_failure_blocks_publication() {
 fn bulk_packets_are_the_primary_read_surface() {
     let mut runtime = runtime_with_test_schema();
     let entity = create_entity(&mut runtime, "first");
-    let snapshot = runtime.snapshot_access().snapshot();
+    let snapshot = runtime.visibility_authority().snapshot();
     let plan = runtime
+        .storage_access()
         .plan_read_packet(
             &snapshot,
             &QueryWorkPacket::bulk("entities", vec![RecordRef::Entity(entity)]),
@@ -195,10 +200,10 @@ fn harness_runner_captures_snapshot_diagnostics_and_replay() {
 fn runtime_packet_execution_and_storage_stats_are_readable() {
     let mut runtime = runtime_with_test_schema();
     let entity = create_entity(&mut runtime, "first");
-    let snapshot = runtime.snapshot_access().snapshot();
+    let snapshot = runtime.visibility_authority().snapshot();
     let packet = QueryWorkPacket::bulk("entities", vec![RecordRef::Entity(entity)]);
     let result = runtime.visibility_reads().execute_read_packet(&snapshot, &packet).unwrap();
-    let stats = runtime.storage_stats();
+    let stats = runtime.storage_access().storage_stats();
 
     assert_eq!(result.entities.len(), 1);
     assert_eq!(stats.live_entities, 1);
@@ -241,12 +246,21 @@ fn repeated_serial_runs_are_harness_comparable() {
 #[test]
 fn harness_heavy_invariants_are_opt_in() {
     let runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
-        harness_heavy: vec![InvariantRule::UniqueEntityPayloadField("name".to_string())],
+        registrations: vec![InvariantRegistration::audit_only(
+            InvariantRule::UniqueEntityPayloadField("name".to_string()),
+            InvariantExecutionPoint::HarnessAudit,
+        )],
         ..InvariantCatalog::default()
     });
 
-    let default_results = runtime.run_invariants(InvariantExecutionPoint::HarnessAudit, false);
-    let enabled_results = runtime.run_invariants(InvariantExecutionPoint::HarnessAudit, true);
+    let default_results = runtime
+        .invariant_access()
+        .harness_audit(crate::facade::HarnessAuditMode::Disabled)
+        .into_results();
+    let enabled_results = runtime
+        .invariant_access()
+        .harness_audit(crate::facade::HarnessAuditMode::Full)
+        .into_results();
 
     assert!(default_results.is_empty());
     assert_eq!(enabled_results.len(), 1);

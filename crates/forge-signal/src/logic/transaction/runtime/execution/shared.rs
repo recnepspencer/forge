@@ -1,8 +1,10 @@
 use crate::data::comparator::TierPolicyResolver;
 use crate::data::error::SignalError;
-use crate::data::graph::{ScratchLeaseKind, SignalGraph};
+use crate::data::graph::{EvaluationStrategy, GcPressure, ScratchLeaseKind, SignalGraph};
 use crate::data::handle::NodeId;
 use crate::data::telemetry::RuntimeTelemetry;
+use crate::logic::context::EvaluationContext;
+use crate::logic::evaluation::IntoEvaluationOutput;
 use crate::logic::evaluation::EvaluationRequestMode;
 use crate::logic::planner::{
     build_evaluation_session_with_policy_resolver, execute_evaluation_session_with_policy,
@@ -76,30 +78,59 @@ pub(super) fn absorb_execution_report_telemetry(
         telemetry.execution.max_tasks_in_stage.max(max_tasks_in_stage);
 }
 
-pub(super) fn execute_targets_with_runtime_config<T, F>(
+pub(super) fn executor_for_strategy(strategy: EvaluationStrategy) -> StageExecutor {
+    strategy.parallelism.stage_executor()
+}
+
+pub(super) fn apply_strategy_maintenance(graph: &mut SignalGraph, strategy: EvaluationStrategy) {
+    if matches!(strategy.gc_pressure, GcPressure::CompactAfterEvaluation) {
+        graph.run_gc_epoch();
+    }
+}
+
+fn prepare_with_context<Ctx, F, O>(
+    graph: &SignalGraph,
+    domain_ctx: &Ctx,
+    node: NodeId,
+    evaluator: &F,
+) -> Result<PreparedEvaluation, SignalError>
+where
+    F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+    O: IntoEvaluationOutput,
+{
+    let mut eval_ctx = EvaluationContext::new(graph, node, domain_ctx);
+    let output = evaluator(&mut eval_ctx)?;
+    Ok(eval_ctx.into_prepared(output))
+}
+
+pub(super) fn execute_targets_with_runtime_config<T, Ctx, F, O>(
     graph: &mut SignalGraph,
     config: &SignalRuntimeConfig<T>,
+    domain_ctx: &Ctx,
     targets: &[NodeId],
     request_mode: EvaluationRequestMode,
-    precompute: &F,
+    evaluator: &F,
     executor: StageExecutor,
 ) -> Result<ExecutionReport, SignalError>
 where
     T: Copy + Ord,
-    F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    Ctx: Sync,
+    F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+    O: IntoEvaluationOutput,
 {
     execute_targets_with_runtime_config_detailed(
         graph,
         config,
+        domain_ctx,
         targets,
         request_mode,
-        precompute,
+        evaluator,
         executor,
     )
     .map_err(|failure| failure.error)
 }
 
-pub(super) fn execute_targets_with_runtime_config_detailed<T, F>(
+pub(super) fn execute_targets_with_prepared_runtime_config_detailed<T, F>(
     graph: &mut SignalGraph,
     config: &SignalRuntimeConfig<T>,
     targets: &[NodeId],
@@ -134,21 +165,77 @@ where
     })?)
 }
 
-pub(super) fn execute_plan_with_runtime_config<T, F>(
+pub(super) fn execute_targets_with_runtime_config_detailed<T, Ctx, F, O>(
     graph: &mut SignalGraph,
     config: &SignalRuntimeConfig<T>,
-    plan: &EvaluationPlan,
-    precompute: &F,
+    domain_ctx: &Ctx,
+    targets: &[NodeId],
+    request_mode: EvaluationRequestMode,
+    evaluator: &F,
     executor: StageExecutor,
-) -> Result<ExecutionReport, SignalError>
+) -> Result<ExecutionReport, SessionExecutionError>
 where
     T: Copy + Ord,
-    F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    Ctx: Sync,
+    F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+    O: IntoEvaluationOutput,
 {
     let mut resolver = TierPolicyResolver::new(
         config.node_meta(),
         config.tier_policies(),
         config.fallback_comparator(),
     );
-    execute_prepared_plan_with_policy(graph, plan, precompute, &mut resolver, executor)
+    let mut session_summary = PlanSummary::default();
+    Ok(graph.with_scratch(ScratchLeaseKind::Evaluation, |graph, scratch| {
+        let session = build_evaluation_session_with_policy_resolver(
+            graph,
+            scratch,
+            targets,
+            request_mode,
+            &mut resolver,
+        )?;
+        session_summary = session.summary.clone();
+        execute_evaluation_session_with_policy(
+            graph,
+            &session,
+            &|node, view: &ExecutionReadView<'_>| {
+                prepare_with_context(view.graph(), domain_ctx, node, evaluator)
+            },
+            &mut resolver,
+            executor,
+        )
+    })
+    .map_err(|error| SessionExecutionError {
+        error,
+        plan_summary: session_summary,
+    })?)
+}
+
+pub(super) fn execute_plan_with_runtime_config<T, Ctx, F, O>(
+    graph: &mut SignalGraph,
+    config: &SignalRuntimeConfig<T>,
+    domain_ctx: &Ctx,
+    plan: &EvaluationPlan,
+    evaluator: &F,
+    executor: StageExecutor,
+) -> Result<ExecutionReport, SignalError>
+where
+    T: Copy + Ord,
+    Ctx: Sync,
+    F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+    O: IntoEvaluationOutput,
+{
+    let mut resolver = TierPolicyResolver::new(
+        config.node_meta(),
+        config.tier_policies(),
+        config.fallback_comparator(),
+    );
+    execute_prepared_plan_with_policy(
+        graph,
+        plan,
+        domain_ctx,
+        evaluator,
+        &mut resolver,
+        executor,
+    )
 }

@@ -50,7 +50,7 @@ impl<'a> RelationalTransaction<'a> {
             .map(|intent| intent.rollback_effect())
             .collect();
         self.runtime
-            .diagnostic(DiagnosticsScope::Transaction)
+            .publication_authority().diagnostic(DiagnosticsScope::Transaction)
             .rollback()
             .emit_entry(
                 DiagnosticCode::SavepointRolledBack,

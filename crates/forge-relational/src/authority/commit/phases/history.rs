@@ -1,6 +1,6 @@
 use serde_json::json;
 
-use crate::capabilities::{DiagnosticsSink, HistorySource, RuntimeConfigSource};
+use crate::capabilities::{DiagnosticsSink, RuntimeConfigSource};
 use crate::diagnostics::data::DiagnosticsScope;
 use crate::history::data::{BranchId, CommitId, CommitReference};
 use crate::identity::data::VersionId;
@@ -19,7 +19,7 @@ pub(crate) fn resolve_commit_history(
     transaction: &mut RelationalTransaction<'_>,
     version_id: VersionId,
 ) -> Result<ResolvedCommitHistory, TransactionCommitError> {
-    let commit_id = transaction.runtime.next_commit_id();
+    let commit_id = transaction.runtime.history_access().next_commit_id();
     let branch_id = transaction
         .options
         .target_branch
@@ -27,7 +27,8 @@ pub(crate) fn resolve_commit_history(
         .unwrap_or_else(|| transaction.runtime.runtime_config().history.main_branch.clone());
     let previous_branch_head_version = transaction
         .runtime
-        .branch_head_ref(&branch_id)
+        .history_access()
+        .branch_head(&branch_id)
         .map(|head| head.version_id);
     let (parents, merge_base_commits) = match transaction.resolve_parent_commits(&branch_id) {
         Ok(result) => result,

@@ -63,13 +63,13 @@ fn graph_snapshot_round_trip_restores_versions_and_emits_restore_replay_and_line
         "restore should emit a snapshot-restored replay event"
     );
     assert!(
-        graph.lineage_records().iter().any(|record| {
+        graph.observe().lineage_records().iter().any(|record| {
             record.event == LineageEvent::Restored
                 && record.snapshot_id == Some(snapshot.meta.snapshot_id)
         }),
         "restore should emit lineage-visible restore records under the active runtime policy"
     );
-    let around_restore = graph.replay_around_snapshot(snapshot.meta.snapshot_id);
+    let around_restore = graph.observe().replay_around_snapshot(snapshot.meta.snapshot_id);
     assert!(
         around_restore
             .frames
@@ -86,14 +86,14 @@ fn runtime_branches_keep_evaluation_state_isolated_across_switches() {
     let dependent = graph.node().build();
     graph.add_dependency(dependent, source, ASPECT_A).unwrap();
 
-    let mut runtime = SignalRuntime::builder(graph).build();
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
     let mut runtime_ctx = ();
 
     runtime
         .transaction(&mut runtime_ctx, |tx| {
             tx.mark_dirty(source, ASPECT_A)?;
-            tx.read(dependent, &|node, view| {
-                let result = if node == source {
+            tx.read(dependent, &|view| {
+                let result = if view.node() == source {
                     view.finish(
                         NodeEvaluationResult::from_version(version_ab(1, 0))
                             .with_output_identity("main-artifact"),
@@ -108,15 +108,15 @@ fn runtime_branches_keep_evaluation_state_isolated_across_switches() {
         })
         .unwrap();
 
-    let main_branch = runtime.current_branch();
+    let main_branch = runtime.observe().current_branch();
     let feature_branch = runtime.create_branch("feature-a").unwrap();
 
     runtime.switch_branch(feature_branch.clone()).unwrap();
     runtime
         .transaction(&mut runtime_ctx, |tx| {
             tx.mark_dirty(source, ASPECT_A)?;
-            tx.read(dependent, &|node, view| {
-                let result = if node == source {
+            tx.read(dependent, &|view| {
+                let result = if view.node() == source {
                     view.finish(
                         NodeEvaluationResult::from_version(version_ab(2, 0))
                             .with_output_identity("feature-artifact"),
@@ -131,7 +131,7 @@ fn runtime_branches_keep_evaluation_state_isolated_across_switches() {
         })
         .unwrap();
 
-    assert_eq!(runtime.current_branch().id, feature_branch.id);
+    assert_eq!(runtime.observe().current_branch().id, feature_branch.id);
     assert_eq!(
         runtime
             .graph()
@@ -144,7 +144,7 @@ fn runtime_branches_keep_evaluation_state_isolated_across_switches() {
 
     runtime.switch_branch(main_branch.clone()).unwrap();
 
-    assert_eq!(runtime.current_branch().id, main_branch.id);
+    assert_eq!(runtime.observe().current_branch().id, main_branch.id);
     assert_eq!(
         runtime
             .graph()
@@ -162,7 +162,7 @@ fn runtime_branches_keep_evaluation_state_isolated_across_switches() {
             .any(|event| event.kind == ReplayEventKind::BranchSwitched),
         "branch switching should emit replay events"
     );
-    let ancestry = runtime.branch_ancestry(feature_branch.id);
+    let ancestry = runtime.observe().branch_ancestry(feature_branch.id);
     assert_eq!(ancestry.first().unwrap().id, main_branch.id);
     assert_eq!(ancestry.last().unwrap().id, feature_branch.id);
 }
@@ -170,17 +170,17 @@ fn runtime_branches_keep_evaluation_state_isolated_across_switches() {
 #[test]
 fn switching_existing_branch_does_not_emit_branched_from_lineage() {
     let graph = SignalGraph::new();
-    let mut runtime = SignalRuntime::builder(graph).build();
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
 
-    let main_branch = runtime.current_branch();
+    let main_branch = runtime.observe().current_branch();
     let feature_branch = runtime.create_branch("feature").unwrap();
     runtime.switch_branch(feature_branch.clone()).unwrap();
-    let lineage_after_create = runtime.graph().lineage_records().len();
+    let lineage_after_create = runtime.graph().observe().lineage_records().len();
 
     runtime.switch_branch(main_branch.clone()).unwrap();
 
     let switch_records = runtime
-        .graph()
+        .graph().observe()
         .lineage_records()
         .iter()
         .skip(lineage_after_create)
@@ -197,7 +197,7 @@ fn switching_existing_branch_does_not_emit_branched_from_lineage() {
             .all(|record| record.event != LineageEvent::BranchedFrom),
         "switching existing branches must not masquerade as branch creation"
     );
-    assert_eq!(runtime.current_branch().id, main_branch.id);
+    assert_eq!(runtime.observe().current_branch().id, main_branch.id);
     assert_eq!(feature_branch.parent_branch_id, Some(main_branch.id));
 }
 
@@ -219,7 +219,7 @@ fn lineage_distinguishes_replacement_refresh_and_memoized_reuse() {
     mark_dirty(&mut graph, source, ASPECT_A).unwrap();
     evaluate(&mut graph, source, &mut refreshed).unwrap();
 
-    let lineage = graph.lineage_for_node(source);
+    let lineage = graph.observe().lineage_for_node(source);
     assert!(
         lineage
             .iter()
@@ -233,7 +233,7 @@ fn lineage_distinguishes_replacement_refresh_and_memoized_reuse() {
         "stable artifact continuity should record refresh semantics"
     );
 
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     let family = define_keyed_computation(&mut runtime, "projection", ());
     let bulkhead = family.keyed("bulkhead");
     let keyed = bulkhead.node(&mut runtime);
@@ -242,7 +242,7 @@ fn lineage_distinguishes_replacement_refresh_and_memoized_reuse() {
 
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.evaluate_keyed(keyed, &computation, &|_id, view| {
+            tx.evaluate_keyed(keyed, &computation, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(1, 0))
                         .with_output_identity("memo-artifact")
@@ -257,7 +257,7 @@ fn lineage_distinguishes_replacement_refresh_and_memoized_reuse() {
 
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.evaluate_keyed(keyed, &computation, &|_id, view| {
+            tx.evaluate_keyed(keyed, &computation, &|view| {
                 Ok(view.finish(NodeEvaluationResult::from_version(version_ab(99, 0))))
             })?;
             Ok(())
@@ -266,7 +266,7 @@ fn lineage_distinguishes_replacement_refresh_and_memoized_reuse() {
 
     assert!(
         runtime
-            .graph()
+            .graph().observe()
             .lineage_for_node(keyed)
             .iter()
             .any(|record| record.event == LineageEvent::MemoizedFrom),
@@ -283,7 +283,7 @@ fn continuity_token_preserves_lineage_without_requiring_output_identity() {
         Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_continuity_token("stable-a"))
     })
     .unwrap();
-    let first_artifact = graph.current_lineage_artifact(source).unwrap();
+    let first_artifact = graph.observe().current_lineage_artifact(source).unwrap();
 
     mark_dirty(&mut graph, source, ASPECT_A).unwrap();
     evaluate(&mut graph, source, &mut |_id, _graph| {
@@ -294,12 +294,12 @@ fn continuity_token_preserves_lineage_without_requiring_output_identity() {
     .unwrap();
 
     assert_eq!(
-        graph.current_lineage_artifact(source),
+        graph.observe().current_lineage_artifact(source),
         Some(first_artifact),
         "matching continuity token should preserve lineage even without output identity"
     );
     assert!(
-        graph
+        graph.observe()
             .lineage_for_node(source)
             .iter()
             .any(|record| record.event == LineageEvent::Refreshed),
@@ -309,11 +309,11 @@ fn continuity_token_preserves_lineage_without_requiring_output_identity() {
 
 #[test]
 fn branch_snapshot_restore_rejects_incompatible_storage_profile_and_preserves_branch_head() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     let branch = runtime.create_branch("analysis").unwrap();
     let snapshot = runtime.capture_branch_snapshot(branch.clone()).unwrap();
     assert_eq!(
-        runtime.branch_handle(branch.id).unwrap().head_snapshot_id,
+        runtime.observe().branch_handle(branch.id).unwrap().head_snapshot_id,
         Some(snapshot.meta.snapshot_id),
         "capturing a branch snapshot should advance that branch head metadata"
     );
@@ -332,9 +332,9 @@ fn branch_snapshot_restore_rejects_incompatible_storage_profile_and_preserves_br
 
 #[test]
 fn restore_branch_snapshot_rejects_cross_branch_payloads_and_keeps_catalog_consistent() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     let feature = runtime.create_branch("feature-cross").unwrap();
-    let main = runtime.current_branch();
+    let main = runtime.observe().current_branch();
     let main_snapshot = runtime.capture_snapshot();
 
     let err = runtime.restore_branch_snapshot(feature.clone(), &main_snapshot);
@@ -352,12 +352,12 @@ fn restore_branch_snapshot_rejects_cross_branch_payloads_and_keeps_catalog_consi
     let feature_snapshot = runtime.capture_branch_snapshot(feature.clone()).unwrap();
     assert_eq!(feature_snapshot.meta.branch_id, feature.id);
     assert_eq!(
-        runtime.branch_handle(feature.id).unwrap().head_snapshot_id,
+        runtime.observe().branch_handle(feature.id).unwrap().head_snapshot_id,
         Some(feature_snapshot.meta.snapshot_id),
         "non-active branch snapshot capture should update shared branch-head metadata"
     );
     assert_eq!(
-        runtime.branch_handle(main.id).unwrap().head_snapshot_id,
+        runtime.observe().branch_handle(main.id).unwrap().head_snapshot_id,
         Some(main_snapshot.meta.snapshot_id),
         "capturing another branch snapshot should not erase the active branch head"
     );
@@ -372,7 +372,7 @@ fn repeated_snapshot_restore_loops_do_not_leak_non_restore_lineage_or_branch_sta
     })
     .unwrap();
     let snapshot = graph.capture_snapshot();
-    let baseline_artifact = graph.current_lineage_artifact(source).unwrap();
+    let baseline_artifact = graph.observe().current_lineage_artifact(source).unwrap();
 
     for _ in 0..8 {
         mark_dirty(&mut graph, source, ASPECT_A).unwrap();
@@ -380,10 +380,10 @@ fn repeated_snapshot_restore_loops_do_not_leak_non_restore_lineage_or_branch_sta
     }
 
     assert_eq!(
-        graph.current_lineage_artifact(source),
+        graph.observe().current_lineage_artifact(source),
         Some(baseline_artifact)
     );
-    let lineage = graph.lineage_records();
+    let lineage = graph.observe().lineage_records();
     assert!(
         lineage
             .iter()
@@ -411,13 +411,13 @@ fn repeated_snapshot_restore_loops_do_not_leak_non_restore_lineage_or_branch_sta
 
 #[test]
 fn invalidation_emits_lineage_without_replacement_and_branch_restore_is_local() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     let source = runtime.graph_mut().node().output_identity().build();
     let mut runtime_ctx = ();
 
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.read(source, &|_node, view| {
+            tx.read(source, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(1, 0))
                         .with_output_identity("artifact-main"),
@@ -427,7 +427,7 @@ fn invalidation_emits_lineage_without_replacement_and_branch_restore_is_local() 
         })
         .unwrap();
 
-    let main_branch = runtime.current_branch();
+    let main_branch = runtime.observe().current_branch();
     let feature = runtime.create_branch("feature-b").unwrap();
     let main_snapshot = runtime.capture_snapshot();
     runtime.switch_branch(feature.clone()).unwrap();
@@ -435,7 +435,7 @@ fn invalidation_emits_lineage_without_replacement_and_branch_restore_is_local() 
     runtime
         .transaction(&mut runtime_ctx, |tx| {
             tx.mark_dirty(source, ASPECT_A)?;
-            tx.read(source, &|_node, view| {
+            tx.read(source, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(2, 0))
                         .with_output_identity("artifact-feature"),
@@ -449,7 +449,7 @@ fn invalidation_emits_lineage_without_replacement_and_branch_restore_is_local() 
     mark_dirty(runtime.graph_mut(), source, ASPECT_A).unwrap();
     assert!(
         runtime
-            .graph()
+            .graph().observe()
             .lineage_for_node(source)
             .iter()
             .any(|record| record.event == LineageEvent::InvalidatedWithoutReplacement),
@@ -459,7 +459,7 @@ fn invalidation_emits_lineage_without_replacement_and_branch_restore_is_local() 
     runtime
         .restore_branch_snapshot(feature.clone(), &feature_snapshot)
         .unwrap();
-    let feature_replay = runtime.replay_for_branch(feature.id);
+    let feature_replay = runtime.observe().replay_for_branch(feature.id);
     assert!(
         feature_replay
             .frames
@@ -479,25 +479,25 @@ fn invalidation_emits_lineage_without_replacement_and_branch_restore_is_local() 
         1,
         "branch restore and branch-local churn must not contaminate main"
     );
-    let main_replay = runtime.replay_around_snapshot(main_snapshot.meta.snapshot_id);
+    let main_replay = runtime.observe().replay_around_snapshot(main_snapshot.meta.snapshot_id);
     assert!(
         main_replay
             .frames
             .iter()
-            .all(|event| event.branch_id == runtime.current_branch().id),
+            .all(|event| event.branch_id == runtime.observe().current_branch().id),
         "snapshot inspection on main should stay branch-local"
     );
 }
 
 #[test]
 fn replay_slices_and_lineage_chains_are_branch_and_snapshot_queryable() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     let node = runtime.graph_mut().node().output_identity().build();
     let mut runtime_ctx = ();
 
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.read(node, &|_node, view| {
+            tx.read(node, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(1, 0))
                         .with_output_identity("artifact-main"),
@@ -507,7 +507,7 @@ fn replay_slices_and_lineage_chains_are_branch_and_snapshot_queryable() {
         })
         .unwrap();
 
-    let main_branch = runtime.current_branch();
+    let main_branch = runtime.observe().current_branch();
     let snapshot = runtime.capture_snapshot();
     let before_cursor = runtime
         .replay_for_branch(main_branch.id)
@@ -521,7 +521,7 @@ fn replay_slices_and_lineage_chains_are_branch_and_snapshot_queryable() {
     runtime
         .transaction(&mut runtime_ctx, |tx| {
             tx.mark_dirty(node, ASPECT_A)?;
-            tx.read(node, &|_node, view| {
+            tx.read(node, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(2, 0))
                         .with_output_identity("artifact-feature"),
@@ -531,7 +531,7 @@ fn replay_slices_and_lineage_chains_are_branch_and_snapshot_queryable() {
         })
         .unwrap();
 
-    let feature_replay = runtime.replay_for_branch(feature_branch.id);
+    let feature_replay = runtime.observe().replay_for_branch(feature_branch.id);
     assert!(
         feature_replay
             .frames
@@ -547,7 +547,7 @@ fn replay_slices_and_lineage_chains_are_branch_and_snapshot_queryable() {
         "branch replay should include node-local evaluation events"
     );
 
-    let node_replay = runtime.replay_for_node(node);
+    let node_replay = runtime.observe().replay_for_node(node);
     assert!(
         node_replay
             .frames
@@ -556,7 +556,7 @@ fn replay_slices_and_lineage_chains_are_branch_and_snapshot_queryable() {
         "node replay slices should filter to the requested node"
     );
 
-    let around_snapshot = runtime.replay_around_snapshot(snapshot.meta.snapshot_id);
+    let around_snapshot = runtime.observe().replay_around_snapshot(snapshot.meta.snapshot_id);
     assert!(
         around_snapshot
             .frames
@@ -566,7 +566,7 @@ fn replay_slices_and_lineage_chains_are_branch_and_snapshot_queryable() {
     );
 
     runtime.switch_branch(main_branch).unwrap();
-    let tail = runtime.replay_from_cursor(before_cursor);
+    let tail = runtime.observe().replay_from_cursor(before_cursor);
     assert!(
         tail.frames
             .iter()
@@ -575,16 +575,17 @@ fn replay_slices_and_lineage_chains_are_branch_and_snapshot_queryable() {
     );
 
     let artifact_id = runtime
+        .observe()
         .current_lineage_artifact(node)
         .expect("node should have a current lineage artifact");
-    let artifact_chain = runtime.lineage_chain_for_artifact(artifact_id);
+    let artifact_chain = runtime.observe().lineage_chain_for_artifact(artifact_id);
     assert!(
         artifact_chain
             .iter()
             .any(|record| record.event == LineageEvent::Replaced),
         "artifact lineage chain should expose the replacement event that materialized it"
     );
-    let artifact_replay = runtime.replay_for_artifact(artifact_id);
+    let artifact_replay = runtime.observe().replay_for_artifact(artifact_id);
     assert!(
         artifact_replay
             .frames
@@ -592,7 +593,7 @@ fn replay_slices_and_lineage_chains_are_branch_and_snapshot_queryable() {
             .all(|frame| frame.lineage_artifact_id == Some(artifact_id)),
         "artifact replay slices should filter to the requested lineage artifact"
     );
-    let node_chain = runtime.lineage_chain_for_node(node);
+    let node_chain = runtime.observe().lineage_chain_for_node(node);
     assert_eq!(
         node_chain.last().and_then(|record| record.artifact_id),
         Some(artifact_id),
@@ -602,7 +603,7 @@ fn replay_slices_and_lineage_chains_are_branch_and_snapshot_queryable() {
         .capture_branch_snapshot(feature_branch.clone())
         .unwrap();
     assert_eq!(
-        runtime.branch_head_snapshot_id(feature_branch.id),
+        runtime.observe().branch_head_snapshot_id(feature_branch.id),
         Some(refreshed_feature_snapshot.meta.snapshot_id),
         "capturing a non-active branch snapshot should keep the branch catalog in sync"
     );
@@ -610,13 +611,13 @@ fn replay_slices_and_lineage_chains_are_branch_and_snapshot_queryable() {
 
 #[test]
 fn branch_switch_and_restore_churn_preserve_branch_local_heads_and_replay_isolation() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     let source = runtime.graph_mut().node().output_identity().build();
     let mut runtime_ctx = ();
 
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.read(source, &|_node, view| {
+            tx.read(source, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(1, 0))
                         .with_output_identity("main-artifact"),
@@ -626,7 +627,7 @@ fn branch_switch_and_restore_churn_preserve_branch_local_heads_and_replay_isolat
         })
         .unwrap();
 
-    let main = runtime.current_branch();
+    let main = runtime.observe().current_branch();
     let feature = runtime.create_branch("feature-churn").unwrap();
     let main_snapshot = runtime.capture_snapshot();
 
@@ -634,7 +635,7 @@ fn branch_switch_and_restore_churn_preserve_branch_local_heads_and_replay_isolat
     runtime
         .transaction(&mut runtime_ctx, |tx| {
             tx.mark_dirty(source, ASPECT_A)?;
-            tx.read(source, &|_node, view| {
+            tx.read(source, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(2, 0))
                         .with_output_identity("feature-artifact"),
@@ -657,12 +658,12 @@ fn branch_switch_and_restore_churn_preserve_branch_local_heads_and_replay_isolat
     }
 
     assert_eq!(
-        runtime.branch_head_snapshot_id(main.id),
+        runtime.observe().branch_head_snapshot_id(main.id),
         Some(main_snapshot.meta.snapshot_id),
         "main branch head should stay pinned to its own restored snapshot"
     );
     assert_eq!(
-        runtime.branch_head_snapshot_id(feature.id),
+        runtime.observe().branch_head_snapshot_id(feature.id),
         Some(feature_snapshot.meta.snapshot_id),
         "feature branch head should stay pinned to its own restored snapshot"
     );
@@ -678,7 +679,7 @@ fn branch_switch_and_restore_churn_preserve_branch_local_heads_and_replay_isolat
         1,
         "main branch state should survive churn"
     );
-    let main_replay = runtime.replay_for_branch(main.id);
+    let main_replay = runtime.observe().replay_for_branch(main.id);
     assert!(
         main_replay
             .frames
@@ -698,7 +699,7 @@ fn branch_switch_and_restore_churn_preserve_branch_local_heads_and_replay_isolat
         2,
         "feature branch state should survive churn"
     );
-    let feature_replay = runtime.replay_for_branch(feature.id);
+    let feature_replay = runtime.observe().replay_for_branch(feature.id);
     assert!(
         feature_replay
             .frames
@@ -721,7 +722,7 @@ fn lineage_chain_preserves_invalidation_and_restore_events_for_the_same_artifact
         Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("stable"))
     })
     .unwrap();
-    let artifact_id = graph
+    let artifact_id = graph.observe()
         .current_lineage_artifact(source)
         .expect("materialized node should have lineage");
 
@@ -729,7 +730,7 @@ fn lineage_chain_preserves_invalidation_and_restore_events_for_the_same_artifact
     let snapshot = graph.capture_snapshot();
     graph.restore_snapshot(&snapshot).unwrap();
 
-    let chain = graph.lineage_chain_for_artifact(artifact_id);
+    let chain = graph.observe().lineage_chain_for_artifact(artifact_id);
     assert!(
         chain
             .iter()
@@ -752,13 +753,13 @@ fn lineage_chain_preserves_invalidation_and_restore_events_for_the_same_artifact
 
 #[test]
 fn snapshot_metadata_and_replay_ranges_are_inspectable_without_restore() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     let node = runtime.graph_mut().node().output_identity().build();
     let mut runtime_ctx = ();
 
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.read(node, &|_node, view| {
+            tx.read(node, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(1, 0))
                         .with_output_identity("range-artifact"),
@@ -769,7 +770,7 @@ fn snapshot_metadata_and_replay_ranges_are_inspectable_without_restore() {
         .unwrap();
 
     let before = runtime
-        .replay_for_branch(runtime.current_branch().id)
+        .replay_for_branch(runtime.observe().current_branch().id)
         .frames
         .last()
         .map(|frame| frame.cursor)
@@ -786,7 +787,7 @@ fn snapshot_metadata_and_replay_ranges_are_inspectable_without_restore() {
     runtime
         .transaction(&mut runtime_ctx, |tx| {
             tx.mark_dirty(node, ASPECT_A)?;
-            tx.read(node, &|_node, view| {
+            tx.read(node, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(2, 0))
                         .with_output_identity("range-artifact-2"),
@@ -796,14 +797,14 @@ fn snapshot_metadata_and_replay_ranges_are_inspectable_without_restore() {
         })
         .unwrap();
 
-    let current_branch = runtime.current_branch().id;
-    let branch_replay = runtime.replay_for_branch(current_branch);
+    let current_branch = runtime.observe().current_branch().id;
+    let branch_replay = runtime.observe().replay_for_branch(current_branch);
     let end = branch_replay
         .frames
         .last()
         .map(|frame| frame.cursor)
         .expect("replay tail should exist");
-    let ranged = runtime.replay_between(before, end);
+    let ranged = runtime.observe().replay_between(before, end);
     assert!(
         !ranged.frames.is_empty(),
         "bounded replay range should return frames within the requested cursor window"
@@ -826,11 +827,11 @@ fn replay_and_lineage_diff_helpers_compare_generic_phase5_artifacts() {
         Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("diff-a"))
     })
     .unwrap();
-    let left_replay = graph.replay_for_node(source);
-    let left_lineage = graph.lineage_for_node(source);
+    let left_replay = graph.observe().replay_for_node(source);
+    let left_lineage = graph.observe().lineage_for_node(source);
 
-    let right_replay = graph.replay_for_node(source);
-    let right_lineage = graph.lineage_for_node(source);
+    let right_replay = graph.observe().replay_for_node(source);
+    let right_lineage = graph.observe().lineage_for_node(source);
 
     assert!(replay_slices_equivalent(&left_replay, &right_replay));
     assert!(compare_replay_slices(&left_replay, &right_replay).is_empty());
@@ -839,21 +840,21 @@ fn replay_and_lineage_diff_helpers_compare_generic_phase5_artifacts() {
 
     mark_dirty(&mut graph, source, ASPECT_A).unwrap();
     graph.capture_snapshot();
-    let changed_replay = graph.replay_for_branch(graph.current_branch().id);
-    let changed_lineage = graph.lineage_for_node(source);
+    let changed_replay = graph.observe().replay_for_branch(graph.observe().current_branch().id);
+    let changed_lineage = graph.observe().lineage_for_node(source);
     assert!(!compare_replay_slices(&left_replay, &changed_replay).is_empty());
     assert!(!compare_lineage_records(&left_lineage, &changed_lineage).is_empty());
 }
 
 #[test]
 fn branch_local_transaction_failure_does_not_advance_heads_or_leak_committed_artifacts() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     let source = runtime.graph_mut().node().output_identity().build();
     let mut runtime_ctx = ();
 
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.read(source, &|_node, view| {
+            tx.read(source, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(1, 0))
                         .with_output_identity("main-artifact"),
@@ -863,13 +864,13 @@ fn branch_local_transaction_failure_does_not_advance_heads_or_leak_committed_art
         })
         .unwrap();
 
-    let main = runtime.current_branch();
+    let main = runtime.observe().current_branch();
     let feature = runtime.create_branch("feature-failure").unwrap();
     runtime.switch_branch(feature.clone()).unwrap();
     runtime
         .transaction(&mut runtime_ctx, |tx| {
             tx.mark_dirty(source, ASPECT_A)?;
-            tx.read(source, &|_node, view| {
+            tx.read(source, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(2, 0))
                         .with_output_identity("feature-stable"),
@@ -879,14 +880,14 @@ fn branch_local_transaction_failure_does_not_advance_heads_or_leak_committed_art
         })
         .unwrap();
     let feature_snapshot = runtime.capture_branch_snapshot(feature.clone()).unwrap();
-    let feature_head_before = runtime.branch_head_snapshot_id(feature.id);
-    let feature_artifact_before = runtime.current_lineage_artifact(source);
-    let feature_lineage_before = runtime.graph().lineage_for_node(source);
-    let feature_replay_before = runtime.replay_for_branch(feature.id);
+    let feature_head_before = runtime.observe().branch_head_snapshot_id(feature.id);
+    let feature_artifact_before = runtime.observe().current_lineage_artifact(source);
+    let feature_lineage_before = runtime.graph().observe().lineage_for_node(source);
+    let feature_replay_before = runtime.observe().replay_for_branch(feature.id);
 
     let err = runtime.transaction(&mut runtime_ctx, |tx| {
         tx.mark_dirty(source, ASPECT_A)?;
-        tx.read(source, &|_node, view| {
+        tx.read(source, &|view| {
             Ok(view.finish(
                 NodeEvaluationResult::from_version(version_ab(3, 0))
                     .with_output_identity("feature-bad"),
@@ -897,12 +898,12 @@ fn branch_local_transaction_failure_does_not_advance_heads_or_leak_committed_art
     assert!(err.is_err(), "failing transaction should surface an error");
 
     assert_eq!(
-        runtime.branch_head_snapshot_id(feature.id),
+        runtime.observe().branch_head_snapshot_id(feature.id),
         feature_head_before,
         "failed branch-local work must not advance the branch head"
     );
     assert_eq!(
-        runtime.current_lineage_artifact(source),
+        runtime.observe().current_lineage_artifact(source),
         feature_artifact_before,
         "failed branch-local work must not replace the committed lineage artifact"
     );
@@ -917,11 +918,11 @@ fn branch_local_transaction_failure_does_not_advance_heads_or_leak_committed_art
         "failed branch-local work must rewind the active branch graph state"
     );
     assert_eq!(
-        runtime.graph().lineage_for_node(source),
+        runtime.graph().observe().lineage_for_node(source),
         feature_lineage_before,
         "failed branch-local work must not leak committed lineage transitions for the node"
     );
-    let feature_replay_after = runtime.replay_for_branch(feature.id);
+    let feature_replay_after = runtime.observe().replay_for_branch(feature.id);
     assert!(
         feature_replay_after.frames.len() >= feature_replay_before.frames.len(),
         "failed branch-local work may append rollback/failure events, but it must not erase prior replay"
@@ -958,7 +959,7 @@ fn branch_local_transaction_failure_does_not_advance_heads_or_leak_committed_art
         1,
         "branch-local rollback must not contaminate sibling branches"
     );
-    let main_replay = runtime.replay_for_branch(main.id);
+    let main_replay = runtime.observe().replay_for_branch(main.id);
     assert!(
         main_replay
             .frames
@@ -969,7 +970,7 @@ fn branch_local_transaction_failure_does_not_advance_heads_or_leak_committed_art
 
     runtime.switch_branch(feature).unwrap();
     runtime
-        .restore_branch_snapshot(runtime.current_branch(), &feature_snapshot)
+        .restore_branch_snapshot(runtime.observe().current_branch(), &feature_snapshot)
         .unwrap();
     assert_eq!(
         runtime
@@ -986,14 +987,14 @@ fn branch_local_transaction_failure_does_not_advance_heads_or_leak_committed_art
 #[test]
 fn replay_and_lineage_overlap_stay_equivalent_across_runtime_policy_matrix() {
     fn run_workload(policy: SignalRuntimePolicy) -> (ReplaySlice, ReplaySlice, Vec<LineageRecord>) {
-        let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+        let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
         runtime.set_runtime_policy(policy);
         let source = runtime.graph_mut().node().output_identity().build();
         let mut runtime_ctx = ();
 
         runtime
             .transaction(&mut runtime_ctx, |tx| {
-                tx.read(source, &|_node, view| {
+                tx.read(source, &|view| {
                     Ok(view.finish(
                         NodeEvaluationResult::from_version(version_ab(1, 0))
                             .with_output_identity("artifact-main"),
@@ -1003,7 +1004,7 @@ fn replay_and_lineage_overlap_stay_equivalent_across_runtime_policy_matrix() {
             })
             .unwrap();
 
-        let main = runtime.current_branch();
+        let main = runtime.observe().current_branch();
         let feature = runtime.create_branch("feature-policy").unwrap();
         let main_snapshot = runtime.capture_snapshot();
 
@@ -1011,7 +1012,7 @@ fn replay_and_lineage_overlap_stay_equivalent_across_runtime_policy_matrix() {
         runtime
             .transaction(&mut runtime_ctx, |tx| {
                 tx.mark_dirty(source, ASPECT_A)?;
-                tx.read(source, &|_node, view| {
+                tx.read(source, &|view| {
                     Ok(view.finish(
                         NodeEvaluationResult::from_version(version_ab(2, 0))
                             .with_output_identity("artifact-feature"),
@@ -1028,9 +1029,9 @@ fn replay_and_lineage_overlap_stay_equivalent_across_runtime_policy_matrix() {
         runtime.restore_snapshot(&main_snapshot).unwrap();
 
         (
-            runtime.replay_for_branch(runtime.current_branch().id),
-            runtime.replay_for_branch(feature.id),
-            runtime.graph().lineage_for_node(source),
+            runtime.observe().replay_for_branch(runtime.observe().current_branch().id),
+            runtime.observe().replay_for_branch(feature.id),
+            runtime.graph().observe().lineage_for_node(source),
         )
     }
 
@@ -1090,13 +1091,13 @@ fn replay_and_lineage_overlap_stay_equivalent_across_runtime_policy_matrix() {
 
 #[test]
 fn snapshot_contract_accepts_matching_schema_and_rejects_profile_or_schema_mismatch() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     let source = runtime.graph_mut().node().output_identity().build();
     let mut runtime_ctx = ();
 
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.read(source, &|_node, view| {
+            tx.read(source, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(1, 0))
                         .with_output_identity("snapshot-contract"),
@@ -1140,7 +1141,7 @@ fn snapshot_contract_accepts_matching_schema_and_rejects_profile_or_schema_misma
 
 #[test]
 fn snapshot_restore_lineage_defaults_to_compact_global_but_forensic_can_emit_per_node() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     let source = runtime.graph_mut().node().output_identity().build();
     let dependent = runtime.graph_mut().node().build();
     runtime
@@ -1151,8 +1152,8 @@ fn snapshot_restore_lineage_defaults_to_compact_global_but_forensic_can_emit_per
 
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.read(dependent, &|node, view| {
-                let result = if node == source {
+            tx.read(dependent, &|view| {
+                let result = if view.node() == source {
                     view.finish(
                         NodeEvaluationResult::from_version(version_ab(1, 0))
                             .with_output_identity("compact-restore"),
@@ -1170,7 +1171,7 @@ fn snapshot_restore_lineage_defaults_to_compact_global_but_forensic_can_emit_per
     let snapshot = runtime.capture_snapshot();
     runtime.restore_snapshot(&snapshot).unwrap();
     let compact_restores = runtime
-        .graph()
+        .graph().observe()
         .lineage_records()
         .iter()
         .filter(|record| {
@@ -1190,7 +1191,7 @@ fn snapshot_restore_lineage_defaults_to_compact_global_but_forensic_can_emit_per
     let forensic_snapshot = runtime.capture_snapshot();
     runtime.restore_snapshot(&forensic_snapshot).unwrap();
     let forensic_restores = runtime
-        .graph()
+        .graph().observe()
         .lineage_records()
         .iter()
         .filter(|record| {
@@ -1210,14 +1211,14 @@ fn branch_churn_respects_history_and_replay_budgets_under_tight_policy() {
         .with_history_limit(2)
         .with_detail_limit(1)
         .with_history_details(false);
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     runtime.set_runtime_policy(policy);
     let source = runtime.graph_mut().node().output_identity().build();
     let mut runtime_ctx = ();
 
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.read(source, &|_node, view| {
+            tx.read(source, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(1, 0))
                         .with_output_identity("bounded-main"),
@@ -1227,7 +1228,7 @@ fn branch_churn_respects_history_and_replay_budgets_under_tight_policy() {
         })
         .unwrap();
 
-    let main = runtime.current_branch();
+    let main = runtime.observe().current_branch();
     let feature = runtime.create_branch("feature-budget").unwrap();
     let main_snapshot = runtime.capture_snapshot();
 
@@ -1235,7 +1236,7 @@ fn branch_churn_respects_history_and_replay_budgets_under_tight_policy() {
     runtime
         .transaction(&mut runtime_ctx, |tx| {
             tx.mark_dirty(source, ASPECT_A)?;
-            tx.read(source, &|_node, view| {
+            tx.read(source, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(2, 0))
                         .with_output_identity("bounded-feature"),
@@ -1258,7 +1259,7 @@ fn branch_churn_respects_history_and_replay_budgets_under_tight_policy() {
     }
 
     assert!(
-        runtime.recent_execution_history_diagnostics().len() <= policy.history_limit,
+        runtime.observe().recent_execution_history_diagnostics().len() <= policy.history_limit,
         "execution history should stay within the configured history budget under branch churn"
     );
     assert!(
@@ -1266,21 +1267,21 @@ fn branch_churn_respects_history_and_replay_budgets_under_tight_policy() {
         "replay retention should stay within the policy-derived bound under branch churn"
     );
     assert!(
-        runtime.graph().lineage_records().len() <= policy.history_limit.max(1) * 32,
+        runtime.graph().observe().lineage_records().len() <= policy.history_limit.max(1) * 32,
         "lineage retention should stay within the policy-derived bound under branch churn"
     );
     assert_eq!(
-        runtime.known_branches().len(),
+        runtime.observe().known_branches().len(),
         2,
         "branch churn should not fabricate extra branch catalog entries"
     );
     assert_eq!(
-        runtime.branch_head_snapshot_id(main.id),
+        runtime.observe().branch_head_snapshot_id(main.id),
         Some(main_snapshot.meta.snapshot_id),
         "main head should remain pinned to its snapshot under churn"
     );
     assert_eq!(
-        runtime.branch_head_snapshot_id(feature.id),
+        runtime.observe().branch_head_snapshot_id(feature.id),
         Some(feature_snapshot.meta.snapshot_id),
         "feature head should remain pinned to its snapshot under churn"
     );

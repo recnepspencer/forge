@@ -1,9 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::facade::{
-    AspectVersion, LineageRecord, ReplaySlice, SignalBranchHandle, SignalError, SignalSnapshotId,
-    StageExecutor,
-};
+use crate::facade::*;
 
 use super::audit_surface::PrimaryAuditSurface;
 use super::fixture::FintechWorld;

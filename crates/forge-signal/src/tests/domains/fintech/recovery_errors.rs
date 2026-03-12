@@ -2,7 +2,7 @@ use super::scales::FintechScale;
 use super::scenarios::setup_seeded_world;
 use super::truth_comparison::compare_exact;
 use super::truth_snapshot::FintechTruthSnapshot;
-use crate::facade::StageExecutor;
+use crate::facade::*;
 
 #[test]
 fn fintech_cross_branch_restore_rejection_preserves_branch_heads_and_truth() {

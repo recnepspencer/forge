@@ -1,7 +1,4 @@
-use crate::facade::{
-    DependencyGraphContract, RawPathComputeContract, StructuralStateBoundaryContract,
-    TransactionRuntimeContract,
-};
+use crate::facade::*;
 
 #[test]
 fn boundary_contract_markers_are_public() {

@@ -83,8 +83,8 @@ fn maybe_stale_nodes_with_dirty_partition_scopes_do_not_fast_validate_clean() {
         .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
         .unwrap();
     let report = graph
-        .execute_prepared_plan(&plan, &|_node, view| {
-            Ok(view.finish(NodeEvaluationResult::from_version(version_ab(2, 0))))
+        .execute_prepared_plan(&plan, &(), &|ctx| {
+            Ok(ctx.finish(NodeEvaluationResult::from_version(version_ab(2, 0))))
         })
         .unwrap();
 

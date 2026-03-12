@@ -48,7 +48,7 @@ impl<'runtime> LineageAuthority<'runtime> {
             .lineage
             .correspondence_candidates
             .push(candidate.clone());
-        self.runtime.push_bounded_diagnostic(
+        self.runtime.publication_authority().push_bounded_diagnostic(
             DiagnosticsScope::Lineage,
             DiagnosticsArtifactKind::MinimalSummary,
             vec![RelationalDiagnosticsEntry {
@@ -81,7 +81,7 @@ impl<'runtime> LineageAuthority<'runtime> {
             .chain(candidate.targets.iter())
             .any(|lineage_id| !self.runtime.lineage.nodes.contains_key(lineage_id))
         {
-            self.runtime.push_bounded_diagnostic(
+            self.runtime.publication_authority().push_bounded_diagnostic(
                 DiagnosticsScope::Lineage,
                 DiagnosticsArtifactKind::Failure,
                 vec![RelationalDiagnosticsEntry {
@@ -109,7 +109,7 @@ impl<'runtime> LineageAuthority<'runtime> {
             status: LineageResolutionStatus::Promoted,
             promoted_event_id: Some(event_id),
         };
-        self.runtime.push_bounded_diagnostic(
+        self.runtime.publication_authority().push_bounded_diagnostic(
             DiagnosticsScope::Lineage,
             DiagnosticsArtifactKind::MinimalSummary,
             vec![RelationalDiagnosticsEntry {
@@ -253,7 +253,7 @@ impl<'runtime> LineageAuthority<'runtime> {
         {
             log_entry.lineage_event_ids.extend(event_ids.iter().copied());
         }
-        self.runtime.push_bounded_diagnostic(
+        self.runtime.publication_authority().push_bounded_diagnostic(
             DiagnosticsScope::Lineage,
             DiagnosticsArtifactKind::MinimalSummary,
             vec![RelationalDiagnosticsEntry {

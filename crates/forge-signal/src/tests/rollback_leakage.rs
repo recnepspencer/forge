@@ -152,7 +152,7 @@ impl EventSubscriber for FailOnBarrier {
 
 #[test]
 fn failed_commit_cannot_leak_key_registry_growth() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults()
         .with_domains::<Domain>()
         .with_events::<Ev>()
         .checkpoint_barrier(CheckpointBarrier::PerOperation)
@@ -170,7 +170,7 @@ fn failed_commit_cannot_leak_key_registry_growth() {
             let keyed_def = tripwire_family.keyed("tripwire-key");
             let keyed = keyed_def.node_in_transaction(tx);
             let computation = keyed_def.memoized("tripwire");
-            tx.evaluate_keyed(keyed, &computation, &|_node, view| {
+            tx.evaluate_keyed(keyed, &computation, &|view| {
                 Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
             })?;
             tx.emit_event(Ev::Tick);
@@ -185,7 +185,7 @@ fn failed_commit_cannot_leak_key_registry_growth() {
 
 #[test]
 fn failed_commit_preserves_preexisting_memoized_state() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults()
         .with_domains::<Domain>()
         .with_events::<Ev>()
         .checkpoint_barrier(CheckpointBarrier::PerOperation)
@@ -199,7 +199,7 @@ fn failed_commit_preserves_preexisting_memoized_state() {
 
     runtime
         .transaction(&mut ctx, |tx| {
-            tx.evaluate_keyed(keyed, &computation, &|_node, view| {
+            tx.evaluate_keyed(keyed, &computation, &|view| {
                 compute_calls.fetch_add(1, Ordering::Relaxed);
                 Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
             })?;
@@ -218,7 +218,7 @@ fn failed_commit_preserves_preexisting_memoized_state() {
             let keyed_def = fresh_def.keyed("fresh-key");
             let other = keyed_def.node_in_transaction(tx);
             let fresh = keyed_def.memoized("fresh");
-            tx.evaluate_keyed(other, &fresh, &|_node, view| {
+            tx.evaluate_keyed(other, &fresh, &|view| {
                 Ok(view.finish(NodeEvaluationResult::from_version(version_ab(7, 0))))
             })?;
             tx.emit_event(Ev::Tick);
@@ -231,7 +231,7 @@ fn failed_commit_preserves_preexisting_memoized_state() {
     mark_dirty(runtime.graph_mut(), keyed, ASPECT_A).unwrap();
     runtime
         .transaction(&mut ctx, |tx| {
-            tx.evaluate_keyed(keyed, &computation, &|_node, view| {
+            tx.evaluate_keyed(keyed, &computation, &|view| {
                 compute_calls.fetch_add(1, Ordering::Relaxed);
                 Ok(view.finish(NodeEvaluationResult::from_version(version_ab(9, 0))))
             })?;
@@ -252,7 +252,7 @@ fn failed_commit_preserves_preexisting_memoized_state() {
 
 #[test]
 fn failed_later_epoch_keeps_committed_context_and_records_coherent_diagnostics() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults()
         .with_domains::<Domain>()
         .with_events::<Ev>()
         .checkpoint_barrier(CheckpointBarrier::PerOperation)
@@ -318,7 +318,7 @@ fn failed_later_epoch_keeps_committed_context_and_records_coherent_diagnostics()
             .is_none(),
         "failed later epoch must not leak staged subscriber context",
     );
-    let failure = runtime.latest_failure_diagnostics().unwrap();
+    let failure = runtime.observe().latest_failure_diagnostics().unwrap();
     assert_eq!(failure.phase, ExecutionFailurePhase::CommitPromotion);
     assert_eq!(failure.event_epochs.len(), 2);
     assert_eq!(
@@ -326,7 +326,7 @@ fn failed_later_epoch_keeps_committed_context_and_records_coherent_diagnostics()
         EventEpochOutcome::Committed
     );
     assert_eq!(failure.event_epochs[1].outcome, EventEpochOutcome::Failed);
-    let rollback = runtime.latest_rollback_diagnostics().unwrap();
+    let rollback = runtime.observe().latest_rollback_diagnostics().unwrap();
     assert!(rollback
         .reason
         .as_deref()

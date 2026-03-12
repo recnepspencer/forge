@@ -79,7 +79,7 @@ fn derived_index_contract_unscoped_generation_can_be_selected_across_branches() 
         branch_id: BranchId("feature".to_string()),
         index_ids: vec![index.index_id],
     });
-    let snapshot = runtime.snapshot_access().snapshot();
+    let snapshot = runtime.visibility_authority().snapshot();
     let packet = QueryWorkPacket::bulk(
         "entities",
         vec![RecordRef::Entity(changed_entities(&main_outcome)[0])],
@@ -111,7 +111,7 @@ fn derived_index_contract_unscoped_generation_can_be_selected_across_branches() 
 fn derived_index_contract_failure_unknown_index_keeps_truth_reads_correct() {
     let mut runtime = runtime_with_test_schema();
     let outcome = create_entity_outcome(&mut runtime, "main-a");
-    let snapshot = runtime.snapshot_access().snapshot();
+    let snapshot = runtime.visibility_authority().snapshot();
     let packet = QueryWorkPacket::bulk(
         "entities",
         vec![RecordRef::Entity(changed_entities(&outcome)[0])],

@@ -1,18 +1,17 @@
+use std::time::Instant;
+
 use crate::data::aspect::AspectVersion;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::diagnostics::ExecutionFailurePhase;
-use crate::logic::evaluation::EvaluationRequestMode;
-use crate::logic::planner::{
-    EvaluationPlan, ExecutionReport, StageExecutor,
-};
-use crate::logic::prepared::{ExecutionReadView, PreparedEvaluation};
-use std::time::Instant;
+use crate::logic::context::EvaluationContext;
+use crate::logic::evaluation::{EvaluationRequestMode, IntoEvaluationOutput};
+use crate::logic::planner::{EvaluationPlan, ExecutionReport, StageExecutor};
 
 use super::super::transaction::SignalTransaction;
 use super::shared::{
     absorb_execution_report_telemetry, execute_plan_with_runtime_config,
-    execute_targets_with_runtime_config_detailed,
+    execute_targets_with_runtime_config_detailed, executor_for_strategy,
 };
 
 enum TransactionExecutionIntent<'a> {
@@ -28,29 +27,37 @@ impl<'a, D, I, E, Ctx, T> SignalTransaction<'a, D, I, E, Ctx, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
+    Ctx: Sync,
     T: Copy + Ord,
 {
-    pub fn evaluate_with_plan<F>(
+    pub fn evaluate_with_plan<F, O>(
         &mut self,
         node: NodeId,
-        precompute: &F,
+        evaluator: &F,
         request_mode: EvaluationRequestMode,
     ) -> Result<ExecutionReport, SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
-        self.evaluate_with_plan_and_executor(node, precompute, request_mode, StageExecutor::Serial)
+        self.evaluate_with_plan_and_executor(
+            node,
+            evaluator,
+            request_mode,
+            executor_for_strategy(self.graph.derive_evaluation_strategy()),
+        )
     }
 
-    pub fn evaluate_with_plan_and_executor<F>(
+    pub fn evaluate_with_plan_and_executor<F, O>(
         &mut self,
         node: NodeId,
-        precompute: &F,
+        evaluator: &F,
         request_mode: EvaluationRequestMode,
         executor: StageExecutor,
     ) -> Result<ExecutionReport, SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
         self.execute_evaluation(
             TransactionExecutionIntent::Targets {
@@ -58,31 +65,33 @@ where
                 request_mode,
                 stage_task_candidates: false,
             },
-            precompute,
+            evaluator,
             executor,
         )
     }
 
-    pub fn execute_prepared_plan_with_executor<F>(
+    pub fn execute_prepared_plan_with_executor<F, O>(
         &mut self,
         plan: &EvaluationPlan,
-        precompute: &F,
+        evaluator: &F,
         executor: StageExecutor,
     ) -> Result<ExecutionReport, SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
         let execution_start = Instant::now();
         let report = match execute_plan_with_runtime_config(
             self.graph,
             self.config,
+            &*self.runtime_ctx,
             plan,
-            precompute,
+            evaluator,
             executor,
         ) {
             Ok(report) => report,
             Err(err) => {
-                if let Some(summary) = self.graph.latest_failure_diagnostics().cloned() {
+                if let Some(summary) = self.graph.observe().latest_failure_diagnostics().cloned() {
                     self.semantic_delta.failure_summary = Some(summary);
                 } else {
                     self.record_failure_from_error(
@@ -100,54 +109,66 @@ where
         Ok(report)
     }
 
-    pub fn read<F>(&mut self, node: NodeId, precompute: &F) -> Result<AspectVersion, SignalError>
+    pub fn read<F, O>(&mut self, node: NodeId, evaluator: &F) -> Result<AspectVersion, SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
-        self.read_with_executor(node, precompute, StageExecutor::Serial)
+        self.read_with_executor(
+            node,
+            evaluator,
+            executor_for_strategy(self.graph.derive_evaluation_strategy()),
+        )
     }
 
-    pub fn get<F>(&mut self, node: NodeId, precompute: &F) -> Result<AspectVersion, SignalError>
+    pub fn get<F, O>(&mut self, node: NodeId, evaluator: &F) -> Result<AspectVersion, SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
-        self.read(node, precompute)
+        self.read(node, evaluator)
     }
 
-    pub fn read_with_executor<F>(
+    pub fn read_with_executor<F, O>(
         &mut self,
         node: NodeId,
-        precompute: &F,
+        evaluator: &F,
         executor: StageExecutor,
     ) -> Result<AspectVersion, SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
         self.evaluate_with_plan_and_executor(
             node,
-            precompute,
+            evaluator,
             EvaluationRequestMode::Default,
             executor,
         )?;
         Ok(self.graph.get_entry(node)?.get_aspect_version())
     }
 
-    pub fn evaluate_dirty<F>(&mut self, precompute: &F) -> Result<ExecutionReport, SignalError>
+    pub fn evaluate_dirty<F, O>(&mut self, evaluator: &F) -> Result<ExecutionReport, SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
-        self.evaluate_dirty_with_executor(precompute, StageExecutor::Serial)
+        self.evaluate_dirty_with_executor(
+            evaluator,
+            executor_for_strategy(self.graph.derive_evaluation_strategy()),
+        )
     }
 
-    pub fn evaluate_dirty_with_executor<F>(
+    pub fn evaluate_dirty_with_executor<F, O>(
         &mut self,
-        precompute: &F,
+        evaluator: &F,
         executor: StageExecutor,
     ) -> Result<ExecutionReport, SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
-        self.execute_evaluation(TransactionExecutionIntent::Dirty, precompute, executor)
+        self.execute_evaluation(TransactionExecutionIntent::Dirty, evaluator, executor)
     }
 
     fn collect_dirty_targets(&self) -> Vec<NodeId> {
@@ -172,14 +193,15 @@ where
         }
     }
 
-    fn execute_evaluation<F>(
+    fn execute_evaluation<F, O>(
         &mut self,
         intent: TransactionExecutionIntent<'_>,
-        precompute: &F,
+        evaluator: &F,
         executor: StageExecutor,
     ) -> Result<ExecutionReport, SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
         let owned_targets;
         let (targets, request_mode) = match intent {
@@ -229,15 +251,16 @@ where
         let report = match execute_targets_with_runtime_config_detailed(
             self.graph,
             self.config,
+            &*self.runtime_ctx,
             targets,
             request_mode,
-            precompute,
+            evaluator,
             executor,
         ) {
             Ok(report) => report,
             Err(failure) => {
                 let err = failure.error;
-                if let Some(summary) = self.graph.latest_failure_diagnostics().cloned() {
+                if let Some(summary) = self.graph.observe().latest_failure_diagnostics().cloned() {
                     self.semantic_delta.failure_summary = Some(summary);
                 } else {
                     self.record_failure_from_error(
@@ -254,5 +277,4 @@ where
         absorb_execution_report_telemetry(self.telemetry, &report);
         Ok(report)
     }
-
 }

@@ -6,9 +6,9 @@ use crate::tests::support::*;
 
 #[test]
 fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch_config() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     let mut runtime_ctx = ();
-    let main = runtime.current_branch();
+    let main = runtime.observe().current_branch();
     let feature = runtime.create_branch("feature").unwrap();
     let family = define_keyed_computation(&mut runtime, "shared-family", ());
     let keyed = family.keyed("shared-key");
@@ -19,7 +19,7 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
     let feature_compute_calls = AtomicU32::new(0);
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.evaluate_keyed(feature_node, &computation, &|_node, view| {
+            tx.evaluate_keyed(feature_node, &computation, &|view| {
                 feature_compute_calls.fetch_add(1, Ordering::Relaxed);
                 Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
             })?;
@@ -34,7 +34,7 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
     let main_compute_calls = AtomicU32::new(0);
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.evaluate_keyed(main_node, &computation, &|_node, view| {
+            tx.evaluate_keyed(main_node, &computation, &|view| {
                 main_compute_calls.fetch_add(1, Ordering::Relaxed);
                 Ok(view.finish(NodeEvaluationResult::from_version(version_ab(9, 0))))
             })?;
@@ -49,7 +49,7 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
     mark_dirty(runtime.graph_mut(), feature_node, ASPECT_A).unwrap();
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.evaluate_keyed(feature_node, &computation, &|_node, view| {
+            tx.evaluate_keyed(feature_node, &computation, &|view| {
                 feature_compute_calls.fetch_add(1, Ordering::Relaxed);
                 Ok(view.finish(NodeEvaluationResult::from_version(version_ab(99, 0))))
             })?;
@@ -60,7 +60,7 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
     assert_eq!(runtime.config().test_registry_counts(), feature_counts);
     assert_eq!(feature_compute_calls.load(Ordering::Relaxed), 1);
     assert_eq!(main_compute_calls.load(Ordering::Relaxed), 1);
-    let explanation = runtime.explain(feature_node).unwrap();
+    let explanation = runtime.observe().explain(feature_node).unwrap();
     assert_eq!(
         explanation.memoized_origin,
         Some(MemoizedResultOrigin::MemoizedFromCache)
@@ -69,9 +69,9 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
 
 #[test]
 fn restore_branch_snapshot_keeps_sibling_branch_keyed_bindings_isolated() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     let mut runtime_ctx = ();
-    let main = runtime.current_branch();
+    let main = runtime.observe().current_branch();
     let feature = runtime.create_branch("feature").unwrap();
     let sibling = runtime.create_branch("sibling").unwrap();
     let family = define_keyed_computation(&mut runtime, "shared-family", ());
@@ -82,7 +82,7 @@ fn restore_branch_snapshot_keeps_sibling_branch_keyed_bindings_isolated() {
     let feature_node = keyed.node(&mut runtime);
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.evaluate_keyed(feature_node, &computation, &|_node, view| {
+            tx.evaluate_keyed(feature_node, &computation, &|view| {
                 Ok(view.finish(NodeEvaluationResult::from_version(version_ab(3, 0))))
             })?;
             Ok(())
@@ -94,7 +94,7 @@ fn restore_branch_snapshot_keeps_sibling_branch_keyed_bindings_isolated() {
     let sibling_node = keyed.node(&mut runtime);
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.evaluate_keyed(sibling_node, &computation, &|_node, view| {
+            tx.evaluate_keyed(sibling_node, &computation, &|view| {
                 Ok(view.finish(NodeEvaluationResult::from_version(version_ab(8, 0))))
             })?;
             Ok(())

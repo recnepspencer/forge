@@ -10,6 +10,8 @@ use crate::snapshots::data::{SnapshotHandle, SnapshotInspectionSummary};
 use crate::symbols::data::InternedString;
 use crate::storage::data::{EntityReadRecord, PacketResult, RelationReadRecord, RelationalReadView};
 use crate::storage::logic::state::{DenseSlotBitSet, PartitionAccess};
+use crate::visibility::cache_state::{cached_state_for_version, reconstruct_state, residency_for_version};
+use crate::visibility::snapshot_states::{build_visibility_state, read_view_from_snapshot_state};
 use serde_json::json;
 
 use super::materialization::{
@@ -34,10 +36,8 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         if let Some((version_id, _read_policy)) =
             self.runtime.active_snapshot_binding(handle.snapshot_id)
         {
-            let state = self.runtime.read_or_reconstruct_visibility_state(
-                version_id,
-                !self.runtime.protect_active_snapshots(),
-            )?;
+            let state =
+                reconstruct_state(self.runtime, version_id, !self.runtime.protect_active_snapshots())?;
             return Some(SnapshotInspectionSummary {
                 version_id,
                 entity_count: state.pinned_entity_count,
@@ -61,11 +61,9 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         if let Some((version_id, read_policy)) =
             self.runtime.active_snapshot_binding(handle.snapshot_id)
         {
-            let state = self.runtime.read_or_reconstruct_visibility_state(
-                version_id,
-                !self.runtime.protect_active_snapshots(),
-            )?;
-            let mut read_view = self.runtime.read_from_snapshot_state(&state);
+            let state =
+                reconstruct_state(self.runtime, version_id, !self.runtime.protect_active_snapshots())?;
+            let mut read_view = read_view_from_snapshot_state(self.runtime, &state);
             read_view.snapshot = SnapshotHandle {
                 snapshot_id: handle.snapshot_id,
                 version_id,
@@ -83,17 +81,15 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         &self,
         version_id: crate::identity::data::VersionId,
     ) -> RelationalReadView {
-        let state = self
-            .runtime
-            .read_or_reconstruct_visibility_state(version_id, true)
-            .unwrap_or_else(|| {
-                self.runtime.build_visibility_state(
-                    version_id,
-                    crate::snapshots::data::SnapshotId(0),
-                    crate::snapshots::data::SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
-                )
-            });
-        self.runtime.read_from_snapshot_state(&state)
+        let state = reconstruct_state(self.runtime, version_id, true).unwrap_or_else(|| {
+            build_visibility_state(
+                self.runtime,
+                version_id,
+                crate::snapshots::data::SnapshotId(0),
+                crate::snapshots::data::SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
+            )
+        });
+        read_view_from_snapshot_state(self.runtime, &state)
     }
 
     pub fn execute_read_packet(
@@ -243,8 +239,8 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             return None;
         }
 
-        let residency = self.runtime.visibility_residency_for_version(version_id);
-        let cached = self.runtime.visibility_state_for_version(version_id).is_some();
+        let residency = residency_for_version(self.runtime, version_id);
+        let cached = cached_state_for_version(self.runtime, version_id).is_some();
         let recent_window = self.runtime.recent_visibility_window();
         let protected = is_protected(&residency);
         let recent_candidate =
@@ -277,8 +273,8 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         if let Some((version_id, _read_policy)) =
             self.runtime.active_snapshot_binding(handle.snapshot_id)
         {
-            let residency = self.runtime.visibility_residency_for_version(version_id);
-            let cached = self.runtime.visibility_state_for_version(version_id).is_some();
+            let residency = residency_for_version(self.runtime, version_id);
+            let cached = cached_state_for_version(self.runtime, version_id).is_some();
             let recent_window = self.runtime.recent_visibility_window();
             let recent_candidate = !self.runtime.protect_active_snapshots()
                 && self.runtime.visibility_cache_enabled()
@@ -305,8 +301,8 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         }
 
         let version_id = self.runtime.published_snapshot_version(handle.snapshot_id)?;
-        let residency = self.runtime.visibility_residency_for_version(version_id);
-        let cached = self.runtime.visibility_state_for_version(version_id).is_some();
+        let residency = residency_for_version(self.runtime, version_id);
+        let cached = cached_state_for_version(self.runtime, version_id).is_some();
         let recent_window = self.runtime.recent_visibility_window();
         let recent_candidate =
             self.runtime.visibility_cache_enabled() && recent_window > 0 && !is_protected(&residency);

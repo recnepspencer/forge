@@ -156,7 +156,7 @@ fn patch_summary(session: &CertifiedRelationalFintechSession) -> Value {
 }
 
 fn complexity_summary(session: &CertifiedRelationalFintechSession) -> Value {
-    let counters = session.world.runtime.complexity_counters();
+    let counters = session.world.runtime.performance_access().counters();
     json!({
         "full_state_clones": counters.full_state_clones,
         "snapshot_pin_full_rebuilds": counters.snapshot_pin_full_rebuilds,
@@ -168,7 +168,7 @@ fn complexity_summary(session: &CertifiedRelationalFintechSession) -> Value {
 }
 
 fn budget_summary(session: &CertifiedRelationalFintechSession) -> Value {
-    let counters = session.world.runtime.complexity_counters();
+    let counters = session.world.runtime.performance_access().counters();
     let checks = workflow_budgets()
         .into_iter()
         .map(|budget| {

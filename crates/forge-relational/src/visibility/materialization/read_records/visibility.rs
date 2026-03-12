@@ -2,7 +2,7 @@ use crate::identity::data::VersionBound;
 use crate::logic::runtime::RelationalRuntime;
 use crate::storage::data::RecordLifecycleState;
 use crate::storage::logic::state::{
-    DenseSlotBitSet, EntityArena, HistoricalMetadata, PartitionAccess, PartitionState, RecordArena,
+    DenseSlotBitSet, HistoricalMetadata, PartitionAccess, PartitionState, RecordArena,
     RecordKind, VersionedValue,
 };
 
@@ -120,22 +120,6 @@ pub(super) fn historical_lifecycle(
     } else {
         current_lifecycle
     }
-}
-
-#[allow(dead_code)]
-fn _entity_payload_visible_in_arena_at_version(
-    arena: &EntityArena,
-    slot: usize,
-    version_id: crate::identity::data::VersionId,
-) -> bool {
-    let bound = VersionBound::new(version_id);
-    arena.get_slot(slot).is_some_and(|slot_view| {
-        lifecycle_storage_visible(slot_view.lifecycle())
-            && bound.includes_created(arena.created_at[slot])
-            && slot_view
-                .retired_at()
-                .is_none_or(|retired| bound.retains_retired(retired))
-    })
 }
 
 #[cfg(test)]

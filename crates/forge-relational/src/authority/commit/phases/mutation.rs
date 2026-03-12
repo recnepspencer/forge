@@ -1,8 +1,4 @@
-use serde_json::json;
-
-use crate::capabilities::DiagnosticsSink;
 use crate::authority::mutation::{apply_plan_to_working_state, MutationEffect};
-use crate::diagnostics::data::{DiagnosticCode, DiagnosticsScope};
 use crate::identity::data::VersionId;
 use crate::transactions::data::{
     AuthoritativeApplyPlan, MergedCommitPlan, TransactionCommitError,
@@ -22,7 +18,7 @@ pub(crate) fn run_authoritative_mutation(
     working_state: &mut crate::logic::runtime::WorkingState,
     merged_plan: &MergedCommitPlan,
 ) -> Result<MutationPhaseOutput, TransactionCommitError> {
-    let version_id = transaction.runtime.history.preview_next_version_id();
+    let version_id = transaction.runtime.history_access().preview_next_version_id();
     let apply_plan = AuthoritativeApplyPlan {
         transaction_id: transaction.transaction_id,
         version_id,
@@ -40,19 +36,12 @@ pub(crate) fn run_authoritative_mutation(
     record_mutation_counters(transaction.runtime, working_state);
 
     {
-        let overlay_state = transaction.runtime.overlay_state_view(working_state);
         if let Err(error) = run_mutation_sensitive_invariants(
             transaction.runtime,
-            &overlay_state,
+            working_state,
             version_id,
             merged_plan,
         ) {
-            transaction.runtime.emit_diagnostic_entry(
-                DiagnosticsScope::Invariant,
-                DiagnosticCode::InvariantViolation,
-                error.detail.clone(),
-                json!({ "execution_point": "mutation_sensitive" }),
-            );
             return Err(TransactionCommitError::Conflict(error));
         }
     }

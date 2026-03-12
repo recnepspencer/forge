@@ -11,11 +11,22 @@ use crate::logic::events::EventBus;
 
 use super::runtime_state::SignalRuntime;
 
+pub struct Missing;
+pub struct Present;
+
 /// Builder for `SignalRuntime`.
 ///
 /// Start here if you want the full runtime surface with transactions,
 /// checkpoint control, runtime policy, keyed nodes, and diagnostics.
-pub struct SignalRuntimeBuilder<D = (), I = (), E = (), Ctx = (), T = ()>
+pub struct SignalRuntimeBuilder<
+    CheckpointState = Missing,
+    ComparatorState = Missing,
+    D = (),
+    I = (),
+    E = (),
+    Ctx = (),
+    T = (),
+>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
@@ -26,10 +37,11 @@ where
     fallback_comparator: VersionComparatorPolicy,
     runtime_policy: SignalRuntimePolicy,
     tier_policies: Vec<TierPolicy<T>>,
-    _marker: PhantomData<fn(I, E, Ctx, T)>,
+    _marker: PhantomData<fn(CheckpointState, ComparatorState, I, E, Ctx, T)>,
 }
 
-impl<D, I, E, Ctx, T> SignalRuntimeBuilder<D, I, E, Ctx, T>
+impl<CheckpointState, ComparatorState, D, I, E, Ctx, T>
+    SignalRuntimeBuilder<CheckpointState, ComparatorState, D, I, E, Ctx, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
@@ -50,21 +62,48 @@ where
     ///
     /// This is the shortest path when you want standard checkpoint behavior
     /// without constructing a full `CheckpointPolicy`.
-    pub fn checkpoint_barrier(mut self, barrier: CheckpointBarrier) -> Self {
-        self.checkpoint_policy = CheckpointPolicy::new(barrier);
-        self
+    pub fn checkpoint_barrier(
+        self,
+        barrier: CheckpointBarrier,
+    ) -> SignalRuntimeBuilder<Present, ComparatorState, D, I, E, Ctx, T> {
+        SignalRuntimeBuilder {
+            graph: self.graph,
+            checkpoint_policy: CheckpointPolicy::new(barrier),
+            fallback_comparator: self.fallback_comparator,
+            runtime_policy: self.runtime_policy,
+            tier_policies: self.tier_policies,
+            _marker: PhantomData,
+        }
     }
 
     /// Set the full checkpoint policy.
-    pub fn checkpoint_policy(mut self, policy: CheckpointPolicy<D>) -> Self {
-        self.checkpoint_policy = policy;
-        self
+    pub fn checkpoint_policy(
+        self,
+        policy: CheckpointPolicy<D>,
+    ) -> SignalRuntimeBuilder<Present, ComparatorState, D, I, E, Ctx, T> {
+        SignalRuntimeBuilder {
+            graph: self.graph,
+            checkpoint_policy: policy,
+            fallback_comparator: self.fallback_comparator,
+            runtime_policy: self.runtime_policy,
+            tier_policies: self.tier_policies,
+            _marker: PhantomData,
+        }
     }
 
     /// Set the fallback comparator used when a node or tier does not provide one.
-    pub fn fallback_comparator(mut self, comparator: VersionComparatorPolicy) -> Self {
-        self.fallback_comparator = comparator;
-        self
+    pub fn fallback_comparator(
+        self,
+        comparator: VersionComparatorPolicy,
+    ) -> SignalRuntimeBuilder<CheckpointState, Present, D, I, E, Ctx, T> {
+        SignalRuntimeBuilder {
+            graph: self.graph,
+            checkpoint_policy: self.checkpoint_policy,
+            fallback_comparator: comparator,
+            runtime_policy: self.runtime_policy,
+            tier_policies: self.tier_policies,
+            _marker: PhantomData,
+        }
     }
 
     /// Set runtime observability and semantic retention policy.
@@ -82,10 +121,19 @@ where
         self
     }
 
+    pub fn with_kernel_defaults(
+        self,
+    ) -> SignalRuntimeBuilder<Present, Present, D, I, E, Ctx, T> {
+        self.checkpoint_barrier(CheckpointBarrier::PerOperation)
+            .fallback_comparator(VersionComparatorPolicy::Exact)
+    }
+
     /// Switch the runtime to a typed event payload.
     ///
     /// This is usually only needed once you start integrating an event bus.
-    pub fn with_events<E2>(self) -> SignalRuntimeBuilder<D, I, E2, Ctx, T> {
+    pub fn with_events<E2>(
+        self,
+    ) -> SignalRuntimeBuilder<CheckpointState, ComparatorState, D, I, E2, Ctx, T> {
         SignalRuntimeBuilder {
             graph: self.graph,
             checkpoint_policy: self.checkpoint_policy,
@@ -97,7 +145,9 @@ where
     }
 
     /// Switch the runtime to a typed checkpoint domain key.
-    pub fn with_domains<D2>(self) -> SignalRuntimeBuilder<D2, I, E, Ctx, T>
+    pub fn with_domains<D2>(
+        self,
+    ) -> SignalRuntimeBuilder<CheckpointState, ComparatorState, D2, I, E, Ctx, T>
     where
         D2: Copy + Ord + std::fmt::Debug + 'static,
     {
@@ -112,7 +162,9 @@ where
     }
 
     /// Switch the runtime to a typed checkpoint impact key.
-    pub fn with_impacts<I2>(self) -> SignalRuntimeBuilder<D, I2, E, Ctx, T>
+    pub fn with_impacts<I2>(
+        self,
+    ) -> SignalRuntimeBuilder<CheckpointState, ComparatorState, D, I2, E, Ctx, T>
     where
         I2: Copy + Ord,
     {
@@ -127,7 +179,9 @@ where
     }
 
     /// Enable typed node tiers for tier policy configuration.
-    pub fn with_tiers<T2>(self) -> SignalRuntimeBuilder<D, I, E, Ctx, T2>
+    pub fn with_tiers<T2>(
+        self,
+    ) -> SignalRuntimeBuilder<CheckpointState, ComparatorState, D, I, E, Ctx, T2>
     where
         T2: Copy + Ord,
     {
@@ -142,7 +196,9 @@ where
     }
 
     /// Switch the runtime to a typed external transaction/event context.
-    pub fn with_context<Ctx2>(self) -> SignalRuntimeBuilder<D, I, E, Ctx2, T> {
+    pub fn with_context<Ctx2>(
+        self,
+    ) -> SignalRuntimeBuilder<CheckpointState, ComparatorState, D, I, E, Ctx2, T> {
         SignalRuntimeBuilder {
             graph: self.graph,
             checkpoint_policy: self.checkpoint_policy,
@@ -152,7 +208,14 @@ where
             _marker: PhantomData,
         }
     }
+}
 
+impl<D, I, E, Ctx, T> SignalRuntimeBuilder<Present, Present, D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
     /// Build the runtime.
     pub fn build(self) -> SignalRuntime<D, I, E, Ctx, T> {
         let checkpoint = CheckpointRuntime::new(self.checkpoint_policy);

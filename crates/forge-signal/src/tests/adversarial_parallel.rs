@@ -12,10 +12,10 @@ use crate::tests::support::{version_ab, ASPECT_A};
 use crate::presentation::harness::{signal_parity_suite, SignalProfileCatalog, SignalScenario};
 
 fn canonical_runtime_artifacts(graph: &SignalGraph, node: NodeId) -> serde_json::Value {
-    let explanation = graph.explain(node).unwrap();
+    let explanation = graph.observe().explain(node).unwrap();
     let explanation_fact = graph.explanation_fact(node);
     let provenance = graph.provenance_fact(node).cloned();
-    let diagnostics = graph.diagnostics_summary(DiagnosticsProfile::Development);
+    let diagnostics = graph.observe().diagnostics_summary(DiagnosticsProfile::Development);
     let replay = graph
         .replay_events()
         .iter()
@@ -146,7 +146,7 @@ fn many_thin_stages_remain_serial_under_parallel_threshold() {
         .build_evaluation_plan(&chain, EvaluationRequestMode::ForceOnDemand)
         .unwrap();
     graph
-        .execute_prepared_plan(&bootstrap, &|_node, view| Ok(view.finish(version_ab(1, 0))))
+        .execute_prepared_plan(&bootstrap, &(), &|ctx| Ok(ctx.finish(version_ab(1, 0))))
         .unwrap();
 
     mark_dirty(&mut graph, chain[0], ASPECT_A).unwrap();
@@ -157,7 +157,8 @@ fn many_thin_stages_remain_serial_under_parallel_threshold() {
     let report = graph
         .execute_prepared_plan_with_executor(
             &plan,
-            &|_node, view| Ok(view.finish(version_ab(2, 0))),
+            &(),
+            &|ctx| Ok(ctx.finish(version_ab(2, 0))),
             StageExecutor::parallel(3),
         )
         .unwrap();
@@ -166,7 +167,7 @@ fn many_thin_stages_remain_serial_under_parallel_threshold() {
     assert!(report.stages.iter().all(|stage| {
         matches!(
             stage.outcome,
-            crate::facade::StageExecutionOutcome::CompletedSerial
+            StageExecutionOutcome::CompletedSerial
         )
     }));
 }
@@ -182,7 +183,7 @@ fn wide_stage_crosses_parallel_threshold() {
         .build_evaluation_plan(&requested, EvaluationRequestMode::ForceOnDemand)
         .unwrap();
     graph
-        .execute_prepared_plan(&bootstrap, &|_node, view| Ok(view.finish(version_ab(1, 0))))
+        .execute_prepared_plan(&bootstrap, &(), &|ctx| Ok(ctx.finish(version_ab(1, 0))))
         .unwrap();
 
     mark_dirty(&mut graph, left, ASPECT_A).unwrap();
@@ -195,7 +196,8 @@ fn wide_stage_crosses_parallel_threshold() {
     let report = graph
         .execute_prepared_plan_with_executor(
             &plan,
-            &|_node, view| Ok(view.finish(version_ab(2, 0))),
+            &(),
+            &|ctx| Ok(ctx.finish(version_ab(2, 0))),
             StageExecutor::parallel(2),
         )
         .unwrap();
@@ -205,7 +207,7 @@ fn wide_stage_crosses_parallel_threshold() {
     assert!(report.stages.iter().any(|stage| {
         matches!(
             stage.outcome,
-            crate::facade::StageExecutionOutcome::CompletedParallel
+            StageExecutionOutcome::CompletedParallel
         )
     }));
 }
@@ -220,7 +222,7 @@ fn full_parallel_splits_wide_stage_into_deterministic_apply_groups() {
         .build_evaluation_plan(&requested, EvaluationRequestMode::ForceOnDemand)
         .unwrap();
     graph
-        .execute_prepared_plan(&bootstrap, &|_node, view| Ok(view.finish(version_ab(1, 0))))
+        .execute_prepared_plan(&bootstrap, &(), &|ctx| Ok(ctx.finish(version_ab(1, 0))))
         .unwrap();
 
     for &node in &requested {
@@ -236,7 +238,8 @@ fn full_parallel_splits_wide_stage_into_deterministic_apply_groups() {
     let report = graph
         .execute_prepared_plan_with_executor(
             &plan,
-            &|_node, view| Ok(view.finish(version_ab(2, 0))),
+            &(),
+            &|ctx| Ok(ctx.finish(version_ab(2, 0))),
             StageExecutor::full_parallel(1).with_parallel_policy(policy),
         )
         .unwrap();
@@ -398,8 +401,8 @@ fn full_parallel_apply_failure_does_not_leak_partial_semantic_state() {
         .build_evaluation_plan(&requested, EvaluationRequestMode::ForceOnDemand)
         .unwrap();
     graph
-        .execute_prepared_plan(&bootstrap, &|_node, view| {
-            Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+        .execute_prepared_plan(&bootstrap, &(), &|ctx| {
+            Ok(ctx.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
         })
         .unwrap();
 
@@ -417,11 +420,12 @@ fn full_parallel_apply_failure_does_not_leak_partial_semantic_state() {
     let err = graph
         .execute_prepared_plan_with_executor(
             &plan,
-            &move |node, _view| {
+            &(),
+            &move |ctx| {
                 let mut prepared = PreparedEvaluation::from_result(
                     NodeEvaluationResult::from_version(version_ab(2, 0)),
                 );
-                if node == unstable {
+                if ctx.node() == unstable {
                     let mut capture = PreparedDependencyCapture::new();
                     capture.record(NodeId::new(999_999, 0), ASPECT_A, None);
                     prepared = prepared.with_dependencies(capture);
@@ -953,20 +957,21 @@ fn harness_parity_holds_for_branchy_partitioned_output_identity_graph() {
 
     let fixture = scenario
         .observe("dependent")
-        .with_evaluator(move |node: NodeId, view: &ExecutionReadView<'_>| {
+        .with_evaluator(move |ctx: &mut EvaluationContext<'_, ()>| {
+            let node = ctx.node();
             let result = if node == source {
-                view.finish(
+                ctx.finish(
                     NodeEvaluationResult::from_version(version_ab(1, 0))
                         .with_output_identity("wing-artifact")
                         .with_changed_region(ChangedRegion::new("wing").with_detail("rib-a")),
                 )
             } else if node == left || node == right {
-                let version = view.read_aspect_version(source, ASPECT_A)?;
-                view.finish(NodeEvaluationResult::from_version(version))
+                let version = ctx.read_aspect_version(source, ASPECT_A)?;
+                ctx.finish(NodeEvaluationResult::from_version(version))
             } else {
-                let left_v = view.read_aspect_version(left, ASPECT_A)?;
-                let right_v = view.read_aspect_version(right, ASPECT_A)?;
-                view.finish(NodeEvaluationResult::from_version(
+                let left_v = ctx.read_aspect_version(left, ASPECT_A)?;
+                let right_v = ctx.read_aspect_version(right, ASPECT_A)?;
+                ctx.finish(NodeEvaluationResult::from_version(
                     AspectVersion::from_updates([(
                         ASPECT_A,
                         left_v.get(ASPECT_A) + right_v.get(ASPECT_A),
@@ -1019,18 +1024,19 @@ fn stress_repeated_parallel_parity_on_wide_branch_graph() {
 
     let fixture = scenario
         .observe("target")
-        .with_evaluator(move |node: NodeId, view: &ExecutionReadView<'_>| {
+        .with_evaluator(move |ctx: &mut EvaluationContext<'_, ()>| {
+            let node = ctx.node();
             let result = if node == source {
-                view.finish(version_ab(1, 0))
+                ctx.finish(version_ab(1, 0))
             } else if mids.contains(&node) {
-                let version = view.read_aspect_version(source, ASPECT_A)?;
-                view.finish(NodeEvaluationResult::from_version(version))
+                let version = ctx.read_aspect_version(source, ASPECT_A)?;
+                ctx.finish(NodeEvaluationResult::from_version(version))
             } else {
                 let mut total = 0_u64;
                 for &mid in &mids {
-                    total += view.read_aspect_version(mid, ASPECT_A)?.get(ASPECT_A);
+                    total += ctx.read_aspect_version(mid, ASPECT_A)?.get(ASPECT_A);
                 }
-                view.finish(NodeEvaluationResult::from_version(
+                ctx.finish(NodeEvaluationResult::from_version(
                     AspectVersion::from_updates([(ASPECT_A, total)]),
                 ))
             };

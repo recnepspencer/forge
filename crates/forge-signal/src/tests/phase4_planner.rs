@@ -108,9 +108,9 @@ fn force_on_demand_plans_and_executes_clean_target() {
 
     let calls = AtomicU32::new(0);
     let report = graph
-        .execute_prepared_plan(&plan, &|_node, view| {
+        .execute_prepared_plan(&plan, &(), &|_view| {
             calls.fetch_add(1, Ordering::Relaxed);
-            Ok(view.finish(version_ab(2, 0)))
+            Ok::<EvaluationOutput, SignalError>(EvaluationOutput::from_result(version_ab(2, 0)))
         })
         .unwrap();
 
@@ -137,11 +137,16 @@ fn execute_plan_returns_execution_report_and_updates_trace_record_id() {
         .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
         .unwrap();
     let report = graph
-        .execute_prepared_plan(&plan, &|node, view| {
+        .execute_prepared_plan(&plan, &(), &|view| {
+            let node = view.node();
             if node == source {
-                Ok(view.finish(source_v2(node, view.graph())?))
+                Ok::<EvaluationOutput, SignalError>(EvaluationOutput::from_result(
+                    source_v2(node, view.graph())?,
+                ))
             } else {
-                Ok(view.finish(dependent_compute(node, view.graph())?))
+                Ok::<EvaluationOutput, SignalError>(EvaluationOutput::from_result(
+                    dependent_compute(node, view.graph())?,
+                ))
             }
         })
         .unwrap();
@@ -157,7 +162,7 @@ fn execute_plan_returns_execution_report_and_updates_trace_record_id() {
         .execution_record_id
         .is_some());
     assert_eq!(
-        graph.explain(dependent).unwrap().execution_record_id,
+        graph.observe().explain(dependent).unwrap().execution_record_id,
         graph
             .get_entry(dependent)
             .unwrap()
@@ -174,7 +179,7 @@ fn runtime_plan_keeps_requested_maybe_stale_validation_task() {
     let dependent = graph.node().build();
     graph.add_dependency(dependent, source, ASPECT_A).unwrap();
 
-    let mut runtime = SignalRuntime::builder(graph).with_tiers::<Tier>().build();
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().with_tiers::<Tier>().build();
     runtime.set_node_tier(dependent, Tier::A);
     runtime.set_tier_policy(
         TierPolicy::new(
@@ -221,7 +226,7 @@ fn public_evaluate_routes_through_planner_and_records_execution_metadata() {
         .unwrap();
     assert!(trace.execution_record_id.is_some());
 
-    let metrics = graph.metrics();
+    let metrics = graph.observe().metrics();
     assert!(metrics.planner.plans_built >= 1);
     assert!(metrics.planner.tasks_scheduled >= 1);
     assert!(metrics.execution.serial_executor_usage_count >= 1);
@@ -234,7 +239,7 @@ fn runtime_execute_plan_with_executor_serial_matches_default_path() {
     let dependent = graph.node().build();
     graph.add_dependency(dependent, source, ASPECT_A).unwrap();
 
-    let mut runtime = SignalRuntime::builder(graph).build();
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     let source_v2 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(2, 0));
     let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(10, 0));
@@ -249,7 +254,9 @@ fn runtime_execute_plan_with_executor_serial_matches_default_path() {
     let report = runtime
         .execute_prepared_plan_with_executor(
             &plan,
-            &|node, view| {
+            &(),
+            &|view| {
+                let node = view.node();
                 if node == source {
                     Ok(view.finish(source_v2(node, view.graph())?))
                 } else {
@@ -289,8 +296,8 @@ fn execution_report_marks_requested_maybe_stale_validation_as_validated_clean() 
         .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
         .unwrap();
     let report = graph
-        .execute_prepared_plan(&plan, &|_node, _view| {
-            Ok(PreparedEvaluation::validated_clean())
+        .execute_prepared_plan(&plan, &(), &|_ctx| {
+            Ok::<EvaluationOutput, SignalError>(EvaluationOutput::validated_clean())
         })
         .unwrap();
 
@@ -326,9 +333,9 @@ fn maybe_stale_requested_target_validates_clean_without_running_compute() {
 
     let calls = AtomicU32::new(0);
     let report = graph
-        .execute_prepared_plan(&plan, &|_node, view| {
+        .execute_prepared_plan(&plan, &(), &|_view| {
             calls.fetch_add(1, Ordering::Relaxed);
-            Ok(view.finish(version_ab(99, 0)))
+            Ok::<EvaluationOutput, SignalError>(EvaluationOutput::from_result(version_ab(99, 0)))
         })
         .unwrap();
 
@@ -370,9 +377,9 @@ fn maybe_stale_validation_prunes_retired_runtime_dependencies_before_recapture()
 
     let calls = AtomicU32::new(0);
     let report = graph
-        .execute_prepared_plan(&plan, &|_node, view| {
+        .execute_prepared_plan(&plan, &(), &|_view| {
             calls.fetch_add(1, Ordering::Relaxed);
-            Ok(view.finish(version_ab(99, 0)))
+            Ok::<EvaluationOutput, SignalError>(EvaluationOutput::from_result(version_ab(99, 0)))
         })
         .unwrap();
 
@@ -393,8 +400,8 @@ fn execution_report_marks_on_demand_deferral_explicitly() {
         .build_evaluation_plan(&[node], EvaluationRequestMode::Default)
         .unwrap();
     let report = graph
-        .execute_prepared_plan(&plan, &|_node, _view| {
-            Ok(PreparedEvaluation::deferred_by_condition())
+        .execute_prepared_plan(&plan, &(), &|_ctx| {
+            Ok::<EvaluationOutput, SignalError>(EvaluationOutput::deferred_by_condition())
         })
         .unwrap();
 
@@ -413,25 +420,24 @@ fn prepared_plan_captures_dependencies_without_manual_graph_wiring() {
     let source = graph.node().build();
     let dependent = graph.node().build();
 
-    let source_compute =
-        |_node: NodeId, view: &ExecutionReadView<'_>| Ok(view.finish(version_ab(1, 0)));
-    let dependent_compute = |_node: NodeId, view: &ExecutionReadView<'_>| {
-        let version = view.read_aspect_version(source, ASPECT_A)?;
-        Ok(view.finish(NodeEvaluationResult::from_version(version)))
+    let source_compute = |ctx: &mut EvaluationContext<'_, ()>| Ok(ctx.finish(version_ab(1, 0)));
+    let dependent_compute = |ctx: &mut EvaluationContext<'_, ()>| {
+        let version = ctx.read_aspect_version(source, ASPECT_A)?;
+        Ok(ctx.finish(NodeEvaluationResult::from_version(version)))
     };
 
     let source_plan = graph
         .build_evaluation_plan(&[source], EvaluationRequestMode::Default)
         .unwrap();
     graph
-        .execute_prepared_plan(&source_plan, &source_compute)
+        .execute_prepared_plan(&source_plan, &(), &source_compute)
         .unwrap();
 
     let dependent_plan = graph
         .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
         .unwrap();
     graph
-        .execute_prepared_plan(&dependent_plan, &dependent_compute)
+        .execute_prepared_plan(&dependent_plan, &(), &dependent_compute)
         .unwrap();
 
     let dependencies = graph.dependencies_of(dependent).unwrap();
@@ -458,16 +464,16 @@ fn prepared_parallel_precompute_matches_serial_results() {
         .build_evaluation_plan(&[parallel_a, parallel_b], EvaluationRequestMode::Default)
         .unwrap();
 
-    let precompute =
-        |_node: NodeId, view: &ExecutionReadView<'_>| Ok(view.finish(version_ab(7, 0)));
+    let evaluator = |ctx: &mut EvaluationContext<'_, ()>| Ok(ctx.finish(version_ab(7, 0)));
 
     let serial_report = serial_graph
-        .execute_prepared_plan_with_executor(&plan, &precompute, StageExecutor::Serial)
+        .execute_prepared_plan_with_executor(&plan, &(), &evaluator, StageExecutor::Serial)
         .unwrap();
     let parallel_report = parallel_graph
         .execute_prepared_plan_with_executor(
             &parallel_plan,
-            &precompute,
+            &(),
+            &evaluator,
             StageExecutor::parallel(1),
         )
         .unwrap();
@@ -528,11 +534,15 @@ fn parallel_executor_threshold_keeps_narrow_stage_serial() {
     let plan = graph
         .build_evaluation_plan(&[node], EvaluationRequestMode::Default)
         .unwrap();
-    let precompute =
-        |_node: NodeId, view: &ExecutionReadView<'_>| Ok(view.finish(version_ab(1, 0)));
+    let evaluator = |ctx: &mut EvaluationContext<'_, ()>| Ok(ctx.finish(version_ab(1, 0)));
 
     let report = graph
-        .execute_prepared_plan_with_executor(&plan, &precompute, StageExecutor::parallel(2))
+        .execute_prepared_plan_with_executor(
+            &plan,
+            &(),
+            &evaluator,
+            StageExecutor::parallel(2),
+        )
         .unwrap();
 
     assert!(matches!(
@@ -559,16 +569,16 @@ fn full_parallel_executor_matches_serial_results() {
         .build_evaluation_plan(&parallel_nodes, EvaluationRequestMode::Default)
         .unwrap();
 
-    let precompute =
-        |_node: NodeId, view: &ExecutionReadView<'_>| Ok(view.finish(version_ab(11, 0)));
+    let evaluator = |ctx: &mut EvaluationContext<'_, ()>| Ok(ctx.finish(version_ab(11, 0)));
 
     let serial_report = serial_graph
-        .execute_prepared_plan_with_executor(&plan, &precompute, StageExecutor::Serial)
+        .execute_prepared_plan_with_executor(&plan, &(), &evaluator, StageExecutor::Serial)
         .unwrap();
     let parallel_report = parallel_graph
         .execute_prepared_plan_with_executor(
             &parallel_plan,
-            &precompute,
+            &(),
+            &evaluator,
             StageExecutor::aggressive_parallel(),
         )
         .unwrap();

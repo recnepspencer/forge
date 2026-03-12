@@ -5,51 +5,56 @@ use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::output::KeyedComputation;
 use crate::diagnostics::ExecutionFailurePhase;
-use crate::logic::evaluation::EvaluationRequestMode;
-use crate::logic::planner::StageExecutor;
+use crate::logic::context::EvaluationContext;
+use crate::logic::evaluation::{EvaluationRequestMode, IntoEvaluationOutput};
 use crate::logic::prepared::{
-    ExecutionReadView, PreparedEvaluation, PreparedEvaluationOrigin, PreparedKeyedContext,
-    PreparedMemoDecision,
+    PreparedEvaluationOrigin, PreparedKeyedContext, PreparedMemoDecision,
 };
 
 use super::super::transaction::SignalTransaction;
 use super::shared::{
-    absorb_execution_report_telemetry, execute_targets_with_runtime_config_detailed,
+    absorb_execution_report_telemetry, execute_targets_with_prepared_runtime_config_detailed,
+    executor_for_strategy,
 };
 
 impl<'a, D, I, E, Ctx, T> SignalTransaction<'a, D, I, E, Ctx, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
+    Ctx: Sync,
     T: Copy + Ord,
 {
-    pub fn evaluate_keyed<F>(
+    pub fn evaluate_keyed<F, O>(
         &mut self,
         node: NodeId,
         computation: &KeyedComputation,
-        precompute: &F,
+        evaluator: &F,
     ) -> Result<(), SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
         self.evaluate_keyed_with_mode(
             node,
             computation,
-            precompute,
+            evaluator,
             EvaluationRequestMode::Default,
         )
     }
 
-    pub fn evaluate_keyed_with_mode<F>(
+    pub fn evaluate_keyed_with_mode<F, O>(
         &mut self,
         node: NodeId,
         computation: &KeyedComputation,
-        precompute: &F,
+        evaluator: &F,
         request_mode: EvaluationRequestMode,
     ) -> Result<(), SignalError>
     where
-        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
     {
+        let strategy = self.graph.derive_evaluation_strategy();
+        let executor = executor_for_strategy(strategy);
         self.telemetry.invalidation.keyed_evaluation_count += 1;
         self.stage_evaluate_candidates(node)?;
         let family_id = self.config.key_registry.intern_family(&computation.family);
@@ -84,13 +89,13 @@ where
                 self.telemetry.evaluation.memoization_hits += 1;
                 let cached_result = cached.clone();
                 let execution_start = Instant::now();
-                let report = match execute_targets_with_runtime_config_detailed(
+                let report = match execute_targets_with_prepared_runtime_config_detailed(
                     self.graph,
                     self.config,
                     &[node],
                     request_mode,
                     &|_current, _view| {
-                        Ok(PreparedEvaluation::from_result(cached_result.clone())
+                        Ok(crate::logic::prepared::PreparedEvaluation::from_result(cached_result.clone())
                             .with_origin(PreparedEvaluationOrigin::MemoizedReuse)
                             .with_memo_decision(PreparedMemoDecision::Hit)
                             .with_keyed(PreparedKeyedContext {
@@ -99,7 +104,7 @@ where
                                 ..base_keyed_context.clone()
                             }))
                     },
-                    StageExecutor::Serial,
+                    executor,
                 ) {
                     Ok(report) => report,
                     Err(failure) => {
@@ -122,13 +127,15 @@ where
 
         let last_result = Mutex::new(None);
         let execution_start = Instant::now();
-        let result = match execute_targets_with_runtime_config_detailed(
+        let result = match execute_targets_with_prepared_runtime_config_detailed(
             self.graph,
             self.config,
             &[node],
             request_mode,
             &|current, view| {
-                let prepared = precompute(current, view)?
+                let mut ctx = EvaluationContext::new(view.graph(), current, &*self.runtime_ctx);
+                let output = evaluator(&mut ctx)?;
+                let prepared = ctx.into_prepared(output)
                     .with_memo_decision(PreparedMemoDecision::Miss)
                     .with_keyed(base_keyed_context.clone());
                 if current == node {
@@ -139,7 +146,7 @@ where
                 }
                 Ok(prepared)
             },
-            StageExecutor::Serial,
+            executor,
         ) {
             Ok(report) => Ok(report),
             Err(failure) => {

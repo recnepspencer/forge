@@ -32,3 +32,7 @@ mod world_assembly;
 mod world_handles;
 mod world_setup;
 mod world_shape;
+
+pub(crate) use regimes::MarketRegime;
+pub(crate) use scales::FintechScale;
+pub(crate) use scenarios::setup_seeded_world_with;

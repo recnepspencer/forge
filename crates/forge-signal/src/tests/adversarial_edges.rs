@@ -42,7 +42,7 @@ fn repeated_edge_churn_preserves_dependency_and_subscriber_integrity() {
 
 #[test]
 fn rollback_after_dynamic_dependency_churn_restores_original_dependencies() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     let source_a = runtime.graph_mut().node().build();
     let source_b = runtime.graph_mut().node().build();
     let dependent = runtime.graph_mut().node().build();
@@ -52,11 +52,11 @@ fn rollback_after_dynamic_dependency_churn_restores_original_dependencies() {
         .transaction(&mut ctx, |tx| {
             tx.evaluate_with_plan(
                 dependent,
-                &|node, view| {
-                    let result = if node == source_a {
-                        PreparedEvaluation::from_result(version_ab(1, 0))
-                    } else if node == source_b {
-                        PreparedEvaluation::from_result(version_ab(2, 0))
+                &|view| {
+                    let result = if view.node() == source_a {
+                        crate::logic::evaluation::EvaluationOutput::from_result(version_ab(1, 0))
+                    } else if view.node() == source_b {
+                        crate::logic::evaluation::EvaluationOutput::from_result(version_ab(2, 0))
                     } else {
                         let version = view.read_aspect_version(source_a, ASPECT_A)?;
                         view.finish(version)
@@ -73,11 +73,11 @@ fn rollback_after_dynamic_dependency_churn_restores_original_dependencies() {
         tx.mark_dirty(source_b, ASPECT_A)?;
         tx.evaluate_with_plan(
             dependent,
-            &|node, view| {
-                let result = if node == source_a {
-                    PreparedEvaluation::from_result(version_ab(1, 0))
-                } else if node == source_b {
-                    PreparedEvaluation::from_result(version_ab(3, 0))
+            &|view| {
+                let result = if view.node() == source_a {
+                    crate::logic::evaluation::EvaluationOutput::from_result(version_ab(1, 0))
+                } else if view.node() == source_b {
+                    crate::logic::evaluation::EvaluationOutput::from_result(version_ab(3, 0))
                 } else {
                     let version = view.read_aspect_version(source_b, ASPECT_A)?;
                     view.finish(version)
@@ -95,7 +95,7 @@ fn rollback_after_dynamic_dependency_churn_restores_original_dependencies() {
     let dependencies = runtime.graph().dependencies_of(dependent).unwrap();
     assert_eq!(dependencies.len(), 1);
     assert_eq!(dependencies[0].source(), source_a);
-    let explanation = runtime.explain(dependent).unwrap();
+    let explanation = runtime.observe().explain(dependent).unwrap();
     assert!(explanation
         .upstream
         .iter()
@@ -137,7 +137,7 @@ fn unregister_and_slot_reuse_after_churn_leave_no_ghost_edges() {
 
 #[test]
 fn snapshot_churn_reorders_dependencies_without_ghost_snapshots() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     let a = runtime.graph_mut().node().build();
     let b = runtime.graph_mut().node().build();
     let dependent = runtime.graph_mut().node().build();
@@ -147,10 +147,10 @@ fn snapshot_churn_reorders_dependencies_without_ghost_snapshots() {
         .transaction(&mut runtime_ctx, |tx| {
             tx.evaluate_with_plan(
                 dependent,
-                &|node, view| {
-                    let result = if node == a {
+                &|view| {
+                    let result = if view.node() == a {
                         view.finish(version_ab(1, 0))
-                    } else if node == b {
+                    } else if view.node() == b {
                         view.finish(version_ab(2, 0))
                     } else {
                         let version = view.read_aspect_version(a, ASPECT_A)?;
@@ -188,10 +188,10 @@ fn snapshot_churn_reorders_dependencies_without_ghost_snapshots() {
             tx.mark_dirty(b, ASPECT_A)?;
             tx.evaluate_with_plan(
                 dependent,
-                &|node, view| {
-                    let result = if node == a {
+                &|view| {
+                    let result = if view.node() == a {
                         view.finish(version_ab(1, 0))
-                    } else if node == b {
+                    } else if view.node() == b {
                         view.finish(version_ab(3, 0))
                     } else {
                         let version = view.read_aspect_version(b, ASPECT_A)?;
@@ -209,7 +209,7 @@ fn snapshot_churn_reorders_dependencies_without_ghost_snapshots() {
     assert_eq!(snapshot.entries().len(), 1);
     assert_eq!(snapshot.entries()[0].source, b);
 
-    let explanation = runtime.explain(dependent).unwrap();
+    let explanation = runtime.observe().explain(dependent).unwrap();
     assert!(!format!("{:?}", explanation).contains(&a.to_string()));
 }
 
@@ -240,7 +240,7 @@ fn reconverging_invalidation_path_is_not_reported_as_a_cycle() {
 
 #[test]
 fn gc_epoch_compacts_edge_and_snapshot_storage_after_churn() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::with_gc_threshold(1)).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::with_gc_threshold(1)).with_kernel_defaults().build();
     let source_a = runtime.graph_mut().node().build();
     let source_b = runtime.graph_mut().node().build();
     let dependent = runtime.graph_mut().node().build();
@@ -268,10 +268,10 @@ fn gc_epoch_compacts_edge_and_snapshot_storage_after_churn() {
                 tx.mark_dirty(if round % 2 == 0 { source_a } else { source_b }, ASPECT_A)?;
                 tx.evaluate_with_plan(
                     dependent,
-                    &|node, view| {
-                        let result = if node == source_a {
+                    &|view| {
+                        let result = if view.node() == source_a {
                             view.finish(version_ab(round as u64 + 1, 0))
-                        } else if node == source_b {
+                        } else if view.node() == source_b {
                             view.finish(version_ab(round as u64 + 100, 0))
                         } else {
                             let source = if round % 2 == 0 { source_a } else { source_b };
@@ -333,7 +333,7 @@ fn semantically_identical_dependency_snapshots_deduplicate_even_if_recorded_in_d
 
 #[test]
 fn dependency_snapshot_growth_returns_near_live_state_after_gc() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::with_gc_threshold(1)).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::with_gc_threshold(1)).with_kernel_defaults().build();
     let source = runtime.graph_mut().node().build();
     let dependent = runtime.graph_mut().node().build();
     runtime
@@ -348,8 +348,8 @@ fn dependency_snapshot_growth_returns_near_live_state_after_gc() {
                 tx.mark_dirty(source, ASPECT_A)?;
                 tx.evaluate_with_plan(
                     dependent,
-                    &|node, view| {
-                        let result = if node == source {
+                    &|view| {
+                        let result = if view.node() == source {
                             view.finish(version_ab(round as u64 + 1, 0))
                         } else {
                             let version = view.read_aspect_version(source, ASPECT_A)?;

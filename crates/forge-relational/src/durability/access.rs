@@ -8,7 +8,9 @@ use crate::durability::data::{
 use crate::history::data::BranchHead;
 use crate::logic::runtime::RelationalRuntime;
 
-use crate::durability::log::local_store::{read_json, DurableCheckpointFile, DurableSegmentFile};
+use crate::durability::log::local_store::{
+    load_store_from_disk, read_json, DurableCheckpointFile, DurableSegmentFile,
+};
 
 pub struct DurabilityAccess<'runtime> {
     runtime: &'runtime RelationalRuntime,
@@ -35,7 +37,7 @@ impl<'runtime> DurabilityAccess<'runtime> {
     }
 
     fn persisted_recovery_plan(&self) -> RecoveryPlan {
-        let Ok(store) = self.runtime.load_store_from_disk() else {
+        let Ok(store) = load_store_from_disk(self.runtime) else {
             return RecoveryPlan {
                 config: self.runtime.runtime_config().clone(),
                 store: self.runtime.durable_store().cloned(),

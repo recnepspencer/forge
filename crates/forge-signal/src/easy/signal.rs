@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::facade::{Aspect, NodeId};
+use crate::facade::*;
 
 pub(crate) const DEFAULT_ASPECT: Aspect = Aspect::new(0);
 

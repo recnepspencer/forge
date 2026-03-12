@@ -8,6 +8,7 @@ mod tests;
 pub use helpers::{emit_event_in_txn, flush_checkpoint_in_txn};
 pub use runtime::{
     ComputationSpec, DefinedComputation, DefinedKeyedComputation, SignalRuntime,
-    SignalRuntimeBuilder, SignalRuntimeConfig, SignalTransaction, TransactionOutcome,
-    TransactionReplayEntry, TransactionResult, TransactionTiming, EvaluationSummary,
+    RuntimeObserver, SignalRuntimeBuilder, SignalRuntimeConfig, SignalTransaction,
+    TransactionOutcome, TransactionReplayEntry, TransactionResult, TransactionTiming,
+    EvaluationSummary,
 };

@@ -57,7 +57,7 @@ fn canonical_runtime_artifacts(
     let (provenance, provenance_mode) = graph.provenance_artifact(node).unwrap();
     let explanation = explanation.expect("snapshot fixture should have an explainable target");
     let explanation_fact = graph.explanation_fact(node);
-    let diagnostics = graph.diagnostics_summary(DiagnosticsProfile::Development);
+    let diagnostics = graph.observe().diagnostics_summary(DiagnosticsProfile::Development);
     let replay = graph
         .replay_events()
         .iter()
@@ -177,21 +177,22 @@ fn main() {
         )
         .unwrap();
     graph
-        .execute_prepared_plan(&bootstrap, &move |node, view| {
+        .execute_prepared_plan(&bootstrap, &(), &move |ctx| {
+            let node = ctx.node();
             let result = if node == source {
-                view.finish(
+                ctx.finish(
                     NodeEvaluationResult::from_version(version_ab(20, 0))
                         .with_output_identity("geom-v1")
                         .with_changed_region(ChangedRegion::new("mesh").with_detail("face-b"))
                         .with_changed_region(ChangedRegion::new("shell").with_detail("face-a")),
                 )
             } else if node == shell || node == core {
-                let version = view.read_aspect_version(source, ASPECT_A)?;
-                view.finish(NodeEvaluationResult::from_version(version))
+                let version = ctx.read_aspect_version(source, ASPECT_A)?;
+                ctx.finish(NodeEvaluationResult::from_version(version))
             } else {
-                let shell_v = view.read_aspect_version(shell, ASPECT_A)?;
-                let core_v = view.read_aspect_version(core, ASPECT_A)?;
-                view.finish(
+                let shell_v = ctx.read_aspect_version(shell, ASPECT_A)?;
+                let core_v = ctx.read_aspect_version(core, ASPECT_A)?;
+                ctx.finish(
                     NodeEvaluationResult::from_version(AspectVersion::from_updates([(
                         ASPECT_A,
                         shell_v.get(ASPECT_A) + core_v.get(ASPECT_A),
@@ -219,21 +220,23 @@ fn main() {
     graph
         .execute_prepared_plan_with_executor(
             &plan,
-            &move |node, view| {
+            &(),
+            &move |ctx| {
+                let node = ctx.node();
                 let result = if node == source {
-                    view.finish(
+                    ctx.finish(
                         NodeEvaluationResult::from_version(version_ab(22, 0))
                             .with_output_identity("geom-v2")
                             .with_changed_region(ChangedRegion::new("shell").with_detail("face-a"))
                             .with_changed_region(ChangedRegion::new("mesh").with_detail("face-b")),
                     )
                 } else if node == shell || node == core {
-                    let version = view.read_aspect_version(source, ASPECT_A)?;
-                    view.finish(NodeEvaluationResult::from_version(version))
+                    let version = ctx.read_aspect_version(source, ASPECT_A)?;
+                    ctx.finish(NodeEvaluationResult::from_version(version))
                 } else {
-                    let shell_v = view.read_aspect_version(shell, ASPECT_A)?;
-                    let core_v = view.read_aspect_version(core, ASPECT_A)?;
-                    view.finish(
+                    let shell_v = ctx.read_aspect_version(shell, ASPECT_A)?;
+                    let core_v = ctx.read_aspect_version(core, ASPECT_A)?;
+                    ctx.finish(
                         NodeEvaluationResult::from_version(AspectVersion::from_updates([(
                             ASPECT_A,
                             shell_v.get(ASPECT_A) + core_v.get(ASPECT_A),

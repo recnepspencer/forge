@@ -85,7 +85,7 @@ impl EventSubscriber for RecordingSubscriber {
 #[test]
 fn failed_event_flush_triggers_compensating_rollbacks_for_flushed_subscribers() {
     let graph = SignalGraph::new();
-    let mut runtime = SignalRuntime::builder(graph)
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults()
         .with_domains::<Domain>()
         .with_events::<Ev>()
         .checkpoint_barrier(CheckpointBarrier::PerOperation)
@@ -117,12 +117,12 @@ fn failed_event_flush_triggers_compensating_rollbacks_for_flushed_subscribers() 
 
     let before = runtime.graph().get_state(node).unwrap();
     let mut ctx = ();
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
     tx.mark_dirty(node, ASPECT_A).unwrap();
     tx.emit_event(Ev::Tick);
     tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
 
-    let err = tx.commit(&mut ctx).unwrap_err();
+    let err = tx.commit().unwrap_err();
     assert!(format!("{err}").contains("event bus flush failed"));
     assert_eq!(runtime.graph().get_state(node).unwrap(), before);
 
@@ -135,7 +135,7 @@ fn failed_event_flush_triggers_compensating_rollbacks_for_flushed_subscribers() 
 #[test]
 fn failed_commit_discards_staged_key_registry_growth_and_created_keyed_nodes() {
     let graph = SignalGraph::new();
-    let mut runtime = SignalRuntime::builder(graph)
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults()
         .with_domains::<Domain>()
         .with_events::<Ev>()
         .checkpoint_barrier(CheckpointBarrier::PerOperation)
@@ -162,11 +162,11 @@ fn failed_commit_discards_staged_key_registry_growth_and_created_keyed_nodes() {
     let memo_name = "rollback-fresh-memo";
 
     let err = {
-        let mut tx = runtime.begin();
+        let mut tx = runtime.begin(&mut ctx);
         let keyed_def = rollback_family.keyed(key_name);
         let keyed = keyed_def.node_in_transaction(&mut tx);
         let computation = keyed_def.memoized(memo_name);
-        tx.evaluate_keyed(keyed, &computation, &|_node, view| {
+        tx.evaluate_keyed(keyed, &computation, &|view| {
             Ok(view.finish(
                 NodeEvaluationResult::from_version(version_ab(7, 0))
                     .with_output_identity("rollback-artifact"),
@@ -175,7 +175,7 @@ fn failed_commit_discards_staged_key_registry_growth_and_created_keyed_nodes() {
         .unwrap();
         tx.emit_event(Ev::Tick);
         tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
-        let err = tx.commit(&mut ctx).unwrap_err();
+        let err = tx.commit().unwrap_err();
         assert!(!runtime.graph().is_alive(keyed));
         err
     };
@@ -207,7 +207,7 @@ fn failed_commit_discards_staged_key_registry_growth_and_created_keyed_nodes() {
 #[test]
 fn failed_commit_preserves_preexisting_memo_cache_while_discarding_new_staged_growth() {
     let graph = SignalGraph::new();
-    let mut runtime = SignalRuntime::builder(graph)
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults()
         .with_domains::<Domain>()
         .with_events::<Ev>()
         .checkpoint_barrier(CheckpointBarrier::PerOperation)
@@ -222,7 +222,7 @@ fn failed_commit_preserves_preexisting_memo_cache_while_discarding_new_staged_gr
 
     runtime
         .transaction(&mut ctx, |tx| {
-            tx.evaluate_keyed(stable_keyed, &stable_computation, &|_node, view| {
+            tx.evaluate_keyed(stable_keyed, &stable_computation, &|view| {
                 stable_compute_calls.fetch_add(1, Ordering::Relaxed);
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(1, 0))
@@ -252,7 +252,7 @@ fn failed_commit_preserves_preexisting_memo_cache_while_discarding_new_staged_gr
             let keyed_def = fresh_def.keyed("fresh-key");
             let keyed = keyed_def.node_in_transaction(tx);
             let fresh = keyed_def.memoized("fresh");
-            tx.evaluate_keyed(keyed, &fresh, &|_node, view| {
+            tx.evaluate_keyed(keyed, &fresh, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(9, 0))
                         .with_output_identity("fresh-artifact"),
@@ -274,7 +274,7 @@ fn failed_commit_preserves_preexisting_memo_cache_while_discarding_new_staged_gr
     mark_dirty(runtime.graph_mut(), stable_keyed, ASPECT_A).unwrap();
     runtime
         .transaction(&mut ctx, |tx| {
-            tx.evaluate_keyed(stable_keyed, &stable_computation, &|_node, view| {
+            tx.evaluate_keyed(stable_keyed, &stable_computation, &|view| {
                 stable_compute_calls.fetch_add(1, Ordering::Relaxed);
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(99, 0))
@@ -290,7 +290,7 @@ fn failed_commit_preserves_preexisting_memo_cache_while_discarding_new_staged_gr
         1,
         "baseline memoized result must survive failed commits and remain reusable afterward",
     );
-    let metrics = runtime.metrics();
+    let metrics = runtime.observe().metrics();
     assert!(metrics.evaluation.memoization_hits >= 1);
     assert_eq!(
         runtime

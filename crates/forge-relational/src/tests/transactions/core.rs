@@ -115,14 +115,14 @@ fn entity_slot_reuse_increments_generation() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
     let create_outcome = create_entity_outcome(&mut runtime, "first");
     let entity_a = changed_entities(&create_outcome)[0];
-    assert!(runtime.snapshot_access().release_snapshot(&create_outcome.snapshot));
+    assert!(runtime.visibility_authority().release_snapshot(&create_outcome.snapshot));
     let delete_outcome = delete_entity(&mut runtime, entity_a);
-    assert!(runtime.snapshot_access().release_snapshot(&delete_outcome.snapshot));
+    assert!(runtime.visibility_authority().release_snapshot(&delete_outcome.snapshot));
     let retention = runtime.retention_access().run_pass();
     let entity_b = create_entity(&mut runtime, "second");
 
     assert!(retention.entity_reclaimed <= 1);
-    assert_eq!(runtime.storage_stats().reusable_entity_slots, 0);
+    assert_eq!(runtime.storage_access().storage_stats().reusable_entity_slots, 0);
     assert_eq!(entity_a.local_slot, entity_b.local_slot);
     assert!(entity_b.generation.0 > entity_a.generation.0);
 }
@@ -223,7 +223,10 @@ fn savepoint_rollback_discards_inner_work_only() {
 #[test]
 fn snapshot_audit_failure_discards_only_touched_overlay() {
     let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
-        snapshot_audit: vec![InvariantRule::MaxSnapshotEntities(1)],
+        registrations: vec![InvariantRegistration::block_publication(
+            InvariantRule::MaxSnapshotEntities(1),
+            InvariantExecutionPoint::SnapshotPublication,
+        )],
         ..InvariantCatalog::default()
     });
     let baseline = create_entity_outcome(&mut runtime, "baseline");
@@ -305,7 +308,7 @@ fn merged_plan_is_stable_across_batch_order() {
 fn snapshot_reads_are_immutable_after_later_mutation() {
     let mut runtime = runtime_with_test_schema();
     let first = create_entity(&mut runtime, "first");
-    let snapshot = runtime.snapshot_access().snapshot();
+    let snapshot = runtime.visibility_authority().snapshot();
     let _second = create_entity(&mut runtime, "second");
     let read = runtime.visibility_reads().read_snapshot(&snapshot).unwrap();
 
@@ -318,7 +321,7 @@ fn snapshots_resolve_historical_entity_payloads_by_version() {
     let mut runtime = runtime_with_test_schema();
     let create_outcome = create_entity_outcome(&mut runtime, "before");
     let entity = changed_entities(&create_outcome)[0];
-    let snapshot = runtime.snapshot_access().snapshot();
+    let snapshot = runtime.visibility_authority().snapshot();
     let update_outcome = update_entity(&mut runtime, entity, "after");
 
     let old_read = runtime.visibility_reads().read_snapshot(&snapshot).unwrap();
@@ -345,8 +348,8 @@ fn historical_reads_preserve_generation_and_payload_after_slot_reuse() {
     let created = create_entity_outcome(&mut runtime, "before");
     let original = changed_entities(&created)[0];
     let deleted = delete_entity(&mut runtime, original);
-    assert!(runtime.snapshot_access().release_snapshot(&created.snapshot));
-    assert!(runtime.snapshot_access().release_snapshot(&deleted.snapshot));
+    assert!(runtime.visibility_authority().release_snapshot(&created.snapshot));
+    assert!(runtime.visibility_authority().release_snapshot(&deleted.snapshot));
     let _ = runtime.retention_access().run_pass();
     let replacement = create_entity(&mut runtime, "after");
 
@@ -408,22 +411,22 @@ fn profile_resolution_and_provenance_are_explicit() {
 fn snapshot_pins_block_reclaim_until_release() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
     let create_outcome = create_entity_outcome(&mut runtime, "pinned");
-    let create_snapshot = runtime.snapshot_access().snapshot();
+    let create_snapshot = runtime.visibility_authority().snapshot();
     let entity = changed_entities(&create_outcome)[0];
     let _delete_outcome = delete_entity(&mut runtime, entity);
-    let delete_snapshot = runtime.snapshot_access().snapshot();
+    let delete_snapshot = runtime.visibility_authority().snapshot();
     let first_retention = runtime.retention_access().run_pass();
 
     assert_eq!(first_retention.entity_reclaimed, 0);
-    assert_eq!(runtime.storage_stats().deleted_entities, 1);
+    assert_eq!(runtime.storage_access().storage_stats().deleted_entities, 1);
     assert_eq!(first_retention.entity_chunks_scanned, 1);
 
-    assert!(runtime.snapshot_access().release_snapshot(&create_snapshot));
-    assert!(runtime.snapshot_access().release_snapshot(&delete_snapshot));
+    assert!(runtime.visibility_authority().release_snapshot(&create_snapshot));
+    assert!(runtime.visibility_authority().release_snapshot(&delete_snapshot));
     let second_retention = runtime.retention_access().run_pass();
 
     assert!(second_retention.entity_reclaimed <= 1);
-    assert_eq!(runtime.storage_stats().reusable_entity_slots, 1);
+    assert_eq!(runtime.storage_access().storage_stats().reusable_entity_slots, 1);
 }
 
 #[test]
@@ -440,10 +443,10 @@ fn epoch_retention_backend_preserves_snapshot_visibility_until_release() {
         })
         .build();
     let create_outcome = create_entity_outcome(&mut runtime, "epoch-pinned");
-    let create_snapshot = runtime.snapshot_access().snapshot();
+    let create_snapshot = runtime.visibility_authority().snapshot();
     let entity = changed_entities(&create_outcome)[0];
     let _delete_outcome = delete_entity(&mut runtime, entity);
-    let delete_snapshot = runtime.snapshot_access().snapshot();
+    let delete_snapshot = runtime.visibility_authority().snapshot();
 
     let first_retention = runtime.retention_access().run_pass();
     assert_eq!(
@@ -457,12 +460,12 @@ fn epoch_retention_backend_preserves_snapshot_visibility_until_release() {
         .get_entity(entity)
         .is_some());
 
-    assert!(runtime.snapshot_access().release_snapshot(&create_snapshot));
-    assert!(runtime.snapshot_access().release_snapshot(&delete_snapshot));
+    assert!(runtime.visibility_authority().release_snapshot(&create_snapshot));
+    assert!(runtime.visibility_authority().release_snapshot(&delete_snapshot));
     let second_retention = runtime.retention_access().run_pass();
 
     assert!(second_retention.entity_reclaimed <= 1);
-    assert_eq!(runtime.storage_stats().reusable_entity_slots, 1);
+    assert_eq!(runtime.storage_access().storage_stats().reusable_entity_slots, 1);
 }
 
 #[test]

@@ -31,7 +31,7 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
         let mut branch_replay_overlap_entities = 0;
         let mut branch_replay_overlap_relations = 0;
 
-        let partition_ids = self.runtime.partition_ids();
+        let partition_ids = self.runtime.storage_access().partition_ids();
         for partition_id in partition_ids {
             inspect_partition_retention::<EntityRecordKind>(
                 self.runtime,
@@ -69,7 +69,7 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
             reclaimable_entities,
             reclaimable_relations,
         };
-        self.runtime.push_bounded_diagnostic(
+        self.runtime.publication_authority().push_bounded_diagnostic(
             DiagnosticsScope::Retention,
             DiagnosticsArtifactKind::MinimalSummary,
             vec![RelationalDiagnosticsEntry {
@@ -110,7 +110,7 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
             .runtime
             .retention_fence_version(self.runtime.current_version_id());
 
-        let partition_ids = self.runtime.partition_ids();
+        let partition_ids = self.runtime.storage_access().partition_ids();
         for partition_id in partition_ids {
             run_partition_retention_pass::<EntityRecordKind>(
                 self.runtime,

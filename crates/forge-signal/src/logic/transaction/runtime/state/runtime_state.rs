@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::data::graph::SignalGraph;
+use crate::data::graph::{EvaluationStrategy, SignalGraph};
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::events::EventBus;
@@ -8,6 +8,7 @@ use crate::state::{SignalBranchHandle, SignalBranchId};
 
 use super::branches::{BranchManager, BranchState};
 use super::builder::SignalRuntimeBuilder;
+use super::observer::RuntimeObserver;
 use super::super::config::SignalRuntimeConfig;
 
 /// Full runtime surface for transactional evaluation, diagnostics, replay, and
@@ -76,7 +77,17 @@ impl SignalRuntime<(), (), (), (), ()> {
     /// Create a runtime builder from a graph.
     ///
     /// This is the recommended entrypoint for most applications.
-    pub fn builder(graph: SignalGraph) -> SignalRuntimeBuilder<(), (), (), (), ()> {
+    pub fn builder(
+        graph: SignalGraph,
+    ) -> SignalRuntimeBuilder<
+        super::builder::Missing,
+        super::builder::Missing,
+        (),
+        (),
+        (),
+        (),
+        (),
+    > {
         SignalRuntimeBuilder::new(graph)
     }
 }
@@ -115,6 +126,14 @@ where
 
     pub fn graph(&self) -> &SignalGraph {
         &self.graph
+    }
+
+    pub fn observe(&self) -> RuntimeObserver<'_, D, I, E, Ctx, T> {
+        RuntimeObserver::new(self)
+    }
+
+    pub fn derive_evaluation_strategy(&self) -> EvaluationStrategy {
+        self.graph.derive_evaluation_strategy()
     }
 
     pub fn graph_mut(&mut self) -> SignalGraphMut<'_, D, I, E, Ctx, T> {

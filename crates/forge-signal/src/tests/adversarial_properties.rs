@@ -120,7 +120,7 @@ fn continuity_token_does_not_hide_real_identity_change_across_permutations() {
     mark_dirty(&mut graph, source, ASPECT_A).unwrap();
     evaluate(&mut graph, source, &mut second).unwrap();
 
-    let lineage = graph.lineage_for_node(source);
+    let lineage = graph.observe().lineage_for_node(source);
     assert!(
         lineage
             .iter()

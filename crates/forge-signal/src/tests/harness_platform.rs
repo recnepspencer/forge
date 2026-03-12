@@ -14,13 +14,12 @@ struct FixedEvaluator {
 }
 
 impl SignalEvaluationDriver for FixedEvaluator {
-    fn evaluate<'a>(
+    fn evaluate(
         &self,
-        node: NodeId,
-        _view: &ExecutionReadView<'a>,
-    ) -> Result<PreparedEvaluation, SignalError> {
-        let version = if node == self.source { 1 } else { 10 };
-        Ok(PreparedEvaluation::from_result(version_ab(version, 0)))
+        ctx: &mut EvaluationContext<'_, ()>,
+    ) -> Result<EvaluationOutput, SignalError> {
+        let version = if ctx.node() == self.source { 1 } else { 10 };
+        Ok(EvaluationOutput::from_result(version_ab(version, 0)))
     }
 }
 
@@ -50,21 +49,20 @@ fn capture_performance_after_run(
 }
 
 impl SignalEvaluationDriver for ToleranceEvaluator {
-    fn evaluate<'a>(
+    fn evaluate(
         &self,
-        node: NodeId,
-        view: &ExecutionReadView<'a>,
-    ) -> Result<PreparedEvaluation, SignalError> {
-        let result = if node == self.source {
-            let current = view
+        ctx: &mut EvaluationContext<'_, ()>,
+    ) -> Result<EvaluationOutput, SignalError> {
+        let result = if ctx.node() == self.source {
+            let current = ctx
                 .graph()
                 .get_entry(self.source)?
                 .get_aspect_version()
                 .get(ASPECT_A);
             let version = if current == 0 { 10 } else { 12 };
             version_ab(version, 0)
-        } else if node == self.middle {
-            let source_version = view
+        } else if ctx.node() == self.middle {
+            let source_version = ctx
                 .read_aspect_version(self.source, ASPECT_A)?
                 .get(ASPECT_A);
             let version = if source_version <= 10 { 100 } else { 102 };
@@ -72,7 +70,7 @@ impl SignalEvaluationDriver for ToleranceEvaluator {
         } else {
             version_ab(1_000, 0)
         };
-        Ok(PreparedEvaluation::from_result(result))
+        Ok(EvaluationOutput::from_result(result))
     }
 }
 
@@ -228,9 +226,9 @@ fn signal_harness_platform_runs_serial_parallel_parity() {
     let fixture = scenario
         .observe("a")
         .observe("b")
-        .with_evaluator(move |node: NodeId, _view: &ExecutionReadView<'_>| {
-            let version = if node == a { 7 } else { 9 };
-            Ok(PreparedEvaluation::from_result(version_ab(version, 0)))
+        .with_evaluator(move |ctx: &mut EvaluationContext<'_, ()>| {
+            let version = if ctx.node() == a { 7 } else { 9 };
+            Ok::<EvaluationOutput, SignalError>(EvaluationOutput::from_result(version_ab(version, 0)))
         })
         .fixture()
         .unwrap();

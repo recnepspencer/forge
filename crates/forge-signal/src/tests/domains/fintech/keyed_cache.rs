@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use crate::facade::{KeyedComputation, MemoizedResultOrigin, NodeEvaluationResult, StageExecutor};
+use crate::facade::*;
 use crate::tests::support::define_keyed_computation;
 
 use super::aspects::{ALERT, PRICE, RISK};
@@ -31,15 +31,15 @@ fn fintech_keyed_audit_cache_reuses_stable_memo_entries_without_cross_shape_corr
     let top_scenario = world.top_scenario();
     let primary_market = world.primary_market_source();
     let evaluation = world.evaluation_shape();
-    let precompute = evaluation.precompute();
+    let evaluator = evaluation.evaluator();
 
     let run_cache = |world: &mut super::fixture::FintechWorld,
                      memo: &KeyedComputation,
                      compute_calls: &AtomicU32|
-     -> Result<(), crate::facade::SignalError> {
+     -> Result<(), SignalError> {
         world.runtime.transaction(&mut (), |tx| {
-            tx.evaluate_keyed(cache, memo, &|node, view| {
-                if node == cache {
+            tx.evaluate_keyed(cache, memo, &|view| {
+                if view.node() == cache {
                     compute_calls.fetch_add(1, Ordering::Relaxed);
                     let desk = view.read_aspect_version(top_desk, RISK)?.get(RISK);
                     let scenario = view.read_aspect_version(top_scenario, RISK)?.get(RISK);
@@ -47,7 +47,7 @@ fn fintech_keyed_audit_cache_reuses_stable_memo_entries_without_cross_shape_corr
                     let total = desk + scenario + market;
                     return Ok(view.finish(
                         NodeEvaluationResult::from_version(
-                            crate::facade::AspectVersion::from_updates([
+                            AspectVersion::from_updates([
                                 (RISK, total),
                                 (ALERT, u64::from(total > 40_000)),
                             ]),
@@ -58,7 +58,7 @@ fn fintech_keyed_audit_cache_reuses_stable_memo_entries_without_cross_shape_corr
                         )),
                     ));
                 }
-                precompute(node, view)
+                evaluator(view)
             })?;
             Ok(())
         })?;
@@ -103,13 +103,13 @@ fn fintech_keyed_audit_cache_reuses_stable_memo_entries_without_cross_shape_corr
     assert_eq!(final_version, baseline_version);
     assert_eq!(compute_calls.load(Ordering::Relaxed), 2);
 
-    let explanation = world.runtime.explain(cache).unwrap();
+    let explanation = world.runtime.observe().explain(cache).unwrap();
     assert_eq!(
         explanation.memoized_origin,
         Some(MemoizedResultOrigin::MemoizedFromCache)
     );
 
-    let metrics = world.runtime.metrics();
+    let metrics = world.runtime.observe().metrics();
     assert_eq!(metrics.evaluation.memoization_misses, 2);
     assert_eq!(metrics.evaluation.memoization_hits, 1);
 }

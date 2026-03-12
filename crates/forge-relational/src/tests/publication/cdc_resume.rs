@@ -123,7 +123,11 @@ fn patch_stream_index_stays_coherent_when_commit_history_is_removed_for_fault_in
     let second = create_entity_outcome(&mut runtime, "b");
     let third = create_entity_outcome(&mut runtime, "c");
 
-    assert!(runtime.remove_commit_envelope_for_test(second.commit.commit_id));
+    assert!(
+        runtime
+            .history_authority()
+            .remove_commit_envelope_for_test(second.commit.commit_id)
+    );
 
     let batch = runtime
         .publication_access().read_patch_stream(PatchStreamRequest {

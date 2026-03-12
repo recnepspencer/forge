@@ -143,7 +143,7 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
         session.executed_steps.push(step.name.clone());
         match &step.operation {
             FintechWorkflowStep::CaptureMainSnapshot { alias } => {
-                let snapshot = session.world.runtime.snapshot_access().snapshot();
+                let snapshot = session.world.runtime.visibility_authority().snapshot();
                 session
                     .named_snapshots
                     .insert((*alias).to_string(), snapshot);

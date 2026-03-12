@@ -2,7 +2,6 @@ use crate::config::data::RelationalRuntimeConfig;
 use crate::logic::runtime::RelationalRuntime;
 use crate::schema::data::RelationalSchemaRegistry;
 
-#[allow(dead_code)]
 pub(crate) trait SchemaSource {
     fn schema_registry(&self) -> &RelationalSchemaRegistry;
 }

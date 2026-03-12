@@ -1,15 +1,21 @@
-use std::cell::RefCell;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
-use crate::data::aspect::{Aspect, AspectVersion};
-use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
+#[cfg(test)]
+use std::cell::RefCell;
+#[cfg(test)]
+use crate::data::aspect::{Aspect, AspectVersion};
+#[cfg(test)]
+use crate::data::error::SignalError;
+#[cfg(test)]
 use crate::data::output::{IntoNodeEvaluationResult, PartitionSubscription};
 
+#[cfg(test)]
 use super::capture::PreparedDependencyCapture;
-use super::evaluation::{PreparedEvaluation, PreparedTraceData};
+#[cfg(test)]
+use super::evaluation::PreparedEvaluation;
 
 pub struct ExecutionSnapshot<'a> {
     graph: &'a SignalGraph,
@@ -24,21 +30,19 @@ impl<'a> ExecutionSnapshot<'a> {
         self.graph
     }
 
-    pub fn read_view(&'a self, evaluating: NodeId) -> ExecutionReadView<'a> {
+    pub fn read_view(&'a self, _evaluating: NodeId) -> ExecutionReadView<'a> {
         ExecutionReadView {
             snapshot: self,
-            evaluating,
+            #[cfg(test)]
             capture: RefCell::new(PreparedDependencyCapture::default()),
             not_send_or_sync: PhantomData,
         }
     }
 }
 
-pub type StageSnapshot<'a> = ExecutionSnapshot<'a>;
-
 pub struct ExecutionReadView<'a> {
     snapshot: &'a ExecutionSnapshot<'a>,
-    evaluating: NodeId,
+    #[cfg(test)]
     capture: RefCell<PreparedDependencyCapture>,
     not_send_or_sync: PhantomData<Rc<()>>,
 }
@@ -48,14 +52,12 @@ impl<'a> ExecutionReadView<'a> {
         self.snapshot.graph()
     }
 
-    pub fn evaluating(&self) -> NodeId {
-        self.evaluating
-    }
-
+    #[cfg(test)]
     pub fn capture_dependency(&self, source: NodeId, aspect: Aspect) {
         self.capture.borrow_mut().record(source, aspect, None);
     }
 
+    #[cfg(test)]
     pub fn capture_partition_dependency(
         &self,
         source: NodeId,
@@ -67,6 +69,7 @@ impl<'a> ExecutionReadView<'a> {
             .record(source, aspect, Some(scope));
     }
 
+    #[cfg(test)]
     pub fn read_aspect_version(
         &self,
         source: NodeId,
@@ -76,6 +79,7 @@ impl<'a> ExecutionReadView<'a> {
         Ok(self.graph().get_entry(source)?.get_aspect_version())
     }
 
+    #[cfg(test)]
     pub fn read_partitioned_aspect_version(
         &self,
         source: NodeId,
@@ -89,16 +93,9 @@ impl<'a> ExecutionReadView<'a> {
             .get_partitioned_aspect_version(&scope))
     }
 
+    #[cfg(test)]
     pub fn finish(&self, result: impl IntoNodeEvaluationResult) -> PreparedEvaluation {
         PreparedEvaluation::from_result(result)
             .with_dependencies(std::mem::take(&mut *self.capture.borrow_mut()))
-    }
-
-    pub fn finish_with(
-        &self,
-        result: impl IntoNodeEvaluationResult,
-        trace_data: PreparedTraceData,
-    ) -> PreparedEvaluation {
-        self.finish(result).with_trace_data(trace_data)
     }
 }

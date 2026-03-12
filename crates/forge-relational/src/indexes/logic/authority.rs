@@ -98,7 +98,7 @@ impl<'runtime> IndexAuthority<'runtime> {
             }
         }
         self.attach_generations_to_commit(request.source_commit_id, &generations);
-        self.runtime.push_bounded_diagnostic(
+        self.runtime.publication_authority().push_bounded_diagnostic(
             DiagnosticsScope::QueryPlanning,
             if failed_indexes.is_empty() {
                 DiagnosticsArtifactKind::MinimalSummary

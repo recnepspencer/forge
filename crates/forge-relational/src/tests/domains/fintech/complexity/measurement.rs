@@ -6,15 +6,16 @@ pub(crate) fn measure_world_action(
     world: &mut FintechWorld,
     action: impl FnOnce(&mut FintechWorld),
 ) -> RuntimeComplexityCounters {
-    world.runtime.reset_complexity_counters();
+    world.runtime.performance_access().reset_counters();
     action(world);
-    world.runtime.complexity_counters()
+    world.runtime.performance_access().counters()
 }
 
 pub(crate) fn contract_ids(world: &FintechWorld) -> Vec<&'static str> {
     world
         .runtime
-        .complexity_contracts()
+        .performance_access()
+        .contracts()
         .iter()
         .map(|contract: &ComplexityContract| contract.id)
         .collect()

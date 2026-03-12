@@ -1,4 +1,5 @@
 use crate::facade::*;
+use crate::logic::prepared::{PreparedDependencyCapture, PreparedEvaluation};
 use crate::tests::support::*;
 
 #[test]
@@ -10,7 +11,7 @@ fn rollback_after_dependency_rewiring_restores_original_topology() {
     graph.add_dependency(dependent, source_a, ASPECT_A).unwrap();
 
     let before = graph.dependencies_of(dependent).unwrap().to_vec();
-    let mut runtime = SignalRuntime::builder(graph).build();
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
     let mut ctx = ();
 
     let err = runtime
@@ -43,7 +44,7 @@ fn same_stage_dependency_rewiring_updates_dependency_edges_and_subscriber_sets_t
         .build_evaluation_plan(&[left, right], EvaluationRequestMode::Default)
         .unwrap();
     graph
-        .execute_prepared_plan(&bootstrap, &|node, _view| {
+        .execute_prepared_plan_with_precompute(&bootstrap, &|node, _view| {
             let mut capture = PreparedDependencyCapture::new();
             match node {
                 n if n == left => capture.record(source_a, ASPECT_A, None),
@@ -58,7 +59,7 @@ fn same_stage_dependency_rewiring_updates_dependency_edges_and_subscriber_sets_t
             )
         })
         .unwrap();
-    let rewiring_apply_count_before = graph.metrics().execution.rewiring_apply_count;
+    let rewiring_apply_count_before = graph.observe().metrics().execution.rewiring_apply_count;
 
     mark_dirty(&mut graph, left, ASPECT_A).unwrap();
     mark_dirty(&mut graph, right, ASPECT_A).unwrap();
@@ -66,7 +67,7 @@ fn same_stage_dependency_rewiring_updates_dependency_edges_and_subscriber_sets_t
         .build_evaluation_plan(&[left, right], EvaluationRequestMode::Default)
         .unwrap();
     let report = graph
-        .execute_prepared_plan(&rewire, &|node, _view| {
+        .execute_prepared_plan_with_precompute(&rewire, &|node, _view| {
             let mut capture = PreparedDependencyCapture::new();
             match node {
                 n if n == left => capture.record(source_c, ASPECT_A, None),
@@ -97,12 +98,12 @@ fn same_stage_dependency_rewiring_updates_dependency_edges_and_subscriber_sets_t
     assert_eq!(c_subs, vec![left]);
     assert_eq!(report.dependency_capture_updates, 4);
     assert_eq!(
-        graph.metrics().execution.rewiring_apply_count - rewiring_apply_count_before,
+        graph.observe().metrics().execution.rewiring_apply_count - rewiring_apply_count_before,
         2
     );
-    let left_explanation = graph.explain(left).unwrap();
+    let left_explanation = graph.observe().explain(left).unwrap();
     assert!(left_explanation.rewiring.is_some());
-    let left_provenance = graph.reconstruct_provenance_artifact(left).unwrap();
+    let left_provenance = graph.observe().reconstruct_provenance_artifact(left).unwrap();
     assert!(left_provenance.rewiring.is_some());
     assert!(left_provenance
         .causal_links

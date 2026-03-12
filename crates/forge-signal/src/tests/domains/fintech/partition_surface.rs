@@ -1,4 +1,4 @@
-use crate::facade::NodeId;
+use crate::facade::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum MarketPartition {

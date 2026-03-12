@@ -7,8 +7,10 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::diagnostics::recorder::record_lineage_transition;
+use crate::logic::context::EvaluationContext;
+use crate::logic::evaluation::IntoEvaluationOutput;
 use crate::logic::evaluation::EvaluationExecutionMetadata;
-use crate::logic::prepared::{ExecutionSnapshot, PreparedEvaluation};
+use crate::logic::prepared::ExecutionSnapshot;
 
 use super::execution::diagnostics::{record_successful_execution, summarize_recorded_plan};
 use super::reporting::{accumulate_report_counters, classify_task_record};
@@ -54,19 +56,18 @@ where
 }
 
 #[cfg(test)]
-pub(crate) fn execute_test_prepared_plan_with_resolvers<F>(
+pub(crate) fn execute_test_prepared_plan_with_resolvers<Ctx, F, O>(
     graph: &mut SignalGraph,
     plan: &EvaluationPlan,
-    precompute: &F,
+    domain_ctx: &Ctx,
+    evaluator: &F,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
     condition_resolver: &mut impl crate::logic::evaluation::ConditionResolver,
 ) -> Result<ExecutionReport, SignalError>
 where
-    F: Fn(
-            NodeId,
-            &crate::logic::prepared::ExecutionReadView<'_>,
-        ) -> Result<PreparedEvaluation, SignalError>
-        + Sync,
+    Ctx: Sync,
+    F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+    O: IntoEvaluationOutput,
 {
     graph.telemetry_mut().planner.plans_built += 1;
     graph.telemetry_mut().planner.stages_built += plan.stages.len() as u64;
@@ -99,7 +100,11 @@ where
                 let prepared = prepare_test_precomputed_task(
                     &snapshot,
                     task.node,
-                    precompute,
+                    &|node, view| {
+                        let mut eval_ctx = EvaluationContext::new(view.graph(), node, domain_ctx);
+                        let output = evaluator(&mut eval_ctx)?;
+                        Ok(eval_ctx.into_prepared(output))
+                    },
                     comparator_resolver,
                     condition_resolver,
                     task.request_mode,

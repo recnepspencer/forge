@@ -13,9 +13,7 @@ use crate::authority::commit::phases::prepare::{
 use crate::authority::commit::phases::publication::{
     append_durable_commit,
 };
-use crate::diagnostics::data::{DiagnosticsArtifactKind, DiagnosticsScope};
 use crate::publication::data::PublicationStatus;
-use crate::publication::logic::publication_failure_diagnostic;
 use crate::transactions::logic::RelationalTransaction;
 use crate::transactions::data::{CommitOutcome, TransactionCommitError};
 
@@ -51,15 +49,9 @@ impl<'a> RelationalTransaction<'a> {
         let merge_base_commits = history.merge_base_commits.clone();
 
         {
-            let overlay_state = self.runtime.overlay_state_view(&working_state);
             if let Err(error) =
-                run_snapshot_publication_invariants(self.runtime, &overlay_state, version_id, &merged_plan)
+                run_snapshot_publication_invariants(self.runtime, &working_state, version_id, &merged_plan)
             {
-                self.runtime.push_bounded_diagnostic(
-                    DiagnosticsScope::Invariant,
-                    DiagnosticsArtifactKind::Failure,
-                    vec![publication_failure_diagnostic(error.detail.clone())],
-                );
                 return Err(TransactionCommitError::Publication(error));
             }
         }

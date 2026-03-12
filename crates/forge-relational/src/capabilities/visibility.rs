@@ -1,28 +1,4 @@
 use crate::logic::runtime::RelationalRuntime;
-use crate::publication::data::PublicationBundle;
-use crate::replay::data::RelationalReplayRecord;
-
-#[allow(dead_code)]
-pub(crate) trait PublicationSink {
-    fn latest_publication_bundle(&self) -> Option<&PublicationBundle<RelationalReplayRecord>>;
-}
-
-impl PublicationSink for RelationalRuntime {
-    fn latest_publication_bundle(&self) -> Option<&PublicationBundle<RelationalReplayRecord>> {
-        self.publication.latest_bundle.as_ref()
-    }
-}
-
-#[allow(dead_code)]
-pub(crate) trait LineageSource {
-    fn lineage_event_count(&self) -> usize;
-}
-
-impl LineageSource for RelationalRuntime {
-    fn lineage_event_count(&self) -> usize {
-        self.lineage.events.len()
-    }
-}
 
 pub(crate) trait VisibilityPolicySource {
     fn visibility_cache_enabled(&self) -> bool;

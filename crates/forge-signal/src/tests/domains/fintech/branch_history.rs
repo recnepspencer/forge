@@ -1,6 +1,4 @@
-use crate::facade::{
-    LineageRecord, ReplaySlice, SignalBranchHandle, SignalError, SignalSnapshotV1,
-};
+use crate::facade::*;
 
 use super::fixture::FintechDomainFixture;
 
@@ -36,7 +34,7 @@ pub(super) fn replay_for_branch(
     fixture: &FintechDomainFixture,
     branch: SignalBranchHandle,
 ) -> ReplaySlice {
-    fixture.runtime.replay_for_branch(branch.id)
+    fixture.runtime.observe().replay_for_branch(branch.id)
 }
 
 pub(super) fn replay_around_snapshot(
@@ -45,11 +43,13 @@ pub(super) fn replay_around_snapshot(
 ) -> ReplaySlice {
     fixture
         .runtime
+        .observe()
         .replay_around_snapshot(snapshot.meta.snapshot_id)
 }
 
 pub(super) fn lineage_for_main_risk(fixture: &FintechDomainFixture) -> Vec<LineageRecord> {
     fixture
         .runtime
+        .observe()
         .lineage_chain_for_node(fixture.main_risk_node())
 }

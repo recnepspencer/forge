@@ -1,11 +1,5 @@
 use crate::data::output::IntoNodeEvaluationResult;
-use crate::facade::{
-    Aspect, AspectMask, AspectVersion, ComparatorPolicyResolver, ComputationSpec,
-    DefinedComputation, DefaultComparatorPolicyResolver, DefaultComparatorResolver,
-    DefaultConditionResolver, EvaluationRequestMode, ExecutionReadView, NodeContract, NodeId,
-    PreparedEvaluation, SignalError, SignalGraph, SignalRuntime, VersionComparatorPolicy,
-    VersionComparatorResolver,
-};
+use crate::facade::{evaluation::*, graph::*, transaction::*, types::*};
 use crate::logic::planner::{
     build_evaluation_plan_with_policy_resolver, execute_plan_with_policy_and_condition,
     StageExecutor,
@@ -103,7 +97,7 @@ where
     F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
     O: IntoNodeEvaluationResult,
     R: VersionComparatorResolver,
-    C: crate::facade::ConditionResolver,
+    C: ConditionResolver,
 {
     let mut policy = DefaultComparatorPolicyResolver {
         fallback: VersionComparatorPolicy::Exact,
@@ -131,7 +125,7 @@ where
     F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
     O: IntoNodeEvaluationResult,
     R: ComparatorPolicyResolver,
-    C: crate::facade::ConditionResolver,
+    C: ConditionResolver,
 {
     let graph = graph.deref_mut();
     let plan = build_evaluation_plan_with_policy_resolver(
@@ -153,9 +147,8 @@ where
 }
 
 fn unsupported_keyed_evaluator(
-    _node: NodeId,
-    _view: &ExecutionReadView<'_>,
-) -> Result<PreparedEvaluation, SignalError> {
+    _ctx: &mut EvaluationContext<'_, ()>,
+) -> Result<EvaluationOutput, SignalError> {
     Err(SignalError::internal(
         "test helper computation definition should not use its built-in evaluator",
     ))
@@ -163,11 +156,11 @@ fn unsupported_keyed_evaluator(
 
 pub(crate) fn define_keyed_computation<D, I, E, Ctx, T>(
     runtime: &mut SignalRuntime<D, I, E, Ctx, T>,
-    family: impl Into<crate::facade::ComputationFamily>,
+    family: impl Into<ComputationFamily>,
     tier: T,
 ) -> DefinedComputation<
     T,
-    fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError>,
+    fn(&mut EvaluationContext<'_, ()>) -> Result<EvaluationOutput, SignalError>,
 >
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
@@ -181,7 +174,7 @@ where
             tier,
             comparator: VersionComparatorPolicy::Exact,
             evaluator: unsupported_keyed_evaluator
-                as fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError>,
+                as fn(&mut EvaluationContext<'_, ()>) -> Result<EvaluationOutput, SignalError>,
         })
         .expect("test keyed computation should define cleanly")
 }

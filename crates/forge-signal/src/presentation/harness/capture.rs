@@ -10,7 +10,7 @@ use forge_harness::facade::{replay_id, ReplayRecord, ReplayRequest};
 use serde_json::{json, Value};
 
 use super::bridge::SignalHarnessBridge;
-use crate::facade::CORE_STORAGE_PROFILE_ID;
+use crate::facade::*;
 
 impl DiagnosticsHarnessAdapter for SignalHarnessBridge {
     fn capture_diagnostics(
@@ -224,7 +224,7 @@ impl PerformanceHarnessAdapter for SignalHarnessBridge {
         _profile: &ExecutionProfile,
     ) -> Result<Value, Self::Error> {
         let runtime = runtime.runtime()?;
-        Ok(serde_json::to_value(runtime.graph.metrics()).unwrap_or_else(|_| json!({})))
+        Ok(serde_json::to_value(runtime.graph.observe().metrics()).unwrap_or_else(|_| json!({})))
     }
 }
 

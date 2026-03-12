@@ -3,28 +3,15 @@ use crate::data::graph::signal_graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
 use crate::diagnostics::policy::ArtifactMaterializationMode;
-use crate::logic::explain::{dependency_chain_to, explain, NodeExplanation};
-use crate::presentation::dot::to_dot;
+use crate::logic::explain::{explain, NodeExplanation};
 use crate::state::{SignalSnapshotMeta, SignalSnapshotV1};
 
 impl SignalGraph {
-    pub fn explain(&self, node: NodeId) -> Result<NodeExplanation, SignalError> {
-        explain(self, node)
-    }
-
-    pub fn dependency_chain_to(
-        &self,
-        root: NodeId,
-        target: NodeId,
-    ) -> Result<Option<Vec<NodeId>>, SignalError> {
-        dependency_chain_to(self, root, target)
-    }
-
-    pub fn explanation_fact(&self, node: NodeId) -> Option<&ExplanationFact> {
+    pub(crate) fn explanation_fact(&self, node: NodeId) -> Option<&ExplanationFact> {
         self.observation.diagnostics.explanation_facts().get(&node)
     }
 
-    pub fn provenance_fact(&self, node: NodeId) -> Option<&ProvenanceFact> {
+    pub(crate) fn provenance_fact(&self, node: NodeId) -> Option<&ProvenanceFact> {
         self.observation.diagnostics.provenance_facts().get(&node)
     }
 
@@ -88,40 +75,7 @@ impl SignalGraph {
         Ok(())
     }
 
-    pub fn retained_explanation_artifact(&self, node: NodeId) -> Option<NodeExplanation> {
-        self.explanation_fact(node).map(|fact| {
-            let mut explanation = fact.explanation.clone();
-            explanation.materialization_mode = ArtifactMaterializationMode::Retained;
-            explanation
-        })
-    }
-
-    pub fn reconstruct_explanation_artifact(
-        &self,
-        node: NodeId,
-    ) -> Result<NodeExplanation, SignalError> {
-        let mut explanation = explain(self, node)?;
-        explanation.materialization_mode = ArtifactMaterializationMode::Reconstructed;
-        Ok(explanation)
-    }
-
-    pub fn retained_provenance_artifact(&self, node: NodeId) -> Option<ProvenanceFact> {
-        self.provenance_fact(node).cloned().map(|mut fact| {
-            fact.materialization_mode = ArtifactMaterializationMode::Retained;
-            fact
-        })
-    }
-
-    pub fn reconstruct_provenance_artifact(
-        &self,
-        node: NodeId,
-    ) -> Result<ProvenanceFact, SignalError> {
-        let mut explanation = explain(self, node)?;
-        explanation.materialization_mode = ArtifactMaterializationMode::Reconstructed;
-        Ok(ProvenanceFact::from_explanation(&explanation))
-    }
-
-    pub fn explain_artifact(
+    pub(crate) fn explain_artifact(
         &self,
         node: NodeId,
     ) -> Result<(Option<NodeExplanation>, ArtifactMaterializationMode), SignalError> {
@@ -131,15 +85,17 @@ impl SignalGraph {
             return Ok((Some(explanation), ArtifactMaterializationMode::Retained));
         }
         if self.runtime_policy().can_reconstruct_explanation() {
+            let mut explanation = explain(self, node)?;
+            explanation.materialization_mode = ArtifactMaterializationMode::Reconstructed;
             return Ok((
-                Some(self.reconstruct_explanation_artifact(node)?),
+                Some(explanation),
                 ArtifactMaterializationMode::Reconstructed,
             ));
         }
         Ok((None, ArtifactMaterializationMode::Unavailable))
     }
 
-    pub fn provenance_artifact(
+    pub(crate) fn provenance_artifact(
         &self,
         node: NodeId,
     ) -> Result<(Option<ProvenanceFact>, ArtifactMaterializationMode), SignalError> {
@@ -149,16 +105,14 @@ impl SignalGraph {
             return Ok((Some(fact), ArtifactMaterializationMode::Retained));
         }
         if self.runtime_policy().can_reconstruct_provenance() {
+            let mut explanation = explain(self, node)?;
+            explanation.materialization_mode = ArtifactMaterializationMode::Reconstructed;
             return Ok((
-                Some(self.reconstruct_provenance_artifact(node)?),
+                Some(ProvenanceFact::from_explanation(&explanation)),
                 ArtifactMaterializationMode::Reconstructed,
             ));
         }
         Ok((None, ArtifactMaterializationMode::Unavailable))
-    }
-
-    pub fn to_dot(&self) -> String {
-        to_dot(self)
     }
 
     #[cfg(test)]

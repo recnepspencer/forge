@@ -2,10 +2,9 @@ mod capture;
 mod evaluation;
 mod snapshot;
 
-pub use capture::{PreparedDependencyCapture, PreparedDependencyEdge};
+pub use capture::PreparedDependencyCapture;
 pub use evaluation::{
     PreparedEvaluation, PreparedEvaluationOrigin, PreparedEvaluationOutcome,
-    PreparedKeyedContext, PreparedMemoDecision, PreparedStage, PreparedTaskRecord,
-    PreparedTraceData, StageApplyResult,
+    PreparedKeyedContext, PreparedMemoDecision, PreparedTraceData,
 };
-pub use snapshot::{ExecutionReadView, ExecutionSnapshot, StageSnapshot};
+pub use snapshot::{ExecutionReadView, ExecutionSnapshot};

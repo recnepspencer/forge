@@ -3,9 +3,8 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::sync::Mutex;
 
-use crate::facade::{
-    mark_dirty, AspectMask, NodeId, NodeState, PreparedEvaluation, SignalError, SignalGraph,
-};
+use crate::facade::{graph::*, transaction::*, types::*};
+use crate::logic::prepared::PreparedEvaluation;
 
 use super::compute::{ComputeContext, Computed, ErasedComputed};
 use super::signal::{ComputedSignal, InputSignal, Signal, DEFAULT_ASPECT};
@@ -185,7 +184,7 @@ impl ReactiveGraph {
         let graph = &mut self.graph;
         let computed = &self.computed;
         let values = &self.values;
-        graph.execute_prepared_plan(&plan, &|current, view| {
+        graph.execute_prepared_plan_with_precompute(&plan, &|current, view| {
             if let Some(computed) = computed.get(&current) {
                 let current_version = view
                     .graph()

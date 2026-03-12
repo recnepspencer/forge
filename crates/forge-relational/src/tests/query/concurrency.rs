@@ -7,7 +7,7 @@ fn concurrent_snapshot_and_version_reads_match_serial_truth() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
     let created = create_entity_outcome(&mut runtime, "before");
     let entity = changed_entities(&created)[0];
-    let explicit_snapshot = runtime.snapshot_access().snapshot();
+    let explicit_snapshot = runtime.visibility_authority().snapshot();
     let updated = update_entity(&mut runtime, entity, "after");
     let serial_snapshot_name = {
         let read = runtime.visibility_reads().read_snapshot(&explicit_snapshot).unwrap();
@@ -61,12 +61,12 @@ fn concurrent_read_pressure_keeps_cache_diagnostics_coherent() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
     let created = create_entity_outcome(&mut runtime, "baseline");
     let entity = changed_entities(&created)[0];
-    let explicit_snapshot = runtime.snapshot_access().snapshot();
+    let explicit_snapshot = runtime.visibility_authority().snapshot();
     let updated = update_entity(&mut runtime, entity, "mutated");
     let _ = create_entity_outcome(&mut runtime, "churn-1");
     let _ = create_entity_outcome(&mut runtime, "churn-2");
     let _ = create_entity_outcome(&mut runtime, "churn-3");
-    runtime.reset_complexity_counters();
+    runtime.performance_access().reset_counters();
     let runtime = Arc::new(runtime);
 
     std::thread::scope(|scope| {
@@ -102,6 +102,6 @@ fn concurrent_read_pressure_keeps_cache_diagnostics_coherent() {
         }
     });
 
-    let counters = runtime.complexity_counters();
+    let counters = runtime.performance_access().counters();
     assert!(counters.visibility_cache_hits > 0);
 }

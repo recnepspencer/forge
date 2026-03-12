@@ -101,7 +101,7 @@ pub const COMPLEXITY_CONTRACTS: &[ComplexityContract] = &[
     },
     ComplexityContract {
         id: "runtime.unique_entity_invariant_lookup",
-        function_path: "logic/runtime/invariants.rs::run_invariants_for_state",
+        function_path: "validation/engine/engine.rs::execute",
         declared_time_complexity: "O(touched_entities + unique_lookup_hits)",
         budget_summary: "Unique-field invariant checks should use touched entities plus the maintained lookup index instead of broad visible-entity scans when the changed set is known.",
         status: ComplexityStatus::Verified,
@@ -160,7 +160,7 @@ pub const COMPLEXITY_CONTRACTS: &[ComplexityContract] = &[
     },
     ComplexityContract {
         id: "runtime.invariant.materialization",
-        function_path: "logic/runtime/invariants.rs::run_invariants_for_state",
+        function_path: "validation/engine/engine.rs::execute",
         declared_time_complexity: "Mixed: O(touched_entity_slots + touched_relation_slots) for structural mutation checks, O(merged_intents) for merged-plan limits, O(partitions) for current-version snapshot counts, O(entity_slots) for historical snapshot counts, O(touched_entities + lookup_hits) for unique-field checks",
         budget_summary: "Current invariant rules expose measurable fast paths, but the subsystem remains debt until broader future rules cannot silently reintroduce full-state materialization without updating the contract.",
         status: ComplexityStatus::Debt,

@@ -6,84 +6,88 @@ use crate::storage::data::{
 };
 use crate::transactions::data::RecordRef;
 
-impl RelationalRuntime {
-    pub fn chunked_storage_summary(&self, version_id: VersionId) -> ChunkedStorageSummary {
-        ChunkedStorageSummary {
-            entity_chunks: summarize_entity_chunks(self, version_id),
-            relation_chunks: summarize_relation_chunks(self, version_id),
-        }
+pub(crate) fn chunked_storage_summary(
+    runtime: &RelationalRuntime,
+    version_id: VersionId,
+) -> ChunkedStorageSummary {
+    ChunkedStorageSummary {
+        entity_chunks: summarize_entity_chunks(runtime, version_id),
+        relation_chunks: summarize_relation_chunks(runtime, version_id),
     }
+}
 
-    pub fn chunk_diagnostics(&self, version_id: VersionId) -> ChunkDiagnostics {
-        let summary = self.chunked_storage_summary(version_id);
-        ChunkDiagnostics {
-            version_id,
-            entity_chunks_total: summary.entity_chunks.len(),
-            entity_chunks_with_visible_records: summary
-                .entity_chunks
-                .iter()
-                .filter(|chunk| chunk.visible_records > 0)
-                .count(),
-            entity_chunks_with_retained_records: summary
-                .entity_chunks
-                .iter()
-                .filter(|chunk| chunk.retained_records > 0)
-                .count(),
-            relation_chunks_total: summary.relation_chunks.len(),
-            relation_chunks_with_visible_records: summary
-                .relation_chunks
-                .iter()
-                .filter(|chunk| chunk.visible_records > 0)
-                .count(),
-            relation_chunks_with_retained_records: summary
-                .relation_chunks
-                .iter()
-                .filter(|chunk| chunk.retained_records > 0)
-                .count(),
-        }
+pub(crate) fn chunk_diagnostics(
+    runtime: &RelationalRuntime,
+    version_id: VersionId,
+) -> ChunkDiagnostics {
+    let summary = chunked_storage_summary(runtime, version_id);
+    ChunkDiagnostics {
+        version_id,
+        entity_chunks_total: summary.entity_chunks.len(),
+        entity_chunks_with_visible_records: summary
+            .entity_chunks
+            .iter()
+            .filter(|chunk| chunk.visible_records > 0)
+            .count(),
+        entity_chunks_with_retained_records: summary
+            .entity_chunks
+            .iter()
+            .filter(|chunk| chunk.retained_records > 0)
+            .count(),
+        relation_chunks_total: summary.relation_chunks.len(),
+        relation_chunks_with_visible_records: summary
+            .relation_chunks
+            .iter()
+            .filter(|chunk| chunk.visible_records > 0)
+            .count(),
+        relation_chunks_with_retained_records: summary
+            .relation_chunks
+            .iter()
+            .filter(|chunk| chunk.retained_records > 0)
+            .count(),
     }
+}
 
-    pub fn plan_read_packet(
-        &self,
-        handle: &crate::snapshots::data::SnapshotHandle,
-        packet: &QueryWorkPacket,
-    ) -> Option<ReadPacketPlan> {
-        if !self.visibility.is_known_snapshot(handle.snapshot_id) {
-            return None;
-        }
-        let mut entity_chunk_indexes = Vec::new();
-        let mut relation_chunk_indexes = Vec::new();
+pub(crate) fn plan_read_packet(
+    runtime: &RelationalRuntime,
+    handle: &crate::snapshots::data::SnapshotHandle,
+    packet: &QueryWorkPacket,
+) -> Option<ReadPacketPlan> {
+    if !runtime.visibility.is_known_snapshot(handle.snapshot_id) {
+        return None;
+    }
+    let mut entity_chunk_indexes = Vec::new();
+    let mut relation_chunk_indexes = Vec::new();
 
-        for target in &packet.targets {
-            match target {
-                RecordRef::Entity(entity_id) => {
-                    let chunk_index = slot_chunk_index(
-                        entity_id.local_slot.0 as usize,
-                        self.config.storage.layout.entity_chunk_size,
-                    );
-                    if !entity_chunk_indexes.contains(&chunk_index) {
-                        entity_chunk_indexes.push(chunk_index);
-                    }
+    for target in &packet.targets {
+        match target {
+            RecordRef::Entity(entity_id) => {
+                let chunk_index = slot_chunk_index(
+                    entity_id.local_slot.0 as usize,
+                    runtime.config.storage.layout.entity_chunk_size,
+                );
+                if !entity_chunk_indexes.contains(&chunk_index) {
+                    entity_chunk_indexes.push(chunk_index);
                 }
-                RecordRef::Relation(relation_id) => {
-                    let chunk_index = slot_chunk_index(
-                        relation_id.local_slot.0 as usize,
-                        self.config.storage.layout.relation_chunk_size,
-                    );
-                    if !relation_chunk_indexes.contains(&chunk_index) {
-                        relation_chunk_indexes.push(chunk_index);
-                    }
+            }
+            RecordRef::Relation(relation_id) => {
+                let chunk_index = slot_chunk_index(
+                    relation_id.local_slot.0 as usize,
+                    runtime.config.storage.layout.relation_chunk_size,
+                );
+                if !relation_chunk_indexes.contains(&chunk_index) {
+                    relation_chunk_indexes.push(chunk_index);
                 }
             }
         }
-
-        Some(ReadPacketPlan {
-            label: packet.label.clone(),
-            entity_chunk_indexes,
-            relation_chunk_indexes,
-            target_count: packet.targets.len(),
-        })
     }
+
+    Some(ReadPacketPlan {
+        label: packet.label.clone(),
+        entity_chunk_indexes,
+        relation_chunk_indexes,
+        target_count: packet.targets.len(),
+    })
 }
 
 fn summarize_entity_chunks(

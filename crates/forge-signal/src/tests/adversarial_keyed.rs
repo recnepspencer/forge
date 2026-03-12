@@ -5,7 +5,7 @@ use crate::tests::support::{define_keyed_computation, version_ab, ASPECT_A};
 
 #[test]
 fn many_families_sharing_same_key_remain_distinct() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     let families: Vec<_> = (0..64)
         .map(|index| define_keyed_computation(&mut runtime, format!("family-{index}"), ()))
         .collect();
@@ -19,7 +19,7 @@ fn many_families_sharing_same_key_remain_distinct() {
 
 #[test]
 fn many_keys_in_one_family_reuse_stably_across_large_lookup_sequences() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     let family = define_keyed_computation(&mut runtime, "airframe", ());
     let mut first_pass = Vec::new();
 
@@ -35,7 +35,7 @@ fn many_keys_in_one_family_reuse_stably_across_large_lookup_sequences() {
 
 #[test]
 fn repeated_failed_transactions_do_not_promote_memoized_results() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     let family = define_keyed_computation(&mut runtime, "fintech-pricing", ());
     let keyed = family.keyed("book");
     let node = keyed.node(&mut runtime);
@@ -45,7 +45,7 @@ fn repeated_failed_transactions_do_not_promote_memoized_results() {
 
     for _ in 0..20 {
         let err = runtime.transaction(&mut runtime_ctx, |tx| {
-            tx.evaluate_keyed(node, &computation, &|_id, view| {
+            tx.evaluate_keyed(node, &computation, &|view| {
                 compute_calls.fetch_add(1, Ordering::Relaxed);
                 Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
             })?;
@@ -56,7 +56,7 @@ fn repeated_failed_transactions_do_not_promote_memoized_results() {
 
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.evaluate_keyed(node, &computation, &|_id, view| {
+            tx.evaluate_keyed(node, &computation, &|view| {
                 compute_calls.fetch_add(1, Ordering::Relaxed);
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(version_ab(2, 0))
@@ -70,7 +70,7 @@ fn repeated_failed_transactions_do_not_promote_memoized_results() {
     runtime
         .transaction(&mut runtime_ctx, |tx| {
             tx.mark_dirty(node, ASPECT_A)?;
-            tx.evaluate_keyed(node, &computation, &|_id, view| {
+            tx.evaluate_keyed(node, &computation, &|view| {
                 compute_calls.fetch_add(1, Ordering::Relaxed);
                 Ok(view.finish(NodeEvaluationResult::from_version(version_ab(99, 0))))
             })?;
@@ -78,7 +78,7 @@ fn repeated_failed_transactions_do_not_promote_memoized_results() {
         })
         .unwrap();
 
-    let metrics = runtime.metrics();
+    let metrics = runtime.observe().metrics();
     assert_eq!(metrics.evaluation.memoization_misses, 21);
     assert_eq!(metrics.evaluation.memoization_hits, 1);
     assert_eq!(compute_calls.load(Ordering::Relaxed), 21);
@@ -86,7 +86,7 @@ fn repeated_failed_transactions_do_not_promote_memoized_results() {
 
 #[test]
 fn keyed_telemetry_stays_coherent_under_mixed_hit_and_miss_workload() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     let family = define_keyed_computation(&mut runtime, "kernel", ());
     let mut runtime_ctx = ();
 
@@ -97,7 +97,7 @@ fn keyed_telemetry_stays_coherent_under_mixed_hit_and_miss_workload() {
 
         runtime
             .transaction(&mut runtime_ctx, |tx| {
-                tx.evaluate_keyed(node, &computation, &|_id, view| {
+                tx.evaluate_keyed(node, &computation, &|view| {
                     Ok(view.finish(NodeEvaluationResult::from_version(version_ab(index + 1, 0))))
                 })?;
                 Ok(())
@@ -107,7 +107,7 @@ fn keyed_telemetry_stays_coherent_under_mixed_hit_and_miss_workload() {
         runtime
             .transaction(&mut runtime_ctx, |tx| {
                 tx.mark_dirty(node, ASPECT_A)?;
-                tx.evaluate_keyed(node, &computation, &|_id, view| {
+                tx.evaluate_keyed(node, &computation, &|view| {
                     Ok(view.finish(NodeEvaluationResult::from_version(version_ab(999, 0))))
                 })?;
                 Ok(())
@@ -115,7 +115,7 @@ fn keyed_telemetry_stays_coherent_under_mixed_hit_and_miss_workload() {
             .unwrap();
     }
 
-    let metrics = runtime.metrics();
+    let metrics = runtime.observe().metrics();
     assert_eq!(metrics.invalidation.keyed_evaluation_count, 48);
     assert_eq!(metrics.evaluation.memoization_misses, 24);
     assert_eq!(metrics.evaluation.memoization_hits, 24);
@@ -124,7 +124,7 @@ fn keyed_telemetry_stays_coherent_under_mixed_hit_and_miss_workload() {
 #[test]
 #[ignore = "stress coverage for keyed-cardinality and memoization churn"]
 fn stress_thousands_of_keyed_lookups_and_memo_keys() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
     let families: Vec<_> = (0..64)
         .map(|index| define_keyed_computation(&mut runtime, format!("family-{index}"), ()))
         .collect();
@@ -139,7 +139,7 @@ fn stress_thousands_of_keyed_lookups_and_memo_keys() {
                 let computation = keyed.memoized(format!("memo-{round}-{key_index}"));
                 runtime
                     .transaction(&mut runtime_ctx, |tx| {
-                        tx.evaluate_keyed(node, &computation, &|_id, view| {
+                        tx.evaluate_keyed(node, &computation, &|view| {
                             Ok(view.finish(NodeEvaluationResult::from_version(version_ab(
                                 round + key_index as u64 + 1,
                                 0,
@@ -152,5 +152,5 @@ fn stress_thousands_of_keyed_lookups_and_memo_keys() {
         }
     }
 
-    assert!(runtime.metrics().invalidation.keyed_evaluation_count > 1_000);
+    assert!(runtime.observe().metrics().invalidation.keyed_evaluation_count > 1_000);
 }

@@ -11,13 +11,10 @@ use forge_harness::facade::{
 };
 use serde_json::{json, Value};
 
-use crate::facade::{
-    AspectVersion, LineageEvent, LineageRecord, ReplayEventKind, ReplaySlice, SignalBranchHandle,
-    SignalError, SignalRuntimePolicy, SignalSnapshotV1, StageExecutor,
-};
+use crate::facade::*;
 
 #[cfg(feature = "parallel")]
-use crate::facade::{compare_lineage_records, compare_replay_slices};
+use crate::facade::*;
 #[cfg(feature = "parallel")]
 use forge_harness::facade::{DifferentialOutcome, WorkflowCertificationReport};
 

@@ -8,7 +8,6 @@ use crate::durability::data::{
     DurabilityError, DurableCheckpoint, DurableCheckpointId, DurableSegmentId, DurableStore,
     DurableStoreLayout, RecoveryFailureClass,
 };
-use crate::logic::runtime::RelationalRuntime;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct DurableStoreManifestFile {
@@ -25,42 +24,41 @@ pub(crate) struct DurableCheckpointFile {
     pub(crate) checkpoint: DurableCheckpoint,
 }
 
-impl RelationalRuntime {
-    pub(crate) fn ensure_loaded_store(&self) -> Result<DurableStore, DurabilityError> {
-        if let Some(store) = self.durable_store() {
-            return load_or_initialize_store(store.layout.clone());
-        }
-        let Some(layout) = self.durable_store_layout() else {
-            return Err(DurabilityError::new(
-                RecoveryFailureClass::DurableIoFailure,
-                "persisted durability mode requires a durable store layout",
-            ));
-        };
-        load_or_initialize_store(layout)
+pub(crate) fn ensure_loaded_store(
+    runtime: &(impl DurabilityRead + crate::capabilities::RuntimeConfigSource),
+) -> Result<DurableStore, DurabilityError> {
+    if let Some(store) = runtime.durable_store() {
+        return load_or_initialize_store(store.layout.clone());
     }
+    let Some(layout) = runtime.runtime_config().durability.policy.store_layout.clone() else {
+        return Err(DurabilityError::new(
+            RecoveryFailureClass::DurableIoFailure,
+            "persisted durability mode requires a durable store layout",
+        ));
+    };
+    load_or_initialize_store(layout)
+}
 
-    pub(crate) fn load_store_from_disk(&self) -> Result<DurableStore, DurabilityError> {
-        let Some(layout) = self.durable_store_layout() else {
-            return Err(DurabilityError::new(
-                RecoveryFailureClass::DurableIoFailure,
-                "persisted durability mode requires a durable store layout",
-            ));
-        };
-        load_or_initialize_store(layout)
-    }
+pub(crate) fn load_store_from_disk(
+    runtime: &impl crate::capabilities::RuntimeConfigSource,
+) -> Result<DurableStore, DurabilityError> {
+    let Some(layout) = runtime.runtime_config().durability.policy.store_layout.clone() else {
+        return Err(DurabilityError::new(
+            RecoveryFailureClass::DurableIoFailure,
+            "persisted durability mode requires a durable store layout",
+        ));
+    };
+    load_or_initialize_store(layout)
+}
 
-    pub(crate) fn persist_store_manifest(
-        &self,
-        store: &DurableStore,
-    ) -> Result<(), DurabilityError> {
-        ensure_store_dirs(&store.layout)?;
-        write_json(
-            &manifest_path(&store.layout),
-            &DurableStoreManifestFile {
-                store: store.clone(),
-            },
-        )
-    }
+pub(crate) fn persist_store_manifest(store: &DurableStore) -> Result<(), DurabilityError> {
+    ensure_store_dirs(&store.layout)?;
+    write_json(
+        &manifest_path(&store.layout),
+        &DurableStoreManifestFile {
+            store: store.clone(),
+        },
+    )
 }
 
 pub(crate) fn current_segment_ids(store: Option<&DurableStore>) -> Vec<DurableSegmentId> {

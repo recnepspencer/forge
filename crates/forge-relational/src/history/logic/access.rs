@@ -41,6 +41,14 @@ impl<'runtime> HistoryAccess<'runtime> {
             })
     }
 
+    pub(crate) fn next_commit_id(&self) -> CommitId {
+        self.runtime.history.preview_next_commit_id()
+    }
+
+    pub(crate) fn preview_next_version_id(&self) -> crate::identity::data::VersionId {
+        self.runtime.history.preview_next_version_id()
+    }
+
     pub fn branch_head(&self, branch_id: &BranchId) -> Option<&CommitReference> {
         self.runtime
             .history
@@ -58,6 +66,15 @@ impl<'runtime> HistoryAccess<'runtime> {
                 branch_id: branch_id.clone(),
                 head: head.clone(),
             })
+            .collect()
+    }
+
+    pub(crate) fn branch_head_versions(&self) -> Vec<crate::identity::data::VersionId> {
+        self.runtime
+            .history
+            .branch_heads
+            .values()
+            .filter_map(|head| head.as_ref().map(|head| head.version_id))
             .collect()
     }
 

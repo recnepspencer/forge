@@ -36,11 +36,15 @@ fn chip_profile_preserves_relation_traversal_with_compressed_adjacency_backend()
         crate::facade::AdjacencyBackend::CompressedFanoutAdjacency
     );
     assert_eq!(
-        runtime.outgoing_relations_for_entity(source, version_id),
+        runtime
+            .storage_access()
+            .outgoing_relations_for_entity(source, version_id),
         vec![relation_a, relation_b]
     );
     assert_eq!(
-        runtime.incoming_relations_for_entity(target_b, version_id),
+        runtime
+            .storage_access()
+            .incoming_relations_for_entity(target_b, version_id),
         vec![relation_b]
     );
 }
@@ -54,6 +58,7 @@ fn chip_profile_compiled_artifacts_are_derived_from_committed_truth() {
     let commit = runtime.history_access().latest_commit().unwrap().clone();
 
     let artifact = runtime
+        .simulation_authority()
         .compile_execution_artifact(
             commit.commit_id,
             vec![PartitionId(7), PartitionId(11), PartitionId(29)],
@@ -64,7 +69,9 @@ fn chip_profile_compiled_artifacts_are_derived_from_committed_truth() {
     assert_eq!(artifact.source_version_id, commit.version_id);
     assert_eq!(artifact.source_branch_id, BranchId("main".to_string()));
     assert_eq!(
-        runtime.compiled_artifact_compatibility(artifact.artifact_id),
+        runtime
+            .simulation_access()
+            .compiled_artifact_compatibility(artifact.artifact_id),
         crate::facade::CompiledArtifactCompatibility::Compatible
     );
 }
@@ -74,12 +81,15 @@ fn compiled_artifact_rejects_stale_topology_after_later_commit() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
     let original = create_entity_outcome(&mut runtime, "seed");
     let artifact = runtime
+        .simulation_authority()
         .compile_execution_artifact(original.commit.commit_id, vec![PartitionId::main()])
         .unwrap();
     let _later = create_entity_outcome(&mut runtime, "later");
 
     assert_eq!(
-        runtime.compiled_artifact_compatibility(artifact.artifact_id),
+        runtime
+            .simulation_access()
+            .compiled_artifact_compatibility(artifact.artifact_id),
         crate::facade::CompiledArtifactCompatibility::StaleVersion
     );
 }

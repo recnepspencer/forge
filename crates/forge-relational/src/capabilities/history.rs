@@ -14,7 +14,6 @@ impl CommitEnvelopeSource for RelationalRuntime {
 
 pub(crate) trait HistorySource: CommitEnvelopeSource {
     fn branch_head_ref(&self, branch_id: &BranchId) -> Option<&CommitReference>;
-    fn next_commit_id(&self) -> CommitId;
 }
 
 impl HistorySource for RelationalRuntime {
@@ -23,9 +22,5 @@ impl HistorySource for RelationalRuntime {
             .branch_heads
             .get(branch_id)
             .and_then(|head| head.as_ref())
-    }
-
-    fn next_commit_id(&self) -> CommitId {
-        self.history.preview_next_commit_id()
     }
 }

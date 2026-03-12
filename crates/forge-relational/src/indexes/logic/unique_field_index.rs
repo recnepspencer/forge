@@ -20,9 +20,7 @@ pub(crate) fn refresh_unique_field_index_for_records(
             continue;
         };
         for field in &tracked_fields {
-            if let Some(payload) = crate::validation::logic::entity_payload_for_state(
-                &state, *entity_id, version_id,
-            ) {
+            if let Some(payload) = entity_payload_for_state(&state, *entity_id, version_id) {
                 if let Some(value) = payload
                     .as_json()
                     .and_then(|value| value.get(field))
@@ -80,9 +78,7 @@ pub(crate) fn rebuild_unique_field_indexes(runtime: &mut RelationalRuntime) {
             }
             let entity_id =
                 crate::identity::data::EntityId::new(partition_id, slot as u64, slot_view.generation());
-            if let Some(payload) =
-                crate::validation::logic::entity_payload_for_state(&state, entity_id, version_id)
-            {
+            if let Some(payload) = entity_payload_for_state(&state, entity_id, version_id) {
                 for field in &tracked_fields {
                     if let Some(value) = payload
                         .as_json()
@@ -107,18 +103,40 @@ pub(crate) fn rebuild_unique_field_indexes(runtime: &mut RelationalRuntime) {
     }
 }
 
+fn entity_payload_for_state(
+    state: &dyn PartitionAccess,
+    entity_id: crate::identity::data::EntityId,
+    version_id: crate::identity::data::VersionId,
+) -> Option<&RecordPayload> {
+    let partition = state.get_partition(entity_id.partition_id)?;
+    let slot = entity_id.local_slot.0 as usize;
+    if partition
+        .entity_arena
+        .get(&entity_id)
+        .map(|slot_view| slot_view.generation())
+        != Some(entity_id.generation.0)
+    {
+        return None;
+    }
+    let history = partition.entity_arena.payload_history_at(slot)?;
+    let end = history.partition_point(|entry| entry.effective_at <= version_id);
+    history[..end]
+        .iter()
+        .rev()
+        .find(|entry| {
+            entry.effective_at <= version_id
+                && entry.retired_at.is_none_or(|retired| version_id < retired)
+        })
+        .map(|entry| &entry.value)
+}
+
 fn tracked_unique_entity_fields(runtime: &RelationalRuntime) -> BTreeSet<String> {
     let mut fields = BTreeSet::new();
-    for rules in [
-        &runtime.config.schema.invariant_catalog.always_on_structural,
-        &runtime.config.schema.invariant_catalog.commit_boundary,
-        &runtime.config.schema.invariant_catalog.snapshot_audit,
-        &runtime.config.schema.invariant_catalog.harness_heavy,
-    ] {
-        for rule in rules {
-            if let crate::validation::data::InvariantRule::UniqueEntityPayloadField(field) = rule {
-                fields.insert(field.clone());
-            }
+    for registration in &runtime.config.schema.invariant_catalog.registrations {
+        if let crate::validation::data::InvariantRule::UniqueEntityPayloadField(field) =
+            &registration.rule
+        {
+            fields.insert(field.clone());
         }
     }
     fields

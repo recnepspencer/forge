@@ -23,7 +23,7 @@ impl<'a> DiagnosticsRecorder<'a> {
 
     pub fn record_failure(&mut self, context: ExecutionFailureContext) -> FailureSummary {
         let policy = self.policy();
-        let summary = context.summarize(self.graph.latest_rollback_diagnostics(), policy.profile);
+        let summary = context.summarize(self.graph.observe().latest_rollback_diagnostics(), policy.profile);
         self.record_failure_summary(summary.clone());
         self.graph.clear_pending_diagnostics_input();
         summary
@@ -42,7 +42,7 @@ pub fn record_transaction_semantic_event(
     semantic_segment_id: Option<u64>,
 ) {
     let cursor = graph.diagnostics_state_mut().allocate_replay_cursor();
-    let branch_id = graph.current_branch().id;
+    let branch_id = graph.observe().current_branch().id;
     graph
         .diagnostics_state_mut()
         .record_replay_event(ReplayEvent::new(
@@ -65,7 +65,7 @@ pub fn record_snapshot_event(
     detail: impl Into<String>,
 ) {
     let cursor = graph.diagnostics_state_mut().allocate_replay_cursor();
-    let branch_id = graph.current_branch().id;
+    let branch_id = graph.observe().current_branch().id;
     graph
         .diagnostics_state_mut()
         .record_replay_event(ReplayEvent::new(
@@ -87,7 +87,7 @@ pub fn record_branch_lineage_event(
     detail: impl Into<String>,
 ) {
     let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();
-    let branch_id = graph.current_branch().id;
+    let branch_id = graph.observe().current_branch().id;
     graph
         .diagnostics_state_mut()
         .record_lineage_record(LineageRecord::new(
@@ -108,7 +108,7 @@ pub fn record_snapshot_restore_lineage(graph: &mut SignalGraph, snapshot_id: Sig
     match graph.runtime_policy().snapshot_restore_lineage_mode {
         SnapshotRestoreLineageMode::CompactGlobal => {
             let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();
-            let branch_id = graph.current_branch().id;
+            let branch_id = graph.observe().current_branch().id;
             graph
                 .diagnostics_state_mut()
                 .record_lineage_record(LineageRecord::new(
@@ -125,7 +125,7 @@ pub fn record_snapshot_restore_lineage(graph: &mut SignalGraph, snapshot_id: Sig
                 ));
         }
         SnapshotRestoreLineageMode::PerNode => {
-            let branch_id = graph.current_branch().id;
+            let branch_id = graph.observe().current_branch().id;
             let restored_nodes = graph
                 .live_node_ids()
                 .into_iter()
@@ -214,7 +214,7 @@ pub fn record_lineage_transition(
         .get_entry_mut(node)?
         .set_trace_summary(Some(after_trace));
     let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();
-    let branch_id = graph.current_branch().id;
+    let branch_id = graph.observe().current_branch().id;
     graph
         .diagnostics_state_mut()
         .record_lineage_record(LineageRecord::new(
@@ -246,7 +246,7 @@ pub fn record_invalidation_lineage(
         return;
     };
     let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();
-    let branch_id = graph.current_branch().id;
+    let branch_id = graph.observe().current_branch().id;
     graph
         .diagnostics_state_mut()
         .record_lineage_record(LineageRecord::new(

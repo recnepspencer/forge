@@ -3,7 +3,7 @@ use crate::tests::support::*;
 
 #[test]
 fn compaction_and_slot_reuse_are_observable_through_storage_metrics() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::with_gc_threshold(1)).build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::with_gc_threshold(1)).with_kernel_defaults().build();
     let root = runtime.graph_mut().node().build();
     let partitioned = runtime.graph_mut().node().partitioned_output().build();
     let localized = runtime.graph_mut().node().build();
@@ -36,7 +36,7 @@ fn compaction_and_slot_reuse_are_observable_through_storage_metrics() {
         .rebuild_subscriber_index_from_dependencies()
         .unwrap();
 
-    let metrics = runtime.graph().metrics();
+    let metrics = runtime.graph().observe().metrics();
     assert!(metrics.storage.graph_storage_compaction_count >= 1);
     assert!(metrics.storage.graph_storage_dependency_segments_rewritten >= 1);
     assert!(metrics.storage.graph_storage_subscriber_segments_rewritten >= 1);

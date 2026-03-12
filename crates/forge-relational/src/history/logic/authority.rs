@@ -1,9 +1,14 @@
 use serde_json::json;
 
 use crate::diagnostics::data::{DiagnosticCode, DiagnosticsScope, RelationalDiagnosticsEntry};
-use crate::history::data::{BranchCreateError, BranchId};
+use crate::history::data::{BranchCreateError, BranchId, CommitId, CommitReference, VersionNode};
 use crate::logic::runtime::RelationalRuntime;
+use crate::publication::data::diff::PatchStreamPosition;
+use crate::replay::data::CanonicalCommitEnvelope;
 use crate::storage::logic::state::SnapshotState;
+use crate::visibility::cache_state::{
+    bump_replay_ref, cached_state_for_version, ensure_state, evict_cache_if_needed,
+};
 
 pub struct HistoryAuthority<'runtime> {
     runtime: &'runtime mut RelationalRuntime,
@@ -52,20 +57,20 @@ impl<'runtime> HistoryAuthority<'runtime> {
         if let Some(retained) = self.runtime.visibility.replay_retention.retained_mut(version_id) {
             retained.ref_count += 1;
             if self.runtime.config.visibility.cache_policy.protect_replay_retained {
-                self.runtime.bump_replay_ref(version_id, 1);
+                bump_replay_ref(self.runtime, version_id, 1);
             }
             return true;
         }
         if version_id.0 == 0 || version_id.0 > self.runtime.current_version_id().0 {
             return false;
         }
-        let state = self.runtime.ensure_visibility_state(version_id, false);
+        let state = ensure_state(self.runtime, version_id, false);
         self.runtime.visibility_pins().pin_replay_state(&state);
         if self.runtime.config.visibility.cache_policy.protect_replay_retained {
-            self.runtime.bump_replay_ref(version_id, 1);
+            bump_replay_ref(self.runtime, version_id, 1);
         }
         self.runtime
-            .diagnostic(DiagnosticsScope::Retention)
+            .publication_authority().diagnostic(DiagnosticsScope::Retention)
             .minimal_summary()
             .entries([replay_retention_diagnostic(
                 DiagnosticCode::ReplayRetentionPinned,
@@ -96,20 +101,20 @@ impl<'runtime> HistoryAuthority<'runtime> {
                 .replay_retention
                 .insert_retained(version_id, retained);
             if self.runtime.config.visibility.cache_policy.protect_replay_retained {
-                self.runtime.bump_replay_ref(version_id, -1);
+                bump_replay_ref(self.runtime, version_id, -1);
             }
             return true;
         }
-        let Some(state) = self.runtime.visibility_state_for_version(version_id) else {
+        let Some(state) = cached_state_for_version(self.runtime, version_id) else {
             return false;
         };
         self.runtime.visibility_pins().unpin_replay_state(&state);
         if self.runtime.config.visibility.cache_policy.protect_replay_retained {
-            self.runtime.bump_replay_ref(version_id, -1);
-            self.runtime.evict_visibility_cache_if_needed();
+            bump_replay_ref(self.runtime, version_id, -1);
+            evict_cache_if_needed(self.runtime);
         }
         self.runtime
-            .diagnostic(DiagnosticsScope::Retention)
+            .publication_authority().diagnostic(DiagnosticsScope::Retention)
             .minimal_summary()
             .entries([replay_retention_diagnostic(
                 DiagnosticCode::ReplayRetentionReleased,
@@ -118,6 +123,63 @@ impl<'runtime> HistoryAuthority<'runtime> {
                 &state,
             )])
             .emit();
+        true
+    }
+
+    pub(crate) fn publish_commit(
+        &mut self,
+        commit_id: CommitId,
+        commit_reference: CommitReference,
+        branch_id: BranchId,
+        patch_position: PatchStreamPosition,
+        canonical_commit_envelope: CanonicalCommitEnvelope,
+    ) {
+        self.runtime.history.advance_commit_sequence();
+        self.runtime
+            .history
+            .branch_heads
+            .insert(branch_id, Some(commit_reference.clone()));
+        self.runtime.history.commit_graph.insert(
+            commit_id,
+            VersionNode {
+                commit: commit_reference,
+            },
+        );
+        self.runtime
+            .history
+            .commit_envelopes
+            .insert(commit_id, canonical_commit_envelope);
+        self.runtime
+            .history
+            .patch_stream_index
+            .insert(patch_position, commit_id);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn remove_commit_envelope_for_test(
+        &mut self,
+        commit_id: crate::history::data::CommitId,
+    ) -> bool {
+        let Some(envelope) = self.runtime.history.commit_envelopes.remove(&commit_id) else {
+            return false;
+        };
+        self.runtime
+            .history
+            .patch_stream_index
+            .remove(&envelope.patch.position);
+        true
+    }
+
+    #[cfg(test)]
+    pub(crate) fn tamper_commit_patch_for_test(
+        &mut self,
+        commit_id: crate::history::data::CommitId,
+        mutate: impl FnOnce(&mut crate::publication::data::diff::RelationalPatchRecord),
+    ) -> bool {
+        let Some(envelope) = self.runtime.history.commit_envelopes.get_mut(&commit_id) else {
+            return false;
+        };
+        mutate(&mut envelope.patch);
         true
     }
 }

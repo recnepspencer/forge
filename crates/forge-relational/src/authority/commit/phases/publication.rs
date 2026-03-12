@@ -4,7 +4,6 @@ use crate::capabilities::{
     DiagnosticsSink, DurabilityWrite, PublicationPolicySource, SchemaSource,
     SchemaVersionSource,
 };
-use crate::authority::mutation::MutationEffect;
 use crate::diagnostics::data::{DiagnosticCode, DiagnosticsScope};
 use crate::history::data::{BranchId, CommitId, CommitReference};
 use crate::publication::data::diff::RelationalPatchRecord;
@@ -109,9 +108,4 @@ fn canonical_record_sort_key(
             relation_id.generation.0,
         ),
     }
-}
-
-#[allow(dead_code)]
-pub(crate) fn changed_records_from_effect(effect: MutationEffect) -> Vec<RecordRef> {
-    effect.changed_records
 }

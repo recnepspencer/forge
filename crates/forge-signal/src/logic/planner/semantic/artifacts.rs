@@ -16,7 +16,7 @@ pub(super) fn record_semantic_artifacts(
         return Ok(());
     }
 
-    let Ok(mut explanation) = graph.explain(update.node) else {
+    let Ok(mut explanation) = graph.observe().explain(update.node) else {
         return Ok(());
     };
     if explanation.rewiring.is_none() {

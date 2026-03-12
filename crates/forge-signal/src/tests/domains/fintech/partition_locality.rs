@@ -2,7 +2,7 @@ use super::scales::FintechScale;
 use super::scenarios::setup_world;
 use super::truth_comparison::compare_exact;
 use super::truth_snapshot::FintechTruthSnapshot;
-use crate::facade::{NodeState, StageExecutor};
+use crate::facade::*;
 
 #[test]
 fn fintech_partition_locality_surfaces_changed_region_pressure_through_locality_nodes() {

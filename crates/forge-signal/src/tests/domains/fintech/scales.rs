@@ -1,5 +1,5 @@
 #[derive(Clone, Copy, Debug)]
-pub(super) struct FintechScale {
+pub(crate) struct FintechScale {
     pub instruments: usize,
     pub scenarios: usize,
     pub buckets: usize,
@@ -8,7 +8,7 @@ pub(super) struct FintechScale {
 }
 
 impl FintechScale {
-    pub(super) fn smoke() -> Self {
+    pub(crate) fn smoke() -> Self {
         Self {
             instruments: 24,
             scenarios: 4,
@@ -18,7 +18,7 @@ impl FintechScale {
         }
     }
 
-    pub(super) fn stress_10k() -> Self {
+    pub(crate) fn stress_10k() -> Self {
         Self {
             instruments: 500,
             scenarios: 20,
@@ -28,7 +28,7 @@ impl FintechScale {
         }
     }
 
-    pub(super) fn fanout() -> Self {
+    pub(crate) fn fanout() -> Self {
         Self {
             instruments: 160,
             scenarios: 8,

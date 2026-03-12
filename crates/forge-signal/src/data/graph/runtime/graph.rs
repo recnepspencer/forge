@@ -9,12 +9,14 @@ use crate::data::handle::NodeId;
 use crate::data::node::NodeEntry;
 use crate::data::output::PartitionInterner;
 use crate::data::telemetry::RuntimeTelemetry;
+use crate::diagnostics::DiagnosticsProfile;
 use crate::diagnostics::state::DiagnosticsState;
 
 use super::super::compaction::CompactionState;
 use super::super::storage::Slot;
 use super::super::{DependencyEdgeStore, SubscriberEdgeStore};
 use super::scratch::{ScratchLeaseKind, TraversalScratch};
+use super::strategy::{EvaluationStrategy, GcPressure, ObservationLevel, ParallelismHint};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct NodeArena {
@@ -76,6 +78,9 @@ impl Default for SignalGraph {
 }
 
 impl SignalGraph {
+    const PARALLELISM_NODE_THRESHOLD: usize = 1_000;
+    const GC_PRESSURE_TOMBSTONE_RATIO: f32 = 0.30;
+
     pub fn new() -> Self {
         Self {
             arena: NodeArena {
@@ -99,6 +104,31 @@ impl SignalGraph {
 
     pub(crate) fn clone_stateful(&self) -> Self {
         self.clone()
+    }
+
+    pub fn observe(&self) -> super::observer::GraphObserver<'_> {
+        super::observer::GraphObserver::new(self)
+    }
+
+    pub fn derive_evaluation_strategy(&self) -> EvaluationStrategy {
+        let active_nodes = self.active_node_count();
+        let tombstone_ratio = self.tombstone_ratio();
+        let diagnostics_profile = self.observation.diagnostics.profile();
+        EvaluationStrategy {
+            parallelism: if active_nodes >= Self::PARALLELISM_NODE_THRESHOLD {
+                ParallelismHint::Preferred
+            } else {
+                ParallelismHint::Serial
+            },
+            gc_pressure: if tombstone_ratio >= Self::GC_PRESSURE_TOMBSTONE_RATIO
+                || self.arena.should_run_compaction_epoch(&self.topology, active_nodes)
+            {
+                GcPressure::CompactAfterEvaluation
+            } else {
+                GcPressure::Deferred
+            },
+            observation_level: Self::observation_level_for_profile(diagnostics_profile),
+        }
     }
 
     pub(crate) fn as_parts_mut(
@@ -158,6 +188,25 @@ impl SignalGraph {
         let result = f(self, &mut scratch);
         self.restore_scratch(kind, scratch)?;
         result
+    }
+
+    fn tombstone_ratio(&self) -> f32 {
+        let active_nodes = self.active_node_count();
+        let total = active_nodes + self.arena.compaction.tombstone_count as usize;
+        if total == 0 {
+            0.0
+        } else {
+            self.arena.compaction.tombstone_count as f32 / total as f32
+        }
+    }
+
+    fn observation_level_for_profile(profile: DiagnosticsProfile) -> ObservationLevel {
+        match profile {
+            DiagnosticsProfile::Operational => ObservationLevel::Minimal,
+            DiagnosticsProfile::Development | DiagnosticsProfile::Forensic => {
+                ObservationLevel::Full
+            }
+        }
     }
 
     pub(in crate::data::graph) fn allocate_node(&mut self, entry: NodeEntry) -> NodeId {

@@ -1,8 +1,9 @@
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::output::PartitionSubscription;
-use crate::facade::{AspectVersion, NodeEvaluationResult};
-use crate::logic::prepared::{ExecutionReadView, PreparedEvaluation};
+use crate::facade::*;
+use crate::logic::context::EvaluationContext;
+use crate::logic::evaluation::EvaluationOutput;
 
 use super::aspects::{ALERT, CURVE, LIQUIDITY, PRICE, RISK, VOL};
 use super::fixture::FintechDomainFixture;
@@ -58,18 +59,19 @@ impl FintechEvaluationShape {
         }
     }
 
-    pub(super) fn precompute(
+    pub(super) fn evaluator(
         &self,
-    ) -> impl Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync + '_
-    {
-        move |node, view| self.precompute_node(node, view)
+    ) -> impl for<'ctx> Fn(&mut EvaluationContext<'ctx, ()>) -> Result<EvaluationOutput, SignalError>
+           + Sync
+           + '_ {
+        move |ctx| self.evaluate_node(ctx)
     }
 
-    fn precompute_node(
+    fn evaluate_node(
         &self,
-        node: NodeId,
-        view: &ExecutionReadView<'_>,
-    ) -> Result<PreparedEvaluation, SignalError> {
+        view: &mut EvaluationContext<'_, ()>,
+    ) -> Result<EvaluationOutput, SignalError> {
+        let node = view.node();
         if node == self.fx.eur_jpy {
             let eur_usd = view.read_aspect_version(self.fx.eur_usd, PRICE)?.get(PRICE);
             let usd_jpy = view.read_aspect_version(self.fx.usd_jpy, PRICE)?.get(PRICE);
@@ -395,8 +397,6 @@ impl FintechEvaluationShape {
             ));
         }
 
-        Err(SignalError::invalid_input(format!(
-            "unexpected fintech node {node}"
-        )))
+        Err(SignalError::invalid_input(format!("unexpected fintech node {node}")))
     }
 }

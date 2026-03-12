@@ -11,13 +11,7 @@ use forge_harness::facade::{
 };
 use serde_json::{json, Value};
 
-#[cfg(test)]
-use crate::facade::SignalGraph;
-use crate::facade::{
-    ArtifactMaterializationMode, DiagnosticsProfile, EvaluationRequestMode, ExecutionReport,
-    NodeExplanation, NodeState, SignalError, SignalRuntimePolicy, StageExecutor,
-    CORE_STORAGE_PROFILE_ID,
-};
+use crate::facade::*;
 
 use super::runtime::{SignalFixtureFactory, SignalHarnessSession, SignalMutationAction};
 
@@ -47,7 +41,7 @@ impl SignalHarnessBridge {
     ) -> Result<bool, SignalError> {
         for task in plan.stages.iter().flat_map(|stage| &stage.tasks) {
             let config = graph.get_entry(task.node)?.get_eval_config();
-            if !matches!(config.condition, crate::facade::EvaluationCondition::Always)
+            if !matches!(config.condition, EvaluationCondition::Always)
                 || config.comparator.is_some()
             {
                 return Ok(true);
@@ -286,29 +280,32 @@ impl HarnessAdapter for SignalHarnessBridge {
         let executor = Self::executor(profile.execution_mode)?;
         #[cfg(test)]
         let report = if Self::requires_condition_aware_execution(&runtime.graph, &plan)? {
-            let mut comparator = crate::facade::DefaultComparatorPolicyResolver {
-                fallback: crate::facade::VersionComparatorPolicy::Exact,
-                custom: crate::facade::DefaultComparatorResolver,
+            let mut comparator = DefaultComparatorPolicyResolver {
+                fallback: VersionComparatorPolicy::Exact,
+                custom: DefaultComparatorResolver,
             };
-            let mut condition = crate::facade::DefaultConditionResolver;
+            let mut condition = DefaultConditionResolver;
             crate::logic::planner::execute_test_prepared_plan_with_resolvers(
                 &mut runtime.graph,
                 &plan,
-                &move |node, view| evaluator.evaluate(node, view),
+                &(),
+                &move |ctx| evaluator.evaluate(ctx),
                 &mut comparator,
                 &mut condition,
             )?
         } else {
             runtime.graph.execute_prepared_plan_with_executor(
                 &plan,
-                &move |node, view| evaluator.evaluate(node, view),
+                &(),
+                &move |ctx| evaluator.evaluate(ctx),
                 executor,
             )?
         };
         #[cfg(not(test))]
         let report = runtime.graph.execute_prepared_plan_with_executor(
             &plan,
-            &move |node, view| evaluator.evaluate(node, view),
+            &(),
+            &move |ctx| evaluator.evaluate(ctx),
             executor,
         )?;
 

@@ -1,4 +1,5 @@
 use crate::facade::*;
+use crate::logic::evaluation::EvaluationOutput;
 use crate::tests::support::*;
 
 #[test]
@@ -12,26 +13,29 @@ fn evaluation_context_tracks_deps() {
     evaluate(&mut graph, upstream_b, &mut compute).unwrap();
 
     let evaluating = graph.node().build();
-    let mut ctx = EvaluationContext::new(evaluating);
+    let domain = ();
+    let mut ctx = EvaluationContext::new(&graph, evaluating, &domain);
 
-    let ver_a = ctx.read(&graph, upstream_a, ASPECT_A).unwrap();
+    let ver_a = ctx.read(upstream_a, ASPECT_A).unwrap();
     assert_eq!(ver_a, 1);
 
-    let ver_b = ctx.read(&graph, upstream_b, ASPECT_B).unwrap();
+    let ver_b = ctx.read(upstream_b, ASPECT_B).unwrap();
     assert_eq!(ver_b, 1);
 
-    ctx.read(&graph, upstream_a, ASPECT_A).unwrap();
+    ctx.read(upstream_a, ASPECT_A).unwrap();
 
-    let deps = ctx.finalize();
+    let deps = ctx
+        .into_prepared(EvaluationOutput::from_result(version_ab(1, 0)))
+        .dependencies;
     assert_eq!(
         deps.len(),
         2,
         "Duplicate reads should not create duplicate deps"
     );
-    assert_eq!(deps[0].source(), upstream_a);
-    assert_eq!(deps[0].aspect(), ASPECT_A);
-    assert_eq!(deps[1].source(), upstream_b);
-    assert_eq!(deps[1].aspect(), ASPECT_B);
+    assert_eq!(deps.as_slice()[0].source, upstream_a);
+    assert_eq!(deps.as_slice()[0].aspect, ASPECT_A);
+    assert_eq!(deps.as_slice()[1].source, upstream_b);
+    assert_eq!(deps.as_slice()[1].aspect, ASPECT_B);
 }
 
 #[test]
@@ -45,10 +49,11 @@ fn evaluation_context_read_is_aspect_specific() {
     .unwrap();
 
     let evaluating = graph.node().build();
-    let mut ctx = EvaluationContext::new(evaluating);
+    let domain = ();
+    let mut ctx = EvaluationContext::new(&graph, evaluating, &domain);
 
-    let version_a = ctx.read(&graph, upstream, ASPECT_A).unwrap();
-    let version_b = ctx.read(&graph, upstream, ASPECT_B).unwrap();
+    let version_a = ctx.read(upstream, ASPECT_A).unwrap();
+    let version_b = ctx.read(upstream, ASPECT_B).unwrap();
 
     assert_eq!(version_a, 7);
     assert_eq!(version_b, 13);

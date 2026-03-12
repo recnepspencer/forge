@@ -233,13 +233,15 @@ fn chunked_storage_summary_tracks_visibility_boundaries() {
     let first = create_entity_outcome(&mut runtime, "e0");
     let entity_a = changed_entities(&first)[0];
     let _second = create_entity_outcome(&mut runtime, "e1");
-    let snapshot = runtime.snapshot_access().snapshot();
+    let snapshot = runtime.visibility_authority().snapshot();
     let _third = create_entity_outcome(&mut runtime, "e2");
     let _update = update_entity(&mut runtime, entity_a, "e0-updated");
 
-    let summary_before_update = runtime.chunked_storage_summary(snapshot.version_id);
+    let summary_before_update = runtime.storage_access().chunked_storage_summary(snapshot.version_id);
     let summary_current =
-        runtime.chunked_storage_summary(runtime.history_access().latest_commit().unwrap().version_id);
+        runtime
+            .storage_access()
+            .chunked_storage_summary(runtime.history_access().latest_commit().unwrap().version_id);
 
     assert_eq!(summary_before_update.entity_chunks.len(), 2);
     assert_eq!(summary_before_update.entity_chunks[0].visible_records, 2);
@@ -255,14 +257,14 @@ fn chunk_diagnostics_and_packet_plans_are_public_and_stable() {
     let second = create_entity_outcome(&mut runtime, "e1");
     let entity_a = changed_entities(&first)[0];
     let entity_b = changed_entities(&second)[0];
-    let snapshot = runtime.snapshot_access().snapshot();
+    let snapshot = runtime.visibility_authority().snapshot();
     let packet = QueryWorkPacket::bulk(
         "pair",
         vec![RecordRef::Entity(entity_a), RecordRef::Entity(entity_b)],
     );
 
-    let plan = runtime.plan_read_packet(&snapshot, &packet).unwrap();
-    let diagnostics = runtime.chunk_diagnostics(snapshot.version_id);
+    let plan = runtime.storage_access().plan_read_packet(&snapshot, &packet).unwrap();
+    let diagnostics = runtime.storage_access().chunk_diagnostics(snapshot.version_id);
 
     assert_eq!(plan.target_count, 2);
     assert_eq!(plan.entity_chunk_indexes, vec![0]);

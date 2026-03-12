@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use forge_harness::facade::{ExecutionRequest, MutationBatch, ScenarioFixture, ScenarioPlan};
 
-use crate::facade::{NodeId, SignalError, SignalGraph};
+use crate::facade::*;
 
 use super::runtime::{
     SignalEvaluationDriver, SignalFixtureFactory, SignalHarnessRuntime, SignalMutationAction,
@@ -69,7 +69,7 @@ impl SignalScenario {
         &mut self,
         downstream_label: &str,
         upstream_label: &str,
-        aspect: crate::facade::Aspect,
+        aspect: Aspect,
     ) -> Result<&mut Self, SignalError> {
         let downstream = self.resolve(downstream_label)?;
         let upstream = self.resolve(upstream_label)?;
@@ -81,8 +81,8 @@ impl SignalScenario {
         &mut self,
         downstream_label: &str,
         upstream_label: &str,
-        aspect: crate::facade::Aspect,
-        partition: impl Into<crate::facade::PartitionToken>,
+        aspect: Aspect,
+        partition: impl Into<PartitionToken>,
     ) -> Result<&mut Self, SignalError> {
         let downstream = self.resolve(downstream_label)?;
         let upstream = self.resolve(upstream_label)?;
@@ -95,8 +95,8 @@ impl SignalScenario {
         &mut self,
         downstream_label: &str,
         upstream_label: &str,
-        aspect: crate::facade::Aspect,
-        partition: impl Into<crate::facade::PartitionToken>,
+        aspect: Aspect,
+        partition: impl Into<PartitionToken>,
         detail: impl Into<String>,
     ) -> Result<&mut Self, SignalError> {
         let downstream = self.resolve(downstream_label)?;
@@ -201,7 +201,7 @@ impl SignalMutationBatch {
         self
     }
 
-    pub fn mark_dirty(self, label: impl Into<String>, aspect: crate::facade::Aspect) -> Self {
+    pub fn mark_dirty(self, label: impl Into<String>, aspect: Aspect) -> Self {
         let label = label.into();
         self.action(SignalMutationAction::mark_dirty(
             format!("mark-{label}-dirty"),
@@ -213,8 +213,8 @@ impl SignalMutationBatch {
     pub fn mark_dirty_with_regions(
         self,
         label: impl Into<String>,
-        aspect: crate::facade::Aspect,
-        changed_regions: Vec<crate::facade::ChangedRegion>,
+        aspect: Aspect,
+        changed_regions: Vec<ChangedRegion>,
     ) -> Self {
         let label = label.into();
         self.action(SignalMutationAction::mark_dirty_with_regions(

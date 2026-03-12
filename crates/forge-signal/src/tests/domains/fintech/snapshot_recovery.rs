@@ -4,7 +4,7 @@ use super::scenarios::setup_seeded_world;
 use super::truth_comparison::compare_exact;
 use super::truth_snapshot::FintechTruthSnapshot;
 use crate::diagnostics::LineageEvent;
-use crate::facade::{LineageRecord, ReplaySlice, SignalSnapshotId, StageExecutor};
+use crate::facade::*;
 
 fn replay_mentions_snapshot(replay: &ReplaySlice, snapshot_id: SignalSnapshotId) -> bool {
     replay

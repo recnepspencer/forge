@@ -6,9 +6,9 @@ use crate::transactions::data::{
     CommitConflict, ConflictClass, ExistingRecordTarget, RelationIdentity, RelationSpec,
     CreateIntent, MutationIntent,
 };
-use crate::validation::logic::schema_error_to_commit_conflict;
 
 use super::record_lookup::{entity_exists_in_state, relation_exists_in_state};
+use super::schema_conflicts::schema_error_to_commit_conflict;
 
 pub(super) fn validate_relation_intent(
     state: &impl StorageRead,

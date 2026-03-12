@@ -114,6 +114,7 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    pub(in crate::logic::transaction::runtime) runtime_ctx: &'a mut Ctx,
     pub(in crate::logic::transaction::runtime) config: &'a mut SignalRuntimeConfig<T>,
     pub(in crate::logic::transaction::runtime) graph: &'a mut crate::data::graph::SignalGraph,
     pub(in crate::logic::transaction::runtime) checkpoint: &'a mut CheckpointRuntime<D, I>,

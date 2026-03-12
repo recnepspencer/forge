@@ -1,5 +1,4 @@
-use crate::identity::data::{EntityId, PartitionId};
-use crate::payloads::data::RecordPayload;
+use crate::identity::data::PartitionId;
 use super::{
     BulkRelationCreateIntent, CreateIntent, DeleteEntityIntent, EntityMutationIntent,
     ExistingRecordTarget, MutationIntent, RelationIdentity, RelationMutationIntent,
@@ -130,53 +129,5 @@ impl MutationIntent {
             }
             _ => {}
         }
-    }
-
-    pub(crate) fn collect_planned_entity_field_values(
-        &self,
-        field: &str,
-        values: &mut Vec<(Option<EntityId>, String)>,
-    ) -> bool {
-        match self {
-            Self::Create(CreateIntent::Entity(spec)) => {
-                collect_payload_field_value(None, &spec.payload, field, values);
-                true
-            }
-            Self::Create(CreateIntent::BulkEntities(spec)) => {
-                for payload in &spec.payloads {
-                    collect_payload_field_value(None, payload, field, values);
-                }
-                true
-            }
-            Self::Entity(EntityMutationIntent::Update(spec)) => {
-                collect_payload_field_value(Some(spec.entity_id), &spec.payload, field, values);
-                true
-            }
-            Self::Entity(EntityMutationIntent::Replace(spec)) => {
-                collect_payload_field_value(
-                    Some(spec.entity_id),
-                    &spec.replacement.payload,
-                    field,
-                    values,
-                );
-                true
-            }
-            _ => false,
-        }
-    }
-}
-
-pub(super) fn collect_payload_field_value(
-    entity_id: Option<EntityId>,
-    payload: &RecordPayload,
-    field: &str,
-    values: &mut Vec<(Option<EntityId>, String)>,
-) {
-    if let Some(value) = payload
-        .as_json()
-        .and_then(|value| value.get(field))
-        .and_then(|value| value.as_str())
-    {
-        values.push((entity_id, value.to_string()));
     }
 }

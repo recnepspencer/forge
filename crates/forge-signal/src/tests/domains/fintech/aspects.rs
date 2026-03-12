@@ -1,4 +1,4 @@
-use crate::facade::{Aspect, AspectMask};
+use crate::facade::*;
 
 pub(super) const PRICE: Aspect = Aspect::new(0);
 pub(super) const VOL: Aspect = Aspect::new(1);

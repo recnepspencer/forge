@@ -90,6 +90,18 @@ impl<'runtime> IndexAccess<'runtime> {
             .collect()
     }
 
+    pub(crate) fn entity_unique_field_ids(
+        &self,
+        field: &str,
+        value: &str,
+    ) -> Option<&std::collections::BTreeSet<crate::identity::data::EntityId>> {
+        self.runtime
+            .indexes
+            .entity_unique_field_index
+            .get(field)
+            .and_then(|values| values.get(value))
+    }
+
     fn branch_id_for_version(
         &self,
         version_id: crate::identity::data::VersionId,

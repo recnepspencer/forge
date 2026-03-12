@@ -1,31 +1,25 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use crate::facade::{
-    mark_dirty, mark_dirty_with_regions, ExecutionReadView, NodeId, PreparedEvaluation,
-    SignalError, SignalGraph,
-};
+use crate::facade::*;
 
 pub trait SignalEvaluationDriver: Send + Sync {
-    fn evaluate<'a>(
+    fn evaluate(
         &self,
-        node: NodeId,
-        view: &ExecutionReadView<'a>,
-    ) -> Result<PreparedEvaluation, SignalError>;
+        ctx: &mut EvaluationContext<'_, ()>,
+    ) -> Result<EvaluationOutput, SignalError>;
 }
 
-impl<F> SignalEvaluationDriver for F
+impl<F, O> SignalEvaluationDriver for F
 where
-    F: for<'a> Fn(NodeId, &ExecutionReadView<'a>) -> Result<PreparedEvaluation, SignalError>
-        + Send
-        + Sync,
+    F: for<'a> Fn(&mut EvaluationContext<'a, ()>) -> Result<O, SignalError> + Send + Sync,
+    O: IntoEvaluationOutput,
 {
-    fn evaluate<'a>(
+    fn evaluate(
         &self,
-        node: NodeId,
-        view: &ExecutionReadView<'a>,
-    ) -> Result<PreparedEvaluation, SignalError> {
-        self(node, view)
+        ctx: &mut EvaluationContext<'_, ()>,
+    ) -> Result<EvaluationOutput, SignalError> {
+        self(ctx).map(IntoEvaluationOutput::into_evaluation_output)
     }
 }
 
@@ -77,7 +71,7 @@ impl SignalMutationAction {
     pub fn mark_dirty(
         name: impl Into<String>,
         label: impl Into<String>,
-        aspect: crate::facade::Aspect,
+        aspect: Aspect,
     ) -> Self {
         let label = label.into();
         Self::new(name, move |runtime| {
@@ -89,8 +83,8 @@ impl SignalMutationAction {
     pub fn mark_dirty_with_regions(
         name: impl Into<String>,
         label: impl Into<String>,
-        aspect: crate::facade::Aspect,
-        changed_regions: Vec<crate::facade::ChangedRegion>,
+        aspect: Aspect,
+        changed_regions: Vec<ChangedRegion>,
     ) -> Self {
         let label = label.into();
         Self::new(name, move |runtime| {

@@ -32,7 +32,7 @@ fn kv64_parallel_branches_deterministic() {
     let mut graph = SignalGraph::new();
     let root = graph.node().build();
 
-    let mut branches: Vec<Vec<crate::facade::NodeId>> = Vec::new();
+    let mut branches: Vec<Vec<NodeId>> = Vec::new();
     for _ in 0..5 {
         let mut branch = Vec::new();
         let first = graph.node().build();

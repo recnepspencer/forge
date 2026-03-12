@@ -6,7 +6,7 @@ use std::time::Instant;
 #[cfg(feature = "parallel")]
 use forge_signal::facade::{
     mark_dirty, mark_dirty_with_regions, Aspect, AspectVersion, ChangedRegion,
-    EvaluationRequestMode, ExecutionReadView, ExecutionReport, NodeEvaluationResult, NodeId,
+    EvaluationRequestMode, ExecutionReport, NodeEvaluationResult,
     ParallelExecutionPolicy, SignalGraph, SignalRuntimePolicy, StageExecutor,
     CORE_STORAGE_PROFILE_ID,
 };
@@ -145,8 +145,8 @@ fn run_deep_chain(
         .build_evaluation_plan(&chain, EvaluationRequestMode::ForceOnDemand)
         .unwrap();
     graph
-        .execute_prepared_plan(&bootstrap, &|_node, view| {
-            Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+        .execute_prepared_plan(&bootstrap, &(), &|ctx| {
+            Ok(ctx.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
         })
         .unwrap();
 
@@ -160,7 +160,8 @@ fn run_deep_chain(
     let report = graph
         .execute_prepared_plan_with_executor(
             &plan,
-            &|_node, view| Ok(view.finish(NodeEvaluationResult::from_version(version_ab(2, 0)))),
+            &(),
+            &|ctx| Ok(ctx.finish(NodeEvaluationResult::from_version(version_ab(2, 0)))),
             executor,
         )
         .unwrap();
@@ -188,8 +189,8 @@ fn run_wide_stage(
         .build_evaluation_plan(&requested, EvaluationRequestMode::ForceOnDemand)
         .unwrap();
     graph
-        .execute_prepared_plan(&bootstrap, &|_node, view| {
-            Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+        .execute_prepared_plan(&bootstrap, &(), &|ctx| {
+            Ok(ctx.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
         })
         .unwrap();
 
@@ -205,7 +206,8 @@ fn run_wide_stage(
     let report = graph
         .execute_prepared_plan_with_executor(
             &plan,
-            &|_node, view| Ok(view.finish(NodeEvaluationResult::from_version(version_ab(2, 0)))),
+            &(),
+            &|ctx| Ok(ctx.finish(NodeEvaluationResult::from_version(version_ab(2, 0)))),
             executor,
         )
         .unwrap();
@@ -250,22 +252,24 @@ fn run_partition_tolerance(
     graph
         .execute_prepared_plan(
             &bootstrap,
-            &move |node: NodeId, view: &ExecutionReadView<'_>| {
+            &(),
+            &move |ctx| {
+                let node = ctx.node();
                 let result = if node == source {
-                    view.finish(
+                    ctx.finish(
                         NodeEvaluationResult::from_version(version_ab(10, 0))
                             .with_changed_region(ChangedRegion::new("shell"))
                             .with_changed_region(ChangedRegion::new("core")),
                     )
                 } else if bootstrap_branches.contains(&node) {
-                    let version = view.read_aspect_version(source, ASPECT_A)?;
-                    view.finish(NodeEvaluationResult::from_version(version))
+                    let version = ctx.read_aspect_version(source, ASPECT_A)?;
+                    ctx.finish(NodeEvaluationResult::from_version(version))
                 } else {
                     let mut total = 0_u64;
                     for branch in &bootstrap_branches {
-                        total += view.read_aspect_version(*branch, ASPECT_A)?.get(ASPECT_A);
+                        total += ctx.read_aspect_version(*branch, ASPECT_A)?.get(ASPECT_A);
                     }
-                    view.finish(
+                    ctx.finish(
                         NodeEvaluationResult::from_version(AspectVersion::from_updates([(
                             ASPECT_A, total,
                         )]))
@@ -294,22 +298,24 @@ fn run_partition_tolerance(
     let report = graph
         .execute_prepared_plan_with_executor(
             &plan,
-            &move |node: NodeId, view: &ExecutionReadView<'_>| {
+            &(),
+            &move |ctx| {
+                let node = ctx.node();
                 let result = if node == source {
-                    view.finish(
+                    ctx.finish(
                         NodeEvaluationResult::from_version(version_ab(12, 0))
                             .with_changed_region(ChangedRegion::new("shell"))
                             .with_changed_region(ChangedRegion::new("core")),
                     )
                 } else if execute_branches.contains(&node) {
-                    let version = view.read_aspect_version(source, ASPECT_A)?;
-                    view.finish(NodeEvaluationResult::from_version(version))
+                    let version = ctx.read_aspect_version(source, ASPECT_A)?;
+                    ctx.finish(NodeEvaluationResult::from_version(version))
                 } else {
                     let mut total = 0_u64;
                     for branch in &execute_branches {
-                        total += view.read_aspect_version(*branch, ASPECT_A)?.get(ASPECT_A);
+                        total += ctx.read_aspect_version(*branch, ASPECT_A)?.get(ASPECT_A);
                     }
-                    view.finish(
+                    ctx.finish(
                         NodeEvaluationResult::from_version(AspectVersion::from_updates([(
                             ASPECT_A, total,
                         )]))

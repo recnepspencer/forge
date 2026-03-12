@@ -555,6 +555,15 @@ The `Subsystem` trait also gives each subsystem a uniform lifecycle: the runtime
 
 These changes create a first-class invariant scheduling system modeled directly on forge-topo's `GroupPolicyRuntime`. Every item in this phase should reference the kernel code.
 
+> [!IMPORTANT]
+> Phase D does **not** imply exposing `RelationalInvariantRuntime` or
+> `InvariantEngine` directly everywhere. The correct target is a thin policy
+> boundary above the engine. The engine owns invariant execution. The boundary
+> owns phase/profile/domain request selection. This is necessary for future
+> workloads like geometry kernels, chip simulators, and game engines, where the
+> same engine must run under different invariant pressure and audit policies
+> without leaking request assembly into every caller.
+
 ---
 
 ### D1 · Bitmask Invariant Groups
@@ -668,6 +677,12 @@ impl RelationalInvariantRuntime {
 
 This replaces the current `InvariantCatalog` + `Vec<InvariantRule>` approach.
 
+The runtime should be consumed through a narrow policy boundary rather than
+through raw engine calls at every call site. Commit, publication, harness, and
+future domain runtimes should select from named policy entrypoints such as
+"commit-boundary", "mutation-sensitive", or "audit", and those entrypoints
+construct the exact engine request.
+
 ---
 
 ### D4 · Intent Contracts
@@ -774,6 +789,12 @@ pub(crate) fn derive_invariant_context(runtime: &RelationalRuntime) -> Invariant
 ```
 
 The invariant runtime adjusts cost ceilings based on this context — at large scale, pre-commit checks downgrade from `Global` to `Partition` automatically.
+
+The policy boundary above the engine is where this derived context becomes
+phase-aware configuration. The engine consumes an execution request. The
+boundary decides which request profile is appropriate for a geometry-kernel
+operation, chip-simulation step, game-engine frame audit, certification run, or
+authoritative commit.
 
 ---
 

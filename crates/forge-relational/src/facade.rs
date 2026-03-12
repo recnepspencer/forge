@@ -33,7 +33,7 @@ pub use crate::history::data::{
 };
 pub use crate::identity::data::{
     EntityId, EntityStorageId, Generation, KindId, LineageId, LocalSlot, PartitionId, RelationId,
-    RelationStorageId, Slot, StructuralFingerprint, VersionBound, VersionId,
+    RelationStorageId, StructuralFingerprint, VersionBound, VersionId,
 };
 pub use crate::indexes::data::{
     DerivedIndexBuildOutcome, DerivedIndexBuildRequest, DerivedIndexCompatibility,
@@ -53,10 +53,12 @@ pub use crate::logic::runtime::{
     ChunkVisibilitySummary, ChunkedStorageSummary, CompiledArtifactCompatibility,
     CompiledArtifactError, CompiledExecutionArtifact, ComplexityContract, ComplexityStatus,
     EntityReadRecord, InvariantCatalog, InvariantCheckResult, InvariantClass,
-    InvariantExecutionPoint, InvariantFailureEffect, InvariantRule, PacketResult,
+    InvariantExecutionPoint, InvariantFailureEffect, InvariantRegistration, InvariantRule,
+    HarnessAuditMode,
+    PacketResult,
     PartitionStorageStats, RelationReadRecord, RelationalReadView, RelationalReplayRecord,
     RelationalRuntime, RelationalRuntimeConfig, ReplaySchemaVersion, RuntimeComplexityCounters,
-    SnapshotGuard, StorageInvariantReport, StorageStats, TopologyFreezeMode,
+    SnapshotGuard, StorageStats, TopologyFreezeMode,
 };
 pub use crate::payloads::data::{
     PayloadClass, PayloadCompatibility, PayloadEncoding, PayloadPolicy, RecordPayload,

@@ -1,7 +1,7 @@
 use forge_harness::facade::{HarnessObservedBundle, ObservationStatus, RunRecord, SnapshotRecord};
 use serde_json::Value;
 
-use crate::facade::{ExecutionReport, PlanSummary};
+use crate::facade::*;
 
 pub struct SignalHarnessAssert;
 

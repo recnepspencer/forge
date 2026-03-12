@@ -1,13 +1,9 @@
 use crate::data::aspect::Aspect;
 use crate::data::graph::signal_graph::SignalGraph;
 use crate::data::handle::NodeId;
-use crate::diagnostics::access::GraphDiagnostics;
-use crate::diagnostics::history::ExecutionInspector;
 use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::diagnostics::profile::DiagnosticsProfile;
-use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
-use crate::diagnostics::{FailureSummary, FlowSummary, RollbackDiagnostic};
-use crate::presentation::metrics::GraphMetrics;
+use crate::diagnostics::summary::GraphSummary;
 
 impl SignalGraph {
     /// Execute any bounded maintenance work required before entering a pure
@@ -16,7 +12,7 @@ impl SignalGraph {
         self.run_gc_epoch();
     }
 
-    pub fn telemetry(&self) -> &crate::data::telemetry::RuntimeTelemetry {
+    pub(crate) fn telemetry(&self) -> &crate::data::telemetry::RuntimeTelemetry {
         &self.observation.telemetry
     }
 
@@ -28,18 +24,11 @@ impl SignalGraph {
         self.observation.telemetry = crate::data::telemetry::RuntimeTelemetry::default();
     }
 
-    pub fn metrics(&self) -> GraphMetrics {
-        GraphMetrics::from_runtime_telemetry(
-            self.telemetry(),
-            self.observation.partition_interner.token_count(),
-        )
-    }
-
-    pub fn diagnostics_profile(&self) -> DiagnosticsProfile {
+    pub(crate) fn diagnostics_profile(&self) -> DiagnosticsProfile {
         self.observation.diagnostics.profile()
     }
 
-    pub fn runtime_policy(&self) -> SignalRuntimePolicy {
+    pub(crate) fn runtime_policy(&self) -> SignalRuntimePolicy {
         self.observation.diagnostics.policy()
     }
 
@@ -51,41 +40,8 @@ impl SignalGraph {
         self.observation.diagnostics.set_policy(policy);
     }
 
-    pub fn diagnostics_summary(&self, profile: DiagnosticsProfile) -> GraphSummary {
+    pub(crate) fn diagnostics_summary(&self, profile: DiagnosticsProfile) -> GraphSummary {
         GraphSummary::from_graph(self, profile)
-    }
-
-    pub fn diagnostics(&self) -> GraphDiagnostics<'_> {
-        GraphDiagnostics::new(self)
-    }
-
-    pub fn execution_history_summary(
-        &self,
-        profile: DiagnosticsProfile,
-    ) -> ExecutionHistorySummary {
-        ExecutionHistorySummary::from_graph(self, profile)
-    }
-
-    pub fn inspect_execution(&self) -> ExecutionInspector<'_> {
-        ExecutionInspector { graph: self }
-    }
-
-    pub fn latest_flow_diagnostics(&self) -> Option<&FlowSummary> {
-        self.observation.diagnostics.latest_flow()
-    }
-
-    pub fn latest_failure_diagnostics(&self) -> Option<&FailureSummary> {
-        self.observation.diagnostics.latest_failure()
-    }
-
-    pub fn latest_rollback_diagnostics(&self) -> Option<&RollbackDiagnostic> {
-        self.observation.diagnostics.latest_rollback()
-    }
-
-    pub fn recent_execution_history_diagnostics(
-        &self,
-    ) -> &std::collections::VecDeque<ExecutionHistorySummary> {
-        self.observation.diagnostics.recent_history()
     }
 
     pub(crate) fn diagnostics_state(&self) -> &crate::diagnostics::state::DiagnosticsState {

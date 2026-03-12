@@ -24,7 +24,7 @@ enum Tier {
 fn build_runtime(graph: SignalGraph) -> SignalRuntime<Domain, Impact, Ev, (), Tier> {
     let _ = Domain::Cache;
     let _ = Impact::One;
-    SignalRuntime::builder(graph)
+    SignalRuntime::builder(graph).with_kernel_defaults()
         .with_domains::<Domain>()
         .with_impacts::<Impact>()
         .with_events::<Ev>()
@@ -49,7 +49,7 @@ fn explain_reports_changed_upstream() {
     mark_dirty(&mut graph, source, ASPECT_A).unwrap();
     evaluate(&mut graph, source, &mut source_v2).unwrap();
 
-    let explanation = graph.explain(dependent).unwrap();
+    let explanation = graph.observe().explain(dependent).unwrap();
     assert_eq!(explanation.node, dependent);
     assert!(matches!(
         explanation.upstream.as_slice(),
@@ -69,7 +69,7 @@ fn explain_reports_clean_upstream_when_snapshot_matches() {
     evaluate(&mut graph, source, &mut compute).unwrap();
     evaluate(&mut graph, dependent, &mut compute).unwrap();
 
-    let explanation = graph.explain(dependent).unwrap();
+    let explanation = graph.observe().explain(dependent).unwrap();
     assert!(matches!(
         explanation.upstream.as_slice(),
         [UpstreamCause::Clean { source: clean, aspect, cached_version: 1, current_version: 1, .. }]
@@ -111,7 +111,7 @@ fn explain_reports_skipped_by_comparator_via_runtime_policy() {
     evaluate(runtime.graph_mut(), source, &mut source_v12).unwrap();
     evaluate(runtime.graph_mut(), middle, &mut middle_v102).unwrap();
 
-    let explanation = runtime.explain(dependent).unwrap();
+    let explanation = runtime.observe().explain(dependent).unwrap();
     assert!(explanation.upstream.iter().any(|cause| matches!(
         cause,
         UpstreamCause::SkippedByComparator {
@@ -160,7 +160,7 @@ fn explicit_retained_and_reconstructed_artifact_apis_match_policy() {
         .build_evaluation_plan(&[source, dependent], EvaluationRequestMode::ForceOnDemand)
         .unwrap();
     graph
-        .execute_prepared_plan(&bootstrap, &|node, view| {
+        .execute_prepared_plan_with_precompute(&bootstrap, &|node, view| {
             let result = if node == source {
                 view.finish(version_ab(1, 0))
             } else {
@@ -170,17 +170,17 @@ fn explicit_retained_and_reconstructed_artifact_apis_match_policy() {
             Ok(result)
         })
         .unwrap();
-    assert!(graph.retained_explanation_artifact(dependent).is_some());
-    assert!(graph.retained_provenance_artifact(dependent).is_some());
+    assert!(graph.observe().retained_explanation_artifact(dependent).is_some());
+    assert!(graph.observe().retained_provenance_artifact(dependent).is_some());
     assert_eq!(
-        graph
+        graph.observe()
             .retained_explanation_artifact(dependent)
             .unwrap()
             .materialization_mode,
         ArtifactMaterializationMode::Retained
     );
     assert_eq!(
-        graph
+        graph.observe()
             .retained_provenance_artifact(dependent)
             .unwrap()
             .materialization_mode,
@@ -188,10 +188,10 @@ fn explicit_retained_and_reconstructed_artifact_apis_match_policy() {
     );
 
     graph.set_runtime_policy(SignalRuntimePolicy::operational());
-    assert!(graph.retained_explanation_artifact(dependent).is_none());
-    assert!(graph.retained_provenance_artifact(dependent).is_none());
-    let reconstructed_explanation = graph.reconstruct_explanation_artifact(dependent).unwrap();
-    let reconstructed_provenance = graph.reconstruct_provenance_artifact(dependent).unwrap();
+    assert!(graph.observe().retained_explanation_artifact(dependent).is_none());
+    assert!(graph.observe().retained_provenance_artifact(dependent).is_none());
+    let reconstructed_explanation = graph.observe().reconstruct_explanation_artifact(dependent).unwrap();
+    let reconstructed_provenance = graph.observe().reconstruct_provenance_artifact(dependent).unwrap();
     assert_eq!(
         reconstructed_explanation.materialization_mode,
         ArtifactMaterializationMode::Reconstructed
@@ -249,7 +249,7 @@ fn explain_reports_condition_deferred_for_on_demand_nodes() {
     evaluate(&mut graph, source, &mut source_v2).unwrap();
     evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
 
-    let explanation = graph.explain(dependent).unwrap();
+    let explanation = graph.observe().explain(dependent).unwrap();
     assert!(explanation
         .upstream
         .iter()
@@ -265,7 +265,7 @@ fn explain_reports_missing_snapshot_and_dependency_removed() {
     evaluate(&mut graph, source, &mut source_compute).unwrap();
 
     graph.add_dependency(dependent, source, ASPECT_A).unwrap();
-    let missing_snapshot = graph.explain(dependent).unwrap();
+    let missing_snapshot = graph.observe().explain(dependent).unwrap();
     assert!(missing_snapshot
         .upstream
         .iter()
@@ -281,7 +281,7 @@ fn explain_reports_missing_snapshot_and_dependency_removed() {
         .remove_dependency(dependent, source, ASPECT_A)
         .unwrap();
 
-    let removed = graph.explain(dependent).unwrap();
+    let removed = graph.observe().explain(dependent).unwrap();
     assert!(removed
         .upstream
         .iter()
@@ -307,7 +307,7 @@ fn explanation_surfaces_causality_and_trace_summary() {
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, node, &mut compute).unwrap();
 
-    let explanation = graph.explain(node).unwrap();
+    let explanation = graph.observe().explain(node).unwrap();
     assert_eq!(explanation.causality.as_ref().unwrap().kind, "bridge");
     assert!(explanation.trace_summary.is_some());
     assert!(format!("{explanation}").contains("Causality: bridge"));
@@ -326,7 +326,7 @@ fn dependency_inspection_apis_are_deterministic() {
     assert_eq!(graph.subscribers_of(root).unwrap(), &[middle]);
     assert!(graph.depends_on(target, middle, ASPECT_B).unwrap());
     assert_eq!(
-        graph.dependency_chain_to(root, target).unwrap(),
+        graph.observe().dependency_chain_to(root, target).unwrap(),
         Some(vec![root, middle, target])
     );
 }
@@ -343,7 +343,7 @@ fn dot_export_contains_state_color_and_edge_labels() {
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, source, &mut compute).unwrap();
 
-    let dot = graph.to_dot();
+    let dot = graph.observe().to_dot();
     assert!(dot.contains(&format!("\"{}\"", source)));
     assert!(dot.contains("fillcolor=green"));
     assert!(dot.contains("aspect:0"));
@@ -368,10 +368,10 @@ fn metrics_snapshots_reflect_runtime_activity() {
         .unwrap();
 
     assert_eq!(outcome.outcome, TransactionOutcome::Committed);
-    assert!(runtime.metrics().transaction.transaction_begin_count >= 1);
-    assert!(runtime.metrics().transaction.transaction_commit_count >= 1);
-    assert!(runtime.metrics().checkpoint.event_flushes >= 1);
-    assert!(runtime.graph().metrics().invalidation.invalidation_nodes_visited >= 1);
+    assert!(runtime.observe().metrics().transaction.transaction_begin_count >= 1);
+    assert!(runtime.observe().metrics().transaction.transaction_commit_count >= 1);
+    assert!(runtime.observe().metrics().checkpoint.event_flushes >= 1);
+    assert!(runtime.graph().observe().metrics().invalidation.invalidation_nodes_visited >= 1);
 }
 
 #[test]
@@ -400,7 +400,7 @@ fn explanation_is_deterministic_with_multiple_upstreams_and_mixed_states() {
     evaluate(&mut graph, source_a, &mut source_a_v2).unwrap();
     evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
 
-    let explanation = graph.explain(dependent).unwrap();
+    let explanation = graph.observe().explain(dependent).unwrap();
     let rendered = format!("{explanation}");
     assert!(matches!(
         explanation.upstream.first(),
@@ -426,25 +426,25 @@ fn rollback_preserves_committed_explanation_and_increments_rollback_metric() {
     let mut dependent_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(10, 0));
     evaluate(runtime.graph_mut(), source, &mut source_v1).unwrap();
     evaluate(runtime.graph_mut(), dependent, &mut dependent_v1).unwrap();
-    let before = runtime.explain(dependent).unwrap();
-    let rollback_before = runtime.metrics().transaction.transaction_rollback_count;
+    let before = runtime.observe().explain(dependent).unwrap();
+    let rollback_before = runtime.observe().metrics().transaction.transaction_rollback_count;
 
     let err = runtime.transaction(&mut (), |tx| {
         tx.mark_dirty(source, ASPECT_A)?;
         tx.evaluate_with_plan(
             dependent,
-            &|_id, view| Ok(view.finish(version_ab(99, 0))),
+            &|view| Ok(view.finish(version_ab(99, 0))),
             EvaluationRequestMode::Default,
         )?;
         Err(SignalError::invalid_input("rollback for test"))
     });
     assert!(err.is_err());
 
-    let after = runtime.explain(dependent).unwrap();
+    let after = runtime.observe().explain(dependent).unwrap();
     assert_eq!(before.trace_summary, after.trace_summary);
     assert_eq!(before.upstream, after.upstream);
     assert_eq!(
-        runtime.metrics().transaction.transaction_rollback_count,
+        runtime.observe().metrics().transaction.transaction_rollback_count,
         rollback_before + 1
     );
 }
@@ -461,12 +461,12 @@ fn flow_diagnostics_attach_event_epochs_after_successful_commit() {
         .transaction(&mut (), |tx| {
             tx.evaluate_with_plan(
                 source,
-                &|_id, view| Ok(view.finish(version_ab(1, 0))),
+                &|view| Ok(view.finish(version_ab(1, 0))),
                 EvaluationRequestMode::Default,
             )?;
             tx.evaluate_with_plan(
                 dependent,
-                &|_id, view| {
+                &|view| {
                     let version = view.read_aspect_version(source, ASPECT_A)?;
                     Ok(view.finish(NodeEvaluationResult::from_version(version)))
                 },
@@ -478,7 +478,7 @@ fn flow_diagnostics_attach_event_epochs_after_successful_commit() {
         })
         .unwrap();
 
-    let flow = runtime.latest_flow_diagnostics().unwrap();
+    let flow = runtime.observe().latest_flow_diagnostics().unwrap();
     assert_eq!(flow.event_epochs.len(), 1);
     assert_eq!(flow.event_epochs[0].outcome, EventEpochOutcome::Committed);
     assert_eq!(
@@ -506,7 +506,7 @@ fn fillet_style_explanation_stays_local_to_the_changed_partition_scope() {
         )
         .unwrap();
     graph
-        .execute_prepared_plan(&bootstrap, &|node, view| {
+        .execute_prepared_plan_with_precompute(&bootstrap, &|node, view| {
             let result = if node == fillet {
                 let version = view.read_partitioned_aspect_version(
                     feature_edit,
@@ -532,7 +532,7 @@ fn fillet_style_explanation_stays_local_to_the_changed_partition_scope() {
         .build_evaluation_plan(&[feature_edit], EvaluationRequestMode::Default)
         .unwrap();
     graph
-        .execute_prepared_plan(&feature_update, &|_node, view| {
+        .execute_prepared_plan_with_precompute(&feature_update, &|_node, view| {
             Ok(view.finish(
                 NodeEvaluationResult::from_version(version_ab(2, 0))
                     .with_changed_region(ChangedRegion::new("surface").with_detail("fillet-band")),
@@ -540,7 +540,7 @@ fn fillet_style_explanation_stays_local_to_the_changed_partition_scope() {
         })
         .unwrap();
 
-    let explanation = graph.explain(fillet).unwrap();
+    let explanation = graph.observe().explain(fillet).unwrap();
     let summary = explanation.diagnostics_summary(DiagnosticsProfile::Development);
     assert!(explanation.causal_links.iter().any(|link| {
         link.source == Some(feature_edit)
@@ -574,12 +574,12 @@ fn flow_cause_samples_surface_locality_triage_without_false_rewiring() {
         .transaction(&mut (), |tx| {
             tx.evaluate_with_plan(
                 source,
-                &|_id, view| Ok(view.finish(version_ab(1, 0))),
+                &|view| Ok(view.finish(version_ab(1, 0))),
                 EvaluationRequestMode::Default,
             )?;
             tx.evaluate_with_plan(
                 fillet,
-                &|_id, view| {
+                &|view| {
                     let version = view.read_partitioned_aspect_version(
                         source,
                         ASPECT_A,
@@ -593,7 +593,7 @@ fn flow_cause_samples_surface_locality_triage_without_false_rewiring() {
         })
         .unwrap();
 
-    let flow = runtime.latest_flow_diagnostics().unwrap();
+    let flow = runtime.observe().latest_flow_diagnostics().unwrap();
     assert!(flow.cause_samples.iter().any(|sample| {
         sample.node == fillet
             && sample.suspect_classes.contains(&"locality".to_string())

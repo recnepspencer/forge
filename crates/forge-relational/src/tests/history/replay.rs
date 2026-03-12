@@ -48,7 +48,11 @@ fn replay_contract_failure_missing_parent_chain_is_explicit() {
     let parent = create_entity_outcome(&mut runtime, "parent");
     let child = create_entity_outcome(&mut runtime, "child");
 
-    assert!(runtime.remove_commit_envelope_for_test(parent.commit.commit_id));
+    assert!(
+        runtime
+            .history_authority()
+            .remove_commit_envelope_for_test(parent.commit.commit_id)
+    );
 
     let replay = runtime.replay_authority().replay_commit(RelationalReplayRequest {
         commit_id: child.commit.commit_id,
@@ -107,12 +111,13 @@ fn replay_contract_success_preserves_merge_parent_order() {
 fn replay_contract_reports_structured_patch_drift_when_canonical_envelope_is_tampered() {
     let mut runtime = runtime_with_test_schema();
     let outcome = create_entity_outcome(&mut runtime, "replayable");
-    assert!(
-        runtime.tamper_commit_patch_for_test(outcome.commit.commit_id, |patch| {
+    assert!(runtime.history_authority().tamper_commit_patch_for_test(
+        outcome.commit.commit_id,
+        |patch| {
             patch.records[0].detail =
                 PatchDetail::StructuredJson(serde_json::json!({"tampered": true}));
-        })
-    );
+        }
+    ));
 
     let replay = runtime.replay_authority().replay_commit(RelationalReplayRequest {
         commit_id: outcome.commit.commit_id,

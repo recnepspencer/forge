@@ -112,7 +112,7 @@ impl HarnessAdapter for RelationalHarnessAdapter {
     ) -> Result<RunRecord<Self::TargetId>, Self::Error> {
         let scenario_id_value = forge_harness::facade::scenario_id(&fixture.name);
         let run_id_value = run_id(&scenario_id_value, &profile.name, &request.name);
-        let snapshot = runtime.snapshot_access().snapshot();
+        let snapshot = runtime.visibility_authority().snapshot();
         let mut read_view = runtime.visibility_reads().read_version(snapshot.version_id);
         read_view.snapshot = snapshot.clone();
         let targets = resolve_targets(request);
@@ -179,7 +179,7 @@ impl HarnessAdapter for RelationalHarnessAdapter {
         let scenario_id_value = forge_harness::facade::scenario_id(&fixture.name);
         let run_id_value = run_id(&scenario_id_value, &profile.name, &request.name);
         let mut clone = runtime.fork();
-        let snapshot = clone.snapshot_access().snapshot();
+        let snapshot = clone.visibility_authority().snapshot();
         let mut read_view = clone.visibility_reads().read_version(snapshot.version_id);
         read_view.snapshot = snapshot.clone();
         let observations = resolve_targets(request)

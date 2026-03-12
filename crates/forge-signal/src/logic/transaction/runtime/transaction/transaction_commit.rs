@@ -20,7 +20,7 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub fn commit(mut self, runtime_ctx: &mut Ctx) -> Result<TransactionResult, SignalError> {
+    pub fn commit(mut self) -> Result<TransactionResult, SignalError> {
         let commit_start = Instant::now();
         if self.finished {
             return Err(SignalError::transaction_finished());
@@ -29,7 +29,6 @@ where
 
         if self.poisoned {
             return self.fail_and_rollback(
-                runtime_ctx,
                 "poisoned transaction rollback",
                 None,
                 Some("transaction rolled back because it was poisoned".to_string()),
@@ -44,11 +43,10 @@ where
 
         if let Err(err) = self
             .event_bus
-            .begin(runtime_ctx)
+            .begin(self.runtime_ctx)
             .map_err(|e| SignalError::invalid_input(format!("event bus begin failed: {e:?}")))
         {
             return self.fail_and_rollback(
-                runtime_ctx,
                 "event bus begin failed",
                 Some(err.clone()),
                 None,
@@ -68,7 +66,7 @@ where
                 }
                 StagedEventOperation::Flush(barrier) => {
                     let flush_start = Instant::now();
-                    let completed_subscribers = match self.event_bus.flush(barrier, runtime_ctx) {
+                    let completed_subscribers = match self.event_bus.flush(barrier, self.runtime_ctx) {
                         Ok(completed_subscribers) => completed_subscribers,
                         Err(flush_err) => {
                             self.staged_event_flush_nanos += flush_start.elapsed().as_nanos();
@@ -140,7 +138,6 @@ where
                                 ),
                             };
                             return self.fail_and_rollback(
-                                runtime_ctx,
                                 "event bus flush failed",
                                 Some(err.clone()),
                                 None,
@@ -210,7 +207,7 @@ where
         let policy = self.graph.runtime_policy();
         if policy.retains_explanation_facts() || policy.retains_provenance_facts() {
             for node in touched_nodes {
-                if let Ok(explanation) = self.graph.explain(node) {
+                if let Ok(explanation) = self.graph.observe().explain(node) {
                     if policy.retains_explanation_facts() {
                         self.graph.diagnostics_state_mut().record_explanation_fact(
                             ExplanationFact::from_explanation(&explanation),
@@ -239,14 +236,14 @@ where
         ))
     }
 
-    pub fn rollback(mut self, runtime_ctx: &mut Ctx) -> Result<TransactionResult, SignalError> {
+    pub fn rollback(mut self) -> Result<TransactionResult, SignalError> {
         let commit_start = Instant::now();
         if self.finished {
             return Err(SignalError::transaction_finished());
         }
         self.finished = true;
         let rollback_patch_count = self.rollback_patch_count();
-        self.event_bus.rollback(runtime_ctx);
+        self.event_bus.rollback(self.runtime_ctx);
         self.rollback_graph_state()?;
         if !self.poisoned {
             self.telemetry.transaction.transaction_rollback_count += 1;
@@ -363,7 +360,6 @@ where
 
     fn fail_and_rollback(
         &mut self,
-        runtime_ctx: &mut Ctx,
         rollback_reason: &str,
         error: Option<SignalError>,
         fallback_failure_message: Option<String>,
@@ -373,7 +369,7 @@ where
         commit_start: Instant,
     ) -> Result<TransactionResult, SignalError> {
         let rollback_patch_count = self.rollback_patch_count();
-        self.event_bus.rollback(runtime_ctx);
+        self.event_bus.rollback(self.runtime_ctx);
         self.rollback_graph_state()?;
         let touched_nodes = self.graph_patches.touched_nodes(self.graph).len() as u32;
         let rollback = RollbackDiagnostic::new(

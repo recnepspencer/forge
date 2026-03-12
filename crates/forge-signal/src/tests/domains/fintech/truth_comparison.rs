@@ -1,4 +1,4 @@
-use crate::facade::{compare_lineage_records, compare_replay_slices};
+use crate::facade::*;
 
 use super::truth_snapshot::FintechTruthSnapshot;
 

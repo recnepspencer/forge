@@ -28,27 +28,27 @@ impl<'a> GraphDiagnostics<'a> {
     }
 
     pub fn summary(&self, profile: DiagnosticsProfile) -> GraphSummary {
-        self.graph.diagnostics_summary(profile)
+        self.graph.observe().diagnostics_summary(profile)
     }
 
     pub fn history(&self, profile: DiagnosticsProfile) -> ExecutionHistorySummary {
-        self.graph.execution_history_summary(profile)
+        self.graph.observe().execution_history_summary(profile)
     }
 
     pub fn latest_flow(&self) -> Option<&'a FlowSummary> {
-        self.graph.latest_flow_diagnostics()
+        self.graph.observe().latest_flow_diagnostics()
     }
 
     pub fn latest_failure(&self) -> Option<&'a FailureSummary> {
-        self.graph.latest_failure_diagnostics()
+        self.graph.observe().latest_failure_diagnostics()
     }
 
     pub fn latest_rollback(&self) -> Option<&'a RollbackDiagnostic> {
-        self.graph.latest_rollback_diagnostics()
+        self.graph.observe().latest_rollback_diagnostics()
     }
 
     pub fn recent_history(&self) -> &'a VecDeque<ExecutionHistorySummary> {
-        self.graph.recent_execution_history_diagnostics()
+        self.graph.observe().recent_execution_history_diagnostics()
     }
 
     pub fn inspect_graph(&self) -> GraphInspector<'a> {

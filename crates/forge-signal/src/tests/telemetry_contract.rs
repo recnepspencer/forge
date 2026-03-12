@@ -5,25 +5,25 @@ use crate::tests::support::*;
 #[test]
 fn transaction_parallel_execution_increments_parallel_not_serial_runtime_usage() {
     let graph = SignalGraph::new();
-    let mut runtime = SignalRuntime::builder(graph).build();
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
     let nodes = (0..16)
         .map(|_| runtime.graph_mut().node().build())
         .collect::<Vec<_>>();
     let mut ctx = ();
 
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
     for &node in &nodes {
         tx.mark_dirty(node, ASPECT_A).unwrap();
     }
     let report = tx
-        .evaluate_dirty_with_executor(
+        .evaluate_dirty_with_executor(&(), 
             &|_node, view| Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0)))),
             StageExecutor::aggressive_parallel(),
         )
         .unwrap();
-    tx.commit(&mut ctx).unwrap();
+    tx.commit().unwrap();
 
-    let metrics = runtime.metrics();
+    let metrics = runtime.observe().metrics();
     assert!(report
         .stages
         .iter()
@@ -54,7 +54,7 @@ fn direct_whole_partition_changes_are_counted_as_partition_matches() {
     )
     .unwrap();
 
-    let metrics = graph.metrics();
+    let metrics = graph.observe().metrics();
     assert_eq!(metrics.invalidation.partition_match_dirty_count, 1);
     assert_eq!(metrics.invalidation.detail_match_dirty_count, 1);
 }

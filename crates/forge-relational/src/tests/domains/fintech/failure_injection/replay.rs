@@ -10,6 +10,7 @@ pub(crate) fn drop_latest_parent_envelope_for_replay(
     let chain = runtime.history_access().ancestor_chain(latest);
     let parent = *chain.get(1)?;
     runtime
+        .history_authority()
         .remove_commit_envelope_for_test(parent)
         .then_some(parent.0)
 }

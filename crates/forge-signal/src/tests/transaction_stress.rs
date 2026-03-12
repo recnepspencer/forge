@@ -25,7 +25,7 @@ fn build_runtime(graph: SignalGraph) -> SignalRuntime<Domain, Impact, Ev, (), Ti
     let _ = Domain::Cache;
     let _ = Impact::One;
     let _ = Tier::Feature;
-    SignalRuntime::builder(graph)
+    SignalRuntime::builder(graph).with_kernel_defaults()
         .with_domains::<Domain>()
         .with_impacts::<Impact>()
         .with_events::<Ev>()
@@ -42,12 +42,12 @@ fn rollback_heavy_workload_leaves_runtime_consistent() {
 
     let mut ctx = ();
     for _ in 0..100 {
-        let mut tx = runtime.begin();
+        let mut tx = runtime.begin(&mut ctx);
         tx.mark_dirty(root, ASPECT_B).unwrap();
         tx.emit_event(Ev::Tick);
         tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
         assert_eq!(
-            tx.rollback(&mut ctx).unwrap().outcome,
+            tx.rollback().unwrap().outcome,
             TransactionOutcome::RolledBack
         );
     }
@@ -66,13 +66,13 @@ fn stress_100k_nodes_transaction_commit() {
 
     let mut runtime = build_runtime(graph);
     let mut ctx = ();
-    let mut tx = runtime.begin();
+    let mut tx = runtime.begin(&mut ctx);
 
     for node in nodes.iter().step_by(97) {
         tx.mark_dirty(*node, ASPECT_B).unwrap();
     }
     assert_eq!(
-        tx.commit(&mut ctx).unwrap().outcome,
+        tx.commit().unwrap().outcome,
         TransactionOutcome::Committed
     );
     assert!(runtime.telemetry().transaction.staged_node_patch_count > 0);

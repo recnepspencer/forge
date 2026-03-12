@@ -9,20 +9,21 @@ use crate::logic::evaluation::{
     AppliedEffectReport, DeferralReason, EffectComparison, EvaluationEffect, EvaluationVerdict,
     SuppressionReason,
 };
+use smallvec::SmallVec;
 
 use super::graph::SignalGraph;
 
 impl SignalGraph {
     pub(crate) fn apply_effect(
         &mut self,
-        effect: EvaluationEffect,
+        mut effect: EvaluationEffect,
         comparator: VersionComparatorPolicy,
         comparator_resolver: &mut impl ComparatorPolicyResolver,
     ) -> Result<AppliedEffectReport, SignalError> {
         let comparison = self.compare_effect(&effect, comparator)?;
         let trace = self.build_effect_trace(&effect, comparison)?;
-        self.transition_effect_state(&effect, trace)?;
-        self.commit_effect_snapshot(&effect)?;
+        self.transition_effect_state(&mut effect, trace)?;
+        self.commit_effect_snapshot(&mut effect)?;
         let suppressed_downstream = self.apply_effect_suppression(
             effect.node,
             &effect.verdict,
@@ -127,11 +128,11 @@ impl SignalGraph {
 
     fn transition_effect_state(
         &mut self,
-        effect: &EvaluationEffect,
+        effect: &mut EvaluationEffect,
         trace: Option<TraceSummary>,
     ) -> Result<(), SignalError> {
         let entry = self.get_entry_mut(effect.node)?;
-        if let Some(causality) = effect.causality.clone() {
+        if let Some(causality) = effect.causality.take() {
             entry.set_causality(Some(causality));
         }
         match effect.verdict {
@@ -164,16 +165,32 @@ impl SignalGraph {
         Ok(())
     }
 
-    fn commit_effect_snapshot(&mut self, effect: &EvaluationEffect) -> Result<(), SignalError> {
+    fn commit_effect_snapshot(&mut self, effect: &mut EvaluationEffect) -> Result<(), SignalError> {
         match effect.verdict {
             EvaluationVerdict::Deferred { .. } => Ok(()),
-            EvaluationVerdict::Recomputed => self.set_dep_snapshot(effect.node, effect.dependency_snapshot.clone()),
+            EvaluationVerdict::Recomputed => {
+                self.set_dep_snapshot(
+                    effect.node,
+                    std::mem::replace(
+                        &mut effect.dependency_snapshot,
+                        crate::data::dependency::DependencySnapshot::empty(),
+                    ),
+                )
+            }
             EvaluationVerdict::Suppressed {
                 reason:
                     SuppressionReason::OutputIdentityUnchanged
                     | SuppressionReason::ContinuityTokenUnchanged
                     | SuppressionReason::ComparatorMatch,
-            } => self.set_dep_snapshot(effect.node, effect.dependency_snapshot.clone()),
+            } => {
+                self.set_dep_snapshot(
+                    effect.node,
+                    std::mem::replace(
+                        &mut effect.dependency_snapshot,
+                        crate::data::dependency::DependencySnapshot::empty(),
+                    ),
+                )
+            }
             EvaluationVerdict::Suppressed {
                 reason: SuppressionReason::ValidatedClean | SuppressionReason::ConditionRevertedClean,
             } => Ok(()),
@@ -341,9 +358,12 @@ fn canonical_changed_regions(
 }
 
 fn count_changed_partitions(changed_regions: &[crate::data::output::ChangedRegion]) -> u32 {
-    let mut partitions = std::collections::BTreeSet::new();
+    let mut partitions: SmallVec<[crate::data::output::PartitionToken; 4]> = SmallVec::new();
     for region in changed_regions {
-        partitions.insert(region.partition.clone());
+        if partitions.iter().any(|partition| partition == &region.partition) {
+            continue;
+        }
+        partitions.push(region.partition.clone());
     }
     partitions.len() as u32
 }

@@ -163,6 +163,49 @@ fn prepare_for_observation_runs_only_bounded_maintenance_work() {
 }
 
 #[test]
+fn graph_strategy_reflects_gc_pressure_and_observation_profile() {
+    let mut graph = SignalGraph::with_gc_threshold(5);
+    let retired = graph.node().build();
+    graph.unregister_node(retired).unwrap();
+    graph.set_diagnostics_profile(DiagnosticsProfile::Development);
+
+    let strategy = graph.observe().evaluation_strategy();
+
+    assert_eq!(strategy.parallelism, ParallelismHint::Serial);
+    assert_eq!(strategy.gc_pressure, GcPressure::CompactAfterEvaluation);
+    assert_eq!(strategy.observation_level, ObservationLevel::Full);
+}
+
+#[test]
+fn graph_strategy_prefers_parallelism_for_large_graphs() {
+    let mut graph = SignalGraph::new();
+    for _ in 0..1_000 {
+        graph.node().build();
+    }
+
+    let strategy = graph.observe().evaluation_strategy();
+
+    assert_eq!(strategy.parallelism, ParallelismHint::Preferred);
+}
+
+#[test]
+fn runtime_default_evaluation_applies_strategy_gc_maintenance() {
+    let mut graph = SignalGraph::with_gc_threshold(1);
+    let node = graph.node().build();
+    let retired = graph.node().build();
+    graph.unregister_node(retired).unwrap();
+
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+
+    runtime
+        .read(node, &(), &|view| Ok(view.finish(version_ab(1, 0))))
+        .unwrap();
+
+    assert_eq!(runtime.graph().tombstone_count(), 0);
+    assert_eq!(runtime.observe().graph().telemetry().storage.gc_epoch_count, 1);
+}
+
+#[test]
 fn gc_epoch_compacts_arena() {
     let mut graph = SignalGraph::with_gc_threshold(5);
 
