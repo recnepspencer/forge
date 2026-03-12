@@ -114,9 +114,8 @@ fn publication_handle_retention_is_bounded_by_policy() {
 #[test]
 fn snapshot_audit_failure_blocks_publication() {
     let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
-        registrations: vec![InvariantRegistration::block_publication(
+        registrations: vec![InvariantRegistration::snapshot_publication_blocking(
             InvariantRule::MaxSnapshotEntities(0),
-            InvariantExecutionPoint::SnapshotPublication,
         )],
         ..InvariantCatalog::default()
     });
@@ -246,9 +245,8 @@ fn repeated_serial_runs_are_harness_comparable() {
 #[test]
 fn harness_heavy_invariants_are_opt_in() {
     let runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
-        registrations: vec![InvariantRegistration::audit_only(
+        registrations: vec![InvariantRegistration::harness_audit_only(
             InvariantRule::UniqueEntityPayloadField("name".to_string()),
-            InvariantExecutionPoint::HarnessAudit,
         )],
         ..InvariantCatalog::default()
     });
@@ -264,7 +262,7 @@ fn harness_heavy_invariants_are_opt_in() {
 
     assert!(default_results.is_empty());
     assert_eq!(enabled_results.len(), 1);
-    assert_eq!(enabled_results[0].class, InvariantClass::HarnessHeavy);
+    assert_eq!(enabled_results[0].class(), InvariantClass::HarnessHeavy);
 }
 
 #[test]

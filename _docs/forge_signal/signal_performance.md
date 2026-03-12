@@ -1,0 +1,685 @@
+# forge-signal Performance Architecture — Multi-Domain Performance Program
+
+> **Status:** Pre-production. Breaking changes are expected and encouraged.
+>
+> **Scope:** Performance architecture for `forge-signal` across multi-domain workloads:
+>
+> - web systems
+> - game/runtime workloads
+> - CAD / geometry kernels
+> - chip simulation
+>
+> **Core constraint:** Preserve semantic traceability and deterministic replay while making hot execution paths performant enough for domain-specific production use.
+>
+> **Relationship to older docs:** This is now the canonical performance plan. It supersedes the older performance-architecture drafts by grounding the program in the current codebase and the benchmark suite we actually run.
+
+---
+
+## Table of Contents
+
+1. [Doctrine](#doctrine)
+2. [Reality Check](#reality-check)
+3. [Current Code Map](#current-code-map)
+4. [Performance Profiles](#performance-profiles)
+5. [Phase P0 — Measurement Discipline](#phase-p0--measurement-discipline)
+6. [Phase P1 — Trace Cost Separation](#phase-p1--trace-cost-separation)
+7. [Phase P2 — Mutation Backend Redesign](#phase-p2--mutation-backend-redesign)
+8. [Phase P3 — Data Layout and Locality](#phase-p3--data-layout-and-locality)
+9. [Phase P4 — Allocation Discipline](#phase-p4--allocation-discipline)
+10. [Phase P5 — Parallel Scaling](#phase-p5--parallel-scaling)
+11. [Phase P6 — Maintenance and GC Policy](#phase-p6--maintenance-and-gc-policy)
+12. [Phase P7 — Domain Profile Packaging](#phase-p7--domain-profile-packaging)
+13. [Numeric Targets](#numeric-targets)
+14. [Sequencing](#sequencing)
+15. [What Must Never Be Sacrificed](#what-must-never-be-sacrificed)
+
+---
+
+## Doctrine
+
+### The rule
+
+Forge must be:
+
+- **traceable enough for aerospace-grade audit**
+- **debuggable enough for agent-native kernel development**
+- **fast enough for production CAD, chip simulation, and runtime workloads**
+
+These requirements are compatible only if we separate:
+
+1. **semantic traceability**
+2. **trace materialization cost**
+
+### What is universal
+
+These are not optional in any mode:
+
+- the spec graph is the source of truth
+- the reactive graph is the computation backbone
+- every meaningful decision has stable lineage identity
+- tolerance and escalation decisions are explicit, bounded, and inspectable
+- replay and reconstruction remain deterministic
+
+### What is configurable
+
+These must vary by domain and mode:
+
+- how much trace detail is retained eagerly
+- how mutation is physically executed
+- how storage is laid out and compacted
+- how maintenance is scheduled
+- how parallel work is admitted
+- how much observability is materialized inline
+
+### Hard line
+
+Forge must never become a black box, but it also must not force every hot path to pay the cost of maximum introspection.
+
+The correct model is:
+
+- **lineage identity always**
+- **rich materialization by profile**
+- **compact hot-path semantic facts in prod**
+- **reconstructable deep provenance in debug / forensic**
+
+---
+
+## Reality Check
+
+The current system is materially better than it was, but still far from geometry-kernel-grade performance.
+
+This is not a tuning problem anymore. It is a performance architecture program.
+
+The main gaps are:
+
+- mutation still pays too much immutable rewrite cost
+- hot-path data layout is not yet cache-first enough
+- effect and trace assembly still allocate too much
+- parallel scaling still needs deeper audit
+- maintenance policy is not yet domain-specialized enough
+
+This is realistic, but only if handled as a dedicated phase program rather than incremental cleanup.
+
+---
+
+## Current Code Map
+
+This section exists to keep the plan honest. These are the concrete code surfaces the performance program is currently about.
+
+### Measurement and current evidence
+
+- benchmark suite:
+  - [performance_profiles.rs](/Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-signal/src/tests/performance_profiles.rs)
+- recorded baseline and measured deltas:
+  - [signal_performance_baseline.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge_signal/signal_performance_baseline.md)
+
+### Trace / effect hot path
+
+- effect application:
+  - [effect.rs](/Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-signal/src/data/graph/runtime/effect.rs)
+- graph-owned hot traversal state:
+  - [graph.rs](/Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-signal/src/data/graph/runtime/graph.rs)
+
+Confirmed current concerns:
+- `EvaluationEffect` size and allocation shape
+- trace/provenance construction cost on hot execution paths
+- suppression propagation overhead
+
+### Mutation backend and churn pressure
+
+- topology mutation and reconciliation:
+  - [mutation.rs](/Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-signal/src/data/graph/topology/mutation.rs)
+- retirement cleanup:
+  - [retirement.rs](/Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-signal/src/data/graph/lifecycle/retirement.rs)
+- rollback repair:
+  - [patch_buffer.rs](/Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-signal/src/logic/transaction/patch_buffer.rs)
+  - [transaction_commit.rs](/Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-signal/src/logic/transaction/runtime/transaction/transaction_commit.rs)
+
+Confirmed current concerns:
+- adjacency sets still rewrite too much under churn
+- transient mutable builders do not exist yet
+- raw point-update mutation remains more expensive than it should be
+
+### Data layout / locality
+
+- node state:
+  - [entry.rs](/Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-signal/src/data/node/entry.rs)
+- graph stores:
+  - [segmented.rs](/Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-signal/src/data/graph/storage/segmented.rs)
+  - [handles.rs](/Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-signal/src/data/graph/storage/handles.rs)
+- topology runtime access:
+  - [runtime.rs](/Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-signal/src/data/graph/topology/runtime.rs)
+
+Confirmed current concerns:
+- `NodeEntry` hot/cold split can still go further
+- edge/snapshot access patterns still need locality work
+- scratch retention policy is not yet profile-specialized
+
+### Parallel scaling and execution path collapse
+
+- shared runtime/transaction execution path:
+  - [shared.rs](/Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-signal/src/logic/transaction/runtime/execution/shared.rs)
+- planner execution:
+  - [mod.rs](/Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-signal/src/logic/planner/execution/mod.rs)
+- precompute dispatch:
+  - [dispatch.rs](/Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-signal/src/logic/planner/precompute/dispatch.rs)
+
+Confirmed current concerns:
+- parallel staging and post-apply bottlenecks still need deeper profiling
+- suppression work may still erase some executor gains
+
+### Observability and policy gating
+
+- diagnostics profile:
+  - [profile.rs](/Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-signal/src/diagnostics/policy/profile.rs)
+- runtime policy:
+  - [mod.rs](/Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-signal/src/diagnostics/policy/mod.rs)
+- deployment presets:
+  - [deployment.rs](/Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-signal/src/presentation/outputs/deployment.rs)
+
+Confirmed current concerns:
+- observability is profile-gated
+- hot mutation/storage/effect backends are **not yet** profile-gated enough
+
+---
+
+## Performance Profiles
+
+Forge needs a two-axis profile system:
+
+1. **Domain**
+2. **Mode**
+
+### Domains
+
+- `Web`
+- `Game`
+- `CAD`
+- `ChipSim`
+
+### Modes
+
+- `Debug`
+- `Dev`
+- `Prod`
+
+### Resulting profile matrix
+
+- `WebDebug`, `WebDev`, `WebProd`
+- `GameDebug`, `GameDev`, `GameProd`
+- `CADDebug`, `CADDev`, `CADProd`
+- `ChipSimDebug`, `ChipSimDev`, `ChipSimProd`
+
+### What profiles should control
+
+- diagnostics retention
+- explanation/provenance materialization
+- replay detail
+- mutation backend
+- effect allocation strategy
+- maintenance cadence
+- scratch retention strategy
+- executor admission policy
+- compaction aggressiveness
+
+### Important constraint
+
+Profiles should choose **policy and backend**, not semantic meaning.
+
+The same computation must mean the same thing across profiles. Only cost model and retention model may vary.
+
+---
+
+## Phase P0 — Measurement Discipline
+
+### Goal
+
+Stop making performance decisions from one-off noisy runs.
+
+### Work
+
+- expand the benchmark matrix to cover:
+  - raw mutation stress
+  - production reconciliation stress
+  - suppression/propagation stress
+  - mixed-fanout realistic workloads
+  - observability profile deltas
+  - future CAD/kernel analog workloads
+- record:
+  - repeated runs
+  - medians
+  - p95 / p99 where possible
+  - workload shape
+  - active profile
+  - hot-path counters
+- maintain:
+  - baseline
+  - current
+  - target
+  - delta
+
+### Deliverables
+
+- stable performance suite
+- updated [signal_performance_baseline.md](./signal_performance_baseline.md)
+- per-phase measured deltas
+
+### Acceptance
+
+- no optimization claim without repeated measurements
+- no single-run screenshot math
+- all major performance phases have before/after data
+
+---
+
+## Phase P1 — Trace Cost Separation
+
+### Goal
+
+Keep semantic traceability universal while removing rich trace construction from hot production paths.
+
+### Design
+
+Introduce a compact hot-path trace model containing only the information needed to preserve semantic identity and deterministic replay:
+
+- decision kind
+- node / operation id
+- stable lineage id
+- upstream lineage ids
+- tolerance class
+- margin / threshold metrics
+- escalation markers
+- replay linkage ids
+
+Rich explanation / provenance objects become:
+
+- eagerly retained in `Debug`
+- partially retained or reconstructable in `Dev`
+- compact-fact-backed in `Prod`
+
+### Work
+
+- identify every hot path that currently constructs rich trace/provenance artifacts inline
+- add compact semantic event records
+- move rich artifact construction behind profile gates
+- ensure deterministic reconstruction from compact facts + retained state
+- keep replay/event ordering stable
+
+### Acceptance
+
+- hot paths in `Prod` no longer allocate rich explanation trees
+- lineage identity is never dropped
+- debug/forensic semantics remain reconstructable
+
+---
+
+## Phase P2 — Mutation Backend Redesign
+
+### Goal
+
+Stop using clone/mutate/reintern as the default physical mutation model.
+
+### Problem
+
+Current churn-heavy mutation still overpays for:
+
+- repeated vector cloning
+- point insert/remove against immutable adjacency sets
+- whole-set reinterning
+- repeated per-source rewrites during reconciliation
+
+### Design
+
+Keep one semantic reconciliation model, but allow different backend implementations.
+
+### Subphases
+
+#### P2.1 — Bulk reconciliation as the default semantic shape
+
+- dependency reconciliation
+- subscriber reconciliation
+- rollback repair
+- retirement cleanup
+
+All should express work as **source-keyed final-state rewrites**, not repeated tiny edge edits.
+
+#### P2.2 — Transient mutable builders
+
+Add mutable transient builders for:
+
+- dependency sets
+- subscriber sets
+
+These builders should:
+
+- accept sorted inserts/removes efficiently
+- commit back to segmented storage once per affected set
+
+#### P2.3 — Backend selection by profile
+
+Examples:
+
+- `Balanced`
+  - current segmented immutable-ish path with bulk rewrites
+- `Throughput`
+  - transient builder path
+- `FrameBound`
+  - bounded-budget mutation path
+- `Kernel`
+  - aggressive bulk builder path with minimal hot-path observability
+
+#### P2.4 — Geometry-topology readiness
+
+The mutation backend must explicitly support workloads like:
+
+- many leaves
+- many shared sources
+- rotating dependency windows
+- repeated source replacement
+- localized topology healing analogs
+
+### Acceptance
+
+- production reconciliation workloads improve materially again
+- rollback and retirement use the same backend model
+- common local rewiring avoids repeated clone/reintern cycles
+
+---
+
+## Phase P3 — Data Layout and Locality
+
+### Goal
+
+Make hot reads and writes cache-friendly enough for CAD/kernel and chip-sim scale.
+
+### Work
+
+#### P3.1 — Hot/cold separation
+
+Push `NodeEntry` further toward hot/cold separation:
+
+- hot:
+  - state
+  - versions
+  - dependency/subscriber ids
+  - dirty masks
+- cold:
+  - trace summaries
+  - causality
+  - large optional metadata
+
+#### P3.2 — Edge/snapshot locality
+
+Audit:
+
+- dependency edge storage
+- subscriber edge storage
+- snapshot storage
+
+Decide where SoA-like or more compact layouts are warranted.
+
+#### P3.3 — Token comparison fast paths
+
+Support hash-first comparison with collision-safe fallback for hot partition matching.
+
+#### P3.4 — Scratch retention policy
+
+`TraversalScratch` must support profile-aware retention:
+
+- `Debug` may keep larger scratch state
+- `Prod` should cap memory waste
+- `FrameBound` / `Kernel` should avoid surprise retained bloat after spikes
+
+### Acceptance
+
+- smaller hot node footprint
+- fewer cache-hostile reads in common execution paths
+- measurable gains in locality-sensitive workloads
+
+---
+
+## Phase P4 — Allocation Discipline
+
+### Goal
+
+Eliminate avoidable heap churn from the effect path and related hot loops.
+
+### Work
+
+#### P4.1 — `EvaluationEffect` discipline
+
+`EvaluationEffect` is now central architecture and must become allocation-aware:
+
+- reusable effect builders
+- move-based commit everywhere possible
+- avoid cloning snapshots and causality
+- keep compact region/label structures small-buffered where feasible
+
+#### P4.2 — Hot-path allocation audit
+
+Audit and remove:
+
+- `BTreeSet` on hot paths
+- avoidable `String` construction
+- per-node temporary vectors that can be reused
+- canonicalization helpers doing avoidable clone/sort work
+
+#### P4.3 — Builder / arena experiments
+
+If needed, add:
+
+- transaction-local effect arenas
+- scratch-owned reusable effect buffers
+- iterator-to-store rewrite paths
+
+### Acceptance
+
+- effect application becomes near-zero-alloc in common cases
+- allocation-sensitive workloads show measurable gains
+- hot-path memory churn is visibly reduced
+
+---
+
+## Phase P5 — Parallel Scaling
+
+### Goal
+
+Make multicore execution actually scale under realistic workloads.
+
+### Work
+
+#### P5.1 — Shared staging audit
+
+Identify and remove:
+
+- central lock contention
+- shared mutable staging bottlenecks
+- hidden serialization points
+
+#### P5.2 — Suppression propagation scaling
+
+Audit and redesign the sequential post-apply suppression walk where needed:
+
+- reduce redundant traversal state
+- bound per-effect propagation overhead
+- avoid erasing parallel gains with serial cleanup
+
+#### P5.3 — Profile-aware executor strategy
+
+Parallel behavior should vary by domain:
+
+- `Web`: conservative
+- `Game`: bounded and latency-aware
+- `CAD`: balanced with strong determinism
+- `ChipSim`: throughput-heavy
+
+### Acceptance
+
+- parallel workloads scale without obvious central contention
+- suppression/maintenance no longer erase gains
+- executor choice is domain/profile-aware
+
+---
+
+## Phase P6 — Maintenance and GC Policy
+
+### Goal
+
+Ensure maintenance never creates unacceptable latency cliffs.
+
+### Work
+
+#### P6.1 — Explicit maintenance policy by profile
+
+- `Debug`
+  - richer checks, freer maintenance
+- `Dev`
+  - bounded but useful maintenance
+- `Prod`
+  - strongly bounded
+- `FrameBound`
+  - explicit maintenance windows only
+- `Kernel`
+  - explicit maintenance phases only
+
+#### P6.2 — Compaction policy hardening
+
+- profile-aware compaction cadence
+- bounded maintenance budgets
+- no surprise compaction in hot windows
+
+#### P6.3 — Scratch / retained state discipline
+
+- bounded scratch reuse
+- controlled shrink/reset policy after spikes
+
+### Acceptance
+
+- no surprise maintenance spikes in latency-sensitive modes
+- compaction and scratch retention are explicit policy
+
+---
+
+## Phase P7 — Domain Profile Packaging
+
+### Goal
+
+Turn the profile system into real product-ready policy bundles, not labels.
+
+### Work
+
+Each domain/mode combination should define:
+
+- diagnostics retention
+- mutation backend
+- effect allocation mode
+- maintenance cadence
+- executor strategy
+- artifact materialization mode
+
+### Example expectations
+
+#### `WebProd`
+
+- low-overhead
+- conservative parallelism
+- minimal eager diagnostics
+- bounded maintenance
+
+#### `GameProd`
+
+- strict frame sensitivity
+- bounded mutation and maintenance
+- minimal hot-path diagnostics
+- no surprise compaction
+
+#### `CADDev`
+
+- rich reconstruction and lineage
+- heavier validation
+- still reasonably performant mutation backend
+
+#### `CADProd`
+
+- high throughput with compact hot-path tracing
+- deterministic reconstruction path
+- limited eager artifact retention
+
+#### `ChipSimProd`
+
+- throughput-first
+- large-graph-friendly storage behavior
+- very strict allocation discipline
+- compact facts, reconstructable deep audit
+
+### Acceptance
+
+- profiles are real and coherent
+- no domain pays permanently for another domain’s debug burden
+
+---
+
+## Numeric Targets
+
+These numbers should be maintained in [signal_performance_baseline.md](./signal_performance_baseline.md).
+
+### Near-term
+
+- production reconciliation rotating-window workload
+  - current: ~`1.46 ms`
+  - target 1: `<500 us`
+  - target 2: `<100 us` for common local edits
+
+### Broader targets
+
+- suppression workloads: lower mean and lower variance
+- fintech mixed-fanout: materially reduced runtime without losing trace identity
+- p95/p99 matter more than headline means
+
+### Geometry-kernel interpretation
+
+For aerospace/CAD-grade localized topology work:
+
+- common local edits should trend toward **double-digit to low-hundreds of microseconds**
+- large operation orchestration may still be millisecond-scale, but with bounded and explainable phase costs
+
+---
+
+## Sequencing
+
+Recommended order:
+
+1. `P0` measurement discipline
+2. `P1` trace cost separation
+3. `P2` mutation backend redesign
+4. `P4` allocation discipline
+5. `P3` data layout and locality
+6. `P5` parallel scaling
+7. `P6` maintenance and GC policy
+8. `P7` domain profile packaging
+
+### Why this order
+
+- first separate traceability from trace cost
+- then fix the largest mutation bottlenecks
+- then remove allocation waste
+- then attack locality
+- then harden parallelism
+- then formalize maintenance and profile packaging
+
+---
+
+## What Must Never Be Sacrificed
+
+Even under the strongest performance specialization:
+
+- no silent tolerance widening
+- no black-box geometric decisions
+- no loss of stable lineage identity
+- no nondeterministic replay semantics
+- no domain profile that changes what the engine *means*, only what it *costs*
+
+This is the core doctrine:
+
+> **Forge may specialize execution policy aggressively, but it must never specialize truth.**
+

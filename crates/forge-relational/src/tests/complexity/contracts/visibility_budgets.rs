@@ -94,9 +94,8 @@ fn complexity_contract_visibility_scans_are_explicitly_measured() {
 #[test]
 fn complexity_contract_invariant_materialization_is_declared_and_measured() {
     let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
-        registrations: vec![InvariantRegistration::block_commit(
+        registrations: vec![InvariantRegistration::commit_boundary_blocking(
             InvariantRule::UniqueEntityPayloadField("name".to_string()),
-            InvariantExecutionPoint::CommitBoundary,
         )],
         ..InvariantCatalog::default()
     });
@@ -113,9 +112,8 @@ fn complexity_contract_invariant_materialization_is_declared_and_measured() {
 #[test]
 fn complexity_budget_snapshot_entity_limit_uses_live_bitsets_for_current_version() {
     let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
-        registrations: vec![InvariantRegistration::block_publication(
+        registrations: vec![InvariantRegistration::snapshot_publication_blocking(
             InvariantRule::MaxSnapshotEntities(1),
-            InvariantExecutionPoint::SnapshotPublication,
         )],
         ..InvariantCatalog::default()
     });
@@ -129,7 +127,7 @@ fn complexity_budget_snapshot_entity_limit_uses_live_bitsets_for_current_version
     let counters = runtime.performance_access().counters();
 
     assert_eq!(results.len(), 1);
-    assert_eq!(results[0].class, InvariantClass::SnapshotAudit);
+    assert_eq!(results[0].class(), InvariantClass::SnapshotAudit);
     assert!(results[0].violations.is_empty());
     assert_eq!(counters.invariant_entity_slot_scans, 0);
     assert_eq!(counters.invariant_entity_records_materialized, 0);

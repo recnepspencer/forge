@@ -153,9 +153,8 @@ fn complexity_budget_relation_identity_validation_avoids_partition_scan() {
 #[test]
 fn complexity_budget_unique_entity_invariant_uses_changed_set_lookup() {
     let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
-        registrations: vec![InvariantRegistration::block_commit(
+        registrations: vec![InvariantRegistration::mutation_sensitive_blocking(
             InvariantRule::UniqueEntityPayloadField("name".to_string()),
-            InvariantExecutionPoint::MutationSensitive,
         )],
         ..InvariantCatalog::default()
     });
@@ -186,9 +185,8 @@ fn complexity_budget_unique_entity_invariant_uses_changed_set_lookup() {
 #[test]
 fn complexity_budget_commit_boundary_unique_invariant_uses_merged_plan_lookup() {
     let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
-        registrations: vec![InvariantRegistration::block_commit(
+        registrations: vec![InvariantRegistration::commit_boundary_blocking(
             InvariantRule::UniqueEntityPayloadField("name".to_string()),
-            InvariantExecutionPoint::CommitBoundary,
         )],
         ..InvariantCatalog::default()
     });

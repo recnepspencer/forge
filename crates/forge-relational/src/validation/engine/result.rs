@@ -1,22 +1,32 @@
 use crate::publication::data::{PublicationError, PublicationStage};
 use crate::transactions::data::{CommitConflict, ConflictClass};
 use crate::validation::data::{
-    InvariantCheckResult, InvariantFailureEffect, InvariantVerdict, InvariantViolation,
+    InvariantCheckResult, InvariantExecutionPoint, InvariantFailureEffect, InvariantVerdict,
+    InvariantViolation,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InvariantFailure {
+    execution_point: InvariantExecutionPoint,
     effect: InvariantFailureEffect,
     violation: InvariantViolation,
 }
 
 impl InvariantFailure {
+    pub fn execution_point(&self) -> InvariantExecutionPoint {
+        self.execution_point
+    }
+
     pub fn effect(&self) -> InvariantFailureEffect {
         self.effect
     }
 
     pub fn violation(&self) -> &InvariantViolation {
         &self.violation
+    }
+
+    pub fn detail(&self) -> &str {
+        &self.violation.detail
     }
 
     pub fn into_commit_conflict(self) -> CommitConflict {
@@ -57,16 +67,6 @@ impl InvariantExecutionResult {
         self.first_failure_with_effect(InvariantFailureEffect::BlockPublication)
     }
 
-    pub fn blocking_commit_conflict(&self) -> Option<CommitConflict> {
-        self.first_blocking_failure()
-            .map(|failure| failure.into_commit_conflict())
-    }
-
-    pub fn publication_error(&self, stage: PublicationStage) -> Option<PublicationError> {
-        self.first_publication_failure()
-            .map(|failure| failure.into_publication_error(stage))
-    }
-
     fn first_failure_with_effect(
         &self,
         effect: InvariantFailureEffect,
@@ -78,9 +78,18 @@ impl InvariantExecutionResult {
                     && result.verdict == InvariantVerdict::Fail
                     && !result.violations.is_empty()
             })
-            .and_then(|result| result.violations.first())
-            .cloned()
-            .map(|violation| InvariantFailure { effect, violation })
+            .and_then(|result| {
+                result
+                    .violations
+                    .first()
+                    .cloned()
+                    .map(|violation| (result.execution_point, violation))
+            })
+            .map(|(execution_point, violation)| InvariantFailure {
+                execution_point,
+                effect,
+                violation,
+            })
     }
 }
 
@@ -96,6 +105,7 @@ mod tests {
     #[test]
     fn invariant_failure_converts_to_commit_and_publication_errors() {
         let failure = InvariantFailure {
+            execution_point: crate::validation::data::InvariantExecutionPoint::SnapshotPublication,
             effect: InvariantFailureEffect::BlockPublication,
             violation: InvariantViolation {
                 class: InvariantClass::SnapshotAudit,

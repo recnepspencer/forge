@@ -210,12 +210,19 @@ impl SignalGraph {
 
         let mut suppressed = 0_u64;
         let mut stack: Vec<NodeId> = self.runtime_subscribers_of(node)?.to_vec();
-        let mut visited = std::collections::BTreeSet::new();
+        self.traversal
+            .suppression_marks
+            .ensure_len(self.arena_capacity());
+        self.traversal.suppression_marks.clear_all();
         while let Some(current) = stack.pop() {
             if !self.is_alive(current) {
                 continue;
             }
-            if !visited.insert(current) {
+            if !self
+                .traversal
+                .suppression_marks
+                .mark(current.index() as usize)
+            {
                 continue;
             }
             if matches!(self.get_entry(current)?.get_state(), NodeState::Clean) {
@@ -335,7 +342,7 @@ fn canonical_labels(labels: &[String]) -> Vec<String> {
     }
 
     let mut canonical = labels.to_vec();
-    canonical.sort();
+    canonical.sort_unstable();
     canonical.dedup();
     canonical
 }
@@ -352,7 +359,7 @@ fn canonical_changed_regions(
     }
 
     let mut canonical = changed_regions.to_vec();
-    canonical.sort();
+    canonical.sort_unstable();
     canonical.dedup();
     canonical
 }

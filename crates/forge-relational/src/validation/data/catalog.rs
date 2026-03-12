@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::execution::{InvariantClass, InvariantExecutionPoint, InvariantFailureEffect};
+use super::execution::{InvariantExecutionPoint, InvariantFailureEffect};
 use super::contracts::InvariantPlanContract;
 use super::groups::{InvariantCostClass, InvariantGroupSet};
 use super::rules::{InvariantRule, RecordKindTag};
@@ -15,57 +15,69 @@ pub struct InvariantRegistration {
     pub rule: InvariantRule,
     pub execution_point: InvariantExecutionPoint,
     pub failure_effect: InvariantFailureEffect,
-    pub groups: InvariantGroupSet,
-    pub cost: InvariantCostClass,
 }
 
 impl InvariantRegistration {
-    pub fn for_rule(
+    pub(crate) fn for_rule(
         rule: InvariantRule,
         execution_point: InvariantExecutionPoint,
         failure_effect: InvariantFailureEffect,
     ) -> Self {
         debug_assert!(rule.supports_execution_point(execution_point));
         Self {
-            groups: rule.groups(),
-            cost: rule.cost_class(),
             rule,
             execution_point,
             failure_effect,
         }
     }
 
-    pub fn block_commit(
+    pub(crate) fn block_commit(
         rule: InvariantRule,
         execution_point: InvariantExecutionPoint,
     ) -> Self {
         Self::for_rule(rule, execution_point, InvariantFailureEffect::BlockCommit)
     }
 
-    pub fn block_publication(
+    pub(crate) fn block_publication(
         rule: InvariantRule,
         execution_point: InvariantExecutionPoint,
     ) -> Self {
         Self::for_rule(rule, execution_point, InvariantFailureEffect::BlockPublication)
     }
 
-    pub fn audit_only(
+    pub(crate) fn audit_only(
         rule: InvariantRule,
         execution_point: InvariantExecutionPoint,
     ) -> Self {
         Self::for_rule(rule, execution_point, InvariantFailureEffect::AuditOnly)
     }
 
-    pub fn class(&self) -> InvariantClass {
-        self.execution_point.class()
+    pub fn mutation_sensitive_blocking(rule: InvariantRule) -> Self {
+        Self::block_commit(rule, InvariantExecutionPoint::MutationSensitive)
     }
 
-    pub fn matches_groups(&self, groups: InvariantGroupSet) -> bool {
-        self.groups.intersects(groups)
+    pub fn commit_boundary_blocking(rule: InvariantRule) -> Self {
+        Self::block_commit(rule, InvariantExecutionPoint::CommitBoundary)
     }
 
-    pub fn applies_to_contract(&self, contract: Option<InvariantPlanContract>) -> bool {
-        self.rule.applies_to_contract(contract)
+    pub fn snapshot_publication_blocking(rule: InvariantRule) -> Self {
+        Self::block_publication(rule, InvariantExecutionPoint::SnapshotPublication)
+    }
+
+    pub fn harness_audit_only(rule: InvariantRule) -> Self {
+        Self::audit_only(rule, InvariantExecutionPoint::HarnessAudit)
+    }
+
+    pub(crate) fn matches_groups(&self, groups: InvariantGroupSet) -> bool {
+        self.rule.groups().intersects(groups)
+    }
+
+    pub(crate) fn cost(&self) -> InvariantCostClass {
+        self.rule.cost_class()
+    }
+
+    pub(crate) fn applies_to_contract(&self, contract: Option<InvariantPlanContract>) -> bool {
+        contract.is_none_or(|contract| contract.applies_to_rule(&self.rule))
     }
 }
 
@@ -73,13 +85,11 @@ impl Default for InvariantCatalog {
     fn default() -> Self {
         Self {
             registrations: vec![
-                InvariantRegistration::block_commit(
+                InvariantRegistration::mutation_sensitive_blocking(
                     InvariantRule::LiveRecordRequiresSidecar(RecordKindTag::Entity),
-                    InvariantExecutionPoint::MutationSensitive,
                 ),
-                InvariantRegistration::block_commit(
+                InvariantRegistration::mutation_sensitive_blocking(
                     InvariantRule::LiveRecordRequiresSidecar(RecordKindTag::Relation),
-                    InvariantExecutionPoint::MutationSensitive,
                 ),
             ],
         }
@@ -87,15 +97,13 @@ impl Default for InvariantCatalog {
 }
 
 impl InvariantCatalog {
-    pub fn registrations_for_execution_point(
+    pub(crate) fn registrations_for_execution_point(
         &self,
         execution_point: InvariantExecutionPoint,
-    ) -> Vec<InvariantRegistration> {
+    ) -> impl Iterator<Item = &InvariantRegistration> {
         self.registrations
             .iter()
-            .filter(|registration| registration.execution_point == execution_point)
-            .cloned()
-            .collect()
+            .filter(move |registration| registration.execution_point == execution_point)
     }
 
     #[cfg(test)]

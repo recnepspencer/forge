@@ -6,16 +6,16 @@ use super::evaluator::evaluate_rule;
 use super::request::InvariantExecutionRequest;
 use super::result::InvariantExecutionResult;
 
-pub struct InvariantEngine<'runtime> {
+pub(crate) struct InvariantEngine<'runtime> {
     runtime: &'runtime RelationalRuntime,
 }
 
 impl<'runtime> InvariantEngine<'runtime> {
-    pub fn new(runtime: &'runtime RelationalRuntime) -> Self {
+    pub(crate) fn new(runtime: &'runtime RelationalRuntime) -> Self {
         Self { runtime }
     }
 
-    pub fn execute(
+    pub(crate) fn execute(
         &self,
         request: InvariantExecutionRequest<'runtime>,
     ) -> InvariantExecutionResult {
@@ -33,15 +33,21 @@ impl<'runtime> InvariantEngine<'runtime> {
             .invariant_catalog
             .registrations_for_execution_point(context.execution_point);
 
-        let mut results = Vec::with_capacity(registrations.len());
+        let mut results = Vec::new();
         for registration in registrations {
-            if !request.includes_registration(&registration) {
+            if !request.includes_registration(registration) {
                 continue;
             }
-            let class = registration.class();
+            let applies = registration.applies_to_contract(context.plan_contract);
+            let rule = registration.rule.clone();
             let mut violations = Vec::new();
-            let verdict = if registration.applies_to_contract(context.plan_contract) {
-                evaluate_rule(&context, class, &registration.rule, &mut violations);
+            let verdict = if applies {
+                evaluate_rule(
+                    &context,
+                    registration.execution_point.class(),
+                    &rule,
+                    &mut violations,
+                );
                 if violations.is_empty() {
                     InvariantVerdict::Pass
                 } else {
@@ -51,12 +57,9 @@ impl<'runtime> InvariantEngine<'runtime> {
                 InvariantVerdict::NotApplicable
             };
             results.push(InvariantCheckResult {
-                class,
                 execution_point: registration.execution_point,
                 failure_effect: registration.failure_effect,
-                rule: registration.rule,
-                groups: registration.groups,
-                cost: registration.cost,
+                rule,
                 verdict,
                 violations,
             });
@@ -68,9 +71,10 @@ impl<'runtime> InvariantEngine<'runtime> {
 #[cfg(test)]
 mod tests {
     use super::InvariantEngine;
+    use super::super::{InvariantExecutionRequest, InvariantRequestProfile};
     use crate::validation::engine::policy::InvariantExecutionPolicy;
     use crate::facade::{
-        InvariantCatalog, InvariantExecutionPoint, InvariantRegistration, InvariantRule,
+        InvariantCatalog, InvariantRegistration, InvariantRule,
         PartitionId, RelationId, RelationalRuntimeApi, RelationalSchemaRegistry,
     };
     use crate::transactions::data::{
@@ -80,7 +84,6 @@ mod tests {
     use crate::validation::data::{
         InvariantFailureEffect, InvariantGroup, InvariantGroupSet, InvariantVerdict,
     };
-    use crate::validation::engine::InvariantExecutionRequest;
 
     fn runtime_with_invariants(invariant_catalog: InvariantCatalog) -> crate::facade::RelationalRuntime {
         RelationalRuntimeApi::builder()
@@ -92,9 +95,8 @@ mod tests {
     #[test]
     fn engine_skips_rules_when_request_groups_do_not_intersect() {
         let runtime = runtime_with_invariants(InvariantCatalog {
-            registrations: vec![InvariantRegistration::block_commit(
+            registrations: vec![InvariantRegistration::commit_boundary_blocking(
                 InvariantRule::UniqueEntityPayloadField("name".to_string()),
-                InvariantExecutionPoint::CommitBoundary,
             )],
             ..InvariantCatalog::default()
         });
@@ -109,7 +111,7 @@ mod tests {
 
         let results = InvariantEngine::new(&runtime).execute(
             InvariantExecutionRequest::from_profile(
-                crate::validation::engine::InvariantRequestProfile::CommitBoundary,
+                InvariantRequestProfile::CommitBoundary,
                 &runtime.current_state(),
                 runtime.current_version_id(),
                 Some(&plan),
@@ -124,9 +126,8 @@ mod tests {
     #[test]
     fn engine_marks_unrelated_commit_boundary_rules_not_applicable() {
         let runtime = runtime_with_invariants(InvariantCatalog {
-            registrations: vec![InvariantRegistration::block_commit(
+            registrations: vec![InvariantRegistration::commit_boundary_blocking(
                 InvariantRule::UniqueEntityPayloadField("name".to_string()),
-                InvariantExecutionPoint::CommitBoundary,
             )],
             ..InvariantCatalog::default()
         });

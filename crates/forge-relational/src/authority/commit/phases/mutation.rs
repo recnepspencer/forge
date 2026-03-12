@@ -5,7 +5,6 @@ use crate::transactions::data::{
 };
 use crate::transactions::logic::RelationalTransaction;
 
-use super::invariants::run_mutation_sensitive_invariants;
 use super::prepare::record_mutation_counters;
 
 pub(crate) struct MutationPhaseOutput {
@@ -36,12 +35,15 @@ pub(crate) fn run_authoritative_mutation(
     record_mutation_counters(transaction.runtime, working_state);
 
     {
-        if let Err(error) = run_mutation_sensitive_invariants(
-            transaction.runtime,
-            working_state,
-            version_id,
-            merged_plan,
-        ) {
+        if let Err(error) = transaction
+            .runtime
+            .invariant_authority()
+            .enforce_mutation_sensitive_for_working_state(
+                working_state,
+                version_id,
+                merged_plan,
+            )
+        {
             return Err(TransactionCommitError::Conflict(error));
         }
     }

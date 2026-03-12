@@ -9,8 +9,8 @@ mod request;
 mod result;
 mod state_view;
 
-pub use engine::InvariantEngine;
 pub use profile::HarnessAuditMode;
-pub use profile::InvariantRequestProfile;
-pub use request::InvariantExecutionRequest;
 pub use result::InvariantExecutionResult;
+pub(crate) use engine::InvariantEngine;
+pub(crate) use profile::InvariantRequestProfile;
+pub(crate) use request::InvariantExecutionRequest;

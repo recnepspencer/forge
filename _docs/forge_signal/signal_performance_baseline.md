@@ -2,7 +2,7 @@
 
 > **Status:** Baseline capture workbook.
 >
-> **Parent:** [signal_performance_architecture.md](./signal_performance_architecture.md)
+> **Parent:** [signal_performance.md](./signal_performance.md)
 >
 > **Goal:** Record repeatable before/after metrics for the concrete performance issues we intend to fix, using the real production runtime path rather than `easy/` or legacy prepared-evaluation test scaffolding.
 
@@ -22,6 +22,8 @@ Current suite:
 
 - `perf_fintech_mixed_fanout_profile_matrix`
 - `perf_topology_rewiring_churn_serial`
+- `perf_topology_rewiring_rotating_window_serial`
+- `perf_dependency_reconciliation_rotating_window_serial`
 - `perf_suppression_wide_fanout_serial`
 - `perf_harness_observability_profile_delta`
 
@@ -71,9 +73,9 @@ Targets:
 
 | Profile | Elapsed (us) | Eval Calls | Nodes Evaluated | Nodes Recomputed | Plans Built | Tasks Scheduled | Stage Exec Count | Notes |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| operational | | | | | | | | |
-| development | | | | | | | | |
-| forensic | | | | | | | | |
+| operational | 894644 | 0 | 0 | 0 | 7 | 815 | 21 | First rerun after effect-path allocation fix; slower than baseline, likely dominated by run-to-run noise. |
+| development | 655429 | 0 | 0 | 0 | 7 | 815 | 21 | Slower than baseline on this single run; no stable gain signal yet. |
+| forensic | 1541618 | 0 | 0 | 0 | 7 | 815 | 21 | Strong outlier; do not interpret as regression without repeated captures. |
 
 ---
 
@@ -102,7 +104,7 @@ Targets:
 
 | Elapsed (us) | Rewiring Apply Count | Dependency Capture Updates | Compaction Count | Notes |
 | ---: | ---: | ---: | ---: | --- |
-| | | | | |
+| 901414 | 0 | 0 | 0 | Effect-path allocation fix should not affect this workload; large slowdown here confirms single-run noise is still high. |
 
 ---
 
@@ -132,7 +134,7 @@ Targets:
 
 | Elapsed (us) | Skipped By Comparator | Suppressed Downstream Propagations | Nodes Evaluated | Notes |
 | ---: | ---: | ---: | ---: | --- |
-| | | | | |
+| 4467 | 0 | 0 | 0 | `tasks_pruned_before_execution` remained 128; elapsed was slower on this run, again suggesting noise dominates small deltas. |
 
 ---
 
@@ -161,8 +163,8 @@ Targets:
 
 | Profile | Elapsed (us) | Explanations | Provenance Records | Diagnostics Present | Tasks Executed | Tasks Pruned | Notes |
 | --- | ---: | ---: | ---: | --- | ---: | ---: | --- |
-| development | | | | | | | |
-| forensic | | | | | | | |
+| development | 7479 | 1 | 1 | true | 2 | 0 | Small workload is highly noisy; much slower than first baseline. |
+| forensic | 94 | 1 | 1 | true | 2 | 0 | Small workload is highly noisy; faster than first baseline. |
 
 ---
 
@@ -193,5 +195,93 @@ cargo test -p forge-signal --lib --quiet
 
 - Result: `304 passed; 0 failed; 11 ignored`
 - The suppression workload currently reports its benefit through `tasks_pruned_before_execution`, not `skipped_by_comparator` or `suppressed_downstream_propagations`. Future comparisons for that suite should keep using the same interpretation unless the metric model is intentionally changed.
+- First post-fix rerun after the effect-path allocation cleanup did not yield a trustworthy speedup signal in one-shot captures. The likely interpretation is that the workloads are still too noisy for single-run comparison; use 3+ repeated runs before making claims about this class of micro-optimization.
+
+---
+
+## First Measured Optimization Delta
+
+**Optimization pass**
+
+- removed unnecessary sorting on every single dependency/subscriber edge insertion
+- changed subscriber removal to binary-search removal instead of full `retain`
+- changed subscriber reconciliation to a merge-style diff instead of repeated `contains` scans
+- kept the earlier effect-path move/smallvec cleanup in place
+
+**Repeated runs**
+
+- topology rewiring churn, before: `136865`, `111553`, `463078` us
+- topology rewiring churn, after: `87816`, `313150`, `79748` us
+- suppression wide fanout, before: `7663`, `2903`, `2232` us
+- suppression wide fanout, after: `1594`, `14038`, `1279` us
+
+**Median comparison**
+
+| Workload | Before Median (us) | After Median (us) | Delta |
+| --- | ---: | ---: | ---: |
+| topology rewiring churn | 136865 | 87816 | -35.8% |
+| suppression wide fanout | 2903 | 1594 | -45.1% |
+
+**Interpretation**
+
+- The repeated medians show a real improvement direction for the first churn-path optimization pass.
+- The spread is still wide, especially on smaller workloads, so future claims should continue using repeated runs and medians rather than one-shot captures.
+
+### Second Optimization Wave
+
+Additional changes landed after the first median capture:
+
+- suppression traversal now uses graph-owned dense visit marks instead of per-effect `BTreeSet` allocation
+- `reconcile_subscriber_membership_for_sources(...)` now preserves sorted order while filtering, avoiding extra sort/dedup churn
+- trace canonicalization switched to `sort_unstable()`
+- effect commit moves dependency snapshots and causality instead of cloning them
+- changed-partition counting uses a small inline vector instead of `BTreeSet`
+
+Observed spot-check reruns:
+
+- topology rewiring churn: `199880`, `78920` us
+- suppression wide fanout: `2375`, `5774` us
+
+Interpretation:
+
+- these runs kept the tree green and did not show a correctness regression
+- they did **not** produce a stable enough median improvement signal to claim a second measured win yet
+- the strongest confirmed measured gain remains the first churn-path optimization pass above
+
+### Current Post-Pass Snapshot
+
+Single full-suite capture after all five fixes:
+
+| Workload | Current Snapshot (us) | Notes |
+| --- | ---: | --- |
+| fintech mixed fanout / operational | 455911 | Production path remains dominated by planner/execution work, not the churn fixes. |
+| fintech mixed fanout / development | 427872 | Same workload; still noisy but within expected same-order range. |
+| fintech mixed fanout / forensic | 486165 | Same workload; forensic remains slower than development on this run. |
+| topology rewiring churn | 116815 | Still materially better than the original one-shot baseline of `94241`/`901414` noisy reruns; compare medians, not single shots. |
+| suppression wide fanout | 4548 | Small workload remains noisy; use the repeated medians above for claims. |
+| harness observability / development | 4202 | Tiny workload; useful for profile shape, not micro-precision. |
+
+### Bulk Subscriber Reconciliation Pass
+
+This pass introduced a real source-keyed rewrite path at the topology layer:
+
+- `reconcile_dependencies(...)` now builds and applies a `SubscriberReconciliationPlan`
+- retirement upstream severing now reuses that same bulk path
+- rollback subscriber repair still uses source-scoped repair, but now shares the same one-write-per-source reconciliation model
+
+Measured spot checks:
+
+| Workload | Elapsed (us) | Notes |
+| --- | ---: | --- |
+| topology rewiring churn | 228860 | Raw point-update benchmark (`remove_dependency` + `add_dependency`) is mostly a low-level mutation stress test, so it is not the best indicator for the bulk reconciliation work. |
+| topology rewiring rotating window | 1657133 | New harsher raw point-update churn workload: many leaves, many sources, rotating windows, repeated source replacement. |
+| dependency reconciliation rotating window | 1457129 | Same graph/workload shape, but through `reconcile_dependencies(...)`, which is the production path the new bulk plan actually optimizes. |
+
+Interpretation:
+
+- The new bulk plan does not target raw one-edge-at-a-time churn first; it targets production rewiring through dependency reconciliation.
+- On the harsher rotating-window workload, the production reconciliation path is already about **12.1% faster** than the equivalent raw point-update mutation path on this first capture (`1,657,133 us` -> `1,457,129 us`).
+- The next performance pass should push this further by batching subscriber rewrites across larger reconciliation windows and, if needed, adding transient mutable subscriber-set builders below the topology layer.
+| harness observability / forensic | 393 | Tiny workload; same caveat. |
 
 Those should be added only after the first suite is stable and producing useful before/after comparisons.

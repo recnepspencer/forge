@@ -3,9 +3,6 @@ use crate::authority::commit::phases::finalize::{
     finalize_commit_publication, FinalizeCommitInput,
 };
 use crate::authority::commit::phases::history::resolve_commit_history;
-use crate::authority::commit::phases::invariants::{
-    run_commit_boundary_invariants, run_snapshot_publication_invariants,
-};
 use crate::authority::commit::phases::mutation::run_authoritative_mutation;
 use crate::authority::commit::phases::prepare::{
     prepare_working_state_scope, record_preparation_counters,
@@ -36,7 +33,9 @@ impl<'a> RelationalTransaction<'a> {
         let merged_plan = prepared.merged_plan;
         let mut working_state = prepared.working_state;
         record_preparation_counters(self.runtime, &working_state, &planning_state, &merged_plan);
-        run_commit_boundary_invariants(self.runtime, &merged_plan)?;
+        self.runtime
+            .invariant_authority()
+            .enforce_commit_boundary(&merged_plan)?;
 
         let mutation = run_authoritative_mutation(&mut self, &mut working_state, &merged_plan)?;
         let version_id = mutation.version_id;
@@ -49,8 +48,14 @@ impl<'a> RelationalTransaction<'a> {
         let merge_base_commits = history.merge_base_commits.clone();
 
         {
-            if let Err(error) =
-                run_snapshot_publication_invariants(self.runtime, &working_state, version_id, &merged_plan)
+            if let Err(error) = self
+                .runtime
+                .invariant_authority()
+                .enforce_snapshot_publication_for_working_state(
+                    &working_state,
+                    version_id,
+                    &merged_plan,
+                )
             {
                 return Err(TransactionCommitError::Publication(error));
             }

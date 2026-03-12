@@ -5,6 +5,7 @@ use crate::publication::data::diff::{
     PatchStreamBatch, PatchStreamReadError, PatchStreamReadErrorClass, PatchStreamRequest,
 };
 use crate::publication::data::PublicationBundle;
+use crate::validation::data::InvariantExecutionPoint;
 
 pub struct PublicationAccess<'runtime> {
     runtime: &'runtime RelationalRuntime,
@@ -113,6 +114,8 @@ pub(crate) fn publication_failure_diagnostic(detail: String) -> RelationalDiagno
     RelationalDiagnosticsEntry {
         code: crate::diagnostics::data::DiagnosticCode::InvariantViolation,
         message: detail,
-        fields: serde_json::json!({ "execution_point": "snapshot_publication" }),
+        fields: serde_json::json!({
+            "execution_point": InvariantExecutionPoint::SnapshotPublication.diagnostic_label()
+        }),
     }
 }

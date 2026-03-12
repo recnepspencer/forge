@@ -4,6 +4,8 @@ use crate::transactions::data::{
     CreateIntent, EntityMutationIntent, MergedCommitPlan, MutationIntent, RelationMutationIntent,
 };
 
+use super::rules::{InvariantRule, RecordKindTag};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct InvariantPlanContract {
     pub touches_entity_existence: bool,
@@ -32,6 +34,23 @@ impl InvariantPlanContract {
             && !self.touches_uniqueness
             && !self.touches_publication_surface
             && !self.touches_snapshot_surface
+    }
+
+    pub(crate) fn applies_to_rule(self, rule: &InvariantRule) -> bool {
+        if self.is_empty() {
+            return true;
+        }
+        match rule {
+            InvariantRule::LiveRecordRequiresSidecar(RecordKindTag::Entity) => {
+                self.touches_entity_existence || self.touches_entity_payload
+            }
+            InvariantRule::LiveRecordRequiresSidecar(RecordKindTag::Relation) => {
+                self.touches_relation_existence || self.touches_relation_payload
+            }
+            InvariantRule::MaxMergedIntents(_) => true,
+            InvariantRule::MaxSnapshotEntities(_) => self.touches_snapshot_surface,
+            InvariantRule::UniqueEntityPayloadField(_) => self.touches_uniqueness,
+        }
     }
 
     fn observe_intent(&mut self, intent: &MutationIntent) {

@@ -21,6 +21,27 @@ impl DependencyReconciliationReport {
     }
 }
 
+#[derive(Debug, Default)]
+struct SubscriberReconciliationPlan {
+    rewrites: Vec<SubscriberSetRewrite>,
+}
+
+#[derive(Debug)]
+struct SubscriberSetRewrite {
+    source: NodeId,
+    subscribers: Vec<NodeId>,
+}
+
+impl SubscriberReconciliationPlan {
+    fn push(&mut self, source: NodeId, subscribers: Vec<NodeId>) {
+        self.rewrites.push(SubscriberSetRewrite { source, subscribers });
+    }
+
+    fn is_empty(&self) -> bool {
+        self.rewrites.is_empty()
+    }
+}
+
 impl SignalGraph {
     pub(crate) fn assert_bidirectional_consistency(&self) -> Result<(), SignalError> {
         for (index, slot) in self.arena.nodes.iter().enumerate() {
@@ -231,8 +252,11 @@ impl SignalGraph {
         report.removed += (current.len() - current_index) as u32;
         report.added += (desired.len() - desired_index) as u32;
 
+        let subscriber_plan =
+            self.build_subscriber_reconciliation_plan(node, &current_sources, &desired_sources)?;
+
         self.set_dependency_edges_sorted(node, desired)?;
-        self.reconcile_subscriber_sets(node, &current_sources, &desired_sources)?;
+        self.apply_subscriber_reconciliation_plan(subscriber_plan)?;
         self.debug_assert_bidirectional_consistency();
         Ok(report)
     }
@@ -243,7 +267,6 @@ impl SignalGraph {
         edge: DependencyEdge,
     ) -> Result<bool, SignalError> {
         self.mutate_dependency_edges(node, |updated| {
-            updated.sort_by(compare_dependency_edges);
             match updated.binary_search_by(|candidate| compare_dependency_edges(candidate, &edge)) {
                 Ok(_) => false,
                 Err(index) => {
@@ -300,7 +323,6 @@ impl SignalGraph {
         subscriber: NodeId,
     ) -> Result<bool, SignalError> {
         self.mutate_subscriber_edges(node, |updated| {
-            updated.sort();
             match updated.binary_search(&subscriber) {
                 Ok(_) => false,
                 Err(index) => {
@@ -328,9 +350,13 @@ impl SignalGraph {
         subscriber: NodeId,
     ) -> Result<bool, SignalError> {
         self.mutate_subscriber_edges(node, |updated| {
-            let original_len = updated.len();
-            updated.retain(|candidate| *candidate != subscriber);
-            updated.len() != original_len
+            match updated.binary_search(&subscriber) {
+                Ok(index) => {
+                    updated.remove(index);
+                    true
+                }
+                Err(_) => false,
+            }
         })
     }
 
@@ -369,32 +395,8 @@ impl SignalGraph {
         &mut self,
         sources: &[NodeId],
     ) -> Result<(), SignalError> {
-        let mut sources = sources.to_vec();
-        sources.sort_by_key(|node| (node.index(), node.generation()));
-        sources.dedup();
-
-        for source in sources {
-            if !self.is_alive(source) {
-                continue;
-            }
-            let current = self.raw_subscribers_of(source)?.to_vec();
-            let mut expected = current
-                .iter()
-                .copied()
-                .filter(|subscriber| self.is_alive(*subscriber))
-                .filter(|subscriber| {
-                    self.raw_dependencies_of(*subscriber)
-                        .map(|dependencies| dependencies.iter().any(|edge| edge.source() == source))
-                        .unwrap_or(false)
-                })
-                .collect::<Vec<_>>();
-            expected.sort_by_key(|node| (node.index(), node.generation()));
-            expected.dedup();
-            if current != expected {
-                self.set_subscribers_sorted(source, &expected)?;
-            }
-        }
-
+        let plan = self.build_subscriber_membership_repair_plan(sources)?;
+        self.apply_subscriber_reconciliation_plan(plan)?;
         self.debug_assert_bidirectional_consistency();
         Ok(())
     }
@@ -405,23 +407,149 @@ impl SignalGraph {
         current_sources: &[NodeId],
         desired_sources: &[NodeId],
     ) -> Result<(), SignalError> {
-        let mut current_sources = current_sources.to_vec();
-        let mut desired_sources = desired_sources.to_vec();
-        current_sources.sort_by_key(|source| (source.index(), source.generation()));
-        desired_sources.sort_by_key(|source| (source.index(), source.generation()));
-        current_sources.dedup();
-        desired_sources.dedup();
+        let plan = self.build_subscriber_reconciliation_plan(node, current_sources, desired_sources)?;
+        self.apply_subscriber_reconciliation_plan(plan)?;
+        Ok(())
+    }
 
-        for source in &current_sources {
-            if !desired_sources.contains(source) {
-                self.remove_subscriber_edge(*source, node)?;
+    fn build_subscriber_membership_repair_plan(
+        &self,
+        sources: &[NodeId],
+    ) -> Result<SubscriberReconciliationPlan, SignalError> {
+        let mut plan = SubscriberReconciliationPlan::default();
+
+        for source in sorted_unique_nodes(sources) {
+            if !self.is_alive(source) {
+                continue;
+            }
+
+            let current = self.raw_subscribers_of(source)?;
+            let mut expected = Vec::with_capacity(current.len());
+            let mut changed = false;
+
+            for subscriber in current.iter().copied() {
+                if !self.is_alive(subscriber) {
+                    changed = true;
+                    continue;
+                }
+
+                let still_subscribed = self
+                    .raw_dependencies_of(subscriber)?
+                    .iter()
+                    .any(|edge| edge.source() == source);
+                if still_subscribed {
+                    expected.push(subscriber);
+                } else {
+                    changed = true;
+                }
+            }
+
+            if changed {
+                plan.push(source, expected);
             }
         }
 
-        for source in &desired_sources {
-            if !current_sources.contains(source) {
-                self.add_subscriber_edge(*source, node)?;
+        Ok(plan)
+    }
+
+    fn build_subscriber_reconciliation_plan(
+        &self,
+        node: NodeId,
+        current_sources: &[NodeId],
+        desired_sources: &[NodeId],
+    ) -> Result<SubscriberReconciliationPlan, SignalError> {
+        let current_sources = sorted_unique_nodes(current_sources);
+        let desired_sources = sorted_unique_nodes(desired_sources);
+        let mut plan = SubscriberReconciliationPlan::default();
+        let mut current_index = 0usize;
+        let mut desired_index = 0usize;
+
+        while current_index < current_sources.len() && desired_index < desired_sources.len() {
+            let current = current_sources[current_index];
+            let desired = desired_sources[desired_index];
+
+            match node_id_sort_key(current).cmp(&node_id_sort_key(desired)) {
+                Ordering::Less => {
+                    self.plan_subscriber_membership_update(&mut plan, current, node, false)?;
+                    current_index += 1;
+                }
+                Ordering::Greater => {
+                    self.plan_subscriber_membership_update(&mut plan, desired, node, true)?;
+                    desired_index += 1;
+                }
+                Ordering::Equal => {
+                    current_index += 1;
+                    desired_index += 1;
+                }
             }
+        }
+
+        while current_index < current_sources.len() {
+            self.plan_subscriber_membership_update(
+                &mut plan,
+                current_sources[current_index],
+                node,
+                false,
+            )?;
+            current_index += 1;
+        }
+
+        while desired_index < desired_sources.len() {
+            self.plan_subscriber_membership_update(
+                &mut plan,
+                desired_sources[desired_index],
+                node,
+                true,
+            )?;
+            desired_index += 1;
+        }
+
+        Ok(plan)
+    }
+
+    fn plan_subscriber_membership_update(
+        &self,
+        plan: &mut SubscriberReconciliationPlan,
+        source: NodeId,
+        subscriber: NodeId,
+        should_subscribe: bool,
+    ) -> Result<(), SignalError> {
+        if !self.is_alive(source) {
+            return Ok(());
+        }
+
+        let current = self.raw_subscribers_of(source)?;
+        let mut updated = current.to_vec();
+        let changed = match updated.binary_search(&subscriber) {
+            Ok(index) if !should_subscribe => {
+                updated.remove(index);
+                true
+            }
+            Ok(_) => false,
+            Err(index) if should_subscribe => {
+                updated.insert(index, subscriber);
+                true
+            }
+            Err(_) => false,
+        };
+
+        if changed {
+            plan.push(source, updated);
+        }
+
+        Ok(())
+    }
+
+    fn apply_subscriber_reconciliation_plan(
+        &mut self,
+        plan: SubscriberReconciliationPlan,
+    ) -> Result<(), SignalError> {
+        if plan.is_empty() {
+            return Ok(());
+        }
+
+        for rewrite in plan.rewrites {
+            self.set_subscribers_sorted(rewrite.source, &rewrite.subscribers)?;
         }
 
         Ok(())
@@ -460,4 +588,15 @@ impl SignalGraph {
 
 fn compare_dependency_edges(left: &DependencyEdge, right: &DependencyEdge) -> Ordering {
     left.sort_key().cmp(&right.sort_key())
+}
+
+fn sorted_unique_nodes(nodes: &[NodeId]) -> Vec<NodeId> {
+    let mut nodes = nodes.to_vec();
+    nodes.sort_by_key(|node| node_id_sort_key(*node));
+    nodes.dedup();
+    nodes
+}
+
+fn node_id_sort_key(node: NodeId) -> (u32, u32) {
+    (node.index(), node.generation())
 }

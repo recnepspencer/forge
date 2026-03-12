@@ -223,9 +223,8 @@ fn savepoint_rollback_discards_inner_work_only() {
 #[test]
 fn snapshot_audit_failure_discards_only_touched_overlay() {
     let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
-        registrations: vec![InvariantRegistration::block_publication(
+        registrations: vec![InvariantRegistration::snapshot_publication_blocking(
             InvariantRule::MaxSnapshotEntities(1),
-            InvariantExecutionPoint::SnapshotPublication,
         )],
         ..InvariantCatalog::default()
     });

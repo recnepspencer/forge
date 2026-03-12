@@ -67,22 +67,31 @@ fn push_perf_10k_nodes() {
 }
 
 #[test]
+#[ignore = "machine-sensitive defer budget; tracked in performance_profiles baseline suite"]
 fn ondemand_defer_perf_10k_nodes() {
-    let mut graph = SignalGraph::new();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     let mut nodes: Vec<NodeId> = Vec::with_capacity(10_000);
-    for _ in 0..10_000 {
-        nodes.push(
-            graph
-                .node()
-                .condition(EvaluationCondition::OnDemand)
-                .build(),
-        );
+    {
+        let mut graph = runtime.graph_mut();
+        for _ in 0..10_000 {
+            nodes.push(
+                graph
+                    .node()
+                    .condition(EvaluationCondition::OnDemand)
+                    .build(),
+            );
+        }
     }
 
     let start = std::time::Instant::now();
-    let plan = build_evaluation_plan(&mut graph, &nodes, EvaluationRequestMode::Default).unwrap();
+    let plan = runtime
+        .build_evaluation_plan(&nodes, EvaluationRequestMode::Default)
+        .unwrap();
     assert_eq!(plan.summary.task_count, 10_000);
-    execute_prepared_plan(&mut graph, &plan, &(), &|_ctx| Ok(version_ab(0, 1)))
+    runtime
+        .execute_prepared_plan(&plan, &(), &|_ctx| Ok(version_ab(0, 1)))
         .unwrap();
     let elapsed = start.elapsed();
 

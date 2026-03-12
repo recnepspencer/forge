@@ -1,6 +1,5 @@
 use crate::logic::runtime::{PartitionAccess, RelationalRuntime};
-use crate::publication::data::{PublicationError, PublicationStage};
-use crate::transactions::data::{CommitConflict, MergedCommitPlan};
+use crate::transactions::data::MergedCommitPlan;
 use crate::validation::engine::{
     HarnessAuditMode, InvariantEngine, InvariantExecutionRequest, InvariantExecutionResult,
     InvariantRequestProfile,
@@ -22,18 +21,18 @@ impl<'runtime> InvariantAccess<'runtime> {
     }
 
     pub fn harness_audit(&self, mode: HarnessAuditMode) -> InvariantExecutionResult {
-        if mode == HarnessAuditMode::Disabled {
-            return InvariantExecutionResult::new(Vec::new());
-        }
-        self.execute_for_runtime(InvariantRequestProfile::HarnessAudit)
+        mode.request_profile()
+            .map_or_else(|| InvariantExecutionResult::new(Vec::new()), |profile| {
+                self.execute_for_runtime(profile)
+            })
     }
 
     pub fn mutation_sensitive_state(&self) -> InvariantExecutionResult {
-        self.execute_for_runtime(InvariantRequestProfile::MutationSensitiveState)
+        self.execute_for_runtime(InvariantRequestProfile::MutationSensitive)
     }
 
     pub fn snapshot_publication_state(&self) -> InvariantExecutionResult {
-        self.execute_for_runtime(InvariantRequestProfile::SnapshotPublicationState)
+        self.execute_for_runtime(InvariantRequestProfile::SnapshotPublication)
     }
 
     pub(crate) fn mutation_sensitive_for_state(
@@ -42,20 +41,12 @@ impl<'runtime> InvariantAccess<'runtime> {
         version_id: crate::identity::data::VersionId,
         merged_plan: Option<&MergedCommitPlan>,
     ) -> InvariantExecutionResult {
-        match merged_plan {
-            Some(merged_plan) => self.execute_for_state(
-                InvariantRequestProfile::MutationSensitive,
-                state,
-                version_id,
-                Some(merged_plan),
-            ),
-            None => self.execute_for_state(
-                InvariantRequestProfile::MutationSensitiveState,
-                state,
-                version_id,
-                None,
-            ),
-        }
+        self.execute_for_state(
+            InvariantRequestProfile::MutationSensitive,
+            state,
+            version_id,
+            merged_plan,
+        )
     }
 
     pub(crate) fn commit_boundary(&self, merged_plan: &MergedCommitPlan) -> InvariantExecutionResult {
@@ -65,55 +56,18 @@ impl<'runtime> InvariantAccess<'runtime> {
         )
     }
 
-    pub(crate) fn commit_boundary_conflict(
-        &self,
-        merged_plan: &MergedCommitPlan,
-    ) -> Option<CommitConflict> {
-        self.commit_boundary(merged_plan)
-            .blocking_commit_conflict()
-    }
-
     pub(crate) fn snapshot_publication_for_state(
         &self,
         state: &impl PartitionAccess,
         version_id: crate::identity::data::VersionId,
         merged_plan: Option<&MergedCommitPlan>,
     ) -> InvariantExecutionResult {
-        match merged_plan {
-            Some(merged_plan) => self.execute_for_state(
-                InvariantRequestProfile::SnapshotPublication,
-                state,
-                version_id,
-                Some(merged_plan),
-            ),
-            None => self.execute_for_state(
-                InvariantRequestProfile::SnapshotPublicationState,
-                state,
-                version_id,
-                None,
-            ),
-        }
-    }
-
-    pub(crate) fn mutation_sensitive_conflict_for_state(
-        &self,
-        state: &impl PartitionAccess,
-        version_id: crate::identity::data::VersionId,
-        merged_plan: Option<&MergedCommitPlan>,
-    ) -> Option<CommitConflict> {
-        self.mutation_sensitive_for_state(state, version_id, merged_plan)
-            .blocking_commit_conflict()
-    }
-
-    pub(crate) fn snapshot_publication_error_for_state(
-        &self,
-        state: &impl PartitionAccess,
-        version_id: crate::identity::data::VersionId,
-        merged_plan: Option<&MergedCommitPlan>,
-        stage: PublicationStage,
-    ) -> Option<PublicationError> {
-        self.snapshot_publication_for_state(state, version_id, merged_plan)
-            .publication_error(stage)
+        self.execute_for_state(
+            InvariantRequestProfile::SnapshotPublication,
+            state,
+            version_id,
+            merged_plan,
+        )
     }
 
     fn execute_for_runtime(

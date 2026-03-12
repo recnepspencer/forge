@@ -37,12 +37,7 @@ impl SignalGraph {
         retired: NodeId,
         sources: &[NodeId],
     ) -> Result<(), SignalError> {
-        for &source in sources {
-            if self.is_alive(source) {
-                self.remove_subscriber_edge(source, retired)?;
-            }
-        }
-        Ok(())
+        self.reconcile_subscriber_sets(retired, sources, &[])
     }
 
     fn mark_retired_downstream_dependents_dirty(

@@ -7,6 +7,7 @@ use crate::facade::*;
 use crate::presentation::harness::{
     signal_bench, SignalProfileCatalog, SignalScenario,
 };
+use crate::data::dependency::DependencyEdge;
 use crate::tests::domains::fintech::{setup_seeded_world_with, FintechScale, MarketRegime};
 use crate::tests::support::{version_ab, ASPECT_A};
 
@@ -120,6 +121,97 @@ fn perf_topology_rewiring_churn_serial() {
 
     let record = PerfRecord {
         suite: "topology_rewiring_churn",
+        profile: "balanced",
+        executor: "serial",
+        elapsed_micros: elapsed.as_micros(),
+        metrics: graph_metrics_delta(before, after),
+    };
+    emit(&record);
+
+    graph.assert_bidirectional_consistency().unwrap();
+    assert!(record.elapsed_micros > 0);
+}
+
+#[test]
+#[ignore = "performance baseline capture; run with -- --ignored --nocapture"]
+fn perf_topology_rewiring_rotating_window_serial() {
+    let mut graph = SignalGraph::new();
+    let sources = (0..64).map(|_| graph.node().build()).collect::<Vec<_>>();
+    let leaves = (0..512).map(|_| graph.node().build()).collect::<Vec<_>>();
+    let window = 8usize;
+
+    for (index, &leaf) in leaves.iter().enumerate() {
+        for offset in 0..window {
+            let source = sources[(index + offset) % sources.len()];
+            graph.add_dependency(leaf, source, ASPECT_A).unwrap();
+        }
+    }
+
+    let before = graph.observe().metrics();
+    let start = Instant::now();
+    for round in 0..24 {
+        for (index, &leaf) in leaves.iter().enumerate() {
+            for offset in 0..window {
+                let old = sources[(index + round + offset) % sources.len()];
+                let new = sources[(index + round + offset + 1) % sources.len()];
+                let _ = graph.remove_dependency(leaf, old, ASPECT_A);
+                graph.add_dependency(leaf, new, ASPECT_A).unwrap();
+            }
+        }
+    }
+    let elapsed = start.elapsed();
+    let after = graph.observe().metrics();
+
+    let record = PerfRecord {
+        suite: "topology_rewiring_rotating_window",
+        profile: "balanced",
+        executor: "serial",
+        elapsed_micros: elapsed.as_micros(),
+        metrics: graph_metrics_delta(before, after),
+    };
+    emit(&record);
+
+    graph.assert_bidirectional_consistency().unwrap();
+    assert!(record.elapsed_micros > 0);
+}
+
+#[test]
+#[ignore = "performance baseline capture; run with -- --ignored --nocapture"]
+fn perf_dependency_reconciliation_rotating_window_serial() {
+    let mut graph = SignalGraph::new();
+    let sources = (0..64).map(|_| graph.node().build()).collect::<Vec<_>>();
+    let leaves = (0..512).map(|_| graph.node().build()).collect::<Vec<_>>();
+    let window = 8usize;
+
+    for (index, &leaf) in leaves.iter().enumerate() {
+        let mut desired = (0..window)
+            .map(|offset| DependencyEdge::new(sources[(index + offset) % sources.len()], ASPECT_A))
+            .collect::<Vec<_>>();
+        desired.sort_unstable_by_key(|edge| edge.sort_key());
+        graph.reconcile_dependencies(leaf, &desired).unwrap();
+    }
+
+    let before = graph.observe().metrics();
+    let start = Instant::now();
+    for round in 0..24 {
+        for (index, &leaf) in leaves.iter().enumerate() {
+            let mut desired = (0..window)
+                .map(|offset| {
+                    DependencyEdge::new(
+                        sources[(index + round + offset + 1) % sources.len()],
+                        ASPECT_A,
+                    )
+                })
+                .collect::<Vec<_>>();
+            desired.sort_unstable_by_key(|edge| edge.sort_key());
+            graph.reconcile_dependencies(leaf, &desired).unwrap();
+        }
+    }
+    let elapsed = start.elapsed();
+    let after = graph.observe().metrics();
+
+    let record = PerfRecord {
+        suite: "dependency_reconciliation_rotating_window",
         profile: "balanced",
         executor: "serial",
         elapsed_micros: elapsed.as_micros(),

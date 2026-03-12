@@ -29,6 +29,15 @@ impl InvariantExecutionPoint {
             Self::HarnessAudit => InvariantClass::HarnessHeavy,
         }
     }
+
+    pub const fn diagnostic_label(self) -> &'static str {
+        match self {
+            Self::MutationSensitive => "mutation_sensitive",
+            Self::CommitBoundary => "commit_boundary",
+            Self::SnapshotPublication => "snapshot_publication",
+            Self::HarnessAudit => "harness_audit",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -47,12 +56,23 @@ pub enum InvariantVerdict {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InvariantCheckResult {
-    pub class: InvariantClass,
     pub execution_point: InvariantExecutionPoint,
     pub failure_effect: InvariantFailureEffect,
     pub rule: InvariantRule,
-    pub groups: InvariantGroupSet,
-    pub cost: InvariantCostClass,
     pub verdict: InvariantVerdict,
     pub violations: Vec<InvariantViolation>,
+}
+
+impl InvariantCheckResult {
+    pub fn class(&self) -> InvariantClass {
+        self.execution_point.class()
+    }
+
+    pub fn groups(&self) -> InvariantGroupSet {
+        self.rule.groups()
+    }
+
+    pub fn cost(&self) -> InvariantCostClass {
+        self.rule.cost_class()
+    }
 }
