@@ -1,11 +1,18 @@
+use crate::authority::commit::preparation::planning::strategy::{
+    coarse_preparation_packet_count, packet_width_is_profitable, MIN_PARALLEL_PACKET_WIDTH,
+    TARGET_PREPARATION_ITEMS_PER_PACKET,
+};
+use crate::authority::commit::preparation::reduction::merge::{
+    canonical_merge_streams, OrderedReductionStream,
+};
 use crate::diagnostics::data::{
     DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticArtifact,
     RelationalDiagnosticsEntry,
 };
 use crate::history::data::{BranchId, CommitId, CommitReference};
 use crate::identity::data::VersionId;
-use crate::logic::runtime::RelationalRuntime;
 use crate::logic::planning::RelationalExecutionModel;
+use crate::logic::runtime::RelationalRuntime;
 use crate::publication::data::diff::{
     PatchCompatibilityClass, PatchOrdering, PatchPublicationMode, PatchRecord, PatchStreamPosition,
     RelationalPatchRecord,
@@ -13,7 +20,49 @@ use crate::publication::data::diff::{
 use crate::storage::logic::state::{PartitionState, PublicationArtifacts};
 use crate::transactions::data::RecordRef;
 use rayon::prelude::*;
+use std::collections::BTreeSet;
 use std::sync::Arc;
+
+#[cfg(test)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum TestDiffPreparationFault {
+    FragmentCanonicalizationFailure,
+    PacketOverlapDetected,
+}
+
+#[cfg(test)]
+static TEST_DIFF_PREPARATION_FAULT_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+#[cfg(test)]
+static TEST_DIFF_PREPARATION_FAULT: std::sync::atomic::AtomicU8 =
+    std::sync::atomic::AtomicU8::new(0);
+
+#[cfg(test)]
+pub(crate) fn current_test_diff_preparation_fault() -> Option<TestDiffPreparationFault> {
+    match TEST_DIFF_PREPARATION_FAULT.load(std::sync::atomic::Ordering::SeqCst) {
+        1 => Some(TestDiffPreparationFault::FragmentCanonicalizationFailure),
+        2 => Some(TestDiffPreparationFault::PacketOverlapDetected),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn with_test_diff_preparation_fault<T>(
+    fault: TestDiffPreparationFault,
+    run: impl FnOnce() -> T,
+) -> T {
+    let _guard = TEST_DIFF_PREPARATION_FAULT_LOCK.lock().unwrap();
+    TEST_DIFF_PREPARATION_FAULT.store(
+        match fault {
+            TestDiffPreparationFault::FragmentCanonicalizationFailure => 1,
+            TestDiffPreparationFault::PacketOverlapDetected => 2,
+        },
+        std::sync::atomic::Ordering::SeqCst,
+    );
+    let result = run();
+    TEST_DIFF_PREPARATION_FAULT.store(0, std::sync::atomic::Ordering::SeqCst);
+    result
+}
 
 pub(super) fn assemble_patch(
     runtime: &RelationalRuntime,
@@ -38,36 +87,55 @@ pub(super) fn assemble_patch(
     .canonicalized()
 }
 
-fn prepare_patch_fragments(runtime: &RelationalRuntime, records: Vec<PatchRecord>) -> Vec<PatchRecord> {
+fn prepare_patch_fragments(
+    runtime: &RelationalRuntime,
+    records: Vec<PatchRecord>,
+) -> Vec<PatchRecord> {
     use crate::authority::commit::preparation::packets::diff::{
-        DiffFragmentIdentity, DiffFragmentKind, DiffPreparationPacket,
+        DiffPreparationHeader, DiffPreparationPacket,
     };
-    use crate::authority::commit::preparation::reduction::keys::DiffReductionKey;
 
     if records.is_empty() {
         return records;
     }
 
-    runtime
-        .performance_access()
-        .count_preparation_packets(records.len());
+    let packet_count =
+        coarse_preparation_packet_count(records.len(), TARGET_PREPARATION_ITEMS_PER_PACKET);
+    runtime.performance_access().count_preparation_packet_shape(
+        packet_count,
+        records.len(),
+        records
+            .chunks(TARGET_PREPARATION_ITEMS_PER_PACKET)
+            .map(|chunk| chunk.len())
+            .max()
+            .unwrap_or(0),
+        records
+            .iter()
+            .map(|record| match record.target {
+                RecordRef::Entity(entity_id) => entity_id.partition_id,
+                RecordRef::Relation(relation_id) => relation_id.partition_id,
+            })
+            .collect::<BTreeSet<_>>()
+            .len(),
+    );
 
-    let packets = records
-        .into_iter()
+    let mut packets = Vec::with_capacity(packet_count);
+    for (packet_index, chunk) in records
+        .chunks(TARGET_PREPARATION_ITEMS_PER_PACKET)
         .enumerate()
-        .map(|(packet_index, record)| DiffPreparationPacket {
-            packet_index,
-            identity: DiffFragmentIdentity {
-                target: record.target.clone(),
-                kind: DiffFragmentKind::from(&record.kind),
-                packet_index,
+    {
+        packets.push(DiffPreparationPacket {
+            header: DiffPreparationHeader {
+                packet_index_floor: packet_index * TARGET_PREPARATION_ITEMS_PER_PACKET,
             },
-            record,
-        })
-        .collect::<Vec<_>>();
+            records: chunk.to_vec(),
+        });
+    }
 
-    let mut fragments = match runtime.config.execution.execution_model {
-        RelationalExecutionModel::StagedParallelPreparation if packets.len() > 1 => {
+    let fragment_streams = match runtime.config.execution.execution_model {
+        RelationalExecutionModel::StagedParallelPreparation
+            if packet_width_is_profitable(packet_count, MIN_PARALLEL_PACKET_WIDTH) =>
+        {
             runtime
                 .performance_access()
                 .count_preparation_parallel_legal();
@@ -79,16 +147,7 @@ fn prepare_patch_fragments(runtime: &RelationalRuntime, records: Vec<PatchRecord
                 .count_preparation_staged_parallel_strategy();
             packets
                 .par_iter()
-                .map(|packet| {
-                    (
-                        DiffReductionKey::new(
-                            packet.identity.target.clone(),
-                            diff_kind_order(packet.identity.kind),
-                            packet.packet_index,
-                        ),
-                        packet.record.canonicalized(),
-                    )
-                })
+                .map(diff_packet_stream)
                 .collect::<Vec<_>>()
         }
         _ => {
@@ -97,25 +156,70 @@ fn prepare_patch_fragments(runtime: &RelationalRuntime, records: Vec<PatchRecord
                 .count_preparation_serial_strategy();
             packets
                 .into_iter()
-                .map(|packet| {
-                    (
-                        DiffReductionKey::new(
-                            packet.identity.target.clone(),
-                            diff_kind_order(packet.identity.kind),
-                            packet.packet_index,
-                        ),
-                        packet.record.canonicalized(),
-                    )
-                })
+                .map(|packet| diff_packet_stream(&packet))
                 .collect::<Vec<_>>()
         }
     };
 
-    fragments.sort_by(|left, right| left.0.cmp(&right.0));
-    fragments.into_iter().map(|(_, record)| record).collect()
+    canonical_merge_streams(fragment_streams)
+        .into_iter()
+        .map(|(_, record)| record)
+        .collect()
 }
 
-fn diff_kind_order(kind: crate::authority::commit::preparation::packets::diff::DiffFragmentKind) -> u8 {
+fn diff_packet_stream(
+    packet: &crate::authority::commit::preparation::packets::diff::DiffPreparationPacket,
+) -> OrderedReductionStream<
+    crate::authority::commit::preparation::reduction::keys::DiffReductionKey,
+    PatchRecord,
+> {
+    use crate::authority::commit::preparation::reduction::keys::DiffReductionKey;
+
+    let mut canonical_records = Vec::with_capacity(packet.records.len());
+    let mut headers = Vec::with_capacity(packet.records.len());
+
+    for (offset, record) in packet.records.iter().enumerate() {
+        let canonical = record.canonicalized();
+        let mut key = DiffReductionKey::new(
+            canonical.target.clone(),
+            diff_kind_order(
+                crate::authority::commit::preparation::packets::diff::DiffFragmentKind::from(
+                    &canonical.kind,
+                ),
+            ),
+            packet.header.packet_index_floor + offset,
+        );
+        #[cfg(test)]
+        if matches!(
+            current_test_diff_preparation_fault(),
+            Some(TestDiffPreparationFault::PacketOverlapDetected)
+        ) {
+            key = DiffReductionKey::new(
+                canonical.target.clone(),
+                0,
+                packet.header.packet_index_floor,
+            );
+        }
+        headers.push((key, offset));
+        canonical_records.push(canonical);
+    }
+
+    headers.sort_unstable_by(|left, right| left.0.cmp(&right.0));
+
+    let mut canonical_records = canonical_records.into_iter().map(Some).collect::<Vec<_>>();
+    let mut stream = Vec::with_capacity(headers.len());
+    for (key, record_index) in headers {
+        let canonical = canonical_records[record_index]
+            .take()
+            .expect("diff packet header index must resolve exactly once");
+        stream.push((key, canonical));
+    }
+    OrderedReductionStream::new(stream)
+}
+
+fn diff_kind_order(
+    kind: crate::authority::commit::preparation::packets::diff::DiffFragmentKind,
+) -> u8 {
     match kind {
         crate::authority::commit::preparation::packets::diff::DiffFragmentKind::Created => 0,
         crate::authority::commit::preparation::packets::diff::DiffFragmentKind::Updated => 1,
@@ -189,7 +293,7 @@ pub(super) fn finalize_published_commit(
     let _ = runtime.retention_access().run_pass();
     runtime
         .publication_authority()
-        .emit_commit_publication_diagnostic(
+        .consume_post_commit_artifacts(
             commit_id,
             snapshot_id,
             branch_id.clone(),

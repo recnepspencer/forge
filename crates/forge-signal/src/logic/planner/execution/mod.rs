@@ -10,7 +10,7 @@ use self::context::ExecutionContext;
 use self::diagnostics::{summarize_recorded_plan, summarize_recorded_session};
 use self::stage::execute_stage;
 use super::types::{
-    EvaluationPlan, EvaluationTask, ExecutionReport, PlanSummary, SessionScratch, StageExecutor,
+    EligibleTask, EvaluationPlan, ExecutionReport, PlanSummary, SessionScratch, StageExecutor,
 };
 
 mod context;
@@ -22,7 +22,7 @@ pub(crate) mod task_reporting;
 #[derive(Clone, Copy)]
 pub(crate) struct StageSlice<'a> {
     pub(crate) index: u32,
-    pub(crate) tasks: &'a [EvaluationTask],
+    pub(crate) tasks: &'a [EligibleTask],
 }
 
 fn prepare_with_context<Ctx, F, O>(

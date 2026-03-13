@@ -280,7 +280,10 @@ impl NodeEntry {
 
     /// Cold historical artifact record assembled from the hot runtime lane and
     /// retained diagnostic payload.
-    pub fn historical_artifact_record(&self, node: crate::data::handle::NodeId) -> Option<HistoricalArtifactRecord> {
+    pub fn historical_artifact_record(
+        &self,
+        node: crate::data::handle::NodeId,
+    ) -> Option<HistoricalArtifactRecord> {
         Some(HistoricalArtifactRecord {
             node,
             runtime: self.get_runtime_artifact_state()?.clone(),
@@ -324,6 +327,8 @@ impl NodeEntry {
                         &retained_changed_regions,
                     ),
                     memoized_origin: summary.memoized_origin,
+                    reuse_basis: summary.reuse_basis,
+                    reuse_boundary_context: summary.reuse_boundary_context,
                     execution_record_id: summary.execution_record_id,
                     semantic_segment_id: summary.semantic_segment_id,
                     lineage_artifact_id: summary.lineage_artifact_id,
@@ -333,11 +338,13 @@ impl NodeEntry {
                     labels: summary.labels,
                     keyed_family: summary.keyed_family,
                     keyed_key: summary.keyed_key,
+                    reuse_certification: None,
                 };
                 if retained.changed_regions.is_empty()
                     && retained.labels.is_empty()
                     && retained.keyed_family.is_none()
                     && retained.keyed_key.is_none()
+                    && retained.reuse_certification.is_none()
                 {
                     self.set_retained_diagnostic_artifact(None);
                 } else {

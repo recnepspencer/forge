@@ -58,6 +58,11 @@ pub fn explain_with_policy_resolver(
         .map(|trace| trace.propagation_suppressed)
         .unwrap_or(false);
     let memoized_origin = trace_summary.as_ref().map(|trace| trace.memoized_origin);
+    let reuse_basis = trace_summary.as_ref().map(|trace| trace.reuse_basis);
+    let reuse_certification = historical_artifact_record
+        .as_ref()
+        .and_then(|record| record.retained.as_ref())
+        .and_then(|retained| retained.reuse_certification.clone());
     let causality = entry.get_causality().cloned();
     let explicit_comparator = entry.get_eval_config().comparator.is_some();
     let condition_decision = classify_condition_decision(graph, node, &condition);
@@ -232,38 +237,7 @@ pub fn explain_with_policy_resolver(
         }
     }
 
-    upstream.sort_by_key(|cause| match cause {
-        UpstreamCause::Changed { source, aspect, .. }
-        | UpstreamCause::SkippedByComparator { source, aspect, .. }
-        | UpstreamCause::ConditionDeferred { source, aspect, .. }
-        | UpstreamCause::Clean { source, aspect, .. }
-        | UpstreamCause::MissingSnapshot { source, aspect, .. }
-        | UpstreamCause::DependencyRemoved { source, aspect, .. } => {
-            let scope_key = match cause {
-                UpstreamCause::Changed { subscription, .. }
-                | UpstreamCause::SkippedByComparator { subscription, .. }
-                | UpstreamCause::ConditionDeferred { subscription, .. }
-                | UpstreamCause::Clean { subscription, .. }
-                | UpstreamCause::MissingSnapshot { subscription, .. }
-                | UpstreamCause::DependencyRemoved { subscription, .. } => subscription
-                    .as_ref()
-                    .map(|scope| {
-                        (
-                            scope.partition.0.clone(),
-                            scope.detail.clone().unwrap_or_default(),
-                            scope.match_mode as u8,
-                        )
-                    })
-                    .unwrap_or_default(),
-            };
-            (
-                source.index(),
-                source.generation(),
-                aspect.index(),
-                scope_key,
-            )
-        }
-    });
+    canonicalize_upstream_causes(&mut upstream);
 
     Ok(NodeExplanation {
         node,
@@ -283,6 +257,8 @@ pub fn explain_with_policy_resolver(
         changed_regions,
         propagation_suppressed,
         memoized_origin,
+        reuse_basis,
+        reuse_certification,
         causal_links: upstream
             .iter()
             .map(|cause| build_causal_link_with_graph(graph, cause))
@@ -334,10 +310,49 @@ fn rewiring_summary(
     if added.is_empty() && removed.is_empty() {
         None
     } else {
-        added.sort_by_key(rewiring_key);
-        removed.sort_by_key(rewiring_key);
+        canonicalize_rewiring_dependencies(&mut added);
+        canonicalize_rewiring_dependencies(&mut removed);
         Some(RewiringSummary { added, removed })
     }
+}
+
+fn canonicalize_upstream_causes(upstream: &mut [UpstreamCause]) {
+    upstream.sort_by_key(|cause| match cause {
+        UpstreamCause::Changed { source, aspect, .. }
+        | UpstreamCause::SkippedByComparator { source, aspect, .. }
+        | UpstreamCause::ConditionDeferred { source, aspect, .. }
+        | UpstreamCause::Clean { source, aspect, .. }
+        | UpstreamCause::MissingSnapshot { source, aspect, .. }
+        | UpstreamCause::DependencyRemoved { source, aspect, .. } => {
+            let scope_key = match cause {
+                UpstreamCause::Changed { subscription, .. }
+                | UpstreamCause::SkippedByComparator { subscription, .. }
+                | UpstreamCause::ConditionDeferred { subscription, .. }
+                | UpstreamCause::Clean { subscription, .. }
+                | UpstreamCause::MissingSnapshot { subscription, .. }
+                | UpstreamCause::DependencyRemoved { subscription, .. } => subscription
+                    .as_ref()
+                    .map(|scope| {
+                        (
+                            scope.partition.0.clone(),
+                            scope.detail.clone().unwrap_or_default(),
+                            scope.match_mode as u8,
+                        )
+                    })
+                    .unwrap_or_default(),
+            };
+            (
+                source.index(),
+                source.generation(),
+                aspect.index(),
+                scope_key,
+            )
+        }
+    });
+}
+
+fn canonicalize_rewiring_dependencies(dependencies: &mut [RewiringDependency]) {
+    dependencies.sort_by_key(rewiring_key);
 }
 
 fn rewiring_key(dependency: &RewiringDependency) -> (u32, u32, usize, String, u8) {

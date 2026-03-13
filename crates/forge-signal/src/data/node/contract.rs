@@ -7,6 +7,7 @@ use crate::data::performance::{
     ArtifactPolicyClass, AuthorityPolicy, CompileTimePerformanceContract, EquivalenceContract,
     MaintenanceMode, PathClass,
 };
+use crate::data::reuse::{ArtifactEquivalenceContract, NodeReuseContract};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ContextRequirement {
@@ -125,6 +126,8 @@ pub struct NodeContract {
     pub execution: NodeExecutionContract,
     #[serde(default)]
     pub authority: NodeAuthorityContract,
+    #[serde(default)]
+    pub reuse: NodeReuseContract,
 }
 
 impl NodeContract {
@@ -134,6 +137,7 @@ impl NodeContract {
             projection: NodeProjectionContract::wildcard(),
             execution: NodeExecutionContract::operational(),
             authority: NodeAuthorityContract::default_speculative(),
+            reuse: NodeReuseContract::strict(),
         }
     }
 
@@ -205,6 +209,24 @@ impl NodeContract {
 
     pub fn with_authority_policy(mut self, authority_policy: AuthorityPolicy) -> Self {
         self.authority.policy = authority_policy;
+        self
+    }
+
+    pub fn with_reuse_contract(mut self, reuse: NodeReuseContract) -> Self {
+        self.reuse = reuse;
+        self
+    }
+
+    pub fn with_artifact_equivalence_contract(
+        mut self,
+        equivalence: ArtifactEquivalenceContract,
+    ) -> Self {
+        self.reuse.equivalence = equivalence;
+        self
+    }
+
+    pub fn with_reuse_certification_retention(mut self, retain_certification: bool) -> Self {
+        self.reuse.retain_certification = retain_certification;
         self
     }
 

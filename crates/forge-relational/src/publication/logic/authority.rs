@@ -1,14 +1,59 @@
+use crate::authority::commit::preparation::planning::strategy::{
+    packet_width_is_profitable, MIN_PARALLEL_PACKET_WIDTH,
+};
+use crate::authority::commit::preparation::reduction::merge::{
+    canonical_merge_streams, OrderedReductionStream,
+};
 use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
 use crate::history::data::{BranchId, CommitId};
+use crate::logic::planning::RelationalExecutionModel;
 use crate::logic::runtime::{RelationalReplayRecord, RelationalRuntime, ReplaySchemaVersion};
 use crate::publication::data::{PublicationBundle, PublicationStatus};
 use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
 use crate::storage::logic::state::PublicationArtifacts;
+use rayon::prelude::*;
 use serde_json::json;
 
 use super::diagnostics::DiagnosticArtifactBuilder;
+
+#[cfg(test)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum TestPostCommitFault {
+    ConsumerFailureNonAuthoritative,
+}
+
+#[cfg(test)]
+static TEST_POST_COMMIT_FAULT_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+#[cfg(test)]
+static TEST_POST_COMMIT_FAULT: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+
+#[cfg(test)]
+fn current_test_post_commit_fault() -> Option<TestPostCommitFault> {
+    match TEST_POST_COMMIT_FAULT.load(std::sync::atomic::Ordering::SeqCst) {
+        1 => Some(TestPostCommitFault::ConsumerFailureNonAuthoritative),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn with_test_post_commit_fault<T>(
+    fault: TestPostCommitFault,
+    run: impl FnOnce() -> T,
+) -> T {
+    let _guard = TEST_POST_COMMIT_FAULT_LOCK.lock().unwrap();
+    TEST_POST_COMMIT_FAULT.store(
+        match fault {
+            TestPostCommitFault::ConsumerFailureNonAuthoritative => 1,
+        },
+        std::sync::atomic::Ordering::SeqCst,
+    );
+    let result = run();
+    TEST_POST_COMMIT_FAULT.store(0, std::sync::atomic::Ordering::SeqCst);
+    result
+}
 
 pub struct PublicationAuthority<'runtime> {
     runtime: &'runtime mut RelationalRuntime,
@@ -128,7 +173,7 @@ impl<'runtime> PublicationAuthority<'runtime> {
         snapshot_id
     }
 
-    pub(crate) fn emit_commit_publication_diagnostic(
+    pub(crate) fn consume_post_commit_artifacts(
         &mut self,
         commit_id: CommitId,
         snapshot_id: SnapshotId,
@@ -137,42 +182,187 @@ impl<'runtime> PublicationAuthority<'runtime> {
         merge_parent_branches: &[BranchId],
         merge_base_commits: &[CommitId],
     ) {
-        let publication_code = if parents.len() > 1 {
-            DiagnosticCode::MergeCommitPublished
-        } else {
-            DiagnosticCode::CommitPublished
+        use crate::authority::commit::preparation::packets::post_commit::{
+            PostCommitConsumerKind, PostCommitConsumerObservation, PostCommitConsumerPacket,
         };
-        let mut entries = Vec::new();
-        if parents.len() > 1 {
+        use crate::authority::commit::preparation::reduction::keys::PostCommitReductionKey;
+
+        let packets = vec![
+            PostCommitConsumerPacket {
+                packet_index: 0,
+                kind: PostCommitConsumerKind::PublicationDiagnostic,
+                reduction_key: PostCommitReductionKey::new(0, 0),
+            },
+            PostCommitConsumerPacket {
+                packet_index: 1,
+                kind: PostCommitConsumerKind::PublishedHandlePrunePlan,
+                reduction_key: PostCommitReductionKey::new(1, 1),
+            },
+        ];
+        self.runtime
+            .performance_access()
+            .count_post_commit_consumer_shape(
+                packets.len(),
+                packets.len(),
+                usize::from(!packets.is_empty()),
+                usize::from(!packets.is_empty()),
+            );
+
+        let should_parallelize =
+            matches!(
+                self.runtime.config.execution.execution_model,
+                RelationalExecutionModel::ParallelPostCommitConsumption
+            ) && packet_width_is_profitable(packets.len(), MIN_PARALLEL_PACKET_WIDTH);
+
+        if should_parallelize {
+            self.runtime
+                .performance_access()
+                .count_post_commit_parallel_strategy();
+        } else {
+            self.runtime
+                .performance_access()
+                .count_post_commit_serial_strategy();
+        }
+
+        let limit = self
+            .runtime
+            .config
+            .publication
+            .policy
+            .max_published_snapshot_handles
+            .max(1);
+        let published_count = self.runtime.visibility.published_snapshot_handle_count();
+        let prune_count = published_count.saturating_sub(limit);
+        let prune_ids = self
+            .runtime
+            .visibility
+            .oldest_published_snapshot_ids(prune_count);
+
+        let observation_streams = if should_parallelize {
+            packets
+                .par_iter()
+                .map(|packet| {
+                    OrderedReductionStream::singleton(
+                        packet.reduction_key.clone(),
+                        post_commit_observation(
+                            packet.kind,
+                            commit_id,
+                            snapshot_id,
+                            &branch_id,
+                            parents,
+                            merge_parent_branches,
+                            merge_base_commits,
+                            &prune_ids,
+                        ),
+                    )
+                })
+                .collect::<Vec<_>>()
+        } else {
+            packets
+                .into_iter()
+                .map(|packet| {
+                    OrderedReductionStream::singleton(
+                        packet.reduction_key,
+                        post_commit_observation(
+                            packet.kind,
+                            commit_id,
+                            snapshot_id,
+                            &branch_id,
+                            parents,
+                            merge_parent_branches,
+                            merge_base_commits,
+                            &prune_ids,
+                        ),
+                    )
+                })
+                .collect::<Vec<_>>()
+        };
+
+        for (_key, observation) in canonical_merge_streams(observation_streams) {
+            match observation {
+                PostCommitConsumerObservation::PublicationDiagnosticEntries(entries) => {
+                    self.push_bounded_diagnostic(
+                        DiagnosticsScope::PatchPublication,
+                        DiagnosticsArtifactKind::MinimalSummary,
+                        entries,
+                    );
+                }
+                PostCommitConsumerObservation::PublishedHandlePrunePlan(snapshot_ids) => {
+                    for snapshot_id in snapshot_ids {
+                        self.runtime.visibility.remove_published_handle(snapshot_id);
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn post_commit_observation(
+    kind: crate::authority::commit::preparation::packets::post_commit::PostCommitConsumerKind,
+    commit_id: CommitId,
+    snapshot_id: SnapshotId,
+    branch_id: &BranchId,
+    parents: &[CommitId],
+    merge_parent_branches: &[BranchId],
+    merge_base_commits: &[CommitId],
+    prune_ids: &[SnapshotId],
+) -> crate::authority::commit::preparation::packets::post_commit::PostCommitConsumerObservation {
+    use crate::authority::commit::preparation::packets::post_commit::PostCommitConsumerObservation;
+
+    match kind {
+        crate::authority::commit::preparation::packets::post_commit::PostCommitConsumerKind::PublicationDiagnostic => {
+            let publication_code = if parents.len() > 1 {
+                DiagnosticCode::MergeCommitPublished
+            } else {
+                DiagnosticCode::CommitPublished
+            };
+            let mut entries = Vec::new();
+            if parents.len() > 1 {
+                entries.push(RelationalDiagnosticsEntry {
+                    code: DiagnosticCode::MergeBaseResolved,
+                    message: "merge bases resolved deterministically".to_string(),
+                    fields: json!({
+                        "commit_id": commit_id.0,
+                        "merge_base_commit_ids": merge_base_commits.iter().map(|base| base.0).collect::<Vec<_>>(),
+                    }),
+                });
+            }
             entries.push(RelationalDiagnosticsEntry {
-                code: DiagnosticCode::MergeBaseResolved,
-                message: "merge bases resolved deterministically".to_string(),
+                code: publication_code,
+                message: if parents.len() > 1 {
+                    "merge commit published coherently".to_string()
+                } else {
+                    "commit published coherently".to_string()
+                },
                 fields: json!({
                     "commit_id": commit_id.0,
+                    "snapshot_id": snapshot_id.0,
+                    "branch_id": branch_id.0,
+                    "parent_commit_ids": parents.iter().map(|parent| parent.0).collect::<Vec<_>>(),
+                    "merge_parent_branches": merge_parent_branches.iter().map(|branch| branch.0.clone()).collect::<Vec<_>>(),
                     "merge_base_commit_ids": merge_base_commits.iter().map(|base| base.0).collect::<Vec<_>>(),
                 }),
             });
+            #[cfg(test)]
+            if matches!(
+                current_test_post_commit_fault(),
+                Some(TestPostCommitFault::ConsumerFailureNonAuthoritative)
+            ) {
+                entries.push(RelationalDiagnosticsEntry {
+                    code: DiagnosticCode::PreparationFailure,
+                    message: "post-commit consumer failed without affecting publication"
+                        .to_string(),
+                    fields: json!({
+                        "failure_class": "consumer_failure_non_authoritative",
+                        "commit_id": commit_id.0,
+                        "snapshot_id": snapshot_id.0,
+                    }),
+                });
+            }
+            PostCommitConsumerObservation::PublicationDiagnosticEntries(entries)
         }
-        entries.push(RelationalDiagnosticsEntry {
-            code: publication_code,
-            message: if parents.len() > 1 {
-                "merge commit published coherently".to_string()
-            } else {
-                "commit published coherently".to_string()
-            },
-            fields: json!({
-                "commit_id": commit_id.0,
-                "snapshot_id": snapshot_id.0,
-                "branch_id": branch_id.0,
-                "parent_commit_ids": parents.iter().map(|parent| parent.0).collect::<Vec<_>>(),
-                "merge_parent_branches": merge_parent_branches.iter().map(|branch| branch.0.clone()).collect::<Vec<_>>(),
-                "merge_base_commit_ids": merge_base_commits.iter().map(|base| base.0).collect::<Vec<_>>(),
-            }),
-        });
-        self.push_bounded_diagnostic(
-            DiagnosticsScope::PatchPublication,
-            DiagnosticsArtifactKind::MinimalSummary,
-            entries,
-        );
+        crate::authority::commit::preparation::packets::post_commit::PostCommitConsumerKind::PublishedHandlePrunePlan => {
+            PostCommitConsumerObservation::PublishedHandlePrunePlan(prune_ids.to_vec())
+        }
     }
 }

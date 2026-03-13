@@ -6,6 +6,8 @@ use crate::data::comparator::ComparatorPolicyResolver;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
+use crate::data::node::NodeState;
+use crate::data::reuse::{ReuseBasis, ReuseCrossing, ReuseSource};
 use crate::diagnostics::recorder::record_lineage_transition;
 use crate::logic::context::EvaluationContext;
 use crate::logic::evaluation::EvaluationExecutionMetadata;
@@ -19,8 +21,8 @@ use self::helpers::{
 use super::execution::diagnostics::{record_successful_execution, summarize_recorded_plan};
 use super::reporting::{accumulate_report_counters, classify_task_record};
 use super::types::{
-    EvaluationPlan, ExecutionRecordId, ExecutionReport, StageExecutionOutcome,
-    StageExecutionRecord, StageExecutor,
+    EligibleTask, EvaluationPlan, ExecutionRecordId, ExecutionReport, StageExecutionOutcome,
+    StageExecutionRecord, StageExecutor, TaskExecutionOutcome, TaskReason,
 };
 
 #[cfg(test)]
@@ -208,9 +210,13 @@ where
                     .as_ref()
                     .map(|trace| trace.memoized_origin)
                     .unwrap_or(crate::data::output::MemoizedResultOrigin::DirectCompute),
+                after_trace
+                    .as_ref()
+                    .map(|trace| trace.reuse_basis)
+                    .unwrap_or(crate::data::reuse::ReuseBasis::FreshCompute),
             );
-            accumulate_report_counters(&mut report, &task_record);
-            stage_record.task_records.push(task_record);
+            accumulate_report_counters(&mut report, &task_record.record);
+            stage_record.task_records.push(task_record.record);
             graph.telemetry_mut().execution.prepared_evaluations_applied += 1;
             graph.telemetry_mut().execution.dependency_capture_updates +=
                 apply_result.dependency_updates as u64;
@@ -232,6 +238,36 @@ where
     let (plan_summary, first_target) = summarize_recorded_plan(plan, profile);
     record_successful_execution(graph, plan_summary, first_target, &report);
     Ok(report)
+}
+
+#[test]
+fn task_record_classification_uses_reuse_basis_as_authoritative_truth() {
+    let task = EligibleTask {
+        node: NodeId::new(7, 0),
+        request_mode: crate::logic::evaluation::EvaluationRequestMode::Default,
+        direct_request: false,
+        reason: TaskReason::MemoValidation,
+    };
+
+    let record = classify_task_record(
+        ExecutionRecordId(1),
+        super::types::SemanticSegmentId(1),
+        &task,
+        NodeState::Dirty,
+        NodeState::Clean,
+        None,
+        None,
+        crate::logic::evaluation::EvaluationVerdict::Suppressed {
+            reason: crate::logic::evaluation::SuppressionReason::ComparatorMatch,
+        },
+        crate::data::output::MemoizedResultOrigin::DirectCompute,
+        ReuseBasis::Reused {
+            source: ReuseSource::MemoizedArtifact,
+            crossing: ReuseCrossing::None,
+        },
+    );
+
+    assert_eq!(record.record.outcome, TaskExecutionOutcome::MemoizedReuse);
 }
 
 #[cfg(test)]
@@ -388,9 +424,13 @@ where
                     .as_ref()
                     .map(|trace| trace.memoized_origin)
                     .unwrap_or(crate::data::output::MemoizedResultOrigin::DirectCompute),
+                after_trace
+                    .as_ref()
+                    .map(|trace| trace.reuse_basis)
+                    .unwrap_or(crate::data::reuse::ReuseBasis::FreshCompute),
             );
-            accumulate_report_counters(&mut report, &task_record);
-            stage_record.task_records.push(task_record);
+            accumulate_report_counters(&mut report, &task_record.record);
+            stage_record.task_records.push(task_record.record);
             graph.telemetry_mut().execution.prepared_evaluations_applied += 1;
             graph.telemetry_mut().execution.dependency_capture_updates +=
                 apply_result.dependency_updates as u64;

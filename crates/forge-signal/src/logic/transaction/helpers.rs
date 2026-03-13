@@ -3,6 +3,7 @@ use crate::data::error::SignalError;
 use crate::data::evaluator::CheckpointEvaluator;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
+use crate::data::proof::DedupedNodeBatch;
 use crate::logic::planner::ExecutionReport;
 
 use super::runtime::SignalTransaction;
@@ -34,16 +35,13 @@ pub fn emit_event_in_txn<'a, D, I, E, Ctx, T>(
 }
 
 pub(super) fn collect_dirty_targets(graph: &SignalGraph) -> Vec<NodeId> {
-    let mut targets = Vec::new();
-    for node in graph.live_node_ids() {
+    DedupedNodeBatch::canonicalize_unordered(graph.live_node_ids().into_iter().filter_map(|node| {
         let Ok(entry) = graph.get_entry(node) else {
-            continue;
+            return None;
         };
-        if !matches!(entry.get_state(), crate::data::node::NodeState::Clean) {
-            targets.push(node);
-        }
-    }
-    targets
+        (!matches!(entry.get_state(), crate::data::node::NodeState::Clean)).then_some(node)
+    }))
+    .into_vec()
 }
 
 pub(super) fn empty_execution_report() -> ExecutionReport {

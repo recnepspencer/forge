@@ -6,7 +6,12 @@ use crate::transactions::data::{AuthoritativeApplyPlan, CommitConflict};
 
 use super::effect_assembly::assemble_effect;
 use super::intents::dispatch_intent;
-use super::{MutationEffect, MutationWorkspace};
+use super::{MutationEffect, MutationPreparationTelemetry, MutationWorkspace};
+
+pub(crate) struct MutationApplyOutcome {
+    pub(crate) effect: MutationEffect,
+    pub(crate) preparation_telemetry: MutationPreparationTelemetry,
+}
 
 pub(crate) fn apply_plan_to_working_state(
     state: &mut WorkingState,
@@ -14,7 +19,7 @@ pub(crate) fn apply_plan_to_working_state(
     config: &MutationConfig,
     schema_registry: &RelationalSchemaRegistry,
     symbols: &mut StringInterner,
-) -> Result<MutationEffect, CommitConflict> {
+) -> Result<MutationApplyOutcome, CommitConflict> {
     let mut workspace = MutationWorkspace::new(
         state,
         symbols,
@@ -29,5 +34,8 @@ pub(crate) fn apply_plan_to_working_state(
         effect.accumulate(assemble_effect(child, &mut workspace));
     }
 
-    Ok(effect)
+    Ok(MutationApplyOutcome {
+        effect,
+        preparation_telemetry: workspace.preparation_telemetry(),
+    })
 }

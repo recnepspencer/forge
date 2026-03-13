@@ -414,3 +414,111 @@ Gate for each follow-on slice:
 - Acceptance is parity-first, not benchmark-threshold-first.
 - Runtime modes remain separate; combined semantics are exercised by harness matrices, not by adding a new combined runtime mode in this phase.
 - If any Phase A-F boundary is too weak to carry proof-bearing packetization cleanly, reopening that boundary is allowed and preferred over weakening the Phase 8 design.
+
+## Current Status
+
+Phase 8 is substantially implemented in runtime code.
+
+Shipped runtime surfaces:
+
+- proof-bearing preparation planning and strategy selection
+- deterministic staged-parallel validation reduction
+- deterministic diff preparation over packet-local ordered fragments
+- deterministic derived-index preparation over packetized immutable inputs
+- deterministic import staging for bulk entity and relation create
+- bounded parallel post-commit consumer packetization over immutable published artifacts
+- canonical merge-based reduction instead of global gather-and-sort on the main Phase 8 hot paths
+- harness-aware execution-mode selection for serial, staged-preparation, and post-commit-parallel lanes
+
+Shipped harness acceptance surfaces:
+
+- serial vs staged-preparation parity
+- serial vs post-commit-parallel parity
+- reusable certification matrix with baseline diagnostics plus per-candidate diagnostics and comparisons
+- harness-visible preparation fallback reporting
+- harness-visible preparation failure reporting for:
+  - `FallbackToSerial`
+  - `PlanningProofInsufficient`
+  - `PublicationIsolationViolation`
+  - `ReductionIdentityConflict`
+  - `WorkerEvaluationFailure`
+  - `FragmentCanonicalizationFailure`
+  - `PacketOverlapDetected`
+  - `ConsumerFailureNonAuthoritative`
+
+## Observability Status
+
+The runtime now measures the core Phase 8 signals directly in `RuntimeComplexityCounters`.
+
+Shipped preparation counters:
+
+- `preparation_packet_count`
+- `preparation_packet_item_count`
+- `preparation_packet_peak_width_total`
+- `preparation_scope_unit_count`
+- `preparation_parallel_legal_count`
+- `preparation_parallel_profitable_count`
+- `preparation_serial_strategy_count`
+- `preparation_staged_parallel_strategy_count`
+- `preparation_reducer_conflict_count`
+
+Shipped post-commit counters:
+
+- `post_commit_consumer_packet_count`
+- `post_commit_consumer_item_count`
+- `post_commit_consumer_peak_width_total`
+- `post_commit_scope_unit_count`
+- `post_commit_serial_strategy_count`
+- `post_commit_parallel_strategy_count`
+
+Structured validation preparation counters also exist at the subsystem boundary:
+
+- packet count
+- worker result count
+- reducer input count
+- reducer conflict count
+- failure count
+
+Packet shape and covered-scope observability now ship as first-class runtime counters rather
+than being inferred indirectly from tests or workload shape. The remaining fragment-shape details
+for specific subsystems are already exposed through structured diagnostics and packet families, so
+there is no known Phase 8 observability gap blocking closeout.
+
+## Harness Evidence
+
+Current harness evidence now proves:
+
+- supported runtime lanes preserve parity against serial baseline:
+  - `SerialAuthority`
+  - `StagedParallelPreparation`
+  - `ParallelPostCommitConsumption`
+- diagnostics summaries expose execution mode and selected runtime execution model
+- staged preparation fallback remains parity-safe while reporting:
+  - fallback reason
+  - serial strategy selection
+  - structured `PreparationFailure` / `PreparationFallback` artifacts
+- injected structured failure classes surface through the real harness path:
+  - `planning_proof_insufficient`
+  - `publication_isolation_violation`
+  - `reduction_identity_conflict`
+  - `worker_evaluation_failure`
+  - `fragment_canonicalization_failure`
+  - `packet_overlap_detected`
+  - `consumer_failure_non_authoritative`
+
+The matrix-driven closeout path now certifies the full current Phase 8 failure taxonomy.
+
+## Exit Guidance
+
+Phase 8 is complete.
+
+Completion evidence:
+
+- harness matrix coverage is the primary acceptance surface for supported runtime lanes
+- the supported runtime lanes are certified against a serial baseline:
+  - `SerialAuthority`
+  - `StagedParallelPreparation`
+  - `ParallelPostCommitConsumption`
+- the current structured preparation failure taxonomy is harness-visible and matrix-certified
+- packet-shape and covered-scope observability are emitted as first-class runtime counters
+- this document now reflects the exact shipped runtime surfaces and acceptance evidence rather than planned-only intent

@@ -1,4 +1,5 @@
 use crate::data::output::{ChangedRegion, MemoizedResultOrigin, OutputIdentity};
+use crate::data::reuse::ReuseCertificationRecord;
 use crate::data::trace::CausalityMetadata;
 use crate::logic::prepared::PreparedKeyedContext;
 
@@ -13,9 +14,11 @@ pub(crate) struct EvaluationEffect {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub(crate) struct EffectRuntimeMetadata {
+    pub memoized_origin: MemoizedResultOrigin,
     pub recomputed: bool,
     pub keyed_context: Option<PreparedKeyedContext>,
     pub causality: Option<CausalityMetadata>,
+    pub reuse_certification: Option<ReuseCertificationRecord>,
 }
 
 impl EvaluationEffect {
@@ -46,10 +49,7 @@ impl EvaluationEffect {
     }
 
     pub(crate) fn memoized_origin(&self) -> MemoizedResultOrigin {
-        self.diagnostics
-            .as_ref()
-            .map(DiagnosticEnvelope::memoized_origin)
-            .unwrap_or(MemoizedResultOrigin::DirectCompute)
+        self.runtime_metadata.memoized_origin
     }
 
     pub(crate) fn recomputed(&self) -> bool {
@@ -62,5 +62,66 @@ impl EvaluationEffect {
 
     pub(crate) fn take_causality(&mut self) -> Option<CausalityMetadata> {
         self.runtime_metadata.causality.take()
+    }
+
+    pub(crate) fn reuse_certification(&self) -> Option<&ReuseCertificationRecord> {
+        self.runtime_metadata.reuse_certification.as_ref()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::data::aspect::AspectVersion;
+    use crate::data::dependency::{
+        DependencySnapshot, DependencySnapshotUpdate, SharedDependencySnapshot, SnapshotDeltaRecord,
+    };
+    use crate::data::handle::NodeId;
+    use crate::data::output::MemoizedResultOrigin;
+    use crate::data::output::OutputChange;
+    use crate::data::reuse::{ReuseBasis, ReuseBoundaryContext, ReuseSemanticRegionIdentity};
+    use crate::logic::evaluation::{EffectRuntimeMetadata, EvaluationEffect, OperationalEffect};
+
+    #[test]
+    fn memoized_origin_is_runtime_metadata_not_diagnostic_payload() {
+        let effect = EvaluationEffect {
+            operational: OperationalEffect {
+                node: NodeId::new(0, 0),
+                verdict: crate::logic::evaluation::EvaluationVerdict::Recomputed,
+                aspect_version: AspectVersion::zero(),
+                output_change: OutputChange::Replaced,
+                reuse_basis: ReuseBasis::FreshCompute,
+                reuse_boundary_context: ReuseBoundaryContext {
+                    topology_regime: 0,
+                    tolerance_regime: crate::data::comparator::VersionComparatorPolicy::Exact,
+                    semantic_region: ReuseSemanticRegionIdentity::new(
+                        NodeId::new(0, 0),
+                        false,
+                        Vec::new(),
+                        crate::data::node::ContextRequirement::None,
+                    ),
+                    authority_policy:
+                        crate::data::performance::AuthorityPolicy::SpeculativeThenReconcile,
+                },
+                dependency_snapshot_update: DependencySnapshotUpdate::Replace(
+                    SharedDependencySnapshot::empty(),
+                ),
+                snapshot_delta: SnapshotDeltaRecord::between(
+                    NodeId::new(0, 0),
+                    &DependencySnapshot::empty(),
+                    &SharedDependencySnapshot::empty(),
+                ),
+                meaningful_input_changes: 0,
+            },
+            diagnostics: None,
+            runtime_metadata: EffectRuntimeMetadata {
+                memoized_origin: MemoizedResultOrigin::MemoizedFromCache,
+                ..EffectRuntimeMetadata::default()
+            },
+        };
+
+        assert_eq!(
+            effect.memoized_origin(),
+            MemoizedResultOrigin::MemoizedFromCache
+        );
     }
 }

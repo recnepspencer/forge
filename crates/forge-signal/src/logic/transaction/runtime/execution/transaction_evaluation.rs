@@ -3,6 +3,7 @@ use std::time::Instant;
 use crate::data::aspect::AspectVersion;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
+use crate::data::proof::DedupedNodeBatch;
 use crate::diagnostics::ExecutionFailurePhase;
 use crate::logic::context::EvaluationContext;
 use crate::logic::evaluation::{EvaluationRequestMode, IntoEvaluationOutput};
@@ -97,7 +98,7 @@ where
                     self.record_failure_from_error(
                         ExecutionFailurePhase::Apply,
                         &err,
-                        Some(plan.summary.clone()),
+                        Some(plan.summary),
                     );
                 }
                 return Err(err);
@@ -172,21 +173,22 @@ where
     }
 
     fn collect_dirty_targets(&self) -> Vec<NodeId> {
-        let mut targets = self
-            .scratch
-            .dirty_targets
-            .marked_indices()
-            .into_iter()
-            .filter_map(|index| self.graph.live_node_id_at(index))
-            .filter(|node| {
-                self.graph
-                    .get_entry(*node)
-                    .map(|entry| !matches!(entry.get_state(), crate::data::node::NodeState::Clean))
-                    .unwrap_or(false)
-            })
-            .collect::<Vec<_>>();
-        targets.sort_by_key(|node: &NodeId| (node.index(), node.generation()));
-        targets.dedup();
+        let targets = DedupedNodeBatch::canonicalize_unordered(
+            self.scratch
+                .dirty_targets
+                .marked_indices()
+                .into_iter()
+                .filter_map(|index| self.graph.live_node_id_at(index))
+                .filter(|node| {
+                    self.graph
+                        .get_entry(*node)
+                        .map(|entry| {
+                            !matches!(entry.get_state(), crate::data::node::NodeState::Clean)
+                        })
+                        .unwrap_or(false)
+                }),
+        )
+        .into_vec();
         if targets.is_empty() {
             crate::logic::transaction::helpers::collect_dirty_targets(self.graph)
         } else {
@@ -215,7 +217,7 @@ where
                     let stage_targets = targets
                         .iter()
                         .copied()
-                        .map(|node| crate::logic::planner::EvaluationTask {
+                        .map(|node| crate::logic::planner::EligibleTask {
                             node,
                             request_mode,
                             direct_request: true,
@@ -236,7 +238,7 @@ where
                 let stage_targets = owned_targets
                     .iter()
                     .copied()
-                    .map(|node| crate::logic::planner::EvaluationTask {
+                    .map(|node| crate::logic::planner::EligibleTask {
                         node,
                         request_mode: EvaluationRequestMode::Default,
                         direct_request: true,

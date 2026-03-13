@@ -1,4 +1,5 @@
 use crate::authority::commit::preparation::diagnostics::counters::ValidationPreparationCounters;
+use crate::authority::commit::preparation::diagnostics::failures::PreparationFailureClass;
 use crate::authority::commit::preparation::diagnostics::observations::ValidationDiagnosticObservation;
 use crate::authority::commit::preparation::reduction::identity::ValidationResultIdentity;
 use crate::authority::commit::preparation::reduction::keys::ValidationReductionKey;
@@ -11,6 +12,7 @@ pub(crate) struct InvariantWorkerEnvelope {
     pub(crate) result_identity: ValidationResultIdentity,
     pub(crate) result: InvariantCheckResult,
     pub(crate) diagnostic_observations: Vec<ValidationDiagnosticObservation>,
+    pub(crate) preparation_failures: Vec<PreparationFailureClass>,
     pub(crate) counters: ValidationPreparationCounters,
 }
 

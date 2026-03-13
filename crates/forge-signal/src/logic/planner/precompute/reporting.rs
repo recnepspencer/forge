@@ -71,7 +71,7 @@ pub(crate) fn record_stage_precompute_failure(
             None,
             Some(executor),
             None,
-            Some(summary.clone()),
+            Some(*summary),
             err.to_string(),
         ),
     );

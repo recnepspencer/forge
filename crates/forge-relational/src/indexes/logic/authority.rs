@@ -1,14 +1,14 @@
 use std::collections::BTreeMap;
 
-use serde_json::json;
 use rayon::prelude::*;
+use serde_json::json;
 
 use crate::authority::commit::preparation::packets::index::{
-    IndexFragmentIdentity, IndexPreparationPacket,
+    IndexFragmentIdentity, IndexPreparationHeader, IndexPreparationPacket,
 };
 use crate::authority::commit::preparation::planning::strategy::{
-    ParallelLegality, ParallelProfitability, PreparationFallbackReason, PreparationStrategy,
-    PreparationStrategySelection,
+    strategy_for_parallel_packets, ParallelLegality, ParallelProfitability,
+    PreparationFallbackReason, PreparationStrategy, PreparationStrategySelection,
 };
 use crate::authority::commit::preparation::proofs::kinds::PreparationProofKind;
 use crate::authority::commit::preparation::proofs::locality::{
@@ -16,6 +16,9 @@ use crate::authority::commit::preparation::proofs::locality::{
     PreparationRecordDomain, PreparationWriteExclusionClass,
 };
 use crate::authority::commit::preparation::reduction::keys::IndexReductionKey;
+use crate::authority::commit::preparation::reduction::merge::{
+    canonical_merge_streams, OrderedReductionStream,
+};
 use crate::capabilities::SchemaVersionSource;
 use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
@@ -80,16 +83,25 @@ impl<'runtime> IndexAuthority<'runtime> {
             };
         };
 
-        let (definitions, missing_indexes) = planned_index_definitions(self.runtime, &request.index_ids);
+        let (definitions, missing_indexes) =
+            planned_index_definitions(self.runtime, &request.index_ids);
         failed_indexes.extend(missing_indexes);
 
         self.runtime
             .performance_access()
-            .count_preparation_packets(definitions.len());
+            .count_preparation_packet_shape(
+                definitions.len(),
+                definitions.len(),
+                usize::from(!definitions.is_empty()),
+                usize::from(!definitions.is_empty()),
+            );
 
         let strategy = choose_index_preparation_strategy(self.runtime, definitions.len());
         match strategy.parallel_legality {
-            ParallelLegality::ProvenParallel => self.runtime.performance_access().count_preparation_parallel_legal(),
+            ParallelLegality::ProvenParallel => self
+                .runtime
+                .performance_access()
+                .count_preparation_parallel_legal(),
             ParallelLegality::RequiresSerial => {}
         }
         match strategy.parallel_profitability {
@@ -100,11 +112,10 @@ impl<'runtime> IndexAuthority<'runtime> {
             ParallelProfitability::NotProfitable => {}
         }
         match strategy.selected_mode {
-            PreparationStrategySelection::Serial => {
-                self.runtime
-                    .performance_access()
-                    .count_preparation_serial_strategy()
-            }
+            PreparationStrategySelection::Serial => self
+                .runtime
+                .performance_access()
+                .count_preparation_serial_strategy(),
             PreparationStrategySelection::StagedParallel => self
                 .runtime
                 .performance_access()
@@ -216,7 +227,6 @@ impl<'runtime> IndexAuthority<'runtime> {
 
 #[derive(Debug, Clone)]
 struct IndexPreparationResult {
-    key: IndexReductionKey,
     index_id: DerivedIndexId,
     payload: Option<DerivedIndexPayload>,
 }
@@ -247,29 +257,10 @@ fn choose_index_preparation_strategy(
         runtime.config.execution.execution_model,
         RelationalExecutionModel::StagedParallelPreparation
     ) {
-        return PreparationStrategy {
-            parallel_legality: ParallelLegality::RequiresSerial,
-            parallel_profitability: ParallelProfitability::NotProfitable,
-            selected_mode: PreparationStrategySelection::Serial,
-            fallback_reason: Some(PreparationFallbackReason::ExecutionModelSerial),
-        };
+        return PreparationStrategy::serial(PreparationFallbackReason::ExecutionModelSerial);
     }
 
-    if packet_count <= 1 {
-        return PreparationStrategy {
-            parallel_legality: ParallelLegality::ProvenParallel,
-            parallel_profitability: ParallelProfitability::NotProfitable,
-            selected_mode: PreparationStrategySelection::Serial,
-            fallback_reason: Some(PreparationFallbackReason::InsufficientPacketBreadth),
-        };
-    }
-
-    PreparationStrategy {
-        parallel_legality: ParallelLegality::ProvenParallel,
-        parallel_profitability: ParallelProfitability::Profitable,
-        selected_mode: PreparationStrategySelection::StagedParallel,
-        fallback_reason: None,
-    }
+    strategy_for_parallel_packets(runtime.config.execution.execution_model, packet_count)
 }
 
 fn plan_index_packets(definitions: &[DerivedIndexDefinition]) -> Vec<IndexPreparationPacket> {
@@ -283,22 +274,25 @@ fn plan_index_packets(definitions: &[DerivedIndexDefinition]) -> Vec<IndexPrepar
                 DerivedIndexKind::RelationPayloadField { .. } => PreparationRecordDomain::Relation,
             };
             IndexPreparationPacket {
-                packet_index,
-                identity: IndexFragmentIdentity {
-                    index_id: definition.index_id,
+                header: IndexPreparationHeader {
                     packet_index,
+                    identity: IndexFragmentIdentity {
+                        index_id: definition.index_id,
+                        packet_index,
+                    },
+                    reduction_key: IndexReductionKey::new(definition.index_id, packet_index),
+                    proof_kind: PreparationProofKind::ReadOnlyShared,
+                    locality: PreparationLocalityProof {
+                        observation_scope:
+                            crate::validation::engine::InvariantObservationKind::Committed,
+                        record_domain,
+                        partition_scope: PreparationPartitionScope::AllObserved,
+                        invariant_group_scope: InvariantGroupSet::empty(),
+                        read_set_approximation: PreparationReadSetApproximation::FullObservedScan,
+                        write_exclusion: PreparationWriteExclusionClass::PublicationExcluded,
+                    },
                 },
-                reduction_key: IndexReductionKey::new(definition.index_id, packet_index),
                 definition,
-                proof_kind: PreparationProofKind::ReadOnlyShared,
-                locality: PreparationLocalityProof {
-                    observation_scope: crate::validation::engine::InvariantObservationKind::Committed,
-                    record_domain,
-                    partition_scope: PreparationPartitionScope::AllObserved,
-                    invariant_group_scope: InvariantGroupSet::empty(),
-                    read_set_approximation: PreparationReadSetApproximation::FullObservedScan,
-                    write_exclusion: PreparationWriteExclusionClass::PublicationExcluded,
-                },
             }
         })
         .collect()
@@ -309,57 +303,141 @@ fn execute_index_packets(
     packets: &[IndexPreparationPacket],
     selected_mode: PreparationStrategySelection,
 ) -> Vec<IndexPreparationResult> {
-    let mut results = match selected_mode {
-        PreparationStrategySelection::StagedParallel => packets
-            .par_iter()
-            .map(|packet| IndexPreparationResult {
-                key: packet.reduction_key.clone(),
-                index_id: packet.identity.index_id,
-                payload: build_index_payload(&packet.definition, projection),
-            })
-            .collect::<Vec<_>>(),
-        PreparationStrategySelection::Serial => packets
-            .iter()
-            .map(|packet| IndexPreparationResult {
-                key: packet.reduction_key.clone(),
-                index_id: packet.identity.index_id,
-                payload: build_index_payload(&packet.definition, projection),
-            })
-            .collect::<Vec<_>>(),
+    let entity_packets = packets
+        .iter()
+        .filter_map(|packet| match &packet.definition.kind {
+            DerivedIndexKind::EntityPayloadField { field } => Some((
+                packet.header.reduction_key,
+                packet.header.identity.index_id,
+                field.clone(),
+            )),
+            DerivedIndexKind::RelationPayloadField { .. } => None,
+        })
+        .collect::<Vec<_>>();
+    let relation_packets = packets
+        .iter()
+        .filter_map(|packet| match &packet.definition.kind {
+            DerivedIndexKind::EntityPayloadField { .. } => None,
+            DerivedIndexKind::RelationPayloadField { field } => Some((
+                packet.header.reduction_key,
+                packet.header.identity.index_id,
+                field.clone(),
+            )),
+        })
+        .collect::<Vec<_>>();
+
+    let entity_streams = match selected_mode {
+        PreparationStrategySelection::StagedParallel => {
+            let records = projection.all_entity_records();
+            entity_packets
+                .par_iter()
+                .map(|(reduction_key, index_id, field)| {
+                    OrderedReductionStream::singleton(
+                        reduction_key.clone(),
+                        IndexPreparationResult {
+                            index_id: *index_id,
+                            payload: Some(DerivedIndexPayload::EntityField(
+                                build_entity_index_map(&records, field),
+                            )),
+                        },
+                    )
+                })
+                .collect::<Vec<_>>()
+        }
+        PreparationStrategySelection::Serial => {
+            let records = projection.all_entity_records();
+            entity_packets
+                .iter()
+                .map(|(reduction_key, index_id, field)| {
+                    OrderedReductionStream::singleton(
+                        reduction_key.clone(),
+                        IndexPreparationResult {
+                            index_id: *index_id,
+                            payload: Some(DerivedIndexPayload::EntityField(
+                                build_entity_index_map(&records, field),
+                            )),
+                        },
+                    )
+                })
+                .collect::<Vec<_>>()
+        }
+    };
+    let relation_streams = match selected_mode {
+        PreparationStrategySelection::StagedParallel => {
+            let records = projection.all_relation_records();
+            relation_packets
+                .par_iter()
+                .map(|(reduction_key, index_id, field)| {
+                    OrderedReductionStream::singleton(
+                        reduction_key.clone(),
+                        IndexPreparationResult {
+                            index_id: *index_id,
+                            payload: Some(DerivedIndexPayload::RelationField(
+                                build_relation_index_map(&records, field),
+                            )),
+                        },
+                    )
+                })
+                .collect::<Vec<_>>()
+        }
+        PreparationStrategySelection::Serial => {
+            let records = projection.all_relation_records();
+            relation_packets
+                .iter()
+                .map(|(reduction_key, index_id, field)| {
+                    OrderedReductionStream::singleton(
+                        reduction_key.clone(),
+                        IndexPreparationResult {
+                            index_id: *index_id,
+                            payload: Some(DerivedIndexPayload::RelationField(
+                                build_relation_index_map(&records, field),
+                            )),
+                        },
+                    )
+                })
+                .collect::<Vec<_>>()
+        }
     };
 
-    results.sort_by(|left, right| left.key.cmp(&right.key));
-    results
+    let result_streams = entity_streams
+        .into_iter()
+        .chain(relation_streams)
+        .collect::<Vec<_>>();
+
+    canonical_merge_streams(result_streams)
+        .into_iter()
+        .map(|(_, result)| result)
+        .collect()
 }
 
-fn build_index_payload(
-    definition: &DerivedIndexDefinition,
-    projection: &VisibilityProjectionView<'_>,
-) -> Option<DerivedIndexPayload> {
-    match &definition.kind {
-        DerivedIndexKind::EntityPayloadField { field } => {
-            let mut map = BTreeMap::new();
-            for entity in projection.all_entity_records() {
-                let Some(key) = payload_field_key(&entity.payload, field) else {
-                    continue;
-                };
-                map.entry(key)
-                    .or_insert_with(Vec::new)
-                    .push(entity.entity_id);
-            }
-            Some(DerivedIndexPayload::EntityField(map))
-        }
-        DerivedIndexKind::RelationPayloadField { field } => {
-            let mut map = BTreeMap::new();
-            for relation in projection.all_relation_records() {
-                let Some(key) = payload_field_key_optional(&relation.payload, field) else {
-                    continue;
-                };
-                map.entry(key)
-                    .or_insert_with(Vec::new)
-                    .push(relation.relation_id);
-            }
-            Some(DerivedIndexPayload::RelationField(map))
-        }
+fn build_entity_index_map(
+    records: &[crate::storage::data::EntityReadRecord],
+    field: &str,
+) -> BTreeMap<String, Vec<crate::identity::data::EntityId>> {
+    let mut map = BTreeMap::new();
+    for entity in records {
+        let Some(key) = payload_field_key(&entity.payload, field) else {
+            continue;
+        };
+        map.entry(key)
+            .or_insert_with(Vec::new)
+            .push(entity.entity_id);
     }
+    map
+}
+
+fn build_relation_index_map(
+    records: &[crate::storage::data::RelationReadRecord],
+    field: &str,
+) -> BTreeMap<String, Vec<crate::identity::data::RelationId>> {
+    let mut map = BTreeMap::new();
+    for relation in records {
+        let Some(key) = payload_field_key_optional(&relation.payload, field) else {
+            continue;
+        };
+        map.entry(key)
+            .or_insert_with(Vec::new)
+            .push(relation.relation_id);
+    }
+    map
 }

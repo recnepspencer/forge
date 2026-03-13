@@ -22,7 +22,7 @@ pub(crate) fn begin_execution_report(
     record_executor_usage(graph, executor);
 
     ExecutionReport {
-        plan_summary: summary.clone(),
+        plan_summary: *summary,
         stage_count: summary.stage_count,
         task_count: summary.task_count,
         tasks_executed: 0,

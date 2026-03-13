@@ -1,13 +1,15 @@
+use std::collections::BTreeSet;
+
 use crate::symbols::data::{InternedString, StringInterner, SymbolPolicy};
 
 use super::{CreateIntent, MutationIntent};
 
 impl MutationIntent {
-    pub(crate) fn collect_raw_client_keys(&self, raw_values: &mut Vec<String>) {
+    pub(crate) fn collect_raw_client_keys(&self, raw_values: &mut BTreeSet<String>) {
         match self {
             Self::Create(CreateIntent::Entity(spec)) => {
                 if let InternedString::Raw(raw) = &spec.client_key {
-                    raw_values.push(raw.clone());
+                    raw_values.insert(raw.clone());
                 }
             }
             Self::Create(CreateIntent::BulkEntities(spec)) => {
@@ -18,7 +20,7 @@ impl MutationIntent {
             }
             Self::Create(CreateIntent::Relation(spec)) => {
                 if let InternedString::Raw(raw) = &spec.client_key {
-                    raw_values.push(raw.clone());
+                    raw_values.insert(raw.clone());
                 }
             }
             Self::Entity(_) | Self::Relation(_) => {}
@@ -50,10 +52,10 @@ impl MutationIntent {
     }
 }
 
-fn collect_bulk_raw_client_keys(client_keys: &[InternedString], raw_values: &mut Vec<String>) {
+fn collect_bulk_raw_client_keys(client_keys: &[InternedString], raw_values: &mut BTreeSet<String>) {
     for client_key in client_keys {
         if let InternedString::Raw(raw) = client_key {
-            raw_values.push(raw.clone());
+            raw_values.insert(raw.clone());
         }
     }
 }

@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::authority::merge::{canonical_intent_key, detect_conflicting_updates, validate_intent};
 use crate::capabilities::{InstrumentationSource, RuntimeConfigSource};
@@ -65,10 +65,13 @@ impl<'a> RelationalTransaction<'a> {
         if let Some(head) = self.runtime.history_access().branch_head(target_branch) {
             parents.push(head.commit_id);
         }
-        let mut merge_branches = self.options.merge_parent_branches.clone();
-        merge_branches.sort();
-        merge_branches.dedup();
-        for merge_branch in merge_branches {
+        for merge_branch in self
+            .options
+            .merge_parent_branches
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>()
+        {
             if &merge_branch == target_branch {
                 continue;
             }
@@ -106,9 +109,14 @@ impl<'a> RelationalTransaction<'a> {
                 parents.push(head.commit_id);
             }
         }
-        merge_bases.sort_by_key(|commit_id| commit_id.0);
-        merge_bases.dedup();
-        Ok((parents, merge_bases))
+        Ok((
+            parents,
+            merge_bases
+                .into_iter()
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect(),
+        ))
     }
 
     fn normalize_intents_for_merge(&mut self, intents: &mut [MutationIntent]) {
@@ -118,14 +126,12 @@ impl<'a> RelationalTransaction<'a> {
         }
 
         let interner = &mut self.runtime.services.symbols;
-        let mut raw_values = Vec::new();
+        let mut raw_values = BTreeSet::new();
         for intent in intents.iter() {
             intent.collect_raw_client_keys(&mut raw_values);
         }
-        raw_values.sort();
-        raw_values.dedup();
-        for raw in &raw_values {
-            interner.intern(raw);
+        for raw in raw_values {
+            interner.intern(&raw);
         }
 
         for intent in intents {

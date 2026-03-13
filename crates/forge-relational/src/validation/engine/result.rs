@@ -5,6 +5,7 @@ use crate::validation::data::{
     InvariantGroupSet, InvariantPlanContract, InvariantVerdict, InvariantViolation,
 };
 use crate::{
+    authority::commit::preparation::diagnostics::failures::PreparationFailureClass,
     authority::commit::preparation::planning::strategy::PreparationStrategy,
     logic::planning::RelationalExecutionModel,
 };
@@ -19,7 +20,7 @@ pub enum InvariantExecutionDisposition {
     SkippedByMayBreakMask,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InvariantExecutionMetadata {
     execution_point: InvariantExecutionPoint,
     observation_kind: InvariantObservationKind,
@@ -33,10 +34,11 @@ pub struct InvariantExecutionMetadata {
     has_merged_plan: bool,
     execution_model: RelationalExecutionModel,
     preparation_strategy: Option<PreparationStrategy>,
+    preparation_failures: Vec<PreparationFailureClass>,
 }
 
 impl InvariantExecutionMetadata {
-    pub fn new(
+    pub(crate) fn new(
         execution_point: InvariantExecutionPoint,
         observation_kind: InvariantObservationKind,
         version_id: crate::identity::data::VersionId,
@@ -49,6 +51,7 @@ impl InvariantExecutionMetadata {
         has_merged_plan: bool,
         execution_model: RelationalExecutionModel,
         preparation_strategy: Option<PreparationStrategy>,
+        preparation_failures: Vec<PreparationFailureClass>,
     ) -> Self {
         Self {
             execution_point,
@@ -63,10 +66,11 @@ impl InvariantExecutionMetadata {
             has_merged_plan,
             execution_model,
             preparation_strategy,
+            preparation_failures,
         }
     }
 
-    pub fn executed_with_strategy(
+    pub(crate) fn executed_with_strategy(
         execution_point: InvariantExecutionPoint,
         observation_kind: InvariantObservationKind,
         version_id: crate::identity::data::VersionId,
@@ -77,6 +81,7 @@ impl InvariantExecutionMetadata {
         plan_contract: Option<InvariantPlanContract>,
         has_merged_plan: bool,
         preparation_strategy: PreparationStrategy,
+        preparation_failures: Vec<PreparationFailureClass>,
     ) -> Self {
         Self::new(
             execution_point,
@@ -98,6 +103,7 @@ impl InvariantExecutionMetadata {
                 }
             },
             Some(preparation_strategy),
+            preparation_failures,
         )
     }
 
@@ -147,6 +153,10 @@ impl InvariantExecutionMetadata {
 
     pub fn preparation_strategy(&self) -> Option<PreparationStrategy> {
         self.preparation_strategy
+    }
+
+    pub(crate) fn preparation_failures(&self) -> &[PreparationFailureClass] {
+        &self.preparation_failures
     }
 }
 
@@ -373,6 +383,7 @@ mod tests {
             true,
             crate::logic::planning::RelationalExecutionModel::SerialAuthority,
             None,
+            Vec::new(),
         );
 
         let result = crate::validation::engine::InvariantExecutionResult::skipped(metadata);

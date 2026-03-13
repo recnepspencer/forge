@@ -85,12 +85,11 @@ impl StringInterner {
     }
 
     pub fn snapshot(&self) -> SymbolTableSnapshot {
-        let mut entries: Vec<_> = self
-            .by_symbol
+        let entries = self
+            .by_value
             .iter()
-            .map(|(symbol, value)| (*symbol, value.clone()))
+            .map(|(value, symbol)| (*symbol, value.clone()))
             .collect();
-        entries.sort_by(|left, right| left.1.cmp(&right.1).then_with(|| left.0.cmp(&right.0)));
         SymbolTableSnapshot { entries }
     }
 

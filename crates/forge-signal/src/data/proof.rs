@@ -3,7 +3,9 @@ use smallvec::SmallVec;
 
 use crate::data::aspect::{Aspect, AspectMask};
 use crate::data::dependency::CanonicalDependencies;
-use crate::data::dependency::{DependencySnapshot, SharedDependencySnapshot};
+use crate::data::dependency::{
+    DependencySnapshot, DependencySnapshotUpdate, SharedDependencySnapshot, SnapshotDeltaRecord,
+};
 use crate::data::handle::NodeId;
 use crate::data::output::{CanonicalChangedRegions, PartitionSubscription};
 use crate::data::performance::{
@@ -19,6 +21,73 @@ pub trait ResolvedForm {}
 pub trait DeltaForm {}
 
 pub trait SummaryForm {}
+
+pub trait OrderedStreamItem {
+    type OrderKey: Ord + Copy;
+
+    fn order_key(&self) -> Self::OrderKey;
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum OrderedStreamMergeError<K> {
+    DuplicateKey(K),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct LocallyOrderedShard<T> {
+    items: Vec<T>,
+}
+
+impl<T: OrderedStreamItem> LocallyOrderedShard<T> {
+    pub fn new(items: impl IntoIterator<Item = T>) -> Self {
+        let items = items.into_iter().collect::<Vec<_>>();
+        assert_strict_order(items.as_slice());
+        Self { items }
+    }
+
+    pub fn canonicalize_unordered(items: impl IntoIterator<Item = T>) -> Self {
+        let mut items = items.into_iter().collect::<Vec<_>>();
+        if items.len() > 1 {
+            items.sort_unstable_by_key(|item| item.order_key());
+        }
+        Self::new(items)
+    }
+
+    pub fn as_slice(&self) -> &[T] {
+        &self.items
+    }
+
+    pub fn into_vec(self) -> Vec<T> {
+        self.items
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct MergeableOrderedStream<T> {
+    shards: Vec<LocallyOrderedShard<T>>,
+}
+
+impl<T> MergeableOrderedStream<T> {
+    pub fn new(shards: impl IntoIterator<Item = LocallyOrderedShard<T>>) -> Self {
+        Self {
+            shards: shards.into_iter().collect(),
+        }
+    }
+}
+
+impl<T: OrderedStreamItem> MergeableOrderedStream<T> {
+    pub fn try_into_vec(self) -> Result<Vec<T>, OrderedStreamMergeError<T::OrderKey>> {
+        let mut merged = Vec::<T>::new();
+        for shard in self.shards {
+            merged = merge_ordered_streams(merged, shard.into_vec())?;
+        }
+        Ok(merged)
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DependencySetEdit {
@@ -240,6 +309,57 @@ impl SemanticBatchCommit {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NarrowedPropagationSet {
+    pub changed_aspect: Aspect,
+    pub dirty_sources: SortedSourceBatch,
+    pub changed_scopes: PartitionScopeSet,
+}
+
+impl NarrowedPropagationSet {
+    pub fn new(
+        changed_aspect: Aspect,
+        dirty_sources: impl Into<SortedSourceBatch>,
+        changed_scopes: impl Into<PartitionScopeSet>,
+    ) -> Self {
+        Self {
+            changed_aspect,
+            dirty_sources: dirty_sources.into(),
+            changed_scopes: changed_scopes.into(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FrontierWave {
+    pub direct_subscribers: DedupedNodeBatch,
+    pub transitive_frontier: DedupedNodeBatch,
+}
+
+impl FrontierWave {
+    pub fn new(
+        direct_subscribers: impl Into<DedupedNodeBatch>,
+        transitive_frontier: impl Into<DedupedNodeBatch>,
+    ) -> Self {
+        Self {
+            direct_subscribers: direct_subscribers.into(),
+            transitive_frontier: transitive_frontier.into(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InvalidationFrontier {
+    pub narrowed: NarrowedPropagationSet,
+    pub wave: FrontierWave,
+}
+
+impl InvalidationFrontier {
+    pub fn new(narrowed: NarrowedPropagationSet, wave: FrontierWave) -> Self {
+        Self { narrowed, wave }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DesiredState<T> {
     value: T,
 }
@@ -286,11 +406,21 @@ pub struct DedupedNodeBatch {
 
 impl DedupedNodeBatch {
     pub fn new(nodes: impl IntoIterator<Item = NodeId>) -> Self {
+        Self::canonicalize_unordered(nodes)
+    }
+
+    pub fn canonicalize_unordered(nodes: impl IntoIterator<Item = NodeId>) -> Self {
         let mut nodes = nodes.into_iter().collect::<Vec<_>>();
         if nodes.len() > 1 {
             nodes.sort_unstable_by_key(node_sort_key);
             nodes.dedup();
         }
+        Self { nodes }
+    }
+
+    pub fn from_ordered_unique(nodes: impl IntoIterator<Item = NodeId>) -> Self {
+        let nodes = nodes.into_iter().collect::<Vec<_>>();
+        debug_assert!(is_strict_node_order(nodes.as_slice()));
         Self { nodes }
     }
 
@@ -309,6 +439,10 @@ impl DedupedNodeBatch {
     pub fn is_empty(&self) -> bool {
         self.nodes.is_empty()
     }
+
+    pub fn len(&self) -> usize {
+        self.nodes.len()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -318,11 +452,21 @@ pub struct SortedSourceBatch {
 
 impl SortedSourceBatch {
     pub fn new(sources: impl IntoIterator<Item = NodeId>) -> Self {
+        Self::canonicalize_unordered(sources)
+    }
+
+    pub fn canonicalize_unordered(sources: impl IntoIterator<Item = NodeId>) -> Self {
         let mut sources = sources.into_iter().collect::<Vec<_>>();
         if sources.len() > 1 {
             sources.sort_unstable_by_key(node_sort_key);
             sources.dedup();
         }
+        Self { sources }
+    }
+
+    pub fn from_ordered_unique(sources: impl IntoIterator<Item = NodeId>) -> Self {
+        let sources = sources.into_iter().collect::<Vec<_>>();
+        debug_assert!(is_strict_node_order(sources.as_slice()));
         Self { sources }
     }
 
@@ -340,6 +484,10 @@ impl SortedSourceBatch {
 
     pub fn is_empty(&self) -> bool {
         self.sources.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.sources.len()
     }
 }
 
@@ -543,7 +691,8 @@ pub struct TouchedScopeSummary {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PendingSnapshotCommit {
     pub node: NodeId,
-    pub snapshot: SharedDependencySnapshot,
+    pub update: DependencySnapshotUpdate,
+    pub delta: SnapshotDeltaRecord,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -562,12 +711,24 @@ impl PendingSnapshotBatch {
     }
 
     pub fn from_pairs(entries: impl IntoIterator<Item = (NodeId, DependencySnapshot)>) -> Self {
-        Self::new(
-            entries.into_iter().map(|(node, snapshot)| PendingSnapshotCommit {
+        Self::new(entries.into_iter().map(|(node, snapshot)| {
+            let snapshot = SharedDependencySnapshot::new(snapshot);
+            PendingSnapshotCommit {
                 node,
-                snapshot: SharedDependencySnapshot::new(snapshot),
-            }),
-        )
+                delta: SnapshotDeltaRecord::between(node, &DependencySnapshot::empty(), &snapshot),
+                update: DependencySnapshotUpdate::Replace(snapshot),
+            }
+        }))
+    }
+
+    pub(crate) fn from_pending_snapshots(
+        entries: impl IntoIterator<Item = crate::logic::evaluation::PendingDependencySnapshot>,
+    ) -> Self {
+        Self::new(entries.into_iter().map(|pending| PendingSnapshotCommit {
+            node: pending.node,
+            update: pending.update,
+            delta: pending.delta,
+        }))
     }
 
     pub fn as_slice(&self) -> &[PendingSnapshotCommit] {
@@ -600,6 +761,12 @@ impl SnapshotBatchCommit {
 
     pub fn from_pairs(entries: impl IntoIterator<Item = (NodeId, DependencySnapshot)>) -> Self {
         Self::new(PendingSnapshotBatch::from_pairs(entries))
+    }
+
+    pub(crate) fn from_pending_snapshots(
+        entries: impl IntoIterator<Item = crate::logic::evaluation::PendingDependencySnapshot>,
+    ) -> Self {
+        Self::new(PendingSnapshotBatch::from_pending_snapshots(entries))
     }
 
     pub fn pending(&self) -> &PendingSnapshotBatch {
@@ -732,7 +899,63 @@ impl SummaryForm for PendingSnapshotBatch {}
 impl SummaryForm for SemanticBatchCommit {}
 impl SummaryForm for SnapshotBatchCommit {}
 impl SummaryForm for SubscriberRepairBatch {}
+impl SummaryForm for NarrowedPropagationSet {}
+impl SummaryForm for FrontierWave {}
+impl SummaryForm for InvalidationFrontier {}
+
+fn assert_strict_order<T: OrderedStreamItem>(items: &[T]) {
+    for pair in items.windows(2) {
+        if let [left, right] = pair {
+            assert!(
+                left.order_key() < right.order_key(),
+                "ordered shard must be strictly increasing by stream key"
+            );
+        }
+    }
+}
+
+fn merge_ordered_streams<T: OrderedStreamItem>(
+    left: Vec<T>,
+    right: Vec<T>,
+) -> Result<Vec<T>, OrderedStreamMergeError<T::OrderKey>> {
+    let mut merged = Vec::with_capacity(left.len() + right.len());
+    let mut left = left.into_iter().peekable();
+    let mut right = right.into_iter().peekable();
+
+    loop {
+        match (left.peek(), right.peek()) {
+            (Some(left_item), Some(right_item)) => {
+                match left_item.order_key().cmp(&right_item.order_key()) {
+                    std::cmp::Ordering::Less => {
+                        merged.push(left.next().expect("left item should exist"));
+                    }
+                    std::cmp::Ordering::Greater => {
+                        merged.push(right.next().expect("right item should exist"));
+                    }
+                    std::cmp::Ordering::Equal => {
+                        return Err(OrderedStreamMergeError::DuplicateKey(left_item.order_key()));
+                    }
+                }
+            }
+            (Some(_), None) => {
+                merged.extend(left);
+                return Ok(merged);
+            }
+            (None, Some(_)) => {
+                merged.extend(right);
+                return Ok(merged);
+            }
+            (None, None) => return Ok(merged),
+        }
+    }
+}
 
 fn node_sort_key(node: &NodeId) -> (u32, u32) {
     (node.index(), node.generation())
+}
+
+fn is_strict_node_order(nodes: &[NodeId]) -> bool {
+    nodes
+        .windows(2)
+        .all(|pair| node_sort_key(&pair[0]) < node_sort_key(&pair[1]))
 }

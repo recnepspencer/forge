@@ -15,6 +15,10 @@ pub struct DependencySetId(Option<NonZeroU32>);
 
 impl DependencySetId {
     pub const EMPTY: Self = Self(None);
+
+    pub fn raw(self) -> u32 {
+        self.0.map(|index| index.get()).unwrap_or(0)
+    }
 }
 
 impl SetHandle for DependencySetId {

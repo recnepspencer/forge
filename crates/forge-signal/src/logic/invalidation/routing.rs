@@ -5,7 +5,10 @@ use crate::data::graph::{ScratchLeaseKind, SignalGraph, TraversalScratch};
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
 use crate::data::output::{ChangedRegion, InternedPartitionSubscription, PartitionSubscription};
-use crate::data::proof::{DirtyBatch, SemanticBatchCommit};
+use crate::data::proof::{
+    DedupedNodeBatch, DirtyBatch, FrontierWave, InvalidationFrontier, NarrowedPropagationSet,
+    PartitionScopeSet, SemanticBatchCommit, SortedSourceBatch,
+};
 use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::diagnostics::lineage::InvalidationCause;
 use crate::diagnostics::recorder::{record_invalidation_lineage, DiagnosticsRecorder};
@@ -64,20 +67,55 @@ pub fn mark_dirty_batch(
             scratch.visited.next_pass(len);
             scratch.node_buffer_a.clear();
             scratch.node_buffer_b.clear();
+            scratch.node_buffer_c.clear();
             let mut end = start;
             while end < entries.len() && entries[end].changed_aspect == changed_aspect {
                 scratch.cycle_visiting.next_pass(len);
                 scratch.cycle_finished.next_pass(len);
-                mark_dirty_with_scratch(
+                let frontier = mark_dirty_with_scratch(
                     graph,
                     scratch,
                     entries[end].source,
                     entries[end].changed_aspect,
                     entries[end].changed_regions.as_slice(),
                 )?;
+                scratch
+                    .node_buffer_c
+                    .extend_from_slice(frontier.wave.direct_subscribers.as_slice());
                 end += 1;
             }
-            propagate_maybe_stale(graph, scratch, changed_aspect)?;
+            let narrowed = NarrowedPropagationSet::new(
+                changed_aspect,
+                SortedSourceBatch::canonicalize_unordered(
+                    entries[start..end].iter().map(|entry| entry.source),
+                ),
+                PartitionScopeSet::from_changed_regions(
+                    &crate::data::output::CanonicalChangedRegions::canonicalize_unordered(
+                        entries[start..end]
+                            .iter()
+                            .flat_map(|entry| entry.changed_regions.as_slice().iter().cloned()),
+                    ),
+                ),
+            );
+            let frontier = InvalidationFrontier::new(
+                narrowed,
+                FrontierWave::new(
+                    DedupedNodeBatch::canonicalize_unordered(scratch.node_buffer_c.iter().copied()),
+                    DedupedNodeBatch::canonicalize_unordered(scratch.node_buffer_b.iter().copied()),
+                ),
+            );
+            graph.telemetry_mut().invalidation.narrowed_frontier_width +=
+                frontier.wave.direct_subscribers.len() as u64;
+            graph.telemetry_mut().invalidation.transitive_frontier_width +=
+                frontier.wave.transitive_frontier.len() as u64;
+            graph.record_invalidation_diagnostics(
+                0,
+                0,
+                0,
+                frontier.wave.direct_subscribers.len() as u32,
+                frontier.wave.transitive_frontier.len() as u32,
+            );
+            propagate_maybe_stale(graph, scratch, &frontier)?;
             start = end;
         }
         Ok(())
@@ -100,7 +138,7 @@ fn mark_dirty_with_scratch(
     source: NodeId,
     changed_aspect: Aspect,
     changed_regions: &[ChangedRegion],
-) -> Result<(), SignalError> {
+) -> Result<InvalidationFrontier, SignalError> {
     let mut traversal =
         InvalidationTraversal::new(graph, scratch, source, changed_aspect, changed_regions);
     traversal.mark_source()?;
@@ -108,7 +146,7 @@ fn mark_dirty_with_scratch(
     traversal.ensure_acyclic_reachability()?;
     traversal.mark_direct_subscribers()?;
     traversal.append_transitive_frontier();
-    Ok(())
+    Ok(traversal.frontier())
 }
 
 struct InvalidationTraversal<'graph, 'scratch> {
@@ -182,6 +220,8 @@ impl<'graph, 'scratch> InvalidationTraversal<'graph, 'scratch> {
             invalidation_stats.invalidated_direct_subscribers,
             invalidation_stats.maybe_stale_direct_subscribers,
             invalidation_stats.partition_scoped_checks,
+            0,
+            0,
         );
         for &node in &self.scratch.node_buffer_a {
             self.scratch.visited.mark(node.index() as usize);
@@ -193,6 +233,24 @@ impl<'graph, 'scratch> InvalidationTraversal<'graph, 'scratch> {
         for &subscriber in &self.scratch.node_buffer_a {
             append_live_subscribers(self.graph, subscriber, &mut self.scratch.node_buffer_b);
         }
+    }
+
+    fn frontier(&self) -> InvalidationFrontier {
+        InvalidationFrontier::new(
+            NarrowedPropagationSet::new(
+                self.changed_aspect,
+                SortedSourceBatch::canonicalize_unordered(std::iter::once(self.source)),
+                self.changed_scopes.clone(),
+            ),
+            FrontierWave::new(
+                DedupedNodeBatch::canonicalize_unordered(
+                    self.scratch.node_buffer_a.iter().copied(),
+                ),
+                DedupedNodeBatch::canonicalize_unordered(
+                    self.scratch.node_buffer_b.iter().copied(),
+                ),
+            ),
+        )
     }
 }
 
@@ -343,18 +401,17 @@ fn append_live_subscribers(graph: &mut SignalGraph, node: NodeId, out: &mut Vec<
 fn propagate_maybe_stale(
     graph: &mut SignalGraph,
     scratch: &mut TraversalScratch,
-    changed_aspect: Aspect,
+    frontier: &InvalidationFrontier,
 ) -> Result<(), SignalError> {
-    let mut frontier = BitsetFrontier::new();
-    for &node in &scratch.node_buffer_b {
-        frontier.seed(node.index() as usize);
+    let mut wave = BitsetFrontier::new();
+    for &node in frontier.wave.transitive_frontier.as_slice() {
+        wave.seed(node.index() as usize);
     }
 
-    while frontier.has_current() {
+    while wave.has_current() {
         scratch.node_buffer_a.clear();
         scratch.node_buffer_a.extend(
-            frontier
-                .current_iter()
+            wave.current_iter()
                 .filter_map(|idx| graph.live_node_id_at(idx)),
         );
         for &node in &scratch.node_buffer_a {
@@ -377,14 +434,14 @@ fn propagate_maybe_stale(
                 let previous_state = graph.get_state(node)?;
                 {
                     let entry = graph.get_entry_mut(node)?;
-                    entry.transition_maybe_stale(changed_aspect);
+                    entry.transition_maybe_stale(frontier.narrowed.changed_aspect);
                 }
                 if matches!(previous_state, NodeState::Clean) {
                     record_invalidation_lineage(
                         graph,
                         node,
                         InvalidationCause::TransitiveDependencyChanged {
-                            aspect_index: changed_aspect.index(),
+                            aspect_index: frontier.narrowed.changed_aspect.index(),
                         },
                     );
                 }
@@ -395,11 +452,11 @@ fn propagate_maybe_stale(
             };
             for &subscriber in subscribers {
                 if !scratch.visited.is_marked(subscriber.index() as usize) {
-                    frontier.mark_next(subscriber.index() as usize);
+                    wave.mark_next(subscriber.index() as usize);
                 }
             }
         }
-        frontier.advance();
+        wave.advance();
     }
 
     Ok(())

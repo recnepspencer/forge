@@ -39,7 +39,12 @@ impl PreparedDependencyCapture {
         self.edges.len()
     }
 
-    pub fn into_sorted_unique(mut self) -> Self {
+    pub fn into_sorted_unique(self) -> Self {
+        debug_assert!(is_sorted_unique(self.edges.as_slice()));
+        self
+    }
+
+    pub fn canonicalize_unordered(mut self) -> Self {
         self.edges.sort_by(compare_prepared_dependency_edges);
         self.edges.dedup_by(|left, right| {
             compare_prepared_dependency_edges(left, right) == Ordering::Equal
@@ -72,4 +77,14 @@ pub(crate) fn compare_prepared_dependency_edges(
             right.aspect.index(),
             right.scope.as_ref(),
         ))
+}
+
+fn is_sorted_unique(edges: &[PreparedDependencyEdge]) -> bool {
+    edges.windows(2).all(|pair| {
+        if let [left, right] = pair {
+            compare_prepared_dependency_edges(left, right) == Ordering::Less
+        } else {
+            true
+        }
+    })
 }

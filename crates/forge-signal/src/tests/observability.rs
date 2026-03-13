@@ -347,6 +347,64 @@ fn explanation_surfaces_causality_and_trace_summary() {
 }
 
 #[test]
+fn explanation_surfaces_retained_reuse_certification() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let entry = graph.get_entry_mut(node).unwrap();
+    entry.set_runtime_artifact_state(Some(RuntimeArtifactState {
+        recomputed: false,
+        memoized_origin: MemoizedResultOrigin::MemoizedFromCache,
+        reuse_basis: ReuseBasis::Reused {
+            source: ReuseSource::MemoizedArtifact,
+            crossing: ReuseCrossing::None,
+        },
+        reuse_boundary_context: Some(ReuseBoundaryContext {
+            topology_regime: 1,
+            tolerance_regime: VersionComparatorPolicy::Exact,
+            semantic_region: ReuseSemanticRegionIdentity::new(
+                node,
+                false,
+                Vec::new(),
+                ContextRequirement::None,
+            ),
+            authority_policy: AuthorityPolicy::SpeculativeThenReconcile,
+        }),
+        ..RuntimeArtifactState::default()
+    }));
+    entry.set_retained_diagnostic_artifact(Some(RetainedDiagnosticArtifact {
+        changed_regions: CanonicalChangedRegions::default(),
+        labels: Vec::new(),
+        keyed_family: None,
+        keyed_key: None,
+        reuse_certification: Some(ReuseCertificationRecord {
+            source: ReuseSource::MemoizedArtifact,
+            crossing: ReuseCrossing::None,
+            proofs: vec![ReuseBoundaryProof {
+                boundary: ArtifactSemanticBoundary::TopologyRegime,
+                satisfied: true,
+            }],
+        }),
+    }));
+
+    let explanation = graph.observe().explain(node).unwrap();
+    assert_eq!(
+        explanation.reuse_basis,
+        Some(ReuseBasis::Reused {
+            source: ReuseSource::MemoizedArtifact,
+            crossing: ReuseCrossing::None,
+        })
+    );
+    assert_eq!(
+        explanation
+            .reuse_certification
+            .as_ref()
+            .map(|record| record.proofs.len()),
+        Some(1)
+    );
+    assert!(format!("{explanation}").contains("Reuse certification proofs: 1"));
+}
+
+#[test]
 fn dependency_inspection_apis_are_deterministic() {
     let mut graph = SignalGraph::new();
     let root = graph.node().build();

@@ -6,6 +6,8 @@ mod report;
 pub(crate) use assembly::{EffectRuntimeMetadata, EvaluationEffect};
 pub use diagnostics::DiagnosticEnvelope;
 pub use operational::{DeferralReason, EvaluationVerdict, OperationalEffect, SuppressionReason};
-pub(crate) use operational::{EffectDependencyInputs, PendingDependencySnapshot};
+pub(crate) use operational::{
+    DependencyInputContext, EffectDependencyInputs, PendingDependencySnapshot,
+};
 pub use report::AppliedEffectReport;
 pub(crate) use report::{EffectComparison, PreparedApplyResult};

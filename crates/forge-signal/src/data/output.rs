@@ -138,11 +138,21 @@ pub struct CanonicalChangedRegions {
 
 impl CanonicalChangedRegions {
     pub fn new(regions: impl IntoIterator<Item = ChangedRegion>) -> Self {
+        Self::canonicalize_unordered(regions)
+    }
+
+    pub fn canonicalize_unordered(regions: impl IntoIterator<Item = ChangedRegion>) -> Self {
         let mut regions = regions.into_iter().collect::<Vec<_>>();
         if regions.len() > 1 {
             regions.sort_unstable();
             regions.dedup();
         }
+        Self { regions }
+    }
+
+    pub fn from_ordered_unique(regions: impl IntoIterator<Item = ChangedRegion>) -> Self {
+        let regions = regions.into_iter().collect::<Vec<_>>();
+        debug_assert!(is_strict_region_order(regions.as_slice()));
         Self { regions }
     }
 
@@ -239,6 +249,10 @@ pub(crate) enum PartitionTokenRef<'a> {
 pub(crate) enum DetailTokenRef<'a> {
     Public(&'a str),
     Interned(DetailTokenId),
+}
+
+fn is_strict_region_order(regions: &[ChangedRegion]) -> bool {
+    regions.windows(2).all(|pair| pair[0] < pair[1])
 }
 
 pub(crate) trait PartitionScoped {

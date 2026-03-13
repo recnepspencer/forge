@@ -128,7 +128,7 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
                 }
             }
         }
-        records.sort_by(|left, right| left.entity_id.cmp(&right.entity_id));
+        debug_assert!(entity_records_are_canonical(&records));
         records
     }
 
@@ -167,7 +167,7 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
                 }
             }
         }
-        records.sort_by(|left, right| left.relation_id.cmp(&right.relation_id));
+        debug_assert!(relation_records_are_canonical(&records));
         records
     }
 
@@ -183,6 +183,18 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
     fn reader(&self) -> VisibilityReadContext<'runtime> {
         VisibilityReadContext::new(self.runtime)
     }
+}
+
+fn entity_records_are_canonical(records: &[EntityReadRecord]) -> bool {
+    records
+        .windows(2)
+        .all(|window| window[0].entity_id <= window[1].entity_id)
+}
+
+fn relation_records_are_canonical(records: &[RelationReadRecord]) -> bool {
+    records
+        .windows(2)
+        .all(|window| window[0].relation_id <= window[1].relation_id)
 }
 
 impl<'runtime> VisibilityReadContext<'runtime> {

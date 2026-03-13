@@ -339,6 +339,22 @@ pub fn compare_explanations(
             format!("{:?}", right.memoized_origin),
         );
     }
+    if left.reuse_basis != right.reuse_basis {
+        push_mismatch(
+            &mut diff.mismatches,
+            DiagnosticMismatchCategory::Provenance,
+            "reuse_basis",
+            format!("{:?}", left.reuse_basis),
+            format!("{:?}", right.reuse_basis),
+        );
+    }
+    compare_value(
+        &mut diff.mismatches,
+        DiagnosticMismatchCategory::Provenance,
+        "reuse_certification_proof_count",
+        left.reuse_certification_proof_count,
+        right.reuse_certification_proof_count,
+    );
     diff
 }
 

@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::aspect::Aspect;
 use crate::data::handle::NodeId;
+use crate::data::proof::DedupedNodeBatch;
 use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::failure::RollbackDiagnostic;
 use crate::diagnostics::profile::DiagnosticsProfile;
@@ -25,6 +26,8 @@ pub struct InvalidationSummary {
     pub invalidated_direct_subscribers: u32,
     pub maybe_stale_direct_subscribers: u32,
     pub partition_scoped_checks: u32,
+    pub narrowed_frontier_width: u32,
+    pub transitive_frontier_width: u32,
 }
 
 /// End-to-end causal summary for one signal execution flow.
@@ -90,21 +93,19 @@ pub struct RollbackSummary {
 
 impl ChangeInputSummary {
     pub fn new(
-        mut changed_nodes: Vec<NodeId>,
-        mut changed_aspects: Vec<Aspect>,
+        changed_nodes: Vec<NodeId>,
+        changed_aspects: Vec<Aspect>,
         changed_region_count: u32,
         causality_kind: Option<String>,
     ) -> Self {
-        changed_nodes.sort();
-        changed_nodes.dedup();
-        changed_aspects.sort_by_key(|aspect| aspect.index());
-        changed_aspects.dedup();
+        let changed_nodes = DedupedNodeBatch::canonicalize_unordered(changed_nodes).into_vec();
+        let changed_aspects = canonicalize_changed_aspects(changed_aspects)
+            .into_iter()
+            .map(|aspect| aspect.index() as u8)
+            .collect();
         Self {
             changed_nodes,
-            changed_aspects: changed_aspects
-                .into_iter()
-                .map(|aspect| aspect.index() as u8)
-                .collect(),
+            changed_aspects,
             changed_region_count,
             causality_kind,
         }
@@ -116,11 +117,15 @@ impl InvalidationSummary {
         invalidated_direct_subscribers: u32,
         maybe_stale_direct_subscribers: u32,
         partition_scoped_checks: u32,
+        narrowed_frontier_width: u32,
+        transitive_frontier_width: u32,
     ) -> Self {
         Self {
             invalidated_direct_subscribers,
             maybe_stale_direct_subscribers,
             partition_scoped_checks,
+            narrowed_frontier_width,
+            transitive_frontier_width,
         }
     }
 }
@@ -207,4 +212,12 @@ impl RollbackSummary {
             reason: rollback.reason.clone(),
         }
     }
+}
+
+fn canonicalize_changed_aspects(mut changed_aspects: Vec<Aspect>) -> Vec<Aspect> {
+    if changed_aspects.len() > 1 {
+        changed_aspects.sort_by_key(|aspect| aspect.index());
+        changed_aspects.dedup();
+    }
+    changed_aspects
 }

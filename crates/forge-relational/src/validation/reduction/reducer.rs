@@ -1,32 +1,56 @@
 use crate::authority::commit::preparation::diagnostics::counters::ValidationPreparationCounters;
+use crate::authority::commit::preparation::diagnostics::failures::PreparationFailureClass;
 use crate::authority::commit::preparation::planning::strategy::PreparationStrategy;
-use crate::authority::commit::preparation::reduction::merge::canonical_merge_indices;
-use crate::validation::data::InvariantCheckResult;
+use crate::authority::commit::preparation::reduction::merge::{
+    canonical_merge_streams, OrderedReductionStream,
+};
 use crate::validation::engine::{
-    InvariantExecutionDisposition, InvariantExecutionMetadata, InvariantExecutionRequest,
-    InvariantExecutionResult,
+    InvariantExecutionMetadata, InvariantExecutionRequest, InvariantExecutionResult,
 };
 
-use super::diagnostics::sort_diagnostic_observations;
+use super::diagnostics::assert_canonical_diagnostic_observations;
 use crate::validation::execution::{InvariantWorkerEnvelope, ValidationReducerConflict};
 
 pub(crate) fn reduce_invariant_execution(
     request: &InvariantExecutionRequest<'_>,
     strategy: PreparationStrategy,
-    mut envelopes: Vec<InvariantWorkerEnvelope>,
-) -> (InvariantExecutionResult, ValidationPreparationCounters, Vec<ValidationReducerConflict>) {
-    canonical_merge_indices(&mut envelopes, |left, right| {
-        left.reduction_key
-            .cmp(&right.reduction_key)
-            .then_with(|| left.result_identity.cmp(&right.result_identity))
-    });
+    envelopes: Vec<InvariantWorkerEnvelope>,
+) -> (
+    InvariantExecutionResult,
+    ValidationPreparationCounters,
+    Vec<ValidationReducerConflict>,
+) {
+    let envelopes = canonical_merge_streams(
+        envelopes
+            .into_iter()
+            .map(|envelope| {
+                OrderedReductionStream::singleton(
+                    (
+                        envelope.reduction_key.clone(),
+                        envelope.result_identity.clone(),
+                    ),
+                    envelope,
+                )
+            })
+            .collect(),
+    )
+    .into_iter()
+    .map(|(_, envelope)| envelope)
+    .collect::<Vec<_>>();
 
     let mut reducer_conflicts = Vec::new();
-    let mut diagnostics = envelopes
+    let diagnostics = envelopes
         .iter()
         .flat_map(|envelope| envelope.diagnostic_observations.clone())
         .collect::<Vec<_>>();
-    sort_diagnostic_observations(&mut diagnostics);
+    assert_canonical_diagnostic_observations(&diagnostics);
+    let mut preparation_failures = envelopes
+        .iter()
+        .flat_map(|envelope| envelope.preparation_failures.clone())
+        .collect::<Vec<_>>();
+    if strategy.fallback_reason.is_some() {
+        preparation_failures.push(PreparationFailureClass::FallbackToSerial);
+    }
 
     let mut results = Vec::with_capacity(envelopes.len());
     let mut last_identity = None;
@@ -36,6 +60,7 @@ pub(crate) fn reduce_invariant_execution(
                 reducer_conflicts.push(ValidationReducerConflict {
                     identity: envelope.result_identity.clone(),
                 });
+                preparation_failures.push(PreparationFailureClass::ReductionIdentityConflict);
             }
         }
         last_identity = Some(envelope.result_identity.clone());
@@ -53,6 +78,7 @@ pub(crate) fn reduce_invariant_execution(
         request.plan_contract(),
         request.merged_plan().is_some(),
         strategy,
+        preparation_failures.clone(),
     );
     let result = InvariantExecutionResult::executed(metadata, results.clone());
     let counters = ValidationPreparationCounters {
@@ -60,6 +86,7 @@ pub(crate) fn reduce_invariant_execution(
         worker_result_count: results.len(),
         reducer_input_count: results.len(),
         reducer_conflict_count: reducer_conflicts.len(),
+        failure_count: preparation_failures.len(),
     };
     (result, counters, reducer_conflicts)
 }

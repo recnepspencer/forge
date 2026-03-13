@@ -24,7 +24,7 @@ pub(crate) fn record_semantic_execution(
         .unwrap_or_else(|| {
             (
                 ChangeInputSummary::new(Vec::new(), Vec::new(), 0, None),
-                InvalidationSummary::new(0, 0, 0),
+                InvalidationSummary::new(0, 0, 0, 0, 0),
             )
         });
     let explanation = if DiagnosticsPolicy::from_profile(profile).retain_flow_explanation {

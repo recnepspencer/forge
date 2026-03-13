@@ -4,17 +4,61 @@
 
 Forge needs a first-class truth runtime, not an ad hoc storage layer.
 
-`forge-relational` is a standalone truth-state runtime library: the system that owns identity, mutation, history, diffs, lineage, and traversal over a host-managed graph or relational state model. This document is intentionally library-first. It defines what `forge-relational` must be in its own right, not how any one host application chooses to embed it.
+`forge-relational` is a standalone truth-state runtime library: the system that
+owns identity, mutation, history, diffs, lineage, and traversal over a
+host-managed graph or relational state model. It is not merely persistence, and
+it is not a thin convenience wrapper around in-memory collections. It is the
+runtime responsible for authoritative graph truth.
 
-For Forge, the specification graph is the product. More generally, the runtime exists for systems where authoritative graph state must outlive any single derived read model, evaluation layer, export format, or application session.
+The runtime is intended for systems where authoritative state must outlive any
+single derived read model, evaluation layer, export format, or application
+session. That includes geometry kernels, chip-design systems, AI-native editing
+systems, and web/data platforms that need auditable, branchable, replayable
+truth instead of loose operational state.
 
-`forge-relational` should be designed as a standalone generic library. CAD and geometry kernels are major targets, but not the definition of the runtime. The same truth/runtime architecture should be useful in chip design, financial platforms, AI systems, and other domains that need transactional graph state with strong identity and history semantics.
+## What This Runtime Is For
 
-Those domains are not forgiving. Geometry kernels, chip-design systems, and other critical engineering runtimes impose a high-assurance bar: determinism, diagnosability, replayability, and long-term architectural discipline are product requirements, not optional engineering quality work.
+`forge-relational` exists for product surfaces where correctness and historical
+meaning matter as much as current value.
+
+It is meant to support:
+
+- AI systems that need world state they can branch, inspect, rewind, compare,
+  and audit exactly instead of heuristically reconstructing what changed
+- AI world-model and agent-environment systems that need speculative futures,
+  structural correspondence, historical grounding, and exact committed truth as
+  a first-class substrate for planning
+- chip-design systems that need identity-safe rewiring, exact connectivity
+  history, snapshot-stable concurrent analysis, and replayable certification
+  rather than fragile tool-local state
+- geometry and CAD kernels that need topology identity to survive rebuilds,
+  branch-local edits to stay intelligible, corruption to localize precisely,
+  and large relational traversals to remain industrially fast
+- web and data platforms that need durable change feeds, exact recovery,
+  consistent historical reads, and truthful read acceleration without letting
+  indexes become accidental authority
+- collaborative and branch-divergent editing systems that need real
+  branch-native truth instead of shallow undo stacks and ad hoc merge metadata
+- incremental compiler and IR systems that need durable graph truth,
+  historical resolution, and replayable state transitions instead of bespoke
+  invalidation folklore
+- workflow, node-editor, and visual-editor platforms that need transactional
+  graph state, stable identity, scoped diffs, and graph introspection so large
+  interactive systems stop devolving into fragile editor glue
+
+The technical thesis is the same across all of them:
+
+- truth must be authoritative
+- history must be explicit
+- diffs must be first-class
+- identity must survive change
+- reads must remain stable under mutation
+- replay must be real
 
 ## Why This Runtime Is Different
 
-These are not side features. They are the architectural bets that make the truth runtime strategically different:
+These are not optional add-ons. They are the capabilities that make
+`forge-relational` strategically different from ordinary graph storage:
 
 - generational IDs and multi-layer identity
 - sparse transactional mutation
@@ -23,55 +67,50 @@ These are not side features. They are the architectural bets that make the truth
 - snapshot reads during active mutation
 - branchable version graph
 - deterministic replay
+- graph time travel and retention-aware history
 - patch streams / CDC
-- aspect-tagged diffs
-- relational aspect system
+- protocol-facing streaming patch feeds
+- first-class relational aspect semantics
 - lineage-aware identity evolution
 - branch-aware correspondence hooks
 - bulk relational queries
+- graph introspection and transaction-surface introspection
+- schema-defined relation integrity and typed relation contracts
+- structural fingerprint surfaces
 
-If these are treated as “nice to have later,” the runtime collapses back into ordinary graph storage and the larger Forge architecture loses its leverage.
-
-## Why This Is Harder Than `forge-signal`
-
-`forge-signal` is already complex, but it operates over present-state reactive execution in a constrained DAG-shaped problem space.
-
-`forge-relational` adds several new dimensions of difficulty at the same time:
-
-- version-visible historical reads instead of present-state-only reads
-- branch-aware history rather than one active execution frontier
-- cyclic truth graphs instead of DAG-only dependency structure
-- lineage and identity evolution rather than version-only change tracking
-- durable patch and replay contracts rather than internal invalidation only
-
-This makes `forge-relational` closer to a truth/history runtime or in-memory database kernel than to an ordinary storage helper.
-
-The highest risk is not “Rust is hard.” The highest risk is semantic drift under implementation pressure:
-
-- replay becoming patch-only theater instead of canonical commit re-execution
-- lineage becoming event logging instead of authoritative identity evolution
-- derived indexes quietly becoming authority
-- durability mirroring in-memory layout instead of canonical truth artifacts
-- history assumptions hardening around single-parent commits
-
-The project should therefore be developed with database-grade discipline, but without importing premature lock-free or persistence-engine complexity before profiling and contract pressure justify it.
+If these are treated as “nice to have later,” the runtime collapses back into
+ordinary mutable graph storage and loses the leverage needed for high-assurance
+systems.
 
 ## Mission
 
-`forge-relational` exists to make truth-state graph operations safe, replayable, branchable, and inspectable at industrial scale.
-
-It must be developed to the standard expected of high-consequence runtime infrastructure. This is not a place for MVP shortcuts, convenient ambiguity, or hidden behavior that "probably works" until scale, audit, or certification pressure arrives.
+`forge-relational` exists to make truth-state graph operations safe,
+replayable, branchable, and inspectable at industrial scale.
 
 It must answer these questions as native runtime responsibilities:
 
-- What is the authoritative identity of this entity?
+- What is the authoritative identity of this entity or relation?
 - How do writes happen transactionally and rewind cheaply?
-- How do multiple readers observe stable graph state while mutations continue elsewhere?
-- How does committed truth emit structured diffs rather than opaque mutation fallout?
-- How does an entity survive splits, merges, replacements, and branch divergence?
-- How do downstream systems query the graph efficiently in bulk rather than one edge at a time?
+- How do multiple readers observe stable graph state while mutation continues
+  elsewhere?
+- How does committed truth emit structured diffs rather than opaque mutation
+  fallout?
+- How does an entity survive replacements, splits, merges, and branch
+  divergence?
+- How do downstream systems query the graph efficiently in bulk rather than one
+  edge at a time?
+- How do operators and tools inspect recent mutation, retained history, and
+  graph structure directly instead of reverse-engineering those answers from
+  side effects?
+- How do schema contracts and relation invariants become authoritative runtime
+  behavior instead of scattered application code?
 
-This runtime is the substrate that makes mergeable history, AI-native editing, deterministic replay, and signal-driven derived computation possible across many domains.
+This runtime is the substrate that makes mergeable history, AI-native editing,
+deterministic replay, topology-aware tooling, connectivity analysis, and
+derived computation possible across many domains. For geometry kernels
+specifically, it is the difference between a modeler that keeps losing the
+meaning of topology under change and one that can preserve, inspect, replay,
+and certify structural truth as the model evolves.
 
 ## Architectural Model
 
@@ -83,32 +122,37 @@ This runtime is the substrate that makes mergeable history, AI-native editing, d
 | `forge-signal` | Derived-computation runtime | invalidation, recomputation, conditions, scheduling, runtime self-inspection |
 | Bridge / integration | Decoupled coordination | patch-to-invalidation, aspect mapping, snapshot evaluation, key mapping |
 
-## Ownership Boundaries
+### Ownership boundary
 
-### What `forge-relational` owns
+`forge-relational` owns:
 
-- Stable identity and safe handle reuse
-- Transactional mutation boundaries
-- Snapshot/history/version graph behavior
-- Structured diffs and change streams
-- Lineage and correspondence foundations
-- Query and traversal primitives
-- Secondary index and derived-index hooks
-- Integrity and schema enforcement hooks
+- stable identity and safe handle reuse
+- transactional mutation boundaries
+- snapshot/history/version graph behavior
+- structured diffs and change streams
+- lineage and correspondence foundations
+- structural identity and structural fingerprint surfaces
+- query and traversal primitives
+- graph introspection and historical inspection surfaces
+- transaction-surface introspection
+- secondary index and derived-index hooks
+- integrity and schema enforcement hooks
+- retention and reclaim visibility for historical truth
 
-### What `forge-relational` does not own
+`forge-relational` does not own:
 
-- Reactive invalidation scheduling
-- Derived-computation policies or planners
-- Domain-specific numeric solvers
-- Projection execution policy
-- Permanent fusion with signal execution
-- Kernel feature execution or host-specific projection logic
-- Mandatory use of the bridge for standalone relational use
+- reactive invalidation scheduling
+- derived-computation policies or planners
+- domain-specific numeric solvers
+- projection execution policy
+- permanent fusion with signal execution
+- host-specific kernel feature execution
 
-### Structural rule
+Structural rule:
 
-Truth mutation, truth history, and truth identity live here. Downstream runtimes may observe, project, or react to truth, but they do not redefine it.
+Truth mutation, truth history, and truth identity live here. Downstream systems
+may observe, project, accelerate, or react to truth, but they do not redefine
+it.
 
 ## Principles
 
@@ -120,17 +164,15 @@ Truth mutation, truth history, and truth identity live here. Downstream runtimes
 6. Lineage is a graph, not loose metadata.
 7. Bulk traversal and bulk mutation matter as much as single-entity convenience APIs.
 8. Deterministic ordering is a product feature, not a debugging aid.
-9. The runtime remains generic; domain semantics arrive through schema, kinds, and host hooks.
-10. The runtime must stand on its own as a reusable library, not as a kernel-specific storage helper.
-11. `forge-relational` must expose standalone APIs for truth-state usage without requiring `forge-signal` or the bridge.
-12. Integrity and schema validation are first-class runtime architecture, not accessory checks around the edge.
-13. Diagnostics are a first-class runtime contract. Truth mutation, history, lineage, diffs, and replay must be inspectable, comparable, and auditable in production.
-14. The relational harness is first-class infrastructure. Regression seeders, branch/history scenarios, and diff/replay parity drivers should evolve alongside the runtime, not after it.
-15. Parallelism must be designed around immutable reads and immutable outputs. Preparation and downstream consumption may scale out, but authoritative truth mutation, authoritative order, and authoritative history must remain deterministic.
+9. The runtime remains generic; domain meaning arrives through schema, kinds, and host hooks.
+10. The runtime must stand on its own as a reusable library.
+11. Integrity and schema validation are first-class runtime architecture.
+12. Diagnostics are a first-class runtime contract.
+13. Parallelism happens around immutable reads and immutable outputs, not through authoritative mutation.
 
-## Foundational Decisions We Refuse To Revisit Later
+## Foundational Decisions
 
-These are locked architectural decisions, not provisional defaults.
+These are locked architectural decisions:
 
 - single logical writer for authoritative truth commit
 - generational identity as the only authoritative ID base
@@ -140,940 +182,704 @@ These are locked architectural decisions, not provisional defaults.
 - commit-native patch and CDC emission
 - structured diagnostics as a production contract
 - arena plus sidecar storage as the foundational memory model
-- `forge_harness` as the default acceptance path
 - parallelize preparation and consumption, serialize authority
 - derived indexes remain non-authoritative and publish immutably
 - replay is executed from canonical commit envelopes, not patch-only reconstruction
-- history representation is merge-ready now: ordered parent commit lists, even before merge commits execute
+- history representation is merge-ready now: ordered parent commit lists
 - authoritative storage-visible reads always retain a non-index fallback path
 - lineage is a constrained graph with explicit invariants, not event logging theater
 - durability persists canonical truth artifacts rather than transient arena layout
+- retention and reclaim are product-visible semantics, not hidden garbage collection folklore
 - no hidden mutation during reads
 - no scheduler-dependent semantics
+- low-level bulk query and bulk mutation mechanics remain in the runtime; domain semantics layer above them
 
-For this runtime, a slice is truth-grade only if it guarantees:
+## How This Vision Drives Engineering
 
-- all authoritative mutation flows through transactions only
-- all observable outputs are deterministic and canonically ordered
-- committed reads are immutable
-- commit emits structured patch and diagnostics artifacts
-- replay artifacts are derived from canonical commit artifacts
-- harness parity exists for success and failure paths
+This document is intentionally written so a roadmap can be derived from it.
 
-### Explicit prohibitions
+The derivation rule is:
 
-These are architectural prohibitions, not style guidance:
+- each capability pillar below implies concrete runtime surfaces that must exist
+- each technical role implies constraints that implementation must preserve
+- each “what this enables” section implies real product use cases the runtime
+  must serve, not marketing examples
+- if a capability is named here but not yet fully present in code, it belongs on
+  the roadmap as remaining engineering work
+- if a capability is present in code but not yet proven under the hostile
+  scenarios in
+  [test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md),
+  it belongs on the roadmap as certification work
 
-- no `HashMap` iteration in observable paths
-- no read-triggered normalization, lazy repair, or cache mutation
-- no shared mutable authoritative patch object across workers
-- no entity-only runtime that defers relations to later
-- no temporary pre-generational ID model
-- no diagnostics-only freeform blobs without stable structured fields
-- no replay artifact that is a dump of internal heap state
-- no public API bias toward per-record ping-pong reads
+In other words:
 
-### Observable order classes
+- the vision says what the runtime must be able to do
+- the roadmap says what still must be engineered
+- the test requirements say what must be proven before the capability is trusted
 
-Observable means:
+## Capability Pillars
 
-- snapshots
-- diagnostics artifacts
-- patch artifacts
-- replay artifacts
-- public iteration surfaces
-- harness comparison outputs
-
-Internal worker scheduling may vary. Observable outputs may not.
-
-Canonical ordering must be defined for:
-
-- entity order
-- relation order
-- worker-intent merge order
-- canonical merged-operation order
-- authoritative apply order
-- patch emission order
-- diagnostics entry order
-- replay record order
-
-### Snapshot publication semantics
-
-Snapshot publication is a single coherent user-visible boundary:
-
-- a successful commit produces exactly one committed visible snapshot
-- failed commits publish nothing authoritative
-- snapshot, patch, diagnostics, and replay artifacts are published as one coherent commit outcome
-- if coherent publication cannot complete, the commit does not become visible
-- publication may have internal phases, but from the user-visible contract it is atomic
-
-### Replay artifact contract
-
-Replay artifacts must obey all of the following:
-
-- derived from canonical commit artifacts rather than internal heap state
-- executed from canonical commit envelopes that include branch context, ordered parents, schema identity, merged apply semantics, patch artifact, and diagnostics summary
-- stable and serializable inputs
-- canonical replay ordering
-- local timing and worker scheduling excluded from replay semantics
-- schema-versioned from day one
-- schema/version mismatch is an explicit failure class
-- replay equivalence is defined over the observable surfaces promised by the active profile, not a fixed minimal list
-
-### History shape
-
-History must remain merge-ready from the start:
-
-- commit references use ordered parent lists
-- initial authoritative commit creation may still restrict execution to zero or one parent
-- replay, durability, and branch reasoning must not assume single-parent history forever
-
-### Derived index contract
-
-Derived indexes are read-side generations only:
-
-- indexes are built from canonical truth outputs and version-visible storage
-- index computation may parallelize; index publication remains serialized and version-bound
-- index absence, lag, mismatch, or failure must never change truth semantics
-- authoritative reads must always retain a storage-visible fallback path
-
-### Lineage contract
-
-Lineage is authoritative identity-evolution history:
-
-- storage identity and lineage identity remain separate permanently
-- correspondence remains advisory until explicit promotion
-- final lineage mutation is serialized and canonical
-- lineage graph invariants must reject invalid references, ambiguous parentage, and silent advisory-to-authoritative promotion
-
-### Durability contract
-
-Durability exists to preserve truth, not current memory layout:
-
-- persistent format is canonical and schema-versioned
-- durable recovery rebuilds authoritative truth from canonical envelopes and committed history
-- snapshots are recoverable views, not the primary durable truth artifact
-- partial durable publication is invalid
-
-### What We Will Not Do Prematurely
-
-These are explicit anti-patterns for the early and middle phases of the runtime:
-
-- no premature lock-free multi-writer truth mutation
-- no `Arc`-everywhere persistent-state model as the default storage architecture
-- no custom epoch reclamation or equivalent advanced memory machinery until profiling proves the simpler retention model insufficient
-- no durability format coupled to transient arena or sidecar layout
-- no optimization that weakens deterministic replay, coherent publication, or storage-visible fallback semantics
-
-### Primary Early Performance Risks
-
-The first serious performance risks are expected to be:
-
-- retained historical payload growth under pinned snapshots
-- version-history growth for hot records
-- chunk sizing mistakes that destroy scan locality
-- pointer chasing and allocation overhead if SoA discipline is abandoned
-- derived-index growth or replay artifact growth that outpaces bounded policies
-
-Performance work should therefore focus first on:
-
-- chunk and sidecar discipline
-- touched-state proportionality
-- retention and reclaim efficiency
-- storage-native historical visibility
-- profile-driven bounded diagnostics and replay artifacts
-
-### Semantic Risks Bigger Than Rust Risks
-
-The runtime will fail more often from the wrong contracts than from borrow-checker friction.
-
-The most dangerous semantic risks are:
-
-- replay defined too narrowly
-- lineage reduced to event logging
-- derived indexes treated as authority
-- diagnostics that are verbose but operationally useless
-- merge-ready history shape being quietly collapsed back to single-parent assumptions
-- retention, recovery, or replay semantics depending on incidental scheduler order
-
-These risks should be treated as first-class review and test targets, not just design notes.
-
-### Correctness-First MVCC Strategy
-
-The intended MVCC strategy is correctness-first and authority-safe:
-
-- single-writer authoritative commit
-- version-visible retained storage
-- explicit snapshot pinning and release
-- explicit retention and reclaim transitions
-- chunk-aware analysis and retention planning
-- storage-native historical reads before advanced reclamation machinery
-
-If later profiling proves that more advanced memory-management machinery is necessary, it must be introduced without weakening deterministic truth semantics or coherent publication.
-
-### Invariant categories
-
-Every invariant must declare both category and effect on execution:
-
-- `AlwaysOnStructural`
-- `CommitBoundary`
-- `SnapshotAudit`
-- `HarnessHeavy`
-
-Each invariant must state whether failure blocks commit, blocks publication, or is audit-only.
-
-### Diagnostics boundedness
-
-Diagnostics are required by default, but they are not unbounded:
-
-- every commit emits a mandatory minimal structured summary
-- detailed traces are optional by profile
-- retention is bounded by policy
-- diagnostics storage must not grow unbounded on hot paths
-- commit-time diagnostics cannot depend on unlimited buffering
-
-### Kind and schema registry discipline
-
-Kinds and schema identity are architectural contracts:
-
-- kinds use stable IDs
-- kind registration is schema-governed
-- kind identity is replay-stable
-- kind mapping is portable across snapshots and branches
-- schema/version mismatch is explicit and never silently tolerated
-
-## Pillars
+Each pillar describes both the technical role of the feature and the kinds of
+systems that need it.
 
 ### Identity Architecture
 
 #### Generational IDs
 
-Why it exists:
-Handles must remain safe under deletion and slot reuse without leaking stale references.
+Technical role:
+Handles remain safe under deletion and slot reuse. All persistent references
+must pass through typed, generation-aware identity rather than raw slot
+indices.
 
-Problem it solves:
-Naive dense IDs create ABA-style hazards and make mutation-heavy graph systems brittle.
+What this enables:
 
-Boundary it imposes:
-All persistent references must pass through typed, generation-aware identity rather than raw slot indices.
-
-What depends on it:
-Transactions, snapshots, replay, change feeds, and safe external handles.
+- AI editing systems can hold references across speculative rewrites without
+  stale-handle corruption
+- chip tools can safely reuse storage while preserving identity correctness for
+  long-running analysis
+- geometry kernels can keep stable external references even as topology is
+  deleted and recreated
+- web/data systems can expose durable handles without ABA-style bugs
 
 #### Structural identity hooks
 
-Why it exists:
-Storage identity alone is not enough when the system needs to recognize “the same structure” across rebuilds or branches.
+Technical role:
+Storage identity alone is not enough when systems need to recognize “the same
+structure” across rebuilds, branches, or host-driven reinterpretation.
 
-Problem it solves:
-Without structural hooks, deduplication, correspondence, memoization, and merge reasoning become ad hoc.
+What this enables:
 
-Boundary it imposes:
-The runtime must expose a place for host-provided structural signatures without hardcoding semantic meaning.
+- AI systems can compare candidate rewrites structurally instead of only by raw
+  storage identity
+- chip flows can match corresponding nets/modules across branch-local rewrites
+- geometry/CAD systems can reason about rebuilt topological regions without
+  pretending slot identity is semantic identity
+- web/data systems can support durable correspondence across schema-driven
+  transformations
 
-What depends on it:
-Correspondence, lineage refinement, merge tooling, and future structural reuse.
+#### Structural fingerprint surfaces
+
+Technical role:
+Hosts need canonical runtime-supported fingerprint surfaces when they want to
+compare structures, detect equivalence classes, or persist structural
+comparisons without collapsing those policies into raw storage identity.
+
+What this enables:
+
+- AI systems can compare candidate worlds or edits by structure rather than
+  only by storage slot reuse
+- chip tools can fingerprint connectivity regions for branch comparison and
+  reuse analysis
+- geometry/CAD systems can compare rebuilt topological neighborhoods
+- web/data systems can detect equivalent transformed structures across
+  migrations or reconciliation flows
 
 #### Multi-layer identity model
 
-Why it exists:
-Forge must distinguish storage identity, lineage identity, structural identity, and optional semantic identity.
+Technical role:
+The runtime must distinguish storage identity, lineage identity, structural
+identity, and optional semantic identity.
 
-Problem it solves:
-A single ID model cannot simultaneously handle slot lifetime, historical continuity, and cross-branch equivalence.
+What this enables:
 
-Boundary it imposes:
-The runtime cannot collapse identity into one handle type plus comments.
-
-What depends on it:
-Lineage, correspondence, replay, merge, and downstream bridge mapping.
+- AI branch exploration where “same concept” and “same stored record” are not
+  the same question
+- chip and geometry workflows where historical continuity matters more than raw
+  storage slot reuse
+- web/data platforms where durable external identity, storage identity, and
+  migration-time correspondence must stay separate
 
 ### Transaction Architecture
 
 #### Transactional mutation
 
-Why it exists:
-Truth must never be mutated through scattered side effects.
+Technical role:
+Truth mutation flows only through explicit transaction boundaries. This is what
+makes history, rollback, diff emission, and replay reliable.
 
-Problem it solves:
-Non-transactional writes make history, rollback, and diff emission unreliable.
+What this enables:
 
-Boundary it imposes:
-All write paths flow through explicit transaction boundaries.
-
-What depends on it:
-Snapshots, CDC, rollback, bridge integration, and deterministic replay.
-
-Authority rule:
-Parallel workers may prepare candidate intents, validation summaries, index fragments, and diagnostics fragments, but final truth mutation must flow through one deterministic commit authority.
+- AI-assisted editing with controlled speculative changes
+- chip editing flows where rewires and replacements can be validated before
+  publication
+- geometry operations where structural edits either publish coherently or leave
+  no residue
+- web/data applications where business truth changes are auditable and replayable
 
 #### Sparse undo log
 
-Why it exists:
-Rollback must scale with touched state, not whole-graph size.
+Technical role:
+Rollback scales with touched state, not whole-graph size.
 
-Problem it solves:
-Full graph copying is too expensive for large mutable graphs and speculative workflows.
+What this enables:
 
-Boundary it imposes:
-Mutation tracking must record touched subsets precisely.
-
-What depends on it:
-Cheap rollback, savepoints, speculative editing, and large-model throughput.
-
-Diagnostics expectation:
-Undo records must be inspectable as production truth artifacts. Rollback diagnostics need stable ordering, failure classification, and replay-comparable summaries.
+- speculative AI transforms that rewind cheaply
+- chip and geometry editing sessions that can abandon local experimental paths
+- large web/data workflows that need correction without whole-state copying
 
 #### Nested savepoints
 
-Why it exists:
-Complex operations need partial rollback without discarding an entire outer transaction.
+Technical role:
+Complex operations need partial rollback without discarding an entire outer
+transaction.
 
-Problem it solves:
-Without savepoints, speculation inside a larger operation becomes too coarse and too expensive.
+What this enables:
 
-Boundary it imposes:
-The transaction model must support scoped rewind points, not just all-or-nothing rollback.
+- AI systems exploring alternate repair or synthesis paths inside one larger
+  operation
+- geometry kernels evaluating multiple local topological repair attempts
+- chip tools trying alternate rewiring plans before publishing one
+- multi-step application workflows that need scoped rewind points instead of
+  all-or-nothing failure
 
-What depends on it:
-Compound mutation operators, AI-driven exploration, and future branch experimentation.
+#### Transaction-surface introspection
 
-Concurrency boundary:
-Savepoint creation, rollback-to-savepoint, commit, and abort are transaction-boundary state transitions. They must remain serialized and explicit even if some planning or validation work around them runs in parallel.
+Technical role:
+The runtime must expose recent mutation and transaction-boundary inspection as
+product surfaces, not force operators to derive them indirectly from logs,
+patches, or debug-only tools.
+
+What this enables:
+
+- AI systems can explain what a speculative branch changed before publication
+- chip and geometry tools can inspect exact touched truth before accepting an
+  operator result
+- workflow and visual-editor platforms can show transaction-scoped previews and
+  audit surfaces
+- operational tooling can reason about transaction shape without replaying full
+  history
 
 #### Bulk mutation APIs
 
-Why it exists:
-Large graph edits must be expressible as one structured operation, not a loop of tiny writes.
+Technical role:
+Large graph edits must be expressible as one structured operation, not a loop
+of tiny writes.
 
-Problem it solves:
-Per-entity mutation overhead destroys throughput and obscures intent.
+What this enables:
 
-Boundary it imposes:
-The runtime must expose vectorized mutation surfaces as first-class APIs.
-
-What depends on it:
-Importers, graph transforms, migration tools, and large operator batches.
-
-Parallel design rule:
-Bulk mutation APIs should accept partitionable intent batches and worker-local staging outputs now, even if initial execution stays single-writer.
-
-Formal planning layers:
-
-- `WorkerIntentBatch`
-- `MergedCommitPlan`
-- `AuthoritativeApplyPlan`
-- `CommitOutcome`
-
-Staging objects must not quietly acquire authoritative semantics.
+- model importers
+- geometry rebuild passes
+- chip netlist transforms
+- web/data migrations and large operator batches
 
 ### History Architecture
 
 #### MVCC snapshots
 
-Why it exists:
-Readers need stable views while mutation continues.
+Technical role:
+Readers need stable views while mutation continues elsewhere.
 
-Problem it solves:
-Single mutable state forces stop-the-world coordination or unsafe read semantics.
+What this enables:
 
-Boundary it imposes:
-Committed state and mutable state must be representable as distinct versions.
-
-What depends on it:
-Snapshot-backed evaluation, replay, branch exploration, and parallel reads.
-
-Parallel design rule:
-Snapshots must be immutable, concurrently readable, and semantics-stable. Reads must not trigger lazy writeback, hidden normalization, or cache mutation that changes observable results.
+- AI agents inspecting stable truth while other work continues
+- chip analysis over pinned snapshots during hot rewrites
+- CAD/geometry tools comparing historical surfaces without blocking edits
+- web/data applications serving consistent reads during active updates
 
 #### Snapshot reads during active mutation
 
-Why it exists:
-Long-running reads and derived computation cannot block all writes.
+Technical role:
+Long-running reads and derived computation must be able to pin stable truth
+instead of racing active writes.
 
-Problem it solves:
-Without stable snapshot reads, integration with signal evaluation becomes fragile and non-deterministic.
+What this enables:
 
-Boundary it imposes:
-The runtime must let readers pin stable versions while writers continue elsewhere.
-
-What depends on it:
-Bridge contracts, signal evaluation, inspection tools, and audit surfaces.
-
-Testing rule:
-`forge_harness` parity suites must treat snapshot reads during active mutation as a first-class acceptance path, not a stress-test add-on.
+- concurrent analysis in chip design
+- stable geometry inspection during editing
+- branch comparison and audit tooling
+- high-value web/data reads that must not drift mid-request
 
 #### Branchable version graph
 
-Why it exists:
-Forge models must fork and merge like code, not just walk a linear undo chain.
-
-Problem it solves:
-Linear history cannot represent concurrent design evolution.
-
-Boundary it imposes:
+Technical role:
 Version history must be graph-shaped, not stack-shaped.
 
-What depends on it:
-Merge, counterfactuals, collaboration, and AI branch exploration.
+What this enables:
 
-Authority boundary:
-Version graph advancement is authoritative history publication. Candidate work may be prepared in parallel, but parent selection, version identity assignment, and visibility publication must be canonical and serialized.
+- AI-native editing and alternate solution branches
+- branch-local chip or geometry experiments
+- collaborative design flows
+- web/data review and “what-if” workflows that need more than linear undo
 
 #### Deterministic replay
 
-Why it exists:
-A truth runtime for engineering must reproduce history exactly.
+Technical role:
+Canonical commit artifacts must be sufficient to reconstruct observable truth
+exactly.
 
-Problem it solves:
-Without replay, debugging, certification, and regression minimization all become weaker.
+What this enables:
 
-Boundary it imposes:
-Commit ordering, mutation records, and observable outputs must be deterministic.
+- AI debugging and regression minimization
+- chip and geometry certification workflows
+- audit and incident analysis
+- trustworthy recovery in web/data systems
 
-What depends on it:
-Audit, debugging, merge diagnostics, and validation harnesses.
+#### Graph time travel and retention
 
-Harness rule:
-Replay acceptance for `forge-relational` must run through `forge_harness` (`forge-harness` package). The runtime should not rely on bespoke replay test scaffolding that drifts from the production diagnostics contract.
+Technical role:
+The runtime must intentionally retain or reconstruct historical graph states and
+make reclamation explicit.
 
-#### Graph time travel
+What this enables:
 
-Why it exists:
-Users and systems need to inspect historical graph states directly.
+- historical geometry or topology inspection
+- hot-net history analysis in chip design
+- audit windows in web/data platforms
+- AI systems comparing current truth against prior committed states
 
-Problem it solves:
-Replay alone is not enough when inspection must target prior committed states on demand.
+Technical consequence:
+Retention, pinning, and reclaim must be explicit runtime surfaces. Historical
+truth availability cannot be treated as an accidental side effect of whether
+old data has not yet been collected.
 
-Boundary it imposes:
-The history model must support reconstruction or retention of prior states intentionally.
-
-What depends on it:
-Debugging, visualization, branch comparison, and audit tooling.
-
-Lifecycle vocabulary:
-
-- `Live`
-- `DeletedRetained`
-- `PinnedBySnapshot`
-- `PinnedByBranch`
-- `PinnedByReplayRetention`
-- `Reclaimable`
-- `Reusable`
-
-The architecture must use explicit lifecycle terminology rather than treating "tombstone" as a catch-all concept.
-
-#### Version garbage collection
-
-Why it exists:
-History retention must remain sustainable as the graph evolves.
-
-Problem it solves:
-Snapshots and branches accumulate until they become a storage and memory liability.
-
-Boundary it imposes:
-Version retention and reclamation cannot be an afterthought.
-
-What depends on it:
-Long-lived projects, collaboration, and industrial-scale persistence.
-
-### Diff Architecture
+### Diff and CDC Architecture
 
 #### CDC / patch streams
 
-Why it exists:
-Every commit should emit structured change data as a native runtime output.
+Technical role:
+Every commit emits structured change data as native runtime output.
 
-Problem it solves:
-Reconstructing diffs after the fact is slower, less precise, and harder to integrate.
+What this enables:
 
-Boundary it imposes:
-Commit must produce machine-readable patchsets, not just mutate state silently.
+- bridge routing and downstream invalidation
+- subscriber systems consuming durable truth changes
+- audit exports
+- application/web platforms reacting to canonical committed state changes
 
-What depends on it:
-Bridge integration, audit, streaming tooling, and downstream invalidation.
+#### Protocol-facing streaming patch feeds
 
-Authority boundary:
-Diff preparation may be parallelized over immutable snapshots and worker-local fragments. Final emitted authoritative patch order must remain deterministic and canonical.
+Technical role:
+Patch streams must be consumable as durable external protocol surfaces, not
+only as internal bridge artifacts.
+
+What this enables:
+
+- resumable downstream subscribers
+- replication and audit pipelines
+- chip and geometry downstream consumers that must track canonical truth
+  without inference
+- platform integrations that need exact, machine-checkable committed change
+  feeds
 
 #### Stream correctness semantics
 
-Why it exists:
-Patch feeds become operational infrastructure the moment other systems consume them continuously.
+Technical role:
+Ordering, resume, checkpoint, idempotence, and failure behavior must be
+explicit runtime contract, not accidental behavior.
 
-Problem it solves:
-Without explicit ordering, resume, checkpoint, idempotence, and coalescing semantics, change streams become fragile and hard to trust in financial, AI, distributed, or large interactive systems.
+What this enables:
 
-Boundary it imposes:
-The runtime must define deterministic stream ordering and consumption semantics as part of the architecture, not leave them implicit.
+- durable subscribers
+- exact CDC recovery after interruption
+- chip and geometry downstream consumers that cannot tolerate dropped or drifted changes
+- AI and web platforms that consume truth changes incrementally
 
-What depends on it:
-Bridge replay, durable subscribers, large-scale integrations, and robust downstream recovery.
+#### Relational aspect semantics
 
-Diagnostics expectation:
-Resume tokens, checkpoints, publication order, coalescing decisions, and subscriber-visible failures all need structured diagnostics and replay-visible records.
+Technical role:
+The truth runtime must have first-class aspect semantics for entities and
+relations. Aspects are not only payload-derived labels; they are stable,
+queryable change surfaces that let committed truth describe which semantic
+facets changed.
+
+The runtime must be able to express:
+
+- entity aspects
+- relation aspects
+- aspect-aware committed diffs
+- aspect-aware historical reads
+- aspect-aware and lineage-aware historical reads where both change surface and
+  identity evolution matter
+- aspect-aware projections and bulk queries
+- canonical aspect identity and ordering in observable artifacts
+
+What this enables:
+
+- AI systems can distinguish structural edits, metadata edits, and semantic
+  edits when inspecting committed truth history
+- chip-design systems can express connectivity, hierarchy, timing-related, and
+  metadata change surfaces explicitly rather than inferring everything from raw
+  payload keys
+- geometry and CAD systems can express topology, adjacency, geometry, and
+  annotation-style change surfaces explicitly
+- web and data platforms can ship durable CDC with domain-aware change
+  semantics instead of only generic field-name deltas
 
 #### Aspect-tagged diffs
 
-Why it exists:
-Truth changes must say what changed, not merely that something changed.
+Technical role:
+Committed diffs must say what changed, not merely that something changed, and
+that precision must apply to both entities and relations.
 
-Problem it solves:
-Coarse patch streams create over-invalidation and poor runtime self-inspection.
+What this enables:
 
-Boundary it imposes:
-Diffs must carry typed aspect metadata.
+- exact committed change description across history
+- aspect-aware CDC consumers
+- precise topology and connectivity change reporting
+- incremental tools that need field or semantic-surface level change artifacts
 
-What depends on it:
-Signal invalidation routing, incremental tools, and targeted analysis.
+#### Aspect-aware query and projection surfaces
 
-#### Relational aspect system
+Technical role:
+Aspect semantics must not stop at diff output. Queries, projections, and
+historical reads need to be able to ask for specific semantic surfaces of truth
+instead of treating every read as a full-record fetch.
 
-Why it exists:
-Nodes and relations need generic aspect masks so the runtime can speak in precise change semantics.
+What this enables:
 
-Problem it solves:
-Without a relational aspect system, bridge-layer aspect mapping becomes lossy and ad hoc.
-
-Boundary it imposes:
-Aspect support must exist at the truth layer, not only in signals.
-
-What depends on it:
-Patch-to-invalidation mapping, diff precision, and field/lens subscriptions.
-
-#### Relation aspect tagging
-
-Why it exists:
-Relations themselves often change in meaningful ways distinct from node payload changes.
-
-Problem it solves:
-If only nodes carry aspects, edge-level changes become hard to describe precisely.
-
-Boundary it imposes:
-Aspect tagging must apply to both entities and relations.
-
-What depends on it:
-Topology/state diffs, bridge routing, and precise downstream invalidation.
-
-#### Streaming patch feeds
-
-Why it exists:
-Other systems need live access to truth changes without polling snapshots.
-
-Problem it solves:
-Batch-only diff extraction limits responsiveness and decoupled integrations.
-
-Boundary it imposes:
-Patch emission must be protocol-friendly, not only internal bookkeeping.
-
-What depends on it:
-Bridge subscriptions, external tooling, and collaborative workflows.
+- aspect-scoped bulk reads in large AI and application workloads
+- topology- or geometry-focused reads in CAD without paying for unrelated
+  payload surfaces
+- connectivity- or hierarchy-focused reads in chip design
+- better proportionality for large read workloads where only specific truth
+  surfaces matter
 
 #### Lineage-aware diffs
 
-Why it exists:
-Diffs must capture identity evolution, not only adds/removes.
+Technical role:
+Diffs must be able to express identity evolution, not only add/remove/update.
 
-Problem it solves:
-Plain patch feeds cannot express replacement, split, and merge semantics cleanly.
+What this enables:
 
-Boundary it imposes:
-Diffs must be able to reference lineage and correspondence data.
-
-What depends on it:
-Merge tooling, branch reasoning, and downstream identity-sensitive systems.
+- topology replacement and split semantics in CAD
+- connectivity-preserving rewiring semantics in chip design
+- identity-sensitive downstream systems
+- AI tooling that needs to know what old truth became, not just what disappeared
 
 ### Lineage Architecture
 
 #### Lineage events
 
-Why it exists:
-Replace, split, and merge are first-class structural events, not awkward combinations of delete/add.
+Technical role:
+Replace, split, and merge-like structural changes are explicit first-class
+events.
 
-Problem it solves:
-Without explicit lineage events, identity evolution becomes ambiguous.
+What this enables:
 
-Boundary it imposes:
-The runtime must model transformation history directly.
-
-What depends on it:
-Historical resolution, correspondence, and lineage-aware diffs.
-
-Authority boundary:
-Workers may discover correspondence or lineage candidates in parallel, but final lineage event recording must be canonical and serialized.
+- topology identity survival in geometry/CAD
+- rewiring and replacement history in chip design
+- identity-aware model editing in AI systems
+- durable evolution history in web/data domains where records transform over time
 
 #### Historical ID resolution
 
-Why it exists:
+Technical role:
 Consumers need to ask what an older entity became.
 
-Problem it solves:
-Versioned systems become difficult to query if old identifiers simply disappear.
+What this enables:
 
-Boundary it imposes:
-Identity lookup must support forward resolution across history.
+- historical topology tracing
+- signal/net ancestry queries
+- audit and replay consumers tracking evolving entities
+- AI systems grounding edits against prior committed identity
 
-What depends on it:
-Audit, merge, replay, and bridge consumers that track evolving entities.
+Technical consequence:
+Historical resolution must be ergonomic enough to serve as a product surface
+for tools and downstream consumers, not merely an internal correctness proof.
 
 #### Lineage graph
 
-Why it exists:
-Lineage must be queryable as its own graph.
+Technical role:
+Identity evolution must be queryable as graph truth, not loose metadata.
 
-Problem it solves:
-Loose metadata cannot support serious reasoning about identity evolution.
+What this enables:
 
-Boundary it imposes:
-Lineage relationships require first-class storage and traversal.
+- branch comparison
+- merge and correspondence tooling
+- topology and connectivity debugging
+- historical identity reasoning for applications that need traceability
 
-What depends on it:
-Historical resolution, merge, branch comparison, and AI-assisted correspondence.
+Technical consequence:
+The lineage graph must be queryable directly. Identity evolution cannot remain
+opaque behind one-off helper paths.
 
 #### Branch-aware correspondence hooks
 
-Why it exists:
-Different branches need a way to express “these are probably the same thing” even when identity diverged.
+Technical role:
+Branches need a way to express “these are probably the same thing” without
+silently making that authoritative.
 
-Problem it solves:
-Lineage alone is insufficient for cross-branch matching once history forks independently.
+What this enables:
 
-Boundary it imposes:
-The runtime must allow branch-aware matching hooks without baking in domain scoring rules.
+- AI-assisted matching between alternate edits
+- chip and geometry branch comparison
+- future merge tooling
+- application-level reconciliation policies over divergent histories
 
-What depends on it:
-Merge, conflict resolution, and structural comparison across revisions.
+### Integrity Architecture
 
-#### Correspondence policy hooks
+#### Schema-defined relation invariants
 
-Why it exists:
-Hosts need to plug in matching policy when lineage is insufficient.
+Technical role:
+The runtime must enforce generic relation integrity contracts declared by the
+schema instead of relying on convention or scattered application code.
 
-Problem it solves:
-A generic runtime cannot hardcode semantic equivalence policy for every domain.
+What this enables:
 
-Boundary it imposes:
-The runtime provides hooks and structure, not semantic scoring logic.
+- topology and connectivity systems can declare legal relation structure
+  without embedding integrity policy in every operator
+- workflow and application graphs can express cardinality, uniqueness, and
+  ownership rules centrally
+- AI systems can validate speculative edits against real truth contracts before
+  publication
 
-What depends on it:
-Advanced merge, cross-branch matching, and future semantic reconciliation.
+#### Typed relation contracts
+
+Technical role:
+Relation and kind contracts must be strong enough to express industrial graph
+schemas clearly while keeping the runtime generic.
+
+What this enables:
+
+- chip, geometry, IR, and workflow systems can define rich graph schemas
+  without runtime ambiguity
+- schema drift and illegal relation formation are rejected earlier
+- host code can reason about graph legality without reinventing basic contract
+  enforcement
+
+#### Integrity validation hooks
+
+Technical role:
+Validation and commit-time integrity checking must be part of the runtime
+contract, not optional application aftercare.
+
+What this enables:
+
+- authoritative rejection of corrupted truth
+- localized diagnostics for bad graph edits
+- durable confidence that replay and recovery preserve accepted truth only
 
 ### Query and Scale Architecture
 
 #### Single-entity traversal primitives
 
-Why it exists:
-The graph still needs sharp primitives like `targets_of` and `sources_of`.
+Technical role:
+The graph still needs sharp low-level operations like `targets_of` and
+`sources_of`.
 
-Problem it solves:
-Higher-level systems need reliable building blocks for precise traversal.
+What this enables:
 
-Boundary it imposes:
-The query layer must expose clear low-level operations, not only bulk APIs.
-
-What depends on it:
-Inspection tools, mutation operators, and adapter layers.
-
-#### Bulk relational queries
-
-Why it exists:
-This is one of the runtime’s defining strengths. Large graph workloads need vectorized queries, not per-entity loops disguised as APIs.
-
-Problem it solves:
-Single-entity traversal alone does not scale to industrial graph analysis or broad invalidation planning.
-
-Boundary it imposes:
-Bulk query surfaces must be treated as primary design targets, not convenience wrappers.
-
-What depends on it:
-Bridge propagation, analysis, imports, large traversal workloads, and system-scale performance.
-
-Parallel design rule:
-Bulk APIs should be expressible as deterministic work packets over stable snapshots so future partition-aware execution does not require redesigning the query surface.
-
-#### Relation-type scans
-
-Why it exists:
-Systems frequently need to scan all edges of a kind efficiently.
-
-Problem it solves:
-Type-filtered relation access is too expensive if it requires full graph walks.
-
-Boundary it imposes:
-Storage and indexing must support efficient relation-kind access paths.
-
-What depends on it:
-Validation, analytics, bridge mapping, and schema-level tooling.
+- precise inspection tooling
+- mutation operators
+- small interactive product surfaces
+- adapter layers that need dependable graph primitives
 
 #### Graph introspection APIs
 
-Why it exists:
-A truth runtime must be inspectable beyond raw storage access.
+Technical role:
+The runtime must expose graph structure, relation shape, counts, touched scope,
+and inspection surfaces directly rather than forcing every host to build its
+own partial graph debugger.
 
-Problem it solves:
-Counts, structure summaries, references, and recent mutations should not require custom debug code every time.
+What this enables:
 
-Boundary it imposes:
-Introspection belongs in the runtime surface, not only in external tooling.
+- AI systems can inspect world state and mutation scope directly
+- workflow and node-editor platforms can power graph tooling and admin surfaces
+- compiler and IR systems can inspect graph health and connectivity
+- performance and correctness tooling can query truth structure without custom
+  invasive instrumentation
 
-What depends on it:
-Debugging, runtime self-inspection, and admin/inspection interfaces.
+#### Bulk relational queries
+
+Technical role:
+Large graph workloads need vectorized queries, not per-entity loops disguised
+as APIs.
+
+What this enables:
+
+- chip fanout and hierarchy analysis
+- geometry adjacency and neighborhood queries
+- AI planning and validation over large truth surfaces
+- web/data platforms serving large filtered truth slices efficiently
+
+Technical consequence:
+The runtime must provide low-level mechanical bulk primitives such as
+source/target scans, relation-kind scans, and ordered bulk traversal building
+blocks. Semantic domain queries belong above them.
+
+#### Relation-type scans
+
+Technical role:
+Systems frequently need to scan all edges of a kind efficiently.
+
+What this enables:
+
+- topology relation scans
+- connectivity-class queries
+- schema-driven analytics
+- broad platform queries without full graph walks
 
 #### Secondary index and derived-index hooks
 
-Why it exists:
-Arena layout and direct traversal are not enough for every large-scale query workload.
+Technical role:
+The runtime must support read-side acceleration without allowing derived state
+to become authority.
 
-Problem it solves:
-Bulk relational queries often need host-tunable index surfaces rather than forcing every system to rebuild indexing ad hoc outside the runtime.
+What this enables:
 
-Boundary it imposes:
-The runtime should expose hooks for maintained indexes and derived lookup structures without hardcoding every domain-specific index strategy.
+- high-volume product queries
+- chip and geometry indexing for common access paths
+- host-tunable read acceleration
+- web/data performance surfaces that still preserve truth fallback
 
-What depends on it:
-High-volume queries, relation-type scans, bridge lookups, and large host-specific query acceleration.
+#### Parallel read access and partitioning hints
 
-Parallel design rule:
-Derived index maintenance should separate authoritative commit from parallel rebuild assistance. Parallel workers may compute index fragments or new immutable generations, but publication of read-visible index state must remain ordered and explicit.
+Technical role:
+Stable snapshot reads and future scale-out need deterministic packetized read
+surfaces, not only serial traversal.
 
-Storage classification rule:
+What this enables:
 
-Hot-path sidecars contain only data required for:
+- snapshot-safe parallel analysis
+- partition-aware bulk planning for chip and geometry workloads
+- AI systems distributing read-side inspection over immutable truth
+- high-scale application platforms that need concurrency without semantic drift
 
-- slot validity and lifecycle state
-- canonical iteration participation
-- commit apply
-- snapshot reads
-- adjacency traversal
-- aspect/version gating required by core read/commit paths
-
-Cold-path sidecars contain data required for:
-
-- lineage refinement
-- extended diagnostics
-- replay enrichment
-- correspondence hints
-- branch metadata not needed by core apply/read
-- audit-only or harness-heavy metadata
-
-Any per-record metadata placed in hot-path sidecars requires explicit justification.
-
-#### Parallel read access
-
-Why it exists:
-Many systems need to inspect stable graph state concurrently.
-
-Problem it solves:
-Read serialization becomes a bottleneck once models and downstream consumers grow.
-
-Boundary it imposes:
-Snapshot and storage design must support concurrent immutable reads.
-
-What depends on it:
-Analysis, signal evaluation, tooling, and distributed workflows.
-
-Determinism rule:
-Query results, diagnostics summaries, and introspection output must not depend on thread count, worker timing, or scheduler order.
-
-#### Partitioning hints
-
-Why it exists:
-Large models eventually need guidance for splitting work across threads or systems.
-
-Problem it solves:
-Blind partitioning can destroy locality and correctness assumptions.
-
-Boundary it imposes:
-The runtime should expose hints without requiring distributed execution to exist on day one.
-
-What depends on it:
-Future scale-out, bulk query planning, and cross-worker decomposition.
-
-Future-proofing rule:
-Even before full partitioning exists, APIs should preserve the ability to address entity ranges, relation ranges, branch-local work packets, and snapshot-local partitions.
+Technical consequence:
+Partition-aware query surfaces and partitioning hints matter at runtime level
+for scale. They cannot be left entirely to higher layers if the runtime wants
+to make honest locality and proportionality claims.
 
 #### Memory stability guarantees
 
-Why it exists:
-Very large graph systems fail when allocation behavior is unpredictable.
+Technical role:
+Very large graph systems fail when allocation behavior is unpredictable or
+locality collapses.
 
-Problem it solves:
-Fragmentation and unstable layouts erode performance and make scaling fragile.
+What this enables:
 
-Boundary it imposes:
-Storage design must prioritize predictable allocation and locality.
+- long-lived geometry and chip workloads
+- high-churn AI editing systems
+- sustained web/data platform operation under heavy history and query pressure
 
-What depends on it:
-Long-lived graph workloads, bulk queries, and industrial-scale model sizes.
+Technical consequence:
+Predictable allocation, bounded churn, and locality-preserving layout are part
+of the product requirement, not implementation polish.
 
-## Roadmap
+## Domain Fit
 
-The ordering here is architectural, not cosmetic. The early phases lock in the properties that are expensive to retrofit later.
+The runtime remains generic, but the intended fit is explicit.
 
-Diagnostics and the harness are cross-cutting requirements, not a final cleanup phase. Every phase above should ship with:
+### AI Systems
 
-- deterministic summaries and diffs for the new subsystem
-- failure-path diagnostics rather than success-only reporting
-- scenario-driven `forge_harness` coverage with named regression seeders for confirmed bugs
-- bounded retained history suitable for long-running truth runtimes
-- serial-vs-parallel parity checks wherever a phase introduces parallel-capable preparation or read paths
-- coherent publication semantics for snapshot, patch, diagnostics, and replay artifacts
-- explicit invariant categories and declared failure effects
+`forge-relational` should support:
 
-### Phase 1: Identity and storage foundations
+- speculative editing with savepoints and rollback
+- branch-local alternate solutions
+- deterministic replay of model-assisted changes
+- correspondence and lineage over rewritten structures
+- stable snapshots for evaluation and audit
+- structural comparison and recent-mutation inspection for AI world-modeling
+- exact historical inspection for agent reasoning over prior committed truth
 
-Breakthrough features:
+Revolutionary use:
+an AI system can treat world state as a branchable, replayable, auditable truth
+graph instead of a pile of mutable tool state and post-hoc logs.
 
-- generational IDs
-- arena layout and storage discipline
-- structural identity hooks
-- multi-layer identity model
+### Collaborative and Branch-Divergent Systems
 
-Outcome:
-Truth has stable handles, predictable storage behavior, and a clean identity story that can support branching and lineage later.
+`forge-relational` should support:
 
-Must also lock in:
+- branch-local edits with explicit lineage and correspondence
+- replayable historical truth for review and audit
+- deterministic diff and CDC surfaces for collaboration tooling
+- retained snapshots and historical resolution for “what changed?” workflows
 
-- separate entity and relation identity systems
-- lifecycle-state vocabulary instead of generic tombstone flags
-- hot-path versus cold-path sidecar discipline
-- schema-governed stable kind IDs
+Revolutionary use:
+collaboration can move from “best effort merge and undo” to true
+branch-native editing where identity, history, and change semantics survive
+divergence cleanly.
 
-### Phase 2: Transaction foundations
+### Incremental Compiler and IR Systems
 
-Breakthrough features:
+`forge-relational` should support:
 
-- transactional mutation
-- sparse undo log
-- nested savepoints
-- bulk mutation APIs
+- durable graph truth for IR/state representation
+- deterministic replay and historical inspection
+- fast bulk traversal over typed relation contracts
+- structural identity and correspondence across rewrites and branch-local edits
 
-Outcome:
-Mutation becomes explicitly scoped, rewindable, and scalable for large graph edits.
+Revolutionary use:
+compiler and IR systems can get a real truth substrate with durable history and
+identity survival instead of rebuilding these guarantees piecemeal around a
+query engine.
 
-Must also lock in:
+### Chip Design
 
-- thread-local intent staging rather than shared mutable patch construction
-- deterministic intent merge rules before any attempt at concurrent apply
-- rollback and savepoint diagnostics that survive replay and branch comparison
-- formal separation between `WorkerIntentBatch`, `MergedCommitPlan`, `AuthoritativeApplyPlan`, and `CommitOutcome`
+`forge-relational` should support:
 
-### Phase 3: History and branching foundations
+- rewiring and replacement with trustworthy identity/history semantics
+- snapshot-safe concurrent analysis
+- exact connectivity diffs and CDC
+- branch-local alternate implementations
+- durable replay and recovery for certification-grade flows
 
-Breakthrough features:
+Revolutionary use:
+chip flows can treat connectivity truth as replayable, branchable, and
+historically queryable at industrial scale, which is much closer to a
+certifiable design state engine than a traditional pile of tool-local graphs.
 
-- MVCC snapshots
-- snapshot reads during active mutation
-- branchable version graph
-- deterministic replay
+### Geometry and CAD
 
-Outcome:
-Truth becomes branchable and inspectable without sacrificing safe mutation flow.
+`forge-relational` should support:
 
-Must also lock in:
+- topology identity survival across split, replace, and rebuild operations
+- adjacency and incidence relations as first-class truth
+- branch-local structural edits
+- corruption localization through lineage, relation history, and diagnostics
+- historical topology inspection under retained snapshots
 
-- immutable snapshot handles safe for concurrent reads
-- serialized authoritative publication of commits and version graph advancement
-- `forge_harness` parity coverage for snapshot reads during active mutation and replay fidelity
-- coherent publication of snapshot, patch, diagnostics, and replay artifacts
+Revolutionary use:
+geometry kernels can stop treating persistent topology identity, rebuild-safe
+history, and corruption localization as brittle afterthoughts. The runtime
+makes it possible to build kernels where topological truth survives aggressive
+editing, can be queried in bulk, and can be replayed or certified after the
+fact.
 
-### Phase 4: Diff and aspect foundations
+### Workflow, Node-Editor, and Visual-Editor Platforms
 
-Breakthrough features:
+`forge-relational` should support:
 
-- CDC / patch streams
-- stream correctness semantics
-- aspect-tagged diffs
-- relational aspect system
-- relation aspect tagging
+- transactional graph editing with rollback and savepoints
+- typed relation contracts for workflow legality
+- graph introspection for editor/debug tooling
+- durable CDC and historical inspection for collaborative and operational flows
 
-Outcome:
-Commits emit precise structured change data suitable for bridge routing and audit.
+Revolutionary use:
+large editor and workflow products can get industrial graph-state mechanics
+instead of spending years reinventing undo, identity, diff, and audit systems
+around ad hoc node stores.
 
-Must also lock in:
+### Web and Data Platforms
 
-- worker-local diff fragment preparation with deterministic final merge
-- canonical stream ordering and durable resume/checkpoint semantics
-- diagnostics surfaces for patch publication, subscriber recovery, and audit export
+`forge-relational` should support:
 
-### Phase 5: Lineage and correspondence foundations
+- transactional truth mutation with exact rollback
+- durable CDC and subscriber recovery
+- authoritative read fallback even when indexes lag or fail
+- historical reads and auditability
+- large-scale bulk query surfaces over canonical truth
 
-Breakthrough features:
+Revolutionary use:
+web and data systems can promote their source of truth from “application state
+plus infrastructure accidents” to a branchable, replayable, audit-grade truth
+runtime with first-class change feeds.
 
-- lineage events
-- historical ID resolution
-- lineage graph
-- branch-aware correspondence hooks
+## Non-Goals
 
-Outcome:
-Identity evolution becomes queryable and usable across history and branches.
+- turning the truth runtime into a reactive scheduler
+- fusing truth storage and signal evaluation into one system
+- baking domain-specific semantic meaning into the generic runtime core
+- reducing identity to a single storage handle model
+- treating MVCC, CDC, lineage, or bulk queries as optional polish
 
-Must also lock in:
+## Companion Documents
 
-- deterministic lineage finalization rules
-- parallel candidate discovery without parallel authoritative lineage mutation
-- harness seeders for split/merge/replace/correspondence regressions
+- [forge_relational_roadmap.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/forge_relational_roadmap.md)
+- [test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md)
+- [_docs/engineering/forge_signal_vision.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_signal_vision.md)
+- [_docs/engineering/forge_runtime_bridge_vision.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_runtime_bridge_vision.md)
 
-### Phase 6: Query and scale foundations
-
-Breakthrough features:
-
-- bulk relational queries
-- secondary index and derived-index hooks
-- relation-type scans
-- parallel read access
-- memory stability guarantees
-
-Outcome:
-The truth runtime becomes powerful enough to feed projections, analyses, and bridge consumers at scale.
-
-Must also lock in:
-
-- partition-aware job descriptions even before distributed execution exists
-- deterministic map-reduce style aggregation for validation, diagnostics, index fragments, and metrics
-- explicit separation between serial truth commit and parallel post-commit derived work
-
-### Runtime trust infrastructure
-
-This work is intentionally cross-phase:
-
-- production diagnostics contract for truth mutation, history, lineage, replay, and CDC
-- one public diagnostics entrypoint instead of scattered debug utilities
-- lifecycle-aware truth artifacts that can later compose with bridge and signal diagnostics
-- a relational adapter for `forge_harness`, built on production diagnostics, with branch/history/diff/replay seeders and regression scenarios
-- acceptance suites that compare serial-authority execution against any staged-parallel preparation or post-commit parallel mode
-- invariant categories with declared execution effects
-- schema-versioned replay artifacts derived from canonical commit artifacts
-
-If this work is postponed, the truth runtime will be much harder to trust once branching, replay, and correspondence become real.
-
-## Non-goals
-
-- Turning the truth runtime into a reactive scheduler
-- Fusing truth storage and signal evaluation into one system
-- Treating bulk queries, MVCC, lineage, or CDC as optional polish
-- Baking domain-specific semantic meaning into the generic runtime core
-- Reducing identity to a single storage handle model
-
-## Public Vocabulary
-
-These are conceptual surface areas, not immediate crate split requirements:
-
-- truth runtime
-- identity model
-- transaction boundary
-- snapshot/version graph
-- patch/change feed
-- stream correctness semantics
-- relational aspect system
-- lineage graph
-- correspondence hooks
-- traversal/query layer
-
-Companion documents:
-
-- [_docs/engineering/forge_signal_vision.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_signal_vision.md) for derived computation
-- [_docs/engineering/forge_runtime_bridge_vision.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_runtime_bridge_vision.md) for dual-runtime integration
-- [_docs/engineering/forge_relational_roadmap.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_relational_roadmap.md) for the implementation roadmap and future-proofing constraints
-
-The truth runtime’s MVCC, CDC, lineage, aspects, and bulk query architecture are what make the rest of the stack viable. If these are weak, every projection, bridge, and reactive layer built on top of them becomes weaker too. `forge-relational` should therefore be designed as an independent runtime library with its own direct API surface, not as a kernel-tied implementation detail or as something that must be accessed through the bridge.
+The truth runtime's MVCC, CDC, lineage, replay, and bulk query architecture are
+what make the rest of the stack viable. If these are weak, every projection,
+bridge, and reactive layer built on top of them becomes weaker too.

@@ -185,6 +185,7 @@ impl<'runtime> InvariantAccess<'runtime> {
             merged_plan.is_some(),
             self.runtime.config.execution.execution_model,
             None,
+            Vec::new(),
         )
     }
 }
@@ -192,6 +193,7 @@ impl<'runtime> InvariantAccess<'runtime> {
 #[cfg(test)]
 mod tests {
     use super::InvariantAccess;
+    use crate::authority::commit::preparation::planning::strategy::PreparationStrategySelection;
     use crate::facade::identity::PartitionId;
     use crate::facade::runtime::{
         InvariantCatalog, InvariantRegistration, InvariantRule, RelationalExecutionModel,
@@ -206,7 +208,6 @@ mod tests {
         RelationMutationIntent, TransactionId,
     };
     use crate::validation::data::{InvariantFailureEffect, InvariantVerdict};
-    use crate::authority::commit::preparation::planning::strategy::PreparationStrategySelection;
     use serde_json::json;
 
     fn runtime_with_invariants(
@@ -235,11 +236,7 @@ mod tests {
             transaction_id: TransactionId(1),
             merged_intents: vec![MutationIntent::Relation(RelationMutationIntent::Delete(
                 DeleteRelationIntent {
-                    relation_id: crate::identity::data::RelationId::new(
-                        PartitionId::main(),
-                        0,
-                        1,
-                    ),
+                    relation_id: crate::identity::data::RelationId::new(PartitionId::main(), 0, 1),
                 },
             ))],
         };
@@ -282,7 +279,10 @@ mod tests {
         let staged = InvariantAccess::new(&staged_runtime).commit_boundary(&plan);
 
         assert_eq!(serial.results(), staged.results());
-        assert_eq!(serial.summary().result_count(), staged.summary().result_count());
+        assert_eq!(
+            serial.summary().result_count(),
+            staged.summary().result_count()
+        );
         assert_eq!(
             staged
                 .metadata()

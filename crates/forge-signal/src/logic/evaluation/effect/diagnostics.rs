@@ -2,8 +2,7 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
 use crate::data::output::{
-    ArtifactContinuityToken, CanonicalChangedRegions, ChangedRegion, MemoizedResultOrigin,
-    OutputIdentity,
+    ArtifactContinuityToken, CanonicalChangedRegions, ChangedRegion, OutputIdentity,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -16,8 +15,6 @@ pub struct DiagnosticEnvelope {
     output_identity: Option<OutputIdentity>,
     #[serde(default)]
     continuity_token: Option<ArtifactContinuityToken>,
-    #[serde(default)]
-    memoized_origin: MemoizedResultOrigin,
 }
 
 impl DiagnosticEnvelope {
@@ -26,7 +23,6 @@ impl DiagnosticEnvelope {
         continuity_token: Option<ArtifactContinuityToken>,
         changed_regions: Vec<ChangedRegion>,
         labels: Vec<String>,
-        memoized_origin: MemoizedResultOrigin,
     ) -> Option<Self> {
         let changed_regions = CanonicalChangedRegions::new(changed_regions);
         let labels = canonical_labels(labels);
@@ -35,7 +31,6 @@ impl DiagnosticEnvelope {
             labels,
             output_identity,
             continuity_token,
-            memoized_origin,
         };
 
         if envelope.is_operationally_empty() {
@@ -61,16 +56,11 @@ impl DiagnosticEnvelope {
         self.continuity_token.as_ref()
     }
 
-    pub fn memoized_origin(&self) -> MemoizedResultOrigin {
-        self.memoized_origin
-    }
-
     fn is_operationally_empty(&self) -> bool {
         self.changed_regions.is_empty()
             && self.labels.is_empty()
             && self.output_identity.is_none()
             && self.continuity_token.is_none()
-            && matches!(self.memoized_origin, MemoizedResultOrigin::DirectCompute)
     }
 }
 
@@ -93,14 +83,7 @@ mod tests {
 
     #[test]
     fn operational_only_result_does_not_require_diagnostics() {
-        assert!(DiagnosticEnvelope::from_parts(
-            None,
-            None,
-            Vec::new(),
-            Vec::new(),
-            Default::default()
-        )
-        .is_none());
+        assert!(DiagnosticEnvelope::from_parts(None, None, Vec::new(), Vec::new(),).is_none());
     }
 
     #[test]
@@ -114,7 +97,6 @@ mod tests {
                 crate::data::output::ChangedRegion::new("wing").with_detail("rib-1"),
             ],
             vec!["beta".into(), "alpha".into(), "alpha".into()],
-            crate::data::output::MemoizedResultOrigin::DirectCompute,
         )
         .expect("diagnostics should be retained when identity data exists");
 

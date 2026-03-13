@@ -27,6 +27,8 @@ pub struct InvalidationTelemetry {
     pub partition_scope_revert_clean_count: u64,
     pub partition_interner_growth_delta: u64,
     pub invalidation_nodes_visited: u64,
+    pub narrowed_frontier_width: u64,
+    pub transitive_frontier_width: u64,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]

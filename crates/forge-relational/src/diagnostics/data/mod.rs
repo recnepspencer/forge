@@ -41,6 +41,8 @@ pub enum DiagnosticCode {
     MergeConflictOverlap,
     SavepointRolledBack,
     InvariantViolation,
+    PreparationFailure,
+    PreparationFallback,
     CanonicalOrderingViolation,
     DeterministicMergeViolation,
     SidecarConsistencyFailure,

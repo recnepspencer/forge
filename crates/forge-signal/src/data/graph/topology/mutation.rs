@@ -6,6 +6,7 @@ use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::output::PartitionSubscription;
 use crate::data::proof::DependencyBatchEdit;
+use crate::data::proof::OrderedStreamItem;
 
 use super::super::signal_graph::SignalGraph;
 
@@ -253,11 +254,23 @@ fn compare_dependency_edges(left: &DependencyEdge, right: &DependencyEdge) -> Or
     left.sort_key().cmp(&right.sort_key())
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct SubscriberBatchOp {
     pub(super) source: NodeId,
     pub(super) subscriber: NodeId,
     pub(super) should_subscribe: bool,
+}
+
+impl OrderedStreamItem for SubscriberBatchOp {
+    type OrderKey = ((u32, u32), (u32, u32), bool);
+
+    fn order_key(&self) -> Self::OrderKey {
+        (
+            compare_dependency_identity_key(self.source),
+            compare_dependency_identity_key(self.subscriber),
+            !self.should_subscribe,
+        )
+    }
 }
 
 fn collect_subscriber_batch_ops(
@@ -313,6 +326,10 @@ fn collect_subscriber_batch_ops(
         });
         desired_index += 1;
     }
+}
+
+fn compare_dependency_identity_key(node: NodeId) -> (u32, u32) {
+    (node.index(), node.generation())
 }
 
 fn reconcile_dependency_slices(

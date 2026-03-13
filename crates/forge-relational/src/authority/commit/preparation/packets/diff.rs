@@ -1,5 +1,4 @@
 use crate::publication::data::diff::PatchRecord;
-use crate::transactions::data::RecordRef;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum DiffFragmentKind {
@@ -22,16 +21,13 @@ impl From<&crate::publication::data::diff::PatchRecordKind> for DiffFragmentKind
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct DiffFragmentIdentity {
-    pub(crate) target: RecordRef,
-    pub(crate) kind: DiffFragmentKind,
-    pub(crate) packet_index: usize,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct DiffPreparationHeader {
+    pub(crate) packet_index_floor: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct DiffPreparationPacket {
-    pub(crate) packet_index: usize,
-    pub(crate) identity: DiffFragmentIdentity,
-    pub(crate) record: PatchRecord,
+    pub(crate) header: DiffPreparationHeader,
+    pub(crate) records: Vec<PatchRecord>,
 }

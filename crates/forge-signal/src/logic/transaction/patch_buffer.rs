@@ -2,6 +2,7 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeEntry;
+use crate::data::proof::DedupedNodeBatch;
 use std::collections::{BTreeSet, HashMap};
 
 #[derive(Debug, Clone)]
@@ -50,15 +51,13 @@ impl SparsePatchBuffer {
         self.patches.len()
     }
 
-    pub(super) fn touched_nodes(&self, graph: &SignalGraph) -> Vec<NodeId> {
-        let mut nodes = self
-            .patches
-            .iter()
-            .filter_map(|(index, _)| graph.live_node_id_at(*index))
-            .collect::<Vec<_>>();
-        nodes.sort_by_key(|node| (node.index(), node.generation()));
-        nodes.dedup();
-        nodes
+    pub(super) fn touched_nodes(&self, graph: &SignalGraph) -> DedupedNodeBatch {
+        DedupedNodeBatch::canonicalize_unordered(
+            self.patches
+                .iter()
+                .filter_map(|(index, _)| graph.live_node_id_at(*index))
+                .collect::<Vec<_>>(),
+        )
     }
 
     /// Commit path: graph already contains staged changes, so clear patches only.

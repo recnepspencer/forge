@@ -9,6 +9,7 @@ use crate::data::node::{ContextRequirement, EvaluationCondition, NodeState};
 use crate::data::output::{
     ChangedRegion, MemoizedResultOrigin, OutputChange, OutputIdentity, PartitionSubscription,
 };
+use crate::data::reuse::{ReuseBasis, ReuseCertificationRecord};
 use crate::data::trace::{CausalityMetadata, HistoricalArtifactRecord, TraceSummary};
 use crate::diagnostics::policy::ArtifactMaterializationMode;
 
@@ -151,6 +152,8 @@ pub struct NodeExplanation {
     pub changed_regions: Vec<ChangedRegion>,
     pub propagation_suppressed: bool,
     pub memoized_origin: Option<MemoizedResultOrigin>,
+    pub reuse_basis: Option<ReuseBasis>,
+    pub reuse_certification: Option<ReuseCertificationRecord>,
     pub upstream: Vec<UpstreamCause>,
     #[serde(default)]
     pub causal_links: Vec<CausalLink>,
@@ -206,6 +209,14 @@ impl fmt::Display for NodeExplanation {
                 trace.propagation_suppressed,
                 trace.memoized_origin
             )?;
+            writeln!(f, "Reuse basis: {:?}", trace.reuse_basis)?;
+            if let Some(certification) = &self.reuse_certification {
+                writeln!(
+                    f,
+                    "Reuse certification proofs: {}",
+                    certification.proofs.len()
+                )?;
+            }
             if let Some(execution_record_id) = self.execution_record_id {
                 writeln!(f, "Execution record: {}", execution_record_id)?;
             }

@@ -12,7 +12,7 @@ use super::super::types::{EvaluationPlan, ExecutionReport};
 #[cfg(test)]
 pub(super) fn empty_execution_report(plan: &EvaluationPlan) -> ExecutionReport {
     ExecutionReport {
-        plan_summary: plan.summary.clone(),
+        plan_summary: plan.summary,
         stage_count: plan.summary.stage_count,
         task_count: plan.summary.task_count,
         tasks_executed: 0,

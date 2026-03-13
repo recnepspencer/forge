@@ -30,7 +30,7 @@ impl<'runtime> SimulationAuthority<'runtime> {
     pub fn compile_execution_artifact(
         &mut self,
         commit_id: CommitId,
-        mut partition_ids: Vec<PartitionId>,
+        partition_ids: Vec<PartitionId>,
     ) -> Result<CompiledExecutionArtifact, CompiledArtifactError> {
         if self.runtime.config.execution.compiled_lane_policy
             != CompiledLanePolicy::DerivedCompiledLane
@@ -51,15 +51,16 @@ impl<'runtime> SimulationAuthority<'runtime> {
                 detail: format!("missing source commit {}", commit_id.0),
             });
         };
-        partition_ids.sort();
-        partition_ids.dedup();
+        let partition_ids = partition_ids
+            .into_iter()
+            .collect::<std::collections::BTreeSet<_>>();
         let compiled_record_count = envelope.patch.records.len();
         let artifact = CompiledExecutionArtifact {
             artifact_id: self.runtime.services.next_compiled_artifact_id(),
             source_commit_id: commit_id,
             source_version_id: envelope.commit.version_id,
             source_branch_id: envelope.branch_context.clone(),
-            partition_ids,
+            partition_ids: partition_ids.into_iter().collect(),
             topology_freeze_mode: TopologyFreezeMode::FreezeAtCommit,
             compiled_record_count,
         };

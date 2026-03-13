@@ -11,6 +11,6 @@ mod stale_targets;
 mod workspace;
 
 pub(crate) use effect::{AdjacencyDelta, AdjacencyDeltaKind, MutationEffect};
-pub(crate) use execution::apply_plan_to_working_state;
+pub(crate) use execution::{apply_plan_to_working_state, MutationApplyOutcome};
 pub(crate) use record_changes::apply_adjacency_deltas;
-pub(crate) use workspace::MutationWorkspace;
+pub(crate) use workspace::{MutationPreparationTelemetry, MutationWorkspace};

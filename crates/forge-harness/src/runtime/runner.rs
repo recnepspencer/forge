@@ -42,6 +42,12 @@ pub struct HarnessObservedBundle<TargetId = String> {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct HarnessDiagnosedBundle<TargetId = String> {
+    pub core: HarnessCoreBundle<TargetId>,
+    pub diagnostics: Option<DiagnosticsRecord>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HarnessTimelineBundle<TargetId = String> {
     pub core: HarnessCoreBundle<TargetId>,
     pub events: Vec<EventRecord<TargetId>>,
@@ -158,6 +164,9 @@ where
         let mut runtime = self
             .adapter
             .create_runtime()
+            .map_err(HarnessError::Adapter)?;
+        self.adapter
+            .prepare_runtime(&mut runtime, profile)
             .map_err(HarnessError::Adapter)?;
         self.adapter
             .load_fixture(&mut runtime, fixture)
@@ -394,6 +403,33 @@ where
             record.summary = serde_json::json!({});
         }
         Ok(record)
+    }
+}
+
+impl<A> HarnessRunner<A>
+where
+    A: HarnessAdapter + DiagnosticsHarnessAdapter,
+    A::TargetId: PartialEq,
+{
+    pub fn execute_diagnosed(
+        &self,
+        fixture: &ScenarioFixture<A::Fixture>,
+        mutation_batch: Option<&MutationBatch<A::Mutation>>,
+        request: &ExecutionRequest<A::TargetId>,
+        profile: &ExecutionProfile,
+    ) -> Result<HarnessDiagnosedBundle<A::TargetId>, HarnessError<A::Error>> {
+        let LoadedHarnessRun { runtime, core } =
+            self.execute_loaded(fixture, mutation_batch, request, profile)?;
+        let diagnostics = if request.capture.mask.diagnostics {
+            Some(
+                self.adapter
+                    .capture_diagnostics(&runtime, fixture, profile)
+                    .map_err(HarnessError::Adapter)?,
+            )
+        } else {
+            None
+        };
+        Ok(HarnessDiagnosedBundle { core, diagnostics })
     }
 }
 

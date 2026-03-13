@@ -3,7 +3,7 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::proof::SingleConsumer;
 
-use super::super::types::{EvaluationTask, StageExecutor};
+use super::super::types::{EligibleTask, StageExecutor};
 #[cfg(feature = "parallel")]
 use super::admission::StageParallelAdmission;
 #[cfg(feature = "parallel")]
@@ -12,7 +12,7 @@ use super::{precompute_stage_serial, StageExecutionData};
 
 pub(in crate::logic::planner) fn dispatch_stage_precompute(
     graph: &mut SignalGraph,
-    tasks: &[EvaluationTask],
+    tasks: &[EligibleTask],
     precompute: &(impl Fn(
         crate::data::handle::NodeId,
         &crate::logic::prepared::ExecutionReadView<'_>,
@@ -41,7 +41,7 @@ pub(in crate::logic::planner) fn dispatch_stage_precompute(
 
 fn dispatch_stage_precompute_serial(
     graph: &mut SignalGraph,
-    tasks: &[EvaluationTask],
+    tasks: &[EligibleTask],
     precompute: &(impl Fn(
         crate::data::handle::NodeId,
         &crate::logic::prepared::ExecutionReadView<'_>,
@@ -57,7 +57,7 @@ fn dispatch_stage_precompute_serial(
 #[cfg(feature = "parallel")]
 fn dispatch_stage_precompute_parallel(
     graph: &mut SignalGraph,
-    tasks: &[EvaluationTask],
+    tasks: &[EligibleTask],
     precompute: &(impl Fn(
         crate::data::handle::NodeId,
         &crate::logic::prepared::ExecutionReadView<'_>,

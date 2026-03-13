@@ -17,6 +17,7 @@ pub mod node_meta;
 pub mod output;
 pub mod performance;
 pub mod proof;
+pub mod reuse;
 pub mod subscriber_context;
 pub mod telemetry;
 pub mod tier;

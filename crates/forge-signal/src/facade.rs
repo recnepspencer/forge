@@ -15,8 +15,9 @@ pub mod types {
         AspectMaskBits, SignalCoreStorageProfile, StableHashValue, CORE_STORAGE_PROFILE,
         CORE_STORAGE_PROFILE_ID, HOT_VEC_INLINE_CAPACITY, STABLE_HASH_WIDTH_BITS,
     };
-    pub use crate::data::dependency::{CanonicalDependencies, DependencyEdge};
-    pub use crate::data::dependency::SharedDependencySnapshot;
+    pub use crate::data::dependency::{
+        CanonicalDependencies, DependencyEdge, SharedDependencySnapshot, SnapshotDeltaRecord,
+    };
     pub use crate::data::dirty_set::{BatchedDirtySet, DomainImpact};
     pub use crate::data::error::SignalError;
     pub use crate::data::handle::NodeId;
@@ -25,7 +26,7 @@ pub mod types {
         CompileTimePerformanceContract, ContextRequirement, EquivalenceContract,
         EvaluationCondition, IdentityBasis, MaintenanceMode, NodeAuthorityContract, NodeContract,
         NodeEntry, NodeEvaluationConfig, NodeExecutionContract, NodeProjectionContract,
-        NodeSemanticContract, NodeState, PathClass, PerformanceCounterSurface,
+        NodeReuseContract, NodeSemanticContract, NodeState, PathClass, PerformanceCounterSurface,
         PerformanceEnforcementLayer, ResolvedPerformancePolicy, SuppressionBasis,
     };
     pub use crate::data::output::{
@@ -35,10 +36,17 @@ pub mod types {
     };
     pub use crate::data::proof::{
         CanonicalForm, DedupedNodeBatch, DeltaForm, DependencyBatchEdit, DependencySetEdit,
-        DesiredState, DirtyBatch, DirtyBatchEntry, DirtyDelta, LocalityFootprint, LoweredForm,
-        PartitionScopeSet, PatchPlan, PendingSnapshotBatch, ResolvedForm, SemanticBatchCommit,
-        SingleConsumer, SnapshotBatchCommit, SortedSourceBatch, StructuralDelta, SubscriberRepair,
+        DesiredState, DirtyBatch, DirtyBatchEntry, DirtyDelta, FrontierWave, InvalidationFrontier,
+        LocalityFootprint, LocallyOrderedShard, LoweredForm, MergeableOrderedStream,
+        NarrowedPropagationSet, OrderedStreamItem, OrderedStreamMergeError, PartitionScopeSet,
+        PatchPlan, PendingSnapshotBatch, ResolvedForm, SemanticBatchCommit, SingleConsumer,
+        SnapshotBatchCommit, SortedSourceBatch, StructuralDelta, SubscriberRepair,
         SubscriberRepairBatch, SummaryForm, TouchedScopeSummary,
+    };
+    pub use crate::data::reuse::{
+        ArtifactEquivalenceContract, ArtifactSemanticBoundary, ReuseBasis, ReuseBoundaryContext,
+        ReuseBoundaryEvidence, ReuseBoundaryFailure, ReuseBoundaryProof, ReuseCertificationFailure,
+        ReuseCertificationRecord, ReuseCrossing, ReuseSemanticRegionIdentity, ReuseSource,
     };
     pub use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger, TierPolicy};
     pub use crate::data::trace::{
@@ -87,11 +95,11 @@ pub mod planning {
     #[cfg(feature = "parallel")]
     pub use crate::logic::planner::ParallelExecutionPolicy;
     pub use crate::logic::planner::{
-        build_evaluation_plan, execute_prepared_plan, EvaluationPlan, EvaluationTask,
-        ExecutionPruneReason, ExecutionRecordId, ExecutionReport, ExecutionStage, PlanSummary,
-        ResolvedExecutionStrategy, ResolvedMaintenanceStrategy, SemanticSegmentId,
-        SemanticTaskRange, StageBarrier, StageExecutionOutcome, StageExecutionRecord,
-        StageExecutor, TaskExecutionOutcome, TaskExecutionRecord, TaskReason,
+        build_evaluation_plan, execute_prepared_plan, CandidateTask, EligibleTask, EvaluationPlan,
+        ExecutedTask, ExecutionPruneReason, ExecutionRecordId, ExecutionReport, ExecutionStage,
+        PlanSummary, ResolvedExecutionStrategy, ResolvedMaintenanceStrategy, SemanticSegmentId,
+        SemanticTaskRange, StageBarrier, StageExecutionOutcome, StageExecutionRecord, StageExecutor,
+        TaskExecutionOutcome, TaskExecutionRecord, TaskReason,
     };
 }
 
@@ -108,9 +116,11 @@ pub mod performance {
 pub mod proof {
     pub use crate::data::proof::{
         CanonicalForm, DedupedNodeBatch, DeltaForm, DependencyBatchEdit, DependencySetEdit,
-        DesiredState, DirtyBatch, DirtyBatchEntry, DirtyDelta, LocalityFootprint, LoweredForm,
-        PartitionScopeSet, PatchPlan, PendingSnapshotBatch, ResolvedForm, SemanticBatchCommit,
-        SingleConsumer, SnapshotBatchCommit, SortedSourceBatch, StructuralDelta, SubscriberRepair,
+        DesiredState, DirtyBatch, DirtyBatchEntry, DirtyDelta, FrontierWave, InvalidationFrontier,
+        LocalityFootprint, LocallyOrderedShard, LoweredForm, MergeableOrderedStream,
+        NarrowedPropagationSet, OrderedStreamItem, OrderedStreamMergeError, PartitionScopeSet,
+        PatchPlan, PendingSnapshotBatch, ResolvedForm, SemanticBatchCommit, SingleConsumer,
+        SnapshotBatchCommit, SortedSourceBatch, StructuralDelta, SubscriberRepair,
         SubscriberRepairBatch, SummaryForm, TouchedScopeSummary,
     };
 }

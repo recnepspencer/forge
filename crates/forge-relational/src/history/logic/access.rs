@@ -148,9 +148,7 @@ impl<'runtime> HistoryAccess<'runtime> {
     }
 
     pub fn ancestor_chain(&self, commit_id: CommitId) -> Vec<CommitId> {
-        let mut ordered = self.ancestor_set(commit_id).into_iter().collect::<Vec<_>>();
-        ordered.sort_by_key(|id| id.0);
-        ordered
+        self.ancestor_set(commit_id).into_iter().collect()
     }
 
     pub fn latest_common_ancestor_between_branches(
@@ -252,7 +250,7 @@ impl<'runtime> HistoryAccess<'runtime> {
             let base_ancestors = self.ancestor_set(merge_base);
             commits.retain(|commit_id| !base_ancestors.contains(commit_id));
         }
-        commits.sort_by_key(|commit_id| commit_id.0);
+        debug_assert!(commits.windows(2).all(|window| window[0] <= window[1]));
         commits
     }
 
@@ -263,12 +261,7 @@ impl<'runtime> HistoryAccess<'runtime> {
     ) -> Vec<MergeConflictRecord> {
         let left_records = self.commit_record_set(left_commits);
         let right_records = self.commit_record_set(right_commits);
-        let mut conflicts = left_records
-            .intersection(&right_records)
-            .cloned()
-            .collect::<Vec<_>>();
-        conflicts.sort();
-        conflicts
+        left_records.intersection(&right_records).cloned().collect()
     }
 
     fn commit_record_set(&self, commits: &[CommitId]) -> BTreeSet<MergeConflictRecord> {

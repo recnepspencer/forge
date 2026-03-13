@@ -34,8 +34,12 @@ impl HarnessAdapter for RelationalHarnessAdapter {
 
     fn capabilities(&self) -> HarnessCapabilities {
         let mut capabilities = HarnessCapabilities::default();
-        capabilities.execution_modes =
-            BTreeSet::from([ExecutionMode::RuntimeDefault, ExecutionMode::Serial]);
+        capabilities.execution_modes = BTreeSet::from([
+            ExecutionMode::RuntimeDefault,
+            ExecutionMode::Serial,
+            ExecutionMode::StagedParallel,
+            ExecutionMode::FullParallel,
+        ]);
         capabilities.diagnostics_levels = BTreeSet::from([
             DiagnosticsLevel::Operational,
             DiagnosticsLevel::Development,
@@ -59,6 +63,17 @@ impl HarnessAdapter for RelationalHarnessAdapter {
         Ok(RelationalRuntimeApi::builder()
             .schema_registry(default_harness_schema_registry())
             .build())
+    }
+
+    fn prepare_runtime(
+        &self,
+        runtime: &mut Self::Runtime,
+        profile: &ExecutionProfile,
+    ) -> Result<(), Self::Error> {
+        if let Some(execution_model) = relational_execution_model(profile.execution_mode) {
+            runtime.set_execution_model(execution_model);
+        }
+        Ok(())
     }
 
     fn load_fixture(
@@ -219,6 +234,23 @@ impl HarnessAdapter for RelationalHarnessAdapter {
     }
 }
 
+fn relational_execution_model(
+    execution_mode: ExecutionMode,
+) -> Option<crate::logic::planning::RelationalExecutionModel> {
+    match execution_mode {
+        ExecutionMode::RuntimeDefault => None,
+        ExecutionMode::Serial => {
+            Some(crate::logic::planning::RelationalExecutionModel::SerialAuthority)
+        }
+        ExecutionMode::StagedParallel => {
+            Some(crate::logic::planning::RelationalExecutionModel::StagedParallelPreparation)
+        }
+        ExecutionMode::FullParallel => {
+            Some(crate::logic::planning::RelationalExecutionModel::ParallelPostCommitConsumption)
+        }
+    }
+}
+
 impl DiagnosticsHarnessAdapter for RelationalHarnessAdapter {
     fn capture_diagnostics(
         &self,
@@ -238,6 +270,9 @@ impl DiagnosticsHarnessAdapter for RelationalHarnessAdapter {
             time_marker: profile.time_marker.clone(),
             attachments: Vec::new(),
             summary: serde_json::to_value(json!({
+                "execution_mode": format!("{:?}", profile.execution_mode),
+                "runtime_execution_model": format!("{:?}", runtime.config().execution.execution_model),
+                "performance_counters": runtime.performance_access().counters(),
                 "artifacts": runtime.publication_access().diagnostic_artifacts()
             }))
             .unwrap_or_else(|_| json!({})),

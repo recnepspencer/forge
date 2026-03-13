@@ -122,6 +122,7 @@ pub(crate) struct MutationConfig {
     pub(crate) cascade_delete_policy: CascadeDeletePolicy,
     pub(crate) adjacency_policy: AdjacencyPolicy,
     pub(crate) cross_context_policy: CrossContextPolicy,
+    pub(crate) execution_model: crate::logic::planning::RelationalExecutionModel,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -14,7 +14,7 @@ pub struct ComplexityContract {
     pub proof_tests: &'static [&'static str],
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RuntimeComplexityCounters {
     pub full_state_clones: usize,
     pub partitions_cloned: usize,
@@ -42,11 +42,20 @@ pub struct RuntimeComplexityCounters {
     pub invariant_entity_records_materialized: usize,
     pub invariant_relation_records_materialized: usize,
     pub preparation_packet_count: usize,
+    pub preparation_packet_item_count: usize,
+    pub preparation_packet_peak_width_total: usize,
+    pub preparation_scope_unit_count: usize,
     pub preparation_parallel_legal_count: usize,
     pub preparation_parallel_profitable_count: usize,
     pub preparation_serial_strategy_count: usize,
     pub preparation_staged_parallel_strategy_count: usize,
     pub preparation_reducer_conflict_count: usize,
+    pub post_commit_consumer_packet_count: usize,
+    pub post_commit_consumer_item_count: usize,
+    pub post_commit_consumer_peak_width_total: usize,
+    pub post_commit_scope_unit_count: usize,
+    pub post_commit_serial_strategy_count: usize,
+    pub post_commit_parallel_strategy_count: usize,
     pub snapshot_pin_adjustments: usize,
     pub snapshot_pin_full_rebuilds: usize,
     pub retention_entity_slots_scanned: usize,
@@ -178,6 +187,17 @@ pub const COMPLEXITY_CONTRACTS: &[ComplexityContract] = &[
             "tests::complexity::contracts::complexity_budget_unique_entity_invariant_uses_changed_set_lookup",
             "tests::complexity::contracts::complexity_budget_commit_boundary_unique_invariant_uses_merged_plan_lookup",
             "tests::complexity::contracts::complexity_contract_invariant_materialization_is_declared_and_measured",
+        ],
+    },
+    ComplexityContract {
+        id: "runtime.preparation.packetization",
+        function_path: "authority/commit/{publication.rs,mutation/intents/*}::prepare/stage",
+        declared_time_complexity: "O(delta_items + coarse_packet_count * log(packet_width)) with coarse_packet_count proportional to ceil(delta_items / target_packet_width)",
+        budget_summary: "Preparation packetization must stay coarse enough to amortize scheduler and reducer overhead; broad deltas must not degenerate into one-item packets and narrow deltas should stay serial.",
+        status: ComplexityStatus::Verified,
+        proof_tests: &[
+            "tests::complexity::contracts::complexity_budget_preparation_packetization_is_chunked_for_broad_deltas",
+            "tests::complexity::contracts::complexity_budget_preparation_narrow_delta_falls_back_to_serial",
         ],
     },
 ];

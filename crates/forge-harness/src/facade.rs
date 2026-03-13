@@ -38,9 +38,9 @@ pub use crate::replay::{
 pub use crate::runtime::{
     AdapterSupport, AsyncHarnessRunner, CaptureDepth, DeterminismMode, DiagnosticsHarnessAdapter,
     EventHarnessAdapter, EventStreamHarnessAdapter, ExplanationHarnessAdapter, HarnessAdapter,
-    HarnessAdapterAsync, HarnessCapabilities, HarnessCoreBundle, HarnessError, HarnessFuture,
-    HarnessObservedBundle, HarnessRunner, HarnessTimelineBundle, PerformanceHarnessAdapter,
-    ProvenanceHarnessAdapter, ReplayHarnessAdapter,
+    HarnessAdapterAsync, HarnessCapabilities, HarnessCoreBundle, HarnessDiagnosedBundle,
+    HarnessError, HarnessFuture, HarnessObservedBundle, HarnessRunner, HarnessTimelineBundle,
+    PerformanceHarnessAdapter, ProvenanceHarnessAdapter, ReplayHarnessAdapter,
 };
 pub use crate::scenario::{
     CaptureMask, CapturePolicy, ExecutionProfile, ExecutionRequest, MutationBatch, ScenarioFixture,
@@ -51,10 +51,11 @@ pub use crate::timeline::{
     TimelineSession, TimelineSessionError,
 };
 pub use crate::tooling::{
-    bench, filter_events, flatten_event_streams, group_events_by_category, parity_suite,
-    project_events, run_matrix, select_events, AdapterDouble, AdapterDoubleRuntime, BenchError,
-    EventSubscription, HarnessBench, ParityError, ParityReport, ParityResult, ParitySuite,
-    ProfileCatalog, ProjectedEvent, RunMatrix,
+    bench, certification_matrix, filter_events, flatten_event_streams, group_events_by_category,
+    parity_suite, project_events, run_matrix, select_events, AdapterDouble, AdapterDoubleRuntime,
+    BenchError, CertificationMatrix, CertificationMatrixCase, CertificationMatrixError,
+    CertificationMatrixReport, EventSubscription, HarnessBench, ParityError, ParityReport,
+    ParityResult, ParitySuite, ProfileCatalog, ProjectedEvent, RunMatrix,
 };
 pub use crate::workflow::{
     ArtifactBundle, ArtifactClass, ArtifactSurface, CheckpointSemantics, DifferentialComparison,

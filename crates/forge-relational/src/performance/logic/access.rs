@@ -56,11 +56,19 @@ impl<'runtime> PerformanceAccess<'runtime> {
             .count(|counters| counters.invariant_relation_slot_scans += slots);
     }
 
-    pub(crate) fn count_preparation_packets(&self, packets: usize) {
-        self.runtime
-            .services
-            .instrumentation
-            .count(|counters| counters.preparation_packet_count += packets);
+    pub(crate) fn count_preparation_packet_shape(
+        &self,
+        packets: usize,
+        items: usize,
+        max_width: usize,
+        scope_units: usize,
+    ) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.preparation_packet_count += packets;
+            counters.preparation_packet_item_count += items;
+            counters.preparation_packet_peak_width_total += max_width;
+            counters.preparation_scope_unit_count += scope_units;
+        });
     }
 
     pub(crate) fn count_preparation_parallel_legal(&self) {
@@ -96,5 +104,34 @@ impl<'runtime> PerformanceAccess<'runtime> {
             .services
             .instrumentation
             .count(|counters| counters.preparation_reducer_conflict_count += conflicts);
+    }
+
+    pub(crate) fn count_post_commit_consumer_shape(
+        &self,
+        packets: usize,
+        items: usize,
+        max_width: usize,
+        scope_units: usize,
+    ) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.post_commit_consumer_packet_count += packets;
+            counters.post_commit_consumer_item_count += items;
+            counters.post_commit_consumer_peak_width_total += max_width;
+            counters.post_commit_scope_unit_count += scope_units;
+        });
+    }
+
+    pub(crate) fn count_post_commit_serial_strategy(&self) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.post_commit_serial_strategy_count += 1);
+    }
+
+    pub(crate) fn count_post_commit_parallel_strategy(&self) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.post_commit_parallel_strategy_count += 1);
     }
 }

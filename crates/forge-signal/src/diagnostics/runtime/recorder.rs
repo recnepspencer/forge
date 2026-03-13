@@ -1,5 +1,6 @@
 use crate::data::graph::SignalGraph;
-use crate::data::output::{MemoizedResultOrigin, OutputChange};
+use crate::data::output::OutputChange;
+use crate::data::reuse::{ReuseBasis, ReuseSource};
 use crate::diagnostics::failure::{ExecutionFailureContext, FailureSummary};
 use crate::diagnostics::lineage::{
     ArtifactTransitionKind, InvalidationCause, LineageRecord, SnapshotRestoreKind,
@@ -151,7 +152,9 @@ pub fn record_snapshot_restore_lineage(graph: &mut SignalGraph, snapshot_id: Sig
                 .filter_map(|node| {
                     graph.get_entry(node).ok().and_then(|entry| {
                         entry.get_runtime_artifact_state().and_then(|state| {
-                            state.lineage_artifact_id.map(|artifact_id| (node, artifact_id))
+                            state
+                                .lineage_artifact_id
+                                .map(|artifact_id| (node, artifact_id))
                         })
                     })
                 })
@@ -191,8 +194,11 @@ pub fn record_lineage_transition(
     };
     let previous_artifact_id = before_trace.and_then(|summary| summary.lineage_artifact_id);
     let (artifact_id, transition) = if matches!(
-        after_trace.memoized_origin,
-        MemoizedResultOrigin::MemoizedFromCache
+        after_trace.reuse_basis,
+        ReuseBasis::Reused {
+            source: ReuseSource::MemoizedArtifact,
+            ..
+        }
     ) {
         let artifact_id = previous_artifact_id
             .unwrap_or_else(|| graph.diagnostics_state_mut().allocate_lineage_artifact_id());

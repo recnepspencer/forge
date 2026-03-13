@@ -1,529 +1,435 @@
-# Forge Relational Roadmap
+# Forge Relational Future Roadmap
 
 ## Purpose
 
-This document turns the relational vision into an implementation roadmap.
+This document replaces the earlier buildout roadmap.
 
-It exists to prevent an MVP-style buildout that ships isolated features while quietly blocking the properties that are expensive to retrofit later:
+It tracks only the work that still remains for `forge-relational`.
+Foundational architecture and Phase 8 are now shipped baseline. This roadmap
+exists to define the remaining product milestones and the acceptance path that
+must be satisfied before the runtime can be considered complete against
+[test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md).
 
-- deterministic history
-- first-class diagnostics
-- `forge_harness`-driven parity and replay validation
-- lineage and branch semantics
-- diff/CDC correctness
-- parallel read and planning surfaces
-- future partition-aware execution
-
-The target domains matter. This runtime is intended for geometry kernels, chip-design systems, and other demanding applications where truth corruption, replay drift, weak diagnostics, or nondeterministic behavior are unacceptable. The development bar therefore needs to match high-assurance infrastructure, not "good enough for v1" product code.
-
-The operating rule is:
+The operating rule remains:
 
 parallelize disposable work, serialize authority.
 
-In practice that means:
+That rule still governs every remaining milestone:
 
-1. parallel read, analyze, validate, and prepare against immutable snapshots
-2. single-writer deterministic commit of authoritative truth
-3. parallel downstream consumption over immutable commit artifacts
+1. immutable read, planning, validation, and preparation may scale out
+2. authoritative truth mutation and publication remain serialized and canonical
+3. downstream consumption may scale out only over immutable published artifacts
 
-## Why This Is Harder Than `forge-signal`
+## Shipped Baseline
 
-`forge-signal` already requires deterministic runtime thinking, but its core problem is still narrower: present-state reactive execution over a constrained DAG.
+The roadmap no longer tracks the already-shipped foundation as future work.
 
-`forge-relational` adds simultaneous pressure from:
+The current shipped baseline includes:
 
-- MVCC and historical visibility
-- branch-aware history
-- cyclic truth graphs
-- lineage and identity evolution
-- durable patch and replay contracts
+- identity and storage foundations
+- transactional commit authority
+- savepoint and rollback substrate
+- MVCC snapshots and version/history substrate
+- deterministic patch, diagnostics, and replay publication
+- lineage, query, and index foundations
+- proof-driven parallel preparation and post-commit scaling
+- `forge-harness` parity and certification substrate
 
-That makes this runtime closer to a truth/history kernel than to a conventional Rust library.
+The shipped closeout reference for the latest major runtime milestone is
+[phase-8.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/phase-8.md).
 
-The main danger is not borrow-checker pain by itself. The main danger is building semantically weaker shortcuts that look practical in the short term:
+## Roadmap Rules
 
-- replay reduced to patch reapplication
-- lineage reduced to event logging
-- derived indexes drifting into authority
-- durability coupled to transient in-memory layout
-- history assumptions collapsing around single-parent commits
+The remaining roadmap is organized around product-complete milestones first and
+certification programs second.
 
-The roadmap must therefore preserve correctness-first authority semantics before pursuing clever concurrency or memory-management machinery.
+Rules for every remaining item:
 
-Current roadmap state:
+- each milestone must describe the missing runtime/product capability, not only a test label
+- each milestone must preserve serialized authority, canonical observability, replay from canonical commit artifacts, and storage-visible fallback semantics
+- each milestone must name the exact acceptance requirements in
+  [test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md)
+- the roadmap uses `test-requirements.md` as the authoritative source for what each named acceptance test demands
+- no milestone is complete until both implementation and acceptance requirements are closed
 
-- Milestone 4 (Invariant Engine) is closed as of March 12, 2026.
-- Milestone 5 (Commit Architecture) is closed as of March 12, 2026.
-- Milestone 6 (API Surface) is closed as of March 12, 2026.
-- The architectural program through Phase F is now closed enough that the
-  namespaced facade and projection surfaces can be treated as established
-  ground for the next testing, hardening, and feature milestones.
+## Milestone 1: CDC and Subscriber Recovery
 
-## Foundational Decisions We Refuse To Revisit Later
+### Goal
 
-These are locked decisions for the runtime foundation:
+Finish the stream product surface so CDC is not just emitted patch data, but a
+durable downstream consumption contract.
 
-- single logical writer for authoritative truth commit
-- generational identity as the only authoritative ID base
-- separate entity and relation identity systems
-- immutable committed snapshots
-- canonical ordering for every observable output
-- commit-native patch and CDC emission
-- structured diagnostics as a production contract
-- arena plus sidecar storage as the foundational memory model
-- `forge_harness` as the default acceptance path
-- parallelize preparation and consumption, serialize authority
-- derived indexes remain non-authoritative and publish immutably
-- replay is executed from canonical commit envelopes, not patch-only reconstruction
-- history representation is merge-ready now: ordered parent commit lists, even before merge commits execute
-- authoritative storage-visible reads always retain a non-index fallback path
-- lineage is a constrained graph with explicit invariants, not event logging theater
-- durability persists canonical truth artifacts rather than transient arena layout
-- no hidden mutation during reads
-- no scheduler-dependent semantics
+### Must Ship
 
-For this runtime, a slice is truth-grade only if it guarantees:
-
-- all authoritative mutation flows through transactions only
-- all observable outputs are deterministic and canonically ordered
-- committed reads are immutable
-- commit emits structured patch and diagnostics artifacts
-- replay artifacts are derived from canonical commit artifacts
-- harness parity exists for success and failure paths
-
-### Explicit prohibitions
-
-- no `HashMap` iteration in observable paths
-- no read-triggered normalization, lazy repair, or cache mutation
-- no shared mutable authoritative patch object across workers
-- no entity-only runtime that defers relations to later
-- no temporary pre-generational ID model
-- no diagnostics-only freeform blobs without stable structured fields
-- no replay artifact that is a dump of internal heap state
-- no public API bias toward per-record ping-pong reads
-
-### Observable order classes
-
-Observable means:
-
-- snapshots
-- diagnostics artifacts
-- patch artifacts
-- replay artifacts
-- public iteration surfaces
-- harness comparison outputs
-
-Canonical ordering must be explicitly defined for:
-
-- entity order
-- relation order
-- worker-intent merge order
-- canonical merged-operation order
-- authoritative apply order
-- patch emission order
-- diagnostics entry order
-- replay record order
-
-Internal worker scheduling may vary. Observable outputs may not.
-
-### Snapshot publication semantics
-
-- a successful commit produces exactly one committed visible snapshot
-- failed commits publish nothing authoritative
-- snapshot, patch, diagnostics, and replay artifacts are published as one coherent commit outcome
-- if coherent publication cannot complete, the commit does not become visible
-- publication is atomic from the user-visible contract perspective
-
-### Replay artifact contract
-
-- derived from canonical commit artifacts rather than internal heap state
-- executed from canonical commit envelopes that include branch context, ordered parents, schema identity, merged apply semantics, patch artifact, and diagnostics summary
-- stable and serializable replay inputs
-- canonical replay ordering
-- local timing and worker scheduling excluded from replay semantics
-- schema-versioned from day one
-- schema/version mismatch is an explicit failure class
-- replay equivalence is defined over the observable surfaces promised by the active profile
-
-### History shape
-
-- commit references use ordered parent lists
-- initial authoritative commit creation may still be restricted to zero or one parent
-- replay, durability, lineage, and branch reasoning must remain compatible with future merge commits
-
-### Derived index contract
-
-- indexes are built from canonical truth outputs and version-visible storage
-- index computation may parallelize; publication remains serialized and version-bound
-- index absence, lag, mismatch, or failure must never change truth semantics
-- authoritative reads must always retain a storage-visible fallback path
-
-### Lineage contract
-
-- storage identity and lineage identity remain permanently separate
-- correspondence remains advisory until explicit promotion
-- final lineage mutation is serialized and canonical
-- lineage graph invariants must reject invalid references, ambiguous parentage, and silent advisory-to-authoritative promotion
-
-### Durability contract
-
-- durable format preserves canonical truth artifacts rather than transient arena layout
-- recovery rebuilds authoritative truth from canonical envelopes and committed history
-- snapshots are recoverable views rather than primary durable truth
-- partial durable publication is invalid
-
-### What We Will Not Do Prematurely
-
-- no premature lock-free multi-writer truth mutation
-- no `Arc`-everywhere persistent-state model as the default architecture
-- no custom epoch reclamation or equivalent advanced memory machinery until profiling proves the simpler retention model insufficient
-- no durability format that mirrors transient arena layout
-- no optimization that weakens replay, coherent publication, or authoritative storage fallback
-
-### Primary Early Performance Risks
-
-The main early performance risks are:
-
-- retained historical payload growth under pinned snapshots
-- hot-record version-history growth
-- chunk sizing mistakes that destroy scan locality
-- pointer chasing and allocation overhead from abandoning SoA discipline
-- replay and derived-index artifact growth beyond bounded policy
-
-The first performance program should therefore focus on:
-
-- sidecar and chunk discipline
-- touched-state proportionality
-- retention and reclaim efficiency
-- storage-native historical visibility
-- bounded diagnostics, patch, and replay artifacts by profile
-
-### Semantic Risks Bigger Than Rust Risks
-
-These are explicit runtime risks that deserve design, review, and test attention:
-
-- replay defined too narrowly
-- lineage reduced to event logging
-- derived indexes treated as authority
-- diagnostics that are verbose but operationally useless
-- merge-ready history quietly collapsing back to single-parent assumptions
-- retention, recovery, or replay semantics depending on incidental scheduler order
-
-### Correctness-First MVCC Strategy
-
-The intended MVCC path is:
-
-- single-writer authoritative commit
-- version-visible retained storage
-- explicit snapshot pinning and release
-- explicit retention and reclaim transitions
-- chunk-aware analysis and retention planning
-- storage-native historical reads before advanced reclamation machinery
-
-If more advanced memory-management machinery is eventually required, it must be introduced without weakening deterministic truth semantics or coherent publication.
-
-### Sidecar classification
-
-Hot-path sidecars contain only data required for:
-
-- slot validity and lifecycle state
-- canonical iteration participation
-- commit apply
-- snapshot reads
-- adjacency traversal
-- aspect/version gating required by core read/commit paths
-
-Cold-path sidecars contain data required for:
-
-- lineage refinement
-- extended diagnostics
-- replay enrichment
-- correspondence hints
-- branch metadata not needed by core apply/read
-- audit-only or harness-heavy metadata
-
-Per-record metadata added to hot-path sidecars requires explicit justification.
-
-### Lifecycle vocabulary
-
-The runtime uses explicit lifecycle terms rather than a generic tombstone concept:
-
-- `Live`
-- `DeletedRetained`
-- `PinnedBySnapshot`
-- `PinnedByBranch`
-- `PinnedByReplayRetention`
-- `Reclaimable`
-- `Reusable`
-
-### Invariant categories
-
-Every invariant must declare category and effect:
-
-- `AlwaysOnStructural`
-- `CommitBoundary`
-- `SnapshotAudit`
-- `HarnessHeavy`
-
-Each invariant must declare whether failure blocks commit, blocks publication, or is audit-only.
-
-### Diagnostics boundedness
-
-- every commit emits a mandatory minimal structured summary
-- detailed traces are optional by profile
-- retention is bounded by policy
-- diagnostics storage must not grow unbounded on hot paths
-- commit-time diagnostics cannot depend on unlimited buffering
-
-### Kind and schema registry discipline
-
-- kinds use stable IDs
-- kind registration is schema-governed
-- kind identity is replay-stable
-- kind mapping is portable across snapshots and branches
-- schema/version mismatch is explicit and never silently tolerated
-
-## Non-Negotiable Architectural Invariants
-
-### Authority stays serialized
-
-These are authoritative and must remain deterministic:
-
-- final truth commit
-- authoritative mutation order
-- savepoint and rollback boundary transitions
-- version graph advancement and visibility publication
-- slot/generation reuse authority
-- final lineage event recording
-- final canonical patch/CDC emission order
-
-### Parallelism happens around authority, not through it
-
-These should be designed for parallel execution early:
-
-- immutable snapshot reads
-- query planning
-- validation over immutable state
-- diff fragment preparation
-- secondary-index fragment preparation
-- import staging
-- post-commit bridge and downstream consumption
-- retention and GC analysis
-
-### Diagnostics are production infrastructure
-
-Every major subsystem must emit structured, versioned, replay-comparable diagnostics for:
-
-- success paths
-- failure paths
-- rollback paths
-- branch/history transitions
-- CDC publication
-- validation findings
-- retention and recovery decisions
-
-The runtime must have one public diagnostics entrypoint instead of scattered debug helpers.
-
-### `forge_harness` is required infrastructure
-
-The `forge_harness` crate (`forge-harness` package) is the acceptance path for relational trust work.
-
-Required harness roles:
-
-- scenario fixture builders
-- branch/history seeders
-- replay and parity drivers
-- diagnostics inspectors
-- exportable comparison artifacts
-- performance/profile sweeps where behavior needs proof
-
-## Roadmap
-
-### Phase 0: Contract and vocabulary lock-in
-
-Goal:
-Freeze the architectural language before implementation spreads.
-
-Deliverables:
-
-- public vocabulary for identity, version, commit, snapshot, lineage event, patch stream, diagnostics artifact, and correspondence
-- explicit authority boundaries for commit, lineage, CDC, and version publication
-- relational diagnostics contract shape and artifact families
-- relational adapter plan for `forge_harness`
-- canonical ordering classes and observable-surface definitions
-- kind/schema registry policy
-- lifecycle vocabulary and sidecar classification rules
-
-### Phase 1: Identity and storage foundations
-
-Goal:
-Build storage and identity in a way that preserves future history and concurrency guarantees.
-
-Deliverables:
-
-- generational IDs
-- typed handles and stale-handle safety
-- separate entity and relation identity systems
-- storage layout with predictable allocation behavior
-- lifecycle-state model instead of generic tombstone flags
-- hot-path and cold-path sidecar structure
-- canonical live-record iterators
-- adjacency storage for relation traversal
-- structural identity hooks
-- multi-layer identity vocabulary
-- schema-governed stable kind IDs
-- structural invariant subsystem
-
-`forge_harness` expectations:
-
-- identity regression seeders
-- stale-handle and slot-reuse parity cases
-- exported diagnostics for identity faults
-
-### Phase 2: Transaction and commit foundations
-
-Goal:
-Establish transaction semantics around a single deterministic commit authority.
-
-Deliverables:
-
-- transaction boundary model
-- sparse undo log
-- nested savepoints
-- bulk mutation APIs
-- `WorkerIntentBatch`
-- deterministic merge model for staged write intents
-- `MergedCommitPlan`
-- `AuthoritativeApplyPlan`
-- `CommitOutcome`
-- coherent publication of snapshot, patch, diagnostics, and replay artifacts
-- explicit failure taxonomy
-
-`forge_harness` expectations:
-
-- commit/rollback/savepoint scenarios
-- injected failure cases
-- replay parity for transactional diagnostics
-
-### Phase 3: Snapshot, history, and replay foundations
-
-Goal:
-Make committed truth safely inspectable while mutation continues elsewhere.
-
-Deliverables:
-
-- immutable MVCC snapshot handles
-- snapshot reads during active mutation
-- version graph foundations
-- deterministic replay artifact substrate
-- history retention metadata
-- pinned snapshot registry
-- publication atomicity contract
-
-`forge_harness` expectations:
-
-- concurrent snapshot-read scenarios
-- serial-authority replay parity suites
-- branch/history export artifacts
-
-### Phase 4: Diagnostics-first runtime surfaces
-
-Goal:
-Make truth behavior inspectable before the runtime becomes too large to reason about cleanly.
-
-Deliverables:
-
-- public diagnostics facade
-- structured diagnostics artifacts for transactions, history, replay, lineage, and CDC
-- deterministic diagnostics reduction rules
-- production-safe artifact export story
-- mandatory minimal commit summaries with bounded retention
-- detailed trace profiles as optional overlays
-- invariant-check entrypoints by invariant category
-
-`forge_harness` expectations:
-
-- diagnostics parity inspectors
-- durable JSON export coverage
-- named regression seeders for confirmed bugs
-
-### Phase 5: Diff, CDC, and aspect foundations
-
-Goal:
-Make commit outputs precise, durable, and downstream-safe.
-
-Deliverables:
-
-- patch/CDC model
-- aspect-tagged entity and relation diffs
-- canonical patch ordering
-- resume/checkpoint semantics
 - subscriber-facing recovery model
-- replay artifacts derived from canonical commit artifacts
-- schema-versioned replay payloads
+- explicit resume/checkpoint semantics
+- deterministic resumed publication order
+- explicit subscriber-visible failure classes
+- replay-to-CDC consistency as a runtime contract
+- protocol-facing streaming patch feeds rather than internal-only patch emission
+- diagnostics for resume tokens, checkpoints, recovery decisions, and stream rejection/failure
 
-`forge_harness` expectations:
+### Must Preserve
 
-- diff parity suites
-- replay-to-CDC parity suites
-- subscriber recovery and resume tests
+- commit-native canonical patch order
+- coherent publication
+- replay from canonical commit artifacts
+- no abandoned savepoint or rollback work appearing in published CDC
+- no scheduler-shaped stream semantics
 
-### Phase 6: Lineage and correspondence foundations
+### Acceptance Requirements
 
-Goal:
-Represent identity evolution explicitly instead of faking it through adds/removes.
+This milestone is complete only when the implementation satisfies the following
+named requirements from
+[test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md):
 
-Deliverables:
+- `Diff/CDC truth parity test`
+- `Hostile commit/replay equivalence test`
+- `Durable recovery and schema mismatch test`
+- `Snapshot-stable concurrent read vs hot rewrite test`
 
-- lineage event types
-- historical resolution APIs
-- lineage graph storage
-- branch-aware correspondence hooks
-- deterministic lineage finalization policy
+The roadmap intentionally references the requirements doc directly here. The
+requirements doc remains the source of truth for the exact scenario,
+verification output, and pass condition those tests impose.
 
-`forge_harness` expectations:
+## Milestone 2: Relational Aspect Semantics
 
-- split/merge/replace seeders
-- cross-branch correspondence scenarios
-- lineage diagnostics comparisons
+### Goal
 
-### Phase 7: Query, indexes, and scale-ready surfaces
+Finish the truth-layer aspect system so aspects are first-class relational
+semantics for entities, relations, committed diffs, projections, historical
+reads, and bulk queries, rather than only payload-derived change labels.
 
-Goal:
-Make the runtime usable for large truth workloads without painting the read side into a corner.
+### Must Ship
 
-Deliverables:
+- stable aspect identity at the truth layer
+- explicit entity aspect semantics
+- explicit relation aspect semantics
+- aspect participation in committed diff and CDC output
+- aspect-aware projection and bulk-query surfaces
+- aspect-aware historical read surfaces
+- aspect-aware and lineage-aware historical read surfaces where identity evolution and change surface both matter
+- schema and kind driven aspect declarations where the runtime needs more than raw payload-key extraction
+- diagnostics and artifacts that expose aspect-level committed change semantics canonically
 
-- bulk relational queries
-- relation-type scans
-- secondary-index hooks
-- derived-index generation model
-- introspection APIs
-- partition/work-packet vocabulary
-- bulk packetized reads as the primary public read surface
-- thin per-ID convenience only over packetized reads
+### Must Preserve
 
-`forge_harness` expectations:
+- canonical patch ordering
+- coherent publication
+- deterministic replay from canonical commit artifacts
+- no hidden mutation during reads
+- authoritative storage-visible fallback semantics
+- no scheduler-shaped observability
 
-- bulk-query parity cases
-- index rebuild comparison suites
-- diagnostics coverage for index publication and query planning
+### Acceptance Requirements
 
-### Phase 8: Parallel preparation and post-commit scaling
+This milestone is complete only when the implementation satisfies the following
+named requirements from
+[test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md):
 
-Goal:
-Add scalable parallel work without violating the trust model.
+- `Diff/CDC truth parity test`
+- `Bulk query and traversal stress truth test`
+- `Hostile commit/replay equivalence test`
+- `Topology identity survival test`
+- `Netlist rewiring identity and history test`
 
-Deliverables:
+## Milestone 3: Structural Identity, Introspection, and Historical Inspection
 
-- parallel planning over immutable snapshots
-- parallel validation workers with deterministic reduction
-- parallel diff/index fragment preparation
-- parallel import staging
-- parallel post-commit downstream consumption over immutable artifacts
+### Goal
 
-`forge_harness` expectations:
+Finish the runtime surfaces that let consumers inspect structure, recent
+mutation, and retained history as first-class truth capabilities rather than
+ad hoc debug utilities.
 
-- serial-vs-staged-parallel parity suites
-- diagnostics parity suites
-- replay parity suites
+### Must Ship
+
+- explicit structural identity surfaces
+- structural hashing or fingerprint surfaces that hosts can use without collapsing structural policy into storage identity
+- graph introspection APIs over entities, relations, kinds, counts, connectivity classes, and change boundaries
+- recent-mutation and transaction-surface introspection
+- graph time-travel surfaces for retained or reconstructible historical truth
+- explicit retention and reclaim product surfaces rather than only internal retention machinery
+- historical inspection surfaces that compose structural identity, lineage, and aspects coherently
+
+### Must Preserve
+
+- permanent separation between storage identity, lineage identity, and structural identity
+- canonical observability for historical reads
+- explicit reclaim behavior under pinned readers and retained history
+- no hidden mutation during inspection or time travel
+- replay from canonical commit artifacts
+
+### Acceptance Requirements
+
+This milestone is complete only when the implementation satisfies the following
+named requirements from
+[test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md):
+
+- `Hostile commit/replay equivalence test`
+- `Snapshot pinning and reclaim correctness test`
+- `Lineage/correspondence hardening test`
+- `Bulk query and traversal stress truth test`
+- `Topology identity survival test`
+- `Netlist rewiring identity and history test`
+
+## Milestone 4: Relation Integrity and Schema Contracts
+
+### Goal
+
+Finish the runtime contract layer for relation legality, schema-defined
+invariants, and typed relation ergonomics so the runtime is enforcing graph
+truth rules instead of merely storing graph-shaped data.
+
+### Must Ship
+
+- relation integrity as an explicit runtime capability
+- schema-defined invariants for relation legality, cardinality, symmetry, uniqueness, and deletion effects where the schema declares them
+- typed node and relation contract richness sufficient for industrial schema design
+- integrity validation hooks that participate in authoritative commit
+- failure diagnostics for relation-contract and invariant violations
+- schema surfaces that remain generic while still being strong enough for topology, connectivity, workflow, and IR-style truth graphs
+
+### Must Preserve
+
+- serialized authority
+- canonical failure reporting
+- no partial publication after integrity failure
+- schema-defined semantics instead of hardcoded domain semantics
+- replay and recovery consistency for accepted and rejected commits
+
+### Acceptance Requirements
+
+This milestone is complete only when the implementation satisfies the following
+named requirements from
+[test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md):
+
+- `Savepoint rollback fracture test`
+- `Hostile commit/replay equivalence test`
+- `Durable recovery and schema mismatch test`
+- `Missing-twin / nonmanifold corruption localization test`
+
+## Milestone 5: Lineage and Correspondence Completion
+
+### Goal
+
+Finish identity-evolution semantics so lineage is authoritative truth, not just
+a base graph plus advisory metadata.
+
+### Must Ship
+
+- explicit replace/split/merge-like lineage event coverage
+- authoritative promotion flow from advisory correspondence
+- invalid and ambiguous correspondence rejection
+- branch-local identity-evolution isolation
+- historical ID resolution across legitimate lineage chains
+- lineage graph as a named query surface, not only internal bookkeeping
+- historical resolution ergonomics that downstream systems can consume directly
+- lineage-aware committed change surfaces where identity evolution must appear
+
+### Must Preserve
+
+- permanent separation between storage identity and lineage identity
+- advisory correspondence stays non-authoritative until explicit promotion
+- canonical serialized lineage finalization
+- branch-local lineage does not leak across branches
+- deterministic replay and diagnostics of lineage behavior
+
+### Acceptance Requirements
+
+This milestone is complete only when the implementation satisfies the following
+named requirements from
+[test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md):
+
+- `Lineage/correspondence hardening test`
+- `Topology identity survival test`
+- `Netlist rewiring identity and history test`
+- `Hostile commit/replay equivalence test`
+
+## Milestone 6: Merge-Ready History and Merge Execution
+
+This milestone is intentionally split so the roadmap stays honest about what is
+already structurally supported versus what may still be missing as product
+behavior.
+
+### Milestone 6A: Merge-Ready History Certification
+
+#### Goal
+
+Prove that merge-ready history shape is operationally real across replay,
+durability, diagnostics, and ancestry reasoning.
+
+#### Must Ship
+
+- ordered multi-parent commit-envelope fixtures as accepted certification inputs
+- ordered parent persistence through durability
+- replay handling for ordered parent lists
+- diagnostics and ancestry reasoning that remain correct on ordered parents
+- explicit evidence that observable surfaces do not quietly assume “single parent or none”
+
+#### Acceptance Requirements
+
+This sub-milestone is complete only when the implementation satisfies the
+following named requirement from
+[test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md):
+
+- `Merge-ready history shape test`
+
+### Milestone 6B: Authoritative Merge Execution
+
+#### Goal
+
+If authoritative multi-parent merge commit creation is not yet complete,
+finish it as a first-class runtime feature.
+
+#### Must Ship
+
+- authoritative multi-parent commit execution
+- deterministic parent ordering at merge commit creation time
+- merge conflict classification and structured diagnostics
+- replay semantics for merge commits
+- durable publication semantics for merge commits
+- branch-head advancement semantics for successful merges
+
+#### Must Preserve
+
+- single serialized authority for final truth commit
+- canonical observability and replay
+- coherent publication
+- explicit failure rather than partial merge truth
+
+#### Acceptance Requirements
+
+This sub-milestone is complete only when:
+
+- the roadmap is paired with an explicit merge-execution certification test or suite if
+  [test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md)
+  does not already contain one
+- `Hostile commit/replay equivalence test` is satisfied for merge-bearing histories
+- `Durable recovery and schema mismatch test` is satisfied for merge-bearing histories
+- `Merge-ready history shape test` remains satisfied on real merge-produced histories, not only fixtures
+
+## Milestone 7: Parallel Read, Bulk Mutation, and Scale Query Completion
+
+### Goal
+
+Finish the scale side of the vision so the runtime can honestly claim
+first-class industrial bulk query and bulk mutation behavior, not just strong
+commit-time preparation.
+
+### Must Ship
+
+- deterministic packetized planning for bulk reads over immutable snapshots
+- explicit parallel read execution where supported
+- large-surface bulk traversal/query APIs as primary surfaces
+- low-level bulk mechanical primitives for relation traversal and scans, with semantic layering remaining above them
+- parity between index-assisted reads and authoritative storage fallback
+- read-side locality, partition, and work-packet metrics
+- partition-aware query surfaces and partitioning hints where the runtime can expose them generically
+- memory stability guarantees strong enough for long-lived high-scale workloads
+- bulk mutation as a scale product surface rather than only repeated single-write composition
+- graph introspection surfaces strong enough to inspect read and mutation scale behavior
+- snapshot-stable read behavior under active mutation and high churn
+
+### Must Preserve
+
+- immutable snapshot semantics
+- no hidden read mutation or repair
+- non-authoritative derived indexes
+- authoritative storage fallback always available
+- deterministic observable query order
+
+### Acceptance Requirements
+
+This milestone is complete only when the implementation satisfies the following
+named requirements from
+[test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md):
+
+- `Bulk query and traversal stress truth test`
+- `Index non-authority corruption test`
+- `Deterministic observability under hostile scheduling test`
+- `Snapshot-stable concurrent read vs hot rewrite test`
+
+## Milestone 8: Generic Certification Program
+
+### Goal
+
+Run the full generic truth-grade certification program after the remaining
+product milestones are implemented.
+
+### Scope
+
+This milestone is not for discovering missing features. It is for proving the
+completed runtime under the hostile scenarios already defined in
+[test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md).
+
+### Acceptance Requirements
+
+This milestone is complete only when all ten generic named requirements in
+[test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md)
+are satisfied:
+
+- `Hostile commit/replay equivalence test`
+- `Savepoint rollback fracture test`
+- `Snapshot pinning and reclaim correctness test`
+- `Deterministic observability under hostile scheduling test`
+- `Index non-authority corruption test`
+- `Diff/CDC truth parity test`
+- `Lineage/correspondence hardening test`
+- `Merge-ready history shape test`
+- `Bulk query and traversal stress truth test`
+- `Durable recovery and schema mismatch test`
+
+Each certification run must emit canonical machine-checkable artifact bundles,
+not only human-readable logs, exactly as required by the requirements doc.
+
+## Milestone 9: Domain Certification Program
+
+### Goal
+
+Prove that the generic runtime is actually fit for the stated target domains.
+
+### Acceptance Requirements
+
+This milestone is complete only when all four domain-specific named
+requirements in
+[test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md)
+are satisfied:
+
+- `Topology identity survival test`
+- `Missing-twin / nonmanifold corruption localization test`
+- `Netlist rewiring identity and history test`
+- `Snapshot-stable concurrent read vs hot rewrite test`
+
+The requirements doc remains the authoritative source for the exact CAD and
+chip scenarios, verification output, and pass conditions these tests impose.
+
+## Per-Milestone Format
+
+For consistency and readability, every milestone in this roadmap uses the same
+shape:
+
+- `Goal`
+- `Must Ship`
+- `Must Preserve`
+- `Acceptance Requirements`
+
+The acceptance section deliberately references
+[test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md)
+explicitly rather than trying to restate those tests in weaker or shorter form.
+
+## Completion Standard
+
+Forge Relational is roadmap-complete only when:
+
+- all remaining product milestones are shipped
+- all ten generic named requirements in
+  [test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md)
+  are satisfied
+- both CAD named requirements in
+  [test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md)
+  are satisfied
+- both chip named requirements in
+  [test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md)
+  are satisfied
+- all certification runs emit canonical machine-checkable artifacts for truth,
+  patches, diagnostics, lineage, replay, branch heads, and query surfaces

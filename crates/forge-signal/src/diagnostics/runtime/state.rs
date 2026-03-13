@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::collections::VecDeque;
 
 use serde::{Deserialize, Serialize};
@@ -60,13 +61,15 @@ pub(crate) struct DiagnosticsState {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 struct PendingFlowInput {
-    changed_nodes: Vec<NodeId>,
-    changed_aspects: Vec<Aspect>,
+    changed_nodes: BTreeSet<NodeId>,
+    changed_aspects: BTreeSet<u8>,
     changed_region_count: u32,
     causality_kind: Option<String>,
     invalidated_direct_subscribers: u32,
     maybe_stale_direct_subscribers: u32,
     partition_scoped_checks: u32,
+    narrowed_frontier_width: u32,
+    transitive_frontier_width: u32,
 }
 
 impl DiagnosticsState {
@@ -164,24 +167,18 @@ impl DiagnosticsState {
         causality_kind: Option<String>,
     ) {
         let pending = self.pending_input.get_or_insert_with(|| PendingFlowInput {
-            changed_nodes: Vec::new(),
-            changed_aspects: Vec::new(),
+            changed_nodes: BTreeSet::new(),
+            changed_aspects: BTreeSet::new(),
             changed_region_count: 0,
             causality_kind: None,
             invalidated_direct_subscribers: 0,
             maybe_stale_direct_subscribers: 0,
             partition_scoped_checks: 0,
+            narrowed_frontier_width: 0,
+            transitive_frontier_width: 0,
         });
-        if !pending.changed_nodes.contains(&node) {
-            pending.changed_nodes.push(node);
-            pending.changed_nodes.sort();
-        }
-        if !pending.changed_aspects.contains(&aspect) {
-            pending.changed_aspects.push(aspect);
-            pending
-                .changed_aspects
-                .sort_by_key(|changed_aspect| changed_aspect.index());
-        }
+        pending.changed_nodes.insert(node);
+        pending.changed_aspects.insert(aspect.id());
         pending.changed_region_count += changed_regions.len() as u32;
         if pending.causality_kind.is_none() {
             pending.causality_kind = causality_kind;
@@ -193,11 +190,15 @@ impl DiagnosticsState {
         invalidated_direct_subscribers: u32,
         maybe_stale_direct_subscribers: u32,
         partition_scoped_checks: u32,
+        narrowed_frontier_width: u32,
+        transitive_frontier_width: u32,
     ) {
         if let Some(pending) = &mut self.pending_input {
             pending.invalidated_direct_subscribers += invalidated_direct_subscribers;
             pending.maybe_stale_direct_subscribers += maybe_stale_direct_subscribers;
             pending.partition_scoped_checks += partition_scoped_checks;
+            pending.narrowed_frontier_width += narrowed_frontier_width;
+            pending.transitive_frontier_width += transitive_frontier_width;
         }
     }
 
@@ -481,8 +482,13 @@ impl DiagnosticsState {
         self.pending_input.as_ref().map(|pending| {
             (
                 ChangeInputSummary::new(
-                    pending.changed_nodes.clone(),
-                    pending.changed_aspects.clone(),
+                    pending.changed_nodes.iter().copied().collect(),
+                    pending
+                        .changed_aspects
+                        .iter()
+                        .copied()
+                        .map(Aspect::new)
+                        .collect(),
                     pending.changed_region_count,
                     pending.causality_kind.clone(),
                 ),
@@ -490,6 +496,8 @@ impl DiagnosticsState {
                     pending.invalidated_direct_subscribers,
                     pending.maybe_stale_direct_subscribers,
                     pending.partition_scoped_checks,
+                    pending.narrowed_frontier_width,
+                    pending.transitive_frontier_width,
                 ),
             )
         })

@@ -1,4 +1,4 @@
-use crate::data::dependency::DependencySnapshot;
+use crate::data::dependency::{DependencySnapshot, DependencySnapshotUpdate, SnapshotDeltaRecord};
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::node::{NodeContract, NodeEntry, NodeEvaluationConfig, NodeState};
@@ -71,6 +71,26 @@ impl SignalGraph {
         Ok(())
     }
 
+    pub(crate) fn replace_dep_snapshot_shared(
+        &mut self,
+        id: NodeId,
+        update: DependencySnapshotUpdate,
+    ) -> Result<SnapshotDeltaRecord, SignalError> {
+        let previous = self.get_dep_snapshot(id)?.clone();
+        let next_snapshot = update.apply_to(&previous);
+        let delta = SnapshotDeltaRecord::between(id, &previous, &next_snapshot);
+        if !delta.changed() {
+            return Ok(delta);
+        }
+        let snapshot_id = self
+            .topology
+            .dependency_snapshots
+            .insert(next_snapshot.into_snapshot());
+        self.get_entry_mut(id)?.set_dep_snapshot_id(snapshot_id);
+        self.record_graph_storage_pressure();
+        Ok(delta)
+    }
+
     pub(crate) fn set_dep_snapshot_batch(
         &mut self,
         snapshots: &PendingSnapshotBatch,
@@ -83,17 +103,17 @@ impl SignalGraph {
             self.validate_handle(snapshot.node)?;
         }
 
-        let snapshot_ids = snapshots
-            .as_slice()
-            .iter()
-            .map(|snapshot| {
-                self.topology
-                    .dependency_snapshots
-                    .insert(snapshot.snapshot.snapshot().clone())
-            })
-            .collect::<Vec<_>>();
-
-        for (snapshot, snapshot_id) in snapshots.as_slice().iter().zip(snapshot_ids) {
+        for snapshot in snapshots.as_slice() {
+            if !snapshot.delta.changed() {
+                continue;
+            }
+            let snapshot_id = self.topology.dependency_snapshots.insert(
+                snapshot
+                    .update
+                    .clone()
+                    .apply_to(self.get_dep_snapshot(snapshot.node)?)
+                    .into_snapshot(),
+            );
             self.get_entry_mut(snapshot.node)?
                 .set_dep_snapshot_id(snapshot_id);
         }

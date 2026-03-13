@@ -27,7 +27,8 @@ pub(crate) use model::SessionScratch;
 pub(crate) use model::StageCursor;
 #[allow(unused_imports)]
 pub use model::{
-    ApplyFootprint, DisjointApplyGroup, EvaluationPlan, EvaluationTask, ExecutionPruneReason,
+    ApplyFootprint, CandidateTask, DisjointApplyGroup, EligibleTask, EvaluationPlan,
+    ExecutedTask, ExecutionPruneReason,
     ExecutionRecordId, ExecutionReport, ExecutionStage, LoweredStagePlan, LoweredTask, PlanSummary,
     SemanticSegmentId, SemanticTaskRange, StageBarrier, StageExecutionOutcome,
     StageExecutionRecord, StageExecutor, TaskExecutionOutcome, TaskExecutionRecord, TaskReason,

@@ -215,6 +215,9 @@ fn derived_index_contract_staged_parallel_generation_matches_serial_reference() 
     assert_eq!(staged_counters.preparation_packet_count, 2);
     assert_eq!(staged_counters.preparation_parallel_legal_count, 1);
     assert_eq!(staged_counters.preparation_parallel_profitable_count, 1);
-    assert_eq!(staged_counters.preparation_staged_parallel_strategy_count, 1);
+    assert_eq!(
+        staged_counters.preparation_staged_parallel_strategy_count,
+        1
+    );
     assert_eq!(staged_counters.preparation_serial_strategy_count, 0);
 }

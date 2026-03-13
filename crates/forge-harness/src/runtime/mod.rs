@@ -9,6 +9,6 @@ pub use adapter::{
 };
 pub use capability::{AdapterSupport, CaptureDepth, DeterminismMode, HarnessCapabilities};
 pub use runner::{
-    AsyncHarnessRunner, HarnessCoreBundle, HarnessError, HarnessObservedBundle, HarnessRunner,
-    HarnessTimelineBundle,
+    AsyncHarnessRunner, HarnessCoreBundle, HarnessDiagnosedBundle, HarnessError,
+    HarnessObservedBundle, HarnessRunner, HarnessTimelineBundle,
 };

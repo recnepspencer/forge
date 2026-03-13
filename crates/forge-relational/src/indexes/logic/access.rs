@@ -49,12 +49,12 @@ impl<'runtime> IndexAccess<'runtime> {
             .filter(|generation| generation.compatibility.version_id <= version_id)
             .cloned()
             .collect::<Vec<_>>();
-        generations.sort_by_key(|generation| {
-            (
-                generation.compatibility.branch_id.clone(),
-                generation.source_commit_id,
-                generation.generation_id,
-            )
+        generations.sort_by(|left, right| {
+            left.compatibility
+                .branch_id
+                .cmp(&right.compatibility.branch_id)
+                .then_with(|| left.source_commit_id.cmp(&right.source_commit_id))
+                .then_with(|| left.generation_id.cmp(&right.generation_id))
         });
         generations
     }

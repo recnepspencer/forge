@@ -1,4 +1,5 @@
 use crate::facade::diagnostics::DiagnosticCode;
+use crate::facade::runtime::RelationalExecutionModel;
 use crate::facade::transactions::{CommitConflict, TransactionCommitError};
 use crate::tests::support::*;
 
@@ -52,6 +53,57 @@ fn bulk_create_entities_match_equivalent_singular_creates() {
             .map(read_entity_name)
             .collect::<Vec<_>>()
     );
+}
+
+#[test]
+fn staged_parallel_bulk_entity_import_matches_serial_reference() {
+    fn bulk_commit(
+        execution_model: RelationalExecutionModel,
+    ) -> (
+        crate::facade::transactions::CommitResult,
+        Vec<Option<String>>,
+    ) {
+        let mut runtime = runtime_with_test_schema_execution_model(execution_model);
+        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        txn.push_batch(WorkerIntentBatch::new("bulk").push(MutationIntent::Create(
+            CreateIntent::BulkEntities(BulkEntityCreateIntent {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_keys: vec![
+                    InternedString::Raw("a".to_string()),
+                    InternedString::Raw("b".to_string()),
+                    InternedString::Raw("c".to_string()),
+                ],
+                payloads: vec![
+                    RecordPayload::StructuredJson(json!({"name":"a"})),
+                    RecordPayload::StructuredJson(json!({"name":"b"})),
+                    RecordPayload::StructuredJson(json!({"name":"c"})),
+                ],
+            }),
+        )));
+        let outcome = txn.commit().unwrap();
+        let read = runtime
+            .visibility_reads()
+            .read_snapshot(&outcome.snapshot)
+            .unwrap();
+        let names = read
+            .entities()
+            .iter()
+            .map(|record| read_entity_name(record).map(str::to_string))
+            .collect::<Vec<_>>();
+        (outcome, names)
+    }
+
+    let (serial_outcome, serial_names) = bulk_commit(RelationalExecutionModel::SerialAuthority);
+    let (staged_outcome, staged_names) =
+        bulk_commit(RelationalExecutionModel::StagedParallelPreparation);
+
+    assert_eq!(
+        staged_outcome.changed_records.len(),
+        serial_outcome.changed_records.len()
+    );
+    assert_eq!(staged_names, serial_names);
+    assert_eq!(staged_outcome.patch(), serial_outcome.patch());
 }
 
 #[test]

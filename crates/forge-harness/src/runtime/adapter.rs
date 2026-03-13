@@ -25,6 +25,13 @@ pub trait HarnessAdapter {
     fn adapter_name(&self) -> &'static str;
     fn capabilities(&self) -> HarnessCapabilities;
     fn create_runtime(&self) -> Result<Self::Runtime, Self::Error>;
+    fn prepare_runtime(
+        &self,
+        _runtime: &mut Self::Runtime,
+        _profile: &ExecutionProfile,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
     fn load_fixture(
         &self,
         runtime: &mut Self::Runtime,
@@ -138,6 +145,13 @@ pub trait HarnessAdapterAsync {
     fn adapter_name(&self) -> &'static str;
     fn capabilities(&self) -> HarnessCapabilities;
     fn create_runtime_async(&self) -> HarnessFuture<'_, Result<Self::Runtime, Self::Error>>;
+    fn prepare_runtime_async(
+        &self,
+        _runtime: &mut Self::Runtime,
+        _profile: &ExecutionProfile,
+    ) -> HarnessFuture<'_, Result<(), Self::Error>> {
+        Box::pin(async { Ok(()) })
+    }
     fn load_fixture_async(
         &self,
         runtime: &mut Self::Runtime,

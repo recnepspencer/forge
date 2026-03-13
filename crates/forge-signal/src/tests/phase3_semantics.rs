@@ -224,6 +224,13 @@ fn keyed_evaluation_can_reuse_memoized_result() {
     assert_eq!(compute_calls.load(Ordering::Relaxed), 1);
     let explanation = runtime.observe().explain(node).unwrap();
     assert_eq!(
+        explanation.reuse_basis,
+        Some(ReuseBasis::Reused {
+            source: ReuseSource::MemoizedArtifact,
+            crossing: ReuseCrossing::None,
+        })
+    );
+    assert_eq!(
         explanation.memoized_origin,
         Some(MemoizedResultOrigin::MemoizedFromCache)
     );
@@ -275,6 +282,13 @@ fn defined_computation_evaluate_memoized_reuses_cached_result() {
 
     assert_eq!(compute_calls.load(Ordering::Relaxed), 1);
     let explanation = runtime.observe().explain(node).unwrap();
+    assert_eq!(
+        explanation.reuse_basis,
+        Some(ReuseBasis::Reused {
+            source: ReuseSource::MemoizedArtifact,
+            crossing: ReuseCrossing::None,
+        })
+    );
     assert_eq!(
         explanation.memoized_origin,
         Some(MemoizedResultOrigin::MemoizedFromCache)

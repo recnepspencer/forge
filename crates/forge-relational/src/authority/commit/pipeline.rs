@@ -9,6 +9,11 @@ use crate::authority::commit::phases::prepare::{
 };
 use crate::authority::commit::phases::publication::{append_durable_commit, enforce_patch_budget};
 use crate::authority::commit::publication::assemble_patch;
+#[cfg(test)]
+use crate::authority::commit::{
+    preparation::diagnostics::{emit_preparation_failure, failures::PreparationFailureClass},
+    publication::{current_test_diff_preparation_fault, TestDiffPreparationFault},
+};
 use crate::publication::data::PublicationStatus;
 use crate::transactions::data::{
     CommitExecution, CommitLog, CommitOutcome, CommitPatchBudgetSummary, CommitPhase,
@@ -130,11 +135,30 @@ impl<'a> RelationalTransaction<'a> {
         commit_log.begin_phase(CommitPhase::ArtifactAssembly);
         let phase_started = Instant::now();
         let patch_records = std::mem::take(&mut effect.publication.patch_records);
-        let patch = assemble_patch(
-            self.runtime,
-            commit_reference.commit_id,
-            patch_records,
-        );
+        let patch = assemble_patch(self.runtime, commit_reference.commit_id, patch_records);
+        #[cfg(test)]
+        if let Some(fault) = current_test_diff_preparation_fault() {
+            let (failure_class, label) = match fault {
+                TestDiffPreparationFault::FragmentCanonicalizationFailure => (
+                    PreparationFailureClass::FragmentCanonicalizationFailure,
+                    "fragment_canonicalization_failure",
+                ),
+                TestDiffPreparationFault::PacketOverlapDetected => (
+                    PreparationFailureClass::PacketOverlapDetected,
+                    "packet_overlap_detected",
+                ),
+            };
+            emit_preparation_failure(
+                self.runtime,
+                crate::diagnostics::data::DiagnosticsScope::PatchPublication,
+                failure_class,
+                serde_json::json!({
+                    "failure_class": label,
+                    "commit_id": commit_reference.commit_id.0,
+                    "patch_record_count": patch.records.len(),
+                }),
+            );
+        }
         let patch_budget_summary = CommitPatchBudgetSummary {
             patch_record_count: patch.records.len(),
             max_patch_records_per_commit: self
@@ -371,6 +395,15 @@ fn complexity_delta(
         preparation_packet_count: after
             .preparation_packet_count
             .saturating_sub(before.preparation_packet_count),
+        preparation_packet_item_count: after
+            .preparation_packet_item_count
+            .saturating_sub(before.preparation_packet_item_count),
+        preparation_packet_peak_width_total: after
+            .preparation_packet_peak_width_total
+            .saturating_sub(before.preparation_packet_peak_width_total),
+        preparation_scope_unit_count: after
+            .preparation_scope_unit_count
+            .saturating_sub(before.preparation_scope_unit_count),
         preparation_parallel_legal_count: after
             .preparation_parallel_legal_count
             .saturating_sub(before.preparation_parallel_legal_count),
@@ -386,6 +419,24 @@ fn complexity_delta(
         preparation_reducer_conflict_count: after
             .preparation_reducer_conflict_count
             .saturating_sub(before.preparation_reducer_conflict_count),
+        post_commit_consumer_packet_count: after
+            .post_commit_consumer_packet_count
+            .saturating_sub(before.post_commit_consumer_packet_count),
+        post_commit_consumer_item_count: after
+            .post_commit_consumer_item_count
+            .saturating_sub(before.post_commit_consumer_item_count),
+        post_commit_consumer_peak_width_total: after
+            .post_commit_consumer_peak_width_total
+            .saturating_sub(before.post_commit_consumer_peak_width_total),
+        post_commit_scope_unit_count: after
+            .post_commit_scope_unit_count
+            .saturating_sub(before.post_commit_scope_unit_count),
+        post_commit_serial_strategy_count: after
+            .post_commit_serial_strategy_count
+            .saturating_sub(before.post_commit_serial_strategy_count),
+        post_commit_parallel_strategy_count: after
+            .post_commit_parallel_strategy_count
+            .saturating_sub(before.post_commit_parallel_strategy_count),
         snapshot_pin_adjustments: after
             .snapshot_pin_adjustments
             .saturating_sub(before.snapshot_pin_adjustments),

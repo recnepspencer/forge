@@ -20,11 +20,14 @@ pub(crate) struct DiffReductionKey {
     pub(crate) packet_index: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct IndexReductionKey {
-    pub(crate) index_id: DerivedIndexId,
-    pub(crate) packet_index: usize,
-}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct IndexReductionKey(u64);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct ImportReductionKey(u64);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct PostCommitReductionKey(u64);
 
 impl DiffReductionKey {
     pub(crate) fn new(target: RecordRef, kind_order: u8, packet_index: usize) -> Self {
@@ -38,10 +41,31 @@ impl DiffReductionKey {
 
 impl IndexReductionKey {
     pub(crate) fn new(index_id: DerivedIndexId, packet_index: usize) -> Self {
-        Self {
-            index_id,
-            packet_index,
-        }
+        Self(pack_u64_pair(index_id.0, packet_index))
+    }
+}
+
+impl ImportReductionKey {
+    pub(crate) fn new(partition_id: PartitionId, kind_order: u8, packet_index: usize) -> Self {
+        debug_assert!(
+            kind_order <= u8::MAX,
+            "import kind order must fit into the packed key contract"
+        );
+        debug_assert!(
+            packet_index <= u32::MAX as usize,
+            "packet index must fit into the packed key contract"
+        );
+        Self(((partition_id.0 as u64) << 32) | ((kind_order as u64) << 24) | (packet_index as u64))
+    }
+}
+
+impl PostCommitReductionKey {
+    pub(crate) fn new(consumer_order: u8, packet_index: usize) -> Self {
+        debug_assert!(
+            packet_index <= u32::MAX as usize,
+            "packet index must fit into the packed key contract"
+        );
+        Self(((consumer_order as u64) << 32) | (packet_index as u64))
     }
 }
 
@@ -61,4 +85,9 @@ impl ValidationReductionKey {
             packet_index,
         }
     }
+}
+
+const fn pack_u64_pair(high: u64, low: usize) -> u64 {
+    debug_assert!(low <= u32::MAX as usize, "low word must fit into u32");
+    (high << 32) | (low as u64)
 }

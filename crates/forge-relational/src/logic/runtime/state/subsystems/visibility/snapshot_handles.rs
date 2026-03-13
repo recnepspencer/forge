@@ -83,6 +83,10 @@ impl SnapshotHandles {
     pub(crate) fn oldest_published_snapshot_id(&self) -> Option<SnapshotId> {
         self.published.keys().next().copied()
     }
+
+    pub(crate) fn oldest_published_snapshot_ids(&self, count: usize) -> Vec<SnapshotId> {
+        self.published.keys().take(count).copied().collect()
+    }
 }
 
 #[derive(Debug, Clone)]

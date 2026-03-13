@@ -3,6 +3,7 @@ use crate::validation::data::{InvariantCheckResult, InvariantVerdict};
 use crate::validation::execution::{evaluate_invariant_packet, plan_invariant_execution};
 use crate::validation::reduction::reduce_invariant_execution;
 use rayon::prelude::*;
+use std::collections::BTreeSet;
 
 use super::context::InvariantExecutionContext;
 use super::evaluator::evaluate_rule;
@@ -24,8 +25,15 @@ impl<'runtime> InvariantEngine<'runtime> {
         &self,
         request: InvariantExecutionRequest<'runtime>,
     ) -> InvariantExecutionResult {
-        let planned = plan_invariant_execution(self.runtime, &request);
-        self.record_preparation_plan(&planned);
+        let mut work_plan =
+            crate::authority::commit::preparation::planning::work_plan::empty_preparation_work_plan(
+            );
+        work_plan.invariant_execution = Some(plan_invariant_execution(self.runtime, &request));
+        self.record_preparation_plan(&work_plan);
+        let planned = work_plan
+            .invariant_execution
+            .as_ref()
+            .expect("validation work plan must include invariant execution");
         let envelopes = match planned.strategy.selected_mode {
             crate::authority::commit::preparation::planning::strategy::PreparationStrategySelection::Serial => {
                 planned
@@ -105,6 +113,7 @@ impl<'runtime> InvariantEngine<'runtime> {
                 request.merged_plan().is_some(),
                 self.runtime.config.execution.execution_model,
                 None,
+                Vec::new(),
             ),
             results,
         )
@@ -114,10 +123,43 @@ impl<'runtime> InvariantEngine<'runtime> {
 impl InvariantEngine<'_> {
     fn record_preparation_plan(
         &self,
-        planned: &crate::authority::commit::preparation::PreparedInvariantExecution<'_>,
+        work_plan: &crate::authority::commit::preparation::PreparationWorkPlan<'_>,
     ) {
+        let Some(planned) = work_plan.invariant_execution.as_ref() else {
+            return;
+        };
         let performance = self.runtime.performance_access();
-        performance.count_preparation_packets(planned.packets.len());
+        let counters = crate::validation::execution::planned_packet_counters(planned);
+        let scope_units = if planned.packets.iter().any(|packet| {
+            matches!(
+                packet.locality.partition_scope,
+                crate::authority::commit::preparation::proofs::locality::PreparationPartitionScope::AllObserved
+            )
+        }) {
+            1
+        } else {
+            planned
+                .packets
+                .iter()
+                .flat_map(|packet| match &packet.locality.partition_scope {
+                    crate::authority::commit::preparation::proofs::locality::PreparationPartitionScope::AllObserved => Vec::new(),
+                    crate::authority::commit::preparation::proofs::locality::PreparationPartitionScope::TouchedPartitions(
+                        partitions,
+                    ) => partitions.clone(),
+                })
+                .collect::<BTreeSet<_>>()
+                .len()
+        };
+        performance.count_preparation_packet_shape(
+            counters.packet_count,
+            counters.packet_count,
+            usize::from(counters.packet_count > 0),
+            scope_units,
+        );
+        debug_assert!(planned
+            .packets
+            .iter()
+            .all(|packet| packet.planning_context == planned.context));
         match planned.strategy.parallel_legality {
             crate::authority::commit::preparation::planning::strategy::ParallelLegality::ProvenParallel => {
                 performance.count_preparation_parallel_legal();

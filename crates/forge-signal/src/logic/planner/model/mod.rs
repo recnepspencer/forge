@@ -13,8 +13,10 @@ use crate::data::node::{AuthorityPolicy, NodeContract, PathClass};
 use crate::data::output::MemoizedResultOrigin;
 use crate::data::performance::{ResolvedExecutionStrategy, ResolvedMaintenanceStrategy};
 use crate::data::proof::{
-    DedupedNodeBatch, LoweredForm, PartitionScopeSet, SortedSourceBatch, StructuralDelta,
+    DedupedNodeBatch, LoweredForm, OrderedStreamItem, PartitionScopeSet, SortedSourceBatch,
+    StructuralDelta,
 };
+use crate::data::reuse::ReuseBasis;
 use crate::data::trace::RuntimeArtifactState;
 use crate::logic::evaluation::EvaluationRequestMode;
 use crate::logic::evaluation::{DeferralReason, EvaluationVerdict, SuppressionReason};
@@ -50,12 +52,39 @@ pub struct SemanticTaskRange {
     pub end: ExecutionRecordId,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CandidateTask {
+    pub node: NodeId,
+    pub request_mode: EvaluationRequestMode,
+    pub direct_request: bool,
+    pub trigger_reason: TaskReason,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct EvaluationTask {
+pub struct EligibleTask {
     pub node: NodeId,
     pub request_mode: EvaluationRequestMode,
     pub direct_request: bool,
     pub reason: TaskReason,
+    pub admission: EligibleTaskAdmission,
+}
+
+impl OrderedStreamItem for EligibleTask {
+    type OrderKey = (u32, u32);
+
+    fn order_key(&self) -> Self::OrderKey {
+        (self.node.index(), self.node.generation())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct EligibleTaskAdmission {
+    pub maybe_stale: Option<MaybeStaleAdmission>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaybeStaleAdmission {
+    pub unchanged_at_admission: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -80,7 +109,6 @@ pub(crate) struct LoweredTaskExecution {
     pub recomputed: bool,
     pub partition_aware: bool,
     pub rewiring: Option<RewiringSummary>,
-    pub next_dependencies: CanonicalDependencies,
 }
 
 #[derive(Debug, Clone)]
@@ -120,7 +148,7 @@ impl LoweredForm for LoweredStagePlan {}
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExecutionStage {
     pub index: u32,
-    pub tasks: Vec<EvaluationTask>,
+    pub tasks: Vec<EligibleTask>,
     pub barrier: Option<StageBarrier>,
 }
 
@@ -132,7 +160,7 @@ pub(crate) struct StageCursor {
     pub barrier: Option<StageBarrier>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct PlanSummary {
     pub requested_target_count: u32,
     pub stage_count: u32,
@@ -153,7 +181,7 @@ pub struct EvaluationPlan {
 pub(crate) struct EvaluationCursor {
     pub request_mode: EvaluationRequestMode,
     pub targets: Vec<NodeId>,
-    pub tasks: Vec<EvaluationTask>,
+    pub tasks: Vec<EligibleTask>,
     pub stages: Vec<StageCursor>,
     pub summary: PlanSummary,
 }
@@ -161,7 +189,7 @@ pub(crate) struct EvaluationCursor {
 #[derive(Debug, Clone)]
 pub(crate) struct SessionScratch<'a> {
     pub targets: &'a [NodeId],
-    pub tasks: &'a [EvaluationTask],
+    pub tasks: &'a [EligibleTask],
     pub stages: &'a [StageCursor],
     pub summary: PlanSummary,
 }
@@ -218,7 +246,14 @@ pub struct TaskExecutionRecord {
     pub prune_reason: Option<ExecutionPruneReason>,
     pub recomputed: bool,
     pub memoized_origin: MemoizedResultOrigin,
+    pub reuse_basis: ReuseBasis,
     pub propagation_suppressed: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExecutedTask {
+    pub task: EligibleTask,
+    pub record: TaskExecutionRecord,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

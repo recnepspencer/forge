@@ -84,27 +84,6 @@ pub(crate) fn append_durable_commit(
 }
 
 pub(crate) fn canonicalize_changed_records(records: &mut Vec<RecordRef>) {
-    records.sort_by(|left, right| {
-        canonical_record_sort_key(left).cmp(&canonical_record_sort_key(right))
-    });
+    records.sort_unstable();
     records.dedup();
-}
-
-fn canonical_record_sort_key(
-    record: &RecordRef,
-) -> (u8, crate::identity::data::PartitionId, u64, u32) {
-    match record {
-        RecordRef::Entity(entity_id) => (
-            0,
-            entity_id.partition_id,
-            entity_id.local_slot.0,
-            entity_id.generation.0,
-        ),
-        RecordRef::Relation(relation_id) => (
-            1,
-            relation_id.partition_id,
-            relation_id.local_slot.0,
-            relation_id.generation.0,
-        ),
-    }
 }

@@ -233,7 +233,7 @@ where
             .max(self.scratch.staged_patch_count);
         let policy = self.graph.runtime_policy();
         if policy.retains_explanation_facts() || policy.retains_provenance_facts() {
-            for node in touched_nodes {
+            for node in touched_nodes.as_slice().iter().copied() {
                 if let Ok(explanation) = self.graph.observe().explain(node) {
                     if policy.retains_explanation_facts() {
                         self.graph.diagnostics_state_mut().record_explanation_fact(
@@ -344,6 +344,9 @@ where
             commit_nanos,
         };
         let evaluation_summary = std::mem::take(&mut self.execution_state.summary);
+        // These clones are intentional second observers of finalized boundary
+        // truth: the transaction result retains them, and diagnostics state may
+        // also retain the same rollback/failure/epoch data after commit.
         let result = TransactionResult::from_boundary_state(
             outcome,
             execution_report,

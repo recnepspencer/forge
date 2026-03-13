@@ -128,7 +128,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                 version_id,
             ));
         }
-        sort_entity_records(&mut records);
+        debug_assert!(entity_records_are_canonical(&records));
         records
     }
 
@@ -139,13 +139,13 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         version_id: crate::identity::data::VersionId,
     ) -> Vec<EntityReadRecord> {
         let state = self.runtime.storage_access().current_state();
-        let mut records = self.visible_entities_of_kind_in_partition_from_state(
+        let records = self.visible_entities_of_kind_in_partition_from_state(
             &state,
             partition_id,
             kind_id,
             version_id,
         );
-        sort_entity_records(&mut records);
+        debug_assert!(entity_records_are_canonical(&records));
         records
     }
 
@@ -195,7 +195,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             .partition_state(entity_id.partition_id)?;
         let slot = entity_id.local_slot.0 as usize;
         let versions = partition.entity_arena.aspect_versions_at(slot)?;
-        let mut resolved: Vec<_> = versions
+        let resolved: Vec<_> = versions
             .iter()
             .filter_map(|(symbol, version)| {
                 self.runtime
@@ -205,7 +205,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                     .map(|name| (AspectKey(InternedString::Raw(name.to_string())), *version))
             })
             .collect();
-        resolved.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
+        debug_assert!(aspect_versions_are_canonical(&resolved));
         Some(resolved)
     }
 
@@ -219,7 +219,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             .partition_state(relation_id.partition_id)?;
         let slot = relation_id.local_slot.0 as usize;
         let versions = partition.relation_arena.aspect_versions_at(slot)?;
-        let mut resolved: Vec<_> = versions
+        let resolved: Vec<_> = versions
             .iter()
             .filter_map(|(symbol, version)| {
                 self.runtime
@@ -229,7 +229,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                     .map(|name| (AspectKey(InternedString::Raw(name.to_string())), *version))
             })
             .collect();
-        resolved.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
+        debug_assert!(aspect_versions_are_canonical(&resolved));
         Some(resolved)
     }
 
@@ -591,16 +591,6 @@ impl<'runtime> VisibilityReadContext<'runtime> {
     }
 }
 
-fn sort_entity_records(records: &mut [EntityReadRecord]) {
-    records.sort_by_key(|record| {
-        (
-            record.entity_id.partition_id.0,
-            record.entity_id.local_slot.0,
-            record.entity_id.generation,
-        )
-    });
-}
-
 fn sort_relation_records(records: &mut [RelationReadRecord]) {
     records.sort_by_key(|record| {
         (
@@ -631,6 +621,26 @@ fn aspect_keys_for_payload(payload: &crate::payloads::data::RecordPayload) -> Ve
     aspects.sort();
     aspects.dedup();
     aspects
+}
+
+fn entity_records_are_canonical(records: &[EntityReadRecord]) -> bool {
+    records.windows(2).all(|window| {
+        let left = &window[0];
+        let right = &window[1];
+        (
+            left.entity_id.partition_id.0,
+            left.entity_id.local_slot.0,
+            left.entity_id.generation,
+        ) <= (
+            right.entity_id.partition_id.0,
+            right.entity_id.local_slot.0,
+            right.entity_id.generation,
+        )
+    })
+}
+
+fn aspect_versions_are_canonical(versions: &[(AspectKey, u64)]) -> bool {
+    versions.windows(2).all(|window| window[0] <= window[1])
 }
 
 fn snapshot_read_path_artifact(

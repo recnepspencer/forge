@@ -132,11 +132,21 @@ pub struct CanonicalDependencies {
 
 impl CanonicalDependencies {
     pub fn new(edges: impl IntoIterator<Item = DependencyEdge>) -> Self {
+        Self::canonicalize_unordered(edges)
+    }
+
+    pub fn canonicalize_unordered(edges: impl IntoIterator<Item = DependencyEdge>) -> Self {
         let mut edges = edges.into_iter().collect::<Vec<_>>();
         if edges.len() > 1 {
             edges.sort_by(|left, right| left.sort_key().cmp(&right.sort_key()));
             edges.dedup_by(|left, right| left.sort_key() == right.sort_key());
         }
+        Self { edges }
+    }
+
+    pub fn from_ordered_unique(edges: impl IntoIterator<Item = DependencyEdge>) -> Self {
+        let edges = edges.into_iter().collect::<Vec<_>>();
+        debug_assert!(is_strict_dependency_edge_order(edges.as_slice()));
         Self { edges }
     }
 
@@ -235,7 +245,20 @@ impl DependencySnapshot {
         self.entries.as_slice()
     }
 
-    fn canonicalize(&mut self) {
+    pub fn canonicalize_unordered(mut self) -> Self {
+        self.canonicalize_in_place();
+        self
+    }
+
+    pub fn from_ordered_unique(entries: impl IntoIterator<Item = DependencySnapshotEntry>) -> Self {
+        let entries = entries.into_iter().collect::<Vec<_>>();
+        debug_assert!(is_strict_snapshot_entry_order(entries.as_slice()));
+        Self {
+            entries: Arc::new(entries),
+        }
+    }
+
+    fn canonicalize_in_place(&mut self) {
         let entries = Arc::make_mut(&mut self.entries);
         entries.sort_by(|left, right| {
             left.sort_key()
@@ -259,6 +282,18 @@ impl DependencySnapshot {
 
     pub fn shared_entries(&self) -> Arc<Vec<DependencySnapshotEntry>> {
         Arc::clone(&self.entries)
+    }
+
+    pub fn with_updated_versions(&self, cached_versions: &[u64]) -> Self {
+        debug_assert_eq!(self.entries().len(), cached_versions.len());
+        let mut updated = self.clone();
+        for (entry, cached_version) in Arc::make_mut(&mut updated.entries)
+            .iter_mut()
+            .zip(cached_versions.iter().copied())
+        {
+            entry.cached_version = cached_version;
+        }
+        updated
     }
 }
 
@@ -286,6 +321,128 @@ impl SharedDependencySnapshot {
 
     pub fn into_snapshot(self) -> DependencySnapshot {
         self.snapshot
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DependencySnapshotVersionDelta {
+    cached_versions: Arc<Vec<u64>>,
+}
+
+impl DependencySnapshotVersionDelta {
+    pub fn new(cached_versions: impl Into<Vec<u64>>) -> Self {
+        Self {
+            cached_versions: Arc::new(cached_versions.into()),
+        }
+    }
+
+    pub fn cached_versions(&self) -> &[u64] {
+        self.cached_versions.as_slice()
+    }
+
+    pub fn len(&self) -> usize {
+        self.cached_versions.len()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DependencySnapshotUpdate {
+    Replace(SharedDependencySnapshot),
+    VersionOnly(DependencySnapshotVersionDelta),
+}
+
+impl DependencySnapshotUpdate {
+    pub fn entry_count(&self) -> usize {
+        match self {
+            Self::Replace(snapshot) => snapshot.entries().len(),
+            Self::VersionOnly(delta) => delta.len(),
+        }
+    }
+
+    pub fn apply_to(self, previous: &DependencySnapshot) -> SharedDependencySnapshot {
+        match self {
+            Self::Replace(snapshot) => snapshot,
+            Self::VersionOnly(delta) => SharedDependencySnapshot::new(
+                previous.with_updated_versions(delta.cached_versions()),
+            ),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SnapshotDeltaRecord {
+    pub node: NodeId,
+    pub previous_entry_count: u32,
+    pub next_entry_count: u32,
+    pub changed_entry_count: u32,
+}
+
+impl SnapshotDeltaRecord {
+    pub fn between(
+        node: NodeId,
+        previous: &DependencySnapshot,
+        next: &SharedDependencySnapshot,
+    ) -> Self {
+        let previous_entries = previous.entries();
+        let next_entries = next.entries();
+        let mut changed_entry_count = 0_u32;
+        let mut previous_index = 0usize;
+        let mut next_index = 0usize;
+
+        while previous_index < previous_entries.len() && next_index < next_entries.len() {
+            let previous_entry = &previous_entries[previous_index];
+            let next_entry = &next_entries[next_index];
+            match previous_entry.sort_key().cmp(&next_entry.sort_key()) {
+                std::cmp::Ordering::Less => {
+                    changed_entry_count += 1;
+                    previous_index += 1;
+                }
+                std::cmp::Ordering::Greater => {
+                    changed_entry_count += 1;
+                    next_index += 1;
+                }
+                std::cmp::Ordering::Equal => {
+                    if previous_entry.cached_version != next_entry.cached_version {
+                        changed_entry_count += 1;
+                    }
+                    previous_index += 1;
+                    next_index += 1;
+                }
+            }
+        }
+
+        changed_entry_count += (previous_entries.len() - previous_index) as u32;
+        changed_entry_count += (next_entries.len() - next_index) as u32;
+
+        Self {
+            node,
+            previous_entry_count: previous_entries.len() as u32,
+            next_entry_count: next_entries.len() as u32,
+            changed_entry_count,
+        }
+    }
+
+    pub fn changed(&self) -> bool {
+        self.changed_entry_count > 0 || self.previous_entry_count != self.next_entry_count
+    }
+
+    pub fn for_version_update(
+        node: NodeId,
+        previous: &DependencySnapshot,
+        cached_versions: &[u64],
+    ) -> Self {
+        debug_assert_eq!(previous.entries().len(), cached_versions.len());
+        Self {
+            node,
+            previous_entry_count: previous.entries().len() as u32,
+            next_entry_count: cached_versions.len() as u32,
+            changed_entry_count: previous
+                .entries()
+                .iter()
+                .zip(cached_versions.iter().copied())
+                .filter(|(entry, cached_version)| entry.cached_version != *cached_version)
+                .count() as u32,
+        }
     }
 }
 
@@ -337,8 +494,7 @@ impl DependencySnapshotStore {
 
     /// Store one immutable snapshot and return its id.
     pub fn insert(&mut self, snapshot: DependencySnapshot) -> DependencySnapshotId {
-        let mut snapshot = snapshot;
-        snapshot.canonicalize();
+        let snapshot = snapshot.canonicalize_unordered();
         if snapshot.entries().is_empty() {
             return DependencySnapshotId::EMPTY;
         }
@@ -366,4 +522,20 @@ impl DependencySnapshotStore {
 fn empty_dependency_snapshot() -> &'static DependencySnapshot {
     static EMPTY: std::sync::OnceLock<DependencySnapshot> = std::sync::OnceLock::new();
     EMPTY.get_or_init(DependencySnapshot::empty)
+}
+
+fn is_strict_dependency_edge_order(edges: &[DependencyEdge]) -> bool {
+    edges
+        .windows(2)
+        .all(|pair| pair[0].sort_key() < pair[1].sort_key())
+}
+
+fn is_strict_snapshot_entry_order(entries: &[DependencySnapshotEntry]) -> bool {
+    entries.windows(2).all(|pair| {
+        pair[0]
+            .sort_key()
+            .cmp(&pair[1].sort_key())
+            .then(pair[0].cached_version.cmp(&pair[1].cached_version))
+            .is_lt()
+    })
 }

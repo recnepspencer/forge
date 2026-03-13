@@ -124,6 +124,10 @@ impl VisibilitySubsystem {
         self.handles.oldest_published_snapshot_id()
     }
 
+    pub(crate) fn oldest_published_snapshot_ids(&self, count: usize) -> Vec<SnapshotId> {
+        self.handles.oldest_published_snapshot_ids(count)
+    }
+
     pub(crate) fn cached_visibility_version_count(&self) -> usize {
         self.cache.cached_version_count()
     }

@@ -92,6 +92,10 @@ impl TransactionExecutionState {
         self.summary.plans_built += 1;
         self.summary.stages_executed += report.stage_count;
         self.evaluation_nanos += duration_nanos;
+        // This retained report has a second observer by design:
+        // public transaction evaluation APIs return the report immediately,
+        // and the finalized transaction boundary may also need to retain the
+        // same report for commit/rollback results.
         self.latest_report = Some(report.clone());
     }
 }

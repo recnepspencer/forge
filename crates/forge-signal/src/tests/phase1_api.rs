@@ -188,7 +188,84 @@ fn node_contract_uses_explicit_performance_defaults() {
         contract.authority.policy,
         AuthorityPolicy::SpeculativeThenReconcile
     );
+    assert_eq!(
+        contract.reuse,
+        NodeReuseContract {
+            equivalence: ArtifactEquivalenceContract::strict(),
+            retain_certification: true,
+        }
+    );
     assert_eq!(contract.projection.consumes, AspectMask::ALL);
+}
+
+#[test]
+fn graph_node_builder_sets_reuse_contract_accessibly() {
+    let mut graph = SignalGraph::new();
+    let node = graph
+        .node()
+        .artifact_equivalence_contract(ArtifactEquivalenceContract {
+            required_boundaries: vec![
+                ArtifactSemanticBoundary::TopologyRegime,
+                ArtifactSemanticBoundary::AuthorityLane,
+            ],
+            allows_snapshot_restore_reuse: true,
+            allows_authority_reconciliation_reuse: false,
+        })
+        .retain_reuse_certification(false)
+        .build();
+
+    let config = graph.get_entry(node).unwrap().get_eval_config().clone();
+    assert_eq!(
+        config.contract.reuse.equivalence.required_boundaries,
+        vec![
+            ArtifactSemanticBoundary::TopologyRegime,
+            ArtifactSemanticBoundary::AuthorityLane,
+        ]
+    );
+    assert!(
+        config
+            .contract
+            .reuse
+            .equivalence
+            .allows_snapshot_restore_reuse
+    );
+    assert!(
+        !config
+            .contract
+            .reuse
+            .equivalence
+            .allows_authority_reconciliation_reuse
+    );
+    assert!(!config.contract.reuse.retain_certification);
+}
+
+#[test]
+fn reuse_domain_types_are_publicly_reachable() {
+    let basis = ReuseBasis::Reused {
+        source: ReuseSource::MemoizedArtifact,
+        crossing: ReuseCrossing::None,
+    };
+    let record = ReuseCertificationRecord {
+        source: ReuseSource::SnapshotArtifact,
+        crossing: ReuseCrossing::SnapshotRestore,
+        proofs: vec![ReuseBoundaryProof {
+            boundary: ArtifactSemanticBoundary::SnapshotLineage,
+            satisfied: true,
+        }],
+    };
+
+    assert_eq!(
+        basis,
+        ReuseBasis::Reused {
+            source: ReuseSource::MemoizedArtifact,
+            crossing: ReuseCrossing::None,
+        }
+    );
+    assert_eq!(record.proofs.len(), 1);
+    assert_eq!(
+        record.proofs[0].boundary,
+        ArtifactSemanticBoundary::SnapshotLineage
+    );
 }
 
 #[test]
@@ -366,6 +443,9 @@ fn proof_bearing_form_families_exist_as_real_types() {
     assert_delta::<StructuralDelta>();
     assert_delta::<PatchPlan>();
     assert_summary::<LocalityFootprint>();
+    assert_summary::<NarrowedPropagationSet>();
+    assert_summary::<FrontierWave>();
+    assert_summary::<InvalidationFrontier>();
     assert_summary::<SemanticBatchCommit>();
     assert_summary::<TouchedScopeSummary>();
     assert_summary::<PendingSnapshotBatch>();
@@ -379,6 +459,80 @@ fn single_consumer_preserves_one_way_packet_flow() {
 
     assert_eq!(packet.as_ref(), &[1, 2, 3]);
     assert_eq!(packet.into_inner(), vec![1, 2, 3]);
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct OrderedTestItem(u32);
+
+impl OrderedStreamItem for OrderedTestItem {
+    type OrderKey = u32;
+
+    fn order_key(&self) -> Self::OrderKey {
+        self.0
+    }
+}
+
+#[test]
+fn mergeable_ordered_stream_merges_locally_ordered_shards_without_global_sort() {
+    let left = LocallyOrderedShard::new(vec![OrderedTestItem(0), OrderedTestItem(2)]);
+    let right = LocallyOrderedShard::new(vec![OrderedTestItem(1), OrderedTestItem(3)]);
+
+    let merged = MergeableOrderedStream::new(vec![left, right])
+        .try_into_vec()
+        .unwrap();
+
+    assert_eq!(
+        merged,
+        vec![
+            OrderedTestItem(0),
+            OrderedTestItem(1),
+            OrderedTestItem(2),
+            OrderedTestItem(3)
+        ]
+    );
+}
+
+#[test]
+fn unordered_canonicalization_is_explicit_fallback_for_ordered_shards() {
+    let shard = LocallyOrderedShard::canonicalize_unordered(vec![
+        OrderedTestItem(3),
+        OrderedTestItem(1),
+        OrderedTestItem(2),
+    ]);
+
+    assert_eq!(
+        shard.into_vec(),
+        vec![OrderedTestItem(1), OrderedTestItem(2), OrderedTestItem(3)]
+    );
+}
+
+#[test]
+fn prepared_dependency_capture_recording_preserves_sorted_unique_order_without_resort() {
+    let mut capture = crate::logic::prepared::PreparedDependencyCapture::new();
+    let source_a = NodeId::new(9, 0);
+    let source_b = NodeId::new(3, 1);
+
+    capture.record(source_a, ASPECT_B, None);
+    capture.record(source_b, ASPECT_A, None);
+    capture.record(source_a, ASPECT_B, None);
+
+    let capture = capture.into_sorted_unique();
+    assert_eq!(capture.as_slice().len(), 2);
+    assert!(capture.as_slice().windows(2).all(|pair| {
+        (
+            pair[0].source.index(),
+            pair[0].source.generation(),
+            pair[0].aspect.index(),
+            pair[0].scope.as_ref(),
+        ) < (
+            pair[1].source.index(),
+            pair[1].source.generation(),
+            pair[1].aspect.index(),
+            pair[1].scope.as_ref(),
+        )
+    }));
+    assert_eq!(capture.as_slice()[0].source, source_b);
+    assert_eq!(capture.as_slice()[1].source, source_a);
 }
 
 #[test]
@@ -548,10 +702,16 @@ fn observer_exposes_runtime_and_retained_artifacts_separately() {
         Some("wing-lineage")
     );
     assert_eq!(runtime.memoized_origin, MemoizedResultOrigin::DirectCompute);
+    assert_eq!(runtime.reuse_basis, ReuseBasis::FreshCompute);
     assert_eq!(retained.labels, vec!["forensic".to_owned()]);
     assert_eq!(historical.node, node);
     assert_eq!(historical.runtime.output_identity, runtime.output_identity);
-    assert_eq!(historical.retained.as_ref().unwrap().labels, retained.labels);
+    assert_eq!(historical.runtime.reuse_basis, runtime.reuse_basis);
+    assert_eq!(
+        historical.retained.as_ref().unwrap().labels,
+        retained.labels
+    );
+    assert_eq!(trace.reuse_basis, runtime.reuse_basis);
     assert_eq!(
         historical
             .causality
@@ -580,6 +740,96 @@ fn dependency_snapshot_clone_shares_backing_storage() {
         &cloned.shared_entries()
     ));
     assert_eq!(snapshot.entries(), cloned.entries());
+}
+
+#[test]
+fn replacing_dependency_snapshot_reports_delta() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let source = graph.node().build();
+
+    let mut baseline = crate::data::dependency::DependencySnapshot::empty();
+    baseline.record(source, ASPECT_A, 3, None);
+    graph.set_dep_snapshot(node, baseline).unwrap();
+
+    let mut updated = crate::data::dependency::DependencySnapshot::empty();
+    updated.record(source, ASPECT_A, 5, None);
+    updated.record(source, ASPECT_B, 7, None);
+
+    let delta = graph
+        .replace_dep_snapshot_shared(
+            node,
+            crate::data::dependency::DependencySnapshotUpdate::Replace(
+                crate::data::dependency::SharedDependencySnapshot::new(updated),
+            ),
+        )
+        .unwrap();
+
+    assert_eq!(delta.node, node);
+    assert_eq!(delta.previous_entry_count, 1);
+    assert_eq!(delta.next_entry_count, 2);
+    assert_eq!(delta.changed_entry_count, 2);
+    assert!(delta.changed());
+}
+
+#[test]
+fn replacing_identical_dependency_snapshot_is_a_noop() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let source = graph.node().build();
+
+    let mut baseline = crate::data::dependency::DependencySnapshot::empty();
+    baseline.record(source, ASPECT_A, 3, None);
+    graph.set_dep_snapshot(node, baseline.clone()).unwrap();
+    let first_id = graph.get_entry(node).unwrap().get_dep_snapshot_id();
+
+    let delta = graph
+        .replace_dep_snapshot_shared(
+            node,
+            crate::data::dependency::DependencySnapshotUpdate::Replace(
+                crate::data::dependency::SharedDependencySnapshot::new(baseline),
+            ),
+        )
+        .unwrap();
+    let second_id = graph.get_entry(node).unwrap().get_dep_snapshot_id();
+
+    assert_eq!(first_id, second_id);
+    assert_eq!(delta.changed_entry_count, 0);
+    assert!(!delta.changed());
+}
+
+#[test]
+fn dependency_snapshot_version_only_update_preserves_shape() {
+    let source_a = NodeId::new(1, 0);
+    let source_b = NodeId::new(2, 0);
+    let mut baseline = crate::data::dependency::DependencySnapshot::empty();
+    baseline.record(source_a, ASPECT_A, 3, None);
+    baseline.record(source_b, ASPECT_B, 7, None);
+
+    let updated = baseline.with_updated_versions(&[5, 7]);
+    let delta = crate::data::dependency::SnapshotDeltaRecord::between(
+        NodeId::new(9, 0),
+        &baseline,
+        &crate::data::dependency::SharedDependencySnapshot::new(updated.clone()),
+    );
+
+    assert_eq!(baseline.entries().len(), updated.entries().len());
+    assert_eq!(
+        baseline
+            .entries()
+            .iter()
+            .map(|entry| entry.sort_key())
+            .collect::<Vec<_>>(),
+        updated
+            .entries()
+            .iter()
+            .map(|entry| entry.sort_key())
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(updated.entries()[0].cached_version, 5);
+    assert_eq!(updated.entries()[1].cached_version, 7);
+    assert_eq!(delta.changed_entry_count, 1);
+    assert!(delta.changed());
 }
 
 #[test]

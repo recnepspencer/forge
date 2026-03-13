@@ -119,7 +119,7 @@ impl<'a> PlanInspector<'a> {
         self.plan.stages.len()
     }
 
-    pub fn tasks_for_node(&self, node: NodeId) -> Vec<&'a crate::logic::planner::EvaluationTask> {
+    pub fn tasks_for_node(&self, node: NodeId) -> Vec<&'a crate::logic::planner::EligibleTask> {
         self.plan
             .stages
             .iter()
@@ -131,7 +131,7 @@ impl<'a> PlanInspector<'a> {
     pub fn tasks_by_reason(
         &self,
         reason: TaskReason,
-    ) -> Vec<&'a crate::logic::planner::EvaluationTask> {
+    ) -> Vec<&'a crate::logic::planner::EligibleTask> {
         self.plan
             .stages
             .iter()
@@ -140,7 +140,7 @@ impl<'a> PlanInspector<'a> {
             .collect()
     }
 
-    pub fn direct_tasks(&self) -> Vec<&'a crate::logic::planner::EvaluationTask> {
+    pub fn direct_tasks(&self) -> Vec<&'a crate::logic::planner::EligibleTask> {
         self.plan
             .stages
             .iter()

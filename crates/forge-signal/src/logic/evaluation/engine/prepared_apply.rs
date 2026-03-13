@@ -4,14 +4,12 @@ use crate::data::dependency::DependencyEdge;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
-use crate::data::output::{MemoizedResultOrigin, NodeEvaluationResult};
+use crate::data::output::NodeEvaluationResult;
 use crate::logic::evaluation::EffectDependencyInputs;
 use crate::logic::evaluation::{DeferralReason, PreparedApplyResult, SuppressionReason};
 #[cfg(test)]
 use crate::logic::prepared::PreparedDependencyCapture;
-use crate::logic::prepared::{
-    PreparedEvaluation, PreparedEvaluationOrigin, PreparedEvaluationOutcome,
-};
+use crate::logic::prepared::{PreparedEvaluation, PreparedEvaluationOutcome};
 
 use super::apply::{apply_effect_with_policy_and_condition, verdict_for_evaluated_result};
 use super::metadata::EvaluationExecutionMetadata;
@@ -51,38 +49,60 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
         PreparedEvaluationOutcome::Evaluate => {
             let mut result = prepared.result;
             result.labels.extend(prepared.trace_data.labels);
-            let metadata = match (execution_metadata, prepared.origin) {
-                (Some(metadata), _) => Some(metadata),
-                (None, PreparedEvaluationOrigin::MemoizedReuse) => {
-                    let synthesized = EvaluationExecutionMetadata {
-                        keyed: None,
-                        memoized_origin: MemoizedResultOrigin::MemoizedFromCache,
-                    };
-                    return apply_prepared_with_synthesized_metadata(
-                        graph,
-                        node,
-                        result,
-                        comparator_resolver,
-                        synthesized,
-                        dependency_updates,
-                        prepared.keyed,
-                        prepared.trace_data.causality,
-                    );
-                }
-                _ => None,
+            let reuse_decision = crate::logic::evaluation::resolve_prepared_reuse_decision(
+                prepared.origin,
+                execution_metadata,
+            );
+            let reuse_contract = graph
+                .get_entry(node)?
+                .get_eval_config()
+                .contract
+                .reuse
+                .clone();
+            let current_reuse_boundary_context =
+                crate::logic::evaluation::resolve_reuse_boundary_context(
+                    graph,
+                    node,
+                    comparator_resolver,
+                )?;
+            let previous_reuse_boundary_context = graph
+                .get_entry(node)?
+                .get_runtime_artifact_state()
+                .and_then(|trace| trace.reuse_boundary_context.clone());
+            let reuse_certification = crate::logic::evaluation::certify_reuse_decision(
+                &reuse_contract,
+                reuse_decision,
+                &crate::data::reuse::ReuseBoundaryEvidence {
+                    current: current_reuse_boundary_context.clone(),
+                    previous: previous_reuse_boundary_context,
+                },
+            )
+            .map_err(|failure| {
+                SignalError::invalid_input(format!(
+                    "reuse certification failed for {node}: {:?}",
+                    failure.failure
+                ))
+            })?;
+            let synthesized_metadata = EvaluationExecutionMetadata {
+                keyed: None,
+                memoized_origin: reuse_decision.memoized_origin,
+                reuse_basis: reuse_decision.basis,
             };
-            let recomputed = !matches!(prepared.origin, PreparedEvaluationOrigin::MemoizedReuse);
-            let verdict = verdict_for_evaluated_result(graph, node, &result, recomputed)?;
+            let metadata = execution_metadata.unwrap_or(&synthesized_metadata);
+            let verdict =
+                verdict_for_evaluated_result(graph, node, &result, reuse_decision.recomputed)?;
             let mut apply_result = apply_effect_with_policy_and_condition(
                 graph,
                 node,
                 result,
                 comparator_resolver,
-                metadata,
+                Some(metadata),
                 verdict,
-                recomputed,
+                reuse_decision.recomputed,
+                current_reuse_boundary_context,
                 prepared.keyed,
                 prepared.trace_data.causality,
+                reuse_certification,
                 dependency_inputs,
                 defer_snapshot_commit,
             )?;
@@ -101,8 +121,14 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
                     reason: SuppressionReason::ValidatedClean,
                 },
                 false,
+                crate::logic::evaluation::resolve_reuse_boundary_context(
+                    graph,
+                    node,
+                    comparator_resolver,
+                )?,
                 prepared.keyed,
                 prepared.trace_data.causality,
+                None,
                 dependency_inputs,
                 defer_snapshot_commit,
             )?;
@@ -121,8 +147,14 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
                     reason: DeferralReason::ConditionNotMet,
                 },
                 false,
+                crate::logic::evaluation::resolve_reuse_boundary_context(
+                    graph,
+                    node,
+                    comparator_resolver,
+                )?,
                 prepared.keyed,
                 prepared.trace_data.causality,
+                None,
                 dependency_inputs,
                 defer_snapshot_commit,
             )?;
@@ -141,8 +173,14 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
                     reason: SuppressionReason::ConditionRevertedClean,
                 },
                 false,
+                crate::logic::evaluation::resolve_reuse_boundary_context(
+                    graph,
+                    node,
+                    comparator_resolver,
+                )?,
                 prepared.keyed,
                 prepared.trace_data.causality,
+                None,
                 dependency_inputs,
                 defer_snapshot_commit,
             )?;
@@ -150,34 +188,6 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
             Ok(apply_result)
         }
     }
-}
-
-fn apply_prepared_with_synthesized_metadata(
-    graph: &mut SignalGraph,
-    node: NodeId,
-    result: NodeEvaluationResult,
-    comparator_resolver: &mut impl ComparatorPolicyResolver,
-    metadata: EvaluationExecutionMetadata,
-    dependency_updates: u32,
-    keyed_context: Option<crate::logic::prepared::PreparedKeyedContext>,
-    causality: Option<crate::data::trace::CausalityMetadata>,
-) -> Result<PreparedApplyResult, SignalError> {
-    let verdict = verdict_for_evaluated_result(graph, node, &result, false)?;
-    let mut apply_result = apply_effect_with_policy_and_condition(
-        graph,
-        node,
-        result,
-        comparator_resolver,
-        Some(&metadata),
-        verdict,
-        false,
-        keyed_context,
-        causality,
-        None,
-        false,
-    )?;
-    apply_result.dependency_updates = dependency_updates;
-    Ok(apply_result)
 }
 
 #[cfg(test)]

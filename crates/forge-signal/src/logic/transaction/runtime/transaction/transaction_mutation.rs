@@ -216,7 +216,7 @@ where
 
     pub(in crate::logic::transaction::runtime) fn stage_task_candidates(
         &mut self,
-        tasks: &[crate::logic::planner::EvaluationTask],
+        tasks: &[crate::logic::planner::EligibleTask],
     ) -> Result<(), SignalError> {
         for task in tasks {
             self.stage_evaluate_candidates(task.node)?;

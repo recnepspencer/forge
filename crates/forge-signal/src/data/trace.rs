@@ -11,6 +11,7 @@ use crate::data::output::{
     OutputChange, OutputIdentity,
 };
 use crate::data::proof::PartitionScopeSet;
+use crate::data::reuse::{ReuseBasis, ReuseBoundaryContext, ReuseCertificationRecord};
 use crate::diagnostics::lineage::LineageArtifactId;
 
 /// Hot operational artifact state retained directly on the node.
@@ -48,6 +49,12 @@ pub struct RuntimeArtifactState {
     /// How the last result was produced.
     #[serde(default)]
     pub memoized_origin: MemoizedResultOrigin,
+    /// Compact runtime truth for how the current artifact became current.
+    #[serde(default)]
+    pub reuse_basis: ReuseBasis,
+    /// Boundary evidence for certifying later reuse of this artifact.
+    #[serde(default)]
+    pub reuse_boundary_context: Option<ReuseBoundaryContext>,
     /// Last planner/execution record id that touched this node, when available.
     #[serde(default)]
     pub execution_record_id: Option<u64>,
@@ -75,6 +82,9 @@ pub struct RetainedDiagnosticArtifact {
     /// Key inside the computation family, when relevant.
     #[serde(default)]
     pub keyed_key: Option<String>,
+    /// Full cold-path proof for why reuse was legal, when retained.
+    #[serde(default)]
+    pub reuse_certification: Option<ReuseCertificationRecord>,
 }
 
 /// Cold historical artifact record assembled for explanation, lineage
@@ -119,6 +129,10 @@ pub struct TraceSummary {
     #[serde(default)]
     pub memoized_origin: MemoizedResultOrigin,
     #[serde(default)]
+    pub reuse_basis: ReuseBasis,
+    #[serde(default)]
+    pub reuse_boundary_context: Option<ReuseBoundaryContext>,
+    #[serde(default)]
     pub labels: Vec<String>,
     #[serde(default)]
     pub execution_record_id: Option<u64>,
@@ -149,6 +163,8 @@ impl TraceSummary {
             keyed_family: retained.and_then(|artifact| artifact.keyed_family.clone()),
             keyed_key: retained.and_then(|artifact| artifact.keyed_key.clone()),
             memoized_origin: runtime.memoized_origin,
+            reuse_basis: runtime.reuse_basis,
+            reuse_boundary_context: runtime.reuse_boundary_context.clone(),
             labels: retained
                 .map(|artifact| artifact.labels.clone())
                 .unwrap_or_default(),

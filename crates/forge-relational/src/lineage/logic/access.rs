@@ -108,7 +108,7 @@ impl<'runtime> LineageAccess<'runtime> {
         branch_id: &BranchId,
         lineage_id: LineageId,
     ) -> HistoricalLineageResolution {
-        let mut current = vec![lineage_id];
+        let mut current = BTreeSet::from([lineage_id]);
         let mut traversed_event_ids = Vec::new();
 
         for event in self
@@ -127,10 +127,10 @@ impl<'runtime> LineageAccess<'runtime> {
                 | LineageEventKind::Merge
                 | LineageEventKind::Correspond => {
                     traversed_event_ids.push(event.event_id);
-                    current.retain(|candidate| !event.sources.contains(candidate));
+                    for source in &event.sources {
+                        current.remove(source);
+                    }
                     current.extend(event.targets.iter().copied());
-                    current.sort();
-                    current.dedup();
                 }
                 LineageEventKind::Create | LineageEventKind::Retire => {}
             }
@@ -139,7 +139,7 @@ impl<'runtime> LineageAccess<'runtime> {
         HistoricalLineageResolution {
             branch_id: branch_id.clone(),
             start: lineage_id,
-            resolved: current,
+            resolved: current.into_iter().collect(),
             traversed_event_ids,
         }
     }

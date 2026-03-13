@@ -107,7 +107,8 @@ impl SignalGraph {
                     continuity_token: effect.continuity_token().cloned(),
                     output_change: comparison.output_change,
                     recomputed: effect.recomputed(),
-                    dependency_count: effect.operational.dependency_snapshot.entries().len() as u32,
+                    dependency_count: effect.operational.dependency_snapshot_update.entry_count()
+                        as u32,
                     meaningful_input_changes: effect.operational.meaningful_input_changes,
                     changed_partition_count: comparison.changed_partition_count,
                     propagation_suppressed: comparison.propagation_suppressed,
@@ -115,6 +116,8 @@ impl SignalGraph {
                         &CanonicalChangedRegions::from_slice(effect.changed_regions()),
                     ),
                     memoized_origin: effect.memoized_origin(),
+                    reuse_basis: effect.operational.reuse_basis,
+                    reuse_boundary_context: Some(effect.operational.reuse_boundary_context.clone()),
                     execution_record_id: None,
                     semantic_segment_id: None,
                     lineage_artifact_id: None,
@@ -134,11 +137,13 @@ impl SignalGraph {
                         keyed_key: effect.keyed_context().and_then(|keyed| {
                             keyed.key.as_ref().map(|key| key.as_str().to_owned())
                         }),
+                        reuse_certification: effect.reuse_certification().cloned(),
                     };
                     if retained.changed_regions.is_empty()
                         && retained.labels.is_empty()
                         && retained.keyed_family.is_none()
                         && retained.keyed_key.is_none()
+                        && retained.reuse_certification.is_none()
                     {
                         None
                     } else {
@@ -201,29 +206,38 @@ impl SignalGraph {
     }
 
     fn commit_effect_snapshot(&mut self, effect: &mut EvaluationEffect) -> Result<(), SignalError> {
+        if !effect.operational.snapshot_delta.changed() {
+            return Ok(());
+        }
         match effect.operational.verdict {
             EvaluationVerdict::Deferred { .. } => Ok(()),
-            EvaluationVerdict::Recomputed => self.set_dep_snapshot(
-                effect.operational.node,
-                std::mem::replace(
-                    &mut effect.operational.dependency_snapshot,
-                    crate::data::dependency::SharedDependencySnapshot::empty(),
+            EvaluationVerdict::Recomputed => self
+                .replace_dep_snapshot_shared(
+                    effect.operational.node,
+                    std::mem::replace(
+                        &mut effect.operational.dependency_snapshot_update,
+                        crate::data::dependency::DependencySnapshotUpdate::Replace(
+                            crate::data::dependency::SharedDependencySnapshot::empty(),
+                        ),
+                    ),
                 )
-                .into_snapshot(),
-            ),
+                .map(|_| ()),
             EvaluationVerdict::Suppressed {
                 reason:
                     SuppressionReason::OutputIdentityUnchanged
                     | SuppressionReason::ContinuityTokenUnchanged
                     | SuppressionReason::ComparatorMatch,
-            } => self.set_dep_snapshot(
-                effect.operational.node,
-                std::mem::replace(
-                    &mut effect.operational.dependency_snapshot,
-                    crate::data::dependency::SharedDependencySnapshot::empty(),
+            } => self
+                .replace_dep_snapshot_shared(
+                    effect.operational.node,
+                    std::mem::replace(
+                        &mut effect.operational.dependency_snapshot_update,
+                        crate::data::dependency::DependencySnapshotUpdate::Replace(
+                            crate::data::dependency::SharedDependencySnapshot::empty(),
+                        ),
+                    ),
                 )
-                .into_snapshot(),
-            ),
+                .map(|_| ()),
             EvaluationVerdict::Suppressed {
                 reason:
                     SuppressionReason::ValidatedClean | SuppressionReason::ConditionRevertedClean,

@@ -107,6 +107,13 @@ fn fintech_keyed_audit_cache_reuses_stable_memo_entries_without_cross_shape_corr
 
     let explanation = world.runtime.observe().explain(cache).unwrap();
     assert_eq!(
+        explanation.reuse_basis,
+        Some(ReuseBasis::Reused {
+            source: ReuseSource::MemoizedArtifact,
+            crossing: ReuseCrossing::None,
+        })
+    );
+    assert_eq!(
         explanation.memoized_origin,
         Some(MemoizedResultOrigin::MemoizedFromCache)
     );

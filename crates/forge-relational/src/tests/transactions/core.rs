@@ -281,18 +281,29 @@ fn commit_returns_envelope_with_patch_diagnostics_invariants_and_complexity() {
 
 #[test]
 fn staged_parallel_commit_records_preparation_strategy_and_packet_counters() {
-    let mut runtime =
-        runtime_with_test_schema_execution_model(RelationalExecutionModel::StagedParallelPreparation);
+    let mut runtime = runtime_with_test_schema_execution_model(
+        RelationalExecutionModel::StagedParallelPreparation,
+    );
     let result = create_entity_outcome(&mut runtime, "staged");
 
     assert!(result.complexity_delta().preparation_packet_count >= 1);
     assert!(result.complexity_delta().preparation_parallel_legal_count >= 1);
-    assert!(result.complexity_delta().preparation_parallel_profitable_count >= 1);
-    assert!(result
-        .complexity_delta()
-        .preparation_staged_parallel_strategy_count
-        >= 1);
-    assert_eq!(result.complexity_delta().preparation_reducer_conflict_count, 0);
+    assert!(
+        result
+            .complexity_delta()
+            .preparation_parallel_profitable_count
+            >= 1
+    );
+    assert!(
+        result
+            .complexity_delta()
+            .preparation_staged_parallel_strategy_count
+            >= 1
+    );
+    assert_eq!(
+        result.complexity_delta().preparation_reducer_conflict_count,
+        0
+    );
 
     let staged_execution = result
         .invariant_executions()
@@ -330,9 +341,8 @@ fn staged_parallel_commit_records_preparation_strategy_and_packet_counters() {
 
 #[test]
 fn staged_parallel_patch_preparation_matches_serial_patch_surface() {
-    let mut serial_runtime = runtime_with_test_schema_execution_model(
-        RelationalExecutionModel::SerialAuthority,
-    );
+    let mut serial_runtime =
+        runtime_with_test_schema_execution_model(RelationalExecutionModel::SerialAuthority);
     let mut staged_runtime = runtime_with_test_schema_execution_model(
         RelationalExecutionModel::StagedParallelPreparation,
     );

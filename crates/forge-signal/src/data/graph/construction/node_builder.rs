@@ -8,6 +8,7 @@ use crate::data::node::{
     NodeProjectionContract, PathClass,
 };
 use crate::data::output::PartitionSubscription;
+use crate::data::reuse::{ArtifactEquivalenceContract, NodeReuseContract};
 
 /// Fluent node builder for accessible public graph configuration.
 ///
@@ -96,6 +97,33 @@ impl<'a> NodeBuilder<'a> {
     /// Declare whether this node must wait for authority or may reconcile later.
     pub fn authority_policy(mut self, authority_policy: AuthorityPolicy) -> Self {
         self.config.contract = self.config.contract.with_authority_policy(authority_policy);
+        self
+    }
+
+    /// Replace the full reuse contract for this node.
+    pub fn reuse_contract(mut self, reuse_contract: NodeReuseContract) -> Self {
+        self.config.contract = self.config.contract.with_reuse_contract(reuse_contract);
+        self
+    }
+
+    /// Declare the semantic equivalence boundaries required for artifact reuse.
+    pub fn artifact_equivalence_contract(
+        mut self,
+        equivalence_contract: ArtifactEquivalenceContract,
+    ) -> Self {
+        self.config.contract = self
+            .config
+            .contract
+            .with_artifact_equivalence_contract(equivalence_contract);
+        self
+    }
+
+    /// Control whether full reuse certification must be retained for this node.
+    pub fn retain_reuse_certification(mut self, retain_certification: bool) -> Self {
+        self.config.contract = self
+            .config
+            .contract
+            .with_reuse_certification_retention(retain_certification);
         self
     }
 

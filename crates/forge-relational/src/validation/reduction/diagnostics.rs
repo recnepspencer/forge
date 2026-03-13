@@ -1,11 +1,12 @@
 use crate::authority::commit::preparation::diagnostics::observations::ValidationDiagnosticObservation;
 
-pub(crate) fn sort_diagnostic_observations(
-    observations: &mut [ValidationDiagnosticObservation],
+pub(crate) fn assert_canonical_diagnostic_observations(
+    observations: &[ValidationDiagnosticObservation],
 ) {
-    observations.sort_by(|left, right| {
-        left.packet_index
-            .cmp(&right.packet_index)
-            .then_with(|| left.result_identity.cmp(&right.result_identity))
-    });
+    debug_assert!(
+        observations
+            .windows(2)
+            .all(|window| window[0].canonical_key() <= window[1].canonical_key()),
+        "validation diagnostic observations must already be in canonical order"
+    );
 }

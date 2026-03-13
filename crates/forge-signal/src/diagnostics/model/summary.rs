@@ -6,6 +6,7 @@ use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
 use crate::data::output::{MemoizedResultOrigin, OutputChange};
+use crate::data::reuse::ReuseBasis;
 use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::profile::DiagnosticsProfile;
 use crate::logic::explain::{CausalDisposition, NodeExplanation, UpstreamCause};
@@ -103,6 +104,8 @@ pub struct ExplanationSummary {
     pub semantic_segment_id: Option<u64>,
     pub output_change: Option<OutputChange>,
     pub memoized_origin: Option<MemoizedResultOrigin>,
+    pub reuse_basis: Option<ReuseBasis>,
+    pub reuse_certification_proof_count: u32,
     pub changed_region_count: u32,
     pub causality_kind: Option<String>,
 }
@@ -114,6 +117,8 @@ pub struct ExecutionHistoryNodeSummary {
     pub semantic_segment_id: Option<u64>,
     pub output_change: Option<OutputChange>,
     pub memoized_origin: Option<MemoizedResultOrigin>,
+    pub reuse_basis: Option<ReuseBasis>,
+    pub reuse_certification_proof_count: u32,
     pub changed_partition_count: u32,
     pub causality_kind: Option<String>,
 }
@@ -246,7 +251,7 @@ impl EvaluationPlanSummary {
         max_stage_width: u32,
         contract_pruned_count: u32,
         stage_widths_iter: impl Iterator<Item = u32>,
-        tasks_iter: impl Iterator<Item = &'a crate::logic::planner::EvaluationTask>,
+        tasks_iter: impl Iterator<Item = &'a crate::logic::planner::EligibleTask>,
         profile: DiagnosticsProfile,
     ) -> Self {
         let mut task_reason_counts = BTreeMap::new();
@@ -421,6 +426,12 @@ impl ExplanationSummary {
             semantic_segment_id: explanation.semantic_segment_id,
             output_change: explanation.output_change,
             memoized_origin: explanation.memoized_origin,
+            reuse_basis: explanation.reuse_basis,
+            reuse_certification_proof_count: explanation
+                .reuse_certification
+                .as_ref()
+                .map(|record| record.proofs.len() as u32)
+                .unwrap_or(0),
             changed_region_count: explanation.changed_regions.len() as u32,
             causality_kind: explanation.causality.as_ref().map(|c| c.kind.clone()),
         }
@@ -458,6 +469,12 @@ impl ExecutionHistorySummary {
                     semantic_segment_id: trace.semantic_segment_id,
                     output_change: Some(trace.output_change),
                     memoized_origin: Some(trace.memoized_origin),
+                    reuse_basis: Some(trace.reuse_basis),
+                    reuse_certification_proof_count: entry
+                        .retained_diagnostic_artifact()
+                        .and_then(|retained| retained.reuse_certification.as_ref())
+                        .map(|record| record.proofs.len() as u32)
+                        .unwrap_or(0),
                     changed_partition_count: trace.changed_partition_count,
                     causality_kind: entry.get_causality().map(|c| c.kind.clone()),
                 });

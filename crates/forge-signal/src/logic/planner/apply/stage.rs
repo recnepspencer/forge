@@ -33,16 +33,12 @@ use super::super::semantic::{
 };
 use super::super::stage_precompute::StagePrecomputeResult;
 use super::super::types::{
-    ApplyFootprint, DisjointApplyGroup, EvaluationTask, ExecutionReport, LoweredStagePlan,
+    ApplyFootprint, DisjointApplyGroup, EligibleTask, ExecutionReport, LoweredStagePlan,
     LoweredTask, LoweredTaskExecution, PlanSummary, StageExecutionRecord, StageExecutor,
 };
+use super::workspace::StageScratch;
 #[cfg(feature = "parallel")]
 use super::groups::build_stage_apply_groups;
-
-struct StageScratch {
-    semantic_batch: SingleConsumer<StageSemanticBatch>,
-    pending_snapshots: Vec<crate::logic::evaluation::PendingDependencySnapshot>,
-}
 
 pub(in crate::logic::planner) fn apply_stage<F, R>(
     graph: &mut SignalGraph,
@@ -80,11 +76,8 @@ where
         stage_record,
     )?;
     if !stage_scratch.pending_snapshots.is_empty() {
-        graph.apply_snapshot_batch_commit(&SnapshotBatchCommit::from_pairs(
-            stage_scratch
-                .pending_snapshots
-                .iter()
-                .map(|pending| (pending.node, pending.snapshot.snapshot().clone())),
+        graph.apply_snapshot_batch_commit(&SnapshotBatchCommit::from_pending_snapshots(
+            stage_scratch.pending_snapshots.into_iter(),
         ))?;
     }
     let semantic_finalize_start = Instant::now();
@@ -102,7 +95,7 @@ where
 fn build_lowered_stage_plan(
     graph: &mut SignalGraph,
     stage_index: u32,
-    stage_tasks: &[EvaluationTask],
+    stage_tasks: &[EligibleTask],
     stage_execution: StageExecutionData,
     executor: StageExecutor,
 ) -> Result<LoweredStagePlan, SignalError> {
@@ -298,7 +291,6 @@ fn apply_lowered_task(
         recomputed,
         partition_aware,
         rewiring,
-        next_dependencies: _,
     } = execution;
     let apply_result = apply_prepared_evaluation_after_dependencies_with_policy(
         graph,
@@ -319,7 +311,7 @@ fn apply_lowered_task(
                 Some(node),
                 Some(executor),
                 Some(identity.record_id),
-                Some(summary.clone()),
+                Some(*summary),
                 err.to_string(),
             ),
         );
@@ -334,6 +326,11 @@ fn apply_lowered_task(
         .get_runtime_artifact_state()
         .map(|trace| trace.memoized_origin)
         .unwrap_or(crate::data::output::MemoizedResultOrigin::DirectCompute);
+    let reuse_basis = graph
+        .get_entry(node)?
+        .get_runtime_artifact_state()
+        .map(|trace| trace.reuse_basis)
+        .unwrap_or(crate::data::reuse::ReuseBasis::FreshCompute);
     Ok(SemanticTaskUpdate {
         task_index,
         node,
@@ -347,6 +344,7 @@ fn apply_lowered_task(
         rewiring,
         verdict: apply_result.report.verdict,
         memoized_origin,
+        reuse_basis,
     })
 }
 
@@ -394,27 +392,27 @@ fn lower_task_patch(
         next_dependencies.as_slice(),
     );
     let footprint = build_apply_footprint(patch.node, &current_dependencies, &next_dependencies);
+    let path_class = contract.execution.path_class;
+    let authority_policy = contract.authority.policy;
+    let dependency_updates =
+        count_dependency_updates(current_dependencies.as_slice(), next_dependencies.as_slice());
 
     Ok(LoweredTask {
         task_index: patch.task_index,
         node: patch.node,
-        contract: contract.clone(),
-        dependency_inputs: next_dependencies.clone(),
-        path_class: contract.execution.path_class,
-        authority_policy: contract.authority.policy,
+        contract,
+        dependency_inputs: next_dependencies,
+        path_class,
+        authority_policy,
         footprint,
         execution: LoweredTaskExecution {
             prepared: patch.prepared,
             before_state: *before_entry.get_state(),
             before_artifact_state: before_entry.get_runtime_artifact_state().cloned(),
-            dependency_updates: count_dependency_updates(
-                current_dependencies.as_slice(),
-                next_dependencies.as_slice(),
-            ),
+            dependency_updates,
             recomputed,
             partition_aware,
             rewiring,
-            next_dependencies,
         },
     })
 }
@@ -489,8 +487,7 @@ fn build_touched_scope_summary(tasks: &[LoweredTask]) -> TouchedScopeSummary {
         touched_nodes.push(task.node);
         touched_sources.extend_from_slice(task.footprint.touched_sources.as_slice());
         scopes.extend(
-            task.execution
-                .next_dependencies
+            task.dependency_inputs
                 .as_slice()
                 .iter()
                 .filter_map(|edge| edge.scope_ref().cloned()),

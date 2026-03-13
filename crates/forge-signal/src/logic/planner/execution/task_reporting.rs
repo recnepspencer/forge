@@ -1,30 +1,38 @@
 use crate::data::graph::SignalGraph;
 use crate::data::node::NodeState;
 use crate::data::output::MemoizedResultOrigin;
+use crate::data::reuse::{ReuseBasis, ReuseSource};
 use crate::data::trace::RuntimeArtifactState;
 use crate::diagnostics::failure::ExecutionFailureContext;
 use crate::diagnostics::recorder::DiagnosticsRecorder;
 use crate::logic::evaluation::{EvaluationVerdict, SuppressionReason};
 
 use super::super::types::{
-    EvaluationTask, ExecutionPruneReason, ExecutionRecordId, ExecutionReport, SemanticSegmentId,
-    TaskExecutionOutcome, TaskExecutionRecord,
+    EligibleTask, ExecutedTask, ExecutionPruneReason, ExecutionRecordId, ExecutionReport,
+    SemanticSegmentId, TaskExecutionOutcome, TaskExecutionRecord,
 };
 
 pub(crate) fn classify_task_record(
     id: ExecutionRecordId,
     semantic_segment_id: SemanticSegmentId,
-    task: &EvaluationTask,
+    task: &EligibleTask,
     before_state: NodeState,
     after_state: NodeState,
     before_trace: Option<&RuntimeArtifactState>,
     after_trace: Option<&RuntimeArtifactState>,
     verdict: EvaluationVerdict,
     memoized_origin: MemoizedResultOrigin,
-) -> TaskExecutionRecord {
+    reuse_basis: ReuseBasis,
+) -> ExecutedTask {
     let trace_changed = before_trace != after_trace;
     let recomputed = matches!(verdict, EvaluationVerdict::Recomputed);
-    let memoized_reuse = memoized_origin == MemoizedResultOrigin::MemoizedFromCache;
+    let memoized_reuse = matches!(
+        reuse_basis,
+        ReuseBasis::Reused {
+            source: ReuseSource::MemoizedArtifact,
+            ..
+        }
+    );
     let propagation_suppressed = after_trace
         .map(|trace| trace.propagation_suppressed)
         .unwrap_or(false);
@@ -64,20 +72,24 @@ pub(crate) fn classify_task_record(
         },
     };
 
-    TaskExecutionRecord {
-        id,
-        semantic_segment_id,
-        node: task.node,
-        scheduled_reason: task.reason,
-        direct_request: task.direct_request,
-        outcome,
-        verdict: Some(verdict),
-        suppression_reason,
-        deferral_reason,
-        prune_reason,
-        recomputed,
-        memoized_origin,
-        propagation_suppressed,
+    ExecutedTask {
+        task: task.clone(),
+        record: TaskExecutionRecord {
+            id,
+            semantic_segment_id,
+            node: task.node,
+            scheduled_reason: task.reason,
+            direct_request: task.direct_request,
+            outcome,
+            verdict: Some(verdict),
+            suppression_reason,
+            deferral_reason,
+            prune_reason,
+            recomputed,
+            memoized_origin,
+            reuse_basis,
+            propagation_suppressed,
+        },
     }
 }
 

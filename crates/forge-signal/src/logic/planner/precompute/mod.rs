@@ -12,12 +12,14 @@ use rayon::prelude::*;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
-use crate::data::proof::SingleConsumer;
+#[cfg(feature = "parallel")]
+use crate::data::proof::{LocallyOrderedShard, MergeableOrderedStream, OrderedStreamMergeError};
+use crate::data::proof::{OrderedStreamItem, SingleConsumer};
 use crate::logic::prepared::{ExecutionSnapshot, PreparedEvaluation};
 
 #[cfg(feature = "parallel")]
 use self::executor_pool::PlannerExecutorPool;
-use super::types::EvaluationTask;
+use super::types::EligibleTask;
 #[cfg(feature = "parallel")]
 use super::types::ParallelExecutionPolicy;
 use super::validation::{capture_current_dependencies, preview_maybe_stale};
@@ -28,6 +30,22 @@ pub(in crate::logic::planner) struct PreparedTaskPatch {
     pub task_index: usize,
     pub node: NodeId,
     pub prepared: PreparedEvaluation,
+}
+
+impl OrderedStreamItem for (usize, PreparedEvaluation) {
+    type OrderKey = usize;
+
+    fn order_key(&self) -> Self::OrderKey {
+        self.0
+    }
+}
+
+impl OrderedStreamItem for PreparedTaskPatch {
+    type OrderKey = usize;
+
+    fn order_key(&self) -> Self::OrderKey {
+        self.task_index
+    }
 }
 
 pub(in crate::logic::planner) enum StageExecutionData {
@@ -45,7 +63,7 @@ impl StageExecutionData {
         }
     }
 
-    pub fn into_patches(self, tasks: &[EvaluationTask]) -> Vec<PreparedTaskPatch> {
+    pub fn into_patches(self, tasks: &[EligibleTask]) -> Vec<PreparedTaskPatch> {
         match self {
             Self::Prepared(prepared) => prepared
                 .into_inner()
@@ -65,7 +83,7 @@ impl StageExecutionData {
 
 pub(super) fn precompute_stage_serial<F>(
     graph: &mut SignalGraph,
-    tasks: &[EvaluationTask],
+    tasks: &[EligibleTask],
     precompute: &F,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
 ) -> Result<Vec<PreparedEvaluation>, SignalError>
@@ -93,7 +111,7 @@ where
 #[cfg(feature = "parallel")]
 pub(super) fn precompute_stage_parallel<F>(
     graph: &mut SignalGraph,
-    tasks: &[EvaluationTask],
+    tasks: &[EligibleTask],
     precompute: &F,
     policy: ParallelExecutionPolicy,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
@@ -127,26 +145,22 @@ where
     pool.install(|| {
         let joined = compute_indices
             .par_chunks(chunk_size)
-            .enumerate()
-            .map(|(chunk_index, index_chunk)| {
+            .map(|index_chunk| {
                 let mut chunk_results = Vec::with_capacity(index_chunk.len());
                 for &task_index in index_chunk {
                     let task = &tasks[task_index];
                     let view = snapshot.read_view(task.node);
                     chunk_results.push((task_index, precompute(task.node, &view)?));
                 }
-                Ok::<(usize, Vec<(usize, PreparedEvaluation)>), SignalError>((
-                    chunk_index,
-                    chunk_results,
-                ))
+                Ok::<LocallyOrderedShard<(usize, PreparedEvaluation)>, SignalError>(
+                    LocallyOrderedShard::new(chunk_results),
+                )
             })
             .collect::<Result<Vec<_>, SignalError>>()?;
 
-        let mut computed = joined
-            .into_iter()
-            .flat_map(|(_, chunk_results)| chunk_results)
-            .collect::<Vec<_>>();
-        computed.sort_by_key(|(task_index, _)| *task_index);
+        let computed = MergeableOrderedStream::new(joined)
+            .try_into_vec()
+            .map_err(parallel_duplicate_task_index)?;
         for (task_index, prepared_task) in computed {
             prepared[task_index] = Some(prepared_task);
         }
@@ -160,7 +174,7 @@ where
 #[cfg(feature = "parallel")]
 pub(super) fn build_parallel_stage_patches<F>(
     graph: &mut SignalGraph,
-    tasks: &[EvaluationTask],
+    tasks: &[EligibleTask],
     precompute: &F,
     policy: ParallelExecutionPolicy,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
@@ -202,10 +216,9 @@ where
     let snapshot = ExecutionSnapshot::new(&*graph);
     let pool = PlannerExecutorPool::shared(worker_count)?;
     pool.install(|| {
-        let mut patches = compute_indices
+        let computed = compute_indices
             .par_chunks(chunk_size)
-            .enumerate()
-            .map(|(_chunk_index, index_chunk)| {
+            .map(|index_chunk| {
                 let mut chunk_patches = Vec::with_capacity(index_chunk.len());
                 for &task_index in index_chunk {
                     let task = &tasks[task_index];
@@ -216,19 +229,20 @@ where
                         prepared: precompute(task.node, &view)?,
                     });
                 }
-                Ok::<Vec<PreparedTaskPatch>, SignalError>(chunk_patches)
+                Ok::<LocallyOrderedShard<PreparedTaskPatch>, SignalError>(LocallyOrderedShard::new(
+                    chunk_patches,
+                ))
             })
-            .collect::<Result<Vec<_>, SignalError>>()?
-            .into_iter()
-            .flatten()
-            .collect::<Vec<_>>();
-        for patch in prepatched.into_iter().flatten() {
-            patches.push(patch);
-        }
-        patches.sort_by_key(|patch| patch.task_index);
+            .collect::<Result<Vec<_>, SignalError>>()?;
+        let prevalidated =
+            LocallyOrderedShard::new(prepatched.into_iter().flatten().collect::<Vec<_>>());
+        let patches =
+            MergeableOrderedStream::new(std::iter::once(prevalidated).chain(computed.into_iter()))
+                .try_into_vec()
+                .map_err(parallel_duplicate_task_index)?;
         for window in patches.windows(2) {
             if let [left, right] = window {
-                if left.task_index == right.task_index || left.node == right.node {
+                if left.node == right.node {
                     return Err(SignalError::internal(
                         "parallel patch merge encountered duplicate task target",
                     ));
@@ -239,9 +253,14 @@ where
     })
 }
 
+#[cfg(feature = "parallel")]
+fn parallel_duplicate_task_index(_error: OrderedStreamMergeError<usize>) -> SignalError {
+    SignalError::internal("parallel ordered merge encountered duplicate task index")
+}
+
 fn prevalidate_stage_tasks(
     graph: &mut SignalGraph,
-    tasks: &[EvaluationTask],
+    tasks: &[EligibleTask],
     comparator_resolver: &mut impl ComparatorPolicyResolver,
 ) -> Result<Vec<Option<PreparedEvaluation>>, SignalError> {
     let mut prevalidated = Vec::with_capacity(tasks.len());
@@ -257,7 +276,7 @@ fn prevalidate_stage_tasks(
 
 fn prepare_validated_clean_if_unchanged(
     graph: &mut SignalGraph,
-    task: &super::types::EvaluationTask,
+    task: &super::types::EligibleTask,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
 ) -> Result<Option<PreparedEvaluation>, SignalError> {
     if matches!(

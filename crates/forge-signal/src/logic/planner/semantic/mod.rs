@@ -7,6 +7,7 @@ use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
 use crate::data::output::MemoizedResultOrigin;
+use crate::data::reuse::ReuseBasis;
 use crate::data::trace::RuntimeArtifactState;
 use crate::diagnostics::recorder::record_lineage_transition;
 use crate::logic::evaluation::EvaluationVerdict;
@@ -16,8 +17,8 @@ use self::artifacts::record_semantic_artifacts;
 use self::reporting::record_semantic_update;
 use super::reporting::classify_task_record;
 use super::types::{
-    EvaluationTask, ExecutionRecordId, ExecutionReport, SemanticSegmentId, SemanticTaskRange,
-    StageExecutionRecord,
+    EligibleTask, ExecutedTask, ExecutionRecordId, ExecutionReport, SemanticSegmentId,
+    SemanticTaskRange, StageExecutionRecord,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -40,6 +41,7 @@ pub(super) struct SemanticTaskUpdate {
     pub rewiring: Option<RewiringSummary>,
     pub verdict: EvaluationVerdict,
     pub memoized_origin: MemoizedResultOrigin,
+    pub reuse_basis: ReuseBasis,
 }
 
 #[derive(Debug, Clone)]
@@ -94,7 +96,7 @@ pub(super) fn segment_for_single_update(update: SemanticTaskUpdate) -> SemanticS
 
 pub(super) fn finalize_stage_batch(
     graph: &mut SignalGraph,
-    stage_tasks: &[EvaluationTask],
+    stage_tasks: &[EligibleTask],
     batch: StageSemanticBatch,
     report: &mut ExecutionReport,
     stage_record: &mut StageExecutionRecord,
@@ -132,6 +134,7 @@ pub(super) fn finalize_stage_batch(
                 rewiring,
                 verdict,
                 memoized_origin,
+                reuse_basis,
             } = update;
             stamp_trace_summary(graph, node, identity.record_id, identity.segment_id)?;
             record_lineage_transition(
@@ -142,7 +145,7 @@ pub(super) fn finalize_stage_batch(
                 identity.segment_id,
             )?;
             let task = &stage_tasks[task_index];
-            let task_record = classify_task_record(
+            let executed_task = classify_task_record(
                 identity.record_id,
                 identity.segment_id,
                 task,
@@ -152,15 +155,17 @@ pub(super) fn finalize_stage_batch(
                 graph.get_entry(node)?.get_runtime_artifact_state(),
                 verdict,
                 memoized_origin,
+                reuse_basis,
             );
             record_semantic_update(
                 graph,
                 report,
-                &task_record,
+                &executed_task.record,
                 dependency_updates,
                 recomputed,
                 partition_aware,
             );
+            let ExecutedTask { record: task_record, .. } = executed_task;
             task_records.push(task_record);
             record_semantic_artifacts(graph, node, rewiring.as_ref())?;
         }

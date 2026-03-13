@@ -5,6 +5,7 @@ use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
 use crate::data::output::PartitionSubscription;
+use crate::data::proof::DedupedNodeBatch;
 use crate::logic::prepared::PreparedDependencyCapture;
 
 #[derive(Debug, Clone, Default)]
@@ -81,8 +82,8 @@ pub(crate) fn preview_maybe_stale(
         }
     }
 
-    requires_upstream_evaluation.sort_by_key(|node| (node.index(), node.generation()));
-    requires_upstream_evaluation.dedup();
+    requires_upstream_evaluation =
+        DedupedNodeBatch::canonicalize_unordered(requires_upstream_evaluation).into_vec();
 
     Ok(MaybeStalePreview {
         unchanged: !meaningful_change_detected && requires_upstream_evaluation.is_empty(),

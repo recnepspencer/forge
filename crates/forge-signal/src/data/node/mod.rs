@@ -8,6 +8,7 @@ pub use crate::data::performance::{
     PerformanceCounterSurface, PerformanceEnforcementLayer, ResolvedPerformancePolicy,
     SuppressionBasis,
 };
+pub use crate::data::reuse::NodeReuseContract;
 pub use condition::{EvaluationCondition, NodeEvaluationConfig};
 pub use contract::{
     ContextRequirement, NodeAuthorityContract, NodeContract, NodeExecutionContract,

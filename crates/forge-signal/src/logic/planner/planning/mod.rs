@@ -12,12 +12,13 @@ use crate::data::graph::SignalGraph;
 use crate::data::graph::TraversalScratch;
 use crate::data::handle::NodeId;
 use crate::data::node::{ContextRequirement, NodeState};
+use crate::data::proof::{DedupedNodeBatch, LocallyOrderedShard};
 use crate::logic::evaluation::EvaluationRequestMode;
 
 use self::validation::{preview_maybe_stale, runtime_sorted_dependencies};
 use super::types::{
-    EvaluationCursor, EvaluationPlan, EvaluationTask, ExecutionStage, PlanSummary, SessionScratch,
-    StageBarrier, StageCursor, TaskReason,
+    CandidateTask, EligibleTask, EvaluationCursor, EvaluationPlan, ExecutionStage, PlanSummary,
+    SessionScratch, StageBarrier, StageCursor, TaskReason,
 };
 
 pub fn build_evaluation_plan(
@@ -126,16 +127,14 @@ struct PlanningStats {
 
 fn visit_node(
     graph: &mut SignalGraph,
-    node: NodeId,
-    request_mode: EvaluationRequestMode,
-    direct_request: bool,
-    reason: TaskReason,
+    candidate: CandidateTask,
     resolver: &mut impl ComparatorPolicyResolver,
     visiting: &mut DenseBitset,
     planned: &mut [Option<PlannedNode>],
     planned_nodes: &mut Vec<NodeId>,
     stats: &mut PlanningStats,
 ) -> Result<(), SignalError> {
+    let node = candidate.node;
     let node_index = node.index() as usize;
     if visiting.contains(node_index) {
         return Err(SignalError::invalid_input(format!(
@@ -143,7 +142,7 @@ fn visit_node(
         )));
     }
     if let Some(existing) = &mut planned[node_index] {
-        existing.direct_request |= direct_request;
+        existing.direct_request |= candidate.direct_request;
         return Ok(());
     }
     visiting.mark(node_index);
@@ -157,9 +156,15 @@ fn visit_node(
         .cares_about_change(entry.get_dirty_aspects(), &dirty_partition_scopes);
     let should_include = (matches!(state, NodeState::Dirty | NodeState::MaybeStale)
         && contract_reads_dirty)
-        || (direct_request && matches!(request_mode, EvaluationRequestMode::ForceOnDemand));
+        || (candidate.direct_request
+            && matches!(
+                candidate.request_mode,
+                EvaluationRequestMode::ForceOnDemand
+            ));
     if should_include {
-        planned[node_index] = Some(PlannedNode { direct_request });
+        planned[node_index] = Some(PlannedNode {
+            direct_request: candidate.direct_request,
+        });
         planned_nodes.push(node);
     } else {
         stats.contract_pruned_count += 1;
@@ -172,10 +177,12 @@ fn visit_node(
             for dependency in runtime_sorted_dependencies(graph, node)? {
                 visit_node(
                     graph,
-                    dependency.source(),
-                    request_mode,
-                    false,
-                    TaskReason::DependencyRequired,
+                    CandidateTask {
+                        node: dependency.source(),
+                        request_mode: candidate.request_mode,
+                        direct_request: false,
+                        trigger_reason: TaskReason::DependencyRequired,
+                    },
                     resolver,
                     visiting,
                     planned,
@@ -186,7 +193,7 @@ fn visit_node(
         }
         NodeState::MaybeStale => {
             let preview = preview_maybe_stale(graph, node, resolver)?;
-            let upstream_reason = if matches!(reason, TaskReason::MaybeStaleValidation) {
+            let upstream_reason = if matches!(candidate.trigger_reason, TaskReason::MaybeStaleValidation) {
                 TaskReason::MaybeStaleValidation
             } else {
                 TaskReason::DependencyRequired
@@ -194,10 +201,12 @@ fn visit_node(
             for source in preview.requires_upstream_evaluation {
                 visit_node(
                     graph,
-                    source,
-                    request_mode,
-                    false,
-                    upstream_reason,
+                    CandidateTask {
+                        node: source,
+                        request_mode: candidate.request_mode,
+                        direct_request: false,
+                        trigger_reason: upstream_reason,
+                    },
                     resolver,
                     visiting,
                     planned,
@@ -207,16 +216,19 @@ fn visit_node(
             }
         }
         NodeState::Clean
-            if direct_request && matches!(request_mode, EvaluationRequestMode::ForceOnDemand) =>
+            if candidate.direct_request
+                && matches!(candidate.request_mode, EvaluationRequestMode::ForceOnDemand) =>
         {
             for dependency in runtime_sorted_dependencies(graph, node)? {
                 if !matches!(graph.get_state(dependency.source())?, NodeState::Clean) {
                     visit_node(
                         graph,
-                        dependency.source(),
-                        request_mode,
-                        false,
-                        TaskReason::DependencyRequired,
+                        CandidateTask {
+                            node: dependency.source(),
+                            request_mode: candidate.request_mode,
+                            direct_request: false,
+                            trigger_reason: TaskReason::DependencyRequired,
+                        },
                         resolver,
                         visiting,
                         planned,
@@ -258,13 +270,28 @@ impl DepthCache {
     }
 }
 
+fn admit_planned_node(
+    graph: &SignalGraph,
+    node: NodeId,
+    direct_request: bool,
+    request_mode: EvaluationRequestMode,
+) -> Result<EligibleTask, SignalError> {
+    let reason = classify_reason(graph, node, direct_request, request_mode)?;
+    Ok(EligibleTask {
+        node,
+        request_mode,
+        direct_request,
+        reason,
+    })
+}
+
 fn populate_plan_buffers(
     graph: &mut SignalGraph,
     targets: &[NodeId],
     request_mode: EvaluationRequestMode,
     resolver: &mut impl ComparatorPolicyResolver,
     out_targets: &mut Vec<NodeId>,
-    out_tasks: &mut Vec<EvaluationTask>,
+    out_tasks: &mut Vec<EligibleTask>,
     out_stages: &mut Vec<StageCursor>,
 ) -> Result<PlanSummary, SignalError> {
     let (arena, _, _, _) = graph.as_parts_mut();
@@ -276,18 +303,19 @@ fn populate_plan_buffers(
     visiting.ensure_len(arena_capacity);
 
     out_targets.clear();
-    out_targets.extend_from_slice(targets);
-    out_targets.sort_by_key(|node| node_sort_key(*node));
-    out_targets.dedup();
+    out_targets
+        .extend(DedupedNodeBatch::canonicalize_unordered(targets.iter().copied()).into_vec());
 
     for &target in out_targets.iter() {
         graph.get_entry(target)?;
         visit_node(
             graph,
-            target,
-            request_mode,
-            true,
-            TaskReason::RequestedTarget,
+            CandidateTask {
+                node: target,
+                request_mode,
+                direct_request: true,
+                trigger_reason: TaskReason::RequestedTarget,
+            },
             resolver,
             &mut visiting,
             &mut planned,
@@ -298,18 +326,12 @@ fn populate_plan_buffers(
 
     let depth_cache = compute_depths(graph, &planned_nodes)?;
     let max_depth = depth_cache.depths.iter().copied().max().unwrap_or(0) as usize;
-    let mut stages_by_depth = vec![Vec::<EvaluationTask>::new(); max_depth + 1];
-    planned_nodes.sort_by_key(|node| node_sort_key(*node));
+    let mut stages_by_depth = vec![Vec::<EligibleTask>::new(); max_depth + 1];
+    planned_nodes = DedupedNodeBatch::canonicalize_unordered(planned_nodes).into_vec();
     for node in planned_nodes {
         let planned_node = planned[node.index() as usize]
             .expect("planned node list should only contain planned nodes");
-        let reason = classify_reason(graph, node, planned_node.direct_request, request_mode)?;
-        let task = EvaluationTask {
-            node,
-            request_mode,
-            direct_request: planned_node.direct_request,
-            reason,
-        };
+        let task = admit_planned_node(graph, node, planned_node.direct_request, request_mode)?;
         let depth = depth_cache.depth_for(node).ok_or_else(|| {
             SignalError::internal("planned node missing depth cache entry during stage assembly")
         })? as usize;
@@ -318,11 +340,11 @@ fn populate_plan_buffers(
 
     out_tasks.clear();
     out_stages.clear();
-    for mut stage_tasks in stages_by_depth {
+    for stage_tasks in stages_by_depth {
         if stage_tasks.is_empty() {
             continue;
         }
-        stage_tasks.sort_by_key(|task| node_sort_key(task.node));
+        let stage_tasks = LocallyOrderedShard::canonicalize_unordered(stage_tasks).into_vec();
         let start = out_tasks.len();
         let end = start + stage_tasks.len();
         let stage_index = out_stages.len() as u32;
@@ -376,7 +398,7 @@ fn compute_depths(
         .enumerate()
         .filter_map(|(index, node)| (indegree[index] == 0).then_some(*node))
         .collect::<Vec<_>>();
-    frontier.sort_by_key(|node| node_sort_key(*node));
+    frontier = DedupedNodeBatch::canonicalize_unordered(frontier).into_vec();
 
     let mut depths = vec![0_u32; planned_nodes.len()];
     let mut visited = 0usize;
@@ -407,7 +429,7 @@ fn compute_depths(
                     newly_ready.push(planned_nodes[child_index]);
                 }
             }
-            newly_ready.sort_by_key(|child| node_sort_key(*child));
+            let newly_ready = DedupedNodeBatch::canonicalize_unordered(newly_ready).into_vec();
             frontier.extend(newly_ready.into_iter().rev());
         }
     }
@@ -455,7 +477,13 @@ fn classify_reason(
     }
 
     if trace.is_some_and(|summary| {
-        summary.memoized_origin == crate::data::output::MemoizedResultOrigin::MemoizedFromCache
+        matches!(
+            summary.reuse_basis,
+            crate::data::reuse::ReuseBasis::Reused {
+                source: crate::data::reuse::ReuseSource::MemoizedArtifact,
+                ..
+            }
+        )
     }) {
         return Ok(TaskReason::MemoValidation);
     }
@@ -469,8 +497,4 @@ pub(crate) fn partition_scope_untouched(
     scope: &crate::data::output::PartitionSubscription,
 ) -> bool {
     !crate::data::output::scope_touched_by_artifact_state(trace_summary, scope)
-}
-
-pub(crate) fn node_sort_key(node: NodeId) -> (u32, u32) {
-    (node.index(), node.generation())
 }

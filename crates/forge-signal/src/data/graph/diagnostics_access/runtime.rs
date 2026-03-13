@@ -78,11 +78,15 @@ impl SignalGraph {
         invalidated_direct_subscribers: u32,
         maybe_stale_direct_subscribers: u32,
         partition_scoped_checks: u32,
+        narrowed_frontier_width: u32,
+        transitive_frontier_width: u32,
     ) {
         self.observation.diagnostics.record_invalidation_result(
             invalidated_direct_subscribers,
             maybe_stale_direct_subscribers,
             partition_scoped_checks,
+            narrowed_frontier_width,
+            transitive_frontier_width,
         );
     }
 

@@ -78,8 +78,10 @@ pub struct PatchRecord {
 impl PatchRecord {
     pub fn canonicalized(&self) -> Self {
         let mut aspects = self.aspects.clone();
-        aspects.sort();
-        aspects.dedup();
+        if !aspects.windows(2).all(|window| window[0] < window[1]) {
+            aspects.sort();
+            aspects.dedup();
+        }
         Self {
             kind: self.kind.clone(),
             target: self.target.clone(),

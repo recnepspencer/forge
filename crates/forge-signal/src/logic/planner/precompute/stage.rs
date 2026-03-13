@@ -86,7 +86,7 @@ fn run_precompute_dispatch_pass(
     graph: &mut SignalGraph,
     summary: &PlanSummary,
     stage_index: u32,
-    tasks: &[crate::logic::planner::EvaluationTask],
+    tasks: &[crate::logic::planner::EligibleTask],
     precompute: &(impl Fn(
         crate::data::handle::NodeId,
         &crate::logic::prepared::ExecutionReadView<'_>,

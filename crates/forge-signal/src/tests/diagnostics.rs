@@ -301,7 +301,7 @@ fn flow_and_failure_summaries_are_structured_and_diffable() {
             0,
             Some("host-change".to_string()),
         ),
-        InvalidationSummary::new(1, 0, 0),
+        InvalidationSummary::new(1, 0, 0, 0, 0),
         PlanningSummary::from_plan(&plan, DiagnosticsProfile::Development),
         PrecomputeSummary::from_report(&report, DiagnosticsProfile::Development),
         ApplySummary::from_report(&report, DiagnosticsProfile::Development),
@@ -321,7 +321,7 @@ fn flow_and_failure_summaries_are_structured_and_diffable() {
         Some(node),
         Some(StageExecutor::Serial),
         Some(ExecutionRecordId(7)),
-        Some(plan.summary.clone()),
+        Some(plan.summary),
         "precompute failed",
     );
     let rollback = RollbackDiagnostic::new(

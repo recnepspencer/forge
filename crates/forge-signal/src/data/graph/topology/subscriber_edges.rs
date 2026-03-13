@@ -1,6 +1,9 @@
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
-use crate::data::proof::{DedupedNodeBatch, SubscriberRepair, SubscriberRepairBatch};
+use crate::data::proof::{
+    DedupedNodeBatch, LocallyOrderedShard, OrderedStreamItem, SubscriberRepair,
+    SubscriberRepairBatch,
+};
 
 use super::super::signal_graph::SignalGraph;
 use super::mutation::SubscriberBatchOp;
@@ -222,20 +225,22 @@ impl SignalGraph {
             return Ok(());
         }
 
-        let mut sorted = ops.to_vec();
-        sorted.sort_by_key(|op| {
-            (
-                node_id_sort_key(op.source),
-                node_id_sort_key(op.subscriber),
-                !op.should_subscribe,
-            )
-        });
+        // Unordered subscriber ops must pass through an explicit fallback
+        // canonicalization boundary before the hot reconciliation walk.
+        self.apply_ordered_subscriber_batch_ops(canonicalize_unordered_subscriber_ops(ops))
+    }
+
+    fn apply_ordered_subscriber_batch_ops(
+        &mut self,
+        ops: LocallyOrderedShard<SubscriberBatchOp>,
+    ) -> Result<(), SignalError> {
+        let ordered = ops.as_slice();
 
         let mut op_index = 0usize;
-        while op_index < sorted.len() {
-            let source = sorted[op_index].source;
+        while op_index < ordered.len() {
+            let source = ordered[op_index].source;
             let start = op_index;
-            while op_index < sorted.len() && sorted[op_index].source == source {
+            while op_index < ordered.len() && ordered[op_index].source == source {
                 op_index += 1;
             }
 
@@ -250,7 +255,7 @@ impl SignalGraph {
             let mut changed = false;
             let mut range_index = start;
             while range_index < op_index {
-                let op = sorted[range_index];
+                let op = ordered[range_index];
                 match updated.binary_search(&op.subscriber) {
                     Ok(index) if !op.should_subscribe => {
                         updated.remove(index);
@@ -302,10 +307,16 @@ impl SignalGraph {
 }
 
 fn sorted_unique_nodes(nodes: &[NodeId]) -> Vec<NodeId> {
-    let mut nodes = nodes.to_vec();
-    nodes.sort_by_key(|node| node_id_sort_key(*node));
-    nodes.dedup();
-    nodes
+    DedupedNodeBatch::canonicalize_unordered(nodes.iter().copied()).into_vec()
+}
+
+fn canonicalize_unordered_subscriber_ops(
+    ops: &[SubscriberBatchOp],
+) -> LocallyOrderedShard<SubscriberBatchOp> {
+    let mut canonical = ops.to_vec();
+    canonical.sort_unstable_by_key(|op| op.order_key());
+    canonical.dedup();
+    LocallyOrderedShard::new(canonical)
 }
 
 fn node_id_sort_key(node: NodeId) -> (u32, u32) {

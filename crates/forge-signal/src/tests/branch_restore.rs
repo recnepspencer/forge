@@ -64,6 +64,13 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
     assert_eq!(main_compute_calls.load(Ordering::Relaxed), 1);
     let explanation = runtime.observe().explain(feature_node).unwrap();
     assert_eq!(
+        explanation.reuse_basis,
+        Some(ReuseBasis::Reused {
+            source: ReuseSource::MemoizedArtifact,
+            crossing: ReuseCrossing::None,
+        })
+    );
+    assert_eq!(
         explanation.memoized_origin,
         Some(MemoizedResultOrigin::MemoizedFromCache)
     );
