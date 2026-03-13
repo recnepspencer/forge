@@ -44,4 +44,14 @@ impl CommitStructuralSummary {
             bulk_relation_slots_reserved,
         }
     }
+
+    pub(crate) fn public_summary(&self) -> crate::transactions::data::CommitStructuralSummary {
+        crate::transactions::data::CommitStructuralSummary {
+            invariant_groups: self.invariant_contract.may_invalidate_groups(),
+            commit_topology: self.commit_topology,
+            touched_partitions: self.touched_partitions.iter().copied().collect(),
+            bulk_entity_slots_reserved: self.bulk_entity_slots_reserved,
+            bulk_relation_slots_reserved: self.bulk_relation_slots_reserved,
+        }
+    }
 }

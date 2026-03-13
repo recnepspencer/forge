@@ -2,7 +2,7 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::EvaluationCondition;
-use crate::data::output::{scope_touched_by_trace, PartitionSubscription};
+use crate::data::output::{scope_touched_by_artifact_state, PartitionSubscription};
 
 use super::types::ConditionDecision;
 
@@ -39,18 +39,17 @@ fn max_dependency_delta(graph: &SignalGraph, node: NodeId) -> Result<u64, Signal
         if !graph.is_alive(snapshot_entry.source) {
             continue;
         }
-        let current_version = graph.get_entry(snapshot_entry.source)?.version_for_scope(
-            snapshot_entry.aspect,
-            snapshot_entry.scope.as_ref(),
-        );
+        let current_version = graph
+            .get_entry(snapshot_entry.source)?
+            .version_for_scope(snapshot_entry.aspect, snapshot_entry.scope.as_ref());
         max_delta = max_delta.max(current_version.abs_diff(snapshot_entry.cached_version));
     }
     Ok(max_delta)
 }
 
 pub(super) fn partition_scope_untouched(
-    trace_summary: Option<&crate::data::trace::TraceSummary>,
+    artifact_state: Option<&crate::data::trace::RuntimeArtifactState>,
     scope: &PartitionSubscription,
 ) -> bool {
-    !scope_touched_by_trace(trace_summary, scope)
+    !scope_touched_by_artifact_state(artifact_state, scope)
 }

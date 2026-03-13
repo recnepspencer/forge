@@ -1,12 +1,11 @@
 use crate::data::error::SignalError;
-use crate::logic::transaction::patch_buffer::SparsePatchBuffer;
 use std::time::Instant;
 
-use super::runtime_state::SignalRuntime;
 use super::super::computation::{ComputationSpec, DefinedComputation};
 use super::super::transaction::{
-    SignalTransaction, TransactionExecutionState, TransactionResult, TransactionSemanticDelta,
+    SignalTransaction, TransactionExecutionState, TransactionResult, TransactionScratch,
 };
+use super::runtime_state::SignalRuntime;
 
 impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
 where
@@ -27,7 +26,10 @@ where
         Ok(DefinedComputation::from_spec(spec))
     }
 
-    pub fn begin<'a>(&'a mut self, runtime_ctx: &'a mut Ctx) -> SignalTransaction<'a, D, I, E, Ctx, T> {
+    pub fn begin<'a>(
+        &'a mut self,
+        runtime_ctx: &'a mut Ctx,
+    ) -> SignalTransaction<'a, D, I, E, Ctx, T> {
         self.telemetry.transaction.transaction_begin_count += 1;
         self.config.sync_graph_capacity(&self.graph);
         let baseline_config = self.config.clone();
@@ -39,24 +41,11 @@ where
             checkpoint: &mut self.checkpoint,
             event_bus: &mut self.event_bus,
             telemetry: &mut self.telemetry,
-            staged_dirty: crate::data::dirty_set::BatchedDirtySet::new(),
-            staged_checkpoint_flushes: 0,
-            staged_checkpoint_flush_nanos: 0,
-            staged_event_flush_nanos: 0,
-            staged_event_operations: Vec::new(),
-            staged_memo_writes: std::collections::BTreeMap::new(),
-            graph_patches: SparsePatchBuffer::new(),
-            created_nodes: Vec::new(),
+            scratch: TransactionScratch::new(),
             baseline_config,
             baseline_diagnostics_state,
-            semantic_delta: TransactionSemanticDelta::default(),
-            mark_dirty_seen: crate::data::bitset::DenseBitset::new(),
-            mark_dirty_staged: crate::data::bitset::DenseBitset::new(),
-            evaluate_seen: crate::data::bitset::DenseBitset::new(),
-            dirty_targets: crate::data::bitset::DenseBitset::new(),
             poisoned: false,
             finished: false,
-            staged_patch_count: 0,
             execution_state: TransactionExecutionState::default(),
             started_at: Instant::now(),
         }

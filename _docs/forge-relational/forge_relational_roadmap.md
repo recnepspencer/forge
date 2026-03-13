@@ -50,6 +50,15 @@ The main danger is not borrow-checker pain by itself. The main danger is buildin
 
 The roadmap must therefore preserve correctness-first authority semantics before pursuing clever concurrency or memory-management machinery.
 
+Current roadmap state:
+
+- Milestone 4 (Invariant Engine) is closed as of March 12, 2026.
+- Milestone 5 (Commit Architecture) is closed as of March 12, 2026.
+- Milestone 6 (API Surface) is closed as of March 12, 2026.
+- The architectural program through Phase F is now closed enough that the
+  namespaced facade and projection surfaces can be treated as established
+  ground for the next testing, hardening, and feature milestones.
+
 ## Foundational Decisions We Refuse To Revisit Later
 
 These are locked decisions for the runtime foundation:

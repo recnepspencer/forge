@@ -251,10 +251,8 @@ impl HarnessAdapter for SignalHarnessBridge {
         batch: &forge_harness::facade::MutationBatch<Self::Mutation>,
     ) -> Result<(), Self::Error> {
         let runtime = runtime.runtime_mut()?;
-        let mut pending_regions = BTreeMap::<
-            (u32, u32, u8),
-            (NodeId, Aspect, Option<BTreeSet<ChangedRegion>>),
-        >::new();
+        let mut pending_regions =
+            BTreeMap::<(u32, u32, u8), (NodeId, Aspect, Option<BTreeSet<ChangedRegion>>)>::new();
 
         for operation in &batch.operations {
             match operation.kind() {
@@ -282,15 +280,18 @@ impl HarnessAdapter for SignalHarnessBridge {
             }
         }
 
-        for (_, (node, aspect, regions)) in pending_regions {
-            match regions {
-                None => mark_dirty(runtime.graph_mut(), node, aspect)?,
-                Some(regions) => {
-                    let regions = regions.into_iter().collect::<Vec<_>>();
-                    mark_dirty_with_regions(runtime.graph_mut(), node, aspect, &regions)?;
-                }
-            }
-        }
+        let dirty = DirtyBatch::new(pending_regions.into_values().map(
+            |(node, aspect, regions)| {
+                DirtyBatchEntry::new(
+                    node,
+                    aspect,
+                    regions
+                        .map(|regions| regions.into_iter().collect::<Vec<_>>())
+                        .unwrap_or_default(),
+                )
+            },
+        ));
+        mark_dirty_batch(runtime.graph_mut(), &dirty)?;
         Ok(())
     }
 

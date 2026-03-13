@@ -8,7 +8,9 @@ fn rollback_after_dependency_rewiring_restores_original_topology() {
     let source_a = graph.node().build();
     let source_b = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source_a, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source_a, ASPECT_A)
+        .unwrap();
 
     let before = graph.dependencies_of(dependent).unwrap().to_vec();
     let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
@@ -24,10 +26,7 @@ fn rollback_after_dependency_rewiring_restores_original_topology() {
     let after = runtime.graph().dependencies_of(dependent).unwrap().to_vec();
     assert_eq!(before, after);
     assert!(!after.iter().any(|edge| edge.source() == source_b));
-    runtime
-        .graph()
-        .assert_bidirectional_consistency()
-        .unwrap();
+    runtime.graph().assert_bidirectional_consistency().unwrap();
 }
 
 #[test]
@@ -103,7 +102,10 @@ fn same_stage_dependency_rewiring_updates_dependency_edges_and_subscriber_sets_t
     );
     let left_explanation = graph.observe().explain(left).unwrap();
     assert!(left_explanation.rewiring.is_some());
-    let left_provenance = graph.observe().reconstruct_provenance_artifact(left).unwrap();
+    let left_provenance = graph
+        .observe()
+        .reconstruct_provenance_artifact(left)
+        .unwrap();
     assert!(left_provenance.rewiring.is_some());
     assert!(left_provenance
         .causal_links

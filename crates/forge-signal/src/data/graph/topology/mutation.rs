@@ -1,10 +1,11 @@
 use std::cmp::Ordering;
 
 use crate::data::aspect::Aspect;
-use crate::data::dependency::DependencyEdge;
+use crate::data::dependency::{CanonicalDependencies, DependencyEdge};
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::output::PartitionSubscription;
+use crate::data::proof::DependencyBatchEdit;
 
 use super::super::signal_graph::SignalGraph;
 
@@ -13,12 +14,6 @@ pub(crate) struct DependencyReconciliationReport {
     pub added: u32,
     pub removed: u32,
     pub unchanged: u32,
-}
-
-impl DependencyReconciliationReport {
-    pub fn update_count(self) -> u32 {
-        self.added + self.removed
-    }
 }
 
 impl SignalGraph {
@@ -32,7 +27,11 @@ impl SignalGraph {
             }
             let node = NodeId::new(index as u32, slot.generation);
 
-            for dependency in self.topology.dependency_edges.get(entry.get_dependencies_id()) {
+            for dependency in self
+                .topology
+                .dependency_edges
+                .get(entry.get_dependencies_id())
+            {
                 if !self.is_alive(dependency.source()) {
                     continue;
                 }
@@ -50,7 +49,11 @@ impl SignalGraph {
                 }
             }
 
-            for &subscriber in self.topology.subscriber_edges.get(entry.get_subscribers_id()) {
+            for &subscriber in self
+                .topology
+                .subscriber_edges
+                .get(entry.get_subscribers_id())
+            {
                 if !self.is_alive(subscriber) {
                     continue;
                 }
@@ -85,7 +88,7 @@ impl SignalGraph {
         desired: impl IntoIterator<Item = DependencyEdge>,
     ) -> Result<(), SignalError> {
         let desired = self.normalize_dependency_edges(desired)?;
-        self.reconcile_dependencies(node, &desired)?;
+        let _ = self.reconcile_dependencies(node, desired.as_slice())?;
         Ok(())
     }
 
@@ -104,15 +107,16 @@ impl SignalGraph {
         self.set_dependencies(node, desired)
     }
 
-    pub(crate) fn set_dependencies_batch(
+    pub fn apply_dependency_batch_edit(
         &mut self,
-        desired_sets: impl IntoIterator<Item = (NodeId, Vec<DependencyEdge>)>,
+        edit: &DependencyBatchEdit,
     ) -> Result<(), SignalError> {
-        let mut normalized = Vec::new();
-        for (node, desired) in desired_sets {
-            normalized.push((node, self.normalize_dependency_edges(desired)?));
-        }
-        self.reconcile_dependencies_batch(&normalized)?;
+        let reconciliations = edit
+            .as_slice()
+            .iter()
+            .map(|entry| (entry.node, entry.dependencies.clone()))
+            .collect::<Vec<_>>();
+        let _ = self.reconcile_dependencies_batch(&reconciliations)?;
         Ok(())
     }
 
@@ -129,11 +133,14 @@ impl SignalGraph {
                     .observation
                     .partition_interner
                     .intern_subscription(&scope);
-                self.observation.telemetry.invalidation.partition_interner_growth_delta += self
-                    .observation
-                    .partition_interner
-                    .token_count()
-                    .saturating_sub(token_count_before) as u64;
+                self.observation
+                    .telemetry
+                    .invalidation
+                    .partition_interner_growth_delta +=
+                    self.observation
+                        .partition_interner
+                        .token_count()
+                        .saturating_sub(token_count_before) as u64;
                 DependencyEdge::with_scope(upstream, aspect, scope, interned_scope)
             }
             None => DependencyEdge::new(upstream, aspect),
@@ -143,7 +150,7 @@ impl SignalGraph {
     fn normalize_dependency_edges(
         &mut self,
         desired: impl IntoIterator<Item = DependencyEdge>,
-    ) -> Result<Vec<DependencyEdge>, SignalError> {
+    ) -> Result<CanonicalDependencies, SignalError> {
         let mut normalized = Vec::new();
         for edge in desired {
             self.validate_handle(edge.source())?;
@@ -153,9 +160,7 @@ impl SignalGraph {
                 edge.scope_ref().cloned(),
             ));
         }
-        normalized.sort_by(compare_dependency_edges);
-        normalized.dedup_by(|left, right| compare_dependency_edges(left, right) == Ordering::Equal);
-        Ok(normalized)
+        Ok(CanonicalDependencies::new(normalized))
     }
 
     pub(crate) fn reconcile_dependencies(
@@ -203,7 +208,7 @@ impl SignalGraph {
 
     pub(crate) fn reconcile_dependencies_batch(
         &mut self,
-        reconciliations: &[(NodeId, Vec<DependencyEdge>)],
+        reconciliations: &[(NodeId, CanonicalDependencies)],
     ) -> Result<Vec<DependencyReconciliationReport>, SignalError> {
         let mut reports = vec![DependencyReconciliationReport::default(); reconciliations.len()];
         let mut subscriber_ops = Vec::<SubscriberBatchOp>::new();
@@ -212,6 +217,7 @@ impl SignalGraph {
             let (node, desired) = reconciliation;
             self.validate_handle(*node)?;
             let current = self.raw_dependencies_of(*node)?;
+            let desired = desired.as_slice();
             let current_sources = unique_sources_from_sorted_dependencies(current);
             let desired_sources = unique_sources_from_sorted_dependencies(desired);
             let report = reconcile_dependency_slices(current, desired);
@@ -236,11 +242,11 @@ impl SignalGraph {
         edges: &[DependencyEdge],
     ) -> Result<(), SignalError> {
         let dependencies_id = self.topology.dependency_edges.insert_from_slice(edges);
-        self.get_entry_mut(node)?.set_dependencies_id(dependencies_id);
+        self.get_entry_mut(node)?
+            .set_dependencies_id(dependencies_id);
         self.record_graph_storage_pressure();
         Ok(())
     }
-
 }
 
 fn compare_dependency_edges(left: &DependencyEdge, right: &DependencyEdge) -> Ordering {

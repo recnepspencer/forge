@@ -5,11 +5,11 @@ mod subscribers;
 use std::collections::HashMap;
 use std::hash::Hash;
 
-use crate::data::node::NodeEntry;
 use crate::data::handle::NodeId;
+use crate::data::node::NodeEntry;
 
-use super::schedule::CompactionFamily;
 use super::super::runtime::graph::{EdgeTopology, SignalGraph};
+use super::schedule::CompactionFamily;
 
 impl SignalGraph {
     #[cfg(test)]
@@ -75,7 +75,9 @@ impl EdgeTopology {
     ) -> Result<(), crate::data::error::SignalError> {
         let has_stale = {
             let current = graph.raw_subscribers_of(node)?;
-            current.iter().any(|subscriber| !graph.is_alive(*subscriber))
+            current
+                .iter()
+                .any(|subscriber| !graph.is_alive(*subscriber))
         };
         if has_stale {
             let updated = graph

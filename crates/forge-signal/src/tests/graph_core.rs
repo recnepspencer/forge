@@ -40,7 +40,9 @@ fn dirty_direct_dependent() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_B).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_B)
+        .unwrap();
 
     let mut compute = |_id, _g: &SignalGraph| Ok(version_ab(1, 1));
     evaluate(&mut graph, source, &mut compute).unwrap();

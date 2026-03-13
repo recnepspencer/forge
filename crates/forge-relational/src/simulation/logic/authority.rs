@@ -40,7 +40,12 @@ impl<'runtime> SimulationAuthority<'runtime> {
                 detail: "compiled execution lane is disabled for this profile".to_string(),
             });
         }
-        let Some(envelope) = self.runtime.history.commit_envelopes.get(&commit_id).cloned() else {
+        let Some(envelope) = self
+            .runtime
+            .history_access()
+            .commit_envelope(commit_id)
+            .cloned()
+        else {
             return Err(CompiledArtifactError {
                 compatibility: CompiledArtifactCompatibility::MissingSourceCommit,
                 detail: format!("missing source commit {}", commit_id.0),
@@ -58,7 +63,9 @@ impl<'runtime> SimulationAuthority<'runtime> {
             topology_freeze_mode: TopologyFreezeMode::FreezeAtCommit,
             compiled_record_count,
         };
-        self.runtime.services.store_compiled_artifact(artifact.clone());
+        self.runtime
+            .services
+            .store_compiled_artifact(artifact.clone());
         self.runtime.publication_authority().push_bounded_diagnostic(
             DiagnosticsScope::History,
             DiagnosticsArtifactKind::MinimalSummary,

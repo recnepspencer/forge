@@ -16,18 +16,37 @@ pub(crate) struct AdjacencyDelta {
 }
 
 #[derive(Debug, Clone, Default)]
-pub(crate) struct MutationEffect {
+pub(crate) struct MutationPublicationEffect {
     pub(crate) changed_records: Vec<RecordRef>,
     pub(crate) patch_records: Vec<PatchRecord>,
-    pub(crate) diagnostics: Vec<RelationalDiagnosticsEntry>,
-    pub(crate) adjacency_deltas: Vec<AdjacencyDelta>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub(crate) struct MutationDiagnosticsEffect {
+    pub(crate) entries: Vec<RelationalDiagnosticsEntry>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub(crate) struct MutationAdjacencyEffect {
+    pub(crate) deltas: Vec<AdjacencyDelta>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub(crate) struct MutationEffect {
+    pub(crate) publication: MutationPublicationEffect,
+    pub(crate) diagnostics: MutationDiagnosticsEffect,
+    pub(crate) adjacency: MutationAdjacencyEffect,
 }
 
 impl MutationEffect {
     pub(crate) fn accumulate(&mut self, child: MutationEffect) {
-        self.changed_records.extend(child.changed_records);
-        self.patch_records.extend(child.patch_records);
-        self.diagnostics.extend(child.diagnostics);
-        self.adjacency_deltas.extend(child.adjacency_deltas);
+        self.publication
+            .changed_records
+            .extend(child.publication.changed_records);
+        self.publication
+            .patch_records
+            .extend(child.publication.patch_records);
+        self.diagnostics.entries.extend(child.diagnostics.entries);
+        self.adjacency.deltas.extend(child.adjacency.deltas);
     }
 }

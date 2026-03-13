@@ -53,6 +53,22 @@ pub(crate) trait SchemaVersionSource {
 
 impl SchemaVersionSource for RelationalRuntime {
     fn primary_schema_version_id(&self) -> crate::schema::data::SchemaVersionId {
-        self.primary_schema_version()
+        self.config
+            .schema
+            .registry
+            .entity_kinds
+            .values()
+            .next()
+            .map(|registration| registration.schema_version_id)
+            .or_else(|| {
+                self.config
+                    .schema
+                    .registry
+                    .relation_kinds
+                    .values()
+                    .next()
+                    .map(|registration| registration.schema_version_id)
+            })
+            .unwrap_or(crate::schema::data::SchemaVersionId(0))
     }
 }

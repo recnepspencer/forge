@@ -1,7 +1,12 @@
 use serde::{Deserialize, Serialize};
 
 use crate::data::aspect::AspectMask;
+use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::output::{scopes_overlap, PartitionSubscription};
+use crate::data::performance::{
+    ArtifactPolicyClass, AuthorityPolicy, CompileTimePerformanceContract, EquivalenceContract,
+    MaintenanceMode, PathClass,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ContextRequirement {
@@ -11,9 +16,8 @@ pub enum ContextRequirement {
     RelationalSnapshot,
 }
 
-/// Declarative contract for one node's evaluation semantics.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct NodeContract {
+pub struct NodeSemanticContract {
     pub reads: AspectMask,
     pub produces: AspectMask,
     #[serde(default)]
@@ -22,7 +26,7 @@ pub struct NodeContract {
     pub required_context: ContextRequirement,
 }
 
-impl NodeContract {
+impl NodeSemanticContract {
     pub fn wildcard() -> Self {
         Self {
             reads: AspectMask::ALL,
@@ -31,21 +35,121 @@ impl NodeContract {
             required_context: ContextRequirement::None,
         }
     }
+}
 
-    pub fn reads(reads: impl Into<AspectMask>) -> Self {
+impl Default for NodeSemanticContract {
+    fn default() -> Self {
+        Self::wildcard()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NodeProjectionContract {
+    pub consumes: AspectMask,
+    #[serde(default)]
+    pub consumes_partitions: Option<Vec<PartitionSubscription>>,
+}
+
+impl NodeProjectionContract {
+    pub fn wildcard() -> Self {
         Self {
-            reads: reads.into(),
-            ..Self::wildcard()
+            consumes: AspectMask::ALL,
+            consumes_partitions: None,
+        }
+    }
+}
+
+impl Default for NodeProjectionContract {
+    fn default() -> Self {
+        Self::wildcard()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NodeExecutionContract {
+    #[serde(default)]
+    pub equivalence: EquivalenceContract,
+    #[serde(default)]
+    pub path_class: PathClass,
+    #[serde(default)]
+    pub maintenance_mode: MaintenanceMode,
+    #[serde(default)]
+    pub artifact_policy: ArtifactPolicyClass,
+}
+
+impl NodeExecutionContract {
+    pub fn operational() -> Self {
+        Self {
+            equivalence: EquivalenceContract::default(),
+            path_class: PathClass::Operational,
+            maintenance_mode: MaintenanceMode::DensityAdaptive,
+            artifact_policy: ArtifactPolicyClass::OperationalMinimal,
+        }
+    }
+}
+
+impl Default for NodeExecutionContract {
+    fn default() -> Self {
+        Self::operational()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NodeAuthorityContract {
+    #[serde(default)]
+    pub policy: AuthorityPolicy,
+}
+
+impl NodeAuthorityContract {
+    pub fn default_speculative() -> Self {
+        Self {
+            policy: AuthorityPolicy::SpeculativeThenReconcile,
+        }
+    }
+}
+
+impl Default for NodeAuthorityContract {
+    fn default() -> Self {
+        Self::default_speculative()
+    }
+}
+
+/// Declarative contract for one node's evaluation semantics and execution posture.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NodeContract {
+    #[serde(default)]
+    pub semantics: NodeSemanticContract,
+    #[serde(default)]
+    pub projection: NodeProjectionContract,
+    #[serde(default)]
+    pub execution: NodeExecutionContract,
+    #[serde(default)]
+    pub authority: NodeAuthorityContract,
+}
+
+impl NodeContract {
+    pub fn wildcard() -> Self {
+        Self {
+            semantics: NodeSemanticContract::wildcard(),
+            projection: NodeProjectionContract::wildcard(),
+            execution: NodeExecutionContract::operational(),
+            authority: NodeAuthorityContract::default_speculative(),
         }
     }
 
+    pub fn reads(reads: impl Into<AspectMask>) -> Self {
+        Self::wildcard().with_reads(reads)
+    }
+
     pub fn with_reads(mut self, reads: impl Into<AspectMask>) -> Self {
-        self.reads = reads.into();
+        let reads = reads.into();
+        self.semantics.reads = reads;
+        self.projection.consumes = reads;
         self
     }
 
     pub fn with_produces(mut self, produces: impl Into<AspectMask>) -> Self {
-        self.produces = produces.into();
+        self.semantics.produces = produces.into();
         self
     }
 
@@ -53,7 +157,9 @@ impl NodeContract {
         mut self,
         partition_scope: impl Into<PartitionSubscription>,
     ) -> Self {
-        self.partition_scope = Some(vec![partition_scope.into()]);
+        let partition_scope = vec![partition_scope.into()];
+        self.semantics.partition_scope = Some(partition_scope.clone());
+        self.projection.consumes_partitions = Some(partition_scope);
         self
     }
 
@@ -61,17 +167,64 @@ impl NodeContract {
         mut self,
         partition_scopes: impl IntoIterator<Item = PartitionSubscription>,
     ) -> Self {
-        self.partition_scope = Some(partition_scopes.into_iter().collect());
+        let partition_scopes = partition_scopes.into_iter().collect::<Vec<_>>();
+        self.semantics.partition_scope = Some(partition_scopes.clone());
+        self.projection.consumes_partitions = Some(partition_scopes);
         self
     }
 
     pub fn with_required_context(mut self, required_context: ContextRequirement) -> Self {
-        self.required_context = required_context;
+        self.semantics.required_context = required_context;
         self
     }
 
+    pub fn with_projection_contract(mut self, projection: NodeProjectionContract) -> Self {
+        self.projection = projection;
+        self
+    }
+
+    pub fn with_equivalence(mut self, equivalence: EquivalenceContract) -> Self {
+        self.execution.equivalence = equivalence;
+        self
+    }
+
+    pub fn with_path_class(mut self, path_class: PathClass) -> Self {
+        self.execution.path_class = path_class;
+        self
+    }
+
+    pub fn with_maintenance_mode(mut self, maintenance_mode: MaintenanceMode) -> Self {
+        self.execution.maintenance_mode = maintenance_mode;
+        self
+    }
+
+    pub fn with_artifact_policy(mut self, artifact_policy: ArtifactPolicyClass) -> Self {
+        self.execution.artifact_policy = artifact_policy;
+        self
+    }
+
+    pub fn with_authority_policy(mut self, authority_policy: AuthorityPolicy) -> Self {
+        self.authority.policy = authority_policy;
+        self
+    }
+
+    pub fn with_comparator_override(mut self, comparator: &VersionComparatorPolicy) -> Self {
+        self.execution.equivalence = EquivalenceContract::for_comparator_override(comparator);
+        self
+    }
+
+    pub fn compile_time_performance_contract(&self) -> CompileTimePerformanceContract {
+        CompileTimePerformanceContract {
+            equivalence: self.execution.equivalence,
+            path_class: self.execution.path_class,
+            maintenance_mode: self.execution.maintenance_mode,
+            artifact_policy: self.execution.artifact_policy,
+            authority_policy: self.authority.policy,
+        }
+    }
+
     pub fn reads_dirty_aspects(&self, dirty_aspects: AspectMask) -> bool {
-        self.reads.intersects(dirty_aspects)
+        self.projection.consumes.intersects(dirty_aspects)
     }
 
     pub fn cares_about_change(
@@ -79,10 +232,10 @@ impl NodeContract {
         changed_aspects: AspectMask,
         changed_scopes: &[PartitionSubscription],
     ) -> bool {
-        if !self.reads.intersects(changed_aspects) {
+        if !self.projection.consumes.intersects(changed_aspects) {
             return false;
         }
-        match &self.partition_scope {
+        match &self.projection.consumes_partitions {
             None => true,
             Some(contract_scopes) if changed_scopes.is_empty() => true,
             Some(contract_scopes) => contract_scopes.iter().any(|contract_scope| {

@@ -4,7 +4,7 @@ use super::overrides::RelationalConfigOverride;
 use super::provenance::ConfigProvenance;
 use super::sections::{
     DiagnosticsConfig, DurabilityConfig, ExecutionConfig, HistoryConfig, IdentityConfig,
-    PublicationSection, SchemaConfig, StorageConfig, VisibilityConfig,
+    PublicationRuntimeConfig, SchemaConfig, StorageConfig, VisibilityConfig,
 };
 use super::RelationalRuntimeProfile;
 
@@ -18,8 +18,8 @@ pub struct RelationalRuntimeConfig {
     pub identity: IdentityConfig,
     pub storage: StorageConfig,
     pub visibility: VisibilityConfig,
-    pub publication: PublicationSection,
+    pub publication: PublicationRuntimeConfig,
     pub durability: DurabilityConfig,
-    pub config_override: RelationalConfigOverride,
-    pub config_provenance: ConfigProvenance,
+    pub overrides: RelationalConfigOverride,
+    pub provenance: ConfigProvenance,
 }

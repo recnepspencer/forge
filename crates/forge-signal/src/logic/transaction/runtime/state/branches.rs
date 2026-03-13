@@ -27,6 +27,10 @@ where
 {
     branches: BTreeMap<SignalBranchId, BranchState<D, I, T>>,
     snapshots: BTreeMap<SignalSnapshotId, BranchState<D, I, T>>,
+    next_snapshot_id: u64,
+    next_branch_id: u64,
+    next_lineage_artifact_id: u64,
+    next_lineage_sequence: u64,
 }
 
 impl<D, I, T> BranchManager<D, I, T>
@@ -39,16 +43,21 @@ where
         Self {
             branches: BTreeMap::new(),
             snapshots: BTreeMap::new(),
+            next_snapshot_id: 0,
+            next_branch_id: 1,
+            next_lineage_artifact_id: 0,
+            next_lineage_sequence: 0,
         }
     }
 
     pub fn capture_active_state(
-        &self,
+        &mut self,
         graph: &SignalGraph,
         config: &SignalRuntimeConfig<T>,
         checkpoint: &CheckpointRuntime<D, I>,
         telemetry: &RuntimeTelemetry,
     ) -> BranchState<D, I, T> {
+        self.observe_allocator_state(graph);
         BranchState {
             graph: graph.clone_stateful(),
             config: config.clone(),
@@ -58,17 +67,30 @@ where
     }
 
     pub fn restore_active_state(
-        &self,
-        state: BranchState<D, I, T>,
+        &mut self,
+        mut state: BranchState<D, I, T>,
         graph: &mut SignalGraph,
         config: &mut SignalRuntimeConfig<T>,
         checkpoint: &mut CheckpointRuntime<D, I>,
         telemetry: &mut RuntimeTelemetry,
     ) {
+        self.observe_allocator_state(&state.graph);
+        state
+            .graph
+            .diagnostics_state_mut()
+            .synchronize_branch_snapshot_allocator(self.next_snapshot_id, self.next_branch_id);
+        state
+            .graph
+            .diagnostics_state_mut()
+            .synchronize_lineage_allocator(
+                self.next_lineage_artifact_id,
+                self.next_lineage_sequence,
+            );
         *graph = state.graph;
         *config = state.config;
         *checkpoint = state.checkpoint;
         *telemetry = state.telemetry;
+        self.observe_allocator_state(graph);
     }
 
     pub fn synchronize_catalogs(
@@ -90,6 +112,7 @@ where
     }
 
     pub fn insert_branch(&mut self, branch_id: SignalBranchId, state: BranchState<D, I, T>) {
+        self.observe_allocator_state(&state.graph);
         self.branches.insert(branch_id, state);
     }
 
@@ -97,21 +120,32 @@ where
         self.branches.get(&branch_id)
     }
 
-    pub fn branch_state_mut(
+    pub fn branch_state_mut_with_allocator_sync(
         &mut self,
         branch_id: SignalBranchId,
     ) -> Option<&mut BranchState<D, I, T>> {
-        self.branches.get_mut(&branch_id)
+        let next_snapshot_id = self.next_snapshot_id;
+        let next_branch_id = self.next_branch_id;
+        let next_lineage_artifact_id = self.next_lineage_artifact_id;
+        let next_lineage_sequence = self.next_lineage_sequence;
+        let state = self.branches.get_mut(&branch_id)?;
+        state
+            .graph
+            .diagnostics_state_mut()
+            .synchronize_branch_snapshot_allocator(next_snapshot_id, next_branch_id);
+        state
+            .graph
+            .diagnostics_state_mut()
+            .synchronize_lineage_allocator(next_lineage_artifact_id, next_lineage_sequence);
+        Some(state)
     }
 
-    pub fn cloned_branch_state(
-        &self,
-        branch_id: SignalBranchId,
-    ) -> Option<BranchState<D, I, T>> {
+    pub fn cloned_branch_state(&self, branch_id: SignalBranchId) -> Option<BranchState<D, I, T>> {
         self.branches.get(&branch_id).cloned()
     }
 
     pub fn insert_snapshot(&mut self, snapshot_id: SignalSnapshotId, state: BranchState<D, I, T>) {
+        self.observe_allocator_state(&state.graph);
         self.snapshots.insert(snapshot_id, state);
     }
 
@@ -151,6 +185,16 @@ where
             .unwrap_or_default()
     }
 
+    fn observe_allocator_state(&mut self, graph: &SignalGraph) {
+        let (next_snapshot_id, next_branch_id) =
+            graph.diagnostics_state().branch_snapshot_allocator_state();
+        let (next_lineage_artifact_id, next_lineage_sequence) =
+            graph.diagnostics_state().lineage_allocator_state();
+        self.next_snapshot_id = self.next_snapshot_id.max(next_snapshot_id);
+        self.next_branch_id = self.next_branch_id.max(next_branch_id);
+        self.next_lineage_artifact_id = self.next_lineage_artifact_id.max(next_lineage_artifact_id);
+        self.next_lineage_sequence = self.next_lineage_sequence.max(next_lineage_sequence);
+    }
 }
 
 impl<D, I, T> Default for BranchManager<D, I, T>

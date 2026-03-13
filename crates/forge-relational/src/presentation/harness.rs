@@ -9,5 +9,6 @@ mod harness_targets;
 
 pub use harness_data::{
     default_harness_expectations, FixtureEntity, FixtureRelation, RelationalFixture,
-    RelationalHarnessAdapter, RelationalHarnessExpectations, RelationalHarnessPlan,
+    RelationalHarnessAdapter, RelationalHarnessError, RelationalHarnessExpectations,
+    RelationalHarnessPlan,
 };

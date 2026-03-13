@@ -3,7 +3,9 @@ use crate::tests::support::*;
 
 #[test]
 fn compaction_and_slot_reuse_are_observable_through_storage_metrics() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::with_gc_threshold(1)).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::with_gc_threshold(1))
+        .with_kernel_defaults()
+        .build();
     let root = runtime.graph_mut().node().build();
     let partitioned = runtime.graph_mut().node().partitioned_output().build();
     let localized = runtime.graph_mut().node().build();

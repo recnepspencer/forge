@@ -3,6 +3,9 @@ use serde::{Deserialize, Serialize};
 pub mod profile;
 
 use self::profile::DiagnosticsProfile;
+use crate::data::node::{ArtifactPolicyClass, AuthorityPolicy, PathClass};
+use crate::data::performance::ResolvedPerformancePolicy;
+use crate::logic::planner::{ResolvedExecutionStrategy, ResolvedMaintenanceStrategy};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ArtifactRetentionPolicy {
@@ -122,6 +125,64 @@ impl Default for SignalRuntimePolicy {
 }
 
 impl SignalRuntimePolicy {
+    pub fn default_path_class(self) -> PathClass {
+        match self.profile {
+            DiagnosticsProfile::Operational => PathClass::Operational,
+            DiagnosticsProfile::Development | DiagnosticsProfile::Forensic => PathClass::Rich,
+        }
+    }
+
+    pub fn default_artifact_policy_class(self) -> ArtifactPolicyClass {
+        match (
+            self.profile,
+            self.explanation_retention,
+            self.provenance_retention,
+        ) {
+            (
+                DiagnosticsProfile::Development,
+                ArtifactRetentionPolicy::Retain,
+                ArtifactRetentionPolicy::Retain,
+            ) => ArtifactPolicyClass::DevelopmentRetained,
+            (DiagnosticsProfile::Forensic, _, _) => ArtifactPolicyClass::ForensicReconstructable,
+            _ => ArtifactPolicyClass::OperationalMinimal,
+        }
+    }
+
+    pub fn default_execution_strategy(self) -> ResolvedExecutionStrategy {
+        match self.profile {
+            DiagnosticsProfile::Operational => ResolvedExecutionStrategy::SparseIncremental,
+            DiagnosticsProfile::Development | DiagnosticsProfile::Forensic => {
+                ResolvedExecutionStrategy::DenseStageBatched
+            }
+        }
+    }
+
+    pub fn default_maintenance_strategy(self) -> ResolvedMaintenanceStrategy {
+        match self.profile {
+            DiagnosticsProfile::Operational => ResolvedMaintenanceStrategy::DensityAdaptive,
+            DiagnosticsProfile::Development => ResolvedMaintenanceStrategy::Incremental,
+            DiagnosticsProfile::Forensic => ResolvedMaintenanceStrategy::Rebuild,
+        }
+    }
+
+    pub fn default_authority_policy(self) -> AuthorityPolicy {
+        match self.profile {
+            DiagnosticsProfile::Operational
+            | DiagnosticsProfile::Development
+            | DiagnosticsProfile::Forensic => AuthorityPolicy::SpeculativeThenReconcile,
+        }
+    }
+
+    pub fn resolve_performance_policy(self) -> ResolvedPerformancePolicy {
+        ResolvedPerformancePolicy {
+            path_class: self.default_path_class(),
+            artifact_policy: self.default_artifact_policy_class(),
+            execution_strategy: self.default_execution_strategy(),
+            maintenance_strategy: self.default_maintenance_strategy(),
+            authority_policy: self.default_authority_policy(),
+        }
+    }
+
     pub fn web_development() -> Self {
         Self::operational().with_parallel_admission(ParallelAdmissionPolicy {
             operational_min_parallel_tasks: 4,

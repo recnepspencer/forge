@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::num::NonZeroU32;
+use std::sync::Arc;
 
 use crate::data::aspect::{Aspect, AspectMask};
 use crate::data::handle::NodeId;
@@ -82,7 +83,9 @@ impl DependencyEdge {
         Self {
             source,
             aspect,
-            scope: Some(PartitionSubscription::partition_and_detail(partition, detail)),
+            scope: Some(PartitionSubscription::partition_and_detail(
+                partition, detail,
+            )),
             interned_scope: None,
         }
     }
@@ -122,6 +125,50 @@ impl DependencyEdge {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct CanonicalDependencies {
+    edges: Vec<DependencyEdge>,
+}
+
+impl CanonicalDependencies {
+    pub fn new(edges: impl IntoIterator<Item = DependencyEdge>) -> Self {
+        let mut edges = edges.into_iter().collect::<Vec<_>>();
+        if edges.len() > 1 {
+            edges.sort_by(|left, right| left.sort_key().cmp(&right.sort_key()));
+            edges.dedup_by(|left, right| left.sort_key() == right.sort_key());
+        }
+        Self { edges }
+    }
+
+    pub fn from_slice(edges: &[DependencyEdge]) -> Self {
+        Self::new(edges.iter().cloned())
+    }
+
+    pub fn as_slice(&self) -> &[DependencyEdge] {
+        &self.edges
+    }
+
+    pub fn into_vec(self) -> Vec<DependencyEdge> {
+        self.edges
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.edges.is_empty()
+    }
+}
+
+impl From<Vec<DependencyEdge>> for CanonicalDependencies {
+    fn from(edges: Vec<DependencyEdge>) -> Self {
+        Self::new(edges)
+    }
+}
+
+impl From<&[DependencyEdge]> for CanonicalDependencies {
+    fn from(edges: &[DependencyEdge]) -> Self {
+        Self::from_slice(edges)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct DependencySortKey {
     source_index: u32,
@@ -156,14 +203,14 @@ impl DependencySnapshotEntry {
 /// to `Clean`: if all upstream versions match the snapshot, no recomputation needed.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DependencySnapshot {
-    entries: Vec<DependencySnapshotEntry>,
+    entries: Arc<Vec<DependencySnapshotEntry>>,
 }
 
 impl DependencySnapshot {
     /// Create an empty snapshot.
     pub fn empty() -> Self {
         Self {
-            entries: Vec::new(),
+            entries: Arc::new(Vec::new()),
         }
     }
 
@@ -175,7 +222,7 @@ impl DependencySnapshot {
         version: u64,
         scope: Option<PartitionSubscription>,
     ) {
-        self.entries.push(DependencySnapshotEntry {
+        Arc::make_mut(&mut self.entries).push(DependencySnapshotEntry {
             source,
             aspect,
             cached_version: version,
@@ -185,17 +232,18 @@ impl DependencySnapshot {
 
     /// All recorded entries.
     pub fn entries(&self) -> &[DependencySnapshotEntry] {
-        &self.entries
+        self.entries.as_slice()
     }
 
     fn canonicalize(&mut self) {
-        self.entries.sort_by(|left, right| {
+        let entries = Arc::make_mut(&mut self.entries);
+        entries.sort_by(|left, right| {
             left.sort_key()
                 .cmp(&right.sort_key())
                 .then(left.cached_version.cmp(&right.cached_version))
         });
-        let mut normalized: Vec<DependencySnapshotEntry> = Vec::with_capacity(self.entries.len());
-        for entry in self.entries.drain(..) {
+        let mut normalized: Vec<DependencySnapshotEntry> = Vec::with_capacity(entries.len());
+        for entry in entries.drain(..) {
             if let Some(previous) = normalized.last_mut() {
                 if previous.sort_key() == entry.sort_key() {
                     if previous.cached_version <= entry.cached_version {
@@ -206,7 +254,38 @@ impl DependencySnapshot {
             }
             normalized.push(entry);
         }
-        self.entries = normalized;
+        *entries = normalized;
+    }
+
+    pub fn shared_entries(&self) -> Arc<Vec<DependencySnapshotEntry>> {
+        Arc::clone(&self.entries)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SharedDependencySnapshot {
+    snapshot: DependencySnapshot,
+}
+
+impl SharedDependencySnapshot {
+    pub fn new(snapshot: DependencySnapshot) -> Self {
+        Self { snapshot }
+    }
+
+    pub fn empty() -> Self {
+        Self::new(DependencySnapshot::empty())
+    }
+
+    pub fn snapshot(&self) -> &DependencySnapshot {
+        &self.snapshot
+    }
+
+    pub fn entries(&self) -> &[DependencySnapshotEntry] {
+        self.snapshot.entries()
+    }
+
+    pub fn into_snapshot(self) -> DependencySnapshot {
+        self.snapshot
     }
 }
 

@@ -1,3 +1,4 @@
+use crate::facade::runtime::HarnessAuditMode;
 use crate::tests::support::*;
 
 #[test]
@@ -18,7 +19,11 @@ fn diagnostics_and_replay_are_emitted_for_commit() {
     assert!(runtime.publication_access().latest_patch().is_some());
     assert!(runtime.publication_access().latest_replay().is_some());
     assert_eq!(
-        runtime.publication_access().latest_replay().unwrap().schema_registry,
+        runtime
+            .publication_access()
+            .latest_replay()
+            .unwrap()
+            .schema_registry,
         test_schema_registry()
     );
 }
@@ -33,9 +38,18 @@ fn publication_bundle_is_the_single_visible_commit_surface() {
     assert_eq!(outcome.publication_status, PublicationStatus::Published);
     assert_eq!(bundle.snapshot, outcome.snapshot);
     assert_eq!(bundle.commit, outcome.commit);
-    assert_eq!(bundle.commit, *runtime.history_access().latest_commit().unwrap());
-    assert_eq!(bundle.patch, *runtime.publication_access().latest_patch().unwrap());
-    assert_eq!(bundle.replay, *runtime.publication_access().latest_replay().unwrap());
+    assert_eq!(
+        bundle.commit,
+        *runtime.history_access().latest_commit().unwrap()
+    );
+    assert_eq!(
+        bundle.patch,
+        *runtime.publication_access().latest_patch().unwrap()
+    );
+    assert_eq!(
+        bundle.replay,
+        *runtime.publication_access().latest_replay().unwrap()
+    );
 }
 
 #[test]
@@ -44,8 +58,14 @@ fn publication_snapshot_handle_reads_without_becoming_a_pinned_snapshot() {
     let outcome = create_entity_outcome(&mut runtime, "first");
 
     let retention = runtime.retention_access().inspect_plan();
-    let read = runtime.visibility_reads().read_snapshot(&outcome.snapshot).unwrap();
-    let inspection = runtime.visibility_reads().inspect_snapshot(&outcome.snapshot).unwrap();
+    let read = runtime
+        .visibility_reads()
+        .read_snapshot(&outcome.snapshot)
+        .unwrap();
+    let inspection = runtime
+        .visibility_reads()
+        .inspect_snapshot(&outcome.snapshot)
+        .unwrap();
     let packet = QueryWorkPacket::bulk(
         "entities",
         vec![RecordRef::Entity(changed_entities(&outcome)[0])],
@@ -62,10 +82,16 @@ fn publication_snapshot_handle_reads_without_becoming_a_pinned_snapshot() {
         .plan_read_packet(&outcome.snapshot, &packet)
         .is_some());
     assert!(runtime
-        .visibility_reads().execute_read_packet(&outcome.snapshot, &packet)
+        .visibility_reads()
+        .execute_read_packet(&outcome.snapshot, &packet)
         .is_some());
-    assert!(runtime.visibility_authority().release_snapshot(&outcome.snapshot));
-    assert!(runtime.visibility_reads().read_snapshot(&outcome.snapshot).is_none());
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&outcome.snapshot));
+    assert!(runtime
+        .visibility_reads()
+        .read_snapshot(&outcome.snapshot)
+        .is_none());
 }
 
 #[test]
@@ -77,13 +103,23 @@ fn released_publication_handles_stop_counting_as_readable_runtime_state() {
     let before = runtime.storage_access().storage_stats();
     assert_eq!(before.published_snapshot_handle_count, 2);
 
-    assert!(runtime.visibility_authority().release_snapshot(&first.snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&first.snapshot));
     let after_first_release = runtime.storage_access().storage_stats();
     assert_eq!(after_first_release.published_snapshot_handle_count, 1);
-    assert!(runtime.visibility_reads().read_snapshot(&first.snapshot).is_none());
-    assert!(runtime.visibility_reads().read_snapshot(&second.snapshot).is_some());
+    assert!(runtime
+        .visibility_reads()
+        .read_snapshot(&first.snapshot)
+        .is_none());
+    assert!(runtime
+        .visibility_reads()
+        .read_snapshot(&second.snapshot)
+        .is_some());
 
-    assert!(runtime.visibility_authority().release_snapshot(&second.snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&second.snapshot));
     let after_second_release = runtime.storage_access().storage_stats();
     assert_eq!(after_second_release.published_snapshot_handle_count, 0);
 }
@@ -106,9 +142,18 @@ fn publication_handle_retention_is_bounded_by_policy() {
     let stats = runtime.storage_access().storage_stats();
 
     assert_eq!(stats.published_snapshot_handle_count, 2);
-    assert!(runtime.visibility_reads().read_snapshot(&first.snapshot).is_none());
-    assert!(runtime.visibility_reads().read_snapshot(&second.snapshot).is_some());
-    assert!(runtime.visibility_reads().read_snapshot(&third.snapshot).is_some());
+    assert!(runtime
+        .visibility_reads()
+        .read_snapshot(&first.snapshot)
+        .is_none());
+    assert!(runtime
+        .visibility_reads()
+        .read_snapshot(&second.snapshot)
+        .is_some());
+    assert!(runtime
+        .visibility_reads()
+        .read_snapshot(&third.snapshot)
+        .is_some());
 }
 
 #[test]
@@ -144,7 +189,8 @@ fn bulk_packets_are_the_primary_read_surface() {
         )
         .unwrap();
     let result = runtime
-        .visibility_reads().execute_read_packet(
+        .visibility_reads()
+        .execute_read_packet(
             &snapshot,
             &QueryWorkPacket::bulk("entities", vec![RecordRef::Entity(entity)]),
         )
@@ -201,7 +247,10 @@ fn runtime_packet_execution_and_storage_stats_are_readable() {
     let entity = create_entity(&mut runtime, "first");
     let snapshot = runtime.visibility_authority().snapshot();
     let packet = QueryWorkPacket::bulk("entities", vec![RecordRef::Entity(entity)]);
-    let result = runtime.visibility_reads().execute_read_packet(&snapshot, &packet).unwrap();
+    let result = runtime
+        .visibility_reads()
+        .execute_read_packet(&snapshot, &packet)
+        .unwrap();
     let stats = runtime.storage_access().storage_stats();
 
     assert_eq!(result.entities.len(), 1);
@@ -255,11 +304,11 @@ fn harness_heavy_invariants_are_opt_in() {
 
     let default_results = runtime
         .invariant_access()
-        .harness_audit(crate::facade::HarnessAuditMode::Disabled)
+        .harness_audit(HarnessAuditMode::Disabled)
         .into_results();
     let enabled_results = runtime
         .invariant_access()
-        .harness_audit(crate::facade::HarnessAuditMode::Full)
+        .harness_audit(HarnessAuditMode::Full)
         .into_results();
 
     assert!(default_results.is_empty());

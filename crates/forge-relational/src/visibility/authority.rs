@@ -45,7 +45,13 @@ impl<'runtime> VisibilityAuthority<'runtime> {
                 read_policy: handle.read_policy,
             },
         );
-        if self.runtime.config.visibility.cache_policy.protect_active_snapshots {
+        if self
+            .runtime
+            .config
+            .visibility
+            .cache_policy
+            .protect_active_snapshots
+        {
             insert_state(self.runtime, state.clone());
             bump_active_snapshot_ref(self.runtime, handle.version_id, 1);
         }
@@ -75,7 +81,13 @@ impl<'runtime> VisibilityAuthority<'runtime> {
                 read_policy: handle.read_policy,
             },
         );
-        if self.runtime.config.visibility.cache_policy.protect_active_snapshots {
+        if self
+            .runtime
+            .config
+            .visibility
+            .cache_policy
+            .protect_active_snapshots
+        {
             insert_state(self.runtime, state);
             bump_active_snapshot_ref(self.runtime, handle.version_id, 1);
         }
@@ -83,17 +95,28 @@ impl<'runtime> VisibilityAuthority<'runtime> {
     }
 
     pub fn release_snapshot(&mut self, handle: &SnapshotHandle) -> bool {
-        if let Some(binding) = self.runtime.visibility.remove_active_handle(handle.snapshot_id) {
-            let state = cached_state_for_version(self.runtime, binding.version_id).unwrap_or_else(|| {
-                build_visibility_state(
-                    self.runtime,
-                    binding.version_id,
-                    SnapshotId(0),
-                    SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
-                )
-            });
+        if let Some(binding) = self
+            .runtime
+            .visibility
+            .remove_active_handle(handle.snapshot_id)
+        {
+            let state =
+                cached_state_for_version(self.runtime, binding.version_id).unwrap_or_else(|| {
+                    build_visibility_state(
+                        self.runtime,
+                        binding.version_id,
+                        SnapshotId(0),
+                        SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
+                    )
+                });
             self.runtime.visibility_pins().unpin_snapshot_state(&state);
-            if self.runtime.config.visibility.cache_policy.protect_active_snapshots {
+            if self
+                .runtime
+                .config
+                .visibility
+                .cache_policy
+                .protect_active_snapshots
+            {
                 bump_active_snapshot_ref(self.runtime, binding.version_id, -1);
             }
             evict_cache_if_needed(self.runtime);

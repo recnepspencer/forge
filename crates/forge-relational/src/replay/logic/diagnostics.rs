@@ -2,9 +2,7 @@ use serde_json::json;
 
 use crate::diagnostics::data::{DiagnosticCode, DiagnosticsScope};
 use crate::logic::runtime::RelationalRuntime;
-use crate::replay::data::{
-    RelationalReplayOutcome, RelationalReplayRequest, ReplayFailureClass,
-};
+use crate::replay::data::{RelationalReplayOutcome, RelationalReplayRequest, ReplayFailureClass};
 
 pub(super) fn record_replay_diagnostic(
     runtime: &mut RelationalRuntime,
@@ -18,7 +16,9 @@ pub(super) fn record_replay_diagnostic(
         Some(_) => DiagnosticCode::InvariantViolation,
         None => DiagnosticCode::CommitPublished,
     };
-    let builder = runtime.publication_authority().diagnostic(DiagnosticsScope::Replay);
+    let builder = runtime
+        .publication_authority()
+        .diagnostic(DiagnosticsScope::Replay);
     let builder = if outcome.failure.is_some() {
         builder.failure()
     } else {

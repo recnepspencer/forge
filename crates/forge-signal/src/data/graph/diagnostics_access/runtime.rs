@@ -65,8 +65,12 @@ impl SignalGraph {
             .ok()
             .and_then(|entry| entry.get_causality())
             .map(|causality| causality.kind.clone());
-        self.observation.diagnostics
-            .note_change_input(node, aspect, changed_regions, causality_kind);
+        self.observation.diagnostics.note_change_input(
+            node,
+            aspect,
+            changed_regions,
+            causality_kind,
+        );
     }
 
     pub(crate) fn record_invalidation_diagnostics(

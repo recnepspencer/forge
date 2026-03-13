@@ -58,7 +58,10 @@ pub(crate) fn bump_visibility_ref(
     version_id: crate::identity::data::VersionId,
     update: impl FnOnce(&mut VisibilityResidency),
 ) {
-    runtime.visibility.cache.update_residency(version_id, update);
+    runtime
+        .visibility
+        .cache
+        .update_residency(version_id, update);
     maybe_remove_unprotected_state(runtime, version_id);
 }
 
@@ -148,7 +151,8 @@ pub(crate) fn mark_recent_state(
     runtime: &RelationalRuntime,
     version_id: crate::identity::data::VersionId,
 ) {
-    if !runtime.config.visibility.cache_policy.enabled || runtime.visibility.cache.recent_window() == 0
+    if !runtime.config.visibility.cache_policy.enabled
+        || runtime.visibility.cache.recent_window() == 0
     {
         return;
     }
@@ -178,7 +182,10 @@ pub(crate) fn evict_cache_if_needed(runtime: &RelationalRuntime) {
                 break;
             };
             if is_protected_version(runtime, version_id) {
-                runtime.visibility.cache.enqueue_recent_candidate(version_id);
+                runtime
+                    .visibility
+                    .cache
+                    .enqueue_recent_candidate(version_id);
                 continue;
             }
             if !runtime

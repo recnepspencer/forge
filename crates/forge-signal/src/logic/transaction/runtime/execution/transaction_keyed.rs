@@ -34,12 +34,7 @@ where
         F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
         O: IntoEvaluationOutput,
     {
-        self.evaluate_keyed_with_mode(
-            node,
-            computation,
-            evaluator,
-            EvaluationRequestMode::Default,
-        )
+        self.evaluate_keyed_with_mode(node, computation, evaluator, EvaluationRequestMode::Default)
     }
 
     pub fn evaluate_keyed_with_mode<F, O>(
@@ -71,6 +66,7 @@ where
         };
         if let Some(memo_key) = computation.memo_key.as_ref() {
             if let Some(cached) = self
+                .scratch
                 .staged_memo_writes
                 .get(&(
                     family_id,
@@ -87,7 +83,7 @@ where
                 })
             {
                 self.telemetry.evaluation.memoization_hits += 1;
-                let cached_result = cached.clone();
+                let cached_result = cached;
                 let execution_start = Instant::now();
                 let report = match execute_targets_with_prepared_runtime_config_detailed(
                     self.graph,
@@ -95,14 +91,16 @@ where
                     &[node],
                     request_mode,
                     &|_current, _view| {
-                        Ok(crate::logic::prepared::PreparedEvaluation::from_result(cached_result.clone())
-                            .with_origin(PreparedEvaluationOrigin::MemoizedReuse)
-                            .with_memo_decision(PreparedMemoDecision::Hit)
-                            .with_keyed(PreparedKeyedContext {
-                                memoized_origin:
-                                    crate::data::output::MemoizedResultOrigin::MemoizedFromCache,
-                                ..base_keyed_context.clone()
-                            }))
+                        Ok(crate::logic::prepared::PreparedEvaluation::from_result(
+                            cached_result.clone(),
+                        )
+                        .with_origin(PreparedEvaluationOrigin::MemoizedReuse)
+                        .with_memo_decision(PreparedMemoDecision::Hit)
+                        .with_keyed(PreparedKeyedContext {
+                            memoized_origin:
+                                crate::data::output::MemoizedResultOrigin::MemoizedFromCache,
+                            ..base_keyed_context.clone()
+                        }))
                     },
                     executor,
                 ) {
@@ -135,7 +133,8 @@ where
             &|current, view| {
                 let mut ctx = EvaluationContext::new(view.graph(), current, &*self.runtime_ctx);
                 let output = evaluator(&mut ctx)?;
-                let prepared = ctx.into_prepared(output)
+                let prepared = ctx
+                    .into_prepared(output)
                     .with_memo_decision(PreparedMemoDecision::Miss)
                     .with_keyed(base_keyed_context.clone());
                 if current == node {
@@ -171,7 +170,7 @@ where
         if result.is_ok() {
             if let Ok(mut guard) = last_result.lock() {
                 if let Some(last_result) = guard.take() {
-                    self.staged_memo_writes.insert(
+                    self.scratch.staged_memo_writes.insert(
                         (
                             family_id,
                             key_id,

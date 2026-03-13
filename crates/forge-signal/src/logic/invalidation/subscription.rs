@@ -78,6 +78,9 @@ pub(super) fn subscribes_to_aspect(
         (partition_checks, outcome)
     };
 
-    graph.telemetry_mut().invalidation.partition_scoped_invalidation_checks += partition_checks;
+    graph
+        .telemetry_mut()
+        .invalidation
+        .partition_scoped_invalidation_checks += partition_checks;
     Ok(outcome)
 }

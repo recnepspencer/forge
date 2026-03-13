@@ -40,7 +40,13 @@ fn fintech_mixed_tier_policy_honors_audit_tolerance_without_hiding_live_truth_ch
     let baseline_threshold = world
         .read_primary_threshold_with_executor(StageExecutor::Serial)
         .unwrap();
-    let skipped_before = world.runtime.graph().observe().metrics().evaluation.skipped_by_comparator;
+    let skipped_before = world
+        .runtime
+        .graph()
+        .observe()
+        .metrics()
+        .evaluation
+        .skipped_by_comparator;
 
     world
         .bump_primary_market(3, 0, 0, 0, StageExecutor::Serial)
@@ -55,5 +61,14 @@ fn fintech_mixed_tier_policy_honors_audit_tolerance_without_hiding_live_truth_ch
 
     assert_eq!(after_desk, baseline_desk);
     assert_ne!(after_threshold, baseline_threshold);
-    assert!(world.runtime.graph().observe().metrics().evaluation.skipped_by_comparator > skipped_before);
+    assert!(
+        world
+            .runtime
+            .graph()
+            .observe()
+            .metrics()
+            .evaluation
+            .skipped_by_comparator
+            > skipped_before
+    );
 }

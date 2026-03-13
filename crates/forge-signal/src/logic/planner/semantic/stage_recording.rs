@@ -25,6 +25,7 @@ pub(crate) fn begin_stage_record(
                 StageExecutionOutcome::CompletedSerial
             }
         },
+        authority_policy: None,
         parallel_admission_reason: Some({
             #[cfg(feature = "parallel")]
             {

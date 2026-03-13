@@ -256,7 +256,9 @@ impl SignalAdversarialHarness {
 
 fn geometry_evaluator(
     fixture: &GeometryFixture,
-) -> impl for<'ctx> Fn(&mut crate::logic::context::EvaluationContext<'ctx, ()>) -> Result<crate::logic::evaluation::EvaluationOutput, SignalError>
+) -> impl for<'ctx> Fn(
+    &mut crate::logic::context::EvaluationContext<'ctx, ()>,
+) -> Result<crate::logic::evaluation::EvaluationOutput, SignalError>
        + Sync {
     let source_a = fixture.source_a;
     let source_b = fixture.source_b;
@@ -295,7 +297,9 @@ fn geometry_evaluator(
             let b = ctx
                 .read_aspect_version(filtered_gate, ASPECT_B)?
                 .get(ASPECT_B);
-            let demand = ctx.read_aspect_version(demand_gate, ASPECT_A)?.get(ASPECT_A);
+            let demand = ctx
+                .read_aspect_version(demand_gate, ASPECT_A)?
+                .get(ASPECT_A);
             return Ok(ctx.finish(
                 NodeEvaluationResult::from_version(version_ab(a.max(demand), b))
                     .with_output_identity(format!("geom-fused-{a}-{b}-{demand}"))
@@ -310,7 +314,9 @@ fn geometry_evaluator(
 
 fn fintech_evaluator(
     fixture: &FintechFixture,
-) -> impl for<'ctx> Fn(&mut crate::logic::context::EvaluationContext<'ctx, ()>) -> Result<crate::logic::evaluation::EvaluationOutput, SignalError>
+) -> impl for<'ctx> Fn(
+    &mut crate::logic::context::EvaluationContext<'ctx, ()>,
+) -> Result<crate::logic::evaluation::EvaluationOutput, SignalError>
        + Sync {
     let ticks = fixture.ticks;
     let volatility = fixture.volatility;
@@ -328,9 +334,7 @@ fn fintech_evaluator(
             ));
         }
         if node == alert {
-            let b = ctx
-                .read_aspect_version(volatility, ASPECT_B)?
-                .get(ASPECT_B);
+            let b = ctx.read_aspect_version(volatility, ASPECT_B)?.get(ASPECT_B);
             return Ok(ctx.finish(
                 NodeEvaluationResult::from_version(version_ab(0, b))
                     .with_output_identity(format!("alert-{b}"))
@@ -353,7 +357,9 @@ fn fintech_evaluator(
 }
 
 fn build_geometry_fixture(policy: SignalRuntimePolicy) -> GeometryFixture {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     runtime.set_runtime_policy(policy);
 
     let source_a = runtime
@@ -418,7 +424,9 @@ fn build_geometry_fixture(policy: SignalRuntimePolicy) -> GeometryFixture {
 }
 
 fn build_fintech_fixture(policy: SignalRuntimePolicy) -> FintechFixture {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     runtime.set_runtime_policy(policy);
 
     let ticks = runtime.graph_mut().node().output_identity().build();
@@ -486,17 +494,13 @@ fn seed_geometry_baseline(
                         .with_output_identity("geom-source-b-1"),
                 ))
             })?;
-            tx.evaluate_keyed(
-                fixture.keyed,
-                &fixture.memo_key,
-                &|view| {
-                    Ok(view.finish(
-                        NodeEvaluationResult::from_version(version_ab(1, 1))
-                            .with_output_identity("geom-keyed-1")
-                            .with_output_change(OutputChange::Refreshed),
-                    ))
-                },
-            )?;
+            tx.evaluate_keyed(fixture.keyed, &fixture.memo_key, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 1))
+                        .with_output_identity("geom-keyed-1")
+                        .with_output_change(OutputChange::Refreshed),
+                ))
+            })?;
             Ok(())
         })
         .unwrap();
@@ -507,7 +511,10 @@ fn seed_geometry_baseline(
         .unwrap();
     fixture
         .runtime
-        .evaluate_with_plan_and_executor(fixture.demand_gate, &(), &geometry_evaluator(fixture),
+        .evaluate_with_plan_and_executor(
+            fixture.demand_gate,
+            &(),
+            &geometry_evaluator(fixture),
             EvaluationRequestMode::ForceOnDemand,
             StageExecutor::Serial,
         )
@@ -545,26 +552,19 @@ fn seed_fintech_baseline(
                         .with_output_identity("tick-1"),
                 ))
             })?;
-            tx.read(
-                fixture.volatility,
-                &|view| {
-                    Ok(view.finish(
-                        NodeEvaluationResult::from_version(version_ab(0, 1))
-                            .with_output_identity("vol-1"),
-                    ))
-                },
-            )?;
-            tx.evaluate_keyed(
-                fixture.keyed,
-                &fixture.memo_key,
-                &|view| {
-                    Ok(view.finish(
-                        NodeEvaluationResult::from_version(version_ab(1, 1))
-                            .with_output_identity("risk-keyed-1")
-                            .with_output_change(OutputChange::Refreshed),
-                    ))
-                },
-            )?;
+            tx.read(fixture.volatility, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(0, 1))
+                        .with_output_identity("vol-1"),
+                ))
+            })?;
+            tx.evaluate_keyed(fixture.keyed, &fixture.memo_key, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 1))
+                        .with_output_identity("risk-keyed-1")
+                        .with_output_change(OutputChange::Refreshed),
+                ))
+            })?;
             Ok(())
         })
         .unwrap();
@@ -671,7 +671,10 @@ fn assert_runtime_invariants(
         ));
     }
     if expected.head_snapshot.is_some()
-        && graph.observe().branch_head_snapshot_id(current_branch.id).is_none()
+        && graph
+            .observe()
+            .branch_head_snapshot_id(current_branch.id)
+            .is_none()
     {
         errors.push(format!(
             "branch `{}` lost its head snapshot metadata",
@@ -821,15 +824,12 @@ fn geometry_session(
                             ASPECT_A,
                             &[ChangedRegion::new("wing").with_detail(format!("panel-{step}"))],
                         )?;
-                        tx.read(
-                            fixture.source_a,
-                            &move |view| {
-                                Ok(view.finish(
-                                    NodeEvaluationResult::from_version(version_ab(next_a, 0))
-                                        .with_output_identity(format!("geom-source-a-{next_a}")),
-                                ))
-                            },
-                        )?;
+                        tx.read(fixture.source_a, &move |view| {
+                            Ok(view.finish(
+                                NodeEvaluationResult::from_version(version_ab(next_a, 0))
+                                    .with_output_identity(format!("geom-source-a-{next_a}")),
+                            ))
+                        })?;
                         Ok(())
                     });
                 result.unwrap();
@@ -860,15 +860,12 @@ fn geometry_session(
                             ASPECT_B,
                             &[ChangedRegion::new("lod")],
                         )?;
-                        tx.read(
-                            fixture.source_b,
-                            &move |view| {
-                                Ok(view.finish(
-                                    NodeEvaluationResult::from_version(version_ab(0, next_b))
-                                        .with_output_identity(format!("geom-source-b-{next_b}")),
-                                ))
-                            },
-                        )?;
+                        tx.read(fixture.source_b, &move |view| {
+                            Ok(view.finish(
+                                NodeEvaluationResult::from_version(version_ab(0, next_b))
+                                    .with_output_identity(format!("geom-source-b-{next_b}")),
+                            ))
+                        })?;
                         Ok(())
                     });
                 result.unwrap();
@@ -895,15 +892,12 @@ fn geometry_session(
                     .runtime
                     .transaction(&mut ctx, |tx: &mut DefaultTx<'_>| {
                         tx.mark_dirty(fixture.source_a, ASPECT_A)?;
-                        tx.read(
-                            fixture.source_a,
-                            &move |view| {
-                                Ok(view.finish(
-                                    NodeEvaluationResult::from_version(version_ab(bad_a, 0))
-                                        .with_output_identity(format!("geom-source-a-bad-{bad_a}")),
-                                ))
-                            },
-                        )?;
+                        tx.read(fixture.source_a, &move |view| {
+                            Ok(view.finish(
+                                NodeEvaluationResult::from_version(version_ab(bad_a, 0))
+                                    .with_output_identity(format!("geom-source-a-bad-{bad_a}")),
+                            ))
+                        })?;
                         Err(SignalError::invalid_input("synthetic geometry rollback"))
                     });
                 assert!(err.is_err());
@@ -917,7 +911,10 @@ fn geometry_session(
             4 => {
                 fixture
                     .runtime
-                    .evaluate_with_plan_and_executor(fixture.demand_gate, &(), &geometry_evaluator(&fixture),
+                    .evaluate_with_plan_and_executor(
+                        fixture.demand_gate,
+                        &(),
+                        &geometry_evaluator(&fixture),
                         EvaluationRequestMode::ForceOnDemand,
                         executor,
                     )
@@ -1000,7 +997,11 @@ fn geometry_session(
     let replay = fixture
         .runtime
         .replay_for_branch(fixture.runtime.observe().current_branch().id);
-    let lineage = fixture.runtime.graph().observe().lineage_for_node(fixture.fused);
+    let lineage = fixture
+        .runtime
+        .graph()
+        .observe()
+        .lineage_for_node(fixture.fused);
     (harness, replay, lineage)
 }
 
@@ -1129,31 +1130,22 @@ fn fintech_session(
                     .runtime
                     .transaction(&mut ctx, |tx: &mut DefaultTx<'_>| {
                         tx.mark_dirty(fixture.ticks, ASPECT_A)?;
-                        tx.read(
-                            fixture.ticks,
-                            &move |view| {
-                                Ok(view.finish(
-                                    NodeEvaluationResult::from_version(version_ab(next_a, 0))
-                                        .with_output_identity(format!("ticks-{next_a}")),
-                                ))
-                            },
-                        )?;
-                        tx.evaluate_keyed(
-                            fixture.keyed,
-                            &fixture.memo_key,
-                            &|view| {
-                                Ok(view.finish(
-                                    NodeEvaluationResult::from_version(version_ab(
-                                        next_a, current.b,
-                                    ))
+                        tx.read(fixture.ticks, &move |view| {
+                            Ok(view.finish(
+                                NodeEvaluationResult::from_version(version_ab(next_a, 0))
+                                    .with_output_identity(format!("ticks-{next_a}")),
+                            ))
+                        })?;
+                        tx.evaluate_keyed(fixture.keyed, &fixture.memo_key, &|view| {
+                            Ok(view.finish(
+                                NodeEvaluationResult::from_version(version_ab(next_a, current.b))
                                     .with_output_identity(format!(
                                         "risk-keyed-{next_a}-{}",
                                         current.b
                                     ))
                                     .with_output_change(OutputChange::Refreshed),
-                                ))
-                            },
-                        )?;
+                            ))
+                        })?;
                         Ok(())
                     })
                     .unwrap();
@@ -1180,15 +1172,12 @@ fn fintech_session(
                     .runtime
                     .transaction(&mut ctx, |tx: &mut DefaultTx<'_>| {
                         tx.mark_dirty(fixture.volatility, ASPECT_B)?;
-                        tx.read(
-                            fixture.volatility,
-                            &move |view| {
-                                Ok(view.finish(
-                                    NodeEvaluationResult::from_version(version_ab(0, next_b))
-                                        .with_output_identity(format!("volatility-{next_b}")),
-                                ))
-                            },
-                        )?;
+                        tx.read(fixture.volatility, &move |view| {
+                            Ok(view.finish(
+                                NodeEvaluationResult::from_version(version_ab(0, next_b))
+                                    .with_output_identity(format!("volatility-{next_b}")),
+                            ))
+                        })?;
                         Ok(())
                     })
                     .unwrap();
@@ -1213,18 +1202,12 @@ fn fintech_session(
                     .runtime
                     .transaction(&mut ctx, |tx: &mut DefaultTx<'_>| {
                         tx.mark_dirty(fixture.ticks, ASPECT_A)?;
-                        tx.read(
-                            fixture.ticks,
-                            &move |view| {
-                                Ok(view.finish(
-                                    NodeEvaluationResult::from_version(version_ab(
-                                        current.a + 10,
-                                        0,
-                                    ))
+                        tx.read(fixture.ticks, &move |view| {
+                            Ok(view.finish(
+                                NodeEvaluationResult::from_version(version_ab(current.a + 10, 0))
                                     .with_output_identity("bad-ticks"),
-                                ))
-                            },
-                        )?;
+                            ))
+                        })?;
                         Err(SignalError::invalid_input("synthetic branch-local failure"))
                     });
                 assert!(err.is_err());
@@ -1318,7 +1301,11 @@ fn fintech_session(
     let replay = fixture
         .runtime
         .replay_for_branch(fixture.runtime.observe().current_branch().id);
-    let lineage = fixture.runtime.graph().observe().lineage_for_node(fixture.risk);
+    let lineage = fixture
+        .runtime
+        .graph()
+        .observe()
+        .lineage_for_node(fixture.risk);
     (harness, replay, lineage)
 }
 
@@ -1551,7 +1538,8 @@ fn focused_parallel_branch_restore_and_evaluate_dirty_regression() {
 
     fixture
         .runtime
-        .evaluate_dirty_with_executor(&(), 
+        .evaluate_dirty_with_executor(
+            &(),
             &geometry_evaluator(&fixture),
             StageExecutor::aggressive_parallel(),
         )
@@ -1630,7 +1618,8 @@ fn event_flush_failure_workflow_does_not_advance_branch_truth() {
         FailureInjectionPoint::DuringEventFlush,
         FailureInjectionPoint::DuringEventFlush
     ));
-    let mut runtime: EventRuntime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults()
+    let mut runtime: EventRuntime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
         .with_domains::<EventDomain>()
         .with_events::<WorkflowEvent>()
         .runtime_policy(SignalRuntimePolicy::development().with_history_limit(4))
@@ -1655,7 +1644,10 @@ fn event_flush_failure_workflow_does_not_advance_branch_truth() {
     let outcome = tx.commit();
     assert!(outcome.is_err());
 
-    assert_eq!(runtime.observe().branch_head_snapshot_id(feature.id), head_before);
+    assert_eq!(
+        runtime.observe().branch_head_snapshot_id(feature.id),
+        head_before
+    );
     assert_eq!(
         runtime
             .graph()

@@ -32,7 +32,8 @@ impl MutationIntent {
     ) {
         match self {
             Self::Create(CreateIntent::Entity(spec)) => {
-                spec.client_key = normalize_interned_string(interner, policy, spec.client_key.clone());
+                spec.client_key =
+                    normalize_interned_string(interner, policy, spec.client_key.clone());
             }
             Self::Create(CreateIntent::BulkEntities(spec)) => {
                 normalize_bulk_client_keys(&mut spec.client_keys, interner, policy);
@@ -41,7 +42,8 @@ impl MutationIntent {
                 normalize_bulk_client_keys(&mut spec.client_keys, interner, policy);
             }
             Self::Create(CreateIntent::Relation(spec)) => {
-                spec.client_key = normalize_interned_string(interner, policy, spec.client_key.clone());
+                spec.client_key =
+                    normalize_interned_string(interner, policy, spec.client_key.clone());
             }
             Self::Entity(_) | Self::Relation(_) => {}
         }

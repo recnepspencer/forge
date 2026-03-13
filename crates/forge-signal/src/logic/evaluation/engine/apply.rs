@@ -1,12 +1,12 @@
 use crate::data::comparator::ComparatorPolicyResolver;
-use crate::data::dependency::DependencySnapshot;
+use crate::data::dependency::{DependencySnapshot, SharedDependencySnapshot};
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::output::{MemoizedResultOrigin, NodeEvaluationResult};
 use crate::logic::evaluation::{
-    EffectDependencyInputs, EvaluationEffect, EvaluationVerdict, PreparedApplyResult,
-    SuppressionReason,
+    DiagnosticEnvelope, EffectDependencyInputs, EffectRuntimeMetadata, EvaluationEffect,
+    EvaluationVerdict, OperationalEffect, PreparedApplyResult, SuppressionReason,
 };
 use crate::logic::prepared::PreparedKeyedContext;
 
@@ -29,23 +29,30 @@ pub(crate) fn apply_effect_with_policy_and_condition(
         Some(inputs) => inputs,
         None => build_effect_dependency_inputs(graph, node)?,
     };
+    let memoized_origin = execution_metadata
+        .map(|metadata| metadata.memoized_origin)
+        .unwrap_or(MemoizedResultOrigin::DirectCompute);
     let effect = EvaluationEffect {
-        node,
-        verdict,
-        aspect_version: result.aspect_version,
-        output_change: result.output_change,
-        output_identity: result.output_identity,
-        continuity_token: result.continuity_token,
-        changed_regions: result.changed_regions,
-        labels: result.labels,
-        dependency_snapshot: dependency_inputs.dependency_snapshot,
-        meaningful_input_changes: dependency_inputs.meaningful_input_changes,
-        recomputed,
-        memoized_origin: execution_metadata
-            .map(|metadata| metadata.memoized_origin)
-            .unwrap_or(MemoizedResultOrigin::DirectCompute),
-        keyed_context,
-        causality,
+        operational: OperationalEffect {
+            node,
+            verdict,
+            aspect_version: result.aspect_version,
+            output_change: result.output_change,
+            dependency_snapshot: dependency_inputs.dependency_snapshot,
+            meaningful_input_changes: dependency_inputs.meaningful_input_changes,
+        },
+        diagnostics: DiagnosticEnvelope::from_parts(
+            result.output_identity,
+            result.continuity_token,
+            result.changed_regions,
+            result.labels,
+            memoized_origin,
+        ),
+        runtime_metadata: EffectRuntimeMetadata {
+            recomputed,
+            keyed_context,
+            causality,
+        },
     };
     let comparator = {
         let entry = graph.get_entry(node)?;
@@ -54,12 +61,17 @@ pub(crate) fn apply_effect_with_policy_and_condition(
     let pending_snapshot = if defer_snapshot_commit {
         Some(crate::logic::evaluation::PendingDependencySnapshot {
             node,
-            snapshot: effect.dependency_snapshot.clone(),
+            snapshot: effect.operational.dependency_snapshot.clone(),
         })
     } else {
         None
     };
-    let report = graph.apply_effect(effect, comparator, comparator_resolver, defer_snapshot_commit)?;
+    let report = graph.apply_effect(
+        effect,
+        comparator,
+        comparator_resolver,
+        defer_snapshot_commit,
+    )?;
     Ok(PreparedApplyResult {
         dependency_updates: 0,
         report,
@@ -71,7 +83,8 @@ pub(crate) fn collect_effect_dependency_inputs_batch(
     graph: &mut SignalGraph,
     nodes: &[NodeId],
 ) -> Result<Vec<EffectDependencyInputs>, SignalError> {
-    nodes.iter()
+    nodes
+        .iter()
         .map(|&node| build_effect_dependency_inputs(graph, node))
         .collect()
 }
@@ -82,9 +95,10 @@ pub(crate) fn verdict_for_evaluated_result(
     result: &NodeEvaluationResult,
     recomputed: bool,
 ) -> Result<EvaluationVerdict, SignalError> {
-    let previous_trace = graph.get_entry(node)?.get_trace_summary();
+    let previous_trace = graph.get_entry(node)?.get_runtime_artifact_state();
     let previous_output_identity = previous_trace.and_then(|trace| trace.output_identity.as_ref());
-    let previous_continuity_token = previous_trace.and_then(|trace| trace.continuity_token.as_ref());
+    let previous_continuity_token =
+        previous_trace.and_then(|trace| trace.continuity_token.as_ref());
 
     let output_identity_unchanged = matches!(
         (previous_output_identity, result.output_identity.as_ref()),
@@ -150,7 +164,7 @@ fn build_effect_dependency_inputs(
     }
 
     Ok(EffectDependencyInputs {
-        dependency_snapshot: snapshot,
+        dependency_snapshot: SharedDependencySnapshot::new(snapshot),
         meaningful_input_changes: changes,
     })
 }

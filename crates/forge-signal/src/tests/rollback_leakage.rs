@@ -152,7 +152,8 @@ impl EventSubscriber for FailOnBarrier {
 
 #[test]
 fn failed_commit_cannot_leak_key_registry_growth() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults()
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
         .with_domains::<Domain>()
         .with_events::<Ev>()
         .checkpoint_barrier(CheckpointBarrier::PerOperation)
@@ -185,7 +186,8 @@ fn failed_commit_cannot_leak_key_registry_growth() {
 
 #[test]
 fn failed_commit_preserves_preexisting_memoized_state() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults()
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
         .with_domains::<Domain>()
         .with_events::<Ev>()
         .checkpoint_barrier(CheckpointBarrier::PerOperation)
@@ -252,7 +254,8 @@ fn failed_commit_preserves_preexisting_memoized_state() {
 
 #[test]
 fn failed_later_epoch_keeps_committed_context_and_records_coherent_diagnostics() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults()
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
         .with_domains::<Domain>()
         .with_events::<Ev>()
         .checkpoint_barrier(CheckpointBarrier::PerOperation)

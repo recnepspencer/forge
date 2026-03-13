@@ -1,11 +1,9 @@
 use std::collections::BTreeMap;
 
+use crate::authority::merge::{canonical_intent_key, detect_conflicting_updates, validate_intent};
 use crate::capabilities::{InstrumentationSource, RuntimeConfigSource};
 use crate::history::data::{BranchId, CommitId};
-use crate::authority::merge::{
-    canonical_intent_key, detect_conflicting_updates, validate_intent,
-};
-use crate::logic::runtime::{PartitionAccess, WorkingState};
+use crate::logic::runtime::PartitionAccess;
 use crate::symbols::data::SymbolPolicy;
 use crate::transactions::data::{CommitConflict, ConflictClass, MergedCommitPlan, MutationIntent};
 use crate::transactions::logic::RelationalTransaction;
@@ -13,26 +11,19 @@ use crate::transactions::logic::RelationalTransaction;
 impl<'a> RelationalTransaction<'a> {
     pub fn merged_plan(&mut self) -> Result<&MergedCommitPlan, CommitConflict> {
         if self.last_merged_plan.is_none() {
-            let current_state = WorkingState::new(
-                self.runtime.partitions.clone(),
-                self.runtime.runtime_config().storage.adjacency_policy.clone(),
-            );
-            let plan = self.build_merged_plan_for_state(&current_state)?;
+            let intents = self.normalized_intents_for_merge();
+            let current_state = self.runtime.storage_access().current_state();
+            let plan = self.build_merged_plan_for_state(&current_state, intents)?;
             self.last_merged_plan = Some(plan);
         }
         Ok(self.last_merged_plan.as_ref().expect("merged plan"))
     }
 
     pub(crate) fn build_merged_plan_for_state(
-        &mut self,
+        &self,
         current_state: &impl PartitionAccess,
+        mut intents: Vec<MutationIntent>,
     ) -> Result<MergedCommitPlan, CommitConflict> {
-        let mut intents = self
-            .batches
-            .iter()
-            .flat_map(|batch| batch.intents.iter().cloned())
-            .collect::<Vec<_>>();
-        self.normalize_intents_for_merge(&mut intents);
         for intent in &intents {
             validate_intent(
                 current_state,
@@ -50,6 +41,16 @@ impl<'a> RelationalTransaction<'a> {
         })
     }
 
+    pub(crate) fn normalized_intents_for_merge(&mut self) -> Vec<MutationIntent> {
+        let mut intents = self
+            .batches
+            .iter()
+            .flat_map(|batch| batch.intents.iter().cloned())
+            .collect::<Vec<_>>();
+        self.normalize_intents_for_merge(&mut intents);
+        intents
+    }
+
     pub(crate) fn resolve_parent_commits(
         &self,
         target_branch: &BranchId,
@@ -58,7 +59,8 @@ impl<'a> RelationalTransaction<'a> {
         let mut merge_bases = Vec::new();
         let target_head = self
             .runtime
-            .history_access().branch_head(target_branch)
+            .history_access()
+            .branch_head(target_branch)
             .map(|head| head.commit_id);
         if let Some(head) = self.runtime.history_access().branch_head(target_branch) {
             parents.push(head.commit_id);
@@ -73,22 +75,23 @@ impl<'a> RelationalTransaction<'a> {
             let history = self.runtime.history_access();
             let Some(head) = history.branch_head(&merge_branch) else {
                 return Err(CommitConflict::new(ConflictClass::InvalidMergeParent {
-                        detail: format!("merge parent branch {:?} has no head", merge_branch),
-                    }));
+                    detail: format!("merge parent branch {:?} has no head", merge_branch),
+                }));
             };
             if !parents.contains(&head.commit_id) {
                 if let Some(target_head) = target_head {
                     let inspection = history.inspect_merge(&merge_branch, target_branch);
                     if !inspection.conflicting_records.is_empty() {
                         return Err(CommitConflict::new(ConflictClass::MergeConflictOverlap {
-                                detail: format!(
+                            detail: format!(
                                 "merge between {:?} and {:?} has overlapping authority on {:?}",
                                 merge_branch, target_branch, inspection.conflicting_records
                             ),
-                            }));
+                        }));
                     }
                     let Some(merge_base) = self
-                        .runtime.history_access()
+                        .runtime
+                        .history_access()
                         .latest_common_ancestor(target_head, head.commit_id)
                     else {
                         return Err(CommitConflict::new(ConflictClass::MissingMergeBase {

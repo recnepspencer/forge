@@ -70,10 +70,7 @@ impl SignalError {
         Self::ScratchMismatch { expected, restored }
     }
 
-    pub fn contract_violation(
-        node: NodeId,
-        requirement: ContextRequirement,
-    ) -> Self {
+    pub fn contract_violation(node: NodeId, requirement: ContextRequirement) -> Self {
         Self::ContractViolation { node, requirement }
     }
 
@@ -85,10 +82,7 @@ impl SignalError {
         Self::TransactionPoisoned
     }
 
-    pub fn event_flush_failed(
-        subscriber: impl Into<String>,
-        source: impl Into<String>,
-    ) -> Self {
+    pub fn event_flush_failed(subscriber: impl Into<String>, source: impl Into<String>) -> Self {
         Self::EventFlushFailed {
             subscriber: subscriber.into(),
             source: source.into(),
@@ -96,10 +90,15 @@ impl SignalError {
     }
 
     pub fn incompatible_snapshot(reason: impl Into<String>) -> Self {
-        Self::IncompatibleSnapshot { reason: reason.into() }
+        Self::IncompatibleSnapshot {
+            reason: reason.into(),
+        }
     }
 
-    pub fn unknown_branch(branch_id: Option<SignalBranchId>, branch_name: impl Into<String>) -> Self {
+    pub fn unknown_branch(
+        branch_id: Option<SignalBranchId>,
+        branch_name: impl Into<String>,
+    ) -> Self {
         Self::UnknownBranch {
             branch_id,
             branch_name: branch_name.into(),

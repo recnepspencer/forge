@@ -112,10 +112,7 @@ impl SignalScenario {
         let upstream = self.resolve(upstream_label)?;
         let mut dependencies = self.pending_dependencies_for(downstream)?;
         dependencies.push(DependencyEdge::partition_detail(
-            upstream,
-            aspect,
-            partition,
-            detail,
+            upstream, aspect, partition, detail,
         ));
         self.pending_dependencies.insert(downstream, dependencies);
         Ok(self)
@@ -218,7 +215,8 @@ impl SignalScenario {
         let pending = std::mem::take(&mut self.pending_dependencies)
             .into_iter()
             .collect::<Vec<_>>();
-        self.graph.set_dependencies_batch(pending)
+        self.graph
+            .apply_dependency_batch_edit(&DependencyBatchEdit::from_pairs(pending))
     }
 }
 

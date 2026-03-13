@@ -12,7 +12,9 @@ use forge_signal::facade::graph::SignalGraph;
 #[cfg(feature = "parallel")]
 use forge_signal::facade::planning::{ParallelExecutionPolicy, StageExecutor};
 #[cfg(feature = "parallel")]
-use forge_signal::facade::transaction::mark_dirty_with_regions;
+use forge_signal::facade::proof::DirtyBatch;
+#[cfg(feature = "parallel")]
+use forge_signal::facade::transaction::mark_dirty_batch;
 #[cfg(feature = "parallel")]
 use forge_signal::facade::types::{
     Aspect, AspectVersion, ChangedRegion, DependencyEdge, NodeEvaluationResult, NodeId,
@@ -228,14 +230,16 @@ fn main() {
         })
         .unwrap();
 
-    mark_dirty_with_regions(
+    mark_dirty_batch(
         &mut graph,
-        source,
-        ASPECT_A,
-        &[
-            ChangedRegion::new("mesh").with_detail("face-b"),
-            ChangedRegion::new("shell").with_detail("face-a"),
-        ],
+        &DirtyBatch::singleton(
+            source,
+            ASPECT_A,
+            vec![
+                ChangedRegion::new("mesh").with_detail("face-b"),
+                ChangedRegion::new("shell").with_detail("face-a"),
+            ],
+        ),
     )
     .unwrap();
     let plan = graph

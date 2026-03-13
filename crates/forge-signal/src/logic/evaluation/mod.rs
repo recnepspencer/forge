@@ -7,16 +7,18 @@ pub use condition::{
     ConditionEvaluationContext, ConditionResolver, DefaultConditionResolver, EvaluationRequestMode,
 };
 pub use effect::{
-    AppliedEffectReport, DeferralReason, EvaluationEffect, EvaluationVerdict, SuppressionReason,
+    AppliedEffectReport, DeferralReason, DiagnosticEnvelope, EvaluationVerdict, OperationalEffect,
+    SuppressionReason,
 };
-pub use output::{EvaluationOutput, IntoEvaluationOutput};
 pub(crate) use effect::{
-    EffectComparison, EffectDependencyInputs, PendingDependencySnapshot, PreparedApplyResult,
+    EffectComparison, EffectDependencyInputs, EffectRuntimeMetadata, EvaluationEffect,
+    PendingDependencySnapshot, PreparedApplyResult,
 };
-#[cfg(any(test, feature = "parallel"))]
+#[cfg(test)]
 pub(crate) use engine::apply_prepared_evaluation_with_policy;
+pub use engine::EvaluationExecutionMetadata;
 pub(crate) use engine::{
-    apply_prepared_dependency_batch, apply_prepared_evaluation_after_dependencies_with_policy,
+    apply_prepared_evaluation_after_dependencies_with_policy,
     collect_effect_dependency_inputs_batch,
 };
-pub use engine::EvaluationExecutionMetadata;
+pub use output::{EvaluationOutput, IntoEvaluationOutput};

@@ -9,14 +9,14 @@ use forge_harness::facade::{
 };
 use serde_json::json;
 
+use crate::facade::harness::RelationalHarnessError;
+use crate::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
+use crate::facade::transactions::WorkerIntentBatch;
 use crate::query::data::QueryWorkPacket;
 use crate::transactions::data::{RecordRef, TransactionOptions};
-use crate::facade::{RelationalRuntime, RelationalRuntimeApi, WorkerIntentBatch};
 
-use super::harness_data::{
-    RelationalFixture, RelationalHarnessAdapter, RelationalHarnessError,
-};
 use super::harness_batches::{entity_fixture_batch, relation_fixture_batch};
+use super::harness_data::{RelationalFixture, RelationalHarnessAdapter};
 use super::harness_targets::{
     commit_error_to_harness_error, default_harness_schema_registry, parse_target, resolve_targets,
 };
@@ -82,7 +82,10 @@ impl HarnessAdapter for RelationalHarnessAdapter {
             .collect::<Vec<_>>();
         if !fixture.fixture.relations.is_empty() {
             let mut relation_txn = runtime.begin_transaction(TransactionOptions::default());
-            relation_txn.push_batch(relation_fixture_batch(&fixture.fixture.relations, &entity_ids)?);
+            relation_txn.push_batch(relation_fixture_batch(
+                &fixture.fixture.relations,
+                &entity_ids,
+            )?);
             relation_txn
                 .commit()
                 .map_err(commit_error_to_harness_error)?;
@@ -113,8 +116,7 @@ impl HarnessAdapter for RelationalHarnessAdapter {
         let scenario_id_value = forge_harness::facade::scenario_id(&fixture.name);
         let run_id_value = run_id(&scenario_id_value, &profile.name, &request.name);
         let snapshot = runtime.visibility_authority().snapshot();
-        let mut read_view = runtime.visibility_reads().read_version(snapshot.version_id);
-        read_view.snapshot = snapshot.clone();
+        let read_view = runtime.visibility_reads().read_version(snapshot.version_id);
         let targets = resolve_targets(request);
         let packet = QueryWorkPacket::bulk(
             "execute",
@@ -180,17 +182,14 @@ impl HarnessAdapter for RelationalHarnessAdapter {
         let run_id_value = run_id(&scenario_id_value, &profile.name, &request.name);
         let mut clone = runtime.fork();
         let snapshot = clone.visibility_authority().snapshot();
-        let mut read_view = clone.visibility_reads().read_version(snapshot.version_id);
-        read_view.snapshot = snapshot.clone();
+        let read_view = clone.visibility_reads().read_version(snapshot.version_id);
         let observations = resolve_targets(request)
             .into_iter()
             .map(|target| {
                 let payload = match parse_target(&target)? {
-                    RecordRef::Entity(entity_id) => {
-                        read_view.get_entity(entity_id).map(|entity| {
-                            SnapshotPayload::Structured(StructuredValue::Json(json!(entity)))
-                        })
-                    }
+                    RecordRef::Entity(entity_id) => read_view.get_entity(entity_id).map(|entity| {
+                        SnapshotPayload::Structured(StructuredValue::Json(json!(entity)))
+                    }),
                     RecordRef::Relation(relation_id) => {
                         read_view.get_relation(relation_id).map(|relation| {
                             SnapshotPayload::Structured(StructuredValue::Json(json!(relation)))
@@ -238,8 +237,10 @@ impl DiagnosticsHarnessAdapter for RelationalHarnessAdapter {
             level: profile.diagnostics_level,
             time_marker: profile.time_marker.clone(),
             attachments: Vec::new(),
-            summary: serde_json::to_value(runtime.publication_access().diagnostics())
-                .unwrap_or_else(|_| json!({})),
+            summary: serde_json::to_value(json!({
+                "artifacts": runtime.publication_access().diagnostic_artifacts()
+            }))
+            .unwrap_or_else(|_| json!({})),
             extensions: BTreeMap::new(),
         })
     }

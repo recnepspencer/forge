@@ -64,7 +64,7 @@ pub(crate) fn preview_maybe_stale(
             if current_version == snapshot_entry.cached_version {
                 continue;
             }
-            if partition_scope_untouched(source_entry.get_trace_summary(), scope) {
+            if partition_scope_untouched(source_entry.get_runtime_artifact_state(), scope) {
                 continue;
             }
             meaningful_change_detected = true;
@@ -91,20 +91,24 @@ pub(crate) fn preview_maybe_stale(
 }
 
 pub(crate) fn partition_scope_untouched(
-    trace_summary: Option<&crate::data::trace::TraceSummary>,
+    trace_summary: Option<&crate::data::trace::RuntimeArtifactState>,
     scope: &PartitionSubscription,
 ) -> bool {
     trace_summary.is_none_or(|summary| {
-        !summary.changed_regions.iter().any(|region| {
-            if scope.partition != region.partition {
-                return false;
-            }
-            match scope.match_mode {
-                crate::data::output::PartitionMatchMode::WholePartition => true,
-                crate::data::output::PartitionMatchMode::PartitionAndDetail => {
-                    scope.detail == region.detail
+        !summary
+            .changed_scopes
+            .as_slice()
+            .iter()
+            .any(|changed_scope| {
+                if scope.partition != changed_scope.partition {
+                    return false;
                 }
-            }
-        })
+                match scope.match_mode {
+                    crate::data::output::PartitionMatchMode::WholePartition => true,
+                    crate::data::output::PartitionMatchMode::PartitionAndDetail => {
+                        scope.detail == changed_scope.detail
+                    }
+                }
+            })
     })
 }

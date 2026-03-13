@@ -1,9 +1,10 @@
 use std::collections::BTreeMap;
 
-use crate::facade::{
-    BranchId, RelationalReplayOutcome, RelationalReplayRequest, RelationalRuntime,
-    ReplayExecutionMode,
+use crate::facade::history::BranchId;
+use crate::facade::replay::{
+    RelationalReplayOutcome, RelationalReplayRequest, ReplayExecutionMode,
 };
+use crate::facade::runtime::RelationalRuntime;
 use crate::logic::runtime::RecoveryOutcome;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -26,13 +27,20 @@ pub(crate) fn capture_replay_probe(
     world: &mut super::super::fixture::FintechWorld,
     branch_id: BranchId,
 ) -> ReplayProbe {
-    let latest = world.runtime.history_access().latest_commit().map(|commit| commit.commit_id);
+    let latest = world
+        .runtime
+        .history_access()
+        .latest_commit()
+        .map(|commit| commit.commit_id);
     let replay = latest.map(|commit_id| {
-        world.runtime.replay_authority().replay_commit(RelationalReplayRequest {
-            commit_id,
-            branch_id: branch_id.clone(),
-            execution_mode: ReplayExecutionMode::SerialDeterministic,
-        })
+        world
+            .runtime
+            .replay_authority()
+            .replay_commit(RelationalReplayRequest {
+                commit_id,
+                branch_id: branch_id.clone(),
+                execution_mode: ReplayExecutionMode::SerialDeterministic,
+            })
     });
     replay_probe_from_outcome(branch_id.0.clone(), replay.as_ref())
 }
@@ -62,9 +70,13 @@ pub(crate) fn capture_recovery_probe(
     outcome: &RecoveryOutcome,
 ) -> RecoveryProbe {
     RecoveryProbe {
-        latest_commit_id: runtime.history_access().latest_commit().map(|commit| commit.commit_id.0),
+        latest_commit_id: runtime
+            .history_access()
+            .latest_commit()
+            .map(|commit| commit.commit_id.0),
         branch_heads: runtime
-            .history_access().branches()
+            .history_access()
+            .branches()
             .into_iter()
             .filter_map(|head| {
                 head.head

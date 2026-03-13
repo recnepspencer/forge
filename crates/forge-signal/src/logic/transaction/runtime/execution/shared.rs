@@ -4,12 +4,11 @@ use crate::data::graph::{EvaluationStrategy, GcPressure, ScratchLeaseKind, Signa
 use crate::data::handle::NodeId;
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::logic::context::EvaluationContext;
-use crate::logic::evaluation::IntoEvaluationOutput;
 use crate::logic::evaluation::EvaluationRequestMode;
+use crate::logic::evaluation::IntoEvaluationOutput;
 use crate::logic::planner::{
     build_evaluation_session_with_policy_resolver, execute_evaluation_session_with_policy,
-    execute_prepared_plan_with_policy, EvaluationPlan, ExecutionReport, PlanSummary,
-    StageExecutor,
+    execute_prepared_plan_with_policy, EvaluationPlan, ExecutionReport, PlanSummary, StageExecutor,
 };
 use crate::logic::prepared::{ExecutionReadView, PreparedEvaluation};
 
@@ -18,6 +17,15 @@ use super::super::config::SignalRuntimeConfig;
 pub(super) struct SessionExecutionError {
     pub error: SignalError,
     pub plan_summary: PlanSummary,
+}
+
+impl From<SignalError> for SessionExecutionError {
+    fn from(error: SignalError) -> Self {
+        Self {
+            error,
+            plan_summary: PlanSummary::default(),
+        }
+    }
 }
 
 pub(super) fn absorb_execution_report_telemetry(
@@ -58,7 +66,8 @@ pub(super) fn absorb_execution_report_telemetry(
     telemetry.execution.stage_execution_count += report.stage_count as u64;
     telemetry.execution.stage_execution_nanos += stage_execution_nanos;
     telemetry.execution.execution_snapshots_built += report.execution_snapshots_built as u64;
-    telemetry.execution.prepared_evaluations_produced += report.prepared_evaluations_produced as u64;
+    telemetry.execution.prepared_evaluations_produced +=
+        report.prepared_evaluations_produced as u64;
     telemetry.execution.prepared_evaluations_applied += report.prepared_evaluations_applied as u64;
     telemetry.execution.dependency_capture_updates += report.dependency_capture_updates as u64;
     telemetry.execution.execution_snapshot_nanos += report.execution_snapshot_nanos;
@@ -74,8 +83,10 @@ pub(super) fn absorb_execution_report_telemetry(
         telemetry.execution.serial_executor_usage_count += 1;
         telemetry.execution.serial_precompute_task_count += report.task_count as u64;
     }
-    telemetry.execution.max_tasks_in_stage =
-        telemetry.execution.max_tasks_in_stage.max(max_tasks_in_stage);
+    telemetry.execution.max_tasks_in_stage = telemetry
+        .execution
+        .max_tasks_in_stage
+        .max(max_tasks_in_stage);
 }
 
 pub(super) fn executor_for_strategy(strategy: EvaluationStrategy) -> StageExecutor {
@@ -147,8 +158,8 @@ where
         config.tier_policies(),
         config.fallback_comparator(),
     );
-    let mut session_summary = PlanSummary::default();
-    Ok(graph.with_scratch(ScratchLeaseKind::Evaluation, |graph, scratch| {
+    graph.with_scratch(ScratchLeaseKind::Evaluation, |graph, scratch| {
+        let scratch = scratch.traversal_mut();
         let session = build_evaluation_session_with_policy_resolver(
             graph,
             scratch,
@@ -156,13 +167,21 @@ where
             request_mode,
             &mut resolver,
         )?;
-        session_summary = session.summary.clone();
-        execute_evaluation_session_with_policy(graph, &session, precompute, &mut resolver, executor)
+        let result = execute_evaluation_session_with_policy(
+            graph,
+            &session,
+            precompute,
+            &mut resolver,
+            executor,
+        );
+        match result {
+            Ok(report) => Ok(report),
+            Err(error) => Err(SessionExecutionError {
+                error,
+                plan_summary: session.summary,
+            }),
+        }
     })
-    .map_err(|error| SessionExecutionError {
-        error,
-        plan_summary: session_summary,
-    })?)
 }
 
 pub(super) fn execute_targets_with_runtime_config_detailed<T, Ctx, F, O>(
@@ -185,8 +204,8 @@ where
         config.tier_policies(),
         config.fallback_comparator(),
     );
-    let mut session_summary = PlanSummary::default();
-    Ok(graph.with_scratch(ScratchLeaseKind::Evaluation, |graph, scratch| {
+    graph.with_scratch(ScratchLeaseKind::Evaluation, |graph, scratch| {
+        let scratch = scratch.traversal_mut();
         let session = build_evaluation_session_with_policy_resolver(
             graph,
             scratch,
@@ -194,8 +213,7 @@ where
             request_mode,
             &mut resolver,
         )?;
-        session_summary = session.summary.clone();
-        execute_evaluation_session_with_policy(
+        let result = execute_evaluation_session_with_policy(
             graph,
             &session,
             &|node, view: &ExecutionReadView<'_>| {
@@ -203,12 +221,15 @@ where
             },
             &mut resolver,
             executor,
-        )
+        );
+        match result {
+            Ok(report) => Ok(report),
+            Err(error) => Err(SessionExecutionError {
+                error,
+                plan_summary: session.summary,
+            }),
+        }
     })
-    .map_err(|error| SessionExecutionError {
-        error,
-        plan_summary: session_summary,
-    })?)
 }
 
 pub(super) fn execute_plan_with_runtime_config<T, Ctx, F, O>(
@@ -230,12 +251,5 @@ where
         config.tier_policies(),
         config.fallback_comparator(),
     );
-    execute_prepared_plan_with_policy(
-        graph,
-        plan,
-        domain_ctx,
-        evaluator,
-        &mut resolver,
-        executor,
-    )
+    execute_prepared_plan_with_policy(graph, plan, domain_ctx, evaluator, &mut resolver, executor)
 }

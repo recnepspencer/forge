@@ -2,7 +2,9 @@ use crate::logic::runtime::RelationalRuntime;
 use crate::storage::data::{PartitionStorageStats, StorageStats};
 use crate::storage::logic::state::LifecycleCounts;
 
-pub(crate) fn partition_ids(runtime: &RelationalRuntime) -> Vec<crate::identity::data::PartitionId> {
+pub(crate) fn partition_ids(
+    runtime: &RelationalRuntime,
+) -> Vec<crate::identity::data::PartitionId> {
     runtime.partitions.keys().copied().collect()
 }
 
@@ -19,7 +21,7 @@ pub(crate) fn partition_storage_stats(runtime: &RelationalRuntime) -> Vec<Partit
                 entity_chunks: partition
                     .entity_arena
                     .slot_count()
-                    .div_ceil(runtime.entity_chunk_size()),
+                    .div_ceil(runtime.storage_access().entity_chunk_size()),
                 live_entities: entity_counts.live,
                 deleted_entities: entity_counts.deleted,
                 reusable_entity_slots: entity_counts.reusable,
@@ -27,7 +29,7 @@ pub(crate) fn partition_storage_stats(runtime: &RelationalRuntime) -> Vec<Partit
                 relation_chunks: partition
                     .relation_arena
                     .slot_count()
-                    .div_ceil(runtime.relation_chunk_size()),
+                    .div_ceil(runtime.storage_access().relation_chunk_size()),
                 live_relations: relation_counts.live,
                 deleted_relations: relation_counts.deleted,
                 reusable_relation_slots: relation_counts.reusable,
@@ -37,8 +39,10 @@ pub(crate) fn partition_storage_stats(runtime: &RelationalRuntime) -> Vec<Partit
 }
 
 pub(crate) fn storage_stats(runtime: &RelationalRuntime) -> StorageStats {
-    let chunked_summary =
-        crate::storage::partition::chunks::chunked_storage_summary(runtime, runtime.current_version_id());
+    let chunked_summary = crate::storage::partition::chunks::chunked_storage_summary(
+        runtime,
+        runtime.current_version_id(),
+    );
     let mut entity_counts = LifecycleCounts::default();
     let mut relation_counts = LifecycleCounts::default();
     for partition in runtime.partitions.values() {
@@ -52,20 +56,20 @@ pub(crate) fn storage_stats(runtime: &RelationalRuntime) -> StorageStats {
         relation_counts.reusable += counts.reusable;
     }
     StorageStats {
-        entity_slots: runtime.entity_slot_count(),
+        entity_slots: runtime.storage_access().entity_slot_count(),
         entity_chunks: chunked_summary.entity_chunks.len(),
         live_entities: entity_counts.live,
         deleted_entities: entity_counts.deleted,
         reusable_entity_slots: entity_counts.reusable,
-        relation_slots: runtime.relation_slot_count(),
+        relation_slots: runtime.storage_access().relation_slot_count(),
         relation_chunks: chunked_summary.relation_chunks.len(),
         live_relations: relation_counts.live,
         deleted_relations: relation_counts.deleted,
         reusable_relation_slots: relation_counts.reusable,
         snapshot_count: runtime.visibility.active_snapshot_count(),
         published_snapshot_handle_count: runtime.visibility.published_snapshot_handle_count(),
-        cached_visibility_version_count: runtime.visibility.cache.cached_version_count(),
-        protected_visibility_version_count: runtime.visibility.cache.protected_version_count(),
-        recent_visibility_cache_count: runtime.visibility.cache.recent_visibility_count(),
+        cached_visibility_version_count: runtime.visibility.cached_visibility_version_count(),
+        protected_visibility_version_count: runtime.visibility.protected_visibility_version_count(),
+        recent_visibility_cache_count: runtime.visibility.recent_visibility_cache_count(),
     }
 }

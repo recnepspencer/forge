@@ -196,6 +196,47 @@ fn deep_invalidation_chain_completes_without_recursive_cycle_detection() {
 }
 
 #[test]
+fn batch_invalidation_reuses_transitive_wave_for_same_aspect_sources() {
+    let mut graph = SignalGraph::new();
+    let source_a = graph.node().build();
+    let source_b = graph.node().build();
+    let shared = graph.node().build();
+    let leaf = graph.node().build();
+
+    graph.append_dependency(shared, source_a, ASPECT_A).unwrap();
+    graph.append_dependency(shared, source_b, ASPECT_A).unwrap();
+    graph.append_dependency(leaf, shared, ASPECT_A).unwrap();
+
+    for node in [source_a, source_b, shared, leaf] {
+        evaluate(&mut graph, node, &mut |_id, _graph| {
+            Ok(NodeEvaluationResult::from_version(version_ab(1, 0)))
+        })
+        .unwrap();
+    }
+
+    let mut scalar = graph.clone();
+    scalar.reset_telemetry();
+    mark_dirty(&mut scalar, source_a, ASPECT_A).unwrap();
+    mark_dirty(&mut scalar, source_b, ASPECT_A).unwrap();
+
+    let mut batched = graph;
+    batched.reset_telemetry();
+    mark_dirty_batch(
+        &mut batched,
+        &DirtyBatch::from_sources([(source_a, ASPECT_A), (source_b, ASPECT_A)]),
+    )
+    .unwrap();
+
+    assert_eq!(batched.get_state(shared).unwrap(), NodeState::Dirty);
+    assert_eq!(batched.get_state(leaf).unwrap(), NodeState::MaybeStale);
+    assert!(
+        batched.telemetry().invalidation.invalidation_nodes_visited
+            < scalar.telemetry().invalidation.invalidation_nodes_visited,
+        "batched invalidation should reuse the downstream transitive wave for same-aspect sources"
+    );
+}
+
+#[test]
 fn unscoped_dependency_removal_removes_partition_scoped_edges() {
     let mut graph = SignalGraph::new();
     let source = graph.node().partitioned_output().build();
@@ -204,9 +245,7 @@ fn unscoped_dependency_removal_removes_partition_scoped_edges() {
         .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
 
-    graph
-        .drop_dependency(dependent, source, ASPECT_A)
-        .unwrap();
+    graph.drop_dependency(dependent, source, ASPECT_A).unwrap();
 
     assert!(
         graph.dependencies_of(dependent).unwrap().is_empty(),

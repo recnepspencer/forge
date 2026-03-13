@@ -3,7 +3,6 @@ use super::scales::FintechScale;
 use super::scenarios::setup_seeded_world;
 use super::truth_comparison::compare_exact;
 use super::truth_snapshot::FintechTruthSnapshot;
-use crate::diagnostics::LineageEvent;
 use crate::facade::*;
 
 fn replay_mentions_snapshot(replay: &ReplaySlice, snapshot_id: SignalSnapshotId) -> bool {
@@ -16,8 +15,13 @@ fn replay_mentions_snapshot(replay: &ReplaySlice, snapshot_id: SignalSnapshotId)
 fn lineage_has_recovery_event(lineage: &[LineageRecord]) -> bool {
     lineage.iter().any(|record| {
         matches!(
-            record.event,
-            LineageEvent::Replaced | LineageEvent::Refreshed | LineageEvent::Restored
+            record.kind,
+            LineageRecordKind::SnapshotRestore { .. }
+                | LineageRecordKind::ArtifactTransition {
+                    transition: ArtifactTransitionKind::Replaced
+                        | ArtifactTransitionKind::Refreshed { .. },
+                    ..
+                }
         )
     })
 }

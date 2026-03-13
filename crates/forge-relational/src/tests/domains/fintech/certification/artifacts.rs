@@ -5,7 +5,9 @@ use forge_harness::facade::{
 };
 use serde_json::{json, Value};
 
-use crate::facade::{RecordPayload, RelationalReplayOutcome, SnapshotHandle};
+use crate::facade::payloads::RecordPayload;
+use crate::facade::replay::RelationalReplayOutcome;
+use crate::facade::snapshots::SnapshotHandle;
 
 use super::super::complexity::workflow_budgets;
 use super::super::fixture::FintechCaseRole;
@@ -19,7 +21,8 @@ pub(super) fn read_summary(
     let read = session
         .world
         .runtime
-        .visibility_reads().read_snapshot(&snapshot)
+        .visibility_reads()
+        .read_snapshot(&snapshot)
         .ok_or_else(|| format!("snapshot `{}` is unavailable", snapshot.snapshot_id.0))?;
     let corrected_trades = read
         .entities()
@@ -97,7 +100,8 @@ fn branch_summary(session: &CertifiedRelationalFintechSession) -> Value {
     let latest_commit = session
         .world
         .runtime
-        .history_access().latest_commit()
+        .history_access()
+        .latest_commit()
         .map(|commit| commit.commit_id.0);
     let branches = session
         .named_branches

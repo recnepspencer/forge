@@ -19,8 +19,9 @@
 7. [Phase S6 — Safety Architecture](#phase-s6--safety-architecture)
 8. [Phase S7 — API Surface & Facade](#phase-s7--api-surface--facade)
 9. [Phase S8 — Context-Aware Computation](#phase-s8--context-aware-computation)
-10. [What Must Be Preserved](#what-must-be-preserved)
-11. [Sequencing](#sequencing)
+10. [Phase S9 — Performance Enforcement Addendum](#phase-s9--performance-enforcement-addendum)
+11. [What Must Be Preserved](#what-must-be-preserved)
+12. [Sequencing](#sequencing)
 
 ---
 
@@ -158,6 +159,11 @@ pub struct SignalRuntime<D, I, E, Ctx, T> {
 
 **Kernel reference:** [Relational F2 — RecordProjection](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/relational_architecture.md) and [Relational D4 — Intent Contracts](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/relational_architecture.md).
 
+> [!NOTE]
+> Phase S9 extends this phase. `NodeContract` becomes the main performance
+> contract and grows explicit equivalence, path-class, maintenance, and
+> artifact-policy fields.
+
 ### Problem
 
 In forge-relational, **write contracts** (`MutationIntent::invariant_contract()`) and **read contracts** (`RecordProjection::required_aspects()`) are declared up front on the type. The pipeline uses their intersection for aspect-aware invalidation.
@@ -276,6 +282,10 @@ This is the signal equivalent of the frontend's `ProjectContextService` — each
 ## Phase S3 — Declarative Effects & Computation Model
 
 **Kernel reference:** [Relational B5 — Declarative Effect Assembly](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/relational_architecture.md).
+
+> [!NOTE]
+> Phase S9 extends this phase by splitting hot operational effect data from
+> optional diagnostic materialization inputs.
 
 ### Problem
 
@@ -496,6 +506,11 @@ pub struct TransactionResult {
     pub evaluation_summary: EvaluationSummary,
     pub event_epochs: Vec<EventEpochSummary>,
     pub rollback: Option<RollbackDiagnostic>,
+    pub warnings: Vec<AdvisoryRecord>,
+    pub decision_summary: DecisionSummary,
+    pub decision_log: DecisionLog,
+    pub integrity_markers: IntegrityMarkers,
+    pub performance_accounting: PerformanceCounterSurface<'static>,
 }
 
 pub struct TransactionTiming {
@@ -514,7 +529,8 @@ pub struct EvaluationSummary {
 }
 ```
 
-The caller gets a self-describing transaction result without querying diagnostics:
+The caller gets a self-describing transaction result without querying diagnostics
+or producer internals:
 
 ```rust
 let result = runtime.transaction(ctx, |txn| {
@@ -552,6 +568,11 @@ pub struct TransactionReplayEntry {
 ## Phase S5 — Pipeline & Performance
 
 **Kernel reference:** Relational D4 (topology inference) and frontier patterns from forge-kernel.
+
+> [!NOTE]
+> Phase S9 is the enforcement completion layer for this phase. S5 establishes
+> the pipeline; S9 makes the pipeline consume proof-bearing forms and
+> batch-first contracts by default.
 
 > [!NOTE]
 > This phase subsumes V1's R8 (zero-allocation planner), R9 (feature-gated execution), and R10 (amortized GC). The designs are refined to align with the subsystem and contract patterns from S1–S2.
@@ -734,6 +755,10 @@ This is the same pattern as the frontend collapsing `DialogCreateComponent` and 
 ## Phase S6 — Safety Architecture
 
 > [!NOTE]
+> Phase S9 extends this phase with allocation lifetime scopes, single-consumer
+> packet rules, and phase-typed fast-exit progression.
+
+> [!NOTE]
 > This phase subsumes V1's R15 (partition-aware validation), R19 (PhaseGuard), R20 (observation purity), R21 (single source of truth), and R22 (transactional mutation). The designs are refined to build on S1–S3 rather than being standalone compile-time safety items.
 
 ### S6.1 — Partition-Aware Version Tracking (V1 R15, Unchanged)
@@ -903,6 +928,10 @@ This is the same pattern as relational's C4 — the builder type tracks which re
 ---
 
 ## Phase S7 — API Surface & Facade
+
+> [!NOTE]
+> Phase S9 extends this phase by making batch-first, bulk-first API shape a
+> normative architecture rule rather than a style preference.
 
 **Kernel reference:** [Relational F1 — Facade Namespace Organization](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/relational_architecture.md).
 
@@ -1132,6 +1161,880 @@ let volumes = runtime.define_computation(ComputationSpec {
 
 ---
 
+## Phase S9 — Performance Enforcement Addendum
+
+> **Status:** Mandatory completion layer for V2, not an optional appendix.
+>
+> **Purpose:** This phase extends S2, S3, S5, S6, and S7 with concrete
+> architectural forms that enforce performance structurally. The earlier phases
+> remain authoritative about subsystem shape and pipeline composition; this
+> phase defines how those phases become performance-enforced rather than merely
+> performance-aware.
+
+### S9.1 — Performance Enforcement Model
+
+Performance in `forge-signal` is enforced in three layers:
+
+1. **Compile-time enforced** through types, ownership, capability boundaries,
+   lifecycle scopes, and API surface shape.
+2. **Policy/runtime enforced** through resolved strategies and explicit mode
+   selection performed before the hot path.
+3. **Counter/test enforced** through boundary-local counters, certification
+   workloads, and scale-sensitive regression checks.
+
+The default rule is simple:
+
+> If a performance law can be enforced by shape, `forge-signal` should enforce
+> it by shape rather than by reviewer memory.
+
+This addendum exists because the current V2 design already points in this
+direction, but still leaves too many performance-critical truths encoded as raw
+collections, late branching, or optional discipline.
+
+### S9.2 — Proof-Bearing Pipeline Forms
+
+Once a phase establishes a costly fact, later phases must consume that fact as
+an explicit proof-bearing form instead of rediscovering it.
+
+The required architectural families are:
+
+- `Canonical*` for canonicalized, sorted, or deduplicated collections
+- `Lowered*` for planner-to-execution lowered forms
+- `Resolved*` for policy or strategy selected before execution
+- `*Delta` for semantically narrowed change payloads
+- `*Summary` for batch-derived structural proofs
+
+Examples that should exist in Signal after this rewrite:
+
+```rust
+pub struct CanonicalDependencies(SmallVec<[DependencyEdge; 8]>);
+pub struct CanonicalChangedRegions(SmallVec<[ChangedRegion; 4]>);
+pub struct DirtyDelta { ... }
+pub struct TouchedScopeSummary { ... }
+pub struct LoweredStagePlan { ... }
+pub struct ResolvedExecutionStrategy { ... }
+```
+
+Normative rule:
+
+- later phases may not accept raw `Vec`s if an earlier phase already proved
+  canonical order, deduplication, or narrowing
+- planner and apply code may not re-sort, re-deduplicate, or re-canonicalize
+  collections that should already be in proof-bearing form
+- performance-sensitive paths must consume `Canonical*`, `Lowered*`,
+  `Resolved*`, `*Delta`, and `*Summary` forms directly
+
+This is the main architectural encoding for laws `10`, `22`, `25`, and `26`.
+
+### S9.3 — Contracts That Must Grow Beyond Current S2
+
+`NodeContract` is no longer only a dependency/read declaration. It becomes the
+central performance contract for a node.
+
+The V2 `NodeContract` form from S2 is extended to include:
+
+```rust
+pub struct NodeContract {
+    pub reads: AspectMask,
+    pub produces: AspectMask,
+    pub partition_scope: Option<Vec<PartitionSubscription>>,
+    pub required_context: Option<ContextRequirement>,
+    pub projection_contract: ProjectionContract,
+    pub equivalence: EquivalenceContract,
+    pub path_class: PathClass,
+    pub maintenance_mode: MaintenanceMode,
+    pub artifact_policy: ArtifactPolicyClass,
+    pub authority_policy: AuthorityPolicy,
+}
+```
+
+Required supporting forms:
+
+```rust
+pub struct ProjectionContract {
+    pub consumes: AspectMask,
+    pub consumes_partitions: Option<Vec<PartitionSubscription>>,
+}
+
+pub struct EquivalenceContract {
+    pub identity_basis: IdentityBasis,
+    pub suppression_basis: SuppressionBasis,
+    pub canonical_dependency_order: CanonicalDependencyOrder,
+    pub comparator_basis: ComparatorBasis,
+}
+
+pub enum PathClass {
+    Operational,
+    Rich,
+}
+
+pub enum MaintenanceMode {
+    IncrementalOnly,
+    RebuildAllowed,
+    DensityAdaptive,
+}
+
+pub enum ArtifactPolicyClass {
+    OperationalMinimal,
+    DevelopmentRetained,
+    ForensicReconstructable,
+}
+
+pub enum AuthorityPolicy {
+    AuthoritativeOnly,
+    SpeculativeThenReconcile,
+}
+```
+
+These forms are required because reuse, suppression, caching, and hot/cold path
+separation must not remain distributed across output identity, continuity
+tokens, comparator policy, diagnostics profile, and incidental code branching.
+
+This section amends S2 directly. After S9 lands:
+
+- S2 becomes the home of equivalence contracts and path classification
+- planner pruning still uses `reads`, but apply, projection, and reuse behavior
+  also consume `projection_contract`, `equivalence`, `path_class`,
+  `maintenance_mode`, `artifact_policy`, and `authority_policy`
+- `CanonicalDependencyOrder` is a contract field, not an implementation detail
+- authority handling is an explicit contract choice, not an emergent runtime
+  habit
+- write-path contracts and read-path contracts are duals of the same truth and
+  must be declared on types rather than rediscovered at runtime
+- framework-owned resources must be declared through contract-bearing
+  registration forms rather than scattered coordination calls
+
+Identity representation is also part of the performance contract, not an
+incidental storage detail. Performance-critical runtime entities should default
+to dense arena-backed generational IDs rather than rich object identity or
+pointer-shaped handles:
+
+```rust
+pub struct NodeId(u32);
+pub struct SegmentId(u32);
+pub struct SnapshotId(u32);
+```
+
+Normative rule:
+
+- performance-critical runtime domains default to generational arena IDs
+- ID width is an architectural decision because cache density, bandwidth, and
+  adjacency storage density change with it
+- wider or richer identity forms require explicit justification at the phase
+  that introduces them
+
+Speculative application is also part of the performance contract. If a node or
+path can cheaply reconcile with authoritative truth, the architecture should
+prefer reflecting speculative effects immediately rather than waiting for final
+authority before showing any state movement.
+
+Normative rule:
+
+- authority policy must be explicit in the contract or resolved path policy
+- paths that can speculatively apply and cheaply reconcile should default to
+  `SpeculativeThenReconcile`
+- `AuthoritativeOnly` is reserved for domains whose semantics or failure mode
+  make speculative reflection unacceptable
+
+This is the architectural attachment point for the speculative-then-reconcile
+law, and it also reinforces laws `3`, `8`, `20`, `21`, and `34`.
+
+This is the main architectural attachment point for law `36`, and it also
+reinforces laws `7`, `19`, `31`, and `33`.
+
+This is the primary encoding for laws `7`, `19`, `20`, `28`, and `29`.
+
+### S9.4 — Canonical Collections and Narrowed Deltas
+
+Hot-path structural operations currently still move too much meaning through raw
+lists. That stops here.
+
+The following wrapper types are mandatory for the next architecture rewrite:
+
+```rust
+pub struct CanonicalDependencies(SmallVec<[DependencyEdge; 8]>);
+pub struct CanonicalChangedRegions(SmallVec<[ChangedRegion; 4]>);
+pub struct DedupedNodeBatch(SmallVec<[NodeId; 16]>);
+pub struct SortedSourceBatch(SmallVec<[NodeId; 16]>);
+pub struct DirtyDelta {
+    pub changed_aspects: AspectMask,
+    pub changed_regions: CanonicalChangedRegions,
+    pub touched_nodes: DedupedNodeBatch,
+}
+pub struct StructuralDelta { ... }
+pub struct DesiredState<T> { ... }
+pub struct PatchPlan { ... }
+pub struct PendingSnapshotBatch(SmallVec<[PendingDependencySnapshot; 16]>);
+pub struct SubscriberRepairBatch(SmallVec<[SubscriberRepair; 16]>);
+```
+
+Normative rule:
+
+- topology, snapshot, invalidation, and batch-commit paths must accept these
+  wrapper forms rather than raw `Vec`s
+- `DirtyDelta` is the only acceptable invalidation input after narrowing
+- batch maintenance should consume `PendingSnapshotBatch`,
+  `SubscriberRepairBatch`, and `SortedSourceBatch` directly
+- when computing desired truth is cheaper than applying it, producers emit
+  `DesiredState<T>` and the framework owns `StructuralDelta` and `PatchPlan`
+- cross-phase facts such as touched scope, contract masks, and topological
+  impact must be derived exactly once at the batch boundary as `*Summary` forms
+
+Relationship storage must also follow traversal shape rather than normalization
+shape. Signal is a directional graph runtime, so dependency and subscriber
+relationships are stored to serve graph traversal, invalidation, rewiring, and
+batch repair directly:
+
+```rust
+pub struct DependencyAdjacency { ... }   // node -> dependencies
+pub struct SubscriberAdjacency { ... }   // source -> subscribers
+pub struct SnapshotAdjacency { ... }     // node -> dependency snapshot
+```
+
+Normative rule:
+
+- relationship storage must match dominant traversal pattern
+- Signal must not normalize graph relationships as though they were relational
+  join tables if the hot path consumes them directionally
+- dependency, subscriber, and snapshot storage should optimize for traversal
+  locality, batch rewiring, and narrow repair rather than abstract schema
+  symmetry
+
+This is the main architectural attachment point for law `37`, and it also
+reinforces laws `6`, `10`, `22`, `25`, `30`, and `31`.
+
+This section extends S5 and strengthens S2/S6. It is the main architectural
+encoding for laws `1`, `6`, `10`, `22`, `25`, and `26`.
+
+### S9.5 — Lowered Stage Plans as the Only Execution Input
+
+The planner must not hand execution a loosely interpreted bag of tasks. Serial
+and parallel execution must consume the same lowered form.
+
+Required architectural forms:
+
+```rust
+pub struct LoweredStagePlan {
+    pub tasks: Vec<LoweredTask>,
+    pub apply_groups: Vec<DisjointApplyGroup>,
+    pub dirty_delta: DirtyDelta,
+    pub execution_strategy: ResolvedExecutionStrategy,
+    pub maintenance_strategy: ResolvedMaintenanceStrategy,
+    pub authority_policy: AuthorityPolicy,
+    pub decision_summary: DecisionSummary,
+}
+
+pub struct LoweredTask {
+    pub node: NodeId,
+    pub contract: NodeContract,
+    pub projection_contract: ProjectionContract,
+    pub dependency_inputs: CanonicalDependencies,
+    pub rewiring: Option<RewiringPlan>,
+    pub path_class: PathClass,
+    pub authority_policy: AuthorityPolicy,
+}
+
+pub struct DisjointApplyGroup {
+    pub tasks: Vec<LoweredTask>,
+    pub footprint: ApplyFootprint,
+}
+
+pub struct ApplyFootprint {
+    pub touched_nodes: DedupedNodeBatch,
+    pub touched_sources: SortedSourceBatch,
+    pub locality: LocalityFootprint,
+}
+```
+
+Execution must consume `LoweredStagePlan`, not re-decide:
+
+- strategy
+- artifact path class
+- maintenance mode
+- dependency canonicalization
+- rewiring intent
+- parallel admission safety
+- whether the stage is speculative-first or authority-blocking
+- which policy decisions were already resolved and recorded in the decision log
+
+Typestate also applies here. The target architecture is not just “typed data,”
+but phase-typed construction:
+
+```rust
+pub struct CandidateTask { ... }
+pub struct EligibleTask { ... }
+pub struct LoweredTask { ... }
+pub struct ExecutedTask { ... }
+```
+
+Illegal transitions between these forms must be uncallable, not merely checked
+after the fact. Invalid operational states are architecture bugs.
+
+This is the strongest protection against serial/parallel drift and late
+branching. It extends S5 directly and encodes laws `3`, `8`, `16`, and `21`.
+
+### S9.6 — Operational Effect vs Diagnostic Envelope
+
+S3 currently proposes `EvaluationEffect` as a single effect shape. That is no
+longer sufficient.
+
+The architecture now distinguishes:
+
+```rust
+pub struct DomainEffect {
+    pub primary_result: OperationalEffect,
+    pub structural_delta: StructuralDelta,
+    pub rollback_effect: RollbackEffect,
+}
+
+pub struct OperationalEffect {
+    pub node: NodeId,
+    pub aspect_version: AspectVersion,
+    pub output_change: OutputChange,
+    pub dependency_snapshot: DependencySnapshot,
+    pub meaningful_input_changes: u32,
+    pub verdict: EvaluationVerdict,
+}
+
+pub struct SpeculativeEffect {
+    pub operational: OperationalEffect,
+    pub authority_policy: AuthorityPolicy,
+}
+
+pub struct ReconciliationOutcome {
+    pub node: NodeId,
+    pub confirmed: bool,
+    pub adjusted: bool,
+    pub rolled_back: bool,
+}
+
+pub struct RollbackEffect {
+    pub node: NodeId,
+    pub undo_patch: PatchPlan,
+}
+
+pub struct DiagnosticEnvelope {
+    pub changed_regions: CanonicalChangedRegions,
+    pub labels: SmallVec<[String; 2]>,
+    pub output_identity: Option<OutputIdentity>,
+    pub continuity_token: Option<OutputIdentity>,
+    pub memoized_origin: MemoizedResultOrigin,
+}
+```
+
+Normative rule:
+
+- the hot path commits `OperationalEffect`
+- if the active authority policy is `SpeculativeThenReconcile`, the hot path may
+  commit `SpeculativeEffect` first and reconcile with authoritative truth later
+- reconciliation must be cheap, explicit, and structurally separated from rich
+  diagnostics
+- domain handlers produce declarative `DomainEffect` truth; the framework
+  derives rollback, observability routing, and publication from that effect
+- rollback must be structurally derivable from `RollbackEffect` and effect
+  records alone
+- rich diagnostics are retained or reconstructed only if the resolved
+  `ArtifactPolicyClass` allows it
+- `DiagnosticEnvelope` must not be required for purely operational execution
+
+`EvaluationEffect` may remain as an internal assembly convenience during
+transition, but the target architecture is explicit operational/rich path
+separation plus explicit speculative/authoritative reconciliation.
+
+This section extends S3 and encodes laws `2`, `15`, and `20`.
+
+### S9.7 — Boundary Envelopes and Decision Logs
+
+Every boundary crossing in Signal must produce a self-describing envelope, and
+every authority-path decision must be structurally recorded.
+
+Semantic-purity rule:
+
+- every truth-bearing field and accessor must mean exactly one thing
+- ids are truth; labels are display metadata
+- derivation, restoration, invalidation, and presentation must not be merged
+  into one convenience field or helper
+- if a helper collapses more than one ontology, it is an architecture defect,
+  not a convenience
+
+Required forms:
+
+```rust
+pub struct TransactionResult {
+    pub outcome: TransactionOutcome,
+    pub warnings: Vec<AdvisoryRecord>,
+    pub decision_summary: DecisionSummary,
+    pub decision_log: DecisionLog,
+    pub integrity_markers: IntegrityMarkers,
+    pub performance_accounting: PerformanceCounterSurface<'static>,
+}
+
+pub enum DecisionDetail {
+    TransactionOutcome { outcome: TransactionOutcome },
+    StageAuthorityPolicy { authority_policy: AuthorityPolicy },
+    StageParallelAdmission { admission_reason: String },
+    Rollback { reason: String },
+    Failure { phase: ExecutionFailurePhase, message: String },
+}
+
+pub struct DecisionRecord {
+    pub stage_index: Option<u32>,
+    pub detail: DecisionDetail,
+}
+```
+
+Normative rule:
+
+- a consumer must be able to reconstruct an operation from its envelope without
+  querying producer internals
+- conflict resolution, invariant overrides, cascade triggers, and authority
+  outcomes must be recorded in `DecisionLog`
+- `DecisionSummary` is the batch-derived form that crosses phase boundaries; the
+  full log remains queryable and span-aware
+
+This section extends S3 and S13 and encodes laws `7`, `8`, and `32`.
+
+### S9.7.a — Lineage Semantic Purity
+
+Signal lineage is artifact lineage over time within a branched execution
+runtime, not execution logging.
+
+Required lineage laws:
+
+- stable artifact identity remains explicit through `LineageArtifactId`
+- true derivational parentage remains distinct from restoration reference,
+  invalidation reference, and display metadata
+- branch ids are truth; branch names are optional presentation only
+- invalidation cause must converge toward typed causality, not free-form text
+- restore records must stay semantically distinct from recomputation
+- UI labels may summarize lineage, but must never define lineage semantics
+
+Normative rule:
+
+- no lineage accessor may return “some related artifact” under a parentage name
+- if a record needs multiple artifact relations, those relations must be named
+  separately and precisely
+- a lineage surface is incomplete if it requires string parsing to recover
+  branch identity or invalidation cause
+
+This section extends S5 and S13 and encodes laws `8`, `15`, and `32`.
+
+### S9.8 — Cardinality-Matched API Surface
+
+S7 now has a normative API-shape rule:
+
+> Bulk semantics must cross subsystem boundaries as bulk types.
+
+Required batch-first operational forms:
+
+```rust
+pub struct DependencyBatchEdit { ... }
+pub struct DirtyBatch { ... }
+pub struct SemanticBatchCommit { ... }
+pub struct SnapshotBatchCommit { ... }
+```
+
+Normative rule:
+
+- scalar orchestration over semantically bulk work is forbidden as a primary API
+  surface
+- scalar mutation helpers may exist only as low-level implementation detail
+- batch/session APIs are the operational contract
+
+This extends S7 directly and encodes laws `6`, `9`, `17`, and `18`.
+
+### S9.9 — Locality and Parallel Disjointness Contracts
+
+Locality and parallel safety must be represented structurally, not inferred
+late.
+
+Required architectural forms:
+
+```rust
+pub struct LocalityFootprint {
+    pub partitions: PartitionScopeSet,
+    pub nodes: DedupedNodeBatch,
+    pub sources: SortedSourceBatch,
+}
+
+pub struct PartitionScopeSet(SmallVec<[PartitionSubscription; 8]>);
+```
+
+Normative rule:
+
+- parallel apply admission must depend on `DisjointApplyGroup` and
+  `ApplyFootprint`, not only executor policy
+- locality boundaries must travel with lowered plans and repair summaries
+- touched or affected scope must be carried as `*Summary` or scope-set forms
+  instead of rediscovered later
+- relationship storage and apply-group formation must be aligned so the same
+  directional adjacency forms support both traversal locality and conflict
+  detection instead of forcing normalized reassembly at admission time
+
+This extends S5 and S6 and encodes laws `5`, `21`, `30`, and `33`.
+
+### S9.10 — Allocation Lifetime and Single-Consumer Flow
+
+Lifecycle scope must become visible in the architecture, not only in local
+scratch helpers.
+
+Required workspace families:
+
+```rust
+pub struct GraphScratch { ... }
+pub struct SessionScratch { ... }
+pub struct StageScratch { ... }
+pub struct TransactionScratch { ... }
+```
+
+Normative rule:
+
+- hot-path work must execute within an explicit lifecycle-managed scope
+- effect packets and structural batches should be move-oriented and non-`Clone`
+  by default
+- if a packet is `Clone`, the architecture must justify the second observer of
+  the pre-mutation truth
+- framework-owned resources such as computations, subscriptions, observers,
+  projections, and caches must be registered and disposed through framework
+  lifecycle boundaries, not consumer convention
+
+Supporting form:
+
+```rust
+pub struct SingleConsumer<T>(T);
+```
+
+`SingleConsumer<T>` is not a required literal final name, but the architecture
+must provide an equivalent move-only signal for pipeline packets whose cloning
+would be structural waste.
+
+This extends S6 and encodes laws `24`, `31`, `32`, and `35`.
+
+### S9.11 — Fast-Exit and Phase-Typed Eligibility
+
+Cheap rejection must happen before expensive construction.
+
+Required pipeline progression:
+
+```rust
+pub struct CandidateTask { ... }
+pub struct EligibleTask { ... }
+pub struct LoweredTask { ... }
+pub struct ExecutedTask { ... }
+```
+
+Normative rule:
+
+- admission, contract mismatch, path mismatch, and cheap disqualifiers must be
+  evaluated before dependency-input assembly, artifact shaping, rewiring
+  planning, or apply-group construction
+- later pipeline phases may only consume `EligibleTask` or `LoweredTask`, never
+  raw candidates
+
+This extends S5 and S6 and encodes law `34`.
+
+### S9.12 — Authority, Derivation, Checkpoints, and Reconstructability
+
+Authoritative truth and derived runtime state are categorically different
+objects. Derived state must be reproducible from authority alone.
+
+Required forms:
+
+```rust
+pub struct AuthorityState { ... }
+pub struct DerivedState { ... }
+pub struct CheckpointRecord { ... }
+pub struct JournalSegment { ... }
+```
+
+Normative rule:
+
+- every derived structure in Signal must be destroyable and rebuildable from
+  `AuthorityState` plus a bounded journal since the last checkpoint
+- speculative state is never authoritative; it is either confirmed, adjusted,
+  or rolled back during reconciliation
+- checkpoints and journals are independent subsystems with independent
+  lifecycles and must not require write-path suspension to exist
+
+This section extends S3, S6, and S7 and encodes laws `19`, `33`, and `36`.
+
+### S9.13 — Measurement Boundaries Required by Architecture
+
+Because S9 defines all three enforcement layers, the architecture itself must
+name the mandatory measurement boundaries and counters that every rewritten path
+must expose.
+
+Required architecture-level counters and certification hooks:
+
+- batch width
+- dirty delta breadth
+- rewiring count
+- snapshot batch size
+- subscriber repair breadth
+- incremental vs rebuild choice
+- apply-group width
+- apply-group disjointness statistics
+- hot-path artifact retention count
+- hot-path artifact reconstruction count
+- decision-log event count
+- checkpoint size and journal replay span
+- structural-delta size and patch-application breadth
+
+Normative rule:
+
+- a rewritten path is not complete until these counters exist at the boundary
+  the path claims to optimize
+- serial and parallel lowered execution paths must emit comparable counters
+- performance certification workloads must consume these counters alongside
+  elapsed time so claims remain interpretable
+
+This section ties S9 back to the performance baseline and encodes the
+architecture-level part of law `13`.
+
+### S9.14 — Concrete Integration with Existing Phases
+
+This addendum modifies earlier phases as follows:
+
+- **S2** becomes the home of `NodeContract`, `EquivalenceContract`,
+  `ProjectionContract`, `PathClass`, `MaintenanceMode`, authority policy, and
+  artifact-path classification.
+- **S3** becomes the home of `DomainEffect`, `OperationalEffect`,
+  `DiagnosticEnvelope`, boundary envelopes, decision logs, and effect-application
+  capability boundaries.
+- **S5** becomes the home of `Canonical*`, `Lowered*`, `Resolved*`, `*Delta`,
+  `*Summary`, disjoint apply groups, and adaptive incremental/rebuild choice.
+- **S6** becomes the home of lifecycle-scoped scratch types, single-consumer
+  packet rules, checkpoints/journals, and phase-typed eligibility progression.
+- **S7** becomes the home of batch-first operational APIs and the explicit
+  demotion of scalar mutation surfaces plus framework-owned resource lifecycle.
+
+### S9.15 — Branched Runtime Reconciliation and Merge Lineage
+
+Branching is incomplete without a way to reconcile accepted branch-local work
+back into an authoritative branch.
+
+Required future completion:
+
+```rust
+pub struct BranchMergeResult {
+    pub source_branch: SignalBranchId,
+    pub target_branch: SignalBranchId,
+    pub adopted_artifacts: DedupedArtifactBatch,
+    pub replaced_artifacts: DedupedArtifactBatch,
+    pub merge_kind: BranchMergeKind,
+}
+
+pub enum BranchMergeKind {
+    FastForward,
+    ReplayApplied,
+    ConflictResolved,
+}
+```
+
+Normative rule:
+
+- `MergedFrom` must not be emitted as a decorative branch event without real
+  merge semantics
+- merge lineage must eventually include both branch-level reconciliation and
+  artifact-level adoption/replacement semantics
+- speculative or branch-local parallel work is not complete until accepted work
+  can reconcile back into the authoritative branch through an explicit merge
+  boundary
+
+This section extends S5 and S9.7.a and encodes laws `7`, `15`, and `32`.
+
+### S9.16 — Geometry-Kernel Performance Hardening Program
+
+If `forge-signal` is expected to support geometry kernels for next-generation
+aircraft, performance hardening must target the real failure modes of that
+workload rather than generic “incremental runtime” benchmarks.
+
+Geometry-kernel pressure profile:
+
+- very large dependency graphs
+- high fan-out invalidation over localized semantic deltas
+- expensive artifacts with large retained payloads
+- partitioned or region-scoped outputs whose changed frontier is much smaller
+  than the object carrying them
+- strong replay, lineage, and explainability requirements under industrial
+  debugging and certification pressure
+
+Normative rule:
+
+- no hot-path optimization may trade away reconstructability, transactional
+  rollback, semantic locality, or provenance truth
+- no diagnostic surface may remain on the operational hot path by accident
+- no geometry-kernel performance claim is valid without scale-sensitive
+  certification workloads that exercise large artifact graphs and hostile
+  branch/restore/replay history
+
+Required workstreams:
+
+#### S9.16.1 — Hot/Cold Artifact Separation
+
+Operational state, retained diagnostic artifacts, and historical explainability
+must become physically and architecturally separate lanes.
+
+Required target forms:
+
+```rust
+pub struct RuntimeArtifactState { ... }
+pub struct RetainedDiagnosticArtifact { ... }
+pub struct HistoricalArtifactRecord { ... }
+```
+
+Normative rule:
+
+- apply, invalidation, and planner hot paths must consume only
+  `RuntimeArtifactState`
+- retained explanations, lineage expansions, and replay attachments must be
+  stored in a cold path that can be degraded by policy
+- large geometry artifacts must not be cloned merely to satisfy diagnostics or
+  retained history
+
+#### S9.16.2 — Structural-Sharing Snapshots and Dependency State
+
+Snapshotting and dependency-state retention must stop scaling with whole owned
+payload size when the semantic delta is narrow.
+
+Required target forms:
+
+```rust
+pub struct SharedDependencySnapshot { ... }
+pub struct SnapshotDeltaRecord { ... }
+pub struct ArtifactRetentionPolicy { ... }
+```
+
+Normative rule:
+
+- dependency snapshots and snapshot restores must converge toward
+  structural-sharing or delta-oriented storage
+- restoring a prior artifact identity, rewinding active state, and seeding
+  recomputation from prior state must remain distinct semantics even if they
+  share storage internals
+- whole-snapshot clone behavior is acceptable only for compact or explicitly
+  bounded profiles, never as the universal geometry-kernel path
+
+#### S9.16.3 — Locality-First Invalidation and Frontier Execution
+
+The invalidation engine must evolve from batch-amortized traversal into a true
+locality-first multi-source frontier engine.
+
+Required target forms:
+
+```rust
+pub struct InvalidationFrontier { ... }
+pub struct FrontierWave { ... }
+pub struct NarrowedPropagationSet { ... }
+```
+
+Normative rule:
+
+- invalidation must union overlapping sources before broad downstream
+  propagation whenever the semantic delta allows it
+- propagation cost must scale with narrowed locality frontier, not with caller
+  mutation count or broad graph size
+- partition-aware and aspect-aware frontier narrowing must be measurable at the
+  invalidation boundary
+
+#### S9.16.4 — Geometry-Scale Equivalence and Reuse Contracts
+
+Reuse is mandatory for geometry scale, but it must stay truth-grade.
+
+Required target forms:
+
+```rust
+pub struct ArtifactEquivalenceContract { ... }
+pub struct ReuseBasis { ... }
+pub struct ReuseCertificationRecord { ... }
+```
+
+Normative rule:
+
+- expensive artifact reuse, suppression, memoization, and cache hits must be
+  justified by explicit artifact equivalence contracts
+- reuse must record whether the result came from fresh computation,
+  memoized reuse, snapshot restore, or authoritative reconciliation
+- geometry kernels must be able to certify that reused artifacts did not cross
+  invalid semantic boundaries such as topology regime, tolerance regime, or
+  semantic region identity
+
+#### S9.16.5 — Diagnostic Tiering Without Semantic Drift
+
+Diagnostics must be tiered by policy without changing the operational meaning
+of the run.
+
+Required target forms:
+
+```rust
+pub struct DiagnosticsTier { ... }
+pub struct RetentionBudget { ... }
+pub struct ReconstructionBudget { ... }
+```
+
+Normative rule:
+
+- operational, development, and forensic profiles may differ in retained
+  richness but must not differ in execution semantics
+- a lower diagnostics tier may reconstruct less history, but it must not report
+  different truth for the same boundary envelope or lineage event
+- reconstruction work must be budgeted explicitly rather than happening as
+  hidden lazy cost on first access
+
+#### S9.16.6 — Geometry Certification and Performance Proof Harness
+
+The runtime must earn geometry-kernel credibility with hostile certification
+workloads, not with microbench optimism.
+
+Required certification families:
+
+- large CAD-style dependency graphs with localized topology edits
+- expensive partitioned artifact recomputation with memoized reuse
+- branch/restore/replay histories with lineage and explain equivalence checks
+- serial/parallel equivalence under disjoint geometry subgraphs
+- snapshot suffix replay equivalence at industrial artifact breadth
+
+Mandatory measurement boundaries:
+
+- invalidation frontier width and narrowed frontier width
+- dependency snapshot retained bytes and shared-bytes ratio
+- artifact retention bytes by tier
+- hot-path allocation count and hot-path retained bytes
+- explanation reconstruction count and reconstruction bytes
+- memoized reuse hit rate by artifact family
+- replay suffix cost by checkpoint span
+- branch restore and merge reconciliation breadth
+
+Execution order:
+
+1. hot/cold artifact separation
+2. structural-sharing snapshot and dependency-state redesign
+3. locality-first invalidation frontier execution
+4. geometry-scale equivalence and reuse certification
+5. diagnostics tiering and reconstruction budgeting
+6. geometry certification harness and slope reporting
+
+Anti-goals:
+
+- do not hide broad artifact clones behind ergonomic getters
+- do not make forensic richness the default operational cost
+- do not claim geometry readiness from elapsed-time wins alone
+- do not introduce compatibility shims that preserve cost-dishonest surfaces
+- do not let bridge or host integration become the only place where artifact
+  causality and reuse truth can be recovered
+
+This section extends S5, S6, S9.6, S9.9, S9.10, S9.12, and S9.13 and encodes
+laws `1`, `2`, `5`, `7`, `10`, `12`, `20`, `21`, `24`, `27`, `28`, `29`,
+`32`, `35`, and `36`.
+
+This is mandatory. The new structural rules are not advisory preferences.
+
+### Files Modified
+
+| File | Change |
+|---|---|
+| [signal_architecture2.md](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge_signal/signal_architecture2.md) | Append S9 addendum; extend S2/S3/S5/S6/S7 by reference |
+
 ## What Must Be Preserved
 
 | Pattern | Current Location | Must Remain |
@@ -1163,6 +2066,8 @@ S6.1 (partition versions) → should precede S5 (pipeline perf)
 S6.5 (error hierarchy) → should precede S6.6 (builder completeness)
 S7 (facade) → after S1–S4 stabilize
 S8 (context) → after S2.4 (context in contracts) and S3.5 (defineComputation)
+S9 (performance enforcement addendum) → extends S2/S3/S5/S6/S7 and should be
+written before any V2.1 rewrite work begins
 ```
 
 ### Recommended Execution Order
@@ -1212,6 +2117,23 @@ Batch 8 — Safety & Surface
   S7.1  Grouped facade namespaces
   S7.2  State-derived evaluation strategy
   S8.3  Context-scoped evaluation (framework-owned context lifetime)
+
+Batch 9 — Performance Enforcement Rewrite Layer
+  S9.1  Performance enforcement model
+  S9.2  Proof-bearing pipeline forms
+  S9.3  Performance-expanded NodeContract
+  S9.4  Canonical collections and narrowed deltas
+  S9.5  LoweredStagePlan as the only execution input
+  S9.6  OperationalEffect / DiagnosticEnvelope split
+  S9.7  Boundary envelopes and decision logs
+  S9.8  Cardinality-matched API surface
+  S9.9  Locality and disjoint parallel apply contracts
+  S9.10 Allocation lifetime scopes and single-consumer packets
+  S9.11 Fast-exit and phase-typed eligibility
+  S9.12 Authority, derivation, checkpoints, and reconstructability
+  S9.13 Architecture-mandated measurement boundaries
+  S9.15 Branched runtime reconciliation and merge lineage
+  S9.16 Geometry-kernel performance hardening program
 ```
 
 ### Practical Rule
@@ -1240,3 +2162,4 @@ The same rule as the relational doc: if there is tension between "clean every la
 | S6 | Safety + error hierarchy + builder completeness | Relational A3 + C3 + C4 |
 | S7 | Facade + state-derived strategy | Relational F1 + D6 |
 | S8 | Context-aware computation (ambient, multi-mode) | Frontend `ProjectContextService` / operations mode |
+| S9 | Performance enforcement addendum (proof-bearing forms, lowered execution, bulk-first API shape) | Relational performance enforcement model + proof-bearing pipeline forms |

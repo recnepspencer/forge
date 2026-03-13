@@ -1,8 +1,10 @@
 use serde_json::json;
 
-use crate::facade::{
-    BranchId, CommitResult, EntityMutationIntent, RecordPayload, MutationIntent,
-    TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
+use crate::facade::history::BranchId;
+use crate::facade::payloads::RecordPayload;
+use crate::facade::transactions::{
+    CommitResult, EntityMutationIntent, MutationIntent, TransactionOptions, UpdateEntityIntent,
+    WorkerIntentBatch,
 };
 
 use super::super::fixture::FintechWorld;
@@ -61,51 +63,59 @@ pub(crate) fn stress_seeded_intraday_risk(
         target_branch: Some(branch_id),
         ..TransactionOptions::default()
     });
-    txn.push_batch(WorkerIntentBatch::new("stress-intraday-market").push(
-        MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-            entity_id: case.market_point,
-            payload: RecordPayload::StructuredJson(json!({
-                "entity_type": "market_point",
-                "case": "intraday-risk",
-                "curve_bucket": 2,
-                "mid": 103_75,
-                "stress_regime": "intraday-shock",
-            })),
-        })),
-    ));
-    txn.push_batch(WorkerIntentBatch::new("stress-intraday-risk").push(
-        MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-            entity_id: case.risk_view,
-            payload: RecordPayload::StructuredJson(json!({
-                "entity_type": "risk_view",
-                "case": "intraday-risk",
-                "scenario": "intraday-shock",
-                "limit_status": "breached",
-                "refreshed": true,
-            })),
-        })),
-    ));
-    txn.push_batch(WorkerIntentBatch::new("stress-intraday-limit").push(
-        MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-            entity_id: case.limit,
-            payload: RecordPayload::StructuredJson(json!({
-                "entity_type": "limit",
-                "case": "intraday-risk",
-                "threshold_bps": 140,
-                "breach_state": "open",
-            })),
-        })),
-    ));
-    txn.push_batch(WorkerIntentBatch::new("stress-intraday-breach").push(
-        MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-            entity_id: case.breach,
-            payload: RecordPayload::StructuredJson(json!({
-                "entity_type": "limit_breach",
-                "case": "intraday-risk",
-                "status": "open",
-                "severity": "critical",
-            })),
-        })),
-    ));
+    txn.push_batch(
+        WorkerIntentBatch::new("stress-intraday-market").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id: case.market_point,
+                payload: RecordPayload::StructuredJson(json!({
+                    "entity_type": "market_point",
+                    "case": "intraday-risk",
+                    "curve_bucket": 2,
+                    "mid": 103_75,
+                    "stress_regime": "intraday-shock",
+                })),
+            }),
+        )),
+    );
+    txn.push_batch(
+        WorkerIntentBatch::new("stress-intraday-risk").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id: case.risk_view,
+                payload: RecordPayload::StructuredJson(json!({
+                    "entity_type": "risk_view",
+                    "case": "intraday-risk",
+                    "scenario": "intraday-shock",
+                    "limit_status": "breached",
+                    "refreshed": true,
+                })),
+            }),
+        )),
+    );
+    txn.push_batch(
+        WorkerIntentBatch::new("stress-intraday-limit").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id: case.limit,
+                payload: RecordPayload::StructuredJson(json!({
+                    "entity_type": "limit",
+                    "case": "intraday-risk",
+                    "threshold_bps": 140,
+                    "breach_state": "open",
+                })),
+            }),
+        )),
+    );
+    txn.push_batch(
+        WorkerIntentBatch::new("stress-intraday-breach").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id: case.breach,
+                payload: RecordPayload::StructuredJson(json!({
+                    "entity_type": "limit_breach",
+                    "case": "intraday-risk",
+                    "status": "open",
+                    "severity": "critical",
+                })),
+            }),
+        )),
+    );
     txn.commit().unwrap()
 }

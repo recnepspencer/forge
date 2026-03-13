@@ -9,7 +9,7 @@ use crate::data::node::{ContextRequirement, EvaluationCondition, NodeState};
 use crate::data::output::{
     ChangedRegion, MemoizedResultOrigin, OutputChange, OutputIdentity, PartitionSubscription,
 };
-use crate::data::trace::{CausalityMetadata, TraceSummary};
+use crate::data::trace::{CausalityMetadata, HistoricalArtifactRecord, TraceSummary};
 use crate::diagnostics::policy::ArtifactMaterializationMode;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -143,7 +143,7 @@ pub struct NodeExplanation {
     pub contract_partition_scope: Option<Vec<PartitionSubscription>>,
     pub required_context: ContextRequirement,
     pub condition: EvaluationCondition,
-    pub trace_summary: Option<TraceSummary>,
+    pub historical_artifact_record: Option<HistoricalArtifactRecord>,
     pub execution_record_id: Option<u64>,
     pub semantic_segment_id: Option<u64>,
     pub output_identity: Option<OutputIdentity>,
@@ -159,6 +159,14 @@ pub struct NodeExplanation {
     pub causality: Option<CausalityMetadata>,
 }
 
+impl NodeExplanation {
+    pub fn materialized_trace_summary(&self) -> Option<TraceSummary> {
+        self.historical_artifact_record
+            .as_ref()
+            .map(TraceSummary::from_record)
+    }
+}
+
 impl fmt::Display for NodeExplanation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
@@ -172,13 +180,16 @@ impl fmt::Display for NodeExplanation {
             self.contract_reads,
             self.contract_produces,
             self.required_context,
-            self.contract_partition_scope.as_ref().map(|scopes| scopes.len()).unwrap_or(0)
+            self.contract_partition_scope
+                .as_ref()
+                .map(|scopes| scopes.len())
+                .unwrap_or(0)
         )?;
         writeln!(f, "Materialization: {:?}", self.materialization_mode)?;
         if !self.dirty_aspects.is_empty() {
             writeln!(f, "Dirty aspects: {:?}", self.dirty_aspects)?;
         }
-        if let Some(trace) = &self.trace_summary {
+        if let Some(trace) = self.materialized_trace_summary() {
             writeln!(
                 f,
                 "Trace: recomputed={} dependency_count={} meaningful_input_changes={} output_hash={}",

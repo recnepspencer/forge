@@ -25,7 +25,9 @@ impl NodeArena {
         topology: &EdgeTopology,
         active_nodes: usize,
     ) -> bool {
-        self.compaction.debt > 0 || self.should_gc() || topology.has_compaction_pressure(active_nodes)
+        self.compaction.debt > 0
+            || self.should_gc()
+            || topology.has_compaction_pressure(active_nodes)
     }
 
     pub(in crate::data::graph) fn compaction_epoch_budget(
@@ -33,7 +35,8 @@ impl NodeArena {
         topology: &EdgeTopology,
         active_nodes: usize,
     ) -> u8 {
-        if topology.has_high_compaction_pressure(active_nodes) || self.should_gc()
+        if topology.has_high_compaction_pressure(active_nodes)
+            || self.should_gc()
             || self.compaction.debt >= HIGH_DEBT_EPOCH_THRESHOLD
         {
             HIGH_PRESSURE_EPOCH_BUDGET
@@ -49,13 +52,17 @@ impl NodeArena {
 
     pub(in crate::data::graph) fn complete_compaction_epoch(&mut self, families_compacted: u8) {
         self.compaction.tombstone_count = 0;
-        self.compaction.debt = self.compaction.debt.saturating_sub(families_compacted as u32);
+        self.compaction.debt = self
+            .compaction
+            .debt
+            .saturating_sub(families_compacted as u32);
     }
 }
 
 impl EdgeTopology {
     pub(in crate::data::graph) fn has_compaction_pressure(&self, active_nodes: usize) -> bool {
-        let (dependency_segments, subscriber_segments, snapshot_count) = self.storage_pressure_counts();
+        let (dependency_segments, subscriber_segments, snapshot_count) =
+            self.storage_pressure_counts();
         let active = active_nodes.max(1);
         dependency_segments > active
             || subscriber_segments > active
@@ -68,7 +75,8 @@ impl EdgeTopology {
     }
 
     fn has_high_storage_pressure(&self, active_nodes: usize) -> bool {
-        let (dependency_segments, subscriber_segments, snapshot_count) = self.storage_pressure_counts();
+        let (dependency_segments, subscriber_segments, snapshot_count) =
+            self.storage_pressure_counts();
         let active = active_nodes.max(1);
         dependency_segments >= active * STORAGE_PRESSURE_MULTIPLIER
             || subscriber_segments >= active * STORAGE_PRESSURE_MULTIPLIER

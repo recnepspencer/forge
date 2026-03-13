@@ -50,7 +50,11 @@ impl<'state> InvariantStateView<'state> {
                 ));
             }
         }
-        if saw_any { Some(ids) } else { None }
+        if saw_any {
+            Some(ids)
+        } else {
+            None
+        }
     }
 
     pub(crate) fn entity_payload(
@@ -74,7 +78,8 @@ impl<'state> InvariantStateView<'state> {
     }
 
     pub(crate) fn entity_visible_at_version(&self, arena: &EntityArena, slot: usize) -> bool {
-        arena.metadata_history_at(slot)
+        arena
+            .metadata_history_at(slot)
             .and_then(|history| self.visible_entity_metadata(history))
             .is_some()
     }

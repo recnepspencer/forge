@@ -12,22 +12,23 @@ pub(crate) struct PreparedWorkingStateScope {
 pub(crate) fn prepare_working_state_scope(
     transaction: &mut RelationalTransaction<'_>,
 ) -> Result<PreparedWorkingStateScope, TransactionCommitError> {
-    let planning_state = crate::logic::runtime::WorkingState::new(
-        transaction.runtime.partitions.clone(),
-        transaction.runtime.config.storage.adjacency_policy.clone(),
-    );
+    let intents = transaction.normalized_intents_for_merge();
+    let planning_state = transaction.runtime.storage_access().current_state();
     let merged_plan = transaction
-        .build_merged_plan_for_state(&planning_state)
+        .build_merged_plan_for_state(&planning_state, intents)
         .map_err(TransactionCommitError::conflict)?;
     let structural_summary = CommitStructuralSummary::derive(
-        &transaction.runtime.current_state(),
+        &transaction.runtime.storage_access().current_state(),
         &planning_state,
         &merged_plan,
         transaction.options.merge_parent_branches.len(),
     );
     let working_state = transaction
         .runtime
-        .working_state_for_touched_partitions(structural_summary.touched_partitions.iter().copied());
+        .storage_authority()
+        .working_state_for_touched_partitions(
+            structural_summary.touched_partitions.iter().copied(),
+        );
 
     Ok(PreparedWorkingStateScope {
         merged_plan,
@@ -48,7 +49,7 @@ pub(crate) fn record_preparation_counters(
         .lock()
         .expect("complexity counter lock poisoned");
     counters.commit_topology_flags = structural_summary.commit_topology.mask();
-    counters.partitions_touched_by_commit = working_state.touched_partitions().len();
+    counters.partitions_touched_by_commit = working_state.touched_partition_count();
     counters.bulk_entity_slots_reserved = structural_summary.bulk_entity_slots_reserved;
     counters.bulk_relation_slots_reserved = structural_summary.bulk_relation_slots_reserved;
 }

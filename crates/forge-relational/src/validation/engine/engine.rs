@@ -1,10 +1,15 @@
 use crate::logic::runtime::RelationalRuntime;
 use crate::validation::data::{InvariantCheckResult, InvariantVerdict};
+use crate::validation::execution::{evaluate_invariant_packet, plan_invariant_execution};
+use crate::validation::reduction::reduce_invariant_execution;
+use rayon::prelude::*;
 
 use super::context::InvariantExecutionContext;
 use super::evaluator::evaluate_rule;
 use super::request::InvariantExecutionRequest;
-use super::result::InvariantExecutionResult;
+use super::result::{
+    InvariantExecutionDisposition, InvariantExecutionMetadata, InvariantExecutionResult,
+};
 
 pub(crate) struct InvariantEngine<'runtime> {
     runtime: &'runtime RelationalRuntime,
@@ -19,12 +24,44 @@ impl<'runtime> InvariantEngine<'runtime> {
         &self,
         request: InvariantExecutionRequest<'runtime>,
     ) -> InvariantExecutionResult {
+        let planned = plan_invariant_execution(self.runtime, &request);
+        self.record_preparation_plan(&planned);
+        let envelopes = match planned.strategy.selected_mode {
+            crate::authority::commit::preparation::planning::strategy::PreparationStrategySelection::Serial => {
+                planned
+                    .packets
+                    .iter()
+                    .map(|packet| evaluate_invariant_packet(self.runtime, packet))
+                    .collect()
+            }
+            crate::authority::commit::preparation::planning::strategy::PreparationStrategySelection::StagedParallel => {
+                planned
+                    .packets
+                    .par_iter()
+                    .map(|packet| evaluate_invariant_packet(self.runtime, packet))
+                    .collect()
+            }
+        };
+        let (result, _, reducer_conflicts) =
+            reduce_invariant_execution(&request, planned.strategy, envelopes);
+        if !reducer_conflicts.is_empty() {
+            self.runtime
+                .performance_access()
+                .count_preparation_reducer_conflicts(reducer_conflicts.len());
+        }
+        result
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn execute_serial_legacy(
+        &self,
+        request: InvariantExecutionRequest<'runtime>,
+    ) -> InvariantExecutionResult {
         let context = InvariantExecutionContext::new(
             self.runtime,
-            request.state(),
+            request.observation().clone(),
             request.version_id(),
             request.execution_point(),
-            request.plan_contract(),
             request.merged_plan(),
         );
         let registrations = context
@@ -32,22 +69,17 @@ impl<'runtime> InvariantEngine<'runtime> {
             .config
             .schema
             .invariant_catalog
-            .registrations_for_execution_point(context.execution_point);
+            .registrations_for_execution_point(context.execution_point());
 
         let mut results = Vec::new();
         for registration in registrations {
             if !request.includes_registration(registration) {
                 continue;
             }
-            if !registration.applies_to_contract(context.plan_contract) {
-                continue;
-            }
             let rule = registration.rule.clone();
-            let verdict = if let Some(violation) = evaluate_rule(
-                &context,
-                registration.execution_point.class(),
-                &rule,
-            ) {
+            let verdict = if let Some(violation) =
+                evaluate_rule(&context, registration.execution_point.class(), &rule)
+            {
                 registration.verdict_for_violation(violation)
             } else {
                 InvariantVerdict::Pass
@@ -59,25 +91,71 @@ impl<'runtime> InvariantEngine<'runtime> {
                 verdict,
             });
         }
-        InvariantExecutionResult::new(results)
+        InvariantExecutionResult::executed(
+            InvariantExecutionMetadata::new(
+                request.execution_point(),
+                request.observation().kind(),
+                request.version_id(),
+                request.current_version_id(),
+                request.consumed_groups(),
+                request.applicable_groups(),
+                request.max_cost(),
+                InvariantExecutionDisposition::Executed,
+                request.plan_contract(),
+                request.merged_plan().is_some(),
+                self.runtime.config.execution.execution_model,
+                None,
+            ),
+            results,
+        )
+    }
+}
+
+impl InvariantEngine<'_> {
+    fn record_preparation_plan(
+        &self,
+        planned: &crate::authority::commit::preparation::PreparedInvariantExecution<'_>,
+    ) {
+        let performance = self.runtime.performance_access();
+        performance.count_preparation_packets(planned.packets.len());
+        match planned.strategy.parallel_legality {
+            crate::authority::commit::preparation::planning::strategy::ParallelLegality::ProvenParallel => {
+                performance.count_preparation_parallel_legal();
+            }
+            crate::authority::commit::preparation::planning::strategy::ParallelLegality::RequiresSerial => {}
+        }
+        match planned.strategy.parallel_profitability {
+            crate::authority::commit::preparation::planning::strategy::ParallelProfitability::Profitable => {
+                performance.count_preparation_parallel_profitable();
+            }
+            crate::authority::commit::preparation::planning::strategy::ParallelProfitability::NotProfitable => {}
+        }
+        match planned.strategy.selected_mode {
+            crate::authority::commit::preparation::planning::strategy::PreparationStrategySelection::Serial => {
+                performance.count_preparation_serial_strategy();
+            }
+            crate::authority::commit::preparation::planning::strategy::PreparationStrategySelection::StagedParallel => {
+                performance.count_preparation_staged_parallel_strategy();
+            }
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::super::{InvariantExecutionRequest, InvariantObservation, InvariantRequestProfile};
     use super::InvariantEngine;
-    use super::super::{InvariantExecutionRequest, InvariantRequestProfile};
-    use crate::facade::{
-        InvariantCatalog, InvariantRegistration, InvariantRule,
-        PartitionId, RelationId, RelationalRuntimeApi, RelationalSchemaRegistry,
-    };
-    use crate::transactions::data::{
+    use crate::facade::identity::{PartitionId, RelationId};
+    use crate::facade::runtime::{InvariantCatalog, InvariantRegistration, InvariantRule};
+    use crate::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
+    use crate::facade::schema::RelationalSchemaRegistry;
+    use crate::facade::transactions::{
         DeleteRelationIntent, MergedCommitPlan, MutationIntent, RelationMutationIntent,
         TransactionId,
     };
     use crate::validation::data::{InvariantGroup, InvariantGroupSet};
 
-    fn runtime_with_invariants(invariant_catalog: InvariantCatalog) -> crate::facade::RelationalRuntime {
+    fn runtime_with_invariants(invariant_catalog: InvariantCatalog) -> RelationalRuntime {
         RelationalRuntimeApi::builder()
             .schema_registry(RelationalSchemaRegistry::new())
             .invariant_catalog(invariant_catalog)
@@ -102,14 +180,15 @@ mod tests {
         };
 
         let results = InvariantEngine::new(&runtime).execute(
-            InvariantExecutionRequest::from_profile(
+            InvariantExecutionRequest::from_profile_with_contract(
                 InvariantRequestProfile::CommitBoundary,
                 &runtime,
-                &runtime.current_state(),
+                InvariantObservation::committed(runtime.storage_access().current_state()),
                 runtime.current_version_id(),
                 Some(&plan),
+                Some(crate::validation::data::InvariantPlanContract::from_merged_plan(&plan)),
             )
-            .with_may_break_mask(InvariantGroupSet::of(InvariantGroup::LineageIntegrity).mask()),
+            .with_applicable_groups(InvariantGroupSet::of(InvariantGroup::LineageIntegrity)),
         );
 
         assert!(results.results().is_empty());

@@ -2,14 +2,12 @@ use crate::data::comparator::ComparatorPolicyResolver;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 
-use super::dispatch::dispatch_stage_precompute;
-use super::reporting::{
-    record_stage_precompute_failure, record_stage_precompute_telemetry,
-};
-#[cfg(feature = "parallel")]
-use super::admission::{decide_stage_parallel_admission, StageParallelAdmission};
 use super::super::execution::StageSlice;
 use super::super::types::{PlanSummary, StageExecutor};
+#[cfg(feature = "parallel")]
+use super::admission::{decide_stage_parallel_admission, StageParallelAdmission};
+use super::dispatch::dispatch_stage_precompute;
+use super::reporting::{record_stage_precompute_failure, record_stage_precompute_telemetry};
 use super::StageExecutionData;
 
 pub(in crate::logic::planner) struct StagePrecomputeResult {
@@ -37,7 +35,7 @@ pub(in crate::logic::planner) fn perform_stage_precompute(
         crate::data::handle::NodeId,
         &crate::logic::prepared::ExecutionReadView<'_>,
     ) -> Result<crate::logic::prepared::PreparedEvaluation, SignalError>
-        + Sync),
+          + Sync),
     comparator_resolver: &mut impl ComparatorPolicyResolver,
     executor: StageExecutor,
 ) -> Result<StagePrecomputeResult, SignalError> {
@@ -93,7 +91,7 @@ fn run_precompute_dispatch_pass(
         crate::data::handle::NodeId,
         &crate::logic::prepared::ExecutionReadView<'_>,
     ) -> Result<crate::logic::prepared::PreparedEvaluation, SignalError>
-        + Sync),
+          + Sync),
     comparator_resolver: &mut impl ComparatorPolicyResolver,
     executor: StageExecutor,
     #[cfg(feature = "parallel")] parallel_admission: StageParallelAdmission,

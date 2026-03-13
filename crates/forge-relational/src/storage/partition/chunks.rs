@@ -109,7 +109,12 @@ fn summarize_entity_chunks(
             runtime.config.storage.layout.entity_chunk_size,
             |slot| partition.entity_arena.created_at.get(slot).copied(),
             |slot| partition.entity_arena.retired_at_for_slot(slot),
-            |slot| partition.entity_arena.get_slot(slot).map(|slot_view| slot_view.lifecycle()),
+            |slot| {
+                partition
+                    .entity_arena
+                    .get_slot(slot)
+                    .map(|slot_view| slot_view.lifecycle())
+            },
             |slot| {
                 partition
                     .entity_arena
@@ -118,7 +123,9 @@ fn summarize_entity_chunks(
                     .is_some_and(|created| {
                         let bound = VersionBound::new(version_id);
                         bound.includes_created(*created)
-                            && partition.entity_arena.retired_at_for_slot(slot)
+                            && partition
+                                .entity_arena
+                                .retired_at_for_slot(slot)
                                 .is_none_or(|retired| bound.retains_retired(retired))
                             && partition
                                 .entity_arena
@@ -152,7 +159,12 @@ fn summarize_relation_chunks(
             runtime.config.storage.layout.relation_chunk_size,
             |slot| partition.relation_arena.created_at.get(slot).copied(),
             |slot| partition.relation_arena.retired_at_for_slot(slot),
-            |slot| partition.relation_arena.get_slot(slot).map(|slot_view| slot_view.lifecycle()),
+            |slot| {
+                partition
+                    .relation_arena
+                    .get_slot(slot)
+                    .map(|slot_view| slot_view.lifecycle())
+            },
             |slot| {
                 partition
                     .relation_arena
@@ -161,7 +173,9 @@ fn summarize_relation_chunks(
                     .is_some_and(|created| {
                         let bound = VersionBound::new(version_id);
                         bound.includes_created(*created)
-                            && partition.relation_arena.retired_at_for_slot(slot)
+                            && partition
+                                .relation_arena
+                                .retired_at_for_slot(slot)
                                 .is_none_or(|retired| bound.retains_retired(retired))
                             && partition
                                 .relation_arena
@@ -191,7 +205,12 @@ fn summarize_current_entity_chunks(
         },
         |slot| partition.entity_arena.created_at.get(slot).copied(),
         |slot| partition.entity_arena.retired_at_for_slot(slot),
-        |slot| partition.entity_arena.get_slot(slot).map(|slot_view| slot_view.lifecycle()),
+        |slot| {
+            partition
+                .entity_arena
+                .get_slot(slot)
+                .map(|slot_view| slot_view.lifecycle())
+        },
     )
 }
 
@@ -210,7 +229,12 @@ fn summarize_current_relation_chunks(
         },
         |slot| partition.relation_arena.created_at.get(slot).copied(),
         |slot| partition.relation_arena.retired_at_for_slot(slot),
-        |slot| partition.relation_arena.get_slot(slot).map(|slot_view| slot_view.lifecycle()),
+        |slot| {
+            partition
+                .relation_arena
+                .get_slot(slot)
+                .map(|slot_view| slot_view.lifecycle())
+        },
     )
 }
 

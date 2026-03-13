@@ -1,5 +1,8 @@
 use crate::capabilities::StorageRead;
-use crate::storage::logic::state::{EntityRecordKind, RecordKind, RelationRecordKind};
+use crate::identity::data::RecordId;
+use crate::storage::logic::state::{
+    generation_of, partition_of, slot_of, EntityRecordKind, RecordKind, RelationRecordKind,
+};
 use crate::transactions::data::{CommitConflict, ConflictClass, ExistingRecordTarget};
 
 pub(super) fn ensure_entity_target_is_current(
@@ -18,12 +21,12 @@ pub(super) fn ensure_relation_target_is_current(
 
 fn ensure_target_is_current<K: RecordKind>(
     staged: &impl StorageRead,
-    record_id: K::Id,
+    record_id: RecordId<K::Domain>,
     record_kind: &str,
 ) -> Result<(), CommitConflict> {
-    let slot = K::slot_of(&record_id);
-    let partition_id = K::partition_of(&record_id);
-    let generation = K::generation_of(&record_id);
+    let slot = slot_of::<K>(&record_id);
+    let partition_id = partition_of::<K>(&record_id);
+    let generation = generation_of::<K>(&record_id);
     let Some(partition) = staged.get_partition(partition_id) else {
         return stale_handle_conflict(
             record_kind,

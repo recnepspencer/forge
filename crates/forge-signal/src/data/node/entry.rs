@@ -1,12 +1,15 @@
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
-use crate::data::aspect::{Aspect, AspectMask, AspectVersion, MAX_ASPECTS, PartitionVersionMap};
+use crate::data::aspect::{Aspect, AspectMask, AspectVersion, PartitionVersionMap, MAX_ASPECTS};
 use crate::data::core_profile::HOT_VEC_INLINE_CAPACITY;
 use crate::data::dependency::DependencySnapshotId;
 use crate::data::graph::{DependencySetId, SubscriberSetId};
 use crate::data::output::{ChangedRegion, PartitionSubscription};
-use crate::data::trace::{CausalityMetadata, TraceSummary};
+use crate::data::trace::{
+    CausalityMetadata, HistoricalArtifactRecord, RetainedDiagnosticArtifact, RuntimeArtifactState,
+    TraceSummary,
+};
 
 use super::condition::NodeEvaluationConfig;
 
@@ -30,7 +33,7 @@ pub enum NodeState {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 struct NodeColdData {
     #[serde(default)]
-    trace_summary: Option<TraceSummary>,
+    retained_artifact: Option<RetainedDiagnosticArtifact>,
     #[serde(default)]
     causality: Option<CausalityMetadata>,
 }
@@ -52,6 +55,9 @@ pub struct NodeEntry {
     dep_snapshot_id: DependencySnapshotId,
     /// Whether this node has been tombstoned (deleted but not yet GC'd).
     tombstoned: bool,
+    /// Hot operational artifact state retained directly on the node.
+    #[serde(default)]
+    runtime_artifact_state: Option<RuntimeArtifactState>,
     /// Cold diagnostics- and explanation-facing data kept off the hot path.
     #[serde(default)]
     cold: Option<Box<NodeColdData>>,
@@ -78,6 +84,7 @@ impl NodeEntry {
             subscribers_id: SubscriberSetId::EMPTY,
             dep_snapshot_id: DependencySnapshotId::EMPTY,
             tombstoned: false,
+            runtime_artifact_state: None,
             cold: None,
             eval_config: NodeEvaluationConfig::default(),
         }
@@ -203,7 +210,8 @@ impl NodeEntry {
         version: AspectVersion,
         changed_regions: &[ChangedRegion],
     ) {
-        self.aspect_versions.apply_evaluation(version, changed_regions);
+        self.aspect_versions
+            .apply_evaluation(version, changed_regions);
     }
 
     /// Graph-owned dependency set handle.
@@ -246,15 +254,101 @@ impl NodeEntry {
         self.tombstoned = tombstoned;
     }
 
-    /// The last evaluation trace summary.
-    pub fn get_trace_summary(&self) -> Option<&TraceSummary> {
-        self.cold.as_ref()?.trace_summary.as_ref()
+    /// The last operational artifact state.
+    pub fn get_runtime_artifact_state(&self) -> Option<&RuntimeArtifactState> {
+        self.runtime_artifact_state.as_ref()
     }
 
-    /// Set or clear the trace summary.
-    pub fn set_trace_summary(&mut self, summary: Option<TraceSummary>) {
-        self.cold_mut().trace_summary = summary;
+    /// Set or clear the runtime artifact state.
+    pub fn set_runtime_artifact_state(&mut self, state: Option<RuntimeArtifactState>) {
+        self.runtime_artifact_state = state;
+    }
+
+    /// Retained diagnostic artifact payload, if any.
+    pub fn retained_diagnostic_artifact(&self) -> Option<&RetainedDiagnosticArtifact> {
+        self.cold.as_ref()?.retained_artifact.as_ref()
+    }
+
+    /// Set or clear the retained diagnostic artifact payload.
+    pub fn set_retained_diagnostic_artifact(
+        &mut self,
+        artifact: Option<RetainedDiagnosticArtifact>,
+    ) {
+        self.cold_mut().retained_artifact = artifact;
         self.trim_cold_if_empty();
+    }
+
+    /// Cold historical artifact record assembled from the hot runtime lane and
+    /// retained diagnostic payload.
+    pub fn historical_artifact_record(&self, node: crate::data::handle::NodeId) -> Option<HistoricalArtifactRecord> {
+        Some(HistoricalArtifactRecord {
+            node,
+            runtime: self.get_runtime_artifact_state()?.clone(),
+            retained: self.retained_diagnostic_artifact().cloned(),
+            causality: self.get_causality().cloned(),
+        })
+    }
+
+    /// Materialized trace summary assembled for explanation and reporting.
+    pub fn materialize_trace_summary(&self) -> Option<TraceSummary> {
+        Some(TraceSummary::from_parts(
+            self.get_runtime_artifact_state()?,
+            self.retained_diagnostic_artifact(),
+        ))
+    }
+
+    /// Materialized trace summary assembled for explanation and reporting.
+    pub fn get_trace_summary(&self) -> Option<TraceSummary> {
+        self.materialize_trace_summary()
+    }
+
+    /// Split a materialized trace summary back into runtime and retained
+    /// storage lanes.
+    pub fn set_trace_summary(&mut self, summary: Option<TraceSummary>) {
+        match summary {
+            Some(summary) => {
+                let retained_changed_regions = crate::data::output::CanonicalChangedRegions::from(
+                    summary.changed_regions.clone(),
+                );
+                self.runtime_artifact_state = Some(RuntimeArtifactState {
+                    output_hash: summary.output_hash,
+                    output_identity: summary.output_identity,
+                    continuity_token: summary.continuity_token,
+                    output_change: summary.output_change,
+                    recomputed: summary.recomputed,
+                    dependency_count: summary.dependency_count,
+                    meaningful_input_changes: summary.meaningful_input_changes,
+                    changed_partition_count: summary.changed_partition_count,
+                    propagation_suppressed: summary.propagation_suppressed,
+                    changed_scopes: crate::data::proof::PartitionScopeSet::from_changed_regions(
+                        &retained_changed_regions,
+                    ),
+                    memoized_origin: summary.memoized_origin,
+                    execution_record_id: summary.execution_record_id,
+                    semantic_segment_id: summary.semantic_segment_id,
+                    lineage_artifact_id: summary.lineage_artifact_id,
+                });
+                let retained = RetainedDiagnosticArtifact {
+                    changed_regions: retained_changed_regions,
+                    labels: summary.labels,
+                    keyed_family: summary.keyed_family,
+                    keyed_key: summary.keyed_key,
+                };
+                if retained.changed_regions.is_empty()
+                    && retained.labels.is_empty()
+                    && retained.keyed_family.is_none()
+                    && retained.keyed_key.is_none()
+                {
+                    self.set_retained_diagnostic_artifact(None);
+                } else {
+                    self.set_retained_diagnostic_artifact(Some(retained));
+                }
+            }
+            None => {
+                self.runtime_artifact_state = None;
+                self.set_retained_diagnostic_artifact(None);
+            }
+        }
     }
 
     /// Optional host-provided causality payload.
@@ -288,7 +382,7 @@ impl NodeEntry {
         if self
             .cold
             .as_ref()
-            .is_some_and(|cold| cold.trace_summary.is_none() && cold.causality.is_none())
+            .is_some_and(|cold| cold.retained_artifact.is_none() && cold.causality.is_none())
         {
             self.cold = None;
         }

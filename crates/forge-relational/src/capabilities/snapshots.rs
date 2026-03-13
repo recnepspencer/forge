@@ -3,7 +3,10 @@ use crate::logic::runtime::RelationalRuntime;
 use crate::snapshots::data::{SnapshotId, SnapshotReadPolicy};
 
 pub(crate) trait SnapshotSource {
-    fn active_snapshot_binding(&self, snapshot_id: SnapshotId) -> Option<(VersionId, SnapshotReadPolicy)>;
+    fn active_snapshot_binding(
+        &self,
+        snapshot_id: SnapshotId,
+    ) -> Option<(VersionId, SnapshotReadPolicy)>;
     fn published_snapshot_version(&self, snapshot_id: SnapshotId) -> Option<VersionId>;
 }
 

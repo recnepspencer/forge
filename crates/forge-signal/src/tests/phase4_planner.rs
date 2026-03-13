@@ -53,7 +53,9 @@ fn build_evaluation_plan_prunes_dirty_target_when_contract_reads_do_not_intersec
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().reads_aspects(mask_a()).build();
-    graph.append_dependency(dependent, source, ASPECT_B).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_B)
+        .unwrap();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, source, &mut compute).unwrap();
@@ -123,7 +125,9 @@ fn execute_plan_returns_execution_report_and_updates_trace_record_id() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     let source_v2 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(2, 0));
@@ -140,9 +144,10 @@ fn execute_plan_returns_execution_report_and_updates_trace_record_id() {
         .execute_prepared_plan(&plan, &(), &|view| {
             let node = view.node();
             if node == source {
-                Ok::<EvaluationOutput, SignalError>(EvaluationOutput::from_result(
-                    source_v2(node, view.graph())?,
-                ))
+                Ok::<EvaluationOutput, SignalError>(EvaluationOutput::from_result(source_v2(
+                    node,
+                    view.graph(),
+                )?))
             } else {
                 Ok::<EvaluationOutput, SignalError>(EvaluationOutput::from_result(
                     dependent_compute(node, view.graph())?,
@@ -162,7 +167,11 @@ fn execute_plan_returns_execution_report_and_updates_trace_record_id() {
         .execution_record_id
         .is_some());
     assert_eq!(
-        graph.observe().explain(dependent).unwrap().execution_record_id,
+        graph
+            .observe()
+            .explain(dependent)
+            .unwrap()
+            .execution_record_id,
         graph
             .get_entry(dependent)
             .unwrap()
@@ -177,9 +186,14 @@ fn runtime_plan_keeps_requested_maybe_stale_validation_task() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
-    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().with_tiers::<Tier>().build();
+    let mut runtime = SignalRuntime::builder(graph)
+        .with_kernel_defaults()
+        .with_tiers::<Tier>()
+        .build();
     runtime.set_node_tier(dependent, Tier::A);
     runtime.set_tier_policy(
         TierPolicy::new(
@@ -218,12 +232,7 @@ fn public_evaluate_routes_through_planner_and_records_execution_metadata() {
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(3, 0));
     evaluate(&mut graph, node, &mut compute).unwrap();
 
-    let trace = graph
-        .get_entry(node)
-        .unwrap()
-        .get_trace_summary()
-        .cloned()
-        .unwrap();
+    let trace = graph.get_entry(node).unwrap().get_trace_summary().unwrap();
     assert!(trace.execution_record_id.is_some());
 
     let metrics = graph.observe().metrics();
@@ -237,7 +246,9 @@ fn runtime_execute_plan_with_executor_serial_matches_default_path() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
@@ -279,7 +290,9 @@ fn execution_report_marks_requested_maybe_stale_validation_as_validated_clean() 
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     let mut source_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(10, 0));
@@ -315,7 +328,9 @@ fn maybe_stale_requested_target_validates_clean_without_running_compute() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     let mut source_v2_same_aspect_a = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 1));
@@ -354,7 +369,9 @@ fn maybe_stale_validation_prunes_retired_runtime_dependencies_before_recapture()
     let source = graph.node().build();
     let retired = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     let mut dependent_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(10, 0));
@@ -513,7 +530,9 @@ fn build_evaluation_plan_handles_deep_linear_chain_without_recursion() {
 
     for _ in 0..depth {
         let current = graph.node().build();
-        graph.append_dependency(current, previous, ASPECT_A).unwrap();
+        graph
+            .append_dependency(current, previous, ASPECT_A)
+            .unwrap();
         previous = current;
     }
 
@@ -537,12 +556,7 @@ fn parallel_executor_threshold_keeps_narrow_stage_serial() {
     let evaluator = |ctx: &mut EvaluationContext<'_, ()>| Ok(ctx.finish(version_ab(1, 0)));
 
     let report = graph
-        .execute_prepared_plan_with_executor(
-            &plan,
-            &(),
-            &evaluator,
-            StageExecutor::parallel(2),
-        )
+        .execute_prepared_plan_with_executor(&plan, &(), &evaluator, StageExecutor::parallel(2))
         .unwrap();
 
     assert!(matches!(

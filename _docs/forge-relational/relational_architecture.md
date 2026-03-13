@@ -1,1145 +1,1029 @@
-# forge-relational DX Engineering Spec
+# forge-relational Current Architecture
 
-This document is a complete refactoring specification for `forge-relational`. It synthesizes an exhaustive architectural review (~158 source files) with transferable patterns from `forge-core`, `forge-topo`, and `forge-kernel`. Every item will be implemented. Breaking changes are permitted — this runtime has never shipped to production.
+This document is the current-reference description of how `forge-relational`
+works today.
 
-The spec is organized into **six execution phases** ordered by dependency: each phase's outputs become the inputs of the next. Within each phase, items can be done in any order.
+It is not a refactor spec, a future-phase sketch, or a historical journal. It
+describes the runtime as it exists in code now: its public surface, its major
+internal contracts, the shape of its artifacts, and the boundaries that are
+important for future work.
 
-> [!IMPORTANT]
-> The kernel crate references in this document are intentional. When AI agents or engineers implement these changes, they should read the referenced kernel files to understand the source patterns before adapting them. The kernel is the working proof that these patterns compose well at scale.
+Use this document when you need to understand:
 
----
+- what the runtime owns
+- which types are authoritative
+- how callers are expected to enter and read the system
+- what commit, replay, diagnostics, lineage, and durability artifacts exist
+- which surfaces are canonical
+- which future-looking concepts are real contracts today and which are only
+  declaration surfaces
+
+If this document and older milestone language disagree, treat this document as
+the current behavioral reference.
+
+## Status
+
+As of March 12, 2026:
+
+- the architecture program through Phase F is closed enough to treat the core
+  runtime shape as established
+- Milestone 4 (Invariant Engine), Milestone 5 (Commit Architecture), and
+  Milestone 6 (API Surface) are closed
+- the next major work is feature expansion, hardening, scale proof, and
+  parallel-preparation work, not more foundational cleanup
+
+## Core Runtime Model
+
+`forge-relational` is a serialized-authority truth runtime.
+
+The governing rule is:
+
+parallelize disposable work, serialize authority.
+
+In current implementation terms, that means:
+
+- authoritative truth mutation flows through transactions and one logical commit
+  boundary
+- committed snapshots are immutable and readable while later mutation proceeds
+- observable outputs are canonical and deterministic
+- commit publication is coherent across snapshot, patch, diagnostics, and replay
+  artifacts
+- replay reconstructs from canonical commit envelopes rather than from internal
+  heap state
+
+The runtime is meant to be reusable as a standalone truth-state library. It is
+not defined as a bridge helper, a kernel-only implementation detail, or a
+reactive scheduler.
+
+## Public Surface
+
+The main public boundary is [`src/facade.rs`](../../crates/forge-relational/src/facade.rs).
+
+The namespaced facade is the public surface.
+
+### Namespaced facade groups
+
+The current domain namespaces are:
+
+- `config`
+- `diagnostics`
+- `durability`
+- `errors`
+- `history`
+- `identity`
+- `indexes`
+- `lineage`
+- `runtime`
+- `payloads`
+- `harness`
+- `publication`
+- `query`
+- `replay`
+- `schema`
+- `snapshots`
+- `storage`
+- `symbols`
+- `transactions`
+
+These namespaces map closely to actual ownership or contract domains. New code
+should import through them.
+
+### Runtime entrypoints
+
+The simplest public entrypoints are:
+
+- `RelationalRuntimeApi::builder()`
+- `RelationalRuntimeApi::runtime()`
+
+`RelationalRuntimeApi::builder()` returns `RelationalRuntimeBuilder`, which is
+the intended construction API.
+
+The builder currently exposes explicit configuration setters for:
+
+- profile selection
+- runtime name
+- execution model
+- planning contract
+- commit authority contract
+- durability mode
+- diagnostics profile
+- schema registry
+- invariant catalog
+- entity/relation capacity
+- MVCC config
+- storage layout
+- publication policy
+- payload policy
+- symbol policy
+- visibility cache policy
+- durable log policy
+- durability policy
+- durable store layout
+- adjacency policy
+- cross-context policy
+- cascade delete policy
+- compiled lane policy
+
+The builder resolves a `RelationalRuntimeConfig` and constructs a
+`RelationalRuntime`.
+
+## Configuration Model
+
+Configuration is sectioned by subsystem rather than flattened into one large
+bag.
+
+The important exported configuration families are:
+
+- `ExecutionConfig`
+- `DiagnosticsConfig`
+- `DurabilityConfig`
+- `HistoryConfig`
+- `IdentityConfig`
+- `PublicationRuntimeConfig`
+- `SchemaConfig`
+- `StorageConfig`
+- `VisibilityConfig`
+
+Policy types are grouped under `config`, including:
+
+- `RelationalRuntimeProfile`
+- `MvccConfig`
+- `PublicationConfig`
+- `DurabilityPolicy`
+- `DurableLogPolicy`
+- `VisibilityCachePolicy`
+- `StorageLayoutConfig`
+- `AdjacencyPolicy`
+- `CrossContextPolicy`
+- `CascadeDeletePolicy`
+- `SnapshotReleasePolicy`
+- `RetentionPolicy`
+- `RetentionBackend`
+- `CompiledLanePolicy`
+
+Configuration provenance is also first-class:
+
+- `ConfigProvenance`
+- `ConfigProvenanceEntry`
+- `ConfigValueSource`
+
+That provenance shows whether a value came from a profile default, builder
+override, or another explicit resolution source.
+
+## Identity Model
+
+Identity is generational, partition-aware, and split by record class.
+
+Current public identity types include:
+
+- `EntityId`
+- `RelationId`
+- `EntityStorageId`
+- `RelationStorageId`
+- `PartitionId`
+- `Generation`
+- `KindId`
+- `VersionId`
+- `LineageId`
+- `LocalSlot`
+- `StructuralFingerprint`
+- `VersionBound`
+
+Important architectural truths:
+
+- entity identity and relation identity are separate
+- generational reuse is part of the authoritative identity model
+- partition locality is embedded in the identity form
+- stale-handle rejection is part of normal correctness, not an edge case
+
+Performance-critical code should continue to treat these compact generational
+IDs as the authoritative identity form.
+
+## Runtime Shape and Subsystem Boundaries
+
+`RelationalRuntime` is the main runtime object, but it is no longer intended to
+be treated as one undifferentiated god object.
+
+The crate exports subsystem-shaped access and authority surfaces through the
+runtime, and new code should prefer those surfaces over direct field reach
+through.
+
+Important subsystem families present in the runtime include:
+
+- history
+- visibility
+- publication
+- durability
+- lineage
+- indexing
+- instrumentation / performance
+
+Representative access patterns used throughout the codebase today are:
+
+- `history_access()` / `history_authority()`
+- `visibility_reads()` / `visibility_authority()`
+- `publication_access()`
+- `durability_access()` / `durability_authority()`
+- `lineage_access()` / `lineage_authority()`
+- `index_access()` / `index_authority()`
+- `storage_access()`
+- `retention_access()`
+- `performance_access()`
+
+The architectural rule is:
+
+- use access surfaces for committed observation
+- use authority surfaces for mutation or publication/recovery transitions
+- do not blur committed reads, speculative reads, and mutation authority into
+  one generic state bag
+
+## Transaction and Commit Model
+
+Authoritative mutation flows through transactions.
+
+The main public transaction-side types are:
+
+- `RelationalTransaction`
+- `TransactionId`
+- `TransactionOptions`
+- `SavepointId`
+- `WorkerIntentBatch`
+- `MutationIntent`
+- `CreateIntent`
+- `EntityMutationIntent`
+- `RelationMutationIntent`
+- `BulkEntityCreateIntent`
+- `BulkRelationCreateIntent`
+- `UpdateEntityIntent`
+- `DeleteEntityIntent`
+- `DeleteRelationIntent`
+- `ReplaceEntityIntent`
+- `RecordRef`
+
+### Bulk-first write shape
+
+Bulk work is represented explicitly in the public intent model. That matters
+because the runtime treats bulk domains as real bulk domains rather than as
+scalar loops hidden behind a cheap-looking API.
+
+Examples:
+
+- `WorkerIntentBatch`
+- bulk create intents
+- merged commit planning
+- commit structural summaries
+- patch and change summaries
+
+## Commit Artifacts
+
+Milestone 5 made commit output reconstructive instead of flattening it into one
+bag.
+
+### CommitOutcome
+
+`CommitOutcome` is the baseline successful commit result:
+
+- `transaction_id`
+- `commit: CommitReference`
+- `version_id`
+- `snapshot: SnapshotHandle`
+- `changed_records: Vec<RecordRef>`
+- `publication_status`
+- `commit_log: CommitLog`
+
+This is the minimal authoritative outcome shape for successful commit
+publication.
+
+### CommitResult
+
+`CommitResult` is the richer reconstructive envelope layered on top of
+`CommitOutcome`.
+
+It contains:
+
+- `outcome: CommitOutcome`
+- `summary: CommitSummary`
+- `structural_summary: CommitStructuralSummary`
+- `publication: CommitPublication`
+- `validation: CommitValidation`
+- `execution: CommitExecution`
+
+Important accessors exposed directly from `CommitResult` include:
+
+- `commit_log()`
+- `commit_summary()`
+- `publication()`
+- `structural_summary()`
+- `history_summary()`
+- `patch_budget_summary()`
+- `change_summary()`
+- `publication_summary()`
+- `validation()`
+- `execution()`
+- `diagnostics()`
+- `patch()`
+- `envelope()`
+- `invariant_executions()`
+- `validation_summary()`
+- `phase_timing()`
+- `complexity_delta()`
+- `patch_position()`
+- `final_snapshot_id()`
+- `merge_parent_count()`
+
+The important design rule is that downstream consumers should usually consume
+these result artifacts directly rather than rescanning raw checks, raw patch
+records, or raw trace events.
+
+### Commit structural and summary families
+
+Current summary artifact families include:
+
+- `CommitStructuralSummary`
+- `CommitHistorySummary`
+- `CommitPatchBudgetSummary`
+- `CommitChangeSummary`
+- `CommitPublicationSummary`
+- `CommitValidationSummary`
+- `CommitSummary`
+
+`CommitStructuralSummary` currently carries:
+
+- `invariant_groups`
+- `commit_topology`
+- `touched_partitions`
+- reserved bulk entity slot count
+- reserved bulk relation slot count
+
+These summaries are intended to be producer-owned or framework-owned proof
+forms, not downstream re-derivations.
+
+### Commit publication artifacts
+
+`CommitPublication` currently contains:
+
+- `diagnostics: Vec<RelationalDiagnosticArtifact>`
+- `envelope: Arc<CanonicalCommitEnvelope>`
+
+The canonical envelope is the important durable/replay/publication artifact. It
+is shared where appropriate and exposed by reference at the public boundary.
+
+### Commit log
+
+`CommitLog` is still present as the forensic trace surface.
+
+It owns a `CommitSummary` and a trace-event stream (`CommitTraceEvent`), but the
+current architecture avoids duplicating heavy summary artifacts into both places
+where unnecessary. The running summary is the main summary authority; the event
+stream exists for ordered forensic tracing.
+
+### Rollback artifacts
+
+Rollback is also modeled reconstructively:
+
+- `RollbackEffect`
+- `RollbackSummary`
+- `RollbackOutcome`
+
+`RollbackSummary` is derived from explicit rollback effects and exposes counts
+for restored records and discarded creations. Consumers should prefer the
+summary for routine interpretation and the effects vector for deeper inspection.
+
+## Validation and Invariant Model
 
-## Phase A: Foundation Types
+The invariant path is explicit, phase-typed, and reconstructive.
 
-These changes have zero backward dependencies and affect the most downstream code. Doing them first minimizes merge conflict surface for everything that follows.
+Important public/runtime-facing invariant types include:
 
----
+- `InvariantCatalog`
+- `InvariantRegistration`
+- `InvariantRule`
+- `InvariantClass`
+- `InvariantExecutionPoint`
+- `InvariantFailureEffect`
+- `InvariantCheckResult`
 
-### A1 · Phantom-Tagged Identity Types
+The engine now returns `InvariantExecutionResult`, not just a raw list of check
+results.
 
-**What the kernel does**
+### Invariant execution metadata
 
-forge-topo uses distinct handle types per entity kind (`BodyId`, `FaceId`, `EdgeId`, `VertexId`, `HalfEdgeId`, `LoopId`, `ShellId`, `LumpId`, `RegionId`) — see [handles.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-topo/src/handles.rs). Each is a newtype around a raw index, but they are compile-time distinct and cannot be confused. The substrate in forge-relational already has a `RecordId` trait in [record_arena.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/substrate/record_arena.rs) that unifies `EntityId` and `RelationId` via:
+`InvariantExecutionMetadata` includes:
 
-```rust
-pub(crate) trait RecordId: Copy + Ord + Hash + Debug + 'static {
-    fn partition_id(&self) -> PartitionId;
-    fn local_slot(&self) -> usize;
-    fn generation(&self) -> u32;
-}
-```
+- execution point
+- observation kind
+- target version
+- current version
+- consumed groups
+- applicable groups
+- max cost
+- execution disposition
+- optional plan contract
+- whether a merged plan backed the request
 
-This trait exists _because_ the four identity types in [identity/data/mod.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/identity/data/mod.rs) (`EntityId`, `RelationId`, `EntityStorageId`, `RelationStorageId`) are structurally identical — same fields, same derives, same constructors — but the compiler doesn't know that.
+Execution disposition is explicit:
 
-**What changes**
+- `Executed`
+- `SkippedByPlanContract`
+- `SkippedByMayBreakMask`
 
-Replace the four duplicated structs with two phantom-tagged generics:
+Observation kind is explicit:
 
-```rust
-pub struct RecordId<K: RecordDomain> {
-    pub partition_id: PartitionId,
-    pub local_slot: LocalSlot,
-    pub generation: Generation,
-    _marker: PhantomData<K>,
-}
+- committed
+- speculative
 
-pub struct StorageId<K: RecordDomain> {
-    pub partition_id: PartitionId,
-    pub local_slot: LocalSlot,
-    _marker: PhantomData<K>,
-}
+This is a real architectural contract, not just a convention over one generic
+state-plus-enum API.
 
-pub enum EntityDomain {}
-pub enum RelationDomain {}
+### Invariant execution summary
 
-pub type EntityId = RecordId<EntityDomain>;
-pub type RelationId = RecordId<RelationDomain>;
-pub type EntityStorageId = StorageId<EntityDomain>;
-pub type RelationStorageId = StorageId<RelationDomain>;
-```
+`InvariantExecutionSummary` carries:
 
-The `RecordId` trait becomes unnecessary — generic code takes `RecordId<K>` directly. All `impl` blocks, `new()` constructors, and `storage_id()` methods consolidate to one place. Any future field addition (e.g., `shard_id`) is a single edit.
+- result count
+- advisory count
+- violation count
+- first blocking failure, if any
+- first publication failure, if any
 
----
+This allows commit/publication consumers to route failures without rescanning
+raw invariant checks themselves.
 
-### A2 · Compiler-Enforced Slot Construction for RecordArena
+### Important honesty point
 
-**The problem**
+`ProjectionAspect` and projection `required_aspects()` are real declaration
+surfaces today.
 
-[record_arena.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/substrate/record_arena.rs) defines `RecordArena<K>` with **18 parallel `Vec`s**. Adding a new column requires edits in **7 locations across 3 files** — the struct definition, `with_capacity`, `reserve_additional`, `allocate_common` (two code paths: reclaim and fresh), `reset_reclaimed_slot` in both `EntityRecordKind` and `RelationRecordKind`, and `SlotView`. The compiler catches **none** of these if you forget one, because each field is independently typed.
+What they are not yet:
 
-The current `allocate_common` is 78 lines with two branches (reclaim path at lines 391-428, fresh path at lines 430-459) that must both stay in sync with each other and with all 18 fields. This is a silent-corruption bug surface.
+- an already-wired bridge invalidation system
+- an active framework-owned projection cache invalidation contract
+- a completed operational read/write intersection path outside the invariant
+  declaration story
 
-> [!CAUTION]
-> Do NOT introduce a `ColumnGroup` trait or wrap the vecs in intermediate structs. That adds abstraction over the SoA storage that obscures hot-path indexing (e.g., `arena.generations[slot]` becomes `arena.identity.generations[slot]`). The read path must stay transparent. This fix targets **construction and reset** only.
+The current code establishes explicit read-contract declaration. It does not yet
+implement the full bridge-style invalidation system implied by that declaration.
 
-**What changes**
+## Snapshot and Read Model
 
-Introduce a `SlotInit<K>` struct that carries the caller-supplied data for a new slot. The compiler enforces completeness at every construction site:
+Committed reads are immutable.
 
-```rust
-/// Data required to initialize a new slot. The compiler errors at every
-/// call site if a new field is added here but not supplied.
-pub(crate) struct SlotInit<K: RecordKind> {
-    pub partition_id: PartitionId,
-    pub kind_id: KindId,
-    pub payload: Option<RecordPayload>,
-    pub version_id: VersionId,
-    pub extra: K::Extra,
-}
-```
+The primary snapshot types are:
 
-The arena gets two new methods that replace the monolithic `allocate_common`:
+- `SnapshotId`
+- `SnapshotHandle`
+- `SnapshotReadPolicy`
+- `SnapshotInspectionSummary`
 
-```rust
-impl<K: RecordKind> RecordArena<K> {
-    /// Allocate a new slot from init data. Handles both reclaim and fresh paths.
-    /// Cold-path fields (pins, diagnostics, aspect versions) are always
-    /// initialized to their default — callers never supply them.
-    pub(crate) fn push_slot(&mut self, init: SlotInit<K>) -> (usize, u32, bool) {
-        // ... reclaim or push to all 18 vecs, but driven by init struct
-    }
+`SnapshotHandle` contains:
 
-    /// Reset a reclaimed slot to clean state. Driven by the same
-    /// cold-path-fields-to-default discipline as push_slot.
-    pub(crate) fn reset_slot(&mut self, slot: usize) {
-        // ... clear all cold-path fields, push to free_list
-    }
-}
-```
+- `snapshot_id`
+- `version_id`
+- `read_policy`
 
-The 18 flat vecs stay exactly as they are — `SlotView` still indexes directly into `arena.generations[slot]`. What changes is that **construction and reset** go through a struct the compiler checks for completeness. The hot read path is completely untouched.
+Current snapshot read policies exported publicly are:
 
-Adding a new hot-path column now means:
+- `ImmutablePinned`
+- `ImmutablePinnedNoLazyMutation`
 
-1. Add the field to `RecordArena` (struct)
-2. Add the field to `SlotInit` — **the compiler immediately errors** at every call site that constructs a `SlotInit` without the new field
-3. Handle it in `push_slot` and `reset_slot`
-4. Add it to `SlotView`
+### Storage-visible read records
 
-That's 4 edit sites with **2 of them compiler-enforced**. Down from 7 edit sites with 0 compiler-enforced.
+The canonical read records are:
 
----
+- `EntityReadRecord`
+- `RelationReadRecord`
 
-### A3 · Unified Error Hierarchy with Structured Context
+They carry:
 
-**What the kernel does**
+- typed record ID
+- kind resolution
+- lifecycle state
+- created-at version
+- optional retired-at version
+- payload
+- for relations, explicit `source` and `target`
 
-forge-core centralizes its error taxonomy in [errors/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/errors) with `KernelError` as the main error enum. Every subsystem's errors are variants, and they carry structured context. The `OperationResult<T>` envelope wraps errors alongside warnings, giving callers a single type to match.
+### Record lifecycle
 
-**Current state**
+The public lifecycle enum is explicit:
 
-forge-relational has errors scattered across 8+ modules with no common base: `TransactionCommitError`, `DurabilityError`, `BranchCreateError`, `SchemaRegistryError`, `PublicationError`, `PatchStreamReadError`, `CommitConflict`, `ReplayFailureClass`. Callers can't catch "any relational error" without matching six types. No common `From` chain means `?` doesn't propagate across subsystem boundaries.
+- `Live`
+- `DeletedRetained`
+- `RetainedDanglingForAudit`
+- `PinnedBySnapshot`
+- `PinnedByBranch`
+- `PinnedByReplayRetention`
+- `Reclaimable`
+- `Reusable`
 
-**What changes**
+That lifecycle vocabulary is part of the reference model. It should not be
+collapsed back into vague tombstone language.
 
-Two layers. First, the wrapper enum for `?` propagation:
+### RelationalReadView
 
-```rust
-#[derive(Debug, thiserror::Error)]
-pub enum RelationalError {
-    #[error("transaction: {0}")]
-    Transaction(#[from] TransactionCommitError),
-    #[error("durability: {0}")]
-    Durability(#[from] DurabilityError),
-    #[error("history: {0}")]
-    History(#[from] BranchCreateError),
-    #[error("schema: {0}")]
-    Schema(#[from] SchemaRegistryError),
-    #[error("publication: {0}")]
-    Publication(#[from] PublicationError),
-    #[error("replay: {0}")]
-    Replay(#[from] ReplayFailureClass),
-}
-```
+`RelationalReadView` still exists and remains a valid committed read surface.
 
-Second — and this is where the real win lives — each subsystem error carries structured context, not just a message string:
+It currently provides:
 
-```rust
-/// Structured context attached to every subsystem error.
-/// Machine-readable fields for diagnostics, not just human-readable strings.
-pub struct ErrorContext {
-    /// Which subsystem boundary produced this error.
-    pub subsystem: RelationalSubsystem,
-    /// Which runtime operation was in progress.
-    pub operation: ErrorOperation,
-    /// Affected record(s), if any.
-    pub affected_records: Vec<RecordRef>,
-    /// Affected version/transaction, if any.
-    pub version_context: Option<VersionId>,
-    /// Machine-actionable suggested fix, if known.
-    pub suggested_fix: Option<SuggestedFix>,
-}
-```
+- `snapshot()`
+- `entities()`
+- `relations()`
+- `execute_packet(...)`
+- `get_entity(...)`
+- `get_relation(...)`
 
-Authority-path errors (commit conflicts, invariant violations, cascade failures) must carry `ErrorContext`. This makes errors machine-queryable for AI agents and debuggable for humans without parsing message strings.
+This is still the honest surface for callers that truly need a whole snapshot
+read materialized as entities plus relations.
 
-Subsystem errors remain available for precise matching. The unified wrapper gives `?` propagation. The structured context gives actionable diagnostics.
+## Query and Packet Model
 
----
+The primary public query surface is packetized.
 
-## Phase B: Internal Cleanup
+Important query types are:
 
-These changes improve local DX within individual modules. They don't require the runtime decomposition and are simpler to execute as standalone PRs.
+- `QueryWorkPacket`
+- `PartitionHint`
+- `QueryExecutionShape`
+- `ReductionDiscipline`
+- `ReadPacketPlan`
+- `PacketResult`
 
----
+The important architectural direction is:
 
-### B1 · MutationWorkspace Combinator Audit
+- bulk packetized reads are the main public read shape
+- per-ID convenience exists, but should not replace the packet model
 
-**Current state**
+`QueryWorkPacket::bulk(...)` creates a bulk packet with:
 
-[MutationWorkspace](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/authority/mutation/types.rs) exposes access through closure-based split-borrow combinators:
+- label
+- optional partition hint
+- bulk execution shape
+- deterministic reduction discipline
+- target record refs
 
-```rust
-fn with_draft_and_symbols<R>(&mut self, f: impl FnOnce(&mut RelationalDraft, &mut StringInterner) -> R) -> R;
-fn with_draft_and_schema<R>(&mut self, f: impl FnOnce(&mut RelationalDraft, &RelationalSchemaRegistry) -> R) -> R;
-fn with_draft_symbols_and_schema<R>(...) -> R;
-```
+`ReadPacketPlan` exposes the storage planning summary for a packet, including
+chunk indexes and target count.
 
-**Design decision: preserve closure-based split-borrow**
+## Projection Read Surface
 
-The closure-based pattern is the correct Rust idiom for this problem. It enforces that callers can only hold split borrows for a scoped lifetime, which prevents the exact class of "accidentally hold `&mut draft` across a function that also needs `&mut symbols`" bugs that raw getter APIs would reintroduce. Replacing closures with exposed raw accessors would be a regression in borrow safety — the workspace is a coherent authority boundary, and the closures express that.
+The type-driven projection read API is now the primary ergonomic read surface.
 
-> [!WARNING]
-> Do NOT replace the closure-based split-borrow pattern with raw getter methods. The closures enforce scoped borrow lifetimes that raw getters cannot. This was explicitly reviewed and confirmed as the right approach for Rust's ownership model.
+### Projection declarations
 
-**What changes**
+The relevant public/runtime types are:
 
-Audit and prune the combinator surface. The N-choose-K explosion is the real problem — not the closure pattern itself. Remove combinator methods whose borrow combinations are unused or redundant. The target state is the **minimal set of combinators** that the mutation handlers actually need, not a combinator for every possible permutation.
+- `ProjectionAspect`
+- `EntityRecordProjection`
+- `RelationRecordProjection`
+- `VisibilityProjectionView`
 
-If the audit reveals that most handlers need the same 3-way split, consolidate to a single `with_mutation_context` combinator rather than maintaining separate 2-way and 3-way variants:
+`ProjectionAspect` is a lightweight named declaration:
 
-```rust
-impl MutationWorkspace<'_> {
-    /// The primary mutation context: draft + symbols + schema.
-    /// Most intent handlers need all three.
-    pub(crate) fn with_context<R>(
-        &mut self,
-        f: impl FnOnce(&mut RelationalDraft, &mut StringInterner, &RelationalSchemaRegistry) -> R,
-    ) -> R {
-        f(self.draft, self.symbols, self.schema)
-    }
+- it is constructed with `ProjectionAspect::new("name")`
+- it exposes `name()`
 
-    /// Read-only accessors remain direct (no closure needed for shared refs).
-    pub(crate) fn config(&self) -> &MutationConfig { &self.config }
-    pub(crate) fn version_id(&self) -> VersionId { self.version_id }
-}
-```
+Projection traits declare:
 
----
+- `const KIND: KindId`
+- `required_aspects() -> &'static [ProjectionAspect]`
+- `from_record(...) -> Option<Self>`
 
-### B2 · RelationalDraft Delegation Cleanup
+### VisibilityProjectionView
 
-**Current state**
+`VisibilityProjectionView` is version-scoped.
 
-[RelationalDraft](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/overlay/overlay.rs) wraps `WorkingState` and re-implements 10 methods that delegate 1:1 to `self.working`. It also implements `PartitionAccess` by delegating entirely to `self.working`.
+It currently exposes:
 
-**What changes**
+- `version_id()`
+- `entities::<T>()`
+- `entities_in::<T>(partition_id)`
+- `entity::<T>(entity_id)`
+- `relations::<T>()`
+- `relations_in::<T>(partition_id)`
+- `relation::<T>(relation_id)`
+- `entity_records(kind_id)`
+- `entity_records_in(partition_id, kind_id)`
+- `relation_records(kind_id)`
+- `relation_records_in(partition_id, kind_id)`
+- `all_entity_records()`
+- `all_relation_records()`
 
-Merge `touched_partitions` into `WorkingState` itself — `WorkingState` already tracks `mutation_journal: BTreeMap<PartitionId, PartitionMutationJournal>` which is effectively the same information. Then `RelationalDraft` either becomes a type alias or reduces to a thin wrapper with only the 1-2 methods that add behavior (like `commit()`), using `Deref` or the `delegate` crate for the rest.
+Important ordering/cost truths:
 
----
+- typed aggregate projections preserve deterministic ordering
+- `all_entity_records()` and `all_relation_records()` are honest escape hatches
+  for consumers that really need full visible record sets
+- lower-level record scans still exist underneath, but they are subordinate
+  infrastructure now rather than the preferred API
 
-### B3 · Nested Config Sections
+`visibility_reads()` currently exposes:
 
-**What the kernel does**
+- `project_version(version_id)`
+- `project_snapshot(snapshot_handle)`
 
-forge-kernel's [configuration module](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/configuration) separates config into nested domains. The kernel has `ModelingContext` with `ToleranceConfig`, `ValidationConfig`, and `FeatureConfig` as nested sections — not a flat struct with 25+ fields.
+Those are the primary entrypoints for projection reads.
 
-**Current state**
+## Publication and Patch Model
 
-[RelationalRuntimeConfig](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/config/data/mod.rs) has **27 fields** at one level. `RelationalConfigOverride` has a parallel set of `Option<T>` fields.
+Publication is coherent and commit-native.
 
-**What changes**
+### Publication bundle
 
-Group into nested config sections that mirror the subsystem decomposition (Phase C):
+The main publication types are:
 
-```rust
-pub struct RelationalRuntimeConfig {
-    pub profile: RelationalRuntimeProfile,
-    pub runtime_name: String,
-    pub identity: IdentityConfig,         // initial capacities, partition setup
-    pub concurrency: ConcurrencyConfig,   // mvcc, retention, visibility cache
-    pub storage: StorageConfig,           // layout, adjacency, payload policy
-    pub history: HistoryConfig,           // version graph, retention, branching
-    pub publication: PublicationConfig,    // patch surface, coherent publication
-    pub durability: DurabilityConfig,     // log, checkpoints, store layout
-    pub schema: SchemaConfig,             // registry, invariants, symbols
-    pub execution: ExecutionConfig,       // planning, commit authority, compiled lane
-    pub diagnostics: DiagnosticsConfig,
-    pub provenance: ConfigProvenance,
-}
-```
+- `PublicationBundle<ReplayRecord>`
+- `PublicationStatus`
+- `PublicationStage`
+- `PublicationError`
 
-The override struct uses `Option<>` at the section level. This structure must align with the subsystem boundaries defined in Phase C.
+A publication bundle contains:
 
-> [!IMPORTANT]
-> **Durability policy distinction.** The canonical durable artifact model (commit envelopes, patch records, checkpoint images) is fixed — it does not change per-profile. What becomes configurable is durability _policy_: flush frequency, checkpoint interval, retention depth, recovery strategy. Future workload presets (e.g., `AiWorkflow` vs `CertificationCore`) configure policy, not pluggable checkpoint semantics. `DurabilityConfig` must reflect this split: immutable schema + configurable policy.
+- `commit`
+- `snapshot`
+- `diagnostics_summary`
+- `patch`
+- `replay`
+- `status`
 
----
+### Patch model
 
-### B4 · Unified Intent Hierarchy
+Patch-related public types include:
 
-**Current state**
+- `RelationalPatchRecord`
+- `PatchRecord`
+- `PatchRecordKind`
+- `PatchDetail`
+- `AspectKey`
+- `PatchOrdering`
+- `PatchPublicationMode`
+- `PatchStreamPosition`
+- `PatchFragmentBudget`
+- `PatchStreamRequest`
+- `PatchStreamBatch`
+- `PatchStreamReadError`
+- `PatchStreamReadErrorClass`
 
-[transactions/data/mod.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/transactions/data/mod.rs) maintains **two parallel enum hierarchies** representing the exact same mutation semantics:
+Current patch truths:
 
-- `TransactionIntent` — 8 flat variants (lines 147-177)
-- `MutationIntent` → `CreateIntent` / `EntityMutationIntent` / `RelationMutationIntent` — 3 sub-enums with the same 8 leaf types (lines 218-243)
-- Plus 7 separate intent structs (`BulkEntityCreateIntent`, `UpdateEntityIntent`, etc.) that mirror fields already in `TransactionIntent`
+- patch ordering is explicit (`CanonicalCommitOrder`)
+- patch publication mode is explicit (`CommitNative`)
+- patch compatibility is explicit
+- patch records carry target record ref, kind, aspects, and detail
+- canonicalization of patch content is a first-class concern
 
-`to_mutation_intent()` is a **55-line match** mechanically converting one to the other. `From<MutationIntent> for TransactionIntent` is a **38-line match** doing the reverse. That's ~100 lines of pure translation code. On top of that, every method on `MutationIntent` (`seed_touched_partitions`, `bulk_entity_reservation`, `rollback_effect`, `existing_record_target`, `collect_relation_identities`, `collect_planned_entity_field_values`) repeats the N-variant match-and-extract pattern, totaling ~170 lines of field extraction.
+The patch stream supports explicit resume semantics:
 
-**What changes**
+- `after_position`
+- `max_commits`
+- returned `resumed_after`
+- returned `next_position`
+- returned `latest_position`
+- explicit `UnknownResumePosition` and `InvalidBatchSize` failures
 
-Collapse to a single `MutationIntent` enum. `TransactionIntent` becomes a type alias. The ~100 lines of translation and the redundant intent structs vanish.
+## Replay Model
 
-Once the hierarchy is unified, each intent variant can directly declare its invariant contract (from D4):
+Replay is canonical-envelope driven.
 
-```rust
-impl MutationIntent {
-    pub const fn invariant_contract(&self) -> u32 {
-        match self {
-            Self::Create(CreateIntent::Entity(_)) =>
-                RelationalInvariantGroup::StorageCoherence.mask()
-                | RelationalInvariantGroup::IdentityCoherence.mask()
-                | RelationalInvariantGroup::SchemaCompliance.mask(),
-            Self::Entity(EntityMutationIntent::Delete(_)) =>
-                RelationalInvariantGroup::AdjacencyIntegrity.mask()
-                | RelationalInvariantGroup::StorageCoherence.mask()
-                | RelationalInvariantGroup::LineageIntegrity.mask(),
-            // ...
-        }
-    }
-}
-```
+### Canonical commit envelope
 
-The commit pipeline computes `union_mask = intents.fold(0u32, |acc, i| acc | i.invariant_contract())` and intersects with `run_at` to skip untouched invariant groups. The intent IS the mode — it carries its own semantics; the pipeline is generic over it.
+`CanonicalCommitEnvelope` currently contains:
 
----
+- `commit: CommitReference`
+- `branch_context`
+- `merge_parent_branches`
+- `merge_base_commits`
+- `schema_version`
+- `schema_registry`
+- `merged_plan`
+- `patch`
+- `diagnostics_summary`
+- `lineage_event_ids`
+- `index_generation_ids`
 
-### B5 · Declarative Effect Assembly
+This is the canonical replay and durable truth artifact. It is not a dump of
+internal heap state.
 
-**Current state**
+### Replay request and outcome
 
-Every intent handler in [authority/mutation/intents/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/authority/mutation/intents) follows the same boilerplate pattern:
+The main replay types are:
 
-```rust
-fn apply(spec, workspace) -> Result<MutationEffect, CommitConflict> {
-    let mut effect = MutationEffect::default();
-    // 1. Do the actual domain mutation
-    workspace.with_draft_and_symbols(|draft, symbols| { ... });
-    // 2. Manually record the change (always same shape)
-    effect.record_change(RecordRef::Entity(entity_id));
-    // 3. Manually build the diagnostic (always same structure, different code/message)
-    effect.record_diagnostic(RelationalDiagnosticsEntry { code: ..., message: ..., fields: ... });
-    // 4. Manually build the patch record (kind maps 1:1 to intent kind)
-    effect.record_patch(PatchRecord { kind: ..., target: ..., aspects: ..., detail: ... });
-    Ok(effect)
-}
-```
+- `RelationalReplayRequest`
+- `RelationalReplayOutcome`
+- `ReplayExecutionMode`
+- `ReplayObservableSurface`
+- `ReplayMismatch`
+- `ReplayMismatchClass`
+- `ReplayError`
+- `ReplayFailureClass`
+- `ReplaySnapshotSurface`
 
-Steps 2-4 are mechanically determined by the intent type + which records were touched. Every new intent handler must copy this ceremony. The diagnostic code, message, and patch kind are all derivable from the intent variant.
+`RelationalReplayRequest` carries:
 
-**What changes**
+- target commit ID
+- target branch ID
+- execution mode
 
-Split the intent handler return into domain effect (what actually changed) and framework-assembled observability (diagnostics, patches, change records):
+`RelationalReplayOutcome` carries:
 
-```rust
-/// What the intent handler returns — only the domain-specific mutation outcome.
-pub(crate) enum DomainEffect {
-    CreatedEntity { entity_id: EntityId, aspects: Vec<Symbol> },
-    DeletedEntity { entity_id: EntityId, cascade: Vec<RelationId> },
-    UpdatedEntity { entity_id: EntityId, aspects: Vec<Symbol> },
-    CreatedRelation { relation_id: RelationId, source: EntityId, target: EntityId },
-    // ...
-}
+- requested replay request
+- optional resolved commit
+- reconstructed parent chain
+- optional snapshot version
+- compared surfaces
+- mismatch list
+- optional failure class
 
-impl DomainEffect {
-    /// Framework derives the patch records from the domain effect.
-    fn to_patches(&self, policy: PatchSurfacePolicy) -> Vec<PatchRecord> { ... }
-    /// Framework derives the diagnostic entries from the domain effect.
-    fn to_diagnostics(&self) -> Vec<RelationalDiagnosticsEntry> { ... }
-    /// Framework derives the change records from the domain effect.
-    fn changed_records(&self) -> Vec<RecordRef> { ... }
-}
-```
+Current replay observable surfaces are explicit:
 
-The dispatch layer assembles the full `MutationEffect` from the `DomainEffect`:
+- snapshot
+- patch
+- diagnostics
+- history
+- branch head
+- lineage
+- derived indexes
 
-```rust
-fn dispatch_and_assemble(
-    intent: &MutationIntent,
-    workspace: &mut MutationWorkspace<'_>,
-) -> Result<MutationEffect, CommitConflict> {
-    let domain = dispatch_intent(intent, workspace)?;
-    Ok(MutationEffect::from_domain(domain, workspace.patch_surface_policy()))
-}
-```
+Replay mismatch classes are explicit too:
 
-Adding a new intent type means writing only the domain mutation logic — the framework handles observability. This pattern is inspired by frontend optimistic-mutation factories where `mode` drives generic cache update / rollback / invalidation behavior, and the handler only carries the API call. (The frontend code is in a separate workspace — ask the user for examples if needed.)
+- `PatchDrift`
+- `DiagnosticsDrift`
+- `HistoryDrift`
+- `SnapshotDrift`
+- `BranchHeadDrift`
+- `LineageDrift`
+- `DerivedIndexDrift`
 
----
+`ReplaySnapshotSurface` is the current full observable snapshot comparison
+surface used for replay drift checks. Replay intentionally uses a dedicated full
+observable-state surface rather than pretending that a generic query read view
+is the exact same contract.
 
-## Phase C: Runtime Decomposition
+## History and Branching
 
-This is the keystone phase. Every subsequent phase (D, E, F) depends on the subsystem split being complete. Phases A and B should be done first to minimize conflicts.
+History is branch-aware and merge-ready.
 
----
+Important public history types include:
 
-### C1 · God Struct → Subsystem Split
+- `CommitId`
+- `BranchId`
+- `CommitReference`
+- `BranchHead`
+- `VersionNode`
+- `VersionGraphSnapshot`
+- `MergeConflictRecord`
+- `MergeInspection`
+- `VersionGraphPolicy`
+- `HistoryRetentionClass`
 
-**What the kernel does**
+Important current truths:
+
+- `CommitReference` includes ordered parent commit IDs
+- branch heads are explicit
+- version graph snapshots are explicit
+- merge inspection is structured rather than ad hoc
+- merge-ready parent ordering is already part of the model even before any
+  broader future merge work
 
-forge-kernel organizes into autonomous subsystem directories: [configuration/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/configuration), [context/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/context), [engine/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/engine), [proof/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/proof), [registry/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-kernel/src/registry). Each subsystem owns its state and exposes a focused API. The kernel's top-level struct doesn't contain 12 unrelated state fields.
+`MergeInspection` currently includes:
+
+- source branch
+- target branch
+- optional source head
+- optional target head
+- optional merge base
+- source-only commits
+- target-only commits
+- conflicting records
+- `can_merge`
 
-forge-core follows the same pattern — [envelope/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/envelope), [policy/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/policy), [tracing/](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/tracing) are each self-contained with `data/`, `logic/`, `facade.rs` internals.
+## Lineage and Correspondence
 
-**Current state**
+Lineage is modeled as a real graph domain, not as freeform event logging.
 
-[RelationalRuntime](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/logic/runtime/state.rs) has **12 aggregate fields** and **903 lines** of methods touching unrelated concerns. Every `&mut self` borrows the entire runtime.
+Current public lineage types include:
+
+- `LineageEventKind`
+- `LineageNode`
+- `LineageEventRecord`
+- `LineageInvariant`
+- `LineageResolutionStatus`
+- `CorrespondenceCandidate`
+- `CorrespondenceResolution`
+- `LineageGraphSnapshot`
+- `LineageDivergenceSummary`
+- `HistoricalLineageResolution`
 
-**What changes**
+Current event kinds are:
 
-Extract each aggregate field into an autonomous subsystem wrapper:
+- `Create`
+- `Replace`
+- `Split`
+- `Merge`
+- `Retire`
+- `Correspond`
+
+Important truths:
 
-```rust
-pub struct RelationalRuntime {
-    pub(crate) config: RelationalRuntimeConfig,
-    pub(crate) storage: StorageSubsystem,
-    pub(crate) visibility: VisibilitySubsystem,
-    pub(crate) publication: PublicationSubsystem,
-    pub(crate) history: HistorySubsystem,
-    pub(crate) indexes: IndexSubsystem,
-    pub(crate) lineage: LineageSubsystem,
-    pub(crate) durability: DurabilitySubsystem,
-    pub(crate) sequence: SequenceSubsystem,
-    pub(crate) symbols: StringInterner,
-    pub(crate) instrumentation: InstrumentationSubsystem,
-    pub(crate) simulation: SimulationSubsystem,
-}
-```
+- storage identity and lineage identity remain separate
+- correspondence starts advisory and can later be promoted
+- lineage snapshots are branch-scoped
+- historical lineage resolution is explicit
+
+## Indexing Model
 
-Each subsystem owns its state, exposes its own API, and can be borrowed independently. The commit pipeline then borrows only the subsystems it needs:
+Derived indexes are non-authoritative read-side helpers.
+
+Current public index families include:
 
-```rust
-fn commit(mut self) -> Result<CommitOutcome, TransactionCommitError> {
-    let mutation = run_authoritative_mutation(&mut self.draft, &mut self.runtime.storage)?;
-    let history = resolve_commit_history(&mut self.runtime.history, version_id)?;
-    append_durable_commit(&mut self.runtime.durability, &envelope)?;
-    finalize_publish(&mut self.runtime.visibility, &mut self.runtime.history, draft)?;
-}
-```
+- `DerivedIndexDefinition`
+- `DerivedIndexId`
+- `DerivedIndexKind`
+- `DerivedIndexGeneration`
+- `DerivedIndexGenerationId`
+- `DerivedIndexPayload`
+- `DerivedIndexPublicationStatus`
+- `DerivedIndexBuildRequest`
+- `DerivedIndexBuildOutcome`
+- `DerivedIndexCompatibility`
+- `ReadWithStorageFallbackOutcome`
 
-This makes the commit pipeline phases (already well-designed in [pipeline.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/authority/commit/pipeline.rs)) self-documenting — each phase's signature declares exactly which subsystems it touches.
+The important contract is unchanged:
+
+- indexes may accelerate reads
+- indexes are not authority
+- storage-visible fallback remains available
+- index absence or mismatch must not change truth semantics
+
+## Durability and Recovery
 
----
+Durability persists canonical truth artifacts rather than transient arena
+layout.
 
-### C2 · Visibility Cache Encapsulation
+Current public durability types include:
 
-**What the kernel does**
+- `DurabilityMode`
+- `DurableStoreLayout`
+- `DurableStore`
+- `DurableSegmentManifest`
+- `DurableCheckpointManifest`
+- `DurableCheckpoint`
+- `DurableCheckpointId`
+- `DurableSegmentId`
+- `RecoveryPlan`
+- `RecoveryCursor`
+- `RecoveryCoverage`
+- `RecoveryCompatibilityCheck`
+- `RecoveryIntegrityReport`
+- `RecoveryFailureClass`
+- `CompactionPlan`
+- `CompactionOutcome`
+- `CompactionPolicy`
+- `CheckpointCoverage`
+- `SegmentRetentionClass`
 
-forge-core contains cache management patterns where invalidation logic is contained within the cache domain — callers don't manually juggle locks.
+Current durability truths:
 
-**Current state**
+- recovery rebuilds from canonical envelopes and durable history artifacts
+- persisted durability does not define truth differently than in-memory
+  authority; it changes storage mode, not semantic authority
+- checkpoint and tail-log recovery are explicit
+- corruption fallback is structured and diagnosable
 
-The visibility cache in [state.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/logic/runtime/state.rs) lines 522–815 has ~300 lines of manual `RwLock`/`Mutex` lock-acquire-drop-reacquire ceremony. The `evict_visibility_cache_if_needed` method acquires and drops the same `Mutex` **4 separate times** in a single loop iteration. Lock ordering is implicit and undocumented.
+## Diagnostics
 
-**What changes**
+Diagnostics are production infrastructure.
 
-As part of the subsystem split from C1, consolidate `SnapshotRegistry`'s internal locks into a single `VisibilityCache` struct:
+The main exported diagnostics families are:
 
-```rust
-pub(crate) struct VisibilitySubsystem {
-    cache: VisibilityCache,
-    active: BTreeMap<SnapshotId, SnapshotHandleBinding>,
-    published_handles: BTreeMap<SnapshotId, VersionId>,
-    replay_retained: BTreeMap<VersionId, ReplayRetentionState>,
-    next_snapshot_id: u64,
-}
+- `RelationalDiagnosticArtifact`
+- `RelationalDiagnosticsEntry`
+- `RelationalDiagnosticsProfile`
+- `DiagnosticsScope`
+- `DiagnosticsArtifactKind`
+- `DiagnosticCode`
+- `DeterminismExpectation`
+- `RelationalDiagnosticsFacade`
 
-struct VisibilityCache {
-    inner: Mutex<VisibilityCacheInner>,
-}
+Diagnostics artifacts are used throughout commit, publication, replay, and
+other subsystem flows. The runtime treats them as stable structured artifacts,
+not as debug-only strings.
 
-struct VisibilityCacheInner {
-    states: BTreeMap<VersionId, SnapshotState>,
-    residency: BTreeMap<VersionId, VisibilityResidency>,
-    recent_window: DeterministicVersionWindowPolicy,
-}
+## Harness Surface
 
-impl VisibilityCache {
-    fn lookup_or_reconstruct(&self, version_id: VersionId, ...) -> Option<SnapshotState>;
-    fn pin(&self, version_id: VersionId, reason: PinReason);
-    fn unpin(&self, version_id: VersionId, reason: PinReason);
-    fn evict_excess(&self, counters: &InstrumentationSubsystem);
-}
-```
+The relational harness is part of the runtime contract, not a side test helper.
 
-Single lock scope, semantic methods, no manual lock juggling.
+Current harness exports include:
 
----
+- `RelationalHarnessAdapter`
+- `RelationalHarnessPlan`
+- `RelationalHarnessExpectations`
+- `RelationalHarnessError`
+- `RelationalFixture`
+- `FixtureEntity`
+- `FixtureRelation`
+- `default_harness_expectations()`
 
-### C3 · SnapshotGuard Scope Narrowing
+The harness surface exists to drive:
 
-**Current state**
+- fixture setup
+- mutation batch execution
+- target capture
+- parity and replay-oriented scenario work
 
-[SnapshotGuard](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/logic/runtime/mod.rs) holds `&'runtime mut RelationalRuntime`. While a guard exists, nothing else can use the runtime. The vision doc says "snapshot reads during active mutation" is first-class — this directly contradicts that.
+The fintech domain harness built in tests is currently one of the most serious
+examples of that acceptance path.
 
-**What changes**
+## Performance and Introspection Surfaces
 
-After the subsystem split, `SnapshotGuard` only needs `&'runtime VisibilitySubsystem`:
+The runtime exports performance/introspection data rather than forcing all
+inspection through ad hoc debugging.
 
-```rust
-pub struct SnapshotGuard<'runtime> {
-    visibility: &'runtime VisibilitySubsystem,
-    handle: SnapshotHandle,
-}
-```
+Important exported families include:
 
-The rest of the runtime remains accessible. This matches PostgreSQL's model where snapshot management is independent of query execution.
+- `RuntimeComplexityCounters`
+- `ComplexityContract`
+- `ComplexityStatus`
+- `StorageStats`
+- `PartitionStorageStats`
+- `RetentionPlan`
+- `RetentionPassOutcome`
+- `ChunkDiagnostics`
+- `ChunkVisibilitySummary`
+- `ChunkedStorageSummary`
 
----
+These surfaces are part of how the runtime proves cost boundaries and storage
+behavior.
 
-### C4 · Fork-Safe Runtime Construction
+## Observation, Authority, and Phase Honesty
 
-**Current state**
+The codebase now follows a stronger phase distinction than older versions:
 
-[session.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/logic/runtime/session.rs) `new()` manually initializes 11 fields and `fork()` manually clones them — some with `.clone()`, some with `.fork()` (snapshots, instrumentation). Adding a subsystem field requires editing both methods. The compiler catches neither omission. After the C1 subsystem decomposition, this gets worse as subsystem count grows.
+- committed reads use committed read surfaces
+- speculative/working-state observation is explicit in validation and write-path
+  flows
+- mutation authority remains explicit and serialized
+- replay, publication, and recovery have their own artifact surfaces
 
-This is the same class of bug as the `RecordArena` column problem (A2), but at the runtime level.
+Avoid reintroducing APIs that erase these boundaries into one generic
+state-and-mode object.
 
-**What changes**
+## Current Limits
 
-Each subsystem implements a `Subsystem` trait that declares its construction and forking behavior:
+### Projection invalidation
 
-```rust
-pub(crate) trait Subsystem: Sized {
-    type Config;
-    fn new(config: &Self::Config) -> Self;
-    fn fork(&self) -> Self;
-}
-```
+`ProjectionAspect` is real today as a declaration mechanism.
 
-The `RelationalRuntime` struct uses these trait impls directly, and — critically — both `Runtime::new()` and `Runtime::fork()` are exhaustive struct expressions that the compiler checks for completeness:
+Current limit:
 
-```rust
-impl RelationalRuntime {
-    pub fn new(config: RelationalRuntimeConfig) -> Self {
-        Self {
-            storage: StorageSubsystem::new(&config),
-            visibility: VisibilitySubsystem::new(&config),
-            history: HistorySubsystem::new(&config),
-            // ... compiler errors if a new subsystem field is added and not initialized
-            config,
-        }
-    }
+- the runtime does not yet expose a completed projection-cache invalidation or
+  bridge-layer intersection system that operationally uses those declarations
 
-    pub fn fork(&self) -> Self {
-        Self {
-            storage: self.storage.fork(),
-            visibility: self.visibility.fork(),
-            history: self.history.fork(),
-            // ... compiler errors if a new subsystem field is missing
-            config: self.config.clone(),
-        }
-    }
-}
-```
+Do not document or implement as if this already exists.
 
-The `Subsystem` trait also gives each subsystem a uniform lifecycle: the runtime can iterate subsystem diagnostics, reset subsystem state for testing, or snapshot subsystem metrics through a common protocol.
+### Lower-level helper survival
 
----
+Some lower-level read and scan helpers still exist underneath the projection and
+packet layers.
 
-## Cross-Cutting Runtime Principle: Batch-Scoped Structural Maintenance
+Current policy:
 
-This principle applies across every later phase, especially invariant execution
-and commit architecture.
+- they remain valid infrastructure and escape hatches
+- they are not the preferred ergonomic boundary anymore
 
-> [!IMPORTANT]
-> If an intermediate structural state inside a batch has no semantic value on
-> its own, do **not** maintain it incrementally across each intent. Amortize
-> that work across the merged batch boundary and represent it as a batch-derived
-> summary or delta.
+## What Future Work Should Assume
 
-The rule is simple:
+Future work should assume the following as stable architectural ground:
 
-- if only the final committed truth is observable
-- and intermediate structural maintenance does not affect semantics mid-batch
-- then structural work should be accumulated once at the merged batch boundary
-- and downstream subsystems should consume that summary rather than reconstruct
-  it repeatedly
+- namespaced facade is the primary public and internal default surface
+- commit results are reconstructive artifact envelopes
+- replay is envelope-driven
+- publication is coherent
+- lineage and derived indexes are explicit domains
+- projection reads are the primary ergonomic read API
+- bulk packetized reads are the primary query API
+- authority, committed observation, and speculative observation must stay
+  explicit
 
-This is important for future workloads like geometry kernels, chip simulators,
-and game engines, where hot loops may issue many semantically local mutations
-per second. Those workloads punish repeated structural rebuilding even when the
-final batch result is small.
+Future work should not assume the following are already solved:
 
-**What belongs in batch-derived summaries**
+- full projection/bridge invalidation wiring
+- completed parallel validation and parallel preparation runtime machinery
+- complete scale proof for geometry-kernel, chip-simulator, or AI-scale loads
+- full hardening coverage implied by the long-term vision
 
-Typical examples include:
+## Practical Reading Order
 
-- invariant `may_break` masks
-- inferred commit topology
-- touched partition/record scope
-- adjacency impact summaries
-- uniqueness candidate values
-- bulk reservation counts
-- changed-record structural deltas
+If you are new to the crate and want to understand the current system quickly,
+read in this order:
 
-**Architectural consequence**
+1. [`src/facade.rs`](../../crates/forge-relational/src/facade.rs)
+2. [`src/transactions/data/outcomes.rs`](../../crates/forge-relational/src/transactions/data/outcomes.rs)
+3. [`src/transactions/data/commit_log.rs`](../../crates/forge-relational/src/transactions/data/commit_log.rs)
+4. [`src/replay/data/mod.rs`](../../crates/forge-relational/src/replay/data/mod.rs)
+5. [`src/visibility/materialization/read_records/projection.rs`](../../crates/forge-relational/src/visibility/materialization/read_records/projection.rs)
+6. [`src/storage/data/mod.rs`](../../crates/forge-relational/src/storage/data/mod.rs)
+7. [`src/history/data/mod.rs`](../../crates/forge-relational/src/history/data/mod.rs)
+8. [`src/lineage/data/mod.rs`](../../crates/forge-relational/src/lineage/data/mod.rs)
+9. [`src/config/data/mod.rs`](../../crates/forge-relational/src/config/data/mod.rs)
+10. the highest-signal domain tests, especially the fintech workflow harness
 
-When repeated merged-plan scans or repeated changed-record scans appear, the
-default response should be to introduce a named batch summary object rather than
-letting each subsystem rediscover the same shape independently. This principle
-must guide the design of the invariant engine (Phase D) and the commit result /
-decision architecture (Phase E).
-
----
-
-## Phase D: Invariant Engine
-
-These changes create a first-class invariant scheduling system modeled directly on forge-topo's `GroupPolicyRuntime`. Every item in this phase should reference the kernel code.
-
-> [!IMPORTANT]
-> Phase D does **not** imply exposing `RelationalInvariantRuntime` or
-> `InvariantEngine` directly everywhere. The correct target is a thin policy
-> boundary above the engine. The engine owns invariant execution. The boundary
-> owns phase/profile/domain request selection. This is necessary for future
-> workloads like geometry kernels, chip simulators, and game engines, where the
-> same engine must run under different invariant pressure and audit policies
-> without leaking request assembly into every caller.
-
----
-
-### D1 · Bitmask Invariant Groups
-
-**Kernel reference**
-
-Read [invariant_group.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/policy/data/invariant_group.rs) in forge-core: `InvariantGroup` is a `#[repr(u8)]` enum where each variant gets a stable bit position. Groups are scheduled via O(1) bitmask operations (`mask()` returns `1u32 << (*self as u8)`). The `APPLICABLE_BY_KIND` const array is a bitmask lookup table indexed by topology kind.
-
-Also read [validation_checkpoint.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/policy/data/validation_checkpoint.rs): `ValidationCheckpoint` uses `#[repr(u8)]` with a `const COUNT` for fixed-size arrays.
-
-**What changes**
-
-Define relational equivalents:
-
-```rust
-#[repr(u8)]
-pub enum RelationalInvariantGroup {
-    StorageCoherence = 0,        // slot validity, lifecycle consistency
-    VersionVisibility = 1,       // version bounds, snapshot correctness
-    AdjacencyIntegrity = 2,      // source/target alive, bidirectional links
-    IdentityCoherence = 3,       // generational freshness, no stale refs
-    SchemaCompliance = 4,        // kind registration, payload validation
-    LineageIntegrity = 5,        // no orphan lineage, no broken chains
-    PublicationCoherence = 6,    // patch stream ordering, bundle completeness
-    DurabilityConsistency = 7,   // log vs checkpoint agreement
-}
-
-impl RelationalInvariantGroup {
-    pub const COUNT: usize = 8;
-    pub const fn mask(&self) -> u32 { 1u32 << (*self as u8) }
-}
-
-#[repr(u8)]
-pub enum RelationalCheckpoint {
-    PreCommit = 0,
-    PostMutation = 1,
-    PrePublication = 2,
-    PostCommit = 3,
-    OnDemand = 4,
-}
-
-impl RelationalCheckpoint {
-    pub const COUNT: usize = 5;
-}
-```
-
----
-
-### D2 · Invariant Cost Classification
-
-**Kernel reference**
-
-Read the `ValidatorCost` enum in [invariant_group.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/policy/data/invariant_group.rs): `Cheap` (O(n) single pass), `Medium` (O(n log n)), `Expensive` (O(n²)). The `GroupPolicyRuntime` uses per-checkpoint cost ceilings.
-
-**What changes**
-
-```rust
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum InvariantCost {
-    Touched,     // O(touched) — proportional to mutation size
-    Partition,   // O(partition) — per-partition scan
-    Global,      // O(global) — full storage scan
-}
-```
-
-Each `RelationalInvariantGroup` variant declares its cost tier.
-
----
-
-### D3 · Invariant Policy Runtime (O(1) Dispatch)
-
-**Kernel reference**
-
-Read [group_policy_runtime.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-topo/src/validators/group_policy_runtime.rs) in forge-topo. `GroupPolicyRuntime` is built once at construction via `resolve()`, then `should_run()` is a single `#[inline]` array-index + bitwise AND:
-
-```rust
-#[inline]
-pub fn should_run(&self, group: InvariantGroup, checkpoint: ValidationCheckpoint) -> bool {
-    self.run_at[checkpoint as usize] & group.mask() != 0
-}
-```
-
-The `resolve()` method computes skip masks, deferred masks, and per-checkpoint run masks from applicability tables, user overrides, and topology context — all via bitwise operations.
-
-**What changes**
-
-Create `RelationalInvariantRuntime` with the identical pattern:
-
-```rust
-pub(crate) struct RelationalInvariantRuntime {
-    skip_mask: u32,
-    deferred_mask: u32,
-    run_at: [u32; RelationalCheckpoint::COUNT],
-    max_cost: [InvariantCost; RelationalCheckpoint::COUNT],
-}
-
-impl RelationalInvariantRuntime {
-    pub fn resolve(profile: RelationalRuntimeProfile, ...) -> Self;
-
-    #[inline]
-    pub fn should_run(&self, group: RelationalInvariantGroup, cp: RelationalCheckpoint) -> bool {
-        self.run_at[cp as usize] & group.mask() != 0
-    }
-
-    #[inline]
-    pub fn max_cost_at(&self, cp: RelationalCheckpoint) -> InvariantCost {
-        self.max_cost[cp as usize]
-    }
-}
-```
-
-This replaces the current `InvariantCatalog` + `Vec<InvariantRule>` approach.
-
-The runtime should be consumed through a narrow policy boundary rather than
-through raw engine calls at every call site. Commit, publication, harness, and
-future domain runtimes should select from named policy entrypoints such as
-"commit-boundary", "mutation-sensitive", or "audit", and those entrypoints
-construct the exact engine request.
-
----
-
-### D4 · Intent Contracts
-
-**Kernel reference**
-
-Read [contract_registry.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-topo/src/validators/contract_registry.rs) in forge-topo. Every topology operator declares which invariant groups it `MayBreak` and which are `Unrelated`:
-
-```rust
-pub const FULL_TOPO_WIRING: InvariantContract = InvariantContract {
-    relation: |id| match id.group() {
-        InvariantGroup::PointerCoherence => InvariantRelation::MayBreak,
-        InvariantGroup::ShellClosure => InvariantRelation::Unrelated,
-        // ...
-    },
-};
-```
-
-The checkpoint validator ORs together the `may_break` masks of all operators in the transaction and only runs those groups. This makes invariant execution proportional to _what actually changed_.
-
-**What changes**
-
-Define contracts for each mutation intent type:
-
-```rust
-pub const CREATE_ENTITY_CONTRACT: RelationalInvariantContract = RelationalInvariantContract {
-    may_break: RelationalInvariantGroup::StorageCoherence.mask()
-             | RelationalInvariantGroup::IdentityCoherence.mask()
-             | RelationalInvariantGroup::SchemaCompliance.mask(),
-};
-
-pub const DELETE_ENTITY_CONTRACT: RelationalInvariantContract = RelationalInvariantContract {
-    may_break: RelationalInvariantGroup::AdjacencyIntegrity.mask()
-             | RelationalInvariantGroup::StorageCoherence.mask()
-             | RelationalInvariantGroup::LineageIntegrity.mask(),
-};
-```
-
-The commit pipeline computes `union_mask = intents.fold(0u32, |acc, i| acc | i.contract().may_break)` then intersects with `run_at` to skip untouched groups entirely.
-
-**Commit topology inference.** The union mask also drives **pipeline phase selection**, not just invariant group selection. Different mutation topologies need different pipeline phases:
-
-| Topology | Detected when union mask includes | Pipeline phases enabled |
-|---|---|---|
-| **Flat entity batch** | `StorageCoherence` only | Mutation, history, publication — skip cascade/adjacency |
-| **Graph mutation** | `AdjacencyIntegrity` | Mutation, cascade checking, adjacency rebuild, history, publication |
-| **Branch merge** | `MergeCoherence` | Three-way diff, conflict resolution, all standard phases |
-
-This is inspired by a frontend pattern where flat-list CRUD managers and tree-structured CRUD managers use topology-specific optimistic update strategies — the data shape determines the cache manipulation approach. (The frontend code is in a separate workspace — ask the user for examples if needed.) Instead of the caller declaring the topology explicitly, the pipeline **infers** it from the combined intent contracts. A flat entity batch that only touches `StorageCoherence` never pays for cascade checking or adjacency rebuild.
-
-This topology signal should be treated as a **batch summary**, not as a metric
-only. Once inferred, it must be threaded through downstream invariant and commit
-selection instead of being recomputed or left as observability-only metadata.
-
----
-
-### D5 · Three-State Invariant Verdicts
-
-**Kernel reference**
-
-Read [policy_result.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/policy/data/policy_result.rs) in forge-core. `PolicyResult<T>` distinguishes `Success(T)`, `Ambiguous { query, potential_value }`, and `HardError(E)`. The middle state carries structured context that the kernel can inspect and override.
-
-**What changes**
-
-Invariant checks return `InvariantVerdict` instead of `Result<(), InvariantViolation>`:
-
-```rust
-pub enum InvariantVerdict<T = ()> {
-    Pass(T),
-    Advisory {
-        violation: InvariantViolation,
-        proceed_value: T,
-        advisory: InvariantAdvisory,
-    },
-    Violation(InvariantViolation),
-}
-```
-
-This bridges the gap between the vision doc's invariant categories (`AlwaysOnStructural` → always `Violation`, `SnapshotAudit` → can be `Advisory`) and the runtime profile (`CertificationCore` blocks on advisories, `AiWorkflow` proceeds).
-
----
-
-### D6 · State-Derived Invariant Context
-
-**Kernel reference**
-
-Read [topology_context_from_shell_metadata](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-topo/src/validators/group_policy_runtime.rs#L141-195) in forge-topo. Before resolving the validation policy, forge-topo derives a `TopologyContext` from the actual model state by reading `ShellKind` metadata (O(shells), ~1-4). The policy adapts to the actual state of the model, not just static configuration.
-
-**What changes**
-
-```rust
-pub(crate) fn derive_invariant_context(runtime: &RelationalRuntime) -> InvariantContext {
-    let entity_count = runtime.storage.entity_slot_count();
-    let relation_count = runtime.storage.relation_slot_count();
-    let version_depth = runtime.history.commit_count();
-    let active_snapshots = runtime.visibility.active_snapshot_count();
-
-    InvariantContext {
-        scale: match entity_count {
-            0..=1_000 => Scale::Small,
-            1_001..=100_000 => Scale::Medium,
-            _ => Scale::Large,
-        },
-        version_depth,
-        snapshot_pressure: active_snapshots > 10,
-    }
-}
-```
-
-The invariant runtime adjusts cost ceilings based on this context — at large scale, pre-commit checks downgrade from `Global` to `Partition` automatically.
-
-The policy boundary above the engine is where this derived context becomes
-phase-aware configuration. The engine consumes an execution request. The
-boundary decides which request profile is appropriate for a geometry-kernel
-operation, chip-simulation step, game-engine frame audit, certification run, or
-authoritative commit.
-
-Batch-scoped structural summaries should be preferred here as well. The engine
-should consume already-derived merged-plan summaries such as contract masks,
-topology, touched scope, or uniqueness candidates rather than re-deriving those
-facts independently at each rule boundary.
-
----
-
-## Phase E: Commit Architecture
-
-These changes upgrade the commit pipeline's diagnostic and return-value story. They depend on the subsystem split (C) and invariant engine (D).
-
----
-
-### E1 · Commit Decision Log
-
-**Kernel reference**
-
-Read [decision_log.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/tracing/decision_log/decision_log.rs) in forge-core (685 lines). `DecisionLog` is a span-aware, queryable trace:
-
-- **Flat `Vec<TraceEvent>` storage** with tree reconstruction via StartSpan/EndSpan markers
-- **O(1) decision lookup** via `decision_index: HashMap<DecisionId, usize>`
-- **Running summary** updated incrementally on `record()` — `summary()` is O(1)
-- **Merge with ID rebasing** — two logs combine without collisions
-- **Diffable `TraceSummary`** via `TraceSummary::diff()` for regression detection
-
-Also read [traced_decision.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/tracing/decision/traced_decision.rs) for the per-decision schema (kind, tier, margin, entity scope, span assignment, topology delta) and [span.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/tracing/decision/span.rs) for the `TraceEvent` protocol.
-
-**What changes**
-
-Create a `CommitLog` that wraps each commit pipeline phase in a span:
-
-```rust
-pub(crate) struct CommitLog {
-    events: Vec<CommitTraceEvent>,
-    span_stack: Vec<CommitSpanId>,
-    running_summary: CommitSummary,
-}
-
-pub(crate) enum CommitPhase {
-    DraftPreparation,
-    PlanMerge,
-    InvariantPreCheck,
-    AuthoritativeMutation,
-    HistoryResolution,
-    InvariantPostCheck,
-    ArtifactAssembly,
-    Publication,
-}
-```
-
-The commit log should consume **batch-derived summaries**, not force each phase
-to rediscover the same structure. Commit topology, touched scope, invariant
-contract masks, changed-record deltas, adjacency deltas, and similar structural
-facts should be computed once and then recorded / reused across the commit log
-and result envelope. Intermediate per-intent structural maintenance should not
-be preserved when only the final batch truth has semantic value.
-
-The 7-phase pipeline in [pipeline.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/authority/commit/pipeline.rs) already has the right structure — each phase call opens a span, records decisions (conflict resolution, cascade triggers, schema validation), and closes the span. Debugging becomes `commit_log.phase_decisions(CommitPhase::AuthoritativeMutation)`.
-
----
-
-### E2 · Commit Result Envelope
-
-**Kernel reference**
-
-Read [operation_result.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/envelope/data/operation_result.rs) in forge-core. Every kernel operation returns `OperationResult<T>` wrapping value + warnings + decision log + metrics + lineage delta + state hashes + validation results. An AI agent can reconstruct the full state transition from this envelope alone.
-
-**What changes**
-
-Wrap `CommitOutcome` in a `CommitResult` envelope:
-
-```rust
-pub struct CommitResult {
-    pub outcome: CommitOutcome,
-    pub diagnostics: Vec<RelationalDiagnosticsEntry>,
-    pub patch: Vec<PatchRecord>,
-    pub envelope: CanonicalCommitEnvelope,
-    pub commit_log: CommitLog,
-    pub phase_timing: CommitPhaseTiming,
-    pub invariant_results: Vec<InvariantCheckResult>,
-    pub complexity_delta: RuntimeComplexityCounters,
-}
-```
-
-`txn.commit()` returns `Result<CommitResult, RelationalError>`. Everything a caller needs — for debugging, replay, CDC, or auditing — comes back in one return value.
-
-The envelope should prefer **amortized batch artifacts** over recomputed views.
-If a structural fact was already derived at the merged-batch boundary, it
-belongs in the envelope or commit log as a reused artifact, not as something
-reconstructed separately by publication, indexing, visibility, lineage, and
-diagnostics layers.
-
----
-
-## Phase F: API Surface
-
-This is the final phase. It reflects the internal structure established by all previous phases into the public facade.
-
----
-
-### F1 · Facade Namespace Organization
-
-**What the kernel does**
-
-forge-core exposes each domain through its own `facade.rs` — [policy/facade.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/policy/facade.rs), [envelope/facade.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-core/src/envelope/facade.rs) — with the crate root re-exporting from each. forge-topo's [validators/facade.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-topo/src/validators/facade.rs) does the same: focused re-exports grouped by domain.
-
-**Current state**
-
-[facade.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/facade.rs) is 106 lines re-exporting ~150 types in a completely flat namespace. Autocomplete is useless when 150 items compete.
-
-**What changes**
-
-Organize exports into sub-namespaces matching the subsystem decomposition:
-
-```rust
-pub mod facade {
-    pub mod identity { /* EntityId, RelationId, PartitionId, Generation, ... */ }
-    pub mod transactions { /* TransactionId, CommitOutcome, CommitResult, SavepointId, ... */ }
-    pub mod history { /* BranchId, CommitId, VersionNode, ... */ }
-    pub mod snapshots { /* SnapshotHandle, SnapshotId, SnapshotGuard, ... */ }
-    pub mod publication { /* PatchRecord, PatchStreamBatch, ... */ }
-    pub mod lineage { /* LineageEventRecord, CorrespondenceCandidate, ... */ }
-    pub mod config { /* RelationalRuntimeConfig, profiles, policies */ }
-    pub mod durability { /* DurableCheckpoint, RecoveryPlan, ... */ }
-    pub mod schema { /* SchemaId, EntityKindRegistration, ... */ }
-    pub mod diagnostics { /* DiagnosticCode, RelationalDiagnosticsEntry, ... */ }
-    pub mod invariants { /* RelationalInvariantGroup, InvariantVerdict, ... */ }
-    pub mod errors { /* RelationalError, ... */ }
-
-    // Top-level convenience re-exports for the most common entry points
-    pub use self::identity::{EntityId, RelationId};
-    pub use self::transactions::{CommitOutcome, CommitResult};
-    pub use self::history::BranchId;
-    pub use self::errors::RelationalError;
-}
-```
-
----
-
-### F2 · Type-Driven Read Surface (RecordProjection)
-
-**Current state**
-
-[read_records/mod.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/visibility/materialization/read_records/mod.rs) contains **266 lines of methods** on `impl RelationalRuntime` that all follow the same pattern: take `&impl PartitionAccess` + `partition_id` + `kind_id` + `version_id`, iterate slots, check kind/visibility, materialize records. Every consumer must thread all four parameters and handle the iteration manually.
-
-`PartitionAccess` is the right low-level trait (like `HttpClient` is the right low-level primitive). But there's no composable surface on top of it — and more importantly, there's no way for a domain type to **declare up front** what it needs from the runtime.
-
-**Design principle: read/write contract duality**
-
-On the write path (B4/D4), each `MutationIntent` declares its invariant contract — "what I may break":
-
-```rust
-impl MutationIntent {
-    pub const fn invariant_contract(&self) -> u32 { /* aspect mask */ }
-}
-```
-
-The read path needs the exact **dual**: each domain type declares "what I depend on." These two declarations are opposite faces of the same coin — and the bridge layer computes their intersection for aspect-aware invalidation:
-
-```
-WRITE: UpdateEntity { touched_aspects: [Geometry] }
-                          ↓
-BRIDGE: "Which projections does this invalidate?"
-         intersection(write.touched, read.required)
-                          ↓
-READ:  Body::required_aspects() → [Geometry, Metadata]   → INVALIDATE (Geometry ∩)
-       DisplayName::required_aspects() → [Metadata]       → SKIP       (no intersection)
-```
-
-**What changes**
-
-The domain type itself declares its read contract via a `RecordProjection` trait:
-
-```rust
-/// The type IS the read contract.
-/// Dual of MutationIntent::invariant_contract() on the write path.
-pub trait RecordProjection: Sized {
-    /// Which kind this projection reads from.
-    const KIND: KindId;
-
-    /// Which payload aspects this type depends on.
-    /// Used by SnapshotView for materialization,
-    /// and by the bridge layer for aspect-aware invalidation.
-    fn required_aspects() -> &'static [AspectKey];
-
-    /// Construct from a read record. Returns None if record doesn't match.
-    fn from_record(record: &EntityReadRecord) -> Option<Self>;
-}
-
-// Example domain type — declares everything up front
-impl RecordProjection for Body {
-    const KIND: KindId = BODY_KIND;
-    fn required_aspects() -> &'static [AspectKey] {
-        &[AspectKey::GEOMETRY, AspectKey::METADATA]
-    }
-    fn from_record(record: &EntityReadRecord) -> Option<Self> {
-        Some(Body {
-            id: record.entity_id,
-            geometry: record.payload.get("geometry")?,
-            name: record.payload.get("name")?.as_str()?.to_string(),
-        })
-    }
-}
-```
-
-`SnapshotView` uses this trait to collapse the entire read chain into a single generic call — kind, aspects, construction, and version resolution are all derived from the type:
-
-```rust
-pub struct SnapshotView<'runtime> {
-    runtime: &'runtime RelationalRuntime,
-    version_id: VersionId,
-    state: BorrowedWorkingState<'runtime>,
-}
-
-impl<'runtime> SnapshotView<'runtime> {
-    /// Type-driven projection — kind, aspects, and construction
-    /// all derived from T's RecordProjection declaration.
-    pub fn project<T: RecordProjection>(&self) -> Vec<T> {
-        self.state.partition_ids().iter().flat_map(|pid| {
-            self.runtime
-                .visible_entities_of_kind_in_partition_from_state(
-                    &self.state, *pid, T::KIND, self.version_id,
-                )
-                .into_iter()
-                .filter_map(T::from_record)
-        }).collect()
-    }
-
-    /// Projection with partition filter.
-    pub fn project_in<T: RecordProjection>(&self, partition_id: PartitionId) -> Vec<T> {
-        self.runtime
-            .visible_entities_of_kind_in_partition_from_state(
-                &self.state, partition_id, T::KIND, self.version_id,
-            )
-            .into_iter()
-            .filter_map(T::from_record)
-            .collect()
-    }
-
-    /// Single-entity lookup — also type-driven.
-    pub fn get<T: RecordProjection>(&self, entity_id: EntityId) -> Option<T> {
-        let record = self.runtime.entity_record_for_id_at_version(
-            &self.state, entity_id, self.version_id,
-        )?;
-        T::from_record(&record)
-    }
-
-    /// Escape hatch for ad-hoc reads that don't have a projection type.
-    pub fn entities_of_kind(&self, kind_id: KindId) -> EntityQuery<'_> {
-        EntityQuery { view: self, kind_id, partition_filter: None }
-    }
-}
-```
-
-Consumer code collapses from:
-
-```rust
-// Before — consumer threads 4 params and iterates manually
-let state = runtime.current_state();
-let version_id = runtime.current_version_id();
-for partition_id in state.partition_ids() {
-    let records = runtime.visible_entities_of_kind_in_partition_from_state(
-        &state, partition_id, body_kind_id, version_id,
-    );
-    for record in records { ... }
-}
-```
-
-To:
-
-```rust
-// After — type declares its contract, framework handles the rest
-let bodies: Vec<Body> = snapshot.view().project();
-```
-
-One line. Kind, aspects, construction, version, partition iteration — all derived from `Body`'s `RecordProjection` impl.
-
-> [!IMPORTANT]
-> **Contract duality with the bridge layer.** `RecordProjection::required_aspects()` is the read-side contract. `MutationIntent::invariant_contract()` (D4) is the write-side contract. They are duals — the bridge layer intersects them for aspect-aware invalidation. When a commit touches aspects `[Geometry]`, only projections whose `required_aspects()` include `Geometry` are invalidated. This means adding a new domain type automatically wires its invalidation behavior — no manual bridge configuration needed.
-
----
-
-## What Must Be Preserved
-
-These patterns are already strong. Every refactoring item above must preserve them:
-
-| Pattern                            | Location                                                                                                                                              | Why it's good                                        |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| `RecordKind` trait system          | [record_arena.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/substrate/record_arena.rs) | Right level of SoA generics                          |
-| `PartitionAccess` trait            | [access.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/overlay/access.rs)               | Stays as the low-level read primitive underneath `SnapshotView` |
-| 7-phase commit pipeline            | [pipeline.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/authority/commit/pipeline.rs)          | Readable, auditable, correctly separated             |
-| `MutationEffect::accumulate`       | [types.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/authority/mutation/types.rs)              | Good fold/reduce for composing intent results        |
-| `SlotView<'a, K>`                  | [record_arena.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/substrate/record_arena.rs) | Zero-cost borrow lens into the arena                 |
-| `BTreeMap` in all observable paths | everywhere                                                                                                                                            | Deterministic iteration per vision doc               |
-| `DenseSlotBitSet`                  | [bitsets.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/partition/bitsets.rs)           | Proper bitset for lifecycle tracking                 |
-| Per-slot versioned history         | [record_arena.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/storage/substrate/record_arena.rs) | Appropriate for MVCC model                           |
-| Config provenance tracking         | [config/data/mod.rs](file:///Users/spenstar/Documents/programming/forge%20workspace/Forge/crates/forge-relational/src/config/data/mod.rs)             | Knowing _why_ each config value is set               |
+That sequence gives the current runtime story with minimal archaeological work.

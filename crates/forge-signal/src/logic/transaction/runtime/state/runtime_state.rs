@@ -6,10 +6,10 @@ use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::events::EventBus;
 use crate::state::{SignalBranchHandle, SignalBranchId};
 
+use super::super::config::SignalRuntimeConfig;
 use super::branches::{BranchManager, BranchState};
 use super::builder::SignalRuntimeBuilder;
 use super::observer::RuntimeObserver;
-use super::super::config::SignalRuntimeConfig;
 
 /// Full runtime surface for transactional evaluation, diagnostics, replay, and
 /// keyed or tier-aware execution.
@@ -79,15 +79,8 @@ impl SignalRuntime<(), (), (), (), ()> {
     /// This is the recommended entrypoint for most applications.
     pub fn builder(
         graph: SignalGraph,
-    ) -> SignalRuntimeBuilder<
-        super::builder::Missing,
-        super::builder::Missing,
-        (),
-        (),
-        (),
-        (),
-        (),
-    > {
+    ) -> SignalRuntimeBuilder<super::builder::Missing, super::builder::Missing, (), (), (), (), ()>
+    {
         SignalRuntimeBuilder::new(graph)
     }
 }
@@ -157,7 +150,7 @@ where
         &self.telemetry
     }
 
-    pub(super) fn capture_branch_state(&self) -> BranchState<D, I, T> {
+    pub(super) fn capture_branch_state(&mut self) -> BranchState<D, I, T> {
         self.branches.capture_active_state(
             &self.graph,
             &self.config,
@@ -184,5 +177,4 @@ where
         self.branches
             .synchronize_catalogs(branch_catalog, active_branch, &mut self.graph);
     }
-
 }

@@ -1,3 +1,7 @@
+use crate::data::telemetry::{
+    CheckpointTelemetry, EvaluationTelemetry, ExecutionTelemetry, InvalidationTelemetry,
+    PlannerTelemetry, StorageTelemetry, TransactionTelemetry,
+};
 use crate::easy::ReactiveGraph;
 use crate::facade::*;
 use crate::tests::support::*;
@@ -43,7 +47,8 @@ fn runtime_builder_supports_typed_runtime_configuration() {
     let _ = Impact::One;
     let _ = Ev::Tick;
     let _ = Tier::Feature;
-    let runtime = SignalRuntime::builder(graph).with_kernel_defaults()
+    let runtime = SignalRuntime::builder(graph)
+        .with_kernel_defaults()
         .with_domains::<Domain>()
         .with_impacts::<Impact>()
         .with_events::<Ev>()
@@ -63,7 +68,9 @@ fn transaction_helper_commits_on_success() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
     let outcome = runtime
@@ -85,7 +92,9 @@ fn transaction_helper_rolls_back_on_error() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
     let before = graph.get_state(dependent).unwrap();
 
     let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
@@ -108,25 +117,500 @@ fn graph_node_builder_sets_accessible_configuration() {
         .reads_aspects([ASPECT_A, ASPECT_B])
         .produces_aspects([ASPECT_B])
         .requires_context(ContextRequirement::DomainContext)
+        .path_class(PathClass::Rich)
+        .maintenance_mode(MaintenanceMode::RebuildAllowed)
+        .artifact_policy(ArtifactPolicyClass::DevelopmentRetained)
         .on_demand()
         .tolerance(2)
         .build();
 
     let config = graph.get_entry(node).unwrap().get_eval_config().clone();
     assert_eq!(
-        config.contract.reads,
+        config.contract.semantics.reads,
         AspectMask::from([ASPECT_A, ASPECT_B])
     );
-    assert_eq!(config.contract.produces, AspectMask::from([ASPECT_B]));
     assert_eq!(
-        config.contract.required_context,
+        config.contract.semantics.produces,
+        AspectMask::from([ASPECT_B])
+    );
+    assert_eq!(
+        config.contract.semantics.required_context,
         ContextRequirement::DomainContext
+    );
+    assert_eq!(
+        config.contract.projection.consumes,
+        AspectMask::from([ASPECT_A, ASPECT_B])
+    );
+    assert_eq!(config.contract.execution.path_class, PathClass::Rich);
+    assert_eq!(
+        config.contract.execution.maintenance_mode,
+        MaintenanceMode::RebuildAllowed
+    );
+    assert_eq!(
+        config.contract.execution.artifact_policy,
+        ArtifactPolicyClass::DevelopmentRetained
+    );
+    assert_eq!(
+        config.contract.execution.equivalence,
+        EquivalenceContract::for_comparator_override(&VersionComparatorPolicy::Tolerance {
+            epsilon: 2,
+        })
+    );
+    assert_eq!(
+        config.contract.authority.policy,
+        AuthorityPolicy::SpeculativeThenReconcile
     );
     assert_eq!(config.condition, EvaluationCondition::OnDemand);
     assert_eq!(
         config.comparator,
         Some(VersionComparatorPolicy::Tolerance { epsilon: 2 })
     );
+}
+
+#[test]
+fn node_contract_uses_explicit_performance_defaults() {
+    let contract = NodeContract::default();
+
+    assert_eq!(
+        contract.execution.equivalence,
+        EquivalenceContract::default()
+    );
+    assert_eq!(contract.execution.path_class, PathClass::Operational);
+    assert_eq!(
+        contract.execution.maintenance_mode,
+        MaintenanceMode::DensityAdaptive
+    );
+    assert_eq!(
+        contract.execution.artifact_policy,
+        ArtifactPolicyClass::OperationalMinimal
+    );
+    assert_eq!(
+        contract.authority.policy,
+        AuthorityPolicy::SpeculativeThenReconcile
+    );
+    assert_eq!(contract.projection.consumes, AspectMask::ALL);
+}
+
+#[test]
+fn runtime_policy_maps_into_s9_contract_and_strategy_defaults() {
+    let operational = SignalRuntimePolicy::operational();
+    let development = SignalRuntimePolicy::development();
+    let forensic = SignalRuntimePolicy::forensic();
+
+    assert_eq!(operational.default_path_class(), PathClass::Operational);
+    assert_eq!(
+        operational.default_artifact_policy_class(),
+        ArtifactPolicyClass::OperationalMinimal
+    );
+    assert_eq!(
+        operational.default_execution_strategy(),
+        ResolvedExecutionStrategy::SparseIncremental
+    );
+    assert_eq!(
+        operational.default_maintenance_strategy(),
+        ResolvedMaintenanceStrategy::DensityAdaptive
+    );
+    assert_eq!(
+        operational.default_authority_policy(),
+        AuthorityPolicy::SpeculativeThenReconcile
+    );
+
+    assert_eq!(development.default_path_class(), PathClass::Rich);
+    assert_eq!(
+        development.default_artifact_policy_class(),
+        ArtifactPolicyClass::DevelopmentRetained
+    );
+    assert_eq!(
+        development.default_execution_strategy(),
+        ResolvedExecutionStrategy::DenseStageBatched
+    );
+    assert_eq!(
+        development.default_maintenance_strategy(),
+        ResolvedMaintenanceStrategy::Incremental
+    );
+    assert_eq!(
+        development.default_authority_policy(),
+        AuthorityPolicy::SpeculativeThenReconcile
+    );
+
+    assert_eq!(forensic.default_path_class(), PathClass::Rich);
+    assert_eq!(
+        forensic.default_artifact_policy_class(),
+        ArtifactPolicyClass::ForensicReconstructable
+    );
+    assert_eq!(
+        forensic.default_execution_strategy(),
+        ResolvedExecutionStrategy::DenseStageBatched
+    );
+    assert_eq!(
+        forensic.default_maintenance_strategy(),
+        ResolvedMaintenanceStrategy::Rebuild
+    );
+    assert_eq!(
+        forensic.default_authority_policy(),
+        AuthorityPolicy::SpeculativeThenReconcile
+    );
+}
+
+#[test]
+fn node_contract_and_runtime_policy_expose_s9_1_enforcement_surfaces() {
+    let contract = NodeContract::reads([ASPECT_A])
+        .with_equivalence(EquivalenceContract::for_comparator_override(
+            &VersionComparatorPolicy::Exact,
+        ))
+        .with_path_class(PathClass::Rich)
+        .with_maintenance_mode(MaintenanceMode::RebuildAllowed)
+        .with_artifact_policy(ArtifactPolicyClass::DevelopmentRetained);
+    let compile_time = contract.compile_time_performance_contract();
+    let resolved = SignalRuntimePolicy::development().resolve_performance_policy();
+
+    assert_eq!(PerformanceEnforcementLayer::CompileTime as u8, 0);
+    assert_eq!(PerformanceEnforcementLayer::RuntimePolicy as u8, 1);
+    assert_eq!(PerformanceEnforcementLayer::CounterTest as u8, 2);
+
+    assert_eq!(compile_time.equivalence, contract.execution.equivalence);
+    assert_eq!(compile_time.path_class, PathClass::Rich);
+    assert_eq!(
+        compile_time.maintenance_mode,
+        MaintenanceMode::RebuildAllowed
+    );
+    assert_eq!(
+        compile_time.artifact_policy,
+        ArtifactPolicyClass::DevelopmentRetained
+    );
+    assert_eq!(
+        compile_time.authority_policy,
+        AuthorityPolicy::SpeculativeThenReconcile
+    );
+
+    assert_eq!(resolved.path_class, PathClass::Rich);
+    assert_eq!(
+        resolved.artifact_policy,
+        ArtifactPolicyClass::DevelopmentRetained
+    );
+    assert_eq!(
+        resolved.execution_strategy,
+        ResolvedExecutionStrategy::DenseStageBatched
+    );
+    assert_eq!(
+        resolved.maintenance_strategy,
+        ResolvedMaintenanceStrategy::Incremental
+    );
+    assert_eq!(
+        resolved.authority_policy,
+        AuthorityPolicy::SpeculativeThenReconcile
+    );
+}
+
+#[test]
+fn runtime_telemetry_exposes_performance_counter_surface() {
+    let telemetry = RuntimeTelemetry {
+        evaluation: EvaluationTelemetry {
+            evaluation_calls: 3,
+            ..EvaluationTelemetry::default()
+        },
+        invalidation: InvalidationTelemetry {
+            invalidation_nodes_visited: 5,
+            ..InvalidationTelemetry::default()
+        },
+        transaction: TransactionTelemetry {
+            transaction_commit_count: 2,
+            ..TransactionTelemetry::default()
+        },
+        planner: PlannerTelemetry {
+            stages_built: 7,
+            ..PlannerTelemetry::default()
+        },
+        execution: ExecutionTelemetry {
+            rewiring_apply_count: 11,
+            ..ExecutionTelemetry::default()
+        },
+        storage: StorageTelemetry {
+            graph_storage_snapshot_rewrites: 13,
+            ..StorageTelemetry::default()
+        },
+        checkpoint: CheckpointTelemetry {
+            checkpoint_flushes: 17,
+            ..CheckpointTelemetry::default()
+        },
+    };
+    let counters = telemetry.performance_counter_surface();
+
+    assert_eq!(counters.evaluation.evaluation_calls, 3);
+    assert_eq!(counters.invalidation.invalidation_nodes_visited, 5);
+    assert_eq!(counters.transaction.transaction_commit_count, 2);
+    assert_eq!(counters.planner.stages_built, 7);
+    assert_eq!(counters.execution.rewiring_apply_count, 11);
+    assert_eq!(counters.storage.graph_storage_snapshot_rewrites, 13);
+    assert_eq!(counters.checkpoint.checkpoint_flushes, 17);
+}
+
+#[test]
+fn proof_bearing_form_families_exist_as_real_types() {
+    fn assert_canonical<T: CanonicalForm>() {}
+    fn assert_resolved<T: ResolvedForm>() {}
+    fn assert_delta<T: DeltaForm>() {}
+    fn assert_summary<T: SummaryForm>() {}
+
+    assert_canonical::<CanonicalDependencies>();
+    assert_canonical::<CanonicalChangedRegions>();
+    assert_canonical::<DedupedNodeBatch>();
+    assert_canonical::<DependencyBatchEdit>();
+    assert_canonical::<PartitionScopeSet>();
+    assert_canonical::<SortedSourceBatch>();
+    assert_resolved::<ResolvedExecutionStrategy>();
+    assert_resolved::<ResolvedMaintenanceStrategy>();
+    assert_resolved::<ResolvedPerformancePolicy>();
+    assert_delta::<DirtyBatch>();
+    assert_delta::<DirtyDelta>();
+    assert_delta::<StructuralDelta>();
+    assert_delta::<PatchPlan>();
+    assert_summary::<LocalityFootprint>();
+    assert_summary::<SemanticBatchCommit>();
+    assert_summary::<TouchedScopeSummary>();
+    assert_summary::<PendingSnapshotBatch>();
+    assert_summary::<SnapshotBatchCommit>();
+    assert_summary::<SubscriberRepairBatch>();
+}
+
+#[test]
+fn single_consumer_preserves_one_way_packet_flow() {
+    let packet = SingleConsumer::new(vec![1_u32, 2, 3]);
+
+    assert_eq!(packet.as_ref(), &[1, 2, 3]);
+    assert_eq!(packet.into_inner(), vec![1, 2, 3]);
+}
+
+#[test]
+fn proof_bearing_batches_and_summaries_canonicalize_their_inputs() {
+    let node_a = NodeId::new(7, 1);
+    let node_b = NodeId::new(3, 2);
+    let changed_regions = CanonicalChangedRegions::new(vec![
+        ChangedRegion {
+            partition: "wing".into(),
+            detail: Some("spar".into()),
+        },
+        ChangedRegion {
+            partition: "wing".into(),
+            detail: Some("spar".into()),
+        },
+        ChangedRegion {
+            partition: "fuselage".into(),
+            detail: None,
+        },
+    ]);
+    let touched_nodes = DedupedNodeBatch::new([node_a, node_b, node_a]);
+    let touched_sources = SortedSourceBatch::new([node_a, node_b, node_b]);
+    let dirty_delta = DirtyDelta::new(AspectMask::from([ASPECT_A]), changed_regions, touched_nodes);
+    let structural_delta = StructuralDelta::new(Some(dirty_delta.clone()), None);
+    let patch_plan = PatchPlan::new(vec![node_a, node_b, node_a], structural_delta.clone());
+    let touched_scope_summary = TouchedScopeSummary::new(
+        vec![
+            PartitionSubscription::partition_and_detail("wing", "spar"),
+            PartitionSubscription::whole_partition("fuselage"),
+            PartitionSubscription::partition_and_detail("wing", "spar"),
+        ],
+        vec![node_a, node_b, node_a],
+        vec![node_a, node_b, node_b],
+    );
+    let snapshot_batch = PendingSnapshotBatch::from_pairs(vec![
+        (node_a, crate::data::dependency::DependencySnapshot::empty()),
+        (node_b, crate::data::dependency::DependencySnapshot::empty()),
+        (node_a, crate::data::dependency::DependencySnapshot::empty()),
+    ]);
+    let subscriber_repairs = SubscriberRepairBatch::new(vec![
+        SubscriberRepair {
+            source: node_a,
+            subscribers: DedupedNodeBatch::new([node_b, node_b]),
+        },
+        SubscriberRepair {
+            source: node_b,
+            subscribers: DedupedNodeBatch::new([node_a, node_a]),
+        },
+        SubscriberRepair {
+            source: node_a,
+            subscribers: DedupedNodeBatch::new([node_a, node_b]),
+        },
+    ]);
+    let desired = DesiredState::new(AspectMask::from([ASPECT_A, ASPECT_B]));
+    let dependency_batch = DependencyBatchEdit::from_pairs(vec![
+        (
+            node_a,
+            CanonicalDependencies::new([DependencyEdge::new(node_b, ASPECT_A)]),
+        ),
+        (
+            node_b,
+            CanonicalDependencies::new([DependencyEdge::new(node_a, ASPECT_B)]),
+        ),
+    ]);
+    let dirty_batch = DirtyBatch::new(vec![
+        DirtyBatchEntry::new(node_a, ASPECT_A, vec![ChangedRegion::new("wing")]),
+        DirtyBatchEntry::new(
+            node_a,
+            ASPECT_A,
+            vec![ChangedRegion::new("wing"), ChangedRegion::new("fuselage")],
+        ),
+        DirtyBatchEntry::without_regions(node_b, ASPECT_B),
+    ]);
+    let semantic_batch_commit = SemanticBatchCommit::new(dirty_batch.clone());
+    let locality = LocalityFootprint::new(
+        vec![
+            PartitionSubscription::partition_and_detail("wing", "spar"),
+            PartitionSubscription::whole_partition("fuselage"),
+            PartitionSubscription::partition_and_detail("wing", "spar"),
+        ],
+        vec![node_a, node_b, node_a],
+        vec![node_a, node_b, node_b],
+    );
+    let snapshot_commit = SnapshotBatchCommit::from_pairs(vec![
+        (node_a, crate::data::dependency::DependencySnapshot::empty()),
+        (node_b, crate::data::dependency::DependencySnapshot::empty()),
+        (node_a, crate::data::dependency::DependencySnapshot::empty()),
+    ]);
+
+    assert_eq!(dirty_delta.changed_regions.as_slice().len(), 2);
+    assert_eq!(dirty_delta.touched_nodes.as_slice(), &[node_b, node_a]);
+    assert!(!structural_delta.is_empty());
+    assert!(!patch_plan.is_empty());
+    assert_eq!(patch_plan.target_nodes.as_slice(), &[node_b, node_a]);
+    assert_eq!(touched_sources.as_slice(), &[node_b, node_a]);
+    assert_eq!(touched_scope_summary.scopes.len(), 2);
+    assert_eq!(
+        touched_scope_summary.touched_nodes.as_slice(),
+        &[node_b, node_a]
+    );
+    assert_eq!(
+        touched_scope_summary.touched_sources.as_slice(),
+        &[node_b, node_a]
+    );
+    assert_eq!(snapshot_batch.as_slice().len(), 2);
+    assert_eq!(dependency_batch.as_slice().len(), 2);
+    assert_eq!(dirty_batch.as_slice().len(), 2);
+    assert_eq!(dirty_batch.changed_regions().as_slice().len(), 2);
+    assert_eq!(dirty_batch.locality_footprint().partitions.len(), 2);
+    assert_eq!(dirty_batch.touched_sources().as_slice(), &[node_b, node_a]);
+    assert_eq!(locality.partitions.len(), 2);
+    assert_eq!(locality.nodes.as_slice(), &[node_b, node_a]);
+    assert_eq!(
+        semantic_batch_commit.changed_aspects.bits(),
+        AspectMask::from([ASPECT_A, ASPECT_B]).bits()
+    );
+    assert_eq!(semantic_batch_commit.locality.partitions.len(), 2);
+    assert_eq!(snapshot_commit.target_nodes().as_slice(), &[node_b, node_a]);
+    assert_eq!(subscriber_repairs.as_slice().len(), 2);
+    assert_eq!(
+        desired.value().bits(),
+        AspectMask::from([ASPECT_A, ASPECT_B]).bits()
+    );
+}
+
+#[test]
+fn observer_exposes_runtime_and_retained_artifacts_separately() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().output_identity().build();
+
+    let mut compute = |_id: NodeId, _graph: &SignalGraph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(7, 0))
+            .with_output_identity("wing-surface")
+            .with_continuity_token("wing-lineage")
+            .with_label("forensic"))
+    };
+    evaluate(&mut graph, node, &mut compute).unwrap();
+    graph
+        .get_entry_mut(node)
+        .unwrap()
+        .set_causality(Some(CausalityMetadata {
+            kind: "host_patch".to_string(),
+            fields: std::collections::BTreeMap::from([(
+                "patch_id".to_string(),
+                "wing-42".to_string(),
+            )]),
+        }));
+
+    let observer = graph.observe();
+    let runtime = observer.runtime_artifact_state(node).unwrap().unwrap();
+    let retained = observer
+        .retained_diagnostic_artifact(node)
+        .unwrap()
+        .unwrap();
+    let historical = observer.historical_artifact_record(node).unwrap().unwrap();
+    let trace = observer.materialized_trace_summary(node).unwrap().unwrap();
+
+    assert_eq!(
+        runtime.output_identity.as_ref().map(|id| id.as_str()),
+        Some("wing-surface")
+    );
+    assert_eq!(
+        runtime
+            .continuity_token
+            .as_ref()
+            .map(|token| token.as_str()),
+        Some("wing-lineage")
+    );
+    assert_eq!(runtime.memoized_origin, MemoizedResultOrigin::DirectCompute);
+    assert_eq!(retained.labels, vec!["forensic".to_owned()]);
+    assert_eq!(historical.node, node);
+    assert_eq!(historical.runtime.output_identity, runtime.output_identity);
+    assert_eq!(historical.retained.as_ref().unwrap().labels, retained.labels);
+    assert_eq!(
+        historical
+            .causality
+            .as_ref()
+            .and_then(|causality| causality.fields.get("patch_id"))
+            .map(|value| value.as_str()),
+        Some("wing-42")
+    );
+    assert_eq!(trace.labels, vec!["forensic".to_owned()]);
+    assert_eq!(
+        trace.output_identity.as_ref().map(|id| id.as_str()),
+        Some("wing-surface")
+    );
+}
+
+#[test]
+fn dependency_snapshot_clone_shares_backing_storage() {
+    let mut snapshot = crate::data::dependency::DependencySnapshot::empty();
+    snapshot.record(NodeId::new(1, 0), ASPECT_A, 7, None);
+    snapshot.record(NodeId::new(2, 0), ASPECT_B, 11, None);
+
+    let cloned = snapshot.clone();
+
+    assert!(std::sync::Arc::ptr_eq(
+        &snapshot.shared_entries(),
+        &cloned.shared_entries()
+    ));
+    assert_eq!(snapshot.entries(), cloned.entries());
+}
+
+#[test]
+fn locality_footprint_merges_and_detects_conflicts_canonically() {
+    let node_a = NodeId::new(7, 1);
+    let node_b = NodeId::new(3, 2);
+    let node_c = NodeId::new(9, 1);
+
+    let mut left = LocalityFootprint::new(
+        vec![
+            PartitionSubscription::whole_partition("wing"),
+            PartitionSubscription::partition_and_detail("fuselage", "frame-2"),
+        ],
+        vec![node_a, node_b],
+        vec![node_b],
+    );
+    let right = LocalityFootprint::new(
+        vec![
+            PartitionSubscription::partition_and_detail("fuselage", "frame-2"),
+            PartitionSubscription::whole_partition("tail"),
+        ],
+        vec![node_b, node_c],
+        vec![node_c],
+    );
+
+    assert!(left.conflicts_with(&right));
+    left.merge(&right);
+
+    assert_eq!(left.partitions.len(), 3);
+    assert_eq!(left.nodes.as_slice(), &[node_b, node_a, node_c]);
+    assert_eq!(left.sources.as_slice(), &[node_b, node_c]);
 }
 
 #[test]
@@ -142,9 +626,85 @@ fn graph_node_builder_accepts_explicit_node_contract() {
 }
 
 #[test]
+fn transaction_batch_dirty_is_the_bulk_invalidation_surface() {
+    let mut graph = SignalGraph::new();
+    let source_a = graph.node().build();
+    let source_b = graph.node().build();
+    let dependent = graph.node().build();
+    graph
+        .set_dependencies(
+            dependent,
+            [
+                DependencyEdge::new(source_a, ASPECT_A),
+                DependencyEdge::new(source_b, ASPECT_B),
+            ],
+        )
+        .unwrap();
+
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    runtime
+        .transaction(&mut (), |transaction| {
+            transaction.mark_dirty_batch(&DirtyBatch::from_sources([
+                (source_a, ASPECT_A),
+                (source_b, ASPECT_B),
+            ]))?;
+            Ok(())
+        })
+        .unwrap();
+
+    assert_eq!(
+        runtime.graph().get_state(source_a).unwrap(),
+        NodeState::Dirty
+    );
+    assert_eq!(
+        runtime.graph().get_state(source_b).unwrap(),
+        NodeState::Dirty
+    );
+    assert_eq!(
+        runtime.graph().get_state(dependent).unwrap(),
+        NodeState::Dirty
+    );
+}
+
+#[test]
+fn dependency_batch_edit_is_the_bulk_dependency_surface() {
+    let mut graph = SignalGraph::new();
+    let source_a = graph.node().build();
+    let source_b = graph.node().build();
+    let left = graph.node().build();
+    let right = graph.node().build();
+
+    graph
+        .apply_dependency_batch_edit(&DependencyBatchEdit::from_pairs([
+            (left, vec![DependencyEdge::new(source_a, ASPECT_A)]),
+            (right, vec![DependencyEdge::new(source_b, ASPECT_B)]),
+        ]))
+        .unwrap();
+
+    assert_eq!(graph.dependencies_of(left).unwrap().len(), 1);
+    assert_eq!(graph.dependencies_of(right).unwrap().len(), 1);
+    assert_eq!(graph.runtime_subscribers_of(source_a).unwrap(), &[left]);
+    assert_eq!(graph.runtime_subscribers_of(source_b).unwrap(), &[right]);
+}
+
+#[test]
+#[should_panic(expected = "dependency batch edit cannot contain multiple edits")]
+fn dependency_batch_edit_rejects_duplicate_node_edits() {
+    let node = NodeId::new(7, 1);
+    let source = NodeId::new(3, 2);
+    let _ = DependencyBatchEdit::from_pairs([
+        (node, vec![DependencyEdge::new(source, ASPECT_A)]),
+        (node, vec![DependencyEdge::new(source, ASPECT_B)]),
+    ]);
+}
+
+#[test]
 fn define_computation_applies_contract_comparator_and_tier_to_created_nodes() {
     let graph = SignalGraph::new();
-    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().with_tiers::<Tier>().build();
+    let mut runtime = SignalRuntime::builder(graph)
+        .with_kernel_defaults()
+        .with_tiers::<Tier>()
+        .build();
     let contract = NodeContract::reads([ASPECT_A])
         .with_produces([ASPECT_B])
         .with_required_context(ContextRequirement::DomainContext);
@@ -163,7 +723,12 @@ fn define_computation_applies_contract_comparator_and_tier_to_created_nodes() {
         .unwrap();
 
     let node = computation.keyed("bulkhead").node(&mut runtime);
-    let stored = runtime.graph().get_entry(node).unwrap().get_eval_config().clone();
+    let stored = runtime
+        .graph()
+        .get_entry(node)
+        .unwrap()
+        .get_eval_config()
+        .clone();
 
     assert_eq!(runtime.graph().get_contract(node).unwrap(), &contract);
     assert_eq!(

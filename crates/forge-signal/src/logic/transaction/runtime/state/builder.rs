@@ -26,8 +26,7 @@ pub struct SignalRuntimeBuilder<
     E = (),
     Ctx = (),
     T = (),
->
-where
+> where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
     T: Copy + Ord,
@@ -121,9 +120,7 @@ where
         self
     }
 
-    pub fn with_kernel_defaults(
-        self,
-    ) -> SignalRuntimeBuilder<Present, Present, D, I, E, Ctx, T> {
+    pub fn with_kernel_defaults(self) -> SignalRuntimeBuilder<Present, Present, D, I, E, Ctx, T> {
         self.checkpoint_barrier(CheckpointBarrier::PerOperation)
             .fallback_comparator(VersionComparatorPolicy::Exact)
     }

@@ -8,17 +8,17 @@ use crate::data::comparator::{
     VersionComparatorPolicy,
 };
 use crate::data::error::SignalError;
-use crate::data::graph::TraversalScratch;
 use crate::data::graph::SignalGraph;
+use crate::data::graph::TraversalScratch;
 use crate::data::handle::NodeId;
 use crate::data::node::{ContextRequirement, NodeState};
 use crate::logic::evaluation::EvaluationRequestMode;
 
-use super::types::{
-    EvaluationCursor, EvaluationPlan, EvaluationSession, EvaluationTask, ExecutionStage,
-    PlanSummary, StageBarrier, StageCursor, TaskReason,
-};
 use self::validation::{preview_maybe_stale, runtime_sorted_dependencies};
+use super::types::{
+    EvaluationCursor, EvaluationPlan, EvaluationTask, ExecutionStage, PlanSummary, SessionScratch,
+    StageBarrier, StageCursor, TaskReason,
+};
 
 pub fn build_evaluation_plan(
     graph: &mut SignalGraph,
@@ -39,12 +39,8 @@ pub fn build_evaluation_plan_with_policy_resolver(
     request_mode: EvaluationRequestMode,
     resolver: &mut impl ComparatorPolicyResolver,
 ) -> Result<EvaluationPlan, SignalError> {
-    let cursor = build_evaluation_cursor_with_policy_resolver(
-        graph,
-        targets,
-        request_mode,
-        resolver,
-    )?;
+    let cursor =
+        build_evaluation_cursor_with_policy_resolver(graph, targets, request_mode, resolver)?;
     Ok(materialize_plan_from_cursor(cursor))
 }
 
@@ -82,7 +78,7 @@ pub(crate) fn build_evaluation_session_with_policy_resolver<'a>(
     targets: &[NodeId],
     request_mode: EvaluationRequestMode,
     resolver: &mut impl ComparatorPolicyResolver,
-) -> Result<EvaluationSession<'a>, SignalError> {
+) -> Result<SessionScratch<'a>, SignalError> {
     let summary = populate_plan_buffers(
         graph,
         targets,
@@ -93,7 +89,7 @@ pub(crate) fn build_evaluation_session_with_policy_resolver<'a>(
         &mut scratch.planner_stages,
     )?;
 
-    Ok(EvaluationSession {
+    Ok(SessionScratch {
         targets: &scratch.planner_targets,
         tasks: &scratch.planner_tasks,
         stages: &scratch.planner_stages,
@@ -153,7 +149,7 @@ fn visit_node(
     visiting.mark(node_index);
 
     let entry = graph.get_entry(node)?;
-    verify_required_context(node, graph.get_contract(node)?.required_context)?;
+    verify_required_context(node, graph.get_contract(node)?.semantics.required_context)?;
     let state = *entry.get_state();
     let dirty_partition_scopes = entry.get_dirty_partition_scopes();
     let contract_reads_dirty = graph
@@ -451,7 +447,7 @@ fn classify_reason(
         return Ok(TaskReason::PartitionScopedDependency);
     }
 
-    let trace = entry.get_trace_summary();
+    let trace = entry.get_runtime_artifact_state();
     if trace.is_some_and(|summary| {
         summary.output_change == crate::data::output::OutputChange::Unchanged
     }) {
@@ -469,10 +465,10 @@ fn classify_reason(
 
 #[cfg(test)]
 pub(crate) fn partition_scope_untouched(
-    trace_summary: Option<&crate::data::trace::TraceSummary>,
+    trace_summary: Option<&crate::data::trace::RuntimeArtifactState>,
     scope: &crate::data::output::PartitionSubscription,
 ) -> bool {
-    !crate::data::output::scope_touched_by_trace(trace_summary, scope)
+    !crate::data::output::scope_touched_by_artifact_state(trace_summary, scope)
 }
 
 pub(crate) fn node_sort_key(node: NodeId) -> (u32, u32) {

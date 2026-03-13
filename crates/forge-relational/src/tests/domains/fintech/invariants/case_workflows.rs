@@ -1,5 +1,6 @@
-use crate::facade::BranchId;
-use crate::facade::{DerivedIndexGeneration, LineageGraphSnapshot, LineageResolutionStatus};
+use crate::facade::history::BranchId;
+use crate::facade::indexes::DerivedIndexGeneration;
+use crate::facade::lineage::{LineageEventKind, LineageGraphSnapshot, LineageResolutionStatus};
 
 use super::super::comparisons::{
     compare_case_truth, compare_observability_overlap, compare_recovery_probe,
@@ -107,7 +108,7 @@ pub(crate) fn assert_metadata_preserved_after_recovery(
         graph
             .events
             .iter()
-            .any(|event| { event.kind == crate::facade::LineageEventKind::Correspond }),
+            .any(|event| { event.kind == LineageEventKind::Correspond }),
         "recovered lineage graph should preserve correspondence events"
     );
     assert_eq!(

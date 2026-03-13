@@ -1,5 +1,5 @@
 use crate::logic::runtime::RelationalRuntime;
-use crate::validation::data::{InvariantCostClass, InvariantExecutionPoint};
+use crate::validation::data::{InvariantCostClass, InvariantExecutionPoint, InvariantGroupSet};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum InvariantScale {
@@ -16,11 +16,11 @@ pub(crate) struct InvariantContext {
 }
 
 pub(crate) fn derive_invariant_context(runtime: &RelationalRuntime) -> InvariantContext {
-    let entity_count = runtime.entity_slot_count();
-    let relation_count = runtime.relation_slot_count();
+    let entity_count = runtime.storage_access().entity_slot_count();
+    let relation_count = runtime.storage_access().relation_slot_count();
     let total_records = entity_count + relation_count;
-    let version_depth = runtime.history.commit_graph.len();
-    let snapshot_pressure = runtime.active_snapshot_count() > 10;
+    let version_depth = runtime.history_access().commit_count();
+    let snapshot_pressure = runtime.visibility.active_snapshot_count() > 10;
 
     let scale = match total_records {
         0..=1_000 => InvariantScale::Small,
@@ -51,24 +51,24 @@ impl RelationalInvariantRuntime {
         let mut run_at = [0u32; InvariantExecutionPoint::COUNT];
         let mut max_cost = [InvariantCostClass::Global; InvariantExecutionPoint::COUNT];
 
-        run_at[InvariantExecutionPoint::CommitBoundary as usize] = profile.base_groups().mask();
-        run_at[InvariantExecutionPoint::MutationSensitive as usize] = profile.base_groups().mask();
-        run_at[InvariantExecutionPoint::SnapshotPublication as usize] = profile.base_groups().mask();
-        run_at[InvariantExecutionPoint::HarnessAudit as usize] = profile.base_groups().mask();
+        run_at[InvariantExecutionPoint::CommitBoundary as usize] = profile.consumed_groups().mask();
+        run_at[InvariantExecutionPoint::MutationSensitive as usize] =
+            profile.consumed_groups().mask();
+        run_at[InvariantExecutionPoint::SnapshotPublication as usize] =
+            profile.consumed_groups().mask();
+        run_at[InvariantExecutionPoint::HarnessAudit as usize] = profile.consumed_groups().mask();
 
         max_cost[InvariantExecutionPoint::CommitBoundary as usize] = match context.scale {
             InvariantScale::Large => InvariantCostClass::Partition,
             InvariantScale::Small | InvariantScale::Medium => InvariantCostClass::Global,
         };
-        max_cost[InvariantExecutionPoint::MutationSensitive as usize] =
-            InvariantCostClass::Touched;
-        max_cost[InvariantExecutionPoint::SnapshotPublication as usize] = if context.snapshot_pressure
-            || matches!(context.scale, InvariantScale::Large)
-        {
-            InvariantCostClass::Partition
-        } else {
-            InvariantCostClass::Global
-        };
+        max_cost[InvariantExecutionPoint::MutationSensitive as usize] = InvariantCostClass::Touched;
+        max_cost[InvariantExecutionPoint::SnapshotPublication as usize] =
+            if context.snapshot_pressure || matches!(context.scale, InvariantScale::Large) {
+                InvariantCostClass::Partition
+            } else {
+                InvariantCostClass::Global
+            };
         max_cost[InvariantExecutionPoint::HarnessAudit as usize] = InvariantCostClass::Global;
 
         if context.version_depth > 1_000 {
@@ -87,18 +87,15 @@ impl RelationalInvariantRuntime {
     #[inline]
     pub(crate) fn should_run(
         &self,
-        group_mask: u32,
+        groups: InvariantGroupSet,
         checkpoint: InvariantExecutionPoint,
     ) -> bool {
         let allowed = self.run_at[checkpoint as usize] & !self.skip_mask & !self.deferred_mask;
-        (allowed & group_mask) != 0
+        InvariantGroupSet::from_mask(allowed).intersects(groups)
     }
 
     #[inline]
-    pub(crate) fn max_cost_at(
-        &self,
-        checkpoint: InvariantExecutionPoint,
-    ) -> InvariantCostClass {
+    pub(crate) fn max_cost_at(&self, checkpoint: InvariantExecutionPoint) -> InvariantCostClass {
         self.max_cost[checkpoint as usize]
     }
 }
@@ -117,9 +114,7 @@ pub(crate) const fn cost_allowed(limit: InvariantCostClass, cost: InvariantCostC
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        cost_allowed, InvariantContext, InvariantScale, RelationalInvariantRuntime,
-    };
+    use super::{cost_allowed, InvariantContext, InvariantScale, RelationalInvariantRuntime};
     use crate::validation::data::{InvariantCostClass, InvariantExecutionPoint};
     use crate::validation::engine::InvariantRequestProfile;
 

@@ -2,6 +2,7 @@ use crate::data::dependency::DependencySnapshot;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::node::{NodeContract, NodeEntry, NodeEvaluationConfig, NodeState};
+use crate::data::proof::{PendingSnapshotBatch, SnapshotBatchCommit};
 use crate::data::trace::CausalityMetadata;
 
 use super::super::node_builder::NodeBuilder;
@@ -53,7 +54,10 @@ impl SignalGraph {
 
     pub(crate) fn get_dep_snapshot(&self, id: NodeId) -> Result<&DependencySnapshot, SignalError> {
         let entry = self.get_entry(id)?;
-        Ok(self.topology.dependency_snapshots.get(entry.get_dep_snapshot_id()))
+        Ok(self
+            .topology
+            .dependency_snapshots
+            .get(entry.get_dep_snapshot_id()))
     }
 
     pub(crate) fn set_dep_snapshot(
@@ -69,26 +73,39 @@ impl SignalGraph {
 
     pub(crate) fn set_dep_snapshot_batch(
         &mut self,
-        snapshots: &[(NodeId, DependencySnapshot)],
+        snapshots: &PendingSnapshotBatch,
     ) -> Result<(), SignalError> {
         if snapshots.is_empty() {
             return Ok(());
         }
 
-        for (node, _) in snapshots {
-            self.validate_handle(*node)?;
+        for snapshot in snapshots.as_slice() {
+            self.validate_handle(snapshot.node)?;
         }
 
         let snapshot_ids = snapshots
+            .as_slice()
             .iter()
-            .map(|(_, snapshot)| self.topology.dependency_snapshots.insert(snapshot.clone()))
+            .map(|snapshot| {
+                self.topology
+                    .dependency_snapshots
+                    .insert(snapshot.snapshot.snapshot().clone())
+            })
             .collect::<Vec<_>>();
 
-        for ((node, _), snapshot_id) in snapshots.iter().zip(snapshot_ids) {
-            self.get_entry_mut(*node)?.set_dep_snapshot_id(snapshot_id);
+        for (snapshot, snapshot_id) in snapshots.as_slice().iter().zip(snapshot_ids) {
+            self.get_entry_mut(snapshot.node)?
+                .set_dep_snapshot_id(snapshot_id);
         }
         self.record_graph_storage_pressure();
         Ok(())
+    }
+
+    pub(crate) fn apply_snapshot_batch_commit(
+        &mut self,
+        commit: &SnapshotBatchCommit,
+    ) -> Result<(), SignalError> {
+        self.set_dep_snapshot_batch(commit.pending())
     }
 
     pub fn is_alive(&self, id: NodeId) -> bool {

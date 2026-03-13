@@ -1,13 +1,17 @@
 use std::fmt::Debug;
 
-use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
+use crate::identity::data::{
+    EntityDomain, KindId, PartitionId, RecordId, RelationDomain, VersionId,
+};
 use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 use crate::storage::overlay::PartitionState;
 
-use super::{EntityExtra, RecordArena, RelationExtra, VersionedEntityMetadata, VersionedRelationMetadata};
+use super::{
+    EntityExtra, RecordArena, RelationExtra, VersionedEntityMetadata, VersionedRelationMetadata,
+};
 
 pub(crate) trait RecordKind: Clone + Debug + 'static {
-    type Id: Copy + Ord + Debug + 'static;
+    type Domain: Copy + Ord + Debug + 'static;
     type Meta: Clone + Debug;
     type Extra: Clone + Debug;
     type ReadRecord: Clone + Debug;
@@ -17,9 +21,6 @@ pub(crate) trait RecordKind: Clone + Debug + 'static {
     fn empty_extra() -> Self::Extra;
     fn reserve_extra(extra: &mut Vec<Self::Extra>, additional: usize);
     fn retire_metadata(metadata: &mut Self::Meta, version_id: VersionId);
-    fn partition_of(id: &Self::Id) -> PartitionId;
-    fn slot_of(id: &Self::Id) -> usize;
-    fn generation_of(id: &Self::Id) -> u32;
     fn metadata_for_create(
         kind_id: KindId,
         generation: u32,
@@ -37,7 +38,7 @@ pub(crate) trait HistoricalMetadata {
 pub(crate) struct EntityRecordKind;
 
 impl RecordKind for EntityRecordKind {
-    type Id = EntityId;
+    type Domain = EntityDomain;
     type Meta = VersionedEntityMetadata;
     type Extra = EntityExtra;
     type ReadRecord = EntityReadRecord;
@@ -60,18 +61,6 @@ impl RecordKind for EntityRecordKind {
 
     fn retire_metadata(metadata: &mut Self::Meta, version_id: VersionId) {
         metadata.retired_at = Some(version_id);
-    }
-
-    fn partition_of(id: &Self::Id) -> PartitionId {
-        id.partition_id
-    }
-
-    fn slot_of(id: &Self::Id) -> usize {
-        id.local_slot.0 as usize
-    }
-
-    fn generation_of(id: &Self::Id) -> u32 {
-        id.generation.0
     }
 
     fn metadata_for_create(
@@ -103,7 +92,7 @@ impl HistoricalMetadata for VersionedEntityMetadata {
 pub(crate) struct RelationRecordKind;
 
 impl RecordKind for RelationRecordKind {
-    type Id = RelationId;
+    type Domain = RelationDomain;
     type Meta = VersionedRelationMetadata;
     type Extra = RelationExtra;
     type ReadRecord = RelationReadRecord;
@@ -126,18 +115,6 @@ impl RecordKind for RelationRecordKind {
 
     fn retire_metadata(metadata: &mut Self::Meta, version_id: VersionId) {
         metadata.retired_at = Some(version_id);
-    }
-
-    fn partition_of(id: &Self::Id) -> PartitionId {
-        id.partition_id
-    }
-
-    fn slot_of(id: &Self::Id) -> usize {
-        id.local_slot.0 as usize
-    }
-
-    fn generation_of(id: &Self::Id) -> u32 {
-        id.generation.0
     }
 
     fn metadata_for_create(
@@ -164,4 +141,16 @@ impl HistoricalMetadata for VersionedRelationMetadata {
     fn retired_at(&self) -> Option<VersionId> {
         self.retired_at
     }
+}
+
+pub(crate) fn partition_of<K: RecordKind>(id: &RecordId<K::Domain>) -> PartitionId {
+    id.partition_id
+}
+
+pub(crate) fn slot_of<K: RecordKind>(id: &RecordId<K::Domain>) -> usize {
+    id.local_slot.0 as usize
+}
+
+pub(crate) fn generation_of<K: RecordKind>(id: &RecordId<K::Domain>) -> u32 {
+    id.generation.0
 }

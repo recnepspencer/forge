@@ -1,6 +1,6 @@
 use crate::durability::data::{DurableCheckpoint, DurableStore};
-use crate::logic::runtime::RelationalRuntimeConfig;
 use crate::logic::runtime::state::subsystems::RuntimeSubsystem;
+use crate::logic::runtime::RelationalRuntimeConfig;
 use crate::replay::data::CanonicalCommitEnvelope;
 
 #[derive(Debug, Clone, Default)]
@@ -15,11 +15,16 @@ impl DurabilitySubsystem {
         Self {
             log: Vec::new(),
             checkpoints: Vec::new(),
-            store: config.durability.policy.store_layout.clone().map(|layout| DurableStore {
-                layout,
-                segments: Vec::new(),
-                checkpoints: Vec::new(),
-            }),
+            store: config
+                .durability
+                .policy
+                .store_layout
+                .clone()
+                .map(|layout| DurableStore {
+                    layout,
+                    segments: Vec::new(),
+                    checkpoints: Vec::new(),
+                }),
         }
     }
 }

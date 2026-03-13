@@ -1,28 +1,20 @@
-use crate::authority::mutation::aspect_versions::{
-    write_relation_aspect_versions,
-};
-use crate::authority::mutation::outcomes::{MutationEvent, MutationOutcome, RecordMutation};
+use crate::authority::mutation::aspect_versions::write_relation_aspect_versions;
+use crate::authority::mutation::outcomes::{MutationOutcome, RecordMutation};
 use crate::authority::mutation::record_changes::{
     allocate_relation, reserve_bulk_relation_capacity,
 };
 use crate::authority::mutation::MutationWorkspace;
 use crate::symbols::data::InternedString;
-use crate::transactions::data::{
-    BulkRelationCreateIntent, CommitConflict, RelationSpec,
-};
+use crate::transactions::data::{BulkRelationCreateIntent, CommitConflict, RelationSpec};
 
 pub(super) fn apply(
     intent: &BulkRelationCreateIntent,
     workspace: &mut MutationWorkspace<'_>,
 ) -> Result<MutationOutcome, CommitConflict> {
     let version_id = workspace.version_id();
-    let mut outcome = MutationOutcome::default();
+    let mut outcome = MutationOutcome::bulk_relations_created(intent.partition_id, intent.kind_id);
     workspace.with_context(|context| {
-        reserve_bulk_relation_capacity(
-            context.state,
-            intent.partition_id,
-            intent.endpoints.len(),
-        );
+        reserve_bulk_relation_capacity(context.state, intent.partition_id, intent.endpoints.len());
     });
     for (index, (source, target)) in intent.endpoints.iter().enumerate() {
         let spec = RelationSpec {
@@ -55,10 +47,6 @@ pub(super) fn apply(
             payload: spec.payload.clone(),
         });
     }
-    outcome.record_event(MutationEvent::BulkRelationsCreated {
-        partition_id: intent.partition_id,
-        kind_id: intent.kind_id,
-        count: intent.endpoints.len(),
-    });
+    outcome.set_last_event_count(intent.endpoints.len());
     Ok(outcome)
 }

@@ -1,4 +1,5 @@
-use crate::facade::{RecordPayload, RelationalReadView};
+use crate::facade::payloads::RecordPayload;
+use crate::facade::runtime::RelationalReadView;
 
 use super::super::fixture::{LEDGER_PARTITION, MARKET_PARTITION, RISK_PARTITION};
 

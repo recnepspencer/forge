@@ -42,10 +42,7 @@ pub(crate) struct FintechWorld {
 pub(super) type FintechDomainFixture = FintechWorld;
 
 impl FintechWorld {
-    pub(crate) fn set_runtime_policy(
-        &mut self,
-        policy: SignalRuntimePolicy,
-    ) {
+    pub(crate) fn set_runtime_policy(&mut self, policy: SignalRuntimePolicy) {
         self.runtime.set_runtime_policy(policy);
     }
 
@@ -65,17 +62,11 @@ impl FintechWorld {
         super::market_state::seed_market_regime(self, regime, seed)
     }
 
-    pub(super) fn seed_market(
-        &mut self,
-        market_seed: MarketSeed,
-    ) -> Result<(), SignalError> {
+    pub(super) fn seed_market(&mut self, market_seed: MarketSeed) -> Result<(), SignalError> {
         self.seed_regime(market_seed.regime, market_seed.seed)
     }
 
-    pub(super) fn open_branch(
-        &mut self,
-        name: &str,
-    ) -> Result<SignalBranchHandle, SignalError> {
+    pub(super) fn open_branch(&mut self, name: &str) -> Result<SignalBranchHandle, SignalError> {
         super::branch_history::create_branch(self, name)
     }
 
@@ -83,10 +74,7 @@ impl FintechWorld {
         self.runtime.observe().current_branch()
     }
 
-    pub(super) fn switch_branch(
-        &mut self,
-        branch: SignalBranchHandle,
-    ) -> Result<(), SignalError> {
+    pub(super) fn switch_branch(&mut self, branch: SignalBranchHandle) -> Result<(), SignalError> {
         self.runtime.switch_branch(branch)
     }
 
@@ -116,17 +104,11 @@ impl FintechWorld {
         super::branch_history::restore_branch_snapshot(self, branch, snapshot)
     }
 
-    pub(super) fn replay_for_branch(
-        &self,
-        branch: SignalBranchHandle,
-    ) -> ReplaySlice {
+    pub(super) fn replay_for_branch(&self, branch: SignalBranchHandle) -> ReplaySlice {
         super::branch_history::replay_for_branch(self, branch)
     }
 
-    pub(super) fn replay_around_saved_snapshot(
-        &self,
-        snapshot: &SignalSnapshotV1,
-    ) -> ReplaySlice {
+    pub(super) fn replay_around_saved_snapshot(&self, snapshot: &SignalSnapshotV1) -> ReplaySlice {
         super::branch_history::replay_around_snapshot(self, snapshot)
     }
 
@@ -162,10 +144,7 @@ impl FintechWorld {
         FintechEvaluationShape::from_fixture(self)
     }
 
-    pub(super) fn node_state(
-        &self,
-        node: NodeId,
-    ) -> Result<NodeState, SignalError> {
+    pub(super) fn node_state(&self, node: NodeId) -> Result<NodeState, SignalError> {
         self.runtime.graph().get_state(node)
     }
 
@@ -196,7 +175,8 @@ impl FintechWorld {
     ) -> Result<AspectVersion, SignalError> {
         let evaluation = self.evaluation_shape();
         let evaluator = evaluation.evaluator();
-        self.runtime.read_with_executor(node, &(), &evaluator, executor)
+        self.runtime
+            .read_with_executor(node, &(), &evaluator, executor)
     }
 
     pub(crate) fn read_top_desk_with_executor(
@@ -309,23 +289,19 @@ impl FintechWorld {
             tx.mark_dirty(source, super::aspects::VOL)?;
             tx.read(source, &|view| {
                 Ok(view.finish(
-                    NodeEvaluationResult::from_version(
-                        AspectVersion::from_updates([
-                            (super::aspects::PRICE, 99_999),
-                            (super::aspects::VOL, 99_999),
-                            (super::aspects::CURVE, 99_999),
-                            (super::aspects::LIQUIDITY, 99_999),
-                            (super::aspects::RISK, 99_999),
-                            (super::aspects::ALERT, 1),
-                        ]),
-                    )
+                    NodeEvaluationResult::from_version(AspectVersion::from_updates([
+                        (super::aspects::PRICE, 99_999),
+                        (super::aspects::VOL, 99_999),
+                        (super::aspects::CURVE, 99_999),
+                        (super::aspects::LIQUIDITY, 99_999),
+                        (super::aspects::RISK, 99_999),
+                        (super::aspects::ALERT, 1),
+                    ]))
                     .with_output_identity("bad-branch-correction"),
                 ))
             })?;
             tx.read_with_executor(top_desk, &evaluator, executor)?;
-            Err(SignalError::invalid_input(
-                "synthetic analysis rollback",
-            ))
+            Err(SignalError::invalid_input("synthetic analysis rollback"))
         });
         match err {
             Ok(_) => Err(SignalError::invalid_input(
@@ -488,7 +464,8 @@ impl FintechWorld {
 }
 
 pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults()
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
         .with_tiers::<super::execution_tier::FintechTier>()
         .build();
     runtime.set_runtime_policy(

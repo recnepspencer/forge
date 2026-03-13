@@ -1,6 +1,9 @@
 use crate::data::error::SignalError;
 use crate::data::graph::{signal_graph::SignalGraph, EvaluationStrategy};
 use crate::data::handle::NodeId;
+use crate::data::trace::{
+    HistoricalArtifactRecord, RetainedDiagnosticArtifact, RuntimeArtifactState, TraceSummary,
+};
 use crate::diagnostics::access::GraphDiagnostics;
 use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
 use crate::diagnostics::history::ExecutionInspector;
@@ -92,6 +95,39 @@ impl<'a> GraphObserver<'a> {
         explain(self.graph, node)
     }
 
+    pub fn runtime_artifact_state(
+        &self,
+        node: NodeId,
+    ) -> Result<Option<&'a RuntimeArtifactState>, SignalError> {
+        Ok(self.graph.get_entry(node)?.get_runtime_artifact_state())
+    }
+
+    pub fn retained_diagnostic_artifact(
+        &self,
+        node: NodeId,
+    ) -> Result<Option<&'a RetainedDiagnosticArtifact>, SignalError> {
+        Ok(self.graph.get_entry(node)?.retained_diagnostic_artifact())
+    }
+
+    pub fn historical_artifact_record(
+        &self,
+        node: NodeId,
+    ) -> Result<Option<HistoricalArtifactRecord>, SignalError> {
+        Ok(self.graph.get_entry(node)?.historical_artifact_record(node))
+    }
+
+    pub fn materialized_trace_summary(
+        &self,
+        node: NodeId,
+    ) -> Result<Option<TraceSummary>, SignalError> {
+        Ok(self
+            .graph
+            .get_entry(node)?
+            .historical_artifact_record(node)
+            .as_ref()
+            .map(TraceSummary::from_record))
+    }
+
     pub fn dependency_chain_to(
         &self,
         root: NodeId,
@@ -101,11 +137,19 @@ impl<'a> GraphObserver<'a> {
     }
 
     pub fn explanation_fact(&self, node: NodeId) -> Option<&'a ExplanationFact> {
-        self.graph.observation.diagnostics.explanation_facts().get(&node)
+        self.graph
+            .observation
+            .diagnostics
+            .explanation_facts()
+            .get(&node)
     }
 
     pub fn provenance_fact(&self, node: NodeId) -> Option<&'a ProvenanceFact> {
-        self.graph.observation.diagnostics.provenance_facts().get(&node)
+        self.graph
+            .observation
+            .diagnostics
+            .provenance_facts()
+            .get(&node)
     }
 
     pub fn retained_explanation_artifact(&self, node: NodeId) -> Option<NodeExplanation> {
@@ -185,10 +229,7 @@ impl<'a> GraphObserver<'a> {
         self.graph.observation.diagnostics.replay_events()
     }
 
-    pub fn replay_where(
-        &self,
-        mut predicate: impl FnMut(&ReplayEvent) -> bool,
-    ) -> ReplaySlice {
+    pub fn replay_where(&self, mut predicate: impl FnMut(&ReplayEvent) -> bool) -> ReplaySlice {
         ReplaySlice {
             start: None,
             end: None,
@@ -271,7 +312,7 @@ impl<'a> GraphObserver<'a> {
     pub fn lineage_for_node(&self, node: NodeId) -> Vec<LineageRecord> {
         self.lineage_records()
             .iter()
-            .filter(|record| record.node == Some(node))
+            .filter(|record| record.node() == Some(node))
             .cloned()
             .collect()
     }
@@ -279,7 +320,7 @@ impl<'a> GraphObserver<'a> {
     pub fn lineage_for_artifact(&self, artifact_id: LineageArtifactId) -> Vec<LineageRecord> {
         self.lineage_records()
             .iter()
-            .filter(|record| record.artifact_id == Some(artifact_id))
+            .filter(|record| record.subject_artifact_id() == Some(artifact_id))
             .cloned()
             .collect()
     }
@@ -288,7 +329,7 @@ impl<'a> GraphObserver<'a> {
         self.graph
             .get_entry(node)
             .ok()
-            .and_then(|entry| entry.get_trace_summary())
+            .and_then(|entry| entry.get_runtime_artifact_state())
             .and_then(|summary| summary.lineage_artifact_id)
     }
 
@@ -303,16 +344,18 @@ impl<'a> GraphObserver<'a> {
             let mut artifact_records = self
                 .lineage_records()
                 .iter()
-                .filter(|record| record.artifact_id == Some(artifact_id))
+                .filter(|record| record.subject_artifact_id() == Some(artifact_id))
                 .cloned()
                 .collect::<Vec<_>>();
             if artifact_records.is_empty() {
                 break;
             }
             artifact_records.sort_by_key(|record| record.sequence);
-            current = artifact_records
-                .iter()
-                .find_map(|record| record.parent_artifact_id.filter(|parent| *parent != artifact_id));
+            current = artifact_records.iter().find_map(|record| {
+                record
+                    .parent_artifact_id()
+                    .filter(|parent| *parent != artifact_id)
+            });
             chain.extend(artifact_records);
         }
         chain.sort_by_key(|record| record.sequence);

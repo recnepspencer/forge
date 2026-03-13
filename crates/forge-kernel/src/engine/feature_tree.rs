@@ -25,8 +25,9 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use forge_core::envelope::OperationResult;
 use forge_core::KernelError;
 use forge_signal::facade::{
-    evaluate_in_txn, Aspect, AspectMask, AspectVersion, CheckpointBarrier, DefaultComparatorResolver,
-    DependencyEdge, NodeId, SignalError, SignalGraph, SignalRuntime, TraceSummary, TransactionOutcome,
+    evaluate_in_txn, Aspect, AspectMask, AspectVersion, CheckpointBarrier,
+    DefaultComparatorResolver, DependencyEdge, NodeId, SignalError, SignalGraph, SignalRuntime,
+    TraceSummary, TransactionOutcome,
 };
 
 use super::contracts::feature_dependency::FeatureAspect;

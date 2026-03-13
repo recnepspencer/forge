@@ -10,8 +10,8 @@ use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::profile::DiagnosticsProfile;
 use crate::logic::explain::{CausalDisposition, NodeExplanation, UpstreamCause};
 use crate::logic::planner::{
-    EvaluationPlan, EvaluationSession, ExecutionReport, StageExecutionOutcome,
-    TaskExecutionOutcome, TaskReason,
+    EvaluationPlan, ExecutionReport, SessionScratch, StageExecutionOutcome, TaskExecutionOutcome,
+    TaskReason,
 };
 use crate::presentation::metrics::GraphMetrics;
 
@@ -173,7 +173,7 @@ impl GraphSummary {
             if dependencies.iter().any(|edge| edge.scope_ref().is_some()) {
                 nodes_with_partition_scopes += 1;
             }
-            if let Some(trace) = entry.get_trace_summary() {
+            if let Some(trace) = entry.get_runtime_artifact_state() {
                 nodes_with_trace_summary += 1;
                 if trace.execution_record_id.is_some() {
                     nodes_with_execution_record += 1;
@@ -223,10 +223,7 @@ impl EvaluationPlanSummary {
         )
     }
 
-    pub(crate) fn from_session(
-        session: &EvaluationSession<'_>,
-        profile: DiagnosticsProfile,
-    ) -> Self {
+    pub(crate) fn from_session(session: &SessionScratch<'_>, profile: DiagnosticsProfile) -> Self {
         Self::from_components(
             session.summary.requested_target_count,
             session.summary.stage_count,
@@ -445,7 +442,7 @@ impl ExecutionHistorySummary {
             let Ok(entry) = graph.get_entry(node) else {
                 continue;
             };
-            let Some(trace) = entry.get_trace_summary() else {
+            let Some(trace) = entry.get_runtime_artifact_state() else {
                 continue;
             };
             traced_node_count += 1;

@@ -80,8 +80,8 @@ impl<'a> GraphInspector<'a> {
                 self.graph
                     .get_entry(*node)
                     .ok()
-                    .and_then(|entry| entry.get_trace_summary())
-                    .and_then(|trace| trace.execution_record_id)
+                    .and_then(|entry| entry.get_runtime_artifact_state())
+                    .and_then(|state| state.execution_record_id)
                     .is_some()
             })
             .collect()
@@ -191,7 +191,7 @@ impl<'a> ExecutionInspector<'a> {
             .filter(|node| {
                 self.graph
                     .get_entry(*node)
-                    .map(|entry| entry.get_trace_summary().is_some())
+                    .map(|entry| entry.get_runtime_artifact_state().is_some())
                     .unwrap_or(false)
             })
             .collect()
@@ -204,8 +204,8 @@ impl<'a> ExecutionInspector<'a> {
                 self.graph
                     .get_entry(node)
                     .ok()
-                    .and_then(|entry| entry.get_trace_summary())
-                    .and_then(|trace| trace.execution_record_id)
+                    .and_then(|entry| entry.get_runtime_artifact_state())
+                    .and_then(|state| state.execution_record_id)
             })
             .max()
     }

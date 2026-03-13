@@ -1,8 +1,10 @@
 use serde_json::json;
 
-use crate::facade::{
-    BranchId, CommitResult, EntityMutationIntent, RecordPayload, MutationIntent,
-    TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
+use crate::facade::history::BranchId;
+use crate::facade::payloads::RecordPayload;
+use crate::facade::transactions::{
+    CommitResult, EntityMutationIntent, MutationIntent, TransactionOptions, UpdateEntityIntent,
+    WorkerIntentBatch,
 };
 
 use super::super::fixture::{FintechCaseRole, FintechWorld};
@@ -18,20 +20,22 @@ pub(crate) fn diverge_case_trade_on_branch(
         target_branch: Some(branch_id),
         ..TransactionOptions::default()
     });
-    txn.push_batch(WorkerIntentBatch::new("diverge-case-trade").push(
-        MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-            entity_id: case.trade,
-            payload: RecordPayload::StructuredJson(json!({
-                "entity_type": "trade",
-                "case": format!("{:?}", case.role),
-                "desk": "analysis-branch",
-                "book": "branch-divergence",
-                "notional": notional,
-                "ccy": "USD",
-                "diverged": true,
-            })),
-        })),
-    ));
+    txn.push_batch(
+        WorkerIntentBatch::new("diverge-case-trade").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id: case.trade,
+                payload: RecordPayload::StructuredJson(json!({
+                    "entity_type": "trade",
+                    "case": format!("{:?}", case.role),
+                    "desk": "analysis-branch",
+                    "book": "branch-divergence",
+                    "notional": notional,
+                    "ccy": "USD",
+                    "diverged": true,
+                })),
+            }),
+        )),
+    );
     txn.commit().unwrap()
 }
 

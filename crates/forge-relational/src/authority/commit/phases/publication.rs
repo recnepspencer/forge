@@ -1,8 +1,7 @@
 use serde_json::json;
 
 use crate::capabilities::{
-    DiagnosticsSink, DurabilityWrite, PublicationPolicySource, SchemaSource,
-    SchemaVersionSource,
+    DiagnosticsSink, DurabilityWrite, PublicationPolicySource, SchemaSource, SchemaVersionSource,
 };
 use crate::diagnostics::data::{DiagnosticCode, DiagnosticsScope};
 use crate::history::data::{BranchId, CommitId, CommitReference};
@@ -38,8 +37,8 @@ pub(crate) fn canonical_commit_envelope(
     runtime: &(impl SchemaSource + SchemaVersionSource),
     commit_reference: &CommitReference,
     branch_id: &BranchId,
-    merge_parent_branches: Vec<BranchId>,
-    merge_base_commits: Vec<CommitId>,
+    merge_parent_branches: &[BranchId],
+    merge_base_commits: &[CommitId],
     merged_plan: &MergedCommitPlan,
     patch: crate::publication::data::diff::RelationalPatchRecord,
     diagnostics_summary: crate::diagnostics::data::RelationalDiagnosticArtifact,
@@ -48,8 +47,8 @@ pub(crate) fn canonical_commit_envelope(
     CanonicalCommitEnvelope {
         commit: commit_reference.clone(),
         branch_context: branch_id.clone(),
-        merge_parent_branches,
-        merge_base_commits,
+        merge_parent_branches: merge_parent_branches.to_vec(),
+        merge_base_commits: merge_base_commits.to_vec(),
         schema_version: runtime.primary_schema_version_id(),
         schema_registry: runtime.schema_registry().clone(),
         merged_plan: merged_plan.clone(),
@@ -66,7 +65,7 @@ pub(crate) fn append_durable_commit(
     commit_id: CommitId,
     branch_id: &BranchId,
 ) -> Result<(), TransactionCommitError> {
-    if let Err(error) = runtime.append_durable_envelope(canonical_commit_envelope.clone()) {
+    if let Err(error) = runtime.append_durable_envelope(canonical_commit_envelope) {
         runtime.emit_diagnostic_entry(
             DiagnosticsScope::History,
             DiagnosticCode::DurableAppendFailed,

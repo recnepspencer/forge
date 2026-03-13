@@ -1,6 +1,6 @@
+use crate::authority::mutation::outcomes::MutationOutcome;
 use crate::authority::mutation::record_changes::delete_entity_with_cascade;
 use crate::authority::mutation::stale_targets::ensure_entity_target_is_current;
-use crate::authority::mutation::outcomes::{MutationEvent, MutationOutcome};
 use crate::authority::mutation::MutationWorkspace;
 use crate::transactions::data::{CommitConflict, DeleteEntityIntent};
 
@@ -10,7 +10,7 @@ pub(super) fn apply(
 ) -> Result<MutationOutcome, CommitConflict> {
     let version_id = workspace.version_id();
     let cascade_delete_policy = workspace.cascade_delete_policy();
-    let mut outcome = MutationOutcome::default();
+    let mut outcome = MutationOutcome::entity_deleted(intent.entity_id);
     workspace.with_context(|context| {
         ensure_entity_target_is_current(context.state, intent.entity_id)?;
         delete_entity_with_cascade(
@@ -23,8 +23,5 @@ pub(super) fn apply(
         );
         Ok::<(), CommitConflict>(())
     })?;
-    outcome.record_event(MutationEvent::EntityDeleted {
-        entity_id: intent.entity_id,
-    });
     Ok(outcome)
 }

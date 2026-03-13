@@ -1,8 +1,8 @@
 use std::collections::BTreeSet;
 
 use crate::logic::runtime::PartitionAccess;
-use crate::payloads::data::RecordPayload;
 use crate::logic::runtime::RelationalRuntime;
+use crate::payloads::data::RecordPayload;
 
 pub(crate) fn refresh_unique_field_index_for_records(
     runtime: &mut RelationalRuntime,
@@ -13,7 +13,7 @@ pub(crate) fn refresh_unique_field_index_for_records(
     if tracked_fields.is_empty() {
         return;
     }
-    let state = runtime.current_state();
+    let state = runtime.storage_access().current_state();
     let mut refreshed_values = Vec::new();
     for record in changed_records {
         let crate::transactions::data::RecordRef::Entity(entity_id) = record else {
@@ -62,7 +62,7 @@ pub(crate) fn rebuild_unique_field_indexes(runtime: &mut RelationalRuntime) {
     if tracked_fields.is_empty() {
         return;
     }
-    let state = runtime.current_state();
+    let state = runtime.storage_access().current_state();
     let version_id = runtime.current_version_id();
     let mut rebuilt_values = Vec::new();
     for partition_id in state.partition_ids() {
@@ -76,8 +76,11 @@ pub(crate) fn rebuild_unique_field_indexes(runtime: &mut RelationalRuntime) {
             if slot_view.lifecycle() == crate::storage::data::RecordLifecycleState::Reusable {
                 continue;
             }
-            let entity_id =
-                crate::identity::data::EntityId::new(partition_id, slot as u64, slot_view.generation());
+            let entity_id = crate::identity::data::EntityId::new(
+                partition_id,
+                slot as u64,
+                slot_view.generation(),
+            );
             if let Some(payload) = entity_payload_for_state(&state, entity_id, version_id) {
                 for field in &tracked_fields {
                     if let Some(value) = payload

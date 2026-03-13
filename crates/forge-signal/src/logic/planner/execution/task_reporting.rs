@@ -1,7 +1,7 @@
 use crate::data::graph::SignalGraph;
 use crate::data::node::NodeState;
 use crate::data::output::MemoizedResultOrigin;
-use crate::data::trace::TraceSummary;
+use crate::data::trace::RuntimeArtifactState;
 use crate::diagnostics::failure::ExecutionFailureContext;
 use crate::diagnostics::recorder::DiagnosticsRecorder;
 use crate::logic::evaluation::{EvaluationVerdict, SuppressionReason};
@@ -17,8 +17,8 @@ pub(crate) fn classify_task_record(
     task: &EvaluationTask,
     before_state: NodeState,
     after_state: NodeState,
-    before_trace: Option<&TraceSummary>,
-    after_trace: Option<&TraceSummary>,
+    before_trace: Option<&RuntimeArtifactState>,
+    after_trace: Option<&RuntimeArtifactState>,
     verdict: EvaluationVerdict,
     memoized_origin: MemoizedResultOrigin,
 ) -> TaskExecutionRecord {
@@ -49,10 +49,17 @@ pub(crate) fn classify_task_record(
             }
             _ if memoized_reuse => (TaskExecutionOutcome::MemoizedReuse, None),
             _ if propagation_suppressed => (TaskExecutionOutcome::PropagationSuppressed, None),
-            _ if !trace_changed && matches!((before_state, after_state), (NodeState::Clean, NodeState::Clean)) => (
-                TaskExecutionOutcome::Pruned,
-                Some(ExecutionPruneReason::CleanAtPlanTime),
-            ),
+            _ if !trace_changed
+                && matches!(
+                    (before_state, after_state),
+                    (NodeState::Clean, NodeState::Clean)
+                ) =>
+            {
+                (
+                    TaskExecutionOutcome::Pruned,
+                    Some(ExecutionPruneReason::CleanAtPlanTime),
+                )
+            }
             _ => (TaskExecutionOutcome::PropagationSuppressed, None),
         },
     };
@@ -74,10 +81,7 @@ pub(crate) fn classify_task_record(
     }
 }
 
-pub(crate) fn record_execution_failure(
-    graph: &mut SignalGraph,
-    context: ExecutionFailureContext,
-) {
+pub(crate) fn record_execution_failure(graph: &mut SignalGraph, context: ExecutionFailureContext) {
     DiagnosticsRecorder::new(graph).record_failure(context);
 }
 

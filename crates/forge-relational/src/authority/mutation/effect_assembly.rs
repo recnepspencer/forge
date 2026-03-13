@@ -24,8 +24,11 @@ pub(crate) fn assemble_effect(
                 let aspects = workspace.with_context(|context| {
                     aspect_keys_for_payload(Some(&payload), context.symbols)
                 });
-                effect.changed_records.push(RecordRef::Entity(entity_id));
-                effect.patch_records.push(PatchRecord {
+                effect
+                    .publication
+                    .changed_records
+                    .push(RecordRef::Entity(entity_id));
+                effect.publication.patch_records.push(PatchRecord {
                     kind: PatchRecordKind::Created,
                     target: RecordRef::Entity(entity_id),
                     aspects,
@@ -41,8 +44,11 @@ pub(crate) fn assemble_effect(
                 let aspects = workspace.with_context(|context| {
                     aspect_keys_for_payload(Some(&payload), context.symbols)
                 });
-                effect.changed_records.push(RecordRef::Entity(entity_id));
-                effect.patch_records.push(PatchRecord {
+                effect
+                    .publication
+                    .changed_records
+                    .push(RecordRef::Entity(entity_id));
+                effect.publication.patch_records.push(PatchRecord {
                     kind: PatchRecordKind::Updated,
                     target: RecordRef::Entity(entity_id),
                     aspects,
@@ -55,8 +61,11 @@ pub(crate) fn assemble_effect(
                 });
             }
             RecordMutation::EntityDeleted { entity_id } => {
-                effect.changed_records.push(RecordRef::Entity(entity_id));
-                effect.patch_records.push(PatchRecord {
+                effect
+                    .publication
+                    .changed_records
+                    .push(RecordRef::Entity(entity_id));
+                effect.publication.patch_records.push(PatchRecord {
                     kind: PatchRecordKind::Deleted,
                     target: RecordRef::Entity(entity_id),
                     aspects: Vec::new(),
@@ -77,12 +86,15 @@ pub(crate) fn assemble_effect(
                 let aspects = workspace.with_context(|context| {
                     aspect_keys_for_payload(payload.as_ref(), context.symbols)
                 });
-                effect.changed_records.push(RecordRef::Relation(relation_id));
-                effect.adjacency_deltas.push(AdjacencyDelta {
+                effect
+                    .publication
+                    .changed_records
+                    .push(RecordRef::Relation(relation_id));
+                effect.adjacency.deltas.push(AdjacencyDelta {
                     relation_id,
                     kind: AdjacencyDeltaKind::Created { source, target },
                 });
-                effect.patch_records.push(PatchRecord {
+                effect.publication.patch_records.push(PatchRecord {
                     kind: PatchRecordKind::Created,
                     target: RecordRef::Relation(relation_id),
                     aspects,
@@ -101,12 +113,15 @@ pub(crate) fn assemble_effect(
                 source,
                 target,
             } => {
-                effect.changed_records.push(RecordRef::Relation(relation_id));
-                effect.adjacency_deltas.push(AdjacencyDelta {
+                effect
+                    .publication
+                    .changed_records
+                    .push(RecordRef::Relation(relation_id));
+                effect.adjacency.deltas.push(AdjacencyDelta {
                     relation_id,
                     kind: AdjacencyDeltaKind::Deleted { source, target },
                 });
-                effect.patch_records.push(PatchRecord {
+                effect.publication.patch_records.push(PatchRecord {
                     kind: PatchRecordKind::Deleted,
                     target: RecordRef::Relation(relation_id),
                     aspects: Vec::new(),
@@ -126,8 +141,11 @@ pub(crate) fn assemble_effect(
                 target,
                 payload,
             } => {
-                effect.changed_records.push(RecordRef::Relation(relation_id));
-                effect.patch_records.push(PatchRecord {
+                effect
+                    .publication
+                    .changed_records
+                    .push(RecordRef::Relation(relation_id));
+                effect.publication.patch_records.push(PatchRecord {
                     kind: PatchRecordKind::RetainedForAudit,
                     target: RecordRef::Relation(relation_id),
                     aspects: Vec::new(),
@@ -145,7 +163,7 @@ pub(crate) fn assemble_effect(
     }
 
     for event in outcome.events {
-        effect.diagnostics.push(event_diagnostic(event));
+        effect.diagnostics.entries.push(event_diagnostic(event));
     }
 
     effect
@@ -153,10 +171,7 @@ pub(crate) fn assemble_effect(
 
 fn event_diagnostic(event: MutationEvent) -> RelationalDiagnosticsEntry {
     match event {
-        MutationEvent::EntityCreated {
-            entity_id,
-            kind_id,
-        } => RelationalDiagnosticsEntry {
+        MutationEvent::EntityCreated { entity_id, kind_id } => RelationalDiagnosticsEntry {
             code: DiagnosticCode::EntityCreated,
             message: "entity created".to_string(),
             fields: json!({

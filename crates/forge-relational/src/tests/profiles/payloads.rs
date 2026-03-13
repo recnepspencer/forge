@@ -1,5 +1,5 @@
+use crate::facade::transactions::MutationIntent;
 use crate::tests::support::*;
-use crate::facade::MutationIntent;
 
 #[test]
 fn opaque_payloads_round_trip_through_commit_and_read() {
@@ -12,17 +12,20 @@ fn opaque_payloads_round_trip_through_commit_and_read() {
         .build();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
-        WorkerIntentBatch::new("opaque").push(MutationIntent::Create(
-            CreateIntent::Entity(crate::transactions::data::EntitySpec {
+        WorkerIntentBatch::new("opaque").push(MutationIntent::Create(CreateIntent::Entity(
+            crate::transactions::data::EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: InternedString::Raw("opaque".to_string()),
                 payload: RecordPayload::OpaqueBytes(vec![1, 2, 3, 4]),
-            }),
-        )),
+            },
+        ))),
     );
     let outcome = txn.commit().unwrap();
-    let read = runtime.visibility_reads().read_snapshot(&outcome.snapshot).unwrap();
+    let read = runtime
+        .visibility_reads()
+        .read_snapshot(&outcome.snapshot)
+        .unwrap();
 
     assert_eq!(
         read.entities().first().unwrap().payload,
@@ -56,26 +59,28 @@ fn structured_json_payloads_are_canonicalized_in_patch_output() {
 
     let mut left_txn = left_runtime.begin_transaction(TransactionOptions::default());
     left_txn.push_batch(
-        WorkerIntentBatch::new("left-json").push(MutationIntent::Create(
-            CreateIntent::Entity(crate::transactions::data::EntitySpec {
+        WorkerIntentBatch::new("left-json").push(MutationIntent::Create(CreateIntent::Entity(
+            crate::transactions::data::EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: InternedString::Raw("entity".to_string()),
                 payload: RecordPayload::StructuredJson(json!({"b": 2, "a": 1})),
-            }),
-        )),
+            },
+        ))),
     );
     left_txn.commit().unwrap();
 
     let mut right_txn = right_runtime.begin_transaction(TransactionOptions::default());
-    right_txn.push_batch(WorkerIntentBatch::new("right-json").push(
-        MutationIntent::Create(CreateIntent::Entity(crate::transactions::data::EntitySpec {
-            partition_id: PartitionId::main(),
-            kind_id: KindId(1),
-            client_key: InternedString::Raw("entity".to_string()),
-            payload: RecordPayload::StructuredJson(json!({"a": 1, "b": 2})),
-        })),
-    ));
+    right_txn.push_batch(
+        WorkerIntentBatch::new("right-json").push(MutationIntent::Create(CreateIntent::Entity(
+            crate::transactions::data::EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: InternedString::Raw("entity".to_string()),
+                payload: RecordPayload::StructuredJson(json!({"a": 1, "b": 2})),
+            },
+        ))),
+    );
     right_txn.commit().unwrap();
 
     assert_eq!(

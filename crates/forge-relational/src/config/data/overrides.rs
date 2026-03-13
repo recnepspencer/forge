@@ -11,9 +11,9 @@ use crate::symbols::data::{SymbolPolicy, SymbolTableSnapshot};
 use crate::validation::data::InvariantCatalog;
 
 use super::policies::{
-    AdjacencyPolicy, CascadeDeletePolicy, CompiledLanePolicy, CrossContextPolicy,
-    DurabilityPolicy, DurableLogPolicy, MvccConfig, PublicationConfig, RetentionPolicy,
-    StorageLayoutConfig, VisibilityCachePolicy,
+    AdjacencyPolicy, CascadeDeletePolicy, CompiledLanePolicy, CrossContextPolicy, DurabilityPolicy,
+    DurableLogPolicy, MvccConfig, PublicationConfig, RetentionPolicy, StorageLayoutConfig,
+    VisibilityCachePolicy,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]

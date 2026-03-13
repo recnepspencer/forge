@@ -10,7 +10,8 @@ use forge_harness::facade::{
 };
 use serde_json::json;
 
-use crate::facade::{BranchId, RelationalReplayRequest, ReplayExecutionMode};
+use crate::facade::history::BranchId;
+use crate::facade::replay::{RelationalReplayRequest, ReplayExecutionMode};
 
 use super::super::actions::{
     correct_seeded_trade_candidate, open_analysis_branch, refresh_risk_views,
@@ -236,17 +237,17 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
                 let commit_id = session
                     .world
                     .runtime
-                    .history_access().latest_commit()
+                    .history_access()
+                    .latest_commit()
                     .ok_or_else(|| "latest commit unavailable for replay capture".to_string())?
                     .commit_id;
-                let replay = session
-                    .world
-                    .runtime
-                    .replay_authority().replay_commit(RelationalReplayRequest {
+                let replay = session.world.runtime.replay_authority().replay_commit(
+                    RelationalReplayRequest {
                         commit_id,
                         branch_id: branch,
                         execution_mode: ReplayExecutionMode::SerialDeterministic,
-                    });
+                    },
+                );
                 session.named_replays.insert((*alias).to_string(), replay);
                 Ok(WorkflowStepOutcome::applied())
             }
@@ -262,7 +263,8 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
         session
             .world
             .runtime
-            .durability_authority().checkpoint()
+            .durability_authority()
+            .checkpoint()
             .map(|_| ())
             .map_err(|error| error.detail)
     }

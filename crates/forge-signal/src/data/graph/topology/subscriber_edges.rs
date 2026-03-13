@@ -1,29 +1,9 @@
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
+use crate::data::proof::{DedupedNodeBatch, SubscriberRepair, SubscriberRepairBatch};
 
 use super::super::signal_graph::SignalGraph;
 use super::mutation::SubscriberBatchOp;
-
-#[derive(Debug, Default)]
-struct SubscriberReconciliationPlan {
-    rewrites: Vec<SubscriberSetRewrite>,
-}
-
-#[derive(Debug)]
-struct SubscriberSetRewrite {
-    source: NodeId,
-    subscribers: Vec<NodeId>,
-}
-
-impl SubscriberReconciliationPlan {
-    fn push(&mut self, source: NodeId, subscribers: Vec<NodeId>) {
-        self.rewrites.push(SubscriberSetRewrite { source, subscribers });
-    }
-
-    fn is_empty(&self) -> bool {
-        self.rewrites.is_empty()
-    }
-}
 
 impl SignalGraph {
     pub(super) fn add_subscriber_edge(
@@ -45,7 +25,10 @@ impl SignalGraph {
         node: NodeId,
         subscribers: &[NodeId],
     ) -> Result<(), SignalError> {
-        let subscribers_id = self.topology.subscriber_edges.insert_from_slice(subscribers);
+        let subscribers_id = self
+            .topology
+            .subscriber_edges
+            .insert_from_slice(subscribers);
         self.get_entry_mut(node)?.set_subscribers_id(subscribers_id);
         self.record_graph_storage_pressure();
         Ok(())
@@ -67,7 +50,10 @@ impl SignalGraph {
 
     #[cfg(test)]
     pub(crate) fn rebuild_subscriber_index_from_dependencies(&mut self) -> Result<(), SignalError> {
-        self.observation.telemetry.storage.subscriber_index_rebuild_count += 1;
+        self.observation
+            .telemetry
+            .storage
+            .subscriber_index_rebuild_count += 1;
         let live_nodes = self.live_node_ids();
         let mut rebuilt = vec![Vec::<NodeId>::new(); self.arena_capacity()];
 
@@ -173,8 +159,8 @@ impl SignalGraph {
     fn build_subscriber_membership_repair_plan(
         &self,
         sources: &[NodeId],
-    ) -> Result<SubscriberReconciliationPlan, SignalError> {
-        let mut plan = SubscriberReconciliationPlan::default();
+    ) -> Result<SubscriberRepairBatch, SignalError> {
+        let mut repairs = Vec::<SubscriberRepair>::new();
 
         for source in sorted_unique_nodes(sources) {
             if !self.is_alive(source) {
@@ -203,23 +189,26 @@ impl SignalGraph {
             }
 
             if changed {
-                plan.push(source, expected);
+                repairs.push(SubscriberRepair {
+                    source,
+                    subscribers: DedupedNodeBatch::new(expected),
+                });
             }
         }
 
-        Ok(plan)
+        Ok(SubscriberRepairBatch::new(repairs))
     }
 
     fn apply_subscriber_reconciliation_plan(
         &mut self,
-        plan: SubscriberReconciliationPlan,
+        plan: SubscriberRepairBatch,
     ) -> Result<(), SignalError> {
         if plan.is_empty() {
             return Ok(());
         }
 
-        for rewrite in plan.rewrites {
-            self.set_subscribers_sorted(rewrite.source, &rewrite.subscribers)?;
+        for rewrite in plan.as_slice() {
+            self.set_subscribers_sorted(rewrite.source, rewrite.subscribers.as_slice())?;
         }
 
         Ok(())
@@ -234,7 +223,13 @@ impl SignalGraph {
         }
 
         let mut sorted = ops.to_vec();
-        sorted.sort_by_key(|op| (node_id_sort_key(op.source), node_id_sort_key(op.subscriber), !op.should_subscribe));
+        sorted.sort_by_key(|op| {
+            (
+                node_id_sort_key(op.source),
+                node_id_sort_key(op.subscriber),
+                !op.should_subscribe,
+            )
+        });
 
         let mut op_index = 0usize;
         while op_index < sorted.len() {
@@ -273,7 +268,8 @@ impl SignalGraph {
 
             if changed {
                 let subscribers_id = self.topology.subscriber_edges.insert_from_slice(&updated);
-                self.get_entry_mut(source)?.set_subscribers_id(subscribers_id);
+                self.get_entry_mut(source)?
+                    .set_subscribers_id(subscribers_id);
                 self.record_graph_storage_pressure();
             }
 

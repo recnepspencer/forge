@@ -86,15 +86,21 @@ fn graph_diagnostics_summary_is_deterministic_and_serializable() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     let mut source_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(10, 0));
     evaluate(&mut graph, source, &mut source_compute).unwrap();
     evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
 
-    let left = graph.observe().diagnostics_summary(DiagnosticsProfile::Development);
-    let right = graph.observe().diagnostics_summary(DiagnosticsProfile::Development);
+    let left = graph
+        .observe()
+        .diagnostics_summary(DiagnosticsProfile::Development);
+    let right = graph
+        .observe()
+        .diagnostics_summary(DiagnosticsProfile::Development);
     assert_eq!(left, right);
     assert!(graphs_semantically_equivalent(&left, &right));
 
@@ -135,7 +141,9 @@ fn diagnostics_plan_summary_reports_contract_pruning() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().reads_aspects(mask_a()).build();
-    graph.append_dependency(dependent, source, ASPECT_B).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_B)
+        .unwrap();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, source, &mut compute).unwrap();
@@ -165,7 +173,10 @@ fn explanation_summary_includes_contract_metadata() {
     let explanation = graph.observe().explain(node).unwrap();
     let summary = explanation.diagnostics_summary(DiagnosticsProfile::Development);
 
-    assert_eq!(summary.contract_reads_mask, AspectMask::from([ASPECT_A]).bits() as u128);
+    assert_eq!(
+        summary.contract_reads_mask,
+        AspectMask::from([ASPECT_A]).bits() as u128
+    );
     assert_eq!(
         summary.contract_produces_mask,
         AspectMask::from([ASPECT_B]).bits() as u128
@@ -184,7 +195,9 @@ fn graph_diff_detects_state_and_structure_mismatch() {
     let mut graph_b = SignalGraph::new();
     let source = graph_b.node().build();
     let dependent = graph_b.node().build();
-    graph_b.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph_b
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
     evaluate(&mut graph_b, source, &mut compute).unwrap();
     evaluate(&mut graph_b, dependent, &mut compute).unwrap();
     mark_dirty(&mut graph_b, source, ASPECT_A).unwrap();
@@ -329,7 +342,9 @@ fn successful_execution_automatically_records_flow_and_history_diagnostics() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     let source_compute = |ctx: &mut EvaluationContext<'_, ()>| Ok(ctx.finish(version_ab(1, 0)));
     let dependent_compute = |ctx: &mut EvaluationContext<'_, ()>| {
@@ -364,13 +379,17 @@ fn successful_execution_automatically_records_flow_and_history_diagnostics() {
         })
         .unwrap();
 
-    let flow = graph.observe()
+    let flow = graph
+        .observe()
         .latest_flow_diagnostics()
         .expect("flow diagnostics should be recorded");
     assert_eq!(flow.change.changed_nodes, vec![source]);
     assert_eq!(flow.planning.plan.task_count, 2);
     assert_eq!(flow.apply.report.task_count, 2);
-    assert!(!graph.observe().recent_execution_history_diagnostics().is_empty());
+    assert!(!graph
+        .observe()
+        .recent_execution_history_diagnostics()
+        .is_empty());
 }
 
 #[test]
@@ -425,7 +444,9 @@ fn operational_profile_repeated_waves_stay_bounded_and_shallow() {
 
 #[test]
 fn execution_failures_and_rollbacks_automatically_record_diagnostics() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     let node = runtime.graph_mut().node().build();
     let mut runtime_ctx = ();
 
@@ -434,9 +455,11 @@ fn execution_failures_and_rollbacks_automatically_record_diagnostics() {
             tx.mark_dirty(node, ASPECT_A)?;
             tx.evaluate_with_plan(
                 node,
-                &|_view| Err::<crate::logic::evaluation::EvaluationOutput, _>(
-                    SignalError::internal("synthetic precompute failure"),
-                ),
+                &|_view| {
+                    Err::<crate::logic::evaluation::EvaluationOutput, _>(SignalError::internal(
+                        "synthetic precompute failure",
+                    ))
+                },
                 EvaluationRequestMode::Default,
             )?;
             Ok(())
@@ -459,7 +482,9 @@ fn execution_failures_and_rollbacks_automatically_record_diagnostics() {
 
 #[test]
 fn repeated_failure_capture_stays_current_and_bounded() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     runtime
         .graph_mut()
         .set_diagnostics_profile(DiagnosticsProfile::Development);
@@ -473,9 +498,9 @@ fn repeated_failure_capture_stays_current_and_bounded() {
                 tx.evaluate_with_plan(
                     node,
                     &move |_view| {
-                        Err::<crate::logic::evaluation::EvaluationOutput, _>(SignalError::internal(format!(
-                            "synthetic precompute failure cycle {cycle}"
-                        )))
+                        Err::<crate::logic::evaluation::EvaluationOutput, _>(SignalError::internal(
+                            format!("synthetic precompute failure cycle {cycle}"),
+                        ))
                     },
                     EvaluationRequestMode::Default,
                 )?;
@@ -499,7 +524,9 @@ fn repeated_failure_capture_stays_current_and_bounded() {
 
 #[test]
 fn repeated_rollbacks_keep_latest_rollback_current_and_bounded() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     runtime
         .graph_mut()
         .set_diagnostics_profile(DiagnosticsProfile::Development);
@@ -532,7 +559,8 @@ fn repeated_rollbacks_keep_latest_rollback_current_and_bounded() {
 
 #[test]
 fn commit_promotion_failures_record_failure_and_rollback_diagnostics() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults()
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
         .with_events::<DiagnosticsEvent>()
         .with_domains::<DiagnosticsDomain>()
         .build();
@@ -572,7 +600,8 @@ fn commit_promotion_failures_record_failure_and_rollback_diagnostics() {
 
 #[test]
 fn event_bus_begin_failures_record_failure_and_rollback_diagnostics() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults()
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
         .with_events::<DiagnosticsEvent>()
         .with_domains::<DiagnosticsDomain>()
         .build();
@@ -618,8 +647,12 @@ fn history_and_explanation_summaries_are_deterministic() {
         .unwrap();
     graph.execute_prepared_plan(&plan, &(), &compute).unwrap();
 
-    let history_a = graph.observe().execution_history_summary(DiagnosticsProfile::Forensic);
-    let history_b = graph.observe().execution_history_summary(DiagnosticsProfile::Forensic);
+    let history_a = graph
+        .observe()
+        .execution_history_summary(DiagnosticsProfile::Forensic);
+    let history_b = graph
+        .observe()
+        .execution_history_summary(DiagnosticsProfile::Forensic);
     assert!(compare_execution_history(&history_a, &history_b).is_empty());
     assert!(repeat_run_summaries_equal(&[
         history_a.clone(),
@@ -627,11 +660,13 @@ fn history_and_explanation_summaries_are_deterministic() {
     ]));
     assert!(render_execution_history_summary(&history_a).contains("ExecutionHistorySummary"));
 
-    let explanation_a = graph.observe()
+    let explanation_a = graph
+        .observe()
         .explain(node)
         .unwrap()
         .diagnostics_summary(DiagnosticsProfile::Development);
-    let explanation_b = graph.observe()
+    let explanation_b = graph
+        .observe()
         .explain(node)
         .unwrap()
         .diagnostics_summary(DiagnosticsProfile::Development);
@@ -695,12 +730,7 @@ fn serial_and_parallel_reports_are_semantically_equivalent() {
         .unwrap();
 
     let report_serial = graph_serial
-        .execute_prepared_plan_with_executor(
-            &plan_serial,
-            &(),
-            &evaluator,
-            StageExecutor::Serial,
-        )
+        .execute_prepared_plan_with_executor(&plan_serial, &(), &evaluator, StageExecutor::Serial)
         .unwrap();
     let report_parallel = graph_parallel
         .execute_prepared_plan_with_executor(
@@ -834,7 +864,9 @@ fn repeated_serial_parallel_lifecycle_parity_stays_stable() {
 
 #[test]
 fn repeated_memoized_execution_retains_bounded_diagnostics() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     runtime
         .graph_mut()
         .set_diagnostics_profile(DiagnosticsProfile::Operational);

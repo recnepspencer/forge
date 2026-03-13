@@ -6,7 +6,9 @@ use crate::tests::support::*;
 
 #[test]
 fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch_config() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     let mut runtime_ctx = ();
     let main = runtime.observe().current_branch();
     let feature = runtime.create_branch("feature").unwrap();
@@ -69,7 +71,9 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
 
 #[test]
 fn restore_branch_snapshot_keeps_sibling_branch_keyed_bindings_isolated() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     let mut runtime_ctx = ();
     let main = runtime.observe().current_branch();
     let feature = runtime.create_branch("feature").unwrap();

@@ -1,6 +1,7 @@
-use crate::facade::{
-    CompactionOutcome, DurabilityError, DurableCheckpoint, RecoveryPlan, RelationalRuntime,
+use crate::facade::durability::{
+    CompactionOutcome, DurabilityError, DurableCheckpoint, RecoveryPlan,
 };
+use crate::facade::runtime::RelationalRuntime;
 use crate::logic::runtime::RecoveryOutcome;
 
 use super::super::fixture::FintechWorld;
@@ -22,7 +23,8 @@ pub(crate) fn recover_runtime_from_plan(
 ) -> Result<(RelationalRuntime, RecoveryOutcome), String> {
     let mut recovered = RelationalRuntime::new(plan.config.clone());
     let outcome = recovered
-        .durability_authority().recover(plan)
+        .durability_authority()
+        .recover(plan)
         .map_err(|error| format!("failed to recover persisted fintech world: {error:?}"))?;
     Ok((recovered, outcome))
 }

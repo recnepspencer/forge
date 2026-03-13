@@ -153,7 +153,8 @@ impl EventSubscriber for BarrierFailGate {
 
 #[test]
 fn transaction_flushes_deliver_events_in_epoch_order() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults()
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
         .with_domains::<Domain>()
         .with_events::<Ev>()
         .build();
@@ -186,7 +187,8 @@ fn transaction_flushes_deliver_events_in_epoch_order() {
 
 #[test]
 fn failed_later_epoch_keeps_earlier_epoch_committed_and_does_not_replay_stale_events() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults()
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
         .with_domains::<Domain>()
         .with_events::<Ev>()
         .build();

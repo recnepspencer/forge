@@ -41,7 +41,9 @@ fn kv64_parallel_branches_deterministic() {
 
         for j in 1..10 {
             let node = graph.node().build();
-            graph.append_dependency(node, branch[j - 1], ASPECT_B).unwrap();
+            graph
+                .append_dependency(node, branch[j - 1], ASPECT_B)
+                .unwrap();
             branch.push(node);
         }
         branches.push(branch);

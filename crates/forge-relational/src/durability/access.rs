@@ -91,8 +91,7 @@ impl<'runtime> DurabilityAccess<'runtime> {
                 Ok(file) => {
                     verified_segment_ids.push(manifest.segment_id);
                     tail_log.extend(file.entries.into_iter().filter(|entry| {
-                        checkpoint_commit
-                            .is_none_or(|covered| entry.commit.commit_id > covered)
+                        checkpoint_commit.is_none_or(|covered| entry.commit.commit_id > covered)
                     }));
                 }
                 Err(_) => {
@@ -123,7 +122,9 @@ impl<'runtime> DurabilityAccess<'runtime> {
             compatibility: RecoveryCompatibilityCheck {
                 schema_match: selected_checkpoint_manifest
                     .as_ref()
-                    .map(|manifest| manifest.schema_version == self.runtime.primary_schema_version_id())
+                    .map(|manifest| {
+                        manifest.schema_version == self.runtime.primary_schema_version_id()
+                    })
                     .unwrap_or(true),
                 profile_match: selected_checkpoint_manifest
                     .as_ref()
@@ -145,9 +146,7 @@ impl RelationalRuntime {
     }
 }
 
-fn in_memory_recovery_plan(
-    runtime: &(impl DurabilityRead + RuntimeConfigSource),
-) -> RecoveryPlan {
+fn in_memory_recovery_plan(runtime: &(impl DurabilityRead + RuntimeConfigSource)) -> RecoveryPlan {
     let checkpoint = runtime.durable_checkpoints().last().cloned();
     let tail_log = match checkpoint
         .as_ref()

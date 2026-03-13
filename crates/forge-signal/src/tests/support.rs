@@ -1,10 +1,10 @@
-use std::collections::BTreeMap;
 use crate::data::output::IntoNodeEvaluationResult;
 use crate::facade::{evaluation::*, graph::*, transaction::*, types::*};
 use crate::logic::planner::{
     build_evaluation_plan_with_policy_resolver, execute_plan_with_policy_and_condition,
     StageExecutor,
 };
+use std::collections::BTreeMap;
 use std::ops::DerefMut;
 
 pub const ASPECT_A: Aspect = Aspect::new(0);
@@ -74,16 +74,17 @@ where
     ) -> Result<&mut Self, SignalError> {
         self.dependencies_for(downstream)?
             .push(DependencyEdge::partition_detail(
-                upstream,
-                aspect,
-                partition,
-                detail,
+                upstream, aspect, partition, detail,
             ));
         Ok(self)
     }
 
     pub fn commit(mut self) -> Result<(), SignalError> {
-        self.graph.deref_mut().set_dependencies_batch(self.pending)
+        self.graph
+            .deref_mut()
+            .apply_dependency_batch_edit(&DependencyBatchEdit::from_pairs(std::mem::take(
+                &mut self.pending,
+            )))
     }
 
     fn dependencies_for(&mut self, node: NodeId) -> Result<&mut Vec<DependencyEdge>, SignalError> {
@@ -91,7 +92,10 @@ where
             self.pending
                 .insert(node, self.graph.deref_mut().dependencies_of(node)?.to_vec());
         }
-        Ok(self.pending.get_mut(&node).expect("pending dependency batch should contain node"))
+        Ok(self
+            .pending
+            .get_mut(&node)
+            .expect("pending dependency batch should contain node"))
     }
 }
 
@@ -162,10 +166,7 @@ impl GraphDependencyBatchExt for SignalGraph {
     ) -> Result<(), SignalError> {
         self.edit_dependencies(downstream, |dependencies| {
             dependencies.push(DependencyEdge::partition_detail(
-                upstream,
-                aspect,
-                partition,
-                detail,
+                upstream, aspect, partition, detail,
             ));
         })
     }

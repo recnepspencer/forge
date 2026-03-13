@@ -1,5 +1,7 @@
 use crate::capabilities::{SchemaSource, StorageRead};
-use crate::transactions::data::{CommitConflict, ConflictClass, CreateIntent, EntityMutationIntent, MutationIntent};
+use crate::transactions::data::{
+    CommitConflict, ConflictClass, CreateIntent, EntityMutationIntent, MutationIntent,
+};
 
 use super::record_lookup::entity_exists_in_state;
 use super::schema_conflicts::schema_error_to_commit_conflict;

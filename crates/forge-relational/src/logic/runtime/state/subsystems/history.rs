@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use crate::history::data::{BranchId, CommitId, VersionNode};
 use crate::identity::data::VersionId;
@@ -10,7 +11,8 @@ use crate::replay::data::CanonicalCommitEnvelope;
 pub(crate) struct HistorySubsystem {
     pub(crate) branch_heads: BTreeMap<BranchId, Option<crate::history::data::CommitReference>>,
     pub(crate) commit_graph: BTreeMap<crate::history::data::CommitId, VersionNode>,
-    pub(crate) commit_envelopes: BTreeMap<crate::history::data::CommitId, CanonicalCommitEnvelope>,
+    pub(crate) commit_envelopes:
+        BTreeMap<crate::history::data::CommitId, Arc<CanonicalCommitEnvelope>>,
     pub(crate) patch_stream_index: BTreeMap<PatchStreamPosition, crate::history::data::CommitId>,
     pub(crate) next_commit_id: u64,
     pub(crate) next_version_id: u64,

@@ -15,8 +15,13 @@ pub(crate) fn apply_plan_to_working_state(
     schema_registry: &RelationalSchemaRegistry,
     symbols: &mut StringInterner,
 ) -> Result<MutationEffect, CommitConflict> {
-    let mut workspace =
-        MutationWorkspace::new(state, symbols, config, schema_registry, apply_plan.version_id);
+    let mut workspace = MutationWorkspace::new(
+        state,
+        symbols,
+        config,
+        schema_registry,
+        apply_plan.version_id,
+    );
     let mut effect = MutationEffect::default();
 
     for intent in &apply_plan.merged_intents {

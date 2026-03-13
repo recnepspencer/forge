@@ -1,3 +1,5 @@
+use crate::facade::history::{BranchCreateErrorClass, MergeConflictRecord};
+use crate::facade::transactions::CommitPhase;
 use crate::tests::support::*;
 
 #[test]
@@ -5,7 +7,8 @@ fn branch_creation_and_branch_targeted_commits_build_a_version_graph() {
     let mut runtime = runtime_with_test_schema();
     let main_outcome = create_entity_outcome(&mut runtime, "main-a");
     runtime
-        .history_authority().create_branch(
+        .history_authority()
+        .create_branch(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -18,12 +21,16 @@ fn branch_creation_and_branch_targeted_commits_build_a_version_graph() {
 
     assert_eq!(
         runtime
-            .history_access().branch_head(&BranchId("feature".to_string()))
+            .history_access()
+            .branch_head(&BranchId("feature".to_string()))
             .unwrap(),
         &feature_outcome.commit
     );
     assert_eq!(
-        runtime.history_access().branch_head(&BranchId("main".to_string())).unwrap(),
+        runtime
+            .history_access()
+            .branch_head(&BranchId("main".to_string()))
+            .unwrap(),
         &main_second.commit
     );
     assert_eq!(
@@ -43,7 +50,8 @@ fn merge_commit_uses_deterministic_parent_order_and_advances_target_branch() {
     let mut runtime = runtime_with_test_schema();
     let main_outcome = create_entity_outcome(&mut runtime, "main-a");
     runtime
-        .history_authority().create_branch(
+        .history_authority()
+        .create_branch(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -64,11 +72,15 @@ fn merge_commit_uses_deterministic_parent_order_and_advances_target_branch() {
         ]
     );
     assert_eq!(
-        runtime.history_access().branch_head(&BranchId("main".to_string())),
+        runtime
+            .history_access()
+            .branch_head(&BranchId("main".to_string())),
         Some(&merge_outcome.commit)
     );
     assert_eq!(
-        runtime.history_access().branch_head(&BranchId("feature".to_string())),
+        runtime
+            .history_access()
+            .branch_head(&BranchId("feature".to_string())),
         Some(&feature_outcome.commit)
     );
     let replay = runtime.replay_access();
@@ -84,13 +96,15 @@ fn merge_commit_uses_deterministic_parent_order_and_advances_target_branch() {
         vec![main_outcome.commit.commit_id]
     );
     assert!(runtime
-        .publication_access().diagnostics()
+        .publication_access()
+        .diagnostics()
         .by_scope(DiagnosticsScope::PatchPublication)
         .iter()
         .flat_map(|artifact| artifact.entries.iter())
         .any(|entry| entry.code == DiagnosticCode::MergeCommitPublished));
     assert!(runtime
-        .publication_access().diagnostics()
+        .publication_access()
+        .diagnostics()
         .by_scope(DiagnosticsScope::PatchPublication)
         .iter()
         .flat_map(|artifact| artifact.entries.iter())
@@ -118,18 +132,23 @@ fn branch_history_helpers_expose_ancestor_and_merge_base_reasoning() {
     let mut runtime = runtime_with_test_schema();
     let main = create_entity_outcome(&mut runtime, "main");
     runtime
-        .history_authority().create_branch(
+        .history_authority()
+        .create_branch(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
         .unwrap();
     let feature =
         create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
-    let chain = runtime.history_access().ancestor_chain(feature.commit.commit_id);
-    let merge_base = runtime.history_access().latest_common_ancestor_between_branches(
-        &BranchId("main".to_string()),
-        &BranchId("feature".to_string()),
-    );
+    let chain = runtime
+        .history_access()
+        .ancestor_chain(feature.commit.commit_id);
+    let merge_base = runtime
+        .history_access()
+        .latest_common_ancestor_between_branches(
+            &BranchId("main".to_string()),
+            &BranchId("feature".to_string()),
+        );
 
     assert_eq!(chain, vec![main.commit.commit_id, feature.commit.commit_id]);
     assert_eq!(merge_base, Some(main.commit.commit_id));
@@ -145,7 +164,8 @@ fn merge_inspection_reports_overlapping_authority() {
     let base = create_entity_outcome(&mut runtime, "shared");
     let shared = changed_entities(&base)[0];
     runtime
-        .history_authority().create_branch(
+        .history_authority()
+        .create_branch(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -166,7 +186,7 @@ fn merge_inspection_reports_overlapping_authority() {
     assert!(!inspection.can_merge);
     assert_eq!(
         inspection.conflicting_records,
-        vec![crate::facade::MergeConflictRecord::Entity(shared)]
+        vec![MergeConflictRecord::Entity(shared)]
     );
 }
 
@@ -176,7 +196,8 @@ fn merge_commit_rejects_overlapping_authority_since_merge_base() {
     let base = create_entity_outcome(&mut runtime, "shared");
     let shared = changed_entities(&base)[0];
     runtime
-        .history_authority().create_branch(
+        .history_authority()
+        .create_branch(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -200,20 +221,14 @@ fn merge_commit_rejects_overlapping_authority_since_merge_base() {
         TransactionCommitError::Conflict { error: ref conflict, .. }
             if conflict.code == DiagnosticCode::MergeConflictOverlap
     ));
-    assert!(error
-        .commit_log()
-        .events()
-        .iter()
-        .any(|event| matches!(
-            event,
-            crate::facade::CommitTraceEvent::CommitRejected {
-                phase: crate::facade::CommitPhase::HistoryResolution,
-                diagnostic_code: Some(DiagnosticCode::MergeConflictOverlap),
-                ..
-            }
-        )));
+    assert!(error.commit_log().has_rejection(
+        CommitPhase::HistoryResolution,
+        Some(DiagnosticCode::MergeConflictOverlap),
+        None
+    ));
     assert!(runtime
-        .publication_access().diagnostics()
+        .publication_access()
+        .diagnostics()
         .by_scope(DiagnosticsScope::History)
         .iter()
         .flat_map(|artifact| artifact.entries.iter())
@@ -224,19 +239,21 @@ fn merge_commit_rejects_overlapping_authority_since_merge_base() {
 fn duplicate_branch_creation_is_rejected() {
     let mut runtime = runtime_with_test_schema();
     runtime
-        .history_authority().create_branch(
+        .history_authority()
+        .create_branch(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
         .unwrap();
     let error = runtime
-        .history_authority().create_branch(
+        .history_authority()
+        .create_branch(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
         .unwrap_err();
 
-    assert_eq!(error.class, crate::facade::BranchCreateErrorClass::BranchAlreadyExists);
+    assert_eq!(error.class, BranchCreateErrorClass::BranchAlreadyExists);
 }
 
 #[test]
@@ -249,11 +266,12 @@ fn chunked_storage_summary_tracks_visibility_boundaries() {
     let _third = create_entity_outcome(&mut runtime, "e2");
     let _update = update_entity(&mut runtime, entity_a, "e0-updated");
 
-    let summary_before_update = runtime.storage_access().chunked_storage_summary(snapshot.version_id);
-    let summary_current =
-        runtime
-            .storage_access()
-            .chunked_storage_summary(runtime.history_access().latest_commit().unwrap().version_id);
+    let summary_before_update = runtime
+        .storage_access()
+        .chunked_storage_summary(snapshot.version_id);
+    let summary_current = runtime
+        .storage_access()
+        .chunked_storage_summary(runtime.history_access().latest_commit().unwrap().version_id);
 
     assert_eq!(summary_before_update.entity_chunks.len(), 2);
     assert_eq!(summary_before_update.entity_chunks[0].visible_records, 2);
@@ -275,8 +293,13 @@ fn chunk_diagnostics_and_packet_plans_are_public_and_stable() {
         vec![RecordRef::Entity(entity_a), RecordRef::Entity(entity_b)],
     );
 
-    let plan = runtime.storage_access().plan_read_packet(&snapshot, &packet).unwrap();
-    let diagnostics = runtime.storage_access().chunk_diagnostics(snapshot.version_id);
+    let plan = runtime
+        .storage_access()
+        .plan_read_packet(&snapshot, &packet)
+        .unwrap();
+    let diagnostics = runtime
+        .storage_access()
+        .chunk_diagnostics(snapshot.version_id);
 
     assert_eq!(plan.target_count, 2);
     assert_eq!(plan.entity_chunk_indexes, vec![0]);

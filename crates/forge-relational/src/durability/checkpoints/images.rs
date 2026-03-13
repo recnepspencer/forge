@@ -2,25 +2,28 @@ use std::marker::PhantomData;
 
 use crate::config::data::{AdjacencyBackend, AdjacencyPolicy};
 use crate::durability::data::{
-    DurableBitSet, EntityCheckpointImageKind, EntityExtraImage,
-    PartitionCheckpointImage, RecordArenaCheckpointImage, RecordArenaCheckpointKind,
-    RelationCheckpointImageKind, RelationEndpointsImage,
-    VersionedEntityMetadataImage, VersionedPayloadImage, VersionedRelationMetadataImage,
+    DurableBitSet, EntityCheckpointImageKind, EntityExtraImage, PartitionCheckpointImage,
+    RecordArenaCheckpointImage, RecordArenaCheckpointKind, RelationCheckpointImageKind,
+    RelationEndpointsImage, VersionedEntityMetadataImage, VersionedPayloadImage,
+    VersionedRelationMetadataImage,
 };
 use crate::storage::logic::state::{
     AdjacencySet, DenseSlotBitSet, EntityExtra, EntityRecordKind, PartitionState, RecordArena,
-    RecordKind, RelationEndpoints, RelationRecordKind,
-    VersionedEntityMetadata, VersionedPayload, VersionedRelationMetadata,
+    RecordKind, RelationEndpoints, RelationRecordKind, VersionedEntityMetadata, VersionedPayload,
+    VersionedRelationMetadata,
 };
 
 trait CheckpointArenaKind: RecordKind {
     type ImageKind: RecordArenaCheckpointKind;
 
-    fn extra_to_image(extra: Self::Extra) -> <Self::ImageKind as RecordArenaCheckpointKind>::ExtraImage;
+    fn extra_to_image(
+        extra: Self::Extra,
+    ) -> <Self::ImageKind as RecordArenaCheckpointKind>::ExtraImage;
     fn extra_from_image(
         extra: <Self::ImageKind as RecordArenaCheckpointKind>::ExtraImage,
     ) -> Self::Extra;
-    fn meta_to_image(meta: Self::Meta) -> <Self::ImageKind as RecordArenaCheckpointKind>::MetaImage;
+    fn meta_to_image(meta: Self::Meta)
+        -> <Self::ImageKind as RecordArenaCheckpointKind>::MetaImage;
     fn meta_from_image(
         meta: <Self::ImageKind as RecordArenaCheckpointKind>::MetaImage,
     ) -> Self::Meta;

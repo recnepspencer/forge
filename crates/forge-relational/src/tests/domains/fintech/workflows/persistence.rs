@@ -17,14 +17,16 @@ fn fintech_persisted_workflow_recovers_checkpoint_tail_and_keeps_queryable_portf
 
     let (recovered, outcome) = recover_persisted_world(&world).unwrap();
     let recovered_snapshot = recovered
-        .publication_access().latest_bundle()
+        .publication_access()
+        .latest_bundle()
         .unwrap()
         .snapshot
         .clone();
 
     let packet = world.packet_for_portfolio_probe();
     let result = recovered
-        .visibility_reads().execute_read_packet(&recovered_snapshot, &packet)
+        .visibility_reads()
+        .execute_read_packet(&recovered_snapshot, &packet)
         .unwrap();
     let before_probe = capture_case_truth_probe(
         &world,
@@ -36,7 +38,8 @@ fn fintech_persisted_workflow_recovers_checkpoint_tail_and_keeps_queryable_portf
     assert_eq!(result.entities.len(), 3);
     assert_eq!(
         recovered
-            .history_access().branch_head(&BranchId("analysis".to_string()))
+            .history_access()
+            .branch_head(&BranchId("analysis".to_string()))
             .cloned(),
         recovered.history_access().latest_commit().cloned()
     );
@@ -57,7 +60,8 @@ fn fintech_branch_divergence_merge_and_savepoint_verbs_stay_case_local() {
     let audit = open_audit_branch(&mut world);
 
     let rollback = rollback_seeded_trade_correction_after_savepoint(&mut world, analysis.clone());
-    assert!(!rollback.effects.is_empty());
+    assert!(rollback.has_effects());
+    assert!(rollback.summary().has_restored_entity());
 
     let _saved = commit_case_trade_after_savepoint(&mut world, analysis.clone());
     let _diverged = diverge_case_trade_on_branch(
@@ -81,13 +85,18 @@ fn fintech_branch_divergence_merge_and_savepoint_verbs_stay_case_local() {
 
     assert_eq!(merged.commit.branch_id, BranchId("main".to_string()));
     assert_eq!(
-        world.runtime.history_access().branch_head(&audit).map(|commit| commit.commit_id),
+        world
+            .runtime
+            .history_access()
+            .branch_head(&audit)
+            .map(|commit| commit.commit_id),
         Some(merged.commit.parents[1])
     );
     assert_ne!(
         world
             .runtime
-            .history_access().branch_head(&BranchId("analysis".to_string()))
+            .history_access()
+            .branch_head(&BranchId("analysis".to_string()))
             .map(|commit| commit.commit_id),
         Some(merged.commit.commit_id)
     );
@@ -107,11 +116,9 @@ fn fintech_failure_injection_helpers_cover_savepoints_replay_and_checkpoint_corr
     let rollback = rollback_seeded_trade_correction_after_savepoint(&mut world, analysis.clone());
     let invalid_code = invalid_savepoint_rollback_code(&mut world, analysis.clone());
 
-    assert!(!rollback.effects.is_empty());
-    assert_eq!(
-        invalid_code,
-        crate::facade::DiagnosticCode::InvalidSavepoint
-    );
+    assert!(rollback.has_effects());
+    assert!(rollback.summary().has_restored_entity());
+    assert_eq!(invalid_code, DiagnosticCode::InvalidSavepoint);
 
     let _correction = correct_seeded_trade_candidate(&mut world, analysis);
     let removed = drop_latest_parent_envelope_for_replay(&mut world.runtime);
@@ -119,12 +126,13 @@ fn fintech_failure_injection_helpers_cover_savepoints_replay_and_checkpoint_corr
     let wrong_branch = replay_latest_commit_on_wrong_branch(&mut world.runtime).unwrap();
     assert_eq!(
         wrong_branch.failure,
-        Some(crate::facade::ReplayFailureClass::BranchMismatch)
+        Some(ReplayFailureClass::BranchMismatch)
     );
 
     let mut persisted = setup_world_for(FintechScenario::PersistedSmokeBook);
     checkpoint_world(&mut persisted).unwrap();
-    let path = corrupt_latest_checkpoint_file(&persisted.runtime.durability_access().recovery_plan());
+    let path =
+        corrupt_latest_checkpoint_file(&persisted.runtime.durability_access().recovery_plan());
     assert!(path.is_some());
 }
 
@@ -177,13 +185,15 @@ fn fintech_persisted_workflow_supports_compaction_after_checkpoint() {
     );
     assert_eq!(
         recovered
-            .history_access().branch_head(&BranchId("analysis".to_string()))
+            .history_access()
+            .branch_head(&BranchId("analysis".to_string()))
             .cloned(),
         recovered.history_access().latest_commit().cloned()
     );
     let packet = world.packet_for_portfolio_probe();
     let version_id = recovered
-        .history_access().latest_commit()
+        .history_access()
+        .latest_commit()
         .expect("recovered runtime should restore a latest commit")
         .version_id;
     let result = recovered
@@ -216,7 +226,9 @@ fn fintech_metadata_survives_hostile_workflow_recovery() {
     checkpoint_world(&mut world).unwrap();
 
     let (recovered, _outcome) = recover_persisted_world(&world).unwrap();
-    let graph = recovered.lineage_access().graph(&BranchId("main".to_string()));
+    let graph = recovered
+        .lineage_access()
+        .graph(&BranchId("main".to_string()));
     let index_access = recovered.index_access();
     let generation = index_access
         .latest_generation(index.index_id, &BranchId("analysis".to_string()))
@@ -253,10 +265,12 @@ fn fintech_recovery_falls_back_from_corrupt_latest_checkpoint_and_keeps_truth() 
     let corrupted = corrupt_latest_checkpoint_file(&plan);
     assert!(corrupted.is_some());
 
-    let (recovered, outcome) = recover_runtime_from_plan(world.runtime.durability_access().recovery_plan()).unwrap();
+    let (recovered, outcome) =
+        recover_runtime_from_plan(world.runtime.durability_access().recovery_plan()).unwrap();
     let packet = world.packet_for_correction_probe();
     let version_id = recovered
-        .history_access().latest_commit()
+        .history_access()
+        .latest_commit()
         .expect("recovered runtime should restore a latest commit")
         .version_id;
     let result = recovered
@@ -271,7 +285,10 @@ fn fintech_recovery_falls_back_from_corrupt_latest_checkpoint_and_keeps_truth() 
         .is_empty());
     assert!(result.entities.iter().any(|entity| matches!(
         &entity.payload,
-        crate::facade::RecordPayload::StructuredJson(value)
+        RecordPayload::StructuredJson(value)
             if value.get("corrected").and_then(|value| value.as_bool()) == Some(true)
     )));
 }
+use crate::facade::diagnostics::DiagnosticCode;
+use crate::facade::payloads::RecordPayload;
+use crate::facade::replay::ReplayFailureClass;

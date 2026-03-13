@@ -52,8 +52,10 @@ fn include_relation_scope(
 ) {
     touched.insert(relation_id.partition_id);
     if let Some(partition) = current_state.get_partition(relation_id.partition_id) {
-        if let Some(Some(endpoints)) =
-            partition.relation_arena.extra.get(relation_id.local_slot.0 as usize)
+        if let Some(Some(endpoints)) = partition
+            .relation_arena
+            .extra
+            .get(relation_id.local_slot.0 as usize)
         {
             touched.insert(endpoints.source.partition_id);
             touched.insert(endpoints.target.partition_id);
@@ -68,12 +70,10 @@ mod tests {
     use crate::config::data::{AdjacencyBackend, AdjacencyPolicy};
     use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
     use crate::storage::logic::state::{
-        AdjacencySet, EntityArena, PartitionState, RelationArena, RelationEndpoints,
-        WorkingState,
+        AdjacencySet, EntityArena, PartitionState, RelationArena, RelationEndpoints, WorkingState,
     };
     use crate::transactions::data::{
-        DeleteEntityIntent, EntityMutationIntent, MergedCommitPlan, MutationIntent,
-        TransactionId,
+        DeleteEntityIntent, EntityMutationIntent, MergedCommitPlan, MutationIntent, TransactionId,
     };
 
     use super::touched_partitions_for_plan_set;

@@ -6,11 +6,9 @@ use super::performance_support::{capture_perf_samples, PerfMeasurement};
 use crate::data::dependency::DependencyEdge;
 use crate::facade::*;
 use crate::logic::prepared::{PreparedDependencyCapture, PreparedEvaluation};
-use crate::presentation::harness::{
-    signal_bench, SignalProfileCatalog, SignalScenario,
-};
+use crate::presentation::harness::{signal_bench, SignalProfileCatalog, SignalScenario};
 use crate::tests::domains::fintech::{setup_seeded_world_with, FintechScale, MarketRegime};
-use crate::tests::support::{DependencyBatchBuilder, version_ab, ASPECT_A};
+use crate::tests::support::{version_ab, DependencyBatchBuilder, ASPECT_A};
 
 fn eval_metrics_delta(before: RuntimeMetrics, after: RuntimeMetrics) -> serde_json::Value {
     json!({
@@ -52,13 +50,21 @@ fn perf_fintech_mixed_fanout_profile_matrix() {
 
             let before = world.runtime_metrics();
             let start = Instant::now();
-            let _ = world.read_top_desk_with_executor(StageExecutor::Serial).unwrap();
-            let _ = world.read_top_scenario_with_executor(StageExecutor::Serial).unwrap();
+            let _ = world
+                .read_top_desk_with_executor(StageExecutor::Serial)
+                .unwrap();
+            let _ = world
+                .read_top_scenario_with_executor(StageExecutor::Serial)
+                .unwrap();
             let _ = world
                 .bump_primary_market(7, 4, 2, 1, StageExecutor::Serial)
                 .unwrap();
-            let _ = world.read_top_desk_with_executor(StageExecutor::Serial).unwrap();
-            let _ = world.read_top_scenario_with_executor(StageExecutor::Serial).unwrap();
+            let _ = world
+                .read_top_desk_with_executor(StageExecutor::Serial)
+                .unwrap();
+            let _ = world
+                .read_top_scenario_with_executor(StageExecutor::Serial)
+                .unwrap();
             let elapsed = start.elapsed();
             let after = world.runtime_metrics();
 
@@ -141,7 +147,7 @@ fn perf_topology_rewiring_rotating_window_serial() {
 
             graph.assert_bidirectional_consistency().unwrap();
             PerfMeasurement::new(elapsed.as_micros(), graph_metrics_delta(before, after))
-        }
+        },
     );
 
     assert!(samples.iter().all(|sample| sample.elapsed_micros > 0));
@@ -300,29 +306,30 @@ fn perf_dependency_reconciliation_rotating_window_staged_serial() {
 #[test]
 #[ignore = "performance baseline capture; run with -- --ignored --nocapture"]
 fn perf_suppression_wide_fanout_serial() {
-    let samples = capture_perf_samples("suppression_wide_fanout", "balanced", "serial", || {
-        let mut runtime = SignalRuntime::builder(SignalGraph::new())
-            .with_kernel_defaults()
-            .build();
+    let samples =
+        capture_perf_samples("suppression_wide_fanout", "balanced", "serial", || {
+            let mut runtime = SignalRuntime::builder(SignalGraph::new())
+                .with_kernel_defaults()
+                .build();
 
-        let source = runtime.graph_mut().node().build();
-        let middle = runtime.graph_mut().node().tolerance(2).build();
-        let leaves = (0..128)
-            .map(|_| runtime.graph_mut().node().tolerance(2).build())
-            .collect::<Vec<_>>();
+            let source = runtime.graph_mut().node().build();
+            let middle = runtime.graph_mut().node().tolerance(2).build();
+            let leaves = (0..128)
+                .map(|_| runtime.graph_mut().node().tolerance(2).build())
+                .collect::<Vec<_>>();
 
-        let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
-        dependencies
-            .append_dependency(middle, source, ASPECT_A)
-            .unwrap();
-        for &leaf in &leaves {
+            let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
             dependencies
-                .append_dependency(leaf, middle, ASPECT_A)
+                .append_dependency(middle, source, ASPECT_A)
                 .unwrap();
-        }
-        dependencies.commit().unwrap();
+            for &leaf in &leaves {
+                dependencies
+                    .append_dependency(leaf, middle, ASPECT_A)
+                    .unwrap();
+            }
+            dependencies.commit().unwrap();
 
-        let evaluator =
+            let evaluator =
             move |ctx: &mut EvaluationContext<'_, ()>| -> Result<EvaluationOutput, SignalError> {
                 let node = ctx.node();
                 let result = if node == source {
@@ -341,39 +348,39 @@ fn perf_suppression_wide_fanout_serial() {
                 Ok(EvaluationOutput::from_result(result))
             };
 
-        let _ = runtime
-            .read_with_executor(source, &(), &evaluator, StageExecutor::Serial)
-            .unwrap();
-        let _ = runtime
-            .read_with_executor(middle, &(), &evaluator, StageExecutor::Serial)
-            .unwrap();
-        for &leaf in &leaves {
             let _ = runtime
-                .read_with_executor(leaf, &(), &evaluator, StageExecutor::Serial)
+                .read_with_executor(source, &(), &evaluator, StageExecutor::Serial)
                 .unwrap();
-        }
-
-        let before = runtime.observe().metrics();
-        let start = Instant::now();
-        runtime
-            .transaction(&mut (), |tx| {
-                tx.mark_dirty(source, ASPECT_A)?;
-                tx.read(source, &|ctx| {
-                    Ok(ctx.finish(NodeEvaluationResult::from_version(version_ab(12, 0))))
-                })?;
-                Ok(())
-            })
-            .unwrap();
-        for &leaf in &leaves {
             let _ = runtime
-                .read_with_executor(leaf, &(), &evaluator, StageExecutor::Serial)
+                .read_with_executor(middle, &(), &evaluator, StageExecutor::Serial)
                 .unwrap();
-        }
-        let elapsed = start.elapsed();
-        let after = runtime.observe().metrics();
+            for &leaf in &leaves {
+                let _ = runtime
+                    .read_with_executor(leaf, &(), &evaluator, StageExecutor::Serial)
+                    .unwrap();
+            }
 
-        PerfMeasurement::new(elapsed.as_micros(), eval_metrics_delta(before, after))
-    });
+            let before = runtime.observe().metrics();
+            let start = Instant::now();
+            runtime
+                .transaction(&mut (), |tx| {
+                    tx.mark_dirty(source, ASPECT_A)?;
+                    tx.read(source, &|ctx| {
+                        Ok(ctx.finish(NodeEvaluationResult::from_version(version_ab(12, 0))))
+                    })?;
+                    Ok(())
+                })
+                .unwrap();
+            for &leaf in &leaves {
+                let _ = runtime
+                    .read_with_executor(leaf, &(), &evaluator, StageExecutor::Serial)
+                    .unwrap();
+            }
+            let elapsed = start.elapsed();
+            let after = runtime.observe().metrics();
+
+            PerfMeasurement::new(elapsed.as_micros(), eval_metrics_delta(before, after))
+        });
 
     assert!(samples.iter().all(|sample| sample.elapsed_micros > 0));
     assert!(samples.iter().all(|sample| {

@@ -1,10 +1,14 @@
+mod envelope;
 mod transaction_commit;
 mod transaction_mutation;
 mod transaction_types;
 
-pub use transaction_types::{SignalTransaction, TransactionOutcome};
-pub(in crate::logic::transaction::runtime) use transaction_types::TransactionSemanticDelta;
+pub use envelope::{
+    AdvisoryRecord, DecisionDetail, DecisionLog, DecisionRecord, DecisionSummary, IntegrityMarkers,
+};
+pub(in crate::logic::transaction::runtime) use transaction_types::TransactionExecutionState;
+pub(in crate::logic::transaction::runtime) use transaction_types::TransactionScratch;
 pub use transaction_types::{
     EvaluationSummary, TransactionReplayEntry, TransactionResult, TransactionTiming,
 };
-pub(in crate::logic::transaction::runtime) use transaction_types::TransactionExecutionState;
+pub use transaction_types::{SignalTransaction, TransactionOutcome};

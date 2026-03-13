@@ -7,7 +7,7 @@ use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
 use crate::data::output::MemoizedResultOrigin;
-use crate::data::trace::TraceSummary;
+use crate::data::trace::RuntimeArtifactState;
 use crate::diagnostics::recorder::record_lineage_transition;
 use crate::logic::evaluation::EvaluationVerdict;
 use crate::logic::explain::RewiringSummary;
@@ -32,7 +32,7 @@ pub(super) struct SemanticTaskUpdate {
     pub node: NodeId,
     pub identity: StageSemanticIdentity,
     pub before_state: NodeState,
-    pub before_trace: Option<TraceSummary>,
+    pub before_artifact_state: Option<RuntimeArtifactState>,
     pub after_state: NodeState,
     pub dependency_updates: u32,
     pub recomputed: bool,
@@ -92,25 +92,6 @@ pub(super) fn segment_for_single_update(update: SemanticTaskUpdate) -> SemanticS
     }
 }
 
-#[cfg(feature = "parallel")]
-pub(super) fn segment_for_updates(mut updates: Vec<SemanticTaskUpdate>) -> SemanticSegment {
-    updates.sort_by_key(|update| update.task_index);
-    let first = updates
-        .first()
-        .expect("semantic segment requires at least one task update");
-    let last = updates
-        .last()
-        .expect("semantic segment requires at least one task update");
-    SemanticSegment {
-        id: first.identity.segment_id,
-        task_range: SemanticTaskRange {
-            start: first.identity.record_id,
-            end: last.identity.record_id,
-        },
-        updates,
-    }
-}
-
 pub(super) fn finalize_stage_batch(
     graph: &mut SignalGraph,
     stage_tasks: &[EvaluationTask],
@@ -138,34 +119,50 @@ pub(super) fn finalize_stage_batch(
     let mut task_records = Vec::with_capacity(stage_tasks.len());
     for segment in segments {
         for update in segment.updates {
-            stamp_trace_summary(
-                graph,
-                update.node,
-                update.identity.record_id,
-                update.identity.segment_id,
-            )?;
+            let SemanticTaskUpdate {
+                task_index,
+                node,
+                identity,
+                before_state,
+                before_artifact_state,
+                after_state,
+                dependency_updates,
+                recomputed,
+                partition_aware,
+                rewiring,
+                verdict,
+                memoized_origin,
+            } = update;
+            stamp_trace_summary(graph, node, identity.record_id, identity.segment_id)?;
             record_lineage_transition(
                 graph,
-                update.node,
-                update.before_trace.as_ref(),
-                update.identity.record_id,
-                update.identity.segment_id,
+                node,
+                before_artifact_state.as_ref(),
+                identity.record_id,
+                identity.segment_id,
             )?;
-            let task = &stage_tasks[update.task_index];
+            let task = &stage_tasks[task_index];
             let task_record = classify_task_record(
-                update.identity.record_id,
-                update.identity.segment_id,
+                identity.record_id,
+                identity.segment_id,
                 task,
-                update.before_state,
-                update.after_state,
-                update.before_trace.as_ref(),
-                graph.get_entry(update.node)?.get_trace_summary(),
-                update.verdict.clone(),
-                update.memoized_origin,
+                before_state,
+                after_state,
+                before_artifact_state.as_ref(),
+                graph.get_entry(node)?.get_runtime_artifact_state(),
+                verdict,
+                memoized_origin,
             );
-            record_semantic_update(graph, report, &task_record, &update);
+            record_semantic_update(
+                graph,
+                report,
+                &task_record,
+                dependency_updates,
+                recomputed,
+                partition_aware,
+            );
             task_records.push(task_record);
-            record_semantic_artifacts(graph, &update)?;
+            record_semantic_artifacts(graph, node, rewiring.as_ref())?;
         }
     }
     task_records.sort_by_key(|record| record.id.0);
@@ -179,11 +176,13 @@ fn stamp_trace_summary(
     record_id: ExecutionRecordId,
     segment_id: SemanticSegmentId,
 ) -> Result<(), SignalError> {
-    let Some(mut summary) = graph.get_entry(node)?.get_trace_summary().cloned() else {
+    let Some(mut summary) = graph.get_entry(node)?.get_runtime_artifact_state().cloned() else {
         return Ok(());
     };
     summary.execution_record_id = Some(record_id.0);
     summary.semantic_segment_id = Some(segment_id.0);
-    graph.get_entry_mut(node)?.set_trace_summary(Some(summary));
+    graph
+        .get_entry_mut(node)?
+        .set_runtime_artifact_state(Some(summary));
     Ok(())
 }

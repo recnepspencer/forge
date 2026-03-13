@@ -1,8 +1,12 @@
 mod materialization;
+mod projection;
 mod reader;
 mod visibility;
 
-pub(crate) use reader::VisibilityReadContext;
+pub use projection::{
+    EntityRecordProjection, ProjectionAspect, RelationRecordProjection, VisibilityProjectionView,
+};
+pub use reader::VisibilityReadContext;
 
 use crate::logic::runtime::RelationalRuntime;
 

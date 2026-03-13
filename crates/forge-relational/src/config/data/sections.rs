@@ -10,9 +10,8 @@ use crate::symbols::data::{SymbolPolicy, SymbolTableSnapshot};
 use crate::validation::data::InvariantCatalog;
 
 use super::policies::{
-    AdjacencyPolicy, CascadeDeletePolicy, CompiledLanePolicy, CrossContextPolicy,
-    DurabilityPolicy, MvccConfig, PublicationConfig, RetentionPolicy, StorageLayoutConfig,
-    VisibilityCachePolicy,
+    AdjacencyPolicy, CascadeDeletePolicy, CompiledLanePolicy, CrossContextPolicy, DurabilityPolicy,
+    MvccConfig, PublicationConfig, RetentionPolicy, StorageLayoutConfig, VisibilityCachePolicy,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -67,7 +66,7 @@ pub struct VisibilityConfig {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PublicationSection {
+pub struct PublicationRuntimeConfig {
     pub policy: PublicationConfig,
 }
 

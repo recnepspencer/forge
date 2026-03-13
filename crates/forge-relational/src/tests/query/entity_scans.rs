@@ -1,4 +1,29 @@
+use crate::facade::identity::EntityId;
+use crate::facade::runtime::{EntityRecordProjection, ProjectionAspect};
 use crate::tests::support::*;
+
+const ENTITY_NAME_ASPECTS: [ProjectionAspect; 1] = [ProjectionAspect::new("name")];
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct NamedEntityProjection {
+    entity_id: EntityId,
+    payload: RecordPayload,
+}
+
+impl EntityRecordProjection for NamedEntityProjection {
+    const KIND: KindId = KindId(1);
+
+    fn required_aspects() -> &'static [ProjectionAspect] {
+        &ENTITY_NAME_ASPECTS
+    }
+
+    fn from_record(record: &EntityReadRecord) -> Option<Self> {
+        Some(Self {
+            entity_id: record.entity_id,
+            payload: record.payload.clone(),
+        })
+    }
+}
 
 // CONTRACT: entity_kind_scans
 // LANES: success, adversarial, determinism, historical
@@ -10,8 +35,10 @@ fn entity_kind_scans_can_be_partition_scoped_without_cross_partition_leakage() {
     let _right = create_entity_in_partition(&mut runtime, "right-a", PartitionId(11));
     let version_id = runtime.history_access().latest_commit().unwrap().version_id;
 
-    let scoped =
-        runtime.visibility_reads().visible_entities_of_kind_in_partition(PartitionId(7), KindId(1), version_id);
+    let scoped = runtime
+        .visibility_reads()
+        .project_version(version_id)
+        .entities_in::<NamedEntityProjection>(PartitionId(7));
 
     assert_eq!(scoped.len(), 1);
     assert_eq!(scoped[0].entity_id, left);
@@ -30,16 +57,14 @@ fn entity_kind_scans_are_deterministic_across_equivalent_insert_order() {
     let reversed_b = create_entity_in_partition(&mut reversed, "b", PartitionId(3));
     let reversed_a = create_entity_in_partition(&mut reversed, "a", PartitionId(3));
 
-    let ordered_records = ordered.visibility_reads().visible_entities_of_kind_in_partition(
-        PartitionId(3),
-        KindId(1),
-        ordered.current_version_id(),
-    );
-    let reversed_records = reversed.visibility_reads().visible_entities_of_kind_in_partition(
-        PartitionId(3),
-        KindId(1),
-        reversed.current_version_id(),
-    );
+    let ordered_records = ordered
+        .visibility_reads()
+        .project_version(ordered.current_version_id())
+        .entities_in::<NamedEntityProjection>(PartitionId(3));
+    let reversed_records = reversed
+        .visibility_reads()
+        .project_version(reversed.current_version_id())
+        .entities_in::<NamedEntityProjection>(PartitionId(3));
 
     assert_eq!(
         ordered_records
@@ -57,11 +82,9 @@ fn entity_kind_scans_are_deterministic_across_equivalent_insert_order() {
     );
     assert_eq!(
         ordered
-            .visibility_reads().visible_entities_of_kind_in_partition(
-                PartitionId(3),
-                KindId(1),
-                ordered.current_version_id()
-            )
+            .visibility_reads()
+            .project_version(ordered.current_version_id())
+            .entities_in::<NamedEntityProjection>(PartitionId(3))
             .iter()
             .map(|record| record.entity_id)
             .collect::<Vec<_>>(),
@@ -85,11 +108,10 @@ fn entity_kind_scans_preserve_historical_partition_visibility() {
     let _update = update_entity(&mut runtime, main_entity, "base-updated");
     let _later_left = create_entity_in_partition(&mut runtime, "left-later", PartitionId(17));
 
-    let historical = runtime.visibility_reads().visible_entities_of_kind_in_partition(
-        PartitionId(17),
-        KindId(1),
-        historical_version,
-    );
+    let historical = runtime
+        .visibility_reads()
+        .project_version(historical_version)
+        .entities_in::<NamedEntityProjection>(PartitionId(17));
 
     assert_eq!(historical.len(), 1);
     assert_eq!(historical[0].entity_id, left);

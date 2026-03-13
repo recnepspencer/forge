@@ -1,6 +1,8 @@
-use crate::facade::{
-    BranchId, DiagnosticsArtifactKind, DiagnosticsScope, RelationalReplayRequest,
-    ReplayExecutionMode, ReplayFailureClass,
+use crate::facade::diagnostics::{DiagnosticsArtifactKind, DiagnosticsScope};
+use crate::facade::history::BranchId;
+use crate::facade::replay::{
+    RelationalReplayRequest, ReplayExecutionMode, ReplayFailureClass, ReplayMismatchClass,
+    ReplayObservableSurface,
 };
 use crate::tests::support::*;
 
@@ -11,11 +13,13 @@ use crate::tests::support::*;
 fn replay_contract_success_reproduces_canonical_surfaces() {
     let mut runtime = runtime_with_test_schema();
     let outcome = create_entity_outcome(&mut runtime, "replayable");
-    let replay = runtime.replay_authority().replay_commit(RelationalReplayRequest {
-        commit_id: outcome.commit.commit_id,
-        branch_id: BranchId("main".to_string()),
-        execution_mode: ReplayExecutionMode::SerialDeterministic,
-    });
+    let replay = runtime
+        .replay_authority()
+        .replay_commit(RelationalReplayRequest {
+            commit_id: outcome.commit.commit_id,
+            branch_id: BranchId("main".to_string()),
+            execution_mode: ReplayExecutionMode::SerialDeterministic,
+        });
 
     assert!(runtime.replay_access().compare_outcome(&replay));
     assert_eq!(
@@ -23,7 +27,8 @@ fn replay_contract_success_reproduces_canonical_surfaces() {
         vec![outcome.commit.commit_id]
     );
     assert!(runtime
-        .publication_access().diagnostics()
+        .publication_access()
+        .diagnostics()
         .by_scope(DiagnosticsScope::Replay)
         .iter()
         .any(|artifact| artifact.kind == DiagnosticsArtifactKind::Comparison));
@@ -33,11 +38,13 @@ fn replay_contract_success_reproduces_canonical_surfaces() {
 fn replay_contract_failure_wrong_branch_is_explicit() {
     let mut runtime = runtime_with_test_schema();
     let outcome = create_entity_outcome(&mut runtime, "replayable");
-    let replay = runtime.replay_authority().replay_commit(RelationalReplayRequest {
-        commit_id: outcome.commit.commit_id,
-        branch_id: BranchId("wrong".to_string()),
-        execution_mode: ReplayExecutionMode::SerialDeterministic,
-    });
+    let replay = runtime
+        .replay_authority()
+        .replay_commit(RelationalReplayRequest {
+            commit_id: outcome.commit.commit_id,
+            branch_id: BranchId("wrong".to_string()),
+            execution_mode: ReplayExecutionMode::SerialDeterministic,
+        });
 
     assert_eq!(replay.failure, Some(ReplayFailureClass::BranchMismatch));
 }
@@ -48,17 +55,17 @@ fn replay_contract_failure_missing_parent_chain_is_explicit() {
     let parent = create_entity_outcome(&mut runtime, "parent");
     let child = create_entity_outcome(&mut runtime, "child");
 
-    assert!(
-        runtime
-            .history_authority()
-            .remove_commit_envelope_for_test(parent.commit.commit_id)
-    );
+    assert!(runtime
+        .history_authority()
+        .remove_commit_envelope_for_test(parent.commit.commit_id));
 
-    let replay = runtime.replay_authority().replay_commit(RelationalReplayRequest {
-        commit_id: child.commit.commit_id,
-        branch_id: BranchId("main".to_string()),
-        execution_mode: ReplayExecutionMode::SerialDeterministic,
-    });
+    let replay = runtime
+        .replay_authority()
+        .replay_commit(RelationalReplayRequest {
+            commit_id: child.commit.commit_id,
+            branch_id: BranchId("main".to_string()),
+            execution_mode: ReplayExecutionMode::SerialDeterministic,
+        });
 
     assert_eq!(replay.failure, Some(ReplayFailureClass::MissingParentChain));
 }
@@ -68,7 +75,8 @@ fn replay_contract_success_preserves_merge_parent_order() {
     let mut runtime = runtime_with_test_schema();
     let main = create_entity_outcome(&mut runtime, "main");
     runtime
-        .history_authority().create_branch(
+        .history_authority()
+        .create_branch(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -80,16 +88,19 @@ fn replay_contract_success_preserves_merge_parent_order() {
         BranchId("main".to_string()),
         vec![BranchId("feature".to_string())],
     );
-    let replay = runtime.replay_authority().replay_commit(RelationalReplayRequest {
-        commit_id: merge.commit.commit_id,
-        branch_id: BranchId("main".to_string()),
-        execution_mode: ReplayExecutionMode::SerialDeterministic,
-    });
+    let replay = runtime
+        .replay_authority()
+        .replay_commit(RelationalReplayRequest {
+            commit_id: merge.commit.commit_id,
+            branch_id: BranchId("main".to_string()),
+            execution_mode: ReplayExecutionMode::SerialDeterministic,
+        });
 
     assert!(runtime.replay_access().compare_outcome(&replay));
     assert_eq!(
         runtime
-            .replay_access().canonical_commit_envelope(merge.commit.commit_id)
+            .replay_access()
+            .canonical_commit_envelope(merge.commit.commit_id)
             .unwrap()
             .commit
             .parents,
@@ -97,14 +108,15 @@ fn replay_contract_success_preserves_merge_parent_order() {
     );
     assert_eq!(
         runtime
-            .replay_access().canonical_commit_envelope(merge.commit.commit_id)
+            .replay_access()
+            .canonical_commit_envelope(merge.commit.commit_id)
             .unwrap()
             .merge_base_commits,
         vec![main.commit.commit_id]
     );
     assert!(replay
         .compared_surfaces
-        .contains(&crate::facade::ReplayObservableSurface::History));
+        .contains(&ReplayObservableSurface::History));
 }
 
 #[test]
@@ -119,19 +131,18 @@ fn replay_contract_reports_structured_patch_drift_when_canonical_envelope_is_tam
         }
     ));
 
-    let replay = runtime.replay_authority().replay_commit(RelationalReplayRequest {
-        commit_id: outcome.commit.commit_id,
-        branch_id: BranchId("main".to_string()),
-        execution_mode: ReplayExecutionMode::SerialDeterministic,
-    });
+    let replay = runtime
+        .replay_authority()
+        .replay_commit(RelationalReplayRequest {
+            commit_id: outcome.commit.commit_id,
+            branch_id: BranchId("main".to_string()),
+            execution_mode: ReplayExecutionMode::SerialDeterministic,
+        });
 
     assert_eq!(replay.failure, Some(ReplayFailureClass::ObservableMismatch));
     assert_eq!(replay.mismatches.len(), 1);
     assert_eq!(replay.mismatches[0].class, ReplayMismatchClass::PatchDrift);
-    assert_eq!(
-        replay.mismatches[0].surface,
-        crate::facade::ReplayObservableSurface::Patch
-    );
+    assert_eq!(replay.mismatches[0].surface, ReplayObservableSurface::Patch);
     assert!(replay.mismatches[0].expected.is_some());
     assert!(replay.mismatches[0].observed.is_some());
 }

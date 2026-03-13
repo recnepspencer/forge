@@ -1,4 +1,6 @@
-use crate::facade::{BranchId, DiagnosticCode, RollbackOutcome, SavepointId, TransactionOptions};
+use crate::facade::diagnostics::DiagnosticCode;
+use crate::facade::history::BranchId;
+use crate::facade::transactions::{RollbackOutcome, SavepointId, TransactionOptions};
 
 use super::super::actions::rollback_case_trade_after_savepoint;
 use super::super::fixture::FintechWorld;

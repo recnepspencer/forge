@@ -1,16 +1,16 @@
 use std::marker::PhantomData;
 use std::rc::Rc;
 
-use crate::data::graph::SignalGraph;
-use crate::data::handle::NodeId;
-#[cfg(test)]
-use std::cell::RefCell;
 #[cfg(test)]
 use crate::data::aspect::{Aspect, AspectVersion};
 #[cfg(test)]
 use crate::data::error::SignalError;
+use crate::data::graph::SignalGraph;
+use crate::data::handle::NodeId;
 #[cfg(test)]
 use crate::data::output::{IntoNodeEvaluationResult, PartitionSubscription};
+#[cfg(test)]
+use std::cell::RefCell;
 
 #[cfg(test)]
 use super::capture::PreparedDependencyCapture;

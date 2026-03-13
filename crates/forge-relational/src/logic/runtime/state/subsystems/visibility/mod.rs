@@ -6,9 +6,9 @@ pub(crate) use cache::{VisibilityCache, VisibilityResidency};
 pub(crate) use replay_retention::{ReplayRetentionIndex, ReplayRetentionState};
 pub(crate) use snapshot_handles::{SnapshotHandleBinding, SnapshotHandles};
 
+use crate::logic::runtime::state::subsystems::RuntimeSubsystem;
 use crate::logic::runtime::RelationalRuntimeConfig;
 use crate::snapshots::data::SnapshotId;
-use crate::logic::runtime::state::subsystems::RuntimeSubsystem;
 
 #[derive(Debug)]
 pub(crate) struct VisibilitySubsystem {
@@ -88,6 +88,16 @@ impl VisibilitySubsystem {
         self.handles.active_versions()
     }
 
+    pub(crate) fn retention_fence_version(
+        &self,
+        published_version: crate::identity::data::VersionId,
+    ) -> crate::identity::data::VersionId {
+        self.active_versions()
+            .chain(self.replay_retention.versions())
+            .min()
+            .unwrap_or(published_version)
+    }
+
     pub(crate) fn insert_published_handle(
         &mut self,
         snapshot_id: SnapshotId,
@@ -112,5 +122,60 @@ impl VisibilitySubsystem {
 
     pub(crate) fn oldest_published_snapshot_id(&self) -> Option<SnapshotId> {
         self.handles.oldest_published_snapshot_id()
+    }
+
+    pub(crate) fn cached_visibility_version_count(&self) -> usize {
+        self.cache.cached_version_count()
+    }
+
+    pub(crate) fn protected_visibility_version_count(&self) -> usize {
+        self.cache.protected_version_count()
+    }
+
+    pub(crate) fn recent_visibility_cache_count(&self) -> usize {
+        self.cache.recent_visibility_count()
+    }
+
+    pub(crate) fn tracked_branch_head_versions(&self) -> Vec<crate::identity::data::VersionId> {
+        self.cache.tracked_branch_head_versions()
+    }
+
+    pub(crate) fn clear_branch_head_residency(
+        &self,
+        tracked_versions: &[crate::identity::data::VersionId],
+    ) {
+        self.cache.clear_branch_head_residency(tracked_versions);
+    }
+
+    pub(crate) fn increment_replay_retention(
+        &mut self,
+        version_id: crate::identity::data::VersionId,
+    ) -> Option<usize> {
+        let retained = self.replay_retention.retained_mut(version_id)?;
+        retained.ref_count += 1;
+        Some(retained.ref_count)
+    }
+
+    pub(crate) fn insert_replay_retention(
+        &mut self,
+        version_id: crate::identity::data::VersionId,
+        state: ReplayRetentionState,
+    ) {
+        self.replay_retention.insert_retained(version_id, state);
+    }
+
+    pub(crate) fn take_replay_retention(
+        &mut self,
+        version_id: crate::identity::data::VersionId,
+    ) -> Option<ReplayRetentionState> {
+        self.replay_retention.take_retained(version_id)
+    }
+
+    pub(crate) fn restore_replay_retention(
+        &mut self,
+        version_id: crate::identity::data::VersionId,
+        state: ReplayRetentionState,
+    ) {
+        self.replay_retention.insert_retained(version_id, state);
     }
 }

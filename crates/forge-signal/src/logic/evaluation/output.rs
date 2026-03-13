@@ -1,8 +1,8 @@
 use crate::data::aspect::AspectVersion;
 use crate::data::output::{IntoNodeEvaluationResult, NodeEvaluationResult};
 use crate::data::trace::CausalityMetadata;
-use crate::logic::prepared::{PreparedEvaluation, PreparedEvaluationOutcome, PreparedTraceData};
 use crate::logic::prepared::PreparedDependencyCapture;
+use crate::logic::prepared::{PreparedEvaluation, PreparedEvaluationOutcome, PreparedTraceData};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EvaluationOutput {
@@ -49,11 +49,10 @@ impl EvaluationOutput {
         self
     }
 
-    pub fn with_labels(
-        mut self,
-        labels: impl IntoIterator<Item = impl Into<String>>,
-    ) -> Self {
-        self.trace_data.labels.extend(labels.into_iter().map(Into::into));
+    pub fn with_labels(mut self, labels: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        self.trace_data
+            .labels
+            .extend(labels.into_iter().map(Into::into));
         self
     }
 

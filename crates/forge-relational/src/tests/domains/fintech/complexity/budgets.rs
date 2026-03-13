@@ -1,4 +1,4 @@
-use crate::facade::RuntimeComplexityCounters;
+use crate::facade::runtime::RuntimeComplexityCounters;
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct ComplexityBudget {

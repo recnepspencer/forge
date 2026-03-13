@@ -1,12 +1,10 @@
 use serde_json::json;
 
-use crate::transactions::logic::RelationalTransaction;
-use crate::diagnostics::data::{
-    DiagnosticCode, DiagnosticsScope,
-};
+use crate::diagnostics::data::{DiagnosticCode, DiagnosticsScope};
 use crate::transactions::data::{
-    CommitConflict, ConflictClass, RollbackOutcome, SavepointId, WorkerIntentBatch,
+    CommitConflict, ConflictClass, RollbackOutcome, RollbackSummary, SavepointId, WorkerIntentBatch,
 };
+use crate::transactions::logic::RelationalTransaction;
 
 impl<'a> RelationalTransaction<'a> {
     pub fn transaction_id(&self) -> crate::transactions::data::TransactionId {
@@ -48,9 +46,11 @@ impl<'a> RelationalTransaction<'a> {
             .into_iter()
             .flat_map(|batch| batch.intents.into_iter())
             .map(|intent| intent.rollback_effect())
-            .collect();
+            .collect::<Vec<_>>();
+        let summary = RollbackSummary::from_effects(&effects);
         self.runtime
-            .publication_authority().diagnostic(DiagnosticsScope::Transaction)
+            .publication_authority()
+            .diagnostic(DiagnosticsScope::Transaction)
             .rollback()
             .emit_entry(
                 DiagnosticCode::SavepointRolledBack,
@@ -59,6 +59,7 @@ impl<'a> RelationalTransaction<'a> {
             );
         Ok(RollbackOutcome {
             transaction_id: self.transaction_id,
+            summary,
             effects,
         })
     }

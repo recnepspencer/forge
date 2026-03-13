@@ -318,6 +318,32 @@ impl DiagnosticsState {
         sequence
     }
 
+    pub fn branch_snapshot_allocator_state(&self) -> (u64, u64) {
+        (self.next_snapshot_id, self.next_branch_id)
+    }
+
+    pub fn synchronize_branch_snapshot_allocator(
+        &mut self,
+        next_snapshot_id: u64,
+        next_branch_id: u64,
+    ) {
+        self.next_snapshot_id = self.next_snapshot_id.max(next_snapshot_id);
+        self.next_branch_id = self.next_branch_id.max(next_branch_id);
+    }
+
+    pub fn lineage_allocator_state(&self) -> (u64, u64) {
+        (self.next_lineage_artifact_id, self.next_lineage_sequence)
+    }
+
+    pub fn synchronize_lineage_allocator(
+        &mut self,
+        next_lineage_artifact_id: u64,
+        next_lineage_sequence: u64,
+    ) {
+        self.next_lineage_artifact_id = self.next_lineage_artifact_id.max(next_lineage_artifact_id);
+        self.next_lineage_sequence = self.next_lineage_sequence.max(next_lineage_sequence);
+    }
+
     pub fn record_lineage_record(&mut self, record: LineageRecord) {
         self.lineage_records.push_back(record);
         let limit = self.policy.history_limit.max(1) * 32;

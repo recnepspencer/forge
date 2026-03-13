@@ -1,17 +1,17 @@
 use std::collections::BTreeMap;
 
-use crate::identity::data::{KindId, PartitionId, VersionId};
+use crate::identity::data::{KindId, PartitionId, RecordId, VersionId};
 use crate::payloads::data::RecordPayload;
 use crate::storage::data::RecordLifecycleState;
 use crate::storage::partition::DenseSlotBitSet;
 use crate::symbols::data::Symbol;
 
 use super::{
-    slot_view::SlotView, EntityRecordKind, LifecycleCounts, RecordKind,
-    RelationRecordKind, VersionedPayload,
+    slot_view::SlotView, EntityRecordKind, LifecycleCounts, RecordKind, RelationRecordKind,
+    VersionedPayload,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct SlotInit<K: RecordKind> {
     pub partition_id: PartitionId,
     pub kind_id: KindId,
@@ -66,7 +66,8 @@ impl<K: RecordKind> RecordArena<K> {
         }
     }
 
-    pub(crate) fn reserve_additional(&mut self, additional: usize) { /* unchanged */
+    pub(crate) fn reserve_additional(&mut self, additional: usize) {
+        /* unchanged */
         self.partition_ids.reserve(additional);
         self.generations.reserve(additional);
         self.lifecycle.reserve(additional);
@@ -85,7 +86,12 @@ impl<K: RecordKind> RecordArena<K> {
         self.free_list.reserve(additional);
     }
 
-    pub(crate) fn apply_payload_update(&mut self, slot: usize, payload: RecordPayload, version_id: VersionId) {
+    pub(crate) fn apply_payload_update(
+        &mut self,
+        slot: usize,
+        payload: RecordPayload,
+        version_id: VersionId,
+    ) {
         let payload = payload.canonicalized();
         self.payloads[slot] = Some(payload.clone());
         if let Some(current) = self.payload_history[slot].last_mut() {
@@ -104,7 +110,11 @@ impl<K: RecordKind> RecordArena<K> {
         self.lifecycle[slot] = RecordLifecycleState::DeletedRetained;
         self.live_bitset.set(slot, false);
         self.reclaimable_bitset.set(slot, true);
-        if let Some(current) = self.payload_history.get_mut(slot).and_then(|history| history.last_mut()) {
+        if let Some(current) = self
+            .payload_history
+            .get_mut(slot)
+            .and_then(|history| history.last_mut())
+        {
             current.retired_at = Some(version_id);
         }
         if let Some(current) = self.metadata_history[slot].last_mut() {
@@ -112,7 +122,9 @@ impl<K: RecordKind> RecordArena<K> {
         }
     }
 
-    pub(crate) fn lifecycle_counts(&self) -> LifecycleCounts { lifecycle_counts(&self.lifecycle) }
+    pub(crate) fn lifecycle_counts(&self) -> LifecycleCounts {
+        lifecycle_counts(&self.lifecycle)
+    }
 
     pub(crate) fn push_slot(&mut self, init: SlotInit<K>) -> (usize, u32, bool) {
         let SlotInit {
@@ -178,7 +190,8 @@ impl<K: RecordKind> RecordArena<K> {
                 value: payload,
             });
         }
-        self.metadata_history.push(vec![K::metadata_for_create(kind_id, 1, version_id, &extra)]);
+        self.metadata_history
+            .push(vec![K::metadata_for_create(kind_id, 1, version_id, &extra)]);
         self.created_at.push(version_id);
         self.retired_at.push(None);
         self.extra.push(extra);
@@ -205,29 +218,51 @@ impl<K: RecordKind> RecordArena<K> {
         self.free_list.push(slot as u64);
     }
 
-    pub(crate) fn get(&self, id: &K::Id) -> Option<SlotView<'_, K>> {
-        let slot = K::slot_of(id);
-        self.get_slot(slot)
-            .filter(|view| {
-                view.generation() == K::generation_of(id)
-                    && view.partition_id() == K::partition_of(id)
-            })
+    pub(crate) fn get(&self, id: &RecordId<K::Domain>) -> Option<SlotView<'_, K>> {
+        let slot = super::slot_of::<K>(id);
+        self.get_slot(slot).filter(|view| {
+            view.generation() == super::generation_of::<K>(id)
+                && view.partition_id() == super::partition_of::<K>(id)
+        })
     }
 
     pub(crate) fn get_slot(&self, slot: usize) -> Option<SlotView<'_, K>> {
         (slot < self.generations.len()).then(|| SlotView::new(self, slot))
     }
 
-    pub(crate) fn slot_count(&self) -> usize { self.generations.len() }
-    pub(crate) fn retired_at_for_slot(&self, slot: usize) -> Option<VersionId> { self.retired_at.get(slot).copied().flatten() }
-    pub(crate) fn payload_history_at(&self, slot: usize) -> Option<&[VersionedPayload]> { self.payload_history.get(slot).map(Vec::as_slice) }
-    pub(crate) fn payload_history_at_mut(&mut self, slot: usize) -> Option<&mut Vec<VersionedPayload>> { self.payload_history.get_mut(slot) }
-    pub(crate) fn metadata_history_at(&self, slot: usize) -> Option<&[K::Meta]> { self.metadata_history.get(slot).map(Vec::as_slice) }
-    pub(crate) fn metadata_history_at_mut(&mut self, slot: usize) -> Option<&mut Vec<K::Meta>> { self.metadata_history.get_mut(slot) }
-    pub(crate) fn aspect_versions_at(&self, slot: usize) -> Option<&BTreeMap<Symbol, u64>> { self.aspect_versions.get(slot) }
-    pub(crate) fn snapshot_pin_count(&self, slot: usize) -> Option<u32> { self.snapshot_pins.get(slot).copied() }
-    pub(crate) fn branch_pin_count(&self, slot: usize) -> Option<u32> { self.branch_pins.get(slot).copied() }
-    pub(crate) fn replay_pin_count(&self, slot: usize) -> Option<u32> { self.replay_pins.get(slot).copied() }
+    pub(crate) fn slot_count(&self) -> usize {
+        self.generations.len()
+    }
+    pub(crate) fn retired_at_for_slot(&self, slot: usize) -> Option<VersionId> {
+        self.retired_at.get(slot).copied().flatten()
+    }
+    pub(crate) fn payload_history_at(&self, slot: usize) -> Option<&[VersionedPayload]> {
+        self.payload_history.get(slot).map(Vec::as_slice)
+    }
+    pub(crate) fn payload_history_at_mut(
+        &mut self,
+        slot: usize,
+    ) -> Option<&mut Vec<VersionedPayload>> {
+        self.payload_history.get_mut(slot)
+    }
+    pub(crate) fn metadata_history_at(&self, slot: usize) -> Option<&[K::Meta]> {
+        self.metadata_history.get(slot).map(Vec::as_slice)
+    }
+    pub(crate) fn metadata_history_at_mut(&mut self, slot: usize) -> Option<&mut Vec<K::Meta>> {
+        self.metadata_history.get_mut(slot)
+    }
+    pub(crate) fn aspect_versions_at(&self, slot: usize) -> Option<&BTreeMap<Symbol, u64>> {
+        self.aspect_versions.get(slot)
+    }
+    pub(crate) fn snapshot_pin_count(&self, slot: usize) -> Option<u32> {
+        self.snapshot_pins.get(slot).copied()
+    }
+    pub(crate) fn branch_pin_count(&self, slot: usize) -> Option<u32> {
+        self.branch_pins.get(slot).copied()
+    }
+    pub(crate) fn replay_pin_count(&self, slot: usize) -> Option<u32> {
+        self.replay_pins.get(slot).copied()
+    }
 
     pub(crate) fn increment_snapshot_pin(&mut self, slot: usize) -> Option<u32> {
         let count = self.snapshot_pins.get_mut(slot)?;
@@ -237,7 +272,9 @@ impl<K: RecordKind> RecordArena<K> {
 
     pub(crate) fn decrement_snapshot_pin(&mut self, slot: usize) -> Option<u32> {
         let count = self.snapshot_pins.get_mut(slot)?;
-        if *count == 0 { return None; }
+        if *count == 0 {
+            return None;
+        }
         *count -= 1;
         Some(*count)
     }
@@ -249,8 +286,14 @@ impl<K: RecordKind> RecordArena<K> {
         }
     }
 
-    pub(crate) fn set_lifecycle_for_slot(&mut self, slot: usize, lifecycle: RecordLifecycleState) -> bool {
-        let Some(current) = self.lifecycle.get_mut(slot) else { return false; };
+    pub(crate) fn set_lifecycle_for_slot(
+        &mut self,
+        slot: usize,
+        lifecycle: RecordLifecycleState,
+    ) -> bool {
+        let Some(current) = self.lifecycle.get_mut(slot) else {
+            return false;
+        };
         *current = lifecycle;
         true
     }
@@ -268,7 +311,7 @@ impl<K: RecordKind> RecordArena<K> {
         }
     }
 
-    pub(crate) fn contains_live_id(&self, id: &K::Id) -> bool {
+    pub(crate) fn contains_live_id(&self, id: &RecordId<K::Domain>) -> bool {
         self.get(id).is_some_and(|view| view.is_live())
     }
 }

@@ -228,7 +228,9 @@ fn signal_harness_platform_runs_serial_parallel_parity() {
         .observe("b")
         .with_evaluator(move |ctx: &mut EvaluationContext<'_, ()>| {
             let version = if ctx.node() == a { 7 } else { 9 };
-            Ok::<EvaluationOutput, SignalError>(EvaluationOutput::from_result(version_ab(version, 0)))
+            Ok::<EvaluationOutput, SignalError>(EvaluationOutput::from_result(version_ab(
+                version, 0,
+            )))
         })
         .fixture()
         .unwrap();

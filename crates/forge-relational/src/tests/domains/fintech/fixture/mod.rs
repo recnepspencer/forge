@@ -3,11 +3,14 @@ mod entity_seeding;
 mod relation_seeding;
 mod seed_catalog;
 
-use crate::facade::{
-    BranchId, EntityId, PartitionId, QueryWorkPacket, RecordRef, RelationId, RelationalReadView,
-    RelationalRuntime, RelationalRuntimeApi, SnapshotHandle,
-};
-use crate::facade::{DurabilityMode, DurableStoreLayout, RelationalRuntimeProfile};
+use crate::facade::config::RelationalRuntimeProfile;
+use crate::facade::durability::{DurabilityMode, DurableStoreLayout};
+use crate::facade::history::BranchId;
+use crate::facade::identity::{EntityId, PartitionId, RelationId};
+use crate::facade::query::QueryWorkPacket;
+use crate::facade::runtime::{RelationalReadView, RelationalRuntime, RelationalRuntimeApi};
+use crate::facade::snapshots::SnapshotHandle;
+use crate::facade::transactions::RecordRef;
 
 use self::casebook::{build_casebook, build_workflow_cases};
 use self::entity_seeding::seed_entities;
@@ -104,7 +107,8 @@ impl FintechWorld {
 
     pub(super) fn latest_snapshot(&self) -> SnapshotHandle {
         self.runtime
-            .publication_access().latest_bundle()
+            .publication_access()
+            .latest_bundle()
             .unwrap()
             .snapshot
             .clone()
@@ -254,7 +258,8 @@ impl FintechWorld {
 pub(super) fn create_analysis_branch(runtime: &mut RelationalRuntime) -> BranchId {
     let branch = BranchId("analysis".to_string());
     runtime
-        .history_authority().create_branch(branch.clone(), &BranchId("main".to_string()))
+        .history_authority()
+        .create_branch(branch.clone(), &BranchId("main".to_string()))
         .unwrap();
     branch
 }

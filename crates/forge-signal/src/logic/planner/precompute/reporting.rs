@@ -2,11 +2,11 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
 
-use super::StageExecutionData;
 use super::super::execution::task_reporting::record_execution_failure;
+use super::super::types::{ExecutionReport, PlanSummary, StageExecutor};
 #[cfg(feature = "parallel")]
 use super::admission::StageParallelAdmission;
-use super::super::types::{ExecutionReport, PlanSummary, StageExecutor};
+use super::StageExecutionData;
 
 pub(in crate::logic::planner) fn record_stage_precompute_telemetry(
     graph: &mut SignalGraph,
@@ -18,15 +18,24 @@ pub(in crate::logic::planner) fn record_stage_precompute_telemetry(
 ) {
     graph.telemetry_mut().execution.execution_snapshot_nanos += snapshot_nanos;
     graph.telemetry_mut().execution.stage_precompute_nanos += precompute_nanos;
-    graph.telemetry_mut().execution.prepared_evaluations_produced += execution.len() as u64;
+    graph
+        .telemetry_mut()
+        .execution
+        .prepared_evaluations_produced += execution.len() as u64;
     match executor {
         StageExecutor::Serial => {
             graph.telemetry_mut().execution.serial_precompute_task_count += execution.len() as u64;
         }
         #[cfg(feature = "parallel")]
         _ if parallel_admission.use_parallel => {
-            graph.telemetry_mut().execution.parallel_stage_dispatch_count += 1;
-            graph.telemetry_mut().execution.parallel_precompute_task_count += execution.len() as u64;
+            graph
+                .telemetry_mut()
+                .execution
+                .parallel_stage_dispatch_count += 1;
+            graph
+                .telemetry_mut()
+                .execution
+                .parallel_precompute_task_count += execution.len() as u64;
         }
         #[cfg(feature = "parallel")]
         StageExecutor::StagedParallelPrecompute { .. } | StageExecutor::FullParallel { .. } => {

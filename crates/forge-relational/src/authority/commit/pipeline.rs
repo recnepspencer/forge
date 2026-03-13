@@ -7,16 +7,15 @@ use crate::authority::commit::phases::mutation::run_authoritative_mutation;
 use crate::authority::commit::phases::prepare::{
     prepare_working_state_scope, record_preparation_counters,
 };
-use crate::authority::commit::phases::publication::{
-    append_durable_commit, enforce_patch_budget,
-};
+use crate::authority::commit::phases::publication::{append_durable_commit, enforce_patch_budget};
 use crate::authority::commit::publication::assemble_patch;
 use crate::publication::data::PublicationStatus;
-use crate::transactions::logic::RelationalTransaction;
 use crate::transactions::data::{
-    CommitExecution, CommitLog, CommitOutcome, CommitPhase, CommitPhaseTiming,
-    CommitPublication, CommitResult, CommitValidation, TransactionCommitError,
+    CommitExecution, CommitLog, CommitOutcome, CommitPatchBudgetSummary, CommitPhase,
+    CommitPhaseTiming, CommitPublication, CommitResult, CommitValidation, TransactionCommitError,
 };
+use crate::transactions::logic::RelationalTransaction;
+use std::sync::Arc;
 use std::time::Instant;
 
 impl<'a> RelationalTransaction<'a> {
@@ -35,7 +34,12 @@ impl<'a> RelationalTransaction<'a> {
     pub fn commit(mut self) -> Result<CommitResult, TransactionCommitError> {
         let mut commit_log = CommitLog::new();
         let mut phase_timing = CommitPhaseTiming::default();
-        let diagnostics_start = self.runtime.publication_access().diagnostics().artifacts().len();
+        let diagnostics_start = self
+            .runtime
+            .publication_access()
+            .diagnostics()
+            .artifacts()
+            .len();
         let complexity_before = self
             .runtime
             .services
@@ -44,29 +48,21 @@ impl<'a> RelationalTransaction<'a> {
             .lock()
             .expect("complexity counter lock poisoned")
             .clone();
-        let mut invariant_results = Vec::new();
+        let mut invariant_executions = Vec::new();
 
         commit_log.begin_phase(CommitPhase::DraftPreparation);
         let phase_started = Instant::now();
-        let prepared = prepare_working_state_scope(&mut self)
-            .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::DraftPreparation, error))?;
+        let prepared = prepare_working_state_scope(&mut self).map_err(|error| {
+            attach_rejection(&mut commit_log, CommitPhase::DraftPreparation, error)
+        })?;
         let merged_plan = prepared.merged_plan;
         let structural_summary = prepared.structural_summary;
+        let public_structural_summary = structural_summary.public_summary();
         let mut working_state = prepared.working_state;
-        record_preparation_counters(
-            self.runtime,
-            &working_state,
-            &structural_summary,
-        );
-        commit_log.record_structural_summary(
-            structural_summary.invariant_contract.may_break_groups(),
-            structural_summary.commit_topology.mask(),
-            structural_summary.touched_partitions.len(),
-            structural_summary.bulk_entity_slots_reserved,
-            structural_summary.bulk_relation_slots_reserved,
-        );
+        record_preparation_counters(self.runtime, &working_state, &structural_summary);
+        commit_log.record_structural_summary(&public_structural_summary);
         commit_log.complete_phase(CommitPhase::DraftPreparation);
-        phase_timing.draft_preparation_micros = elapsed_micros(phase_started);
+        phase_timing.working_state_preparation_micros = elapsed_micros(phase_started);
 
         commit_log.begin_phase(CommitPhase::InvariantPreCheck);
         let phase_started = Instant::now();
@@ -74,48 +70,39 @@ impl<'a> RelationalTransaction<'a> {
             .runtime
             .invariant_authority()
             .enforce_commit_boundary(&merged_plan)
-            .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::InvariantPreCheck, error))?;
-        commit_log.record_invariant_outcomes(
-            crate::validation::data::InvariantExecutionPoint::CommitBoundary,
-            &pre_commit_invariants,
-        );
-        invariant_results.extend(pre_commit_invariants.into_results());
+            .map_err(|error| {
+                attach_rejection(&mut commit_log, CommitPhase::InvariantPreCheck, error)
+            })?;
+        commit_log.record_invariant_outcomes(&pre_commit_invariants);
+        invariant_executions.push(pre_commit_invariants);
         commit_log.complete_phase(CommitPhase::InvariantPreCheck);
         phase_timing.invariant_pre_check_micros = elapsed_micros(phase_started);
 
         commit_log.begin_phase(CommitPhase::AuthoritativeMutation);
         let phase_started = Instant::now();
         let mutation = run_authoritative_mutation(&mut self, &mut working_state, &merged_plan)
-            .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::AuthoritativeMutation, error))?;
+            .map_err(|error| {
+                attach_rejection(&mut commit_log, CommitPhase::AuthoritativeMutation, error)
+            })?;
         let version_id = mutation.version_id;
-        let effect = mutation.effect;
-        commit_log.record_invariant_outcomes(
-            crate::validation::data::InvariantExecutionPoint::MutationSensitive,
-            &mutation.invariant_results,
-        );
-        invariant_results.extend(mutation.invariant_results.into_results());
+        let mut effect = mutation.effect;
+        commit_log.record_invariant_outcomes(&mutation.invariant_results);
+        invariant_executions.push(mutation.invariant_results);
         commit_log.complete_phase(CommitPhase::AuthoritativeMutation);
         phase_timing.authoritative_mutation_micros = elapsed_micros(phase_started);
 
         commit_log.begin_phase(CommitPhase::HistoryResolution);
         let phase_started = Instant::now();
-        let history = resolve_commit_history(&mut self, version_id)
-            .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::HistoryResolution, error))?;
+        let history = resolve_commit_history(&mut self, version_id).map_err(|error| {
+            attach_rejection(&mut commit_log, CommitPhase::HistoryResolution, error)
+        })?;
         let commit_id = history.commit_id;
         let branch_id = history.branch_id.clone();
         let commit_reference = history.commit_reference.clone();
-        let merge_base_commits = history.merge_base_commits.clone();
-        commit_log.record_merge_parents_resolved(
-            &branch_id.0,
-            history.requested_merge_parent_count,
-            history.effective_merge_parent_count,
-        );
-        commit_log.record_history_resolution(
-            &branch_id.0,
-            commit_reference.parents.len(),
-            merge_base_commits.len(),
-            history.previous_branch_head_version.is_some(),
-        );
+        let history_summary = history.summary();
+        let merge_base_commits = history.merge_base_commits;
+        let merge_parent_branches = self.options.merge_parent_branches.clone();
+        commit_log.record_history_resolution(&history_summary);
         commit_log.complete_phase(CommitPhase::HistoryResolution);
         phase_timing.history_resolution_micros = elapsed_micros(phase_started);
 
@@ -131,25 +118,36 @@ impl<'a> RelationalTransaction<'a> {
                     &merged_plan,
                 )
                 .map_err(TransactionCommitError::publication)
-                .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::InvariantPostCheck, error))?;
-            commit_log.record_invariant_outcomes(
-                crate::validation::data::InvariantExecutionPoint::SnapshotPublication,
-                &post_invariants,
-            );
-            invariant_results.extend(post_invariants.into_results());
+                .map_err(|error| {
+                    attach_rejection(&mut commit_log, CommitPhase::InvariantPostCheck, error)
+                })?;
+            commit_log.record_invariant_outcomes(&post_invariants);
+            invariant_executions.push(post_invariants);
             commit_log.complete_phase(CommitPhase::InvariantPostCheck);
             phase_timing.invariant_post_check_micros = elapsed_micros(phase_started);
         }
 
         commit_log.begin_phase(CommitPhase::ArtifactAssembly);
         let phase_started = Instant::now();
-        let patch = assemble_patch(&self.runtime.config, commit_reference.commit_id, &effect);
-        commit_log.record_patch_budget(
-            patch.records.len(),
-            self.runtime.config.publication.policy.max_patch_records_per_commit,
+        let patch_records = std::mem::take(&mut effect.publication.patch_records);
+        let patch = assemble_patch(
+            self.runtime,
+            commit_reference.commit_id,
+            patch_records,
         );
-        enforce_patch_budget(self.runtime, &patch)
-            .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::ArtifactAssembly, error))?;
+        let patch_budget_summary = CommitPatchBudgetSummary {
+            patch_record_count: patch.records.len(),
+            max_patch_records_per_commit: self
+                .runtime
+                .config
+                .publication
+                .policy
+                .max_patch_records_per_commit,
+        };
+        commit_log.record_patch_budget(&patch_budget_summary);
+        enforce_patch_budget(self.runtime, &patch).map_err(|error| {
+            attach_rejection(&mut commit_log, CommitPhase::ArtifactAssembly, error)
+        })?;
         let publication = prepare_publication_artifacts(
             self.runtime,
             &mut working_state,
@@ -157,21 +155,17 @@ impl<'a> RelationalTransaction<'a> {
             &commit_reference,
             &branch_id,
             version_id,
-            self.options.merge_parent_branches.clone(),
-            merge_base_commits.clone(),
+            &merge_parent_branches,
+            &merge_base_commits,
             &merged_plan,
             effect,
         )
         .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::ArtifactAssembly, error))?;
-        commit_log.record_changed_records(
-            publication.changed_records.len(),
-            publication.adjacency_deltas.len(),
-        );
-        commit_log.record_publication_artifacts(
-            publication.patch.records.len(),
-            publication.artifacts.diagnostics_summary.entries.len(),
-            publication.lineage_event_count,
-        );
+        let change_summary = publication.change_summary.clone();
+        let publication_summary = publication.summary.clone();
+        let publication_snapshot = publication.finalize.artifacts.bundle.snapshot.clone();
+        commit_log.record_changed_records(&change_summary);
+        commit_log.record_publication_artifacts(&publication_summary);
         commit_log.complete_phase(CommitPhase::ArtifactAssembly);
         phase_timing.artifact_assembly_micros = elapsed_micros(phase_started);
 
@@ -180,11 +174,15 @@ impl<'a> RelationalTransaction<'a> {
         commit_log.record_durable_append_prepared(
             commit_id,
             &branch_id.0,
-            publication.patch.position,
+            publication
+                .finalize
+                .canonical_commit_envelope
+                .patch
+                .position,
         );
         append_durable_commit(
             self.runtime,
-            &publication.canonical_commit_envelope,
+            &publication.finalize.canonical_commit_envelope,
             commit_id,
             &branch_id,
         )
@@ -194,34 +192,36 @@ impl<'a> RelationalTransaction<'a> {
 
         commit_log.begin_phase(CommitPhase::Publication);
         let phase_started = Instant::now();
-        let patch_records = publication.patch.records.clone();
-        let canonical_commit_envelope = publication.canonical_commit_envelope.clone();
+        let crate::authority::commit::phases::artifacts::PublicationPreparation {
+            change_summary: _,
+            summary: _,
+            finalize:
+                crate::authority::commit::phases::artifacts::PublicationFinalizeArtifacts {
+                    artifacts,
+                    changed_records,
+                    canonical_commit_envelope,
+                    adjacency_deltas,
+                },
+        } = publication;
+        let canonical_commit_envelope = Arc::new(canonical_commit_envelope);
         finalize_commit_publication(
             self.runtime,
             working_state,
             FinalizeCommitInput {
-                changed_records: publication.changed_records.clone(),
+                changed_records: &changed_records,
                 version_id,
                 previous_branch_head_version: history.previous_branch_head_version,
                 commit_id,
-                commit_reference: commit_reference.clone(),
-                canonical_commit_envelope: publication.canonical_commit_envelope,
-                patch_position: publication.patch.position,
-                branch_id,
-                merge_base_commits,
-                artifacts: publication.artifacts,
-                merge_parent_branches: self.options.merge_parent_branches.clone(),
-                adjacency_deltas: publication.adjacency_deltas,
+                commit_reference: &commit_reference,
+                canonical_commit_envelope: canonical_commit_envelope.clone(),
+                branch_id: &branch_id,
+                merge_base_commits: &merge_base_commits,
+                artifacts,
+                merge_parent_branches: &merge_parent_branches,
+                adjacency_deltas,
             },
         );
-        commit_log.record_commit_published(
-            commit_id,
-            &commit_reference.branch_id.0,
-            publication.published_snapshot.snapshot_id,
-            publication.patch.position,
-            publication.changed_records.len(),
-            commit_reference.parents.len().saturating_sub(1),
-        );
+        commit_log.record_commit_published(commit_id, &commit_reference.branch_id.0);
         commit_log.complete_phase(CommitPhase::Publication);
         phase_timing.publication_micros = elapsed_micros(phase_started);
 
@@ -233,26 +233,33 @@ impl<'a> RelationalTransaction<'a> {
             .lock()
             .expect("complexity counter lock poisoned")
             .clone();
-        let diagnostics = self.runtime.publication_access().diagnostics();
-        let diagnostics = diagnostics.artifacts()[diagnostics_start..].to_vec();
+        let diagnostics = self
+            .runtime
+            .publication_access()
+            .diagnostics_since(diagnostics_start);
+        let commit_summary = commit_log.summary().clone();
         let commit_outcome = CommitOutcome {
             transaction_id: self.transaction_id,
             commit: commit_reference,
             version_id,
-            snapshot: publication.published_snapshot,
-            changed_records: publication.changed_records,
+            snapshot: publication_snapshot,
+            changed_records,
             publication_status: PublicationStatus::Published,
             commit_log,
         };
 
         Ok(CommitResult {
             outcome: commit_outcome,
+            summary: commit_summary,
+            structural_summary: public_structural_summary,
             publication: CommitPublication {
                 diagnostics,
-                patch: patch_records,
                 envelope: canonical_commit_envelope,
             },
-            validation: CommitValidation { invariant_results },
+            validation: CommitValidation {
+                summary: CommitValidation::summarize(&invariant_executions),
+                invariant_executions,
+            },
             execution: CommitExecution {
                 phase_timing,
                 complexity_delta: complexity_delta(complexity_before, complexity_after),
@@ -288,9 +295,15 @@ fn complexity_delta(
     use crate::performance::data::RuntimeComplexityCounters;
 
     RuntimeComplexityCounters {
-        full_state_clones: after.full_state_clones.saturating_sub(before.full_state_clones),
-        partitions_cloned: after.partitions_cloned.saturating_sub(before.partitions_cloned),
-        entity_slots_cloned: after.entity_slots_cloned.saturating_sub(before.entity_slots_cloned),
+        full_state_clones: after
+            .full_state_clones
+            .saturating_sub(before.full_state_clones),
+        partitions_cloned: after
+            .partitions_cloned
+            .saturating_sub(before.partitions_cloned),
+        entity_slots_cloned: after
+            .entity_slots_cloned
+            .saturating_sub(before.entity_slots_cloned),
         relation_slots_cloned: after
             .relation_slots_cloned
             .saturating_sub(before.relation_slots_cloned),
@@ -355,6 +368,24 @@ fn complexity_delta(
         invariant_relation_records_materialized: after
             .invariant_relation_records_materialized
             .saturating_sub(before.invariant_relation_records_materialized),
+        preparation_packet_count: after
+            .preparation_packet_count
+            .saturating_sub(before.preparation_packet_count),
+        preparation_parallel_legal_count: after
+            .preparation_parallel_legal_count
+            .saturating_sub(before.preparation_parallel_legal_count),
+        preparation_parallel_profitable_count: after
+            .preparation_parallel_profitable_count
+            .saturating_sub(before.preparation_parallel_profitable_count),
+        preparation_serial_strategy_count: after
+            .preparation_serial_strategy_count
+            .saturating_sub(before.preparation_serial_strategy_count),
+        preparation_staged_parallel_strategy_count: after
+            .preparation_staged_parallel_strategy_count
+            .saturating_sub(before.preparation_staged_parallel_strategy_count),
+        preparation_reducer_conflict_count: after
+            .preparation_reducer_conflict_count
+            .saturating_sub(before.preparation_reducer_conflict_count),
         snapshot_pin_adjustments: after
             .snapshot_pin_adjustments
             .saturating_sub(before.snapshot_pin_adjustments),

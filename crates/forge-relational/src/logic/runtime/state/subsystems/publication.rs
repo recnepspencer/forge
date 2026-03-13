@@ -1,6 +1,6 @@
+use crate::logic::runtime::state::subsystems::RuntimeSubsystem;
 use crate::publication::data::PublicationBundle;
 use crate::replay::data::RelationalReplayRecord;
-use crate::logic::runtime::state::subsystems::RuntimeSubsystem;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct PublicationSubsystem {

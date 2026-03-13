@@ -213,10 +213,7 @@ impl VisibilityCache {
         true
     }
 
-    pub(crate) fn evict_recent_resident_if_unprotected(
-        &self,
-        version_id: VersionId,
-    ) -> bool {
+    pub(crate) fn evict_recent_resident_if_unprotected(&self, version_id: VersionId) -> bool {
         let mut residency = self
             .residency
             .write()
@@ -235,16 +232,14 @@ impl VisibilityCache {
             .lock()
             .expect("recent visibility policy lock poisoned")
             .resident_count -= 1;
-        if entry.branch_head_refs == 0 && entry.replay_refs == 0 && entry.active_snapshot_refs == 0 {
+        if entry.branch_head_refs == 0 && entry.replay_refs == 0 && entry.active_snapshot_refs == 0
+        {
             residency.remove(&version_id);
         }
         true
     }
 
-    pub(crate) fn clear_branch_head_residency(
-        &self,
-        tracked_versions: &[VersionId],
-    ) {
+    pub(crate) fn clear_branch_head_residency(&self, tracked_versions: &[VersionId]) {
         let mut residency = self
             .residency
             .write()

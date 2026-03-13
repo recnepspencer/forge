@@ -48,18 +48,20 @@ impl<'runtime> LineageAuthority<'runtime> {
             .lineage
             .correspondence_candidates
             .push(candidate.clone());
-        self.runtime.publication_authority().push_bounded_diagnostic(
-            DiagnosticsScope::Lineage,
-            DiagnosticsArtifactKind::MinimalSummary,
-            vec![RelationalDiagnosticsEntry {
-                code: DiagnosticCode::CommitPublished,
-                message: "correspondence candidate recorded".to_string(),
-                fields: json!({
-                    "candidate_id": candidate.candidate_id,
-                    "branch_id": branch_id.0,
-                }),
-            }],
-        );
+        self.runtime
+            .publication_authority()
+            .push_bounded_diagnostic(
+                DiagnosticsScope::Lineage,
+                DiagnosticsArtifactKind::MinimalSummary,
+                vec![RelationalDiagnosticsEntry {
+                    code: DiagnosticCode::CommitPublished,
+                    message: "correspondence candidate recorded".to_string(),
+                    fields: json!({
+                        "candidate_id": candidate.candidate_id,
+                        "branch_id": branch_id.0,
+                    }),
+                }],
+            );
         candidate
     }
 
@@ -81,15 +83,17 @@ impl<'runtime> LineageAuthority<'runtime> {
             .chain(candidate.targets.iter())
             .any(|lineage_id| !self.runtime.lineage.nodes.contains_key(lineage_id))
         {
-            self.runtime.publication_authority().push_bounded_diagnostic(
-                DiagnosticsScope::Lineage,
-                DiagnosticsArtifactKind::Failure,
-                vec![RelationalDiagnosticsEntry {
-                    code: DiagnosticCode::InvariantViolation,
-                    message: "correspondence promotion referenced missing lineage".to_string(),
-                    fields: json!({ "candidate_id": candidate_id }),
-                }],
-            );
+            self.runtime
+                .publication_authority()
+                .push_bounded_diagnostic(
+                    DiagnosticsScope::Lineage,
+                    DiagnosticsArtifactKind::Failure,
+                    vec![RelationalDiagnosticsEntry {
+                        code: DiagnosticCode::InvariantViolation,
+                        message: "correspondence promotion referenced missing lineage".to_string(),
+                        fields: json!({ "candidate_id": candidate_id }),
+                    }],
+                );
             return None;
         }
         let event_id = self.runtime.lineage.next_event_id;
@@ -109,19 +113,21 @@ impl<'runtime> LineageAuthority<'runtime> {
             status: LineageResolutionStatus::Promoted,
             promoted_event_id: Some(event_id),
         };
-        self.runtime.publication_authority().push_bounded_diagnostic(
-            DiagnosticsScope::Lineage,
-            DiagnosticsArtifactKind::MinimalSummary,
-            vec![RelationalDiagnosticsEntry {
-                code: DiagnosticCode::CommitPublished,
-                message: "correspondence promoted into lineage".to_string(),
-                fields: json!({
-                    "candidate_id": candidate_id,
-                    "event_id": event_id,
-                    "commit_id": commit.commit_id.0,
-                }),
-            }],
-        );
+        self.runtime
+            .publication_authority()
+            .push_bounded_diagnostic(
+                DiagnosticsScope::Lineage,
+                DiagnosticsArtifactKind::MinimalSummary,
+                vec![RelationalDiagnosticsEntry {
+                    code: DiagnosticCode::CommitPublished,
+                    message: "correspondence promoted into lineage".to_string(),
+                    fields: json!({
+                        "candidate_id": candidate_id,
+                        "event_id": event_id,
+                        "commit_id": commit.commit_id.0,
+                    }),
+                }],
+            );
         Some(resolution)
     }
 
@@ -142,12 +148,14 @@ impl<'runtime> LineageAuthority<'runtime> {
             if partition.entity_arena.created_at.get(slot).copied() != Some(commit.version_id) {
                 continue;
             }
-            let lineage_id = partition.entity_arena.extra[slot].lineage_id.unwrap_or_else(|| {
-                let lineage_id = LineageId(self.runtime.lineage.next_lineage_id);
-                self.runtime.lineage.next_lineage_id += 1;
-                partition.entity_arena.extra[slot].lineage_id = Some(lineage_id);
-                lineage_id
-            });
+            let lineage_id = partition.entity_arena.extra[slot]
+                .lineage_id
+                .unwrap_or_else(|| {
+                    let lineage_id = LineageId(self.runtime.lineage.next_lineage_id);
+                    self.runtime.lineage.next_lineage_id += 1;
+                    partition.entity_arena.extra[slot].lineage_id = Some(lineage_id);
+                    lineage_id
+                });
             self.runtime
                 .lineage
                 .nodes
@@ -241,9 +249,9 @@ impl<'runtime> LineageAuthority<'runtime> {
     }
 
     fn attach_events_to_commit(&mut self, commit_id: CommitId, event_ids: &[u64]) {
-        if let Some(envelope) = self.runtime.history.commit_envelopes.get_mut(&commit_id) {
-            envelope.lineage_event_ids.extend(event_ids.iter().copied());
-        }
+        self.runtime
+            .history_authority()
+            .append_lineage_event_ids(commit_id, event_ids);
         if let Some(log_entry) = self
             .runtime
             .durability
@@ -251,20 +259,24 @@ impl<'runtime> LineageAuthority<'runtime> {
             .iter_mut()
             .find(|entry| entry.commit.commit_id == commit_id)
         {
-            log_entry.lineage_event_ids.extend(event_ids.iter().copied());
+            log_entry
+                .lineage_event_ids
+                .extend(event_ids.iter().copied());
         }
-        self.runtime.publication_authority().push_bounded_diagnostic(
-            DiagnosticsScope::Lineage,
-            DiagnosticsArtifactKind::MinimalSummary,
-            vec![RelationalDiagnosticsEntry {
-                code: DiagnosticCode::CommitPublished,
-                message: "lineage events attached to commit".to_string(),
-                fields: json!({
-                    "commit_id": commit_id.0,
-                    "event_count": event_ids.len(),
-                }),
-            }],
-        );
+        self.runtime
+            .publication_authority()
+            .push_bounded_diagnostic(
+                DiagnosticsScope::Lineage,
+                DiagnosticsArtifactKind::MinimalSummary,
+                vec![RelationalDiagnosticsEntry {
+                    code: DiagnosticCode::CommitPublished,
+                    message: "lineage events attached to commit".to_string(),
+                    fields: json!({
+                        "commit_id": commit_id.0,
+                        "event_count": event_ids.len(),
+                    }),
+                }],
+            );
     }
 }
 

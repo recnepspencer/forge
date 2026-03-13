@@ -31,7 +31,9 @@ fn slot_reuse_after_unregister_does_not_inherit_stale_subscribers() {
     let mut graph = SignalGraph::new();
     let source = graph.create_node();
     let dependent = graph.create_node();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, source, &mut compute).unwrap();
@@ -54,7 +56,9 @@ fn rebuild_subscriber_index_after_slot_reuse_matches_live_dependencies_only() {
     let mut graph = SignalGraph::new();
     let source = graph.create_node();
     let dependent = graph.create_node();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     graph.unregister_node(source).unwrap();
     let replacement = graph.create_node();

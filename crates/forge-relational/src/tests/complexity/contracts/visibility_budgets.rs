@@ -45,7 +45,8 @@ fn complexity_budget_branch_creation_reuses_cached_visibility_state() {
 
     runtime.performance_access().reset_counters();
     runtime
-        .history_authority().create_branch(
+        .history_authority()
+        .create_branch(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -89,7 +90,10 @@ fn complexity_contract_visibility_scans_are_explicitly_measured() {
     let historical_version_counters = runtime.performance_access().counters();
 
     assert_eq!(historical_version_counters.visibility_entity_slot_scans, 0);
-    assert_eq!(historical_version_counters.visibility_relation_slot_scans, 0);
+    assert_eq!(
+        historical_version_counters.visibility_relation_slot_scans,
+        0
+    );
 }
 
 #[test]
@@ -141,12 +145,18 @@ fn complexity_budget_live_history_trimming_is_touched_record_bounded() {
     let entity_a = changed_entities(&create_a)[0];
     let create_b = create_entity_outcome(&mut runtime, "b");
     let entity_b = changed_entities(&create_b)[0];
-    assert!(runtime.visibility_authority().release_snapshot(&create_a.snapshot));
-    assert!(runtime.visibility_authority().release_snapshot(&create_b.snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&create_a.snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&create_b.snapshot));
 
     runtime.performance_access().reset_counters();
     let update_a1 = update_entity(&mut runtime, entity_a, "a-1");
-    assert!(runtime.visibility_authority().release_snapshot(&update_a1.snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&update_a1.snapshot));
     let _ = update_entity(&mut runtime, entity_a, "a-2");
     let counters = runtime.performance_access().counters();
 
@@ -187,11 +197,10 @@ fn complexity_budget_partition_scoped_historical_entity_scans_are_partition_boun
     let _right_b = create_entity_in_partition(&mut runtime, "right-b", PartitionId(11));
 
     runtime.performance_access().reset_counters();
-    let records = runtime.visibility_reads().visible_entities_of_kind_in_partition(
-        PartitionId(7),
-        KindId(1),
-        historical_version,
-    );
+    let records = runtime
+        .visibility_reads()
+        .project_version(historical_version)
+        .entity_records_in(PartitionId(7), KindId(1));
     let counters = runtime.performance_access().counters();
 
     assert_eq!(records.len(), 2);
@@ -222,11 +231,10 @@ fn complexity_budget_partition_scoped_historical_relation_scans_are_partition_bo
     );
 
     runtime.performance_access().reset_counters();
-    let records = runtime.visibility_reads().visible_relations_of_kind_in_partition(
-        PartitionId(7),
-        KindId(2),
-        historical_version,
-    );
+    let records = runtime
+        .visibility_reads()
+        .project_version(historical_version)
+        .relation_records_in(PartitionId(7), KindId(2));
     let counters = runtime.performance_access().counters();
 
     assert_eq!(records.len(), 1);

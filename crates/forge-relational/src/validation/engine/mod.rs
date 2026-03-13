@@ -1,16 +1,21 @@
-mod context;
+pub(crate) mod context;
 mod engine;
-mod evaluator;
+pub(crate) mod evaluator;
 mod index_view;
 mod metrics;
+mod observation;
 mod policy;
 mod profile;
 mod request;
 mod result;
 mod state_view;
 
-pub use profile::HarnessAuditMode;
-pub use result::InvariantExecutionResult;
 pub(crate) use engine::InvariantEngine;
+pub(crate) use observation::InvariantObservation;
+pub use observation::InvariantObservationKind;
+pub use profile::HarnessAuditMode;
 pub(crate) use profile::InvariantRequestProfile;
 pub(crate) use request::InvariantExecutionRequest;
+pub use result::{
+    InvariantExecutionDisposition, InvariantExecutionMetadata, InvariantExecutionResult,
+};

@@ -1,5 +1,7 @@
 use crate::validation::data::{InvariantExecutionPoint, InvariantGroup, InvariantGroupSet};
 
+use super::observation::InvariantObservationKind;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum InvariantRequestProfile {
     CommitBoundary,
@@ -33,25 +35,30 @@ impl InvariantRequestProfile {
         }
     }
 
-    pub(crate) fn base_groups(self) -> InvariantGroupSet {
+    pub(crate) fn consumed_groups(self) -> InvariantGroupSet {
         match self {
             Self::CommitBoundary => InvariantGroupSet::of(InvariantGroup::StorageCoherence)
                 .union(InvariantGroupSet::of(InvariantGroup::IdentityCoherence))
                 .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance))
                 .union(InvariantGroupSet::of(InvariantGroup::LineageIntegrity))
                 .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence)),
-            Self::MutationSensitive => {
-                InvariantGroupSet::of(InvariantGroup::StorageCoherence)
-                    .union(InvariantGroupSet::of(InvariantGroup::IdentityCoherence))
-                    .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance))
-                    .union(InvariantGroupSet::of(InvariantGroup::AdjacencyIntegrity))
-                    .union(InvariantGroupSet::of(InvariantGroup::LineageIntegrity))
-            }
-            Self::SnapshotPublication => {
-                InvariantGroupSet::of(InvariantGroup::VersionVisibility)
-                    .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
-            }
+            Self::MutationSensitive => InvariantGroupSet::of(InvariantGroup::StorageCoherence)
+                .union(InvariantGroupSet::of(InvariantGroup::IdentityCoherence))
+                .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance))
+                .union(InvariantGroupSet::of(InvariantGroup::AdjacencyIntegrity))
+                .union(InvariantGroupSet::of(InvariantGroup::LineageIntegrity)),
+            Self::SnapshotPublication => InvariantGroupSet::of(InvariantGroup::VersionVisibility)
+                .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence)),
             Self::HarnessAudit => InvariantGroupSet::all(),
+        }
+    }
+
+    pub(crate) const fn supports_observation(self, observation: InvariantObservationKind) -> bool {
+        match self {
+            Self::CommitBoundary | Self::HarnessAudit => {
+                matches!(observation, InvariantObservationKind::Committed)
+            }
+            Self::MutationSensitive | Self::SnapshotPublication => true,
         }
     }
 }

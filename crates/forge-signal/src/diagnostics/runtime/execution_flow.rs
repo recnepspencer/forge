@@ -68,8 +68,8 @@ pub(crate) fn record_semantic_execution(
         let lineage_artifact_id = graph
             .get_entry(task.node)
             .ok()
-            .and_then(|entry| entry.get_trace_summary())
-            .and_then(|summary| summary.lineage_artifact_id);
+            .and_then(|entry| entry.get_runtime_artifact_state())
+            .and_then(|state| state.lineage_artifact_id);
         graph
             .diagnostics_state_mut()
             .record_replay_event(ReplayEvent::new(

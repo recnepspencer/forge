@@ -3,7 +3,12 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::sync::Mutex;
 
-use crate::facade::{graph::*, transaction::*, types::*};
+use crate::facade::{
+    graph::*,
+    proof::DirtyBatch,
+    transaction::*,
+    types::{AspectMask, ChangedRegion, DependencyEdge, NodeId, NodeState, SignalError},
+};
 use crate::logic::prepared::PreparedEvaluation;
 
 use super::compute::{ComputeContext, Computed, ErasedComputed};
@@ -120,7 +125,10 @@ impl ReactiveGraph {
         if self.batch_depth > 0 {
             self.batched_dirty_nodes.push(signal.node);
         } else {
-            mark_dirty(&mut self.graph, signal.node, DEFAULT_ASPECT)?;
+            mark_dirty_batch(
+                &mut self.graph,
+                &DirtyBatch::singleton(signal.node, DEFAULT_ASPECT, Vec::<ChangedRegion>::new()),
+            )?;
         }
         Ok(())
     }
@@ -159,11 +167,14 @@ impl ReactiveGraph {
             let mut dirty_nodes = std::mem::take(&mut self.batched_dirty_nodes);
             dirty_nodes.sort();
             dirty_nodes.dedup();
-            for node in dirty_nodes {
-                if let Err(err) = mark_dirty(&mut self.graph, node, DEFAULT_ASPECT) {
-                    self.restore_batch_undo();
-                    return Err(err);
-                }
+            if let Err(err) = mark_dirty_batch(
+                &mut self.graph,
+                &DirtyBatch::from_sources(
+                    dirty_nodes.into_iter().map(|node| (node, DEFAULT_ASPECT)),
+                ),
+            ) {
+                self.restore_batch_undo();
+                return Err(err);
             }
             self.clear_batch_undo();
         }
@@ -241,22 +252,21 @@ impl ReactiveGraph {
             entry.set_dirty_aspects(AspectMask::EMPTY);
             entry.clear_dirty_partition_scopes();
         }
-        self.graph
-            .set_dependencies(
-                node,
-                prepared
-                    .dependencies
-                    .as_slice()
-                    .iter()
-                    .map(|dependency| match &dependency.scope {
-                        Some(scope) => DependencyEdge::with_partition_scope(
-                            dependency.source,
-                            dependency.aspect,
-                            scope.clone(),
-                        ),
-                        None => DependencyEdge::new(dependency.source, dependency.aspect),
-                    }),
-            )?;
+        self.graph.set_dependencies(
+            node,
+            prepared
+                .dependencies
+                .as_slice()
+                .iter()
+                .map(|dependency| match &dependency.scope {
+                    Some(scope) => DependencyEdge::with_partition_scope(
+                        dependency.source,
+                        dependency.aspect,
+                        scope.clone(),
+                    ),
+                    None => DependencyEdge::new(dependency.source, dependency.aspect),
+                }),
+        )?;
         self.graph.set_dep_snapshot(node, dep_snapshot)?;
         Ok(())
     }

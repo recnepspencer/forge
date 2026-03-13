@@ -1,6 +1,6 @@
 mod branches;
-mod builder;
 mod branching;
+mod builder;
 mod mutation;
 mod observation;
 mod observer;

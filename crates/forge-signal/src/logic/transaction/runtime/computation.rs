@@ -82,9 +82,11 @@ impl<'a, T: Copy, F> DefinedKeyedComputation<'a, T, F> {
         I: Copy + Ord,
         T: Ord,
     {
-        runtime
-            .config
-            .resolve_defined_node(&mut runtime.graph, self.definition.family(), self.key.clone())
+        runtime.config.resolve_defined_node(
+            &mut runtime.graph,
+            self.definition.family(),
+            self.key.clone(),
+        )
     }
 
     pub fn node_in_transaction<D, I, E, Ctx>(
@@ -125,7 +127,12 @@ where
         O: IntoEvaluationOutput,
     {
         let node = self.node(runtime);
-        runtime.evaluate_with_plan(node, runtime_ctx, &self.definition.evaluator, EvaluationRequestMode::Default)
+        runtime.evaluate_with_plan(
+            node,
+            runtime_ctx,
+            &self.definition.evaluator,
+            EvaluationRequestMode::Default,
+        )
     }
 
     pub fn read<D, I, E, Ctx, O>(

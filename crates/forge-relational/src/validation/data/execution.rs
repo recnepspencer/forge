@@ -12,7 +12,7 @@ pub enum InvariantClass {
     HarnessHeavy,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum InvariantExecutionPoint {
     MutationSensitive,
     CommitBoundary,
@@ -42,7 +42,7 @@ impl InvariantExecutionPoint {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum InvariantFailureEffect {
     BlockCommit,
     BlockPublication,

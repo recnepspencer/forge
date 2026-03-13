@@ -20,7 +20,11 @@ fn fintech_keyed_audit_cache_reuses_stable_memo_entries_without_cross_shape_corr
         .read_top_scenario_with_executor(StageExecutor::Serial)
         .unwrap();
 
-    let family = define_keyed_computation(&mut world.runtime, "fintech-audit-cache", FintechTier::Audit);
+    let family = define_keyed_computation(
+        &mut world.runtime,
+        "fintech-audit-cache",
+        FintechTier::Audit,
+    );
     let cache_def = family.keyed("desk-0");
     let cache = cache_def.node(&mut world.runtime);
     let baseline = cache_def.memoized("baseline");
@@ -46,12 +50,10 @@ fn fintech_keyed_audit_cache_reuses_stable_memo_entries_without_cross_shape_corr
                     let market = view.read_aspect_version(primary_market, PRICE)?.get(PRICE);
                     let total = desk + scenario + market;
                     return Ok(view.finish(
-                        NodeEvaluationResult::from_version(
-                            AspectVersion::from_updates([
-                                (RISK, total),
-                                (ALERT, u64::from(total > 40_000)),
-                            ]),
-                        )
+                        NodeEvaluationResult::from_version(AspectVersion::from_updates([
+                            (RISK, total),
+                            (ALERT, u64::from(total > 40_000)),
+                        ]))
                         .with_output_identity(format!(
                             "audit-cache-{}",
                             memo.memo_key.as_ref().unwrap().as_str()

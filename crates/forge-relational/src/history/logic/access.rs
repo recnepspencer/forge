@@ -5,6 +5,8 @@ use crate::history::data::{
     VersionGraphSnapshot,
 };
 use crate::logic::runtime::RelationalRuntime;
+use crate::publication::data::diff::{PatchStreamPosition, RelationalPatchRecord};
+use crate::replay::data::CanonicalCommitEnvelope;
 
 pub struct HistoryAccess<'runtime> {
     runtime: &'runtime RelationalRuntime,
@@ -41,12 +43,66 @@ impl<'runtime> HistoryAccess<'runtime> {
             })
     }
 
+    pub(crate) fn commit_envelope(&self, commit_id: CommitId) -> Option<&CanonicalCommitEnvelope> {
+        self.runtime
+            .history
+            .commit_envelopes
+            .get(&commit_id)
+            .map(|envelope| envelope.as_ref())
+    }
+
+    pub(crate) fn latest_patch_stream_position(&self) -> Option<PatchStreamPosition> {
+        self.runtime
+            .history
+            .patch_stream_index
+            .last_key_value()
+            .map(|(position, _)| *position)
+    }
+
+    pub(crate) fn contains_patch_stream_position(&self, position: PatchStreamPosition) -> bool {
+        self.runtime
+            .history
+            .patch_stream_index
+            .contains_key(&position)
+    }
+
+    pub(crate) fn patches_after(
+        &self,
+        after_position: Option<PatchStreamPosition>,
+        max_commits: usize,
+    ) -> Vec<RelationalPatchRecord> {
+        let start = after_position
+            .map(std::ops::Bound::Excluded)
+            .unwrap_or(std::ops::Bound::Unbounded);
+        self.runtime
+            .history
+            .patch_stream_index
+            .range((start, std::ops::Bound::Unbounded))
+            .filter_map(|(_, commit_id)| self.commit_envelope(*commit_id))
+            .map(|envelope| envelope.patch.clone())
+            .take(max_commits)
+            .collect()
+    }
+
+    pub(crate) fn commit_envelopes_snapshot(&self) -> Vec<CanonicalCommitEnvelope> {
+        self.runtime
+            .history
+            .commit_envelopes
+            .values()
+            .map(|envelope| envelope.as_ref().clone())
+            .collect()
+    }
+
     pub(crate) fn next_commit_id(&self) -> CommitId {
         self.runtime.history.preview_next_commit_id()
     }
 
     pub(crate) fn preview_next_version_id(&self) -> crate::identity::data::VersionId {
         self.runtime.history.preview_next_version_id()
+    }
+
+    pub(crate) fn commit_count(&self) -> usize {
+        self.runtime.history.commit_graph.len()
     }
 
     pub fn branch_head(&self, branch_id: &BranchId) -> Option<&CommitReference> {
@@ -81,7 +137,13 @@ impl<'runtime> HistoryAccess<'runtime> {
     pub fn version_graph(&self) -> VersionGraphSnapshot {
         VersionGraphSnapshot {
             branches: self.branches(),
-            commits: self.runtime.history.commit_graph.values().cloned().collect(),
+            commits: self
+                .runtime
+                .history
+                .commit_graph
+                .values()
+                .cloned()
+                .collect(),
         }
     }
 

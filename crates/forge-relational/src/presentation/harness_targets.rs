@@ -1,12 +1,12 @@
 use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
-use crate::facade::{
-    EntityId, EntityKindRegistration, KindId, PartitionId, RelationId, RelationKindRegistration,
-    RelationalSchemaRegistry, SchemaId, SchemaVersionId,
+use crate::facade::harness::RelationalHarnessError;
+use crate::facade::identity::{EntityId, KindId, PartitionId, RelationId};
+use crate::facade::schema::{
+    EntityKindRegistration, RelationKindRegistration, RelationalSchemaRegistry, SchemaId,
+    SchemaVersionId,
 };
 use crate::schema::data::RelationPayloadClass;
 use crate::transactions::data::RecordRef;
-
-use super::harness_data::RelationalHarnessError;
 
 pub(super) fn resolve_targets(
     request: &forge_harness::facade::ExecutionRequest<String>,
@@ -67,15 +67,16 @@ pub(super) fn parse_target(target: &str) -> Result<RecordRef, RelationalHarnessE
 }
 
 pub(super) fn commit_error_to_harness_error(
-    error: crate::transactions::data::TransactionCommitError,
+    error: crate::facade::transactions::TransactionCommitError,
 ) -> RelationalHarnessError {
     match error {
-        crate::transactions::data::TransactionCommitError::Conflict { error: conflict, .. } => {
-            RelationalHarnessError(conflict.detail)
-        }
-        crate::transactions::data::TransactionCommitError::Publication { error: publication, .. } => {
-            RelationalHarnessError(publication.detail)
-        }
+        crate::facade::transactions::TransactionCommitError::Conflict {
+            error: conflict, ..
+        } => RelationalHarnessError(conflict.detail),
+        crate::facade::transactions::TransactionCommitError::Publication {
+            error: publication,
+            ..
+        } => RelationalHarnessError(publication.detail),
     }
 }
 

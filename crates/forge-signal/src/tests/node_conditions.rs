@@ -91,7 +91,9 @@ fn aspect_filter_skips_unmatched_dirty_aspect() {
     let mut graph = SignalGraph::new();
     let source = graph.create_node();
     let dependent = graph.node().aspect_filter(mask_a()).build();
-    graph.append_dependency(dependent, source, ASPECT_B).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_B)
+        .unwrap();
 
     let mut source_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 10));
     let mut dependent_calls = 0_u64;
@@ -117,7 +119,9 @@ fn aspect_filter_recomputes_on_matched_aspect() {
     let mut graph = SignalGraph::new();
     let source = graph.create_node();
     let dependent = graph.node().aspect_filter(mask_b()).build();
-    graph.append_dependency(dependent, source, ASPECT_B).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_B)
+        .unwrap();
 
     let mut source_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 10));
     let mut dependent_calls = 0_u64;
@@ -143,7 +147,9 @@ fn invalidation_skips_direct_subscriber_when_contract_reads_do_not_care() {
     let mut graph = SignalGraph::new();
     let source = graph.create_node();
     let dependent = graph.node().reads_aspects(mask_a()).build();
-    graph.append_dependency(dependent, source, ASPECT_B).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_B)
+        .unwrap();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, source, &mut compute).unwrap();
@@ -161,9 +167,13 @@ fn invalidation_skips_direct_subscriber_when_contract_partition_scope_does_not_c
     let dependent = graph
         .node()
         .reads_aspects(mask_a())
-        .with_partition_scope(PartitionSubscription::partition_and_detail("wing", "rib-12"))
+        .with_partition_scope(PartitionSubscription::partition_and_detail(
+            "wing", "rib-12",
+        ))
         .build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, source, &mut compute).unwrap();
@@ -190,15 +200,14 @@ fn invalidation_respects_mixed_aspect_and_partition_contracts() {
     let dependent = graph
         .node()
         .reads_aspects(mask_a())
-        .with_contract(
-            NodeContract::reads(mask_a())
-                .with_partition_scopes([
-                    PartitionSubscription::partition_and_detail("wing", "rib-12"),
-                    PartitionSubscription::partition_and_detail("tail", "rib-2"),
-                ]),
-        )
+        .with_contract(NodeContract::reads(mask_a()).with_partition_scopes([
+            PartitionSubscription::partition_and_detail("wing", "rib-12"),
+            PartitionSubscription::partition_and_detail("tail", "rib-2"),
+        ]))
         .build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, source, &mut compute).unwrap();
@@ -237,7 +246,9 @@ fn delta_threshold_skips_small_delta() {
     let mut graph = SignalGraph::new();
     let source = graph.create_node();
     let dependent = graph.node().delta_threshold(2.0).build();
-    graph.append_dependency(dependent, source, ASPECT_B).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_B)
+        .unwrap();
 
     let mut source_v10 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 10));
     let mut source_v12 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 12));
@@ -262,7 +273,9 @@ fn delta_threshold_recomputes_large_delta() {
     let mut graph = SignalGraph::new();
     let source = graph.create_node();
     let dependent = graph.node().delta_threshold(2.0).build();
-    graph.append_dependency(dependent, source, ASPECT_B).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_B)
+        .unwrap();
 
     let mut source_v10 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 10));
     let mut source_v13 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 13));

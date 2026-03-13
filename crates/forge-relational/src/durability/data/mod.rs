@@ -127,12 +127,10 @@ impl RecordArenaCheckpointKind for RelationCheckpointImageKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(
-    bound(
-        serialize = "K::MetaImage: Serialize, K::ExtraImage: Serialize",
-        deserialize = "K::MetaImage: Deserialize<'de>, K::ExtraImage: Deserialize<'de>"
-    )
-)]
+#[serde(bound(
+    serialize = "K::MetaImage: Serialize, K::ExtraImage: Serialize",
+    deserialize = "K::MetaImage: Deserialize<'de>, K::ExtraImage: Deserialize<'de>"
+))]
 pub struct RecordArenaCheckpointImage<K: RecordArenaCheckpointKind> {
     pub generations: Vec<u32>,
     pub lifecycle: Vec<RecordLifecycleState>,

@@ -68,7 +68,10 @@ where
         samples.push(measurement);
     }
 
-    let mut elapsed = samples.iter().map(|sample| sample.elapsed_micros).collect::<Vec<_>>();
+    let mut elapsed = samples
+        .iter()
+        .map(|sample| sample.elapsed_micros)
+        .collect::<Vec<_>>();
     elapsed.sort_unstable();
     emit(&PerfSummaryRecord {
         kind: "summary",

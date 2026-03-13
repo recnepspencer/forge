@@ -48,20 +48,24 @@ pub(crate) fn canonical_intent_key(intent: &MutationIntent) -> CanonicalIntentKe
             kind_id: spec.kind_id,
             client_key: spec.client_key.clone(),
         },
-        MutationIntent::Create(CreateIntent::BulkEntities(spec)) => CanonicalIntentKey::BulkCreateEntities {
-            partition_id: spec.partition_id,
-            kind_id: spec.kind_id,
-            client_keys: spec.client_keys.clone(),
-        },
+        MutationIntent::Create(CreateIntent::BulkEntities(spec)) => {
+            CanonicalIntentKey::BulkCreateEntities {
+                partition_id: spec.partition_id,
+                kind_id: spec.kind_id,
+                client_keys: spec.client_keys.clone(),
+            }
+        }
         MutationIntent::Entity(EntityMutationIntent::Update(spec)) => {
             CanonicalIntentKey::UpdateEntity(spec.entity_id)
         }
-        MutationIntent::Entity(EntityMutationIntent::Replace(spec)) => CanonicalIntentKey::ReplaceEntity {
-            entity_id: spec.entity_id,
-            replacement_partition_id: spec.replacement.partition_id,
-            replacement_kind_id: spec.replacement.kind_id,
-            replacement_client_key: spec.replacement.client_key.clone(),
-        },
+        MutationIntent::Entity(EntityMutationIntent::Replace(spec)) => {
+            CanonicalIntentKey::ReplaceEntity {
+                entity_id: spec.entity_id,
+                replacement_partition_id: spec.replacement.partition_id,
+                replacement_kind_id: spec.replacement.kind_id,
+                replacement_client_key: spec.replacement.client_key.clone(),
+            }
+        }
         MutationIntent::Entity(EntityMutationIntent::Delete(spec)) => {
             CanonicalIntentKey::DeleteEntity(spec.entity_id)
         }
@@ -74,11 +78,13 @@ pub(crate) fn canonical_intent_key(intent: &MutationIntent) -> CanonicalIntentKe
                 client_key: spec.client_key.clone(),
             })
         }
-        MutationIntent::Create(CreateIntent::BulkRelations(spec)) => CanonicalIntentKey::BulkCreateRelations {
-            partition_id: spec.partition_id,
-            kind_id: spec.kind_id,
-            endpoints: spec.endpoints.clone(),
-        },
+        MutationIntent::Create(CreateIntent::BulkRelations(spec)) => {
+            CanonicalIntentKey::BulkCreateRelations {
+                partition_id: spec.partition_id,
+                kind_id: spec.kind_id,
+                endpoints: spec.endpoints.clone(),
+            }
+        }
         MutationIntent::Relation(RelationMutationIntent::Delete(spec)) => {
             CanonicalIntentKey::DeleteRelation(spec.relation_id)
         }

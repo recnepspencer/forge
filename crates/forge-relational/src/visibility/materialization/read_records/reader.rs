@@ -7,10 +7,14 @@ use crate::logic::runtime::{RelationalRuntime, VisibilityResidency};
 use crate::publication::data::diff::AspectKey;
 use crate::query::data::QueryWorkPacket;
 use crate::snapshots::data::{SnapshotHandle, SnapshotInspectionSummary};
-use crate::symbols::data::InternedString;
-use crate::storage::data::{EntityReadRecord, PacketResult, RelationReadRecord, RelationalReadView};
+use crate::storage::data::{
+    EntityReadRecord, PacketResult, RelationReadRecord, RelationalReadView,
+};
 use crate::storage::logic::state::{DenseSlotBitSet, PartitionAccess};
-use crate::visibility::cache_state::{cached_state_for_version, reconstruct_state, residency_for_version};
+use crate::symbols::data::InternedString;
+use crate::visibility::cache_state::{
+    cached_state_for_version, reconstruct_state, residency_for_version,
+};
 use crate::visibility::snapshot_states::{build_visibility_state, read_view_from_snapshot_state};
 use serde_json::json;
 
@@ -29,15 +33,19 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         Self { runtime }
     }
 
-    pub fn inspect_snapshot(
-        &self,
-        handle: &SnapshotHandle,
-    ) -> Option<SnapshotInspectionSummary> {
+    pub(crate) const fn runtime(&self) -> &'runtime RelationalRuntime {
+        self.runtime
+    }
+
+    pub fn inspect_snapshot(&self, handle: &SnapshotHandle) -> Option<SnapshotInspectionSummary> {
         if let Some((version_id, _read_policy)) =
             self.runtime.active_snapshot_binding(handle.snapshot_id)
         {
-            let state =
-                reconstruct_state(self.runtime, version_id, !self.runtime.protect_active_snapshots())?;
+            let state = reconstruct_state(
+                self.runtime,
+                version_id,
+                !self.runtime.protect_active_snapshots(),
+            )?;
             return Some(SnapshotInspectionSummary {
                 version_id,
                 entity_count: state.pinned_entity_count,
@@ -46,7 +54,9 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                 pinned_relation_count: state.pinned_relation_count,
             });
         }
-        let version_id = self.runtime.published_snapshot_version(handle.snapshot_id)?;
+        let version_id = self
+            .runtime
+            .published_snapshot_version(handle.snapshot_id)?;
         let read_view = self.read_version(version_id);
         Some(SnapshotInspectionSummary {
             version_id,
@@ -61,8 +71,11 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         if let Some((version_id, read_policy)) =
             self.runtime.active_snapshot_binding(handle.snapshot_id)
         {
-            let state =
-                reconstruct_state(self.runtime, version_id, !self.runtime.protect_active_snapshots())?;
+            let state = reconstruct_state(
+                self.runtime,
+                version_id,
+                !self.runtime.protect_active_snapshots(),
+            )?;
             let mut read_view = read_view_from_snapshot_state(self.runtime, &state);
             read_view.snapshot = SnapshotHandle {
                 snapshot_id: handle.snapshot_id,
@@ -71,16 +84,15 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             };
             return Some(read_view);
         }
-        let version_id = self.runtime.published_snapshot_version(handle.snapshot_id)?;
+        let version_id = self
+            .runtime
+            .published_snapshot_version(handle.snapshot_id)?;
         let mut read_view = self.read_version(version_id);
         read_view.snapshot = handle.clone();
         Some(read_view)
     }
 
-    pub fn read_version(
-        &self,
-        version_id: crate::identity::data::VersionId,
-    ) -> RelationalReadView {
+    pub fn read_version(&self, version_id: crate::identity::data::VersionId) -> RelationalReadView {
         let state = reconstruct_state(self.runtime, version_id, true).unwrap_or_else(|| {
             build_visibility_state(
                 self.runtime,
@@ -106,7 +118,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         kind_id: crate::identity::data::KindId,
         version_id: crate::identity::data::VersionId,
     ) -> Vec<EntityReadRecord> {
-        let state = self.runtime.current_state();
+        let state = self.runtime.storage_access().current_state();
         let mut records = Vec::new();
         for partition_id in state.partition_ids() {
             records.extend(self.visible_entities_of_kind_in_partition_from_state(
@@ -126,7 +138,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         kind_id: crate::identity::data::KindId,
         version_id: crate::identity::data::VersionId,
     ) -> Vec<EntityReadRecord> {
-        let state = self.runtime.current_state();
+        let state = self.runtime.storage_access().current_state();
         let mut records = self.visible_entities_of_kind_in_partition_from_state(
             &state,
             partition_id,
@@ -142,7 +154,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         kind_id: crate::identity::data::KindId,
         version_id: crate::identity::data::VersionId,
     ) -> Vec<RelationReadRecord> {
-        let state = self.runtime.current_state();
+        let state = self.runtime.storage_access().current_state();
         let mut records = Vec::new();
         for partition_id in state.partition_ids() {
             records.extend(self.visible_relations_of_kind_in_partition_from_state(
@@ -162,7 +174,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         kind_id: crate::identity::data::KindId,
         version_id: crate::identity::data::VersionId,
     ) -> Vec<RelationReadRecord> {
-        let state = self.runtime.current_state();
+        let state = self.runtime.storage_access().current_state();
         let mut records = self.visible_relations_of_kind_in_partition_from_state(
             &state,
             partition_id,
@@ -177,15 +189,20 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         &self,
         entity_id: crate::identity::data::EntityId,
     ) -> Option<Vec<(AspectKey, u64)>> {
-        let partition = self.runtime.partition(entity_id.partition_id)?;
+        let partition = self
+            .runtime
+            .storage_access()
+            .partition_state(entity_id.partition_id)?;
         let slot = entity_id.local_slot.0 as usize;
         let versions = partition.entity_arena.aspect_versions_at(slot)?;
         let mut resolved: Vec<_> = versions
             .iter()
             .filter_map(|(symbol, version)| {
-                self.runtime.resolve_symbol_name(*symbol).map(|name| {
-                    (AspectKey(InternedString::Raw(name.to_string())), *version)
-                })
+                self.runtime
+                    .services
+                    .symbols
+                    .resolve(*symbol)
+                    .map(|name| (AspectKey(InternedString::Raw(name.to_string())), *version))
             })
             .collect();
         resolved.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
@@ -196,15 +213,20 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         &self,
         relation_id: crate::identity::data::RelationId,
     ) -> Option<Vec<(AspectKey, u64)>> {
-        let partition = self.runtime.partition(relation_id.partition_id)?;
+        let partition = self
+            .runtime
+            .storage_access()
+            .partition_state(relation_id.partition_id)?;
         let slot = relation_id.local_slot.0 as usize;
         let versions = partition.relation_arena.aspect_versions_at(slot)?;
         let mut resolved: Vec<_> = versions
             .iter()
             .filter_map(|(symbol, version)| {
-                self.runtime.resolve_symbol_name(*symbol).map(|name| {
-                    (AspectKey(InternedString::Raw(name.to_string())), *version)
-                })
+                self.runtime
+                    .services
+                    .symbols
+                    .resolve(*symbol)
+                    .map(|name| (AspectKey(InternedString::Raw(name.to_string())), *version))
             })
             .collect();
         resolved.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
@@ -216,7 +238,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         entity_id: crate::identity::data::EntityId,
         version_id: crate::identity::data::VersionId,
     ) -> Option<Vec<AspectKey>> {
-        let state = self.runtime.current_state();
+        let state = self.runtime.storage_access().current_state();
         let record = self.entity_record_for_id_at_version(&state, entity_id, version_id)?;
         Some(aspect_keys_for_payload(&record.payload))
     }
@@ -226,7 +248,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         relation_id: crate::identity::data::RelationId,
         version_id: crate::identity::data::VersionId,
     ) -> Option<Vec<AspectKey>> {
-        let state = self.runtime.current_state();
+        let state = self.runtime.storage_access().current_state();
         let record = self.relation_record_for_id_at_version(&state, relation_id, version_id)?;
         record.payload.as_ref().map(aspect_keys_for_payload)
     }
@@ -300,12 +322,15 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             ));
         }
 
-        let version_id = self.runtime.published_snapshot_version(handle.snapshot_id)?;
+        let version_id = self
+            .runtime
+            .published_snapshot_version(handle.snapshot_id)?;
         let residency = residency_for_version(self.runtime, version_id);
         let cached = cached_state_for_version(self.runtime, version_id).is_some();
         let recent_window = self.runtime.recent_visibility_window();
-        let recent_candidate =
-            self.runtime.visibility_cache_enabled() && recent_window > 0 && !is_protected(&residency);
+        let recent_candidate = self.runtime.visibility_cache_enabled()
+            && recent_window > 0
+            && !is_protected(&residency);
         let mut entries = vec![RelationalDiagnosticsEntry {
             code: DiagnosticCode::PublishedSnapshotHandleRead,
             message: "snapshot read will resolve through a published handle".to_string(),
@@ -356,8 +381,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                 version_id,
             )
             .filter(|record| {
-                entity_id.generation.0 == 0
-                    || record.entity_id.generation == entity_id.generation
+                entity_id.generation.0 == 0 || record.entity_id.generation == entity_id.generation
             })
         }
     }
@@ -458,12 +482,9 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                 if !slot_kind_matches(&partition.relation_arena, slot, kind_id) {
                     continue;
                 }
-                if let Some(record) = materialize_current_relation_record(
-                    self.runtime,
-                    partition,
-                    partition_id,
-                    slot,
-                ) {
+                if let Some(record) =
+                    materialize_current_relation_record(self.runtime, partition, partition_id, slot)
+                {
                     records.push(record);
                 }
             }
@@ -564,7 +585,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         relation_id: crate::identity::data::RelationId,
         version_id: crate::identity::data::VersionId,
     ) -> bool {
-        let current_state = self.runtime.current_state();
+        let current_state = self.runtime.storage_access().current_state();
         self.relation_record_for_id_at_version(&current_state, relation_id, version_id)
             .is_some()
     }

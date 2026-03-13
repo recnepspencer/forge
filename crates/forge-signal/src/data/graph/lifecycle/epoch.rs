@@ -18,8 +18,12 @@ impl SignalGraph {
 
     pub fn run_gc_epoch(&mut self) {
         let active_nodes = self.arena.active_nodes as usize;
-        let should_run = self.arena.should_run_compaction_epoch(&self.topology, active_nodes);
-        let family_budget = self.arena.compaction_epoch_budget(&self.topology, active_nodes);
+        let should_run = self
+            .arena
+            .should_run_compaction_epoch(&self.topology, active_nodes);
+        let family_budget = self
+            .arena
+            .compaction_epoch_budget(&self.topology, active_nodes);
         let Some(epoch_plan) = self.arena.plan_compaction_epoch(should_run, family_budget) else {
             return;
         };
@@ -27,7 +31,8 @@ impl SignalGraph {
         for family in epoch_plan.families() {
             self.compact_storage_family(family);
         }
-        self.arena.complete_compaction_epoch(epoch_plan.family_budget());
+        self.arena
+            .complete_compaction_epoch(epoch_plan.family_budget());
         self.observation.telemetry.storage.gc_epoch_count += 1;
         self.observation.telemetry.storage.gc_epoch_nanos += gc_start.elapsed().as_nanos();
     }

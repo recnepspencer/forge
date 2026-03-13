@@ -1,43 +1,57 @@
-use crate::logic::runtime::{PartitionAccess, RelationalRuntime};
+use crate::logic::runtime::RelationalRuntime;
 use crate::transactions::data::MergedCommitPlan;
-use crate::validation::data::{InvariantExecutionPoint, InvariantPlanContract};
+use crate::validation::data::InvariantExecutionPoint;
 
 use super::index_view::InvariantIndexView;
 use super::metrics::InvariantMetrics;
+use super::observation::InvariantObservation;
 use super::state_view::InvariantStateView;
 
 pub struct InvariantExecutionContext<'runtime> {
-    pub state: &'runtime dyn PartitionAccess,
-    pub version_id: crate::identity::data::VersionId,
-    pub current_version_id: crate::identity::data::VersionId,
-    pub execution_point: InvariantExecutionPoint,
-    pub plan_contract: Option<InvariantPlanContract>,
-    pub merged_plan: Option<&'runtime MergedCommitPlan>,
+    observation: InvariantObservation<'runtime>,
+    version_id: crate::identity::data::VersionId,
+    current_version_id: crate::identity::data::VersionId,
+    execution_point: InvariantExecutionPoint,
+    merged_plan: Option<&'runtime MergedCommitPlan>,
     runtime: &'runtime RelationalRuntime,
 }
 
 impl<'runtime> InvariantExecutionContext<'runtime> {
     pub fn new(
         runtime: &'runtime RelationalRuntime,
-        state: &'runtime dyn PartitionAccess,
+        observation: InvariantObservation<'runtime>,
         version_id: crate::identity::data::VersionId,
         execution_point: InvariantExecutionPoint,
-        plan_contract: Option<InvariantPlanContract>,
         merged_plan: Option<&'runtime MergedCommitPlan>,
     ) -> Self {
         Self {
-            state,
+            observation,
             version_id,
             current_version_id: runtime.current_version_id(),
             execution_point,
-            plan_contract,
             merged_plan,
             runtime,
         }
     }
 
-    pub fn state_view(&self) -> InvariantStateView<'runtime> {
-        InvariantStateView::new(self.state, self.version_id)
+    pub fn state_view(&self) -> InvariantStateView<'_> {
+        InvariantStateView::new(self.observation.partition_access(), self.version_id)
+    }
+
+    pub fn partition_access(&self) -> &dyn crate::storage::overlay::PartitionAccess {
+        self.observation.partition_access()
+    }
+
+    pub fn current_version_id(&self) -> crate::identity::data::VersionId {
+        self.current_version_id
+    }
+
+    pub fn execution_point(&self) -> InvariantExecutionPoint {
+        self.execution_point
+    }
+
+    pub fn merged_plan(&self) -> Option<&'runtime MergedCommitPlan> {
+        self.merged_plan
     }
 
     pub fn runtime(&self) -> &'runtime RelationalRuntime {

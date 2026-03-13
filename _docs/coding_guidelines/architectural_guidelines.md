@@ -1,0 +1,80 @@
+# Architectural Laws
+
+1. A runtime must be decomposed into autonomous subsystems that own their state and expose strictly contractual facades. A monolithic struct that borrows the world for every method call is a structural liability. Subsystems must be independently borrowable, testable, and replaceable. Read-path constructs must borrow only the observation or visibility subsystem, leaving write-path authority fully accessible — snapshot isolation is a structural consequence of correct decomposition, not a separate mechanism.
+
+2. Write-path contracts and read-path contracts are duals of the same truth. Every mutation must structurally declare what it invalidates, and every projection must structurally declare what it consumes. The framework computes their intersection. Implicit contracts force the system to assume global coupling.
+
+3. A contract declared on a type strictly dominates a contract discovered at runtime. Dependencies, invariant groups, and context requirements must be defined at compile time to allow the framework to verify and sequence the system graph. Runtime discovery is architectural late-binding that guarantees late failure.
+
+4. Semantic intent must compile into system orchestration. The mutation shape and structural topology must completely determine which pipeline phases execute and which invariants are checked. Domain handlers must not declare execution modes; the pipeline must structurally infer them from the data shape.
+
+5. Binary outcomes destroy actionable domain context. In systems governed by policy and profile, every validation, invariant check, and policy decision must distinguish success, advisory (proceed with structured context), and violation (block with structured context) to allow higher-level workflows to adapt.
+
+6. Domain mutations must produce declarative effects, not ceremonial boilerplate. A domain handler returns what changed; the framework derives observability, audit logs, patches, and network events from that effect. Framework ceremony copied into domain handlers is a failure of abstraction.
+
+7. Every boundary crossing must produce a self-describing envelope sufficient for any consumer to fully reconstruct the operation without access to the producing system. The generative question is: "What would an intelligent observer who has never seen my internals need to completely understand this state transition?" The answer is always the same structural categories: primary result, structured warnings, decision trace, structural deltas, integrity markers, and performance accounting. The specific domain names differ; the categories do not. If the envelope requires querying the producer to be interpretable, the boundary is leaking.
+
+8. A decision log is a first-class architectural artifact, not a debug byproduct. Every authority-path decision — conflict resolution, invariant overrides, cascade triggers — must be structurally recorded in a span-aware, queryable trace with O(1) decision lookup and incremental summary. A system whose operational history cannot be reconstructed solely from its decision log is a black box.
+
+9. Compiler-enforced construction strictly dominates convention-enforced construction. If a structure or subsystem requires initialization of N fields, the API must make omission a compile-time error via typestates or exhaustive struct expressions. This extends to lifecycle propagation: adding subsystem N+1 must produce a compile error at every construction site and every fork site that does not initialize or propagate it. If a new subsystem can be added and the system compiles without updating every lifecycle boundary, the lifecycle is not enforced — it is merely documented.
+
+10. Every struct must earn its fields. A method that borrows N fields to touch only two holds an artificial lock against concurrent access and creates false coupling. Structs must be decomposed until every method requires exactly the data it borrows.
+
+11. Structurally identical types that differ only in domain meaning must be unified through phantom-tagged generics. Duplicating identical memory layouts, constructors, and trait implementations across multiple domain types creates a synchronization risk the compiler cannot audit.
+
+12. Error topologies must be structured, typed, and composable. String-based errors are unqueryable dead ends. Matching on an error kind must be a type-level operation. Errors must carry actionable, machine-readable context fields and support strict propagation across subsystem boundaries.
+
+13. Configuration must mirror subsystem architecture. A flat configuration struct with dozens of fields is a bag, not a structural definition. Configuration must be nested into sections that strictly align with subsystem boundaries to prevent cross-domain conceptual leakage.
+
+14. Near-identical execution paths that differ only in mode, target selection, or artifact policy must be collapsed into a single parameterized path. Structural duplication across orchestrators is the most lethal form of copy-paste because divergence is silent and architecturally catastrophic.
+
+15. Ambient context strictly dominates manual threading. If domain context is universally required across evaluations or projections, the framework must own its lifetime and inject it. Threading state through deep call stacks or smuggling it through global locks breaks transactional safety and pollutes business logic.
+
+16. Declarative resource definition strictly dominates scattered registration. If defining a computation or handler requires N separate coordination calls across different registries, they must be bundled into a single declaration struct. The framework must extract wiring, scheduling, and lifecycle from this single source of truth.
+
+17. Policy resolution must be structurally isolated from policy execution. Computing whether a rule applies must not be interleaved with applying the rule. The architecture must pre-solve applicability at the entry boundary and pass a monomorphic, lowered plan to the execution phase.
+
+18. Observation must be phase-typed and scoped. An observer that can read mutable state during an active mutation is a systemic correctness hazard. The type system must enforce that observers receive strictly phase-appropriate views, completely isolating visibility from mutation authority.
+
+19. Rollback must be structurally derivable. If a transaction produces declarative effects, the undo of those effects must be perfectly derivable from the effect records themselves. A rollback that requires the system to re-query the external world proves the effect recording is mechanically insufficient.
+
+20. API signatures must explicitly declare boundary crossings. A method that triggers a distributed saga, a disk flush, or a complex graph traversal must not masquerade as a synchronous property getter. The API shape must physically force the caller to acknowledge the orchestration boundary.
+
+21. A domain effect and its observability artifacts have separate lifecycles. The operational hot path commits what changed; rich diagnostics are materialized solely if the resolved artifact policy demands it. The architecture must not inextricably link domain truth with its forensic representation.
+
+22. Batch-derived summaries are the mandatory form for cross-phase communication. If multiple pipeline phases require the same structural fact — touched scope, contract masks, topological impact — it must be derived exactly once at the batch boundary and passed as an immutable summary.
+
+23. Data ownership must reflect observer topology. A clone implementation on a pipeline packet asserts that two distinct subsystems require the pre-mutation state simultaneously. If this claim is false, the clone is an architectural lie. Single-consumer packets must enforce move-only semantics.
+
+24. Rejection must structurally precede construction. Eligibility must be proven before dependency inputs are assembled or complex domain objects are instantiated. Phase-typed eligibility progression guarantees that later phases never process domain entities that earlier phases could have rejected.
+
+25. Data modeling must reflect workload traversal, not abstract normalization. A graph traversed in one direction for invalidation and another for notification requires distinct access structures. Normalizing a directional system into symmetric tables to satisfy academic purity is architectural dishonesty.
+
+26. Equivalence contracts must be explicit, not emergent. Any reuse surface — caching, memoization, output suppression — must statically declare its identity basis, canonical dependency order, and comparator logic. Reuse without an explicit equivalence contract is a heuristic guaranteed to drift into wrong results under maintenance pressure.
+
+27. Lowered execution plans are the only acceptable input to the execution engine. The executor must not re-decide strategy, artifact policy, or parallel admission safety. If the executor contains speculative orchestration or strategy branching, the planner is mechanically incomplete. Parallel admission specifically must depend on structural disjointness proofs carried by the plan — computed during planning from locality footprints — not discovered at runtime through speculative locking.
+
+28. When two or more constructs share structural lifecycle but differ in traversal strategy, data topology, or domain semantics, the shared lifecycle is the abstraction and the differences are parameters. The discovery rule: if you can describe two systems using the same sequence of phase names — acquire, transform, commit, rollback, invalidate — but they differ in how each phase operates on data, then the phase sequence is an abstraction and each phase's strategy is a pluggable parameter. Stop extracting the abstraction when you can no longer name the shared lifecycle without lying about what a phase does.
+
+29. Abstraction must stop at three hard boundaries. First: cost boundaries — an abstraction that unifies O(1) and O(n) operations behind a uniform interface is cost-dishonest and creates invisible performance cliffs that callers cannot reason about. Second: failure mode boundaries — an abstraction that merges distinct failure topologies into a single error surface destroys the actionable structure callers need to recover. Third: correctness boundaries — an abstraction that erases a domain distinction required for semantic correctness creates bugs the type system cannot catch. If an abstraction crosses any of these boundaries, further extraction is harmful regardless of how elegant the resulting interface appears.
+
+30. In a pipeline with N phases, the output type of phase K must be the input type of phase K+1, and each type must carry exactly the proofs that phase K established. The full pipeline is a chain of proof-widening transformations: raw → validated → eligible → planned → lowered → executed → enveloped. If any phase accepts a weaker type than the proof chain guarantees, the chain is broken and some later phase will defensively re-derive a proof that should already be structurally guaranteed. Proof-bearing wrapper types — not raw collections — are the mandatory encoding.
+
+31. The runtime must adapt its execution strategy from its own structural state rather than requiring static configuration. If graph size, version depth, snapshot pressure, or data density should change parallelism strategy, maintenance policy, or observation granularity, the runtime must derive this from its actual state at the decision boundary. Static configuration that requires callers to predict runtime characteristics is a structural admission that the system does not understand itself.
+
+32. Architecture-mandated measurement boundaries must exist at every subsystem facade, pipeline phase, and batch commit point. Each boundary must expose structural counters that explain the work performed — not just elapsed time, but batch width, delta breadth, affected scope, and strategy selection. A performance claim without a named boundary and explanatory counters is not a claim — it is a guess.
+
+33. Authoritative state and derived state are categorically different runtime objects and must never be confused. Derived state must be reproducible from authority alone. A system that cannot destroy all derived state and rebuild it purely from authoritative inputs is not a runtime — it is a cache that has forgotten it is a cache. The authority/derivation boundary is the most important structural boundary in any engine.
+
+34. The framework must own resource lifecycle, not the consumer. Every managed resource — computation, subscription, observer, cache entry, projection — must be registered, tracked, and disposable through a framework-owned lifecycle. If a consumer can create a resource without the framework knowing it exists, orphan resources are inevitable and cleanup becomes a heuristic rather than a guarantee.
+
+35. Producers must be decoupled from consumers by the shape of the effect, not by consumer identity. A mutation that directly notifies its consumers has coupled downward. A mutation that produces a typed effect and allows the framework to route notifications to registered consumers has preserved publication independence. The contract is the effect shape. The routing is the framework's responsibility.
+
+36. A system must be reconstructable from a checkpoint plus a bounded journal of operations since that checkpoint. If reconstruction requires replaying the entire history from genesis, the checkpoint system is insufficient. If a checkpoint cannot be taken without stopping mutation authority, the checkpoint is architecturally coupled to the write path. Checkpoint and journal are independent subsystems with independent lifecycles.
+
+37. Invalid operational states must be unrepresentable at the type level. If a system has N valid states and M valid transitions, the type system must make the remaining (N² − M) transitions uncallable. A runtime entity that can receive operations inappropriate for its current phase has a representable invalid state. Typestates, sealed enums, and phase-typed handles are the enforcement mechanisms — not runtime assertions that check after the illegal call has already been made.
+
+38. When the cost of computing desired state is cheap but the cost of applying it is expensive, compute the full desired state and apply only the structural delta against the current state. The consumer produces the desired state; the framework owns the diff and patch. This separation is what makes output suppression, incremental materialization, and change-data capture possible — the producer never needs to know what changed, only what is true now.
+
+39. Any precondition that is binary and contextually granted by a specific authority can be encoded as a zero-sized witness type that the authority constructs and the consumer presents. Runtime permission checks for statically-provable permissions are dead code that still costs readability.
+40. Every name, field, and accessor in the system is a semantic contract that must mean exactly one thing in every context where it appears. A field that means derivational origin in one call site, restoration reference in another, and display hierarchy in a third is not a field — it is three collapsed ontologies that will silently produce wrong results when a consumer assumes the wrong interpretation. Convenience surfaces that merge distinct semantic categories into a single return value are architecture defects, not developer productivity. In typed languages, distinct meanings must be distinct types even when the underlying representation is identical, because the type system can only enforce distinctions it can see.

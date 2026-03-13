@@ -71,11 +71,7 @@ impl SignalMutationAction {
         &self.kind
     }
 
-    pub fn mark_dirty(
-        name: impl Into<String>,
-        label: impl Into<String>,
-        aspect: Aspect,
-    ) -> Self {
+    pub fn mark_dirty(name: impl Into<String>, label: impl Into<String>, aspect: Aspect) -> Self {
         Self {
             name: name.into(),
             kind: SignalMutationKind::MarkDirty {

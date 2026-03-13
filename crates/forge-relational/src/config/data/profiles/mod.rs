@@ -9,23 +9,23 @@ use presets::default_profile_config;
 impl RelationalRuntimeConfig {
     pub fn resolved(
         profile: RelationalRuntimeProfile,
-        config_override: RelationalConfigOverride,
+        overrides: RelationalConfigOverride,
     ) -> Self {
         let mut config = default_profile_config(profile);
         let mut provenance_entries = BTreeMap::new();
 
-        apply_execution_overrides(&mut config, &config_override, &mut provenance_entries);
-        apply_diagnostics_overrides(&mut config, &config_override, &mut provenance_entries);
-        apply_history_overrides(&mut config, &config_override, &mut provenance_entries);
-        apply_schema_overrides(&mut config, &config_override, &mut provenance_entries);
-        apply_identity_overrides(&mut config, &config_override, &mut provenance_entries);
-        apply_storage_overrides(&mut config, &config_override, &mut provenance_entries);
-        apply_visibility_overrides(&mut config, &config_override, &mut provenance_entries);
-        apply_publication_overrides(&mut config, &config_override, &mut provenance_entries);
-        apply_durability_overrides(&mut config, &config_override, &mut provenance_entries);
+        apply_execution_overrides(&mut config, &overrides, &mut provenance_entries);
+        apply_diagnostics_overrides(&mut config, &overrides, &mut provenance_entries);
+        apply_history_overrides(&mut config, &overrides, &mut provenance_entries);
+        apply_schema_overrides(&mut config, &overrides, &mut provenance_entries);
+        apply_identity_overrides(&mut config, &overrides, &mut provenance_entries);
+        apply_storage_overrides(&mut config, &overrides, &mut provenance_entries);
+        apply_visibility_overrides(&mut config, &overrides, &mut provenance_entries);
+        apply_publication_overrides(&mut config, &overrides, &mut provenance_entries);
+        apply_durability_overrides(&mut config, &overrides, &mut provenance_entries);
 
-        config.config_override = config_override;
-        config.config_provenance = ConfigProvenance {
+        config.overrides = overrides;
+        config.provenance = ConfigProvenance {
             profile,
             entries: provenance_entries,
         };
@@ -308,8 +308,11 @@ fn apply_durability_overrides(
     }
     if let Some(log) = &section.log {
         config.durability.policy.log = log.clone();
-        config.durability.policy.checkpoints.compact_after_checkpoint =
-            log.compact_after_checkpoint;
+        config
+            .durability
+            .policy
+            .checkpoints
+            .compact_after_checkpoint = log.compact_after_checkpoint;
     }
     if let Some(store_layout) = &section.store_layout {
         config.durability.policy.store_layout = Some(store_layout.clone());

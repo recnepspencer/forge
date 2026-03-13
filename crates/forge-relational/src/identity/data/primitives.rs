@@ -33,11 +33,11 @@ impl VersionBound {
     }
 
     pub const fn includes_created(self, created_at: VersionId) -> bool {
-        created_at.0 <= self.0.0
+        created_at.0 <= self.0 .0
     }
 
     pub const fn retains_retired(self, retired_at: VersionId) -> bool {
-        retired_at.0 > self.0.0
+        retired_at.0 > self.0 .0
     }
 }
 

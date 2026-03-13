@@ -8,7 +8,7 @@ use crate::data::dependency::DependencyEdge;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
-use crate::data::output::{ChangedRegion, PartitionMatchMode, PartitionSubscription};
+use crate::data::output::PartitionSubscription;
 
 use super::analysis::{classify_condition_decision, partition_scope_untouched};
 use super::types::{
@@ -24,9 +24,9 @@ pub fn explain_with_policy_resolver(
 ) -> Result<NodeExplanation, SignalError> {
     let entry = graph.get_entry(node)?;
     if let Some(fact) = graph.explanation_fact(node) {
-        let current_trace = entry.get_trace_summary().cloned();
+        let current_record = entry.historical_artifact_record(node);
         if fact.explanation.state == *entry.get_state()
-            && fact.explanation.trace_summary == current_trace
+            && fact.explanation.historical_artifact_record == current_record
         {
             return Ok(fact.explanation.clone());
         }
@@ -35,7 +35,10 @@ pub fn explain_with_policy_resolver(
     let dirty_aspects = entry.get_dirty_aspects();
     let contract = graph.get_contract(node)?.clone();
     let condition = entry.get_eval_config().condition.clone();
-    let trace_summary = entry.get_trace_summary().cloned();
+    let historical_artifact_record = entry.historical_artifact_record(node);
+    let trace_summary = historical_artifact_record
+        .as_ref()
+        .map(crate::data::trace::TraceSummary::from_record);
     let output_identity = trace_summary
         .as_ref()
         .and_then(|trace| trace.output_identity.clone());
@@ -95,10 +98,9 @@ pub fn explain_with_policy_resolver(
         );
         let current_version = if graph.is_alive(dependency.source()) {
             Some(
-                graph.get_entry(dependency.source())?.version_for_scope(
-                    dependency.aspect(),
-                    dependency.scope_ref(),
-                ),
+                graph
+                    .get_entry(dependency.source())?
+                    .version_for_scope(dependency.aspect(), dependency.scope_ref()),
             )
         } else {
             None
@@ -138,7 +140,9 @@ pub fn explain_with_policy_resolver(
         }
 
         if let Some(scope) = subscription.as_ref() {
-            let source_trace = graph.get_entry(dependency.source())?.get_trace_summary();
+            let source_trace = graph
+                .get_entry(dependency.source())?
+                .get_runtime_artifact_state();
             if partition_scope_untouched(source_trace, scope) {
                 upstream.push(UpstreamCause::Clean {
                     source: dependency.source(),
@@ -266,12 +270,12 @@ pub fn explain_with_policy_resolver(
         materialization_mode: ArtifactMaterializationMode::Reconstructed,
         state,
         dirty_aspects,
-        contract_reads: contract.reads,
-        contract_produces: contract.produces,
-        contract_partition_scope: contract.partition_scope.clone(),
-        required_context: contract.required_context,
+        contract_reads: contract.semantics.reads,
+        contract_produces: contract.semantics.produces,
+        contract_partition_scope: contract.semantics.partition_scope.clone(),
+        required_context: contract.semantics.required_context,
         condition,
-        trace_summary,
+        historical_artifact_record,
         execution_record_id,
         semantic_segment_id,
         output_identity,
@@ -550,9 +554,9 @@ fn scope_provenance_for_cause(graph: &SignalGraph, cause: &UpstreamCause) -> Sco
     let source_scope = graph
         .get_entry(source)
         .ok()
-        .and_then(|entry| entry.get_trace_summary())
+        .and_then(|entry| entry.get_runtime_artifact_state())
         .and_then(|trace| {
-            translated_source_scope(trace.changed_regions.as_slice(), &validation_scope)
+            translated_source_scope(trace.changed_scopes.as_slice(), &validation_scope)
         });
 
     let (kind, note) = match (source_scope.as_ref(), changed) {
@@ -600,26 +604,13 @@ fn scope_note_for_changed(
 }
 
 fn translated_source_scope(
-    changed_regions: &[ChangedRegion],
+    changed_scopes: &[PartitionSubscription],
     validation_scope: &PartitionSubscription,
 ) -> Option<PartitionSubscription> {
-    changed_regions
+    changed_scopes
         .iter()
-        .find(|region| region.partition == validation_scope.partition)
-        .map(region_to_scope)
-}
-
-fn region_to_scope(region: &ChangedRegion) -> PartitionSubscription {
-    match &region.detail {
-        Some(detail) => {
-            PartitionSubscription::partition_and_detail(region.partition.0.clone(), detail.clone())
-        }
-        None => PartitionSubscription {
-            partition: region.partition.clone(),
-            detail: None,
-            match_mode: PartitionMatchMode::WholePartition,
-        },
-    }
+        .find(|scope| scope.partition == validation_scope.partition)
+        .cloned()
 }
 
 pub fn explain(graph: &SignalGraph, node: NodeId) -> Result<NodeExplanation, SignalError> {

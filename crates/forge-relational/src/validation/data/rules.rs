@@ -3,13 +3,13 @@ use serde::{Deserialize, Serialize};
 use super::execution::InvariantExecutionPoint;
 use super::groups::{InvariantCostClass, InvariantGroup, InvariantGroupSet};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum RecordKindTag {
     Entity,
     Relation,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum InvariantRule {
     LiveRecordRequiresSidecar(RecordKindTag),
     MaxMergedIntents(usize),
@@ -56,7 +56,10 @@ impl InvariantRule {
         self.metadata().groups
     }
 
-    pub(crate) fn supports_execution_point(&self, execution_point: InvariantExecutionPoint) -> bool {
+    pub(crate) fn supports_execution_point(
+        &self,
+        execution_point: InvariantExecutionPoint,
+    ) -> bool {
         match self {
             Self::LiveRecordRequiresSidecar(_) => {
                 execution_point == InvariantExecutionPoint::MutationSensitive
@@ -79,16 +82,12 @@ impl InvariantRule {
     #[cfg(test)]
     pub(crate) fn same_registration_kind(&self, other: &Self) -> bool {
         match (self, other) {
-            (
-                Self::LiveRecordRequiresSidecar(left),
-                Self::LiveRecordRequiresSidecar(right),
-            ) => left == right,
+            (Self::LiveRecordRequiresSidecar(left), Self::LiveRecordRequiresSidecar(right)) => {
+                left == right
+            }
             (Self::MaxMergedIntents(_), Self::MaxMergedIntents(_))
             | (Self::MaxSnapshotEntities(_), Self::MaxSnapshotEntities(_))
-            | (
-                Self::UniqueEntityPayloadField(_),
-                Self::UniqueEntityPayloadField(_),
-            ) => true,
+            | (Self::UniqueEntityPayloadField(_), Self::UniqueEntityPayloadField(_)) => true,
             _ => false,
         }
     }

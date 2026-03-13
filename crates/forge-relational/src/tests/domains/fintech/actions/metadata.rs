@@ -1,19 +1,24 @@
-use crate::facade::{
-    BranchId, CommitReference, DerivedIndexBuildOutcome, DerivedIndexBuildRequest,
-    DerivedIndexDefinition, DerivedIndexId, DerivedIndexKind, LineageResolutionStatus,
+use crate::facade::history::{BranchId, CommitReference};
+use crate::facade::indexes::{
+    DerivedIndexBuildOutcome, DerivedIndexBuildRequest, DerivedIndexDefinition, DerivedIndexId,
+    DerivedIndexKind,
 };
+use crate::facade::lineage::LineageResolutionStatus;
 
 use super::super::fixture::{FintechCaseRole, FintechWorld};
 
 pub(crate) fn register_case_book_index(world: &mut FintechWorld) -> DerivedIndexDefinition {
-    world.runtime.index_authority().register(DerivedIndexDefinition {
-        index_id: DerivedIndexId(0),
-        name: "fintech.trade.book".to_string(),
-        kind: DerivedIndexKind::EntityPayloadField {
-            field: "book".to_string(),
-        },
-        branch_scoped: true,
-    })
+    world
+        .runtime
+        .index_authority()
+        .register(DerivedIndexDefinition {
+            index_id: DerivedIndexId(0),
+            name: "fintech.trade.book".to_string(),
+            kind: DerivedIndexKind::EntityPayloadField {
+                field: "book".to_string(),
+            },
+            branch_scoped: true,
+        })
 }
 
 pub(crate) fn build_branch_scoped_case_index(
@@ -50,12 +55,15 @@ pub(crate) fn promote_case_correspondence(
         .for_record(world.workflow_case(right).trade)
         .expect("right case trade should have lineage")
         .lineage_id;
-    let candidate = world.runtime.lineage_authority().record_correspondence_candidate(
-        BranchId("main".to_string()),
-        vec![left_lineage],
-        vec![right_lineage],
-        "fintech-case-correspondence",
-    );
+    let candidate = world
+        .runtime
+        .lineage_authority()
+        .record_correspondence_candidate(
+            BranchId("main".to_string()),
+            vec![left_lineage],
+            vec![right_lineage],
+            "fintech-case-correspondence",
+        );
     world
         .runtime
         .lineage_authority()

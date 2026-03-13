@@ -1,4 +1,31 @@
+use crate::facade::identity::EntityId;
+use crate::facade::runtime::{ProjectionAspect, RelationReadRecord, RelationRecordProjection};
 use crate::tests::support::*;
+
+const RELATION_LABEL_ASPECTS: [ProjectionAspect; 1] = [ProjectionAspect::new("label")];
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct EdgeProjection {
+    relation_id: RelationId,
+    source: EntityId,
+    target: EntityId,
+}
+
+impl RelationRecordProjection for EdgeProjection {
+    const KIND: KindId = KindId(2);
+
+    fn required_aspects() -> &'static [ProjectionAspect] {
+        &RELATION_LABEL_ASPECTS
+    }
+
+    fn from_record(record: &RelationReadRecord) -> Option<Self> {
+        Some(Self {
+            relation_id: record.relation_id,
+            source: record.source,
+            target: record.target,
+        })
+    }
+}
 
 // CONTRACT: relation_scans
 // LANES: success, determinism, adversarial
@@ -23,7 +50,10 @@ fn relation_kind_scans_return_only_visible_relations_of_that_kind() {
         );
         txn.commit().unwrap()
     };
-    let visible = runtime.visibility_reads().visible_relations_of_kind(KindId(2), deleted.version_id);
+    let visible = runtime
+        .visibility_reads()
+        .project_version(deleted.version_id)
+        .relations::<EdgeProjection>();
 
     assert_eq!(visible.len(), 1);
     assert_eq!(visible[0].relation_id, r2);
@@ -37,7 +67,10 @@ fn relation_kind_scans_are_deterministic_across_equivalent_insert_order() {
     let a_third = create_entity(&mut runtime_a, "third");
     let _ = create_relation(&mut runtime_a, a_left, a_right, "r1");
     let _ = create_relation(&mut runtime_a, a_right, a_third, "r2");
-    let scan_a = runtime_a.visibility_reads().visible_relations_of_kind(KindId(2), runtime_a.current_version_id());
+    let scan_a = runtime_a
+        .visibility_reads()
+        .project_version(runtime_a.current_version_id())
+        .relations::<EdgeProjection>();
 
     let mut runtime_b = runtime_with_test_schema();
     let b_left = create_entity(&mut runtime_b, "left");
@@ -45,7 +78,10 @@ fn relation_kind_scans_are_deterministic_across_equivalent_insert_order() {
     let b_third = create_entity(&mut runtime_b, "third");
     let _ = create_relation(&mut runtime_b, b_right, b_third, "r2");
     let _ = create_relation(&mut runtime_b, b_left, b_right, "r1");
-    let scan_b = runtime_b.visibility_reads().visible_relations_of_kind(KindId(2), runtime_b.current_version_id());
+    let scan_b = runtime_b
+        .visibility_reads()
+        .project_version(runtime_b.current_version_id())
+        .relations::<EdgeProjection>();
 
     assert_eq!(scan_a.len(), scan_b.len());
     assert_eq!(

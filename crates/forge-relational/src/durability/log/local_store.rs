@@ -30,7 +30,13 @@ pub(crate) fn ensure_loaded_store(
     if let Some(store) = runtime.durable_store() {
         return load_or_initialize_store(store.layout.clone());
     }
-    let Some(layout) = runtime.runtime_config().durability.policy.store_layout.clone() else {
+    let Some(layout) = runtime
+        .runtime_config()
+        .durability
+        .policy
+        .store_layout
+        .clone()
+    else {
         return Err(DurabilityError::new(
             RecoveryFailureClass::DurableIoFailure,
             "persisted durability mode requires a durable store layout",
@@ -42,7 +48,13 @@ pub(crate) fn ensure_loaded_store(
 pub(crate) fn load_store_from_disk(
     runtime: &impl crate::capabilities::RuntimeConfigSource,
 ) -> Result<DurableStore, DurabilityError> {
-    let Some(layout) = runtime.runtime_config().durability.policy.store_layout.clone() else {
+    let Some(layout) = runtime
+        .runtime_config()
+        .durability
+        .policy
+        .store_layout
+        .clone()
+    else {
         return Err(DurabilityError::new(
             RecoveryFailureClass::DurableIoFailure,
             "persisted durability mode requires a durable store layout",

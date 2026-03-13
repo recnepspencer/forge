@@ -71,7 +71,10 @@ fn unregister_severs_subscriptions() {
     assert_eq!(downstream_deps.len(), 1);
     assert_eq!(downstream_deps[0].source(), node);
     assert!(
-        graph.runtime_dependencies_of(downstream).unwrap().is_empty(),
+        graph
+            .runtime_dependencies_of(downstream)
+            .unwrap()
+            .is_empty(),
         "runtime cleanup should prune stale downstream dependencies after unregister"
     );
 }
@@ -82,7 +85,9 @@ fn observation_reads_stay_pure_while_runtime_topology_reads_prune_stale_edges() 
     let upstream = graph.node().build();
     let downstream = graph.node().build();
 
-    graph.append_dependency(downstream, upstream, ASPECT_A).unwrap();
+    graph
+        .append_dependency(downstream, upstream, ASPECT_A)
+        .unwrap();
     graph.unregister_node(upstream).unwrap();
     let stale_edge = graph.build_dependency_edge(upstream, ASPECT_A, None);
     graph
@@ -104,9 +109,13 @@ fn observation_subscriber_reads_stay_pure_while_runtime_reads_prune_stale_subscr
     let source = graph.node().build();
     let subscriber = graph.node().build();
 
-    graph.append_dependency(subscriber, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(subscriber, source, ASPECT_A)
+        .unwrap();
     graph.unregister_node(subscriber).unwrap();
-    graph.inject_retired_subscriber_for_test(source, subscriber).unwrap();
+    graph
+        .inject_retired_subscriber_for_test(source, subscriber)
+        .unwrap();
 
     let observed_subscribers = graph.subscribers_of(source).unwrap();
     assert_eq!(observed_subscribers, &[subscriber]);
@@ -123,10 +132,7 @@ fn storage_pressure_accumulates_compaction_debt_without_tombstones() {
     let leaf = graph.node().build();
 
     for round in 0..12 {
-        let scope = PartitionSubscription::partition_and_detail(
-            "book",
-            format!("detail-{round}"),
-        );
+        let scope = PartitionSubscription::partition_and_detail("book", format!("detail-{round}"));
         let edge = graph.build_dependency_edge(root, ASPECT_A, Some(scope));
         graph.set_dependency_edges_sorted(leaf, &[edge]).unwrap();
     }
@@ -202,7 +208,10 @@ fn runtime_default_evaluation_applies_strategy_gc_maintenance() {
         .unwrap();
 
     assert_eq!(runtime.graph().tombstone_count(), 0);
-    assert_eq!(runtime.observe().graph().telemetry().storage.gc_epoch_count, 1);
+    assert_eq!(
+        runtime.observe().graph().telemetry().storage.gc_epoch_count,
+        1
+    );
 }
 
 #[test]

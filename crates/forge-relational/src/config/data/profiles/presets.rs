@@ -9,9 +9,7 @@ use crate::schema::data::RelationalSchemaRegistry;
 use crate::symbols::data::{StringInterner, SymbolPolicy};
 use crate::validation::data::InvariantCatalog;
 
-pub(super) fn default_profile_config(
-    profile: RelationalRuntimeProfile,
-) -> RelationalRuntimeConfig {
+pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> RelationalRuntimeConfig {
     let base = |runtime_name: &str,
                 diagnostics: RelationalDiagnosticsProfile,
                 history_retention: HistoryRetentionClass,
@@ -37,7 +35,9 @@ pub(super) fn default_profile_config(
             commit_authority: CommitAuthorityContract::default(),
             compiled_lane_policy,
         },
-        diagnostics: DiagnosticsConfig { profile: diagnostics },
+        diagnostics: DiagnosticsConfig {
+            profile: diagnostics,
+        },
         history: HistoryConfig {
             version_graph_policy: VersionGraphPolicy::CanonicalSerializedPublication,
             retention: history_retention,
@@ -65,10 +65,12 @@ pub(super) fn default_profile_config(
         visibility: VisibilityConfig {
             cache_policy: visibility_cache_policy,
         },
-        publication: PublicationSection { policy: publication },
+        publication: PublicationRuntimeConfig {
+            policy: publication,
+        },
         durability: DurabilityConfig { policy: durability },
-        config_override: RelationalConfigOverride::default(),
-        config_provenance: ConfigProvenance {
+        overrides: RelationalConfigOverride::default(),
+        provenance: ConfigProvenance {
             profile,
             entries: Default::default(),
         },

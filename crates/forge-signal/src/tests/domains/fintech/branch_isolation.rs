@@ -2,7 +2,7 @@ use super::market_seed::MarketSeed;
 use super::scales::FintechScale;
 use super::scenarios::setup_seeded_world;
 use super::truth_snapshot::FintechTruthSnapshot;
-use crate::diagnostics::{LineageEvent, ReplayEventKind};
+use crate::diagnostics::ReplayEventKind;
 use crate::facade::*;
 
 fn replay_is_branch_local(replay: &ReplaySlice, branch: &SignalBranchHandle) -> bool {
@@ -78,8 +78,13 @@ fn fintech_hostile_branch_replay_and_audit_workflow_stays_coherent() {
     let correction_lineage = fixture.main_risk_lineage();
     assert!(correction_lineage.iter().any(|record| {
         matches!(
-            record.event,
-            LineageEvent::Replaced | LineageEvent::Refreshed | LineageEvent::Restored
+            record.kind,
+            LineageRecordKind::SnapshotRestore { .. }
+                | LineageRecordKind::ArtifactTransition {
+                    transition: ArtifactTransitionKind::Replaced
+                        | ArtifactTransitionKind::Refreshed { .. },
+                    ..
+                }
         )
     }));
 

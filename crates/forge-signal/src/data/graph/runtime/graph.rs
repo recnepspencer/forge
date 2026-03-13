@@ -9,13 +9,13 @@ use crate::data::handle::NodeId;
 use crate::data::node::NodeEntry;
 use crate::data::output::PartitionInterner;
 use crate::data::telemetry::RuntimeTelemetry;
-use crate::diagnostics::DiagnosticsProfile;
 use crate::diagnostics::state::DiagnosticsState;
+use crate::diagnostics::DiagnosticsProfile;
 
 use super::super::compaction::CompactionState;
 use super::super::storage::Slot;
 use super::super::{DependencyEdgeStore, SubscriberEdgeStore};
-use super::scratch::{ScratchLeaseKind, TraversalScratch};
+use super::scratch::{GraphScratch, ScratchLeaseKind, TraversalScratch};
 use super::strategy::{EvaluationStrategy, GcPressure, ObservationLevel, ParallelismHint};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -125,7 +125,9 @@ impl SignalGraph {
                 ParallelismHint::Serial
             },
             gc_pressure: if tombstone_ratio >= Self::GC_PRESSURE_TOMBSTONE_RATIO
-                || self.arena.should_run_compaction_epoch(&self.topology, active_nodes)
+                || self
+                    .arena
+                    .should_run_compaction_epoch(&self.topology, active_nodes)
             {
                 GcPressure::CompactAfterEvaluation
             } else {
@@ -183,13 +185,17 @@ impl SignalGraph {
         }
     }
 
-    pub(crate) fn with_scratch<R>(
+    pub(crate) fn with_scratch<R, E>(
         &mut self,
         kind: ScratchLeaseKind,
-        f: impl FnOnce(&mut SignalGraph, &mut TraversalScratch) -> Result<R, SignalError>,
-    ) -> Result<R, SignalError> {
+        f: impl FnOnce(&mut SignalGraph, &mut GraphScratch<'_>) -> Result<R, E>,
+    ) -> Result<R, E>
+    where
+        E: From<SignalError>,
+    {
         let mut scratch = self.acquire_scratch(kind)?;
-        let result = f(self, &mut scratch);
+        let mut graph_scratch = GraphScratch::new(&mut scratch);
+        let result = f(self, &mut graph_scratch);
         self.restore_scratch(kind, scratch)?;
         result
     }
@@ -246,7 +252,10 @@ impl SignalGraph {
             .collect::<Vec<_>>();
         indices.sort_unstable();
         indices.dedup();
-        self.observation.telemetry.storage.rolled_back_created_node_count += indices.len() as u64;
+        self.observation
+            .telemetry
+            .storage
+            .rolled_back_created_node_count += indices.len() as u64;
 
         for index in indices.iter().rev().copied() {
             let Some(slot) = self.arena.nodes.get_mut(index) else {

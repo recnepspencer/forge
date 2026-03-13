@@ -1,8 +1,10 @@
 use serde_json::json;
 
-use crate::facade::{
-    BranchId, CommitResult, EntityMutationIntent, RecordPayload, RollbackOutcome,
-    MutationIntent, TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
+use crate::facade::history::BranchId;
+use crate::facade::payloads::RecordPayload;
+use crate::facade::transactions::{
+    CommitResult, EntityMutationIntent, MutationIntent, RollbackOutcome, TransactionOptions,
+    UpdateEntityIntent, WorkerIntentBatch,
 };
 
 use super::super::fixture::FintechWorld;
@@ -18,8 +20,8 @@ pub(crate) fn rollback_case_trade_after_savepoint(
     });
     let savepoint = txn.create_savepoint();
     txn.push_batch(
-        WorkerIntentBatch::new("temporary-case-trade-correction").push(
-            MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
+        WorkerIntentBatch::new("temporary-case-trade-correction").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
                 entity_id: case.trade,
                 payload: RecordPayload::StructuredJson(json!({
                     "entity_type": "trade",
@@ -31,8 +33,8 @@ pub(crate) fn rollback_case_trade_after_savepoint(
                     "corrected": true,
                     "transient": true,
                 })),
-            })),
-        ),
+            }),
+        )),
     );
     txn.rollback_to_savepoint(savepoint).unwrap()
 }

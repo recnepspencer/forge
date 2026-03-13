@@ -4,7 +4,7 @@ use crate::diagnostics::execution_flow::record_semantic_execution;
 use crate::diagnostics::profile::DiagnosticsProfile;
 use crate::diagnostics::summary::EvaluationPlanSummary;
 
-use super::super::types::{EvaluationPlan, EvaluationSession, ExecutionReport};
+use super::super::types::{EvaluationPlan, ExecutionReport, SessionScratch};
 pub(crate) fn summarize_recorded_plan(
     plan: &EvaluationPlan,
     profile: DiagnosticsProfile,
@@ -16,7 +16,7 @@ pub(crate) fn summarize_recorded_plan(
 }
 
 pub(crate) fn summarize_recorded_session(
-    session: &EvaluationSession<'_>,
+    session: &SessionScratch<'_>,
     profile: DiagnosticsProfile,
 ) -> (EvaluationPlanSummary, Option<NodeId>) {
     (

@@ -19,9 +19,13 @@ impl SignalEvaluationDriver for BasicEvaluator {
         ctx: &mut EvaluationContext<'_, ()>,
     ) -> Result<EvaluationOutput, SignalError> {
         if ctx.node() == self.source {
-            Ok(EvaluationOutput::from_result(AspectVersion::from_updates([(ASPECT_A, 1)])))
+            Ok(EvaluationOutput::from_result(AspectVersion::from_updates(
+                [(ASPECT_A, 1)],
+            )))
         } else {
-            Ok(EvaluationOutput::from_result(AspectVersion::from_updates([(ASPECT_A, 2)])))
+            Ok(EvaluationOutput::from_result(AspectVersion::from_updates(
+                [(ASPECT_A, 2)],
+            )))
         }
     }
 }
@@ -52,8 +56,11 @@ fn signal_harness_bridge_executes_serial_fixture() {
     let adapter = SignalHarnessBridge;
     let runner = HarnessRunner::new(adapter);
     let fixture = basic_fixture();
-    let mutation = MutationBatch::new("mark-source-dirty")
-        .push(SignalMutationAction::mark_dirty("dirty-source", "source", ASPECT_A));
+    let mutation = MutationBatch::new("mark-source-dirty").push(SignalMutationAction::mark_dirty(
+        "dirty-source",
+        "source",
+        ASPECT_A,
+    ));
     let request = ExecutionRequest::new("pull-dependent", vec!["dependent".to_string()]);
     let profile =
         ExecutionProfile::serial("serial").with_diagnostics_level(DiagnosticsLevel::Development);

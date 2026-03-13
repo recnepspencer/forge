@@ -80,8 +80,18 @@ where
             storage: self.runtime.telemetry.storage,
             checkpoint: crate::data::telemetry::CheckpointTelemetry {
                 event_flushes: self.runtime.event_bus.telemetry().checkpoint.event_flushes,
-                event_flush_nanos: self.runtime.event_bus.telemetry().checkpoint.event_flush_nanos,
-                checkpoint_flushes: self.runtime.checkpoint.telemetry().checkpoint.checkpoint_flushes,
+                event_flush_nanos: self
+                    .runtime
+                    .event_bus
+                    .telemetry()
+                    .checkpoint
+                    .event_flush_nanos,
+                checkpoint_flushes: self
+                    .runtime
+                    .checkpoint
+                    .telemetry()
+                    .checkpoint
+                    .checkpoint_flushes,
                 checkpoint_flush_nanos: self
                     .runtime
                     .checkpoint
@@ -140,7 +150,11 @@ where
     pub fn replay_for_branch(&self, branch_id: SignalBranchId) -> ReplaySlice {
         self.runtime
             .branches
-            .replay_graph(branch_id, self.runtime.graph.current_branch().id, &self.runtime.graph)
+            .replay_graph(
+                branch_id,
+                self.runtime.graph.current_branch().id,
+                &self.runtime.graph,
+            )
             .map(|graph| graph.observe().replay_for_branch(branch_id))
             .unwrap_or_default()
     }
@@ -153,10 +167,7 @@ where
         self.graph().lineage_chain_for_node(node)
     }
 
-    pub fn lineage_chain_for_artifact(
-        &self,
-        artifact_id: LineageArtifactId,
-    ) -> Vec<LineageRecord> {
+    pub fn lineage_chain_for_artifact(&self, artifact_id: LineageArtifactId) -> Vec<LineageRecord> {
         self.graph().lineage_chain_for_artifact(artifact_id)
     }
 

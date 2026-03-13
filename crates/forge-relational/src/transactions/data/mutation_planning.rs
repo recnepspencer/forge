@@ -1,12 +1,13 @@
-use crate::identity::data::PartitionId;
-use crate::validation::data::{InvariantGroup, InvariantPlanContract};
 use super::{
     BulkRelationCreateIntent, CreateIntent, DeleteEntityIntent, EntityMutationIntent,
     ExistingRecordTarget, MutationIntent, RelationIdentity, RelationMutationIntent,
     ReplaceEntityIntent, RollbackEffect, UpdateEntityIntent,
 };
+use crate::identity::data::PartitionId;
+use crate::validation::data::{InvariantGroup, InvariantGroupSet, InvariantPlanContract};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CommitTopology {
     FlatEntityBatch,
     GraphMutation,
@@ -86,8 +87,12 @@ impl MutationIntent {
             Self::Create(CreateIntent::Entity(_)) | Self::Create(CreateIntent::BulkEntities(_)) => {
                 RollbackEffect::DiscardedEntityCreation
             }
-            Self::Entity(EntityMutationIntent::Update(UpdateEntityIntent { entity_id, .. }))
-            | Self::Entity(EntityMutationIntent::Replace(ReplaceEntityIntent { entity_id, .. }))
+            Self::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id, ..
+            }))
+            | Self::Entity(EntityMutationIntent::Replace(ReplaceEntityIntent {
+                entity_id, ..
+            }))
             | Self::Entity(EntityMutationIntent::Delete(DeleteEntityIntent { entity_id })) => {
                 RollbackEffect::RestoredEntity(*entity_id)
             }
@@ -119,10 +124,7 @@ impl MutationIntent {
         }
     }
 
-    pub(crate) fn collect_relation_identities(
-        &self,
-        identities: &mut Vec<RelationIdentity>,
-    ) {
+    pub(crate) fn collect_relation_identities(&self, identities: &mut Vec<RelationIdentity>) {
         match self {
             Self::Create(CreateIntent::Relation(spec)) => identities.push(RelationIdentity {
                 partition_id: spec.partition_id,
@@ -160,10 +162,10 @@ impl super::MergedCommitPlan {
             return CommitTopology::BranchMerge;
         }
 
-        let may_break = self.invariant_contract().may_break_groups();
-        if may_break == InvariantGroup::StorageCoherence.mask() {
+        let invalidated_groups = self.invariant_contract().may_invalidate_groups();
+        if invalidated_groups == InvariantGroupSet::of(InvariantGroup::StorageCoherence) {
             CommitTopology::FlatEntityBatch
-        } else if (may_break & InvariantGroup::AdjacencyIntegrity.mask()) != 0 {
+        } else if invalidated_groups.contains(InvariantGroup::AdjacencyIntegrity) {
             CommitTopology::GraphMutation
         } else {
             CommitTopology::FlatEntityBatch

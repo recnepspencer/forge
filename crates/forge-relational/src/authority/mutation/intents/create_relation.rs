@@ -1,7 +1,5 @@
-use crate::authority::mutation::aspect_versions::{
-    write_relation_aspect_versions,
-};
-use crate::authority::mutation::outcomes::{MutationEvent, MutationOutcome, RecordMutation};
+use crate::authority::mutation::aspect_versions::write_relation_aspect_versions;
+use crate::authority::mutation::outcomes::MutationOutcome;
 use crate::authority::mutation::record_changes::allocate_relation;
 use crate::authority::mutation::MutationWorkspace;
 use crate::transactions::data::{CommitConflict, RelationSpec};
@@ -26,18 +24,11 @@ pub(super) fn apply(
         );
         relation_id
     });
-    let mut outcome = MutationOutcome::default();
-    outcome.record_change(RecordMutation::RelationCreated {
+    Ok(MutationOutcome::relation_created(
         relation_id,
-        source: spec.source,
-        target: spec.target,
-        payload: spec.payload.clone(),
-    });
-    outcome.record_event(MutationEvent::RelationCreated {
-        relation_id,
-        source: spec.source,
-        target: spec.target,
-        kind_id: spec.kind_id,
-    });
-    Ok(outcome)
+        spec.source,
+        spec.target,
+        spec.kind_id,
+        spec.payload.clone(),
+    ))
 }

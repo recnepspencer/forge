@@ -11,9 +11,7 @@ use forge_harness::facade::{
 };
 use serde_json::{json, Value};
 
-use crate::facade::*;
-
-#[cfg(feature = "parallel")]
+#[allow(unused_imports)]
 use crate::facade::*;
 #[cfg(feature = "parallel")]
 use forge_harness::facade::{DifferentialOutcome, WorkflowCertificationReport};
@@ -179,9 +177,7 @@ impl SignalFintechWorkflowCertificationAdapter {
     fn lineage_summary(lineage: &[LineageRecord]) -> Value {
         let mut events = BTreeMap::new();
         for record in lineage {
-            *events
-                .entry(format!("{:?}", record.event))
-                .or_insert(0usize) += 1;
+            *events.entry(record.label().to_string()).or_insert(0usize) += 1;
         }
         json!({
             "record_count": lineage.len(),
@@ -205,18 +201,18 @@ impl SignalFintechWorkflowCertificationAdapter {
         }
     }
 
-    fn parse_lineage_events(value: &str) -> Result<Vec<LineageEvent>, SignalError> {
+    fn parse_lineage_events(value: &str) -> Result<Vec<String>, SignalError> {
         value
             .split(',')
             .map(|event| match event {
-                "Refreshed" => Ok(LineageEvent::Refreshed),
-                "Replaced" => Ok(LineageEvent::Replaced),
-                "Restored" => Ok(LineageEvent::Restored),
-                "BranchedFrom" => Ok(LineageEvent::BranchedFrom),
-                "BranchSwitched" => Ok(LineageEvent::BranchSwitched),
-                "MergedFrom" => Ok(LineageEvent::MergedFrom),
-                "MemoizedFrom" => Ok(LineageEvent::MemoizedFrom),
-                "InvalidatedWithoutReplacement" => Ok(LineageEvent::InvalidatedWithoutReplacement),
+                "Refreshed"
+                | "Replaced"
+                | "Restored"
+                | "BranchedFrom"
+                | "BranchSwitched"
+                | "MergedFrom"
+                | "MemoizedReuse"
+                | "InvalidatedWithoutReplacement" => Ok(event.to_string()),
                 other => Err(SignalError::invalid_input(format!(
                     "unknown lineage event `{other}`"
                 ))),
@@ -270,7 +266,9 @@ impl SignalFintechWorkflowCertificationAdapter {
                 let lineage = session.lineage(alias)?;
                 let events = Self::parse_lineage_events(events)?;
                 (
-                    lineage.iter().any(|record| events.contains(&record.event)),
+                    lineage
+                        .iter()
+                        .any(|record| events.iter().any(|event| event == record.label())),
                     format!("lineage `{alias}` should contain one of `{events:?}`"),
                 )
             }

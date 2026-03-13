@@ -1,8 +1,10 @@
 use serde_json::json;
 
-use crate::facade::{
-    BranchId, CommitResult, EntityMutationIntent, RecordPayload, MutationIntent,
-    TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
+use crate::facade::history::BranchId;
+use crate::facade::payloads::RecordPayload;
+use crate::facade::transactions::{
+    CommitResult, EntityMutationIntent, MutationIntent, TransactionOptions, UpdateEntityIntent,
+    WorkerIntentBatch,
 };
 
 use super::super::fixture::{FintechCaseRole, FintechWorld};

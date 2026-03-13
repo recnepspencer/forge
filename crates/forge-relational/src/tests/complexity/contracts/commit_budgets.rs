@@ -1,3 +1,4 @@
+use crate::facade::transactions::CommitTopology;
 use crate::tests::support::*;
 
 #[test]
@@ -57,12 +58,18 @@ fn complexity_budget_commit_topology_inference_distinguishes_flat_and_graph_muta
     runtime.performance_access().reset_counters();
     let _ = update_entity(&mut runtime, left, "left-updated");
     let flat = runtime.performance_access().counters();
-    assert_eq!(flat.commit_topology_flags, crate::facade::CommitTopology::FlatEntityBatch.mask());
+    assert_eq!(
+        flat.commit_topology_flags,
+        CommitTopology::FlatEntityBatch.mask()
+    );
 
     runtime.performance_access().reset_counters();
     let _ = create_relation_in_partition(&mut runtime, left, right, "cross", PartitionId(13));
     let graph = runtime.performance_access().counters();
-    assert_eq!(graph.commit_topology_flags, crate::facade::CommitTopology::GraphMutation.mask());
+    assert_eq!(
+        graph.commit_topology_flags,
+        CommitTopology::GraphMutation.mask()
+    );
 }
 
 #[test]
@@ -70,22 +77,24 @@ fn complexity_budget_bulk_create_reserves_partition_local_capacity() {
     let mut runtime = runtime_with_test_schema();
     runtime.performance_access().reset_counters();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
-    txn.push_batch(WorkerIntentBatch::new("bulk-entities").push(
-        MutationIntent::Create(CreateIntent::BulkEntities(BulkEntityCreateIntent {
-            partition_id: PartitionId(41),
-            kind_id: KindId(1),
-            client_keys: vec![
-                InternedString::Raw("a".to_string()),
-                InternedString::Raw("b".to_string()),
-                InternedString::Raw("c".to_string()),
-            ],
-            payloads: vec![
-                RecordPayload::StructuredJson(json!({"name":"a"})),
-                RecordPayload::StructuredJson(json!({"name":"b"})),
-                RecordPayload::StructuredJson(json!({"name":"c"})),
-            ],
-        })),
-    ));
+    txn.push_batch(
+        WorkerIntentBatch::new("bulk-entities").push(MutationIntent::Create(
+            CreateIntent::BulkEntities(BulkEntityCreateIntent {
+                partition_id: PartitionId(41),
+                kind_id: KindId(1),
+                client_keys: vec![
+                    InternedString::Raw("a".to_string()),
+                    InternedString::Raw("b".to_string()),
+                    InternedString::Raw("c".to_string()),
+                ],
+                payloads: vec![
+                    RecordPayload::StructuredJson(json!({"name":"a"})),
+                    RecordPayload::StructuredJson(json!({"name":"b"})),
+                    RecordPayload::StructuredJson(json!({"name":"c"})),
+                ],
+            }),
+        )),
+    );
     let _ = txn.commit().unwrap();
     let counters = runtime.performance_access().counters();
 
@@ -145,16 +154,16 @@ fn complexity_budget_relation_identity_validation_avoids_partition_scan() {
     runtime.performance_access().reset_counters();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
-        WorkerIntentBatch::new("duplicate").push(MutationIntent::Create(
-            CreateIntent::Relation(crate::transactions::data::RelationSpec {
+        WorkerIntentBatch::new("duplicate").push(MutationIntent::Create(CreateIntent::Relation(
+            crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("dup".to_string()),
                 source,
                 target,
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"rel"}))),
-            }),
-        )),
+            },
+        ))),
     );
     let error = txn.commit().unwrap_err();
     let counters = runtime.performance_access().counters();
@@ -181,12 +190,14 @@ fn complexity_budget_unique_entity_invariant_uses_changed_set_lookup() {
 
     runtime.performance_access().reset_counters();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
-    txn.push_batch(WorkerIntentBatch::new("duplicate-name").push(
-        MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-            entity_id: target,
-            payload: RecordPayload::StructuredJson(json!({"name":"other"})),
-        })),
-    ));
+    txn.push_batch(
+        WorkerIntentBatch::new("duplicate-name").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id: target,
+                payload: RecordPayload::StructuredJson(json!({"name":"other"})),
+            }),
+        )),
+    );
     let error = txn.commit().unwrap_err();
     let counters = runtime.performance_access().counters();
 
@@ -213,12 +224,14 @@ fn complexity_budget_commit_boundary_unique_invariant_uses_merged_plan_lookup() 
 
     runtime.performance_access().reset_counters();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
-    txn.push_batch(WorkerIntentBatch::new("duplicate-name").push(
-        MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-            entity_id: target,
-            payload: RecordPayload::StructuredJson(json!({"name":"other"})),
-        })),
-    ));
+    txn.push_batch(
+        WorkerIntentBatch::new("duplicate-name").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id: target,
+                payload: RecordPayload::StructuredJson(json!({"name":"other"})),
+            }),
+        )),
+    );
     let error = txn.commit().unwrap_err();
     let counters = runtime.performance_access().counters();
 

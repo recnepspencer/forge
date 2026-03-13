@@ -25,7 +25,8 @@ fn build_runtime(graph: SignalGraph) -> SignalRuntime<Domain, Impact, Ev, (), Ti
     let _ = Domain::Cache;
     let _ = Impact::One;
     let _ = Tier::Feature;
-    SignalRuntime::builder(graph).with_kernel_defaults()
+    SignalRuntime::builder(graph)
+        .with_kernel_defaults()
         .with_domains::<Domain>()
         .with_impacts::<Impact>()
         .with_events::<Ev>()
@@ -52,7 +53,10 @@ fn rollback_heavy_workload_leaves_runtime_consistent() {
         );
     }
 
-    assert_eq!(runtime.telemetry().transaction.transaction_rollback_count, 100);
+    assert_eq!(
+        runtime.telemetry().transaction.transaction_rollback_count,
+        100
+    );
 }
 
 #[test]
@@ -71,9 +75,6 @@ fn stress_100k_nodes_transaction_commit() {
     for node in nodes.iter().step_by(97) {
         tx.mark_dirty(*node, ASPECT_B).unwrap();
     }
-    assert_eq!(
-        tx.commit().unwrap().outcome,
-        TransactionOutcome::Committed
-    );
+    assert_eq!(tx.commit().unwrap().outcome, TransactionOutcome::Committed);
     assert!(runtime.telemetry().transaction.staged_node_patch_count > 0);
 }

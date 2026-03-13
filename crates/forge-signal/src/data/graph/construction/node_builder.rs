@@ -3,7 +3,9 @@ use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::{
-    ContextRequirement, EvaluationCondition, NodeContract, NodeEvaluationConfig,
+    ArtifactPolicyClass, AuthorityPolicy, ContextRequirement, EquivalenceContract,
+    EvaluationCondition, MaintenanceMode, NodeContract, NodeEvaluationConfig,
+    NodeProjectionContract, PathClass,
 };
 use crate::data::output::PartitionSubscription;
 
@@ -58,6 +60,45 @@ impl<'a> NodeBuilder<'a> {
         self
     }
 
+    /// Replace the full equivalence contract for this node.
+    pub fn equivalence(mut self, equivalence: EquivalenceContract) -> Self {
+        self.config.contract = self.config.contract.with_equivalence(equivalence);
+        self
+    }
+
+    /// Replace the full projection contract for this node.
+    pub fn projection_contract(mut self, projection_contract: NodeProjectionContract) -> Self {
+        self.config.contract = self
+            .config
+            .contract
+            .with_projection_contract(projection_contract);
+        self
+    }
+
+    /// Declare whether this node belongs to an operational or rich path.
+    pub fn path_class(mut self, path_class: PathClass) -> Self {
+        self.config.contract = self.config.contract.with_path_class(path_class);
+        self
+    }
+
+    /// Declare whether this node is incremental-only, rebuild-capable, or adaptive.
+    pub fn maintenance_mode(mut self, maintenance_mode: MaintenanceMode) -> Self {
+        self.config.contract = self.config.contract.with_maintenance_mode(maintenance_mode);
+        self
+    }
+
+    /// Declare the artifact policy class expected by this node.
+    pub fn artifact_policy(mut self, artifact_policy: ArtifactPolicyClass) -> Self {
+        self.config.contract = self.config.contract.with_artifact_policy(artifact_policy);
+        self
+    }
+
+    /// Declare whether this node must wait for authority or may reconcile later.
+    pub fn authority_policy(mut self, authority_policy: AuthorityPolicy) -> Self {
+        self.config.contract = self.config.contract.with_authority_policy(authority_policy);
+        self
+    }
+
     /// Set the node evaluation condition directly.
     ///
     /// Prefer the helper methods like `on_demand()`, `debounce(...)`, and
@@ -102,7 +143,8 @@ impl<'a> NodeBuilder<'a> {
 
     /// Override the comparator policy for this node.
     pub fn comparator(mut self, comparator: VersionComparatorPolicy) -> Self {
-        self.config.comparator = Some(comparator);
+        self.config.comparator = Some(comparator.clone());
+        self.config.contract = self.config.contract.with_comparator_override(&comparator);
         self
     }
 

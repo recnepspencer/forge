@@ -1,11 +1,10 @@
 use serde::{Deserialize, Serialize};
 
 use super::execution::{InvariantExecutionPoint, InvariantFailureEffect};
-use super::contracts::InvariantPlanContract;
 use super::groups::InvariantCostClass;
 use super::results::{InvariantAdvisory, InvariantViolation};
-use super::InvariantVerdict;
 use super::rules::{InvariantRule, RecordKindTag};
+use super::InvariantVerdict;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InvariantCatalog {
@@ -44,7 +43,11 @@ impl InvariantRegistration {
         rule: InvariantRule,
         execution_point: InvariantExecutionPoint,
     ) -> Self {
-        Self::for_rule(rule, execution_point, InvariantFailureEffect::BlockPublication)
+        Self::for_rule(
+            rule,
+            execution_point,
+            InvariantFailureEffect::BlockPublication,
+        )
     }
 
     pub(crate) fn audit_only(
@@ -74,14 +77,7 @@ impl InvariantRegistration {
         self.rule.cost_class()
     }
 
-    pub(crate) fn applies_to_contract(&self, contract: Option<InvariantPlanContract>) -> bool {
-        contract.is_none_or(|contract| contract.applies_to_rule(&self.rule))
-    }
-
-    pub(crate) fn verdict_for_violation(
-        &self,
-        violation: InvariantViolation,
-    ) -> InvariantVerdict {
+    pub(crate) fn verdict_for_violation(&self, violation: InvariantViolation) -> InvariantVerdict {
         match self.failure_effect {
             InvariantFailureEffect::AuditOnly => InvariantVerdict::Advisory {
                 violation,

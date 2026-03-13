@@ -8,7 +8,11 @@ fn historical_lineage_resolution_follows_replace_events() {
     let mut runtime = runtime_with_test_schema();
     let created = create_entity_outcome(&mut runtime, "source");
     let entity = changed_entities(&created)[0];
-    let start_lineage = runtime.lineage_access().for_record(entity).unwrap().lineage_id;
+    let start_lineage = runtime
+        .lineage_access()
+        .for_record(entity)
+        .unwrap()
+        .lineage_id;
 
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
@@ -25,10 +29,9 @@ fn historical_lineage_resolution_follows_replace_events() {
         )),
     );
     let outcome = txn.commit().unwrap();
-    let resolution =
-        runtime
-            .lineage_access()
-            .resolve_historical_lineage(&BranchId("main".to_string()), start_lineage);
+    let resolution = runtime
+        .lineage_access()
+        .resolve_historical_lineage(&BranchId("main".to_string()), start_lineage);
 
     assert_eq!(resolution.start, start_lineage);
     assert_eq!(resolution.traversed_event_ids.len(), 1);
@@ -53,7 +56,11 @@ fn historical_lineage_resolution_is_branch_local_under_divergent_replacements() 
     let main_target = create_entity_outcome(&mut runtime, "main-target");
     let feature_target = create_entity_outcome(&mut runtime, "feature-target");
     let entity = changed_entities(&created)[0];
-    let start_lineage = runtime.lineage_access().for_record(entity).unwrap().lineage_id;
+    let start_lineage = runtime
+        .lineage_access()
+        .for_record(entity)
+        .unwrap()
+        .lineage_id;
     let main_target_lineage = runtime
         .lineage_access()
         .for_record(changed_entities(&main_target)[0])
@@ -65,7 +72,8 @@ fn historical_lineage_resolution_is_branch_local_under_divergent_replacements() 
         .unwrap()
         .lineage_id;
     runtime
-        .history_authority().create_branch(
+        .history_authority()
+        .create_branch(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -95,14 +103,12 @@ fn historical_lineage_resolution_is_branch_local_under_divergent_replacements() 
         )
         .unwrap();
 
-    let main_resolution =
-        runtime
-            .lineage_access()
-            .resolve_historical_lineage(&BranchId("main".to_string()), start_lineage);
-    let feature_resolution =
-        runtime
-            .lineage_access()
-            .resolve_historical_lineage(&BranchId("feature".to_string()), start_lineage);
+    let main_resolution = runtime
+        .lineage_access()
+        .resolve_historical_lineage(&BranchId("main".to_string()), start_lineage);
+    let feature_resolution = runtime
+        .lineage_access()
+        .resolve_historical_lineage(&BranchId("feature".to_string()), start_lineage);
 
     assert_ne!(main_resolution.resolved, feature_resolution.resolved);
 }

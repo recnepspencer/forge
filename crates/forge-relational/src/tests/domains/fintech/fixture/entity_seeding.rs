@@ -1,9 +1,12 @@
 use std::collections::BTreeMap;
 
-use crate::facade::{
-    BulkEntityCreateIntent, CommitResult, CreateIntent, EntityId, InternedString, KindId,
-    PartitionId, RecordPayload, RelationalRuntime, MutationIntent, TransactionOptions,
-    WorkerIntentBatch,
+use crate::facade::identity::{EntityId, KindId, PartitionId};
+use crate::facade::payloads::RecordPayload;
+use crate::facade::runtime::RelationalRuntime;
+use crate::facade::symbols::InternedString;
+use crate::facade::transactions::{
+    BulkEntityCreateIntent, CommitResult, CreateIntent, MutationIntent, RecordRef,
+    TransactionOptions, WorkerIntentBatch,
 };
 use serde_json::json;
 
@@ -288,14 +291,16 @@ where
         })
         .unzip();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
-    txn.push_batch(WorkerIntentBatch::new(batch_name).push(
-        MutationIntent::Create(CreateIntent::BulkEntities(BulkEntityCreateIntent {
-            partition_id,
-            kind_id: KindId(1),
-            client_keys,
-            payloads,
-        })),
-    ));
+    txn.push_batch(
+        WorkerIntentBatch::new(batch_name).push(MutationIntent::Create(
+            CreateIntent::BulkEntities(BulkEntityCreateIntent {
+                partition_id,
+                kind_id: KindId(1),
+                client_keys,
+                payloads,
+            }),
+        )),
+    );
     changed_entities(&txn.commit().unwrap())
 }
 
@@ -304,8 +309,8 @@ fn changed_entities(outcome: &CommitResult) -> Vec<EntityId> {
         .changed_records
         .iter()
         .filter_map(|record| match record {
-            crate::facade::RecordRef::Entity(id) => Some(*id),
-            crate::facade::RecordRef::Relation(_) => None,
+            RecordRef::Entity(id) => Some(*id),
+            RecordRef::Relation(_) => None,
         })
         .collect()
 }

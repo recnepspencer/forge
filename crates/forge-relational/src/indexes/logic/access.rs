@@ -1,7 +1,5 @@
 use crate::history::data::BranchId;
-use crate::indexes::data::{
-    DerivedIndexDefinition, DerivedIndexGeneration, DerivedIndexId,
-};
+use crate::indexes::data::{DerivedIndexDefinition, DerivedIndexGeneration, DerivedIndexId};
 use crate::logic::runtime::{IndexedReadOutcome, RelationalRuntime};
 use crate::query::data::QueryWorkPacket;
 use crate::snapshots::data::SnapshotHandle;
@@ -27,11 +25,15 @@ impl<'runtime> IndexAccess<'runtime> {
         branch_id: &BranchId,
     ) -> Option<&DerivedIndexGeneration> {
         let definition = self.runtime.indexes.definitions.get(&index_id)?;
-        self.runtime.indexes.generations.get(&index_id).and_then(|generations| {
-            generations.iter().rev().find(|generation| {
-                !definition.branch_scoped || generation.compatibility.branch_id == *branch_id
+        self.runtime
+            .indexes
+            .generations
+            .get(&index_id)
+            .and_then(|generations| {
+                generations.iter().rev().find(|generation| {
+                    !definition.branch_scoped || generation.compatibility.branch_id == *branch_id
+                })
             })
-        })
     }
 
     pub fn generations_for_version(
@@ -62,7 +64,10 @@ impl<'runtime> IndexAccess<'runtime> {
         handle: &SnapshotHandle,
         packet: &QueryWorkPacket,
     ) -> Option<IndexedReadOutcome> {
-        let result = self.runtime.visibility_reads().execute_read_packet(handle, packet)?;
+        let result = self
+            .runtime
+            .visibility_reads()
+            .execute_read_packet(handle, packet)?;
         let branch_id = self
             .branch_id_for_version(handle.version_id)
             .unwrap_or_else(|| self.runtime.config.history.main_branch.clone());
@@ -105,7 +110,12 @@ impl<'runtime> IndexAccess<'runtime> {
     pub(crate) fn entity_unique_field_entries(
         &self,
         field: &str,
-    ) -> Option<&std::collections::BTreeMap<String, std::collections::BTreeSet<crate::identity::data::EntityId>>> {
+    ) -> Option<
+        &std::collections::BTreeMap<
+            String,
+            std::collections::BTreeSet<crate::identity::data::EntityId>,
+        >,
+    > {
         self.runtime.indexes.entity_unique_field_index.get(field)
     }
 

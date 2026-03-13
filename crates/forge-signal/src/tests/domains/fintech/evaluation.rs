@@ -397,6 +397,8 @@ impl FintechEvaluationShape {
             ));
         }
 
-        Err(SignalError::invalid_input(format!("unexpected fintech node {node}")))
+        Err(SignalError::invalid_input(format!(
+            "unexpected fintech node {node}"
+        )))
     }
 }

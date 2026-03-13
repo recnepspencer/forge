@@ -18,15 +18,16 @@ fn retention_plan_reports_snapshot_pinned_records_before_release() {
         create_relation_outcome(&mut runtime, relation_source, relation_target, "r1");
     let relation_created_snapshot = runtime.visibility_authority().snapshot();
     let relation = changed_relations(&relation_created)[0];
-    let _deleted_relation = {
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
-        txn.push_batch(WorkerIntentBatch::new("delete-relation").push(
-            MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
-                relation_id: relation,
-            })),
-        ));
-        txn.commit().unwrap()
-    };
+    let _deleted_relation =
+        {
+            let mut txn = runtime.begin_transaction(TransactionOptions::default());
+            txn.push_batch(WorkerIntentBatch::new("delete-relation").push(
+                MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
+                    relation_id: relation,
+                })),
+            ));
+            txn.commit().unwrap()
+        };
     let deleted_relation_snapshot = runtime.visibility_authority().snapshot();
 
     let plan = runtime.retention_access().inspect_plan();
@@ -37,10 +38,18 @@ fn retention_plan_reports_snapshot_pinned_records_before_release() {
     assert_eq!(plan.reclaimable_entities, 0);
     assert_eq!(plan.reclaimable_relations, 0);
 
-    assert!(runtime.visibility_authority().release_snapshot(&entity_created_snapshot));
-    assert!(runtime.visibility_authority().release_snapshot(&deleted_entity_snapshot));
-    assert!(runtime.visibility_authority().release_snapshot(&relation_created_snapshot));
-    assert!(runtime.visibility_authority().release_snapshot(&deleted_relation_snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&entity_created_snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&deleted_entity_snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&relation_created_snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&deleted_relation_snapshot));
 }
 
 #[test]
@@ -52,8 +61,12 @@ fn retention_plan_turns_deleted_records_reclaimable_after_snapshot_release() {
     let _deleted = delete_entity(&mut runtime, entity);
     let deleted_snapshot = runtime.visibility_authority().snapshot();
 
-    assert!(runtime.visibility_authority().release_snapshot(&created_snapshot));
-    assert!(runtime.visibility_authority().release_snapshot(&deleted_snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&created_snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&deleted_snapshot));
 
     let plan = runtime.retention_access().inspect_plan();
     let pass = runtime.retention_access().run_pass();
@@ -74,17 +87,26 @@ fn retention_plan_reports_branch_pinned_deleted_records_when_sibling_branch_lags
     let relation_created =
         create_relation_outcome(&mut runtime, source_entity, target_entity, "r1");
     runtime
-        .history_authority().create_branch(
+        .history_authority()
+        .create_branch(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
         .unwrap();
     let deleted = delete_entity(&mut runtime, source_entity);
 
-    assert!(runtime.visibility_authority().release_snapshot(&source.snapshot));
-    assert!(runtime.visibility_authority().release_snapshot(&target.snapshot));
-    assert!(runtime.visibility_authority().release_snapshot(&relation_created.snapshot));
-    assert!(runtime.visibility_authority().release_snapshot(&deleted.snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&source.snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&target.snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&relation_created.snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&deleted.snapshot));
 
     let plan = runtime.retention_access().inspect_plan();
 
@@ -103,15 +125,23 @@ fn retention_plan_reports_explicit_replay_pins_until_released() {
     let entity = changed_entities(&created)[0];
     let deleted = delete_entity(&mut runtime, entity);
 
-    assert!(runtime.visibility_authority().release_snapshot(&created.snapshot));
-    assert!(runtime.visibility_authority().release_snapshot(&deleted.snapshot));
-    assert!(runtime.history_authority().retain_version_for_replay(created.version_id));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&created.snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&deleted.snapshot));
+    assert!(runtime
+        .history_authority()
+        .retain_version_for_replay(created.version_id));
 
     let pinned = runtime.retention_access().inspect_plan();
     assert!(pinned.replay_pinned_entities >= 1);
     assert_eq!(pinned.reclaimable_entities, 0);
 
-    assert!(runtime.history_authority().release_version_replay_retention(created.version_id));
+    assert!(runtime
+        .history_authority()
+        .release_version_replay_retention(created.version_id));
     let released = runtime.retention_access().inspect_plan();
     assert_eq!(released.replay_pinned_entities, 0);
     assert!(released.reclaimable_entities >= 1);
@@ -123,8 +153,12 @@ fn replay_retention_preserves_historical_live_entity_payloads_across_updates() {
     let created = create_entity_outcome(&mut runtime, "replay-history");
     let entity = changed_entities(&created)[0];
 
-    assert!(runtime.visibility_authority().release_snapshot(&created.snapshot));
-    assert!(runtime.history_authority().retain_version_for_replay(created.version_id));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&created.snapshot));
+    assert!(runtime
+        .history_authority()
+        .retain_version_for_replay(created.version_id));
 
     let _updated = update_entity(&mut runtime, entity, "replay-history-updated");
     let historical = runtime.visibility_reads().read_version(created.version_id);
@@ -135,7 +169,9 @@ fn replay_retention_preserves_historical_live_entity_payloads_across_updates() {
         RecordPayload::StructuredJson(serde_json::json!({"name":"replay-history"}))
     );
 
-    assert!(runtime.history_authority().release_version_replay_retention(created.version_id));
+    assert!(runtime
+        .history_authority()
+        .release_version_replay_retention(created.version_id));
 }
 
 #[test]
@@ -145,19 +181,26 @@ fn retention_plan_reports_explicit_replay_pins_for_deleted_relations_until_relea
     let target = create_entity(&mut runtime, "replay-right");
     let created = create_relation_outcome(&mut runtime, source, target, "replay-r1");
     let relation = changed_relations(&created)[0];
-    let deleted = {
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
-        txn.push_batch(WorkerIntentBatch::new("delete-relation").push(
-            MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
-                relation_id: relation,
-            })),
-        ));
-        txn.commit().unwrap()
-    };
+    let deleted =
+        {
+            let mut txn = runtime.begin_transaction(TransactionOptions::default());
+            txn.push_batch(WorkerIntentBatch::new("delete-relation").push(
+                MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
+                    relation_id: relation,
+                })),
+            ));
+            txn.commit().unwrap()
+        };
 
-    assert!(runtime.visibility_authority().release_snapshot(&created.snapshot));
-    assert!(runtime.visibility_authority().release_snapshot(&deleted.snapshot));
-    assert!(runtime.history_authority().retain_version_for_replay(created.version_id));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&created.snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&deleted.snapshot));
+    assert!(runtime
+        .history_authority()
+        .retain_version_for_replay(created.version_id));
 
     let pinned = runtime.retention_access().inspect_plan();
     let diagnostics = runtime.publication_access().diagnostics();
@@ -186,7 +229,9 @@ fn retention_plan_reports_explicit_replay_pins_for_deleted_relations_until_relea
             >= 1
     );
 
-    assert!(runtime.history_authority().release_version_replay_retention(created.version_id));
+    assert!(runtime
+        .history_authority()
+        .release_version_replay_retention(created.version_id));
     let released = runtime.retention_access().inspect_plan();
     assert_eq!(released.replay_pinned_relations, 0);
     assert!(released.branch_pinned_relations >= 1);

@@ -1,7 +1,8 @@
-use crate::facade::{
-    BranchId, RelationalReplayOutcome, RelationalReplayRequest, RelationalRuntime,
-    ReplayExecutionMode,
+use crate::facade::history::BranchId;
+use crate::facade::replay::{
+    RelationalReplayOutcome, RelationalReplayRequest, ReplayExecutionMode,
 };
+use crate::facade::runtime::RelationalRuntime;
 
 pub(crate) fn drop_latest_parent_envelope_for_replay(
     runtime: &mut RelationalRuntime,
@@ -19,9 +20,13 @@ pub(crate) fn replay_latest_commit_on_wrong_branch(
     runtime: &mut RelationalRuntime,
 ) -> Option<RelationalReplayOutcome> {
     let latest = runtime.history_access().latest_commit()?.commit_id;
-    Some(runtime.replay_authority().replay_commit(RelationalReplayRequest {
-        commit_id: latest,
-        branch_id: BranchId("wrong".to_string()),
-        execution_mode: ReplayExecutionMode::SerialDeterministic,
-    }))
+    Some(
+        runtime
+            .replay_authority()
+            .replay_commit(RelationalReplayRequest {
+                commit_id: latest,
+                branch_id: BranchId("wrong".to_string()),
+                execution_mode: ReplayExecutionMode::SerialDeterministic,
+            }),
+    )
 }

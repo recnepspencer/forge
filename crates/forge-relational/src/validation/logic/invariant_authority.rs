@@ -4,9 +4,7 @@ use crate::diagnostics::data::{DiagnosticCode, DiagnosticsArtifactKind, Diagnost
 use crate::logic::runtime::{RelationalRuntime, WorkingState};
 use crate::publication::data::{PublicationError, PublicationStage};
 use crate::publication::logic::publication_failure_diagnostic;
-use crate::transactions::data::{
-    CommitConflict, MergedCommitPlan, TransactionCommitError,
-};
+use crate::transactions::data::{CommitConflict, MergedCommitPlan, TransactionCommitError};
 use crate::validation::engine::InvariantExecutionResult;
 
 impl RelationalRuntime {
@@ -28,13 +26,12 @@ impl<'runtime> InvariantAuthority<'runtime> {
         &mut self,
         merged_plan: &MergedCommitPlan,
     ) -> Result<InvariantExecutionResult, TransactionCommitError> {
-        let result = self
-            .runtime
-            .invariant_access()
-            .commit_boundary(merged_plan);
-        if let Some(failure) = result.first_blocking_failure() {
+        let result = self.runtime.invariant_access().commit_boundary(merged_plan);
+        if let Some(failure) = result.summary().blocking_failure() {
             self.emit_conflict_diagnostic(failure.execution_point(), failure.detail().to_string());
-            return Err(TransactionCommitError::conflict(failure.into_commit_conflict()));
+            return Err(TransactionCommitError::conflict(
+                failure.clone().into_commit_conflict(),
+            ));
         }
         Ok(result)
     }
@@ -46,17 +43,15 @@ impl<'runtime> InvariantAuthority<'runtime> {
         merged_plan: &MergedCommitPlan,
     ) -> Result<InvariantExecutionResult, CommitConflict> {
         let result = {
-            let overlay_state = self.runtime.overlay_state_view(working_state);
+            let storage = self.runtime.storage_access();
+            let overlay_state = storage.overlay_state_view(working_state);
             self.runtime
                 .invariant_access()
-                .mutation_sensitive_for_state(&overlay_state, version_id, Some(merged_plan))
+                .mutation_sensitive_for_state(overlay_state, version_id, Some(merged_plan))
         };
-        if let Some(failure) = result.first_blocking_failure() {
-            self.emit_conflict_diagnostic(
-                failure.execution_point(),
-                failure.detail().to_string(),
-            );
-            return Err(failure.into_commit_conflict());
+        if let Some(failure) = result.summary().blocking_failure() {
+            self.emit_conflict_diagnostic(failure.execution_point(), failure.detail().to_string());
+            return Err(failure.clone().into_commit_conflict());
         }
         Ok(result)
     }
@@ -68,18 +63,17 @@ impl<'runtime> InvariantAuthority<'runtime> {
         merged_plan: &MergedCommitPlan,
     ) -> Result<InvariantExecutionResult, PublicationError> {
         let result = {
-            let overlay_state = self.runtime.overlay_state_view(working_state);
+            let storage = self.runtime.storage_access();
+            let overlay_state = storage.overlay_state_view(working_state);
             self.runtime
                 .invariant_access()
-                .snapshot_publication_for_state(
-                    &overlay_state,
-                    version_id,
-                    Some(merged_plan),
-                )
+                .snapshot_publication_for_state(overlay_state, version_id, Some(merged_plan))
         };
-        if let Some(failure) = result.first_publication_failure() {
+        if let Some(failure) = result.summary().publication_failure() {
             self.emit_publication_failure(failure.detail().to_string());
-            return Err(failure.into_publication_error(PublicationStage::InvariantCheck));
+            return Err(failure
+                .clone()
+                .into_publication_error(PublicationStage::InvariantCheck));
         }
         Ok(result)
     }
@@ -101,10 +95,12 @@ impl<'runtime> InvariantAuthority<'runtime> {
     }
 
     fn emit_publication_failure(&mut self, detail: String) {
-        self.runtime.publication_authority().push_bounded_diagnostic(
-            DiagnosticsScope::Invariant,
-            DiagnosticsArtifactKind::Failure,
-            vec![publication_failure_diagnostic(detail)],
-        );
+        self.runtime
+            .publication_authority()
+            .push_bounded_diagnostic(
+                DiagnosticsScope::Invariant,
+                DiagnosticsArtifactKind::Failure,
+                vec![publication_failure_diagnostic(detail)],
+            );
     }
 }

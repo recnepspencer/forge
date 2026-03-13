@@ -51,13 +51,13 @@ impl<'graph, Ctx> EvaluationContext<'graph, Ctx> {
         self.domain_context
     }
 
-    pub fn read(
-        &mut self,
-        signal: NodeId,
-        aspect: Aspect,
-    ) -> Result<u64, SignalError> {
+    pub fn read(&mut self, signal: NodeId, aspect: Aspect) -> Result<u64, SignalError> {
         self.capture_dependency(signal, aspect);
-        Ok(self.graph.get_entry(signal)?.get_aspect_version().get(aspect))
+        Ok(self
+            .graph
+            .get_entry(signal)?
+            .get_aspect_version()
+            .get(aspect))
     }
 
     pub fn read_aspect_version(
@@ -135,7 +135,9 @@ impl EvaluationOutput {
         mut self,
         labels: impl IntoIterator<Item = impl Into<String>>,
     ) -> Self {
-        self.trace_data.labels.extend(labels.into_iter().map(Into::into));
+        self.trace_data
+            .labels
+            .extend(labels.into_iter().map(Into::into));
         self
     }
 

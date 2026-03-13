@@ -4,12 +4,12 @@ use crate::transactions::data::{
     CreateIntent, EntityMutationIntent, MergedCommitPlan, MutationIntent, RelationMutationIntent,
 };
 
-use super::groups::InvariantGroup;
+use super::groups::{InvariantGroup, InvariantGroupSet};
 use super::rules::InvariantRule;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct InvariantPlanContract {
-    pub may_break: u32,
+    may_invalidate: InvariantGroupSet,
 }
 
 impl InvariantPlanContract {
@@ -22,64 +22,64 @@ impl InvariantPlanContract {
     }
 
     pub fn is_empty(self) -> bool {
-        self.may_break == 0
+        self.may_invalidate.is_empty()
     }
 
-    pub fn may_break_groups(self) -> u32 {
-        self.may_break
+    pub fn may_invalidate_groups(self) -> InvariantGroupSet {
+        self.may_invalidate
     }
 
-    pub fn intersects_groups(self, groups_mask: u32) -> bool {
-        self.is_empty() || (self.may_break & groups_mask) != 0
+    pub fn intersects_consumed_groups(self, consumed_groups: InvariantGroupSet) -> bool {
+        self.is_empty() || self.may_invalidate.intersects(consumed_groups)
     }
 
     pub(crate) fn applies_to_rule(self, rule: &InvariantRule) -> bool {
         if self.is_empty() {
             return true;
         }
-        (rule.groups().mask() & self.may_break) != 0
+        self.may_invalidate.intersects(rule.groups())
     }
 
     fn observe_intent(&mut self, intent: &MutationIntent) {
-        let mask = match intent {
+        let groups = match intent {
             MutationIntent::Create(CreateIntent::Entity(_))
             | MutationIntent::Create(CreateIntent::BulkEntities(_)) => {
-                InvariantGroup::StorageCoherence.mask()
-                    | InvariantGroup::IdentityCoherence.mask()
-                    | InvariantGroup::SchemaCompliance.mask()
-                    | InvariantGroup::PublicationCoherence.mask()
-                    | InvariantGroup::VersionVisibility.mask()
+                InvariantGroupSet::of(InvariantGroup::StorageCoherence)
+                    .union(InvariantGroupSet::of(InvariantGroup::IdentityCoherence))
+                    .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance))
+                    .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
+                    .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility))
             }
             MutationIntent::Entity(EntityMutationIntent::Update(_))
             | MutationIntent::Entity(EntityMutationIntent::Replace(_)) => {
-                InvariantGroup::IdentityCoherence.mask()
-                    | InvariantGroup::SchemaCompliance.mask()
-                    | InvariantGroup::PublicationCoherence.mask()
-                    | InvariantGroup::VersionVisibility.mask()
+                InvariantGroupSet::of(InvariantGroup::IdentityCoherence)
+                    .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance))
+                    .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
+                    .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility))
             }
             MutationIntent::Entity(EntityMutationIntent::Delete(_)) => {
-                InvariantGroup::AdjacencyIntegrity.mask()
-                    | InvariantGroup::StorageCoherence.mask()
-                    | InvariantGroup::LineageIntegrity.mask()
-                    | InvariantGroup::PublicationCoherence.mask()
-                    | InvariantGroup::VersionVisibility.mask()
+                InvariantGroupSet::of(InvariantGroup::AdjacencyIntegrity)
+                    .union(InvariantGroupSet::of(InvariantGroup::StorageCoherence))
+                    .union(InvariantGroupSet::of(InvariantGroup::LineageIntegrity))
+                    .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
+                    .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility))
             }
             MutationIntent::Create(CreateIntent::Relation(_))
             | MutationIntent::Create(CreateIntent::BulkRelations(_)) => {
-                InvariantGroup::AdjacencyIntegrity.mask()
-                    | InvariantGroup::StorageCoherence.mask()
-                    | InvariantGroup::SchemaCompliance.mask()
-                    | InvariantGroup::PublicationCoherence.mask()
-                    | InvariantGroup::VersionVisibility.mask()
+                InvariantGroupSet::of(InvariantGroup::AdjacencyIntegrity)
+                    .union(InvariantGroupSet::of(InvariantGroup::StorageCoherence))
+                    .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance))
+                    .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
+                    .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility))
             }
             MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {
-                InvariantGroup::AdjacencyIntegrity.mask()
-                    | InvariantGroup::StorageCoherence.mask()
-                    | InvariantGroup::PublicationCoherence.mask()
-                    | InvariantGroup::VersionVisibility.mask()
+                InvariantGroupSet::of(InvariantGroup::AdjacencyIntegrity)
+                    .union(InvariantGroupSet::of(InvariantGroup::StorageCoherence))
+                    .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
+                    .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility))
             }
         };
-        self.may_break |= mask;
+        self.may_invalidate = self.may_invalidate.union(groups);
     }
 }
 
@@ -109,11 +109,10 @@ mod tests {
         };
 
         let contract = InvariantPlanContract::from_merged_plan(&plan);
-        assert_ne!(contract.may_break, 0);
+        assert!(!contract.may_invalidate_groups().is_empty());
         assert!(contract
-            .may_break_groups()
-            & crate::validation::data::InvariantGroup::SchemaCompliance.mask()
-            != 0);
+            .may_invalidate_groups()
+            .contains(crate::validation::data::InvariantGroup::SchemaCompliance));
     }
 
     #[test]
@@ -122,23 +121,17 @@ mod tests {
             transaction_id: TransactionId(2),
             merged_intents: vec![MutationIntent::Entity(EntityMutationIntent::Delete(
                 DeleteEntityIntent {
-                    entity_id: EntityId::new(
-                        PartitionId(1),
-                        LocalSlot(0).0,
-                        Generation(1).0,
-                    ),
+                    entity_id: EntityId::new(PartitionId(1), LocalSlot(0).0, Generation(1).0),
                 },
             ))],
         };
 
         let contract = InvariantPlanContract::from_merged_plan(&plan);
         assert!(contract
-            .may_break_groups()
-            & crate::validation::data::InvariantGroup::AdjacencyIntegrity.mask()
-            != 0);
+            .may_invalidate_groups()
+            .contains(crate::validation::data::InvariantGroup::AdjacencyIntegrity));
         assert!(contract
-            .may_break_groups()
-            & crate::validation::data::InvariantGroup::LineageIntegrity.mask()
-            != 0);
+            .may_invalidate_groups()
+            .contains(crate::validation::data::InvariantGroup::LineageIntegrity));
     }
 }

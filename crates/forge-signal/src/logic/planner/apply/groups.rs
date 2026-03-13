@@ -1,84 +1,104 @@
-use std::collections::BTreeSet;
+use super::super::types::{
+    ApplyFootprint, DisjointApplyGroup, LoweredTask, ParallelExecutionPolicy,
+};
 
-use crate::data::handle::NodeId;
-
-use super::super::types::ParallelExecutionPolicy;
-use super::TaskPatch;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct PatchFootprint {
-    target_nodes: BTreeSet<NodeId>,
+fn conflicts_with(left: &ApplyFootprint, right: &ApplyFootprint) -> bool {
+    intersects(
+        left.touched_nodes.as_slice(),
+        right.touched_nodes.as_slice(),
+    ) || intersects(
+        left.touched_sources.as_slice(),
+        right.touched_sources.as_slice(),
+    )
 }
 
-impl PatchFootprint {
-    pub(super) fn from_task(task: &TaskPatch) -> Self {
-        let mut target_nodes = BTreeSet::new();
-        target_nodes.insert(task.node);
-        target_nodes.extend(task.current_dependencies.iter().map(|edge| edge.source()));
-        target_nodes.extend(task.next_dependencies.iter().map(|edge| edge.source()));
-        Self { target_nodes }
-    }
-
-    fn conflicts_with(&self, other: &Self) -> bool {
-        self.target_nodes
-            .iter()
-            .any(|node| other.target_nodes.contains(node))
-    }
-
-    pub(super) fn conflicts_with_nodes(&self, nodes: &BTreeSet<NodeId>) -> bool {
-        self.target_nodes.iter().any(|node| nodes.contains(node))
-    }
-
-    fn merge(&mut self, other: &Self) {
-        self.target_nodes.extend(other.target_nodes.iter().copied());
-    }
+fn merge(left: &mut ApplyFootprint, right: &ApplyFootprint) {
+    left.partitions =
+        merge_sorted_unique(left.partitions.as_slice(), right.partitions.as_slice()).into();
+    left.touched_nodes = merge_sorted_unique(
+        left.touched_nodes.as_slice(),
+        right.touched_nodes.as_slice(),
+    )
+    .into();
+    left.touched_sources = merge_sorted_unique(
+        left.touched_sources.as_slice(),
+        right.touched_sources.as_slice(),
+    )
+    .into();
 }
 
-#[derive(Debug, Clone)]
-pub(super) struct ApplyGroup {
-    pub tasks: Vec<TaskPatch>,
-    pub footprint: PatchFootprint,
+fn intersects<T: Ord>(left: &[T], right: &[T]) -> bool {
+    let mut left_index = 0usize;
+    let mut right_index = 0usize;
+    while left_index < left.len() && right_index < right.len() {
+        match left[left_index].cmp(&right[right_index]) {
+            std::cmp::Ordering::Less => left_index += 1,
+            std::cmp::Ordering::Greater => right_index += 1,
+            std::cmp::Ordering::Equal => return true,
+        }
+    }
+    false
 }
 
-#[derive(Debug, Clone)]
-pub(super) struct StageApplyPlan {
-    pub groups: Vec<ApplyGroup>,
+fn merge_sorted_unique<T: Ord + Clone>(left: &[T], right: &[T]) -> Vec<T> {
+    let mut merged = Vec::with_capacity(left.len() + right.len());
+    let mut left_index = 0usize;
+    let mut right_index = 0usize;
+    while left_index < left.len() && right_index < right.len() {
+        match left[left_index].cmp(&right[right_index]) {
+            std::cmp::Ordering::Less => {
+                merged.push(left[left_index].clone());
+                left_index += 1;
+            }
+            std::cmp::Ordering::Greater => {
+                merged.push(right[right_index].clone());
+                right_index += 1;
+            }
+            std::cmp::Ordering::Equal => {
+                merged.push(left[left_index].clone());
+                left_index += 1;
+                right_index += 1;
+            }
+        }
+    }
+    merged.extend_from_slice(&left[left_index..]);
+    merged.extend_from_slice(&right[right_index..]);
+    merged
 }
 
-pub(super) fn build_stage_apply_plan(
-    tasks: Vec<TaskPatch>,
+pub(super) fn build_stage_apply_groups(
+    tasks: &[LoweredTask],
     policy: ParallelExecutionPolicy,
-) -> StageApplyPlan {
+) -> Vec<DisjointApplyGroup> {
     if tasks.is_empty() {
-        return StageApplyPlan { groups: Vec::new() };
+        return Vec::new();
     }
 
     let max_groups = policy.max_apply_group_count_for(tasks.len());
     let chunk_size = tasks.len().div_ceil(max_groups).max(1);
-    let mut groups = Vec::<ApplyGroup>::new();
+    let mut groups = Vec::<DisjointApplyGroup>::new();
 
-    for task in tasks {
-        let footprint = PatchFootprint::from_task(&task);
+    for (task_index, task) in tasks.iter().enumerate() {
         let mut placed = false;
         for group in &mut groups {
-            if group.tasks.len() >= chunk_size {
+            if group.task_indices.len() >= chunk_size {
                 continue;
             }
-            if group.footprint.conflicts_with(&footprint) {
+            if conflicts_with(&group.footprint, &task.footprint) {
                 continue;
             }
-            group.footprint.merge(&footprint);
-            group.tasks.push(task.clone());
+            merge(&mut group.footprint, &task.footprint);
+            group.task_indices.push(task_index);
             placed = true;
             break;
         }
         if !placed {
-            groups.push(ApplyGroup {
-                tasks: vec![task],
-                footprint,
+            groups.push(DisjointApplyGroup {
+                task_indices: vec![task_index],
+                footprint: task.footprint.clone(),
             });
         }
     }
 
-    StageApplyPlan { groups }
+    groups
 }

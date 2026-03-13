@@ -1,6 +1,6 @@
 use crate::data::dependency::{DependencyEdge, DependencySnapshot};
 use crate::facade::*;
-use crate::tests::support::{DependencyBatchBuilder, version_ab, ASPECT_A, ASPECT_B};
+use crate::tests::support::{version_ab, DependencyBatchBuilder, ASPECT_A, ASPECT_B};
 
 #[test]
 fn repeated_edge_churn_preserves_dependency_and_subscriber_integrity() {
@@ -42,7 +42,9 @@ fn repeated_edge_churn_preserves_dependency_and_subscriber_integrity() {
 
 #[test]
 fn rollback_after_dynamic_dependency_churn_restores_original_dependencies() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     let source_a = runtime.graph_mut().node().build();
     let source_b = runtime.graph_mut().node().build();
     let dependent = runtime.graph_mut().node().build();
@@ -112,14 +114,16 @@ fn unregister_and_slot_reuse_after_churn_leave_no_ghost_edges() {
 
     graph.append_dependency(middle, upstream, ASPECT_A).unwrap();
     for &downstream in &downstreams {
-        graph.append_dependency(downstream, middle, ASPECT_B).unwrap();
+        graph
+            .append_dependency(downstream, middle, ASPECT_B)
+            .unwrap();
     }
 
     for &downstream in downstreams.iter().step_by(2) {
+        graph.drop_dependency(downstream, middle, ASPECT_B).unwrap();
         graph
-            .drop_dependency(downstream, middle, ASPECT_B)
+            .append_dependency(downstream, middle, ASPECT_B)
             .unwrap();
-        graph.append_dependency(downstream, middle, ASPECT_B).unwrap();
     }
 
     graph.unregister_node(middle).unwrap();
@@ -128,7 +132,10 @@ fn unregister_and_slot_reuse_after_churn_leave_no_ghost_edges() {
     assert!(graph.subscribers_of(upstream).unwrap().is_empty());
     for &downstream in &downstreams {
         assert!(
-            graph.runtime_dependencies_of(downstream).unwrap().is_empty(),
+            graph
+                .runtime_dependencies_of(downstream)
+                .unwrap()
+                .is_empty(),
             "runtime cleanup should clear stale edges left behind by retirement"
         );
     }
@@ -137,7 +144,9 @@ fn unregister_and_slot_reuse_after_churn_leave_no_ghost_edges() {
 
 #[test]
 fn snapshot_churn_reorders_dependencies_without_ghost_snapshots() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     let a = runtime.graph_mut().node().build();
     let b = runtime.graph_mut().node().build();
     let dependent = runtime.graph_mut().node().build();
@@ -250,7 +259,9 @@ fn reconverging_invalidation_path_is_not_reported_as_a_cycle() {
 
 #[test]
 fn gc_epoch_compacts_edge_and_snapshot_storage_after_churn() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::with_gc_threshold(1)).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::with_gc_threshold(1))
+        .with_kernel_defaults()
+        .build();
     let source_a = runtime.graph_mut().node().build();
     let source_b = runtime.graph_mut().node().build();
     let dependent = runtime.graph_mut().node().build();
@@ -337,7 +348,9 @@ fn semantically_identical_dependency_snapshots_deduplicate_even_if_recorded_in_d
 
 #[test]
 fn dependency_snapshot_growth_returns_near_live_state_after_gc() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::with_gc_threshold(1)).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::with_gc_threshold(1))
+        .with_kernel_defaults()
+        .build();
     let source = runtime.graph_mut().node().build();
     let dependent = runtime.graph_mut().node().build();
     runtime
@@ -382,7 +395,9 @@ fn identical_dependency_snapshots_are_deduplicated_before_gc() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     let mut snapshot = DependencySnapshot::empty();
     snapshot.record(source, ASPECT_A, 1, None);

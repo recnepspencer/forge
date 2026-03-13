@@ -1,4 +1,5 @@
 use serde_json::json;
+use std::sync::Arc;
 
 use crate::diagnostics::data::{DiagnosticCode, DiagnosticsScope, RelationalDiagnosticsEntry};
 use crate::history::data::{BranchCreateError, BranchId, CommitId, CommitReference, VersionNode};
@@ -40,12 +41,16 @@ impl<'runtime> HistoryAuthority<'runtime> {
             .history
             .branch_heads
             .insert(new_branch, source_head.clone());
-        self.runtime.visibility_pins().move_branch_head_visibility_residency(
-            None,
-            source_head.as_ref().map(|head| head.version_id),
-        );
+        self.runtime
+            .visibility_pins()
+            .move_branch_head_visibility_residency(
+                None,
+                source_head.as_ref().map(|head| head.version_id),
+            );
         if let Some(source_head) = source_head {
-            self.runtime.visibility_pins().pin_branch_version(source_head.version_id);
+            self.runtime
+                .visibility_pins()
+                .pin_branch_version(source_head.version_id);
         }
         Ok(())
     }
@@ -54,9 +59,19 @@ impl<'runtime> HistoryAuthority<'runtime> {
         &mut self,
         version_id: crate::identity::data::VersionId,
     ) -> bool {
-        if let Some(retained) = self.runtime.visibility.replay_retention.retained_mut(version_id) {
-            retained.ref_count += 1;
-            if self.runtime.config.visibility.cache_policy.protect_replay_retained {
+        if self
+            .runtime
+            .visibility
+            .increment_replay_retention(version_id)
+            .is_some()
+        {
+            if self
+                .runtime
+                .config
+                .visibility
+                .cache_policy
+                .protect_replay_retained
+            {
                 bump_replay_ref(self.runtime, version_id, 1);
             }
             return true;
@@ -66,11 +81,18 @@ impl<'runtime> HistoryAuthority<'runtime> {
         }
         let state = ensure_state(self.runtime, version_id, false);
         self.runtime.visibility_pins().pin_replay_state(&state);
-        if self.runtime.config.visibility.cache_policy.protect_replay_retained {
+        if self
+            .runtime
+            .config
+            .visibility
+            .cache_policy
+            .protect_replay_retained
+        {
             bump_replay_ref(self.runtime, version_id, 1);
         }
         self.runtime
-            .publication_authority().diagnostic(DiagnosticsScope::Retention)
+            .publication_authority()
+            .diagnostic(DiagnosticsScope::Retention)
             .minimal_summary()
             .entries([replay_retention_diagnostic(
                 DiagnosticCode::ReplayRetentionPinned,
@@ -79,7 +101,7 @@ impl<'runtime> HistoryAuthority<'runtime> {
                 &state,
             )])
             .emit();
-        self.runtime.visibility.replay_retention.insert_retained(
+        self.runtime.visibility.insert_replay_retention(
             version_id,
             crate::logic::runtime::ReplayRetentionState { ref_count: 1 },
         );
@@ -90,17 +112,21 @@ impl<'runtime> HistoryAuthority<'runtime> {
         &mut self,
         version_id: crate::identity::data::VersionId,
     ) -> bool {
-        let Some(mut retained) = self.runtime.visibility.replay_retention.take_retained(version_id)
-        else {
+        let Some(mut retained) = self.runtime.visibility.take_replay_retention(version_id) else {
             return false;
         };
         if retained.ref_count > 1 {
             retained.ref_count -= 1;
             self.runtime
                 .visibility
-                .replay_retention
-                .insert_retained(version_id, retained);
-            if self.runtime.config.visibility.cache_policy.protect_replay_retained {
+                .restore_replay_retention(version_id, retained);
+            if self
+                .runtime
+                .config
+                .visibility
+                .cache_policy
+                .protect_replay_retained
+            {
                 bump_replay_ref(self.runtime, version_id, -1);
             }
             return true;
@@ -109,12 +135,19 @@ impl<'runtime> HistoryAuthority<'runtime> {
             return false;
         };
         self.runtime.visibility_pins().unpin_replay_state(&state);
-        if self.runtime.config.visibility.cache_policy.protect_replay_retained {
+        if self
+            .runtime
+            .config
+            .visibility
+            .cache_policy
+            .protect_replay_retained
+        {
             bump_replay_ref(self.runtime, version_id, -1);
             evict_cache_if_needed(self.runtime);
         }
         self.runtime
-            .publication_authority().diagnostic(DiagnosticsScope::Retention)
+            .publication_authority()
+            .diagnostic(DiagnosticsScope::Retention)
             .minimal_summary()
             .entries([replay_retention_diagnostic(
                 DiagnosticCode::ReplayRetentionReleased,
@@ -132,7 +165,7 @@ impl<'runtime> HistoryAuthority<'runtime> {
         commit_reference: CommitReference,
         branch_id: BranchId,
         patch_position: PatchStreamPosition,
-        canonical_commit_envelope: CanonicalCommitEnvelope,
+        canonical_commit_envelope: Arc<CanonicalCommitEnvelope>,
     ) {
         self.runtime.history.advance_commit_sequence();
         self.runtime
@@ -153,6 +186,22 @@ impl<'runtime> HistoryAuthority<'runtime> {
             .history
             .patch_stream_index
             .insert(patch_position, commit_id);
+    }
+
+    pub(crate) fn append_index_generation_ids(&mut self, commit_id: CommitId, ids: &[u64]) {
+        if let Some(envelope) = self.runtime.history.commit_envelopes.get_mut(&commit_id) {
+            Arc::make_mut(envelope)
+                .index_generation_ids
+                .extend(ids.iter().copied());
+        }
+    }
+
+    pub(crate) fn append_lineage_event_ids(&mut self, commit_id: CommitId, event_ids: &[u64]) {
+        if let Some(envelope) = self.runtime.history.commit_envelopes.get_mut(&commit_id) {
+            Arc::make_mut(envelope)
+                .lineage_event_ids
+                .extend(event_ids.iter().copied());
+        }
     }
 
     #[cfg(test)]
@@ -179,7 +228,7 @@ impl<'runtime> HistoryAuthority<'runtime> {
         let Some(envelope) = self.runtime.history.commit_envelopes.get_mut(&commit_id) else {
             return false;
         };
-        mutate(&mut envelope.patch);
+        mutate(&mut Arc::make_mut(envelope).patch);
         true
     }
 }

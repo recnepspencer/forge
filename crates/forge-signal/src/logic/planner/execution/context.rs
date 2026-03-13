@@ -5,9 +5,9 @@ use crate::data::handle::NodeId;
 use crate::diagnostics::summary::EvaluationPlanSummary;
 use crate::logic::prepared::PreparedEvaluation;
 
+use super::super::types::{ExecutionReport, PlanSummary, StageExecutor};
 use super::diagnostics::record_successful_execution;
 use super::reporting::begin_execution_report;
-use super::super::types::{ExecutionReport, PlanSummary, StageExecutor};
 
 pub(crate) struct ExecutionContext<'a, F, R>
 where
@@ -72,7 +72,12 @@ where
     }
 
     pub(crate) fn finish(self) -> ExecutionReport {
-        record_successful_execution(self.graph, self.plan_summary, self.first_target, &self.report);
+        record_successful_execution(
+            self.graph,
+            self.plan_summary,
+            self.first_target,
+            &self.report,
+        );
         self.report
     }
 }

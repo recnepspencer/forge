@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 use std::time::Instant;
 
+use serde::{Deserialize, Serialize};
+
 use crate::data::bitset::DenseBitset;
 use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::dirty_set::BatchedDirtySet;
@@ -10,22 +12,21 @@ use crate::diagnostics::failure::FailureSummary;
 use crate::diagnostics::replay::ReplayEventKind;
 use crate::diagnostics::state::DiagnosticsState;
 use crate::logic::checkpoint::CheckpointRuntime;
+use crate::logic::evaluation::EvaluationVerdict;
 use crate::logic::events::EventBus;
 use crate::logic::planner::{ExecutionRecordId, ExecutionReport, SemanticSegmentId};
-use crate::logic::evaluation::EvaluationVerdict;
 
 use super::super::super::key_registry::RuntimeStringId;
 use super::super::super::patch_buffer::SparsePatchBuffer;
 use super::super::config::SignalRuntimeConfig;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TransactionOutcome {
     Committed,
     RolledBack,
     Poisoned,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct TransactionTiming {
     pub total_nanos: u128,
     pub evaluation_nanos: u128,
@@ -33,7 +34,7 @@ pub struct TransactionTiming {
     pub commit_nanos: u128,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct EvaluationSummary {
     pub nodes_evaluated: u32,
     pub nodes_recomputed: u32,
@@ -51,6 +52,11 @@ pub struct TransactionResult {
     pub evaluation_summary: EvaluationSummary,
     pub event_epochs: Vec<EventEpochSummary>,
     pub rollback: Option<crate::diagnostics::failure::RollbackDiagnostic>,
+    pub warnings: Vec<super::envelope::AdvisoryRecord>,
+    pub decision_summary: super::envelope::DecisionSummary,
+    pub decision_log: super::envelope::DecisionLog,
+    pub integrity_markers: super::envelope::IntegrityMarkers,
+    pub performance_accounting: RuntimeTelemetry,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -81,12 +87,7 @@ impl TransactionExecutionState {
             .stages
             .iter()
             .flat_map(|stage| &stage.task_records)
-            .filter(|record| {
-                matches!(
-                    record.verdict,
-                    Some(EvaluationVerdict::Suppressed { .. })
-                )
-            })
+            .filter(|record| matches!(record.verdict, Some(EvaluationVerdict::Suppressed { .. })))
             .count() as u32;
         self.summary.plans_built += 1;
         self.summary.stages_executed += report.stage_count;
@@ -108,6 +109,55 @@ pub(in crate::logic::transaction::runtime) enum StagedEventOperation<E> {
     Flush(CheckpointBarrier),
 }
 
+pub(in crate::logic::transaction::runtime) struct TransactionScratch<D, I, E>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+{
+    pub staged_dirty: BatchedDirtySet<D, I>,
+    pub staged_checkpoint_flushes: u64,
+    pub staged_checkpoint_flush_nanos: u128,
+    pub staged_event_flush_nanos: u128,
+    pub staged_event_operations: Vec<StagedEventOperation<E>>,
+    pub staged_memo_writes: BTreeMap<
+        (RuntimeStringId, RuntimeStringId, RuntimeStringId),
+        crate::data::output::NodeEvaluationResult,
+    >,
+    pub graph_patches: SparsePatchBuffer,
+    pub created_nodes: Vec<crate::data::handle::NodeId>,
+    pub semantic_delta: TransactionSemanticDelta,
+    pub mark_dirty_seen: DenseBitset,
+    pub mark_dirty_staged: DenseBitset,
+    pub evaluate_seen: DenseBitset,
+    pub dirty_targets: DenseBitset,
+    pub staged_patch_count: u64,
+}
+
+impl<D, I, E> TransactionScratch<D, I, E>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+{
+    pub fn new() -> Self {
+        Self {
+            staged_dirty: BatchedDirtySet::new(),
+            staged_checkpoint_flushes: 0,
+            staged_checkpoint_flush_nanos: 0,
+            staged_event_flush_nanos: 0,
+            staged_event_operations: Vec::new(),
+            staged_memo_writes: BTreeMap::new(),
+            graph_patches: SparsePatchBuffer::new(),
+            created_nodes: Vec::new(),
+            semantic_delta: TransactionSemanticDelta::default(),
+            mark_dirty_seen: DenseBitset::new(),
+            mark_dirty_staged: DenseBitset::new(),
+            evaluate_seen: DenseBitset::new(),
+            dirty_targets: DenseBitset::new(),
+            staged_patch_count: 0,
+        }
+    }
+}
+
 pub struct SignalTransaction<'a, D, I, E, Ctx, T = ()>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
@@ -120,27 +170,11 @@ where
     pub(in crate::logic::transaction::runtime) checkpoint: &'a mut CheckpointRuntime<D, I>,
     pub(in crate::logic::transaction::runtime) event_bus: &'a mut EventBus<E, D, Ctx>,
     pub(in crate::logic::transaction::runtime) telemetry: &'a mut RuntimeTelemetry,
-    pub(in crate::logic::transaction::runtime) staged_dirty: BatchedDirtySet<D, I>,
-    pub(in crate::logic::transaction::runtime) staged_checkpoint_flushes: u64,
-    pub(in crate::logic::transaction::runtime) staged_checkpoint_flush_nanos: u128,
-    pub(in crate::logic::transaction::runtime) staged_event_flush_nanos: u128,
-    pub(in crate::logic::transaction::runtime) staged_event_operations: Vec<StagedEventOperation<E>>,
-    pub(in crate::logic::transaction::runtime) staged_memo_writes: BTreeMap<
-        (RuntimeStringId, RuntimeStringId, RuntimeStringId),
-        crate::data::output::NodeEvaluationResult,
-    >,
-    pub(in crate::logic::transaction::runtime) graph_patches: SparsePatchBuffer,
-    pub(in crate::logic::transaction::runtime) created_nodes: Vec<crate::data::handle::NodeId>,
+    pub(in crate::logic::transaction::runtime) scratch: TransactionScratch<D, I, E>,
     pub(in crate::logic::transaction::runtime) baseline_config: SignalRuntimeConfig<T>,
     pub(in crate::logic::transaction::runtime) baseline_diagnostics_state: DiagnosticsState,
-    pub(in crate::logic::transaction::runtime) semantic_delta: TransactionSemanticDelta,
-    pub(in crate::logic::transaction::runtime) mark_dirty_seen: DenseBitset,
-    pub(in crate::logic::transaction::runtime) mark_dirty_staged: DenseBitset,
-    pub(in crate::logic::transaction::runtime) evaluate_seen: DenseBitset,
-    pub(in crate::logic::transaction::runtime) dirty_targets: DenseBitset,
     pub(in crate::logic::transaction::runtime) poisoned: bool,
     pub(in crate::logic::transaction::runtime) finished: bool,
-    pub(in crate::logic::transaction::runtime) staged_patch_count: u64,
     pub(in crate::logic::transaction::runtime) execution_state: TransactionExecutionState,
     pub(in crate::logic::transaction::runtime) started_at: Instant,
 }

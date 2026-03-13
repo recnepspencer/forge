@@ -1,7 +1,10 @@
 use std::collections::BTreeSet;
 
+use crate::identity::data::RecordId;
 use crate::publication::data::diff::AspectKey;
-use crate::storage::logic::state::{EntityRecordKind, RecordKind, RelationRecordKind};
+use crate::storage::logic::state::{
+    partition_of, slot_of, EntityRecordKind, RecordKind, RelationRecordKind,
+};
 use crate::symbols::data::{InternedString, StringInterner};
 
 use crate::logic::runtime::WorkingState;
@@ -59,24 +62,18 @@ pub(super) fn write_relation_aspect_versions(
     payload: Option<&crate::payloads::data::RecordPayload>,
     symbols: &mut StringInterner,
 ) {
-    write_aspect_versions::<RelationRecordKind>(
-        staged,
-        relation_id,
-        version_id,
-        payload,
-        symbols,
-    );
+    write_aspect_versions::<RelationRecordKind>(staged, relation_id, version_id, payload, symbols);
 }
 
 fn write_aspect_versions<K: RecordKind>(
     staged: &mut WorkingState,
-    record_id: K::Id,
+    record_id: RecordId<K::Domain>,
     version_id: crate::identity::data::VersionId,
     payload: Option<&crate::payloads::data::RecordPayload>,
     symbols: &mut StringInterner,
 ) {
-    let slot = K::slot_of(&record_id);
-    let partition = staged.get_partition_mut(K::partition_of(&record_id));
+    let slot = slot_of::<K>(&record_id);
+    let partition = staged.get_partition_mut(partition_of::<K>(&record_id));
     let versions = &mut K::arena_mut(partition).aspect_versions[slot];
     for name in aspect_names_for_payload(payload) {
         versions.insert(symbols.intern(&name), version_id.0);

@@ -131,6 +131,50 @@ pub struct ChangedRegion {
     pub detail: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct CanonicalChangedRegions {
+    regions: Vec<ChangedRegion>,
+}
+
+impl CanonicalChangedRegions {
+    pub fn new(regions: impl IntoIterator<Item = ChangedRegion>) -> Self {
+        let mut regions = regions.into_iter().collect::<Vec<_>>();
+        if regions.len() > 1 {
+            regions.sort_unstable();
+            regions.dedup();
+        }
+        Self { regions }
+    }
+
+    pub fn from_slice(regions: &[ChangedRegion]) -> Self {
+        Self::new(regions.iter().cloned())
+    }
+
+    pub fn as_slice(&self) -> &[ChangedRegion] {
+        &self.regions
+    }
+
+    pub fn into_vec(self) -> Vec<ChangedRegion> {
+        self.regions
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.regions.is_empty()
+    }
+}
+
+impl From<Vec<ChangedRegion>> for CanonicalChangedRegions {
+    fn from(regions: Vec<ChangedRegion>) -> Self {
+        Self::new(regions)
+    }
+}
+
+impl From<&[ChangedRegion]> for CanonicalChangedRegions {
+    fn from(regions: &[ChangedRegion]) -> Self {
+        Self::from_slice(regions)
+    }
+}
+
 /// How one partition subscription should match changed-region data.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum PartitionMatchMode {
@@ -261,23 +305,24 @@ pub(crate) fn scopes_overlap(left: &impl PartitionScoped, right: &impl Partition
     }
 }
 
-pub(crate) fn scope_touched_by_trace(
-    trace_summary: Option<&crate::data::trace::TraceSummary>,
+pub(crate) fn scope_touched_by_artifact_state(
+    artifact_state: Option<&crate::data::trace::RuntimeArtifactState>,
     scope: &PartitionSubscription,
 ) -> bool {
-    let Some(trace_summary) = trace_summary else {
+    let Some(artifact_state) = artifact_state else {
         return false;
     };
-    if trace_summary.output_change == OutputChange::Unchanged {
+    if artifact_state.output_change == OutputChange::Unchanged {
         return false;
     }
-    if trace_summary.changed_regions.is_empty() {
+    if artifact_state.changed_scopes.is_empty() {
         return true;
     }
-    trace_summary
-        .changed_regions
+    artifact_state
+        .changed_scopes
+        .as_slice()
         .iter()
-        .any(|region| scopes_overlap(scope, region))
+        .any(|changed_scope| scopes_overlap(scope, changed_scope))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

@@ -45,7 +45,9 @@ impl<'runtime> PublicationAuthority<'runtime> {
             else {
                 break;
             };
-            self.runtime.visibility.remove_published_handle(oldest_snapshot_id);
+            self.runtime
+                .visibility
+                .remove_published_handle(oldest_snapshot_id);
         }
     }
 
@@ -55,7 +57,12 @@ impl<'runtime> PublicationAuthority<'runtime> {
         kind: crate::diagnostics::data::DiagnosticsArtifactKind,
         entries: Vec<crate::diagnostics::data::RelationalDiagnosticsEntry>,
     ) -> crate::diagnostics::data::RelationalDiagnosticArtifact {
-        let max_entries = self.runtime.config.diagnostics.profile.max_entries_per_artifact;
+        let max_entries = self
+            .runtime
+            .config
+            .diagnostics
+            .profile
+            .max_entries_per_artifact;
         let artifact = crate::diagnostics::data::RelationalDiagnosticArtifact {
             scope,
             kind,
@@ -96,31 +103,29 @@ impl<'runtime> PublicationAuthority<'runtime> {
         };
         let bundle = PublicationBundle {
             commit: commit_reference,
-            snapshot: snapshot.clone(),
-            diagnostics_summary: diagnostics_summary.clone(),
-            patch: patch.clone(),
-            replay: replay.clone(),
-            status: PublicationStatus::Published,
-        };
-        PublicationArtifacts {
             snapshot,
             diagnostics_summary,
-            bundle,
-        }
+            patch,
+            replay,
+            status: PublicationStatus::Published,
+        };
+        PublicationArtifacts { bundle }
     }
 
     pub(crate) fn publish_artifacts(
         &mut self,
         version_id: crate::identity::data::VersionId,
         artifacts: PublicationArtifacts,
-    ) -> PublicationArtifacts {
+    ) -> SnapshotId {
+        let PublicationArtifacts { bundle } = artifacts;
+        let snapshot_id = bundle.snapshot.snapshot_id;
         self.runtime
             .visibility
-            .insert_published_handle(artifacts.snapshot.snapshot_id, version_id);
-        self.runtime.publication.latest_bundle = Some(artifacts.bundle.clone());
-        self.push_diagnostic_artifact(artifacts.diagnostics_summary.clone());
+            .insert_published_handle(snapshot_id, version_id);
+        self.push_diagnostic_artifact(bundle.diagnostics_summary.clone());
+        self.runtime.publication.latest_bundle = Some(bundle);
         self.prune_published_snapshot_handles_if_needed();
-        artifacts
+        snapshot_id
     }
 
     pub(crate) fn emit_commit_publication_diagnostic(

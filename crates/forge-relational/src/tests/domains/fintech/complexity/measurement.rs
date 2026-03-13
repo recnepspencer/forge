@@ -1,4 +1,4 @@
-use crate::facade::{ComplexityContract, RuntimeComplexityCounters};
+use crate::facade::runtime::{ComplexityContract, RuntimeComplexityCounters};
 
 use super::super::fixture::FintechWorld;
 

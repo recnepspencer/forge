@@ -1,7 +1,7 @@
 use crate::data::error::SignalError;
 use crate::logic::context::EvaluationContext;
-use crate::logic::evaluation::IntoEvaluationOutput;
 use crate::logic::evaluation::EvaluationRequestMode;
+use crate::logic::evaluation::IntoEvaluationOutput;
 use crate::logic::planner::{
     build_evaluation_plan, execute_prepared_plan, execute_prepared_plan_with_policy,
     execute_prepared_plan_with_precompute, EvaluationPlan, ExecutionReport, StageExecutor,

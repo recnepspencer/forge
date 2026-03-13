@@ -90,7 +90,7 @@ impl WorkerIntentBatch {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum RecordRef {
     Entity(EntityId),
     Relation(RelationId),

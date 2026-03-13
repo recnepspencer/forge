@@ -1,7 +1,5 @@
-use crate::authority::mutation::aspect_versions::{
-    write_entity_aspect_versions,
-};
-use crate::authority::mutation::outcomes::{MutationEvent, MutationOutcome, RecordMutation};
+use crate::authority::mutation::aspect_versions::write_entity_aspect_versions;
+use crate::authority::mutation::outcomes::MutationOutcome;
 use crate::authority::mutation::record_changes::{allocate_entity, delete_entity_with_cascade};
 use crate::authority::mutation::stale_targets::ensure_entity_target_is_current;
 use crate::authority::mutation::MutationWorkspace;
@@ -13,7 +11,7 @@ pub(super) fn apply(
 ) -> Result<MutationOutcome, CommitConflict> {
     let version_id = workspace.version_id();
     let cascade_delete_policy = workspace.cascade_delete_policy();
-    let mut outcome = MutationOutcome::default();
+    let mut outcome = MutationOutcome::entity_deleted(intent.entity_id);
     let replacement_id = workspace.with_context(|context| {
         ensure_entity_target_is_current(context.state, intent.entity_id)?;
         delete_entity_with_cascade(
@@ -44,14 +42,12 @@ pub(super) fn apply(
         );
         Ok::<_, CommitConflict>(replacement_id)
     })?;
-    outcome.record_change(RecordMutation::EntityCreated {
-        entity_id: replacement_id,
-        payload: intent.replacement.payload.clone(),
-    });
-    outcome.record_event(MutationEvent::EntityReplaced {
-        replaced_entity_id: intent.entity_id,
-        replacement_entity_id: replacement_id,
-        kind_id: intent.replacement.kind_id,
-    });
+    let replacement = MutationOutcome::entity_replaced(
+        intent.entity_id,
+        replacement_id,
+        intent.replacement.kind_id,
+        intent.replacement.payload.clone(),
+    );
+    outcome.extend(replacement);
     Ok(outcome)
 }

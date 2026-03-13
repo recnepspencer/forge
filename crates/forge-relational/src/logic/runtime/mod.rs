@@ -26,14 +26,17 @@ pub use crate::validation::data::{
     InvariantFailureEffect, InvariantRegistration, InvariantRule, InvariantViolation,
 };
 pub use crate::validation::engine::HarnessAuditMode;
+pub use crate::visibility::materialization::read_records::{
+    EntityRecordProjection, ProjectionAspect, RelationRecordProjection, VisibilityProjectionView,
+};
 
 pub(crate) use crate::storage::logic::state::{PartitionAccess, WorkingState};
+pub use state::RelationalRuntime;
 pub(crate) use state::{
     DurabilitySubsystem, HistorySubsystem, IndexingSubsystem, LineageSubsystem,
     PublicationSubsystem, ReplayRetentionState, RuntimeInstrumentation, RuntimeServices,
     RuntimeSubsystem, SnapshotHandleBinding, VisibilityResidency, VisibilitySubsystem,
 };
-pub use state::RelationalRuntime;
 
 #[derive(Debug, Clone)]
 pub struct SnapshotGuard {

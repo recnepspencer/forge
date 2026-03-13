@@ -48,7 +48,10 @@ pub use history::{
     inspect_execution, inspect_flow, inspect_graph, inspect_plan, inspect_report,
     ExecutionInspector, FlowInspector, GraphInspector, PlanInspector, ReportInspector,
 };
-pub use lineage::{LineageArtifactId, LineageEvent, LineageRecord};
+pub use lineage::{
+    ArtifactTransitionKind, InvalidationCause, LineageArtifactId, LineageRecord, LineageRecordKind,
+    SnapshotRestoreKind,
+};
 pub use policy::{
     ArtifactMaterializationMode, ArtifactRetentionPolicy, DiagnosticsPolicy,
     ParallelAdmissionPolicy, ReplayDetailPolicy, SemanticRetentionPolicy, SignalRuntimePolicy,

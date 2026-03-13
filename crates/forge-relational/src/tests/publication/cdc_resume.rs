@@ -1,3 +1,4 @@
+use crate::facade::publication::PatchStreamReadErrorClass;
 use crate::tests::support::*;
 
 // CONTRACT: patch_stream
@@ -11,13 +12,15 @@ fn patch_stream_resume_batches_commits_without_duplication() {
     let _third = create_entity_outcome(&mut runtime, "c");
 
     let first_batch = runtime
-        .publication_access().read_patch_stream(PatchStreamRequest {
+        .publication_access()
+        .read_patch_stream(PatchStreamRequest {
             after_position: None,
             max_commits: 2,
         })
         .unwrap();
     let resumed = runtime
-        .publication_access().read_patch_stream(PatchStreamRequest {
+        .publication_access()
+        .read_patch_stream(PatchStreamRequest {
             after_position: first_batch.next_position,
             max_commits: 2,
         })
@@ -37,7 +40,8 @@ fn patch_stream_rejects_unknown_resume_position() {
     let _ = create_entity_outcome(&mut runtime, "anchor");
 
     let error = runtime
-        .publication_access().read_patch_stream(PatchStreamRequest {
+        .publication_access()
+        .read_patch_stream(PatchStreamRequest {
             after_position: Some(PatchStreamPosition(99)),
             max_commits: 1,
         })
@@ -45,7 +49,7 @@ fn patch_stream_rejects_unknown_resume_position() {
 
     assert_eq!(
         error.class,
-        crate::facade::PatchStreamReadErrorClass::UnknownResumePosition
+        PatchStreamReadErrorClass::UnknownResumePosition
     );
 }
 
@@ -100,20 +104,36 @@ fn patch_stream_records_aspects_for_entity_and_relation_payloads() {
     assert_eq!(relation_patch.aspects.len(), 2);
     assert_eq!(
         runtime
-            .visibility_reads().entity_aspects_at_version(source, outcome.version_id)
+            .visibility_reads()
+            .entity_aspects_at_version(source, outcome.version_id)
             .unwrap()
             .len(),
         3
     );
     assert_eq!(
         runtime
-            .visibility_reads().relation_aspects_at_version(relation, outcome.version_id)
+            .visibility_reads()
+            .relation_aspects_at_version(relation, outcome.version_id)
             .unwrap()
             .len(),
         2
     );
-    assert!(runtime.visibility_reads().entity_aspect_versions(source).unwrap().len() >= 3);
-    assert!(runtime.visibility_reads().relation_aspect_versions(relation).unwrap().len() >= 2);
+    assert!(
+        runtime
+            .visibility_reads()
+            .entity_aspect_versions(source)
+            .unwrap()
+            .len()
+            >= 3
+    );
+    assert!(
+        runtime
+            .visibility_reads()
+            .relation_aspect_versions(relation)
+            .unwrap()
+            .len()
+            >= 2
+    );
 }
 
 #[test]
@@ -123,14 +143,13 @@ fn patch_stream_index_stays_coherent_when_commit_history_is_removed_for_fault_in
     let second = create_entity_outcome(&mut runtime, "b");
     let third = create_entity_outcome(&mut runtime, "c");
 
-    assert!(
-        runtime
-            .history_authority()
-            .remove_commit_envelope_for_test(second.commit.commit_id)
-    );
+    assert!(runtime
+        .history_authority()
+        .remove_commit_envelope_for_test(second.commit.commit_id));
 
     let batch = runtime
-        .publication_access().read_patch_stream(PatchStreamRequest {
+        .publication_access()
+        .read_patch_stream(PatchStreamRequest {
             after_position: Some(PatchStreamPosition(1)),
             max_commits: 4,
         })
@@ -140,7 +159,8 @@ fn patch_stream_index_stays_coherent_when_commit_history_is_removed_for_fault_in
     assert_eq!(batch.patches[0].position, PatchStreamPosition(3));
     assert_eq!(batch.latest_position, Some(PatchStreamPosition(3)));
     assert!(runtime
-        .publication_access().read_patch_stream(PatchStreamRequest {
+        .publication_access()
+        .read_patch_stream(PatchStreamRequest {
             after_position: Some(PatchStreamPosition(2)),
             max_commits: 1,
         })

@@ -3,9 +3,7 @@ use std::collections::BTreeSet;
 use crate::capabilities::{CommitEnvelopeSource, DurabilityRead};
 use crate::durability::data::RecoveryPlan;
 use crate::history::data::CommitId;
-use crate::replay::data::{
-    CanonicalCommitEnvelope, ReplayFailureClass, ReplayObservableSurface,
-};
+use crate::replay::data::{CanonicalCommitEnvelope, ReplayFailureClass, ReplayObservableSurface};
 
 pub(super) fn load_replay_envelope(
     source: &impl CommitEnvelopeSource,

@@ -1,6 +1,6 @@
-mod diagnostics;
 mod access;
 mod authority;
+mod diagnostics;
 mod planning;
 
 #[allow(unused_imports)]

@@ -10,7 +10,7 @@ use self::context::ExecutionContext;
 use self::diagnostics::{summarize_recorded_plan, summarize_recorded_session};
 use self::stage::execute_stage;
 use super::types::{
-    EvaluationPlan, EvaluationSession, EvaluationTask, ExecutionReport, PlanSummary, StageExecutor,
+    EvaluationPlan, EvaluationTask, ExecutionReport, PlanSummary, SessionScratch, StageExecutor,
 };
 
 mod context;
@@ -147,7 +147,7 @@ where
 
 pub(crate) fn execute_evaluation_session_with_policy<F>(
     graph: &mut SignalGraph,
-    session: &EvaluationSession<'_>,
+    session: &SessionScratch<'_>,
     precompute: &F,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
     executor: StageExecutor,

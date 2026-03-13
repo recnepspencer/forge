@@ -55,12 +55,17 @@ fn overlapping_mark_dirty_calls_do_not_revisit_already_staged_subgraphs() {
 
     let metrics = runtime.observe().metrics();
     assert_eq!(metrics.transaction.max_touched_nodes_in_txn, 3);
-    assert_eq!(metrics.transaction.transaction_mark_dirty_candidate_visits, 3);
+    assert_eq!(
+        metrics.transaction.transaction_mark_dirty_candidate_visits,
+        3
+    );
 }
 
 #[test]
 fn repeated_gc_compaction_cycles_stay_near_live_edge_storage() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::with_gc_threshold(1)).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::with_gc_threshold(1))
+        .with_kernel_defaults()
+        .build();
     let root = runtime.graph_mut().node().build();
     let leaves = (0..24)
         .map(|_| runtime.graph_mut().node().build())
@@ -98,6 +103,10 @@ fn repeated_gc_compaction_cycles_stay_near_live_edge_storage() {
 
     let metrics = runtime.graph().observe().metrics();
     assert!(metrics.storage.graph_storage_compaction_count >= 1);
-    assert!(metrics.storage.graph_storage_dependency_segments_rewritten >= dependency_segments as u64);
-    assert!(metrics.storage.graph_storage_subscriber_segments_rewritten >= subscriber_segments as u64);
+    assert!(
+        metrics.storage.graph_storage_dependency_segments_rewritten >= dependency_segments as u64
+    );
+    assert!(
+        metrics.storage.graph_storage_subscriber_segments_rewritten >= subscriber_segments as u64
+    );
 }

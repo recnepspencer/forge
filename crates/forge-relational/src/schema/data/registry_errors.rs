@@ -33,10 +33,16 @@ impl SchemaRegistryError {
                 format!("unknown relation kind {:?}", kind_id)
             }
             SchemaRegistryErrorClass::EntityRelationKindCollision(kind_id) => {
-                format!("kind {:?} collides across entity and relation registries", kind_id)
+                format!(
+                    "kind {:?} collides across entity and relation registries",
+                    kind_id
+                )
             }
             SchemaRegistryErrorClass::SchemaVersionMismatch { expected, actual } => {
-                format!("schema version mismatch: expected {:?}, actual {:?}", expected, actual)
+                format!(
+                    "schema version mismatch: expected {:?}, actual {:?}",
+                    expected, actual
+                )
             }
         };
         Self {
@@ -56,6 +62,8 @@ impl SchemaRegistryError {
     }
 
     pub fn entity_relation_kind_collision(kind_id: KindId) -> Self {
-        Self::new(SchemaRegistryErrorClass::EntityRelationKindCollision(kind_id))
+        Self::new(SchemaRegistryErrorClass::EntityRelationKindCollision(
+            kind_id,
+        ))
     }
 }

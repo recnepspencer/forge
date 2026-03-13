@@ -85,7 +85,8 @@ impl EventSubscriber for RecordingSubscriber {
 #[test]
 fn failed_event_flush_triggers_compensating_rollbacks_for_flushed_subscribers() {
     let graph = SignalGraph::new();
-    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults()
+    let mut runtime = SignalRuntime::builder(graph)
+        .with_kernel_defaults()
         .with_domains::<Domain>()
         .with_events::<Ev>()
         .checkpoint_barrier(CheckpointBarrier::PerOperation)
@@ -135,7 +136,8 @@ fn failed_event_flush_triggers_compensating_rollbacks_for_flushed_subscribers() 
 #[test]
 fn failed_commit_discards_staged_key_registry_growth_and_created_keyed_nodes() {
     let graph = SignalGraph::new();
-    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults()
+    let mut runtime = SignalRuntime::builder(graph)
+        .with_kernel_defaults()
         .with_domains::<Domain>()
         .with_events::<Ev>()
         .checkpoint_barrier(CheckpointBarrier::PerOperation)
@@ -207,7 +209,8 @@ fn failed_commit_discards_staged_key_registry_growth_and_created_keyed_nodes() {
 #[test]
 fn failed_commit_preserves_preexisting_memo_cache_while_discarding_new_staged_growth() {
     let graph = SignalGraph::new();
-    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults()
+    let mut runtime = SignalRuntime::builder(graph)
+        .with_kernel_defaults()
         .with_domains::<Domain>()
         .with_events::<Ev>()
         .checkpoint_barrier(CheckpointBarrier::PerOperation)

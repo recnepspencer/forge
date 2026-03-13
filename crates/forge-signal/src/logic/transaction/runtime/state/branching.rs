@@ -13,8 +13,9 @@ where
     pub fn capture_snapshot(&mut self) -> SignalSnapshotV1 {
         let mut snapshot = self.graph.capture_snapshot();
         snapshot.runtime_telemetry = Some(self.telemetry.clone());
+        let branch_state = self.capture_branch_state();
         self.branches
-            .insert_snapshot(snapshot.meta.snapshot_id, self.capture_branch_state());
+            .insert_snapshot(snapshot.meta.snapshot_id, branch_state);
         let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
         self.synchronize_branch_catalogs(branch_catalog);
         snapshot
@@ -35,6 +36,7 @@ where
         name: impl Into<String>,
     ) -> Result<SignalBranchHandle, SignalError> {
         let current_branch_name = self.graph.current_branch().name;
+        let parent_branch_id = self.graph.current_branch().id;
         let handle = self.graph.diagnostics_state_mut().create_branch(name);
         let mut branch_state = self.capture_branch_state();
         branch_state
@@ -50,21 +52,20 @@ where
             None,
             format!("created branch `{}`", handle.name),
         );
-        crate::diagnostics::recorder::record_branch_lineage_event(
+        crate::diagnostics::recorder::record_branch_fork_lineage(
             &mut self.graph,
-            crate::diagnostics::lineage::LineageEvent::BranchedFrom,
-            format!(
-                "created branch `{}` from {}",
-                handle.name, current_branch_name
-            ),
+            handle.id,
+            parent_branch_id,
+            handle.name.clone(),
+            current_branch_name.to_string(),
         );
         Ok(handle)
     }
 
     pub fn switch_branch(&mut self, branch: SignalBranchHandle) -> Result<(), SignalError> {
         let current = self.graph.current_branch();
-        self.branches
-            .insert_branch(current.id, self.capture_branch_state());
+        let current_state = self.capture_branch_state();
+        self.branches.insert_branch(current.id, current_state);
         let Some(state) = self.branches.cloned_branch_state(branch.id) else {
             return Err(SignalError::unknown_branch(Some(branch.id), branch.name));
         };
@@ -80,10 +81,12 @@ where
             None,
             format!("switched from `{}` to `{}`", current.name, branch.name),
         );
-        crate::diagnostics::recorder::record_branch_lineage_event(
+        crate::diagnostics::recorder::record_branch_switch_lineage(
             &mut self.graph,
-            crate::diagnostics::lineage::LineageEvent::BranchSwitched,
-            format!("switched from `{}` to `{}`", current.name, branch.name),
+            current.id,
+            branch.id,
+            current.name.to_string(),
+            branch.name.clone(),
         );
         Ok(())
     }
@@ -96,7 +99,10 @@ where
             return Ok(self.capture_snapshot());
         }
         let (snapshot, branch_catalog) = {
-            let Some(state) = self.branches.branch_state_mut(branch.id) else {
+            let Some(state) = self
+                .branches
+                .branch_state_mut_with_allocator_sync(branch.id)
+            else {
                 return Err(SignalError::unknown_branch(Some(branch.id), branch.name));
             };
             let policy = state.graph.runtime_policy();
@@ -121,7 +127,8 @@ where
             (snapshot, branch_catalog)
         };
         if let Some(state) = self.branches.cloned_branch_state(branch.id) {
-            self.branches.insert_snapshot(snapshot.meta.snapshot_id, state);
+            self.branches
+                .insert_snapshot(snapshot.meta.snapshot_id, state);
         }
         self.synchronize_branch_catalogs(branch_catalog);
         Ok(snapshot)
@@ -136,9 +143,7 @@ where
         if snapshot.meta.branch_id != branch.id {
             return Err(SignalError::incompatible_snapshot(format!(
                 "snapshot `{}` from branch `{}` cannot be restored into branch `{}`",
-                snapshot.meta.snapshot_id.0,
-                snapshot.meta.branch_name,
-                branch.name
+                snapshot.meta.snapshot_id.0, snapshot.meta.branch_name, branch.name
             )));
         }
         if branch.id == self.graph.current_branch().id {
@@ -213,16 +218,16 @@ where
         }
     }
 
-    pub fn branch_head_snapshot_id(
-        &self,
-        branch_id: SignalBranchId,
-    ) -> Option<SignalSnapshotId> {
+    pub fn branch_head_snapshot_id(&self, branch_id: SignalBranchId) -> Option<SignalSnapshotId> {
         self.graph
             .branch_head_snapshot_id(branch_id)
             .or_else(|| self.branches.branch_head_snapshot_id(branch_id))
     }
 
-    fn replay_graph_for_branch(&self, branch_id: SignalBranchId) -> Option<&crate::data::graph::SignalGraph> {
+    fn replay_graph_for_branch(
+        &self,
+        branch_id: SignalBranchId,
+    ) -> Option<&crate::data::graph::SignalGraph> {
         self.branches
             .replay_graph(branch_id, self.graph.current_branch().id, &self.graph)
     }

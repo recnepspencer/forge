@@ -10,7 +10,9 @@ fn transitive_maybe_stale_nodes_do_not_carry_foreign_source_partition_scopes() {
     graph
         .append_partition_detail_dependency(direct, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
-    graph.append_dependency(transitive, direct, ASPECT_A).unwrap();
+    graph
+        .append_dependency(transitive, direct, ASPECT_A)
+        .unwrap();
 
     mark_dirty_with_regions(
         &mut graph,

@@ -8,7 +8,8 @@ pub(crate) fn outgoing_relations_for_entity(
     let slot = entity_id.local_slot.0 as usize;
     let reader = runtime.visibility_reads();
     runtime
-        .partition(entity_id.partition_id)
+        .storage_access()
+        .partition_state(entity_id.partition_id)
         .and_then(|partition| partition.adjacency.get(slot))
         .into_iter()
         .flat_map(|relations: &crate::storage::partition::AdjacencySet| {
@@ -26,7 +27,8 @@ pub(crate) fn incoming_relations_for_entity(
     let slot = entity_id.local_slot.0 as usize;
     let reader = runtime.visibility_reads();
     runtime
-        .partition(entity_id.partition_id)
+        .storage_access()
+        .partition_state(entity_id.partition_id)
         .and_then(|partition| partition.reverse_adjacency.get(slot))
         .into_iter()
         .flat_map(|relations: &crate::storage::partition::AdjacencySet| {

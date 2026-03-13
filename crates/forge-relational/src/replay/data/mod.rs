@@ -6,6 +6,7 @@ use crate::diagnostics::data::RelationalDiagnosticArtifact;
 use crate::history::data::{BranchId, CommitId, CommitReference};
 use crate::publication::data::diff::RelationalPatchRecord;
 use crate::schema::data::{RelationalSchemaRegistry, SchemaVersionId};
+use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 use crate::transactions::data::MergedCommitPlan;
 
 pub use replay_errors::*;
@@ -77,6 +78,13 @@ pub struct RelationalReplayOutcome {
     pub compared_surfaces: Vec<ReplayObservableSurface>,
     pub mismatches: Vec<ReplayMismatch>,
     pub failure: Option<ReplayFailureClass>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReplaySnapshotSurface {
+    pub version_id: crate::identity::data::VersionId,
+    pub entities: Vec<EntityReadRecord>,
+    pub relations: Vec<RelationReadRecord>,
 }
 
 impl RelationalReplayOutcome {

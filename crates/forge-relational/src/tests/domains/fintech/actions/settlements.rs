@@ -1,8 +1,11 @@
 use serde_json::json;
 
-use crate::facade::{
-    BranchId, CommitResult, EntityMutationIntent, RecordPayload, MutationIntent,
-    TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
+use crate::facade::history::BranchId;
+use crate::facade::identity::EntityId;
+use crate::facade::payloads::RecordPayload;
+use crate::facade::transactions::{
+    CommitResult, EntityMutationIntent, MutationIntent, TransactionOptions, UpdateEntityIntent,
+    WorkerIntentBatch,
 };
 
 use super::super::fixture::FintechWorld;
@@ -24,45 +27,51 @@ pub(crate) fn repair_seeded_failed_settlement(
 pub(crate) fn repair_settlement_with_payloads(
     world: &mut FintechWorld,
     branch_id: BranchId,
-    settlement_id: crate::facade::EntityId,
-    cash_event_id: crate::facade::EntityId,
-    audit_record_id: crate::facade::EntityId,
+    settlement_id: EntityId,
+    cash_event_id: EntityId,
+    audit_record_id: EntityId,
 ) -> CommitResult {
     let mut txn = world.runtime.begin_transaction(TransactionOptions {
         target_branch: Some(branch_id),
         ..TransactionOptions::default()
     });
-    txn.push_batch(WorkerIntentBatch::new("repair-settlement").push(
-        MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-            entity_id: settlement_id,
-            payload: RecordPayload::StructuredJson(json!({
-                "entity_type": "settlement",
-                "case": "failed-settlement-repair",
-                "status": "repaired",
-                "repair_completed": true,
-            })),
-        })),
-    ));
-    txn.push_batch(WorkerIntentBatch::new("repair-cash-event").push(
-        MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-            entity_id: cash_event_id,
-            payload: RecordPayload::StructuredJson(json!({
-                "entity_type": "cash_event",
-                "case": "failed-settlement-repair",
-                "kind": "repair-funding",
-                "status": "applied",
-            })),
-        })),
-    ));
-    txn.push_batch(WorkerIntentBatch::new("repair-audit-record").push(
-        MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-            entity_id: audit_record_id,
-            payload: RecordPayload::StructuredJson(json!({
-                "entity_type": "audit_record",
-                "case": "failed-settlement-repair",
-                "event": "settlement-repaired",
-            })),
-        })),
-    ));
+    txn.push_batch(
+        WorkerIntentBatch::new("repair-settlement").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id: settlement_id,
+                payload: RecordPayload::StructuredJson(json!({
+                    "entity_type": "settlement",
+                    "case": "failed-settlement-repair",
+                    "status": "repaired",
+                    "repair_completed": true,
+                })),
+            }),
+        )),
+    );
+    txn.push_batch(
+        WorkerIntentBatch::new("repair-cash-event").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id: cash_event_id,
+                payload: RecordPayload::StructuredJson(json!({
+                    "entity_type": "cash_event",
+                    "case": "failed-settlement-repair",
+                    "kind": "repair-funding",
+                    "status": "applied",
+                })),
+            }),
+        )),
+    );
+    txn.push_batch(
+        WorkerIntentBatch::new("repair-audit-record").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id: audit_record_id,
+                payload: RecordPayload::StructuredJson(json!({
+                    "entity_type": "audit_record",
+                    "case": "failed-settlement-repair",
+                    "event": "settlement-repaired",
+                })),
+            }),
+        )),
+    );
     txn.commit().unwrap()
 }

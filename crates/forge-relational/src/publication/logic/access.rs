@@ -24,8 +24,21 @@ impl<'runtime> PublicationAccess<'runtime> {
 
     pub fn diagnostics(&self) -> RelationalDiagnosticsFacade {
         RelationalDiagnosticsFacade {
-            artifacts: self.runtime.publication.diagnostics.clone(),
+            artifacts: self.diagnostic_artifacts().to_vec(),
         }
+    }
+
+    pub fn diagnostic_artifacts(
+        &self,
+    ) -> &[crate::diagnostics::data::RelationalDiagnosticArtifact] {
+        &self.runtime.publication.diagnostics
+    }
+
+    pub fn diagnostics_since(
+        &self,
+        start: usize,
+    ) -> Vec<crate::diagnostics::data::RelationalDiagnosticArtifact> {
+        self.runtime.publication.diagnostics[start..].to_vec()
     }
 
     pub fn latest_bundle(&self) -> Option<&PublicationBundle<RelationalReplayRecord>> {
@@ -51,12 +64,7 @@ impl<'runtime> PublicationAccess<'runtime> {
             });
         }
 
-        let latest_position = self
-            .runtime
-            .history
-            .patch_stream_index
-            .last_key_value()
-            .map(|(position, _)| *position);
+        let latest_position = self.runtime.history_access().latest_patch_stream_position();
         let latest_commit_id = self
             .runtime
             .publication
@@ -65,19 +73,16 @@ impl<'runtime> PublicationAccess<'runtime> {
             .map(|bundle| bundle.commit.commit_id)
             .or_else(|| {
                 self.runtime
-                    .history
-                    .commit_envelopes
-                    .values()
-                    .max_by_key(|envelope| envelope.commit.commit_id)
-                    .map(|envelope| envelope.commit.commit_id)
+                    .history_access()
+                    .latest_commit()
+                    .map(|commit| commit.commit_id)
             });
 
         if let Some(after_position) = request.after_position {
             if !self
                 .runtime
-                .history
-                .patch_stream_index
-                .contains_key(&after_position)
+                .history_access()
+                .contains_patch_stream_position(after_position)
             {
                 return Err(PatchStreamReadError {
                     class: PatchStreamReadErrorClass::UnknownResumePosition,
@@ -86,19 +91,10 @@ impl<'runtime> PublicationAccess<'runtime> {
             }
         }
 
-        let start = request
-            .after_position
-            .map(std::ops::Bound::Excluded)
-            .unwrap_or(std::ops::Bound::Unbounded);
         let patches = self
             .runtime
-            .history
-            .patch_stream_index
-            .range((start, std::ops::Bound::Unbounded))
-            .filter_map(|(_, commit_id)| self.runtime.history.commit_envelopes.get(commit_id))
-            .map(|envelope| envelope.patch.clone())
-            .take(request.max_commits)
-            .collect::<Vec<_>>();
+            .history_access()
+            .patches_after(request.after_position, request.max_commits);
 
         Ok(PatchStreamBatch {
             resumed_after: request.after_position,

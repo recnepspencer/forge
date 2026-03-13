@@ -76,7 +76,12 @@ impl<'runtime> DiagnosticArtifactBuilder<'runtime> {
     }
 
     pub(crate) fn emit(self) -> RelationalDiagnosticArtifact {
-        let max_entries = self.runtime.config.diagnostics.profile.max_entries_per_artifact;
+        let max_entries = self
+            .runtime
+            .config
+            .diagnostics
+            .profile
+            .max_entries_per_artifact;
         let artifact = RelationalDiagnosticArtifact {
             scope: self.scope,
             kind: self.kind,

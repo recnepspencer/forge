@@ -5,10 +5,10 @@ use std::num::NonZeroUsize;
 use forge_harness::facade::{ComparisonMode, ComparisonProfile, ExecutionRequest};
 use serde_json::json;
 
-use crate::facade::*;
 use crate::data::comparator::{
     DefaultComparatorPolicyResolver, DefaultComparatorResolver, VersionComparatorPolicy,
 };
+use crate::facade::*;
 use crate::logic::planner::{ParallelApplyMode, ParallelExecutionPolicy};
 use crate::logic::prepared::{PreparedDependencyCapture, PreparedEvaluation};
 use crate::tests::support::{version_ab, ASPECT_A};
@@ -19,7 +19,9 @@ fn canonical_runtime_artifacts(graph: &SignalGraph, node: NodeId) -> serde_json:
     let explanation = graph.observe().explain(node).unwrap();
     let explanation_fact = graph.explanation_fact(node);
     let provenance = graph.provenance_fact(node).cloned();
-    let diagnostics = graph.observe().diagnostics_summary(DiagnosticsProfile::Development);
+    let diagnostics = graph
+        .observe()
+        .diagnostics_summary(DiagnosticsProfile::Development);
     let replay = graph
         .replay_events()
         .iter()
@@ -167,13 +169,14 @@ fn many_thin_stages_remain_serial_under_parallel_threshold() {
         )
         .unwrap();
 
-    assert_eq!(graph.telemetry().execution.parallel_stage_dispatch_count, before);
-    assert!(report.stages.iter().all(|stage| {
-        matches!(
-            stage.outcome,
-            StageExecutionOutcome::CompletedSerial
-        )
-    }));
+    assert_eq!(
+        graph.telemetry().execution.parallel_stage_dispatch_count,
+        before
+    );
+    assert!(report
+        .stages
+        .iter()
+        .all(|stage| { matches!(stage.outcome, StageExecutionOutcome::CompletedSerial) }));
 }
 
 #[test]
@@ -206,14 +209,15 @@ fn wide_stage_crosses_parallel_threshold() {
         )
         .unwrap();
 
-    assert_eq!(graph.telemetry().execution.parallel_stage_dispatch_count, before + 1);
+    assert_eq!(
+        graph.telemetry().execution.parallel_stage_dispatch_count,
+        before + 1
+    );
     assert_eq!(report.stages.len(), 1);
-    assert!(report.stages.iter().any(|stage| {
-        matches!(
-            stage.outcome,
-            StageExecutionOutcome::CompletedParallel
-        )
-    }));
+    assert!(report
+        .stages
+        .iter()
+        .any(|stage| { matches!(stage.outcome, StageExecutionOutcome::CompletedParallel) }));
 }
 
 #[test]
@@ -434,10 +438,9 @@ fn full_parallel_apply_failure_does_not_leak_partial_semantic_state() {
             &mut graph,
             &plan,
             &move |node, _view| {
-                let mut prepared =
-                    PreparedEvaluation::from_result(NodeEvaluationResult::from_version(version_ab(
-                        2, 0,
-                    )));
+                let mut prepared = PreparedEvaluation::from_result(
+                    NodeEvaluationResult::from_version(version_ab(2, 0)),
+                );
                 if node == unstable {
                     let mut capture = PreparedDependencyCapture::new();
                     capture.record(NodeId::new(999_999, 0), ASPECT_A, None);

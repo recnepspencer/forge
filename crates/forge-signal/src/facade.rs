@@ -15,21 +15,36 @@ pub mod types {
         AspectMaskBits, SignalCoreStorageProfile, StableHashValue, CORE_STORAGE_PROFILE,
         CORE_STORAGE_PROFILE_ID, HOT_VEC_INLINE_CAPACITY, STABLE_HASH_WIDTH_BITS,
     };
-    pub use crate::data::dependency::DependencyEdge;
+    pub use crate::data::dependency::{CanonicalDependencies, DependencyEdge};
+    pub use crate::data::dependency::SharedDependencySnapshot;
     pub use crate::data::dirty_set::{BatchedDirtySet, DomainImpact};
     pub use crate::data::error::SignalError;
     pub use crate::data::handle::NodeId;
     pub use crate::data::node::{
-        ContextRequirement, EvaluationCondition, NodeContract, NodeEntry, NodeEvaluationConfig,
-        NodeState,
+        ArtifactPolicyClass, AuthorityPolicy, CanonicalDependencyOrder, ComparatorBasis,
+        CompileTimePerformanceContract, ContextRequirement, EquivalenceContract,
+        EvaluationCondition, IdentityBasis, MaintenanceMode, NodeAuthorityContract, NodeContract,
+        NodeEntry, NodeEvaluationConfig, NodeExecutionContract, NodeProjectionContract,
+        NodeSemanticContract, NodeState, PathClass, PerformanceCounterSurface,
+        PerformanceEnforcementLayer, ResolvedPerformancePolicy, SuppressionBasis,
     };
     pub use crate::data::output::{
-        ChangedRegion, ComputationFamily, ComputationKey, KeyedComputation, MemoizedResultOrigin,
-        NodeEvaluationResult, OutputChange, OutputIdentity, PartitionMatchMode,
-        PartitionSubscription, PartitionToken, StructuralMemoKey,
+        CanonicalChangedRegions, ChangedRegion, ComputationFamily, ComputationKey,
+        KeyedComputation, MemoizedResultOrigin, NodeEvaluationResult, OutputChange, OutputIdentity,
+        PartitionMatchMode, PartitionSubscription, PartitionToken, StructuralMemoKey,
+    };
+    pub use crate::data::proof::{
+        CanonicalForm, DedupedNodeBatch, DeltaForm, DependencyBatchEdit, DependencySetEdit,
+        DesiredState, DirtyBatch, DirtyBatchEntry, DirtyDelta, LocalityFootprint, LoweredForm,
+        PartitionScopeSet, PatchPlan, PendingSnapshotBatch, ResolvedForm, SemanticBatchCommit,
+        SingleConsumer, SnapshotBatchCommit, SortedSourceBatch, StructuralDelta, SubscriberRepair,
+        SubscriberRepairBatch, SummaryForm, TouchedScopeSummary,
     };
     pub use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger, TierPolicy};
-    pub use crate::data::trace::{CausalityMetadata, TraceSummary};
+    pub use crate::data::trace::{
+        CausalityMetadata, HistoricalArtifactRecord, RetainedDiagnosticArtifact,
+        RuntimeArtifactState, TraceSummary,
+    };
     pub use crate::state::{
         SignalBranchHandle, SignalBranchId, SignalSnapshotDiagnostics, SignalSnapshotId,
         SignalSnapshotMeta, SignalSnapshotV1,
@@ -58,14 +73,13 @@ pub mod evaluation {
     pub use crate::logic::context::EvaluationContext;
     pub use crate::logic::evaluation::{
         AppliedEffectReport, ConditionEvaluationContext, ConditionResolver,
-        DefaultConditionResolver, DeferralReason, EvaluationEffect,
-        EvaluationExecutionMetadata, EvaluationOutput, EvaluationRequestMode,
-        EvaluationVerdict, IntoEvaluationOutput, SuppressionReason,
+        DefaultConditionResolver, DeferralReason, DiagnosticEnvelope, EvaluationExecutionMetadata,
+        EvaluationOutput, EvaluationRequestMode, EvaluationVerdict, IntoEvaluationOutput,
+        OperationalEffect, SuppressionReason,
     };
     pub use crate::logic::explain::{
-        CausalDisposition, CausalLink, ConditionDecision, MeaningfulChangeReason,
-        NodeExplanation, RewiringDependency, RewiringSummary, ScopeProvenance,
-        ScopeProvenanceKind, UpstreamCause,
+        CausalDisposition, CausalLink, ConditionDecision, MeaningfulChangeReason, NodeExplanation,
+        RewiringDependency, RewiringSummary, ScopeProvenance, ScopeProvenanceKind, UpstreamCause,
     };
 }
 
@@ -75,22 +89,44 @@ pub mod planning {
     pub use crate::logic::planner::{
         build_evaluation_plan, execute_prepared_plan, EvaluationPlan, EvaluationTask,
         ExecutionPruneReason, ExecutionRecordId, ExecutionReport, ExecutionStage, PlanSummary,
-        SemanticSegmentId, SemanticTaskRange, StageBarrier, StageExecutionOutcome,
-        StageExecutionRecord, StageExecutor, TaskExecutionOutcome, TaskExecutionRecord, TaskReason,
+        ResolvedExecutionStrategy, ResolvedMaintenanceStrategy, SemanticSegmentId,
+        SemanticTaskRange, StageBarrier, StageExecutionOutcome, StageExecutionRecord,
+        StageExecutor, TaskExecutionOutcome, TaskExecutionRecord, TaskReason,
+    };
+}
+
+pub mod performance {
+    pub use crate::data::performance::{
+        ArtifactPolicyClass, AuthorityPolicy, CanonicalDependencyOrder, ComparatorBasis,
+        CompileTimePerformanceContract, EquivalenceContract, IdentityBasis, MaintenanceMode,
+        PathClass, PerformanceCounterSurface, PerformanceEnforcementLayer,
+        ResolvedExecutionStrategy, ResolvedMaintenanceStrategy, ResolvedPerformancePolicy,
+        SuppressionBasis,
+    };
+}
+
+pub mod proof {
+    pub use crate::data::proof::{
+        CanonicalForm, DedupedNodeBatch, DeltaForm, DependencyBatchEdit, DependencySetEdit,
+        DesiredState, DirtyBatch, DirtyBatchEntry, DirtyDelta, LocalityFootprint, LoweredForm,
+        PartitionScopeSet, PatchPlan, PendingSnapshotBatch, ResolvedForm, SemanticBatchCommit,
+        SingleConsumer, SnapshotBatchCommit, SortedSourceBatch, StructuralDelta, SubscriberRepair,
+        SubscriberRepairBatch, SummaryForm, TouchedScopeSummary,
     };
 }
 
 pub mod transaction {
     pub use crate::logic::checkpoint::CheckpointRuntime;
     pub use crate::logic::events::{EventBus, EventFlushError, SubscriberRegistryError};
-    pub use crate::logic::invalidation::{mark_dirty, mark_dirty_with_regions};
-    pub use crate::logic::transaction::{
-        emit_event_in_txn, flush_checkpoint_in_txn, ComputationSpec, DefinedComputation,
-        DefinedKeyedComputation, EvaluationSummary, SignalRuntime, SignalRuntimeBuilder,
-        SignalRuntimeConfig, SignalTransaction, TransactionOutcome, TransactionReplayEntry,
-        TransactionResult, TransactionTiming,
-    };
+    pub use crate::logic::invalidation::mark_dirty_batch;
     pub use crate::logic::transaction::RuntimeObserver;
+    pub use crate::logic::transaction::{
+        emit_event_in_txn, flush_checkpoint_in_txn, AdvisoryRecord, ComputationSpec,
+        DecisionDetail, DecisionLog, DecisionRecord, DecisionSummary, DefinedComputation,
+        DefinedKeyedComputation, EvaluationSummary, IntegrityMarkers, SignalRuntime,
+        SignalRuntimeBuilder, SignalRuntimeConfig, SignalTransaction, TransactionOutcome,
+        TransactionReplayEntry, TransactionResult, TransactionTiming,
+    };
 }
 
 pub mod diagnostics {
@@ -105,19 +141,19 @@ pub mod diagnostics {
         render_flow_summary, render_graph_summary, render_plan_summary, repeat_run_summaries_equal,
         replay_slices_equivalent, reports_semantically_equivalent,
         serial_parallel_reports_equivalent, ApplySummary, ArtifactMaterializationMode,
-        ArtifactRetentionPolicy, ChangeInputSummary, DiagnosticMismatch,
-        DiagnosticMismatchCategory, DiagnosticsPolicy, DiagnosticsProfile,
-        EvaluationPlanSummary, EventEpochOutcome, EventEpochSummary, EventSubscriberOutcome,
-        EventSubscriberOutcomeKind, ExecutionFailureContext, ExecutionFailurePhase,
-        ExecutionHistoryNodeSummary, ExecutionHistorySummary, ExecutionInspector,
-        ExecutionReportDiff, ExecutionReportSummary, ExplanationDiff, ExplanationSummary,
-        FailureDiff, FailureSummary, FlowCauseSample, FlowDiff, FlowInspector, FlowSummary,
-        GraphDiagnostics, GraphDiff, GraphInspector, GraphSummary, HistoryDiff,
-        InvalidationSummary, LineageArtifactId, LineageDiff, LineageEvent, LineageRecord,
-        ParallelAdmissionPolicy, PlanDiff, PlanInspector, PlanningSummary, PrecomputeSummary,
-        ReplayCursor, ReplayDetailPolicy, ReplayDiff, ReplayEventKind, ReplayFrame, ReplaySlice,
-        ReportInspector, RollbackDiagnostic, RollbackSummary, RuntimeDiagnostics,
-        SemanticRetentionPolicy, SignalRuntimePolicy, SnapshotRestoreLineageMode,
+        ArtifactRetentionPolicy, ArtifactTransitionKind, ChangeInputSummary, DiagnosticMismatch,
+        DiagnosticMismatchCategory, DiagnosticsPolicy, DiagnosticsProfile, EvaluationPlanSummary,
+        EventEpochOutcome, EventEpochSummary, EventSubscriberOutcome, EventSubscriberOutcomeKind,
+        ExecutionFailureContext, ExecutionFailurePhase, ExecutionHistoryNodeSummary,
+        ExecutionHistorySummary, ExecutionInspector, ExecutionReportDiff, ExecutionReportSummary,
+        ExplanationDiff, ExplanationSummary, FailureDiff, FailureSummary, FlowCauseSample,
+        FlowDiff, FlowInspector, FlowSummary, GraphDiagnostics, GraphDiff, GraphInspector,
+        GraphSummary, HistoryDiff, InvalidationCause, InvalidationSummary, LineageArtifactId,
+        LineageDiff, LineageRecord, LineageRecordKind, ParallelAdmissionPolicy, PlanDiff,
+        PlanInspector, PlanningSummary, PrecomputeSummary, ReplayCursor, ReplayDetailPolicy,
+        ReplayDiff, ReplayEventKind, ReplayFrame, ReplaySlice, ReportInspector, RollbackDiagnostic,
+        RollbackSummary, RuntimeDiagnostics, SemanticRetentionPolicy, SignalRuntimePolicy,
+        SnapshotRestoreKind, SnapshotRestoreLineageMode,
     };
 }
 
@@ -136,8 +172,13 @@ pub mod harness {
     pub use crate::presentation::transaction_contract::TransactionRuntimeContract;
 }
 
-pub(crate) use self::{diagnostics::*, evaluation::*, graph::*, planning::*, transaction::*, types::*};
 #[cfg(test)]
 pub(crate) use self::harness::*;
+pub(crate) use self::{
+    diagnostics::*, evaluation::*, graph::*, planning::*, transaction::*, types::*,
+};
+#[cfg(any(test, doctest))]
+#[allow(unused_imports)]
+pub(crate) use crate::logic::invalidation::{mark_dirty, mark_dirty_with_regions};
 #[cfg(test)]
 pub use crate::tests::support::GraphDependencyBatchExt;

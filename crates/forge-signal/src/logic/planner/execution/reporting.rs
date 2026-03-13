@@ -50,7 +50,10 @@ fn record_executor_usage(graph: &mut SignalGraph, executor: StageExecutor) {
     {
         match executor {
             StageExecutor::StagedParallelPrecompute { .. } | StageExecutor::FullParallel { .. } => {
-                graph.telemetry_mut().execution.parallel_executor_usage_count += 1;
+                graph
+                    .telemetry_mut()
+                    .execution
+                    .parallel_executor_usage_count += 1;
             }
             StageExecutor::Serial => {
                 graph.telemetry_mut().execution.serial_executor_usage_count += 1;
@@ -71,8 +74,8 @@ pub(crate) fn record_stage_execution_completion(
     apply_elapsed_nanos: u128,
     stage_elapsed_nanos: u128,
 ) {
-    stage_record.apply_duration_nanos = apply_elapsed_nanos
-        .saturating_sub(stage_record.semantic_finalize_duration_nanos);
+    stage_record.apply_duration_nanos =
+        apply_elapsed_nanos.saturating_sub(stage_record.semantic_finalize_duration_nanos);
     report.stage_apply_nanos += stage_record.apply_duration_nanos;
     graph.telemetry_mut().execution.stage_apply_nanos += stage_record.apply_duration_nanos;
     report.semantic_finalize_nanos += stage_record.semantic_finalize_duration_nanos;

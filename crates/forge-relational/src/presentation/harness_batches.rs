@@ -1,7 +1,7 @@
-use crate::facade::{
-    CreateIntent, FixtureEntity, FixtureRelation, MutationIntent, PartitionId, RecordPayload,
-    WorkerIntentBatch,
-};
+use crate::facade::harness::{FixtureEntity, FixtureRelation};
+use crate::facade::identity::PartitionId;
+use crate::facade::payloads::RecordPayload;
+use crate::facade::transactions::{CreateIntent, MutationIntent, WorkerIntentBatch};
 use crate::symbols::data::InternedString;
 use crate::transactions::data::{EntitySpec, RelationSpec};
 
@@ -10,14 +10,14 @@ use super::harness_data::RelationalHarnessError;
 pub(super) fn entity_fixture_batch(entities: &[FixtureEntity]) -> WorkerIntentBatch {
     let mut batch = WorkerIntentBatch::new("fixture");
     for entity in entities {
-        batch.intents.push(MutationIntent::Create(CreateIntent::Entity(
-            EntitySpec {
+        batch
+            .intents
+            .push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: entity.kind_id,
                 client_key: InternedString::Raw(entity.client_key.clone()),
                 payload: RecordPayload::StructuredJson(entity.payload.clone()),
-            },
-        )));
+            })));
     }
     batch
 }
@@ -40,16 +40,18 @@ pub(super) fn relation_fixture_batch(
             .ok_or_else(|| {
                 RelationalHarnessError("fixture relation target is missing".to_string())
             })?;
-        batch.intents.push(MutationIntent::Create(CreateIntent::Relation(
-            RelationSpec {
-                partition_id: PartitionId::main(),
-                kind_id: relation.kind_id,
-                client_key: InternedString::Raw(relation.client_key.clone()),
-                source,
-                target,
-                payload: Some(RecordPayload::StructuredJson(relation.payload.clone())),
-            },
-        )));
+        batch
+            .intents
+            .push(MutationIntent::Create(CreateIntent::Relation(
+                RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: relation.kind_id,
+                    client_key: InternedString::Raw(relation.client_key.clone()),
+                    source,
+                    target,
+                    payload: Some(RecordPayload::StructuredJson(relation.payload.clone())),
+                },
+            )));
     }
     Ok(batch)
 }

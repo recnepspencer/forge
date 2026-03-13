@@ -5,14 +5,14 @@ use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::logic::prepared::PreparedEvaluation;
 
-use super::context::ExecutionContext;
-use super::reporting::record_stage_execution_completion;
-use super::StageSlice;
 use super::super::precompute_reporting::record_stage_precompute_report;
 use super::super::semantic::reserve_stage_identities;
 use super::super::stage_apply::apply_stage;
 use super::super::stage_precompute::perform_stage_precompute;
 use super::super::stage_recording::begin_stage_record;
+use super::context::ExecutionContext;
+use super::reporting::record_stage_execution_completion;
+use super::StageSlice;
 
 struct StagePreparedPass {
     precomputed: crate::logic::planner::precompute::stage::StagePrecomputeResult,

@@ -41,7 +41,11 @@ impl SnapshotHandles {
         snapshot_id
     }
 
-    pub(crate) fn insert_active(&mut self, snapshot_id: SnapshotId, binding: SnapshotHandleBinding) {
+    pub(crate) fn insert_active(
+        &mut self,
+        snapshot_id: SnapshotId,
+        binding: SnapshotHandleBinding,
+    ) {
         self.active.insert(snapshot_id, binding);
     }
 

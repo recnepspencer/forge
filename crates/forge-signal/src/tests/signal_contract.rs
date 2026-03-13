@@ -81,7 +81,9 @@ fn version_gated_skip_respects_repeated_monotonic_bumps() {
     let source = graph.node().build();
     let dependent = graph.node().build();
 
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     let mut next_version = 0_u64;
     let mut compute_source = |_id, _graph: &SignalGraph| {

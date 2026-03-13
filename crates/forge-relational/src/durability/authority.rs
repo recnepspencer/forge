@@ -11,8 +11,7 @@ use crate::durability::checkpoints::images::{partition_from_image, partition_to_
 use crate::durability::data::{
     CheckpointCoverage, CompactionOutcome, CompactionPlan, DurabilityError, DurabilityMode,
     DurableCheckpoint, DurableCheckpointId, DurableCheckpointManifest, DurableIntegrityStatus,
-    DurableSegmentId, DurableSegmentManifest, RecoveryCoverage, RecoveryFailureClass,
-    RecoveryPlan,
+    DurableSegmentId, DurableSegmentManifest, RecoveryCoverage, RecoveryFailureClass, RecoveryPlan,
 };
 use crate::durability::log::local_store::{
     checkpoint_file_path, current_segment_ids, ensure_loaded_store, persist_store_manifest,
@@ -23,6 +22,7 @@ use crate::logic::runtime::{RecoveryOutcome as RuntimeRecoveryOutcome, Relationa
 use crate::replay::data::CanonicalCommitEnvelope;
 use crate::transactions::data::{TransactionOptions, WorkerIntentBatch};
 use serde_json::json;
+use std::sync::Arc;
 
 pub struct DurabilityAuthority<'runtime> {
     runtime: &'runtime mut RelationalRuntime,
@@ -35,7 +35,9 @@ impl<'runtime> DurabilityAuthority<'runtime> {
 
     pub fn checkpoint(&mut self) -> Result<DurableCheckpoint, DurabilityError> {
         let checkpoint = self.build_checkpoint_image();
-        if self.runtime.runtime_config().durability.policy.mode == DurabilityMode::PersistedSegmentedLocalFs {
+        if self.runtime.runtime_config().durability.policy.mode
+            == DurabilityMode::PersistedSegmentedLocalFs
+        {
             let manifest = self.persist_checkpoint_file(&checkpoint)?;
             self.runtime.publication_authority().push_bounded_diagnostic(
                 DiagnosticsScope::History,
@@ -64,18 +66,20 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                 }],
             );
         }
-        self.runtime.push_durable_checkpoint(checkpoint.clone());
+        self.runtime.durability.checkpoints.push(checkpoint.clone());
         Ok(checkpoint)
     }
 
     pub fn compact_store(&mut self) -> Result<CompactionOutcome, DurabilityError> {
-        if self.runtime.runtime_config().durability.policy.mode != DurabilityMode::PersistedSegmentedLocalFs {
+        if self.runtime.runtime_config().durability.policy.mode
+            != DurabilityMode::PersistedSegmentedLocalFs
+        {
             return Ok(CompactionOutcome {
                 removed_segments: Vec::new(),
                 retained_segments: Vec::new(),
             });
         }
-        let Some(checkpoint) = self.runtime.latest_durable_checkpoint() else {
+        let Some(checkpoint) = self.runtime.durability.checkpoints.last() else {
             return Ok(CompactionOutcome {
                 removed_segments: Vec::new(),
                 retained_segments: current_segment_ids(self.runtime.durable_store()),
@@ -119,7 +123,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
             }
         });
         persist_store_manifest(&store)?;
-        self.runtime.set_durable_store(Some(store));
+        self.runtime.durability.store = Some(store);
         self.runtime.publication_authority().push_bounded_diagnostic(
             DiagnosticsScope::History,
             DiagnosticsArtifactKind::MinimalSummary,
@@ -219,26 +223,37 @@ impl<'runtime> DurabilityAuthority<'runtime> {
         use crate::config::data::DurableLogRetentionMode;
 
         let policy = self.runtime.runtime_config().durability.policy.log.clone();
-        if self.runtime.durable_log_len() <= policy.max_in_memory_envelopes {
+        if self.runtime.durability.log.len() <= policy.max_in_memory_envelopes {
             return;
         }
 
         match policy.retention_mode {
             DurableLogRetentionMode::RetainAllInMemory => {}
             DurableLogRetentionMode::CompactAfterCheckpoint => {
-                if let Some(checkpoint) = self.runtime.latest_durable_checkpoint() {
+                if let Some(checkpoint) = self.runtime.durability.checkpoints.last() {
                     if let Some(commit) = checkpoint.coverage.up_to_commit.as_ref() {
-                        self.runtime.retain_durable_log_newer_than(commit.commit_id);
+                        self.runtime
+                            .durability
+                            .log
+                            .retain(|entry| entry.commit.commit_id > commit.commit_id);
                     }
                 }
-                if self.runtime.durable_log_len() > policy.max_in_memory_envelopes {
-                    let overflow = self.runtime.durable_log_len() - policy.max_in_memory_envelopes;
-                    self.runtime.drain_oldest_durable_log_entries(overflow);
+                if self.runtime.durability.log.len() > policy.max_in_memory_envelopes {
+                    let overflow =
+                        self.runtime.durability.log.len() - policy.max_in_memory_envelopes;
+                    self.runtime.durability.log.drain(0..overflow);
                 }
             }
         }
-        if self.runtime.runtime_config().durability.policy.mode == DurabilityMode::PersistedSegmentedLocalFs
-            && self.runtime.runtime_config().durability.policy.checkpoints.compact_after_checkpoint
+        if self.runtime.runtime_config().durability.policy.mode
+            == DurabilityMode::PersistedSegmentedLocalFs
+            && self
+                .runtime
+                .runtime_config()
+                .durability
+                .policy
+                .checkpoints
+                .compact_after_checkpoint
         {
             let _ = self.compact_store();
         }
@@ -246,11 +261,11 @@ impl<'runtime> DurabilityAuthority<'runtime> {
 
     pub(crate) fn append_commit(
         &mut self,
-        envelope: CanonicalCommitEnvelope,
+        envelope: &CanonicalCommitEnvelope,
     ) -> Result<(), DurabilityError> {
         match self.runtime.runtime_config().durability.policy.mode {
             DurabilityMode::InMemoryCanonical => {
-                self.runtime.push_durable_log_entry(envelope);
+                self.runtime.durability.log.push(envelope.clone());
                 Ok(())
             }
             DurabilityMode::PersistedSegmentedLocalFs => {
@@ -300,29 +315,33 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                         commit_count: segment_entries.len(),
                         runtime_name: self.runtime.runtime_name().to_string(),
                         profile: self.runtime.runtime_profile(),
-                        schema_version: self.runtime.primary_schema_version(),
+                        schema_version: self.runtime.primary_schema_version_id(),
                         integrity: DurableIntegrityStatus::Verified,
                     });
                 }
                 persist_store_manifest(&store)?;
-                self.runtime.set_durable_store(Some(store));
-                self.runtime.push_durable_log_entry(envelope);
+                self.runtime.durability.store = Some(store);
                 let latest_commit_id = self
                     .runtime
-                    .last_durable_log_commit_id()
-                    .map(|commit_id| commit_id.0);
-                self.runtime.publication_authority().push_bounded_diagnostic(
-                    DiagnosticsScope::History,
-                    DiagnosticsArtifactKind::MinimalSummary,
-                    vec![RelationalDiagnosticsEntry {
-                        code: DiagnosticCode::DurableAppendSucceeded,
-                        message: "durable segment append succeeded".to_string(),
-                        fields: json!({
-                            "segment_id": segment_id.0,
-                            "commit_id": latest_commit_id,
-                        }),
-                    }],
-                );
+                    .durability
+                    .log
+                    .last()
+                    .map(|entry| entry.commit.commit_id.0)
+                    .or(Some(envelope.commit.commit_id.0));
+                self.runtime
+                    .publication_authority()
+                    .push_bounded_diagnostic(
+                        DiagnosticsScope::History,
+                        DiagnosticsArtifactKind::MinimalSummary,
+                        vec![RelationalDiagnosticsEntry {
+                            code: DiagnosticCode::DurableAppendSucceeded,
+                            message: "durable segment append succeeded".to_string(),
+                            fields: json!({
+                                "segment_id": segment_id.0,
+                                "commit_id": latest_commit_id,
+                            }),
+                        }],
+                    );
                 Ok(())
             }
         }
@@ -339,7 +358,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                     .map(|commit| commit.version_id),
             },
             branches: self.runtime.history_access().branches(),
-            envelopes: self.runtime.commit_envelopes_snapshot(),
+            envelopes: self.runtime.history_access().commit_envelopes_snapshot(),
             partition_images: self
                 .runtime
                 .partitions
@@ -355,7 +374,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                 .correspondence_candidates_snapshot(),
             index_definitions: self.runtime.index_access().definitions_snapshot(),
             index_generations: self.runtime.index_access().generations_snapshot(),
-            symbol_table: self.runtime.symbol_table_snapshot(),
+            symbol_table: self.runtime.services.symbols.snapshot(),
             runtime_name: self.runtime.runtime_name().to_string(),
         }
     }
@@ -392,7 +411,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
         };
         store.checkpoints.push(manifest.clone());
         persist_store_manifest(&store)?;
-        self.runtime.set_durable_store(Some(store));
+        self.runtime.durability.store = Some(store);
         Ok(manifest)
     }
 }
@@ -409,9 +428,7 @@ impl RelationalRuntime {
     }
 }
 
-fn rebuild_runtime_from_plan(
-    plan: RecoveryPlan,
-) -> Result<RelationalRuntime, DurabilityError> {
+fn rebuild_runtime_from_plan(plan: RecoveryPlan) -> Result<RelationalRuntime, DurabilityError> {
     let mut restored = RelationalRuntime::new(plan.config.clone());
     let original_durability_mode = restored.config.durability.policy.mode;
     restored.config.durability.policy.mode = DurabilityMode::InMemoryCanonical;
@@ -444,7 +461,7 @@ fn rebuild_runtime_from_plan(
             .envelopes
             .iter()
             .cloned()
-            .map(|envelope| (envelope.commit.commit_id, envelope))
+            .map(|envelope| (envelope.commit.commit_id, Arc::new(envelope)))
             .collect();
         restored.history.patch_stream_index = checkpoint
             .envelopes
@@ -471,8 +488,7 @@ fn rebuild_runtime_from_plan(
             .map(|node| (node.lineage_id, node))
             .collect();
         restored.lineage.events = checkpoint.lineage_events.clone();
-        restored.lineage.correspondence_candidates =
-            checkpoint.correspondence_candidates.clone();
+        restored.lineage.correspondence_candidates = checkpoint.correspondence_candidates.clone();
         restored.indexes.definitions = checkpoint
             .index_definitions
             .iter()
@@ -533,7 +549,10 @@ fn rebuild_runtime_from_plan(
         {
             return Err(DurabilityError::new(
                 RecoveryFailureClass::MissingParentChain,
-                format!("missing parent chain for commit {}", envelope.commit.commit_id.0),
+                format!(
+                    "missing parent chain for commit {}",
+                    envelope.commit.commit_id.0
+                ),
             ));
         }
         if envelope
@@ -606,7 +625,11 @@ fn rebuild_runtime_from_plan(
         .indexes
         .generations
         .values()
-        .flat_map(|generations| generations.iter().map(|generation| generation.generation_id.0))
+        .flat_map(|generations| {
+            generations
+                .iter()
+                .map(|generation| generation.generation_id.0)
+        })
         .max()
         .unwrap_or(0)
         + 1;

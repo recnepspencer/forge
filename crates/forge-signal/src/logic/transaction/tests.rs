@@ -31,7 +31,8 @@ enum Tier {
 fn build_runtime(
     graph: crate::data::graph::SignalGraph,
 ) -> SignalRuntime<Domain, Impact, Ev, (), Tier> {
-    SignalRuntime::builder(graph).with_kernel_defaults()
+    SignalRuntime::builder(graph)
+        .with_kernel_defaults()
         .with_domains::<Domain>()
         .with_impacts::<Impact>()
         .with_events::<Ev>()
@@ -80,10 +81,7 @@ fn begin_commit_applies_staged_state_once() {
     tx.mark_dirty(a, ASPECT_B).unwrap();
     tx.emit_event(Ev::Tick);
     tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
-    assert_eq!(
-        tx.commit().unwrap().outcome,
-        TransactionOutcome::Committed
-    );
+    assert_eq!(tx.commit().unwrap().outcome, TransactionOutcome::Committed);
     assert_eq!(runtime.telemetry().transaction.transaction_commit_count, 1);
 }
 
@@ -108,6 +106,9 @@ fn commit_result_without_evaluation_reports_empty_execution_summary() {
     assert_eq!(result.evaluation_summary.plans_built, 0);
     assert_eq!(result.evaluation_summary.stages_executed, 0);
     assert_eq!(result.rollback, None);
+    assert!(result.decision_summary.committed);
+    assert!(!result.decision_summary.rollback_recorded);
+    assert!(result.integrity_markers.event_epochs_attached);
     assert_eq!(result.event_epochs.len(), 1);
     assert!(result.timing.total_nanos >= result.timing.commit_nanos);
 }
@@ -115,7 +116,10 @@ fn commit_result_without_evaluation_reports_empty_execution_summary() {
 #[test]
 fn commit_result_with_evaluation_carries_execution_summary() {
     let mut graph = crate::data::graph::SignalGraph::new();
-    let source = graph.node().build();
+    let source = graph
+        .node()
+        .authority_policy(AuthorityPolicy::AuthoritativeOnly)
+        .build();
     let mut runtime = build_runtime(graph);
 
     let mut ctx = ();
@@ -135,6 +139,31 @@ fn commit_result_with_evaluation_carries_execution_summary() {
     assert!(result.evaluation_summary.plans_built >= 1);
     assert!(result.evaluation_summary.stages_executed >= 1);
     assert!(result.timing.evaluation_nanos > 0);
+    assert!(result.decision_summary.stage_authority_decisions >= 1);
+    assert!(result.integrity_markers.execution_report_attached);
+    assert_eq!(result.decision_log.records.len(), 3);
+    assert!(matches!(
+        result.decision_log.records[0].detail,
+        DecisionDetail::TransactionOutcome {
+            outcome: TransactionOutcome::Committed
+        }
+    ));
+    assert!(matches!(
+        result.decision_log.records[1],
+        DecisionRecord {
+            stage_index: Some(0),
+            detail: DecisionDetail::StageAuthorityPolicy {
+                authority_policy: AuthorityPolicy::AuthoritativeOnly
+            }
+        }
+    ));
+    assert!(matches!(
+        result.decision_log.records[2],
+        DecisionRecord {
+            stage_index: Some(0),
+            detail: DecisionDetail::StageParallelAdmission { .. }
+        }
+    ));
 }
 
 #[test]
@@ -168,6 +197,8 @@ fn rollback_result_carries_rollback_diagnostic() {
     assert_eq!(result.outcome, TransactionOutcome::RolledBack);
     assert!(result.rollback.is_some());
     assert!(result.execution_report.is_none());
+    assert!(result.decision_summary.rollback_recorded);
+    assert!(result.decision_summary.rolled_back);
 }
 
 #[test]
@@ -246,10 +277,37 @@ fn poisoned_transaction_returns_poisoned_outcome() {
     // Invalid handle poisons transaction.
     let invalid = crate::data::handle::NodeId::new(999_999, 0);
     assert!(tx.mark_dirty(invalid, ASPECT_B).is_err());
-    assert_eq!(
-        tx.commit().unwrap().outcome,
-        TransactionOutcome::Poisoned
-    );
+    let result = tx.commit().unwrap();
+    assert_eq!(result.outcome, TransactionOutcome::Poisoned);
+    assert!(result.decision_summary.poisoned);
+    assert!(result.decision_summary.rollback_recorded);
+    assert!(result.decision_summary.failure_recorded);
+    assert!(result.integrity_markers.rollback_attached);
+    assert!(result.integrity_markers.failure_attached);
+    assert!(result
+        .warnings
+        .iter()
+        .any(|warning| warning.code == "rollback"));
+    assert!(result
+        .warnings
+        .iter()
+        .any(|warning| warning.code == "failure"));
+    assert!(result.decision_log.records.iter().any(|record| {
+        matches!(
+            record.detail,
+            DecisionDetail::Rollback { ref reason }
+                if reason == "poisoned transaction rollback"
+        )
+    }));
+    assert!(result.decision_log.records.iter().any(|record| {
+        matches!(
+            record.detail,
+            DecisionDetail::Failure {
+                phase: ExecutionFailurePhase::Rollback,
+                ..
+            }
+        )
+    }));
 }
 
 #[test]
@@ -264,10 +322,7 @@ fn poisoned_rollback_rewinds_graph() {
     tx.mark_dirty(a, ASPECT_B).unwrap();
     let invalid = crate::data::handle::NodeId::new(999_999, 0);
     assert!(tx.mark_dirty(invalid, ASPECT_B).is_err());
-    assert_eq!(
-        tx.rollback().unwrap().outcome,
-        TransactionOutcome::Poisoned
-    );
+    assert_eq!(tx.rollback().unwrap().outcome, TransactionOutcome::Poisoned);
     assert_eq!(runtime.graph().get_state(a).unwrap(), before);
 }
 
@@ -282,10 +337,7 @@ fn poisoned_rollback_does_not_increment_explicit_rollback_metric() {
 
     let invalid = crate::data::handle::NodeId::new(999_999, 0);
     assert!(tx.mark_dirty(invalid, ASPECT_B).is_err());
-    assert_eq!(
-        tx.rollback().unwrap().outcome,
-        TransactionOutcome::Poisoned
-    );
+    assert_eq!(tx.rollback().unwrap().outcome, TransactionOutcome::Poisoned);
 
     assert_eq!(
         runtime.telemetry().transaction.transaction_rollback_count,
@@ -368,10 +420,7 @@ fn hostile_rollback_and_commit_cycles_do_not_leak_semantic_events() {
             assert_eq!(runtime.graph().get_state(a).unwrap(), before_state);
         } else {
             tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
-            assert_eq!(
-                tx.commit().unwrap().outcome,
-                TransactionOutcome::Committed
-            );
+            assert_eq!(tx.commit().unwrap().outcome, TransactionOutcome::Committed);
         }
     }
 
@@ -496,7 +545,9 @@ fn mark_dirty_after_evaluate_staging_still_stages_downstream_rollback_coverage()
     let mut graph = crate::data::graph::SignalGraph::new();
     let source = graph.node().build();
     let downstream = graph.node().build();
-    graph.append_dependency(downstream, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(downstream, source, ASPECT_A)
+        .unwrap();
     let mut runtime = build_runtime(graph);
     let mut ctx = ();
 
@@ -686,7 +737,8 @@ fn runtime_builder_applies_seeded_tier_policy() {
         DirtyPropagation::Immediate,
         EvaluationTrigger::LazyPull,
     );
-    let runtime = SignalRuntime::builder(crate::data::graph::SignalGraph::new()).with_kernel_defaults()
+    let runtime = SignalRuntime::builder(crate::data::graph::SignalGraph::new())
+        .with_kernel_defaults()
         .with_tiers::<Tier>()
         .tier_policy(policy.clone())
         .build();
@@ -788,8 +840,15 @@ fn rollback_restores_original_source_subscriber_membership_after_rewire() {
     )
     .unwrap();
 
-    assert!(tx.staged_graph().subscribers_of(source_a).unwrap().is_empty());
-    assert_eq!(tx.staged_graph().subscribers_of(source_b).unwrap(), &[target]);
+    assert!(tx
+        .staged_graph()
+        .subscribers_of(source_a)
+        .unwrap()
+        .is_empty());
+    assert_eq!(
+        tx.staged_graph().subscribers_of(source_b).unwrap(),
+        &[target]
+    );
 
     assert_eq!(
         tx.rollback().unwrap().outcome,

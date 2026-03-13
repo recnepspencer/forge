@@ -8,7 +8,9 @@ fn output_identity_unchanged_suppresses_downstream_propagation() {
     let mut graph = SignalGraph::new();
     let source = graph.node().output_identity().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| {
         Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("artifact"))
@@ -32,7 +34,14 @@ fn output_identity_unchanged_suppresses_downstream_propagation() {
     let explanation = graph.observe().explain(source).unwrap();
     assert_eq!(explanation.output_change, Some(OutputChange::Unchanged));
     assert!(explanation.propagation_suppressed);
-    assert_eq!(graph.observe().metrics().evaluation.suppressed_downstream_propagations, 1);
+    assert_eq!(
+        graph
+            .observe()
+            .metrics()
+            .evaluation
+            .suppressed_downstream_propagations,
+        1
+    );
 }
 
 #[test]
@@ -41,8 +50,12 @@ fn output_identity_suppression_does_not_hide_other_real_upstream_changes() {
     let source_a = graph.node().output_identity().build();
     let source_b = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source_a, ASPECT_A).unwrap();
-    graph.append_dependency(dependent, source_b, ASPECT_B).unwrap();
+    graph
+        .append_dependency(dependent, source_a, ASPECT_A)
+        .unwrap();
+    graph
+        .append_dependency(dependent, source_b, ASPECT_B)
+        .unwrap();
 
     let mut source_a_v1 = |_id: NodeId, _graph: &SignalGraph| {
         Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("artifact-a"))
@@ -112,18 +125,27 @@ fn changed_regions_flow_into_trace_and_explanation() {
     assert_eq!(explanation.changed_regions.len(), 1);
     assert_eq!(
         explanation
-            .trace_summary
+            .historical_artifact_record
             .as_ref()
-            .unwrap()
-            .changed_partition_count,
+            .map(|record| record.runtime.changed_partition_count)
+            .unwrap(),
         1
     );
-    assert_eq!(graph.observe().metrics().invalidation.partition_aware_recomputations, 1);
+    assert_eq!(
+        graph
+            .observe()
+            .metrics()
+            .invalidation
+            .partition_aware_recomputations,
+        1
+    );
 }
 
 #[test]
 fn keyed_node_lookup_reuses_same_runtime_entry() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     let family = define_keyed_computation(&mut runtime, "fighter-projection", ());
 
     let node_a = family.keyed("left-wing").node(&mut runtime);
@@ -136,7 +158,9 @@ fn keyed_node_lookup_reuses_same_runtime_entry() {
 
 #[test]
 fn defined_computation_keyed_lookup_reuses_same_runtime_entry() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     let volumes = runtime
         .define_computation(ComputationSpec {
             family: "fighter-projection".into(),
@@ -161,7 +185,9 @@ fn defined_computation_keyed_lookup_reuses_same_runtime_entry() {
 
 #[test]
 fn keyed_evaluation_can_reuse_memoized_result() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     let family = define_keyed_computation(&mut runtime, "projection", ());
     let keyed = family.keyed("bulkhead");
     let node = keyed.node(&mut runtime);
@@ -209,7 +235,9 @@ fn keyed_evaluation_can_reuse_memoized_result() {
 
 #[test]
 fn defined_computation_evaluate_memoized_reuses_cached_result() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     let compute_calls = AtomicU32::new(0);
     let projection = runtime
         .define_computation(ComputationSpec {
@@ -232,13 +260,17 @@ fn defined_computation_evaluate_memoized_reuses_cached_result() {
     let mut runtime_ctx = ();
 
     runtime
-        .transaction(&mut runtime_ctx, |tx| bulkhead.evaluate_memoized(tx, "shape-v1"))
+        .transaction(&mut runtime_ctx, |tx| {
+            bulkhead.evaluate_memoized(tx, "shape-v1")
+        })
         .unwrap();
 
     mark_dirty(runtime.graph_mut(), node, ASPECT_A).unwrap();
 
     runtime
-        .transaction(&mut runtime_ctx, |tx| bulkhead.evaluate_memoized(tx, "shape-v1"))
+        .transaction(&mut runtime_ctx, |tx| {
+            bulkhead.evaluate_memoized(tx, "shape-v1")
+        })
         .unwrap();
 
     assert_eq!(compute_calls.load(Ordering::Relaxed), 1);
@@ -251,7 +283,9 @@ fn defined_computation_evaluate_memoized_reuses_cached_result() {
 
 #[test]
 fn memoization_is_scoped_by_family() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     let family_a = define_keyed_computation(&mut runtime, "projection-a", ());
     let family_b = define_keyed_computation(&mut runtime, "projection-b", ());
     let keyed_a = family_a.keyed("bulkhead");
@@ -292,7 +326,9 @@ fn memoization_is_scoped_by_family() {
 
 #[test]
 fn memoization_write_is_discarded_on_rollback() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     let family = define_keyed_computation(&mut runtime, "projection", ());
     let keyed = family.keyed("bulkhead");
     let node = keyed.node(&mut runtime);
@@ -332,7 +368,9 @@ fn memoization_write_is_discarded_on_rollback() {
 
 #[test]
 fn aborted_keyed_evaluation_does_not_leak_key_registry_growth() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     let node = runtime.graph_mut().node().build();
     let family = ComputationFamily::from("fresh-family");
     let computation = KeyedComputation::new(family.clone(), "fresh-key").with_memo_key("fresh-v1");
@@ -388,8 +426,22 @@ fn partition_subscribers_only_dirty_on_matching_partition() {
         graph.get_state(tail_subscriber).unwrap(),
         NodeState::MaybeStale
     );
-    assert_eq!(graph.observe().metrics().invalidation.partition_match_dirty_count, 1);
-    assert_eq!(graph.observe().metrics().invalidation.partition_scoped_invalidation_checks, 2);
+    assert_eq!(
+        graph
+            .observe()
+            .metrics()
+            .invalidation
+            .partition_match_dirty_count,
+        1
+    );
+    assert_eq!(
+        graph
+            .observe()
+            .metrics()
+            .invalidation
+            .partition_scoped_invalidation_checks,
+        2
+    );
 }
 
 #[test]
@@ -436,7 +488,14 @@ fn detail_sensitive_partition_subscriber_reverts_clean_when_detail_does_not_matc
         if subscription.partition == PartitionToken::new("wing")
             && subscription.detail.as_deref() == Some("rib-12")
     ));
-    assert_eq!(graph.observe().metrics().invalidation.partition_scope_revert_clean_count, 1);
+    assert_eq!(
+        graph
+            .observe()
+            .metrics()
+            .invalidation
+            .partition_scope_revert_clean_count,
+        1
+    );
 }
 
 #[test]
@@ -518,7 +577,13 @@ fn partition_scoped_cleanup_does_not_hide_other_dirty_upstreams() {
     let source_other = graph.node().build();
     let dependent = graph.node().build();
     graph
-        .append_partition_detail_dependency(dependent, source_partitioned, ASPECT_A, "wing", "rib-12")
+        .append_partition_detail_dependency(
+            dependent,
+            source_partitioned,
+            ASPECT_A,
+            "wing",
+            "rib-12",
+        )
         .unwrap();
     graph
         .append_dependency(dependent, source_other, ASPECT_B)
@@ -561,7 +626,9 @@ fn partition_scoped_cleanup_does_not_hide_other_dirty_upstreams() {
 
 #[test]
 fn transaction_mark_dirty_with_regions_routes_partition_matches() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     let source = runtime.graph_mut().node().partitioned_output().build();
     let matching = runtime.graph_mut().node().build();
     let non_matching = runtime.graph_mut().node().build();
@@ -592,7 +659,9 @@ fn transaction_mark_dirty_with_regions_routes_partition_matches() {
 
 #[test]
 fn partition_scoped_runtime_reads_do_not_widen_captured_dependencies() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     let source = runtime.graph_mut().node().partitioned_output().build();
     let matching = runtime.graph_mut().node().build();
     let non_matching = runtime.graph_mut().node().build();
@@ -661,7 +730,9 @@ fn partition_scoped_runtime_reads_do_not_widen_captured_dependencies() {
 
 #[test]
 fn transaction_rollback_after_partition_local_evaluation_restores_clean_states() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     let source = runtime.graph_mut().node().partitioned_output().build();
     let matching = runtime.graph_mut().node().build();
     let non_matching = runtime.graph_mut().node().build();
@@ -739,7 +810,9 @@ fn transaction_rollback_after_partition_local_evaluation_restores_clean_states()
 
 #[test]
 fn committed_partition_local_evaluation_preserves_changed_region_explanation_and_metrics() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     let source = runtime.graph_mut().node().partitioned_output().build();
     let matching = runtime.graph_mut().node().build();
     let non_matching = runtime.graph_mut().node().build();
@@ -822,7 +895,9 @@ fn committed_partition_local_evaluation_preserves_changed_region_explanation_and
 
 #[test]
 fn transaction_partition_invalidations_union_dirty_scopes_until_runtime_evaluation() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     let source = runtime.graph_mut().node().partitioned_output().build();
     let dependent = runtime.graph_mut().node().build();
     runtime
@@ -932,6 +1007,20 @@ fn sparse_partition_fanout_keeps_most_subscribers_out_of_dirty_state() {
 
     assert_eq!(dirty_count, 1);
     assert_eq!(maybe_stale_count, 127);
-    assert_eq!(graph.observe().metrics().invalidation.partition_scoped_invalidation_checks, 128);
-    assert_eq!(graph.observe().metrics().invalidation.partition_match_dirty_count, 1);
+    assert_eq!(
+        graph
+            .observe()
+            .metrics()
+            .invalidation
+            .partition_scoped_invalidation_checks,
+        128
+    );
+    assert_eq!(
+        graph
+            .observe()
+            .metrics()
+            .invalidation
+            .partition_match_dirty_count,
+        1
+    );
 }

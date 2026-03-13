@@ -1,12 +1,13 @@
-use crate::data::error::SignalError;
-use crate::data::handle::NodeId;
 use super::super::scratch::{ScratchLeaseKind, TraversalScratch};
 use super::super::signal_graph::SignalGraph;
+use crate::data::error::SignalError;
+use crate::data::handle::NodeId;
 
 impl SignalGraph {
     pub fn unregister_node(&mut self, id: NodeId) -> Result<(), SignalError> {
         self.validate_handle(id)?;
         self.with_scratch(ScratchLeaseKind::Churn, |graph, scratch| {
+            let scratch = scratch.traversal_mut();
             graph.collect_retired_node_adjacency(id, scratch)?;
             graph.sever_retired_upstream_links(id, &scratch.node_buffer_a)?;
             graph.mark_retired_downstream_dependents_dirty(id, &scratch.node_buffer_b)?;
@@ -23,9 +24,11 @@ impl SignalGraph {
         scratch.node_buffer_a.clear();
         scratch.node_buffer_b.clear();
 
-        scratch
-            .node_buffer_a
-            .extend(self.runtime_dependencies_of(id)?.iter().map(|edge| edge.source()));
+        scratch.node_buffer_a.extend(
+            self.runtime_dependencies_of(id)?
+                .iter()
+                .map(|edge| edge.source()),
+        );
         scratch
             .node_buffer_b
             .extend(self.runtime_subscribers_of(id)?.iter().copied());

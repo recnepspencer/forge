@@ -4,6 +4,7 @@ mod durability;
 mod history;
 mod lineage;
 mod profiles;
+mod public_api;
 mod publication;
 mod query;
 mod support;

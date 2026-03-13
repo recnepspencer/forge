@@ -1,4 +1,5 @@
-use crate::facade::BranchId;
+use crate::facade::history::BranchId;
+use crate::facade::payloads::RecordPayload;
 
 mod persistence;
 
@@ -220,13 +221,14 @@ fn fintech_analysis_workflow_preserves_branching_snapshots_and_trade_correction(
     assert_ne!(main_read.entities().len(), 0);
     assert!(analysis_read.entities().iter().any(|entity| matches!(
         &entity.payload,
-        crate::facade::RecordPayload::StructuredJson(value)
+        RecordPayload::StructuredJson(value)
             if value.get("corrected").and_then(|flag| flag.as_bool()) == Some(true)
     )));
     assert_eq!(
         world
             .runtime
-            .history_access().branch_head(&BranchId("analysis".to_string()))
+            .history_access()
+            .branch_head(&BranchId("analysis".to_string()))
             .cloned(),
         world.runtime.history_access().latest_commit().cloned()
     );
@@ -266,14 +268,15 @@ fn fintech_intraday_risk_workflow_exposes_open_breach_on_analysis_branch() {
 
     assert!(analysis_read.entities().iter().any(|entity| matches!(
         &entity.payload,
-        crate::facade::RecordPayload::StructuredJson(value)
+        RecordPayload::StructuredJson(value)
             if value.get("entity_type").and_then(|value| value.as_str()) == Some("limit_breach")
                 && value.get("status").and_then(|value| value.as_str()) == Some("open")
     )));
     assert_eq!(
         world
             .runtime
-            .history_access().branch_head(&BranchId("analysis".to_string()))
+            .history_access()
+            .branch_head(&BranchId("analysis".to_string()))
             .cloned(),
         world.runtime.history_access().latest_commit().cloned()
     );
@@ -303,14 +306,15 @@ fn fintech_settlement_repair_workflow_exposes_repaired_settlement_on_analysis_br
 
     assert!(analysis_read.entities().iter().any(|entity| matches!(
         &entity.payload,
-        crate::facade::RecordPayload::StructuredJson(value)
+        RecordPayload::StructuredJson(value)
             if value.get("entity_type").and_then(|value| value.as_str()) == Some("settlement")
                 && value.get("status").and_then(|value| value.as_str()) == Some("repaired")
     )));
     assert_eq!(
         world
             .runtime
-            .history_access().branch_head(&BranchId("analysis".to_string()))
+            .history_access()
+            .branch_head(&BranchId("analysis".to_string()))
             .cloned(),
         world.runtime.history_access().latest_commit().cloned()
     );

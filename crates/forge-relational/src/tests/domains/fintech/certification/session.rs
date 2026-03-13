@@ -2,7 +2,9 @@ use std::collections::BTreeMap;
 
 use serde_json::Value;
 
-use crate::facade::{BranchId, RelationalReplayOutcome, SnapshotHandle};
+use crate::facade::history::BranchId;
+use crate::facade::replay::RelationalReplayOutcome;
+use crate::facade::snapshots::SnapshotHandle;
 
 use super::super::fixture::FintechWorld;
 

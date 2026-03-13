@@ -8,5 +8,5 @@ pub(crate) mod strategy;
 pub use graph::SignalGraph;
 pub use observer::GraphObserver;
 pub use scratch::ScratchLeaseKind;
-pub use strategy::{EvaluationStrategy, GcPressure, ObservationLevel, ParallelismHint};
 pub(crate) use scratch::TraversalScratch;
+pub use strategy::{EvaluationStrategy, GcPressure, ObservationLevel, ParallelismHint};

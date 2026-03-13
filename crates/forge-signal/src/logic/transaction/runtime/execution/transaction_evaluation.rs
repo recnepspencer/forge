@@ -92,7 +92,7 @@ where
             Ok(report) => report,
             Err(err) => {
                 if let Some(summary) = self.graph.observe().latest_failure_diagnostics().cloned() {
-                    self.semantic_delta.failure_summary = Some(summary);
+                    self.scratch.semantic_delta.failure_summary = Some(summary);
                 } else {
                     self.record_failure_from_error(
                         ExecutionFailurePhase::Apply,
@@ -173,6 +173,7 @@ where
 
     fn collect_dirty_targets(&self) -> Vec<NodeId> {
         let mut targets = self
+            .scratch
             .dirty_targets
             .marked_indices()
             .into_iter()
@@ -184,7 +185,7 @@ where
                     .unwrap_or(false)
             })
             .collect::<Vec<_>>();
-        targets.sort_by_key(|node| (node.index(), node.generation()));
+        targets.sort_by_key(|node: &NodeId| (node.index(), node.generation()));
         targets.dedup();
         if targets.is_empty() {
             crate::logic::transaction::helpers::collect_dirty_targets(self.graph)
@@ -261,7 +262,7 @@ where
             Err(failure) => {
                 let err = failure.error;
                 if let Some(summary) = self.graph.observe().latest_failure_diagnostics().cloned() {
-                    self.semantic_delta.failure_summary = Some(summary);
+                    self.scratch.semantic_delta.failure_summary = Some(summary);
                 } else {
                     self.record_failure_from_error(
                         ExecutionFailurePhase::Apply,

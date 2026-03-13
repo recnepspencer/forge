@@ -5,24 +5,40 @@ pub(super) use forge_harness::facade::{
 pub(super) use serde_json::json;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
+
+static TEST_STORE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 pub(super) use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
 pub(super) use crate::config::data::{DurableLogPolicy, DurableLogRetentionMode};
 pub(super) use crate::config::data::{PatchSurfacePolicy, PublicationConfig};
-pub(super) use crate::facade::{
-    BranchId, CommitResult, DiagnosticCode, DiagnosticsArtifactKind,
-    DiagnosticsScope, DurabilityMode, DurableStoreLayout, EntityKindRegistration, EntityMutationIntent,
-    EntityReadRecord, InvariantCatalog, InvariantClass,
-    InvariantRegistration, InvariantRule,
-    KindId, PartitionId, PatchStreamPosition, PatchStreamRequest, PublicationStage,
-    PublicationStatus, QueryWorkPacket, RecordRef, RelationId, RelationKindRegistration,
-    RelationMutationIntent, RelationalHarnessAdapter, RelationalRuntime,
-    RelationalRuntimeApi, RelationalRuntimeProfile, RelationalSchemaRegistry, ReplayMismatchClass,
-    SchemaId, SchemaVersionId, StorageLayoutConfig, TransactionCommitError, MutationIntent,
-    TransactionOptions, UpdateEntityIntent, DeleteEntityIntent, DeleteRelationIntent, CreateIntent,
-    BulkEntityCreateIntent, ReplaceEntityIntent, VisibilityCachePolicy,
-    WorkerIntentBatch,
+pub(super) use crate::facade::config::{
+    RelationalRuntimeProfile, StorageLayoutConfig, VisibilityCachePolicy,
+};
+pub(super) use crate::facade::diagnostics::{
+    DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
+};
+pub(super) use crate::facade::durability::{DurabilityMode, DurableStoreLayout};
+pub(super) use crate::facade::harness::RelationalHarnessAdapter;
+pub(super) use crate::facade::history::BranchId;
+pub(super) use crate::facade::identity::{KindId, PartitionId, RelationId};
+pub(super) use crate::facade::publication::{
+    PatchStreamPosition, PatchStreamRequest, PublicationStage, PublicationStatus,
+};
+pub(super) use crate::facade::query::QueryWorkPacket;
+pub(super) use crate::facade::runtime::{
+    EntityReadRecord, InvariantCatalog, InvariantClass, InvariantRegistration, InvariantRule,
+    RelationalRuntime, RelationalRuntimeApi,
+};
+pub(super) use crate::facade::schema::{
+    EntityKindRegistration, RelationKindRegistration, RelationalSchemaRegistry, SchemaId,
+    SchemaVersionId,
+};
+pub(super) use crate::facade::transactions::{
+    BulkEntityCreateIntent, CommitResult, CreateIntent, DeleteEntityIntent, DeleteRelationIntent,
+    EntityMutationIntent, MutationIntent, RecordRef, RelationMutationIntent, ReplaceEntityIntent,
+    TransactionCommitError, TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
 };
 pub(super) use crate::payloads::data::RecordPayload;
 pub(super) use crate::publication::data::diff::{PatchCompatibilityClass, PatchDetail};
@@ -55,6 +71,16 @@ pub(super) fn runtime_with_test_schema() -> RelationalRuntime {
     runtime_with_test_schema_profile(RelationalRuntimeProfile::CertificationCore)
 }
 
+pub(super) fn runtime_with_test_schema_execution_model(
+    execution_model: crate::facade::runtime::RelationalExecutionModel,
+) -> RelationalRuntime {
+    RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::CertificationCore)
+        .schema_registry(test_schema_registry())
+        .execution_model(execution_model)
+        .build()
+}
+
 pub(super) fn runtime_with_test_schema_profile(
     profile: RelationalRuntimeProfile,
 ) -> RelationalRuntime {
@@ -81,7 +107,8 @@ pub(super) fn unique_test_store_path(prefix: &str) -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let path = std::env::temp_dir().join(format!("{prefix}-{nanos}"));
+    let counter = TEST_STORE_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let path = std::env::temp_dir().join(format!("{prefix}-{nanos}-{counter}"));
     let _ = fs::remove_dir_all(&path);
     path
 }
@@ -124,7 +151,7 @@ pub(super) fn batch_create(name: &str) -> WorkerIntentBatch {
 pub(super) fn create_entity(
     runtime: &mut RelationalRuntime,
     name: &str,
-) -> crate::facade::EntityId {
+) -> crate::facade::identity::EntityId {
     changed_entities(&create_entity_outcome(runtime, name))[0]
 }
 
@@ -132,16 +159,18 @@ pub(super) fn create_entity_in_partition(
     runtime: &mut RelationalRuntime,
     name: &str,
     partition_id: PartitionId,
-) -> crate::facade::EntityId {
+) -> crate::facade::identity::EntityId {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
-    txn.push_batch(WorkerIntentBatch::new(format!("batch-{name}")).push(
-        MutationIntent::Create(CreateIntent::Entity(crate::transactions::data::EntitySpec {
-            partition_id,
-            kind_id: KindId(1),
-            client_key: InternedString::Raw(name.to_string()),
-            payload: RecordPayload::StructuredJson(json!({ "name": name })),
-        })),
-    ));
+    txn.push_batch(
+        WorkerIntentBatch::new(format!("batch-{name}")).push(MutationIntent::Create(
+            CreateIntent::Entity(crate::transactions::data::EntitySpec {
+                partition_id,
+                kind_id: KindId(1),
+                client_key: InternedString::Raw(name.to_string()),
+                payload: RecordPayload::StructuredJson(json!({ "name": name })),
+            }),
+        )),
+    );
     changed_entities(&txn.commit().unwrap())[0]
 }
 
@@ -164,7 +193,7 @@ pub(super) fn create_entity_outcome_on_branch(
 
 pub(super) fn delete_entity(
     runtime: &mut RelationalRuntime,
-    entity_id: crate::facade::EntityId,
+    entity_id: crate::facade::identity::EntityId,
 ) -> CommitResult {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
@@ -177,7 +206,7 @@ pub(super) fn delete_entity(
 
 pub(super) fn update_entity(
     runtime: &mut RelationalRuntime,
-    entity_id: crate::facade::EntityId,
+    entity_id: crate::facade::identity::EntityId,
     name: &str,
 ) -> CommitResult {
     update_entity_on_branch(runtime, entity_id, name, BranchId("main".to_string()))
@@ -185,7 +214,7 @@ pub(super) fn update_entity(
 
 pub(super) fn update_entity_on_branch(
     runtime: &mut RelationalRuntime,
-    entity_id: crate::facade::EntityId,
+    entity_id: crate::facade::identity::EntityId,
     name: &str,
     branch_id: BranchId,
 ) -> CommitResult {
@@ -206,8 +235,8 @@ pub(super) fn update_entity_on_branch(
 
 pub(super) fn create_relation(
     runtime: &mut RelationalRuntime,
-    source: crate::facade::EntityId,
-    target: crate::facade::EntityId,
+    source: crate::facade::identity::EntityId,
+    target: crate::facade::identity::EntityId,
     client_key: &str,
 ) -> RelationId {
     create_relation_in_partition(runtime, source, target, client_key, PartitionId::main())
@@ -215,23 +244,23 @@ pub(super) fn create_relation(
 
 pub(super) fn create_relation_in_partition(
     runtime: &mut RelationalRuntime,
-    source: crate::facade::EntityId,
-    target: crate::facade::EntityId,
+    source: crate::facade::identity::EntityId,
+    target: crate::facade::identity::EntityId,
     client_key: &str,
     partition_id: PartitionId,
 ) -> RelationId {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
-        WorkerIntentBatch::new("relation").push(MutationIntent::Create(
-            CreateIntent::Relation(crate::transactions::data::RelationSpec {
+        WorkerIntentBatch::new("relation").push(MutationIntent::Create(CreateIntent::Relation(
+            crate::transactions::data::RelationSpec {
                 partition_id,
                 kind_id: KindId(2),
                 client_key: InternedString::Raw(client_key.to_string()),
                 source,
                 target,
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"rel"}))),
-            }),
-        )),
+            },
+        ))),
     );
     let outcome = txn.commit().unwrap();
     changed_relations(&outcome)[0]
@@ -239,33 +268,33 @@ pub(super) fn create_relation_in_partition(
 
 pub(super) fn create_relation_outcome(
     runtime: &mut RelationalRuntime,
-    source: crate::facade::EntityId,
-    target: crate::facade::EntityId,
+    source: crate::facade::identity::EntityId,
+    target: crate::facade::identity::EntityId,
     client_key: &str,
 ) -> CommitResult {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
-        WorkerIntentBatch::new("relation").push(MutationIntent::Create(
-            CreateIntent::Relation(crate::transactions::data::RelationSpec {
+        WorkerIntentBatch::new("relation").push(MutationIntent::Create(CreateIntent::Relation(
+            crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw(client_key.to_string()),
                 source,
                 target,
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"rel"}))),
-            }),
-        )),
+            },
+        ))),
     );
     txn.commit().unwrap()
 }
 
-pub(super) fn changed_entities(outcome: &CommitResult) -> Vec<crate::facade::EntityId> {
+pub(super) fn changed_entities(outcome: &CommitResult) -> Vec<crate::facade::identity::EntityId> {
     outcome
         .changed_records
         .iter()
         .filter_map(|record| match record {
-            crate::facade::RecordRef::Entity(entity_id) => Some(*entity_id),
-            crate::facade::RecordRef::Relation(_) => None,
+            RecordRef::Entity(entity_id) => Some(*entity_id),
+            RecordRef::Relation(_) => None,
         })
         .collect()
 }
@@ -275,8 +304,8 @@ pub(super) fn changed_relations(outcome: &CommitResult) -> Vec<RelationId> {
         .changed_records
         .iter()
         .filter_map(|record| match record {
-            crate::facade::RecordRef::Relation(relation_id) => Some(*relation_id),
-            crate::facade::RecordRef::Entity(_) => None,
+            RecordRef::Relation(relation_id) => Some(*relation_id),
+            RecordRef::Entity(_) => None,
         })
         .collect()
 }

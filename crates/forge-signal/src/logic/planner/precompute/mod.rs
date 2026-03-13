@@ -12,6 +12,7 @@ use rayon::prelude::*;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
+use crate::data::proof::SingleConsumer;
 use crate::logic::prepared::{ExecutionSnapshot, PreparedEvaluation};
 
 #[cfg(feature = "parallel")]
@@ -30,23 +31,24 @@ pub(in crate::logic::planner) struct PreparedTaskPatch {
 }
 
 pub(in crate::logic::planner) enum StageExecutionData {
-    Prepared(Vec<PreparedEvaluation>),
+    Prepared(SingleConsumer<Vec<PreparedEvaluation>>),
     #[cfg(feature = "parallel")]
-    Patched(Vec<PreparedTaskPatch>),
+    Patched(SingleConsumer<Vec<PreparedTaskPatch>>),
 }
 
 impl StageExecutionData {
     pub fn len(&self) -> usize {
         match self {
-            Self::Prepared(prepared) => prepared.len(),
+            Self::Prepared(prepared) => prepared.as_ref().len(),
             #[cfg(feature = "parallel")]
-            Self::Patched(patches) => patches.len(),
+            Self::Patched(patches) => patches.as_ref().len(),
         }
     }
 
     pub fn into_patches(self, tasks: &[EvaluationTask]) -> Vec<PreparedTaskPatch> {
         match self {
             Self::Prepared(prepared) => prepared
+                .into_inner()
                 .into_iter()
                 .enumerate()
                 .map(|(task_index, prepared)| PreparedTaskPatch {
@@ -56,7 +58,7 @@ impl StageExecutionData {
                 })
                 .collect(),
             #[cfg(feature = "parallel")]
-            Self::Patched(patches) => patches,
+            Self::Patched(patches) => patches.into_inner(),
         }
     }
 }
@@ -170,7 +172,7 @@ where
         ) -> Result<PreparedEvaluation, SignalError>
         + Sync,
 {
-    let mut prepatched = prevalidate_stage_tasks(graph, tasks, comparator_resolver)?
+    let prepatched = prevalidate_stage_tasks(graph, tasks, comparator_resolver)?
         .into_iter()
         .enumerate()
         .map(|(task_index, prepared)| {

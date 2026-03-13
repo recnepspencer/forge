@@ -2,7 +2,9 @@ use std::collections::BTreeMap;
 
 use serde_json::{json, Value};
 
-use crate::facade::{RecordPayload, SnapshotHandle};
+use crate::facade::identity::VersionId;
+use crate::facade::payloads::RecordPayload;
+use crate::facade::snapshots::SnapshotHandle;
 
 use super::super::fixture::{FintechCaseRole, FintechWorld};
 
@@ -46,7 +48,8 @@ pub(crate) fn read_snapshot_probe(
     let packet = world.packet_for_case_probe(case);
     let result = world
         .runtime
-        .visibility_reads().execute_read_packet(snapshot, &packet)
+        .visibility_reads()
+        .execute_read_packet(snapshot, &packet)
         .expect("snapshot probe should be readable");
     CaseTruthProbe {
         case_role: case,
@@ -105,7 +108,7 @@ pub(crate) fn read_snapshot_probe(
 pub(crate) fn read_version_probe(
     world: &FintechWorld,
     case: FintechCaseRole,
-    version_id: crate::facade::VersionId,
+    version_id: VersionId,
     stage: ProbeStage,
 ) -> CaseTruthProbe {
     let packet = world.packet_for_case_probe(case);

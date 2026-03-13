@@ -1,3 +1,5 @@
+use crate::facade::config::AdjacencyBackend;
+use crate::facade::runtime::CompiledArtifactCompatibility;
 use crate::tests::support::*;
 
 #[test]
@@ -33,7 +35,7 @@ fn chip_profile_preserves_relation_traversal_with_compressed_adjacency_backend()
 
     assert_eq!(
         runtime.config().storage.adjacency_policy.backend,
-        crate::facade::AdjacencyBackend::CompressedFanoutAdjacency
+        AdjacencyBackend::CompressedFanoutAdjacency
     );
     assert_eq!(
         runtime
@@ -72,7 +74,7 @@ fn chip_profile_compiled_artifacts_are_derived_from_committed_truth() {
         runtime
             .simulation_access()
             .compiled_artifact_compatibility(artifact.artifact_id),
-        crate::facade::CompiledArtifactCompatibility::Compatible
+        CompiledArtifactCompatibility::Compatible
     );
 }
 
@@ -90,6 +92,6 @@ fn compiled_artifact_rejects_stale_topology_after_later_commit() {
         runtime
             .simulation_access()
             .compiled_artifact_compatibility(artifact.artifact_id),
-        crate::facade::CompiledArtifactCompatibility::StaleVersion
+        CompiledArtifactCompatibility::StaleVersion
     );
 }

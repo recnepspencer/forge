@@ -142,12 +142,14 @@ fn run_check(
             let branch_head = session
                 .world
                 .runtime
-                .history_access().branch_head(&branch)
+                .history_access()
+                .branch_head(&branch)
                 .map(|head| head.commit_id);
             let latest = session
                 .world
                 .runtime
-                .history_access().latest_commit()
+                .history_access()
+                .latest_commit()
                 .map(|commit| commit.commit_id);
             (
                 branch_head == latest,

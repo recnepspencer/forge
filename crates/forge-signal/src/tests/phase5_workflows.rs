@@ -5,7 +5,9 @@ use crate::tests::support::*;
 
 #[test]
 fn branch_debug_session_mixed_churn_stays_forensically_coherent() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     runtime.set_runtime_policy(SignalRuntimePolicy::development().with_history_limit(6));
     let source = runtime.graph_mut().node().output_identity().build();
     let dependent = runtime.graph_mut().node().output_identity().build();
@@ -187,7 +189,9 @@ fn undo_redo_style_session_with_failures_and_memo_reuse_preserves_branch_local_t
     let policy = SignalRuntimePolicy::development()
         .with_history_limit(4)
         .with_snapshot_restore_lineage_mode(SnapshotRestoreLineageMode::PerNode);
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     runtime.set_runtime_policy(policy);
     let source = runtime.graph_mut().node().output_identity().build();
     let family = define_keyed_computation(&mut runtime, "undo-redo-session", ());
@@ -309,11 +313,15 @@ fn undo_redo_style_session_with_failures_and_memo_reuse_preserves_branch_local_t
     assert!(
         feature_lineage
             .iter()
-            .any(|record| record.event == LineageEvent::Restored),
+            .any(|record| matches!(record.kind, LineageRecordKind::SnapshotRestore { .. })),
         "feature workflow should preserve restore lineage under undo/redo churn"
     );
     assert!(
-        runtime.observe().recent_execution_history_diagnostics().len() <= policy.history_limit,
+        runtime
+            .observe()
+            .recent_execution_history_diagnostics()
+            .len()
+            <= policy.history_limit,
         "history must stay bounded under long undo/redo churn"
     );
     assert!(
@@ -324,7 +332,9 @@ fn undo_redo_style_session_with_failures_and_memo_reuse_preserves_branch_local_t
 
 #[test]
 fn posthoc_forensics_after_long_session_answers_branch_and_artifact_questions() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     runtime.set_runtime_policy(SignalRuntimePolicy::forensic().with_history_limit(8));
     let source = runtime.graph_mut().node().output_identity().build();
     let dependent = runtime.graph_mut().node().output_identity().build();
@@ -426,7 +436,9 @@ fn posthoc_forensics_after_long_session_answers_branch_and_artifact_questions() 
         .unwrap();
     let artifact_replay = runtime.observe().replay_for_artifact(artifact);
     let artifact_lineage = runtime.observe().lineage_chain_for_artifact(artifact);
-    let around_feature_snapshot = runtime.observe().replay_around_snapshot(feature_snapshot.meta.snapshot_id);
+    let around_feature_snapshot = runtime
+        .observe()
+        .replay_around_snapshot(feature_snapshot.meta.snapshot_id);
 
     assert_eq!(main_head, Some(main_snapshot.meta.snapshot_id));
     assert_eq!(feature_head, Some(feature_snapshot.meta.snapshot_id));
@@ -455,9 +467,13 @@ fn posthoc_forensics_after_long_session_answers_branch_and_artifact_questions() 
         "post-hoc artifact replay should isolate the requested artifact timeline"
     );
     assert!(
-        artifact_lineage
-            .iter()
-            .any(|record| record.event == LineageEvent::Replaced),
+        artifact_lineage.iter().any(|record| matches!(
+            record.kind,
+            LineageRecordKind::ArtifactTransition {
+                transition: ArtifactTransitionKind::Replaced,
+                ..
+            }
+        )),
         "post-hoc lineage should answer where the artifact came from"
     );
     assert!(
@@ -478,7 +494,9 @@ fn posthoc_forensics_after_long_session_answers_branch_and_artifact_questions() 
 
 #[test]
 fn game_engine_frame_session_handles_threshold_flapping_branch_churn_and_posthoc_debugging() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     runtime.set_runtime_policy(
         SignalRuntimePolicy::game_engine()
             .with_history_limit(6)
@@ -642,7 +660,7 @@ fn game_engine_frame_session_handles_threshold_flapping_branch_churn_and_posthoc
             .observe()
             .lineage_chain_for_node(render)
             .iter()
-            .any(|record| record.event == LineageEvent::Restored),
+            .any(|record| matches!(record.kind, LineageRecordKind::SnapshotRestore { .. })),
         "render artifact lineage should expose restore transitions after editor/play churn"
     );
     assert!(
@@ -650,7 +668,13 @@ fn game_engine_frame_session_handles_threshold_flapping_branch_churn_and_posthoc
             .observe()
             .lineage_chain_for_node(lod)
             .iter()
-            .any(|record| record.event == LineageEvent::Replaced),
+            .any(|record| matches!(
+                record.kind,
+                LineageRecordKind::ArtifactTransition {
+                    transition: ArtifactTransitionKind::Replaced,
+                    ..
+                }
+            )),
         "the aspect-filtered LOD node should participate in the same long workflow and keep its own lineage history"
     );
 
@@ -684,7 +708,9 @@ fn game_engine_frame_session_handles_threshold_flapping_branch_churn_and_posthoc
 
 #[test]
 fn fintech_tick_correction_session_preserves_auditability_under_branching_replay_and_memo_reuse() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     runtime.set_runtime_policy(
         SignalRuntimePolicy::fintech()
             .with_history_limit(8)
@@ -873,7 +899,13 @@ fn fintech_tick_correction_session_preserves_auditability_under_branching_replay
             .observe()
             .lineage_chain_for_artifact(risk_artifact)
             .iter()
-            .any(|record| record.event == LineageEvent::MemoizedFrom),
+            .any(|record| matches!(
+                record.kind,
+                LineageRecordKind::ArtifactTransition {
+                    transition: ArtifactTransitionKind::MemoizedReuse,
+                    ..
+                }
+            )),
         "artifact lineage should explain memoized reuse in the audit workflow"
     );
     assert!(
@@ -881,10 +913,18 @@ fn fintech_tick_correction_session_preserves_auditability_under_branching_replay
             .observe()
             .lineage_chain_for_node(alert)
             .iter()
-            .any(|record| record.event == LineageEvent::Replaced),
+            .any(|record| matches!(
+                record.kind,
+                LineageRecordKind::ArtifactTransition {
+                    transition: ArtifactTransitionKind::Replaced,
+                    ..
+                }
+            )),
         "the aspect-filtered alert node should keep its own branch-local lineage under the same workflow"
     );
-    let around_snapshot = runtime.observe().replay_around_snapshot(what_if_snapshot.meta.snapshot_id);
+    let around_snapshot = runtime
+        .observe()
+        .replay_around_snapshot(what_if_snapshot.meta.snapshot_id);
     assert!(
         around_snapshot
             .frames
@@ -913,7 +953,9 @@ fn fintech_tick_correction_session_preserves_auditability_under_branching_replay
 
 #[test]
 fn alternating_dynamic_rewire_across_branches_preserves_subscriber_integrity() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     let selector = runtime.graph_mut().node().output_identity().build();
     let left = runtime.graph_mut().node().output_identity().build();
     let right = runtime.graph_mut().node().output_identity().build();
@@ -1029,7 +1071,9 @@ fn alternating_dynamic_rewire_across_branches_preserves_subscriber_integrity() {
 #[test]
 fn retained_vs_reconstructed_artifacts_match_after_long_churn() {
     fn run(policy: SignalRuntimePolicy) -> (ReplaySlice, Vec<LineageRecord>, NodeExplanation) {
-        let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+        let mut runtime = SignalRuntime::builder(SignalGraph::new())
+            .with_kernel_defaults()
+            .build();
         runtime.set_runtime_policy(policy);
         let source = runtime.graph_mut().node().output_identity().build();
         let dependent = runtime.graph_mut().node().output_identity().build();
@@ -1123,8 +1167,12 @@ fn threshold_flap_storm_with_on_demand_and_restore_keeps_replay_coherent() {
         .output_identity()
         .build();
     let deferred = graph.node().on_demand().output_identity().build();
-    graph.append_dependency(threshold, source, ASPECT_A).unwrap();
-    graph.append_dependency(deferred, threshold, ASPECT_A).unwrap();
+    graph
+        .append_dependency(threshold, source, ASPECT_A)
+        .unwrap();
+    graph
+        .append_dependency(deferred, threshold, ASPECT_A)
+        .unwrap();
 
     evaluate(&mut graph, source, &mut |_id, _graph| {
         Ok(NodeEvaluationResult::from_version(version_ab(10, 0)).with_output_identity("base"))
@@ -1176,17 +1224,20 @@ fn threshold_flap_storm_with_on_demand_and_restore_keeps_replay_coherent() {
     let explanation = graph.observe().explain(deferred).unwrap();
     assert_eq!(explanation.state, NodeState::Clean);
     assert!(
-        graph.observe()
+        graph
+            .observe()
             .lineage_for_node(deferred)
             .iter()
-            .any(|record| record.event == LineageEvent::Restored),
+            .any(|record| matches!(record.kind, LineageRecordKind::SnapshotRestore { .. })),
         "on-demand node should preserve restore lineage after threshold flap storm"
     );
 }
 
 #[test]
 fn inspect_only_at_end_after_50_step_session_preserves_forensic_truth() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     runtime.set_runtime_policy(SignalRuntimePolicy::forensic().with_history_limit(10));
     let source = runtime.graph_mut().node().output_identity().build();
     let dependent = runtime.graph_mut().node().output_identity().build();
@@ -1271,7 +1322,9 @@ fn inspect_only_at_end_after_50_step_session_preserves_forensic_truth() {
         }
     }
 
-    let replay = runtime.observe().replay_for_branch(runtime.observe().current_branch().id);
+    let replay = runtime
+        .observe()
+        .replay_for_branch(runtime.observe().current_branch().id);
     let lineage = runtime.observe().lineage_chain_for_node(dependent);
     let explanation = runtime.observe().explain(dependent).unwrap();
 
@@ -1291,9 +1344,13 @@ fn inspect_only_at_end_after_50_step_session_preserves_forensic_truth() {
         "end-of-session replay should retain rollback evidence"
     );
     assert!(
-        lineage
-            .iter()
-            .any(|record| record.event == LineageEvent::Replaced),
+        lineage.iter().any(|record| matches!(
+            record.kind,
+            LineageRecordKind::ArtifactTransition {
+                transition: ArtifactTransitionKind::Replaced,
+                ..
+            }
+        )),
         "end-of-session lineage should retain materialization history"
     );
     assert!(
@@ -1305,7 +1362,9 @@ fn inspect_only_at_end_after_50_step_session_preserves_forensic_truth() {
 #[cfg(feature = "parallel")]
 #[test]
 fn parallel_branch_memo_rollback_session_preserves_branch_local_replay_and_cache_truth() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     runtime.set_runtime_policy(
         SignalRuntimePolicy::game_engine()
             .with_history_limit(8)
@@ -1541,8 +1600,13 @@ fn parallel_branch_memo_rollback_session_preserves_branch_local_replay_and_cache
         fused_lineage.len() >= 2
             && fused_lineage.iter().any(|record| {
                 matches!(
-                    record.event,
-                    LineageEvent::Restored | LineageEvent::Replaced | LineageEvent::Refreshed
+                    record.kind,
+                    LineageRecordKind::SnapshotRestore { .. }
+                        | LineageRecordKind::ArtifactTransition {
+                            transition: ArtifactTransitionKind::Replaced
+                                | ArtifactTransitionKind::Refreshed { .. },
+                            ..
+                        }
                 )
             }),
         "fused node should retain a real lineage history through parallel branch churn"
@@ -1576,7 +1640,9 @@ fn parallel_branch_memo_rollback_session_preserves_branch_local_replay_and_cache
 #[test]
 fn long_session_replay_and_lineage_stay_equivalent_between_serial_and_parallel_executors() {
     fn run(executor: StageExecutor) -> (ReplaySlice, Vec<LineageRecord>, NodeExplanation) {
-        let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+        let mut runtime = SignalRuntime::builder(SignalGraph::new())
+            .with_kernel_defaults()
+            .build();
         runtime.set_runtime_policy(SignalRuntimePolicy::kernel().with_history_limit(8));
         let source = runtime.graph_mut().node().output_identity().build();
         let a_gate = runtime
@@ -1760,7 +1826,9 @@ fn long_session_replay_and_lineage_stay_equivalent_between_serial_and_parallel_e
 
 #[test]
 fn non_active_branch_inspection_after_heavy_foreground_churn_uses_stored_branch_state() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     runtime.set_runtime_policy(SignalRuntimePolicy::forensic().with_history_limit(8));
     let source = runtime.graph_mut().node().output_identity().build();
     let filtered = runtime
@@ -1868,7 +1936,13 @@ fn non_active_branch_inspection_after_heavy_foreground_churn_uses_stored_branch_
     assert!(
         feature_lineage
             .iter()
-            .any(|record| record.event == LineageEvent::Replaced),
+            .any(|record| matches!(
+                record.kind,
+                LineageRecordKind::ArtifactTransition {
+                    transition: ArtifactTransitionKind::Replaced,
+                    ..
+                }
+            )),
         "non-active branch inspection should read stored lineage instead of the active branch state"
     );
 }
@@ -1876,7 +1950,9 @@ fn non_active_branch_inspection_after_heavy_foreground_churn_uses_stored_branch_
 #[cfg(feature = "parallel")]
 #[test]
 fn dynamic_rewire_threshold_session_with_parallel_restore_preserves_subscriber_sets() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     runtime.set_runtime_policy(SignalRuntimePolicy::development().with_history_limit(8));
     let selector = runtime.graph_mut().node().output_identity().build();
     let left = runtime.graph_mut().node().output_identity().build();

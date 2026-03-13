@@ -12,7 +12,9 @@ use forge_signal::facade::graph::SignalGraph;
 #[cfg(feature = "parallel")]
 use forge_signal::facade::planning::{ExecutionReport, ParallelExecutionPolicy, StageExecutor};
 #[cfg(feature = "parallel")]
-use forge_signal::facade::transaction::{mark_dirty, mark_dirty_with_regions};
+use forge_signal::facade::proof::DirtyBatch;
+#[cfg(feature = "parallel")]
+use forge_signal::facade::transaction::mark_dirty_batch;
 #[cfg(feature = "parallel")]
 use forge_signal::facade::types::{
     Aspect, AspectVersion, ChangedRegion, DependencyEdge, NodeEvaluationResult,
@@ -145,7 +147,10 @@ fn run_deep_chain(
     }
     for index in 1..chain.len() {
         graph
-            .set_dependencies(chain[index], [DependencyEdge::new(chain[index - 1], ASPECT_A)])
+            .set_dependencies(
+                chain[index],
+                [DependencyEdge::new(chain[index - 1], ASPECT_A)],
+            )
             .unwrap();
     }
 
@@ -158,7 +163,11 @@ fn run_deep_chain(
         })
         .unwrap();
 
-    mark_dirty(&mut graph, chain[0], ASPECT_A).unwrap();
+    mark_dirty_batch(
+        &mut graph,
+        &DirtyBatch::from_sources([(chain[0], ASPECT_A)]),
+    )
+    .unwrap();
     let plan_start = Instant::now();
     let plan = graph
         .build_evaluation_plan(&chain, EvaluationRequestMode::Default)
@@ -202,9 +211,11 @@ fn run_wide_stage(
         })
         .unwrap();
 
-    for &node in &requested {
-        mark_dirty(&mut graph, node, ASPECT_A).unwrap();
-    }
+    mark_dirty_batch(
+        &mut graph,
+        &DirtyBatch::from_sources(requested.iter().copied().map(|node| (node, ASPECT_A))),
+    )
+    .unwrap();
     let plan_start = Instant::now();
     let plan = graph
         .build_evaluation_plan(&requested, EvaluationRequestMode::Default)
@@ -263,42 +274,40 @@ fn run_partition_tolerance(
         .unwrap();
     let bootstrap_branches = branches.clone();
     graph
-        .execute_prepared_plan(
-            &bootstrap,
-            &(),
-            &move |ctx| {
-                let node = ctx.node();
-                let result = if node == source {
-                    ctx.finish(
-                        NodeEvaluationResult::from_version(version_ab(10, 0))
-                            .with_changed_region(ChangedRegion::new("shell"))
-                            .with_changed_region(ChangedRegion::new("core")),
-                    )
-                } else if bootstrap_branches.contains(&node) {
-                    let version = ctx.read_aspect_version(source, ASPECT_A)?;
-                    ctx.finish(NodeEvaluationResult::from_version(version))
-                } else {
-                    let mut total = 0_u64;
-                    for branch in &bootstrap_branches {
-                        total += ctx.read_aspect_version(*branch, ASPECT_A)?.get(ASPECT_A);
-                    }
-                    ctx.finish(
-                        NodeEvaluationResult::from_version(AspectVersion::from_updates([(
-                            ASPECT_A, total,
-                        )]))
-                        .with_output_identity("partition-aggregate"),
-                    )
-                };
-                Ok(result)
-            },
-        )
+        .execute_prepared_plan(&bootstrap, &(), &move |ctx| {
+            let node = ctx.node();
+            let result = if node == source {
+                ctx.finish(
+                    NodeEvaluationResult::from_version(version_ab(10, 0))
+                        .with_changed_region(ChangedRegion::new("shell"))
+                        .with_changed_region(ChangedRegion::new("core")),
+                )
+            } else if bootstrap_branches.contains(&node) {
+                let version = ctx.read_aspect_version(source, ASPECT_A)?;
+                ctx.finish(NodeEvaluationResult::from_version(version))
+            } else {
+                let mut total = 0_u64;
+                for branch in &bootstrap_branches {
+                    total += ctx.read_aspect_version(*branch, ASPECT_A)?.get(ASPECT_A);
+                }
+                ctx.finish(
+                    NodeEvaluationResult::from_version(AspectVersion::from_updates([(
+                        ASPECT_A, total,
+                    )]))
+                    .with_output_identity("partition-aggregate"),
+                )
+            };
+            Ok(result)
+        })
         .unwrap();
 
-    mark_dirty_with_regions(
+    mark_dirty_batch(
         &mut graph,
-        source,
-        ASPECT_A,
-        &[ChangedRegion::new("core"), ChangedRegion::new("shell")],
+        &DirtyBatch::singleton(
+            source,
+            ASPECT_A,
+            vec![ChangedRegion::new("core"), ChangedRegion::new("shell")],
+        ),
     )
     .unwrap();
     let plan_start = Instant::now();

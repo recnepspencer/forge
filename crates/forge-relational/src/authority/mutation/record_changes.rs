@@ -6,8 +6,8 @@ use crate::payloads::data::RecordPayload;
 use crate::schema::data::RelationalSchemaRegistry;
 use crate::storage::data::RecordLifecycleState;
 use crate::storage::logic::state::{
-    AdjacencySet, EntityRecordKind, PartitionAccess, PartitionState, RecordKind,
-    RelationEndpoints, RelationRecordKind,
+    AdjacencySet, EntityRecordKind, PartitionAccess, PartitionState, RecordKind, RelationEndpoints,
+    RelationRecordKind,
 };
 use crate::storage::overlay::WorkingState;
 use crate::transactions::data::RelationSpec;
@@ -183,20 +183,15 @@ pub(super) fn delete_relation(
     }
 }
 
-pub(crate) fn apply_adjacency_deltas(
-    state: &mut WorkingState,
-    deltas: &[AdjacencyDelta],
-) {
+pub(crate) fn apply_adjacency_deltas(state: &mut WorkingState, deltas: &[AdjacencyDelta]) {
     for delta in deltas {
         let (source, target) = match delta.kind {
             AdjacencyDeltaKind::Created { source, target }
             | AdjacencyDeltaKind::Deleted { source, target } => (source, target),
         };
         state.mark_adjacency_slot_touched(source.partition_id, source.local_slot.0 as usize);
-        state.mark_reverse_adjacency_slot_touched(
-            target.partition_id,
-            target.local_slot.0 as usize,
-        );
+        state
+            .mark_reverse_adjacency_slot_touched(target.partition_id, target.local_slot.0 as usize);
 
         let source_partition = ensure_partition_state(state, source.partition_id);
         ensure_entity_adjacency_capacity(source_partition, source.local_slot.0 as usize);

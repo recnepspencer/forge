@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use crate::config::data::AdjacencyPolicy;
 use crate::identity::data::PartitionId;
@@ -11,10 +11,10 @@ pub(crate) struct WorkingState {
     pub(crate) adjacency_policy: AdjacencyPolicy,
     pub(crate) partitions: BTreeMap<PartitionId, PartitionState>,
     pub(crate) mutation_journal: BTreeMap<PartitionId, PartitionMutationJournal>,
-    pub(crate) touched_partitions: BTreeSet<PartitionId>,
 }
 
 impl WorkingState {
+    #[cfg(test)]
     pub(crate) fn new(
         partitions: BTreeMap<PartitionId, PartitionState>,
         adjacency_policy: AdjacencyPolicy,
@@ -23,7 +23,6 @@ impl WorkingState {
             adjacency_policy,
             partitions,
             mutation_journal: BTreeMap::new(),
-            touched_partitions: BTreeSet::new(),
         }
     }
 
@@ -33,11 +32,12 @@ impl WorkingState {
         adjacency_policy: AdjacencyPolicy,
     ) -> Self {
         let mut partitions = BTreeMap::new();
-        let mut seen = BTreeSet::new();
+        let mut mutation_journal = BTreeMap::new();
         for partition_id in touched_partitions {
-            if !seen.insert(partition_id) {
+            if mutation_journal.contains_key(&partition_id) {
                 continue;
             }
+            mutation_journal.insert(partition_id, PartitionMutationJournal::default());
             if let Some(partition) = base_partitions.get(&partition_id) {
                 partitions.insert(partition_id, partition.clone());
             }
@@ -45,8 +45,7 @@ impl WorkingState {
         Self {
             adjacency_policy,
             partitions,
-            mutation_journal: BTreeMap::new(),
-            touched_partitions: seen,
+            mutation_journal,
         }
     }
 
@@ -55,6 +54,7 @@ impl WorkingState {
     }
 
     pub(crate) fn get_partition_mut(&mut self, partition_id: PartitionId) -> &mut PartitionState {
+        self.mutation_journal.entry(partition_id).or_default();
         self.partitions
             .entry(partition_id)
             .or_insert_with(|| PartitionState {
@@ -125,8 +125,8 @@ impl WorkingState {
         &self.mutation_journal
     }
 
-    pub(crate) fn touched_partitions(&self) -> &BTreeSet<PartitionId> {
-        &self.touched_partitions
+    pub(crate) fn touched_partition_count(&self) -> usize {
+        self.mutation_journal.len()
     }
 }
 
@@ -154,7 +154,7 @@ impl PartitionAccess for WorkingState {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{BTreeMap, BTreeSet};
+    use std::collections::BTreeMap;
 
     use crate::config::data::AdjacencyBackend;
     use crate::identity::data::PartitionId;
@@ -198,6 +198,6 @@ mod tests {
 
         assert!(!overlay.partitions.contains_key(&left));
         assert!(overlay.partitions.contains_key(&right));
-        assert_eq!(overlay.touched_partitions(), &BTreeSet::from([right]));
+        assert_eq!(overlay.touched_partition_count(), 1);
     }
 }

@@ -56,7 +56,9 @@ fn operational_profile_stays_bounded_under_snapshot_and_dependency_churn() {
 
 #[test]
 fn repeated_failure_and_rollback_loops_preserve_explanation_after_churn() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new()).with_kernel_defaults().build();
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
     runtime
         .graph_mut()
         .set_diagnostics_profile(DiagnosticsProfile::Development);
@@ -199,7 +201,9 @@ fn execution_history_prefers_most_recent_records_over_low_arena_indices() {
             .set_trace_summary(Some(trace));
     }
 
-    let history = graph.observe().execution_history_summary(DiagnosticsProfile::Development);
+    let history = graph
+        .observe()
+        .execution_history_summary(DiagnosticsProfile::Development);
     let retained = history
         .nodes
         .iter()

@@ -1,11 +1,13 @@
+use crate::facade::diagnostics::DiagnosticCode;
+use crate::facade::transactions::{CommitConflict, TransactionCommitError};
 use crate::tests::support::*;
 
 #[test]
 fn bulk_create_entities_match_equivalent_singular_creates() {
     let mut bulk_runtime = runtime_with_test_schema();
     let mut bulk_txn = bulk_runtime.begin_transaction(TransactionOptions::default());
-    bulk_txn.push_batch(WorkerIntentBatch::new("bulk").push(
-        MutationIntent::Create(CreateIntent::BulkEntities(BulkEntityCreateIntent {
+    bulk_txn.push_batch(WorkerIntentBatch::new("bulk").push(MutationIntent::Create(
+        CreateIntent::BulkEntities(BulkEntityCreateIntent {
             partition_id: PartitionId::main(),
             kind_id: KindId(1),
             client_keys: vec![
@@ -16,16 +18,21 @@ fn bulk_create_entities_match_equivalent_singular_creates() {
                 RecordPayload::StructuredJson(json!({"name":"a"})),
                 RecordPayload::StructuredJson(json!({"name":"b"})),
             ],
-        })),
-    ));
+        }),
+    )));
     let bulk_outcome = bulk_txn.commit().unwrap();
 
     let singular_runtime = apply_batches(vec![batch_create("a"), batch_create("b")]);
-    let bulk_read = bulk_runtime.visibility_reads().read_snapshot(&bulk_outcome.snapshot).unwrap();
+    let bulk_read = bulk_runtime
+        .visibility_reads()
+        .read_snapshot(&bulk_outcome.snapshot)
+        .unwrap();
     let singular_read = singular_runtime
-        .visibility_reads().read_snapshot(
+        .visibility_reads()
+        .read_snapshot(
             &singular_runtime
-                .publication_access().latest_bundle()
+                .publication_access()
+                .latest_bundle()
                 .unwrap()
                 .snapshot,
         )
@@ -92,24 +99,26 @@ fn cross_context_relations_respect_relation_kind_policy() {
     let source = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
     let target = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
-    txn.push_batch(WorkerIntentBatch::new("forbidden-cross-context").push(
-        MutationIntent::Create(CreateIntent::Relation(crate::transactions::data::RelationSpec {
-            partition_id: PartitionId(29),
-            kind_id: KindId(2),
-            client_key: InternedString::Raw("bridge".to_string()),
-            source,
-            target,
-            payload: None,
-        })),
-    ));
+    txn.push_batch(
+        WorkerIntentBatch::new("forbidden-cross-context").push(MutationIntent::Create(
+            CreateIntent::Relation(crate::transactions::data::RelationSpec {
+                partition_id: PartitionId(29),
+                kind_id: KindId(2),
+                client_key: InternedString::Raw("bridge".to_string()),
+                source,
+                target,
+                payload: None,
+            }),
+        )),
+    );
 
     let error = txn.commit().unwrap_err();
 
     assert!(matches!(
         error,
-        crate::facade::TransactionCommitError::Conflict {
-            error: crate::facade::CommitConflict {
-                code: crate::facade::DiagnosticCode::InvalidRelationEndpoint,
+        TransactionCommitError::Conflict {
+            error: CommitConflict {
+                code: DiagnosticCode::InvalidRelationEndpoint,
                 ..
             },
             ..

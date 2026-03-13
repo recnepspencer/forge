@@ -25,11 +25,7 @@ impl ReplayRetentionIndex {
         self.entries.get_mut(&version_id)
     }
 
-    pub(crate) fn insert_retained(
-        &mut self,
-        version_id: VersionId,
-        state: ReplayRetentionState,
-    ) {
+    pub(crate) fn insert_retained(&mut self, version_id: VersionId, state: ReplayRetentionState) {
         self.entries.insert(version_id, state);
     }
 

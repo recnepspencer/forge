@@ -1,8 +1,6 @@
 use crate::logic::runtime::RelationalRuntime;
 use crate::storage::data::{EntityReadRecord, RecordLifecycleState, RelationReadRecord};
-use crate::storage::logic::state::{
-    HistoricalMetadata, PartitionState,
-};
+use crate::storage::logic::state::{HistoricalMetadata, PartitionState};
 
 use super::visibility::{
     entity_visible_in_partition_at_version, historical_lifecycle, lifecycle_storage_visible,
@@ -20,8 +18,18 @@ pub(super) fn materialize_current_entity_record(
         return None;
     }
     let kind_id = entity_slot.kind_id()?;
-    let kind = runtime.config.schema.registry.resolve_entity(kind_id).ok()?;
-    let payload = partition.entity_arena.payload_history_at(slot)?.last()?.value.clone();
+    let kind = runtime
+        .config
+        .schema
+        .registry
+        .resolve_entity(kind_id)
+        .ok()?;
+    let payload = partition
+        .entity_arena
+        .payload_history_at(slot)?
+        .last()?
+        .value
+        .clone();
     Some(EntityReadRecord {
         entity_id: crate::identity::data::EntityId::new(
             partition_id,
@@ -46,7 +54,10 @@ pub(super) fn materialize_entity_record_at_version(
     if !entity_visible_in_partition_at_version(partition, slot, version_id) {
         return None;
     }
-    let metadata = visible_metadata(partition.entity_arena.metadata_history_at(slot)?, version_id)?;
+    let metadata = visible_metadata(
+        partition.entity_arena.metadata_history_at(slot)?,
+        version_id,
+    )?;
     let kind = runtime
         .config
         .schema
@@ -92,7 +103,12 @@ pub(super) fn materialize_current_relation_record(
         return None;
     }
     let kind_id = relation_slot.kind_id()?;
-    let kind = runtime.config.schema.registry.resolve_relation(kind_id).ok()?;
+    let kind = runtime
+        .config
+        .schema
+        .registry
+        .resolve_relation(kind_id)
+        .ok()?;
     let endpoints = relation_slot.extra().as_ref()?;
     let payload = partition
         .relation_arena
@@ -125,7 +141,10 @@ pub(super) fn materialize_relation_record_at_version(
     if !relation_visible_in_partition_at_version(partition, slot, version_id) {
         return None;
     }
-    let metadata = visible_metadata(partition.relation_arena.metadata_history_at(slot)?, version_id)?;
+    let metadata = visible_metadata(
+        partition.relation_arena.metadata_history_at(slot)?,
+        version_id,
+    )?;
     let kind = runtime
         .config
         .schema

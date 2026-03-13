@@ -20,7 +20,7 @@ pub enum InvariantCostClass {
     Global,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct InvariantGroupSet {
     mask: u32,
 }
@@ -33,7 +33,9 @@ impl InvariantGroupSet {
     }
 
     pub const fn all() -> Self {
-        Self { mask: (1u32 << Self::COUNT) - 1 }
+        Self {
+            mask: (1u32 << Self::COUNT) - 1,
+        }
     }
 
     pub const fn of(group: InvariantGroup) -> Self {
@@ -46,12 +48,22 @@ impl InvariantGroupSet {
         }
     }
 
+    pub const fn intersection(self, other: Self) -> Self {
+        Self {
+            mask: self.mask & other.mask,
+        }
+    }
+
     pub const fn contains(self, group: InvariantGroup) -> bool {
         (self.mask & group.mask()) != 0
     }
 
     pub const fn intersects(self, other: Self) -> bool {
         (self.mask & other.mask) != 0
+    }
+
+    pub const fn is_empty(self) -> bool {
+        self.mask == 0
     }
 
     pub const fn mask(self) -> u32 {

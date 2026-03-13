@@ -19,6 +19,9 @@ impl DiagnosticsSink for RelationalRuntime {
         message: impl Into<String>,
         fields: serde_json::Value,
     ) {
-        self.publication_authority().diagnostic(scope).failure().emit_entry(code, message, fields);
+        self.publication_authority()
+            .diagnostic(scope)
+            .failure()
+            .emit_entry(code, message, fields);
     }
 }

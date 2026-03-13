@@ -25,14 +25,14 @@ impl DurabilityRead for RelationalRuntime {
 pub(crate) trait DurabilityWrite {
     fn append_durable_envelope(
         &mut self,
-        envelope: CanonicalCommitEnvelope,
+        envelope: &CanonicalCommitEnvelope,
     ) -> Result<(), DurabilityError>;
 }
 
 impl DurabilityWrite for RelationalRuntime {
     fn append_durable_envelope(
         &mut self,
-        envelope: CanonicalCommitEnvelope,
+        envelope: &CanonicalCommitEnvelope,
     ) -> Result<(), DurabilityError> {
         self.durability_authority().append_commit(envelope)
     }

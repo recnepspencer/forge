@@ -1,3 +1,4 @@
+use crate::facade::config::{MvccConfig, RetentionBackend, SnapshotReleasePolicy};
 use crate::tests::support::*;
 
 #[test]
@@ -23,12 +24,12 @@ fn durable_log_compaction_respects_checkpoint_policy() {
 fn relation_payload_history_remains_available_for_historical_reads_after_reclaim() {
     let mut runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
-        .mvcc(crate::facade::MvccConfig {
+        .mvcc(MvccConfig {
             track_visibility_metadata: true,
-            snapshot_release_policy: crate::facade::SnapshotReleasePolicy::ExplicitRelease,
+            snapshot_release_policy: SnapshotReleasePolicy::ExplicitRelease,
             auto_reclaim_deleted_records: true,
             reclaim_batch_size: 32,
-            retention_backend: crate::facade::RetentionBackend::PinTrackedRetention,
+            retention_backend: RetentionBackend::PinTrackedRetention,
         })
         .build();
     let source_outcome = create_entity_outcome(&mut runtime, "source");
@@ -37,16 +38,18 @@ fn relation_payload_history_remains_available_for_historical_reads_after_reclaim
     let target = changed_entities(&target_outcome)[0];
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(WorkerIntentBatch::new("payload-bearing-relation").push(
-        MutationIntent::Create(CreateIntent::Relation(crate::transactions::data::RelationSpec {
-            partition_id: PartitionId::main(),
-            kind_id: KindId(2),
-            client_key: InternedString::Raw("r1".to_string()),
-            source,
-            target,
-            payload: Some(RecordPayload::StructuredJson(
-                json!({"weight": 1, "name": "r1"}),
-            )),
-        })),
+        MutationIntent::Create(CreateIntent::Relation(
+            crate::transactions::data::RelationSpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(2),
+                client_key: InternedString::Raw("r1".to_string()),
+                source,
+                target,
+                payload: Some(RecordPayload::StructuredJson(
+                    json!({"weight": 1, "name": "r1"}),
+                )),
+            },
+        )),
     ));
     let created = txn.commit().unwrap();
     let relation = changed_relations(&created)[0];
@@ -59,10 +62,18 @@ fn relation_payload_history_remains_available_for_historical_reads_after_reclaim
         })),
     ));
     let deleted = delete_txn.commit().unwrap();
-    runtime.visibility_authority().release_snapshot(&source_outcome.snapshot);
-    runtime.visibility_authority().release_snapshot(&target_outcome.snapshot);
-    runtime.visibility_authority().release_snapshot(&created.snapshot);
-    runtime.visibility_authority().release_snapshot(&deleted.snapshot);
+    runtime
+        .visibility_authority()
+        .release_snapshot(&source_outcome.snapshot);
+    runtime
+        .visibility_authority()
+        .release_snapshot(&target_outcome.snapshot);
+    runtime
+        .visibility_authority()
+        .release_snapshot(&created.snapshot);
+    runtime
+        .visibility_authority()
+        .release_snapshot(&deleted.snapshot);
     let _ = runtime.retention_access().run_pass();
 
     assert_eq!(runtime.relation_history_len_for_test(relation), 1);
@@ -127,7 +138,10 @@ fn explicit_snapshots_can_skip_cache_protection_and_still_read_until_release() {
     let entity = changed_entities(&first)[0];
     let _updated = update_entity(&mut runtime, entity, "first-updated");
 
-    let read_path = runtime.visibility_reads().inspect_snapshot_read_path(&snapshot).unwrap();
+    let read_path = runtime
+        .visibility_reads()
+        .inspect_snapshot_read_path(&snapshot)
+        .unwrap();
     assert!(read_path
         .entries
         .iter()
@@ -142,7 +156,10 @@ fn explicit_snapshots_can_skip_cache_protection_and_still_read_until_release() {
     }));
 
     let read = runtime.visibility_reads().read_snapshot(&snapshot).unwrap();
-    let inspection = runtime.visibility_reads().inspect_snapshot(&snapshot).unwrap();
+    let inspection = runtime
+        .visibility_reads()
+        .inspect_snapshot(&snapshot)
+        .unwrap();
     let stats = runtime.storage_access().storage_stats();
 
     assert_eq!(
@@ -155,7 +172,10 @@ fn explicit_snapshots_can_skip_cache_protection_and_still_read_until_release() {
     assert_eq!(stats.protected_visibility_version_count, 0);
 
     assert!(runtime.visibility_authority().release_snapshot(&snapshot));
-    assert!(runtime.visibility_reads().read_snapshot(&snapshot).is_none());
+    assert!(runtime
+        .visibility_reads()
+        .read_snapshot(&snapshot)
+        .is_none());
 }
 
 #[test]
@@ -208,7 +228,10 @@ fn visibility_cache_recent_window_is_bounded_and_reports_hits() {
     let second = create_entity_outcome(&mut runtime, "second");
     let third = create_entity_outcome(&mut runtime, "third");
 
-    let first_read_path = runtime.visibility_reads().inspect_version_read_path(first.version_id).unwrap();
+    let first_read_path = runtime
+        .visibility_reads()
+        .inspect_version_read_path(first.version_id)
+        .unwrap();
     assert!(first_read_path
         .entries
         .iter()
@@ -236,13 +259,17 @@ fn visibility_cache_recent_window_is_bounded_and_reports_hits() {
     assert!(counters.visibility_cache_hits >= 1);
     assert!(counters.visibility_cache_recent_evictions >= 1);
     let second_read_path = runtime
-        .visibility_reads().inspect_version_read_path(second.version_id)
+        .visibility_reads()
+        .inspect_version_read_path(second.version_id)
         .unwrap();
     assert!(second_read_path
         .entries
         .iter()
         .any(|entry| entry.code == DiagnosticCode::VisibilityCacheHit));
-    let evicted_first_read_path = runtime.visibility_reads().inspect_version_read_path(first.version_id).unwrap();
+    let evicted_first_read_path = runtime
+        .visibility_reads()
+        .inspect_version_read_path(first.version_id)
+        .unwrap();
     assert!(evicted_first_read_path.entries.iter().any(|entry| {
         entry.code == DiagnosticCode::SnapshotReadPathInspected
             && entry
@@ -307,7 +334,8 @@ fn branch_head_visibility_updates_incrementally_under_branch_churn() {
     let base = create_entity_outcome(&mut runtime, "base");
     let entity = changed_entities(&base)[0];
     runtime
-        .history_authority().create_branch(
+        .history_authority()
+        .create_branch(
             BranchId("analysis".to_string()),
             &BranchId("main".to_string()),
         )
@@ -343,7 +371,8 @@ fn branch_head_protection_can_be_lazy_without_populating_visibility_cache() {
     let base = create_entity_outcome(&mut runtime, "base");
     let entity = changed_entities(&base)[0];
     runtime
-        .history_authority().create_branch(
+        .history_authority()
+        .create_branch(
             BranchId("analysis".to_string()),
             &BranchId("main".to_string()),
         )

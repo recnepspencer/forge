@@ -24,7 +24,8 @@ enum Tier {
 fn build_runtime(graph: SignalGraph) -> SignalRuntime<Domain, Impact, Ev, (), Tier> {
     let _ = Domain::Cache;
     let _ = Impact::One;
-    SignalRuntime::builder(graph).with_kernel_defaults()
+    SignalRuntime::builder(graph)
+        .with_kernel_defaults()
         .with_domains::<Domain>()
         .with_impacts::<Impact>()
         .with_events::<Ev>()
@@ -38,7 +39,9 @@ fn explain_reports_changed_upstream() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     let mut source_v2 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(2, 0));
@@ -63,7 +66,9 @@ fn explain_reports_clean_upstream_when_snapshot_matches() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, source, &mut compute).unwrap();
@@ -84,7 +89,9 @@ fn explain_reports_skipped_by_comparator_via_runtime_policy() {
     let middle = graph.node().build();
     let dependent = graph.node().build();
     graph.append_dependency(middle, source, ASPECT_A).unwrap();
-    graph.append_dependency(dependent, middle, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, middle, ASPECT_A)
+        .unwrap();
 
     let mut runtime = build_runtime(graph);
     runtime.set_node_tier(dependent, Tier::Slow);
@@ -129,7 +136,9 @@ fn explicit_omit_policy_surfaces_unavailable_artifacts() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
     graph.set_runtime_policy(
         SignalRuntimePolicy::operational()
             .with_explanation_retention(ArtifactRetentionPolicy::Omit)
@@ -154,7 +163,9 @@ fn explicit_retained_and_reconstructed_artifact_apis_match_policy() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
     graph.set_runtime_policy(SignalRuntimePolicy::development());
     let bootstrap = graph
         .build_evaluation_plan(&[source, dependent], EvaluationRequestMode::ForceOnDemand)
@@ -170,17 +181,25 @@ fn explicit_retained_and_reconstructed_artifact_apis_match_policy() {
             Ok(result)
         })
         .unwrap();
-    assert!(graph.observe().retained_explanation_artifact(dependent).is_some());
-    assert!(graph.observe().retained_provenance_artifact(dependent).is_some());
+    assert!(graph
+        .observe()
+        .retained_explanation_artifact(dependent)
+        .is_some());
+    assert!(graph
+        .observe()
+        .retained_provenance_artifact(dependent)
+        .is_some());
     assert_eq!(
-        graph.observe()
+        graph
+            .observe()
             .retained_explanation_artifact(dependent)
             .unwrap()
             .materialization_mode,
         ArtifactMaterializationMode::Retained
     );
     assert_eq!(
-        graph.observe()
+        graph
+            .observe()
             .retained_provenance_artifact(dependent)
             .unwrap()
             .materialization_mode,
@@ -188,10 +207,22 @@ fn explicit_retained_and_reconstructed_artifact_apis_match_policy() {
     );
 
     graph.set_runtime_policy(SignalRuntimePolicy::operational());
-    assert!(graph.observe().retained_explanation_artifact(dependent).is_none());
-    assert!(graph.observe().retained_provenance_artifact(dependent).is_none());
-    let reconstructed_explanation = graph.observe().reconstruct_explanation_artifact(dependent).unwrap();
-    let reconstructed_provenance = graph.observe().reconstruct_provenance_artifact(dependent).unwrap();
+    assert!(graph
+        .observe()
+        .retained_explanation_artifact(dependent)
+        .is_none());
+    assert!(graph
+        .observe()
+        .retained_provenance_artifact(dependent)
+        .is_none());
+    let reconstructed_explanation = graph
+        .observe()
+        .reconstruct_explanation_artifact(dependent)
+        .unwrap();
+    let reconstructed_provenance = graph
+        .observe()
+        .reconstruct_provenance_artifact(dependent)
+        .unwrap();
     assert_eq!(
         reconstructed_explanation.materialization_mode,
         ArtifactMaterializationMode::Reconstructed
@@ -237,7 +268,9 @@ fn explain_reports_condition_deferred_for_on_demand_nodes() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().on_demand().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     let mut source_v2 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(2, 0));
@@ -264,7 +297,9 @@ fn explain_reports_missing_snapshot_and_dependency_removed() {
     let mut source_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, source, &mut source_compute).unwrap();
 
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
     let missing_snapshot = graph.observe().explain(dependent).unwrap();
     assert!(missing_snapshot
         .upstream
@@ -277,9 +312,7 @@ fn explain_reports_missing_snapshot_and_dependency_removed() {
 
     let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(10, 0));
     evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
-    graph
-        .drop_dependency(dependent, source, ASPECT_A)
-        .unwrap();
+    graph.drop_dependency(dependent, source, ASPECT_A).unwrap();
 
     let removed = graph.observe().explain(dependent).unwrap();
     assert!(removed
@@ -309,7 +342,7 @@ fn explanation_surfaces_causality_and_trace_summary() {
 
     let explanation = graph.observe().explain(node).unwrap();
     assert_eq!(explanation.causality.as_ref().unwrap().kind, "bridge");
-    assert!(explanation.trace_summary.is_some());
+    assert!(explanation.historical_artifact_record.is_some());
     assert!(format!("{explanation}").contains("Causality: bridge"));
 }
 
@@ -355,7 +388,9 @@ fn metrics_snapshots_reflect_runtime_activity() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
     let mut runtime = build_runtime(graph);
 
     let outcome = runtime
@@ -368,10 +403,32 @@ fn metrics_snapshots_reflect_runtime_activity() {
         .unwrap();
 
     assert_eq!(outcome.outcome, TransactionOutcome::Committed);
-    assert!(runtime.observe().metrics().transaction.transaction_begin_count >= 1);
-    assert!(runtime.observe().metrics().transaction.transaction_commit_count >= 1);
+    assert!(
+        runtime
+            .observe()
+            .metrics()
+            .transaction
+            .transaction_begin_count
+            >= 1
+    );
+    assert!(
+        runtime
+            .observe()
+            .metrics()
+            .transaction
+            .transaction_commit_count
+            >= 1
+    );
     assert!(runtime.observe().metrics().checkpoint.event_flushes >= 1);
-    assert!(runtime.graph().observe().metrics().invalidation.invalidation_nodes_visited >= 1);
+    assert!(
+        runtime
+            .graph()
+            .observe()
+            .metrics()
+            .invalidation
+            .invalidation_nodes_visited
+            >= 1
+    );
 }
 
 #[test]
@@ -425,7 +482,9 @@ fn rollback_preserves_committed_explanation_and_increments_rollback_metric() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
     let mut runtime = build_runtime(graph);
 
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
@@ -433,7 +492,11 @@ fn rollback_preserves_committed_explanation_and_increments_rollback_metric() {
     evaluate(runtime.graph_mut(), source, &mut source_v1).unwrap();
     evaluate(runtime.graph_mut(), dependent, &mut dependent_v1).unwrap();
     let before = runtime.observe().explain(dependent).unwrap();
-    let rollback_before = runtime.observe().metrics().transaction.transaction_rollback_count;
+    let rollback_before = runtime
+        .observe()
+        .metrics()
+        .transaction
+        .transaction_rollback_count;
 
     let err = runtime.transaction(&mut (), |tx| {
         tx.mark_dirty(source, ASPECT_A)?;
@@ -447,10 +510,17 @@ fn rollback_preserves_committed_explanation_and_increments_rollback_metric() {
     assert!(err.is_err());
 
     let after = runtime.observe().explain(dependent).unwrap();
-    assert_eq!(before.trace_summary, after.trace_summary);
+    assert_eq!(
+        before.historical_artifact_record,
+        after.historical_artifact_record
+    );
     assert_eq!(before.upstream, after.upstream);
     assert_eq!(
-        runtime.observe().metrics().transaction.transaction_rollback_count,
+        runtime
+            .observe()
+            .metrics()
+            .transaction
+            .transaction_rollback_count,
         rollback_before + 1
     );
 }
@@ -460,7 +530,9 @@ fn flow_diagnostics_attach_event_epochs_after_successful_commit() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
     let mut runtime = build_runtime(graph);
 
     runtime
@@ -502,7 +574,13 @@ fn fillet_style_explanation_stays_local_to_the_changed_partition_scope() {
     let unrelated_region = graph.node().partitioned_output().build();
     let fillet = graph.node().build();
     graph
-        .append_partition_detail_dependency(fillet, feature_edit, ASPECT_A, "surface", "fillet-band")
+        .append_partition_detail_dependency(
+            fillet,
+            feature_edit,
+            ASPECT_A,
+            "surface",
+            "fillet-band",
+        )
         .unwrap();
 
     let bootstrap = graph

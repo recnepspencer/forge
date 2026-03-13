@@ -120,11 +120,7 @@ impl PartitionVersionMap {
         }
     }
 
-    pub fn apply_evaluation(
-        &mut self,
-        version: AspectVersion,
-        changed_regions: &[ChangedRegion],
-    ) {
+    pub fn apply_evaluation(&mut self, version: AspectVersion, changed_regions: &[ChangedRegion]) {
         self.global = version;
         if changed_regions.is_empty() {
             return;

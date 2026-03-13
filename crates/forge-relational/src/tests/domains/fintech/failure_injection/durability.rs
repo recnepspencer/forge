@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::facade::RecoveryPlan;
+use crate::facade::durability::RecoveryPlan;
 
 pub(crate) fn corrupt_latest_checkpoint_file(plan: &RecoveryPlan) -> Option<PathBuf> {
     let store = plan.store.as_ref()?;

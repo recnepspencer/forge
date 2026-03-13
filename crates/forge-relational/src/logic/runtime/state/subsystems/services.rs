@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 use std::sync::Mutex;
 
-use crate::logic::runtime::RuntimeComplexityCounters;
 use crate::logic::runtime::state::subsystems::RuntimeSubsystem;
+use crate::logic::runtime::RuntimeComplexityCounters;
 use crate::simulation::data::CompiledExecutionArtifact;
 use crate::symbols::data::StringInterner;
 
@@ -88,7 +88,8 @@ impl RuntimeServices {
     }
 
     pub(crate) fn next_transaction_id(&mut self) -> crate::transactions::data::TransactionId {
-        let transaction_id = crate::transactions::data::TransactionId(self.sequence.next_transaction_id);
+        let transaction_id =
+            crate::transactions::data::TransactionId(self.sequence.next_transaction_id);
         self.sequence.next_transaction_id += 1;
         transaction_id
     }
@@ -103,7 +104,9 @@ impl RuntimeServices {
         &self,
         compiled_artifact_id: u64,
     ) -> Option<&CompiledExecutionArtifact> {
-        self.simulation.compiled_artifacts.get(&compiled_artifact_id)
+        self.simulation
+            .compiled_artifacts
+            .get(&compiled_artifact_id)
     }
 
     pub(crate) fn next_compiled_artifact_id(&self) -> u64 {
@@ -113,7 +116,9 @@ impl RuntimeServices {
     pub(crate) fn store_compiled_artifact(&mut self, artifact: CompiledExecutionArtifact) -> u64 {
         let artifact_id = self.next_compiled_artifact_id();
         self.simulation.next_compiled_artifact_id += 1;
-        self.simulation.compiled_artifacts.insert(artifact_id, artifact);
+        self.simulation
+            .compiled_artifacts
+            .insert(artifact_id, artifact);
         artifact_id
     }
 }

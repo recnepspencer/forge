@@ -8,16 +8,16 @@ use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::diagnostics::recorder::record_lineage_transition;
 use crate::logic::context::EvaluationContext;
-use crate::logic::evaluation::IntoEvaluationOutput;
 use crate::logic::evaluation::EvaluationExecutionMetadata;
+use crate::logic::evaluation::IntoEvaluationOutput;
 use crate::logic::prepared::ExecutionSnapshot;
 
-use super::execution::diagnostics::{record_successful_execution, summarize_recorded_plan};
-use super::reporting::{accumulate_report_counters, classify_task_record};
 use self::helpers::{
     apply_test_precompute_telemetry, empty_execution_report, prepare_test_precomputed_task,
     prepare_test_task, TestPrecomputeTelemetry,
 };
+use super::execution::diagnostics::{record_successful_execution, summarize_recorded_plan};
+use super::reporting::{accumulate_report_counters, classify_task_record};
 use super::types::{
     EvaluationPlan, ExecutionRecordId, ExecutionReport, StageExecutionOutcome,
     StageExecutionRecord, StageExecutor,
@@ -74,7 +74,8 @@ where
     graph.telemetry_mut().planner.tasks_scheduled += plan.summary.task_count as u64;
     graph.telemetry_mut().execution.max_tasks_in_stage = graph
         .telemetry()
-        .execution.max_tasks_in_stage
+        .execution
+        .max_tasks_in_stage
         .max(plan.summary.max_stage_width as u64);
     graph.telemetry_mut().execution.serial_executor_usage_count += 1;
     graph.telemetry_mut().planner.maybe_stale_validation_tasks += plan
@@ -118,7 +119,10 @@ where
         let precompute_nanos = precompute_start.elapsed().as_nanos();
         graph.telemetry_mut().execution.execution_snapshot_nanos += snapshot_nanos;
         graph.telemetry_mut().execution.stage_precompute_nanos += precompute_nanos;
-        graph.telemetry_mut().execution.prepared_evaluations_produced += prepared_tasks.len() as u64;
+        graph
+            .telemetry_mut()
+            .execution
+            .prepared_evaluations_produced += prepared_tasks.len() as u64;
         graph.telemetry_mut().execution.serial_precompute_task_count += prepared_tasks.len() as u64;
         report.execution_snapshots_built += 1;
         report.execution_snapshot_nanos += snapshot_nanos;
@@ -129,6 +133,7 @@ where
         let mut stage_record = StageExecutionRecord {
             stage_index: stage.index,
             outcome: StageExecutionOutcome::CompletedSerial,
+            authority_policy: None,
             parallel_admission_reason: Some("serial-executor".to_string()),
             #[cfg(feature = "parallel")]
             parallel_kind: None,
@@ -156,27 +161,27 @@ where
             let record_id = ExecutionRecordId(next_record_id);
             next_record_id += 1;
             let before_state = graph.get_state(task.node)?;
-            let before_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
-            let apply_result =
-                crate::logic::evaluation::apply_prepared_evaluation_with_policy(
-                    graph,
-                    task.node,
-                    prepared,
-                    comparator_resolver,
-                    None,
-                )?;
-            if let Some(summary) = graph
-                .get_entry_mut(task.node)?
-                .get_trace_summary()
+            let before_trace = graph
+                .get_entry(task.node)?
+                .get_runtime_artifact_state()
+                .cloned();
+            let apply_result = crate::logic::evaluation::apply_prepared_evaluation_with_policy(
+                graph,
+                task.node,
+                prepared,
+                comparator_resolver,
+                None,
+            )?;
+            if let Some(mut updated) = graph
+                .get_entry(task.node)?
+                .get_runtime_artifact_state()
                 .cloned()
-                .as_mut()
             {
-                let mut updated = summary.clone();
                 updated.execution_record_id = Some(record_id.0);
                 updated.semantic_segment_id = Some(record_id.0);
                 graph
                     .get_entry_mut(task.node)?
-                    .set_trace_summary(Some(updated));
+                    .set_runtime_artifact_state(Some(updated));
             }
             record_lineage_transition(
                 graph,
@@ -186,7 +191,10 @@ where
                 super::types::SemanticSegmentId(record_id.0),
             )?;
             let after_state = graph.get_state(task.node)?;
-            let after_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
+            let after_trace = graph
+                .get_entry(task.node)?
+                .get_runtime_artifact_state()
+                .cloned();
             let task_record = classify_task_record(
                 record_id,
                 super::types::SemanticSegmentId(record_id.0),
@@ -244,13 +252,15 @@ where
     graph.telemetry_mut().planner.tasks_scheduled += plan.summary.task_count as u64;
     graph.telemetry_mut().execution.max_tasks_in_stage = graph
         .telemetry()
-        .execution.max_tasks_in_stage
+        .execution
+        .max_tasks_in_stage
         .max(plan.summary.max_stage_width as u64);
     graph.telemetry_mut().execution.serial_executor_usage_count += 1;
     graph.telemetry_mut().evaluation.evaluation_calls += 1;
     graph.telemetry_mut().evaluation.evaluation_stack_peak = graph
         .telemetry()
-        .evaluation.evaluation_stack_peak
+        .evaluation
+        .evaluation_stack_peak
         .max(plan.summary.task_count as u64);
     graph.telemetry_mut().planner.maybe_stale_validation_tasks += plan
         .stages
@@ -289,7 +299,10 @@ where
         let precompute_nanos = precompute_start.elapsed().as_nanos();
         graph.telemetry_mut().execution.execution_snapshot_nanos += snapshot_nanos;
         graph.telemetry_mut().execution.stage_precompute_nanos += precompute_nanos;
-        graph.telemetry_mut().execution.prepared_evaluations_produced += prepared_tasks.len() as u64;
+        graph
+            .telemetry_mut()
+            .execution
+            .prepared_evaluations_produced += prepared_tasks.len() as u64;
         graph.telemetry_mut().execution.serial_precompute_task_count += prepared_tasks.len() as u64;
         report.execution_snapshots_built += 1;
         report.execution_snapshot_nanos += snapshot_nanos;
@@ -300,6 +313,7 @@ where
         let mut stage_record = StageExecutionRecord {
             stage_index: stage.index,
             outcome: StageExecutionOutcome::CompletedSerial,
+            authority_policy: None,
             parallel_admission_reason: Some("serial-executor".to_string()),
             #[cfg(feature = "parallel")]
             parallel_kind: None,
@@ -327,27 +341,27 @@ where
             let record_id = ExecutionRecordId(next_record_id);
             next_record_id += 1;
             let before_state = graph.get_state(task.node)?;
-            let before_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
-            let apply_result =
-                crate::logic::evaluation::apply_prepared_evaluation_with_policy(
-                    graph,
-                    task.node,
-                    prepared,
-                    comparator_resolver,
-                    execution_metadata.filter(|_| task.direct_request),
-                )?;
-            if let Some(summary) = graph
-                .get_entry_mut(task.node)?
-                .get_trace_summary()
+            let before_trace = graph
+                .get_entry(task.node)?
+                .get_runtime_artifact_state()
+                .cloned();
+            let apply_result = crate::logic::evaluation::apply_prepared_evaluation_with_policy(
+                graph,
+                task.node,
+                prepared,
+                comparator_resolver,
+                execution_metadata.filter(|_| task.direct_request),
+            )?;
+            if let Some(mut updated) = graph
+                .get_entry(task.node)?
+                .get_runtime_artifact_state()
                 .cloned()
-                .as_mut()
             {
-                let mut updated = summary.clone();
                 updated.execution_record_id = Some(record_id.0);
                 updated.semantic_segment_id = Some(record_id.0);
                 graph
                     .get_entry_mut(task.node)?
-                    .set_trace_summary(Some(updated));
+                    .set_runtime_artifact_state(Some(updated));
             }
             record_lineage_transition(
                 graph,
@@ -357,7 +371,10 @@ where
                 super::types::SemanticSegmentId(record_id.0),
             )?;
             let after_state = graph.get_state(task.node)?;
-            let after_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
+            let after_trace = graph
+                .get_entry(task.node)?
+                .get_runtime_artifact_state()
+                .cloned();
             let task_record = classify_task_record(
                 record_id,
                 super::types::SemanticSegmentId(record_id.0),

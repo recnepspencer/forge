@@ -122,9 +122,13 @@ fn continuity_token_does_not_hide_real_identity_change_across_permutations() {
 
     let lineage = graph.observe().lineage_for_node(source);
     assert!(
-        lineage
-            .iter()
-            .any(|record| record.event == LineageEvent::Replaced),
+        lineage.iter().any(|record| matches!(
+            record.kind,
+            LineageRecordKind::ArtifactTransition {
+                transition: ArtifactTransitionKind::Replaced,
+                ..
+            }
+        )),
         "matching continuity tokens must not suppress real output-identity replacement"
     );
 }

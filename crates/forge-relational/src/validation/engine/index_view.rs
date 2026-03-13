@@ -20,7 +20,11 @@ impl<'runtime> InvariantIndexView<'runtime> {
     ) -> bool {
         self.access
             .entity_unique_field_ids(field, value)
-            .is_some_and(|existing| existing.iter().any(|existing_id| entity_id != Some(*existing_id)))
+            .is_some_and(|existing| {
+                existing
+                    .iter()
+                    .any(|existing_id| entity_id != Some(*existing_id))
+            })
     }
 
     pub(crate) fn conflicts_with_entity_value_outside(
@@ -31,7 +35,11 @@ impl<'runtime> InvariantIndexView<'runtime> {
     ) -> bool {
         self.access
             .entity_unique_field_ids(field, value)
-            .is_some_and(|existing| existing.iter().any(|existing_id| !excluded.contains(existing_id)))
+            .is_some_and(|existing| {
+                existing
+                    .iter()
+                    .any(|existing_id| !excluded.contains(existing_id))
+            })
     }
 
     pub(crate) fn first_duplicate_entity_value(&self, field: &str) -> Option<&str> {

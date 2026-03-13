@@ -1,28 +1,25 @@
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
-use crate::logic::explain::{
-    CausalDisposition, CausalLink, ScopeProvenance, ScopeProvenanceKind,
-};
-
-use super::SemanticTaskUpdate;
+use crate::logic::explain::{CausalDisposition, CausalLink, ScopeProvenance, ScopeProvenanceKind};
 
 pub(super) fn record_semantic_artifacts(
     graph: &mut SignalGraph,
-    update: &SemanticTaskUpdate,
+    node: crate::data::handle::NodeId,
+    rewiring: Option<&crate::logic::explain::RewiringSummary>,
 ) -> Result<(), SignalError> {
     let policy = graph.runtime_policy();
     if !policy.retains_explanation_facts() && !policy.retains_provenance_facts() {
         return Ok(());
     }
 
-    let Ok(mut explanation) = graph.observe().explain(update.node) else {
+    let Ok(mut explanation) = graph.observe().explain(node) else {
         return Ok(());
     };
     if explanation.rewiring.is_none() {
-        explanation.rewiring = update.rewiring.clone();
+        explanation.rewiring = rewiring.cloned();
     }
-    if let Some(rewiring) = &update.rewiring {
+    if let Some(rewiring) = rewiring {
         explanation
             .causal_links
             .extend(rewiring.added.iter().map(|dependency| CausalLink {
@@ -71,9 +68,9 @@ pub(super) fn record_semantic_artifacts(
             }));
     }
     if policy.retains_explanation_facts() {
-        graph.diagnostics_state_mut().record_explanation_fact(
-            ExplanationFact::from_explanation(&explanation),
-        );
+        graph
+            .diagnostics_state_mut()
+            .record_explanation_fact(ExplanationFact::from_explanation(&explanation));
     }
     if policy.retains_provenance_facts() {
         graph

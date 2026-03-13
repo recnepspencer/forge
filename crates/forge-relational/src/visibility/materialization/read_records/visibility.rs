@@ -2,8 +2,8 @@ use crate::identity::data::VersionBound;
 use crate::logic::runtime::RelationalRuntime;
 use crate::storage::data::RecordLifecycleState;
 use crate::storage::logic::state::{
-    DenseSlotBitSet, HistoricalMetadata, PartitionAccess, PartitionState, RecordArena,
-    RecordKind, VersionedValue,
+    DenseSlotBitSet, HistoricalMetadata, PartitionAccess, PartitionState, RecordArena, RecordKind,
+    VersionedValue,
 };
 
 pub(super) fn visible_payload_for_generation(
@@ -19,7 +19,9 @@ pub(super) fn visible_payload_for_generation(
         .find(|entry| {
             entry.generation == generation
                 && bound.includes_created(entry.effective_at)
-                && entry.retired_at.is_none_or(|retired| bound.retains_retired(retired))
+                && entry
+                    .retired_at
+                    .is_none_or(|retired| bound.retains_retired(retired))
         })
         .map(|entry| &entry.value)
 }
@@ -32,7 +34,9 @@ pub(super) fn visible_metadata<M: HistoricalMetadata>(
     let end = history.partition_point(|entry| bound.includes_created(entry.effective_at()));
     history[..end].iter().rev().find(|entry| {
         bound.includes_created(entry.effective_at())
-            && entry.retired_at().is_none_or(|retired| bound.retains_retired(retired))
+            && entry
+                .retired_at()
+                .is_none_or(|retired| bound.retains_retired(retired))
     })
 }
 
@@ -75,7 +79,10 @@ pub(super) fn slot_kind_matches<K: RecordKind>(
     slot: usize,
     kind_id: crate::identity::data::KindId,
 ) -> bool {
-    arena.get_slot(slot).and_then(|slot_view| slot_view.kind_id()) == Some(kind_id)
+    arena
+        .get_slot(slot)
+        .and_then(|slot_view| slot_view.kind_id())
+        == Some(kind_id)
 }
 
 pub(super) fn visible_slots_in_partition_from_state<K: RecordKind>(
@@ -148,13 +155,14 @@ mod tests {
         entity_arena.retire(slot, crate::identity::data::VersionId(2));
         entity_arena.lifecycle[slot] = RecordLifecycleState::Reusable;
         entity_arena.reset_slot(slot);
-        let (_, reused_generation, _) = entity_arena.push_slot(crate::storage::substrate::SlotInit {
-            partition_id,
-            kind_id: crate::identity::data::KindId(12),
-            payload: Some(RecordPayload::OpaqueBytes(vec![2])),
-            version_id: crate::identity::data::VersionId(3),
-            extra: crate::storage::substrate::EntityExtra::default(),
-        });
+        let (_, reused_generation, _) =
+            entity_arena.push_slot(crate::storage::substrate::SlotInit {
+                partition_id,
+                kind_id: crate::identity::data::KindId(12),
+                payload: Some(RecordPayload::OpaqueBytes(vec![2])),
+                version_id: crate::identity::data::VersionId(3),
+                extra: crate::storage::substrate::EntityExtra::default(),
+            });
         assert_eq!(reused_generation, 2);
 
         runtime.history.next_version_id = 4;
@@ -170,7 +178,7 @@ mod tests {
             },
         );
 
-        let current_state = runtime.current_state();
+        let current_state = runtime.storage_access().current_state();
         assert!(runtime
             .visibility_reads()
             .entity_record_for_id_at_version(&current_state, stale_id, runtime.current_version_id())

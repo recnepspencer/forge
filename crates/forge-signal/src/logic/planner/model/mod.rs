@@ -6,10 +6,20 @@ use std::thread::available_parallelism;
 
 use serde::{Deserialize, Serialize};
 
+use crate::data::dependency::CanonicalDependencies;
 use crate::data::handle::NodeId;
+use crate::data::node::NodeState;
+use crate::data::node::{AuthorityPolicy, NodeContract, PathClass};
 use crate::data::output::MemoizedResultOrigin;
-use crate::logic::evaluation::{DeferralReason, EvaluationVerdict, SuppressionReason};
+use crate::data::performance::{ResolvedExecutionStrategy, ResolvedMaintenanceStrategy};
+use crate::data::proof::{
+    DedupedNodeBatch, LoweredForm, PartitionScopeSet, SortedSourceBatch, StructuralDelta,
+};
+use crate::data::trace::RuntimeArtifactState;
 use crate::logic::evaluation::EvaluationRequestMode;
+use crate::logic::evaluation::{DeferralReason, EvaluationVerdict, SuppressionReason};
+use crate::logic::explain::RewiringSummary;
+use crate::logic::prepared::PreparedEvaluation;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TaskReason {
@@ -47,6 +57,65 @@ pub struct EvaluationTask {
     pub direct_request: bool,
     pub reason: TaskReason,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ApplyFootprint {
+    pub partitions: PartitionScopeSet,
+    pub touched_nodes: DedupedNodeBatch,
+    pub touched_sources: SortedSourceBatch,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DisjointApplyGroup {
+    pub task_indices: Vec<usize>,
+    pub footprint: ApplyFootprint,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct LoweredTaskExecution {
+    pub prepared: PreparedEvaluation,
+    pub before_state: NodeState,
+    pub before_artifact_state: Option<RuntimeArtifactState>,
+    pub dependency_updates: u32,
+    pub recomputed: bool,
+    pub partition_aware: bool,
+    pub rewiring: Option<RewiringSummary>,
+    pub next_dependencies: CanonicalDependencies,
+}
+
+#[derive(Debug, Clone)]
+pub struct LoweredTask {
+    pub task_index: usize,
+    pub node: NodeId,
+    pub contract: NodeContract,
+    pub dependency_inputs: CanonicalDependencies,
+    pub path_class: PathClass,
+    pub authority_policy: AuthorityPolicy,
+    pub footprint: ApplyFootprint,
+    pub(crate) execution: LoweredTaskExecution,
+}
+
+#[derive(Debug, Clone)]
+pub struct LoweredStagePlan {
+    pub stage_index: u32,
+    pub tasks: Vec<LoweredTask>,
+    pub apply_groups: Vec<DisjointApplyGroup>,
+    pub dirty_delta: StructuralDelta,
+    pub execution_strategy: ResolvedExecutionStrategy,
+    pub maintenance_strategy: ResolvedMaintenanceStrategy,
+    pub authority_policy: AuthorityPolicy,
+}
+
+impl LoweredStagePlan {
+    pub fn task_count(&self) -> usize {
+        self.tasks.len()
+    }
+}
+
+impl LoweredForm for ApplyFootprint {}
+impl LoweredForm for DisjointApplyGroup {}
+impl LoweredForm for LoweredTask {}
+impl LoweredForm for LoweredStagePlan {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExecutionStage {
@@ -90,7 +159,7 @@ pub(crate) struct EvaluationCursor {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct EvaluationSession<'a> {
+pub(crate) struct SessionScratch<'a> {
     pub targets: &'a [NodeId],
     pub tasks: &'a [EvaluationTask],
     pub stages: &'a [StageCursor],
@@ -156,6 +225,7 @@ pub struct TaskExecutionRecord {
 pub struct StageExecutionRecord {
     pub stage_index: u32,
     pub outcome: StageExecutionOutcome,
+    pub authority_policy: Option<AuthorityPolicy>,
     pub parallel_admission_reason: Option<String>,
     #[cfg(feature = "parallel")]
     pub parallel_kind: Option<ParallelExecutionKind>,

@@ -3,8 +3,8 @@ use std::collections::BTreeSet;
 use crate::capabilities::{SchemaSource, StorageRead};
 use crate::logic::runtime::RuntimeInstrumentation;
 use crate::transactions::data::{
-    CommitConflict, ConflictClass, ExistingRecordTarget, RelationIdentity, RelationSpec,
-    CreateIntent, MutationIntent,
+    CommitConflict, ConflictClass, CreateIntent, ExistingRecordTarget, MutationIntent,
+    RelationIdentity, RelationSpec,
 };
 
 use super::record_lookup::{entity_exists_in_state, relation_exists_in_state};
@@ -25,23 +25,27 @@ pub(super) fn validate_relation_intent(
             instrumentation,
             spec,
         ),
-        MutationIntent::Create(CreateIntent::BulkRelations(spec)) => validate_bulk_relation_creation(
-            state,
-            schema_source,
-            default_cross_context_policy,
-            instrumentation,
-            spec.partition_id,
-            spec.kind_id,
-            &spec.endpoints,
-        ),
-        MutationIntent::Relation(crate::transactions::data::RelationMutationIntent::Delete(spec)) => {
+        MutationIntent::Create(CreateIntent::BulkRelations(spec)) => {
+            validate_bulk_relation_creation(
+                state,
+                schema_source,
+                default_cross_context_policy,
+                instrumentation,
+                spec.partition_id,
+                spec.kind_id,
+                &spec.endpoints,
+            )
+        }
+        MutationIntent::Relation(crate::transactions::data::RelationMutationIntent::Delete(
+            spec,
+        )) => {
             if relation_exists_in_state(state, spec.relation_id) {
                 Ok(())
             } else {
                 Err(CommitConflict::new(ConflictClass::StaleTarget {
-                        target: ExistingRecordTarget::Relation(spec.relation_id),
-                        context: "relation validation".to_string(),
-                    }))
+                    target: ExistingRecordTarget::Relation(spec.relation_id),
+                    context: "relation validation".to_string(),
+                }))
             }
         }
         MutationIntent::Create(CreateIntent::Entity(_))
@@ -57,7 +61,10 @@ fn validate_bulk_relation_creation(
     instrumentation: &RuntimeInstrumentation,
     partition_id: crate::identity::data::PartitionId,
     kind_id: crate::identity::data::KindId,
-    endpoints: &[(crate::identity::data::EntityId, crate::identity::data::EntityId)],
+    endpoints: &[(
+        crate::identity::data::EntityId,
+        crate::identity::data::EntityId,
+    )],
 ) -> Result<(), CommitConflict> {
     let schema_registry = schema_source.schema_registry();
     schema_registry
@@ -72,9 +79,11 @@ fn validate_bulk_relation_creation(
             target: *target,
         };
         if !seen_batch_keys.insert(identity) {
-            return Err(CommitConflict::new(ConflictClass::DuplicateRelationIdentity {
+            return Err(CommitConflict::new(
+                ConflictClass::DuplicateRelationIdentity {
                     detail: "duplicate relation identity within bulk batch".to_string(),
-                }));
+                },
+            ));
         }
         let spec = RelationSpec {
             partition_id,
@@ -118,17 +127,21 @@ fn validate_relation_creation(
         };
         if effective_cross_context_policy != crate::config::data::CrossContextPolicy::AllowExplicit
         {
-            return Err(CommitConflict::new(ConflictClass::InvalidRelationEndpoint {
+            return Err(CommitConflict::new(
+                ConflictClass::InvalidRelationEndpoint {
                     detail:
                         "cross-context relation endpoints are not allowed for this relation kind"
                             .to_string(),
-                }));
+                },
+            ));
         }
     }
     if !entity_exists_in_state(state, spec.source) || !entity_exists_in_state(state, spec.target) {
-        return Err(CommitConflict::new(ConflictClass::InvalidRelationEndpoint {
+        return Err(CommitConflict::new(
+            ConflictClass::InvalidRelationEndpoint {
                 detail: "relation endpoints must be live entities".to_string(),
-            }));
+            },
+        ));
     }
     let Some(source_partition) = state.get_partition(spec.source.partition_id) else {
         return Ok(());
@@ -156,9 +169,11 @@ fn validate_relation_creation(
         let same_kind = relation_slot.kind_id() == Some(spec.kind_id);
         let same_endpoints = endpoints.source == spec.source && endpoints.target == spec.target;
         if same_kind && same_endpoints {
-            return Err(CommitConflict::new(ConflictClass::DuplicateRelationIdentity {
+            return Err(CommitConflict::new(
+                ConflictClass::DuplicateRelationIdentity {
                     detail: "duplicate relation identity".to_string(),
-                }));
+                },
+            ));
         }
     }
     Ok(())

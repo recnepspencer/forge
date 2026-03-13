@@ -4,51 +4,94 @@ use crate::data::error::SignalError;
 use crate::data::graph::{ScratchLeaseKind, SignalGraph, TraversalScratch};
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
-use crate::data::output::{
-    ChangedRegion, InternedPartitionSubscription, PartitionSubscription,
-};
+use crate::data::output::{ChangedRegion, InternedPartitionSubscription, PartitionSubscription};
+use crate::data::proof::{DirtyBatch, SemanticBatchCommit};
 use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
+use crate::diagnostics::lineage::InvalidationCause;
 use crate::diagnostics::recorder::{record_invalidation_lineage, DiagnosticsRecorder};
 use std::ops::DerefMut;
 
 use super::cycles::detect_reachable_cycles;
 use super::subscription::{subscribes_to_aspect, SubscriptionDirtyMatch};
 
+#[cfg(any(test, doctest))]
 pub fn mark_dirty(
     mut graph: impl DerefMut<Target = SignalGraph>,
     source: NodeId,
     changed_aspect: Aspect,
 ) -> Result<(), SignalError> {
-    mark_dirty_with_regions(graph.deref_mut(), source, changed_aspect, &[])
+    let _ = mark_dirty_batch(
+        graph.deref_mut(),
+        &DirtyBatch::singleton(source, changed_aspect, Vec::<ChangedRegion>::new()),
+    )?;
+    Ok(())
 }
 
+#[cfg(any(test, doctest))]
 pub fn mark_dirty_with_regions(
     mut graph: impl DerefMut<Target = SignalGraph>,
     source: NodeId,
     changed_aspect: Aspect,
     changed_regions: &[ChangedRegion],
 ) -> Result<(), SignalError> {
+    let _ = mark_dirty_batch(
+        graph.deref_mut(),
+        &DirtyBatch::singleton(source, changed_aspect, changed_regions.to_vec()),
+    )?;
+    Ok(())
+}
+
+pub fn mark_dirty_batch(
+    mut graph: impl DerefMut<Target = SignalGraph>,
+    dirty: &DirtyBatch,
+) -> Result<SemanticBatchCommit, SignalError> {
     let graph = graph.deref_mut();
-    graph.note_change_input(source, changed_aspect, changed_regions);
+    for entry in dirty.as_slice() {
+        graph.note_change_input(
+            entry.source,
+            entry.changed_aspect,
+            entry.changed_regions.as_slice(),
+        );
+    }
     let result = graph.with_scratch(ScratchLeaseKind::Invalidation, |graph, scratch| {
+        let scratch = scratch.traversal_mut();
         let (arena, _, _, _) = graph.as_parts_mut();
         let len = arena.len();
-        scratch.visited.next_pass(len);
-        scratch.cycle_visiting.next_pass(len);
-        scratch.cycle_finished.next_pass(len);
-        scratch.node_buffer_a.clear();
-        scratch.node_buffer_b.clear();
-        mark_dirty_with_scratch(graph, scratch, source, changed_aspect, changed_regions)
+        let entries = dirty.as_slice();
+        let mut start = 0usize;
+        while start < entries.len() {
+            let changed_aspect = entries[start].changed_aspect;
+            scratch.visited.next_pass(len);
+            scratch.node_buffer_a.clear();
+            scratch.node_buffer_b.clear();
+            let mut end = start;
+            while end < entries.len() && entries[end].changed_aspect == changed_aspect {
+                scratch.cycle_visiting.next_pass(len);
+                scratch.cycle_finished.next_pass(len);
+                mark_dirty_with_scratch(
+                    graph,
+                    scratch,
+                    entries[end].source,
+                    entries[end].changed_aspect,
+                    entries[end].changed_regions.as_slice(),
+                )?;
+                end += 1;
+            }
+            propagate_maybe_stale(graph, scratch, changed_aspect)?;
+            start = end;
+        }
+        Ok(())
     });
-    if let Err(err) = &result {
+    if let Err(err) = result {
         graph.clear_pending_diagnostics_input();
         DiagnosticsRecorder::new(graph).record_failure(ExecutionFailureContext::from_error(
             ExecutionFailurePhase::Invalidation,
-            err,
+            &err,
             None,
         ));
+        return Err(err);
     }
-    result
+    Ok(SemanticBatchCommit::new(dirty.clone()))
 }
 
 fn mark_dirty_with_scratch(
@@ -64,8 +107,8 @@ fn mark_dirty_with_scratch(
     traversal.collect_direct_subscribers();
     traversal.ensure_acyclic_reachability()?;
     traversal.mark_direct_subscribers()?;
-    traversal.seed_transitive_frontier();
-    traversal.propagate_transitive_maybe_stale()
+    traversal.append_transitive_frontier();
+    Ok(())
 }
 
 struct InvalidationTraversal<'graph, 'scratch> {
@@ -108,10 +151,9 @@ impl<'graph, 'scratch> InvalidationTraversal<'graph, 'scratch> {
             record_invalidation_lineage(
                 self.graph,
                 self.source,
-                format!(
-                    "source invalidated on aspect {}",
-                    self.changed_aspect.index()
-                ),
+                InvalidationCause::SourceAspectChanged {
+                    aspect_index: self.changed_aspect.index(),
+                },
             );
         }
         self.scratch.visited.mark(self.source.index() as usize);
@@ -147,15 +189,10 @@ impl<'graph, 'scratch> InvalidationTraversal<'graph, 'scratch> {
         Ok(())
     }
 
-    fn seed_transitive_frontier(&mut self) {
-        self.scratch.node_buffer_b.clear();
+    fn append_transitive_frontier(&mut self) {
         for &subscriber in &self.scratch.node_buffer_a {
             append_live_subscribers(self.graph, subscriber, &mut self.scratch.node_buffer_b);
         }
-    }
-
-    fn propagate_transitive_maybe_stale(&mut self) -> Result<(), SignalError> {
-        propagate_maybe_stale(self.graph, self.scratch, self.changed_aspect)
     }
 }
 
@@ -183,7 +220,10 @@ fn mark_direct_subscribers(
         if !contract_cares {
             continue;
         }
-        let checks_before = graph.telemetry().invalidation.partition_scoped_invalidation_checks;
+        let checks_before = graph
+            .telemetry()
+            .invalidation
+            .partition_scoped_invalidation_checks;
         let dirty_match = subscribes_to_aspect(
             graph,
             sub,
@@ -221,17 +261,22 @@ fn mark_direct_subscribers(
             record_invalidation_lineage(
                 graph,
                 sub,
-                format!(
-                    "direct subscriber invalidated from {} on aspect {}",
-                    source.index(),
-                    changed_aspect.index()
-                ),
+                InvalidationCause::DirectDependencyChanged {
+                    dependency: source,
+                    aspect_index: changed_aspect.index(),
+                },
             );
         }
-        graph.telemetry_mut().invalidation.invalidation_nodes_visited += 1;
+        graph
+            .telemetry_mut()
+            .invalidation
+            .invalidation_nodes_visited += 1;
         match dirty_match {
             SubscriptionDirtyMatch::WholePartition => {
-                graph.telemetry_mut().invalidation.partition_match_dirty_count += 1;
+                graph
+                    .telemetry_mut()
+                    .invalidation
+                    .partition_match_dirty_count += 1;
             }
             SubscriptionDirtyMatch::PartitionAndDetail => {
                 graph.telemetry_mut().invalidation.detail_match_dirty_count += 1;
@@ -250,10 +295,17 @@ fn intern_changed_regions(
     let token_count_before = observation.partition_interner_mut().token_count();
     let interned = changed_regions
         .iter()
-        .map(|region| observation.partition_interner_mut().intern_changed_region(region))
+        .map(|region| {
+            observation
+                .partition_interner_mut()
+                .intern_changed_region(region)
+        })
         .collect::<Vec<_>>();
     let token_count_after = observation.partition_interner_mut().token_count();
-    observation.telemetry_mut().invalidation.partition_interner_growth_delta +=
+    observation
+        .telemetry_mut()
+        .invalidation
+        .partition_interner_growth_delta +=
         token_count_after.saturating_sub(token_count_before) as u64;
     interned
 }
@@ -306,7 +358,10 @@ fn propagate_maybe_stale(
                 .filter_map(|idx| graph.live_node_id_at(idx)),
         );
         for &node in &scratch.node_buffer_a {
-            graph.telemetry_mut().invalidation.invalidation_nodes_visited += 1;
+            graph
+                .telemetry_mut()
+                .invalidation
+                .invalidation_nodes_visited += 1;
             if scratch.visited.is_marked(node.index() as usize) {
                 continue;
             }
@@ -328,10 +383,9 @@ fn propagate_maybe_stale(
                     record_invalidation_lineage(
                         graph,
                         node,
-                        format!(
-                            "transitive subscriber invalidated by aspect {}",
-                            changed_aspect.index()
-                        ),
+                        InvalidationCause::TransitiveDependencyChanged {
+                            aspect_index: changed_aspect.index(),
+                        },
                     );
                 }
             }

@@ -1,4 +1,6 @@
-use crate::capabilities::{HistorySource, LineageRead, ReplayRead, RuntimeConfigSource, SchemaSource};
+use crate::capabilities::{
+    HistorySource, LineageRead, ReplayRead, RuntimeConfigSource, SchemaSource,
+};
 use crate::history::data::{BranchId, CommitId};
 use crate::logic::runtime::RelationalRuntime;
 use crate::replay::data::{
@@ -53,11 +55,8 @@ impl<'runtime> ReplayAuthority<'runtime> {
             }
         };
 
-        let replay_plan = replay_recovery_plan_for_chain(
-            self.runtime,
-            self.runtime.runtime_config(),
-            &chain,
-        );
+        let replay_plan =
+            replay_recovery_plan_for_chain(self.runtime, self.runtime.runtime_config(), &chain);
         let replay_runtime = match RelationalRuntime::rebuild_runtime_from_plan(replay_plan) {
             Ok(runtime) => runtime,
             Err(_) => {
@@ -124,16 +123,18 @@ impl<'runtime> ReplayAuthority<'runtime> {
             });
         }
         if compared_surfaces.contains(&ReplayObservableSurface::Snapshot) {
-            let original_read = self.runtime.read_view_at_version(envelope.commit.version_id);
-            let replayed_read =
-                replay_runtime.read_view_at_version(replayed_envelope.commit.version_id);
-            if original_read != replayed_read {
+            let original_surface = self
+                .runtime
+                .replay_snapshot_surface_at_version(envelope.commit.version_id);
+            let replayed_surface = replay_runtime
+                .replay_snapshot_surface_at_version(replayed_envelope.commit.version_id);
+            if original_surface != replayed_surface {
                 mismatches.push(ReplayMismatch {
                     class: ReplayMismatchClass::SnapshotDrift,
                     surface: ReplayObservableSurface::Snapshot,
                     detail: "snapshot-visible state differed".to_string(),
-                    expected: Some(format!("{:?}", original_read)),
-                    observed: Some(format!("{:?}", replayed_read)),
+                    expected: Some(format!("{:?}", original_surface)),
+                    observed: Some(format!("{:?}", replayed_surface)),
                 });
             }
         }
@@ -164,7 +165,9 @@ impl<'runtime> ReplayAuthority<'runtime> {
         }
         if compared_surfaces.contains(&ReplayObservableSurface::DerivedIndexes)
             && replay_runtime.index_generations_at_version(envelope.commit.version_id)
-                != self.runtime.index_generations_at_version(envelope.commit.version_id)
+                != self
+                    .runtime
+                    .index_generations_at_version(envelope.commit.version_id)
         {
             mismatches.push(ReplayMismatch {
                 class: ReplayMismatchClass::DerivedIndexDrift,
@@ -172,7 +175,8 @@ impl<'runtime> ReplayAuthority<'runtime> {
                 detail: "derived index generations differed".to_string(),
                 expected: Some(format!(
                     "{:?}",
-                    self.runtime.index_generations_at_version(envelope.commit.version_id)
+                    self.runtime
+                        .index_generations_at_version(envelope.commit.version_id)
                 )),
                 observed: Some(format!(
                     "{:?}",

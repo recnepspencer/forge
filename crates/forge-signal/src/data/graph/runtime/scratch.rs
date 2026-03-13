@@ -22,6 +22,21 @@ pub(crate) struct TraversalScratch {
     pub(crate) planner_stages: Vec<StageCursor>,
 }
 
+#[derive(Debug)]
+pub(crate) struct GraphScratch<'a> {
+    traversal: &'a mut TraversalScratch,
+}
+
+impl<'a> GraphScratch<'a> {
+    pub(crate) fn new(traversal: &'a mut TraversalScratch) -> Self {
+        Self { traversal }
+    }
+
+    pub(crate) fn traversal_mut(&mut self) -> &mut TraversalScratch {
+        self.traversal
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub(crate) struct VisitMarks {
     marks: Vec<u32>,

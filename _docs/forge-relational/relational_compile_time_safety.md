@@ -79,7 +79,7 @@ impl MergeParentList {
 
 **Current status**: Implemented.
 
-**When it matters**: After Milestone 4 (Intent Dispatch) lands.
+**When it matters**: Now that Milestone 4 (Invariant Engine / intent-driven dispatch) is complete.
 
 **The Bug It Prevents**: A developer adds a 9th `TransactionIntent` variant. Eight of ten match sites are updated. Two files have `_ => {}` catch-all arms and compile successfully. The new intent is silently ignored in merge conflict detection and snapshot publication.
 
@@ -87,7 +87,7 @@ impl MergeParentList {
 
 1. Remove all `_ => {}` catch-all arms on `TransactionIntent` matches.
 2. Add a CI lint (or `#[deny(unreachable_patterns)]` at crate level) that fails on wildcard arms for this enum.
-3. Milestone 4's self-describing methods already reduce match sites from 10+ to 1, making this largely moot.
+3. Milestone 4's self-describing methods already reduced match sites from 10+ to 1, making this largely moot.
 
 **Implemented shape**:
 
