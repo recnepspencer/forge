@@ -10,6 +10,7 @@ use super::super::config::SignalRuntimeConfig;
 use super::branches::{BranchManager, BranchState};
 use super::builder::SignalRuntimeBuilder;
 use super::observer::RuntimeObserver;
+use super::reconstructability::{AuthorityState, DerivedState};
 
 /// Full runtime surface for transactional evaluation, diagnostics, replay, and
 /// keyed or tier-aware execution.
@@ -150,12 +151,18 @@ where
         &self.telemetry
     }
 
+    pub(super) fn capture_authority_state(&self) -> AuthorityState<T> {
+        AuthorityState::capture(&self.graph, &self.config)
+    }
+
+    pub(super) fn capture_derived_state(&self) -> DerivedState<D, I> {
+        DerivedState::capture(&self.checkpoint, &self.telemetry)
+    }
+
     pub(super) fn capture_branch_state(&mut self) -> BranchState<D, I, T> {
         self.branches.capture_active_state(
-            &self.graph,
-            &self.config,
-            &self.checkpoint,
-            &self.telemetry,
+            self.capture_authority_state(),
+            self.capture_derived_state(),
         )
     }
 

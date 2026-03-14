@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::errors::data::{ErrorContext, ErrorOperation, RelationalSubsystem, SuggestedFix};
 
-use super::PublicationStage;
+use crate::publication::bundle::PublicationStage;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PublicationError {

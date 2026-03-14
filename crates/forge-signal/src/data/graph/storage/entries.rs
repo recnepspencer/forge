@@ -98,6 +98,7 @@ impl SignalGraph {
         if snapshots.is_empty() {
             return Ok(());
         }
+        self.telemetry_mut().storage.snapshot_batch_size += snapshots.as_slice().len() as u64;
 
         for snapshot in snapshots.as_slice() {
             self.validate_handle(snapshot.node)?;
@@ -107,6 +108,7 @@ impl SignalGraph {
             if !snapshot.delta.changed() {
                 continue;
             }
+            self.telemetry_mut().storage.patch_application_breadth += 1;
             let snapshot_id = self.topology.dependency_snapshots.insert(
                 snapshot
                     .update

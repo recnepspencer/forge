@@ -1,5 +1,8 @@
 //! Arena-based signal graph with dependency storage.
 
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
+
 use serde::{Deserialize, Serialize};
 
 use crate::data::bitset::DenseBitset;
@@ -55,10 +58,39 @@ pub(crate) struct TraversalResources {
 pub(crate) struct RuntimeObservation {
     #[serde(skip, default)]
     pub(in crate::data::graph) telemetry: RuntimeTelemetry,
+    #[serde(skip, default)]
+    pub(in crate::data::graph) reconstruction_counters: ReconstructionCounters,
     #[serde(default)]
     pub(in crate::data::graph) partition_interner: PartitionInterner,
     #[serde(skip, default)]
     pub(in crate::data::graph) diagnostics: DiagnosticsState,
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct ReconstructionCounters {
+    hot_path_artifact_reconstruction_count: Arc<AtomicU64>,
+}
+
+impl ReconstructionCounters {
+    pub(crate) fn record_hot_path_artifact_reconstruction(&self) {
+        self.hot_path_artifact_reconstruction_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn hot_path_artifact_reconstruction_count(&self) -> u64 {
+        self.hot_path_artifact_reconstruction_count
+            .load(Ordering::Relaxed)
+    }
+}
+
+impl Clone for ReconstructionCounters {
+    fn clone(&self) -> Self {
+        Self {
+            hot_path_artifact_reconstruction_count: Arc::new(AtomicU64::new(
+                self.hot_path_artifact_reconstruction_count(),
+            )),
+        }
+    }
 }
 
 /// The reactive signal graph.
@@ -198,6 +230,18 @@ impl SignalGraph {
         let result = f(self, &mut graph_scratch);
         self.restore_scratch(kind, scratch)?;
         result
+    }
+
+    pub(crate) fn record_hot_path_artifact_reconstruction(&self) {
+        self.observation
+            .reconstruction_counters
+            .record_hot_path_artifact_reconstruction();
+    }
+
+    pub(crate) fn hot_path_artifact_reconstruction_count(&self) -> u64 {
+        self.observation
+            .reconstruction_counters
+            .hot_path_artifact_reconstruction_count()
     }
 
     fn tombstone_ratio(&self) -> f32 {

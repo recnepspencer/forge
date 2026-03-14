@@ -54,6 +54,9 @@ Rules for every remaining item:
 
 ## Milestone 1: CDC and Subscriber Recovery
 
+Status: Closed on 2026-03-13. See
+[milestone-1-closeout.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/milestone-1-closeout.md).
+
 ### Goal
 
 Finish the stream product surface so CDC is not just emitted patch data, but a
@@ -76,6 +79,18 @@ durable downstream consumption contract.
 - replay from canonical commit artifacts
 - no abandoned savepoint or rollback work appearing in published CDC
 - no scheduler-shaped stream semantics
+
+### Explicit Boundary
+
+Milestone 1 includes schema/version compatibility checking and explicit
+subscriber-visible failure for incompatible checkpoints, recovery plans, or
+runtime/schema combinations.
+
+Milestone 1 does not include live schema-version transition inside an already
+running subscriber contract. In other words, this milestone must fail
+structurally on incompatible schema boundaries; it does not yet promise
+mid-stream schema renegotiation, dual-schema CDC emission, or seamless
+subscriber continuation across runtime schema changes.
 
 ### Acceptance Requirements
 
@@ -208,7 +223,58 @@ named requirements from
 - `Durable recovery and schema mismatch test`
 - `Missing-twin / nonmanifold corruption localization test`
 
-## Milestone 5: Lineage and Correspondence Completion
+## Milestone 5: Schema Evolution and CDC Contract Evolution
+
+### Goal
+
+Finish live schema evolution as an explicit runtime and CDC capability so
+schema changes can participate in authoritative truth, replay, recovery, and
+subscriber contracts without collapsing into ad hoc host coordination.
+
+### Must Ship
+
+- explicit schema evolution model for authoritative runtimes
+- canonical publication of schema transition boundaries
+- subscriber-facing schema transition semantics for checkpoint/resume and
+  active stream continuation
+- typed transition policies such as fail, require renegotiation, or continue
+  under an explicitly compatible schema bridge where supported
+- recovery and replay semantics that preserve schema transition boundaries as
+  canonical artifacts
+- diagnostics for schema transition decisions, rejection, and subscriber
+  contract renegotiation
+- compatibility rules that distinguish:
+  - incompatible schema mismatch
+  - resumable compatible evolution
+  - transitions that require a new subscriber contract
+
+### Must Preserve
+
+- serialized authority for schema-affecting truth mutation
+- canonical CDC and patch ordering across schema boundaries
+- replay from canonical commit artifacts
+- no hidden host-side schema repair during resume or recovery
+- explicit failure instead of silent drift when transition semantics are not
+  supported
+
+### Acceptance Requirements
+
+This milestone is complete only when the implementation satisfies the
+following named requirements from
+[test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md),
+and any additional schema-evolution-specific certification requirements added
+there:
+
+- `Diff/CDC truth parity test`
+- `Hostile commit/replay equivalence test`
+- `Durable recovery and schema mismatch test`
+
+Additionally, this milestone must add and satisfy an explicit schema-evolution
+CDC certification requirement if
+[test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md)
+does not yet contain one.
+
+## Milestone 6: Lineage and Correspondence Completion
 
 ### Goal
 
@@ -245,13 +311,13 @@ named requirements from
 - `Netlist rewiring identity and history test`
 - `Hostile commit/replay equivalence test`
 
-## Milestone 6: Merge-Ready History and Merge Execution
+## Milestone 7: Merge-Ready History and Merge Execution
 
 This milestone is intentionally split so the roadmap stays honest about what is
 already structurally supported versus what may still be missing as product
 behavior.
 
-### Milestone 6A: Merge-Ready History Certification
+### Milestone 7A: Merge-Ready History Certification
 
 #### Goal
 
@@ -274,7 +340,7 @@ following named requirement from
 
 - `Merge-ready history shape test`
 
-### Milestone 6B: Authoritative Merge Execution
+### Milestone 7B: Authoritative Merge Execution
 
 #### Goal
 
@@ -308,7 +374,7 @@ This sub-milestone is complete only when:
 - `Durable recovery and schema mismatch test` is satisfied for merge-bearing histories
 - `Merge-ready history shape test` remains satisfied on real merge-produced histories, not only fixtures
 
-## Milestone 7: Parallel Read, Bulk Mutation, and Scale Query Completion
+## Milestone 8: Parallel Read, Bulk Mutation, and Scale Query Completion
 
 ### Goal
 
@@ -349,7 +415,7 @@ named requirements from
 - `Deterministic observability under hostile scheduling test`
 - `Snapshot-stable concurrent read vs hot rewrite test`
 
-## Milestone 8: Generic Certification Program
+## Milestone 9: Generic Certification Program
 
 ### Goal
 

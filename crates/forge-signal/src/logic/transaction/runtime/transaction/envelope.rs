@@ -9,7 +9,8 @@ use crate::diagnostics::failure::RollbackDiagnostic;
 use crate::logic::planner::ExecutionReport;
 
 use super::transaction_types::{
-    EvaluationSummary, TransactionOutcome, TransactionResult, TransactionTiming,
+    EvaluationSummary, TransactionOutcome, TransactionReplayEntry, TransactionResult,
+    TransactionTiming,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -78,6 +79,8 @@ impl TransactionResult {
         timing: TransactionTiming,
         touched_nodes: u32,
         evaluation_summary: EvaluationSummary,
+        _replay_events: &[TransactionReplayEntry],
+        reconstructability: crate::logic::transaction::runtime::state::ReconstructabilityRecord,
         event_epochs: Vec<EventEpochSummary>,
         rollback: Option<RollbackDiagnostic>,
         failure_summary: Option<FailureSummary>,
@@ -170,6 +173,7 @@ impl TransactionResult {
             timing,
             touched_nodes,
             evaluation_summary,
+            reconstructability,
             event_epochs: event_epochs.clone(),
             rollback,
             warnings,

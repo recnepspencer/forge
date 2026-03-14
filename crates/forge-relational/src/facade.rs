@@ -106,14 +106,20 @@ pub mod harness {
 }
 
 pub mod publication {
-    pub use crate::publication::data::diff::{
+    pub use crate::publication::cdc::data::{
+        SubscriberCheckpoint, SubscriberRecoveryDecision, SubscriberRecoveryDisposition,
+        SubscriberRecoverySource, SubscriberResumeRequest, SubscriberStreamBatch,
+        SubscriberStreamFailure, SubscriberStreamFailureClass,
+    };
+    pub use crate::publication::patch::data::{
         AspectKey, PatchFragmentBudget, PatchOrdering, PatchPublicationMode, PatchRecord,
         PatchRecordKind, PatchStreamBatch, PatchStreamPosition, PatchStreamReadError,
         PatchStreamReadErrorClass, PatchStreamRequest, RelationalPatchRecord,
     };
-    pub use crate::publication::data::{
-        PublicationBundle, PublicationError, PublicationStage, PublicationStatus,
+    pub use crate::publication::bundle::{
+        PublicationBundle, PublicationStage, PublicationStatus,
     };
+    pub use crate::publication::data::PublicationError;
 }
 
 pub mod query {

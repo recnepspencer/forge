@@ -6,6 +6,8 @@ use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::transaction::runtime::config::SignalRuntimeConfig;
 use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
 
+use super::reconstructability::{AuthorityState, DerivedState};
+
 #[derive(Debug, Clone)]
 pub(in crate::logic::transaction::runtime) struct BranchState<D, I, T>
 where
@@ -13,10 +15,8 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub graph: SignalGraph,
-    pub config: SignalRuntimeConfig<T>,
-    pub checkpoint: CheckpointRuntime<D, I>,
-    pub telemetry: RuntimeTelemetry,
+    pub authority: AuthorityState<T>,
+    pub derived: DerivedState<D, I>,
 }
 
 pub(in crate::logic::transaction::runtime) struct BranchManager<D, I, T>
@@ -52,18 +52,11 @@ where
 
     pub fn capture_active_state(
         &mut self,
-        graph: &SignalGraph,
-        config: &SignalRuntimeConfig<T>,
-        checkpoint: &CheckpointRuntime<D, I>,
-        telemetry: &RuntimeTelemetry,
+        authority: AuthorityState<T>,
+        derived: DerivedState<D, I>,
     ) -> BranchState<D, I, T> {
-        self.observe_allocator_state(graph);
-        BranchState {
-            graph: graph.clone_stateful(),
-            config: config.clone(),
-            checkpoint: checkpoint.clone(),
-            telemetry: telemetry.clone(),
-        }
+        self.observe_allocator_state(&authority.graph);
+        BranchState { authority, derived }
     }
 
     pub fn restore_active_state(
@@ -74,22 +67,24 @@ where
         checkpoint: &mut CheckpointRuntime<D, I>,
         telemetry: &mut RuntimeTelemetry,
     ) {
-        self.observe_allocator_state(&state.graph);
+        self.observe_allocator_state(&state.authority.graph);
         state
+            .authority
             .graph
             .diagnostics_state_mut()
             .synchronize_branch_snapshot_allocator(self.next_snapshot_id, self.next_branch_id);
         state
+            .authority
             .graph
             .diagnostics_state_mut()
             .synchronize_lineage_allocator(
                 self.next_lineage_artifact_id,
                 self.next_lineage_sequence,
             );
-        *graph = state.graph;
-        *config = state.config;
-        *checkpoint = state.checkpoint;
-        *telemetry = state.telemetry;
+        *graph = state.authority.graph;
+        *config = state.authority.config;
+        *checkpoint = state.derived.checkpoint;
+        *telemetry = state.derived.telemetry;
         self.observe_allocator_state(graph);
     }
 
@@ -103,8 +98,9 @@ where
             .diagnostics_state_mut()
             .synchronize_branch_catalog(branch_catalog.clone(), active_branch);
         for state in self.branches.values_mut() {
-            let state_active_branch = state.graph.current_branch().id;
+            let state_active_branch = state.authority.graph.current_branch().id;
             state
+                .authority
                 .graph
                 .diagnostics_state_mut()
                 .synchronize_branch_catalog(branch_catalog.clone(), state_active_branch);
@@ -112,7 +108,7 @@ where
     }
 
     pub fn insert_branch(&mut self, branch_id: SignalBranchId, state: BranchState<D, I, T>) {
-        self.observe_allocator_state(&state.graph);
+        self.observe_allocator_state(&state.authority.graph);
         self.branches.insert(branch_id, state);
     }
 
@@ -130,10 +126,12 @@ where
         let next_lineage_sequence = self.next_lineage_sequence;
         let state = self.branches.get_mut(&branch_id)?;
         state
+            .authority
             .graph
             .diagnostics_state_mut()
             .synchronize_branch_snapshot_allocator(next_snapshot_id, next_branch_id);
         state
+            .authority
             .graph
             .diagnostics_state_mut()
             .synchronize_lineage_allocator(next_lineage_artifact_id, next_lineage_sequence);
@@ -145,7 +143,7 @@ where
     }
 
     pub fn insert_snapshot(&mut self, snapshot_id: SignalSnapshotId, state: BranchState<D, I, T>) {
-        self.observe_allocator_state(&state.graph);
+        self.observe_allocator_state(&state.authority.graph);
         self.snapshots.insert(snapshot_id, state);
     }
 
@@ -162,26 +160,26 @@ where
         if branch_id == active_branch {
             Some(active_graph)
         } else {
-            self.branches.get(&branch_id).map(|state| &state.graph)
+            self.branches.get(&branch_id).map(|state| &state.authority.graph)
         }
     }
 
     pub fn branch_head_snapshot_id(&self, branch_id: SignalBranchId) -> Option<SignalSnapshotId> {
         self.branches
             .get(&branch_id)
-            .and_then(|state| state.graph.branch_head_snapshot_id(branch_id))
+            .and_then(|state| state.authority.graph.branch_head_snapshot_id(branch_id))
     }
 
     pub fn branch_handle(&self, branch_id: SignalBranchId) -> Option<SignalBranchHandle> {
         self.branches
             .get(&branch_id)
-            .and_then(|state| state.graph.branch_handle(branch_id))
+            .and_then(|state| state.authority.graph.branch_handle(branch_id))
     }
 
     pub fn branch_ancestry(&self, branch_id: SignalBranchId) -> Vec<SignalBranchHandle> {
         self.branches
             .get(&branch_id)
-            .map(|state| state.graph.branch_ancestry(branch_id))
+            .map(|state| state.authority.graph.branch_ancestry(branch_id))
             .unwrap_or_default()
     }
 

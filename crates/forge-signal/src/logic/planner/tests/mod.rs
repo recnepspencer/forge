@@ -247,6 +247,11 @@ fn task_record_classification_uses_reuse_basis_as_authoritative_truth() {
         request_mode: crate::logic::evaluation::EvaluationRequestMode::Default,
         direct_request: false,
         reason: TaskReason::MemoValidation,
+        admission: crate::logic::planner::EligibleTaskAdmission {
+            node_state_at_admission: Some(NodeState::Dirty),
+            dirty_partition_scopes_present: false,
+            maybe_stale: None,
+        },
     };
 
     let record = classify_task_record(

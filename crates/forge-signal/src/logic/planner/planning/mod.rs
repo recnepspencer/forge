@@ -17,8 +17,9 @@ use crate::logic::evaluation::EvaluationRequestMode;
 
 use self::validation::{preview_maybe_stale, runtime_sorted_dependencies};
 use super::types::{
-    CandidateTask, EligibleTask, EvaluationCursor, EvaluationPlan, ExecutionStage, PlanSummary,
-    SessionScratch, StageBarrier, StageCursor, TaskReason,
+    CandidateTask, EligibleTask, EligibleTaskAdmission, EvaluationCursor, EvaluationPlan,
+    ExecutionStage, MaybeStaleAdmission, PlanSummary, SessionScratch, StageBarrier, StageCursor,
+    TaskReason,
 };
 
 pub fn build_evaluation_plan(
@@ -118,6 +119,7 @@ pub(crate) fn materialize_plan_from_cursor(cursor: EvaluationCursor) -> Evaluati
 #[derive(Debug, Clone, Copy, Default)]
 struct PlannedNode {
     direct_request: bool,
+    maybe_stale_admission: Option<MaybeStaleAdmission>,
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -164,6 +166,7 @@ fn visit_node(
     if should_include {
         planned[node_index] = Some(PlannedNode {
             direct_request: candidate.direct_request,
+            maybe_stale_admission: None,
         });
         planned_nodes.push(node);
     } else {
@@ -193,6 +196,11 @@ fn visit_node(
         }
         NodeState::MaybeStale => {
             let preview = preview_maybe_stale(graph, node, resolver)?;
+            if let Some(existing) = &mut planned[node_index] {
+                existing.maybe_stale_admission = Some(MaybeStaleAdmission {
+                    unchanged_at_admission: preview.unchanged,
+                });
+            }
             let upstream_reason = if matches!(candidate.trigger_reason, TaskReason::MaybeStaleValidation) {
                 TaskReason::MaybeStaleValidation
             } else {
@@ -275,14 +283,42 @@ fn admit_planned_node(
     node: NodeId,
     direct_request: bool,
     request_mode: EvaluationRequestMode,
+    maybe_stale_admission: Option<MaybeStaleAdmission>,
 ) -> Result<EligibleTask, SignalError> {
+    let entry = graph.get_entry(node)?;
+    let dirty_partition_scopes_present = !entry.get_dirty_partition_scopes().is_empty();
+    let node_state_at_admission = Some(*entry.get_state());
     let reason = classify_reason(graph, node, direct_request, request_mode)?;
     Ok(EligibleTask {
         node,
         request_mode,
         direct_request,
         reason,
+        admission: EligibleTaskAdmission {
+            node_state_at_admission,
+            dirty_partition_scopes_present,
+            maybe_stale: maybe_stale_admission,
+        },
     })
+}
+
+pub(crate) fn admit_direct_task_with_policy_resolver(
+    graph: &SignalGraph,
+    node: NodeId,
+    request_mode: EvaluationRequestMode,
+    resolver: &mut impl ComparatorPolicyResolver,
+) -> Result<EligibleTask, SignalError> {
+    let entry = graph.get_entry(node)?;
+    let state = *entry.get_state();
+    let maybe_stale_admission = if matches!(state, NodeState::MaybeStale) {
+        let preview = preview_maybe_stale(graph, node, resolver)?;
+        Some(MaybeStaleAdmission {
+            unchanged_at_admission: preview.unchanged,
+        })
+    } else {
+        None
+    };
+    admit_planned_node(graph, node, true, request_mode, maybe_stale_admission)
 }
 
 fn populate_plan_buffers(
@@ -331,7 +367,13 @@ fn populate_plan_buffers(
     for node in planned_nodes {
         let planned_node = planned[node.index() as usize]
             .expect("planned node list should only contain planned nodes");
-        let task = admit_planned_node(graph, node, planned_node.direct_request, request_mode)?;
+        let task = admit_planned_node(
+            graph,
+            node,
+            planned_node.direct_request,
+            request_mode,
+            planned_node.maybe_stale_admission,
+        )?;
         let depth = depth_cache.depth_for(node).ok_or_else(|| {
             SignalError::internal("planned node missing depth cache entry during stage assembly")
         })? as usize;

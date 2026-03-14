@@ -240,6 +240,9 @@ fn explicit_retained_and_reconstructed_artifact_apis_match_policy() {
         reconstructed_provenance.causal_links,
         reconstructed_explanation.causal_links
     );
+    assert!(
+        graph.observe().metrics().storage.hot_path_artifact_reconstruction_count >= 2
+    );
 }
 
 #[test]

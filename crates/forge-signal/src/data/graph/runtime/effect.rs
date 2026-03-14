@@ -364,6 +364,7 @@ impl SignalGraph {
                 if effect.recomputed() {
                     self.telemetry_mut().evaluation.nodes_recomputed += 1;
                 }
+                self.telemetry_mut().storage.hot_path_artifact_retention_count += 1;
             }
             EvaluationVerdict::Suppressed { reason } => match reason {
                 SuppressionReason::ValidatedClean => {
@@ -372,6 +373,7 @@ impl SignalGraph {
                 SuppressionReason::OutputIdentityUnchanged
                 | SuppressionReason::ContinuityTokenUnchanged
                 | SuppressionReason::ComparatorMatch => {
+                    self.telemetry_mut().storage.hot_path_artifact_retention_count += 1;
                     self.telemetry_mut()
                         .evaluation
                         .output_identity_unchanged_count += 1;

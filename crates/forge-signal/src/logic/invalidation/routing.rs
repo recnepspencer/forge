@@ -49,6 +49,7 @@ pub fn mark_dirty_batch(
     dirty: &DirtyBatch,
 ) -> Result<SemanticBatchCommit, SignalError> {
     let graph = graph.deref_mut();
+    graph.telemetry_mut().invalidation.batch_width += dirty.as_slice().len() as u64;
     for entry in dirty.as_slice() {
         graph.note_change_input(
             entry.source,

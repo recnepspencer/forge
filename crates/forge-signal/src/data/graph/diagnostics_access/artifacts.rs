@@ -30,6 +30,7 @@ impl SignalGraph {
             diagnostics: self.diagnostics_state().snapshot_payload(),
             graph_telemetry: self.telemetry().clone(),
             runtime_telemetry: None,
+            reconstructability: None,
         }
     }
 
@@ -85,10 +86,8 @@ impl SignalGraph {
             return Ok((Some(explanation), ArtifactMaterializationMode::Retained));
         }
         if self.runtime_policy().can_reconstruct_explanation() {
-            let mut explanation = explain(self, node)?;
-            explanation.materialization_mode = ArtifactMaterializationMode::Reconstructed;
             return Ok((
-                Some(explanation),
+                Some(self.reconstruct_explanation_artifact(node)?),
                 ArtifactMaterializationMode::Reconstructed,
             ));
         }
@@ -105,14 +104,32 @@ impl SignalGraph {
             return Ok((Some(fact), ArtifactMaterializationMode::Retained));
         }
         if self.runtime_policy().can_reconstruct_provenance() {
-            let mut explanation = explain(self, node)?;
-            explanation.materialization_mode = ArtifactMaterializationMode::Reconstructed;
             return Ok((
-                Some(ProvenanceFact::from_explanation(&explanation)),
+                Some(self.reconstruct_provenance_artifact(node)?),
                 ArtifactMaterializationMode::Reconstructed,
             ));
         }
         Ok((None, ArtifactMaterializationMode::Unavailable))
+    }
+
+    pub(crate) fn reconstruct_explanation_artifact(
+        &self,
+        node: NodeId,
+    ) -> Result<NodeExplanation, SignalError> {
+        let mut explanation = explain(self, node)?;
+        explanation.materialization_mode = ArtifactMaterializationMode::Reconstructed;
+        self.record_hot_path_artifact_reconstruction();
+        Ok(explanation)
+    }
+
+    pub(crate) fn reconstruct_provenance_artifact(
+        &self,
+        node: NodeId,
+    ) -> Result<ProvenanceFact, SignalError> {
+        let mut explanation = explain(self, node)?;
+        explanation.materialization_mode = ArtifactMaterializationMode::Reconstructed;
+        self.record_hot_path_artifact_reconstruction();
+        Ok(ProvenanceFact::from_explanation(&explanation))
     }
 
     #[cfg(test)]

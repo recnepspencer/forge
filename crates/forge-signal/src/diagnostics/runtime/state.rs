@@ -233,6 +233,10 @@ impl DiagnosticsState {
         cursor
     }
 
+    pub fn latest_replay_cursor(&self) -> Option<ReplayCursor> {
+        self.replay_events.back().map(|event| event.cursor)
+    }
+
     pub fn record_replay_event(&mut self, event: ReplayEvent) {
         self.replay_events.push_back(event);
         let limit = self.policy.history_limit.max(1) * 32;

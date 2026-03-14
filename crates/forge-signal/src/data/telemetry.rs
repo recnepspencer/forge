@@ -19,6 +19,8 @@ pub struct EvaluationTelemetry {
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InvalidationTelemetry {
+    pub batch_width: u64,
+    pub dirty_delta_breadth: u64,
     pub partition_aware_recomputations: u64,
     pub keyed_evaluation_count: u64,
     pub partition_scoped_invalidation_checks: u64,
@@ -29,6 +31,7 @@ pub struct InvalidationTelemetry {
     pub invalidation_nodes_visited: u64,
     pub narrowed_frontier_width: u64,
     pub transitive_frontier_width: u64,
+    pub subscriber_repair_breadth: u64,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -37,6 +40,7 @@ pub struct TransactionTelemetry {
     pub transaction_commit_count: u64,
     pub transaction_rollback_count: u64,
     pub transaction_poison_count: u64,
+    pub decision_log_event_count: u64,
     pub staged_node_patch_count: u64,
     pub max_touched_nodes_in_txn: u64,
     pub transaction_mark_dirty_candidate_visits: u64,
@@ -49,6 +53,8 @@ pub struct PlannerTelemetry {
     pub tasks_scheduled: u64,
     pub tasks_pruned_before_execution: u64,
     pub maybe_stale_validation_tasks: u64,
+    pub incremental_strategy_count: u64,
+    pub rebuild_strategy_count: u64,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -65,6 +71,9 @@ pub struct ExecutionTelemetry {
     pub prepared_evaluations_applied: u64,
     pub dependency_capture_updates: u64,
     pub rewiring_apply_count: u64,
+    pub apply_group_width_total: u64,
+    pub max_apply_group_width: u64,
+    pub apply_group_disjoint_count: u64,
     pub serial_precompute_task_count: u64,
     pub parallel_precompute_task_count: u64,
     pub stage_precompute_nanos: u128,
@@ -79,9 +88,14 @@ pub struct StorageTelemetry {
     pub graph_storage_dependency_segments_rewritten: u64,
     pub graph_storage_subscriber_segments_rewritten: u64,
     pub graph_storage_snapshot_rewrites: u64,
+    pub snapshot_batch_size: u64,
     pub rolled_back_created_node_count: u64,
     pub subscriber_index_rebuild_count: u64,
     pub scratch_reentry_error_count: u64,
+    pub hot_path_artifact_retention_count: u64,
+    pub hot_path_artifact_reconstruction_count: u64,
+    pub structural_delta_size: u64,
+    pub patch_application_breadth: u64,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -91,6 +105,8 @@ pub struct CheckpointTelemetry {
     pub checkpoint_flushes: u64,
     pub checkpoint_flush_nanos: u128,
     pub rollback_count: u64,
+    pub checkpoint_size: u64,
+    pub journal_replay_span: u64,
 }
 
 /// Lightweight runtime telemetry for signal orchestration internals.

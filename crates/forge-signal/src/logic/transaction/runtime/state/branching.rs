@@ -13,6 +13,32 @@ where
     pub fn capture_snapshot(&mut self) -> SignalSnapshotV1 {
         let mut snapshot = self.graph.capture_snapshot();
         snapshot.runtime_telemetry = Some(self.telemetry.clone());
+        snapshot.reconstructability = Some(
+            super::reconstructability::ReconstructabilityRecord::from_snapshot_boundary(
+                snapshot.meta.branch_id,
+                snapshot.meta.snapshot_id,
+                snapshot.meta.replay_head,
+                super::reconstructability::CheckpointRecord::from_checkpoint_telemetry(
+                    crate::data::telemetry::CheckpointTelemetry {
+                        event_flushes: self.event_bus.telemetry().checkpoint.event_flushes,
+                        event_flush_nanos: self.event_bus.telemetry().checkpoint.event_flush_nanos,
+                        checkpoint_flushes: self
+                            .checkpoint
+                            .telemetry()
+                            .checkpoint
+                            .checkpoint_flushes,
+                        checkpoint_flush_nanos: self
+                            .checkpoint
+                            .telemetry()
+                            .checkpoint
+                            .checkpoint_flush_nanos,
+                        rollback_count: self.event_bus.telemetry().checkpoint.rollback_count,
+                        checkpoint_size: self.telemetry.checkpoint.checkpoint_size,
+                        journal_replay_span: self.telemetry.checkpoint.journal_replay_span,
+                    },
+                ),
+            ),
+        );
         let branch_state = self.capture_branch_state();
         self.branches
             .insert_snapshot(snapshot.meta.snapshot_id, branch_state);
@@ -40,6 +66,7 @@ where
         let handle = self.graph.diagnostics_state_mut().create_branch(name);
         let mut branch_state = self.capture_branch_state();
         branch_state
+            .authority
             .graph
             .diagnostics_state_mut()
             .set_active_branch(handle.id);
@@ -105,25 +132,61 @@ where
             else {
                 return Err(SignalError::unknown_branch(Some(branch.id), branch.name));
             };
-            let policy = state.graph.runtime_policy();
+            let policy = state.authority.graph.runtime_policy();
             let meta = state
+                .authority
                 .graph
                 .diagnostics_state_mut()
                 .allocate_snapshot_meta(policy);
             state
+                .authority
                 .graph
                 .diagnostics_state_mut()
                 .set_branch_head_snapshot(branch.id, meta.snapshot_id);
-            let diagnostics = state.graph.diagnostics_state().snapshot_payload();
-            let graph_telemetry = state.graph.telemetry().clone();
+            let diagnostics = state.authority.graph.diagnostics_state().snapshot_payload();
+            let graph_telemetry = state.authority.graph.telemetry().clone();
+            let replay_head = meta.replay_head;
+            let snapshot_id = meta.snapshot_id;
             let snapshot = SignalSnapshotV1 {
                 meta,
-                graph: state.graph.clone_stateful(),
+                graph: state.authority.graph.clone_stateful(),
                 diagnostics,
                 graph_telemetry,
-                runtime_telemetry: Some(state.telemetry.clone()),
+                runtime_telemetry: Some(state.derived.telemetry.clone()),
+                reconstructability: Some(
+                    super::reconstructability::ReconstructabilityRecord::from_snapshot_boundary(
+                        branch.id,
+                        snapshot_id,
+                        replay_head,
+                        super::reconstructability::CheckpointRecord::from_checkpoint_telemetry(
+                            crate::data::telemetry::CheckpointTelemetry {
+                                event_flushes: 0,
+                                event_flush_nanos: 0,
+                                checkpoint_flushes: state
+                                    .derived
+                                    .checkpoint
+                                    .telemetry()
+                                    .checkpoint
+                                    .checkpoint_flushes,
+                                checkpoint_flush_nanos: state
+                                    .derived
+                                    .checkpoint
+                                    .telemetry()
+                                    .checkpoint
+                                    .checkpoint_flush_nanos,
+                                rollback_count: 0,
+                                checkpoint_size: state.derived.telemetry.checkpoint.checkpoint_size,
+                                journal_replay_span: state
+                                    .derived
+                                    .telemetry
+                                    .checkpoint
+                                    .journal_replay_span,
+                            },
+                        ),
+                    ),
+                ),
             };
-            let branch_catalog = state.graph.diagnostics_state().branch_catalog().clone();
+            let branch_catalog = state.authority.graph.diagnostics_state().branch_catalog().clone();
             (snapshot, branch_catalog)
         };
         if let Some(state) = self.branches.cloned_branch_state(branch.id) {
@@ -162,7 +225,7 @@ where
         let current_diagnostics = self
             .branches
             .branch_state(branch.id)
-            .map(|state| state.graph.diagnostics_state().clone())
+            .map(|state| state.authority.graph.diagnostics_state().clone())
             .ok_or_else(|| SignalError::unknown_branch(Some(branch.id), branch.name))?;
         let mut graph = snapshot.graph.clone();
         *graph.telemetry_mut() = snapshot.graph_telemetry.clone();
@@ -177,20 +240,24 @@ where
             .diagnostics_state_mut()
             .set_branch_head_snapshot(branch.id, snapshot.meta.snapshot_id);
         let state = BranchState {
-            graph,
-            config: snapshot_state.config,
-            checkpoint: snapshot_state.checkpoint,
-            telemetry: snapshot
-                .runtime_telemetry
-                .clone()
-                .unwrap_or(snapshot_state.telemetry),
+            authority: super::reconstructability::AuthorityState {
+                graph,
+                config: snapshot_state.authority.config,
+            },
+            derived: super::reconstructability::DerivedState {
+                checkpoint: snapshot_state.derived.checkpoint,
+                telemetry: snapshot
+                    .runtime_telemetry
+                    .clone()
+                    .unwrap_or(snapshot_state.derived.telemetry),
+            },
         };
         let mut state = state;
         crate::diagnostics::recorder::record_snapshot_restore_lineage(
-            &mut state.graph,
+            &mut state.authority.graph,
             snapshot.meta.snapshot_id,
         );
-        let branch_catalog = state.graph.diagnostics_state().branch_catalog().clone();
+        let branch_catalog = state.authority.graph.diagnostics_state().branch_catalog().clone();
         self.branches.insert_branch(branch.id, state);
         self.synchronize_branch_catalogs(branch_catalog);
         Ok(())

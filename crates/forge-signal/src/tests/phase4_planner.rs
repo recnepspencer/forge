@@ -1,4 +1,5 @@
 use crate::facade::*;
+use crate::logic::planner::MaybeStaleAdmission;
 use crate::tests::support::*;
 use std::sync::atomic::{AtomicU32, Ordering};
 
@@ -345,6 +346,20 @@ fn maybe_stale_requested_target_validates_clean_without_running_compute() {
     let plan = graph
         .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
         .unwrap();
+    assert_eq!(plan.summary.task_count, 1);
+    assert_eq!(
+        plan.stages[0].tasks[0].admission.node_state_at_admission,
+        Some(NodeState::MaybeStale)
+    );
+    assert!(!plan.stages[0].tasks[0]
+        .admission
+        .dirty_partition_scopes_present);
+    assert_eq!(
+        plan.stages[0].tasks[0].admission.maybe_stale,
+        Some(MaybeStaleAdmission {
+            unchanged_at_admission: true,
+        })
+    );
 
     let calls = AtomicU32::new(0);
     let report = graph

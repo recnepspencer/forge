@@ -1412,6 +1412,7 @@ name = "forge-relational"
 version = "0.1.0"
 dependencies = [
  "forge-harness",
+ "proptest",
  "rayon",
  "serde",
  "serde_json",

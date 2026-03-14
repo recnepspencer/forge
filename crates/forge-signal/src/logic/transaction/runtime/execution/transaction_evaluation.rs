@@ -1,13 +1,18 @@
 use std::time::Instant;
 
 use crate::data::aspect::AspectVersion;
+use crate::data::comparator::{
+    DefaultComparatorPolicyResolver, DefaultComparatorResolver, VersionComparatorPolicy,
+};
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::proof::DedupedNodeBatch;
 use crate::diagnostics::ExecutionFailurePhase;
 use crate::logic::context::EvaluationContext;
 use crate::logic::evaluation::{EvaluationRequestMode, IntoEvaluationOutput};
-use crate::logic::planner::{EvaluationPlan, ExecutionReport, StageExecutor};
+use crate::logic::planner::{
+    admit_direct_task_with_policy_resolver, EvaluationPlan, ExecutionReport, StageExecutor,
+};
 
 use super::super::transaction::SignalTransaction;
 use super::shared::{
@@ -214,16 +219,23 @@ where
                 stage_task_candidates,
             } => {
                 if stage_task_candidates {
+                    let mut comparator = DefaultComparatorResolver;
+                    let mut resolver = DefaultComparatorPolicyResolver {
+                        fallback: VersionComparatorPolicy::Exact,
+                        custom: &mut comparator,
+                    };
                     let stage_targets = targets
                         .iter()
                         .copied()
-                        .map(|node| crate::logic::planner::EligibleTask {
-                            node,
-                            request_mode,
-                            direct_request: true,
-                            reason: crate::logic::planner::TaskReason::RequestedTarget,
+                        .map(|node| {
+                            admit_direct_task_with_policy_resolver(
+                                &*self.graph,
+                                node,
+                                request_mode,
+                                &mut resolver,
+                            )
                         })
-                        .collect::<Vec<_>>();
+                        .collect::<Result<Vec<_>, SignalError>>()?;
                     self.stage_task_candidates(&stage_targets)?;
                 } else if let [node] = targets {
                     self.stage_evaluate_candidates(*node)?;
@@ -235,16 +247,23 @@ where
                 if owned_targets.is_empty() {
                     return Ok(crate::logic::transaction::helpers::empty_execution_report());
                 }
+                let mut comparator = DefaultComparatorResolver;
+                let mut resolver = DefaultComparatorPolicyResolver {
+                    fallback: VersionComparatorPolicy::Exact,
+                    custom: &mut comparator,
+                };
                 let stage_targets = owned_targets
                     .iter()
                     .copied()
-                    .map(|node| crate::logic::planner::EligibleTask {
-                        node,
-                        request_mode: EvaluationRequestMode::Default,
-                        direct_request: true,
-                        reason: crate::logic::planner::TaskReason::RequestedTarget,
+                    .map(|node| {
+                        admit_direct_task_with_policy_resolver(
+                            &*self.graph,
+                            node,
+                            EvaluationRequestMode::Default,
+                            &mut resolver,
+                        )
                     })
-                    .collect::<Vec<_>>();
+                    .collect::<Result<Vec<_>, SignalError>>()?;
                 self.stage_task_candidates(&stage_targets)?;
                 (&owned_targets[..], EvaluationRequestMode::Default)
             }

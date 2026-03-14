@@ -82,6 +82,58 @@ fn transaction_helper_commits_on_success() {
 
     assert_eq!(outcome.outcome, TransactionOutcome::Committed);
     assert_eq!(
+        outcome.reconstructability.authority_branch_id,
+        runtime.observe().current_branch().id
+    );
+    assert_eq!(
+        outcome.reconstructability.authority_snapshot_id,
+        runtime.observe().current_branch().head_snapshot_id
+    );
+    assert!(outcome.reconstructability.journal.is_some());
+    assert!(
+        outcome
+            .reconstructability
+            .journal
+            .as_ref()
+            .is_some_and(|journal| journal.replay_event_count >= 1)
+    );
+    assert_eq!(
+        outcome.reconstructability.checkpoint.journal_replay_span,
+        outcome
+            .reconstructability
+            .journal
+            .as_ref()
+            .map(|journal| journal.replay_event_count as u64)
+            .unwrap_or(0)
+    );
+    let metrics = runtime.observe().metrics();
+    let graph_metrics = runtime.observe().graph().metrics();
+    assert!(metrics.transaction.decision_log_event_count >= 1);
+    assert!(graph_metrics.invalidation.batch_width >= 1);
+    assert!(outcome.performance_accounting.transaction.decision_log_event_count >= 1);
+    assert!(
+        metrics.checkpoint.journal_replay_span
+            >= outcome
+                .reconstructability
+                .journal
+                .as_ref()
+                .map(|journal| journal.replay_event_count as u64)
+                .unwrap_or(0)
+    );
+    assert!(
+        outcome.performance_accounting.checkpoint.journal_replay_span
+            >= outcome
+                .reconstructability
+                .journal
+                .as_ref()
+                .map(|journal| journal.replay_event_count as u64)
+                .unwrap_or(0)
+    );
+    assert_eq!(
+        outcome.reconstructability.checkpoint.checkpoint_size,
+        outcome.performance_accounting.checkpoint.checkpoint_size
+    );
+    assert_eq!(
         runtime.graph().get_state(dependent).unwrap(),
         NodeState::Dirty
     );

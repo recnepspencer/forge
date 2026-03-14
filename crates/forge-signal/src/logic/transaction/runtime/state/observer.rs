@@ -15,6 +15,7 @@ use crate::presentation::metrics::RuntimeMetrics;
 use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
 
 use super::runtime_state::SignalRuntime;
+use super::CheckpointRecord;
 
 pub struct RuntimeObserver<'a, D, I, E, Ctx, T>
 where
@@ -78,29 +79,12 @@ where
             planner: self.runtime.telemetry.planner,
             execution: self.runtime.telemetry.execution,
             storage: self.runtime.telemetry.storage,
-            checkpoint: crate::data::telemetry::CheckpointTelemetry {
-                event_flushes: self.runtime.event_bus.telemetry().checkpoint.event_flushes,
-                event_flush_nanos: self
-                    .runtime
-                    .event_bus
-                    .telemetry()
-                    .checkpoint
-                    .event_flush_nanos,
-                checkpoint_flushes: self
-                    .runtime
-                    .checkpoint
-                    .telemetry()
-                    .checkpoint
-                    .checkpoint_flushes,
-                checkpoint_flush_nanos: self
-                    .runtime
-                    .checkpoint
-                    .telemetry()
-                    .checkpoint
-                    .checkpoint_flush_nanos,
-                rollback_count: self.runtime.event_bus.telemetry().checkpoint.rollback_count,
-            },
+            checkpoint: self.composed_checkpoint_telemetry(),
         }
+    }
+
+    pub fn checkpoint_record(&self) -> CheckpointRecord {
+        CheckpointRecord::from_checkpoint_telemetry(self.composed_checkpoint_telemetry())
     }
 
     pub fn diagnostics_summary(&self, profile: DiagnosticsProfile) -> GraphSummary {
@@ -113,6 +97,33 @@ where
 
     pub fn diagnostics_profile(&self) -> DiagnosticsProfile {
         self.graph().diagnostics_profile()
+    }
+
+    fn composed_checkpoint_telemetry(&self) -> crate::data::telemetry::CheckpointTelemetry {
+        crate::data::telemetry::CheckpointTelemetry {
+            event_flushes: self.runtime.event_bus.telemetry().checkpoint.event_flushes,
+            event_flush_nanos: self
+                .runtime
+                .event_bus
+                .telemetry()
+                .checkpoint
+                .event_flush_nanos,
+            checkpoint_flushes: self
+                .runtime
+                .checkpoint
+                .telemetry()
+                .checkpoint
+                .checkpoint_flushes,
+            checkpoint_flush_nanos: self
+                .runtime
+                .checkpoint
+                .telemetry()
+                .checkpoint
+                .checkpoint_flush_nanos,
+            rollback_count: self.runtime.event_bus.telemetry().checkpoint.rollback_count,
+            checkpoint_size: self.runtime.telemetry.checkpoint.checkpoint_size,
+            journal_replay_span: self.runtime.telemetry.checkpoint.journal_replay_span,
+        }
     }
 
     pub fn runtime_policy(&self) -> SignalRuntimePolicy {

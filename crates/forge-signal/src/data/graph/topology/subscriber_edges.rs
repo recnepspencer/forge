@@ -209,6 +209,8 @@ impl SignalGraph {
         if plan.is_empty() {
             return Ok(());
         }
+        self.telemetry_mut().invalidation.subscriber_repair_breadth +=
+            plan.as_slice().len() as u64;
 
         for rewrite in plan.as_slice() {
             self.set_subscribers_sorted(rewrite.source, rewrite.subscribers.as_slice())?;

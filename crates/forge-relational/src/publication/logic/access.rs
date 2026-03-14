@@ -1,10 +1,11 @@
 use crate::diagnostics::data::RelationalDiagnosticsEntry;
 use crate::diagnostics::facade::RelationalDiagnosticsFacade;
 use crate::logic::runtime::{RelationalReplayRecord, RelationalRuntime};
-use crate::publication::data::diff::{
-    PatchStreamBatch, PatchStreamReadError, PatchStreamReadErrorClass, PatchStreamRequest,
+use crate::publication::bundle::PublicationBundle;
+use crate::publication::cdc::data::{
+    SubscriberResumeRequest, SubscriberStreamBatch, SubscriberStreamFailure,
 };
-use crate::publication::data::PublicationBundle;
+use crate::publication::patch::data::{PatchStreamBatch, PatchStreamReadError, PatchStreamRequest};
 use crate::validation::data::InvariantExecutionPoint;
 
 pub struct PublicationAccess<'runtime> {
@@ -45,7 +46,7 @@ impl<'runtime> PublicationAccess<'runtime> {
         self.runtime.publication.latest_bundle.as_ref()
     }
 
-    pub fn latest_patch(&self) -> Option<&crate::publication::data::diff::RelationalPatchRecord> {
+    pub fn latest_patch(&self) -> Option<&crate::publication::patch::data::RelationalPatchRecord> {
         self.latest_bundle().map(|bundle| &bundle.patch)
     }
 
@@ -57,52 +58,14 @@ impl<'runtime> PublicationAccess<'runtime> {
         &self,
         request: PatchStreamRequest,
     ) -> Result<PatchStreamBatch, PatchStreamReadError> {
-        if request.max_commits == 0 {
-            return Err(PatchStreamReadError {
-                class: PatchStreamReadErrorClass::InvalidBatchSize,
-                detail: "patch stream request must ask for at least one commit".to_string(),
-            });
-        }
+        crate::publication::patch::logic::read_patch_stream(self.runtime, request)
+    }
 
-        let latest_position = self.runtime.history_access().latest_patch_stream_position();
-        let latest_commit_id = self
-            .runtime
-            .publication
-            .latest_bundle
-            .as_ref()
-            .map(|bundle| bundle.commit.commit_id)
-            .or_else(|| {
-                self.runtime
-                    .history_access()
-                    .latest_commit()
-                    .map(|commit| commit.commit_id)
-            });
-
-        if let Some(after_position) = request.after_position {
-            if !self
-                .runtime
-                .history_access()
-                .contains_patch_stream_position(after_position)
-            {
-                return Err(PatchStreamReadError {
-                    class: PatchStreamReadErrorClass::UnknownResumePosition,
-                    detail: format!("unknown patch stream resume position {}", after_position.0),
-                });
-            }
-        }
-
-        let patches = self
-            .runtime
-            .history_access()
-            .patches_after(request.after_position, request.max_commits);
-
-        Ok(PatchStreamBatch {
-            resumed_after: request.after_position,
-            next_position: patches.last().map(|patch| patch.position),
-            latest_position,
-            latest_commit_id,
-            patches,
-        })
+    pub fn read_subscriber_stream(
+        &self,
+        request: SubscriberResumeRequest,
+    ) -> Result<SubscriberStreamBatch, SubscriberStreamFailure> {
+        crate::publication::cdc::access::read_subscriber_stream(self.runtime, request)
     }
 }
 

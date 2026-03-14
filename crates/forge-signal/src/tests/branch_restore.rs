@@ -30,6 +30,26 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
         .unwrap();
     let feature_counts = runtime.config().test_registry_counts();
     let feature_snapshot = runtime.capture_snapshot();
+    let feature_record = feature_snapshot
+        .reconstructability
+        .clone()
+        .expect("runtime snapshot should carry reconstructability record");
+    assert_eq!(feature_record.authority_branch_id, feature.id);
+    assert_eq!(
+        feature_record.authority_snapshot_id,
+        Some(feature_snapshot.meta.snapshot_id)
+    );
+    assert_eq!(feature_record.replay_head, feature_snapshot.meta.replay_head);
+    assert_eq!(
+        feature_record.checkpoint.checkpoint_size,
+        feature_snapshot
+            .runtime_telemetry
+            .as_ref()
+            .map(|telemetry| telemetry.checkpoint.checkpoint_size)
+            .unwrap_or(0)
+    );
+    assert_eq!(feature_record.checkpoint.journal_replay_span, 0);
+    assert!(feature_record.journal.is_none());
 
     runtime.switch_branch(main).unwrap();
     let main_node = keyed.node(&mut runtime);

@@ -12,6 +12,7 @@ use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::diagnostics::replay::{ReplayCursor, ReplayFrame};
 use crate::diagnostics::summary::ExecutionHistorySummary;
 use crate::diagnostics::{FailureSummary, RollbackDiagnostic};
+use crate::logic::transaction::ReconstructabilityRecord;
 
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
@@ -87,6 +88,7 @@ pub struct SignalSnapshotV1 {
     pub diagnostics: SignalSnapshotDiagnostics,
     pub graph_telemetry: RuntimeTelemetry,
     pub runtime_telemetry: Option<RuntimeTelemetry>,
+    pub reconstructability: Option<ReconstructabilityRecord>,
 }
 
 impl SignalSnapshotMeta {

@@ -22,7 +22,7 @@ use self::executor_pool::PlannerExecutorPool;
 use super::types::EligibleTask;
 #[cfg(feature = "parallel")]
 use super::types::ParallelExecutionPolicy;
-use super::validation::{capture_current_dependencies, preview_maybe_stale};
+use super::validation::capture_current_dependencies;
 use crate::data::comparator::ComparatorPolicyResolver;
 
 #[derive(Debug, Clone)]
@@ -277,7 +277,7 @@ fn prevalidate_stage_tasks(
 fn prepare_validated_clean_if_unchanged(
     graph: &mut SignalGraph,
     task: &super::types::EligibleTask,
-    comparator_resolver: &mut impl ComparatorPolicyResolver,
+    _comparator_resolver: &mut impl ComparatorPolicyResolver,
 ) -> Result<Option<PreparedEvaluation>, SignalError> {
     if matches!(
         task.request_mode,
@@ -287,22 +287,21 @@ fn prepare_validated_clean_if_unchanged(
     }
 
     if !matches!(
-        graph.get_state(task.node)?,
-        crate::data::node::NodeState::MaybeStale
+        task.admission.node_state_at_admission,
+        Some(crate::data::node::NodeState::MaybeStale)
     ) {
         return Ok(None);
     }
 
-    if !graph
-        .get_entry(task.node)?
-        .get_dirty_partition_scopes()
-        .is_empty()
-    {
+    if task.admission.dirty_partition_scopes_present {
         return Ok(None);
     }
 
-    let preview = preview_maybe_stale(graph, task.node, comparator_resolver)?;
-    if !preview.unchanged {
+    if !task
+        .admission
+        .maybe_stale
+        .is_some_and(|admission| admission.unchanged_at_admission)
+    {
         return Ok(None);
     }
 

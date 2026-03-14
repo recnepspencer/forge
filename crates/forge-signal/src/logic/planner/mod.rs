@@ -27,16 +27,17 @@ pub(crate) use model::SessionScratch;
 pub(crate) use model::StageCursor;
 #[allow(unused_imports)]
 pub use model::{
-    ApplyFootprint, CandidateTask, DisjointApplyGroup, EligibleTask, EvaluationPlan,
-    ExecutedTask, ExecutionPruneReason,
+    ApplyFootprint, CandidateTask, DisjointApplyGroup, EligibleTask, EligibleTaskAdmission,
+    EvaluationPlan, ExecutedTask, ExecutionPruneReason,
     ExecutionRecordId, ExecutionReport, ExecutionStage, LoweredStagePlan, LoweredTask, PlanSummary,
-    SemanticSegmentId, SemanticTaskRange, StageBarrier, StageExecutionOutcome,
+    MaybeStaleAdmission, SemanticSegmentId, SemanticTaskRange, StageBarrier, StageExecutionOutcome,
     StageExecutionRecord, StageExecutor, TaskExecutionOutcome, TaskExecutionRecord, TaskReason,
 };
 #[cfg(feature = "parallel")]
 #[allow(unused_imports)]
 pub use model::{ParallelApplyMode, ParallelExecutionKind, ParallelExecutionPolicy};
 pub(crate) use plan_builder::build_evaluation_session_with_policy_resolver;
+pub(crate) use plan_builder::admit_direct_task_with_policy_resolver;
 pub use plan_builder::{build_evaluation_plan, build_evaluation_plan_with_policy_resolver};
 #[cfg(test)]
 pub(crate) use tests::{

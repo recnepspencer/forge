@@ -19,6 +19,7 @@ use crate::logic::planner::{ExecutionRecordId, ExecutionReport, SemanticSegmentI
 use super::super::super::key_registry::RuntimeStringId;
 use super::super::super::patch_buffer::SparsePatchBuffer;
 use super::super::config::SignalRuntimeConfig;
+use super::super::state::ReconstructabilityRecord;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TransactionOutcome {
     Committed,
@@ -50,6 +51,7 @@ pub struct TransactionResult {
     pub timing: TransactionTiming,
     pub touched_nodes: u32,
     pub evaluation_summary: EvaluationSummary,
+    pub reconstructability: ReconstructabilityRecord,
     pub event_epochs: Vec<EventEpochSummary>,
     pub rollback: Option<crate::diagnostics::failure::RollbackDiagnostic>,
     pub warnings: Vec<super::envelope::AdvisoryRecord>,

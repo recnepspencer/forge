@@ -36,10 +36,13 @@ impl<'a> GraphObserver<'a> {
     }
 
     pub fn metrics(&self) -> GraphMetrics {
-        GraphMetrics::from_runtime_telemetry(
+        let mut metrics = GraphMetrics::from_runtime_telemetry(
             self.telemetry(),
             self.graph.observation.partition_interner.token_count(),
-        )
+        );
+        metrics.storage.hot_path_artifact_reconstruction_count =
+            self.graph.hot_path_artifact_reconstruction_count();
+        metrics
     }
 
     pub fn diagnostics_profile(&self) -> DiagnosticsProfile {
@@ -164,9 +167,7 @@ impl<'a> GraphObserver<'a> {
         &self,
         node: NodeId,
     ) -> Result<NodeExplanation, SignalError> {
-        let mut explanation = explain(self.graph, node)?;
-        explanation.materialization_mode = ArtifactMaterializationMode::Reconstructed;
-        Ok(explanation)
+        self.graph.reconstruct_explanation_artifact(node)
     }
 
     pub fn retained_provenance_artifact(&self, node: NodeId) -> Option<ProvenanceFact> {
@@ -180,9 +181,7 @@ impl<'a> GraphObserver<'a> {
         &self,
         node: NodeId,
     ) -> Result<ProvenanceFact, SignalError> {
-        let mut explanation = explain(self.graph, node)?;
-        explanation.materialization_mode = ArtifactMaterializationMode::Reconstructed;
-        Ok(ProvenanceFact::from_explanation(&explanation))
+        self.graph.reconstruct_provenance_artifact(node)
     }
 
     pub fn explain_artifact(

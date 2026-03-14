@@ -25,6 +25,7 @@ pub(super) use crate::facade::history::BranchId;
 pub(super) use crate::facade::identity::{KindId, PartitionId, RelationId};
 pub(super) use crate::facade::publication::{
     PatchStreamPosition, PatchStreamRequest, PublicationStage, PublicationStatus,
+    SubscriberResumeRequest, SubscriberStreamFailureClass,
 };
 pub(super) use crate::facade::query::QueryWorkPacket;
 pub(super) use crate::facade::runtime::{
@@ -42,6 +43,7 @@ pub(super) use crate::facade::transactions::{
 };
 pub(super) use crate::payloads::data::RecordPayload;
 pub(super) use crate::publication::data::diff::{PatchCompatibilityClass, PatchDetail};
+pub(super) use crate::publication::cdc::planning::checkpoint_for_schema_version;
 pub(super) use crate::schema::data::RelationPayloadClass;
 pub(super) use crate::symbols::data::{InternedString, SymbolPolicy};
 

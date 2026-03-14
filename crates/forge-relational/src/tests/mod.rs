@@ -1,6 +1,7 @@
 mod complexity;
 mod domains;
 mod durability;
+mod harness;
 mod history;
 mod lineage;
 mod profiles;

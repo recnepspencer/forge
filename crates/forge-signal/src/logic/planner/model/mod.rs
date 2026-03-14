@@ -79,6 +79,8 @@ impl OrderedStreamItem for EligibleTask {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct EligibleTaskAdmission {
+    pub node_state_at_admission: Option<NodeState>,
+    pub dirty_partition_scopes_present: bool,
     pub maybe_stale: Option<MaybeStaleAdmission>,
 }
 

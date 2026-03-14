@@ -1,2 +1,4 @@
-mod cdc_resume;
+mod cdc;
 mod observability;
+mod patch;
+mod contracts;
