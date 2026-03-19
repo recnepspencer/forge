@@ -7,8 +7,8 @@ use crate::data::dependency::DependencySnapshotId;
 use crate::data::graph::{DependencySetId, SubscriberSetId};
 use crate::data::output::{ChangedRegion, PartitionSubscription};
 use crate::data::trace::{
-    CausalityMetadata, HistoricalArtifactRecord, RetainedDiagnosticArtifact, RuntimeArtifactState,
-    TraceSummary,
+    ArtifactMergeAuthority, CausalityMetadata, HistoricalArtifactRecord,
+    RetainedDiagnosticArtifact, RuntimeArtifactState, TraceSummary,
 };
 
 use super::condition::NodeEvaluationConfig;
@@ -332,6 +332,7 @@ impl NodeEntry {
                     execution_record_id: summary.execution_record_id,
                     semantic_segment_id: summary.semantic_segment_id,
                     lineage_artifact_id: summary.lineage_artifact_id,
+                    merge_authority: ArtifactMergeAuthority::default(),
                 });
                 let retained = RetainedDiagnosticArtifact {
                     changed_regions: retained_changed_regions,
@@ -422,3 +423,4 @@ impl NodeEntry {
         }
     }
 }
+

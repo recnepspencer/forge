@@ -3,14 +3,15 @@ use std::collections::BTreeMap;
 use crate::storage::overlay::PartitionState;
 
 use super::{
-    DurabilitySubsystem, HistorySubsystem, IndexingSubsystem, LineageSubsystem,
-    PublicationSubsystem, RuntimeServices, VisibilitySubsystem,
+    AspectSemanticsSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
+    LineageSubsystem, PublicationSubsystem, RuntimeServices, VisibilitySubsystem,
 };
 use crate::logic::runtime::RelationalRuntimeConfig;
 
 #[derive(Debug)]
 pub struct RelationalRuntime {
     pub(crate) config: RelationalRuntimeConfig,
+    pub(crate) aspect_semantics: AspectSemanticsSubsystem,
     pub(crate) partitions: BTreeMap<crate::identity::data::PartitionId, PartitionState>,
     pub(crate) visibility: VisibilitySubsystem,
     pub(crate) publication: PublicationSubsystem,

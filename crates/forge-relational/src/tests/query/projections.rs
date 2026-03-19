@@ -1,8 +1,14 @@
 use crate::facade::identity::EntityId;
-use crate::facade::runtime::{EntityRecordProjection, ProjectionAspect};
+use crate::facade::runtime::EntityRecordProjection;
 use crate::tests::support::*;
+use std::sync::OnceLock;
 
-const ENTITY_NAME_ASPECTS: [ProjectionAspect; 1] = [ProjectionAspect::new("name")];
+fn entity_name_aspects() -> &'static [AspectKey] {
+    static ASPECTS: OnceLock<Vec<AspectKey>> = OnceLock::new();
+    ASPECTS
+        .get_or_init(|| vec![AspectKey(InternedString::Raw("name".to_string()))])
+        .as_slice()
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct NamedEntityProjection {
@@ -13,8 +19,8 @@ struct NamedEntityProjection {
 impl EntityRecordProjection for NamedEntityProjection {
     const KIND: KindId = KindId(1);
 
-    fn required_aspects() -> &'static [ProjectionAspect] {
-        &ENTITY_NAME_ASPECTS
+    fn required_aspects() -> &'static [AspectKey] {
+        entity_name_aspects()
     }
 
     fn from_record(record: &EntityReadRecord) -> Option<Self> {
@@ -27,7 +33,8 @@ impl EntityRecordProjection for NamedEntityProjection {
 
 #[test]
 fn entity_projections_collapse_kind_and_partition_threading() {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let left = create_entity_in_partition(&mut runtime, "left-a", PartitionId(7));
     let _other_left = create_entity_in_partition(&mut runtime, "left-b", PartitionId(7));
     let right = create_entity_in_partition(&mut runtime, "right-a", PartitionId(11));
@@ -56,7 +63,8 @@ fn entity_projections_collapse_kind_and_partition_threading() {
 
 #[test]
 fn snapshot_projection_resolves_version_without_manual_kind_scan_parameters() {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let created = create_entity_outcome(&mut runtime, "visible");
 
     let projected = runtime
@@ -69,7 +77,7 @@ fn snapshot_projection_resolves_version_without_manual_kind_scan_parameters() {
     assert_eq!(projected[0].name, "visible");
     assert_eq!(
         <NamedEntityProjection as EntityRecordProjection>::required_aspects(),
-        &ENTITY_NAME_ASPECTS
+        entity_name_aspects()
     );
 }
 
@@ -100,4 +108,15 @@ fn projection_raw_record_escape_hatches_preserve_full_visible_record_sets() {
             .collect::<Vec<_>>(),
         vec![relation]
     );
+}
+
+#[test]
+#[should_panic(expected = "requires undeclared aspect")]
+fn projection_rejects_undeclared_required_aspects() {
+    let mut runtime = runtime_with_test_schema();
+    create_entity_outcome(&mut runtime, "visible");
+    let _ = runtime
+        .visibility_reads()
+        .project_version(runtime.current_version_id())
+        .entities::<NamedEntityProjection>();
 }

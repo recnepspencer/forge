@@ -306,3 +306,264 @@ fn chunk_diagnostics_and_packet_plans_are_public_and_stable() {
     assert_eq!(diagnostics.entity_chunks_total, 1);
     assert_eq!(diagnostics.entity_chunks_with_visible_records, 1);
 }
+
+#[test]
+fn record_local_aspect_history_reads_committed_patch_truth() {
+    let mut runtime =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let created = create_entity_outcome(&mut runtime, "before");
+    let entity = changed_entities(&created)[0];
+    let updated = update_entity(&mut runtime, entity, "after");
+    let history =
+        runtime
+            .history_access()
+            .entity_aspect_history(&BranchId("main".to_string()), entity, None);
+    let traced = runtime.history_access().entity_aspect_history_with_trace(
+        &BranchId("main".to_string()),
+        entity,
+        None,
+    );
+    let artifact = traced.trace.diagnostic_artifact();
+    let digest = traced.aspect_history_digest();
+    let resolved_aspects = CanonicalAspectSet::new([
+        AspectKey(InternedString::Raw("lifecycle".to_string())),
+        AspectKey(InternedString::Raw("name".to_string())),
+    ]);
+
+    assert_eq!(history.len(), 2);
+    assert_eq!(traced.entries, history);
+    assert_eq!(
+        traced.trace.requested_target,
+        HistoryAspectQueryTarget::Entity(entity)
+    );
+    assert_eq!(traced.trace.returned_entries, 2);
+    assert_eq!(traced.trace.resolved_aspects, resolved_aspects);
+    assert_eq!(
+        traced.trace.searched_commit_span,
+        Some(AspectHistoryCommitSpan {
+            first_commit_id: created.commit.commit_id,
+            last_commit_id: updated.commit.commit_id,
+        })
+    );
+    assert_eq!(traced.trace.searched_lineage_event_span, None);
+    assert_eq!(traced.trace.traversed_lineage_events, 0);
+    assert_eq!(artifact.scope, DiagnosticsScope::History);
+    assert_eq!(artifact.kind, DiagnosticsArtifactKind::DetailedTrace);
+    assert_eq!(artifact.entries.len(), 1);
+    assert_eq!(
+        artifact.entries[0].code,
+        DiagnosticCode::AspectHistoryResolved
+    );
+    assert_eq!(
+        digest.requested_target,
+        HistoryAspectQueryTarget::Entity(entity)
+    );
+    assert_eq!(digest.entry_count, 2);
+    assert_eq!(digest.resolved_aspects, resolved_aspects);
+    assert_direct_history_origin_invariants(&history, RecordRef::Entity(entity));
+    assert_eq!(history[0].origin.commit_id, created.commit.commit_id);
+    assert_eq!(history[0].origin.target, RecordRef::Entity(entity));
+    assert_eq!(history[0].origin.changed_aspects, resolved_aspects);
+    assert_eq!(history[1].origin.commit_id, updated.commit.commit_id);
+
+    let filtered = runtime.history_access().entity_aspect_history(
+        &BranchId("main".to_string()),
+        entity,
+        Some(&AspectFilter {
+            mode: AspectFilterMode::All,
+            aspects: RequestedAspectSet::new([AspectKey(InternedString::Raw("name".to_string()))]),
+        }),
+    );
+    let any_filtered = runtime.history_access().entity_aspect_history(
+        &BranchId("main".to_string()),
+        entity,
+        Some(&AspectFilter {
+            mode: AspectFilterMode::Any,
+            aspects: RequestedAspectSet::new([
+                AspectKey(InternedString::Raw("missing".to_string())),
+                AspectKey(InternedString::Raw("name".to_string())),
+            ]),
+        }),
+    );
+    assert_eq!(filtered.len(), 2);
+    assert_eq!(any_filtered.len(), 2);
+}
+
+#[test]
+fn bulk_like_aspect_history_filters_and_query_packets_stay_stable_after_recovery() {
+    let mut runtime =
+        persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit);
+    let hub = create_entity(&mut runtime, "hub");
+    let leaves = (0..8)
+        .map(|index| {
+            create_entity_in_partition(
+                &mut runtime,
+                &format!("leaf-{index}"),
+                PartitionId((index % 3 + 7) as u32),
+            )
+        })
+        .collect::<Vec<_>>();
+    let relations = leaves
+        .iter()
+        .enumerate()
+        .map(|(index, leaf)| {
+            create_relation_in_partition(
+                &mut runtime,
+                hub,
+                *leaf,
+                &format!("edge-{index}"),
+                PartitionId((index % 4 + 20) as u32),
+            )
+        })
+        .collect::<Vec<_>>();
+    for (index, leaf) in leaves.iter().enumerate() {
+        let _ = update_entity(&mut runtime, *leaf, &format!("leaf-{index}-updated"));
+    }
+    let packet = QueryWorkPacket::bulk(
+        "fanout-entities",
+        leaves
+            .iter()
+            .copied()
+            .map(RecordRef::Entity)
+            .collect::<Vec<_>>(),
+    );
+    let snapshot = runtime.visibility_authority().snapshot();
+    let planned_packet = runtime
+        .storage_access()
+        .plan_read_packet(&snapshot, &packet)
+        .unwrap();
+    let before_recovery_reads = runtime
+        .visibility_reads()
+        .execute_read_packet(&snapshot, &packet)
+        .unwrap();
+    let delete_outcome = delete_entity(&mut runtime, hub);
+    let expected_entity_digests = leaves
+        .iter()
+        .map(|entity| {
+            runtime
+                .history_access()
+                .entity_aspect_history_with_trace(
+                    &BranchId("main".to_string()),
+                    *entity,
+                    Some(&AspectFilter {
+                        mode: AspectFilterMode::All,
+                        aspects: RequestedAspectSet::new([aspect_key("name")]),
+                    }),
+                )
+                .aspect_history_digest()
+        })
+        .collect::<Vec<_>>();
+    let expected_relation_digests = relations
+        .iter()
+        .map(|relation| {
+            runtime
+                .history_access()
+                .relation_aspect_history_with_trace(
+                    &BranchId("main".to_string()),
+                    *relation,
+                    Some(&AspectFilter {
+                        mode: AspectFilterMode::All,
+                        aspects: RequestedAspectSet::new([
+                            aspect_key("source"),
+                            aspect_key("target"),
+                        ]),
+                    }),
+                )
+                .aspect_history_digest()
+        })
+        .collect::<Vec<_>>();
+    let expected_lifecycle_relation_digests = relations
+        .iter()
+        .map(|relation| {
+            runtime
+                .history_access()
+                .relation_aspect_history_with_trace(
+                    &BranchId("main".to_string()),
+                    *relation,
+                    Some(&AspectFilter {
+                        mode: AspectFilterMode::Any,
+                        aspects: RequestedAspectSet::new([aspect_key("lifecycle")]),
+                    }),
+                )
+                .aspect_history_digest()
+        })
+        .collect::<Vec<_>>();
+    runtime.durability_authority().checkpoint().unwrap();
+    let recovery_plan = runtime.durability_access().recovery_plan();
+
+    let mut recovered =
+        persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit);
+    let recovery = recovered.durability_authority().recover(recovery_plan).unwrap();
+    let recovered_snapshot = recovered.visibility_authority().snapshot();
+    let recovered_reads = recovered
+        .visibility_reads()
+        .execute_read_packet(&recovered_snapshot, &packet)
+        .unwrap();
+    let recovered_entity_digests = leaves
+        .iter()
+        .map(|entity| {
+            recovered
+                .history_access()
+                .entity_aspect_history_with_trace(
+                    &BranchId("main".to_string()),
+                    *entity,
+                    Some(&AspectFilter {
+                        mode: AspectFilterMode::All,
+                        aspects: RequestedAspectSet::new([aspect_key("name")]),
+                    }),
+                )
+                .aspect_history_digest()
+        })
+        .collect::<Vec<_>>();
+    let recovered_relation_digests = relations
+        .iter()
+        .map(|relation| {
+            recovered
+                .history_access()
+                .relation_aspect_history_with_trace(
+                    &BranchId("main".to_string()),
+                    *relation,
+                    Some(&AspectFilter {
+                        mode: AspectFilterMode::All,
+                        aspects: RequestedAspectSet::new([
+                            aspect_key("source"),
+                            aspect_key("target"),
+                        ]),
+                    }),
+                )
+                .aspect_history_digest()
+        })
+        .collect::<Vec<_>>();
+    let recovered_lifecycle_relation_digests = relations
+        .iter()
+        .map(|relation| {
+            recovered
+                .history_access()
+                .relation_aspect_history_with_trace(
+                    &BranchId("main".to_string()),
+                    *relation,
+                    Some(&AspectFilter {
+                        mode: AspectFilterMode::Any,
+                        aspects: RequestedAspectSet::new([aspect_key("lifecycle")]),
+                    }),
+                )
+                .aspect_history_digest()
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(recovery.latest_commit, Some(delete_outcome.commit.clone()));
+    assert_eq!(planned_packet.target_count, leaves.len());
+    assert_eq!(before_recovery_reads.entities.len(), leaves.len());
+    assert_eq!(before_recovery_reads.entities, recovered_reads.entities);
+    assert_eq!(expected_entity_digests, recovered_entity_digests);
+    assert_eq!(expected_relation_digests, recovered_relation_digests);
+    assert_eq!(
+        expected_lifecycle_relation_digests,
+        recovered_lifecycle_relation_digests
+    );
+    assert!(expected_entity_digests.iter().all(|digest| digest.entry_count == 2));
+    assert!(expected_relation_digests.iter().all(|digest| digest.entry_count == 1));
+    assert!(expected_lifecycle_relation_digests
+        .iter()
+        .all(|digest| digest.entry_count == 2));
+}

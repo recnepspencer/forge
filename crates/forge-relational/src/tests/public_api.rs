@@ -1,9 +1,25 @@
 use crate::facade;
+use std::sync::OnceLock;
+
+fn public_api_projection_aspects() -> &'static [facade::publication::AspectKey] {
+    static ASPECTS: OnceLock<Vec<facade::publication::AspectKey>> = OnceLock::new();
+    ASPECTS
+        .get_or_init(|| {
+            vec![facade::publication::AspectKey(
+                facade::symbols::InternedString::Raw("name".to_string()),
+            )]
+        })
+        .as_slice()
+}
 
 struct PublicApiProjection;
 
 impl facade::runtime::EntityRecordProjection for PublicApiProjection {
     const KIND: facade::identity::KindId = facade::identity::KindId(1);
+
+    fn required_aspects() -> &'static [facade::publication::AspectKey] {
+        public_api_projection_aspects()
+    }
 
     fn from_record(record: &facade::runtime::EntityReadRecord) -> Option<Self> {
         record.payload.as_json()?.get("name")?.as_str()?;
@@ -26,5 +42,6 @@ fn facade_namespaces_expose_domain_groupings() {
     let _patch_mode = facade::publication::PatchPublicationMode::CommitNative;
     let _snapshot_policy = facade::snapshots::SnapshotReadPolicy::ImmutablePinnedNoLazyMutation;
     let _projection_kind = <PublicApiProjection as facade::runtime::EntityRecordProjection>::KIND;
-    let _projection_aspect = facade::runtime::ProjectionAspect::new("name");
+    let _projection_aspects =
+        <PublicApiProjection as facade::runtime::EntityRecordProjection>::required_aspects();
 }

@@ -1,17 +1,22 @@
 //! Arena-based signal graph with dependency storage.
 
+use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::{Deserialize, Serialize};
 
 use crate::data::bitset::DenseBitset;
+use crate::data::core_profile::StableHashValue;
+use crate::data::dependency::{DependencyEdge, SnapshotDeltaRecord};
 use crate::data::dependency::DependencySnapshotStore;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeEntry;
 use crate::data::output::PartitionInterner;
+use crate::data::reuse::ReuseBasis;
 use crate::data::telemetry::RuntimeTelemetry;
+use crate::diagnostics::lineage::LineageArtifactId;
 use crate::diagnostics::state::DiagnosticsState;
 use crate::diagnostics::DiagnosticsProfile;
 
@@ -62,8 +67,120 @@ pub(crate) struct RuntimeObservation {
     pub(in crate::data::graph) reconstruction_counters: ReconstructionCounters,
     #[serde(default)]
     pub(in crate::data::graph) partition_interner: PartitionInterner,
+    #[serde(default)]
+    pub(in crate::data::graph) branch_mutation_records: BTreeMap<NodeId, BranchMutationRecord>,
     #[serde(skip, default)]
     pub(in crate::data::graph) diagnostics: DiagnosticsState,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub(crate) struct BranchMutationRecord {
+    pub introduced: bool,
+    pub state_changed: bool,
+    pub dependencies_changed: bool,
+    pub dependency_snapshot_changed: bool,
+    pub runtime_artifact_changed: bool,
+    pub retained_artifact_changed: bool,
+    pub causality_changed: bool,
+    #[serde(default)]
+    pub structural_deltas: Vec<BranchStructuralDelta>,
+}
+
+impl BranchMutationRecord {
+    pub(crate) fn merge_relevant(&self) -> bool {
+        self.introduced
+            || self.state_changed
+            || self.dependencies_changed
+            || self.dependency_snapshot_changed
+            || self.runtime_artifact_changed
+    }
+
+    fn mark_introduced(&mut self) {
+        self.introduced = true;
+        self.state_changed = true;
+        self.structural_deltas
+            .push(BranchStructuralDelta::NodeIntroduced);
+    }
+
+    fn mark_state_changed(&mut self) {
+        self.state_changed = true;
+        self.structural_deltas
+            .push(BranchStructuralDelta::NodeStateChanged);
+    }
+
+    fn mark_dependencies_changed(&mut self, delta: DependencyTopologyDelta) {
+        self.dependencies_changed = true;
+        self.structural_deltas
+            .push(BranchStructuralDelta::DependencyTopologyChanged(delta));
+    }
+
+    fn mark_dependency_snapshot_changed(&mut self, delta: DependencySnapshotStructuralDelta) {
+        self.dependency_snapshot_changed = true;
+        self.structural_deltas
+            .push(BranchStructuralDelta::DependencySnapshotChanged(delta));
+    }
+
+    fn mark_runtime_artifact_changed(&mut self, delta: RuntimeArtifactStructuralDelta) {
+        self.runtime_artifact_changed = true;
+        self.structural_deltas
+            .push(BranchStructuralDelta::RuntimeArtifactChanged(delta));
+    }
+
+    fn mark_retained_artifact_changed(&mut self) {
+        self.retained_artifact_changed = true;
+        self.structural_deltas
+            .push(BranchStructuralDelta::RetainedArtifactChanged);
+    }
+
+    fn mark_causality_changed(&mut self) {
+        self.causality_changed = true;
+        self.structural_deltas
+            .push(BranchStructuralDelta::CausalityChanged);
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BranchStructuralDelta {
+    NodeIntroduced,
+    NodeStateChanged,
+    DependencyTopologyChanged(DependencyTopologyDelta),
+    DependencySnapshotChanged(DependencySnapshotStructuralDelta),
+    RuntimeArtifactChanged(RuntimeArtifactStructuralDelta),
+    RetainedArtifactChanged,
+    CausalityChanged,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct DependencyTopologyDelta {
+    pub added_edges: Vec<DependencyEdge>,
+    pub removed_edges: Vec<DependencyEdge>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DependencySnapshotStructuralDelta {
+    pub previous_entry_count: u32,
+    pub next_entry_count: u32,
+    pub changed_entry_count: u32,
+}
+
+impl DependencySnapshotStructuralDelta {
+    pub(crate) fn from_snapshot_delta(delta: SnapshotDeltaRecord) -> Self {
+        Self {
+            previous_entry_count: delta.previous_entry_count,
+            next_entry_count: delta.next_entry_count,
+            changed_entry_count: delta.changed_entry_count,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RuntimeArtifactStructuralDelta {
+    pub previous_artifact_id: Option<LineageArtifactId>,
+    pub next_artifact_id: Option<LineageArtifactId>,
+    pub previous_output_hash: Option<StableHashValue>,
+    pub next_output_hash: Option<StableHashValue>,
+    pub previous_reuse_basis: Option<ReuseBasis>,
+    pub next_reuse_basis: Option<ReuseBasis>,
 }
 
 #[derive(Debug, Default)]
@@ -140,6 +257,99 @@ impl SignalGraph {
 
     pub(crate) fn clone_stateful(&self) -> Self {
         self.clone()
+    }
+
+    pub(crate) fn node_allocator_state(&self) -> u32 {
+        self.arena.nodes.len() as u32
+    }
+
+    pub(crate) fn synchronize_node_allocator(&mut self, next_node_index: u32) {
+        if self.arena.nodes.len() as u32 >= next_node_index {
+            return;
+        }
+        let missing = next_node_index as usize - self.arena.nodes.len();
+        self.arena.nodes.reserve(missing);
+        for _ in 0..missing {
+            self.arena.nodes.push(Slot::retired_placeholder());
+        }
+    }
+
+    fn record_branch_mutation(
+        &mut self,
+        node: NodeId,
+        update: impl FnOnce(&mut BranchMutationRecord),
+    ) {
+        update(
+            self.observation
+                .branch_mutation_records
+                .entry(node)
+                .or_default(),
+        );
+    }
+
+    pub(crate) fn record_branch_mutation_introduced(&mut self, node: NodeId) {
+        self.record_branch_mutation(node, BranchMutationRecord::mark_introduced);
+    }
+
+    pub(crate) fn record_branch_mutation_state(&mut self, node: NodeId) {
+        self.record_branch_mutation(node, BranchMutationRecord::mark_state_changed);
+    }
+
+    pub(crate) fn record_branch_mutation_dependencies(
+        &mut self,
+        node: NodeId,
+        delta: DependencyTopologyDelta,
+    ) {
+        self.record_branch_mutation(node, |record| record.mark_dependencies_changed(delta));
+    }
+
+    pub(crate) fn record_branch_mutation_snapshot(
+        &mut self,
+        node: NodeId,
+        delta: DependencySnapshotStructuralDelta,
+    ) {
+        self.record_branch_mutation(node, |record| {
+            record.mark_dependency_snapshot_changed(delta)
+        });
+    }
+
+    pub(crate) fn record_branch_mutation_runtime_artifact(
+        &mut self,
+        node: NodeId,
+        delta: RuntimeArtifactStructuralDelta,
+    ) {
+        self.record_branch_mutation(node, |record| {
+            record.mark_runtime_artifact_changed(delta)
+        });
+    }
+
+    pub(crate) fn record_branch_mutation_retained_artifact(&mut self, node: NodeId) {
+        self.record_branch_mutation(node, BranchMutationRecord::mark_retained_artifact_changed);
+    }
+
+    pub(crate) fn record_branch_mutation_causality(&mut self, node: NodeId) {
+        self.record_branch_mutation(node, BranchMutationRecord::mark_causality_changed);
+    }
+
+    pub(crate) fn record_branch_mutation_nodes(
+        &mut self,
+        nodes: impl IntoIterator<Item = NodeId>,
+    ) {
+        for node in nodes {
+            self.record_branch_mutation_state(node);
+        }
+    }
+
+    pub(crate) fn branch_mutation_records(&self) -> Vec<(NodeId, BranchMutationRecord)> {
+        self.observation
+            .branch_mutation_records
+            .iter()
+            .map(|(node, record)| (*node, record.clone()))
+            .collect()
+    }
+
+    pub(crate) fn clear_branch_mutation_nodes(&mut self) {
+        self.observation.branch_mutation_records.clear();
     }
 
     pub fn observe(&self) -> super::observer::GraphObserver<'_> {
@@ -275,7 +485,9 @@ impl SignalGraph {
             }
             let generation = slot.occupy(entry);
             self.arena.active_nodes += 1;
-            return NodeId::new(index, generation);
+            let node = NodeId::new(index, generation);
+            self.record_branch_mutation_introduced(node);
+            return node;
         }
 
         let index = self.arena.nodes.len() as u32;
@@ -286,7 +498,9 @@ impl SignalGraph {
         let generation = slot.occupy(entry);
         self.arena.nodes.push(slot);
         self.arena.active_nodes += 1;
-        NodeId::new(index, generation)
+        let node = NodeId::new(index, generation);
+        self.record_branch_mutation_introduced(node);
+        node
     }
 
     pub(crate) fn rollback_created_nodes(&mut self, created_nodes: &[NodeId]) {

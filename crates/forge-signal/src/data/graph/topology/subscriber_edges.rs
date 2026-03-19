@@ -51,7 +51,7 @@ impl SignalGraph {
         })
     }
 
-    #[cfg(test)]
+    #[allow(dead_code)]
     pub(crate) fn rebuild_subscriber_index_from_dependencies(&mut self) -> Result<(), SignalError> {
         self.observation
             .telemetry

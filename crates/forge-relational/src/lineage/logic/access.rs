@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 
-use crate::history::data::BranchId;
+use crate::history::data::{
+    AspectFilter, BranchId, LineageAspectHistory, LineageAspectHistoryQueryResult,
+};
 use crate::identity::data::{EntityId, LineageId};
 use crate::lineage::data::{
     CorrespondenceCandidate, HistoricalLineageResolution, LineageDivergenceSummary,
@@ -151,6 +153,27 @@ impl<'runtime> LineageAccess<'runtime> {
     ) -> Option<HistoricalLineageResolution> {
         let lineage = self.for_record(entity_id)?;
         Some(self.resolve_historical_lineage(branch_id, lineage.lineage_id))
+    }
+
+    pub fn entity_aspect_history(
+        &self,
+        branch_id: &BranchId,
+        lineage_id: LineageId,
+        filter: Option<&AspectFilter>,
+    ) -> Option<LineageAspectHistory> {
+        self.entity_aspect_history_with_trace(branch_id, lineage_id, filter)
+            .history
+    }
+
+    pub fn entity_aspect_history_with_trace(
+        &self,
+        branch_id: &BranchId,
+        lineage_id: LineageId,
+        filter: Option<&AspectFilter>,
+    ) -> LineageAspectHistoryQueryResult {
+        self.runtime
+            .history_access()
+            .lineage_entity_aspect_history_with_trace(branch_id, lineage_id, filter)
     }
 
     pub(crate) fn nodes_snapshot(&self) -> Vec<LineageNode> {

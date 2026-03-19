@@ -14,6 +14,30 @@ use crate::data::proof::PartitionScopeSet;
 use crate::data::reuse::{ReuseBasis, ReuseBoundaryContext, ReuseCertificationRecord};
 use crate::diagnostics::lineage::LineageArtifactId;
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub enum ArtifactAuthorityClass {
+    #[default]
+    TargetAuthoritative,
+    BranchLocalSpeculative,
+    DerivedOnly,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub enum MergeAdoptability {
+    #[default]
+    Adoptable,
+    NonAdoptableBranchLocal,
+    NonAdoptableDerivedOnly,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct ArtifactMergeAuthority {
+    #[serde(default)]
+    pub authority_class: ArtifactAuthorityClass,
+    #[serde(default)]
+    pub adoptability: MergeAdoptability,
+}
+
 /// Hot operational artifact state retained directly on the node.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct RuntimeArtifactState {
@@ -64,6 +88,9 @@ pub struct RuntimeArtifactState {
     /// Current signal-lineage artifact id for this node's evaluated artifact.
     #[serde(default)]
     pub lineage_artifact_id: Option<LineageArtifactId>,
+    /// Typed authority/adoptability truth used by branch merge semantics.
+    #[serde(default)]
+    pub merge_authority: ArtifactMergeAuthority,
 }
 
 /// Cold retained artifact richness kept off the operational hot path.

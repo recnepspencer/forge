@@ -1,3 +1,4 @@
+mod aspect_history;
 mod branch_creation;
 
 use serde::{Deserialize, Serialize};
@@ -5,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::identity::data::VersionId;
 use crate::identity::data::{EntityId, RelationId};
 
+pub use aspect_history::*;
 pub use branch_creation::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]

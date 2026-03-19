@@ -50,7 +50,8 @@ pub mod types {
     };
     pub use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger, TierPolicy};
     pub use crate::data::trace::{
-        CausalityMetadata, HistoricalArtifactRecord, RetainedDiagnosticArtifact,
+        ArtifactAuthorityClass, ArtifactMergeAuthority, CausalityMetadata,
+        HistoricalArtifactRecord, MergeAdoptability, RetainedDiagnosticArtifact,
         RuntimeArtifactState, TraceSummary,
     };
     pub use crate::state::{
@@ -135,7 +136,18 @@ pub mod transaction {
         DecisionDetail, DecisionLog, DecisionRecord, DecisionSummary, DefinedComputation,
         DefinedKeyedComputation, EvaluationSummary, IntegrityMarkers, SignalRuntime,
         SignalRuntimeBuilder, SignalRuntimeConfig, SignalTransaction, TransactionOutcome,
-        TransactionReplayEntry, TransactionResult, TransactionTiming,
+        TransactionReplayEntry, TransactionResult, TransactionTiming, ArtifactMergeAction,
+        ArtifactMergeComparable, BranchMergeBase, BranchMergeCounters,
+        BranchMergeConflictEvidence, BranchMergeConflictKind, BranchMergeConflictRecord,
+        BranchMergeConflictSummary, BranchMergeDivergence, BranchMergeExecutionSummary,
+        BranchMergeKind, BranchMergePlan, BranchMergeReconciliationPolicy,
+        BranchMergeRequest, BranchMergeResult, BranchMergeStrategy,
+        BranchMergeFailureKind, BranchMutationJournalSlice, BranchMutationLedger,
+        ConflictMergePolicy, DependencyFingerprint, DependencyRemapRecord,
+        ExistingTargetMergePolicy, MergeCandidateScope, MergeDecisionBasis, MergeNodeMap,
+        MergeTouchedNodeSet, MergedArtifactRecord, NodeMergeInputState, NodeMergePlan,
+        NodeReconciliationDecision, NodeReconciliationShape, SourceNodeAdoptionPlanCore,
+        SourceOnlyMergePolicy, StructuralMergeCandidateRecord,
     };
 }
 

@@ -1,4 +1,6 @@
-use crate::data::dependency::{DependencySnapshot, DependencySnapshotUpdate, SnapshotDeltaRecord};
+use crate::data::dependency::{
+    DependencySnapshot, DependencySnapshotUpdate, SharedDependencySnapshot, SnapshotDeltaRecord,
+};
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::node::{NodeContract, NodeEntry, NodeEvaluationConfig, NodeState};
@@ -7,12 +9,18 @@ use crate::data::trace::CausalityMetadata;
 
 use super::super::node_builder::NodeBuilder;
 use super::super::signal_graph::stale_error;
-use super::super::signal_graph::SignalGraph;
+use super::super::signal_graph::{
+    DependencySnapshotStructuralDelta, SignalGraph,
+};
 
 impl SignalGraph {
     #[doc(hidden)]
     pub fn create_node(&mut self) -> NodeId {
         let entry = NodeEntry::new();
+        self.allocate_node(entry)
+    }
+
+    pub(crate) fn create_node_from_entry(&mut self, entry: NodeEntry) -> NodeId {
         self.allocate_node(entry)
     }
 
@@ -65,8 +73,18 @@ impl SignalGraph {
         id: NodeId,
         snapshot: DependencySnapshot,
     ) -> Result<(), SignalError> {
+        let previous = self.get_dep_snapshot(id)?.clone();
+        let delta = SnapshotDeltaRecord::between(
+            id,
+            &previous,
+            &SharedDependencySnapshot::new(snapshot.clone()),
+        );
         let snapshot_id = self.topology.dependency_snapshots.insert(snapshot);
         self.get_entry_mut(id)?.set_dep_snapshot_id(snapshot_id);
+        self.record_branch_mutation_snapshot(
+            id,
+            DependencySnapshotStructuralDelta::from_snapshot_delta(delta),
+        );
         self.record_graph_storage_pressure();
         Ok(())
     }
@@ -87,6 +105,10 @@ impl SignalGraph {
             .dependency_snapshots
             .insert(next_snapshot.into_snapshot());
         self.get_entry_mut(id)?.set_dep_snapshot_id(snapshot_id);
+        self.record_branch_mutation_snapshot(
+            id,
+            DependencySnapshotStructuralDelta::from_snapshot_delta(delta),
+        );
         self.record_graph_storage_pressure();
         Ok(delta)
     }
@@ -118,6 +140,10 @@ impl SignalGraph {
             );
             self.get_entry_mut(snapshot.node)?
                 .set_dep_snapshot_id(snapshot_id);
+            self.record_branch_mutation_snapshot(
+                snapshot.node,
+                DependencySnapshotStructuralDelta::from_snapshot_delta(snapshot.delta),
+            );
         }
         self.record_graph_storage_pressure();
         Ok(())
@@ -162,6 +188,7 @@ impl SignalGraph {
     ) -> Result<(), SignalError> {
         let target = self.get_entry_mut(id)?;
         *target = entry;
+        self.record_branch_mutation_state(id);
         Ok(())
     }
 
@@ -175,6 +202,7 @@ impl SignalGraph {
         causality: Option<CausalityMetadata>,
     ) -> Result<(), SignalError> {
         self.get_entry_mut(node)?.set_causality(causality);
+        self.record_branch_mutation_causality(node);
         Ok(())
     }
 }

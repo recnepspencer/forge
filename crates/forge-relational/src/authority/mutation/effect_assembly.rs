@@ -1,11 +1,11 @@
 use serde_json::json;
 
-use crate::authority::mutation::aspect_versions::aspect_keys_for_payload;
+use crate::authority::mutation::canonical_deltas::canonical_delta_for_mutation;
 use crate::authority::mutation::patch_details::{
     patch_detail_for_entity, patch_detail_for_relation,
 };
 use crate::diagnostics::data::{DiagnosticCode, RelationalDiagnosticsEntry};
-use crate::publication::data::diff::{PatchRecord, PatchRecordKind};
+use crate::publication::data::diff::{PatchRecord, PatchRecordKind, RecordStructuralChange};
 use crate::transactions::data::RecordRef;
 
 use super::outcomes::{MutationEvent, MutationOutcome, RecordMutation};
@@ -19,19 +19,24 @@ pub(crate) fn assemble_effect(
     let mut effect = MutationEffect::default();
 
     for change in outcome.changes {
+        let canonical_delta = canonical_delta_for_mutation(&change, workspace);
+        let patch_aspects = canonical_delta.changed_aspects.clone();
+        let contains_degraded_precision = canonical_delta.contains_degraded_precision;
         match change {
-            RecordMutation::EntityCreated { entity_id, payload } => {
-                let aspects = workspace.with_context(|context| {
-                    aspect_keys_for_payload(Some(&payload), context.symbols)
-                });
+            RecordMutation::EntityCreated {
+                entity_id, payload, ..
+            } => {
                 effect
                     .publication
                     .changed_records
                     .push(RecordRef::Entity(entity_id));
+                effect.publication.canonical_deltas.push(canonical_delta);
                 effect.publication.patch_records.push(PatchRecord {
                     kind: PatchRecordKind::Created,
                     target: RecordRef::Entity(entity_id),
-                    aspects,
+                    structural_change: RecordStructuralChange::Created,
+                    aspects: patch_aspects,
+                    contains_degraded_precision,
                     detail: patch_detail_for_entity(
                         patch_surface_policy,
                         PatchRecordKind::Created,
@@ -40,35 +45,42 @@ pub(crate) fn assemble_effect(
                     ),
                 });
             }
-            RecordMutation::EntityUpdated { entity_id, payload } => {
-                let aspects = workspace.with_context(|context| {
-                    aspect_keys_for_payload(Some(&payload), context.symbols)
-                });
+            RecordMutation::EntityUpdated {
+                entity_id,
+                new_payload,
+                ..
+            } => {
                 effect
                     .publication
                     .changed_records
                     .push(RecordRef::Entity(entity_id));
+                effect.publication.canonical_deltas.push(canonical_delta);
                 effect.publication.patch_records.push(PatchRecord {
                     kind: PatchRecordKind::Updated,
                     target: RecordRef::Entity(entity_id),
-                    aspects,
+                    structural_change: RecordStructuralChange::Updated,
+                    aspects: patch_aspects,
+                    contains_degraded_precision,
                     detail: patch_detail_for_entity(
                         patch_surface_policy,
                         PatchRecordKind::Updated,
                         entity_id,
-                        Some(&payload),
+                        Some(&new_payload),
                     ),
                 });
             }
-            RecordMutation::EntityDeleted { entity_id } => {
+            RecordMutation::EntityDeleted { entity_id, .. } => {
                 effect
                     .publication
                     .changed_records
                     .push(RecordRef::Entity(entity_id));
+                effect.publication.canonical_deltas.push(canonical_delta);
                 effect.publication.patch_records.push(PatchRecord {
                     kind: PatchRecordKind::Deleted,
                     target: RecordRef::Entity(entity_id),
-                    aspects: Vec::new(),
+                    structural_change: RecordStructuralChange::Deleted,
+                    aspects: patch_aspects,
+                    contains_degraded_precision,
                     detail: patch_detail_for_entity(
                         patch_surface_policy,
                         PatchRecordKind::Deleted,
@@ -82,14 +94,13 @@ pub(crate) fn assemble_effect(
                 source,
                 target,
                 payload,
+                ..
             } => {
-                let aspects = workspace.with_context(|context| {
-                    aspect_keys_for_payload(payload.as_ref(), context.symbols)
-                });
                 effect
                     .publication
                     .changed_records
                     .push(RecordRef::Relation(relation_id));
+                effect.publication.canonical_deltas.push(canonical_delta);
                 effect.adjacency.deltas.push(AdjacencyDelta {
                     relation_id,
                     kind: AdjacencyDeltaKind::Created { source, target },
@@ -97,7 +108,9 @@ pub(crate) fn assemble_effect(
                 effect.publication.patch_records.push(PatchRecord {
                     kind: PatchRecordKind::Created,
                     target: RecordRef::Relation(relation_id),
-                    aspects,
+                    structural_change: RecordStructuralChange::Created,
+                    aspects: patch_aspects,
+                    contains_degraded_precision,
                     detail: patch_detail_for_relation(
                         patch_surface_policy,
                         PatchRecordKind::Created,
@@ -112,11 +125,13 @@ pub(crate) fn assemble_effect(
                 relation_id,
                 source,
                 target,
+                ..
             } => {
                 effect
                     .publication
                     .changed_records
                     .push(RecordRef::Relation(relation_id));
+                effect.publication.canonical_deltas.push(canonical_delta);
                 effect.adjacency.deltas.push(AdjacencyDelta {
                     relation_id,
                     kind: AdjacencyDeltaKind::Deleted { source, target },
@@ -124,7 +139,9 @@ pub(crate) fn assemble_effect(
                 effect.publication.patch_records.push(PatchRecord {
                     kind: PatchRecordKind::Deleted,
                     target: RecordRef::Relation(relation_id),
-                    aspects: Vec::new(),
+                    structural_change: RecordStructuralChange::Deleted,
+                    aspects: patch_aspects,
+                    contains_degraded_precision,
                     detail: patch_detail_for_relation(
                         patch_surface_policy,
                         PatchRecordKind::Deleted,
@@ -140,15 +157,19 @@ pub(crate) fn assemble_effect(
                 source,
                 target,
                 payload,
+                ..
             } => {
                 effect
                     .publication
                     .changed_records
                     .push(RecordRef::Relation(relation_id));
+                effect.publication.canonical_deltas.push(canonical_delta);
                 effect.publication.patch_records.push(PatchRecord {
                     kind: PatchRecordKind::RetainedForAudit,
                     target: RecordRef::Relation(relation_id),
-                    aspects: Vec::new(),
+                    structural_change: RecordStructuralChange::RetainedForAudit,
+                    aspects: patch_aspects,
+                    contains_degraded_precision,
                     detail: patch_detail_for_relation(
                         patch_surface_policy,
                         PatchRecordKind::RetainedForAudit,

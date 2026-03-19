@@ -1,3 +1,4 @@
+use crate::facade::diagnostics::RelationalDiagnosticsProfile;
 use crate::facade::runtime::HarnessAuditMode;
 use crate::tests::support::*;
 
@@ -320,6 +321,96 @@ fn parallel_post_commit_consumption_preserves_publication_surfaces() {
             .post_commit_parallel_strategy_count,
         3
     );
+}
+
+#[test]
+fn aspect_traces_and_diagnostics_are_stable_across_supported_execution_models() {
+    let serial_diagnostics = RelationalDiagnosticsProfile {
+        detailed_traces_enabled: true,
+        ..RelationalDiagnosticsProfile::default()
+    };
+    let mut serial = RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::CertificationCore)
+        .schema_registry(declared_aspect_schema_registry(
+            CascadeDeletePolicy::CascadeDeleteRelations,
+        ))
+        .diagnostics(serial_diagnostics.clone())
+        .execution_model(crate::facade::runtime::RelationalExecutionModel::SerialAuthority)
+        .build();
+    let mut staged = RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::CertificationCore)
+        .schema_registry(declared_aspect_schema_registry(
+            CascadeDeletePolicy::CascadeDeleteRelations,
+        ))
+        .diagnostics(serial_diagnostics.clone())
+        .execution_model(
+            crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation,
+        )
+        .build();
+    let mut post_commit = RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::CertificationCore)
+        .schema_registry(declared_aspect_schema_registry(
+            CascadeDeletePolicy::CascadeDeleteRelations,
+        ))
+        .diagnostics(serial_diagnostics)
+        .execution_model(
+            crate::facade::runtime::RelationalExecutionModel::ParallelPostCommitConsumption,
+        )
+        .build();
+
+    let serial_outcome = create_entity_outcome(&mut serial, "trace-stable");
+    let staged_outcome = create_entity_outcome(&mut staged, "trace-stable");
+    let post_commit_outcome = create_entity_outcome(&mut post_commit, "trace-stable");
+
+    assert_eq!(
+        serial_outcome.aspect_evaluation_traces(),
+        staged_outcome.aspect_evaluation_traces()
+    );
+    assert_eq!(
+        serial_outcome.aspect_evaluation_traces(),
+        post_commit_outcome.aspect_evaluation_traces()
+    );
+    assert_eq!(
+        serial_outcome.aspect_emission_traces(),
+        staged_outcome.aspect_emission_traces()
+    );
+    assert_eq!(
+        serial_outcome.aspect_emission_traces(),
+        post_commit_outcome.aspect_emission_traces()
+    );
+    assert_eq!(serial_outcome.patch(), staged_outcome.patch());
+    assert_eq!(serial_outcome.patch(), post_commit_outcome.patch());
+    assert_eq!(
+        aspect_relevant_diagnostics(serial_outcome.diagnostics()),
+        aspect_relevant_diagnostics(staged_outcome.diagnostics())
+    );
+    assert_eq!(
+        aspect_relevant_diagnostics(serial_outcome.diagnostics()),
+        aspect_relevant_diagnostics(post_commit_outcome.diagnostics())
+    );
+    assert_patch_truth_invariants(&serial_outcome);
+    assert_patch_truth_invariants(&staged_outcome);
+    assert_patch_truth_invariants(&post_commit_outcome);
+}
+
+fn aspect_relevant_diagnostics(
+    diagnostics: &[crate::facade::diagnostics::RelationalDiagnosticArtifact],
+) -> Vec<crate::facade::diagnostics::RelationalDiagnosticArtifact> {
+    diagnostics
+        .iter()
+        .filter(|artifact| {
+            artifact.entries.iter().any(|entry| {
+                matches!(
+                    entry.code,
+                    DiagnosticCode::AspectEvaluationTraced
+                        | DiagnosticCode::AspectEmissionTraced
+                        | DiagnosticCode::EntityCreated
+                        | DiagnosticCode::CommitPublished
+                )
+            })
+        })
+        .cloned()
+        .collect()
 }
 
 #[test]

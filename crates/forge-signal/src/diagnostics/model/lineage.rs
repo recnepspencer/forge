@@ -3,6 +3,10 @@ use serde::{Deserialize, Serialize};
 use crate::data::handle::NodeId;
 use crate::data::output::OutputChange;
 use crate::logic::planner::{ExecutionRecordId, SemanticSegmentId};
+use crate::logic::transaction::{
+    ArtifactMergeAction, BranchMergeDivergence, BranchMergeKind,
+    BranchMergeReconciliationPolicy, BranchMergeStrategy, MergeDecisionBasis,
+};
 use crate::state::{SignalBranchId, SignalSnapshotId};
 
 #[derive(
@@ -62,8 +66,28 @@ pub enum LineageRecordKind {
     BranchMerge {
         source_branch_id: SignalBranchId,
         target_branch_id: SignalBranchId,
+        merge_kind: BranchMergeKind,
+        divergence: BranchMergeDivergence,
+        merge_strategy: BranchMergeStrategy,
+        reconciliation_policy: BranchMergeReconciliationPolicy,
+        merged_snapshot_id: Option<SignalSnapshotId>,
         source_branch_display_name: String,
         target_branch_display_name: String,
+    },
+    ArtifactMerge {
+        source_node: NodeId,
+        target_node: Option<NodeId>,
+        source_branch_id: SignalBranchId,
+        target_branch_id: SignalBranchId,
+        source_artifact_id: Option<LineageArtifactId>,
+        target_artifact_id_before: Option<LineageArtifactId>,
+        target_artifact_id_after: Option<LineageArtifactId>,
+        merge_action: ArtifactMergeAction,
+        decision_basis: MergeDecisionBasis,
+        merge_kind: BranchMergeKind,
+        divergence: BranchMergeDivergence,
+        merge_strategy: BranchMergeStrategy,
+        reconciliation_policy: BranchMergeReconciliationPolicy,
     },
     SnapshotRestore {
         snapshot_id: SignalSnapshotId,
@@ -179,6 +203,11 @@ impl LineageRecord {
         emitted_on_branch_id: SignalBranchId,
         source_branch_id: SignalBranchId,
         target_branch_id: SignalBranchId,
+        merge_kind: BranchMergeKind,
+        divergence: BranchMergeDivergence,
+        merge_strategy: BranchMergeStrategy,
+        reconciliation_policy: BranchMergeReconciliationPolicy,
+        merged_snapshot_id: Option<SignalSnapshotId>,
         source_branch_display_name: impl Into<String>,
         target_branch_display_name: impl Into<String>,
     ) -> Self {
@@ -188,8 +217,52 @@ impl LineageRecord {
             LineageRecordKind::BranchMerge {
                 source_branch_id,
                 target_branch_id,
+                merge_kind,
+                divergence,
+                merge_strategy,
+                reconciliation_policy,
+                merged_snapshot_id,
                 source_branch_display_name: source_branch_display_name.into(),
                 target_branch_display_name: target_branch_display_name.into(),
+            },
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn artifact_merge(
+        sequence: u64,
+        emitted_on_branch_id: SignalBranchId,
+        source_node: NodeId,
+        target_node: Option<NodeId>,
+        source_branch_id: SignalBranchId,
+        target_branch_id: SignalBranchId,
+        source_artifact_id: Option<LineageArtifactId>,
+        target_artifact_id_before: Option<LineageArtifactId>,
+        target_artifact_id_after: Option<LineageArtifactId>,
+        merge_action: ArtifactMergeAction,
+        decision_basis: MergeDecisionBasis,
+        merge_kind: BranchMergeKind,
+        divergence: BranchMergeDivergence,
+        merge_strategy: BranchMergeStrategy,
+        reconciliation_policy: BranchMergeReconciliationPolicy,
+    ) -> Self {
+        Self::new(
+            sequence,
+            emitted_on_branch_id,
+            LineageRecordKind::ArtifactMerge {
+                source_node,
+                target_node,
+                source_branch_id,
+                target_branch_id,
+                source_artifact_id,
+                target_artifact_id_before,
+                target_artifact_id_after,
+                merge_action,
+                decision_basis,
+                merge_kind,
+                divergence,
+                merge_strategy,
+                reconciliation_policy,
             },
         )
     }
@@ -236,6 +309,7 @@ impl LineageRecord {
         match &self.kind {
             LineageRecordKind::ArtifactTransition { node, .. }
             | LineageRecordKind::Invalidation { node, .. } => Some(*node),
+            LineageRecordKind::ArtifactMerge { target_node, .. } => *target_node,
             LineageRecordKind::SnapshotRestore { node, .. } => *node,
             LineageRecordKind::BranchFork { .. }
             | LineageRecordKind::BranchSwitch { .. }
@@ -251,6 +325,10 @@ impl LineageRecord {
         match &self.kind {
             LineageRecordKind::ArtifactTransition { artifact_id, .. }
             | LineageRecordKind::Invalidation { artifact_id, .. } => Some(*artifact_id),
+            LineageRecordKind::ArtifactMerge {
+                target_artifact_id_after,
+                ..
+            } => *target_artifact_id_after,
             LineageRecordKind::SnapshotRestore { artifact_id, .. } => *artifact_id,
             LineageRecordKind::BranchFork { .. }
             | LineageRecordKind::BranchSwitch { .. }
@@ -263,6 +341,7 @@ impl LineageRecord {
             LineageRecordKind::ArtifactTransition {
                 parent_artifact_id, ..
             } => *parent_artifact_id,
+            LineageRecordKind::ArtifactMerge { .. } => None,
             LineageRecordKind::SnapshotRestore { .. } | LineageRecordKind::Invalidation { .. } => {
                 None
             }
@@ -282,6 +361,10 @@ impl LineageRecord {
     pub fn invalidated_artifact_id(&self) -> Option<LineageArtifactId> {
         match &self.kind {
             LineageRecordKind::Invalidation { artifact_id, .. } => Some(*artifact_id),
+            LineageRecordKind::ArtifactMerge {
+                target_artifact_id_after,
+                ..
+            } => *target_artifact_id_after,
             _ => None,
         }
     }
@@ -337,6 +420,7 @@ impl LineageRecord {
             LineageRecordKind::BranchFork { .. } => "BranchedFrom",
             LineageRecordKind::BranchSwitch { .. } => "BranchSwitched",
             LineageRecordKind::BranchMerge { .. } => "MergedFrom",
+            LineageRecordKind::ArtifactMerge { .. } => "MergedArtifact",
             LineageRecordKind::SnapshotRestore { .. } => "Restored",
             LineageRecordKind::Invalidation { .. } => "InvalidatedWithoutReplacement",
         }

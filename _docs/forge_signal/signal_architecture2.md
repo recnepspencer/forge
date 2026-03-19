@@ -1831,6 +1831,95 @@ pub enum BranchMergeKind {
 }
 ```
 
+Implementation is intentionally staged inside S9.15 itself. Merge hardening is
+not a generic cleanup pass after S9.x; it is part of making merge a real
+product capability.
+
+#### S9.15.0 â€” Merge Substrate Foundation
+
+Required completion:
+
+- source-only node adoption into target authority through explicit merge-time
+  introduction semantics
+- canonical `BranchMergeExecutionSummary` as the single truth source for replay,
+  lineage, and merge reporting
+- branch-owned mutation ledger rather than graph-wide rediscovery as the
+  primary merge candidate proof surface
+- merge candidate scope narrowing from branch-local mutation proof instead of
+  unconditional whole-live branch scans
+- explicit target identity allocation and dependency remap truth for introduced
+  nodes
+
+Normative rule:
+
+- merge substrate is not complete until repeated merges can stay bounded by
+  branch-carried proof instead of cumulative whole-branch inspection
+
+#### S9.15.1 â€” Reconciliation Semantics and Conflict Surfaces
+
+Required completion:
+
+- typed divergence classification between `FastForward`, `Applied`, and true
+  conflict-required merge cases
+- typed merge failure surfaces instead of generic invalid-input routing
+- explicit reconciliation policy for existing-target replacement, source
+  adoption, preserved target state, and non-adoptable branch-local work
+- truthful conflict boundaries: `ConflictResolved` may exist only when real
+  conflict resolution semantics exist
+
+Normative rule:
+
+- planner and executor must agree on merge meaning from lowered typed policy,
+  not rediscover it from runtime state at execution time
+
+#### S9.15.2 â€” Structural Mutation Journal
+
+The branch mutation ledger must evolve from node-granular proof to structural
+merge truth.
+
+Required completion:
+
+- first-class branch-local records for:
+  - node introduction and eventual branch-local removal semantics
+  - dependency edge add/remove
+  - dependency snapshot delta
+  - authoritative artifact transition
+  - merge-relevant scope/region truth where required
+- merge planning driven from journal truth rather than graph-state comparison
+- boundary advancement semantics so repeated merges stay bounded by "since last
+  merge boundary" rather than "anything ever touched on this branch"
+
+Normative rule:
+
+- if merge planning must rescan broad graph state to reconstruct structural
+  delta, the mutation journal is incomplete
+
+#### S9.15.3 â€” Production-Grade Hardening and Certification
+
+Merge is not production-grade until breadth, traceability, and replay
+coherence are certified under repeated history evolution.
+
+Required completion:
+
+- repeated-merge boundedness certification
+- snapshot/restore coherence across merge histories
+- replay/lineage stability across longer branch lifetimes
+- performance certification for:
+  - candidate-node merge breadth
+  - dependency remap breadth
+  - subscriber repair breadth
+  - merge snapshot capture breadth
+- diagnostics-only churn must remain excluded from merge execution breadth
+- no accidental whole-graph subscriber rebuilds or branch-wide merge scans may
+  remain in hot merge paths except as explicit fallback when no narrower proof
+  exists
+
+Normative rule:
+
+- merge is not done when it is merely truthful; it is done when truthful merge
+  semantics also remain operationally bounded under geometry-kernel-scale
+  workloads
+
 Normative rule:
 
 - `MergedFrom` must not be emitted as a decorative branch event without real
@@ -1844,6 +1933,39 @@ Normative rule:
 This section extends S5 and S9.7.a and encodes laws `7`, `15`, and `32`.
 
 ### S9.16 — Geometry-Kernel Performance Hardening Program
+
+> [!NOTE]
+> **S10 merge-forward note:** once S9.15 closes, the next merge-expansion work
+> should be tracked explicitly rather than rediscovered ad hoc. The main
+> unsupported-but-real product behaviors are:
+>
+> - persistent-identity node matching across different `NodeId`s, so merge can
+>   reconcile logically stable nodes that were reallocated or independently
+>   introduced on different branches
+> - per-aspect merge semantics for multi-aspect nodes, including cases where
+>   one branch carries richer aspect authority than the other
+> - true conflict resolution policies, not just conflict classification and
+>   typed failure
+> - three-way structural reconciliation over node state, dependency topology,
+>   and artifact state
+> - first-class deletion/removal semantics for nodes, edges, and eventually
+>   aspects
+> - edge-level merge results and lineage, not only node-centered merge summaries
+> - partial-conflict acceptance where non-conflicting regions can reconcile
+>   without pretending the conflicting region was resolved
+> - typed merge policies such as target-wins/source-wins or
+>   topology-vs-artifact resolution modes, but only once the semantics are real
+>   rather than convenience shims
+> - keyed/persistent-name based identity mapping, if and only if it is promoted
+>   into real merge identity truth rather than display metadata
+> - richer historical/explain query surfaces for why a merge produced the final
+>   target shape
+>
+> Normative rule:
+>
+> - none of these may be implemented by heuristic name matching, string labels,
+>   or compatibility adapters that collapse semantic identity, artifact
+>   derivation, and branch reconciliation into one surface
 
 If `forge-signal` is expected to support geometry kernels for next-generation
 aircraft, performance hardening must target the real failure modes of that

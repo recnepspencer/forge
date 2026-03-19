@@ -356,6 +356,52 @@ finish it as a first-class runtime feature.
 - durable publication semantics for merge commits
 - branch-head advancement semantics for successful merges
 
+#### Explicit Future Merge/Reconciliation Requirements
+
+Milestone 7 must be treated as more than "make merge commits exist."
+
+The roadmap needs to be explicit that several merge/reconciliation behaviors are
+not fully supported yet but are architecturally required for a production-grade
+relational runtime. These are not optional refinements to append later if
+someone notices them. They are part of the real merge product surface.
+
+Required future merge behaviors include:
+
+- persistent identity matching across branches when corresponding records are
+  not the same raw record id
+- aspect-aware merge into an existing target record when one branch carries
+  richer declared aspect structure than another
+- deletion/removal semantics as a first-class merge result
+- relation endpoint rewiring merge semantics when one branch changes topology
+  and another changes payload/aspects
+- typed three-way merge semantics over base/source/target for record state,
+  aspect deltas, and relation structure
+- policy-driven conflict resolution beyond honest conflict detection and
+  fail-closed rejection
+- partial mergeability where non-conflicting regions can converge while
+  conflicting regions remain isolated
+- rich merge explanation surfaces that can answer why a target branch ended up
+  with a particular adopted, rejected, or reconciled aspect shape
+
+One especially important required behavior is this:
+
+- merging richer aspect structure into an existing poorer target structure must
+  eventually be modeled as explicit reconciliation semantics, not silently
+  collapsed into ordinary introduction, ordinary replacement, or lineage
+  continuity alone
+
+The roadmap is intentionally explicit here because the likely failure mode would
+otherwise be one of:
+
+- duplicating logically corresponding records instead of reconciling them
+- treating richer aspect structure as unrelated introduction
+- overloading lifecycle or lineage continuity with merge identity meaning
+- bolting on later heuristic matching without a first-class identity contract
+
+Milestone 2 is only a prerequisite for this work. Milestone 7 is where the
+runtime must become explicit about these merge/reconciliation behaviors as real
+product requirements.
+
 #### Must Preserve
 
 - single serialized authority for final truth commit

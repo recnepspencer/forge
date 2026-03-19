@@ -11,7 +11,8 @@ use crate::facade::lineage::LineageEventKind;
 use crate::facade::replay::CanonicalCommitEnvelope;
 use crate::facade::runtime::RelationalRuntimeApi;
 use crate::facade::schema::{
-    EntityKindRegistration, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
+    EntityKindRegistration, KindAspectDeclarations, RelationalSchemaRegistry, SchemaId,
+    SchemaVersionId,
 };
 use crate::facade::transactions::{TransactionCommitError, TransactionOptions};
 use crate::tests::support::*;
@@ -54,6 +55,112 @@ fn durability_contract_recovery_rebuilds_branch_heads_and_latest_commit() {
 }
 
 #[test]
+fn durability_contract_recovery_preserves_aspect_bearing_patch_truth_and_history() {
+    let mut runtime =
+        persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let created = create_entity_outcome(&mut runtime, "before");
+    let entity = changed_entities(&created)[0];
+    let updated = update_entity(&mut runtime, entity, "after");
+    let expected_history =
+        runtime
+            .history_access()
+            .entity_aspect_history(&BranchId("main".to_string()), entity, None);
+    let expected_digest = runtime
+        .history_access()
+        .entity_aspect_history_with_trace(&BranchId("main".to_string()), entity, None)
+        .aspect_history_digest();
+    let expected_envelope = runtime
+        .replay_access()
+        .canonical_commit_envelope(updated.commit.commit_id)
+        .cloned()
+        .unwrap();
+    let plan = runtime.durability_access().recovery_plan();
+    let mut recovered =
+        persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let outcome = recovered.durability_authority().recover(plan).unwrap();
+
+    let recovered_history = recovered.history_access().entity_aspect_history(
+        &BranchId("main".to_string()),
+        entity,
+        None,
+    );
+    let recovered_digest = recovered
+        .history_access()
+        .entity_aspect_history_with_trace(&BranchId("main".to_string()), entity, None)
+        .aspect_history_digest();
+    let recovered_replay = recovered.replay_access();
+    let recovered_envelope = recovered_replay
+        .canonical_commit_envelope(updated.commit.commit_id)
+        .unwrap();
+
+    assert_eq!(outcome.latest_commit, Some(updated.commit.clone()));
+    assert_eq!(expected_history, recovered_history);
+    assert_eq!(expected_digest, recovered_digest);
+    assert_eq!(
+        expected_envelope.patch.records,
+        recovered_envelope.patch.records
+    );
+    assert_eq!(
+        recovered_envelope.patch.records[0].aspects,
+        CanonicalAspectSet::new([aspect_key("lifecycle"), aspect_key("name")])
+    );
+    assert!(!recovered_envelope.patch.records[0].contains_degraded_precision);
+}
+
+#[test]
+fn durability_contract_recovery_preserves_relation_aspect_history_for_retained_audit_relations() {
+    let mut runtime =
+        persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit);
+    let source = create_entity(&mut runtime, "source");
+    let target = create_entity(&mut runtime, "target");
+    let relation_outcome = create_relation_outcome(&mut runtime, source, target, "r-audit");
+    let relation = changed_relations(&relation_outcome)[0];
+    let deleted = delete_entity(&mut runtime, source);
+    let expected_history = runtime.history_access().relation_aspect_history(
+        &BranchId("main".to_string()),
+        relation,
+        None,
+    );
+    let expected_digest = runtime
+        .history_access()
+        .relation_aspect_history_with_trace(&BranchId("main".to_string()), relation, None)
+        .aspect_history_digest();
+    let plan = runtime.durability_access().recovery_plan();
+    let mut recovered =
+        persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit);
+    let outcome = recovered.durability_authority().recover(plan).unwrap();
+
+    let recovered_history = recovered.history_access().relation_aspect_history(
+        &BranchId("main".to_string()),
+        relation,
+        None,
+    );
+    let recovered_digest = recovered
+        .history_access()
+        .relation_aspect_history_with_trace(&BranchId("main".to_string()), relation, None)
+        .aspect_history_digest();
+
+    assert_eq!(outcome.latest_commit, Some(deleted.commit.clone()));
+    assert_eq!(expected_history, recovered_history);
+    assert_eq!(expected_digest, recovered_digest);
+    assert_eq!(recovered_history.len(), 2);
+    assert_direct_history_origin_invariants(&recovered_history, RecordRef::Relation(relation));
+    assert_eq!(
+        recovered_history[0].origin.changed_aspects,
+        CanonicalAspectSet::new([
+            aspect_key("label"),
+            aspect_key("lifecycle"),
+            aspect_key("source"),
+            aspect_key("target"),
+        ])
+    );
+    assert_eq!(
+        recovered_history[1].origin.changed_aspects,
+        CanonicalAspectSet::new([aspect_key("lifecycle")])
+    );
+}
+
+#[test]
 fn durability_contract_failure_schema_mismatch_is_explicit() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "main-a");
@@ -64,6 +171,7 @@ fn durability_contract_failure_schema_mismatch_is_explicit() {
             kind_name: "other.entity".to_string(),
             schema_id: SchemaId("other".to_string()),
             schema_version_id: SchemaVersionId(2),
+            aspect_declarations: KindAspectDeclarations::default(),
         })
         .unwrap();
     let mut recovered = RelationalRuntimeApi::builder()
@@ -71,6 +179,47 @@ fn durability_contract_failure_schema_mismatch_is_explicit() {
         .build();
     let error = recovered.durability_authority().recover(plan).unwrap_err();
 
+    assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
+}
+
+#[test]
+fn durability_contract_failure_aspect_plan_mismatch_is_explicit() {
+    let mut runtime =
+        persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    create_entity_outcome(&mut runtime, "main-a");
+    let plan = runtime.durability_access().recovery_plan();
+    let expected_registry =
+        declared_aspect_schema_registry(CascadeDeletePolicy::CascadeDeleteRelations);
+    let mismatched_registry = AspectSchemaFixture {
+        entity_aspects: vec![
+            entity_payload_aspect("display_name", "name"),
+            lifecycle_aspect(),
+        ],
+        relation_aspects: vec![
+            relation_payload_aspect("label", "label"),
+            lifecycle_aspect(),
+            relation_source_aspect(),
+            relation_target_aspect(),
+        ],
+        ..AspectSchemaFixture::with_default_declared_aspects(
+            CascadeDeletePolicy::CascadeDeleteRelations,
+        )
+    }
+    .build_registry();
+    let expected_revision = expected_registry
+        .entity_aspect_declaration_trace(KindId(1))
+        .unwrap()
+        .plan_revision;
+    let mismatched_revision = mismatched_registry
+        .entity_aspect_declaration_trace(KindId(1))
+        .unwrap()
+        .plan_revision;
+    let mut recovered = RelationalRuntimeApi::builder()
+        .schema_registry(mismatched_registry)
+        .build();
+    let error = recovered.durability_authority().recover(plan).unwrap_err();
+
+    assert_ne!(expected_revision, mismatched_revision);
     assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
 }
 

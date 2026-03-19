@@ -76,8 +76,23 @@ pub(super) fn delete_entity_with_cascade(
     let slot = entity_id.local_slot.0 as usize;
     state.mark_entity_slot_touched(entity_id.partition_id, slot);
     let partition = state.get_partition_mut(entity_id.partition_id);
+    let slot_view = partition
+        .entity_arena
+        .get_slot(slot)
+        .expect("current entity slot must exist before deletion");
+    let kind_id = slot_view
+        .kind_id()
+        .expect("current entity slot must retain its kind before deletion");
+    let payload = slot_view
+        .payload()
+        .cloned()
+        .expect("current entity slot must retain its payload before deletion");
     partition.entity_arena.retire(slot, version_id);
-    outcome.record_change(RecordMutation::EntityDeleted { entity_id });
+    outcome.record_change(RecordMutation::EntityDeleted {
+        entity_id,
+        kind_id,
+        payload,
+    });
 
     let mut attached = BTreeSet::new();
     partition.adjacency[slot].extend_into(&mut attached);
@@ -142,11 +157,19 @@ pub(super) fn retain_relation_dangling_for_audit(
         .relation_arena
         .get_slot(slot)
         .and_then(|relation_slot| relation_slot.payload().cloned());
+    let kind_id = partition
+        .relation_arena
+        .get_slot(slot)
+        .and_then(|relation_slot| relation_slot.kind_id());
     let Some(endpoints) = endpoints else {
+        return;
+    };
+    let Some(kind_id) = kind_id else {
         return;
     };
     outcome.record_change(RecordMutation::RelationRetainedForAudit {
         relation_id,
+        kind_id,
         source: endpoints.source,
         target: endpoints.target,
         payload,
@@ -173,12 +196,22 @@ pub(super) fn delete_relation(
         .relation_arena
         .get_slot(slot)
         .and_then(|relation_slot| relation_slot.extra().clone());
+    let payload = partition
+        .relation_arena
+        .get_slot(slot)
+        .and_then(|relation_slot| relation_slot.payload().cloned());
+    let kind_id = partition
+        .relation_arena
+        .get_slot(slot)
+        .and_then(|relation_slot| relation_slot.kind_id());
     partition.relation_arena.retire(slot, version_id);
-    if let Some(endpoints) = endpoints {
+    if let (Some(endpoints), Some(kind_id)) = (endpoints, kind_id) {
         outcome.record_change(RecordMutation::RelationDeleted {
             relation_id,
+            kind_id,
             source: endpoints.source,
             target: endpoints.target,
+            payload,
         });
     }
 }

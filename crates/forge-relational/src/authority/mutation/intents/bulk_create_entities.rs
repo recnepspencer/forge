@@ -57,6 +57,7 @@ pub(super) fn apply(
         });
         outcome.record_change(RecordMutation::EntityCreated {
             entity_id,
+            kind_id: intent.kind_id,
             payload: payload.clone(),
         });
     }

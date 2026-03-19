@@ -5,12 +5,15 @@ use crate::authority::commit::publication::diagnostics_summary_artifact;
 use crate::history::data::CommitReference;
 use crate::publication::data::diff::RelationalPatchRecord;
 use crate::transactions::data::{
-    CommitChangeSummary, CommitPublicationSummary, MergedCommitPlan, RecordRef,
-    TransactionCommitError,
+    AspectEmissionTrace, AspectEvaluationTrace, CommitAspectSummary, CommitChangeSummary,
+    CommitPublicationSummary, MergedCommitPlan, RecordRef, TransactionCommitError,
 };
 
 pub(crate) struct PublicationPreparation {
     pub(crate) change_summary: CommitChangeSummary,
+    pub(crate) aspect_summary: CommitAspectSummary,
+    pub(crate) aspect_evaluation_traces: Vec<AspectEvaluationTrace>,
+    pub(crate) aspect_emission_traces: Vec<AspectEmissionTrace>,
     pub(crate) summary: CommitPublicationSummary,
     pub(crate) finalize: PublicationFinalizeArtifacts,
 }
@@ -37,6 +40,17 @@ pub(crate) fn prepare_publication_artifacts(
 ) -> Result<PublicationPreparation, TransactionCommitError> {
     let diagnostics_summary =
         diagnostics_summary_artifact(&runtime.config, effect.diagnostics.entries);
+    let aspect_evaluation_traces = effect
+        .publication
+        .canonical_deltas
+        .iter()
+        .map(|delta| delta.evaluation_trace())
+        .collect::<Vec<_>>();
+    let aspect_emission_traces = derive_aspect_emission_traces(
+        patch.position,
+        &patch.records,
+        &effect.publication.canonical_deltas,
+    );
     let artifacts = runtime.publication_authority().assemble_publication_bundle(
         commit_reference.clone(),
         version_id,
@@ -68,6 +82,7 @@ pub(crate) fn prepare_publication_artifacts(
         changed_record_count: changed_records.len(),
         adjacency_delta_count: adjacency_deltas.len(),
     };
+    let aspect_summary = summarize_commit_aspects(&effect.publication.canonical_deltas);
     let summary = CommitPublicationSummary {
         patch_record_count: patch.records.len(),
         diagnostics_entry_count: artifacts.bundle.diagnostics_summary.entries.len(),
@@ -79,6 +94,9 @@ pub(crate) fn prepare_publication_artifacts(
 
     Ok(PublicationPreparation {
         change_summary,
+        aspect_summary,
+        aspect_evaluation_traces,
+        aspect_emission_traces,
         summary,
         finalize: PublicationFinalizeArtifacts {
             artifacts,
@@ -87,4 +105,67 @@ pub(crate) fn prepare_publication_artifacts(
             adjacency_deltas,
         },
     })
+}
+
+fn derive_aspect_emission_traces(
+    patch_position: crate::publication::data::diff::PatchStreamPosition,
+    patch_records: &[crate::publication::data::diff::PatchRecord],
+    deltas: &[crate::authority::mutation::CanonicalRecordAspectDelta],
+) -> Vec<AspectEmissionTrace> {
+    patch_records
+        .iter()
+        .enumerate()
+        .map(|(patch_record_index, record)| {
+            let delta = deltas
+                .iter()
+                .find(|delta| delta.target == record.target)
+                .unwrap_or_else(|| {
+                    panic!(
+                        "missing canonical aspect delta for emitted patch target {:?}",
+                        record.target
+                    )
+                });
+            AspectEmissionTrace {
+                target: delta.target.clone(),
+                patch_position,
+                patch_record_index,
+                structural_change: delta.structural_change,
+                changed_aspects: delta.changed_aspects.clone(),
+                contains_degraded_precision: delta.contains_degraded_precision,
+            }
+        })
+        .collect()
+}
+
+fn summarize_commit_aspects(
+    deltas: &[crate::authority::mutation::CanonicalRecordAspectDelta],
+) -> CommitAspectSummary {
+    let mut changed_entity_aspect_count = 0;
+    let mut changed_relation_aspect_count = 0;
+    let mut touched_aspects = Vec::new();
+    let mut opaque_precision_delta_count = 0;
+    let mut zero_aspect_structural_delta_count = 0;
+
+    for delta in deltas {
+        let aspect_count = delta.changed_aspects.iter().count();
+        match delta.target {
+            RecordRef::Entity(_) => changed_entity_aspect_count += aspect_count,
+            RecordRef::Relation(_) => changed_relation_aspect_count += aspect_count,
+        }
+        touched_aspects.extend(delta.changed_aspects.iter().cloned());
+        if delta.contains_degraded_precision {
+            opaque_precision_delta_count += 1;
+        }
+        if delta.changed_aspects.is_empty() {
+            zero_aspect_structural_delta_count += 1;
+        }
+    }
+
+    CommitAspectSummary {
+        changed_entity_aspect_count,
+        changed_relation_aspect_count,
+        touched_aspects: crate::publication::data::diff::CanonicalAspectSet::new(touched_aspects),
+        opaque_precision_delta_count,
+        zero_aspect_structural_delta_count,
+    }
 }

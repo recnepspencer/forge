@@ -5,7 +5,8 @@ use crate::publication::cdc::data::{
 };
 use crate::publication::cdc::diagnostics::recovery_decision_artifact;
 use crate::publication::cdc::planning::checkpoint_resolution::{
-    durable_checkpoint_available, durable_envelopes, latest_available_checkpoint, resolve_checkpoint,
+    durable_checkpoint_available, durable_envelopes, latest_available_checkpoint,
+    resolve_checkpoint,
 };
 
 pub(crate) fn plan_subscriber_recovery(
@@ -32,14 +33,12 @@ pub(crate) fn plan_subscriber_recovery(
 
     let (start_after_position, mut diagnostics) =
         resolve_checkpoint(runtime, request.checkpoint())?;
-    let use_durable_source = request
-        .checkpoint()
-        .is_some_and(|checkpoint| {
-            !runtime
-                .history_access()
-                .contains_patch_stream_position(checkpoint.position())
-                && durable_checkpoint_available(runtime, checkpoint)
-        });
+    let use_durable_source = request.checkpoint().is_some_and(|checkpoint| {
+        !runtime
+            .history_access()
+            .contains_patch_stream_position(checkpoint.position())
+            && durable_checkpoint_available(runtime, checkpoint)
+    });
     let source_envelopes = if use_durable_source {
         durable_envelopes(runtime)
     } else {

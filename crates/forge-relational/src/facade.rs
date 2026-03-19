@@ -40,9 +40,13 @@ pub mod errors {
 
 pub mod history {
     pub use crate::history::data::{
+        AspectFilter, AspectFilterMode, AspectHistoryCommitSpan, AspectHistoryDigest,
+        AspectHistoryEntry, AspectHistoryLineageEventSpan, AspectHistoryOrigin,
+        AspectHistoryQueryResult, AspectHistoryResolutionTrace, AspectResolutionContext,
         BranchCreateError, BranchCreateErrorClass, BranchHead, BranchId, CommitId, CommitReference,
-        HistoryRetentionClass, MergeConflictRecord, MergeInspection, VersionGraphPolicy,
-        VersionGraphSnapshot, VersionNode,
+        HistoryAspectQueryTarget, HistoryRetentionClass, LineageAspectHistory,
+        LineageAspectHistoryQueryResult, LineageAspectResolutionDigest, MergeConflictRecord,
+        MergeInspection, RequestedAspectSet, VersionGraphPolicy, VersionGraphSnapshot, VersionNode,
     };
 }
 
@@ -80,10 +84,9 @@ pub mod runtime {
         EntityReadRecord, EntityRecordProjection, HarnessAuditMode, InvariantCatalog,
         InvariantCheckResult, InvariantClass, InvariantExecutionPoint, InvariantFailureEffect,
         InvariantRegistration, InvariantRule, PacketResult, PartitionStorageStats,
-        ProjectionAspect, RelationReadRecord, RelationRecordProjection, RelationalReadView,
-        RelationalReplayRecord, RelationalRuntime, RelationalRuntimeConfig, ReplaySchemaVersion,
-        RuntimeComplexityCounters, SnapshotGuard, StorageStats, TopologyFreezeMode,
-        VisibilityProjectionView,
+        RelationReadRecord, RelationRecordProjection, RelationalReadView, RelationalReplayRecord,
+        RelationalRuntime, RelationalRuntimeConfig, ReplaySchemaVersion, RuntimeComplexityCounters,
+        SnapshotGuard, StorageStats, TopologyFreezeMode, VisibilityProjectionView,
     };
     pub use crate::presentation::api::RelationalRuntimeApi;
     pub use crate::presentation::contracts::{
@@ -106,20 +109,19 @@ pub mod harness {
 }
 
 pub mod publication {
+    pub use crate::publication::bundle::{PublicationBundle, PublicationStage, PublicationStatus};
     pub use crate::publication::cdc::data::{
         SubscriberCheckpoint, SubscriberRecoveryDecision, SubscriberRecoveryDisposition,
         SubscriberRecoverySource, SubscriberResumeRequest, SubscriberStreamBatch,
         SubscriberStreamFailure, SubscriberStreamFailureClass,
     };
-    pub use crate::publication::patch::data::{
-        AspectKey, PatchFragmentBudget, PatchOrdering, PatchPublicationMode, PatchRecord,
-        PatchRecordKind, PatchStreamBatch, PatchStreamPosition, PatchStreamReadError,
-        PatchStreamReadErrorClass, PatchStreamRequest, RelationalPatchRecord,
-    };
-    pub use crate::publication::bundle::{
-        PublicationBundle, PublicationStage, PublicationStatus,
-    };
     pub use crate::publication::data::PublicationError;
+    pub use crate::publication::patch::data::{
+        AspectKey, CanonicalAspectSet, PatchFragmentBudget, PatchOrdering, PatchPublicationMode,
+        PatchRecord, PatchRecordKind, PatchStreamBatch, PatchStreamPosition, PatchStreamReadError,
+        PatchStreamReadErrorClass, PatchStreamRequest, RecordStructuralChange,
+        RelationalPatchRecord,
+    };
 }
 
 pub mod query {
@@ -137,10 +139,14 @@ pub mod replay {
 }
 
 pub mod schema {
+    pub use crate::publication::patch::data::AspectKey;
     pub use crate::schema::data::{
-        EntityKindRegistration, KindResolution, RelationKindRegistration, RelationPayloadClass,
-        RelationalSchemaRegistry, SchemaId, SchemaRegistryError, SchemaRegistryErrorClass,
-        SchemaVersionId,
+        AspectBinding, AspectComparator, AspectDeclarationTrace, AspectDeclarationTraceRow,
+        AspectLoweringTrace, AspectLoweringTraceRow, AspectPlanRevision, AspectPrecision,
+        DeclaredAspect, EntityKindRegistration, KindAspectDeclarations, KindResolution,
+        LoweredAspectBinding, LoweredAspectComparator, LoweredAspectExtractor, LoweredAspectPlan,
+        RelationKindRegistration, RelationPayloadClass, RelationalSchemaRegistry, SchemaId,
+        SchemaRegistryError, SchemaRegistryErrorClass, SchemaVersionId,
     };
 }
 
@@ -162,15 +168,18 @@ pub mod symbols {
 
 pub mod transactions {
     pub use crate::transactions::data::{
+        AspectEmissionTrace, AspectEvaluationTrace, AspectEvaluationTraceRow,
+        AspectLifecycleTransitionClass, AspectTagAccuracyReport, AspectTraceEvidence,
         AuthoritativeApplyPlan, AuthorityMode, BulkEntityCreateIntent, BulkRelationCreateIntent,
-        CommitAuthority, CommitChangeSummary, CommitConflict, CommitHistorySummary, CommitLog,
-        CommitOutcome, CommitPatchBudgetSummary, CommitPhase, CommitPhaseTiming,
-        CommitPublicationSummary, CommitResult, CommitStructuralSummary, CommitSummary,
-        CommitTopology, CommitTraceEvent, ConflictClass, CreateIntent, CrossContextEndpointClass,
-        DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent, MergedCommitPlan,
-        MutationIntent, RecordRef, RelationMutationIntent, RelationScope, ReplaceEntityIntent,
-        RollbackEffect, RollbackOutcome, RollbackSummary, SavepointId, TransactionCommitError,
-        TransactionId, TransactionOptions, UndoRecord, UpdateEntityIntent, WorkerIntentBatch,
+        CommitAspectSummary, CommitAuthority, CommitChangeSummary, CommitConflict,
+        CommitHistorySummary, CommitLog, CommitOutcome, CommitPatchBudgetSummary, CommitPhase,
+        CommitPhaseTiming, CommitPublicationSummary, CommitResult, CommitStructuralSummary,
+        CommitSummary, CommitTopology, CommitTraceEvent, ConflictClass, CreateIntent,
+        CrossContextEndpointClass, DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent,
+        MergedCommitPlan, MutationIntent, PatchVsTruthDeltaReport, RecordRef,
+        RelationMutationIntent, RelationScope, ReplaceEntityIntent, RollbackEffect,
+        RollbackOutcome, RollbackSummary, SavepointId, TransactionCommitError, TransactionId,
+        TransactionOptions, UndoRecord, UpdateEntityIntent, WorkerIntentBatch,
     };
     pub use crate::transactions::logic::RelationalTransaction;
 }

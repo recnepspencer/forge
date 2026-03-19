@@ -5,13 +5,14 @@ use std::collections::BTreeMap;
 
 use super::RelationalRuntime;
 use crate::logic::runtime::{
-    DurabilitySubsystem, HistorySubsystem, IndexingSubsystem, LineageSubsystem,
-    PublicationSubsystem, RuntimeServices, RuntimeSubsystem, VisibilitySubsystem,
+    AspectSemanticsSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
+    LineageSubsystem, PublicationSubsystem, RuntimeServices, RuntimeSubsystem, VisibilitySubsystem,
 };
 
 impl RelationalRuntime {
     pub fn new(config: super::RelationalRuntimeConfig) -> Self {
         Self {
+            aspect_semantics: <AspectSemanticsSubsystem as RuntimeSubsystem>::new(&config),
             history: <HistorySubsystem as RuntimeSubsystem>::new(&config.history.main_branch),
             indexes: <IndexingSubsystem as RuntimeSubsystem>::new(&()),
             lineage: <LineageSubsystem as RuntimeSubsystem>::new(&()),
@@ -27,6 +28,7 @@ impl RelationalRuntime {
     pub fn fork(&self) -> Self {
         Self {
             config: self.config.clone(),
+            aspect_semantics: RuntimeSubsystem::fork(&self.aspect_semantics),
             partitions: self.partitions.clone(),
             visibility: RuntimeSubsystem::fork(&self.visibility),
             publication: RuntimeSubsystem::fork(&self.publication),

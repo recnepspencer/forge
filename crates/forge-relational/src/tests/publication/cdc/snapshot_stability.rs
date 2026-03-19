@@ -2,7 +2,8 @@ use crate::tests::support::*;
 
 #[test]
 fn subscriber_cdc_is_snapshot_stable_under_hot_rewrite_pressure() {
-    let mut pinned_runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+    let mut pinned_runtime =
+        runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
     let mut unpinned_runtime =
         runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
 
@@ -25,7 +26,8 @@ fn subscriber_cdc_is_snapshot_stable_under_hot_rewrite_pressure() {
         let _ = create_entity_outcome(&mut unpinned_runtime, churn);
     }
 
-    let checkpoint = checkpoint_for_schema_version(baseline_pinned.patch_position(), SchemaVersionId(1));
+    let checkpoint =
+        checkpoint_for_schema_version(baseline_pinned.patch_position(), SchemaVersionId(1));
     let pinned_cdc = pinned_runtime
         .publication_access()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(

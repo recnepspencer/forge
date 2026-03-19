@@ -95,3 +95,77 @@ fn compiled_artifact_rejects_stale_topology_after_later_commit() {
         CompiledArtifactCompatibility::StaleVersion
     );
 }
+
+#[test]
+fn chip_profile_declared_aspect_fanout_preserves_endpoint_history_for_netlist_like_shapes() {
+    let mut runtime = runtime_with_declared_aspect_schema_profile(
+        RelationalRuntimeProfile::ChipSimulation,
+        CascadeDeletePolicy::RetainDanglingForAudit,
+    );
+    let source = create_entity_in_partition(&mut runtime, "net-src", PartitionId(7));
+    let targets = (0..3)
+        .map(|index| {
+            create_entity_in_partition(
+                &mut runtime,
+                &format!("net-target-{index}"),
+                PartitionId((index + 11) as u32),
+            )
+        })
+        .collect::<Vec<_>>();
+    let relations = targets
+        .iter()
+        .enumerate()
+        .map(|(index, target)| {
+            create_relation_in_partition(
+                &mut runtime,
+                source,
+                *target,
+                &format!("net-edge-{index}"),
+                PartitionId((index + 21) as u32),
+            )
+        })
+        .collect::<Vec<_>>();
+    let live_version = runtime.history_access().latest_commit().unwrap().version_id;
+    let live_commit_id = runtime.history_access().latest_commit().unwrap().commit_id;
+    let compiled = runtime
+        .simulation_authority()
+        .compile_execution_artifact(live_commit_id, vec![PartitionId(7), PartitionId(11), PartitionId(12), PartitionId(13)])
+        .unwrap();
+    let deleted = delete_entity(&mut runtime, source);
+
+    assert_eq!(
+        runtime
+            .storage_access()
+            .outgoing_relations_for_entity(source, live_version),
+        relations
+    );
+    assert_eq!(
+        runtime
+            .simulation_access()
+            .compiled_artifact_compatibility(compiled.artifact_id),
+        CompiledArtifactCompatibility::StaleVersion
+    );
+    assert_eq!(deleted.changed_records.len(), 4);
+    for relation in relations {
+        let history = runtime.history_access().relation_aspect_history(
+            &BranchId("main".to_string()),
+            relation,
+            None,
+        );
+        assert_eq!(history.len(), 2);
+        assert_direct_history_origin_invariants(&history, RecordRef::Relation(relation));
+        assert_eq!(
+            history[0].origin.changed_aspects,
+            CanonicalAspectSet::new([
+                aspect_key("label"),
+                aspect_key("lifecycle"),
+                aspect_key("source"),
+                aspect_key("target"),
+            ])
+        );
+        assert_eq!(
+            history[1].origin.changed_aspects,
+            CanonicalAspectSet::new([aspect_key("lifecycle")])
+        );
+    }
+}

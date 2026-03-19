@@ -1,23 +1,12 @@
 use std::collections::BTreeSet;
 
 use crate::identity::data::RecordId;
-use crate::publication::data::diff::AspectKey;
 use crate::storage::logic::state::{
     partition_of, slot_of, EntityRecordKind, RecordKind, RelationRecordKind,
 };
-use crate::symbols::data::{InternedString, StringInterner};
+use crate::symbols::data::StringInterner;
 
 use crate::logic::runtime::WorkingState;
-
-pub(super) fn aspect_keys_for_payload(
-    payload: Option<&crate::payloads::data::RecordPayload>,
-    _symbols: &mut StringInterner,
-) -> Vec<AspectKey> {
-    aspect_names_for_payload(payload)
-        .into_iter()
-        .map(|name| AspectKey(InternedString::Raw(name)))
-        .collect()
-}
 
 pub(super) fn aspect_names_for_payload(
     payload: Option<&crate::payloads::data::RecordPayload>,

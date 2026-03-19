@@ -5,6 +5,7 @@ pub(crate) mod observer;
 pub(crate) mod scratch;
 pub(crate) mod strategy;
 
+pub(crate) use graph::{BranchMutationRecord, BranchStructuralDelta};
 pub use graph::SignalGraph;
 pub use observer::GraphObserver;
 pub use scratch::ScratchLeaseKind;

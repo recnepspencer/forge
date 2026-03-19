@@ -23,6 +23,15 @@ impl Slot {
         }
     }
 
+    /// Create a permanently retired vacant slot to reserve allocator space.
+    pub(crate) fn retired_placeholder() -> Self {
+        Self {
+            data: None,
+            generation: 0,
+            retired: true,
+        }
+    }
+
     /// Occupy this slot, returning the current generation.
     pub(crate) fn occupy(&mut self, entry: NodeEntry) -> u32 {
         self.data = Some(entry);

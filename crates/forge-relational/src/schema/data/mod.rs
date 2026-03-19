@@ -1,3 +1,5 @@
+mod aspect_semantics;
+mod aspect_traces;
 mod registry_errors;
 
 use std::collections::BTreeMap;
@@ -7,6 +9,8 @@ use serde::{Deserialize, Serialize};
 use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
 use crate::identity::data::KindId;
 
+pub use aspect_semantics::*;
+pub use aspect_traces::*;
 pub use registry_errors::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -27,6 +31,7 @@ pub struct EntityKindRegistration {
     pub kind_name: String,
     pub schema_id: SchemaId,
     pub schema_version_id: SchemaVersionId,
+    pub aspect_declarations: KindAspectDeclarations,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -38,6 +43,7 @@ pub struct RelationKindRegistration {
     pub payload_class: RelationPayloadClass,
     pub cross_context_policy: CrossContextPolicy,
     pub cascade_delete_policy: CascadeDeletePolicy,
+    pub aspect_declarations: KindAspectDeclarations,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -68,6 +74,7 @@ impl RelationalSchemaRegistry {
                 registration.kind_id,
             ));
         }
+        let registration = crate::schema::logic::canonicalize_entity_registration(registration)?;
         self.entity_kinds.insert(registration.kind_id, registration);
         Ok(self)
     }
@@ -81,6 +88,7 @@ impl RelationalSchemaRegistry {
                 registration.kind_id,
             ));
         }
+        let registration = crate::schema::logic::canonicalize_relation_registration(registration)?;
         self.relation_kinds
             .insert(registration.kind_id, registration);
         Ok(self)
@@ -117,5 +125,27 @@ impl RelationalSchemaRegistry {
         self.relation_kinds
             .get(&kind_id)
             .ok_or_else(|| SchemaRegistryError::unknown_relation_kind(kind_id))
+    }
+
+    pub fn entity_aspect_declaration_trace(
+        &self,
+        kind_id: KindId,
+    ) -> Result<AspectDeclarationTrace, SchemaRegistryError> {
+        let registration = self
+            .entity_kinds
+            .get(&kind_id)
+            .ok_or_else(|| SchemaRegistryError::unknown_entity_kind(kind_id))?;
+        Ok(registration.aspect_declarations.declaration_trace(kind_id))
+    }
+
+    pub fn relation_aspect_declaration_trace(
+        &self,
+        kind_id: KindId,
+    ) -> Result<AspectDeclarationTrace, SchemaRegistryError> {
+        let registration = self
+            .relation_kinds
+            .get(&kind_id)
+            .ok_or_else(|| SchemaRegistryError::unknown_relation_kind(kind_id))?;
+        Ok(registration.aspect_declarations.declaration_trace(kind_id))
     }
 }

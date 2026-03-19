@@ -2,8 +2,8 @@ use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
 use crate::facade::harness::RelationalHarnessError;
 use crate::facade::identity::{EntityId, KindId, PartitionId, RelationId};
 use crate::facade::schema::{
-    EntityKindRegistration, RelationKindRegistration, RelationalSchemaRegistry, SchemaId,
-    SchemaVersionId,
+    EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration,
+    RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use crate::schema::data::RelationPayloadClass;
 use crate::transactions::data::RecordRef;
@@ -87,6 +87,7 @@ pub(super) fn default_harness_schema_registry() -> RelationalSchemaRegistry {
             kind_name: "fixture.entity".to_string(),
             schema_id: SchemaId("fixture".to_string()),
             schema_version_id: SchemaVersionId(1),
+            aspect_declarations: KindAspectDeclarations::default(),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -97,6 +98,7 @@ pub(super) fn default_harness_schema_registry() -> RelationalSchemaRegistry {
                 payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
+                aspect_declarations: KindAspectDeclarations::default(),
             })
         })
         .expect("valid default harness schema registry")

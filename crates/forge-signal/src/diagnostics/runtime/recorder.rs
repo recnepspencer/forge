@@ -8,6 +8,7 @@ use crate::diagnostics::lineage::{
 use crate::diagnostics::policy::{DiagnosticsPolicy, SnapshotRestoreLineageMode};
 use crate::diagnostics::replay::{ReplayEvent, ReplayEventKind};
 use crate::logic::planner::{ExecutionRecordId, SemanticSegmentId};
+use crate::logic::transaction::BranchMergeExecutionSummary;
 use crate::state::SignalSnapshotId;
 
 pub struct DiagnosticsRecorder<'a> {
@@ -125,6 +126,142 @@ pub fn record_branch_switch_lineage(
             to_branch_id,
             from_branch_display_name,
             to_branch_display_name,
+        ));
+}
+
+pub fn record_branch_merge_summary(
+    graph: &mut SignalGraph,
+    summary: &BranchMergeExecutionSummary,
+    source_branch_display_name: impl Into<String> + Clone,
+    target_branch_display_name: impl Into<String> + Clone,
+) {
+    let source_branch_display_name = source_branch_display_name.into();
+    let target_branch_display_name = target_branch_display_name.into();
+    let detail = format!(
+        "merged branch {} into {} with {:?}/{:?}/{:?}/{:?}",
+        summary.source_branch_id.0,
+        summary.target_branch_id.0,
+        summary.merge_kind,
+        summary.divergence,
+        summary.merge_strategy,
+        summary.reconciliation_policy
+    );
+    let cursor = graph.diagnostics_state_mut().allocate_replay_cursor();
+    let branch_id = graph.observe().current_branch().id;
+    graph
+        .diagnostics_state_mut()
+        .record_replay_event(ReplayEvent::new(
+            cursor,
+            ReplayEventKind::BranchMerged,
+            branch_id,
+            summary.target_snapshot_id_after,
+            None,
+            None,
+            None,
+            None,
+            Some(detail),
+        ));
+
+    let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();
+    graph
+        .diagnostics_state_mut()
+        .record_lineage_record(LineageRecord::branch_merge(
+            sequence,
+            branch_id,
+            summary.source_branch_id,
+            summary.target_branch_id,
+            summary.merge_kind,
+            summary.divergence,
+            summary.merge_strategy,
+            summary.reconciliation_policy,
+            summary.target_snapshot_id_after,
+            source_branch_display_name.clone(),
+            target_branch_display_name.clone(),
+        ));
+
+    for record in &summary.records {
+        let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();
+        graph
+            .diagnostics_state_mut()
+            .record_lineage_record(LineageRecord::artifact_merge(
+                sequence,
+                branch_id,
+                record.source_node,
+                record.target_node,
+                summary.source_branch_id,
+                summary.target_branch_id,
+                record.source_artifact_id,
+                record.target_artifact_id_before,
+                record.target_artifact_id_after,
+                record.action,
+                record.basis,
+                summary.merge_kind,
+                summary.divergence,
+                summary.merge_strategy,
+                summary.reconciliation_policy,
+            ));
+    }
+}
+
+pub fn record_branch_merge_failure(
+    graph: &mut SignalGraph,
+    error: &crate::data::error::SignalError,
+    source_branch: Option<crate::state::SignalBranchHandle>,
+    target_branch: Option<crate::state::SignalBranchHandle>,
+) {
+    let detail = match (source_branch.as_ref(), target_branch.as_ref(), error) {
+        (
+            Some(source_branch),
+            Some(target_branch),
+            crate::data::error::SignalError::BranchMergeFailed {
+                kind,
+                evidence: Some(evidence),
+                ..
+            },
+        ) => format!(
+            "branch merge failed {} -> {} ({kind:?}, divergence={:?}, primary={:?}, resolution={:?})",
+            source_branch.id.0,
+            target_branch.id.0,
+            evidence.divergence,
+            evidence.summary.primary_conflict_kind,
+            evidence.summary.required_resolution
+        ),
+        (
+            Some(source_branch),
+            Some(target_branch),
+            crate::data::error::SignalError::BranchMergeFailed { kind, message, .. },
+        ) => format!(
+            "branch merge failed {} -> {} ({kind:?}): {message}",
+            source_branch.id.0,
+            target_branch.id.0
+        ),
+        _ => error.to_string(),
+    };
+
+    DiagnosticsRecorder::new(graph).record_failure(ExecutionFailureContext::new(
+        crate::diagnostics::ExecutionFailurePhase::Planning,
+        None,
+        None,
+        None,
+        None,
+        None,
+        detail.clone(),
+    ));
+
+    let cursor = graph.diagnostics_state_mut().allocate_replay_cursor();
+    let branch_id = graph.observe().current_branch().id;
+    graph
+        .diagnostics_state_mut()
+        .record_replay_event(ReplayEvent::new(
+            cursor,
+            ReplayEventKind::FailureRecorded,
+            branch_id,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(detail),
         ));
 }
 

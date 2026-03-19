@@ -7,7 +7,8 @@ use crate::logic::events::EventBus;
 use crate::state::{SignalBranchHandle, SignalBranchId};
 
 use super::super::config::SignalRuntimeConfig;
-use super::branches::{BranchManager, BranchState};
+use super::branching::{BranchAncestryState, BranchManager, BranchState};
+use super::merge::BranchMutationLedger;
 use super::builder::SignalRuntimeBuilder;
 use super::observer::RuntimeObserver;
 use super::reconstructability::{AuthorityState, DerivedState};
@@ -105,7 +106,7 @@ where
             checkpoint,
             event_bus,
             telemetry: RuntimeTelemetry::default(),
-            branches: BranchManager::new(),
+            branches: BranchManager::<D, I, T>::new(),
         }
     }
 
@@ -160,9 +161,31 @@ where
     }
 
     pub(super) fn capture_branch_state(&mut self) -> BranchState<D, I, T> {
+        let handle = self.graph.current_branch();
+        let ancestry = self
+            .branches
+            .branch_ancestry_state(handle.id)
+            .cloned()
+            .unwrap_or(BranchAncestryState {
+                branch_id: handle.id,
+                parent_branch_id: handle.parent_branch_id,
+                forked_from_snapshot_id: handle.head_snapshot_id,
+                latest_merge_reference: None,
+            });
+        let mut mutation_ledger = self
+            .branches
+            .branch_state(handle.id)
+            .map(|state| state.mutation_ledger.clone())
+            .unwrap_or_else(|| {
+                BranchMutationLedger::default().with_baseline_snapshot(handle.head_snapshot_id)
+            });
+        mutation_ledger.absorb_records(self.graph.branch_mutation_records());
+        self.graph.clear_branch_mutation_nodes();
         self.branches.capture_active_state(
             self.capture_authority_state(),
             self.capture_derived_state(),
+            ancestry,
+            mutation_ledger,
         )
     }
 

@@ -27,15 +27,16 @@ pub use crate::validation::data::{
 };
 pub use crate::validation::engine::HarnessAuditMode;
 pub use crate::visibility::materialization::read_records::{
-    EntityRecordProjection, ProjectionAspect, RelationRecordProjection, VisibilityProjectionView,
+    EntityRecordProjection, RelationRecordProjection, VisibilityProjectionView,
 };
 
 pub(crate) use crate::storage::logic::state::{PartitionAccess, WorkingState};
 pub use state::RelationalRuntime;
 pub(crate) use state::{
-    DurabilitySubsystem, HistorySubsystem, IndexingSubsystem, LineageSubsystem,
-    PublicationSubsystem, ReplayRetentionState, RuntimeInstrumentation, RuntimeServices,
-    RuntimeSubsystem, SnapshotHandleBinding, VisibilityResidency, VisibilitySubsystem,
+    AspectSemanticsSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
+    LineageSubsystem, PublicationSubsystem, ReplayRetentionState, RuntimeInstrumentation,
+    RuntimeServices, RuntimeSubsystem, SnapshotHandleBinding, VisibilityResidency,
+    VisibilitySubsystem,
 };
 
 #[derive(Debug, Clone)]

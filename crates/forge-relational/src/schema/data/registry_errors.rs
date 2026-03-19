@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::errors::data::{ErrorContext, ErrorOperation, RelationalSubsystem, SuggestedFix};
 use crate::identity::data::KindId;
+use crate::publication::patch::data::AspectKey;
 
 use super::SchemaVersionId;
 
@@ -13,6 +14,14 @@ pub enum SchemaRegistryErrorClass {
     SchemaVersionMismatch {
         expected: SchemaVersionId,
         actual: SchemaVersionId,
+    },
+    DuplicateAspectKey {
+        kind_id: KindId,
+        aspect_key: AspectKey,
+    },
+    InvalidAspectDeclaration {
+        kind_id: KindId,
+        detail: String,
     },
 }
 
@@ -44,6 +53,19 @@ impl SchemaRegistryError {
                     expected, actual
                 )
             }
+            SchemaRegistryErrorClass::DuplicateAspectKey {
+                kind_id,
+                aspect_key,
+            } => format!(
+                "kind {:?} declares duplicate aspect key {:?}",
+                kind_id, aspect_key
+            ),
+            SchemaRegistryErrorClass::InvalidAspectDeclaration { kind_id, detail } => {
+                format!(
+                    "kind {:?} has invalid aspect declaration: {detail}",
+                    kind_id
+                )
+            }
         };
         Self {
             class,
@@ -65,5 +87,19 @@ impl SchemaRegistryError {
         Self::new(SchemaRegistryErrorClass::EntityRelationKindCollision(
             kind_id,
         ))
+    }
+
+    pub fn duplicate_aspect_key(kind_id: KindId, aspect_key: AspectKey) -> Self {
+        Self::new(SchemaRegistryErrorClass::DuplicateAspectKey {
+            kind_id,
+            aspect_key,
+        })
+    }
+
+    pub fn invalid_aspect_declaration(kind_id: KindId, detail: impl Into<String>) -> Self {
+        Self::new(SchemaRegistryErrorClass::InvalidAspectDeclaration {
+            kind_id,
+            detail: detail.into(),
+        })
     }
 }

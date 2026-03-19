@@ -3,6 +3,7 @@ use std::cmp::Ordering;
 use crate::data::aspect::Aspect;
 use crate::data::dependency::{CanonicalDependencies, DependencyEdge};
 use crate::data::error::SignalError;
+use crate::data::graph::signal_graph::DependencyTopologyDelta;
 use crate::data::handle::NodeId;
 use crate::data::output::PartitionSubscription;
 use crate::data::proof::DependencyBatchEdit;
@@ -242,12 +243,48 @@ impl SignalGraph {
         node: NodeId,
         edges: &[DependencyEdge],
     ) -> Result<(), SignalError> {
+        let current = self.raw_dependencies_of(node)?.to_vec();
         let dependencies_id = self.topology.dependency_edges.insert_from_slice(edges);
         self.get_entry_mut(node)?
             .set_dependencies_id(dependencies_id);
+        self.record_branch_mutation_dependencies(
+            node,
+            DependencyTopologyDelta {
+                added_edges: diff_dependency_edges(edges, &current),
+                removed_edges: diff_dependency_edges(&current, edges),
+            },
+        );
         self.record_graph_storage_pressure();
         Ok(())
     }
+}
+
+fn diff_dependency_edges(left: &[DependencyEdge], right: &[DependencyEdge]) -> Vec<DependencyEdge> {
+    let mut delta = Vec::new();
+    let mut left_index = 0usize;
+    let mut right_index = 0usize;
+
+    while left_index < left.len() && right_index < right.len() {
+        match compare_dependency_edges(&left[left_index], &right[right_index]) {
+            Ordering::Less => {
+                delta.push(left[left_index].clone());
+                left_index += 1;
+            }
+            Ordering::Equal => {
+                left_index += 1;
+                right_index += 1;
+            }
+            Ordering::Greater => {
+                right_index += 1;
+            }
+        }
+    }
+
+    if left_index < left.len() {
+        delta.extend_from_slice(&left[left_index..]);
+    }
+
+    delta
 }
 
 fn compare_dependency_edges(left: &DependencyEdge, right: &DependencyEdge) -> Ordering {

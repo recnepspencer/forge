@@ -14,6 +14,7 @@ use crate::authority::commit::preparation::planning::strategy::{
     ParallelLegality, ParallelProfitability, PreparationFallbackReason,
     PreparationStrategySelection,
 };
+use crate::publication::patch::data::CanonicalAspectSet;
 
 use super::CommitStructuralSummary;
 
@@ -52,6 +53,15 @@ pub struct CommitChangeSummary {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CommitAspectSummary {
+    pub changed_entity_aspect_count: usize,
+    pub changed_relation_aspect_count: usize,
+    pub touched_aspects: CanonicalAspectSet,
+    pub opaque_precision_delta_count: usize,
+    pub zero_aspect_structural_delta_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CommitPublicationSummary {
     pub patch_record_count: usize,
     pub diagnostics_entry_count: usize,
@@ -87,6 +97,7 @@ pub enum CommitTraceEvent {
     HistoryResolved,
     PublicationArtifactsPrepared,
     PatchBudgetEvaluated,
+    AspectSummaryPrepared,
     DurableAppendPrepared {
         commit_id: CommitId,
         branch_id: String,
@@ -111,6 +122,7 @@ pub struct CommitSummary {
     pub history_summary: Option<CommitHistorySummary>,
     pub patch_budget_summary: Option<CommitPatchBudgetSummary>,
     pub change_summary: Option<CommitChangeSummary>,
+    pub aspect_summary: Option<CommitAspectSummary>,
     pub publication_summary: Option<CommitPublicationSummary>,
     pub invariant_result_count: usize,
     pub invariant_advisory_count: usize,
@@ -177,6 +189,14 @@ impl CommitLog {
             .iter()
             .any(|event| matches!(event, CommitTraceEvent::PatchBudgetEvaluated))
             .then_some(self.running_summary.patch_budget_summary.as_ref())
+            .flatten()
+    }
+
+    pub fn aspect_summary_event(&self) -> Option<&CommitAspectSummary> {
+        self.events
+            .iter()
+            .any(|event| matches!(event, CommitTraceEvent::AspectSummaryPrepared))
+            .then_some(self.running_summary.aspect_summary.as_ref())
             .flatten()
     }
 
@@ -299,6 +319,11 @@ impl CommitLog {
     pub fn record_patch_budget(&mut self, summary: &CommitPatchBudgetSummary) {
         self.running_summary.patch_budget_summary = Some(summary.clone());
         self.events.push(CommitTraceEvent::PatchBudgetEvaluated);
+    }
+
+    pub fn record_aspect_summary(&mut self, summary: &CommitAspectSummary) {
+        self.running_summary.aspect_summary = Some(summary.clone());
+        self.events.push(CommitTraceEvent::AspectSummaryPrepared);
     }
 
     pub fn record_durable_append_prepared(

@@ -3,6 +3,8 @@ use crate::identity::data::{EntityId, RelationId};
 use crate::publication::data::diff::PatchRecord;
 use crate::transactions::data::RecordRef;
 
+use super::canonical_deltas::CanonicalRecordAspectDelta;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum AdjacencyDeltaKind {
     Created { source: EntityId, target: EntityId },
@@ -18,6 +20,7 @@ pub(crate) struct AdjacencyDelta {
 #[derive(Debug, Clone, Default)]
 pub(crate) struct MutationPublicationEffect {
     pub(crate) changed_records: Vec<RecordRef>,
+    pub(crate) canonical_deltas: Vec<CanonicalRecordAspectDelta>,
     pub(crate) patch_records: Vec<PatchRecord>,
 }
 
@@ -43,6 +46,9 @@ impl MutationEffect {
         self.publication
             .changed_records
             .extend(child.publication.changed_records);
+        self.publication
+            .canonical_deltas
+            .extend(child.publication.canonical_deltas);
         self.publication
             .patch_records
             .extend(child.publication.patch_records);

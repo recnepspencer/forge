@@ -1,7 +1,9 @@
 use crate::facade::config::{
     ConfigValueSource, MvccConfig, RetentionBackend, SnapshotReleasePolicy,
 };
-use crate::facade::diagnostics::DiagnosticCode;
+use crate::facade::diagnostics::{
+    DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsProfile,
+};
 use crate::facade::durability::{DurabilityError, RecoveryFailureClass};
 use crate::facade::errors::{RelationalError, RelationalSubsystem};
 use crate::facade::history::BranchCreateError;
@@ -118,6 +120,7 @@ fn commit_log_records_structural_summary_and_phase_progress() {
     let structural_summary = outcome.structural_summary();
     let history_summary = outcome.history_summary().unwrap();
     let change_summary = outcome.change_summary().unwrap();
+    let aspect_summary = outcome.aspect_summary().unwrap();
     let patch_budget_summary = outcome.patch_budget_summary().unwrap();
     let publication_summary = outcome.publication_summary().unwrap();
     let commit_summary = outcome.commit_summary();
@@ -143,6 +146,7 @@ fn commit_log_records_structural_summary_and_phase_progress() {
     );
     assert_eq!(outcome.outcome.history_summary(), Some(history_summary));
     assert_eq!(outcome.outcome.change_summary(), Some(change_summary));
+    assert_eq!(outcome.outcome.aspect_summary(), Some(aspect_summary));
     assert_eq!(
         outcome.outcome.patch_budget_summary(),
         Some(patch_budget_summary)
@@ -156,6 +160,8 @@ fn commit_log_records_structural_summary_and_phase_progress() {
     assert!(change_summary.changed_record_count >= 1);
     assert!(change_summary.adjacency_delta_count <= change_summary.changed_record_count);
     assert!(patch_budget_summary.patch_record_count >= 1);
+    assert_eq!(aspect_summary.changed_entity_aspect_count, 0);
+    assert_eq!(aspect_summary.changed_relation_aspect_count, 0);
     assert_eq!(
         outcome.commit_log().structural_summary_event(),
         Some(structural_summary)
@@ -192,6 +198,10 @@ fn commit_log_records_structural_summary_and_phase_progress() {
         outcome.commit_log().patch_budget_summary_event(),
         Some(patch_budget_summary)
     );
+    assert_eq!(
+        outcome.commit_log().aspect_summary_event(),
+        Some(aspect_summary)
+    );
     assert!(outcome
         .commit_log()
         .events()
@@ -211,6 +221,7 @@ fn commit_returns_envelope_with_patch_diagnostics_invariants_and_complexity() {
     let validation_summary = result.validation_summary();
     let structural_summary = result.structural_summary();
     let change_summary = result.change_summary().unwrap();
+    let aspect_summary = result.aspect_summary().unwrap();
     let history_summary = result.history_summary().unwrap();
     let patch_budget_summary = result.patch_budget_summary().unwrap();
     let publication_summary = result.publication_summary().unwrap();
@@ -256,6 +267,8 @@ fn commit_returns_envelope_with_patch_diagnostics_invariants_and_complexity() {
         change_summary.changed_record_count,
         result.changed_records.len()
     );
+    assert_eq!(aspect_summary.changed_entity_aspect_count, 0);
+    assert_eq!(aspect_summary.changed_relation_aspect_count, 0);
     assert_eq!(
         publication_summary.final_snapshot_id,
         Some(result.final_snapshot_id())
@@ -277,6 +290,83 @@ fn commit_returns_envelope_with_patch_diagnostics_invariants_and_complexity() {
     assert_eq!(result.patch_position(), result.envelope().patch.position);
     assert_eq!(result.final_snapshot_id(), result.snapshot.snapshot_id);
     assert_eq!(result.merge_parent_count(), 0);
+}
+
+#[test]
+fn commit_publication_exposes_aspect_evaluation_and_emission_traces() {
+    let mut runtime =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let result = create_entity_outcome(&mut runtime, "traced");
+    let evaluation_traces = result.aspect_evaluation_traces();
+    let emission_traces = result.aspect_emission_traces();
+    let patch_vs_truth = assert_patch_truth_invariants(&result);
+
+    assert_eq!(evaluation_traces.len(), 1);
+    assert_eq!(emission_traces.len(), 1);
+    assert_eq!(
+        evaluation_traces[0].target,
+        RecordRef::Entity(changed_entities(&result)[0])
+    );
+    assert_eq!(evaluation_traces[0].kind_id, KindId(1));
+    assert_eq!(
+        evaluation_traces[0].structural_change,
+        RecordStructuralChange::Created
+    );
+    assert_eq!(
+        evaluation_traces[0].changed_aspects,
+        CanonicalAspectSet::new([
+            AspectKey(InternedString::Raw("lifecycle".to_string())),
+            AspectKey(InternedString::Raw("name".to_string())),
+        ])
+    );
+    assert_eq!(evaluation_traces[0].binding_rows.len(), 2);
+    assert_eq!(emission_traces[0].target, evaluation_traces[0].target);
+    assert_eq!(emission_traces[0].patch_position, result.patch_position());
+    assert_eq!(emission_traces[0].patch_record_index, 0);
+    assert_eq!(
+        emission_traces[0].changed_aspects,
+        evaluation_traces[0].changed_aspects
+    );
+    assert!(patch_vs_truth.exact_match);
+    assert_eq!(patch_vs_truth.records_checked, 1);
+    assert_eq!(result.aspect_tag_accuracy_report().records_checked, 1);
+    assert_eq!(
+        result.aspect_tag_accuracy_report().correctly_tagged_records,
+        1
+    );
+}
+
+#[test]
+fn detailed_trace_profile_emits_commit_side_aspect_trace_diagnostics() {
+    let diagnostics = RelationalDiagnosticsProfile {
+        detailed_traces_enabled: true,
+        ..RelationalDiagnosticsProfile::default()
+    };
+    let mut runtime = RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::CertificationCore)
+        .schema_registry(declared_aspect_schema_registry(
+            CascadeDeletePolicy::CascadeDeleteRelations,
+        ))
+        .diagnostics(diagnostics)
+        .build();
+    let result = create_entity_outcome(&mut runtime, "diagnostic-traced");
+
+    assert!(result.diagnostics().iter().any(|artifact| {
+        artifact.scope == DiagnosticsScope::Transaction
+            && artifact.kind == DiagnosticsArtifactKind::DetailedTrace
+            && artifact
+                .entries
+                .iter()
+                .any(|entry| entry.code == DiagnosticCode::AspectEvaluationTraced)
+    }));
+    assert!(result.diagnostics().iter().any(|artifact| {
+        artifact.scope == DiagnosticsScope::PatchPublication
+            && artifact.kind == DiagnosticsArtifactKind::DetailedTrace
+            && artifact
+                .entries
+                .iter()
+                .any(|entry| entry.code == DiagnosticCode::AspectEmissionTraced)
+    }));
 }
 
 #[test]
@@ -353,6 +443,155 @@ fn staged_parallel_patch_preparation_matches_serial_patch_surface() {
     assert_eq!(serial.patch(), staged.patch());
     assert_eq!(serial.envelope().patch, staged.envelope().patch);
     assert!(staged.complexity_delta().preparation_packet_count >= serial.patch().len());
+}
+
+#[test]
+fn entity_patch_aspects_follow_declared_semantics_not_payload_keys() {
+    let mut runtime =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("create").push(MutationIntent::Create(CreateIntent::Entity(
+            crate::transactions::data::EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: InternedString::Raw("aspect-entity".to_string()),
+                payload: RecordPayload::StructuredJson(json!({
+                    "name": "before",
+                    "ignored": "not-an-aspect"
+                })),
+            },
+        ))),
+    );
+    let created = txn.commit().unwrap();
+    let entity = changed_entities(&created)[0];
+    let created_patch = &created.patch()[0];
+    let created_aspect_summary = created.aspect_summary().unwrap();
+
+    assert_patch_truth_invariants(&created);
+
+    assert_eq!(
+        created_patch.structural_change,
+        RecordStructuralChange::Created
+    );
+    assert_eq!(
+        created_patch.aspects,
+        CanonicalAspectSet::new([
+            AspectKey(InternedString::Raw("lifecycle".to_string())),
+            AspectKey(InternedString::Raw("name".to_string())),
+        ])
+    );
+    assert!(!created_patch.contains_degraded_precision);
+    assert_eq!(created_aspect_summary.changed_entity_aspect_count, 2);
+    assert_eq!(created_aspect_summary.changed_relation_aspect_count, 0);
+
+    let updated = {
+        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        txn.push_batch(
+            WorkerIntentBatch::new("update").push(MutationIntent::Entity(
+                EntityMutationIntent::Update(UpdateEntityIntent {
+                    entity_id: entity,
+                    payload: RecordPayload::StructuredJson(json!({
+                        "name": "after",
+                        "ignored": "still-not-an-aspect"
+                    })),
+                }),
+            )),
+        );
+        txn.commit().unwrap()
+    };
+    let updated_patch = &updated.patch()[0];
+    let updated_aspect_summary = updated.aspect_summary().unwrap();
+
+    assert_patch_truth_invariants(&updated);
+
+    assert_eq!(
+        updated_patch.structural_change,
+        RecordStructuralChange::Updated
+    );
+    assert_eq!(
+        updated_patch.aspects,
+        CanonicalAspectSet::new([
+            AspectKey(InternedString::Raw("lifecycle".to_string())),
+            AspectKey(InternedString::Raw("name".to_string())),
+        ])
+    );
+    assert!(!updated_patch
+        .aspects
+        .iter()
+        .any(|aspect| { *aspect == AspectKey(InternedString::Raw("ignored".to_string())) }));
+    assert_eq!(updated_aspect_summary.changed_entity_aspect_count, 2);
+
+    let deleted = delete_entity(&mut runtime, entity);
+    let deleted_patch = &deleted.patch()[0];
+    let deleted_aspect_summary = deleted.aspect_summary().unwrap();
+    assert_eq!(
+        deleted_patch.structural_change,
+        RecordStructuralChange::Deleted
+    );
+    assert_eq!(
+        deleted_patch.aspects,
+        CanonicalAspectSet::new([
+            AspectKey(InternedString::Raw("lifecycle".to_string())),
+            AspectKey(InternedString::Raw("name".to_string())),
+        ])
+    );
+    assert_eq!(deleted_aspect_summary.changed_entity_aspect_count, 2);
+}
+
+#[test]
+fn retained_relation_patch_only_emits_declared_lifecycle_delta_when_endpoints_and_payload_stay_same(
+) {
+    let mut runtime =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit);
+    let source = create_entity(&mut runtime, "source");
+    let target = create_entity(&mut runtime, "target");
+    let relation_outcome = create_relation_outcome(&mut runtime, source, target, "r-audit");
+    let relation_patch = &relation_outcome.patch()[0];
+    let relation_aspect_summary = relation_outcome.aspect_summary().unwrap();
+
+    assert_patch_truth_invariants(&relation_outcome);
+
+    assert_eq!(
+        relation_patch.structural_change,
+        RecordStructuralChange::Created
+    );
+    assert_eq!(
+        relation_patch.aspects,
+        CanonicalAspectSet::new([
+            AspectKey(InternedString::Raw("label".to_string())),
+            AspectKey(InternedString::Raw("lifecycle".to_string())),
+            AspectKey(InternedString::Raw("source".to_string())),
+            AspectKey(InternedString::Raw("target".to_string())),
+        ])
+    );
+    assert_eq!(relation_aspect_summary.changed_relation_aspect_count, 4);
+
+    let deleted_source = delete_entity(&mut runtime, source);
+    let retained_relation_patch = deleted_source
+        .patch()
+        .iter()
+        .find(|record| matches!(record.target, RecordRef::Relation(_)))
+        .expect("retained relation patch");
+    let deleted_source_aspect_summary = deleted_source.aspect_summary().unwrap();
+
+    assert_patch_truth_invariants(&deleted_source);
+
+    assert_eq!(
+        retained_relation_patch.structural_change,
+        RecordStructuralChange::RetainedForAudit
+    );
+    assert_eq!(
+        retained_relation_patch.aspects,
+        CanonicalAspectSet::new([AspectKey(InternedString::Raw("lifecycle".to_string()))])
+    );
+    assert!(!retained_relation_patch.contains_degraded_precision);
+    assert_eq!(deleted_source_aspect_summary.changed_entity_aspect_count, 2);
+    assert_eq!(
+        deleted_source_aspect_summary.changed_relation_aspect_count,
+        1
+    );
 }
 
 #[test]
@@ -585,6 +824,7 @@ fn audit_retained_relations_remain_visible_after_endpoint_delete() {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
+            aspect_declarations: KindAspectDeclarations::default(),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -595,6 +835,7 @@ fn audit_retained_relations_remain_visible_after_endpoint_delete() {
                 payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::RetainDanglingForAudit,
+                aspect_declarations: KindAspectDeclarations::default(),
             })
         })
         .unwrap();

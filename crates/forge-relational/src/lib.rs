@@ -15,6 +15,9 @@
 //! The initial scaffold is implementation-light and contract-heavy on purpose.
 //! For this runtime, getting the boundaries right early is materially more
 //! important than racing toward a shallow feature-complete prototype.
+//!
+//! Local developer note for Milestone 2 aspect semantics:
+//! `src/aspect_truth_flow.md`
 
 #![forbid(unsafe_code)]
 #![deny(unreachable_patterns)]

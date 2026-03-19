@@ -1,3 +1,9 @@
+use super::support::{
+    collect_subscriber_patches, collect_subscriber_patches_from_head,
+    expected_patch_suffix_after_checkpoint, run_seeded_cdc_scenario,
+    sampled_checkpoints_from_patches,
+};
+use crate::facade::publication::{SubscriberRecoverySource, SubscriberResumeRequest};
 use crate::tests::harness::certify::assertions::{
     assert_multi_subscriber_converges, assert_visible_truth_matches, assert_window_matrix_matches,
 };
@@ -5,35 +11,35 @@ use crate::tests::harness::fixtures::runtime::RuntimeHarnessMode;
 use crate::tests::harness::model::truth_model::VisibleTruthSummary;
 use crate::tests::harness::observe::patch_stream::collect_patch_stream_from_head;
 use crate::tests::harness::observe::subscriber_stream::{
-    collect_fuzzed_subscriber_views, collect_multi_subscriber_views, random_checkpoints_from_patches,
+    collect_fuzzed_subscriber_views, collect_multi_subscriber_views,
+    random_checkpoints_from_patches,
 };
-use crate::tests::harness::scenario::profiles::CertificationPressureProfile;
 use crate::tests::harness::scenario::operation::ScenarioOperation;
+use crate::tests::harness::scenario::profiles::CertificationPressureProfile;
 use crate::tests::harness::scenario::runner::{
     build_property_runtime, run_property_scenario, run_seeded_scenario, SeededScenarioConfig,
 };
-use super::support::{
-    collect_subscriber_patches, collect_subscriber_patches_from_head,
-    expected_patch_suffix_after_checkpoint, run_seeded_cdc_scenario,
-    sampled_checkpoints_from_patches,
-};
-use crate::facade::publication::{SubscriberRecoverySource, SubscriberResumeRequest};
 use crate::tests::support::*;
 use proptest::collection::vec;
 use proptest::prelude::*;
 
 #[test]
 fn cdc_certification_snapshot_pinning_is_neutral_under_rewrite_churn() {
-    let mut pinned_runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+    let mut pinned_runtime =
+        runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
     let mut unpinned_runtime =
         runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
 
-    let pinned_left = create_entity_in_partition(&mut pinned_runtime, "baseline-left", PartitionId(7));
-    let pinned_right = create_entity_in_partition(&mut pinned_runtime, "baseline-right", PartitionId(11));
-    let unpinned_left = create_entity_in_partition(&mut unpinned_runtime, "baseline-left", PartitionId(7));
+    let pinned_left =
+        create_entity_in_partition(&mut pinned_runtime, "baseline-left", PartitionId(7));
+    let pinned_right =
+        create_entity_in_partition(&mut pinned_runtime, "baseline-right", PartitionId(11));
+    let unpinned_left =
+        create_entity_in_partition(&mut unpinned_runtime, "baseline-left", PartitionId(7));
     let unpinned_right =
         create_entity_in_partition(&mut unpinned_runtime, "baseline-right", PartitionId(11));
-    let baseline_checkpoint = checkpoint_for_schema_version(PatchStreamPosition(2), SchemaVersionId(1));
+    let baseline_checkpoint =
+        checkpoint_for_schema_version(PatchStreamPosition(2), SchemaVersionId(1));
     let pinned_snapshot = pinned_runtime.visibility_authority().snapshot();
 
     for step in 0..48 {
@@ -58,32 +64,25 @@ fn cdc_certification_snapshot_pinning_is_neutral_under_rewrite_churn() {
         }
     }
 
-    let pinned_full = collect_subscriber_patches(
-        &pinned_runtime,
-        baseline_checkpoint.clone(),
-        512,
-    );
-    let unpinned_full = collect_subscriber_patches(
-        &unpinned_runtime,
-        baseline_checkpoint.clone(),
-        512,
-    );
+    let pinned_full = collect_subscriber_patches(&pinned_runtime, baseline_checkpoint.clone(), 512);
+    let unpinned_full =
+        collect_subscriber_patches(&unpinned_runtime, baseline_checkpoint.clone(), 512);
     assert_eq!(pinned_full, unpinned_full);
 
     for window_size in [1_usize, 2, 3, 5, 8, 13] {
-        let pinned = collect_subscriber_patches(
-            &pinned_runtime,
-            baseline_checkpoint.clone(),
-            window_size,
-        );
-        let unpinned = collect_subscriber_patches(
-            &unpinned_runtime,
-            baseline_checkpoint.clone(),
-            window_size,
-        );
+        let pinned =
+            collect_subscriber_patches(&pinned_runtime, baseline_checkpoint.clone(), window_size);
+        let unpinned =
+            collect_subscriber_patches(&unpinned_runtime, baseline_checkpoint.clone(), window_size);
         assert_eq!(pinned, pinned_full, "pinned window {window_size} drifted");
-        assert_eq!(unpinned, unpinned_full, "unpinned window {window_size} drifted");
-        assert_eq!(pinned, unpinned, "window {window_size} diverged under pinning");
+        assert_eq!(
+            unpinned, unpinned_full,
+            "unpinned window {window_size} drifted"
+        );
+        assert_eq!(
+            pinned, unpinned,
+            "window {window_size} diverged under pinning"
+        );
     }
 
     let pinned_batch = pinned_runtime
@@ -100,7 +99,10 @@ fn cdc_certification_snapshot_pinning_is_neutral_under_rewrite_churn() {
             8,
         ))
         .unwrap();
-    assert_eq!(pinned_batch.recovery_decision, unpinned_batch.recovery_decision);
+    assert_eq!(
+        pinned_batch.recovery_decision,
+        unpinned_batch.recovery_decision
+    );
 
     let latest_snapshot = pinned_runtime.visibility_authority().snapshot();
     let pinned_snapshot_read = pinned_runtime
@@ -142,17 +144,11 @@ fn cdc_certification_seeded_matrix_is_deterministic_and_resume_exact() {
         let left = run_seeded_cdc_scenario(seed, 96);
         let right = run_seeded_cdc_scenario(seed, 96);
 
-        let full_left = collect_subscriber_patches(
-            &left.runtime,
-            left.baseline_checkpoint.clone(),
-            512,
-        );
+        let full_left =
+            collect_subscriber_patches(&left.runtime, left.baseline_checkpoint.clone(), 512);
         let full_from_head = collect_subscriber_patches_from_head(&left.runtime, 512);
-        let full_right = collect_subscriber_patches(
-            &right.runtime,
-            right.baseline_checkpoint.clone(),
-            512,
-        );
+        let full_right =
+            collect_subscriber_patches(&right.runtime, right.baseline_checkpoint.clone(), 512);
         assert_eq!(full_left, full_right, "seed {seed} diverged");
 
         let window_matrix = [1_usize, 2, 3, 5, 8, 13]
@@ -186,7 +182,8 @@ fn cdc_certification_seeded_matrix_is_deterministic_and_resume_exact() {
             let expected = expected_patch_suffix_after_checkpoint(&full_left, &checkpoint);
             let resumed = collect_subscriber_patches(&left.runtime, checkpoint.clone(), 4);
             assert_eq!(
-                resumed, expected,
+                resumed,
+                expected,
                 "seed {seed} resume drifted after {:?}",
                 checkpoint.position()
             );
@@ -245,12 +242,10 @@ fn cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth() {
     assert!(rollback.summary().has_discarded_entity_creation());
 
     let subscriber = collect_subscriber_patches(&runtime, checkpoint, 1);
-    assert!(
-        subscriber
-            .iter()
-            .flat_map(|patch| patch.records.iter())
-            .all(|record| !patch_detail_contains(record, "abandoned"))
-    );
+    assert!(subscriber
+        .iter()
+        .flat_map(|patch| patch.records.iter())
+        .all(|record| !patch_detail_contains(record, "abandoned")));
 
     let patch_batch = runtime
         .publication_access()
@@ -305,10 +300,7 @@ fn cdc_certification_durable_recovery_matches_head_and_midstream_consumers() {
 
     let durable_mid = runtime
         .publication_access()
-        .read_subscriber_stream(SubscriberResumeRequest::resume_after(
-            mid_checkpoint,
-            2,
-        ))
+        .read_subscriber_stream(SubscriberResumeRequest::resume_after(mid_checkpoint, 2))
         .unwrap();
     assert_eq!(
         durable_mid.recovery_decision.source,
@@ -324,7 +316,10 @@ fn cdc_certification_durable_recovery_matches_head_and_midstream_consumers() {
 
     let recovery_plan = runtime.durability_access().recovery_plan();
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(recovery_plan).unwrap();
+    recovered
+        .durability_authority()
+        .recover(recovery_plan)
+        .unwrap();
     let recovered_patch_batch = recovered
         .publication_access()
         .read_patch_stream(PatchStreamRequest {
@@ -342,7 +337,10 @@ fn cdc_certification_thousand_step_random_resume_matrix_converges() {
             seed,
             CertificationPressureProfile::ThousandStep,
         ));
-        assert!(!world.trace.operations.is_empty(), "seed {seed} produced no operations");
+        assert!(
+            !world.trace.operations.is_empty(),
+            "seed {seed} produced no operations"
+        );
         assert_eq!(world.trace.seed, seed);
 
         let full_from_head = collect_subscriber_patches_from_head(&world.runtime, 2048);
@@ -370,9 +368,14 @@ fn cdc_certification_explicit_dependency_graph_resume_is_exact() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
     let source = create_entity_in_partition(&mut runtime, "source-a", PartitionId(7));
     let target = create_entity_in_partition(&mut runtime, "target-b", PartitionId(11));
-    let _dependency = create_relation_in_partition(&mut runtime, source, target, "depends-on", PartitionId(29));
+    let _dependency =
+        create_relation_in_partition(&mut runtime, source, target, "depends-on", PartitionId(29));
     let baseline_checkpoint = checkpoint_for_schema_version(
-        runtime.publication_access().latest_patch().unwrap().position,
+        runtime
+            .publication_access()
+            .latest_patch()
+            .unwrap()
+            .position,
         SchemaVersionId(1),
     );
 
@@ -422,7 +425,10 @@ fn cdc_certification_persisted_seeded_matrix_survives_checkpoint_compaction_and_
 
         let recovery_plan = world.runtime.durability_access().recovery_plan();
         let mut recovered = build_property_runtime(RuntimeHarnessMode::Persisted);
-        recovered.durability_authority().recover(recovery_plan).unwrap();
+        recovered
+            .durability_authority()
+            .recover(recovery_plan)
+            .unwrap();
         let recovered_patch_stream = collect_patch_stream_from_head(&recovered, 4096);
         assert_eq!(
             recovered_patch_stream, full_from_head,
@@ -444,7 +450,10 @@ fn cdc_certification_subscriber_api_fuzz_matrix_stays_consistent_under_hostile_h
             ));
             let head = collect_subscriber_patches_from_head(&world.runtime, 4096);
             let patch_head = collect_patch_stream_from_head(&world.runtime, 4096);
-            assert_eq!(head, patch_head, "hostile seed {seed} patch/subscriber drifted");
+            assert_eq!(
+                head, patch_head,
+                "hostile seed {seed} patch/subscriber drifted"
+            );
 
             let views = collect_fuzzed_subscriber_views(&world.runtime, &head, seed ^ 0xC0DEC0DE);
             assert_multi_subscriber_converges(
@@ -462,7 +471,11 @@ fn cdc_certification_rewrite_storm_preserves_exact_suffix_under_tiny_windows() {
     let entity = create_entity_in_partition(&mut runtime, "rewrite-storm-0", PartitionId(7));
     let profile = CertificationPressureProfile::RewriteStorm;
     let baseline_checkpoint = checkpoint_for_schema_version(
-        runtime.publication_access().latest_patch().unwrap().position,
+        runtime
+            .publication_access()
+            .latest_patch()
+            .unwrap()
+            .position,
         SchemaVersionId(1),
     );
 
@@ -475,7 +488,8 @@ fn cdc_certification_rewrite_storm_preserves_exact_suffix_under_tiny_windows() {
                 2 => PartitionId(29),
                 _ => PartitionId(31),
             };
-            let _ = create_entity_in_partition(&mut runtime, &format!("storm-churn-{step}"), partition);
+            let _ =
+                create_entity_in_partition(&mut runtime, &format!("storm-churn-{step}"), partition);
         }
     }
 
@@ -485,11 +499,8 @@ fn cdc_certification_rewrite_storm_preserves_exact_suffix_under_tiny_windows() {
     assert_eq!(resumed, expected);
 
     let checkpoint_samples = random_checkpoints_from_patches(&head, 0x515E515E, 24);
-    let views = collect_multi_subscriber_views(
-        &runtime,
-        &checkpoint_samples,
-        profile.default_windows(),
-    );
+    let views =
+        collect_multi_subscriber_views(&runtime, &checkpoint_samples, profile.default_windows());
     assert_multi_subscriber_converges("rewrite storm tiny-window convergence", &views, &head);
 }
 
@@ -733,10 +744,7 @@ proptest! {
     }
 }
 
-fn patch_detail_contains(
-    record: &crate::facade::publication::PatchRecord,
-    needle: &str,
-) -> bool {
+fn patch_detail_contains(record: &crate::facade::publication::PatchRecord, needle: &str) -> bool {
     match &record.detail {
         PatchDetail::StructuredJson(value) => value.to_string().contains(needle),
         PatchDetail::Payload(payload) => payload

@@ -1,8 +1,8 @@
 use crate::data::error::SignalError;
-use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId, SignalSnapshotV1};
+use crate::state::{SignalBranchHandle, SignalSnapshotV1};
 
 use super::branches::BranchState;
-use super::runtime_state::SignalRuntime;
+use super::super::runtime_state::SignalRuntime;
 
 impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
 where
@@ -12,13 +12,14 @@ where
 {
     pub fn capture_snapshot(&mut self) -> SignalSnapshotV1 {
         let mut snapshot = self.graph.capture_snapshot();
+        snapshot.graph.clear_branch_mutation_nodes();
         snapshot.runtime_telemetry = Some(self.telemetry.clone());
         snapshot.reconstructability = Some(
-            super::reconstructability::ReconstructabilityRecord::from_snapshot_boundary(
+            super::super::reconstructability::ReconstructabilityRecord::from_snapshot_boundary(
                 snapshot.meta.branch_id,
                 snapshot.meta.snapshot_id,
                 snapshot.meta.replay_head,
-                super::reconstructability::CheckpointRecord::from_checkpoint_telemetry(
+                super::super::reconstructability::CheckpointRecord::from_checkpoint_telemetry(
                     crate::data::telemetry::CheckpointTelemetry {
                         event_flushes: self.event_bus.telemetry().checkpoint.event_flushes,
                         event_flush_nanos: self.event_bus.telemetry().checkpoint.event_flush_nanos,
@@ -39,82 +40,69 @@ where
                 ),
             ),
         );
-        let branch_state = self.capture_branch_state();
+        let mut branch_state = self.capture_branch_state();
+        branch_state
+            .mutation_ledger
+            .clear_all(Some(snapshot.meta.snapshot_id));
         self.branches
-            .insert_snapshot(snapshot.meta.snapshot_id, branch_state);
+            .insert_snapshot(snapshot.meta.snapshot_id, branch_state.clone());
+        self.branches
+            .insert_branch(snapshot.meta.branch_id, branch_state);
         let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
         self.synchronize_branch_catalogs(branch_catalog);
         snapshot
     }
 
     pub fn restore_snapshot(&mut self, snapshot: &SignalSnapshotV1) -> Result<(), SignalError> {
+        self.graph.validate_snapshot_compatibility(snapshot)?;
+        let snapshot_state = self.branches.snapshot_state(snapshot.meta.snapshot_id).cloned();
+        if let Some(snapshot_state) = snapshot_state {
+            let current_diagnostics = self.graph.diagnostics_state().clone();
+            let mut graph = snapshot.graph.clone();
+            *graph.telemetry_mut() = snapshot.graph_telemetry.clone();
+            graph
+                .diagnostics_state_mut()
+                .restore_snapshot_payload_preserving_history_from(
+                    snapshot.diagnostics.clone(),
+                    &current_diagnostics,
+                );
+            graph.diagnostics_state_mut().set_active_branch(snapshot.meta.branch_id);
+            graph.diagnostics_state_mut().set_branch_head_snapshot(
+                snapshot.meta.branch_id,
+                snapshot.meta.snapshot_id,
+            );
+            let mut state = BranchState {
+                authority: super::super::reconstructability::AuthorityState {
+                    graph,
+                    config: snapshot_state.authority.config,
+                },
+                derived: super::super::reconstructability::DerivedState {
+                    checkpoint: snapshot_state.derived.checkpoint,
+                    telemetry: snapshot
+                        .runtime_telemetry
+                        .clone()
+                        .unwrap_or(snapshot_state.derived.telemetry),
+                },
+                ancestry: snapshot_state.ancestry,
+                mutation_ledger: snapshot_state.mutation_ledger,
+            };
+            crate::diagnostics::recorder::record_snapshot_restore_lineage(
+                &mut state.authority.graph,
+                snapshot.meta.snapshot_id,
+            );
+            let branch_catalog = state.authority.graph.diagnostics_state().branch_catalog().clone();
+            self.load_branch_state(state.clone());
+            self.branches.insert_branch(snapshot.meta.branch_id, state);
+            self.synchronize_branch_catalogs(branch_catalog);
+            return Ok(());
+        }
+
         self.graph.restore_snapshot(snapshot)?;
         if let Some(telemetry) = &snapshot.runtime_telemetry {
             self.telemetry = telemetry.clone();
         }
         let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
         self.synchronize_branch_catalogs(branch_catalog);
-        Ok(())
-    }
-
-    pub fn create_branch(
-        &mut self,
-        name: impl Into<String>,
-    ) -> Result<SignalBranchHandle, SignalError> {
-        let current_branch_name = self.graph.current_branch().name;
-        let parent_branch_id = self.graph.current_branch().id;
-        let handle = self.graph.diagnostics_state_mut().create_branch(name);
-        let mut branch_state = self.capture_branch_state();
-        branch_state
-            .authority
-            .graph
-            .diagnostics_state_mut()
-            .set_active_branch(handle.id);
-        self.branches.insert_branch(handle.id, branch_state);
-        let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
-        self.synchronize_branch_catalogs(branch_catalog);
-        crate::diagnostics::recorder::record_snapshot_event(
-            &mut self.graph,
-            crate::diagnostics::replay::ReplayEventKind::BranchCreated,
-            None,
-            format!("created branch `{}`", handle.name),
-        );
-        crate::diagnostics::recorder::record_branch_fork_lineage(
-            &mut self.graph,
-            handle.id,
-            parent_branch_id,
-            handle.name.clone(),
-            current_branch_name.to_string(),
-        );
-        Ok(handle)
-    }
-
-    pub fn switch_branch(&mut self, branch: SignalBranchHandle) -> Result<(), SignalError> {
-        let current = self.graph.current_branch();
-        let current_state = self.capture_branch_state();
-        self.branches.insert_branch(current.id, current_state);
-        let Some(state) = self.branches.cloned_branch_state(branch.id) else {
-            return Err(SignalError::unknown_branch(Some(branch.id), branch.name));
-        };
-        self.load_branch_state(state);
-        self.graph
-            .diagnostics_state_mut()
-            .set_active_branch(branch.id);
-        let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
-        self.synchronize_branch_catalogs(branch_catalog);
-        crate::diagnostics::recorder::record_snapshot_event(
-            &mut self.graph,
-            crate::diagnostics::replay::ReplayEventKind::BranchSwitched,
-            None,
-            format!("switched from `{}` to `{}`", current.name, branch.name),
-        );
-        crate::diagnostics::recorder::record_branch_switch_lineage(
-            &mut self.graph,
-            current.id,
-            branch.id,
-            current.name.to_string(),
-            branch.name.clone(),
-        );
         Ok(())
     }
 
@@ -125,11 +113,8 @@ where
         if branch.id == self.graph.current_branch().id {
             return Ok(self.capture_snapshot());
         }
-        let (snapshot, branch_catalog) = {
-            let Some(state) = self
-                .branches
-                .branch_state_mut_with_allocator_sync(branch.id)
-            else {
+        let (snapshot, branch_catalog, branch_state) = {
+            let Some(state) = self.branches.branch_state_mut_with_allocator_sync(branch.id) else {
                 return Err(SignalError::unknown_branch(Some(branch.id), branch.name));
             };
             let policy = state.authority.graph.runtime_policy();
@@ -149,16 +134,20 @@ where
             let snapshot_id = meta.snapshot_id;
             let snapshot = SignalSnapshotV1 {
                 meta,
-                graph: state.authority.graph.clone_stateful(),
+                graph: {
+                    let mut graph = state.authority.graph.clone_stateful();
+                    graph.clear_branch_mutation_nodes();
+                    graph
+                },
                 diagnostics,
                 graph_telemetry,
                 runtime_telemetry: Some(state.derived.telemetry.clone()),
                 reconstructability: Some(
-                    super::reconstructability::ReconstructabilityRecord::from_snapshot_boundary(
+                    super::super::reconstructability::ReconstructabilityRecord::from_snapshot_boundary(
                         branch.id,
                         snapshot_id,
                         replay_head,
-                        super::reconstructability::CheckpointRecord::from_checkpoint_telemetry(
+                        super::super::reconstructability::CheckpointRecord::from_checkpoint_telemetry(
                             crate::data::telemetry::CheckpointTelemetry {
                                 event_flushes: 0,
                                 event_flush_nanos: 0,
@@ -187,12 +176,14 @@ where
                 ),
             };
             let branch_catalog = state.authority.graph.diagnostics_state().branch_catalog().clone();
-            (snapshot, branch_catalog)
+            state
+                .mutation_ledger
+                .clear_all(Some(snapshot.meta.snapshot_id));
+            (snapshot, branch_catalog, state.clone())
         };
-        if let Some(state) = self.branches.cloned_branch_state(branch.id) {
-            self.branches
-                .insert_snapshot(snapshot.meta.snapshot_id, state);
-        }
+        self.branches
+            .insert_snapshot(snapshot.meta.snapshot_id, branch_state.clone());
+        self.branches.insert_branch(branch.id, branch_state);
         self.synchronize_branch_catalogs(branch_catalog);
         Ok(snapshot)
     }
@@ -226,7 +217,7 @@ where
             .branches
             .branch_state(branch.id)
             .map(|state| state.authority.graph.diagnostics_state().clone())
-            .ok_or_else(|| SignalError::unknown_branch(Some(branch.id), branch.name))?;
+            .ok_or_else(|| SignalError::unknown_branch(Some(branch.id), branch.name.clone()))?;
         let mut graph = snapshot.graph.clone();
         *graph.telemetry_mut() = snapshot.graph_telemetry.clone();
         graph
@@ -240,17 +231,19 @@ where
             .diagnostics_state_mut()
             .set_branch_head_snapshot(branch.id, snapshot.meta.snapshot_id);
         let state = BranchState {
-            authority: super::reconstructability::AuthorityState {
+            authority: super::super::reconstructability::AuthorityState {
                 graph,
                 config: snapshot_state.authority.config,
             },
-            derived: super::reconstructability::DerivedState {
+            derived: super::super::reconstructability::DerivedState {
                 checkpoint: snapshot_state.derived.checkpoint,
                 telemetry: snapshot
                     .runtime_telemetry
                     .clone()
                     .unwrap_or(snapshot_state.derived.telemetry),
             },
+            ancestry: snapshot_state.ancestry,
+            mutation_ledger: snapshot_state.mutation_ledger,
         };
         let mut state = state;
         crate::diagnostics::recorder::record_snapshot_restore_lineage(
@@ -261,47 +254,5 @@ where
         self.branches.insert_branch(branch.id, state);
         self.synchronize_branch_catalogs(branch_catalog);
         Ok(())
-    }
-
-    pub fn current_branch(&self) -> SignalBranchHandle {
-        self.graph.current_branch()
-    }
-
-    pub fn known_branches(&self) -> Vec<SignalBranchHandle> {
-        self.graph.known_branches()
-    }
-
-    pub fn branch_handle(&self, branch_id: SignalBranchId) -> Option<SignalBranchHandle> {
-        self.graph
-            .branch_handle(branch_id)
-            .or_else(|| self.branches.branch_handle(branch_id))
-    }
-
-    pub fn branch_ancestry(&self, branch_id: SignalBranchId) -> Vec<SignalBranchHandle> {
-        if self.graph.branch_handle(branch_id).is_some() {
-            self.graph.branch_ancestry(branch_id)
-        } else {
-            self.branches.branch_ancestry(branch_id)
-        }
-    }
-
-    pub fn branch_head_snapshot_id(&self, branch_id: SignalBranchId) -> Option<SignalSnapshotId> {
-        self.graph
-            .branch_head_snapshot_id(branch_id)
-            .or_else(|| self.branches.branch_head_snapshot_id(branch_id))
-    }
-
-    fn replay_graph_for_branch(
-        &self,
-        branch_id: SignalBranchId,
-    ) -> Option<&crate::data::graph::SignalGraph> {
-        self.branches
-            .replay_graph(branch_id, self.graph.current_branch().id, &self.graph)
-    }
-
-    pub fn replay_for_branch(&self, branch_id: SignalBranchId) -> crate::diagnostics::ReplaySlice {
-        self.replay_graph_for_branch(branch_id)
-            .map(|graph| graph.replay_for_branch(branch_id))
-            .unwrap_or_default()
     }
 }

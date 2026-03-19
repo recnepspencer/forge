@@ -5,14 +5,16 @@ use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
 use crate::data::output::{scope_touched_by_artifact_state, CanonicalChangedRegions, OutputChange};
 use crate::data::proof::PartitionScopeSet;
-use crate::data::trace::{RetainedDiagnosticArtifact, RuntimeArtifactState};
+use crate::data::trace::{
+    ArtifactMergeAuthority, RetainedDiagnosticArtifact, RuntimeArtifactState,
+};
 use crate::logic::evaluation::{
     AppliedEffectReport, DeferralReason, EffectComparison, EvaluationEffect, EvaluationVerdict,
     SuppressionReason,
 };
 use smallvec::SmallVec;
 
-use super::graph::SignalGraph;
+use super::graph::{RuntimeArtifactStructuralDelta, SignalGraph};
 
 impl SignalGraph {
     pub(crate) fn apply_effect(
@@ -121,6 +123,7 @@ impl SignalGraph {
                     execution_record_id: None,
                     semantic_segment_id: None,
                     lineage_artifact_id: None,
+                    merge_authority: ArtifactMergeAuthority::default(),
                 },
                 {
                     let retained = RetainedDiagnosticArtifact {
@@ -165,42 +168,81 @@ impl SignalGraph {
         effect: &mut EvaluationEffect,
         artifact: Option<(RuntimeArtifactState, Option<RetainedDiagnosticArtifact>)>,
     ) -> Result<(), SignalError> {
-        let entry = self.get_entry_mut(effect.operational.node)?;
-        if let Some(causality) = effect.take_causality() {
-            entry.set_causality(Some(causality));
-        }
-        match effect.operational.verdict {
-            EvaluationVerdict::Recomputed
-            | EvaluationVerdict::Suppressed {
-                reason:
-                    SuppressionReason::OutputIdentityUnchanged
-                    | SuppressionReason::ContinuityTokenUnchanged
-                    | SuppressionReason::ComparatorMatch,
-            } => {
-                entry.apply_aspect_version(
-                    effect.operational.aspect_version,
-                    effect.changed_regions(),
-                );
-                if let Some((runtime_artifact_state, retained_artifact)) = artifact {
-                    entry.set_runtime_artifact_state(Some(runtime_artifact_state));
-                    entry.set_retained_diagnostic_artifact(retained_artifact);
+        let node = effect.operational.node;
+        let mut causality_changed = false;
+        let mut runtime_artifact_delta = None;
+        let mut retained_artifact_changed = false;
+        let mut state_changed = false;
+        {
+            let entry = self.get_entry_mut(node)?;
+            let previous_runtime_artifact = entry.get_runtime_artifact_state().cloned();
+            if let Some(causality) = effect.take_causality() {
+                entry.set_causality(Some(causality));
+                causality_changed = true;
+            }
+            match effect.operational.verdict {
+                EvaluationVerdict::Recomputed
+                | EvaluationVerdict::Suppressed {
+                    reason:
+                        SuppressionReason::OutputIdentityUnchanged
+                        | SuppressionReason::ContinuityTokenUnchanged
+                        | SuppressionReason::ComparatorMatch,
+                } => {
+                    entry.apply_aspect_version(
+                        effect.operational.aspect_version,
+                        effect.changed_regions(),
+                    );
+                    if let Some((runtime_artifact_state, retained_artifact)) = artifact {
+                        runtime_artifact_delta = Some(RuntimeArtifactStructuralDelta {
+                            previous_artifact_id: previous_runtime_artifact
+                                .as_ref()
+                                .and_then(|runtime| runtime.lineage_artifact_id),
+                            next_artifact_id: runtime_artifact_state.lineage_artifact_id,
+                            previous_output_hash: previous_runtime_artifact
+                                .as_ref()
+                                .map(|runtime| runtime.output_hash),
+                            next_output_hash: Some(runtime_artifact_state.output_hash),
+                            previous_reuse_basis: previous_runtime_artifact
+                                .as_ref()
+                                .map(|runtime| runtime.reuse_basis),
+                            next_reuse_basis: Some(runtime_artifact_state.reuse_basis),
+                        });
+                        entry.set_runtime_artifact_state(Some(runtime_artifact_state));
+                        entry.set_retained_diagnostic_artifact(retained_artifact);
+                        retained_artifact_changed = true;
+                    }
+                    entry.transition_clean();
+                    state_changed = true;
                 }
-                entry.transition_clean();
+                EvaluationVerdict::Suppressed {
+                    reason:
+                        SuppressionReason::ValidatedClean
+                        | SuppressionReason::ConditionRevertedClean,
+                } => {
+                    entry.transition_clean();
+                    state_changed = true;
+                }
+                EvaluationVerdict::Deferred {
+                    reason:
+                        DeferralReason::ConditionNotMet
+                        | DeferralReason::OnDemandNotRequested
+                        | DeferralReason::DebounceWindow,
+                } => {
+                    entry.set_state(NodeState::MaybeStale);
+                }
             }
-            EvaluationVerdict::Suppressed {
-                reason:
-                    SuppressionReason::ValidatedClean | SuppressionReason::ConditionRevertedClean,
-            } => {
-                entry.transition_clean();
-            }
-            EvaluationVerdict::Deferred {
-                reason:
-                    DeferralReason::ConditionNotMet
-                    | DeferralReason::OnDemandNotRequested
-                    | DeferralReason::DebounceWindow,
-            } => {
-                entry.set_state(NodeState::MaybeStale);
-            }
+        }
+        if causality_changed {
+            self.record_branch_mutation_causality(node);
+        }
+        if let Some(delta) = runtime_artifact_delta {
+            self.record_branch_mutation_runtime_artifact(node, delta);
+        }
+        if retained_artifact_changed {
+            self.record_branch_mutation_retained_artifact(node);
+        }
+        if state_changed {
+            self.record_branch_mutation_state(node);
         }
         Ok(())
     }

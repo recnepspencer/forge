@@ -6,7 +6,8 @@ fn subscriber_cdc_resume_windows_preserve_order_across_interleaved_partitions() 
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
     let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
     let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
-    let baseline_checkpoint = checkpoint_for_schema_version(PatchStreamPosition(2), SchemaVersionId(1));
+    let baseline_checkpoint =
+        checkpoint_for_schema_version(PatchStreamPosition(2), SchemaVersionId(1));
 
     let updates = [
         (left, "left-1"),
@@ -32,11 +33,8 @@ fn subscriber_cdc_resume_windows_preserve_order_across_interleaved_partitions() 
         .unwrap();
 
     for window_size in 1..=5 {
-        let collected = collect_subscriber_patches(
-            &runtime,
-            baseline_checkpoint.clone(),
-            window_size,
-        );
+        let collected =
+            collect_subscriber_patches(&runtime, baseline_checkpoint.clone(), window_size);
         assert_eq!(collected, full.patches, "window size {window_size} drifted");
     }
 }

@@ -3,6 +3,7 @@ use std::fmt;
 use crate::data::graph::ScratchLeaseKind;
 use crate::data::handle::NodeId;
 use crate::data::node::ContextRequirement;
+use crate::logic::transaction::{BranchMergeConflictEvidence, BranchMergeFailureKind};
 use crate::state::SignalBranchId;
 
 /// Library-native error type for signal graph operations.
@@ -39,6 +40,11 @@ pub enum SignalError {
     UnknownBranch {
         branch_id: Option<SignalBranchId>,
         branch_name: String,
+    },
+    BranchMergeFailed {
+        kind: BranchMergeFailureKind,
+        message: String,
+        evidence: Option<BranchMergeConflictEvidence>,
     },
     InvalidInput {
         message: String,
@@ -105,6 +111,29 @@ impl SignalError {
         }
     }
 
+    pub fn branch_merge_failed(
+        kind: BranchMergeFailureKind,
+        message: impl Into<String>,
+    ) -> Self {
+        Self::BranchMergeFailed {
+            kind,
+            message: message.into(),
+            evidence: None,
+        }
+    }
+
+    pub fn branch_merge_failed_with_evidence(
+        kind: BranchMergeFailureKind,
+        message: impl Into<String>,
+        evidence: BranchMergeConflictEvidence,
+    ) -> Self {
+        Self::BranchMergeFailed {
+            kind,
+            message: message.into(),
+            evidence: Some(evidence),
+        }
+    }
+
     /// Build an invalid-input error with no extra context.
     pub fn invalid_input(message: impl Into<String>) -> Self {
         Self::InvalidInput {
@@ -163,6 +192,22 @@ impl fmt::Display for SignalError {
                 Some(branch_id) => write!(f, "unknown branch `{}` ({})", branch_name, branch_id.0),
                 None => write!(f, "unknown branch `{branch_name}`"),
             },
+            Self::BranchMergeFailed {
+                kind,
+                message,
+                evidence,
+            } => {
+                if let Some(evidence) = evidence {
+                    write!(
+                        f,
+                        "branch merge failed ({kind:?}): {message} [{} conflict record(s), primary={:?}]",
+                        evidence.records.len(),
+                        evidence.summary.primary_conflict_kind
+                    )
+                } else {
+                    write!(f, "branch merge failed ({kind:?}): {message}")
+                }
+            }
             Self::InvalidInput { message, .. } => write!(f, "invalid input: {message}"),
             Self::Internal { message, .. } => write!(f, "internal error: {message}"),
         }

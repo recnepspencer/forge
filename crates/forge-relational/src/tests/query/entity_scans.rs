@@ -1,8 +1,14 @@
 use crate::facade::identity::EntityId;
-use crate::facade::runtime::{EntityRecordProjection, ProjectionAspect};
+use crate::facade::runtime::EntityRecordProjection;
 use crate::tests::support::*;
+use std::sync::OnceLock;
 
-const ENTITY_NAME_ASPECTS: [ProjectionAspect; 1] = [ProjectionAspect::new("name")];
+fn entity_name_aspects() -> &'static [AspectKey] {
+    static ASPECTS: OnceLock<Vec<AspectKey>> = OnceLock::new();
+    ASPECTS
+        .get_or_init(|| vec![AspectKey(InternedString::Raw("name".to_string()))])
+        .as_slice()
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct NamedEntityProjection {
@@ -13,8 +19,8 @@ struct NamedEntityProjection {
 impl EntityRecordProjection for NamedEntityProjection {
     const KIND: KindId = KindId(1);
 
-    fn required_aspects() -> &'static [ProjectionAspect] {
-        &ENTITY_NAME_ASPECTS
+    fn required_aspects() -> &'static [AspectKey] {
+        entity_name_aspects()
     }
 
     fn from_record(record: &EntityReadRecord) -> Option<Self> {
@@ -30,7 +36,8 @@ impl EntityRecordProjection for NamedEntityProjection {
 
 #[test]
 fn entity_kind_scans_can_be_partition_scoped_without_cross_partition_leakage() {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let left = create_entity_in_partition(&mut runtime, "left-a", PartitionId(7));
     let _right = create_entity_in_partition(&mut runtime, "right-a", PartitionId(11));
     let version_id = runtime.history_access().latest_commit().unwrap().version_id;
@@ -49,11 +56,13 @@ fn entity_kind_scans_can_be_partition_scoped_without_cross_partition_leakage() {
 
 #[test]
 fn entity_kind_scans_are_deterministic_across_equivalent_insert_order() {
-    let mut ordered = runtime_with_test_schema();
+    let mut ordered =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let ordered_a = create_entity_in_partition(&mut ordered, "a", PartitionId(3));
     let ordered_b = create_entity_in_partition(&mut ordered, "b", PartitionId(3));
 
-    let mut reversed = runtime_with_test_schema();
+    let mut reversed =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let reversed_b = create_entity_in_partition(&mut reversed, "b", PartitionId(3));
     let reversed_a = create_entity_in_partition(&mut reversed, "a", PartitionId(3));
 
@@ -98,7 +107,8 @@ fn entity_kind_scans_are_deterministic_across_equivalent_insert_order() {
 
 #[test]
 fn entity_kind_scans_preserve_historical_partition_visibility() {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let baseline =
         create_entity_outcome_on_branch(&mut runtime, "base", BranchId("main".to_string()));
     let main_entity = changed_entities(&baseline)[0];

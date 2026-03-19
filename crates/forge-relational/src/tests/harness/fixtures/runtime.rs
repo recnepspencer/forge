@@ -1,8 +1,6 @@
 use crate::facade::config::RelationalRuntimeProfile;
 use crate::facade::runtime::RelationalRuntime;
-use crate::tests::support::{
-    persisted_runtime_with_test_schema, runtime_with_test_schema_profile,
-};
+use crate::tests::support::{persisted_runtime_with_test_schema, runtime_with_test_schema_profile};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RuntimeHarnessMode {

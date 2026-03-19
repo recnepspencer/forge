@@ -1,5 +1,5 @@
 use crate::config::data::MutationConfig;
-use crate::schema::data::RelationalSchemaRegistry;
+use crate::schema::data::{AspectPlanCatalog, RelationalSchemaRegistry};
 use crate::storage::overlay::WorkingState;
 use crate::symbols::data::StringInterner;
 use crate::transactions::data::{AuthoritativeApplyPlan, CommitConflict};
@@ -18,6 +18,7 @@ pub(crate) fn apply_plan_to_working_state(
     apply_plan: &AuthoritativeApplyPlan,
     config: &MutationConfig,
     schema_registry: &RelationalSchemaRegistry,
+    aspect_plans: &AspectPlanCatalog,
     symbols: &mut StringInterner,
 ) -> Result<MutationApplyOutcome, CommitConflict> {
     let mut workspace = MutationWorkspace::new(
@@ -25,6 +26,7 @@ pub(crate) fn apply_plan_to_working_state(
         symbols,
         config,
         schema_registry,
+        aspect_plans,
         apply_plan.version_id,
     );
     let mut effect = MutationEffect::default();

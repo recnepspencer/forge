@@ -1,8 +1,14 @@
 use crate::facade::identity::EntityId;
-use crate::facade::runtime::{ProjectionAspect, RelationReadRecord, RelationRecordProjection};
+use crate::facade::runtime::{RelationReadRecord, RelationRecordProjection};
 use crate::tests::support::*;
+use std::sync::OnceLock;
 
-const RELATION_LABEL_ASPECTS: [ProjectionAspect; 1] = [ProjectionAspect::new("label")];
+fn relation_label_aspects() -> &'static [AspectKey] {
+    static ASPECTS: OnceLock<Vec<AspectKey>> = OnceLock::new();
+    ASPECTS
+        .get_or_init(|| vec![AspectKey(InternedString::Raw("label".to_string()))])
+        .as_slice()
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct EdgeProjection {
@@ -14,8 +20,8 @@ struct EdgeProjection {
 impl RelationRecordProjection for EdgeProjection {
     const KIND: KindId = KindId(2);
 
-    fn required_aspects() -> &'static [ProjectionAspect] {
-        &RELATION_LABEL_ASPECTS
+    fn required_aspects() -> &'static [AspectKey] {
+        relation_label_aspects()
     }
 
     fn from_record(record: &RelationReadRecord) -> Option<Self> {
@@ -32,7 +38,8 @@ impl RelationRecordProjection for EdgeProjection {
 
 #[test]
 fn relation_kind_scans_return_only_visible_relations_of_that_kind() {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let left = create_entity_outcome(&mut runtime, "left");
     let right = create_entity_outcome(&mut runtime, "right");
     let third = create_entity_outcome(&mut runtime, "third");
@@ -61,7 +68,8 @@ fn relation_kind_scans_return_only_visible_relations_of_that_kind() {
 
 #[test]
 fn relation_kind_scans_are_deterministic_across_equivalent_insert_order() {
-    let mut runtime_a = runtime_with_test_schema();
+    let mut runtime_a =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let a_left = create_entity(&mut runtime_a, "left");
     let a_right = create_entity(&mut runtime_a, "right");
     let a_third = create_entity(&mut runtime_a, "third");
@@ -72,7 +80,8 @@ fn relation_kind_scans_are_deterministic_across_equivalent_insert_order() {
         .project_version(runtime_a.current_version_id())
         .relations::<EdgeProjection>();
 
-    let mut runtime_b = runtime_with_test_schema();
+    let mut runtime_b =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let b_left = create_entity(&mut runtime_b, "left");
     let b_right = create_entity(&mut runtime_b, "right");
     let b_third = create_entity(&mut runtime_b, "third");

@@ -16,7 +16,11 @@ impl MutationOutcome {
         payload: RecordPayload,
     ) -> Self {
         let mut outcome = Self::default();
-        outcome.record_change(RecordMutation::EntityCreated { entity_id, payload });
+        outcome.record_change(RecordMutation::EntityCreated {
+            entity_id,
+            kind_id,
+            payload,
+        });
         outcome.record_event(MutationEvent::EntityCreated { entity_id, kind_id });
         outcome
     }
@@ -31,9 +35,19 @@ impl MutationOutcome {
         outcome
     }
 
-    pub(crate) fn entity_updated(entity_id: EntityId, payload: RecordPayload) -> Self {
+    pub(crate) fn entity_updated(
+        entity_id: EntityId,
+        kind_id: KindId,
+        old_payload: RecordPayload,
+        new_payload: RecordPayload,
+    ) -> Self {
         let mut outcome = Self::default();
-        outcome.record_change(RecordMutation::EntityUpdated { entity_id, payload });
+        outcome.record_change(RecordMutation::EntityUpdated {
+            entity_id,
+            kind_id,
+            old_payload,
+            new_payload,
+        });
         outcome.record_event(MutationEvent::EntityUpdated { entity_id });
         outcome
     }
@@ -53,6 +67,7 @@ impl MutationOutcome {
         let mut outcome = Self::default();
         outcome.record_change(RecordMutation::EntityCreated {
             entity_id: replacement_entity_id,
+            kind_id,
             payload,
         });
         outcome.record_event(MutationEvent::EntityReplaced {
@@ -73,6 +88,7 @@ impl MutationOutcome {
         let mut outcome = Self::default();
         outcome.record_change(RecordMutation::RelationCreated {
             relation_id,
+            kind_id,
             source,
             target,
             payload,

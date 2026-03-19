@@ -17,9 +17,10 @@ use crate::validation::engine::{
 };
 
 use super::{
+    AspectEmissionTrace, AspectEvaluationTrace, AspectTagAccuracyReport, CommitAspectSummary,
     CommitChangeSummary, CommitHistorySummary, CommitLog, CommitPatchBudgetSummary,
-    CommitPublicationSummary, CommitSummary, ExistingRecordTarget, MutationIntent, RecordRef,
-    SavepointId, TransactionId,
+    CommitPublicationSummary, CommitSummary, ExistingRecordTarget, MutationIntent,
+    PatchVsTruthDeltaReport, RecordRef, SavepointId, TransactionId,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -255,6 +256,8 @@ pub struct CommitPhaseTiming {
 pub struct CommitPublication {
     pub diagnostics: Vec<RelationalDiagnosticArtifact>,
     pub envelope: Arc<CanonicalCommitEnvelope>,
+    pub aspect_evaluation_traces: Vec<AspectEvaluationTrace>,
+    pub aspect_emission_traces: Vec<AspectEmissionTrace>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -341,6 +344,10 @@ impl CommitOutcome {
     pub fn publication_summary(&self) -> Option<&CommitPublicationSummary> {
         self.commit_summary().publication_summary.as_ref()
     }
+
+    pub fn aspect_summary(&self) -> Option<&CommitAspectSummary> {
+        self.commit_summary().aspect_summary.as_ref()
+    }
 }
 
 impl CommitResult {
@@ -376,6 +383,10 @@ impl CommitResult {
         self.summary.publication_summary.as_ref()
     }
 
+    pub fn aspect_summary(&self) -> Option<&CommitAspectSummary> {
+        self.summary.aspect_summary.as_ref()
+    }
+
     pub fn validation(&self) -> &CommitValidation {
         &self.validation
     }
@@ -386,6 +397,83 @@ impl CommitResult {
 
     pub fn diagnostics(&self) -> &[RelationalDiagnosticArtifact] {
         &self.publication.diagnostics
+    }
+
+    pub fn aspect_evaluation_traces(&self) -> &[AspectEvaluationTrace] {
+        &self.publication.aspect_evaluation_traces
+    }
+
+    pub fn aspect_emission_traces(&self) -> &[AspectEmissionTrace] {
+        &self.publication.aspect_emission_traces
+    }
+
+    pub fn patch_vs_truth_delta_report(&self) -> PatchVsTruthDeltaReport {
+        let patch = self.patch();
+        let traces = self.aspect_emission_traces();
+        let records_checked = patch.len().min(traces.len());
+        let mut mismatched_targets = Vec::new();
+        let mut structural_mismatches = 0;
+        let mut aspect_mismatches = 0;
+        let mut degraded_precision_mismatches = 0;
+
+        for (record, trace) in patch.iter().zip(traces.iter()) {
+            if record.target != trace.target {
+                mismatched_targets.push(record.target.clone());
+            }
+            if record.structural_change != trace.structural_change {
+                structural_mismatches += 1;
+            }
+            if record.aspects != trace.changed_aspects {
+                aspect_mismatches += 1;
+            }
+            if record.contains_degraded_precision != trace.contains_degraded_precision {
+                degraded_precision_mismatches += 1;
+            }
+        }
+
+        PatchVsTruthDeltaReport {
+            records_checked,
+            exact_match: mismatched_targets.is_empty()
+                && structural_mismatches == 0
+                && aspect_mismatches == 0
+                && degraded_precision_mismatches == 0
+                && patch.len() == traces.len(),
+            mismatched_targets,
+            structural_mismatches,
+            aspect_mismatches,
+            degraded_precision_mismatches,
+        }
+    }
+
+    pub fn aspect_tag_accuracy_report(&self) -> AspectTagAccuracyReport {
+        let traces = self.aspect_emission_traces();
+        AspectTagAccuracyReport {
+            records_checked: traces.len(),
+            correctly_tagged_records: self
+                .patch_vs_truth_delta_report()
+                .exact_match
+                .then_some(traces.len())
+                .unwrap_or_else(|| {
+                    traces
+                        .iter()
+                        .zip(self.patch().iter())
+                        .filter(|(trace, record)| {
+                            trace.changed_aspects == record.aspects
+                                && trace.contains_degraded_precision
+                                    == record.contains_degraded_precision
+                        })
+                        .count()
+                }),
+            touched_aspects: crate::publication::patch::data::CanonicalAspectSet::new(
+                traces
+                    .iter()
+                    .flat_map(|trace| trace.changed_aspects.iter().cloned()),
+            ),
+            degraded_precision_record_count: traces
+                .iter()
+                .filter(|trace| trace.contains_degraded_precision)
+                .count(),
+        }
     }
 
     pub fn patch(&self) -> &[PatchRecord] {

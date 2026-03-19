@@ -1,3 +1,4 @@
+mod aspect_semantics;
 mod durability;
 mod history;
 mod indexing;
@@ -13,6 +14,7 @@ pub(crate) trait RuntimeSubsystem: Sized {
     fn fork(&self) -> Self;
 }
 
+pub(crate) use aspect_semantics::AspectSemanticsSubsystem;
 pub(crate) use durability::DurabilitySubsystem;
 pub(crate) use history::HistorySubsystem;
 pub(crate) use indexing::IndexingSubsystem;

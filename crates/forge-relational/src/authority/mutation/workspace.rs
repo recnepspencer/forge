@@ -3,7 +3,7 @@ use crate::authority::commit::preparation::planning::strategy::{
 };
 use crate::config::data::MutationConfig;
 use crate::identity::data::VersionId;
-use crate::schema::data::RelationalSchemaRegistry;
+use crate::schema::data::{AspectPlanCatalog, LoweredAspectPlan, RelationalSchemaRegistry};
 use crate::storage::overlay::WorkingState;
 use crate::symbols::data::StringInterner;
 
@@ -26,6 +26,7 @@ pub(crate) struct MutationWorkspace<'a> {
     symbols: &'a mut StringInterner,
     config: &'a MutationConfig,
     schema: &'a RelationalSchemaRegistry,
+    aspect_plans: &'a AspectPlanCatalog,
     version_id: VersionId,
     preparation_telemetry: MutationPreparationTelemetry,
 }
@@ -36,6 +37,7 @@ impl<'a> MutationWorkspace<'a> {
         symbols: &'a mut StringInterner,
         config: &'a MutationConfig,
         schema: &'a RelationalSchemaRegistry,
+        aspect_plans: &'a AspectPlanCatalog,
         version_id: VersionId,
     ) -> Self {
         Self {
@@ -43,6 +45,7 @@ impl<'a> MutationWorkspace<'a> {
             symbols,
             config,
             schema,
+            aspect_plans,
             version_id,
             preparation_telemetry: MutationPreparationTelemetry::default(),
         }
@@ -66,6 +69,20 @@ impl<'a> MutationWorkspace<'a> {
 
     pub(crate) fn version_id(&self) -> VersionId {
         self.version_id
+    }
+
+    pub(crate) fn entity_aspect_plan(
+        &self,
+        kind_id: crate::identity::data::KindId,
+    ) -> Option<&LoweredAspectPlan> {
+        self.aspect_plans.entity_plans.get(&kind_id)
+    }
+
+    pub(crate) fn relation_aspect_plan(
+        &self,
+        kind_id: crate::identity::data::KindId,
+    ) -> Option<&LoweredAspectPlan> {
+        self.aspect_plans.relation_plans.get(&kind_id)
     }
 
     pub(crate) fn execution_model(&self) -> crate::logic::planning::RelationalExecutionModel {

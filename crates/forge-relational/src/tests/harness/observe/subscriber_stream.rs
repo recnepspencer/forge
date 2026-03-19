@@ -26,7 +26,10 @@ pub(crate) fn collect_subscriber_patches_from_head(
     runtime: &RelationalRuntime,
     window_size: usize,
 ) -> Vec<RelationalPatchRecord> {
-    collect_subscriber_patches_from_request(runtime, SubscriberResumeRequest::from_head(window_size))
+    collect_subscriber_patches_from_request(
+        runtime,
+        SubscriberResumeRequest::from_head(window_size),
+    )
 }
 
 pub(crate) fn expected_patch_suffix_after_checkpoint(

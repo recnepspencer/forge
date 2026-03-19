@@ -8,5 +8,6 @@ mod profiles;
 mod public_api;
 mod publication;
 mod query;
+mod schema;
 mod support;
 mod transactions;

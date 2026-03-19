@@ -48,6 +48,7 @@ pub(crate) fn run_authoritative_mutation(
         &apply_plan,
         &mutation_config,
         &transaction.runtime.config.schema.registry,
+        &transaction.runtime.aspect_semantics.plans,
         &mut transaction.runtime.services.symbols,
     )
     .map_err(TransactionCommitError::conflict)?;

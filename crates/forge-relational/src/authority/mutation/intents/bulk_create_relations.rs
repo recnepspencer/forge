@@ -72,6 +72,7 @@ pub(super) fn apply(
         });
         outcome.record_change(RecordMutation::RelationCreated {
             relation_id,
+            kind_id: intent.kind_id,
             source: spec.source,
             target: spec.target,
             payload: spec.payload.clone(),

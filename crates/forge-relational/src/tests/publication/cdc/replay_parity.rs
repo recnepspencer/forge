@@ -43,7 +43,10 @@ fn durable_source_subscriber_stream_matches_recovered_runtime_patch_stream() {
 
     let recovery_plan = runtime.durability_access().recovery_plan();
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(recovery_plan).unwrap();
+    recovered
+        .durability_authority()
+        .recover(recovery_plan)
+        .unwrap();
     let recovered_patch_batch = recovered
         .publication_access()
         .read_patch_stream(PatchStreamRequest {

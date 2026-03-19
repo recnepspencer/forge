@@ -1,6 +1,4 @@
-use super::failure_report::{
-    render_multi_subscriber_failure, render_window_matrix_failure,
-};
+use super::failure_report::{render_multi_subscriber_failure, render_window_matrix_failure};
 use crate::facade::publication::{RelationalPatchRecord, SubscriberCheckpoint};
 use crate::tests::harness::model::truth_model::VisibleTruthSummary;
 use crate::tests::harness::observe::subscriber_stream::SubscriberView;

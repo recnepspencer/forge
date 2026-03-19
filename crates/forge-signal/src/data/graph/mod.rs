@@ -9,6 +9,8 @@ mod topology;
 pub(crate) use construction::node_builder;
 pub use construction::NodeBuilder;
 pub(crate) use runtime::graph as signal_graph;
+#[allow(unused_imports)]
+pub(crate) use runtime::{BranchMutationRecord, BranchStructuralDelta};
 pub(crate) use runtime::scratch;
 pub use runtime::ScratchLeaseKind;
 pub use runtime::SignalGraph;

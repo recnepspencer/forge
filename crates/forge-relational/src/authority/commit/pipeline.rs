@@ -186,9 +186,31 @@ impl<'a> RelationalTransaction<'a> {
         )
         .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::ArtifactAssembly, error))?;
         let change_summary = publication.change_summary.clone();
+        let aspect_summary = publication.aspect_summary.clone();
+        let aspect_evaluation_traces = publication.aspect_evaluation_traces.clone();
+        let aspect_emission_traces = publication.aspect_emission_traces.clone();
         let publication_summary = publication.summary.clone();
         let publication_snapshot = publication.finalize.artifacts.bundle.snapshot.clone();
+        if self
+            .runtime
+            .config
+            .diagnostics
+            .profile
+            .detailed_traces_enabled
+        {
+            for trace in &aspect_evaluation_traces {
+                self.runtime
+                    .publication_authority()
+                    .push_diagnostic_artifact(trace.diagnostic_artifact());
+            }
+            for trace in &aspect_emission_traces {
+                self.runtime
+                    .publication_authority()
+                    .push_diagnostic_artifact(trace.diagnostic_artifact());
+            }
+        }
         commit_log.record_changed_records(&change_summary);
+        commit_log.record_aspect_summary(&aspect_summary);
         commit_log.record_publication_artifacts(&publication_summary);
         commit_log.complete_phase(CommitPhase::ArtifactAssembly);
         phase_timing.artifact_assembly_micros = elapsed_micros(phase_started);
@@ -218,6 +240,9 @@ impl<'a> RelationalTransaction<'a> {
         let phase_started = Instant::now();
         let crate::authority::commit::phases::artifacts::PublicationPreparation {
             change_summary: _,
+            aspect_summary: _,
+            aspect_evaluation_traces: _,
+            aspect_emission_traces: _,
             summary: _,
             finalize:
                 crate::authority::commit::phases::artifacts::PublicationFinalizeArtifacts {
@@ -279,6 +304,8 @@ impl<'a> RelationalTransaction<'a> {
             publication: CommitPublication {
                 diagnostics,
                 envelope: canonical_commit_envelope,
+                aspect_evaluation_traces,
+                aspect_emission_traces,
             },
             validation: CommitValidation {
                 summary: CommitValidation::summarize(&invariant_executions),

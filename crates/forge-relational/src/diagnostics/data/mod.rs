@@ -3,6 +3,7 @@ use serde_json::Value;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum DiagnosticsScope {
+    Schema,
     Transaction,
     Snapshot,
     Retention,
@@ -78,6 +79,12 @@ pub enum DiagnosticCode {
     VisibilityCacheRecentAdmissionCandidate,
     VisibilityCacheProtectedRead,
     VisibilityCacheTransientRead,
+    AspectHistoryResolved,
+    LineageAspectHistoryResolved,
+    AspectEvaluationTraced,
+    AspectEmissionTraced,
+    AspectDeclarationTraced,
+    AspectLoweringTraced,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

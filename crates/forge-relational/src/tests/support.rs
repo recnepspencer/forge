@@ -21,8 +21,11 @@ pub(super) use crate::facade::diagnostics::{
 };
 pub(super) use crate::facade::durability::{DurabilityMode, DurableStoreLayout};
 pub(super) use crate::facade::harness::RelationalHarnessAdapter;
-pub(super) use crate::facade::history::BranchId;
-pub(super) use crate::facade::identity::{KindId, PartitionId, RelationId};
+pub(super) use crate::facade::history::{
+    AspectFilter, AspectFilterMode, AspectHistoryCommitSpan, AspectHistoryEntry,
+    AspectResolutionContext, BranchId, HistoryAspectQueryTarget, RequestedAspectSet,
+};
+pub(super) use crate::facade::identity::{KindId, LineageId, PartitionId, RelationId};
 pub(super) use crate::facade::publication::{
     PatchStreamPosition, PatchStreamRequest, PublicationStage, PublicationStatus,
     SubscriberResumeRequest, SubscriberStreamFailureClass,
@@ -33,19 +36,24 @@ pub(super) use crate::facade::runtime::{
     RelationalRuntime, RelationalRuntimeApi,
 };
 pub(super) use crate::facade::schema::{
-    EntityKindRegistration, RelationKindRegistration, RelationalSchemaRegistry, SchemaId,
-    SchemaVersionId,
+    AspectBinding, AspectComparator, AspectKey, AspectPrecision, DeclaredAspect,
+    EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration,
+    RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 pub(super) use crate::facade::transactions::{
     BulkEntityCreateIntent, CommitResult, CreateIntent, DeleteEntityIntent, DeleteRelationIntent,
-    EntityMutationIntent, MutationIntent, RecordRef, RelationMutationIntent, ReplaceEntityIntent,
-    TransactionCommitError, TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
+    EntityMutationIntent, MutationIntent, PatchVsTruthDeltaReport, RecordRef,
+    RelationMutationIntent, ReplaceEntityIntent, TransactionCommitError, TransactionOptions,
+    UpdateEntityIntent, WorkerIntentBatch,
 };
 pub(super) use crate::payloads::data::RecordPayload;
-pub(super) use crate::publication::data::diff::{PatchCompatibilityClass, PatchDetail};
 pub(super) use crate::publication::cdc::planning::checkpoint_for_schema_version;
+pub(super) use crate::publication::data::diff::{
+    CanonicalAspectSet, PatchCompatibilityClass, PatchDetail, RecordStructuralChange,
+};
 pub(super) use crate::schema::data::RelationPayloadClass;
 pub(super) use crate::symbols::data::{InternedString, SymbolPolicy};
+use crate::tests::harness::model::truth_model::VisibleTruthSummary;
 
 pub(super) fn test_schema_registry() -> RelationalSchemaRegistry {
     RelationalSchemaRegistry::new()
@@ -54,6 +62,7 @@ pub(super) fn test_schema_registry() -> RelationalSchemaRegistry {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
+            aspect_declarations: KindAspectDeclarations::default(),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -64,6 +73,7 @@ pub(super) fn test_schema_registry() -> RelationalSchemaRegistry {
                 payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
+                aspect_declarations: KindAspectDeclarations::default(),
             })
         })
         .unwrap()
@@ -71,6 +81,162 @@ pub(super) fn test_schema_registry() -> RelationalSchemaRegistry {
 
 pub(super) fn runtime_with_test_schema() -> RelationalRuntime {
     runtime_with_test_schema_profile(RelationalRuntimeProfile::CertificationCore)
+}
+
+pub(super) fn aspect_key(name: &str) -> AspectKey {
+    AspectKey(InternedString::Raw(name.to_string()))
+}
+
+pub(super) fn entity_payload_aspect(name: &str, field: &str) -> DeclaredAspect {
+    DeclaredAspect {
+        key: aspect_key(name),
+        binding: AspectBinding::EntityPayloadField {
+            field: InternedString::Raw(field.to_string()),
+        },
+        comparator: AspectComparator::JsonScalarEquality,
+        precision: AspectPrecision::Structured,
+    }
+}
+
+pub(super) fn relation_payload_aspect(name: &str, field: &str) -> DeclaredAspect {
+    DeclaredAspect {
+        key: aspect_key(name),
+        binding: AspectBinding::RelationPayloadField {
+            field: InternedString::Raw(field.to_string()),
+        },
+        comparator: AspectComparator::JsonScalarEquality,
+        precision: AspectPrecision::Structured,
+    }
+}
+
+pub(super) fn lifecycle_aspect() -> DeclaredAspect {
+    DeclaredAspect {
+        key: aspect_key("lifecycle"),
+        binding: AspectBinding::LifecycleTransition,
+        comparator: AspectComparator::LifecycleTransitionEquality,
+        precision: AspectPrecision::Structured,
+    }
+}
+
+pub(super) fn relation_source_aspect() -> DeclaredAspect {
+    DeclaredAspect {
+        key: aspect_key("source"),
+        binding: AspectBinding::RelationSourceEndpoint,
+        comparator: AspectComparator::EndpointIdentityEquality,
+        precision: AspectPrecision::Structured,
+    }
+}
+
+pub(super) fn relation_target_aspect() -> DeclaredAspect {
+    DeclaredAspect {
+        key: aspect_key("target"),
+        binding: AspectBinding::RelationTargetEndpoint,
+        comparator: AspectComparator::EndpointIdentityEquality,
+        precision: AspectPrecision::Structured,
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct AspectSchemaFixture {
+    pub entity_kind_id: KindId,
+    pub relation_kind_id: KindId,
+    pub entity_kind_name: String,
+    pub relation_kind_name: String,
+    pub schema_id: SchemaId,
+    pub schema_version_id: SchemaVersionId,
+    pub relation_payload_class: RelationPayloadClass,
+    pub cross_context_policy: CrossContextPolicy,
+    pub cascade_delete_policy: CascadeDeletePolicy,
+    pub entity_aspects: Vec<DeclaredAspect>,
+    pub relation_aspects: Vec<DeclaredAspect>,
+}
+
+impl Default for AspectSchemaFixture {
+    fn default() -> Self {
+        Self {
+            entity_kind_id: KindId(1),
+            relation_kind_id: KindId(2),
+            entity_kind_name: "test.entity".to_string(),
+            relation_kind_name: "test.relation".to_string(),
+            schema_id: SchemaId("test".to_string()),
+            schema_version_id: SchemaVersionId(1),
+            relation_payload_class: RelationPayloadClass::PayloadBearingRelation,
+            cross_context_policy: CrossContextPolicy::AllowExplicit,
+            cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
+            entity_aspects: Vec::new(),
+            relation_aspects: Vec::new(),
+        }
+    }
+}
+
+impl AspectSchemaFixture {
+    pub(super) fn with_default_declared_aspects(
+        cascade_delete_policy: CascadeDeletePolicy,
+    ) -> Self {
+        Self {
+            cascade_delete_policy,
+            entity_aspects: vec![entity_payload_aspect("name", "name"), lifecycle_aspect()],
+            relation_aspects: vec![
+                relation_payload_aspect("label", "label"),
+                lifecycle_aspect(),
+                relation_source_aspect(),
+                relation_target_aspect(),
+            ],
+            ..Self::default()
+        }
+    }
+
+    pub(super) fn build_registry(&self) -> RelationalSchemaRegistry {
+        RelationalSchemaRegistry::new()
+            .register_entity_kind(EntityKindRegistration {
+                kind_id: self.entity_kind_id,
+                kind_name: self.entity_kind_name.clone(),
+                schema_id: self.schema_id.clone(),
+                schema_version_id: self.schema_version_id,
+                aspect_declarations: KindAspectDeclarations::new(self.entity_aspects.clone()),
+            })
+            .and_then(|registry| {
+                registry.register_relation_kind(RelationKindRegistration {
+                    kind_id: self.relation_kind_id,
+                    kind_name: self.relation_kind_name.clone(),
+                    schema_id: self.schema_id.clone(),
+                    schema_version_id: self.schema_version_id,
+                    payload_class: self.relation_payload_class,
+                    cross_context_policy: self.cross_context_policy,
+                    cascade_delete_policy: self.cascade_delete_policy,
+                    aspect_declarations: KindAspectDeclarations::new(self.relation_aspects.clone()),
+                })
+            })
+            .unwrap()
+    }
+
+    pub(super) fn build_runtime(&self) -> RelationalRuntime {
+        RelationalRuntimeApi::builder()
+            .schema_registry(self.build_registry())
+            .build()
+    }
+}
+
+pub(super) fn runtime_with_declared_aspect_schema(
+    cascade_delete_policy: CascadeDeletePolicy,
+) -> RelationalRuntime {
+    AspectSchemaFixture::with_default_declared_aspects(cascade_delete_policy).build_runtime()
+}
+
+pub(super) fn runtime_with_declared_aspect_schema_profile(
+    profile: RelationalRuntimeProfile,
+    cascade_delete_policy: CascadeDeletePolicy,
+) -> RelationalRuntime {
+    RelationalRuntimeApi::builder()
+        .profile(profile)
+        .schema_registry(declared_aspect_schema_registry(cascade_delete_policy))
+        .build()
+}
+
+pub(super) fn declared_aspect_schema_registry(
+    cascade_delete_policy: CascadeDeletePolicy,
+) -> RelationalSchemaRegistry {
+    AspectSchemaFixture::with_default_declared_aspects(cascade_delete_policy).build_registry()
 }
 
 pub(super) fn runtime_with_test_schema_execution_model(
@@ -99,6 +265,20 @@ pub(super) fn persisted_runtime_with_test_schema() -> RelationalRuntime {
         .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
         .durable_store_layout(DurableStoreLayout {
             root_path: unique_test_store_path("forge-relational-persisted"),
+            segment_commit_capacity: 2,
+        })
+        .build()
+}
+
+pub(super) fn persisted_runtime_with_declared_aspect_schema(
+    cascade_delete_policy: CascadeDeletePolicy,
+) -> RelationalRuntime {
+    RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::CertificationCore)
+        .schema_registry(declared_aspect_schema_registry(cascade_delete_policy))
+        .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
+        .durable_store_layout(DurableStoreLayout {
+            root_path: unique_test_store_path("forge-relational-persisted-aspects"),
             segment_commit_capacity: 2,
         })
         .build()
@@ -341,4 +521,120 @@ pub(super) fn read_entity_name(record: &EntityReadRecord) -> Option<&str> {
         .as_json()
         .and_then(|value| value.get("name"))
         .and_then(|value| value.as_str())
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct AspectTruthBundle {
+    pub visible_truth: VisibleTruthSummary,
+    pub latest_patch: Option<crate::facade::publication::RelationalPatchRecord>,
+    pub latest_replay: Option<crate::facade::runtime::RelationalReplayRecord>,
+    pub diagnostics: crate::facade::diagnostics::RelationalDiagnosticsFacade,
+    pub entity_history_digests:
+        Vec<(crate::facade::identity::EntityId, crate::facade::history::AspectHistoryDigest)>,
+    pub relation_history_digests:
+        Vec<(RelationId, crate::facade::history::AspectHistoryDigest)>,
+    pub lineage_history_digests:
+        Vec<(LineageId, crate::facade::history::LineageAspectResolutionDigest)>,
+}
+
+pub(super) fn capture_aspect_truth_bundle(
+    runtime: &mut RelationalRuntime,
+    entity_ids: &[crate::facade::identity::EntityId],
+    relation_ids: &[RelationId],
+    lineage_ids: &[LineageId],
+) -> AspectTruthBundle {
+    let branch = BranchId("main".to_string());
+
+    AspectTruthBundle {
+        visible_truth: VisibleTruthSummary::capture(runtime),
+        latest_patch: runtime.publication_access().latest_patch().cloned(),
+        latest_replay: runtime.publication_access().latest_replay().cloned(),
+        diagnostics: runtime.publication_access().diagnostics().clone(),
+        entity_history_digests: entity_ids
+            .iter()
+            .map(|entity_id| {
+                (
+                    *entity_id,
+                    runtime
+                        .history_access()
+                        .entity_aspect_history_with_trace(&branch, *entity_id, None)
+                        .aspect_history_digest(),
+                )
+            })
+            .collect(),
+        relation_history_digests: relation_ids
+            .iter()
+            .map(|relation_id| {
+                (
+                    *relation_id,
+                    runtime
+                        .history_access()
+                        .relation_aspect_history_with_trace(&branch, *relation_id, None)
+                        .aspect_history_digest(),
+                )
+            })
+            .collect(),
+        lineage_history_digests: lineage_ids
+            .iter()
+            .map(|lineage_id| {
+                (
+                    *lineage_id,
+                    runtime
+                        .lineage_access()
+                        .entity_aspect_history_with_trace(&branch, *lineage_id, None)
+                        .lineage_aspect_resolution_digest(),
+                )
+            })
+            .collect(),
+    }
+}
+
+pub(super) fn assert_patch_truth_invariants(result: &CommitResult) -> PatchVsTruthDeltaReport {
+    let patch_vs_truth = result.patch_vs_truth_delta_report();
+    let tag_accuracy = result.aspect_tag_accuracy_report();
+
+    assert!(
+        patch_vs_truth.exact_match,
+        "patch surface diverged from canonical aspect truth: {:?}",
+        patch_vs_truth
+    );
+    assert_eq!(patch_vs_truth.records_checked, result.patch().len());
+    assert_eq!(tag_accuracy.records_checked, result.patch().len());
+    assert_eq!(tag_accuracy.correctly_tagged_records, result.patch().len());
+
+    patch_vs_truth
+}
+
+pub(super) fn assert_direct_history_origin_invariants(
+    entries: &[AspectHistoryEntry],
+    target: RecordRef,
+) {
+    assert!(
+        !entries.is_empty(),
+        "expected direct aspect history entries for {:?}",
+        target
+    );
+    assert!(entries.iter().all(|entry| entry.origin.target == target));
+    assert!(entries.iter().all(|entry| matches!(
+        entry.resolution,
+        AspectResolutionContext::DirectRecordHistory
+    )));
+}
+
+pub(super) fn assert_lineage_history_origin_invariants(
+    entries: &[AspectHistoryEntry],
+    start_lineage_id: LineageId,
+) {
+    assert!(
+        !entries.is_empty(),
+        "expected lineage-aware aspect history entries for {:?}",
+        start_lineage_id
+    );
+    assert!(entries.iter().all(|entry| matches!(
+        entry.resolution,
+        AspectResolutionContext::ResolvedViaLineage {
+            start_lineage_id: resolved_start,
+            ..
+        } if resolved_start == start_lineage_id
+    )));
 }

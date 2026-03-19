@@ -1,6 +1,6 @@
 use crate::publication::patch::data::{
-    AspectKey, PatchCompatibilityClass, PatchDetail, PatchOrdering, PatchPublicationMode,
-    PatchStreamPosition,
+    CanonicalAspectSet, PatchCompatibilityClass, PatchDetail, PatchOrdering, PatchPublicationMode,
+    PatchStreamPosition, RecordStructuralChange,
 };
 use crate::transactions::data::RecordRef;
 use serde::{Deserialize, Serialize};
@@ -17,21 +17,20 @@ pub enum PatchRecordKind {
 pub struct PatchRecord {
     pub kind: PatchRecordKind,
     pub target: RecordRef,
-    pub aspects: Vec<AspectKey>,
+    pub structural_change: RecordStructuralChange,
+    pub aspects: CanonicalAspectSet,
+    pub contains_degraded_precision: bool,
     pub detail: PatchDetail,
 }
 
 impl PatchRecord {
     pub fn canonicalized(&self) -> Self {
-        let mut aspects = self.aspects.clone();
-        if !aspects.windows(2).all(|window| window[0] < window[1]) {
-            aspects.sort();
-            aspects.dedup();
-        }
         Self {
             kind: self.kind.clone(),
             target: self.target.clone(),
-            aspects,
+            structural_change: self.structural_change,
+            aspects: self.aspects.clone(),
+            contains_degraded_precision: self.contains_degraded_precision,
             detail: self.detail.canonicalized(),
         }
     }

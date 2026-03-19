@@ -5,7 +5,9 @@ use crate::publication::patch::data::PatchStreamPosition;
 use crate::replay::data::ReplaySchemaVersion;
 use crate::{publication::cdc::data::SubscriberStreamFailure, schema::data::SchemaVersionId};
 
-pub(crate) fn latest_available_checkpoint(runtime: &RelationalRuntime) -> Option<SubscriberCheckpoint> {
+pub(crate) fn latest_available_checkpoint(
+    runtime: &RelationalRuntime,
+) -> Option<SubscriberCheckpoint> {
     let latest_position = runtime.history_access().latest_patch_stream_position()?;
     let commit_id = *runtime.history.patch_stream_index.get(&latest_position)?;
     let history = runtime.history_access();
@@ -20,8 +22,13 @@ pub(crate) fn latest_available_checkpoint(runtime: &RelationalRuntime) -> Option
 pub(crate) fn resolve_checkpoint(
     runtime: &RelationalRuntime,
     checkpoint: Option<&SubscriberCheckpoint>,
-) -> Result<(Option<PatchStreamPosition>, Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>), SubscriberStreamFailure>
-{
+) -> Result<
+    (
+        Option<PatchStreamPosition>,
+        Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
+    ),
+    SubscriberStreamFailure,
+> {
     let latest = latest_available_checkpoint(runtime);
     let mut diagnostics = vec![checkpoint_resolution_artifact(checkpoint)];
 
@@ -121,7 +128,9 @@ pub(crate) fn durable_checkpoint_available(
     })
 }
 
-pub(crate) fn durable_envelopes(runtime: &RelationalRuntime) -> Vec<crate::replay::data::CanonicalCommitEnvelope> {
+pub(crate) fn durable_envelopes(
+    runtime: &RelationalRuntime,
+) -> Vec<crate::replay::data::CanonicalCommitEnvelope> {
     let recovery_plan = runtime.durability_access().recovery_plan();
     let mut envelopes = recovery_plan
         .checkpoint
