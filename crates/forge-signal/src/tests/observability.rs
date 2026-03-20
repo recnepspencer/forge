@@ -149,8 +149,12 @@ fn explicit_omit_policy_surfaces_unavailable_artifacts() {
     evaluate(&mut graph, source, &mut compute).unwrap();
     evaluate(&mut graph, dependent, &mut compute).unwrap();
 
-    let (explanation, explanation_mode) = graph.explain_artifact(dependent).unwrap();
-    let (provenance, provenance_mode) = graph.provenance_artifact(dependent).unwrap();
+    let (explanation, explanation_mode) = graph
+        .materialize_explanation_artifact(dependent)
+        .unwrap();
+    let (provenance, provenance_mode) = graph
+        .materialize_provenance_artifact(dependent)
+        .unwrap();
 
     assert!(explanation.is_none());
     assert!(provenance.is_none());

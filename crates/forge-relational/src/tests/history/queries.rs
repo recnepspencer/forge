@@ -436,57 +436,21 @@ fn bulk_like_aspect_history_filters_and_query_packets_stay_stable_after_recovery
         .visibility_reads()
         .execute_read_packet(&snapshot, &packet)
         .unwrap();
+    let name_filter = all_aspect_filter(["name"]);
+    let endpoints_filter = all_aspect_filter(["source", "target"]);
     let delete_outcome = delete_entity(&mut runtime, hub);
     let expected_entity_digests = leaves
         .iter()
-        .map(|entity| {
-            runtime
-                .history_access()
-                .entity_aspect_history_with_trace(
-                    &BranchId("main".to_string()),
-                    *entity,
-                    Some(&AspectFilter {
-                        mode: AspectFilterMode::All,
-                        aspects: RequestedAspectSet::new([aspect_key("name")]),
-                    }),
-                )
-                .aspect_history_digest()
-        })
+        .map(|entity| entity_aspect_history_digest(&runtime, *entity, Some(&name_filter)))
         .collect::<Vec<_>>();
     let expected_relation_digests = relations
         .iter()
-        .map(|relation| {
-            runtime
-                .history_access()
-                .relation_aspect_history_with_trace(
-                    &BranchId("main".to_string()),
-                    *relation,
-                    Some(&AspectFilter {
-                        mode: AspectFilterMode::All,
-                        aspects: RequestedAspectSet::new([
-                            aspect_key("source"),
-                            aspect_key("target"),
-                        ]),
-                    }),
-                )
-                .aspect_history_digest()
-        })
+        .map(|relation| relation_aspect_history_digest(&runtime, *relation, Some(&endpoints_filter)))
         .collect::<Vec<_>>();
+    let lifecycle_filter = any_aspect_filter(["lifecycle"]);
     let expected_lifecycle_relation_digests = relations
         .iter()
-        .map(|relation| {
-            runtime
-                .history_access()
-                .relation_aspect_history_with_trace(
-                    &BranchId("main".to_string()),
-                    *relation,
-                    Some(&AspectFilter {
-                        mode: AspectFilterMode::Any,
-                        aspects: RequestedAspectSet::new([aspect_key("lifecycle")]),
-                    }),
-                )
-                .aspect_history_digest()
-        })
+        .map(|relation| relation_aspect_history_digest(&runtime, *relation, Some(&lifecycle_filter)))
         .collect::<Vec<_>>();
     runtime.durability_authority().checkpoint().unwrap();
     let recovery_plan = runtime.durability_access().recovery_plan();
@@ -501,54 +465,15 @@ fn bulk_like_aspect_history_filters_and_query_packets_stay_stable_after_recovery
         .unwrap();
     let recovered_entity_digests = leaves
         .iter()
-        .map(|entity| {
-            recovered
-                .history_access()
-                .entity_aspect_history_with_trace(
-                    &BranchId("main".to_string()),
-                    *entity,
-                    Some(&AspectFilter {
-                        mode: AspectFilterMode::All,
-                        aspects: RequestedAspectSet::new([aspect_key("name")]),
-                    }),
-                )
-                .aspect_history_digest()
-        })
+        .map(|entity| entity_aspect_history_digest(&recovered, *entity, Some(&name_filter)))
         .collect::<Vec<_>>();
     let recovered_relation_digests = relations
         .iter()
-        .map(|relation| {
-            recovered
-                .history_access()
-                .relation_aspect_history_with_trace(
-                    &BranchId("main".to_string()),
-                    *relation,
-                    Some(&AspectFilter {
-                        mode: AspectFilterMode::All,
-                        aspects: RequestedAspectSet::new([
-                            aspect_key("source"),
-                            aspect_key("target"),
-                        ]),
-                    }),
-                )
-                .aspect_history_digest()
-        })
+        .map(|relation| relation_aspect_history_digest(&recovered, *relation, Some(&endpoints_filter)))
         .collect::<Vec<_>>();
     let recovered_lifecycle_relation_digests = relations
         .iter()
-        .map(|relation| {
-            recovered
-                .history_access()
-                .relation_aspect_history_with_trace(
-                    &BranchId("main".to_string()),
-                    *relation,
-                    Some(&AspectFilter {
-                        mode: AspectFilterMode::Any,
-                        aspects: RequestedAspectSet::new([aspect_key("lifecycle")]),
-                    }),
-                )
-                .aspect_history_digest()
-        })
+        .map(|relation| relation_aspect_history_digest(&recovered, *relation, Some(&lifecycle_filter)))
         .collect::<Vec<_>>();
 
     assert_eq!(recovery.latest_commit, Some(delete_outcome.commit.clone()));

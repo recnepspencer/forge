@@ -1,5 +1,5 @@
 use crate::data::dependency::{
-    DependencySnapshot, DependencySnapshotUpdate, SharedDependencySnapshot, SnapshotDeltaRecord,
+    DependencySnapshot, DependencySnapshotUpdate, SnapshotDeltaRecord, SnapshotStorageStrategy,
 };
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
@@ -74,12 +74,22 @@ impl SignalGraph {
         snapshot: DependencySnapshot,
     ) -> Result<(), SignalError> {
         let previous = self.get_dep_snapshot(id)?.clone();
-        let delta = SnapshotDeltaRecord::between(
-            id,
-            &previous,
-            &SharedDependencySnapshot::new(snapshot.clone()),
-        );
-        let snapshot_id = self.topology.dependency_snapshots.insert(snapshot);
+        let (update, delta) = DependencySnapshotUpdate::between(id, &previous, snapshot);
+        if !delta.changed() {
+            return Ok(());
+        }
+        match update.storage_strategy() {
+            SnapshotStorageStrategy::SharedReplacement => {
+                self.telemetry_mut().storage.shared_snapshot_replacement_count += 1;
+            }
+            SnapshotStorageStrategy::VersionOnlyDelta => {
+                self.telemetry_mut().storage.version_only_snapshot_update_count += 1;
+            }
+        }
+        let snapshot_id = self
+            .topology
+            .dependency_snapshots
+            .insert(update.apply_to(&previous).into_snapshot());
         self.get_entry_mut(id)?.set_dep_snapshot_id(snapshot_id);
         self.record_branch_mutation_snapshot(
             id,
@@ -95,6 +105,14 @@ impl SignalGraph {
         update: DependencySnapshotUpdate,
     ) -> Result<SnapshotDeltaRecord, SignalError> {
         let previous = self.get_dep_snapshot(id)?.clone();
+        match update.storage_strategy() {
+            SnapshotStorageStrategy::SharedReplacement => {
+                self.telemetry_mut().storage.shared_snapshot_replacement_count += 1;
+            }
+            SnapshotStorageStrategy::VersionOnlyDelta => {
+                self.telemetry_mut().storage.version_only_snapshot_update_count += 1;
+            }
+        }
         let next_snapshot = update.apply_to(&previous);
         let delta = SnapshotDeltaRecord::between(id, &previous, &next_snapshot);
         if !delta.changed() {
@@ -131,6 +149,14 @@ impl SignalGraph {
                 continue;
             }
             self.telemetry_mut().storage.patch_application_breadth += 1;
+            match snapshot.update.storage_strategy() {
+                SnapshotStorageStrategy::SharedReplacement => {
+                    self.telemetry_mut().storage.shared_snapshot_replacement_count += 1;
+                }
+                SnapshotStorageStrategy::VersionOnlyDelta => {
+                    self.telemetry_mut().storage.version_only_snapshot_update_count += 1;
+                }
+            }
             let snapshot_id = self.topology.dependency_snapshots.insert(
                 snapshot
                     .update
@@ -154,6 +180,33 @@ impl SignalGraph {
         commit: &SnapshotBatchCommit,
     ) -> Result<(), SignalError> {
         self.set_dep_snapshot_batch(commit.pending())
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn derive_dependency_snapshot_restore_batch(
+        &self,
+        target: &SignalGraph,
+    ) -> Result<SnapshotBatchCommit, SignalError> {
+        let mut entries = Vec::new();
+        for index in 0..target.arena_capacity() {
+            let Some(node) = target.live_node_id_at(index) else {
+                continue;
+            };
+            if !self.is_alive(node) {
+                continue;
+            }
+            let previous = self.get_dep_snapshot(node)?.clone();
+            let next = target.get_dep_snapshot(node)?.clone();
+            let (update, delta) = DependencySnapshotUpdate::between(node, &previous, next);
+            if delta.changed() {
+                entries.push(crate::data::proof::PendingSnapshotCommit {
+                    node,
+                    update,
+                    delta,
+                });
+            }
+        }
+        Ok(SnapshotBatchCommit::new(PendingSnapshotBatch::new(entries)))
     }
 
     pub fn is_alive(&self, id: NodeId) -> bool {

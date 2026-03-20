@@ -74,7 +74,7 @@ fn relation_payload_history_remains_available_for_historical_reads_after_reclaim
     runtime
         .visibility_authority()
         .release_snapshot(&deleted.snapshot);
-    let _ = runtime.retention_access().run_pass();
+    let _ = runtime.retention_authority().run_pass();
 
     assert_eq!(runtime.relation_history_len_for_test(relation), 1);
     let historical = runtime.visibility_reads().read_version(created.version_id);

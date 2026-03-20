@@ -57,6 +57,26 @@ pub mod identity {
     };
 }
 
+pub mod inspection {
+    pub use crate::inspection::data::{
+        CommitInspection, ConnectivityComponentSummary, ConnectivityInspectionRequest,
+        ConnectivityInspectionSummary, GraphInspectionRequest, GraphInspectionSummary,
+        HistoricalAspectObservation, HistoricalAvailabilityObservation, HistoricalInspectionMode,
+        HistoricalOpenResult, HistoricalRecordInspection, HistoricalRecordObservation,
+        HistoricalRecordValue, HistoricalSnapshotView, InspectionAccessPath,
+        InspectionAvailability, InspectionDegradation, InspectionOrigin, InspectionRecordClass,
+        InspectionResolutionContext, InspectionScope, KindInspectionRequest,
+        KindInspectionSummary, NeighborInspectionResult, PinStateObservation,
+        RecentCommitInspectionRequest, RecentCommitInspectionWindow, ReclaimEligibility,
+        RecordRetentionInspection, RetentionExecutionInspection, RetentionInspectionSummary,
+        RetentionStateObservation, SavepointInspectionSurface, SnapshotPinInspection,
+        StructuralIdentityComparison, StructuralIdentityComparisonVerdict,
+        StructuralIdentityEvidence, StructuralIdentityQueryRequest,
+        TransactionInspectionSurface, TransactionIntentCounts,
+    };
+    pub use crate::inspection::logic::InspectionAccess;
+}
+
 pub mod indexes {
     pub use crate::indexes::data::{
         DerivedIndexBuildOutcome, DerivedIndexBuildRequest, DerivedIndexCompatibility,

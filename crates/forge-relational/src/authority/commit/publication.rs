@@ -266,9 +266,6 @@ pub(super) fn finalize_published_commit(
     runtime
         .index_authority()
         .refresh_unique_field_index_for_records(changed_records, version_id);
-    runtime
-        .retention_access()
-        .trim_live_history_for_records(changed_records, version_id);
     runtime.history_authority().publish_commit(
         commit_id,
         commit_reference.clone(),
@@ -286,11 +283,14 @@ pub(super) fn finalize_published_commit(
             version_id,
             changed_records,
         );
+    runtime
+        .retention_authority()
+        .trim_live_history_for_records(changed_records, version_id);
     runtime.durability_authority().compact_log_if_needed();
     let snapshot_id = runtime
         .publication_authority()
         .publish_artifacts(version_id, artifacts);
-    let _ = runtime.retention_access().run_pass();
+    let _ = runtime.retention_authority().run_pass();
     runtime
         .publication_authority()
         .consume_post_commit_artifacts(

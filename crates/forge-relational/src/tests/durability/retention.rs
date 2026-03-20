@@ -1,4 +1,6 @@
 use crate::tests::support::*;
+use crate::facade::inspection::InspectionAvailability;
+use crate::facade::storage::RecordLifecycleState;
 
 // CONTRACT: retention_plan
 // LANES: success, adversarial, recovery
@@ -30,7 +32,7 @@ fn retention_plan_reports_snapshot_pinned_records_before_release() {
         };
     let deleted_relation_snapshot = runtime.visibility_authority().snapshot();
 
-    let plan = runtime.retention_access().inspect_plan();
+    let plan = runtime.retention_authority().inspect_plan();
 
     assert!(plan.active_snapshot_count >= 4);
     assert!(plan.snapshot_pinned_entities >= 1);
@@ -68,8 +70,8 @@ fn retention_plan_turns_deleted_records_reclaimable_after_snapshot_release() {
         .visibility_authority()
         .release_snapshot(&deleted_snapshot));
 
-    let plan = runtime.retention_access().inspect_plan();
-    let pass = runtime.retention_access().run_pass();
+    let plan = runtime.retention_authority().inspect_plan();
+    let pass = runtime.retention_authority().run_pass();
 
     assert_eq!(plan.active_snapshot_count, 0);
     assert_eq!(plan.snapshot_pinned_entities, 0);
@@ -108,7 +110,7 @@ fn retention_plan_reports_branch_pinned_deleted_records_when_sibling_branch_lags
         .visibility_authority()
         .release_snapshot(&deleted.snapshot));
 
-    let plan = runtime.retention_access().inspect_plan();
+    let plan = runtime.retention_authority().inspect_plan();
 
     assert_eq!(plan.snapshot_pinned_entities, 0);
     assert_eq!(plan.snapshot_pinned_relations, 0);
@@ -116,6 +118,70 @@ fn retention_plan_reports_branch_pinned_deleted_records_when_sibling_branch_lags
     assert!(plan.branch_pinned_relations >= 1);
     assert_eq!(plan.reclaimable_entities, 0);
     assert_eq!(plan.reclaimable_relations, 0);
+}
+
+#[test]
+fn retention_inspection_reports_exact_branch_pin_counts_for_lagging_deleted_records() {
+    let mut runtime = runtime_with_test_schema();
+    let source = create_entity_outcome(&mut runtime, "source");
+    let source_entity = changed_entities(&source)[0];
+    let target = create_entity_outcome(&mut runtime, "target");
+    let target_entity = changed_entities(&target)[0];
+    let relation_created =
+        create_relation_outcome(&mut runtime, source_entity, target_entity, "r1");
+    let relation = changed_relations(&relation_created)[0];
+    runtime
+        .history_authority()
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
+        .unwrap();
+    let deleted = delete_entity(&mut runtime, source_entity);
+
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&source.snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&target.snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&relation_created.snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&deleted.snapshot));
+
+    let inspection = runtime.inspection_access();
+    let entity_retention = inspection
+        .inspect_record_retention(RecordRef::Entity(source_entity))
+        .expect("deleted entity retention");
+    let relation_retention = inspection
+        .inspect_record_retention(RecordRef::Relation(relation))
+        .expect("retained relation retention");
+
+    assert_eq!(entity_retention.pins.snapshot_pins, 0);
+    assert_eq!(entity_retention.pins.replay_pins, 0);
+    assert_eq!(entity_retention.pins.branch_pins, 1);
+    assert_eq!(entity_retention.state.lifecycle, RecordLifecycleState::PinnedByBranch);
+    assert_eq!(
+        entity_retention.historical_availability.availability,
+        InspectionAvailability::Direct
+    );
+    assert!(entity_retention.historical_availability.retained_directly);
+
+    assert_eq!(relation_retention.pins.snapshot_pins, 0);
+    assert_eq!(relation_retention.pins.replay_pins, 0);
+    assert_eq!(relation_retention.pins.branch_pins, 2);
+    assert_eq!(
+        relation_retention.state.lifecycle,
+        RecordLifecycleState::PinnedByBranch
+    );
+    assert_eq!(
+        relation_retention.historical_availability.availability,
+        InspectionAvailability::Direct
+    );
+    assert!(relation_retention.historical_availability.retained_directly);
 }
 
 #[test]
@@ -135,14 +201,14 @@ fn retention_plan_reports_explicit_replay_pins_until_released() {
         .history_authority()
         .retain_version_for_replay(created.version_id));
 
-    let pinned = runtime.retention_access().inspect_plan();
+    let pinned = runtime.retention_authority().inspect_plan();
     assert!(pinned.replay_pinned_entities >= 1);
     assert_eq!(pinned.reclaimable_entities, 0);
 
     assert!(runtime
         .history_authority()
         .release_version_replay_retention(created.version_id));
-    let released = runtime.retention_access().inspect_plan();
+    let released = runtime.retention_authority().inspect_plan();
     assert_eq!(released.replay_pinned_entities, 0);
     assert!(released.reclaimable_entities >= 1);
 }
@@ -202,7 +268,7 @@ fn retention_plan_reports_explicit_replay_pins_for_deleted_relations_until_relea
         .history_authority()
         .retain_version_for_replay(created.version_id));
 
-    let pinned = runtime.retention_access().inspect_plan();
+    let pinned = runtime.retention_authority().inspect_plan();
     let diagnostics = runtime.publication_access().diagnostics();
     let retention_artifacts = diagnostics.by_scope(DiagnosticsScope::Retention);
     let latest_retention = retention_artifacts.last().unwrap();
@@ -232,7 +298,7 @@ fn retention_plan_reports_explicit_replay_pins_for_deleted_relations_until_relea
     assert!(runtime
         .history_authority()
         .release_version_replay_retention(created.version_id));
-    let released = runtime.retention_access().inspect_plan();
+    let released = runtime.retention_authority().inspect_plan();
     assert_eq!(released.replay_pinned_relations, 0);
     assert!(released.branch_pinned_relations >= 1);
 }

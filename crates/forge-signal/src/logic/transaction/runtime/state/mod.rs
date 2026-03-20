@@ -11,11 +11,11 @@ pub use builder::SignalRuntimeBuilder;
 #[allow(unused_imports)]
 pub use merge::{
     ArtifactMergeAction, ArtifactMergeComparable, BranchMergeBase,
-    BranchMergeConflictEvidence, BranchMergeConflictKind, BranchMergeConflictRecord,
+    BranchConflictResolutionPlan, BranchMergeConflictEvidence, BranchMergeConflictKind, BranchMergeConflictRecord,
     BranchMergeConflictSummary, BranchMergeCounters, BranchMergeDivergence,
     BranchMergeExecutionSummary, BranchMergeKind, BranchMergePlan,
     BranchMergeReconciliationPolicy, BranchMergeRequest, BranchMergeResolutionRequirement,
-    BranchMergeResult,
+    BranchMergeResult, ConflictResolutionRecord, ConflictResolutionStrategy,
     BranchMergeStrategy, BranchMergeFailureKind, BranchMutationJournalSlice,
     BranchMutationLedger, CausalityCarryPolicy, ConflictMergePolicy,
     DependencyFingerprint, DependencyRemapRecord, ExistingTargetMergePolicy,

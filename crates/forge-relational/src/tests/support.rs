@@ -377,7 +377,18 @@ pub(super) fn delete_entity(
     runtime: &mut RelationalRuntime,
     entity_id: crate::facade::identity::EntityId,
 ) -> CommitResult {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    delete_entity_on_branch(runtime, entity_id, BranchId("main".to_string()))
+}
+
+pub(super) fn delete_entity_on_branch(
+    runtime: &mut RelationalRuntime,
+    entity_id: crate::facade::identity::EntityId,
+    branch_id: BranchId,
+) -> CommitResult {
+    let mut txn = runtime.begin_transaction(TransactionOptions {
+        target_branch: Some(branch_id),
+        ..TransactionOptions::default()
+    });
     txn.push_batch(
         WorkerIntentBatch::new("delete").push(MutationIntent::Entity(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id }),
@@ -431,7 +442,28 @@ pub(super) fn create_relation_in_partition(
     client_key: &str,
     partition_id: PartitionId,
 ) -> RelationId {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    create_relation_in_partition_on_branch(
+        runtime,
+        source,
+        target,
+        client_key,
+        partition_id,
+        BranchId("main".to_string()),
+    )
+}
+
+pub(super) fn create_relation_in_partition_on_branch(
+    runtime: &mut RelationalRuntime,
+    source: crate::facade::identity::EntityId,
+    target: crate::facade::identity::EntityId,
+    client_key: &str,
+    partition_id: PartitionId,
+    branch_id: BranchId,
+) -> RelationId {
+    let mut txn = runtime.begin_transaction(TransactionOptions {
+        target_branch: Some(branch_id),
+        ..TransactionOptions::default()
+    });
     txn.push_batch(
         WorkerIntentBatch::new("relation").push(MutationIntent::Create(CreateIntent::Relation(
             crate::transactions::data::RelationSpec {
@@ -523,6 +555,90 @@ pub(super) fn read_entity_name(record: &EntityReadRecord) -> Option<&str> {
         .and_then(|value| value.as_str())
 }
 
+pub(super) fn all_aspect_filter(names: impl IntoIterator<Item = &'static str>) -> AspectFilter {
+    AspectFilter {
+        mode: AspectFilterMode::All,
+        aspects: RequestedAspectSet::new(names.into_iter().map(aspect_key)),
+    }
+}
+
+pub(super) fn any_aspect_filter(names: impl IntoIterator<Item = &'static str>) -> AspectFilter {
+    AspectFilter {
+        mode: AspectFilterMode::Any,
+        aspects: RequestedAspectSet::new(names.into_iter().map(aspect_key)),
+    }
+}
+
+pub(super) fn entity_aspect_history_digest(
+    runtime: &RelationalRuntime,
+    entity_id: crate::facade::identity::EntityId,
+    filter: Option<&AspectFilter>,
+) -> crate::facade::history::AspectHistoryDigest {
+    entity_aspect_history_digest_on_branch(runtime, &BranchId("main".to_string()), entity_id, filter)
+}
+
+pub(super) fn entity_aspect_history_digest_on_branch(
+    runtime: &RelationalRuntime,
+    branch_id: &BranchId,
+    entity_id: crate::facade::identity::EntityId,
+    filter: Option<&AspectFilter>,
+) -> crate::facade::history::AspectHistoryDigest {
+    runtime
+        .history_access()
+        .entity_aspect_history_with_trace(branch_id, entity_id, filter)
+        .aspect_history_digest()
+}
+
+pub(super) fn relation_aspect_history_digest(
+    runtime: &RelationalRuntime,
+    relation_id: RelationId,
+    filter: Option<&AspectFilter>,
+) -> crate::facade::history::AspectHistoryDigest {
+    relation_aspect_history_digest_on_branch(
+        runtime,
+        &BranchId("main".to_string()),
+        relation_id,
+        filter,
+    )
+}
+
+pub(super) fn relation_aspect_history_digest_on_branch(
+    runtime: &RelationalRuntime,
+    branch_id: &BranchId,
+    relation_id: RelationId,
+    filter: Option<&AspectFilter>,
+) -> crate::facade::history::AspectHistoryDigest {
+    runtime
+        .history_access()
+        .relation_aspect_history_with_trace(branch_id, relation_id, filter)
+        .aspect_history_digest()
+}
+
+pub(super) fn lineage_aspect_history_digest(
+    runtime: &RelationalRuntime,
+    lineage_id: LineageId,
+    filter: Option<&AspectFilter>,
+) -> crate::facade::history::LineageAspectResolutionDigest {
+    lineage_aspect_history_digest_on_branch(
+        runtime,
+        &BranchId("main".to_string()),
+        lineage_id,
+        filter,
+    )
+}
+
+pub(super) fn lineage_aspect_history_digest_on_branch(
+    runtime: &RelationalRuntime,
+    branch_id: &BranchId,
+    lineage_id: LineageId,
+    filter: Option<&AspectFilter>,
+) -> crate::facade::history::LineageAspectResolutionDigest {
+    runtime
+        .lineage_access()
+        .entity_aspect_history_with_trace(branch_id, lineage_id, filter)
+        .lineage_aspect_resolution_digest()
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct AspectTruthBundle {
     pub visible_truth: VisibleTruthSummary,
@@ -543,8 +659,6 @@ pub(super) fn capture_aspect_truth_bundle(
     relation_ids: &[RelationId],
     lineage_ids: &[LineageId],
 ) -> AspectTruthBundle {
-    let branch = BranchId("main".to_string());
-
     AspectTruthBundle {
         visible_truth: VisibleTruthSummary::capture(runtime),
         latest_patch: runtime.publication_access().latest_patch().cloned(),
@@ -552,40 +666,124 @@ pub(super) fn capture_aspect_truth_bundle(
         diagnostics: runtime.publication_access().diagnostics().clone(),
         entity_history_digests: entity_ids
             .iter()
-            .map(|entity_id| {
-                (
-                    *entity_id,
-                    runtime
-                        .history_access()
-                        .entity_aspect_history_with_trace(&branch, *entity_id, None)
-                        .aspect_history_digest(),
-                )
-            })
+            .map(|entity_id| (*entity_id, entity_aspect_history_digest(runtime, *entity_id, None)))
             .collect(),
         relation_history_digests: relation_ids
             .iter()
             .map(|relation_id| {
-                (
-                    *relation_id,
-                    runtime
-                        .history_access()
-                        .relation_aspect_history_with_trace(&branch, *relation_id, None)
-                        .aspect_history_digest(),
-                )
+                (*relation_id, relation_aspect_history_digest(runtime, *relation_id, None))
             })
             .collect(),
         lineage_history_digests: lineage_ids
             .iter()
-            .map(|lineage_id| {
-                (
-                    *lineage_id,
-                    runtime
-                        .lineage_access()
-                        .entity_aspect_history_with_trace(&branch, *lineage_id, None)
-                        .lineage_aspect_resolution_digest(),
-                )
-            })
+            .map(|lineage_id| (*lineage_id, lineage_aspect_history_digest(runtime, *lineage_id, None)))
             .collect(),
+    }
+}
+
+pub(super) fn assert_stable_aspect_truth_bundle_eq(
+    expected: &AspectTruthBundle,
+    actual: &AspectTruthBundle,
+) {
+    assert_eq!(expected.visible_truth, actual.visible_truth);
+    assert_eq!(expected.entity_history_digests, actual.entity_history_digests);
+    assert_eq!(expected.relation_history_digests, actual.relation_history_digests);
+    assert_eq!(expected.lineage_history_digests, actual.lineage_history_digests);
+}
+
+pub(super) fn assert_recovered_commit_truth_matches(
+    original_runtime: &mut RelationalRuntime,
+    recovered_runtime: &mut RelationalRuntime,
+    commit_id: crate::facade::history::CommitId,
+    entity_ids: &[crate::facade::identity::EntityId],
+    relation_ids: &[RelationId],
+    lineage_ids: &[LineageId],
+) {
+    let original_envelope = original_runtime
+        .replay_access()
+        .canonical_commit_envelope(commit_id)
+        .cloned()
+        .unwrap();
+    let recovered_envelope = recovered_runtime
+        .replay_access()
+        .canonical_commit_envelope(commit_id)
+        .cloned()
+        .unwrap();
+    let original_bundle =
+        capture_aspect_truth_bundle(original_runtime, entity_ids, relation_ids, lineage_ids);
+    let recovered_bundle =
+        capture_aspect_truth_bundle(recovered_runtime, entity_ids, relation_ids, lineage_ids);
+
+    assert_stable_aspect_truth_bundle_eq(&original_bundle, &recovered_bundle);
+    assert_eq!(original_envelope, recovered_envelope);
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct InspectionTruthBundle {
+    pub graph_summary: crate::facade::inspection::GraphInspectionSummary,
+    pub kind_summary: crate::facade::inspection::KindInspectionSummary,
+    pub connectivity_summary: crate::facade::inspection::ConnectivityInspectionSummary,
+    pub historical_record: crate::facade::inspection::HistoricalRecordInspection,
+    pub retention_summary: crate::facade::inspection::RetentionInspectionSummary,
+    pub record_retention: crate::facade::inspection::RecordRetentionInspection,
+    pub branch_head: Option<crate::facade::inspection::CommitInspection>,
+    pub latest_commit: crate::facade::inspection::CommitInspection,
+    pub recent_commits: crate::facade::inspection::RecentCommitInspectionWindow,
+}
+
+pub(super) fn capture_inspection_truth_bundle(
+    runtime: &RelationalRuntime,
+    branch_id: &BranchId,
+    entity_id: crate::facade::identity::EntityId,
+    historical_version: crate::facade::identity::VersionId,
+) -> InspectionTruthBundle {
+    let inspection = runtime.inspection_access();
+    let latest_commit_id = runtime
+        .history_access()
+        .latest_commit()
+        .map(|commit| commit.commit_id)
+        .expect("latest commit");
+    InspectionTruthBundle {
+        graph_summary: inspection.graph_summary(&crate::facade::inspection::GraphInspectionRequest {
+            scope: crate::facade::inspection::InspectionScope::Current,
+            partition_scope: None,
+            relation_kind_scope: None,
+            summary_only: true,
+        }),
+        kind_summary: inspection.kind_summary(&crate::facade::inspection::KindInspectionRequest {
+            scope: crate::facade::inspection::InspectionScope::Current,
+            partition_scope: None,
+            kind_id: KindId(1),
+            record_class: crate::facade::inspection::InspectionRecordClass::Entity,
+        }),
+        connectivity_summary: inspection.connectivity_summary(
+            &crate::facade::inspection::ConnectivityInspectionRequest {
+                scope: crate::facade::inspection::InspectionScope::Current,
+                partition_scope: None,
+                relation_kind_scope: None,
+                include_members: false,
+            },
+        ),
+        historical_record: inspection.inspect_historical_record(
+            branch_id,
+            historical_version,
+            RecordRef::Entity(entity_id),
+            crate::facade::inspection::HistoricalInspectionMode::AllowCanonicalReconstruction,
+        ),
+        retention_summary: inspection.retention_summary(),
+        record_retention: inspection
+            .inspect_record_retention(RecordRef::Entity(entity_id))
+            .expect("record retention"),
+        branch_head: inspection.inspect_branch_head(branch_id),
+        latest_commit: inspection
+            .inspect_commit(latest_commit_id)
+            .expect("latest commit inspection"),
+        recent_commits: inspection.inspect_recent_commits(
+            &crate::facade::inspection::RecentCommitInspectionRequest {
+                branch_id: Some(branch_id.clone()),
+                limit: 8,
+            },
+        ),
     }
 }
 

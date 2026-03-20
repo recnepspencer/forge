@@ -1,6 +1,8 @@
 use crate::data::dependency::DependencySnapshot;
 use crate::facade::*;
-use crate::logic::transaction::BranchMergeResolutionRequirement;
+use crate::logic::transaction::{
+    BranchMergeResolutionRequirement, ConflictResolutionStrategy,
+};
 use crate::tests::support::*;
 use crate::data::graph::BranchStructuralDelta;
 
@@ -58,7 +60,7 @@ fn merge_branch_introduces_source_only_node_with_new_target_id_and_merge_traces(
     let result = runtime.merge_branch(feature.clone(), main.clone()).unwrap();
     assert_eq!(
         result.reconciliation_policy.conflict,
-        ConflictMergePolicy::RejectSharedStateConflict
+        ConflictMergePolicy::ResolveSourceStateWhenStructureMatches
     );
     let introduced = result
         .records
@@ -592,6 +594,82 @@ fn retained_only_branch_churn_does_not_force_merge_replanning() {
 }
 
 #[test]
+fn merge_branch_equivalent_runtime_state_ignores_retained_artifact_richness() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let shared = runtime.graph_mut().node().output_identity().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(35, 0))
+                        .with_output_identity("retained-agnostic"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    {
+        let mut graph = runtime.graph_mut();
+        let entry = graph.get_entry_mut(shared).unwrap();
+        entry.set_retained_diagnostic_artifact(Some(RetainedDiagnosticArtifact {
+            changed_regions: CanonicalChangedRegions::new([]),
+            labels: vec!["main-label".to_string()],
+            keyed_family: None,
+            keyed_key: None,
+            reuse_certification: None,
+        }));
+    }
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime.create_branch("feature-runtime-equivalent").unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(35, 0))
+                        .with_output_identity("retained-agnostic"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    {
+        let mut graph = runtime.graph_mut();
+        let entry = graph.get_entry_mut(shared).unwrap();
+        entry.set_retained_diagnostic_artifact(Some(RetainedDiagnosticArtifact {
+            changed_regions: CanonicalChangedRegions::new([]),
+            labels: vec!["feature-label".to_string()],
+            keyed_family: Some("family".to_string()),
+            keyed_key: Some("key".to_string()),
+            reuse_certification: None,
+        }));
+        graph.record_branch_mutation_retained_artifact(shared);
+    }
+
+    runtime.switch_branch(main).unwrap();
+    let result = runtime.merge_branch(feature, runtime.observe().current_branch()).unwrap();
+    let shared_record = result
+        .records
+        .iter()
+        .find(|record| record.source_node == shared)
+        .expect("shared node should still be part of the merge summary");
+
+    assert!(
+        matches!(shared_record.action, ArtifactMergeAction::EquivalentUnchanged),
+        "merge comparability should be driven by runtime state, not retained richness"
+    );
+}
+
+#[test]
 fn merge_branch_self_merge_surfaces_typed_failure() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new())
         .with_kernel_defaults()
@@ -643,6 +721,19 @@ fn merge_branch_divergent_shared_node_requires_typed_conflict_surface() {
             Ok(())
         })
         .unwrap();
+    {
+        let mut graph = runtime.graph_mut();
+        let entry = graph.get_entry_mut(shared).unwrap();
+        let mut runtime_artifact = entry
+            .get_runtime_artifact_state()
+            .cloned()
+            .expect("feature shared node should have runtime artifact state");
+        runtime_artifact.merge_authority = ArtifactMergeAuthority {
+            authority_class: ArtifactAuthorityClass::BranchLocalSpeculative,
+            adoptability: MergeAdoptability::NonAdoptableBranchLocal,
+        };
+        entry.set_runtime_artifact_state(Some(runtime_artifact));
+    }
 
     runtime.switch_branch(main.clone()).unwrap();
     let main_only = runtime.graph_mut().node().output_identity().build();
@@ -676,13 +767,13 @@ fn merge_branch_divergent_shared_node_requires_typed_conflict_surface() {
             assert_eq!(evidence.divergence, BranchMergeDivergence::SharedStateConflict);
             assert_eq!(
                 evidence.reconciliation_policy.conflict,
-                ConflictMergePolicy::RejectSharedStateConflict
+                ConflictMergePolicy::ResolveSourceStateWhenStructureMatches
             );
             assert_eq!(evidence.summary.total_conflict_count, 1);
             assert_eq!(evidence.summary.comparable_mismatch_count, 1);
             assert_eq!(
                 evidence.summary.primary_conflict_kind,
-                Some(BranchMergeConflictKind::RuntimeArtifactMismatch)
+                Some(BranchMergeConflictKind::MergeAuthorityMismatch)
             );
             assert!(
                 evidence
@@ -694,14 +785,37 @@ fn merge_branch_divergent_shared_node_requires_typed_conflict_surface() {
                 evidence
                     .summary
                     .required_resolution
+                    .contains(&BranchMergeResolutionRequirement::ReconcileMergeAuthority)
+            );
+            assert!(
+                evidence
+                    .summary
+                    .required_resolution
                     .contains(&BranchMergeResolutionRequirement::ReconcileRuntimeArtifactState)
+            );
+            assert_eq!(evidence.resolution_plan.records.len(), 1);
+            assert_eq!(evidence.resolution_plan.records[0].source_node, shared);
+            assert!(
+                evidence.resolution_plan.records[0]
+                    .required_resolution
+                    .contains(&BranchMergeResolutionRequirement::ReconcileRuntimeArtifactState)
+            );
+            assert!(
+                evidence.resolution_plan.records[0]
+                    .supported_strategies
+                    .contains(&ConflictResolutionStrategy::AdoptSourceRuntimeArtifactState)
+            );
+            assert!(
+                evidence.resolution_plan.records[0]
+                    .supported_strategies
+                    .contains(&ConflictResolutionStrategy::PreserveTargetRuntimeArtifactState)
             );
             let failure = runtime
                 .observe()
                 .latest_failure_diagnostics()
                 .expect("failed merge should record failure diagnostics");
             assert!(
-                failure.message.contains("primary=Some(RuntimeArtifactMismatch)"),
+                failure.message.contains("primary=Some(MergeAuthorityMismatch)"),
                 "failure diagnostics should surface the primary conflict class"
             );
             assert!(
@@ -758,6 +872,103 @@ fn merge_branch_divergent_shared_node_requires_typed_conflict_surface() {
         }
         other => panic!("expected typed divergence failure, got {other:?}"),
     }
+}
+
+#[test]
+fn merge_branch_runtime_artifact_conflict_can_resolve_by_adopting_source() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let shared = runtime.graph_mut().node().output_identity().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(141, 0))
+                        .with_output_identity("base-runtime-conflict"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime.create_branch("feature-runtime-conflict-resolve").unwrap();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(142, 0))
+                        .with_output_identity("feature-runtime-conflict"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime.switch_branch(main.clone()).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(143, 0))
+                        .with_output_identity("main-runtime-conflict"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let result = runtime.merge_branch(feature, main).unwrap();
+
+    assert!(
+        matches!(result.merge_kind, BranchMergeKind::Applied | BranchMergeKind::ConflictResolved),
+        "stable-shape snapshot reconciliation may classify as applied or resolved conflict, but it should still use the narrow snapshot delta path"
+    );
+    assert_eq!(result.divergence, BranchMergeDivergence::SharedStateConflict);
+    assert_eq!(
+        result.reconciliation_policy.conflict,
+        ConflictMergePolicy::ResolveSourceStateWhenStructureMatches
+    );
+    assert!(result.resolution_plan.is_some());
+    let merged_record = result
+        .records
+        .iter()
+        .find(|record| record.source_node == shared)
+        .expect("shared node should be part of the resolved merge");
+    assert!(
+        matches!(merged_record.action, ArtifactMergeAction::Adopted),
+        "runtime-artifact conflict resolution should adopt source authority"
+    );
+    assert!(merged_record
+        .resolved_conflict_kinds
+        .contains(&BranchMergeConflictKind::RuntimeArtifactMismatch));
+    assert_eq!(
+        merged_record
+            .target_comparable
+            .as_ref()
+            .and_then(|comparable| comparable.output_identity.as_ref())
+            .map(|identity| identity.as_str()),
+        Some("feature-runtime-conflict"),
+        "resolved runtime-artifact conflict should adopt source runtime state"
+    );
+    assert!(
+        runtime.graph().observe().lineage_records().iter().any(|record| matches!(
+            record.kind,
+            LineageRecordKind::BranchMerge {
+                merge_kind: BranchMergeKind::ConflictResolved,
+                resolution_plan: Some(_),
+                ..
+            }
+        )),
+        "resolved conflicts should emit real conflict-resolved lineage"
+    );
 }
 
 #[test]
@@ -849,7 +1060,7 @@ fn merge_branch_dependency_topology_conflict_surfaces_structural_requirement() {
 }
 
 #[test]
-fn merge_branch_dependency_snapshot_conflict_surfaces_structural_requirement() {
+fn merge_branch_dependency_snapshot_conflict_can_resolve_by_adopting_source_snapshot() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new())
         .with_kernel_defaults()
         .build();
@@ -901,33 +1112,169 @@ fn merge_branch_dependency_snapshot_conflict_surfaces_structural_requirement() {
         .set_dep_snapshot(shared, main_snapshot)
         .unwrap();
 
-    let err = runtime.merge_branch(feature, main).unwrap_err();
-    match err {
-        SignalError::BranchMergeFailed { kind, evidence, .. } => {
-            assert_eq!(
-                kind,
-                BranchMergeFailureKind::DivergenceRequiresConflictResolution
-            );
-            let evidence = evidence.expect("snapshot conflict evidence should be present");
-            assert_eq!(evidence.divergence, BranchMergeDivergence::SharedStateConflict);
-            assert_eq!(
-                evidence.summary.primary_conflict_kind,
-                Some(BranchMergeConflictKind::DependencySnapshotMismatch)
-            );
-            assert!(
-                evidence
-                    .summary
-                    .required_resolution
-                    .contains(&BranchMergeResolutionRequirement::ReconcileDependencySnapshot)
-            );
-            assert_eq!(evidence.records.len(), 1);
-            assert!(
-                evidence.records[0]
-                    .conflict_kinds
-                    .contains(&BranchMergeConflictKind::DependencySnapshotMismatch)
-            );
+    let result = runtime.merge_branch(feature, main).unwrap();
+    let merged_record = result
+        .records
+        .iter()
+        .find(|record| record.source_node == shared)
+        .expect("shared node should be part of the resolved snapshot merge");
+
+    assert!(
+        matches!(result.merge_kind, BranchMergeKind::Applied | BranchMergeKind::ConflictResolved),
+        "stable-shape snapshot reconciliation may classify as applied or resolved conflict, but it should still use the narrow snapshot delta path"
+    );
+    assert_eq!(result.divergence, BranchMergeDivergence::SharedStateConflict);
+    assert_eq!(
+        result.reconciliation_policy.conflict,
+        ConflictMergePolicy::ResolveSourceStateWhenStructureMatches
+    );
+    assert!(result.resolution_plan.is_some());
+    assert!(matches!(
+        merged_record.action,
+        ArtifactMergeAction::EquivalentUnchanged
+    ));
+    assert!(merged_record
+        .resolved_conflict_kinds
+        .contains(&BranchMergeConflictKind::DependencySnapshotMismatch));
+    let merged_snapshot = runtime.graph().get_dep_snapshot(shared).unwrap();
+    assert_eq!(
+        merged_snapshot.entries().len(),
+        1,
+        "resolved dependency snapshot conflict should adopt the source snapshot shape"
+    );
+    assert_eq!(merged_snapshot.entries()[0].cached_version, 3);
+    assert_eq!(merged_snapshot.entries()[0].aspect, ASPECT_A);
+}
+
+#[test]
+fn merge_branch_conflict_resolved_emits_resolution_traceability() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let shared = runtime.graph_mut().node().output_identity().build();
+    let mut runtime_ctx = ();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(150, 0))
+                        .with_output_identity("main-conflict-trace"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    let main = runtime.observe().current_branch();
+    let feature = runtime.create_branch("feature-trace").unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(151, 0))
+                        .with_output_identity("feature-conflict-trace"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main.clone()).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(152, 0))
+                        .with_output_identity("main-conflict-trace-advanced"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let result = runtime.merge_branch(feature, main).unwrap();
+    assert_eq!(result.merge_kind, BranchMergeKind::ConflictResolved);
+    let resolution_plan = result
+        .resolution_plan
+        .as_ref()
+        .expect("conflict-resolved merge should retain resolution plan");
+    assert_eq!(resolution_plan.records.len(), 1);
+    assert!(resolution_plan.records[0]
+        .required_resolution
+        .contains(&BranchMergeResolutionRequirement::ReconcileRuntimeArtifactState));
+
+    let replay_detail = runtime
+        .graph()
+        .observe()
+        .replay_events()
+        .iter()
+        .rev()
+        .find(|event| matches!(event.kind, ReplayEventKind::BranchMerged))
+        .and_then(|event| event.detail.as_deref())
+        .expect("conflict-resolved merge should emit branch merge replay detail");
+    assert!(
+        replay_detail.contains("resolved_requirements"),
+        "conflict-resolved replay should expose resolved requirements"
+    );
+
+    let branch_merge_lineage = runtime
+        .graph()
+        .observe()
+        .lineage_records()
+        .iter()
+        .rev()
+        .find(|record| {
+            matches!(
+                record.kind,
+                LineageRecordKind::BranchMerge {
+                    merge_kind: BranchMergeKind::ConflictResolved,
+                    ..
+                }
+            )
+        })
+        .expect("conflict-resolved merge should emit branch merge lineage");
+    match &branch_merge_lineage.kind {
+        LineageRecordKind::BranchMerge {
+            resolution_plan: Some(plan),
+            ..
+        } => {
+            assert_eq!(plan.records.len(), 1);
+            assert!(plan.records[0]
+                .required_resolution
+                .contains(&BranchMergeResolutionRequirement::ReconcileRuntimeArtifactState));
         }
-        other => panic!("expected dependency snapshot conflict failure, got {other:?}"),
+        other => panic!("expected conflict-resolved branch merge lineage, got {other:?}"),
+    }
+
+    let artifact_merge_lineage = runtime
+        .graph()
+        .observe()
+        .lineage_records()
+        .iter()
+        .rev()
+        .find(|record| {
+            matches!(
+                record.kind,
+                LineageRecordKind::ArtifactMerge {
+                    source_node,
+                    merge_kind: BranchMergeKind::ConflictResolved,
+                    ..
+                } if source_node == shared
+            )
+        })
+        .expect("conflict-resolved merge should emit artifact merge lineage");
+    match &artifact_merge_lineage.kind {
+        LineageRecordKind::ArtifactMerge {
+            resolved_conflict_kinds,
+            ..
+        } => {
+            assert!(resolved_conflict_kinds.contains(
+                &BranchMergeConflictKind::RuntimeArtifactMismatch
+            ));
+        }
+        other => panic!("expected conflict-resolved artifact merge lineage, got {other:?}"),
     }
 }
 

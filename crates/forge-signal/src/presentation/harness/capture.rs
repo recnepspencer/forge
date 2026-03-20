@@ -67,7 +67,8 @@ impl ExplanationHarnessAdapter for SignalHarnessBridge {
             .iter()
             .map(|label| {
                 let node = runtime.resolve(label)?;
-                let (explanation, materialization_mode) = runtime.graph.explain_artifact(node)?;
+                let (explanation, materialization_mode) =
+                    runtime.graph.materialize_explanation_artifact(node)?;
                 let summary = if let Some(explanation) = explanation {
                     if let Some(fact) = runtime.graph.explanation_fact(node) {
                         json!({
@@ -158,7 +159,8 @@ impl ProvenanceHarnessAdapter for SignalHarnessBridge {
             .iter()
             .map(|label| {
                 let node = runtime.resolve(label)?;
-                let (provenance, materialization_mode) = runtime.graph.provenance_artifact(node)?;
+                let (provenance, materialization_mode) =
+                    runtime.graph.materialize_provenance_artifact(node)?;
                 let summary = if let Some(fact) = provenance {
                     json!({
                         "execution_record_id": fact.execution_record_id,

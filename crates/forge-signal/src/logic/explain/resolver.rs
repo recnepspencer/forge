@@ -9,6 +9,7 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::output::PartitionSubscription;
+use crate::data::trace::{assemble_historical_artifact_record, assemble_trace_summary};
 
 use super::analysis::{classify_condition_decision, partition_scope_untouched};
 use super::types::{
@@ -24,7 +25,12 @@ pub fn explain_with_policy_resolver(
 ) -> Result<NodeExplanation, SignalError> {
     let entry = graph.get_entry(node)?;
     if let Some(fact) = graph.explanation_fact(node) {
-        let current_record = entry.historical_artifact_record(node);
+        let current_record = assemble_historical_artifact_record(
+            node,
+            entry.get_runtime_artifact_state(),
+            entry.retained_diagnostic_artifact(),
+            entry.get_causality(),
+        );
         if fact.explanation.state == *entry.get_state()
             && fact.explanation.historical_artifact_record == current_record
         {
@@ -35,10 +41,14 @@ pub fn explain_with_policy_resolver(
     let dirty_aspects = entry.get_dirty_aspects();
     let contract = graph.get_contract(node)?.clone();
     let condition = entry.get_eval_config().condition.clone();
-    let historical_artifact_record = entry.historical_artifact_record(node);
-    let trace_summary = historical_artifact_record
-        .as_ref()
-        .map(crate::data::trace::TraceSummary::from_record);
+    let historical_artifact_record = assemble_historical_artifact_record(
+        node,
+        entry.get_runtime_artifact_state(),
+        entry.retained_diagnostic_artifact(),
+        entry.get_causality(),
+    );
+    let trace_summary =
+        assemble_trace_summary(entry.get_runtime_artifact_state(), entry.retained_diagnostic_artifact());
     let output_identity = trace_summary
         .as_ref()
         .and_then(|trace| trace.output_identity.clone());

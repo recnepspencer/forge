@@ -1,5 +1,8 @@
 use crate::data::error::SignalError;
-use crate::state::{SignalBranchHandle, SignalSnapshotV1};
+use crate::state::{
+    SignalBranchHandle, SignalSnapshotV1, SnapshotArtifactRetentionPolicy,
+    SnapshotArtifactRestoreMode, SnapshotDependencyRestoreMode, SnapshotRestoreIntent,
+};
 
 use super::branches::BranchState;
 use super::super::runtime_state::SignalRuntime;
@@ -34,6 +37,19 @@ where
                             .checkpoint
                             .checkpoint_flush_nanos,
                         rollback_count: self.event_bus.telemetry().checkpoint.rollback_count,
+                        snapshot_restore_count: self.telemetry.checkpoint.snapshot_restore_count,
+                        snapshot_restore_apply_active_policy_count: self
+                            .telemetry
+                            .checkpoint
+                            .snapshot_restore_apply_active_policy_count,
+                        snapshot_restore_shared_delta_node_count: self
+                            .telemetry
+                            .checkpoint
+                            .snapshot_restore_shared_delta_node_count,
+                        snapshot_restore_coarse_reason_count: self
+                            .telemetry
+                            .checkpoint
+                            .snapshot_restore_coarse_reason_count,
                         checkpoint_size: self.telemetry.checkpoint.checkpoint_size,
                         journal_replay_span: self.telemetry.checkpoint.journal_replay_span,
                     },
@@ -54,10 +70,28 @@ where
     }
 
     pub fn restore_snapshot(&mut self, snapshot: &SignalSnapshotV1) -> Result<(), SignalError> {
+        self.restore_snapshot_with_intent(snapshot, SnapshotRestoreIntent::restore_runtime_truth())
+    }
+
+    pub fn restore_snapshot_with_intent(
+        &mut self,
+        snapshot: &SignalSnapshotV1,
+        intent: SnapshotRestoreIntent,
+    ) -> Result<(), SignalError> {
+        let restore_plan = self.graph.plan_snapshot_restore(snapshot, intent)?;
         self.graph.validate_snapshot_compatibility(snapshot)?;
+        if matches!(
+            intent.dependency_state,
+            SnapshotDependencyRestoreMode::SeedRecomputationFromSnapshot
+        ) {
+            return Err(SignalError::invalid_input(
+                "snapshot restore intent `SeedRecomputationFromSnapshot` is not implemented yet",
+            ));
+        }
         let snapshot_state = self.branches.snapshot_state(snapshot.meta.snapshot_id).cloned();
         if let Some(snapshot_state) = snapshot_state {
             let current_diagnostics = self.graph.diagnostics_state().clone();
+            let current_policy = current_diagnostics.policy();
             let mut graph = snapshot.graph.clone();
             *graph.telemetry_mut() = snapshot.graph_telemetry.clone();
             graph
@@ -66,6 +100,21 @@ where
                     snapshot.diagnostics.clone(),
                     &current_diagnostics,
                 );
+            if matches!(
+                intent.artifacts,
+                SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy
+            ) {
+                graph.diagnostics_state_mut().set_policy(current_policy);
+            }
+            graph.telemetry_mut().checkpoint.snapshot_restore_count += 1;
+            if matches!(
+                intent.artifacts,
+                SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy
+            ) {
+                graph.telemetry_mut()
+                    .checkpoint
+                    .snapshot_restore_apply_active_policy_count += 1;
+            }
             graph.diagnostics_state_mut().set_active_branch(snapshot.meta.branch_id);
             graph.diagnostics_state_mut().set_branch_head_snapshot(
                 snapshot.meta.branch_id,
@@ -92,12 +141,27 @@ where
             );
             let branch_catalog = state.authority.graph.diagnostics_state().branch_catalog().clone();
             self.load_branch_state(state.clone());
+            self.telemetry.checkpoint.snapshot_restore_count += 1;
+            if matches!(
+                intent.artifacts,
+                SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy
+            ) {
+                self.telemetry
+                    .checkpoint
+                    .snapshot_restore_apply_active_policy_count += 1;
+            }
+            self.telemetry
+                .checkpoint
+                .snapshot_restore_shared_delta_node_count +=
+                restore_plan.dependency_snapshot_delta_node_count;
+            self.telemetry.checkpoint.snapshot_restore_coarse_reason_count +=
+                restore_plan.coarse_reasons.len() as u64;
             self.branches.insert_branch(snapshot.meta.branch_id, state);
             self.synchronize_branch_catalogs(branch_catalog);
             return Ok(());
         }
 
-        self.graph.restore_snapshot(snapshot)?;
+        self.graph.restore_snapshot_with_intent(snapshot, intent)?;
         if let Some(telemetry) = &snapshot.runtime_telemetry {
             self.telemetry = telemetry.clone();
         }
@@ -118,17 +182,22 @@ where
                 return Err(SignalError::unknown_branch(Some(branch.id), branch.name));
             };
             let policy = state.authority.graph.runtime_policy();
+            let artifact_retention = SnapshotArtifactRetentionPolicy::from_runtime_policy(policy);
             let meta = state
                 .authority
                 .graph
                 .diagnostics_state_mut()
-                .allocate_snapshot_meta(policy);
+                .allocate_snapshot_meta(policy, artifact_retention);
             state
                 .authority
                 .graph
                 .diagnostics_state_mut()
                 .set_branch_head_snapshot(branch.id, meta.snapshot_id);
-            let diagnostics = state.authority.graph.diagnostics_state().snapshot_payload();
+            let diagnostics = state
+                .authority
+                .graph
+                .diagnostics_state()
+                .snapshot_payload_with_retention(artifact_retention);
             let graph_telemetry = state.authority.graph.telemetry().clone();
             let replay_head = meta.replay_head;
             let snapshot_id = meta.snapshot_id;
@@ -164,6 +233,26 @@ where
                                     .checkpoint
                                     .checkpoint_flush_nanos,
                                 rollback_count: 0,
+                                snapshot_restore_count: state
+                                    .derived
+                                    .telemetry
+                                    .checkpoint
+                                    .snapshot_restore_count,
+                                snapshot_restore_apply_active_policy_count: state
+                                    .derived
+                                    .telemetry
+                                    .checkpoint
+                                    .snapshot_restore_apply_active_policy_count,
+                                snapshot_restore_shared_delta_node_count: state
+                                    .derived
+                                    .telemetry
+                                    .checkpoint
+                                    .snapshot_restore_shared_delta_node_count,
+                                snapshot_restore_coarse_reason_count: state
+                                    .derived
+                                    .telemetry
+                                    .checkpoint
+                                    .snapshot_restore_coarse_reason_count,
                                 checkpoint_size: state.derived.telemetry.checkpoint.checkpoint_size,
                                 journal_replay_span: state
                                     .derived
@@ -193,6 +282,20 @@ where
         branch: SignalBranchHandle,
         snapshot: &SignalSnapshotV1,
     ) -> Result<(), SignalError> {
+        self.restore_branch_snapshot_with_intent(
+            branch,
+            snapshot,
+            SnapshotRestoreIntent::restore_runtime_truth(),
+        )
+    }
+
+    pub fn restore_branch_snapshot_with_intent(
+        &mut self,
+        branch: SignalBranchHandle,
+        snapshot: &SignalSnapshotV1,
+        intent: SnapshotRestoreIntent,
+    ) -> Result<(), SignalError> {
+        let restore_plan = self.graph.plan_snapshot_restore(snapshot, intent)?;
         self.graph.validate_snapshot_compatibility(snapshot)?;
         if snapshot.meta.branch_id != branch.id {
             return Err(SignalError::incompatible_snapshot(format!(
@@ -201,7 +304,15 @@ where
             )));
         }
         if branch.id == self.graph.current_branch().id {
-            return self.restore_snapshot(snapshot);
+            return self.restore_snapshot_with_intent(snapshot, intent);
+        }
+        if matches!(
+            intent.dependency_state,
+            SnapshotDependencyRestoreMode::SeedRecomputationFromSnapshot
+        ) {
+            return Err(SignalError::invalid_input(
+                "snapshot restore intent `SeedRecomputationFromSnapshot` is not implemented yet",
+            ));
         }
         let snapshot_state = self
             .branches
@@ -218,6 +329,7 @@ where
             .branch_state(branch.id)
             .map(|state| state.authority.graph.diagnostics_state().clone())
             .ok_or_else(|| SignalError::unknown_branch(Some(branch.id), branch.name.clone()))?;
+        let current_policy = current_diagnostics.policy();
         let mut graph = snapshot.graph.clone();
         *graph.telemetry_mut() = snapshot.graph_telemetry.clone();
         graph
@@ -226,6 +338,21 @@ where
                 snapshot.diagnostics.clone(),
                 &current_diagnostics,
             );
+        if matches!(
+            intent.artifacts,
+            SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy
+        ) {
+            graph.diagnostics_state_mut().set_policy(current_policy);
+        }
+        graph.telemetry_mut().checkpoint.snapshot_restore_count += 1;
+        if matches!(
+            intent.artifacts,
+            SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy
+        ) {
+            graph.telemetry_mut()
+                .checkpoint
+                .snapshot_restore_apply_active_policy_count += 1;
+        }
         graph.diagnostics_state_mut().set_active_branch(branch.id);
         graph
             .diagnostics_state_mut()
@@ -251,6 +378,21 @@ where
             snapshot.meta.snapshot_id,
         );
         let branch_catalog = state.authority.graph.diagnostics_state().branch_catalog().clone();
+        self.telemetry.checkpoint.snapshot_restore_count += 1;
+        if matches!(
+            intent.artifacts,
+            SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy
+        ) {
+            self.telemetry
+                .checkpoint
+                .snapshot_restore_apply_active_policy_count += 1;
+        }
+        self.telemetry
+            .checkpoint
+            .snapshot_restore_shared_delta_node_count +=
+            restore_plan.dependency_snapshot_delta_node_count;
+        self.telemetry.checkpoint.snapshot_restore_coarse_reason_count +=
+            restore_plan.coarse_reasons.len() as u64;
         self.branches.insert_branch(branch.id, state);
         self.synchronize_branch_catalogs(branch_catalog);
         Ok(())

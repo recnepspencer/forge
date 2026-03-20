@@ -4,8 +4,9 @@ use crate::data::handle::NodeId;
 use crate::data::output::OutputChange;
 use crate::logic::planner::{ExecutionRecordId, SemanticSegmentId};
 use crate::logic::transaction::{
-    ArtifactMergeAction, BranchMergeDivergence, BranchMergeKind,
-    BranchMergeReconciliationPolicy, BranchMergeStrategy, MergeDecisionBasis,
+    ArtifactMergeAction, BranchConflictResolutionPlan, BranchMergeConflictKind,
+    BranchMergeDivergence, BranchMergeKind, BranchMergeReconciliationPolicy,
+    BranchMergeStrategy, MergeDecisionBasis,
 };
 use crate::state::{SignalBranchId, SignalSnapshotId};
 
@@ -70,6 +71,7 @@ pub enum LineageRecordKind {
         divergence: BranchMergeDivergence,
         merge_strategy: BranchMergeStrategy,
         reconciliation_policy: BranchMergeReconciliationPolicy,
+        resolution_plan: Option<BranchConflictResolutionPlan>,
         merged_snapshot_id: Option<SignalSnapshotId>,
         source_branch_display_name: String,
         target_branch_display_name: String,
@@ -88,6 +90,7 @@ pub enum LineageRecordKind {
         divergence: BranchMergeDivergence,
         merge_strategy: BranchMergeStrategy,
         reconciliation_policy: BranchMergeReconciliationPolicy,
+        resolved_conflict_kinds: Vec<BranchMergeConflictKind>,
     },
     SnapshotRestore {
         snapshot_id: SignalSnapshotId,
@@ -207,6 +210,7 @@ impl LineageRecord {
         divergence: BranchMergeDivergence,
         merge_strategy: BranchMergeStrategy,
         reconciliation_policy: BranchMergeReconciliationPolicy,
+        resolution_plan: Option<BranchConflictResolutionPlan>,
         merged_snapshot_id: Option<SignalSnapshotId>,
         source_branch_display_name: impl Into<String>,
         target_branch_display_name: impl Into<String>,
@@ -221,6 +225,7 @@ impl LineageRecord {
                 divergence,
                 merge_strategy,
                 reconciliation_policy,
+                resolution_plan,
                 merged_snapshot_id,
                 source_branch_display_name: source_branch_display_name.into(),
                 target_branch_display_name: target_branch_display_name.into(),
@@ -245,6 +250,7 @@ impl LineageRecord {
         divergence: BranchMergeDivergence,
         merge_strategy: BranchMergeStrategy,
         reconciliation_policy: BranchMergeReconciliationPolicy,
+        resolved_conflict_kinds: Vec<BranchMergeConflictKind>,
     ) -> Self {
         Self::new(
             sequence,
@@ -263,6 +269,7 @@ impl LineageRecord {
                 divergence,
                 merge_strategy,
                 reconciliation_policy,
+                resolved_conflict_kinds,
             },
         )
     }

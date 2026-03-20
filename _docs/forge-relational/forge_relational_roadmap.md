@@ -109,6 +109,9 @@ verification output, and pass condition those tests impose.
 
 ## Milestone 2: Relational Aspect Semantics
 
+Status: Closed on 2026-03-19. See
+[milestone-2-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-relational/milestone-2-closeout.md).
+
 ### Goal
 
 Finish the truth-layer aspect system so aspects are first-class relational

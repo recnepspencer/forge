@@ -714,6 +714,7 @@ fn proof_bearing_batches_and_summaries_canonicalize_their_inputs() {
 fn observer_exposes_runtime_and_retained_artifacts_separately() {
     let mut graph = SignalGraph::new();
     let node = graph.node().output_identity().build();
+    let runtime_only = graph.node().build();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| {
         Ok(NodeEvaluationResult::from_version(version_ab(7, 0))
@@ -722,6 +723,8 @@ fn observer_exposes_runtime_and_retained_artifacts_separately() {
             .with_label("forensic"))
     };
     evaluate(&mut graph, node, &mut compute).unwrap();
+    let mut runtime_only_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(8, 0));
+    evaluate(&mut graph, runtime_only, &mut runtime_only_compute).unwrap();
     graph
         .get_entry_mut(node)
         .unwrap()
@@ -739,8 +742,11 @@ fn observer_exposes_runtime_and_retained_artifacts_separately() {
         .retained_diagnostic_artifact(node)
         .unwrap()
         .unwrap();
-    let historical = observer.historical_artifact_record(node).unwrap().unwrap();
-    let trace = observer.materialized_trace_summary(node).unwrap().unwrap();
+    let historical = observer
+        .materialize_historical_artifact_record(node)
+        .unwrap()
+        .unwrap();
+    let trace = observer.materialize_trace_summary(node).unwrap().unwrap();
 
     assert_eq!(
         runtime.output_identity.as_ref().map(|id| id.as_str()),
@@ -776,6 +782,32 @@ fn observer_exposes_runtime_and_retained_artifacts_separately() {
     assert_eq!(
         trace.output_identity.as_ref().map(|id| id.as_str()),
         Some("wing-surface")
+    );
+
+    let runtime_only_state = observer.runtime_artifact_state(runtime_only).unwrap().unwrap();
+    assert!(
+        observer
+            .retained_diagnostic_artifact(runtime_only)
+            .unwrap()
+            .is_none(),
+        "runtime-only artifacts must not require retained richness"
+    );
+    let runtime_only_historical = observer
+        .materialize_historical_artifact_record(runtime_only)
+        .unwrap()
+        .unwrap();
+    assert!(
+        runtime_only_historical.retained.is_none(),
+        "cold historical assembly should remain available without retained payload"
+    );
+    let runtime_only_trace = observer
+        .materialize_trace_summary(runtime_only)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        runtime_only_trace.output_hash,
+        runtime_only_state.output_hash,
+        "cold trace assembly should derive from runtime truth even when retained richness is absent"
     );
 }
 
@@ -882,6 +914,138 @@ fn dependency_snapshot_version_only_update_preserves_shape() {
     assert_eq!(updated.entries()[1].cached_version, 7);
     assert_eq!(delta.changed_entry_count, 1);
     assert!(delta.changed());
+}
+
+#[test]
+fn shared_dependency_snapshot_reports_storage_sharing_without_implying_semantics() {
+    let source = NodeId::new(1, 0);
+    let mut baseline = crate::data::dependency::DependencySnapshot::empty();
+    baseline.record(source, ASPECT_A, 3, None);
+
+    let shared_left = crate::data::dependency::SharedDependencySnapshot::new(baseline.clone());
+    let shared_right = crate::data::dependency::SharedDependencySnapshot::new(baseline.clone());
+
+    assert!(
+        baseline.shares_storage_with(shared_left.snapshot()),
+        "shared snapshot wrapping should preserve shared backing"
+    );
+    assert!(
+        shared_left.shares_storage_with(&shared_right),
+        "cloned snapshots should report shared backing explicitly"
+    );
+
+    let replace = crate::data::dependency::DependencySnapshotUpdate::Replace(shared_left);
+    let version_only = crate::data::dependency::DependencySnapshotUpdate::VersionOnly(
+        crate::data::dependency::DependencySnapshotVersionDelta::new([5]),
+    );
+
+    assert_eq!(
+        replace.storage_strategy(),
+        crate::data::dependency::SnapshotStorageStrategy::SharedReplacement
+    );
+    assert_eq!(
+        version_only.storage_strategy(),
+        crate::data::dependency::SnapshotStorageStrategy::VersionOnlyDelta
+    );
+}
+
+#[test]
+fn snapshot_storage_telemetry_distinguishes_replacement_from_version_only_delta() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let source = graph.node().build();
+
+    let mut baseline = crate::data::dependency::DependencySnapshot::empty();
+    baseline.record(source, ASPECT_A, 3, None);
+    graph.set_dep_snapshot(node, baseline.clone()).unwrap();
+
+    let mut replaced = crate::data::dependency::DependencySnapshot::empty();
+    replaced.record(source, ASPECT_A, 5, None);
+    replaced.record(source, ASPECT_B, 7, None);
+    graph.replace_dep_snapshot_shared(
+        node,
+        crate::data::dependency::DependencySnapshotUpdate::Replace(
+            crate::data::dependency::SharedDependencySnapshot::new(replaced),
+        ),
+    )
+    .unwrap();
+
+    graph.replace_dep_snapshot_shared(
+        node,
+        crate::data::dependency::DependencySnapshotUpdate::VersionOnly(
+            crate::data::dependency::DependencySnapshotVersionDelta::new([11, 13]),
+        ),
+    )
+    .unwrap();
+
+    let storage = graph.observe().metrics().storage;
+    assert!(
+        storage.shared_snapshot_replacement_count >= 2,
+        "snapshot telemetry should count full shared replacement boundaries"
+    );
+    assert!(
+        storage.version_only_snapshot_update_count >= 1,
+        "snapshot telemetry should count version-only delta boundaries separately"
+    );
+}
+
+#[test]
+fn set_dep_snapshot_uses_version_only_delta_when_snapshot_shape_is_stable() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let source_a = graph.node().build();
+    let source_b = graph.node().build();
+
+    let mut baseline = crate::data::dependency::DependencySnapshot::empty();
+    baseline.record(source_a, ASPECT_A, 3, None);
+    baseline.record(source_b, ASPECT_B, 7, None);
+    graph.set_dep_snapshot(node, baseline).unwrap();
+
+    let mut version_only = crate::data::dependency::DependencySnapshot::empty();
+    version_only.record(source_a, ASPECT_A, 5, None);
+    version_only.record(source_b, ASPECT_B, 11, None);
+    graph.set_dep_snapshot(node, version_only).unwrap();
+
+    let storage = graph.observe().metrics().storage;
+    assert_eq!(
+        storage.shared_snapshot_replacement_count, 1,
+        "initial snapshot install should be the only full replacement when shape stays stable"
+    );
+    assert_eq!(
+        storage.version_only_snapshot_update_count, 1,
+        "stable-shape snapshot rewrite should narrow to a version-only delta"
+    );
+}
+
+#[test]
+fn derive_dependency_snapshot_restore_batch_uses_version_only_delta_for_shared_shape() {
+    let mut current = SignalGraph::new();
+    let source_a = current.node().build();
+    let source_b = current.node().build();
+    let target = current.node().build();
+
+    let mut baseline = crate::data::dependency::DependencySnapshot::empty();
+    baseline.record(source_a, ASPECT_A, 3, None);
+    baseline.record(source_b, ASPECT_B, 7, None);
+    current.set_dep_snapshot(target, baseline).unwrap();
+
+    let mut restored = current.clone();
+    let mut updated = crate::data::dependency::DependencySnapshot::empty();
+    updated.record(source_a, ASPECT_A, 5, None);
+    updated.record(source_b, ASPECT_B, 11, None);
+    restored.set_dep_snapshot(target, updated).unwrap();
+
+    let batch = current
+        .derive_dependency_snapshot_restore_batch(&restored)
+        .unwrap();
+    let entries = batch.pending().as_slice();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].node, target);
+    assert_eq!(
+        entries[0].update.storage_strategy(),
+        crate::data::dependency::SnapshotStorageStrategy::VersionOnlyDelta
+    );
+    assert_eq!(entries[0].delta.changed_entry_count, 2);
 }
 
 #[test]

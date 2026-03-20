@@ -30,6 +30,7 @@ mod durability;
 mod errors;
 mod history;
 mod identity;
+mod inspection;
 mod indexes;
 mod lineage;
 mod logic;

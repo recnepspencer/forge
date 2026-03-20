@@ -194,8 +194,14 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             .storage_access()
             .partition_state(entity_id.partition_id)?;
         let slot = entity_id.local_slot.0 as usize;
+        let slot_view = partition.entity_arena.get_slot(slot)?;
+        if slot_view.generation() != entity_id.generation.0
+            || slot_view.partition_id() != entity_id.partition_id
+        {
+            return None;
+        }
         let versions = partition.entity_arena.aspect_versions_at(slot)?;
-        let resolved: Vec<_> = versions
+        let mut resolved: Vec<_> = versions
             .iter()
             .filter_map(|(symbol, version)| {
                 self.runtime
@@ -205,6 +211,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                     .map(|name| (AspectKey(InternedString::Raw(name.to_string())), *version))
             })
             .collect();
+        resolved.sort();
         debug_assert!(aspect_versions_are_canonical(&resolved));
         Some(resolved)
     }
@@ -218,8 +225,14 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             .storage_access()
             .partition_state(relation_id.partition_id)?;
         let slot = relation_id.local_slot.0 as usize;
+        let slot_view = partition.relation_arena.get_slot(slot)?;
+        if slot_view.generation() != relation_id.generation.0
+            || slot_view.partition_id() != relation_id.partition_id
+        {
+            return None;
+        }
         let versions = partition.relation_arena.aspect_versions_at(slot)?;
-        let resolved: Vec<_> = versions
+        let mut resolved: Vec<_> = versions
             .iter()
             .filter_map(|(symbol, version)| {
                 self.runtime
@@ -229,6 +242,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                     .map(|name| (AspectKey(InternedString::Raw(name.to_string())), *version))
             })
             .collect();
+        resolved.sort();
         debug_assert!(aspect_versions_are_canonical(&resolved));
         Some(resolved)
     }
@@ -240,7 +254,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
     ) -> Option<Vec<AspectKey>> {
         let state = self.runtime.storage_access().current_state();
         let record = self.entity_record_for_id_at_version(&state, entity_id, version_id)?;
-        Some(aspect_keys_for_payload(&record.payload))
+        Some(declared_aspects_for_entity_kind(self.runtime, record.kind.kind_id))
     }
 
     pub fn relation_aspects_at_version(
@@ -250,7 +264,10 @@ impl<'runtime> VisibilityReadContext<'runtime> {
     ) -> Option<Vec<AspectKey>> {
         let state = self.runtime.storage_access().current_state();
         let record = self.relation_record_for_id_at_version(&state, relation_id, version_id)?;
-        record.payload.as_ref().map(aspect_keys_for_payload)
+        Some(declared_aspects_for_relation_kind(
+            self.runtime,
+            record.kind.kind_id,
+        ))
     }
 
     pub fn inspect_version_read_path(
@@ -604,22 +621,42 @@ fn sort_relation_records(records: &mut [RelationReadRecord]) {
     });
 }
 
-fn aspect_keys_for_payload(payload: &crate::payloads::data::RecordPayload) -> Vec<AspectKey> {
-    let mut aspects = Vec::new();
-    match payload {
-        crate::payloads::data::RecordPayload::StructuredJson(value) => {
-            if let Some(object) = value.as_object() {
-                for key in object.keys() {
-                    aspects.push(AspectKey(InternedString::Raw(key.clone())));
-                }
-            }
-        }
-        crate::payloads::data::RecordPayload::OpaqueBytes(_) => {
-            aspects.push(AspectKey(InternedString::Raw("opaque_payload".to_string())));
-        }
+fn declared_aspects_for_entity_kind(
+    runtime: &RelationalRuntime,
+    kind_id: crate::identity::data::KindId,
+) -> Vec<AspectKey> {
+    runtime
+        .aspect_semantics
+        .plans
+        .entity_plans
+        .get(&kind_id)
+        .map(plan_aspect_keys)
+        .unwrap_or_default()
+}
+
+fn declared_aspects_for_relation_kind(
+    runtime: &RelationalRuntime,
+    kind_id: crate::identity::data::KindId,
+) -> Vec<AspectKey> {
+    runtime
+        .aspect_semantics
+        .plans
+        .relation_plans
+        .get(&kind_id)
+        .map(plan_aspect_keys)
+        .unwrap_or_default()
+}
+
+fn plan_aspect_keys(plan: &crate::schema::data::LoweredAspectPlan) -> Vec<AspectKey> {
+    let mut aspects = plan
+        .executable_bindings
+        .iter()
+        .map(|binding| binding.aspect_key.clone())
+        .collect::<Vec<_>>();
+    if !aspects.windows(2).all(|window| window[0] < window[1]) {
+        aspects.sort();
+        aspects.dedup();
     }
-    aspects.sort();
-    aspects.dedup();
     aspects
 }
 

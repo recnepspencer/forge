@@ -284,6 +284,14 @@ impl DependencySnapshot {
         Arc::clone(&self.entries)
     }
 
+    /// Whether two snapshots currently share the same backing storage.
+    ///
+    /// This is a storage fact only. Snapshot identity, restore semantics, and
+    /// reuse semantics must still be defined by explicit snapshot contracts.
+    pub fn shares_storage_with(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.entries, &other.entries)
+    }
+
     pub fn with_updated_versions(&self, cached_versions: &[u64]) -> Self {
         debug_assert_eq!(self.entries().len(), cached_versions.len());
         let mut updated = self.clone();
@@ -322,6 +330,18 @@ impl SharedDependencySnapshot {
     pub fn into_snapshot(self) -> DependencySnapshot {
         self.snapshot
     }
+
+    /// Whether two shared snapshots currently point at the same backing
+    /// storage. This is a storage-strategy fact, not semantic identity.
+    pub fn shares_storage_with(&self, other: &Self) -> bool {
+        self.snapshot.shares_storage_with(&other.snapshot)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SnapshotStorageStrategy {
+    SharedReplacement,
+    VersionOnlyDelta,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -352,6 +372,37 @@ pub enum DependencySnapshotUpdate {
 }
 
 impl DependencySnapshotUpdate {
+    pub fn between(
+        node: NodeId,
+        previous: &DependencySnapshot,
+        next: DependencySnapshot,
+    ) -> (Self, SnapshotDeltaRecord) {
+        let next = next.canonicalize_unordered();
+        if snapshot_shape_matches(previous, &next) {
+            let cached_versions = next
+                .entries()
+                .iter()
+                .map(|entry| entry.cached_version)
+                .collect::<Vec<_>>();
+            let delta = SnapshotDeltaRecord::for_version_update(node, previous, &cached_versions);
+            return (
+                Self::VersionOnly(DependencySnapshotVersionDelta::new(cached_versions)),
+                delta,
+            );
+        }
+
+        let next = SharedDependencySnapshot::new(next);
+        let delta = SnapshotDeltaRecord::between(node, previous, &next);
+        (Self::Replace(next), delta)
+    }
+
+    pub fn storage_strategy(&self) -> SnapshotStorageStrategy {
+        match self {
+            Self::Replace(_) => SnapshotStorageStrategy::SharedReplacement,
+            Self::VersionOnly(_) => SnapshotStorageStrategy::VersionOnlyDelta,
+        }
+    }
+
     pub fn entry_count(&self) -> usize {
         match self {
             Self::Replace(snapshot) => snapshot.entries().len(),
@@ -538,4 +589,14 @@ fn is_strict_snapshot_entry_order(entries: &[DependencySnapshotEntry]) -> bool {
             .then(pair[0].cached_version.cmp(&pair[1].cached_version))
             .is_lt()
     })
+}
+
+fn snapshot_shape_matches(previous: &DependencySnapshot, next: &DependencySnapshot) -> bool {
+    let previous_entries = previous.entries();
+    let next_entries = next.entries();
+    previous_entries.len() == next_entries.len()
+        && previous_entries
+            .iter()
+            .zip(next_entries.iter())
+            .all(|(left, right)| left.sort_key() == right.sort_key())
 }

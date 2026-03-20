@@ -1,70 +1,37 @@
-use std::collections::BTreeSet;
-
-use crate::identity::data::RecordId;
-use crate::storage::logic::state::{
-    partition_of, slot_of, EntityRecordKind, RecordKind, RelationRecordKind,
-};
+use crate::authority::mutation::canonical_deltas::CanonicalRecordAspectDelta;
+use crate::identity::data::VersionId;
+use crate::storage::logic::state::{partition_of, slot_of, EntityRecordKind, RelationRecordKind};
+use crate::storage::overlay::WorkingState;
 use crate::symbols::data::StringInterner;
+use crate::transactions::data::RecordRef;
 
-use crate::logic::runtime::WorkingState;
-
-pub(super) fn aspect_names_for_payload(
-    payload: Option<&crate::payloads::data::RecordPayload>,
-) -> Vec<String> {
-    let mut aspects = BTreeSet::new();
-    match payload {
-        Some(crate::payloads::data::RecordPayload::StructuredJson(value)) => {
-            if let Some(object) = value.as_object() {
-                for key in object.keys() {
-                    aspects.insert(key.clone());
+pub(super) fn write_aspect_versions_for_delta(
+    staged: &mut WorkingState,
+    delta: &CanonicalRecordAspectDelta,
+    version_id: VersionId,
+    symbols: &mut StringInterner,
+) {
+    match delta.target {
+        RecordRef::Entity(entity_id) => {
+            let slot = slot_of::<EntityRecordKind>(&entity_id);
+            let partition = staged.get_partition_mut(partition_of::<EntityRecordKind>(&entity_id));
+            let versions = &mut partition.entity_arena.aspect_versions[slot];
+            for aspect in delta.changed_aspects.iter() {
+                if let crate::symbols::data::InternedString::Raw(raw) = &aspect.0 {
+                    versions.insert(symbols.intern(raw), version_id.0);
                 }
             }
         }
-        Some(crate::payloads::data::RecordPayload::OpaqueBytes(_)) => {
-            aspects.insert("opaque_payload".to_string());
+        RecordRef::Relation(relation_id) => {
+            let slot = slot_of::<RelationRecordKind>(&relation_id);
+            let partition =
+                staged.get_partition_mut(partition_of::<RelationRecordKind>(&relation_id));
+            let versions = &mut partition.relation_arena.aspect_versions[slot];
+            for aspect in delta.changed_aspects.iter() {
+                if let crate::symbols::data::InternedString::Raw(raw) = &aspect.0 {
+                    versions.insert(symbols.intern(raw), version_id.0);
+                }
+            }
         }
-        None => {}
-    }
-    aspects.into_iter().collect()
-}
-
-pub(super) fn write_entity_aspect_versions(
-    staged: &mut WorkingState,
-    entity_id: crate::identity::data::EntityId,
-    version_id: crate::identity::data::VersionId,
-    payload: &crate::payloads::data::RecordPayload,
-    symbols: &mut StringInterner,
-) {
-    write_aspect_versions::<EntityRecordKind>(
-        staged,
-        entity_id,
-        version_id,
-        Some(payload),
-        symbols,
-    );
-}
-
-pub(super) fn write_relation_aspect_versions(
-    staged: &mut WorkingState,
-    relation_id: crate::identity::data::RelationId,
-    version_id: crate::identity::data::VersionId,
-    payload: Option<&crate::payloads::data::RecordPayload>,
-    symbols: &mut StringInterner,
-) {
-    write_aspect_versions::<RelationRecordKind>(staged, relation_id, version_id, payload, symbols);
-}
-
-fn write_aspect_versions<K: RecordKind>(
-    staged: &mut WorkingState,
-    record_id: RecordId<K::Domain>,
-    version_id: crate::identity::data::VersionId,
-    payload: Option<&crate::payloads::data::RecordPayload>,
-    symbols: &mut StringInterner,
-) {
-    let slot = slot_of::<K>(&record_id);
-    let partition = staged.get_partition_mut(partition_of::<K>(&record_id));
-    let versions = &mut K::arena_mut(partition).aspect_versions[slot];
-    for name in aspect_names_for_payload(payload) {
-        versions.insert(symbols.intern(&name), version_id.0);
     }
 }

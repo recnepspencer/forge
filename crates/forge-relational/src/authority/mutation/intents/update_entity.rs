@@ -1,4 +1,3 @@
-use crate::authority::mutation::aspect_versions::write_entity_aspect_versions;
 use crate::authority::mutation::outcomes::MutationOutcome;
 use crate::authority::mutation::stale_targets::ensure_entity_target_is_current;
 use crate::authority::mutation::MutationWorkspace;
@@ -38,13 +37,6 @@ pub(super) fn apply(
         partition
             .entity_arena
             .apply_payload_update(slot, new_payload.clone(), version_id);
-        write_entity_aspect_versions(
-            context.state,
-            intent.entity_id,
-            version_id,
-            &new_payload,
-            context.symbols,
-        );
         Ok::<_, CommitConflict>((kind_id, old_payload))
     })?;
     Ok(MutationOutcome::entity_updated(

@@ -45,6 +45,19 @@ where
                         .checkpoint
                         .checkpoint_flush_nanos,
                     rollback_count: self.event_bus.telemetry().checkpoint.rollback_count,
+                    snapshot_restore_count: self.telemetry.checkpoint.snapshot_restore_count,
+                    snapshot_restore_apply_active_policy_count: self
+                        .telemetry
+                        .checkpoint
+                        .snapshot_restore_apply_active_policy_count,
+                    snapshot_restore_shared_delta_node_count: self
+                        .telemetry
+                        .checkpoint
+                        .snapshot_restore_shared_delta_node_count,
+                    snapshot_restore_coarse_reason_count: self
+                        .telemetry
+                        .checkpoint
+                        .snapshot_restore_coarse_reason_count,
                     checkpoint_size: self.telemetry.checkpoint.checkpoint_size,
                     journal_replay_span: self.telemetry.checkpoint.journal_replay_span,
                 },
@@ -99,6 +112,19 @@ where
                         .checkpoint
                         .checkpoint_flush_nanos,
                     rollback_count: self.event_bus.telemetry().checkpoint.rollback_count,
+                    snapshot_restore_count: self.telemetry.checkpoint.snapshot_restore_count,
+                    snapshot_restore_apply_active_policy_count: self
+                        .telemetry
+                        .checkpoint
+                        .snapshot_restore_apply_active_policy_count,
+                    snapshot_restore_shared_delta_node_count: self
+                        .telemetry
+                        .checkpoint
+                        .snapshot_restore_shared_delta_node_count,
+                    snapshot_restore_coarse_reason_count: self
+                        .telemetry
+                        .checkpoint
+                        .snapshot_restore_coarse_reason_count,
                     checkpoint_size: self.telemetry.checkpoint.checkpoint_size,
                     journal_replay_span: self.telemetry.checkpoint.journal_replay_span,
                 },

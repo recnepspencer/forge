@@ -2,7 +2,8 @@ use crate::data::error::SignalError;
 use crate::data::graph::{signal_graph::SignalGraph, EvaluationStrategy};
 use crate::data::handle::NodeId;
 use crate::data::trace::{
-    HistoricalArtifactRecord, RetainedDiagnosticArtifact, RuntimeArtifactState, TraceSummary,
+    assemble_historical_artifact_record, assemble_trace_summary, HistoricalArtifactRecord,
+    RetainedDiagnosticArtifact, RuntimeArtifactState, TraceSummary,
 };
 use crate::diagnostics::access::GraphDiagnostics;
 use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
@@ -112,23 +113,32 @@ impl<'a> GraphObserver<'a> {
         Ok(self.graph.get_entry(node)?.retained_diagnostic_artifact())
     }
 
-    pub fn historical_artifact_record(
+    /// Cold artifact access that assembles a historical view from runtime and
+    /// optional retained lanes.
+    pub fn materialize_historical_artifact_record(
         &self,
         node: NodeId,
     ) -> Result<Option<HistoricalArtifactRecord>, SignalError> {
-        Ok(self.graph.get_entry(node)?.historical_artifact_record(node))
+        let entry = self.graph.get_entry(node)?;
+        Ok(assemble_historical_artifact_record(
+            node,
+            entry.get_runtime_artifact_state(),
+            entry.retained_diagnostic_artifact(),
+            entry.get_causality(),
+        ))
     }
 
-    pub fn materialized_trace_summary(
+    /// Cold artifact access that assembles a trace summary from runtime and
+    /// optional retained lanes.
+    pub fn materialize_trace_summary(
         &self,
         node: NodeId,
     ) -> Result<Option<TraceSummary>, SignalError> {
-        Ok(self
-            .graph
-            .get_entry(node)?
-            .historical_artifact_record(node)
-            .as_ref()
-            .map(TraceSummary::from_record))
+        let entry = self.graph.get_entry(node)?;
+        Ok(assemble_trace_summary(
+            entry.get_runtime_artifact_state(),
+            entry.retained_diagnostic_artifact(),
+        ))
     }
 
     pub fn dependency_chain_to(
@@ -184,7 +194,9 @@ impl<'a> GraphObserver<'a> {
         self.graph.reconstruct_provenance_artifact(node)
     }
 
-    pub fn explain_artifact(
+    /// Cold artifact access that may reconstruct explanation state if retained
+    /// artifacts are unavailable and policy allows reconstruction.
+    pub fn materialize_explanation_artifact(
         &self,
         node: NodeId,
     ) -> Result<(Option<NodeExplanation>, ArtifactMaterializationMode), SignalError> {
@@ -202,7 +214,9 @@ impl<'a> GraphObserver<'a> {
         Ok((None, ArtifactMaterializationMode::Unavailable))
     }
 
-    pub fn provenance_artifact(
+    /// Cold artifact access that may reconstruct provenance state if retained
+    /// artifacts are unavailable and policy allows reconstruction.
+    pub fn materialize_provenance_artifact(
         &self,
         node: NodeId,
     ) -> Result<(Option<ProvenanceFact>, ArtifactMaterializationMode), SignalError> {

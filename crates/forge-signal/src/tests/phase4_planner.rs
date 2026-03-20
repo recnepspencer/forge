@@ -1,4 +1,5 @@
 use crate::facade::*;
+use crate::data::trace::assemble_trace_summary;
 use crate::logic::planner::MaybeStaleAdmission;
 use crate::tests::support::*;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -160,25 +161,37 @@ fn execute_plan_returns_execution_report_and_updates_trace_record_id() {
     assert_eq!(report.stage_count, 2);
     assert_eq!(report.task_count, 2);
     assert!(report.tasks_executed >= 2);
-    assert!(graph
-        .get_entry(dependent)
-        .unwrap()
-        .get_trace_summary()
-        .unwrap()
-        .execution_record_id
-        .is_some());
+    assert!(assemble_trace_summary(
+        graph
+            .get_entry(dependent)
+            .unwrap()
+            .get_runtime_artifact_state(),
+        graph
+            .get_entry(dependent)
+            .unwrap()
+            .retained_diagnostic_artifact(),
+    )
+    .unwrap()
+    .execution_record_id
+    .is_some());
     assert_eq!(
         graph
             .observe()
             .explain(dependent)
             .unwrap()
             .execution_record_id,
-        graph
-            .get_entry(dependent)
-            .unwrap()
-            .get_trace_summary()
-            .unwrap()
-            .execution_record_id
+        assemble_trace_summary(
+            graph
+                .get_entry(dependent)
+                .unwrap()
+                .get_runtime_artifact_state(),
+            graph
+                .get_entry(dependent)
+                .unwrap()
+                .retained_diagnostic_artifact(),
+        )
+        .unwrap()
+        .execution_record_id
     );
 }
 
@@ -233,7 +246,11 @@ fn public_evaluate_routes_through_planner_and_records_execution_metadata() {
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(3, 0));
     evaluate(&mut graph, node, &mut compute).unwrap();
 
-    let trace = graph.get_entry(node).unwrap().get_trace_summary().unwrap();
+    let trace = assemble_trace_summary(
+        graph.get_entry(node).unwrap().get_runtime_artifact_state(),
+        graph.get_entry(node).unwrap().retained_diagnostic_artifact(),
+    )
+    .unwrap();
     assert!(trace.execution_record_id.is_some());
 
     let metrics = graph.observe().metrics();
@@ -519,18 +536,24 @@ fn prepared_parallel_precompute_matches_serial_results() {
         parallel_graph.get_state(parallel_b).unwrap()
     );
     assert_eq!(
-        serial_graph
-            .get_entry(a)
-            .unwrap()
-            .get_trace_summary()
-            .unwrap()
-            .output_hash,
-        parallel_graph
-            .get_entry(parallel_a)
-            .unwrap()
-            .get_trace_summary()
-            .unwrap()
-            .output_hash
+        assemble_trace_summary(
+            serial_graph.get_entry(a).unwrap().get_runtime_artifact_state(),
+            serial_graph.get_entry(a).unwrap().retained_diagnostic_artifact(),
+        )
+        .unwrap()
+        .output_hash,
+        assemble_trace_summary(
+            parallel_graph
+                .get_entry(parallel_a)
+                .unwrap()
+                .get_runtime_artifact_state(),
+            parallel_graph
+                .get_entry(parallel_a)
+                .unwrap()
+                .retained_diagnostic_artifact(),
+        )
+        .unwrap()
+        .output_hash
     );
     assert_eq!(serial_report.task_count, parallel_report.task_count);
     assert_eq!(serial_report.tasks_executed, parallel_report.tasks_executed);

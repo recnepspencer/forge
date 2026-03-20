@@ -236,8 +236,14 @@ fn operational_profile_reconstructs_rich_artifacts_without_retaining_facts() {
     let provenance = adapter
         .capture_provenance(&session, &fixture, &request, &profile)
         .unwrap();
-    let (explanation, explanation_mode) = runtime.graph.explain_artifact(node).unwrap();
-    let (prov, provenance_mode) = runtime.graph.provenance_artifact(node).unwrap();
+    let (explanation, explanation_mode) = runtime
+        .graph
+        .materialize_explanation_artifact(node)
+        .unwrap();
+    let (prov, provenance_mode) = runtime
+        .graph
+        .materialize_provenance_artifact(node)
+        .unwrap();
 
     assert!(explanation.is_some());
     assert!(prov.is_some());

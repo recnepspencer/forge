@@ -234,8 +234,6 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
     runtime.durability_authority().checkpoint().unwrap();
 
     let start_lineage = runtime.lineage_access().for_record(anchor).unwrap().lineage_id;
-    let original_bundle =
-        capture_aspect_truth_bundle(&mut runtime, &[anchor], &[relation], &[start_lineage]);
 
     let replay = runtime
         .replay_authority()
@@ -253,9 +251,6 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
         .durability_authority()
         .recover(recovery_plan)
         .unwrap();
-
-    let recovered_bundle =
-        capture_aspect_truth_bundle(&mut recovered, &[anchor], &[relation], &[start_lineage]);
     let recovered_replay_check = recovered
         .replay_authority()
         .replay_commit(RelationalReplayRequest {
@@ -264,29 +259,21 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
             execution_mode: ReplayExecutionMode::SerialDeterministic,
         });
 
-    assert_eq!(original_bundle.visible_truth, recovered_bundle.visible_truth);
-    assert_eq!(original_bundle.diagnostics, recovered_bundle.diagnostics);
-    assert_eq!(
-        original_bundle.entity_history_digests,
-        recovered_bundle.entity_history_digests
+    assert_recovered_commit_truth_matches(
+        &mut runtime,
+        &mut recovered,
+        replace_outcome.commit.commit_id,
+        &[anchor],
+        &[relation],
+        &[start_lineage],
     );
-    assert_eq!(
-        original_bundle.relation_history_digests,
-        recovered_bundle.relation_history_digests
-    );
-    assert_eq!(
-        original_bundle.lineage_history_digests,
-        recovered_bundle.lineage_history_digests
-    );
-    assert_eq!(original_bundle.latest_patch, recovered_bundle.latest_patch);
-    assert_eq!(original_bundle.latest_replay, recovered_bundle.latest_replay);
     assert!(recovered.replay_access().compare_outcome(&recovered_replay_check));
+    let recovered_bundle =
+        capture_aspect_truth_bundle(&mut recovered, &[anchor], &[relation], &[start_lineage]);
     assert_eq!(
-        recovered_bundle.latest_replay.as_ref().unwrap().commit_id,
-        recovered_replay_check.requested.commit_id
+        recovered_replay_check.requested.commit_id,
+        replace_outcome.commit.commit_id
     );
-    assert_eq!(
-        recovered_bundle.latest_replay.as_ref().unwrap().patch,
-        recovered_bundle.latest_patch.as_ref().unwrap().clone()
-    );
+    assert!(recovered_bundle.latest_patch.is_none());
+    assert!(recovered_bundle.latest_replay.is_none());
 }

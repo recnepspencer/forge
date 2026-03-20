@@ -66,8 +66,10 @@ fn canonical_runtime_artifacts(
     runtime_policy: SignalRuntimePolicy,
 ) -> serde_json::Value {
     let observer = graph.observe();
-    let (explanation, explanation_mode) = observer.explain_artifact(node).unwrap();
-    let (provenance, provenance_mode) = observer.provenance_artifact(node).unwrap();
+        let (explanation, explanation_mode) =
+            observer.materialize_explanation_artifact(node).unwrap();
+        let (provenance, provenance_mode) =
+            observer.materialize_provenance_artifact(node).unwrap();
     let explanation = explanation.expect("snapshot fixture should have an explainable target");
     let explanation_fact = observer.explanation_fact(node);
     let diagnostics = observer.diagnostics_summary(DiagnosticsProfile::Development);

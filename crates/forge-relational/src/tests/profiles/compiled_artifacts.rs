@@ -169,3 +169,123 @@ fn chip_profile_declared_aspect_fanout_preserves_endpoint_history_for_netlist_li
         );
     }
 }
+
+#[test]
+fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolation() {
+    let mut runtime = runtime_with_declared_aspect_schema_profile(
+        RelationalRuntimeProfile::ChipSimulation,
+        CascadeDeletePolicy::RetainDanglingForAudit,
+    );
+    let source = create_entity_in_partition(&mut runtime, "topo-src", PartitionId(7));
+    let target = create_entity_in_partition(&mut runtime, "topo-target", PartitionId(11));
+    let relation = create_relation_in_partition(&mut runtime, source, target, "topo-edge", PartitionId(21));
+    let main_commit = runtime.history_access().latest_commit().unwrap().clone();
+    let main_artifact = runtime
+        .simulation_authority()
+        .compile_execution_artifact(main_commit.commit_id, vec![PartitionId(7), PartitionId(11), PartitionId(21)])
+        .unwrap();
+    runtime
+        .history_authority()
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
+        .unwrap();
+    let feature_target =
+        create_entity_in_partition(&mut runtime, "topo-target-feature", PartitionId(13));
+    let feature_relation = create_relation_in_partition_on_branch(
+        &mut runtime,
+        source,
+        feature_target,
+        "topo-edge-feature",
+        PartitionId(22),
+        BranchId("feature".to_string()),
+    );
+    let main_view = runtime
+        .visibility_reads()
+        .project_version(main_commit.version_id)
+        .all_relation_records();
+    let feature_commit = runtime
+        .history_access()
+        .branch_head(&BranchId("feature".to_string()))
+        .unwrap()
+        .clone();
+    let feature_view = runtime
+        .visibility_reads()
+        .project_version(feature_commit.version_id)
+        .all_relation_records();
+    let feature_artifact = runtime
+        .simulation_authority()
+        .compile_execution_artifact(
+            feature_commit.commit_id,
+            vec![PartitionId(7), PartitionId(11), PartitionId(13), PartitionId(21), PartitionId(22)],
+        )
+        .unwrap();
+    let main_history = runtime.history_access().relation_aspect_history(
+        &BranchId("main".to_string()),
+        relation,
+        None,
+    );
+    let feature_history = runtime.history_access().relation_aspect_history(
+        &BranchId("feature".to_string()),
+        relation,
+        None,
+    );
+    let main_digest = relation_aspect_history_digest_on_branch(
+        &runtime,
+        &BranchId("main".to_string()),
+        relation,
+        None,
+    );
+    let feature_digest = relation_aspect_history_digest_on_branch(
+        &runtime,
+        &BranchId("feature".to_string()),
+        relation,
+        Some(&any_aspect_filter(["lifecycle"])),
+    );
+
+    assert_eq!(main_artifact.source_branch_id, BranchId("main".to_string()));
+    assert_eq!(feature_artifact.source_branch_id, BranchId("feature".to_string()));
+    assert_eq!(main_artifact.source_commit_id, main_commit.commit_id);
+    assert_eq!(feature_artifact.source_commit_id, feature_commit.commit_id);
+    assert_eq!(
+        main_view
+            .iter()
+            .map(|record| record.relation_id)
+            .collect::<Vec<_>>(),
+        vec![relation]
+    );
+    assert_eq!(
+        feature_view
+            .iter()
+            .map(|record| record.relation_id)
+            .collect::<Vec<_>>(),
+        vec![relation, feature_relation]
+    );
+    assert_eq!(main_history.len(), 1);
+    assert_eq!(feature_history.len(), 0);
+    assert_direct_history_origin_invariants(&main_history, RecordRef::Relation(relation));
+    assert_eq!(
+        main_history[0].origin.changed_aspects,
+        CanonicalAspectSet::new([
+            aspect_key("label"),
+            aspect_key("lifecycle"),
+            aspect_key("source"),
+            aspect_key("target"),
+        ])
+    );
+    assert_eq!(main_digest.entry_count, 1);
+    assert_eq!(feature_digest.entry_count, 0);
+    assert_eq!(
+        runtime
+            .simulation_access()
+            .compiled_artifact_compatibility(main_artifact.artifact_id),
+        CompiledArtifactCompatibility::StaleVersion
+    );
+    assert_eq!(
+        runtime
+            .simulation_access()
+            .compiled_artifact_compatibility(feature_artifact.artifact_id),
+        CompiledArtifactCompatibility::Compatible
+    );
+}

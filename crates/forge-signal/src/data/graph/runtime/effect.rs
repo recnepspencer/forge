@@ -6,7 +6,8 @@ use crate::data::node::NodeState;
 use crate::data::output::{scope_touched_by_artifact_state, CanonicalChangedRegions, OutputChange};
 use crate::data::proof::PartitionScopeSet;
 use crate::data::trace::{
-    ArtifactMergeAuthority, RetainedDiagnosticArtifact, RuntimeArtifactState,
+    ArtifactMergeAuthority, ArtifactWriteDelta, RetainedDiagnosticArtifact,
+    RuntimeArtifactState,
 };
 use crate::logic::evaluation::{
     AppliedEffectReport, DeferralReason, EffectComparison, EvaluationEffect, EvaluationVerdict,
@@ -207,8 +208,10 @@ impl SignalGraph {
                                 .map(|runtime| runtime.reuse_basis),
                             next_reuse_basis: Some(runtime_artifact_state.reuse_basis),
                         });
-                        entry.set_runtime_artifact_state(Some(runtime_artifact_state));
-                        entry.set_retained_diagnostic_artifact(retained_artifact);
+                        entry.apply_artifact_write_delta(ArtifactWriteDelta {
+                            runtime: Some(runtime_artifact_state),
+                            retained: retained_artifact,
+                        });
                         retained_artifact_changed = true;
                     }
                     entry.transition_clean();

@@ -1,5 +1,6 @@
 use serde_json::json;
 
+use crate::authority::mutation::aspect_versions::write_aspect_versions_for_delta;
 use crate::authority::mutation::canonical_deltas::canonical_delta_for_mutation;
 use crate::authority::mutation::patch_details::{
     patch_detail_for_entity, patch_detail_for_relation,
@@ -16,10 +17,19 @@ pub(crate) fn assemble_effect(
     workspace: &mut MutationWorkspace<'_>,
 ) -> MutationEffect {
     let patch_surface_policy = workspace.patch_surface_policy();
+    let version_id = workspace.version_id();
     let mut effect = MutationEffect::default();
 
     for change in outcome.changes {
         let canonical_delta = canonical_delta_for_mutation(&change, workspace);
+        workspace.with_context(|context| {
+            write_aspect_versions_for_delta(
+                context.state,
+                &canonical_delta,
+                version_id,
+                context.symbols,
+            );
+        });
         let patch_aspects = canonical_delta.changed_aspects.clone();
         let contains_degraded_precision = canonical_delta.contains_degraded_precision;
         match change {

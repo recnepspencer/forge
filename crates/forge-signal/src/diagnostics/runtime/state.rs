@@ -18,7 +18,7 @@ use crate::diagnostics::replay::{ReplayCursor, ReplayEvent};
 use crate::diagnostics::summary::ExecutionHistorySummary;
 use crate::state::{
     SignalBranchHandle, SignalBranchId, SignalSnapshotDiagnostics, SignalSnapshotId,
-    SignalSnapshotMeta,
+    SignalSnapshotMeta, SnapshotArtifactRetentionPolicy,
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -257,13 +257,23 @@ impl DiagnosticsState {
         }
     }
 
-    pub fn allocate_snapshot_meta(&mut self, policy: SignalRuntimePolicy) -> SignalSnapshotMeta {
+    pub fn allocate_snapshot_meta(
+        &mut self,
+        policy: SignalRuntimePolicy,
+        artifact_retention: SnapshotArtifactRetentionPolicy,
+    ) -> SignalSnapshotMeta {
         self.bootstrap_defaults();
         let snapshot_id = SignalSnapshotId(self.next_snapshot_id);
         self.next_snapshot_id += 1;
         let branch = self.active_branch();
         let replay_head = self.replay_events.back().map(|frame| frame.cursor);
-        let meta = SignalSnapshotMeta::new(snapshot_id, &branch, replay_head, policy);
+        let meta = SignalSnapshotMeta::new(
+            snapshot_id,
+            &branch,
+            replay_head,
+            policy,
+            artifact_retention,
+        );
         if let Some(branch_entry) = self.branch_catalog.get_mut(&branch.id) {
             branch_entry.head_snapshot_id = Some(snapshot_id);
         }
@@ -357,15 +367,26 @@ impl DiagnosticsState {
         }
     }
 
-    pub fn snapshot_payload(&self) -> SignalSnapshotDiagnostics {
+    pub fn snapshot_payload_with_retention(
+        &self,
+        artifact_retention: SnapshotArtifactRetentionPolicy,
+    ) -> SignalSnapshotDiagnostics {
         SignalSnapshotDiagnostics {
             latest_flow: self.latest_flow.clone(),
             latest_failure: self.latest_failure.clone(),
             latest_rollback: self.latest_rollback.clone(),
             recent_history: self.recent_history.clone(),
             replay_frames: self.replay_events.clone(),
-            explanation_facts: self.explanation_facts.clone(),
-            provenance_facts: self.provenance_facts.clone(),
+            explanation_facts: if artifact_retention.retains_explanation_facts() {
+                self.explanation_facts.clone()
+            } else {
+                BTreeMap::new()
+            },
+            provenance_facts: if artifact_retention.retains_provenance_facts() {
+                self.provenance_facts.clone()
+            } else {
+                BTreeMap::new()
+            },
             lineage_records: self.lineage_records.clone(),
             branch_catalog: self.branch_catalog.clone(),
             active_branch: self.active_branch,

@@ -166,10 +166,19 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
         changed_records: &[crate::transactions::data::RecordRef],
         published_version: crate::identity::data::VersionId,
     ) {
-        let oldest_pinned_version = self
+        let oldest_visibility_retained_version = self
             .runtime
             .visibility
             .retention_fence_version(published_version);
+        let oldest_branch_head_version = self
+            .runtime
+            .history_access()
+            .branch_head_versions()
+            .into_iter()
+            .min()
+            .unwrap_or(published_version);
+        let oldest_pinned_version = oldest_visibility_retained_version
+            .min(oldest_branch_head_version);
 
         let mut entity_slots = std::collections::BTreeMap::new();
         let mut relation_slots = std::collections::BTreeMap::new();
@@ -379,7 +388,7 @@ fn trim_live_history<K: RecordKind>(
 }
 
 impl RelationalRuntime {
-    pub fn retention_access(&mut self) -> VisibilityRetentionAuthority<'_> {
+    pub fn retention_authority(&mut self) -> VisibilityRetentionAuthority<'_> {
         VisibilityRetentionAuthority::new(self)
     }
 }

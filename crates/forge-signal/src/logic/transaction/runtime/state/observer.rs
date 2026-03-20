@@ -60,6 +60,19 @@ where
         self.graph().reconstruct_explanation_artifact(node)
     }
 
+    pub fn materialize_explanation_artifact(
+        &self,
+        node: NodeId,
+    ) -> Result<
+        (
+            Option<NodeExplanation>,
+            crate::diagnostics::policy::ArtifactMaterializationMode,
+        ),
+        SignalError,
+    > {
+        self.graph().materialize_explanation_artifact(node)
+    }
+
     pub fn retained_provenance_artifact(&self, node: NodeId) -> Option<ProvenanceFact> {
         self.graph().retained_provenance_artifact(node)
     }
@@ -69,6 +82,19 @@ where
         node: NodeId,
     ) -> Result<ProvenanceFact, SignalError> {
         self.graph().reconstruct_provenance_artifact(node)
+    }
+
+    pub fn materialize_provenance_artifact(
+        &self,
+        node: NodeId,
+    ) -> Result<
+        (
+            Option<ProvenanceFact>,
+            crate::diagnostics::policy::ArtifactMaterializationMode,
+        ),
+        SignalError,
+    > {
+        self.graph().materialize_provenance_artifact(node)
     }
 
     pub fn metrics(&self) -> RuntimeMetrics {
@@ -121,6 +147,22 @@ where
                 .checkpoint
                 .checkpoint_flush_nanos,
             rollback_count: self.runtime.event_bus.telemetry().checkpoint.rollback_count,
+            snapshot_restore_count: self.runtime.telemetry.checkpoint.snapshot_restore_count,
+            snapshot_restore_apply_active_policy_count: self
+                .runtime
+                .telemetry
+                .checkpoint
+                .snapshot_restore_apply_active_policy_count,
+            snapshot_restore_shared_delta_node_count: self
+                .runtime
+                .telemetry
+                .checkpoint
+                .snapshot_restore_shared_delta_node_count,
+            snapshot_restore_coarse_reason_count: self
+                .runtime
+                .telemetry
+                .checkpoint
+                .snapshot_restore_coarse_reason_count,
             checkpoint_size: self.runtime.telemetry.checkpoint.checkpoint_size,
             journal_replay_span: self.runtime.telemetry.checkpoint.journal_replay_span,
         }

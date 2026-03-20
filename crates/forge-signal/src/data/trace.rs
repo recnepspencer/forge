@@ -114,6 +114,15 @@ pub struct RetainedDiagnosticArtifact {
     pub reuse_certification: Option<ReuseCertificationRecord>,
 }
 
+/// Explicit write packet for artifact hot/cold lanes.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct ArtifactWriteDelta {
+    #[serde(default)]
+    pub runtime: Option<RuntimeArtifactState>,
+    #[serde(default)]
+    pub retained: Option<RetainedDiagnosticArtifact>,
+}
+
 /// Cold historical artifact record assembled for explanation, lineage
 /// expansion, and retained reporting surfaces.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -204,6 +213,27 @@ impl TraceSummary {
     pub fn from_record(record: &HistoricalArtifactRecord) -> Self {
         Self::from_parts(&record.runtime, record.retained.as_ref())
     }
+}
+
+pub fn assemble_historical_artifact_record(
+    node: NodeId,
+    runtime: Option<&RuntimeArtifactState>,
+    retained: Option<&RetainedDiagnosticArtifact>,
+    causality: Option<&CausalityMetadata>,
+) -> Option<HistoricalArtifactRecord> {
+    Some(HistoricalArtifactRecord {
+        node,
+        runtime: runtime?.clone(),
+        retained: retained.cloned(),
+        causality: causality.cloned(),
+    })
+}
+
+pub fn assemble_trace_summary(
+    runtime: Option<&RuntimeArtifactState>,
+    retained: Option<&RetainedDiagnosticArtifact>,
+) -> Option<TraceSummary> {
+    Some(TraceSummary::from_parts(runtime?, retained))
 }
 
 fn scopes_to_regions(scopes: &PartitionScopeSet) -> Vec<ChangedRegion> {

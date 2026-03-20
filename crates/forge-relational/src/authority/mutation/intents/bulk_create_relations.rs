@@ -18,7 +18,6 @@ use crate::authority::commit::preparation::reduction::keys::ImportReductionKey;
 use crate::authority::commit::preparation::reduction::merge::{
     canonical_merge_streams, OrderedReductionStream,
 };
-use crate::authority::mutation::aspect_versions::write_relation_aspect_versions;
 use crate::authority::mutation::outcomes::{MutationOutcome, RecordMutation};
 use crate::authority::mutation::record_changes::{
     allocate_relation, reserve_bulk_relation_capacity,
@@ -60,13 +59,6 @@ pub(super) fn apply(
             context.state.mark_relation_slot_touched(
                 relation_id.partition_id,
                 relation_id.local_slot.0 as usize,
-            );
-            write_relation_aspect_versions(
-                context.state,
-                relation_id,
-                version_id,
-                spec.payload.as_ref(),
-                context.symbols,
             );
             relation_id
         });

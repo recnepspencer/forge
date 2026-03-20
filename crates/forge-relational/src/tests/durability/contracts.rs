@@ -493,12 +493,119 @@ fn durability_contract_recovery_rebuilds_branch_pinned_retention_from_branch_hea
     let mut recovered = persisted_runtime_with_test_schema();
     recovered.durability_authority().recover(plan).unwrap();
 
-    let retention = recovered.retention_access().inspect_plan();
+    let retention = recovered.retention_authority().inspect_plan();
     assert_eq!(retention.active_snapshot_count, 0);
     assert!(retention.branch_pinned_entities >= 1);
     assert!(retention.branch_pinned_relations >= 1);
     assert_eq!(retention.reclaimable_entities, 0);
     assert_eq!(retention.reclaimable_relations, 0);
+}
+
+#[test]
+fn durability_contract_recovery_preserves_inspection_truth_bundle() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    let created = create_entity_outcome(&mut runtime, "source");
+    let entity = changed_entities(&created)[0];
+    runtime
+        .history_authority()
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
+        .unwrap();
+    let _main_update = update_entity(&mut runtime, entity, "main");
+    let _feature_update = {
+        let mut txn = runtime.begin_transaction(TransactionOptions {
+            target_branch: Some(BranchId("feature".to_string())),
+            ..TransactionOptions::default()
+        });
+        txn.push_batch(WorkerIntentBatch::new("feature-update").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id: entity,
+                payload: RecordPayload::StructuredJson(json!({"name":"feature"})),
+            }),
+        )));
+        txn.commit().unwrap()
+    };
+    runtime.durability_authority().checkpoint().unwrap();
+    let expected = capture_inspection_truth_bundle(
+        &runtime,
+        &BranchId("feature".to_string()),
+        entity,
+        created.version_id,
+    );
+
+    let plan = runtime.durability_access().recovery_plan();
+    let mut recovered = persisted_runtime_with_test_schema();
+    recovered.durability_authority().recover(plan).unwrap();
+    let actual = capture_inspection_truth_bundle(
+        &recovered,
+        &BranchId("feature".to_string()),
+        entity,
+        created.version_id,
+    );
+
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn durability_contract_live_branch_pin_counts_match_branch_head_membership() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    let created = create_entity_outcome(&mut runtime, "source");
+    let entity = changed_entities(&created)[0];
+    let inspection = runtime.inspection_access();
+    assert_eq!(
+        inspection
+            .inspect_record_retention(RecordRef::Entity(entity))
+            .expect("entity retention after create")
+            .pins
+            .branch_pins,
+        1
+    );
+
+    runtime
+        .history_authority()
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
+        .unwrap();
+    let inspection = runtime.inspection_access();
+    assert_eq!(
+        inspection
+            .inspect_record_retention(RecordRef::Entity(entity))
+            .expect("entity retention after branch create")
+            .pins
+            .branch_pins,
+        2
+    );
+
+    update_entity(&mut runtime, entity, "main");
+    let inspection = runtime.inspection_access();
+    assert_eq!(
+        inspection
+            .inspect_record_retention(RecordRef::Entity(entity))
+            .expect("entity retention after main update")
+            .pins
+            .branch_pins,
+        2
+    );
+
+    update_entity_on_branch(
+        &mut runtime,
+        entity,
+        "feature",
+        BranchId("feature".to_string()),
+    );
+    let inspection = runtime.inspection_access();
+    assert_eq!(
+        inspection
+            .inspect_record_retention(RecordRef::Entity(entity))
+            .expect("entity retention after feature update")
+            .pins
+            .branch_pins,
+        2
+    );
 }
 
 #[test]

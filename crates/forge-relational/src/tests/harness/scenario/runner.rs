@@ -174,7 +174,7 @@ pub(crate) fn run_seeded_scenario(config: SeededScenarioConfig) -> SeededScenari
             .map(|interval| (step + 1) % interval == 0)
             .unwrap_or(false)
         {
-            let _ = runtime.retention_access().run_pass();
+            let _ = runtime.retention_authority().run_pass();
             operations.push(ScenarioOperation::RunRetentionPass);
         }
 
@@ -543,7 +543,7 @@ fn apply_operation(
             }
         }
         ScenarioOperation::RunRetentionPass => {
-            let _ = runtime.retention_access().run_pass();
+            let _ = runtime.retention_authority().run_pass();
             refresh_live_world(runtime, entities, relations);
         }
         ScenarioOperation::DurableCheckpoint | ScenarioOperation::CompactDurableStore => {}

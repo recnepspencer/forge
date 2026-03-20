@@ -1,4 +1,6 @@
 use crate::facade::*;
+use crate::diagnostics::{ExplanationFact, ProvenanceFact};
+use crate::data::dependency::DependencySnapshot;
 use crate::tests::support::*;
 
 #[test]
@@ -1401,6 +1403,383 @@ fn snapshot_contract_accepts_matching_schema_and_rejects_profile_or_schema_misma
     assert!(
         wrong_schema_err.to_string().contains("schema version"),
         "schema mismatch should fail explicitly"
+    );
+}
+
+#[test]
+fn snapshot_artifact_retention_policy_changes_richness_not_restore_truth() {
+    let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(SignalRuntimePolicy::development());
+    let node = graph.node().output_identity().build();
+
+    evaluate(&mut graph, node, &mut |_id, _graph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+            .with_output_identity("snapshot-richness")
+            .with_label("retained"))
+    })
+    .unwrap();
+    let retained_explanation = graph
+        .observe()
+        .materialize_explanation_artifact(node)
+        .unwrap()
+        .0
+        .expect("development policy should materialize explanation artifacts");
+    graph
+        .diagnostics_state_mut()
+        .record_explanation_fact(ExplanationFact::from_explanation(&retained_explanation));
+    graph
+        .diagnostics_state_mut()
+        .record_provenance_fact(ProvenanceFact::from_explanation(&retained_explanation));
+
+    let retained_snapshot = graph.capture_snapshot();
+    assert_eq!(
+        retained_snapshot.meta.artifact_retention.explanation_retention,
+        ArtifactRetentionPolicy::Retain
+    );
+    assert_eq!(
+        retained_snapshot.meta.artifact_retention.provenance_retention,
+        ArtifactRetentionPolicy::Retain
+    );
+    assert!(
+        retained_snapshot
+            .diagnostics
+            .explanation_facts
+            .contains_key(&node),
+        "development snapshot capture should retain explanation facts eagerly"
+    );
+    assert!(
+        retained_snapshot
+            .diagnostics
+            .provenance_facts
+            .contains_key(&node),
+        "development snapshot capture should retain provenance facts eagerly"
+    );
+
+    graph.set_runtime_policy(
+        SignalRuntimePolicy::operational()
+            .with_explanation_retention(ArtifactRetentionPolicy::Omit)
+            .with_provenance_retention(ArtifactRetentionPolicy::Omit),
+    );
+    let omitted_snapshot = graph.capture_snapshot();
+    assert_eq!(
+        omitted_snapshot.meta.artifact_retention.explanation_retention,
+        ArtifactRetentionPolicy::Omit
+    );
+    assert_eq!(
+        omitted_snapshot.meta.artifact_retention.provenance_retention,
+        ArtifactRetentionPolicy::Omit
+    );
+    assert!(
+        omitted_snapshot.diagnostics.explanation_facts.is_empty(),
+        "snapshot capture should omit cold explanation richness under an omit policy"
+    );
+    assert!(
+        omitted_snapshot.diagnostics.provenance_facts.is_empty(),
+        "snapshot capture should omit cold provenance richness under an omit policy"
+    );
+
+    mark_dirty(&mut graph, node, ASPECT_A).unwrap();
+    evaluate(&mut graph, node, &mut |_id, _graph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(2, 0))
+            .with_output_identity("snapshot-richness-2"))
+    })
+    .unwrap();
+    assert_eq!(
+        graph
+            .get_entry(node)
+            .unwrap()
+            .get_aspect_version()
+            .get(ASPECT_A),
+        2
+    );
+
+    graph.restore_snapshot(&omitted_snapshot).unwrap();
+
+    assert_eq!(
+        graph
+            .get_entry(node)
+            .unwrap()
+            .get_aspect_version()
+            .get(ASPECT_A),
+        1,
+        "snapshot restore should rewind operational truth even when cold artifact richness was omitted"
+    );
+    let (explanation, materialization_mode) =
+        graph.observe().materialize_explanation_artifact(node).unwrap();
+    assert!(
+        explanation.is_none(),
+        "omitted snapshot richness should remain absent after restore under the active runtime policy"
+    );
+    assert_eq!(materialization_mode, ArtifactMaterializationMode::Unavailable);
+}
+
+#[test]
+fn branch_snapshot_records_explicit_artifact_retention_for_non_active_branches() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let node = runtime.graph_mut().node().output_identity().build();
+    let mut runtime_ctx = ();
+
+    runtime.set_runtime_policy(SignalRuntimePolicy::development());
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(node, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 0))
+                        .with_output_identity("branch-retain")
+                        .with_label("retain"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime.create_branch("feature-retention").unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    runtime.set_runtime_policy(
+        SignalRuntimePolicy::operational()
+            .with_explanation_retention(ArtifactRetentionPolicy::Omit)
+            .with_provenance_retention(ArtifactRetentionPolicy::Omit),
+    );
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(node, ASPECT_A)?;
+            tx.read(node, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(2, 0))
+                        .with_output_identity("branch-omit"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main).unwrap();
+
+    let feature_snapshot = runtime.capture_branch_snapshot(feature).unwrap();
+    assert_eq!(
+        feature_snapshot.meta.artifact_retention.explanation_retention,
+        ArtifactRetentionPolicy::Omit
+    );
+    assert_eq!(
+        feature_snapshot.meta.artifact_retention.provenance_retention,
+        ArtifactRetentionPolicy::Omit
+    );
+    assert!(
+        feature_snapshot.diagnostics.explanation_facts.is_empty(),
+        "non-active branch snapshots should respect the branch-local snapshot artifact retention contract"
+    );
+    assert!(
+        feature_snapshot.diagnostics.provenance_facts.is_empty(),
+        "non-active branch snapshots should not retain omitted provenance richness"
+    );
+}
+
+#[test]
+fn restore_snapshot_with_active_policy_prunes_cold_richness_without_changing_operational_truth() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let node = runtime.graph_mut().node().output_identity().build();
+    let mut runtime_ctx = ();
+
+    runtime.set_runtime_policy(SignalRuntimePolicy::development());
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(node, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 0))
+                        .with_output_identity("restore-policy")
+                        .with_label("retained"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let explanation = runtime
+        .observe()
+        .materialize_explanation_artifact(node)
+        .unwrap()
+        .0
+        .expect("development policy should materialize explanation");
+    runtime
+        .graph_mut()
+        .diagnostics_state_mut()
+        .record_explanation_fact(ExplanationFact::from_explanation(&explanation));
+    runtime
+        .graph_mut()
+        .diagnostics_state_mut()
+        .record_provenance_fact(ProvenanceFact::from_explanation(&explanation));
+
+    let snapshot = runtime.capture_snapshot();
+    assert!(
+        snapshot.diagnostics.explanation_facts.contains_key(&node),
+        "captured snapshot should include retained explanation richness"
+    );
+
+    runtime.set_runtime_policy(
+        SignalRuntimePolicy::operational()
+            .with_explanation_retention(ArtifactRetentionPolicy::Omit)
+            .with_provenance_retention(ArtifactRetentionPolicy::Omit),
+    );
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(node, ASPECT_A)?;
+            tx.read(node, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(2, 0))
+                        .with_output_identity("restore-policy-updated"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let restore_plan = runtime
+        .graph()
+        .plan_snapshot_restore(
+            &snapshot,
+            SnapshotRestoreIntent::restore_runtime_truth_with_active_policy(),
+        )
+        .unwrap();
+    runtime
+        .restore_snapshot_with_intent(
+            &snapshot,
+            SnapshotRestoreIntent::restore_runtime_truth_with_active_policy(),
+        )
+        .unwrap();
+
+    assert_eq!(
+        runtime
+            .graph()
+            .get_entry(node)
+            .unwrap()
+            .get_aspect_version()
+            .get(ASPECT_A),
+        1,
+        "active-policy restore should still rewind operational state"
+    );
+    let (artifact, materialization_mode) = runtime
+        .observe()
+        .materialize_explanation_artifact(node)
+        .unwrap();
+    assert!(artifact.is_none());
+    assert_eq!(materialization_mode, ArtifactMaterializationMode::Unavailable);
+    assert!(
+        runtime.observe().metrics().checkpoint.snapshot_restore_count >= 1,
+        "restore intent should be visible in checkpoint telemetry"
+    );
+    assert!(
+        runtime
+            .observe()
+            .metrics()
+            .checkpoint
+            .snapshot_restore_apply_active_policy_count
+            >= 1,
+        "active-policy restore should be counted explicitly for certification"
+    );
+    assert_eq!(
+        runtime
+            .observe()
+            .metrics()
+            .checkpoint
+            .snapshot_restore_shared_delta_node_count,
+        restore_plan.dependency_snapshot_delta_node_count,
+        "runtime restore counters should report the same shared-node delta breadth as the canonical restore plan"
+    );
+    assert_eq!(
+        runtime
+            .observe()
+            .metrics()
+            .checkpoint
+            .snapshot_restore_coarse_reason_count,
+        restore_plan.coarse_reasons.len() as u64,
+        "runtime restore counters should report the same coarse restore reason count as the canonical restore plan"
+    );
+}
+
+#[test]
+fn restore_snapshot_rejects_seed_recomputation_intent_before_mutation() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().output_identity().build();
+
+    evaluate(&mut graph, node, &mut |_id, _graph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("seed-test"))
+    })
+    .unwrap();
+    let snapshot = graph.capture_snapshot();
+
+    mark_dirty(&mut graph, node, ASPECT_A).unwrap();
+    let err = graph
+        .restore_snapshot_with_intent(
+            &snapshot,
+            SnapshotRestoreIntent {
+                state: SnapshotStateRestoreMode::RewindActiveState,
+                artifacts: SnapshotArtifactRestoreMode::RestoreCapturedRetention,
+                dependency_state: SnapshotDependencyRestoreMode::SeedRecomputationFromSnapshot,
+            },
+        )
+        .unwrap_err();
+
+    assert!(
+        err.to_string()
+            .contains("SeedRecomputationFromSnapshot"),
+        "unsupported recomputation-seed restore intent should fail explicitly"
+    );
+    assert_eq!(
+        graph.get_state(node).unwrap(),
+        NodeState::Dirty,
+        "unsupported restore intent must fail before mutating operational graph state"
+    );
+}
+
+#[test]
+fn snapshot_restore_plan_reports_shared_delta_and_coarse_requirements() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().output_identity().build();
+    let target = graph.node().build();
+    graph.append_dependency(target, source, ASPECT_A).unwrap();
+
+    evaluate(&mut graph, source, &mut |_id, _graph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("plan-source"))
+    })
+    .unwrap();
+    evaluate(&mut graph, target, &mut |_id, graph| {
+        Ok(NodeEvaluationResult::from_version(
+            graph.get_entry(source).unwrap().get_aspect_version(),
+        ))
+    })
+    .unwrap();
+
+    let snapshot = graph.capture_snapshot();
+
+    let mut updated_snapshot = DependencySnapshot::empty();
+    updated_snapshot.record(source, ASPECT_A, 9, None);
+    graph.set_dep_snapshot(target, updated_snapshot).unwrap();
+
+    let plan = graph
+        .plan_snapshot_restore(&snapshot, SnapshotRestoreIntent::restore_runtime_truth())
+        .unwrap();
+
+    assert_eq!(plan.shared_node_count, 2);
+    assert_eq!(plan.current_only_node_count, 0);
+    assert_eq!(plan.snapshot_only_node_count, 0);
+    assert_eq!(plan.dependency_snapshot_delta_node_count, 1);
+    assert_eq!(plan.dependency_snapshot_batch.pending().as_slice().len(), 1);
+    assert!(plan.coarse_replacement_required);
+    assert!(plan
+        .coarse_reasons
+        .contains(&SnapshotRestoreCoarseReason::EntryStateRewind));
+    assert!(plan
+        .coarse_reasons
+        .contains(&SnapshotRestoreCoarseReason::DiagnosticsHistoryRestore));
+    assert!(
+        !plan
+            .coarse_reasons
+            .contains(&SnapshotRestoreCoarseReason::NodeSetDifference),
+        "shared-node-only restore planning should not claim node-set mismatch when node sets still align"
     );
 }
 

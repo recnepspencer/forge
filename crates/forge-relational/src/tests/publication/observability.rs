@@ -147,7 +147,7 @@ fn publication_snapshot_handle_reads_without_becoming_a_pinned_snapshot() {
     let mut runtime = runtime_with_test_schema();
     let outcome = create_entity_outcome(&mut runtime, "first");
 
-    let retention = runtime.retention_access().inspect_plan();
+    let retention = runtime.retention_authority().inspect_plan();
     let read = runtime
         .visibility_reads()
         .read_snapshot(&outcome.snapshot)

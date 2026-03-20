@@ -56,7 +56,10 @@ pub mod types {
     };
     pub use crate::state::{
         SignalBranchHandle, SignalBranchId, SignalSnapshotDiagnostics, SignalSnapshotId,
-        SignalSnapshotMeta, SignalSnapshotV1,
+        SignalSnapshotMeta, SignalSnapshotV1, SnapshotArtifactRestoreMode,
+        SnapshotArtifactRetentionPolicy, SnapshotDependencyRestoreMode,
+        SnapshotRestoreCoarseReason, SnapshotRestoreIntent, SnapshotRestorePlan,
+        SnapshotStateRestoreMode,
     };
 }
 

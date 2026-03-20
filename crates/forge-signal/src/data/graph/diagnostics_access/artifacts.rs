@@ -4,7 +4,11 @@ use crate::data::handle::NodeId;
 use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
 use crate::diagnostics::policy::ArtifactMaterializationMode;
 use crate::logic::explain::{explain, NodeExplanation};
-use crate::state::{SignalSnapshotMeta, SignalSnapshotV1};
+use crate::state::{
+    SignalSnapshotMeta, SignalSnapshotV1, SnapshotArtifactRetentionPolicy,
+    SnapshotArtifactRestoreMode, SnapshotDependencyRestoreMode, SnapshotRestoreIntent,
+    SnapshotRestoreCoarseReason, SnapshotRestorePlan,
+};
 
 impl SignalGraph {
     pub(crate) fn explanation_fact(&self, node: NodeId) -> Option<&ExplanationFact> {
@@ -17,7 +21,10 @@ impl SignalGraph {
 
     pub fn capture_snapshot(&mut self) -> SignalSnapshotV1 {
         let policy = self.runtime_policy();
-        let meta = self.diagnostics_state_mut().allocate_snapshot_meta(policy);
+        let artifact_retention = SnapshotArtifactRetentionPolicy::from_runtime_policy(policy);
+        let meta = self
+            .diagnostics_state_mut()
+            .allocate_snapshot_meta(policy, artifact_retention);
         crate::diagnostics::recorder::record_snapshot_event(
             self,
             crate::diagnostics::replay::ReplayEventKind::SnapshotCaptured,
@@ -27,7 +34,9 @@ impl SignalGraph {
         SignalSnapshotV1 {
             meta,
             graph: self.clone(),
-            diagnostics: self.diagnostics_state().snapshot_payload(),
+            diagnostics: self
+                .diagnostics_state()
+                .snapshot_payload_with_retention(artifact_retention),
             graph_telemetry: self.telemetry().clone(),
             runtime_telemetry: None,
             reconstructability: None,
@@ -57,8 +66,80 @@ impl SignalGraph {
     }
 
     pub fn restore_snapshot(&mut self, snapshot: &SignalSnapshotV1) -> Result<(), SignalError> {
+        self.restore_snapshot_with_intent(snapshot, SnapshotRestoreIntent::restore_runtime_truth())
+    }
+
+    pub fn plan_snapshot_restore(
+        &self,
+        snapshot: &SignalSnapshotV1,
+        intent: SnapshotRestoreIntent,
+    ) -> Result<SnapshotRestorePlan, SignalError> {
         self.validate_snapshot_compatibility(snapshot)?;
+
+        let mut shared_node_count = 0_u64;
+        let mut current_only_node_count = 0_u64;
+        for index in 0..self.arena_capacity() {
+            let Some(node) = self.live_node_id_at(index) else {
+                continue;
+            };
+            if snapshot.graph.is_alive(node) {
+                shared_node_count += 1;
+            } else {
+                current_only_node_count += 1;
+            }
+        }
+
+        let mut snapshot_only_node_count = 0_u64;
+        for index in 0..snapshot.graph.arena_capacity() {
+            let Some(node) = snapshot.graph.live_node_id_at(index) else {
+                continue;
+            };
+            if !self.is_alive(node) {
+                snapshot_only_node_count += 1;
+            }
+        }
+
+        let dependency_snapshot_batch =
+            self.derive_dependency_snapshot_restore_batch(&snapshot.graph)?;
+        let dependency_snapshot_delta_node_count =
+            dependency_snapshot_batch.target_nodes().as_slice().len() as u64;
+        let mut coarse_reasons = vec![
+            SnapshotRestoreCoarseReason::EntryStateRewind,
+            SnapshotRestoreCoarseReason::DiagnosticsHistoryRestore,
+        ];
+        if current_only_node_count > 0 || snapshot_only_node_count > 0 {
+            coarse_reasons.push(SnapshotRestoreCoarseReason::NodeSetDifference);
+        }
+
+        Ok(SnapshotRestorePlan {
+            intent,
+            shared_node_count,
+            current_only_node_count,
+            snapshot_only_node_count,
+            dependency_snapshot_batch,
+            dependency_snapshot_delta_node_count,
+            coarse_replacement_required: true,
+            coarse_reasons,
+        })
+    }
+
+    pub fn restore_snapshot_with_intent(
+        &mut self,
+        snapshot: &SignalSnapshotV1,
+        intent: SnapshotRestoreIntent,
+    ) -> Result<(), SignalError> {
+        let restore_plan = self.plan_snapshot_restore(snapshot, intent)?;
+        self.validate_snapshot_compatibility(snapshot)?;
+        if matches!(
+            intent.dependency_state,
+            SnapshotDependencyRestoreMode::SeedRecomputationFromSnapshot
+        ) {
+            return Err(SignalError::invalid_input(
+                "snapshot restore intent `SeedRecomputationFromSnapshot` is not implemented yet",
+            ));
+        }
         let current_diagnostics = self.observation.diagnostics.clone();
+        let current_policy = current_diagnostics.policy();
         let mut restored = snapshot.graph.clone();
         restored.observation.telemetry = snapshot.graph_telemetry.clone();
         restored
@@ -68,7 +149,31 @@ impl SignalGraph {
                 snapshot.diagnostics.clone(),
                 &current_diagnostics,
             );
+        match intent.artifacts {
+            SnapshotArtifactRestoreMode::RestoreCapturedRetention => {}
+            SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy => {
+                restored
+                    .observation
+                    .diagnostics
+                    .set_policy(current_policy);
+            }
+        }
         *self = restored;
+        self.telemetry_mut().checkpoint.snapshot_restore_count += 1;
+        if matches!(
+            intent.artifacts,
+            SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy
+        ) {
+            self.telemetry_mut()
+                .checkpoint
+                .snapshot_restore_apply_active_policy_count += 1;
+        }
+        self.telemetry_mut()
+            .checkpoint
+            .snapshot_restore_shared_delta_node_count +=
+            restore_plan.dependency_snapshot_delta_node_count;
+        self.telemetry_mut().checkpoint.snapshot_restore_coarse_reason_count +=
+            restore_plan.coarse_reasons.len() as u64;
         crate::diagnostics::recorder::record_snapshot_restore_lineage(
             self,
             snapshot.meta.snapshot_id,
@@ -76,7 +181,7 @@ impl SignalGraph {
         Ok(())
     }
 
-    pub(crate) fn explain_artifact(
+    pub(crate) fn materialize_explanation_artifact(
         &self,
         node: NodeId,
     ) -> Result<(Option<NodeExplanation>, ArtifactMaterializationMode), SignalError> {
@@ -94,7 +199,7 @@ impl SignalGraph {
         Ok((None, ArtifactMaterializationMode::Unavailable))
     }
 
-    pub(crate) fn provenance_artifact(
+    pub(crate) fn materialize_provenance_artifact(
         &self,
         node: NodeId,
     ) -> Result<(Option<ProvenanceFact>, ArtifactMaterializationMode), SignalError> {

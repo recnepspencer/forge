@@ -476,6 +476,30 @@ fn complexity_delta(
         retention_relation_slots_scanned: after
             .retention_relation_slots_scanned
             .saturating_sub(before.retention_relation_slots_scanned),
+        inspection_structural_identity_lookups: after
+            .inspection_structural_identity_lookups
+            .saturating_sub(before.inspection_structural_identity_lookups),
+        inspection_structural_identity_query_scans: after
+            .inspection_structural_identity_query_scans
+            .saturating_sub(before.inspection_structural_identity_query_scans),
+        inspection_graph_summary_requests: after
+            .inspection_graph_summary_requests
+            .saturating_sub(before.inspection_graph_summary_requests),
+        inspection_kind_summary_requests: after
+            .inspection_kind_summary_requests
+            .saturating_sub(before.inspection_kind_summary_requests),
+        inspection_connectivity_summary_requests: after
+            .inspection_connectivity_summary_requests
+            .saturating_sub(before.inspection_connectivity_summary_requests),
+        inspection_neighbor_requests: after
+            .inspection_neighbor_requests
+            .saturating_sub(before.inspection_neighbor_requests),
+        inspection_historical_view_opens: after
+            .inspection_historical_view_opens
+            .saturating_sub(before.inspection_historical_view_opens),
+        inspection_commit_reads: after
+            .inspection_commit_reads
+            .saturating_sub(before.inspection_commit_reads),
         live_entity_history_entries_trimmed: after
             .live_entity_history_entries_trimmed
             .saturating_sub(before.live_entity_history_entries_trimmed),

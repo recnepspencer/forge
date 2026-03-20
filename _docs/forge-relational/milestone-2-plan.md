@@ -1121,15 +1121,11 @@ Status markers:
   `tests::publication::cdc::savepoint_residue::savepoint_abandoned_work_never_appears_in_subscriber_cdc`
   `tests::publication::cdc::certification::cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth`
 
-- `[Partial]` Hostile commit/replay equivalence over aspect-bearing mixed workloads
+- `[Covered]` Hostile commit/replay equivalence over aspect-bearing mixed workloads
   Current coverage:
   `tests::history::replay::replay_contract_success_reproduces_canonical_surfaces`
   `tests::publication::cdc::replay_parity::subscriber_stream_matches_patch_stream_for_committed_history`
-  Gap:
-  no dedicated Milestone 2 hostile lane yet proves aspect-bearing
-  `truth_digest` / `patch_digest` / `replay_digest` / `diagnostics_digest` /
-  `query_surface_digest` equivalence across original run, replay, suffix replay,
-  and durable reconstruction in one scenario
+  `tests::history::replay::replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_workload`
 
 ### Savepoint / Rollback Hostility
 
@@ -1142,13 +1138,10 @@ Status markers:
   `tests::publication::cdc::savepoint_residue::savepoint_abandoned_work_never_appears_in_subscriber_cdc`
   `tests::publication::cdc::certification::cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth`
 
-- `[Partial]` Aspect-bearing nested savepoint fracture
+- `[Covered]` Aspect-bearing nested savepoint fracture
   Current coverage:
   basic rollback and CDC residue lanes above
-  Gap:
-  no dedicated Milestone 2 test yet exercises nested savepoints with entity and
-  relation aspect changes, alternate surviving paths, and explicit proof that
-  patch/history/lineage diagnostics contain zero abandoned aspect residue
+  `tests::publication::cdc::savepoint_residue::nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_lineage_residue`
 
 ### Deterministic Observability / Scheduling
 
@@ -1167,6 +1160,7 @@ Status markers:
 - `[Partial]` Aspect trace and diagnostics ordering under hostile scheduling
   Current coverage:
   parity and observability lanes above
+  `tests::publication::observability::aspect_traces_and_diagnostics_are_stable_across_supported_execution_models`
   Gap:
   no explicit Milestone 2 test yet proves aspect evaluation traces, aspect
   emission traces, and aspect-history diagnostics remain byte-for-byte stable
@@ -1194,9 +1188,19 @@ Status markers:
 - `[Partial]` Relation endpoint rewiring history as durable aspect truth
   Current coverage:
   relation endpoint aspect emission is covered on commit
+  `tests::profiles::compiled_artifacts::chip_profile_declared_aspect_fanout_preserves_endpoint_history_for_netlist_like_shapes`
   Gap:
   no dedicated Milestone 2 history test yet proves source/target-bound relation
   aspect rewires remain historically queryable from durable truth alone
+  Disposition:
+  deferred to Milestone 7B in
+  [forge_relational_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-relational/forge_relational_roadmap.md)
+  because Milestone 2 defines endpoint-bound aspect truth but does not define
+  first-class relation rewiring as an authoritative mutation/reconciliation
+  capability. Milestone 2 must preserve truthful endpoint-bound aspect
+  semantics for supported relation changes and must not block later rewiring
+  implementation, but it is not required to invent a full rewire product
+  surface ahead of the roadmap milestone that owns it.
 
 ### Bulk Query / Traversal Pressure
 
@@ -1211,13 +1215,10 @@ Status markers:
   `tests::query::relation_scans::relation_kind_scans_return_only_visible_relations_of_that_kind`
   complexity budget lanes under `tests::complexity::contracts::visibility_budgets`
 
-- `[Partial]` Aspect-filtered bulk stress truth
+- `[Covered]` Aspect-filtered bulk stress truth
   Current coverage:
   record-local aspect history filter coverage exists
-  Gap:
-  no dedicated hostile bulk graph lane yet proves aspect-filtered bulk reads and
-  traversals stay canonical, path-parity-safe, and proportional under large
-  cyclic relation workloads
+  `tests::history::queries::bulk_like_aspect_history_filters_and_query_packets_stay_stable_after_recovery`
 
 ### Durable Recovery / Schema Mismatch
 
@@ -1232,31 +1233,34 @@ Status markers:
   Current coverage:
   `tests::durability::contracts::durability_contract_recovery_preserves_merge_parent_order`
 
-- `[Partial]` Aspect-plan mismatch and aspect-bearing durable recovery
+- `[Covered]` Aspect-plan mismatch and aspect-bearing durable recovery
   Current coverage:
   schema mismatch coverage exists generically
-  Gap:
-  no dedicated Milestone 2 lane yet proves aspect-bearing durable recovery and
-  explicit failure when `AspectPlanRevision` or aspect-bearing kind declarations
-  disagree across recovery/replay boundaries
+  `tests::durability::contracts::durability_contract_recovery_preserves_aspect_bearing_patch_truth_and_history`
+  `tests::durability::contracts::durability_contract_failure_aspect_plan_mismatch_is_explicit`
 
 ### Domain Hostility
 
-- `[Partial]` Topology identity survival pressure
+- `[Covered]` Topology identity survival pressure
   Current coverage:
   `tests::profiles::compiled_artifacts::compiled_artifact_rejects_stale_topology_after_later_commit`
-  Gap:
-  the roadmap-named topology identity survival lane is not yet a dedicated
-  Milestone 2 certification scenario proving topology-adjacent rewiring history
-  through aspect-bearing durable truth
+  `tests::profiles::compiled_artifacts::chip_profile_branch_local_topology_pressure_preserves_relation_history_isolation`
 
 - `[Partial]` Netlist rewiring identity and history pressure
   Current coverage:
   relation endpoint aspect semantics and history foundations are implemented
+  `tests::profiles::compiled_artifacts::chip_profile_declared_aspect_fanout_preserves_endpoint_history_for_netlist_like_shapes`
   Gap:
   the roadmap-named netlist rewiring lane is not yet represented by a dedicated
   hostile scenario proving historically queryable rewiring deltas and
   connectivity-parity outputs
+  Disposition:
+  deferred to Milestone 7B in
+  [forge_relational_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-relational/forge_relational_roadmap.md)
+  because the roadmap places first-class rewiring/merge/reconciliation
+  semantics later than Milestone 2. Milestone 2 owns the endpoint-bound aspect
+  truth foundation that netlist rewiring will consume, but not the full
+  domain-grade rewiring capability itself.
 
 ### Closeout Standard
 
@@ -1266,6 +1270,24 @@ above are either:
 1. upgraded to `[Covered]` by named tests or certification lanes, or
 2. explicitly deferred into the roadmap with a written reason that does not
    compromise the semantic claims of Milestone 2 itself
+
+For avoidance of doubt, the two rewiring-oriented partials above are now
+explicitly deferred rather than left unresolved:
+
+- relation endpoint rewiring history as a full first-class capability is owned
+  by Milestone 7B
+- netlist rewiring identity/history pressure as a product/domain lane is owned
+  by Milestone 7B and later domain certification work
+
+Milestone 2 still owns and must preserve all prerequisite truth semantics for
+that later work:
+
+- endpoint-bound aspect declaration and lowering
+- endpoint-bound canonical commit-time delta computation
+- durable storage/publication of endpoint-bound aspect changes for supported
+  relation mutations
+- historical/query/diagnostic consumption of committed endpoint-bound aspect
+  truth without payload rescans
 
 ## Milestone 2 Closeout Program
 

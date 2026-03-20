@@ -8,12 +8,12 @@ pub use computation::{ComputationSpec, DefinedComputation, DefinedKeyedComputati
 pub use config::SignalRuntimeConfig;
 pub use state::{CheckpointRecord, JournalSegment, ReconstructabilityRecord, RuntimeObserver, SignalRuntime, SignalRuntimeBuilder};
 pub use state::{
-    ArtifactMergeAction, ArtifactMergeComparable, BranchMergeBase,
+    ArtifactMergeAction, ArtifactMergeComparable, BranchConflictResolutionPlan, BranchMergeBase,
     BranchMergeConflictEvidence, BranchMergeConflictKind, BranchMergeConflictRecord,
     BranchMergeConflictSummary, BranchMergeCounters, BranchMergeDivergence,
     BranchMergeExecutionSummary, BranchMergeKind, BranchMergePlan,
     BranchMergeReconciliationPolicy, BranchMergeRequest, BranchMergeResolutionRequirement,
-    BranchMergeResult,
+    BranchMergeResult, ConflictResolutionRecord, ConflictResolutionStrategy,
     BranchMergeStrategy, BranchMergeFailureKind, BranchMutationJournalSlice,
     BranchMutationLedger, ConflictMergePolicy, DependencyFingerprint,
     DependencyRemapRecord, ExistingTargetMergePolicy, MergeCandidateScope,

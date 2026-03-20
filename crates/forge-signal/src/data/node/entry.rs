@@ -7,9 +7,10 @@ use crate::data::dependency::DependencySnapshotId;
 use crate::data::graph::{DependencySetId, SubscriberSetId};
 use crate::data::output::{ChangedRegion, PartitionSubscription};
 use crate::data::trace::{
-    ArtifactMergeAuthority, CausalityMetadata, HistoricalArtifactRecord,
-    RetainedDiagnosticArtifact, RuntimeArtifactState, TraceSummary,
+    ArtifactWriteDelta, CausalityMetadata, RetainedDiagnosticArtifact, RuntimeArtifactState,
 };
+#[cfg(test)]
+use crate::data::trace::{ArtifactMergeAuthority, TraceSummary};
 
 use super::condition::NodeEvaluationConfig;
 
@@ -278,35 +279,16 @@ impl NodeEntry {
         self.trim_cold_if_empty();
     }
 
-    /// Cold historical artifact record assembled from the hot runtime lane and
-    /// retained diagnostic payload.
-    pub fn historical_artifact_record(
-        &self,
-        node: crate::data::handle::NodeId,
-    ) -> Option<HistoricalArtifactRecord> {
-        Some(HistoricalArtifactRecord {
-            node,
-            runtime: self.get_runtime_artifact_state()?.clone(),
-            retained: self.retained_diagnostic_artifact().cloned(),
-            causality: self.get_causality().cloned(),
-        })
-    }
-
-    /// Materialized trace summary assembled for explanation and reporting.
-    pub fn materialize_trace_summary(&self) -> Option<TraceSummary> {
-        Some(TraceSummary::from_parts(
-            self.get_runtime_artifact_state()?,
-            self.retained_diagnostic_artifact(),
-        ))
-    }
-
-    /// Materialized trace summary assembled for explanation and reporting.
-    pub fn get_trace_summary(&self) -> Option<TraceSummary> {
-        self.materialize_trace_summary()
+    /// Apply explicit hot/cold artifact lane updates without implying that the
+    /// lanes are a single ambient payload.
+    pub fn apply_artifact_write_delta(&mut self, delta: ArtifactWriteDelta) {
+        self.set_runtime_artifact_state(delta.runtime);
+        self.set_retained_diagnostic_artifact(delta.retained);
     }
 
     /// Split a materialized trace summary back into runtime and retained
     /// storage lanes.
+    #[cfg(test)]
     pub fn set_trace_summary(&mut self, summary: Option<TraceSummary>) {
         match summary {
             Some(summary) => {

@@ -1,4 +1,3 @@
-use crate::authority::mutation::aspect_versions::write_entity_aspect_versions;
 use crate::authority::mutation::outcomes::MutationOutcome;
 use crate::authority::mutation::record_changes::{allocate_entity, delete_entity_with_cascade};
 use crate::authority::mutation::stale_targets::ensure_entity_target_is_current;
@@ -32,13 +31,6 @@ pub(super) fn apply(
         context.state.mark_entity_slot_touched(
             replacement_id.partition_id,
             replacement_id.local_slot.0 as usize,
-        );
-        write_entity_aspect_versions(
-            context.state,
-            replacement_id,
-            version_id,
-            &intent.replacement.payload,
-            context.symbols,
         );
         Ok::<_, CommitConflict>(replacement_id)
     })?;

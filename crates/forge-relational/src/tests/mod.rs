@@ -3,6 +3,7 @@ mod domains;
 mod durability;
 mod harness;
 mod history;
+mod inspection;
 mod lineage;
 mod profiles;
 mod public_api;

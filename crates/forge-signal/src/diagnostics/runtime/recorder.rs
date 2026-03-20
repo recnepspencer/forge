@@ -137,14 +137,25 @@ pub fn record_branch_merge_summary(
 ) {
     let source_branch_display_name = source_branch_display_name.into();
     let target_branch_display_name = target_branch_display_name.into();
+    let resolved_requirements = summary
+        .resolution_plan
+        .as_ref()
+        .map(|plan| {
+            plan.records
+                .iter()
+                .flat_map(|record| record.required_resolution.iter().copied())
+                .collect::<std::collections::BTreeSet<_>>()
+        })
+        .unwrap_or_default();
     let detail = format!(
-        "merged branch {} into {} with {:?}/{:?}/{:?}/{:?}",
+        "merged branch {} into {} with {:?}/{:?}/{:?}/{:?}, resolved_requirements={:?}",
         summary.source_branch_id.0,
         summary.target_branch_id.0,
         summary.merge_kind,
         summary.divergence,
         summary.merge_strategy,
-        summary.reconciliation_policy
+        summary.reconciliation_policy,
+        resolved_requirements
     );
     let cursor = graph.diagnostics_state_mut().allocate_replay_cursor();
     let branch_id = graph.observe().current_branch().id;
@@ -174,6 +185,7 @@ pub fn record_branch_merge_summary(
             summary.divergence,
             summary.merge_strategy,
             summary.reconciliation_policy,
+            summary.resolution_plan.clone(),
             summary.target_snapshot_id_after,
             source_branch_display_name.clone(),
             target_branch_display_name.clone(),
@@ -199,6 +211,7 @@ pub fn record_branch_merge_summary(
                 summary.divergence,
                 summary.merge_strategy,
                 summary.reconciliation_policy,
+                record.resolved_conflict_kinds.clone(),
             ));
     }
 }

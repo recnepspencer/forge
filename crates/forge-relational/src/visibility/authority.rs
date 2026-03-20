@@ -123,7 +123,7 @@ impl<'runtime> VisibilityAuthority<'runtime> {
             if self.runtime.config.storage.mvcc.snapshot_release_policy
                 == crate::config::data::SnapshotReleasePolicy::ReleaseOnRetentionPass
             {
-                let _ = self.runtime.retention_access().run_pass();
+                let _ = self.runtime.retention_authority().run_pass();
             }
             return true;
         }

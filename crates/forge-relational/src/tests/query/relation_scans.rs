@@ -104,3 +104,28 @@ fn relation_kind_scans_are_deterministic_across_equivalent_insert_order() {
             .collect::<Vec<_>>()
     );
 }
+
+#[test]
+fn relation_aspects_at_version_follow_declared_contract_not_payload_shape() {
+    let mut runtime =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let left = create_entity(&mut runtime, "left");
+    let right = create_entity(&mut runtime, "right");
+    let relation = create_relation(&mut runtime, left, right, "declared");
+    let version_id = runtime.history_access().latest_commit().unwrap().version_id;
+
+    let aspects = runtime
+        .visibility_reads()
+        .relation_aspects_at_version(relation, version_id)
+        .unwrap();
+
+    assert_eq!(
+        aspects,
+        vec![
+            AspectKey(InternedString::Raw("label".to_string())),
+            AspectKey(InternedString::Raw("lifecycle".to_string())),
+            AspectKey(InternedString::Raw("source".to_string())),
+            AspectKey(InternedString::Raw("target".to_string())),
+        ]
+    );
+}

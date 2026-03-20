@@ -4,11 +4,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::core_profile::CORE_STORAGE_PROFILE_ID;
 use crate::data::graph::SignalGraph;
+use crate::data::proof::SnapshotBatchCommit;
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
 use crate::diagnostics::flow::FlowSummary;
 use crate::diagnostics::lineage::LineageRecord;
-use crate::diagnostics::policy::SignalRuntimePolicy;
+use crate::diagnostics::policy::{ArtifactRetentionPolicy, SignalRuntimePolicy};
 use crate::diagnostics::replay::{ReplayCursor, ReplayFrame};
 use crate::diagnostics::summary::ExecutionHistorySummary;
 use crate::diagnostics::{FailureSummary, RollbackDiagnostic};
@@ -53,6 +54,69 @@ pub struct SignalSnapshotMeta {
     pub core_storage_profile: String,
     pub replay_head: Option<ReplayCursor>,
     pub runtime_policy: SignalRuntimePolicy,
+    #[serde(default)]
+    pub artifact_retention: SnapshotArtifactRetentionPolicy,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// Explicit snapshot-time retention contract for cold explanation/provenance richness.
+///
+/// This is a richness policy only. Snapshot restore, identity, and replay truth
+/// remain defined by the runtime and dependency contracts, not by retained
+/// explanation/provenance payload presence.
+pub struct SnapshotArtifactRetentionPolicy {
+    pub explanation_retention: ArtifactRetentionPolicy,
+    pub provenance_retention: ArtifactRetentionPolicy,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// Explicit operational intent for snapshot restore.
+pub struct SnapshotRestoreIntent {
+    pub state: SnapshotStateRestoreMode,
+    pub artifacts: SnapshotArtifactRestoreMode,
+    pub dependency_state: SnapshotDependencyRestoreMode,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// Whether restore rewinds operational runtime authority to captured state.
+pub enum SnapshotStateRestoreMode {
+    RewindActiveState,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// How cold explanation/provenance richness should be handled during restore.
+pub enum SnapshotArtifactRestoreMode {
+    RestoreCapturedRetention,
+    ApplyActiveRuntimePolicy,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// Whether dependency state is restored as captured or used only as a recomputation seed.
+pub enum SnapshotDependencyRestoreMode {
+    RestoreCapturedState,
+    SeedRecomputationFromSnapshot,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// Reason a restore currently still requires a coarse graph/state replacement boundary.
+pub enum SnapshotRestoreCoarseReason {
+    EntryStateRewind,
+    NodeSetDifference,
+    DiagnosticsHistoryRestore,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Proof-bearing restore plan describing how much of a restore can be lowered
+/// as shared-node delta work versus still requiring a coarse replacement boundary.
+pub struct SnapshotRestorePlan {
+    pub intent: SnapshotRestoreIntent,
+    pub shared_node_count: u64,
+    pub current_only_node_count: u64,
+    pub snapshot_only_node_count: u64,
+    pub dependency_snapshot_batch: SnapshotBatchCommit,
+    pub dependency_snapshot_delta_node_count: u64,
+    pub coarse_replacement_required: bool,
+    pub coarse_reasons: Vec<SnapshotRestoreCoarseReason>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -92,13 +156,14 @@ pub struct SignalSnapshotV1 {
 }
 
 impl SignalSnapshotMeta {
-    pub const SCHEMA_VERSION: u32 = 1;
+    pub const SCHEMA_VERSION: u32 = 2;
 
     pub fn new(
         snapshot_id: SignalSnapshotId,
         branch: &SignalBranchHandle,
         replay_head: Option<ReplayCursor>,
         runtime_policy: SignalRuntimePolicy,
+        artifact_retention: SnapshotArtifactRetentionPolicy,
     ) -> Self {
         Self {
             schema_version: Self::SCHEMA_VERSION,
@@ -108,6 +173,48 @@ impl SignalSnapshotMeta {
             core_storage_profile: CORE_STORAGE_PROFILE_ID.to_string(),
             replay_head,
             runtime_policy,
+            artifact_retention,
+        }
+    }
+}
+
+impl SnapshotArtifactRetentionPolicy {
+    pub fn from_runtime_policy(policy: SignalRuntimePolicy) -> Self {
+        Self {
+            explanation_retention: policy.explanation_retention,
+            provenance_retention: policy.provenance_retention,
+        }
+    }
+
+    pub fn retains_explanation_facts(self) -> bool {
+        matches!(self.explanation_retention, ArtifactRetentionPolicy::Retain)
+    }
+
+    pub fn retains_provenance_facts(self) -> bool {
+        matches!(self.provenance_retention, ArtifactRetentionPolicy::Retain)
+    }
+}
+
+impl Default for SnapshotArtifactRetentionPolicy {
+    fn default() -> Self {
+        Self::from_runtime_policy(SignalRuntimePolicy::default())
+    }
+}
+
+impl SnapshotRestoreIntent {
+    pub fn restore_runtime_truth() -> Self {
+        Self {
+            state: SnapshotStateRestoreMode::RewindActiveState,
+            artifacts: SnapshotArtifactRestoreMode::RestoreCapturedRetention,
+            dependency_state: SnapshotDependencyRestoreMode::RestoreCapturedState,
+        }
+    }
+
+    pub fn restore_runtime_truth_with_active_policy() -> Self {
+        Self {
+            state: SnapshotStateRestoreMode::RewindActiveState,
+            artifacts: SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy,
+            dependency_state: SnapshotDependencyRestoreMode::RestoreCapturedState,
         }
     }
 }

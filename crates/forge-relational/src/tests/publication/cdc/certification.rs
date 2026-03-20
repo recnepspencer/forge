@@ -131,7 +131,7 @@ fn cdc_certification_snapshot_pinning_is_neutral_under_rewrite_churn() {
         Some("right-rewrite-47")
     );
 
-    let retention = pinned_runtime.retention_access().inspect_plan();
+    let retention = pinned_runtime.retention_authority().inspect_plan();
     assert!(retention.snapshot_pinned_entities >= 2);
     assert!(pinned_runtime
         .visibility_authority()
@@ -557,7 +557,7 @@ fn cdc_certification_retention_truncation_recovers_exact_suffix_from_old_checkpo
         .unwrap_or_else(|| world.baseline_checkpoint.clone());
 
     for _ in 0..16 {
-        let _ = world.runtime.retention_access().run_pass();
+        let _ = world.runtime.retention_authority().run_pass();
     }
 
     let resumed = collect_subscriber_patches(&world.runtime, old_checkpoint.clone(), 3);
