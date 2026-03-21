@@ -119,7 +119,8 @@ impl SignalGraph {
                         &CanonicalChangedRegions::from_slice(effect.changed_regions()),
                     ),
                     memoized_origin: effect.memoized_origin(),
-                    reuse_basis: effect.operational.reuse_basis,
+                    reuse_basis: effect.operational.reuse_basis.clone(),
+                    reuse_origin: effect.operational.reuse_origin,
                     reuse_boundary_context: Some(effect.operational.reuse_boundary_context.clone()),
                     execution_record_id: None,
                     semantic_segment_id: None,
@@ -205,8 +206,8 @@ impl SignalGraph {
                             next_output_hash: Some(runtime_artifact_state.output_hash),
                             previous_reuse_basis: previous_runtime_artifact
                                 .as_ref()
-                                .map(|runtime| runtime.reuse_basis),
-                            next_reuse_basis: Some(runtime_artifact_state.reuse_basis),
+                                .map(|runtime| runtime.reuse_basis.clone()),
+                            next_reuse_basis: Some(runtime_artifact_state.reuse_basis.clone()),
                         });
                         entry.apply_artifact_write_delta(ArtifactWriteDelta {
                             runtime: Some(runtime_artifact_state),
@@ -409,6 +410,7 @@ impl SignalGraph {
                 if effect.recomputed() {
                     self.telemetry_mut().evaluation.nodes_recomputed += 1;
                 }
+                record_reuse_telemetry(self.telemetry_mut(), effect);
                 self.telemetry_mut().storage.hot_path_artifact_retention_count += 1;
             }
             EvaluationVerdict::Suppressed { reason } => match reason {
@@ -425,6 +427,7 @@ impl SignalGraph {
                     self.telemetry_mut()
                         .evaluation
                         .suppressed_downstream_propagations += suppressed_downstream;
+                    record_reuse_telemetry(self.telemetry_mut(), effect);
                 }
                 SuppressionReason::ConditionRevertedClean => {}
             },
@@ -478,4 +481,133 @@ fn trace_output_hash(version: crate::data::aspect::AspectVersion) -> StableHashV
         hash = hash.wrapping_mul(0x100000001b3_u128);
     }
     hash as StableHashValue
+}
+
+fn record_reuse_telemetry(
+    telemetry: &mut crate::data::telemetry::RuntimeTelemetry,
+    effect: &EvaluationEffect,
+) {
+    telemetry.evaluation.reuse_eligibility_checks_attempted += 1;
+    match effect.operational.reuse_origin {
+        crate::data::reuse::ReuseOrigin::FreshCompute => {
+            telemetry.evaluation.fresh_compute_count += 1
+        }
+        crate::data::reuse::ReuseOrigin::OutputSuppressed => {
+            telemetry.evaluation.output_suppressed_count += 1
+        }
+        crate::data::reuse::ReuseOrigin::MemoizedArtifactReuse => {
+            telemetry.evaluation.memoized_reuse_count += 1
+        }
+        crate::data::reuse::ReuseOrigin::SnapshotRestore => {
+            telemetry.evaluation.snapshot_restore_reuse_count += 1
+        }
+        crate::data::reuse::ReuseOrigin::ReconciliationAdoption => {
+            telemetry.evaluation.reconciliation_adoption_count += 1
+        }
+        crate::data::reuse::ReuseOrigin::CrossIdentityPersistentReuse => {
+            telemetry.evaluation.cross_identity_reuse_count += 1
+        }
+        crate::data::reuse::ReuseOrigin::PartialArtifactSplice => {
+            telemetry.evaluation.partial_artifact_splice_count += 1
+        }
+    }
+    telemetry.evaluation.reuse_dependency_comparison_breadth +=
+        u64::from(effect.operational.meaningful_input_changes);
+    if effect.reuse_certification().is_some() {
+        telemetry.evaluation.reuse_cold_certification_materialization_count += 1;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::record_reuse_telemetry;
+    use crate::data::aspect::AspectVersion;
+    use crate::data::dependency::{
+        DependencySnapshot, DependencySnapshotUpdate, SharedDependencySnapshot, SnapshotDeltaRecord,
+    };
+    use crate::data::handle::NodeId;
+    use crate::data::output::{MemoizedResultOrigin, OutputChange};
+    use crate::data::reuse::{
+        ArtifactSemanticBoundary, ReuseBasis, ReuseBoundaryContext, ReuseBoundaryProof,
+        ReuseCertificationRecord, ReuseCrossing, ReuseOrigin, ReuseSemanticRegionIdentity,
+        ReuseSource, ReuseStrategy,
+    };
+    use crate::data::telemetry::RuntimeTelemetry;
+    use crate::logic::evaluation::{
+        EffectRuntimeMetadata, EvaluationEffect, EvaluationVerdict, OperationalEffect,
+    };
+
+    #[test]
+    fn retained_reuse_certification_increments_cold_materialization_counter() {
+        let mut telemetry = RuntimeTelemetry::default();
+        let node = NodeId::new(0, 0);
+        let effect = EvaluationEffect {
+            operational: OperationalEffect {
+                node,
+                verdict: EvaluationVerdict::Suppressed {
+                    reason: crate::logic::evaluation::SuppressionReason::ComparatorMatch,
+                },
+                aspect_version: AspectVersion::zero(),
+                output_change: OutputChange::Unchanged,
+                reuse_basis: ReuseBasis::strategy(
+                    ReuseStrategy::MemoizedArtifactReuse,
+                    ReuseSource::MemoizedArtifact,
+                    ReuseCrossing::None,
+                ),
+                reuse_origin: ReuseOrigin::MemoizedArtifactReuse,
+                reuse_boundary_context: ReuseBoundaryContext {
+                    topology_regime: 1,
+                    tolerance_regime: crate::data::comparator::VersionComparatorPolicy::Exact,
+                    semantic_region: ReuseSemanticRegionIdentity::new(
+                        node,
+                        false,
+                        Vec::new(),
+                        crate::data::node::ContextRequirement::None,
+                    ),
+                    authority_policy:
+                        crate::data::performance::AuthorityPolicy::SpeculativeThenReconcile,
+                    artifact_family: None,
+                    structural_dependency_basis: 1,
+                    partition_region_basis: Default::default(),
+                    persistent_correspondence: None,
+                    composition_regions: Default::default(),
+                },
+                dependency_snapshot_update: DependencySnapshotUpdate::Replace(
+                    SharedDependencySnapshot::empty(),
+                ),
+                snapshot_delta: SnapshotDeltaRecord::between(
+                    node,
+                    &DependencySnapshot::empty(),
+                    &SharedDependencySnapshot::empty(),
+                ),
+                meaningful_input_changes: 2,
+            },
+            diagnostics: None,
+            runtime_metadata: EffectRuntimeMetadata {
+                memoized_origin: MemoizedResultOrigin::MemoizedFromCache,
+                recomputed: false,
+                keyed_context: None,
+                causality: None,
+                reuse_certification: Some(ReuseCertificationRecord {
+                    strategy: ReuseStrategy::MemoizedArtifactReuse,
+                    origin: ReuseOrigin::MemoizedArtifactReuse,
+                    source: ReuseSource::MemoizedArtifact,
+                    crossing: ReuseCrossing::None,
+                    proofs: vec![ReuseBoundaryProof {
+                        boundary: ArtifactSemanticBoundary::TopologyRegime,
+                        satisfied: true,
+                    }],
+                }),
+            },
+        };
+
+        record_reuse_telemetry(&mut telemetry, &effect);
+
+        assert_eq!(telemetry.evaluation.memoized_reuse_count, 1);
+        assert_eq!(
+            telemetry.evaluation.reuse_cold_certification_materialization_count,
+            1
+        );
+        assert_eq!(telemetry.evaluation.reuse_dependency_comparison_breadth, 2);
+    }
 }

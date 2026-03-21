@@ -1,5 +1,6 @@
 mod aspect_semantics;
 mod aspect_traces;
+mod relation_integrity;
 mod registry_errors;
 
 use std::collections::BTreeMap;
@@ -11,6 +12,7 @@ use crate::identity::data::KindId;
 
 pub use aspect_semantics::*;
 pub use aspect_traces::*;
+pub use relation_integrity::*;
 pub use registry_errors::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -44,6 +46,7 @@ pub struct RelationKindRegistration {
     pub cross_context_policy: CrossContextPolicy,
     pub cascade_delete_policy: CascadeDeletePolicy,
     pub aspect_declarations: KindAspectDeclarations,
+    pub relation_integrity: RelationIntegrityDeclarations,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

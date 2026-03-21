@@ -32,7 +32,11 @@ impl<'runtime> InvariantAuthority<'runtime> {
         let result = self.runtime.invariant_access().commit_boundary(merged_plan);
         self.emit_preparation_diagnostics(&result);
         if let Some(failure) = result.summary().blocking_failure() {
-            self.emit_conflict_diagnostic(failure.execution_point(), failure.detail().to_string());
+            self.emit_conflict_diagnostic(
+                failure.execution_point(),
+                failure.detail().to_string(),
+                failure.fields().clone(),
+            );
             return Err(TransactionCommitError::conflict(
                 failure.clone().into_commit_conflict(),
             ));
@@ -55,7 +59,11 @@ impl<'runtime> InvariantAuthority<'runtime> {
         };
         self.emit_preparation_diagnostics(&result);
         if let Some(failure) = result.summary().blocking_failure() {
-            self.emit_conflict_diagnostic(failure.execution_point(), failure.detail().to_string());
+            self.emit_conflict_diagnostic(
+                failure.execution_point(),
+                failure.detail().to_string(),
+                failure.fields().clone(),
+            );
             return Err(failure.clone().into_commit_conflict());
         }
         Ok(result)
@@ -88,6 +96,7 @@ impl<'runtime> InvariantAuthority<'runtime> {
         &mut self,
         execution_point: crate::validation::data::InvariantExecutionPoint,
         detail: String,
+        fields: serde_json::Value,
     ) {
         self.runtime
             .publication_authority()
@@ -96,7 +105,10 @@ impl<'runtime> InvariantAuthority<'runtime> {
             .emit_entry(
                 DiagnosticCode::InvariantViolation,
                 detail,
-                json!({ "execution_point": execution_point.diagnostic_label() }),
+                json!({
+                    "execution_point": execution_point.diagnostic_label(),
+                    "violation": fields,
+                }),
             );
     }
 

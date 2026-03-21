@@ -213,7 +213,7 @@ where
                 after_trace
                     .as_ref()
                     .map(|trace| trace.reuse_basis)
-                    .unwrap_or(crate::data::reuse::ReuseBasis::FreshCompute),
+                    .unwrap_or(crate::data::reuse::ReuseBasis::fresh_compute()),
             );
             accumulate_report_counters(&mut report, &task_record.record);
             stage_record.task_records.push(task_record.record);
@@ -266,10 +266,11 @@ fn task_record_classification_uses_reuse_basis_as_authoritative_truth() {
             reason: crate::logic::evaluation::SuppressionReason::ComparatorMatch,
         },
         crate::data::output::MemoizedResultOrigin::DirectCompute,
-        ReuseBasis::Reused {
-            source: ReuseSource::MemoizedArtifact,
-            crossing: ReuseCrossing::None,
-        },
+        ReuseBasis::strategy(
+            crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse,
+            ReuseSource::MemoizedArtifact,
+            ReuseCrossing::None,
+        ),
     );
 
     assert_eq!(record.record.outcome, TaskExecutionOutcome::MemoizedReuse);
@@ -432,7 +433,7 @@ where
                 after_trace
                     .as_ref()
                     .map(|trace| trace.reuse_basis)
-                    .unwrap_or(crate::data::reuse::ReuseBasis::FreshCompute),
+                    .unwrap_or(crate::data::reuse::ReuseBasis::fresh_compute()),
             );
             accumulate_report_counters(&mut report, &task_record.record);
             stage_record.task_records.push(task_record.record);

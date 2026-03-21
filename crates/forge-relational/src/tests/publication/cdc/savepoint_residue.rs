@@ -1,4 +1,5 @@
 use crate::tests::support::*;
+use crate::facade::storage::RecordLifecycleState;
 
 #[test]
 fn savepoint_abandoned_work_never_appears_in_subscriber_cdc() {
@@ -32,16 +33,7 @@ fn savepoint_abandoned_work_never_appears_in_subscriber_cdc() {
 
     assert!(rollback.summary().has_discarded_entity_creation());
 
-    let subscriber = runtime
-        .publication_access()
-        .read_subscriber_stream(SubscriberResumeRequest::resume_after(checkpoint, 8))
-        .unwrap();
-
-    assert!(subscriber
-        .patches
-        .iter()
-        .flat_map(|patch| patch.records.iter())
-        .all(|record| !patch_detail_contains(record, "abandoned")));
+    assert_subscriber_stream_omits_detail(&runtime, checkpoint, "abandoned");
 
     let read = runtime
         .visibility_reads()
@@ -162,20 +154,9 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
     assert!(rollback_b.has_effects());
     assert!(rollback_a.has_effects());
     assert_patch_truth_invariants(&outcome);
-    assert!(outcome
-        .patch()
-        .iter()
-        .all(|record| !patch_detail_contains(record, "abandoned")));
+    assert_patch_omits_detail(&outcome, "abandoned");
 
-    let subscriber = runtime
-        .publication_access()
-        .read_subscriber_stream(SubscriberResumeRequest::resume_after(checkpoint, 8))
-        .unwrap();
-    assert!(subscriber
-        .patches
-        .iter()
-        .flat_map(|patch| patch.records.iter())
-        .all(|record| !patch_detail_contains(record, "abandoned")));
+    assert_subscriber_stream_omits_detail(&runtime, checkpoint, "abandoned");
 
     let direct_history =
         runtime
@@ -226,13 +207,173 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
     assert_eq!(read.relations().len(), 1);
 }
 
-fn patch_detail_contains(record: &crate::facade::publication::PatchRecord, needle: &str) -> bool {
-    match &record.detail {
-        PatchDetail::StructuredJson(value) => value.to_string().contains(needle),
-        PatchDetail::Payload(payload) => payload
-            .as_json()
-            .map(|value| value.to_string().contains(needle))
-            .unwrap_or(false),
-        PatchDetail::DenseBitset(_) => false,
-    }
+#[test]
+fn rolled_back_illegal_relation_work_leaves_zero_cdc_and_diagnostic_residue() {
+    let schema = RelationalSchemaRegistry::new()
+        .register_entity_kind(EntityKindRegistration {
+            kind_id: KindId(1),
+            kind_name: "test.entity".to_string(),
+            schema_id: SchemaId("test".to_string()),
+            schema_version_id: SchemaVersionId(1),
+            aspect_declarations: KindAspectDeclarations::default(),
+        })
+        .and_then(|registry| {
+            registry.register_relation_kind(RelationKindRegistration {
+                kind_id: KindId(2),
+                kind_name: "test.relation".to_string(),
+                schema_id: SchemaId("test".to_string()),
+                schema_version_id: SchemaVersionId(1),
+                payload_class: RelationPayloadClass::PayloadBearingRelation,
+                cross_context_policy: CrossContextPolicy::AllowExplicit,
+                cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
+                aspect_declarations: KindAspectDeclarations::default(),
+                relation_integrity: crate::schema::data::RelationIntegrityDeclarations::new(
+                    vec![crate::schema::data::EndpointKindContractDeclaration {
+                        contract_id: "no_self".to_string(),
+                        allowed_source_kinds: vec![KindId(1)],
+                        allowed_target_kinds: vec![KindId(1)],
+                        self_edges_allowed: false,
+                        cross_context_policy: CrossContextPolicy::AllowExplicit,
+                    }],
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                ),
+            })
+        })
+        .unwrap();
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(schema)
+        .build();
+    let source = create_entity(&mut runtime, "source");
+    let target = create_entity(&mut runtime, "target");
+    let checkpoint = checkpoint_for_schema_version(
+        runtime.publication_access().latest_patch().unwrap().position,
+        SchemaVersionId(1),
+    );
+
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let savepoint = txn.create_savepoint();
+    txn.push_batch(
+        WorkerIntentBatch::new("illegal-self-edge").push(MutationIntent::Create(
+            CreateIntent::Relation(crate::transactions::data::RelationSpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(2),
+                client_key: InternedString::Raw("illegal".to_string()),
+                source,
+                target: source,
+                payload: Some(RecordPayload::StructuredJson(json!({"label":"illegal"}))),
+            }),
+        )),
+    );
+    let rollback = txn.rollback_to_savepoint(savepoint).unwrap();
+    txn.push_batch(
+        WorkerIntentBatch::new("surviving-edge").push(MutationIntent::Create(
+            CreateIntent::Relation(crate::transactions::data::RelationSpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(2),
+                client_key: InternedString::Raw("surviving".to_string()),
+                source,
+                target,
+                payload: Some(RecordPayload::StructuredJson(json!({"label":"surviving"}))),
+            }),
+        )),
+    );
+    let outcome = txn.commit().unwrap();
+
+    assert!(rollback.has_effects());
+    assert_patch_omits_detail(&outcome, "illegal");
+    assert_subscriber_stream_omits_detail(&runtime, checkpoint, "illegal");
+
+    assert!(!runtime
+        .publication_access()
+        .diagnostics()
+        .artifacts()
+        .iter()
+        .flat_map(|artifact| artifact.entries.iter())
+        .any(|entry| entry.code == DiagnosticCode::RelationEndpointKindViolation));
+}
+
+#[test]
+fn rolled_back_endpoint_deletion_work_leaves_zero_cdc_and_diagnostic_residue() {
+    let schema = RelationalSchemaRegistry::new()
+        .register_entity_kind(EntityKindRegistration {
+            kind_id: KindId(1),
+            kind_name: "test.entity".to_string(),
+            schema_id: SchemaId("test".to_string()),
+            schema_version_id: SchemaVersionId(1),
+            aspect_declarations: KindAspectDeclarations::default(),
+        })
+        .and_then(|registry| {
+            registry.register_relation_kind(RelationKindRegistration {
+                kind_id: KindId(2),
+                kind_name: "test.relation".to_string(),
+                schema_id: SchemaId("test".to_string()),
+                schema_version_id: SchemaVersionId(1),
+                payload_class: RelationPayloadClass::PayloadBearingRelation,
+                cross_context_policy: CrossContextPolicy::AllowExplicit,
+                cascade_delete_policy: CascadeDeletePolicy::RetainDanglingForAudit,
+                aspect_declarations: KindAspectDeclarations::default(),
+                relation_integrity: crate::schema::data::RelationIntegrityDeclarations::new(
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                    vec![crate::schema::data::EndpointDeletionIntegrityDeclaration {
+                        contract_id: "require_retirement".to_string(),
+                        mode: crate::schema::data::EndpointDeletionIntegrityMode::RequireRelationRetirement,
+                    }],
+                ),
+            })
+        })
+        .unwrap();
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(schema)
+        .cascade_delete_policy(CascadeDeletePolicy::RetainDanglingForAudit)
+        .build();
+    let source = create_entity(&mut runtime, "source");
+    let target = create_entity(&mut runtime, "target");
+    let relation_outcome = create_relation_outcome(&mut runtime, source, target, "live");
+    let relation = changed_relations(&relation_outcome)[0];
+    let checkpoint = checkpoint_for_schema_version(
+        runtime.publication_access().latest_patch().unwrap().position,
+        SchemaVersionId(1),
+    );
+
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let savepoint = txn.create_savepoint();
+    txn.push_batch(
+        WorkerIntentBatch::new("rolled-back-delete-source").push(MutationIntent::Entity(
+            EntityMutationIntent::Delete(DeleteEntityIntent { entity_id: source }),
+        )),
+    );
+    let rollback = txn.rollback_to_savepoint(savepoint).unwrap();
+    txn.push_batch(
+        WorkerIntentBatch::new("surviving-update").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id: target,
+                payload: RecordPayload::StructuredJson(json!({"name":"target-survived"})),
+            }),
+        )),
+    );
+    let outcome = txn.commit().unwrap();
+
+    assert!(rollback.has_effects());
+    assert_patch_omits_detail(&outcome, "RetainedDanglingForAudit");
+    assert_subscriber_stream_omits_detail(&runtime, checkpoint, "RetainedDanglingForAudit");
+
+    let read = runtime
+        .visibility_reads()
+        .read_snapshot(&outcome.snapshot)
+        .unwrap();
+    let relation = read.get_relation(relation).unwrap();
+    assert_eq!(relation.lifecycle, RecordLifecycleState::Live);
+    assert!(!runtime
+        .publication_access()
+        .diagnostics()
+        .artifacts()
+        .iter()
+        .flat_map(|artifact| artifact.entries.iter())
+        .any(|entry| entry.code == DiagnosticCode::RelationEndpointDeletionIntegrityViolation));
 }

@@ -310,6 +310,7 @@ impl NodeEntry {
                     ),
                     memoized_origin: summary.memoized_origin,
                     reuse_basis: summary.reuse_basis,
+                    reuse_origin: summary.reuse_origin,
                     reuse_boundary_context: summary.reuse_boundary_context,
                     execution_record_id: summary.execution_record_id,
                     semantic_segment_id: summary.semantic_segment_id,

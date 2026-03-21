@@ -1,11 +1,15 @@
 use crate::data::output::MemoizedResultOrigin;
-use crate::data::reuse::{ReuseBasis, ReuseCrossing, ReuseSource};
+use crate::data::reuse::{
+    ReuseBasis, ReuseCrossing, ReuseOrigin, ReuseSource, ReuseStrategy,
+};
 use crate::logic::evaluation::EvaluationExecutionMetadata;
 use crate::logic::prepared::PreparedEvaluationOrigin;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ResolvedReuseDecision {
     pub basis: ReuseBasis,
+    pub strategy: Option<ReuseStrategy>,
+    pub origin: ReuseOrigin,
     pub source: ReuseSource,
     pub crossing: ReuseCrossing,
     pub memoized_origin: MemoizedResultOrigin,
@@ -15,7 +19,9 @@ pub(crate) struct ResolvedReuseDecision {
 impl ResolvedReuseDecision {
     fn fresh_compute() -> Self {
         Self {
-            basis: ReuseBasis::FreshCompute,
+            basis: ReuseBasis::fresh_compute(),
+            strategy: None,
+            origin: ReuseOrigin::FreshCompute,
             source: ReuseSource::None,
             crossing: ReuseCrossing::None,
             memoized_origin: MemoizedResultOrigin::DirectCompute,
@@ -24,12 +30,16 @@ impl ResolvedReuseDecision {
     }
 
     fn reused(
+        strategy: ReuseStrategy,
+        origin: ReuseOrigin,
         source: ReuseSource,
         crossing: ReuseCrossing,
         memoized_origin: MemoizedResultOrigin,
     ) -> Self {
         Self {
-            basis: ReuseBasis::Reused { source, crossing },
+            basis: ReuseBasis::strategy(strategy, source, crossing),
+            strategy: Some(strategy),
+            origin,
             source,
             crossing,
             memoized_origin,
@@ -43,17 +53,43 @@ pub(crate) fn resolve_prepared_reuse_decision(
     execution_metadata: Option<&EvaluationExecutionMetadata>,
 ) -> ResolvedReuseDecision {
     match execution_metadata {
-        Some(metadata) => match metadata.reuse_basis {
-            ReuseBasis::FreshCompute => ResolvedReuseDecision::fresh_compute(),
-            ReuseBasis::Reused { source, crossing } => {
-                ResolvedReuseDecision::reused(source, crossing, metadata.memoized_origin)
+        Some(metadata) => {
+            if metadata.reuse_basis.is_fresh_compute() {
+                ResolvedReuseDecision::fresh_compute()
+            } else {
+                ResolvedReuseDecision::reused(
+                    metadata
+                        .reuse_basis
+                        .strategy
+                        .unwrap_or(ReuseStrategy::MemoizedArtifactReuse),
+                    metadata.reuse_origin,
+                    metadata.reuse_basis.source,
+                    metadata.reuse_basis.crossing,
+                    metadata.memoized_origin,
+                )
             }
-        },
+        }
         None => match prepared_origin {
             PreparedEvaluationOrigin::DirectPrecompute => ResolvedReuseDecision::fresh_compute(),
             PreparedEvaluationOrigin::MemoizedReuse => ResolvedReuseDecision::reused(
+                ReuseStrategy::MemoizedArtifactReuse,
+                ReuseOrigin::MemoizedArtifactReuse,
                 ReuseSource::MemoizedArtifact,
                 ReuseCrossing::None,
+                MemoizedResultOrigin::MemoizedFromCache,
+            ),
+            PreparedEvaluationOrigin::CrossIdentityPersistentReuse => ResolvedReuseDecision::reused(
+                ReuseStrategy::CrossIdentityPersistentMatch,
+                ReuseOrigin::CrossIdentityPersistentReuse,
+                ReuseSource::PersistentCorrespondence,
+                ReuseCrossing::PersistentIdentityBoundary,
+                MemoizedResultOrigin::MemoizedFromCache,
+            ),
+            PreparedEvaluationOrigin::PartialArtifactSplice => ResolvedReuseDecision::reused(
+                ReuseStrategy::PartialArtifactSplicing,
+                ReuseOrigin::PartialArtifactSplice,
+                ReuseSource::PartialComposition,
+                ReuseCrossing::CompositionBoundary,
                 MemoizedResultOrigin::MemoizedFromCache,
             ),
         },
@@ -71,11 +107,13 @@ mod tests {
 
         assert_eq!(
             decision.basis,
-            ReuseBasis::Reused {
-                source: ReuseSource::MemoizedArtifact,
-                crossing: ReuseCrossing::None,
-            }
+            ReuseBasis::strategy(
+                ReuseStrategy::MemoizedArtifactReuse,
+                ReuseSource::MemoizedArtifact,
+                ReuseCrossing::None,
+            )
         );
+        assert_eq!(decision.origin, ReuseOrigin::MemoizedArtifactReuse);
         assert_eq!(
             decision.memoized_origin,
             MemoizedResultOrigin::MemoizedFromCache

@@ -40,11 +40,13 @@ impl InvariantRequestProfile {
             Self::CommitBoundary => InvariantGroupSet::of(InvariantGroup::StorageCoherence)
                 .union(InvariantGroupSet::of(InvariantGroup::IdentityCoherence))
                 .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance))
+                .union(InvariantGroupSet::of(InvariantGroup::RelationIntegrity))
                 .union(InvariantGroupSet::of(InvariantGroup::LineageIntegrity))
                 .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence)),
             Self::MutationSensitive => InvariantGroupSet::of(InvariantGroup::StorageCoherence)
                 .union(InvariantGroupSet::of(InvariantGroup::IdentityCoherence))
                 .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance))
+                .union(InvariantGroupSet::of(InvariantGroup::RelationIntegrity))
                 .union(InvariantGroupSet::of(InvariantGroup::AdjacencyIntegrity))
                 .union(InvariantGroupSet::of(InvariantGroup::LineageIntegrity)),
             Self::SnapshotPublication => InvariantGroupSet::of(InvariantGroup::VersionVisibility)

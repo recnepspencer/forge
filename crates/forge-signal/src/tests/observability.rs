@@ -361,10 +361,12 @@ fn explanation_surfaces_retained_reuse_certification() {
     entry.set_runtime_artifact_state(Some(RuntimeArtifactState {
         recomputed: false,
         memoized_origin: MemoizedResultOrigin::MemoizedFromCache,
-        reuse_basis: ReuseBasis::Reused {
-            source: ReuseSource::MemoizedArtifact,
-            crossing: ReuseCrossing::None,
-        },
+        reuse_origin: crate::data::reuse::ReuseOrigin::MemoizedArtifactReuse,
+        reuse_basis: ReuseBasis::strategy(
+            crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse,
+            ReuseSource::MemoizedArtifact,
+            ReuseCrossing::None,
+        ),
         reuse_boundary_context: Some(ReuseBoundaryContext {
             topology_regime: 1,
             tolerance_regime: VersionComparatorPolicy::Exact,
@@ -375,6 +377,11 @@ fn explanation_surfaces_retained_reuse_certification() {
                 ContextRequirement::None,
             ),
             authority_policy: AuthorityPolicy::SpeculativeThenReconcile,
+            artifact_family: None,
+            structural_dependency_basis: 0,
+            partition_region_basis: PartitionScopeSet::default(),
+            persistent_correspondence: None,
+            composition_regions: PartitionScopeSet::default(),
         }),
         ..RuntimeArtifactState::default()
     }));
@@ -384,6 +391,8 @@ fn explanation_surfaces_retained_reuse_certification() {
         keyed_family: None,
         keyed_key: None,
         reuse_certification: Some(ReuseCertificationRecord {
+            strategy: crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse,
+            origin: crate::data::reuse::ReuseOrigin::MemoizedArtifactReuse,
             source: ReuseSource::MemoizedArtifact,
             crossing: ReuseCrossing::None,
             proofs: vec![ReuseBoundaryProof {
@@ -396,10 +405,11 @@ fn explanation_surfaces_retained_reuse_certification() {
     let explanation = graph.observe().explain(node).unwrap();
     assert_eq!(
         explanation.reuse_basis,
-        Some(ReuseBasis::Reused {
-            source: ReuseSource::MemoizedArtifact,
-            crossing: ReuseCrossing::None,
-        })
+        Some(ReuseBasis::strategy(
+            crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse,
+            ReuseSource::MemoizedArtifact,
+            ReuseCrossing::None,
+        ))
     );
     assert_eq!(
         explanation
@@ -497,6 +507,38 @@ fn metrics_snapshots_reflect_runtime_activity() {
 }
 
 #[test]
+fn ordinary_summary_surfaces_do_not_trigger_artifact_reconstruction() {
+    let mut runtime = build_runtime(SignalGraph::new());
+    runtime.set_runtime_policy(SignalRuntimePolicy::operational());
+    let source = runtime.graph_mut().node().build();
+    let dependent = runtime.graph_mut().node().build();
+    runtime
+        .graph_mut()
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
+
+    let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
+    evaluate(runtime.graph_mut(), source, &mut compute).unwrap();
+    evaluate(runtime.graph_mut(), dependent, &mut compute).unwrap();
+
+    let before = runtime.observe().metrics().storage.hot_path_artifact_reconstruction_count;
+
+    let diagnostics = runtime.observe().diagnostics();
+    let _graph_summary = diagnostics.summary(DiagnosticsProfile::Operational);
+    let history = diagnostics.history(DiagnosticsProfile::Operational);
+    let _recent = diagnostics.recent_history();
+    let _replay = runtime.graph().replay_events();
+    let rendered = render_execution_history_summary(&history);
+
+    let after = runtime.observe().metrics().storage.hot_path_artifact_reconstruction_count;
+    assert_eq!(
+        before, after,
+        "ordinary diagnostics/history/replay reads must not trigger artifact reconstruction"
+    );
+    assert!(rendered.contains("ExecutionHistorySummary"));
+}
+
+#[test]
 fn explanation_is_deterministic_with_multiple_upstreams_and_mixed_states() {
     let mut graph = SignalGraph::new();
     let source_a = graph.node().build();
@@ -588,6 +630,100 @@ fn rollback_preserves_committed_explanation_and_increments_rollback_metric() {
             .transaction_rollback_count,
         rollback_before + 1
     );
+}
+
+#[test]
+fn diagnostics_access_exposes_frontier_execution_and_trace_records() {
+    let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(SignalRuntimePolicy::development());
+    let source = graph.node().partitioned_output().build();
+    let dependent = graph.node().build();
+    graph
+        .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
+        .unwrap();
+
+    mark_dirty_with_regions(
+        &mut graph,
+        source,
+        ASPECT_A,
+        &[ChangedRegion::new("wing").with_detail("rib-12")],
+    )
+    .unwrap();
+
+    let diagnostics = graph.observe().diagnostics();
+    let frontier = diagnostics
+        .latest_frontier_execution()
+        .expect("frontier execution should be available");
+    assert_eq!(frontier.seed_count, 1);
+    assert_eq!(frontier.direct_waves.len(), 1);
+    assert!(frontier
+        .direct_waves
+        .iter()
+        .flat_map(|wave| wave.entries.iter())
+        .any(|entry| entry.node == dependent));
+    assert!(!diagnostics.latest_invalidation_trace_records().is_empty());
+}
+
+#[test]
+fn operational_diagnostics_do_not_retain_frontier_trace_records_by_default() {
+    let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(SignalRuntimePolicy::operational());
+    let source = graph.node().partitioned_output().build();
+    let dependent = graph.node().build();
+    graph
+        .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
+        .unwrap();
+
+    mark_dirty_with_regions(
+        &mut graph,
+        source,
+        ASPECT_A,
+        &[ChangedRegion::new("wing").with_detail("rib-12")],
+    )
+    .unwrap();
+
+    let diagnostics = graph.observe().diagnostics();
+    assert!(diagnostics.latest_frontier_execution().is_some());
+    assert!(diagnostics.latest_invalidation_trace_records().is_empty());
+}
+
+#[test]
+fn observer_reads_do_not_mutate_frontier_truth_or_retain_extra_trace_records() {
+    let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(SignalRuntimePolicy::development());
+    let source = graph.node().partitioned_output().build();
+    let dependent = graph.node().build();
+    graph
+        .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
+        .unwrap();
+
+    mark_dirty_with_regions(
+        &mut graph,
+        source,
+        ASPECT_A,
+        &[ChangedRegion::new("wing").with_detail("rib-12")],
+    )
+    .unwrap();
+
+    let summary_before = graph
+        .observe()
+        .latest_frontier_execution_summary()
+        .cloned()
+        .expect("frontier execution summary should exist");
+    let traces_before = graph.observe().latest_invalidation_trace_records().to_vec();
+    let metrics_before = graph.observe().metrics().invalidation.frontier_trace_retained_count;
+
+    let diagnostics = graph.observe().diagnostics();
+    let summary_after = diagnostics
+        .latest_frontier_execution()
+        .cloned()
+        .expect("frontier execution summary should remain available");
+    let traces_after = diagnostics.latest_invalidation_trace_records().to_vec();
+    let metrics_after = graph.observe().metrics().invalidation.frontier_trace_retained_count;
+
+    assert_eq!(summary_before, summary_after);
+    assert_eq!(traces_before, traces_after);
+    assert_eq!(metrics_before, metrics_after);
 }
 
 #[test]

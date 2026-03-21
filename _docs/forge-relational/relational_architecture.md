@@ -23,14 +23,16 @@ the current behavioral reference.
 
 ## Status
 
-As of March 12, 2026:
+As of March 20, 2026:
 
 - the architecture program through Phase F is closed enough to treat the core
   runtime shape as established
-- Milestone 4 (Invariant Engine), Milestone 5 (Commit Architecture), and
-  Milestone 6 (API Surface) are closed
-- the next major work is feature expansion, hardening, scale proof, and
-  parallel-preparation work, not more foundational cleanup
+- Milestones 1, 2, and 3 are closed
+- Milestone 4 (Relation Integrity and Schema Contracts) is in active
+  implementation and should not be treated as closed until its certification
+  work is complete
+- the next major work is Milestone 4 completion, then feature expansion,
+  hardening, scale proof, and parallel-preparation work
 
 ## Core Runtime Model
 
@@ -405,6 +407,35 @@ Important public/runtime-facing invariant types include:
 
 The engine now returns `InvariantExecutionResult`, not just a raw list of check
 results.
+
+### Three-artifact integrity model
+
+Relation legality now follows a stricter three-artifact path:
+
+- schema declaration surfaces live on `RelationKindRegistration`
+- runtime lowering produces relation-integrity plans with independent contract
+  families
+- commit-time execution consumes lowered invariant packets rather than
+  rediscovering contract applicability during execution
+
+The declaration model is not the execution model. That distinction is now part
+of the architecture, not a convention.
+
+### Relation integrity contracts
+
+The schema surface now includes relation-integrity declarations for relation
+kinds. The current contract families are:
+
+- endpoint kind contracts
+- cardinality contracts
+- uniqueness contracts
+- symmetry contracts
+- endpoint-deletion integrity contracts
+
+These declarations lower into relation-integrity invariant registrations that
+participate in the invariant pipeline at the commit boundary. Commit-time
+relation legality should now be treated as invariant-driven runtime behavior,
+not as a side validator.
 
 ### Invariant execution metadata
 

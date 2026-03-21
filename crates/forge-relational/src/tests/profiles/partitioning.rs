@@ -143,6 +143,7 @@ fn cross_context_relations_respect_relation_kind_policy() {
                 cross_context_policy: CrossContextPolicy::SchemaControlled,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
+                relation_integrity: crate::schema::data::RelationIntegrityDeclarations::default(),
             })
         })
         .unwrap();

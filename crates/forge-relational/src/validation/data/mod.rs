@@ -8,6 +8,7 @@ mod results;
 mod rules;
 
 pub use catalog::{InvariantCatalog, InvariantRegistration};
+pub(crate) use catalog::relation_integrity_registrations_for_plan;
 pub use contracts::InvariantPlanContract;
 pub use execution::{
     InvariantCheckResult, InvariantClass, InvariantExecutionPoint, InvariantFailureEffect,

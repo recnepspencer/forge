@@ -226,13 +226,17 @@ named requirements from
 - `Durable recovery and schema mismatch test`
 - `Missing-twin / nonmanifold corruption localization test`
 
-## Milestone 5: Schema Evolution and CDC Contract Evolution
+## Milestone 5: Schema Evolution, CDC Contract Evolution, and Schema Reconciliation
 
 ### Goal
 
 Finish live schema evolution as an explicit runtime and CDC capability so
 schema changes can participate in authoritative truth, replay, recovery, and
 subscriber contracts without collapsing into ad hoc host coordination.
+
+Additionally, finish classified schema reconciliation so that schema
+divergence across branches, tenants, or evolution boundaries is handled by
+explicit policy rather than blanket rejection or silent corruption.
 
 ### Must Ship
 
@@ -251,6 +255,54 @@ subscriber contracts without collapsing into ad hoc host coordination.
   - resumable compatible evolution
   - transitions that require a new subscriber contract
 
+#### Schema Reconciliation
+
+Schema reconciliation provides classified handling of schema divergence during
+merge, deployment, and tenant migration. The runtime must classify every schema
+difference into a reconciliation category and apply the appropriate policy
+rather than treating all incompatibilities as fatal.
+
+Required reconciliation categories:
+
+- **additive reconciliation**: new aspects, fields, entity types, or relation
+  types introduced on one side but absent on the other must be
+  auto-reconcilable with explicit default or null semantics; this covers the
+  common case of one branch or tenant evolving the schema while another has not
+  yet adopted the change
+- **narrowing reconciliation**: aspects or fields removed on one side but still
+  present on the other must be handled by caller-supplied policy (prefer
+  richer, prefer target, or reject); the runtime must not silently drop or
+  silently preserve without an explicit policy decision
+- **type-incompatible rejection**: same-named aspect or field with incompatible
+  type on each side must be classified as a genuine conflict and fail-explicit
+  with structured diagnostics; the runtime must not attempt implicit coercion
+- **structural-incompatible rejection**: fundamentally different relation
+  topology or entity modeling between sides must be classified as structural
+  conflict and fail-explicit with structured diagnostics
+
+Required reconciliation behaviors:
+
+- schema reconciliation must participate in the merge commit pipeline when
+  branches carry divergent declared schemas
+- reconciliation decisions must be emitted as canonical artifacts for replay,
+  diagnostics, and audit
+- reconciliation must compose with Milestone 7 merge execution so that
+  data-level merge and schema-level reconciliation are resolved in the same
+  transactional commit
+- reconciliation must support caller-supplied policies rather than hardcoded
+  resolution strategies
+- reconciliation must never silently drop schema structure, silently coerce
+  types, or silently adopt incompatible topology
+
+#### Motivation
+
+Schema reconciliation is especially critical for web development with custom
+workflows, per-tenant customization, plugin/extension systems, and any domain
+where schema divergence is the norm rather than an exceptional event. Without
+classified reconciliation, fail-explicit rejection on schema mismatch creates
+unacceptable friction for deployments, tenant migrations, and feature rollouts
+in these domains.
+
 ### Must Preserve
 
 - serialized authority for schema-affecting truth mutation
@@ -259,6 +311,7 @@ subscriber contracts without collapsing into ad hoc host coordination.
 - no hidden host-side schema repair during resume or recovery
 - explicit failure instead of silent drift when transition semantics are not
   supported
+- reconciliation decisions as canonical artifacts, not silent internal behavior
 
 ### Acceptance Requirements
 
@@ -276,6 +329,11 @@ Additionally, this milestone must add and satisfy an explicit schema-evolution
 CDC certification requirement if
 [test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md)
 does not yet contain one.
+
+Additionally, this milestone must add and satisfy an explicit schema
+reconciliation certification requirement covering additive, narrowing,
+type-incompatible, and structural-incompatible classification with
+policy-driven resolution.
 
 ## Milestone 6: Lineage and Correspondence Completion
 

@@ -26,8 +26,9 @@ pub mod durability {
         CheckpointCoverage, CompactionOutcome, CompactionPlan, CompactionPolicy, DurabilityError,
         DurabilityMode, DurableCheckpoint, DurableCheckpointId, DurableCheckpointManifest,
         DurableIntegrityStatus, DurableSegmentId, DurableSegmentManifest, DurableStore,
-        DurableStoreLayout, PartitionCheckpointImage, RecoveryCompatibilityCheck, RecoveryCoverage,
-        RecoveryCursor, RecoveryFailureClass, RecoveryIntegrityReport, RecoveryPlan,
+        DurableStoreLayout, PartitionCheckpointImage, RecoveryCompatibilityCheck,
+        RecoveryCompatibilityMismatch, RecoveryCoverage, RecoveryCursor, RecoveryFailureClass,
+        RecoveryIntegrityReport, RecoveryPlan, RelationIntegrityContractFamily,
         SegmentRetentionClass,
     };
 }
@@ -163,10 +164,16 @@ pub mod schema {
     pub use crate::schema::data::{
         AspectBinding, AspectComparator, AspectDeclarationTrace, AspectDeclarationTraceRow,
         AspectLoweringTrace, AspectLoweringTraceRow, AspectPlanRevision, AspectPrecision,
-        DeclaredAspect, EntityKindRegistration, KindAspectDeclarations, KindResolution,
-        LoweredAspectBinding, LoweredAspectComparator, LoweredAspectExtractor, LoweredAspectPlan,
+        CardinalityContractDeclaration, DeclaredAspect, EndpointDeletionIntegrityDeclaration,
+        EndpointDeletionIntegrityMode, EndpointKindContractDeclaration, EntityKindRegistration,
+        KindAspectDeclarations, KindResolution, LoweredAspectBinding, LoweredAspectComparator,
+        LoweredAspectExtractor, LoweredAspectPlan, LoweredCardinalityContract,
+        LoweredEndpointDeletionIntegrityContract, LoweredEndpointKindContract,
+        LoweredRelationIntegrityPlan, LoweredSymmetryContract, LoweredUniquenessContract,
+        RelationIntegrityDeclarations, RelationIntegrityPlanCatalog, RelationIntegrityPlanRevision,
         RelationKindRegistration, RelationPayloadClass, RelationalSchemaRegistry, SchemaId,
-        SchemaRegistryError, SchemaRegistryErrorClass, SchemaVersionId,
+        SchemaRegistryError, SchemaRegistryErrorClass, SchemaVersionId, SymmetryContractDeclaration,
+        SymmetryMode, UniquenessContractDeclaration, UniquenessScope,
     };
 }
 

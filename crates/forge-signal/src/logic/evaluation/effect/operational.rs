@@ -7,7 +7,7 @@ use crate::data::dependency::{
 use crate::data::graph::DependencySetId;
 use crate::data::handle::NodeId;
 use crate::data::output::OutputChange;
-use crate::data::reuse::{ReuseBasis, ReuseBoundaryContext};
+use crate::data::reuse::{ReuseBasis, ReuseBoundaryContext, ReuseOrigin};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SuppressionReason {
@@ -45,6 +45,7 @@ pub struct OperationalEffect {
     pub aspect_version: AspectVersion,
     pub output_change: OutputChange,
     pub reuse_basis: ReuseBasis,
+    pub reuse_origin: ReuseOrigin,
     pub reuse_boundary_context: ReuseBoundaryContext,
     pub dependency_snapshot_update: DependencySnapshotUpdate,
     pub snapshot_delta: SnapshotDeltaRecord,

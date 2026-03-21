@@ -6,18 +6,20 @@ pub(super) fn detect_reachable_cycles(
     graph: &mut SignalGraph,
     scratch: &mut TraversalScratch,
     candidates: &[NodeId],
-) -> Result<(), SignalError> {
+) -> Result<u64, SignalError> {
+    let mut visited_count = 0_u64;
     for &candidate in candidates {
-        detect_cycle_from(graph, scratch, candidate)?;
+        visited_count += detect_cycle_from(graph, scratch, candidate)?;
     }
-    Ok(())
+    Ok(visited_count)
 }
 
 fn detect_cycle_from(
     graph: &mut SignalGraph,
     scratch: &mut TraversalScratch,
     node: NodeId,
-) -> Result<(), SignalError> {
+) -> Result<u64, SignalError> {
+    let mut visited_count = 0_u64;
     scratch.cycle_stack.clear();
     scratch.cycle_stack.push((node, false));
     while let Some((current, expanded)) = scratch.cycle_stack.pop() {
@@ -35,6 +37,7 @@ fn detect_cycle_from(
         }
 
         scratch.cycle_visiting.mark(index);
+        visited_count += 1;
         scratch.cycle_stack.push((current, true));
         if let Ok(subscribers) = graph.runtime_subscribers_of(current) {
             for &subscriber in subscribers.iter().rev() {
@@ -42,7 +45,7 @@ fn detect_cycle_from(
             }
         }
     }
-    Ok(())
+    Ok(visited_count)
 }
 
 fn circular_reference_error(scratch: &TraversalScratch, node: NodeId) -> SignalError {

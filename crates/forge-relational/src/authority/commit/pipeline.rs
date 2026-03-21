@@ -419,6 +419,27 @@ fn complexity_delta(
         invariant_relation_records_materialized: after
             .invariant_relation_records_materialized
             .saturating_sub(before.invariant_relation_records_materialized),
+        relation_integrity_contracts_evaluated: after
+            .relation_integrity_contracts_evaluated
+            .saturating_sub(before.relation_integrity_contracts_evaluated),
+        relation_endpoint_kind_checks: after
+            .relation_endpoint_kind_checks
+            .saturating_sub(before.relation_endpoint_kind_checks),
+        relation_cardinality_checks: after
+            .relation_cardinality_checks
+            .saturating_sub(before.relation_cardinality_checks),
+        relation_uniqueness_checks: after
+            .relation_uniqueness_checks
+            .saturating_sub(before.relation_uniqueness_checks),
+        relation_uniqueness_candidates_scanned: after
+            .relation_uniqueness_candidates_scanned
+            .saturating_sub(before.relation_uniqueness_candidates_scanned),
+        relation_symmetry_checks: after
+            .relation_symmetry_checks
+            .saturating_sub(before.relation_symmetry_checks),
+        relation_endpoint_deletion_checks: after
+            .relation_endpoint_deletion_checks
+            .saturating_sub(before.relation_endpoint_deletion_checks),
         preparation_packet_count: after
             .preparation_packet_count
             .saturating_sub(before.preparation_packet_count),

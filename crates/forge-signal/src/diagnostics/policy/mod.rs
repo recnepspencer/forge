@@ -71,6 +71,26 @@ pub enum SnapshotRestoreLineageMode {
     PerNode,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum FrontierTracingPolicy {
+    #[default]
+    SummaryOnly,
+    RetainWaveRecords,
+    FullForensic,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum FrontierPropagationPolicy {
+    #[default]
+    CanonicalFrontier,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum FrontierCyclePolicy {
+    #[default]
+    ReachableCycleCheck,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ParallelAdmissionPolicy {
     pub operational_min_parallel_tasks: usize,
@@ -115,6 +135,12 @@ pub struct SignalRuntimePolicy {
     pub replay_detail: ReplayDetailPolicy,
     pub semantic_retention: SemanticRetentionPolicy,
     pub snapshot_restore_lineage_mode: SnapshotRestoreLineageMode,
+    #[serde(default)]
+    pub frontier_tracing_policy: FrontierTracingPolicy,
+    #[serde(default)]
+    pub frontier_propagation_policy: FrontierPropagationPolicy,
+    #[serde(default)]
+    pub frontier_cycle_policy: FrontierCyclePolicy,
     pub parallel_admission: ParallelAdmissionPolicy,
 }
 
@@ -236,6 +262,9 @@ impl SignalRuntimePolicy {
             replay_detail: ReplayDetailPolicy::Minimal,
             semantic_retention: SemanticRetentionPolicy::Minimal,
             snapshot_restore_lineage_mode: SnapshotRestoreLineageMode::CompactGlobal,
+            frontier_tracing_policy: FrontierTracingPolicy::SummaryOnly,
+            frontier_propagation_policy: FrontierPropagationPolicy::CanonicalFrontier,
+            frontier_cycle_policy: FrontierCyclePolicy::ReachableCycleCheck,
             parallel_admission: ParallelAdmissionPolicy::default(),
         }
     }
@@ -255,6 +284,9 @@ impl SignalRuntimePolicy {
             replay_detail: ReplayDetailPolicy::Standard,
             semantic_retention: SemanticRetentionPolicy::Development,
             snapshot_restore_lineage_mode: SnapshotRestoreLineageMode::CompactGlobal,
+            frontier_tracing_policy: FrontierTracingPolicy::RetainWaveRecords,
+            frontier_propagation_policy: FrontierPropagationPolicy::CanonicalFrontier,
+            frontier_cycle_policy: FrontierCyclePolicy::ReachableCycleCheck,
             parallel_admission: ParallelAdmissionPolicy::default(),
         }
     }
@@ -274,6 +306,9 @@ impl SignalRuntimePolicy {
             replay_detail: ReplayDetailPolicy::Forensic,
             semantic_retention: SemanticRetentionPolicy::Forensic,
             snapshot_restore_lineage_mode: SnapshotRestoreLineageMode::PerNode,
+            frontier_tracing_policy: FrontierTracingPolicy::FullForensic,
+            frontier_propagation_policy: FrontierPropagationPolicy::CanonicalFrontier,
+            frontier_cycle_policy: FrontierCyclePolicy::ReachableCycleCheck,
             parallel_admission: ParallelAdmissionPolicy::default(),
         }
     }

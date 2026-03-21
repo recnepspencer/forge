@@ -85,10 +85,11 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
     let explanation = runtime.observe().explain(feature_node).unwrap();
     assert_eq!(
         explanation.reuse_basis,
-        Some(ReuseBasis::Reused {
-            source: ReuseSource::MemoizedArtifact,
-            crossing: ReuseCrossing::None,
-        })
+        Some(ReuseBasis::strategy(
+            crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse,
+            ReuseSource::MemoizedArtifact,
+            ReuseCrossing::None,
+        ))
     );
     assert_eq!(
         explanation.memoized_origin,

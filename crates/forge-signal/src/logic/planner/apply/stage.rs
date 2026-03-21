@@ -367,7 +367,7 @@ fn apply_lowered_task(
         .get_entry(node)?
         .get_runtime_artifact_state()
         .map(|trace| trace.reuse_basis)
-        .unwrap_or(crate::data::reuse::ReuseBasis::FreshCompute);
+        .unwrap_or(crate::data::reuse::ReuseBasis::fresh_compute());
     Ok(SemanticTaskUpdate {
         task_index,
         node,

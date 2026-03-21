@@ -53,10 +53,13 @@ impl<'runtime> InspectionAccess<'runtime> {
                     entity_id,
                     version_id,
                 )?;
-                let partition = self.runtime.storage_access().partition_state(entity_id.partition_id)?;
-                let slot = entity_id.local_slot.0 as usize;
-                let slot_view = partition.entity_arena.get_slot(slot)?;
-                let extra = slot_view.extra();
+                let extra = self
+                    .runtime
+                    .storage_access()
+                    .partition_state(entity_id.partition_id)
+                    .and_then(|partition| partition.entity_arena.get(&entity_id))
+                    .map(|slot_view| slot_view.extra().clone())
+                    .unwrap_or_default();
                 let mut degradations = Vec::new();
                 if extra.structural_fingerprint.is_none() {
                     degradations.push(InspectionDegradation::MissingStructuralFingerprint);
@@ -179,6 +182,9 @@ impl<'runtime> InspectionAccess<'runtime> {
             .services
             .instrumentation
             .count(|counters| counters.inspection_graph_summary_requests += 1);
+        if matches!(request.scope, InspectionScope::Current) {
+            return self.current_graph_summary(request);
+        }
         let version_id = self
             .scope_version_id(&request.scope)
             .unwrap_or_else(|| self.runtime.current_version_id());
@@ -254,41 +260,56 @@ impl<'runtime> InspectionAccess<'runtime> {
         let version_id = self
             .scope_version_id(&request.scope)
             .unwrap_or_else(|| self.runtime.current_version_id());
-        let read_view = self
-            .read_view_for_scope(&request.scope)
-            .unwrap_or_else(|| self.runtime.visibility_reads().read_version(version_id));
-        let partition_scope = request
-            .partition_scope
-            .as_ref()
-            .map(|scope| scope.iter().copied().collect::<BTreeSet<_>>());
         let mut touched_partitions = BTreeSet::new();
         let count = match request.record_class {
-            InspectionRecordClass::Entity => read_view
-                .entities()
-                .iter()
-                .filter(|record| record.kind.kind_id == request.kind_id)
-                .filter(|record| {
-                    partition_scope
-                        .as_ref()
-                        .is_none_or(|scope| scope.contains(&record.entity_id.partition_id))
-                })
-                .inspect(|record| {
+            InspectionRecordClass::Entity => {
+                let records = match request.partition_scope.as_ref() {
+                    Some(partitions) => partitions
+                        .iter()
+                        .flat_map(|partition_id| {
+                            self.runtime
+                                .visibility_reads()
+                                .visible_entities_of_kind_in_partition(
+                                    *partition_id,
+                                    request.kind_id,
+                                    version_id,
+                                )
+                        })
+                        .collect::<Vec<_>>(),
+                    None => self
+                        .runtime
+                        .visibility_reads()
+                        .visible_entities_of_kind(request.kind_id, version_id),
+                };
+                for record in &records {
                     touched_partitions.insert(record.entity_id.partition_id);
-                })
-                .count(),
-            InspectionRecordClass::Relation => read_view
-                .relations()
-                .iter()
-                .filter(|record| record.kind.kind_id == request.kind_id)
-                .filter(|record| {
-                    partition_scope
-                        .as_ref()
-                        .is_none_or(|scope| scope.contains(&record.relation_id.partition_id))
-                })
-                .inspect(|record| {
+                }
+                records.len()
+            }
+            InspectionRecordClass::Relation => {
+                let records = match request.partition_scope.as_ref() {
+                    Some(partitions) => partitions
+                        .iter()
+                        .flat_map(|partition_id| {
+                            self.runtime
+                                .visibility_reads()
+                                .visible_relations_of_kind_in_partition(
+                                    *partition_id,
+                                    request.kind_id,
+                                    version_id,
+                                )
+                        })
+                        .collect::<Vec<_>>(),
+                    None => self
+                        .runtime
+                        .visibility_reads()
+                        .visible_relations_of_kind(request.kind_id, version_id),
+                };
+                for record in &records {
                     touched_partitions.insert(record.relation_id.partition_id);
-                })
-                .count(),
+                }
+                records.len()
+            }
         };
         KindInspectionSummary {
             scope: request.scope.clone(),
@@ -310,6 +331,9 @@ impl<'runtime> InspectionAccess<'runtime> {
         self.runtime.services.instrumentation.count(|counters| {
             counters.inspection_connectivity_summary_requests += 1;
         });
+        if matches!(request.scope, InspectionScope::Current) {
+            return self.current_connectivity_summary(request);
+        }
         let version_id = self
             .scope_version_id(&request.scope)
             .unwrap_or_else(|| self.runtime.current_version_id());
@@ -409,24 +433,17 @@ impl<'runtime> InspectionAccess<'runtime> {
         let version_id = self
             .scope_version_id(&scope)
             .unwrap_or_else(|| self.runtime.current_version_id());
-        let read_view = self
-            .read_view_for_scope(&scope)
-            .unwrap_or_else(|| self.runtime.visibility_reads().read_version(version_id));
         NeighborInspectionResult {
             entity_id,
             version_id,
-            outgoing_relation_ids: read_view
-                .relations()
-                .iter()
-                .filter(|record| record.source == entity_id)
-                .map(|record| record.relation_id)
-                .collect(),
-            incoming_relation_ids: read_view
-                .relations()
-                .iter()
-                .filter(|record| record.target == entity_id)
-                .map(|record| record.relation_id)
-                .collect(),
+            outgoing_relation_ids: self
+                .runtime
+                .storage_access()
+                .outgoing_relations_for_entity(entity_id, version_id),
+            incoming_relation_ids: self
+                .runtime
+                .storage_access()
+                .incoming_relations_for_entity(entity_id, version_id),
             origin: InspectionOrigin::VisibilitySnapshot,
             access_path: self.scope_access_path(&scope, version_id),
             resolution_context: InspectionResolutionContext::RelationNeighborhood,
@@ -670,25 +687,18 @@ impl<'runtime> InspectionAccess<'runtime> {
         &self,
         request: &RecentCommitInspectionRequest,
     ) -> RecentCommitInspectionWindow {
+        let history_access = self.runtime.history_access();
         let commits = self
             .runtime
-            .history
-            .commit_envelopes
-            .keys()
-            .rev()
-            .filter_map(|commit_id| self.inspect_commit(*commit_id))
-            .filter(|inspection| {
-                request
-                    .branch_id
-                    .as_ref()
-                    .is_none_or(|branch_id| inspection.commit.branch_id == *branch_id)
-            })
-            .take(request.limit)
+            .history_access()
+            .recent_commit_ids(request.branch_id.as_ref(), request.limit)
+            .into_iter()
+            .filter_map(|commit_id| self.inspect_commit(commit_id))
             .collect();
         let branch_head = request
             .branch_id
             .as_ref()
-            .and_then(|branch_id| self.runtime.history_access().branch_head(branch_id).cloned());
+            .and_then(|branch_id| history_access.branch_head(branch_id).cloned());
         RecentCommitInspectionWindow {
             branch_head,
             commits,
@@ -827,6 +837,217 @@ impl<'runtime> InspectionAccess<'runtime> {
             snapshot_pinned_relations,
             reclaimable_entities,
             reclaimable_relations,
+        }
+    }
+
+    fn current_graph_summary(&self, request: &GraphInspectionRequest) -> GraphInspectionSummary {
+        let partition_scope = request
+            .partition_scope
+            .as_ref()
+            .map(|scope| scope.iter().copied().collect::<BTreeSet<_>>());
+        let relation_kind_scope = request
+            .relation_kind_scope
+            .as_ref()
+            .map(|scope| scope.iter().copied().collect::<BTreeSet<_>>());
+        let mut entity_count = 0;
+        let mut relation_count = 0;
+        let mut entity_kinds = BTreeMap::<_, usize>::new();
+        let mut relation_kinds = BTreeMap::<_, usize>::new();
+        let mut touched_partitions = BTreeSet::new();
+
+        for partition_id in self.runtime.storage_access().partition_ids() {
+            if partition_scope
+                .as_ref()
+                .is_some_and(|scope| !scope.contains(&partition_id))
+            {
+                continue;
+            }
+            let Some(partition) = self.runtime.storage_access().partition_state(partition_id) else {
+                continue;
+            };
+            for slot in partition.entity_arena.live_bitset.iter_set_slots() {
+                let Some(slot_view) = partition.entity_arena.get_slot(slot) else {
+                    continue;
+                };
+                let Some(kind_id) = slot_view.kind_id() else {
+                    continue;
+                };
+                entity_count += 1;
+                *entity_kinds.entry(kind_id).or_default() += 1;
+                touched_partitions.insert(partition_id);
+            }
+            for slot in partition.relation_arena.live_bitset.iter_set_slots() {
+                let Some(slot_view) = partition.relation_arena.get_slot(slot) else {
+                    continue;
+                };
+                let Some(kind_id) = slot_view.kind_id() else {
+                    continue;
+                };
+                if relation_kind_scope
+                    .as_ref()
+                    .is_some_and(|scope| !scope.contains(&kind_id))
+                {
+                    continue;
+                }
+                relation_count += 1;
+                *relation_kinds.entry(kind_id).or_default() += 1;
+                touched_partitions.insert(partition_id);
+            }
+        }
+
+        GraphInspectionSummary {
+            scope: request.scope.clone(),
+            version_id: self.runtime.current_version_id(),
+            partition_count: touched_partitions.len(),
+            entity_count,
+            relation_count,
+            entity_kinds: entity_kinds.into_iter().collect(),
+            relation_kinds: relation_kinds.into_iter().collect(),
+            origin: InspectionOrigin::CurrentTruth,
+            access_path: InspectionAccessPath::DirectLookup,
+            availability: InspectionAvailability::Direct,
+            degradations: if request.summary_only {
+                vec![InspectionDegradation::SummaryOnly]
+            } else {
+                Vec::new()
+            },
+        }
+    }
+
+    fn current_connectivity_summary(
+        &self,
+        request: &ConnectivityInspectionRequest,
+    ) -> ConnectivityInspectionSummary {
+        let partition_scope = request
+            .partition_scope
+            .as_ref()
+            .map(|scope| scope.iter().copied().collect::<BTreeSet<_>>());
+        let relation_kind_scope = request
+            .relation_kind_scope
+            .as_ref()
+            .map(|scope| scope.iter().copied().collect::<BTreeSet<_>>());
+        let mut entities = Vec::new();
+
+        for partition_id in self.runtime.storage_access().partition_ids() {
+            if partition_scope
+                .as_ref()
+                .is_some_and(|scope| !scope.contains(&partition_id))
+            {
+                continue;
+            }
+            let Some(partition) = self.runtime.storage_access().partition_state(partition_id) else {
+                continue;
+            };
+            for slot in partition.entity_arena.live_bitset.iter_set_slots() {
+                let Some(slot_view) = partition.entity_arena.get_slot(slot) else {
+                    continue;
+                };
+                entities.push(crate::identity::data::EntityId::new(
+                    partition_id,
+                    slot as u64,
+                    slot_view.generation(),
+                ));
+            }
+        }
+        entities.sort();
+        let entity_set = entities.iter().copied().collect::<BTreeSet<_>>();
+        let mut adjacency = BTreeMap::<_, BTreeSet<_>>::new();
+        let mut seen_relations = BTreeSet::new();
+
+        for entity in &entities {
+            adjacency.entry(*entity).or_default();
+            let relation_ids = self
+                .runtime
+                .storage_access()
+                .outgoing_relations_for_entity(*entity, self.runtime.current_version_id())
+                .into_iter()
+                .chain(
+                    self.runtime
+                        .storage_access()
+                        .incoming_relations_for_entity(*entity, self.runtime.current_version_id()),
+                );
+            for relation_id in relation_ids {
+                if !seen_relations.insert(relation_id) {
+                    continue;
+                }
+                let Some(partition) = self
+                    .runtime
+                    .storage_access()
+                    .partition_state(relation_id.partition_id)
+                else {
+                    continue;
+                };
+                let Some(slot_view) = partition.relation_arena.get(&relation_id) else {
+                    continue;
+                };
+                let Some(kind_id) = slot_view.kind_id() else {
+                    continue;
+                };
+                if relation_kind_scope
+                    .as_ref()
+                    .is_some_and(|scope| !scope.contains(&kind_id))
+                {
+                    continue;
+                }
+                let Some(endpoints) = slot_view.extra().clone() else {
+                    continue;
+                };
+                if entity_set.contains(&endpoints.source) && entity_set.contains(&endpoints.target) {
+                    adjacency
+                        .entry(endpoints.source)
+                        .or_default()
+                        .insert(endpoints.target);
+                    adjacency
+                        .entry(endpoints.target)
+                        .or_default()
+                        .insert(endpoints.source);
+                }
+            }
+        }
+
+        let mut visited = BTreeSet::new();
+        let mut components = Vec::new();
+        for entity in &entities {
+            if !visited.insert(*entity) {
+                continue;
+            }
+            let mut queue = VecDeque::from([*entity]);
+            let mut members = vec![*entity];
+            while let Some(current) = queue.pop_front() {
+                for neighbor in adjacency.get(&current).into_iter().flatten() {
+                    if visited.insert(*neighbor) {
+                        members.push(*neighbor);
+                        queue.push_back(*neighbor);
+                    }
+                }
+            }
+            members.sort();
+            components.push(ConnectivityComponentSummary {
+                member_count: members.len(),
+                members: request.include_members.then_some(members),
+            });
+        }
+
+        ConnectivityInspectionSummary {
+            scope: request.scope.clone(),
+            version_id: self.runtime.current_version_id(),
+            component_count: components.len(),
+            largest_component_size: components
+                .iter()
+                .map(|component| component.member_count)
+                .max()
+                .unwrap_or(0),
+            enumerated_entity_count: entities.len(),
+            components,
+            origin: InspectionOrigin::CurrentTruth,
+            access_path: InspectionAccessPath::DirectLookup,
+            resolution_context: InspectionResolutionContext::ConnectivityTraversal,
+            availability: InspectionAvailability::Direct,
+            degradations: if request.include_members {
+                Vec::new()
+            } else {
+                vec![InspectionDegradation::SummaryOnly]
+            },
         }
     }
 

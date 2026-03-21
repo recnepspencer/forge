@@ -16,7 +16,7 @@ use crate::data::proof::{
     DedupedNodeBatch, LoweredForm, OrderedStreamItem, PartitionScopeSet, SortedSourceBatch,
     StructuralDelta,
 };
-use crate::data::reuse::ReuseBasis;
+use crate::data::reuse::{ReuseBasis, ReuseOrigin};
 use crate::data::trace::RuntimeArtifactState;
 use crate::logic::evaluation::EvaluationRequestMode;
 use crate::logic::evaluation::{DeferralReason, EvaluationVerdict, SuppressionReason};
@@ -209,6 +209,10 @@ pub enum TaskExecutionOutcome {
     ConditionDeferred,
     ConditionRevertedClean,
     MemoizedReuse,
+    SnapshotRestoreReuse,
+    ReconciliationAdoption,
+    CrossIdentityPersistentReuse,
+    PartialArtifactSplice,
     PropagationSuppressed,
     Pruned,
 }
@@ -249,6 +253,7 @@ pub struct TaskExecutionRecord {
     pub recomputed: bool,
     pub memoized_origin: MemoizedResultOrigin,
     pub reuse_basis: ReuseBasis,
+    pub reuse_origin: ReuseOrigin,
     pub propagation_suppressed: bool,
 }
 

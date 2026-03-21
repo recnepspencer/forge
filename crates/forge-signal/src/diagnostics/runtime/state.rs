@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::aspect::Aspect;
 use crate::data::handle::NodeId;
 use crate::data::output::ChangedRegion;
+use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
 use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
 use crate::diagnostics::failure::{FailureSummary, RollbackDiagnostic};
@@ -57,6 +58,10 @@ pub(crate) struct DiagnosticsState {
     next_lineage_sequence: u64,
     #[serde(default)]
     pending_input: Option<PendingFlowInput>,
+    #[serde(default)]
+    latest_frontier_execution: Option<FrontierExecutionSummary>,
+    #[serde(default)]
+    latest_invalidation_trace_records: Vec<InvalidationTraceRecord>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -65,11 +70,6 @@ struct PendingFlowInput {
     changed_aspects: BTreeSet<u8>,
     changed_region_count: u32,
     causality_kind: Option<String>,
-    invalidated_direct_subscribers: u32,
-    maybe_stale_direct_subscribers: u32,
-    partition_scoped_checks: u32,
-    narrowed_frontier_width: u32,
-    transitive_frontier_width: u32,
 }
 
 impl DiagnosticsState {
@@ -108,6 +108,12 @@ impl DiagnosticsState {
         if !self.policy.retains_provenance_facts() {
             self.provenance_facts.clear();
         }
+        if matches!(
+            self.policy.frontier_tracing_policy,
+            crate::diagnostics::policy::FrontierTracingPolicy::SummaryOnly
+        ) {
+            self.latest_invalidation_trace_records.clear();
+        }
         self.trim_history();
     }
 
@@ -121,6 +127,14 @@ impl DiagnosticsState {
 
     pub fn latest_rollback(&self) -> Option<&RollbackDiagnostic> {
         self.latest_rollback.as_ref()
+    }
+
+    pub fn latest_frontier_execution(&self) -> Option<&FrontierExecutionSummary> {
+        self.latest_frontier_execution.as_ref()
+    }
+
+    pub fn latest_invalidation_trace_records(&self) -> &[InvalidationTraceRecord] {
+        &self.latest_invalidation_trace_records
     }
 
     pub fn recent_history(&self) -> &VecDeque<ExecutionHistorySummary> {
@@ -171,11 +185,6 @@ impl DiagnosticsState {
             changed_aspects: BTreeSet::new(),
             changed_region_count: 0,
             causality_kind: None,
-            invalidated_direct_subscribers: 0,
-            maybe_stale_direct_subscribers: 0,
-            partition_scoped_checks: 0,
-            narrowed_frontier_width: 0,
-            transitive_frontier_width: 0,
         });
         pending.changed_nodes.insert(node);
         pending.changed_aspects.insert(aspect.id());
@@ -185,21 +194,13 @@ impl DiagnosticsState {
         }
     }
 
-    pub fn record_invalidation_result(
+    pub fn record_frontier_execution(
         &mut self,
-        invalidated_direct_subscribers: u32,
-        maybe_stale_direct_subscribers: u32,
-        partition_scoped_checks: u32,
-        narrowed_frontier_width: u32,
-        transitive_frontier_width: u32,
+        summary: FrontierExecutionSummary,
+        trace_records: Vec<InvalidationTraceRecord>,
     ) {
-        if let Some(pending) = &mut self.pending_input {
-            pending.invalidated_direct_subscribers += invalidated_direct_subscribers;
-            pending.maybe_stale_direct_subscribers += maybe_stale_direct_subscribers;
-            pending.partition_scoped_checks += partition_scoped_checks;
-            pending.narrowed_frontier_width += narrowed_frontier_width;
-            pending.transitive_frontier_width += transitive_frontier_width;
-        }
+        self.latest_frontier_execution = Some(summary);
+        self.latest_invalidation_trace_records = trace_records;
     }
 
     pub fn complete_flow(&mut self, flow: FlowSummary, history: ExecutionHistorySummary) {
@@ -219,6 +220,8 @@ impl DiagnosticsState {
 
     pub fn clear_pending_input(&mut self) {
         self.pending_input = None;
+        self.latest_frontier_execution = None;
+        self.latest_invalidation_trace_records.clear();
     }
 
     pub fn attach_event_epochs_to_latest_flow(&mut self, event_epochs: Vec<EventEpochSummary>) {
@@ -517,13 +520,10 @@ impl DiagnosticsState {
                     pending.changed_region_count,
                     pending.causality_kind.clone(),
                 ),
-                InvalidationSummary::new(
-                    pending.invalidated_direct_subscribers,
-                    pending.maybe_stale_direct_subscribers,
-                    pending.partition_scoped_checks,
-                    pending.narrowed_frontier_width,
-                    pending.transitive_frontier_width,
-                ),
+                self.latest_frontier_execution
+                    .as_ref()
+                    .map(InvalidationSummary::from_frontier_execution)
+                    .unwrap_or_else(InvalidationSummary::empty_frontier),
             )
         })
     }
@@ -556,6 +556,8 @@ impl Default for DiagnosticsState {
             next_lineage_artifact_id: 0,
             next_lineage_sequence: 0,
             pending_input: None,
+            latest_frontier_execution: None,
+            latest_invalidation_trace_records: Vec::new(),
         };
         state.bootstrap_defaults();
         state

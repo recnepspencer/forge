@@ -7,7 +7,7 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::output::{MemoizedResultOrigin, NodeEvaluationResult};
-use crate::data::reuse::{ReuseBoundaryContext, ReuseCertificationRecord};
+use crate::data::reuse::{ReuseBoundaryContext, ReuseCertificationRecord, ReuseOrigin};
 use crate::logic::evaluation::{
     DiagnosticEnvelope, EffectDependencyInputs, EffectRuntimeMetadata, EvaluationEffect,
     EvaluationVerdict, OperationalEffect, PreparedApplyResult, SuppressionReason,
@@ -107,7 +107,10 @@ fn build_evaluation_effect(
         .unwrap_or(MemoizedResultOrigin::DirectCompute);
     let reuse_basis = execution_metadata
         .map(|metadata| metadata.reuse_basis)
-        .unwrap_or(crate::data::reuse::ReuseBasis::FreshCompute);
+        .unwrap_or_else(crate::data::reuse::ReuseBasis::fresh_compute);
+    let reuse_origin = execution_metadata
+        .map(|metadata| metadata.reuse_origin)
+        .unwrap_or(ReuseOrigin::FreshCompute);
     EvaluationEffect {
         operational: OperationalEffect {
             node,
@@ -115,6 +118,7 @@ fn build_evaluation_effect(
             aspect_version: result.aspect_version,
             output_change: result.output_change,
             reuse_basis,
+            reuse_origin,
             reuse_boundary_context,
             dependency_snapshot_update: dependency_inputs.dependency_snapshot_update,
             snapshot_delta: dependency_inputs.snapshot_delta,

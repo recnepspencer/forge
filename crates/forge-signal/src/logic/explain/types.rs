@@ -153,6 +153,7 @@ pub struct NodeExplanation {
     pub propagation_suppressed: bool,
     pub memoized_origin: Option<MemoizedResultOrigin>,
     pub reuse_basis: Option<ReuseBasis>,
+    pub reuse_origin: Option<crate::data::reuse::ReuseOrigin>,
     pub reuse_certification: Option<ReuseCertificationRecord>,
     pub upstream: Vec<UpstreamCause>,
     #[serde(default)]
@@ -210,6 +211,7 @@ impl fmt::Display for NodeExplanation {
                 trace.memoized_origin
             )?;
             writeln!(f, "Reuse basis: {:?}", trace.reuse_basis)?;
+            writeln!(f, "Reuse origin: {:?}", trace.reuse_origin)?;
             if let Some(certification) = &self.reuse_certification {
                 writeln!(
                     f,

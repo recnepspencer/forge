@@ -118,6 +118,18 @@ impl<'a> NodeBuilder<'a> {
         self
     }
 
+    /// Explicitly admit cross-identity persistent matching for this node.
+    pub fn cross_identity_persistent_matching(mut self) -> Self {
+        self.config.contract = self.config.contract.with_cross_identity_persistent_matching();
+        self
+    }
+
+    /// Explicitly admit partial artifact splicing for this node.
+    pub fn partial_artifact_splicing(mut self) -> Self {
+        self.config.contract = self.config.contract.with_partial_artifact_splicing();
+        self
+    }
+
     /// Control whether full reuse certification must be retained for this node.
     pub fn retain_reuse_certification(mut self, retain_certification: bool) -> Self {
         self.config.contract = self

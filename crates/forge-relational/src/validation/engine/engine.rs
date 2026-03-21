@@ -1,16 +1,13 @@
 use crate::logic::runtime::RelationalRuntime;
-use crate::validation::data::{InvariantCheckResult, InvariantVerdict};
-use crate::validation::execution::{evaluate_invariant_packet, plan_invariant_execution};
+use crate::validation::execution::{
+    evaluate_invariant_packet, plan_invariant_execution, planned_proof_boundary_summary,
+};
 use crate::validation::reduction::reduce_invariant_execution;
 use rayon::prelude::*;
 use std::collections::BTreeSet;
 
-use super::context::InvariantExecutionContext;
-use super::evaluator::evaluate_rule;
 use super::request::InvariantExecutionRequest;
-use super::result::{
-    InvariantExecutionDisposition, InvariantExecutionMetadata, InvariantExecutionResult,
-};
+use super::result::InvariantExecutionResult;
 
 pub(crate) struct InvariantEngine<'runtime> {
     runtime: &'runtime RelationalRuntime,
@@ -50,73 +47,15 @@ impl<'runtime> InvariantEngine<'runtime> {
                     .collect()
             }
         };
+        let proof_boundary = planned_proof_boundary_summary(planned);
         let (result, _, reducer_conflicts) =
-            reduce_invariant_execution(&request, planned.strategy, envelopes);
+            reduce_invariant_execution(&request, planned.strategy, proof_boundary, envelopes);
         if !reducer_conflicts.is_empty() {
             self.runtime
                 .performance_access()
                 .count_preparation_reducer_conflicts(reducer_conflicts.len());
         }
         result
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn execute_serial_legacy(
-        &self,
-        request: InvariantExecutionRequest<'runtime>,
-    ) -> InvariantExecutionResult {
-        let context = InvariantExecutionContext::new(
-            self.runtime,
-            request.observation().clone(),
-            request.version_id(),
-            request.execution_point(),
-            request.merged_plan(),
-        );
-        let registrations = context
-            .runtime()
-            .config
-            .schema
-            .invariant_catalog
-            .registrations_for_execution_point(context.execution_point());
-
-        let mut results = Vec::new();
-        for registration in registrations {
-            if !request.includes_registration(registration) {
-                continue;
-            }
-            let rule = registration.rule.clone();
-            let verdict = if let Some(violation) =
-                evaluate_rule(&context, registration.execution_point.class(), &rule)
-            {
-                registration.verdict_for_violation(violation)
-            } else {
-                InvariantVerdict::Pass
-            };
-            results.push(InvariantCheckResult {
-                execution_point: registration.execution_point,
-                failure_effect: registration.failure_effect,
-                rule,
-                verdict,
-            });
-        }
-        InvariantExecutionResult::executed(
-            InvariantExecutionMetadata::new(
-                request.execution_point(),
-                request.observation().kind(),
-                request.version_id(),
-                request.current_version_id(),
-                request.consumed_groups(),
-                request.applicable_groups(),
-                request.max_cost(),
-                InvariantExecutionDisposition::Executed,
-                request.plan_contract(),
-                request.merged_plan().is_some(),
-                self.runtime.config.execution.execution_model,
-                None,
-                Vec::new(),
-            ),
-            results,
-        )
     }
 }
 

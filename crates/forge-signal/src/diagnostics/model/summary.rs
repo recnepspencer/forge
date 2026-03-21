@@ -6,7 +6,7 @@ use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
 use crate::data::output::{MemoizedResultOrigin, OutputChange};
-use crate::data::reuse::ReuseBasis;
+use crate::data::reuse::{PersistentCorrespondenceKind, ReuseBasis, ReuseOrigin};
 use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::profile::DiagnosticsProfile;
 use crate::logic::explain::{CausalDisposition, NodeExplanation, UpstreamCause};
@@ -105,6 +105,7 @@ pub struct ExplanationSummary {
     pub output_change: Option<OutputChange>,
     pub memoized_origin: Option<MemoizedResultOrigin>,
     pub reuse_basis: Option<ReuseBasis>,
+    pub reuse_origin: Option<crate::data::reuse::ReuseOrigin>,
     pub reuse_certification_proof_count: u32,
     pub changed_region_count: u32,
     pub causality_kind: Option<String>,
@@ -118,6 +119,8 @@ pub struct ExecutionHistoryNodeSummary {
     pub output_change: Option<OutputChange>,
     pub memoized_origin: Option<MemoizedResultOrigin>,
     pub reuse_basis: Option<ReuseBasis>,
+    pub reuse_origin: Option<crate::data::reuse::ReuseOrigin>,
+    pub persistent_correspondence_kind: Option<PersistentCorrespondenceKind>,
     pub reuse_certification_proof_count: u32,
     pub changed_partition_count: u32,
     pub causality_kind: Option<String>,
@@ -129,6 +132,7 @@ pub struct ExecutionHistorySummary {
     pub traced_node_count: u32,
     pub execution_record_count: u32,
     pub latest_execution_record_id: Option<u64>,
+    pub reuse_origin_counts: BTreeMap<String, u32>,
     pub nodes: Vec<ExecutionHistoryNodeSummary>,
 }
 
@@ -427,6 +431,7 @@ impl ExplanationSummary {
             output_change: explanation.output_change,
             memoized_origin: explanation.memoized_origin,
             reuse_basis: explanation.reuse_basis,
+            reuse_origin: explanation.reuse_origin,
             reuse_certification_proof_count: explanation
                 .reuse_certification
                 .as_ref()
@@ -443,6 +448,7 @@ impl ExecutionHistorySummary {
         let mut traced_node_count = 0_u32;
         let mut execution_record_count = 0_u32;
         let mut latest_execution_record_id = None;
+        let mut reuse_origin_counts = BTreeMap::new();
         let mut nodes = Vec::new();
         let retain_nodes = profile.retains_history_details();
 
@@ -457,6 +463,9 @@ impl ExecutionHistorySummary {
                 continue;
             };
             traced_node_count += 1;
+            *reuse_origin_counts
+                .entry(reuse_origin_label(trace.reuse_origin).to_string())
+                .or_insert(0) += 1;
             if let Some(id) = trace.execution_record_id {
                 execution_record_count += 1;
                 latest_execution_record_id =
@@ -469,7 +478,13 @@ impl ExecutionHistorySummary {
                     semantic_segment_id: trace.semantic_segment_id,
                     output_change: Some(trace.output_change),
                     memoized_origin: Some(trace.memoized_origin),
-                    reuse_basis: Some(trace.reuse_basis),
+                    reuse_basis: Some(trace.reuse_basis.clone()),
+                    reuse_origin: Some(trace.reuse_origin),
+                    persistent_correspondence_kind: trace
+                        .reuse_boundary_context
+                        .as_ref()
+                        .and_then(|context| context.persistent_correspondence.as_ref())
+                        .map(|evidence| evidence.kind()),
                     reuse_certification_proof_count: entry
                         .retained_diagnostic_artifact()
                         .and_then(|retained| retained.reuse_certification.as_ref())
@@ -500,8 +515,21 @@ impl ExecutionHistorySummary {
             traced_node_count,
             execution_record_count,
             latest_execution_record_id,
+            reuse_origin_counts,
             nodes,
         }
+    }
+}
+
+fn reuse_origin_label(origin: ReuseOrigin) -> &'static str {
+    match origin {
+        ReuseOrigin::FreshCompute => "FreshCompute",
+        ReuseOrigin::OutputSuppressed => "OutputSuppressed",
+        ReuseOrigin::MemoizedArtifactReuse => "MemoizedArtifactReuse",
+        ReuseOrigin::SnapshotRestore => "SnapshotRestore",
+        ReuseOrigin::ReconciliationAdoption => "ReconciliationAdoption",
+        ReuseOrigin::CrossIdentityPersistentReuse => "CrossIdentityPersistentReuse",
+        ReuseOrigin::PartialArtifactSplice => "PartialArtifactSplice",
     }
 }
 
@@ -572,6 +600,10 @@ fn _task_outcome_key(outcome: TaskExecutionOutcome) -> &'static str {
         TaskExecutionOutcome::ConditionDeferred => "ConditionDeferred",
         TaskExecutionOutcome::ConditionRevertedClean => "ConditionRevertedClean",
         TaskExecutionOutcome::MemoizedReuse => "MemoizedReuse",
+        TaskExecutionOutcome::SnapshotRestoreReuse => "SnapshotRestoreReuse",
+        TaskExecutionOutcome::ReconciliationAdoption => "ReconciliationAdoption",
+        TaskExecutionOutcome::CrossIdentityPersistentReuse => "CrossIdentityPersistentReuse",
+        TaskExecutionOutcome::PartialArtifactSplice => "PartialArtifactSplice",
         TaskExecutionOutcome::PropagationSuppressed => "PropagationSuppressed",
         TaskExecutionOutcome::Pruned => "Pruned",
     }

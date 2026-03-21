@@ -225,6 +225,16 @@ impl NodeContract {
         self
     }
 
+    pub fn with_cross_identity_persistent_matching(mut self) -> Self {
+        self.reuse.equivalence = self.reuse.equivalence.with_cross_identity_persistent_matching();
+        self
+    }
+
+    pub fn with_partial_artifact_splicing(mut self) -> Self {
+        self.reuse.equivalence = self.reuse.equivalence.with_partial_artifact_splicing();
+        self
+    }
+
     pub fn with_reuse_certification_retention(mut self, retain_certification: bool) -> Self {
         self.reuse.retain_certification = retain_certification;
         self

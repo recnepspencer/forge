@@ -1,6 +1,7 @@
 use crate::facade::durability::{
-    DurabilityMode, DurableStore, DurableStoreLayout, RecoveryCompatibilityCheck, RecoveryCursor,
-    RecoveryFailureClass, RecoveryIntegrityReport, RecoveryPlan,
+    DurabilityMode, DurableStore, DurableStoreLayout, RecoveryCompatibilityCheck,
+    RecoveryCompatibilityMismatch, RecoveryCursor, RecoveryFailureClass,
+    RecoveryIntegrityReport, RecoveryPlan, RelationIntegrityContractFamily,
 };
 use crate::facade::history::BranchId;
 use crate::facade::identity::KindId;
@@ -24,19 +25,11 @@ use crate::tests::support::*;
 fn durability_contract_recovery_rebuilds_branch_heads_and_latest_commit() {
     let mut runtime = persisted_runtime_with_test_schema();
     let main = create_entity_outcome(&mut runtime, "main-a");
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("feature".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .unwrap();
+    create_branch_from_main(&mut runtime, "feature");
     let feature =
         create_entity_outcome_on_branch(&mut runtime, "feature-a", BranchId("feature".to_string()));
-    let _checkpoint = runtime.durability_authority().checkpoint().unwrap();
-    let plan = runtime.durability_access().recovery_plan();
-    let mut recovered = persisted_runtime_with_test_schema();
-    let outcome = recovered.durability_authority().recover(plan).unwrap();
+    let (outcome, recovered) =
+        checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
 
     assert_eq!(outcome.recovered_commits, 2);
     assert_eq!(outcome.latest_commit, Some(feature.commit.clone()));
@@ -74,10 +67,9 @@ fn durability_contract_recovery_preserves_aspect_bearing_patch_truth_and_history
         .canonical_commit_envelope(updated.commit.commit_id)
         .cloned()
         .unwrap();
-    let plan = runtime.durability_access().recovery_plan();
-    let mut recovered =
-        persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let outcome = recovered.durability_authority().recover(plan).unwrap();
+    let (outcome, recovered) = checkpoint_and_recover_with(&mut runtime, || {
+        persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations)
+    });
 
     let recovered_history = recovered.history_access().entity_aspect_history(
         &BranchId("main".to_string()),
@@ -125,10 +117,9 @@ fn durability_contract_recovery_preserves_relation_aspect_history_for_retained_a
         .history_access()
         .relation_aspect_history_with_trace(&BranchId("main".to_string()), relation, None)
         .aspect_history_digest();
-    let plan = runtime.durability_access().recovery_plan();
-    let mut recovered =
-        persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit);
-    let outcome = recovered.durability_authority().recover(plan).unwrap();
+    let (outcome, recovered) = checkpoint_and_recover_with(&mut runtime, || {
+        persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit)
+    });
 
     let recovered_history = recovered.history_access().relation_aspect_history(
         &BranchId("main".to_string()),
@@ -161,6 +152,154 @@ fn durability_contract_recovery_preserves_relation_aspect_history_for_retained_a
 }
 
 #[test]
+fn durability_contract_recovery_preserves_branch_local_endpoint_deletion_retirement_histories() {
+    let registry = RelationalSchemaRegistry::new()
+        .register_entity_kind(EntityKindRegistration {
+            kind_id: KindId(1),
+            kind_name: "test.entity".to_string(),
+            schema_id: SchemaId("test".to_string()),
+            schema_version_id: SchemaVersionId(1),
+            aspect_declarations: KindAspectDeclarations::default(),
+        })
+        .and_then(|registry| {
+            registry.register_relation_kind(RelationKindRegistration {
+                kind_id: KindId(2),
+                kind_name: "test.relation".to_string(),
+                schema_id: SchemaId("test".to_string()),
+                schema_version_id: SchemaVersionId(1),
+                payload_class: RelationPayloadClass::PayloadBearingRelation,
+                cross_context_policy: CrossContextPolicy::AllowExplicit,
+                cascade_delete_policy: CascadeDeletePolicy::RetainDanglingForAudit,
+                aspect_declarations: KindAspectDeclarations::default(),
+                relation_integrity: crate::schema::data::RelationIntegrityDeclarations::new(
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                    vec![crate::schema::data::EndpointDeletionIntegrityDeclaration {
+                        contract_id: "require_retirement".to_string(),
+                        mode: crate::schema::data::EndpointDeletionIntegrityMode::RequireRelationRetirement,
+                    }],
+                ),
+            })
+        })
+        .unwrap();
+    let store_layout = DurableStoreLayout {
+        root_path: unique_test_store_path("forge-relational-endpoint-retirement-recovery"),
+        segment_commit_capacity: 2,
+    };
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(registry.clone())
+        .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
+        .durable_store_layout(store_layout.clone())
+        .cascade_delete_policy(CascadeDeletePolicy::RetainDanglingForAudit)
+        .build();
+    let source = create_entity(&mut runtime, "source");
+    let target = create_entity(&mut runtime, "target");
+    let relation_outcome = create_relation_outcome(&mut runtime, source, target, "retained");
+    let relation = changed_relations(&relation_outcome)[0];
+    runtime
+        .history_authority()
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
+        .unwrap();
+    let _main_delete = delete_entity(&mut runtime, source);
+    let _feature_update = update_entity_on_branch(
+        &mut runtime,
+        target,
+        "feature-target",
+        BranchId("feature".to_string()),
+    );
+
+    let expected_main_digest = relation_aspect_history_digest_on_branch(
+        &runtime,
+        &BranchId("main".to_string()),
+        relation,
+        None,
+    );
+    let expected_feature_digest = relation_aspect_history_digest_on_branch(
+        &runtime,
+        &BranchId("feature".to_string()),
+        relation,
+        None,
+    );
+    let expected_main_inspection = runtime.inspection_access().inspect_historical_record(
+        &BranchId("main".to_string()),
+        runtime
+            .history_access()
+            .branch_head(&BranchId("main".to_string()))
+            .unwrap()
+            .version_id,
+        RecordRef::Relation(relation),
+        crate::facade::inspection::HistoricalInspectionMode::RetainedOnly,
+    );
+    let expected_feature_inspection = runtime.inspection_access().inspect_historical_record(
+        &BranchId("feature".to_string()),
+        runtime
+            .history_access()
+            .branch_head(&BranchId("feature".to_string()))
+            .unwrap()
+            .version_id,
+        RecordRef::Relation(relation),
+        crate::facade::inspection::HistoricalInspectionMode::RetainedOnly,
+    );
+
+    runtime.durability_authority().checkpoint().unwrap();
+    let plan = runtime.durability_access().recovery_plan();
+    let mut recovered = RelationalRuntimeApi::builder()
+        .schema_registry(registry)
+        .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
+        .durable_store_layout(store_layout)
+        .cascade_delete_policy(CascadeDeletePolicy::RetainDanglingForAudit)
+        .build();
+    let outcome = recovered.durability_authority().recover(plan).unwrap();
+
+    let recovered_main_digest = relation_aspect_history_digest_on_branch(
+        &recovered,
+        &BranchId("main".to_string()),
+        relation,
+        None,
+    );
+    let recovered_feature_digest = relation_aspect_history_digest_on_branch(
+        &recovered,
+        &BranchId("feature".to_string()),
+        relation,
+        None,
+    );
+    let recovered_main_inspection = recovered.inspection_access().inspect_historical_record(
+        &BranchId("main".to_string()),
+        recovered
+            .history_access()
+            .branch_head(&BranchId("main".to_string()))
+            .unwrap()
+            .version_id,
+        RecordRef::Relation(relation),
+        crate::facade::inspection::HistoricalInspectionMode::RetainedOnly,
+    );
+    let recovered_feature_inspection = recovered.inspection_access().inspect_historical_record(
+        &BranchId("feature".to_string()),
+        recovered
+            .history_access()
+            .branch_head(&BranchId("feature".to_string()))
+            .unwrap()
+            .version_id,
+        RecordRef::Relation(relation),
+        crate::facade::inspection::HistoricalInspectionMode::RetainedOnly,
+    );
+
+    assert_eq!(
+        outcome.latest_commit,
+        runtime.history_access().latest_commit().cloned()
+    );
+    assert_eq!(expected_main_digest, recovered_main_digest);
+    assert_eq!(expected_feature_digest, recovered_feature_digest);
+    assert_eq!(expected_main_inspection, recovered_main_inspection);
+    assert_eq!(expected_feature_inspection, recovered_feature_inspection);
+}
+
+#[test]
 fn durability_contract_failure_schema_mismatch_is_explicit() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "main-a");
@@ -180,6 +319,14 @@ fn durability_contract_failure_schema_mismatch_is_explicit() {
     let error = recovered.durability_authority().recover(plan).unwrap_err();
 
     assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
+    assert!(matches!(
+        error.compatibility_mismatch,
+        Some(RecoveryCompatibilityMismatch::SchemaRegistryShape {
+            expected_primary_schema_version: SchemaVersionId(1),
+            found_primary_schema_version: SchemaVersionId(2),
+            ..
+        })
+    ));
 }
 
 #[test]
@@ -221,6 +368,221 @@ fn durability_contract_failure_aspect_plan_mismatch_is_explicit() {
 
     assert_ne!(expected_revision, mismatched_revision);
     assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
+    assert!(matches!(
+        error.compatibility_mismatch,
+        Some(RecoveryCompatibilityMismatch::EntityAspectPlanRevision {
+            kind_id: KindId(1),
+            expected_revision: expected,
+            found_revision: found,
+            ..
+        }) if expected == expected_revision.0 && found == mismatched_revision.0
+    ));
+}
+
+#[test]
+fn durability_contract_failure_relation_integrity_plan_mismatch_is_explicit() {
+    let base_registry = RelationalSchemaRegistry::new()
+        .register_entity_kind(EntityKindRegistration {
+            kind_id: KindId(1),
+            kind_name: "test.entity".to_string(),
+            schema_id: SchemaId("test".to_string()),
+            schema_version_id: SchemaVersionId(1),
+            aspect_declarations: KindAspectDeclarations::default(),
+        })
+        .and_then(|registry| {
+            registry.register_relation_kind(RelationKindRegistration {
+                kind_id: KindId(2),
+                kind_name: "test.relation".to_string(),
+                schema_id: SchemaId("test".to_string()),
+                schema_version_id: SchemaVersionId(1),
+                payload_class: RelationPayloadClass::PayloadBearingRelation,
+                cross_context_policy: CrossContextPolicy::AllowExplicit,
+                cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
+                aspect_declarations: KindAspectDeclarations::default(),
+                relation_integrity: crate::schema::data::RelationIntegrityDeclarations::new(
+                    Vec::new(),
+                    vec![crate::schema::data::CardinalityContractDeclaration {
+                        contract_id: "source_max_one".to_string(),
+                        source_max: Some(1),
+                        target_max: None,
+                        pair_max: None,
+                    }],
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                ),
+            })
+        })
+        .unwrap();
+    let store_layout = DurableStoreLayout {
+        root_path: unique_test_store_path("forge-relational-relation-integrity-mismatch"),
+        segment_commit_capacity: 2,
+    };
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(base_registry)
+        .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
+        .durable_store_layout(store_layout.clone())
+        .build();
+    let source = create_entity(&mut runtime, "source");
+    let target = create_entity(&mut runtime, "target");
+    create_relation_outcome(&mut runtime, source, target, "guarded");
+    let plan = runtime.durability_access().recovery_plan();
+
+    let mismatched_registry = RelationalSchemaRegistry::new()
+        .register_entity_kind(EntityKindRegistration {
+            kind_id: KindId(1),
+            kind_name: "test.entity".to_string(),
+            schema_id: SchemaId("test".to_string()),
+            schema_version_id: SchemaVersionId(1),
+            aspect_declarations: KindAspectDeclarations::default(),
+        })
+        .and_then(|registry| {
+            registry.register_relation_kind(RelationKindRegistration {
+                kind_id: KindId(2),
+                kind_name: "test.relation".to_string(),
+                schema_id: SchemaId("test".to_string()),
+                schema_version_id: SchemaVersionId(1),
+                payload_class: RelationPayloadClass::PayloadBearingRelation,
+                cross_context_policy: CrossContextPolicy::AllowExplicit,
+                cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
+                aspect_declarations: KindAspectDeclarations::default(),
+                relation_integrity: crate::schema::data::RelationIntegrityDeclarations::new(
+                    Vec::new(),
+                    vec![crate::schema::data::CardinalityContractDeclaration {
+                        contract_id: "source_max_two".to_string(),
+                        source_max: Some(2),
+                        target_max: None,
+                        pair_max: None,
+                    }],
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                ),
+            })
+        })
+        .unwrap();
+    let mut recovered = RelationalRuntimeApi::builder()
+        .schema_registry(mismatched_registry)
+        .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
+        .durable_store_layout(store_layout)
+        .build();
+    let error = recovered.durability_authority().recover(plan).unwrap_err();
+
+    assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
+    assert!(matches!(
+        error.compatibility_mismatch,
+        Some(RecoveryCompatibilityMismatch::RelationIntegrityPlanRevision {
+            kind_id: KindId(2),
+            contract_family: RelationIntegrityContractFamily::Cardinality,
+            ref expected_contract_ids,
+            ref found_contract_ids,
+            ..
+        }) if expected_contract_ids == &vec!["source_max_one".to_string()]
+            && found_contract_ids == &vec!["source_max_two".to_string()]
+    ));
+}
+
+#[test]
+fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
+    let fixture = RelationIntegritySchemaFixture {
+        relation_integrity: crate::schema::data::RelationIntegrityDeclarations::new(
+            Vec::new(),
+            vec![crate::schema::data::CardinalityContractDeclaration {
+                contract_id: "source_max_one".to_string(),
+                source_max: Some(1),
+                target_max: None,
+                pair_max: None,
+            }],
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+        ),
+        ..RelationIntegritySchemaFixture::default()
+    };
+    let store_layout = DurableStoreLayout {
+        root_path: unique_test_store_path("forge-relational-rejected-relation-integrity-recovery"),
+        segment_commit_capacity: 2,
+    };
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(fixture.build_registry())
+        .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
+        .durable_store_layout(store_layout.clone())
+        .build();
+    let source = create_entity(&mut runtime, "source");
+    let target_a = create_entity(&mut runtime, "target-a");
+    let target_b = create_entity(&mut runtime, "target-b");
+    let accepted = create_relation_outcome(&mut runtime, source, target_a, "accepted");
+    let relation = changed_relations(&accepted)[0];
+    let latest_commit_before = runtime.history_access().latest_commit().cloned();
+    let latest_patch_before = runtime.publication_access().latest_patch().unwrap().position;
+    let main_digest_before = relation_aspect_history_digest_on_branch(
+        &runtime,
+        &BranchId("main".to_string()),
+        relation,
+        None,
+    );
+
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("illegal-overflow").push(MutationIntent::Create(
+            CreateIntent::Relation(crate::transactions::data::RelationSpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(2),
+                client_key: InternedString::Raw("illegal-overflow".to_string()),
+                source,
+                target: target_b,
+                payload: Some(RecordPayload::StructuredJson(json!({"label":"illegal-overflow"}))),
+            }),
+        )),
+    );
+    let error = txn.commit().unwrap_err();
+    match error {
+        TransactionCommitError::Conflict { error, .. } => {
+            assert_eq!(error.code(), DiagnosticCode::RelationCardinalityViolation);
+        }
+        TransactionCommitError::Publication { .. } => {
+            panic!("expected relation-integrity conflict, got publication error")
+        }
+    }
+
+    assert_eq!(runtime.history_access().latest_commit().cloned(), latest_commit_before);
+    assert_eq!(
+        runtime.publication_access().latest_patch().unwrap().position,
+        latest_patch_before
+    );
+    assert_eq!(
+        relation_aspect_history_digest_on_branch(
+            &runtime,
+            &BranchId("main".to_string()),
+            relation,
+            None,
+        ),
+        main_digest_before
+    );
+
+    runtime.durability_authority().checkpoint().unwrap();
+    let plan = runtime.durability_access().recovery_plan();
+    let mut recovered = RelationalRuntimeApi::builder()
+        .schema_registry(fixture.build_registry())
+        .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
+        .durable_store_layout(store_layout)
+        .build();
+    let outcome = recovered.durability_authority().recover(plan).unwrap();
+
+    assert_eq!(outcome.latest_commit, latest_commit_before.clone());
+    assert_eq!(
+        relation_aspect_history_digest_on_branch(
+            &recovered,
+            &BranchId("main".to_string()),
+            relation,
+            None,
+        ),
+        main_digest_before
+    );
+    assert!(recovered
+        .replay_access()
+        .canonical_commit_envelope(latest_commit_before.unwrap().commit_id)
+        .is_some());
 }
 
 #[test]

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::aspect::Aspect;
 use crate::data::handle::NodeId;
-use crate::data::proof::DedupedNodeBatch;
+use crate::data::proof::{DedupedNodeBatch, FrontierExecutionSummary};
 use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::failure::RollbackDiagnostic;
 use crate::diagnostics::profile::DiagnosticsProfile;
@@ -28,6 +28,24 @@ pub struct InvalidationSummary {
     pub partition_scoped_checks: u32,
     pub narrowed_frontier_width: u32,
     pub transitive_frontier_width: u32,
+    #[serde(default)]
+    pub frontier_seed_count: u32,
+    #[serde(default)]
+    pub frontier_group_count: u32,
+    #[serde(default)]
+    pub frontier_direct_wave_count: u32,
+    #[serde(default)]
+    pub frontier_transitive_wave_count: u32,
+    #[serde(default)]
+    pub frontier_partition_match_count: u32,
+    #[serde(default)]
+    pub frontier_detail_match_count: u32,
+    #[serde(default)]
+    pub frontier_cycle_check_candidate_count: u32,
+    #[serde(default)]
+    pub frontier_cycle_check_visited_count: u32,
+    #[serde(default)]
+    pub frontier_trace_retained_count: u32,
 }
 
 /// End-to-end causal summary for one signal execution flow.
@@ -113,6 +131,70 @@ impl ChangeInputSummary {
 }
 
 impl InvalidationSummary {
+    pub fn empty_frontier() -> Self {
+        Self::from_frontier_execution(&FrontierExecutionSummary::new(
+            0,
+            Vec::new(),
+            Vec::new(),
+            Default::default(),
+            Default::default(),
+        ))
+    }
+
+    pub fn from_frontier_execution(summary: &FrontierExecutionSummary) -> Self {
+        let invalidated_direct_subscribers = summary
+            .direct_waves
+            .iter()
+            .flat_map(|wave| wave.entries.iter())
+            .filter(|entry| {
+                matches!(
+                    entry.classification,
+                    crate::data::proof::FrontierEntryClassification::DirectDirty
+                )
+            })
+            .count() as u32;
+        let maybe_stale_direct_subscribers = summary
+            .direct_waves
+            .iter()
+            .flat_map(|wave| wave.entries.iter())
+            .filter(|entry| {
+                matches!(
+                    entry.classification,
+                    crate::data::proof::FrontierEntryClassification::MaybeStale
+                )
+            })
+            .count() as u32;
+        let narrowed_frontier_width = summary
+            .direct_waves
+            .iter()
+            .map(|wave| wave.entries.len())
+            .sum::<usize>() as u32;
+        let transitive_frontier_width = summary
+            .transitive_waves
+            .iter()
+            .map(|wave| wave.entries.len())
+            .sum::<usize>() as u32;
+
+        Self::new(
+            invalidated_direct_subscribers,
+            maybe_stale_direct_subscribers,
+            summary.counters.frontier_partition_scoped_check_count as u32,
+            narrowed_frontier_width,
+            transitive_frontier_width,
+        )
+        .with_frontier_counters(
+            summary.counters.frontier_seed_count as u32,
+            summary.counters.frontier_group_count as u32,
+            summary.counters.frontier_direct_wave_count as u32,
+            summary.counters.frontier_transitive_wave_count as u32,
+            summary.counters.frontier_partition_match_count as u32,
+            summary.counters.frontier_detail_match_count as u32,
+            summary.counters.frontier_cycle_check_candidate_count as u32,
+            summary.counters.frontier_cycle_check_visited_count as u32,
+            summary.counters.frontier_trace_retained_count as u32,
+        )
+    }
+
     pub fn new(
         invalidated_direct_subscribers: u32,
         maybe_stale_direct_subscribers: u32,
@@ -126,7 +208,40 @@ impl InvalidationSummary {
             partition_scoped_checks,
             narrowed_frontier_width,
             transitive_frontier_width,
+            frontier_seed_count: 0,
+            frontier_group_count: 0,
+            frontier_direct_wave_count: 0,
+            frontier_transitive_wave_count: 0,
+            frontier_partition_match_count: 0,
+            frontier_detail_match_count: 0,
+            frontier_cycle_check_candidate_count: 0,
+            frontier_cycle_check_visited_count: 0,
+            frontier_trace_retained_count: 0,
         }
+    }
+
+    pub fn with_frontier_counters(
+        mut self,
+        frontier_seed_count: u32,
+        frontier_group_count: u32,
+        frontier_direct_wave_count: u32,
+        frontier_transitive_wave_count: u32,
+        frontier_partition_match_count: u32,
+        frontier_detail_match_count: u32,
+        frontier_cycle_check_candidate_count: u32,
+        frontier_cycle_check_visited_count: u32,
+        frontier_trace_retained_count: u32,
+    ) -> Self {
+        self.frontier_seed_count = frontier_seed_count;
+        self.frontier_group_count = frontier_group_count;
+        self.frontier_direct_wave_count = frontier_direct_wave_count;
+        self.frontier_transitive_wave_count = frontier_transitive_wave_count;
+        self.frontier_partition_match_count = frontier_partition_match_count;
+        self.frontier_detail_match_count = frontier_detail_match_count;
+        self.frontier_cycle_check_candidate_count = frontier_cycle_check_candidate_count;
+        self.frontier_cycle_check_visited_count = frontier_cycle_check_visited_count;
+        self.frontier_trace_retained_count = frontier_trace_retained_count;
+        self
     }
 }
 

@@ -78,7 +78,9 @@ mod tests {
     use crate::data::handle::NodeId;
     use crate::data::output::MemoizedResultOrigin;
     use crate::data::output::OutputChange;
-    use crate::data::reuse::{ReuseBasis, ReuseBoundaryContext, ReuseSemanticRegionIdentity};
+    use crate::data::reuse::{
+        ReuseBasis, ReuseBoundaryContext, ReuseOrigin, ReuseSemanticRegionIdentity,
+    };
     use crate::logic::evaluation::{EffectRuntimeMetadata, EvaluationEffect, OperationalEffect};
 
     #[test]
@@ -89,7 +91,8 @@ mod tests {
                 verdict: crate::logic::evaluation::EvaluationVerdict::Recomputed,
                 aspect_version: AspectVersion::zero(),
                 output_change: OutputChange::Replaced,
-                reuse_basis: ReuseBasis::FreshCompute,
+                reuse_basis: ReuseBasis::fresh_compute(),
+                reuse_origin: ReuseOrigin::FreshCompute,
                 reuse_boundary_context: ReuseBoundaryContext {
                     topology_regime: 0,
                     tolerance_regime: crate::data::comparator::VersionComparatorPolicy::Exact,
@@ -101,6 +104,11 @@ mod tests {
                     ),
                     authority_policy:
                         crate::data::performance::AuthorityPolicy::SpeculativeThenReconcile,
+                    artifact_family: None,
+                    structural_dependency_basis: 0,
+                    partition_region_basis: crate::data::proof::PartitionScopeSet::default(),
+                    persistent_correspondence: None,
+                    composition_regions: crate::data::proof::PartitionScopeSet::default(),
                 },
                 dependency_snapshot_update: DependencySnapshotUpdate::Replace(
                     SharedDependencySnapshot::empty(),

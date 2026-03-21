@@ -24,7 +24,7 @@ pub(crate) fn record_semantic_execution(
         .unwrap_or_else(|| {
             (
                 ChangeInputSummary::new(Vec::new(), Vec::new(), 0, None),
-                InvalidationSummary::new(0, 0, 0, 0, 0),
+                InvalidationSummary::empty_frontier(),
             )
         });
     let explanation = if DiagnosticsPolicy::from_profile(profile).retain_flow_explanation {
@@ -70,6 +70,13 @@ pub(crate) fn record_semantic_execution(
             .ok()
             .and_then(|entry| entry.get_runtime_artifact_state())
             .and_then(|state| state.lineage_artifact_id);
+        let persistent_correspondence_kind = graph
+            .get_entry(task.node)
+            .ok()
+            .and_then(|entry| entry.get_runtime_artifact_state())
+            .and_then(|state| state.reuse_boundary_context.as_ref())
+            .and_then(|context| context.persistent_correspondence.as_ref())
+            .map(|evidence| evidence.kind());
         graph
             .diagnostics_state_mut()
             .record_replay_event(ReplayEvent::new(
@@ -81,6 +88,8 @@ pub(crate) fn record_semantic_execution(
                 Some(task.id.0),
                 Some(task.semantic_segment_id.0),
                 lineage_artifact_id,
+                Some(task.reuse_origin),
+                persistent_correspondence_kind,
                 Some(task_outcome_label(task.outcome).to_owned()),
             ));
     }
@@ -182,6 +191,10 @@ fn task_outcome_label(outcome: TaskExecutionOutcome) -> &'static str {
         TaskExecutionOutcome::ConditionDeferred => "ConditionDeferred",
         TaskExecutionOutcome::ConditionRevertedClean => "ConditionRevertedClean",
         TaskExecutionOutcome::MemoizedReuse => "MemoizedReuse",
+        TaskExecutionOutcome::SnapshotRestoreReuse => "SnapshotRestoreReuse",
+        TaskExecutionOutcome::ReconciliationAdoption => "ReconciliationAdoption",
+        TaskExecutionOutcome::CrossIdentityPersistentReuse => "CrossIdentityPersistentReuse",
+        TaskExecutionOutcome::PartialArtifactSplice => "PartialArtifactSplice",
         TaskExecutionOutcome::PropagationSuppressed => "PropagationSuppressed",
         TaskExecutionOutcome::Pruned => "Pruned",
     }

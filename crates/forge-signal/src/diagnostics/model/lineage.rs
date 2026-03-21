@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::handle::NodeId;
 use crate::data::output::OutputChange;
+use crate::data::reuse::PersistentCorrespondenceKind;
 use crate::logic::planner::{ExecutionRecordId, SemanticSegmentId};
 use crate::logic::transaction::{
     ArtifactMergeAction, BranchConflictResolutionPlan, BranchMergeConflictKind,
@@ -20,6 +21,12 @@ pub enum ArtifactTransitionKind {
     Replaced,
     Refreshed { output_change: OutputChange },
     MemoizedReuse,
+    SnapshotRestoreReuse,
+    ReconciliationAdoption,
+    CrossIdentityPersistentReuse {
+        correspondence_kind: PersistentCorrespondenceKind,
+    },
+    PartialArtifactSplice,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -424,6 +431,22 @@ impl LineageRecord {
                 transition: ArtifactTransitionKind::MemoizedReuse,
                 ..
             } => "MemoizedReuse",
+            LineageRecordKind::ArtifactTransition {
+                transition: ArtifactTransitionKind::SnapshotRestoreReuse,
+                ..
+            } => "SnapshotRestoreReuse",
+            LineageRecordKind::ArtifactTransition {
+                transition: ArtifactTransitionKind::ReconciliationAdoption,
+                ..
+            } => "ReconciliationAdoption",
+            LineageRecordKind::ArtifactTransition {
+                transition: ArtifactTransitionKind::CrossIdentityPersistentReuse { .. },
+                ..
+            } => "CrossIdentityPersistentReuse",
+            LineageRecordKind::ArtifactTransition {
+                transition: ArtifactTransitionKind::PartialArtifactSplice,
+                ..
+            } => "PartialArtifactSplice",
             LineageRecordKind::BranchFork { .. } => "BranchedFrom",
             LineageRecordKind::BranchSwitch { .. } => "BranchSwitched",
             LineageRecordKind::BranchMerge { .. } => "MergedFrom",

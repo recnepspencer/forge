@@ -139,6 +139,7 @@ fn topology_only_relations_reject_payload_field_aspects() {
                 comparator: AspectComparator::JsonScalarEquality,
                 precision: AspectPrecision::Structured,
             }]),
+            relation_integrity: crate::schema::data::RelationIntegrityDeclarations::default(),
         })
         .unwrap_err();
 
@@ -186,6 +187,7 @@ fn runtime_build_lowers_schema_aspect_plans() {
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
+                relation_integrity: crate::schema::data::RelationIntegrityDeclarations::default(),
             })
         })
         .unwrap();

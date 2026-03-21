@@ -14,6 +14,59 @@ use serde::{Deserialize, Serialize};
 use super::observation::InvariantObservationKind;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum InvariantPlanScopeClass {
+    TouchedScope,
+    PartitionScope,
+    BroaderScope,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum InvariantScopeWideningCause {
+    AllObservedPartitionScope,
+    FullObservedReadSet,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InvariantProofBoundarySummary {
+    scope_class: InvariantPlanScopeClass,
+    widened_causes: Vec<InvariantScopeWideningCause>,
+    packet_count: usize,
+    touched_partition_count: usize,
+}
+
+impl InvariantProofBoundarySummary {
+    pub(crate) fn new(
+        scope_class: InvariantPlanScopeClass,
+        widened_causes: Vec<InvariantScopeWideningCause>,
+        packet_count: usize,
+        touched_partition_count: usize,
+    ) -> Self {
+        Self {
+            scope_class,
+            widened_causes,
+            packet_count,
+            touched_partition_count,
+        }
+    }
+
+    pub fn scope_class(&self) -> InvariantPlanScopeClass {
+        self.scope_class
+    }
+
+    pub fn widened_causes(&self) -> &[InvariantScopeWideningCause] {
+        &self.widened_causes
+    }
+
+    pub fn packet_count(&self) -> usize {
+        self.packet_count
+    }
+
+    pub fn touched_partition_count(&self) -> usize {
+        self.touched_partition_count
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum InvariantExecutionDisposition {
     Executed,
     SkippedByPlanContract,
@@ -35,6 +88,7 @@ pub struct InvariantExecutionMetadata {
     execution_model: RelationalExecutionModel,
     preparation_strategy: Option<PreparationStrategy>,
     preparation_failures: Vec<PreparationFailureClass>,
+    proof_boundary: Option<InvariantProofBoundarySummary>,
 }
 
 impl InvariantExecutionMetadata {
@@ -52,6 +106,7 @@ impl InvariantExecutionMetadata {
         execution_model: RelationalExecutionModel,
         preparation_strategy: Option<PreparationStrategy>,
         preparation_failures: Vec<PreparationFailureClass>,
+        proof_boundary: Option<InvariantProofBoundarySummary>,
     ) -> Self {
         Self {
             execution_point,
@@ -67,6 +122,7 @@ impl InvariantExecutionMetadata {
             execution_model,
             preparation_strategy,
             preparation_failures,
+            proof_boundary,
         }
     }
 
@@ -82,6 +138,7 @@ impl InvariantExecutionMetadata {
         has_merged_plan: bool,
         preparation_strategy: PreparationStrategy,
         preparation_failures: Vec<PreparationFailureClass>,
+        proof_boundary: Option<InvariantProofBoundarySummary>,
     ) -> Self {
         Self::new(
             execution_point,
@@ -104,6 +161,7 @@ impl InvariantExecutionMetadata {
             },
             Some(preparation_strategy),
             preparation_failures,
+            proof_boundary,
         )
     }
 
@@ -155,6 +213,10 @@ impl InvariantExecutionMetadata {
         self.preparation_strategy
     }
 
+    pub fn proof_boundary(&self) -> Option<&InvariantProofBoundarySummary> {
+        self.proof_boundary.as_ref()
+    }
+
     pub(crate) fn preparation_failures(&self) -> &[PreparationFailureClass] {
         &self.preparation_failures
     }
@@ -182,6 +244,10 @@ impl InvariantFailure {
 
     pub fn detail(&self) -> &str {
         &self.violation.detail
+    }
+
+    pub fn fields(&self) -> &serde_json::Value {
+        &self.violation.fields
     }
 
     pub fn into_commit_conflict(self) -> CommitConflict {
@@ -345,6 +411,7 @@ mod tests {
     };
     use crate::validation::engine::{
         InvariantExecutionDisposition, InvariantExecutionMetadata, InvariantObservationKind,
+        InvariantPlanScopeClass, InvariantProofBoundarySummary, InvariantScopeWideningCause,
     };
 
     #[test]
@@ -356,6 +423,7 @@ mod tests {
                 class: InvariantClass::SnapshotAudit,
                 code: DiagnosticCode::InvariantViolation,
                 detail: "detail".to_string(),
+                fields: serde_json::json!({}),
             },
         };
 
@@ -384,6 +452,12 @@ mod tests {
             crate::logic::planning::RelationalExecutionModel::SerialAuthority,
             None,
             Vec::new(),
+            Some(InvariantProofBoundarySummary::new(
+                InvariantPlanScopeClass::BroaderScope,
+                vec![InvariantScopeWideningCause::AllObservedPartitionScope],
+                1,
+                0,
+            )),
         );
 
         let result = crate::validation::engine::InvariantExecutionResult::skipped(metadata);

@@ -25,9 +25,6 @@ pub(crate) enum TestPostCommitFault {
 }
 
 #[cfg(test)]
-static TEST_POST_COMMIT_FAULT_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-
-#[cfg(test)]
 static TEST_POST_COMMIT_FAULT: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
 
 #[cfg(test)]
@@ -43,16 +40,31 @@ pub(crate) fn with_test_post_commit_fault<T>(
     fault: TestPostCommitFault,
     run: impl FnOnce() -> T,
 ) -> T {
-    let _guard = TEST_POST_COMMIT_FAULT_LOCK.lock().unwrap();
+    struct ResetGuard<'a> {
+        fault: &'a std::sync::atomic::AtomicU8,
+        _lock: std::sync::MutexGuard<'a, ()>,
+    }
+
+    impl Drop for ResetGuard<'_> {
+        fn drop(&mut self) {
+            self.fault.store(0, std::sync::atomic::Ordering::SeqCst);
+        }
+    }
+
+    let guard = crate::testing::fault_injection_lock()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _reset = ResetGuard {
+        fault: &TEST_POST_COMMIT_FAULT,
+        _lock: guard,
+    };
     TEST_POST_COMMIT_FAULT.store(
         match fault {
             TestPostCommitFault::ConsumerFailureNonAuthoritative => 1,
         },
         std::sync::atomic::Ordering::SeqCst,
     );
-    let result = run();
-    TEST_POST_COMMIT_FAULT.store(0, std::sync::atomic::Ordering::SeqCst);
-    result
+    run()
 }
 
 pub struct PublicationAuthority<'runtime> {

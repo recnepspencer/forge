@@ -36,17 +36,23 @@ pub mod types {
     };
     pub use crate::data::proof::{
         CanonicalForm, DedupedNodeBatch, DeltaForm, DependencyBatchEdit, DependencySetEdit,
-        DesiredState, DirtyBatch, DirtyBatchEntry, DirtyDelta, FrontierWave, InvalidationFrontier,
-        LocalityFootprint, LocallyOrderedShard, LoweredForm, MergeableOrderedStream,
-        NarrowedPropagationSet, OrderedStreamItem, OrderedStreamMergeError, PartitionScopeSet,
-        PatchPlan, PendingSnapshotBatch, ResolvedForm, SemanticBatchCommit, SingleConsumer,
-        SnapshotBatchCommit, SortedSourceBatch, StructuralDelta, SubscriberRepair,
-        SubscriberRepairBatch, SummaryForm, TouchedScopeSummary,
+        DesiredState, DirtyBatch, DirtyBatchEntry, DirtyDelta, FrontierEntryClassification,
+        FrontierExecutionCounters, FrontierExecutionSummary, FrontierInclusionBasis,
+        FrontierPlan, FrontierPredictedCounters, FrontierSeedCause, FrontierValidationDecision,
+        FrontierWave, FrontierWaveEntryPlan, FrontierWaveEntrySummary, FrontierWavePlan,
+        FrontierWaveSummary, InvalidationFrontier, InvalidationSeed, InvalidationSeedBatch,
+        InvalidationTraceRecord, LocalityFootprint, LocallyOrderedShard, LoweredForm,
+        MergeableOrderedStream, NarrowedPropagationSet, OrderedStreamItem,
+        OrderedStreamMergeError, PartitionScopeSet, PatchPlan, PendingSnapshotBatch,
+        ResolvedForm, SemanticBatchCommit, SingleConsumer, SnapshotBatchCommit,
+        SortedSourceBatch, StructuralDelta, SubscriberRepair, SubscriberRepairBatch, SummaryForm,
+        TouchedScopeSummary, TransitiveFrontierRoot,
     };
     pub use crate::data::reuse::{
-        ArtifactEquivalenceContract, ArtifactSemanticBoundary, ReuseBasis, ReuseBoundaryContext,
-        ReuseBoundaryEvidence, ReuseBoundaryFailure, ReuseBoundaryProof, ReuseCertificationFailure,
-        ReuseCertificationRecord, ReuseCrossing, ReuseSemanticRegionIdentity, ReuseSource,
+        ArtifactEquivalenceContract, ArtifactSemanticBoundary, PersistentCorrespondenceEvidence,
+        ReuseBasis, ReuseBoundaryContext, ReuseBoundaryEvidence, ReuseBoundaryFailure,
+        ReuseBoundaryProof, ReuseCertificationFailure, ReuseCertificationRecord, ReuseCrossing,
+        ReuseOrigin, ReuseSemanticRegionIdentity, ReuseSource, ReuseStrategy,
     };
     pub use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger, TierPolicy};
     pub use crate::data::trace::{
@@ -120,12 +126,17 @@ pub mod performance {
 pub mod proof {
     pub use crate::data::proof::{
         CanonicalForm, DedupedNodeBatch, DeltaForm, DependencyBatchEdit, DependencySetEdit,
-        DesiredState, DirtyBatch, DirtyBatchEntry, DirtyDelta, FrontierWave, InvalidationFrontier,
-        LocalityFootprint, LocallyOrderedShard, LoweredForm, MergeableOrderedStream,
-        NarrowedPropagationSet, OrderedStreamItem, OrderedStreamMergeError, PartitionScopeSet,
-        PatchPlan, PendingSnapshotBatch, ResolvedForm, SemanticBatchCommit, SingleConsumer,
-        SnapshotBatchCommit, SortedSourceBatch, StructuralDelta, SubscriberRepair,
-        SubscriberRepairBatch, SummaryForm, TouchedScopeSummary,
+        DesiredState, DirtyBatch, DirtyBatchEntry, DirtyDelta, FrontierEntryClassification,
+        FrontierExecutionCounters, FrontierExecutionSummary, FrontierInclusionBasis,
+        FrontierPlan, FrontierPredictedCounters, FrontierSeedCause, FrontierValidationDecision,
+        FrontierWave, FrontierWaveEntryPlan, FrontierWaveEntrySummary, FrontierWavePlan,
+        FrontierWaveSummary, InvalidationFrontier, InvalidationSeed, InvalidationSeedBatch,
+        InvalidationTraceRecord, LocalityFootprint, LocallyOrderedShard, LoweredForm,
+        MergeableOrderedStream, NarrowedPropagationSet, OrderedStreamItem,
+        OrderedStreamMergeError, PartitionScopeSet, PatchPlan, PendingSnapshotBatch,
+        ResolvedForm, SemanticBatchCommit, SingleConsumer, SnapshotBatchCommit,
+        SortedSourceBatch, StructuralDelta, SubscriberRepair, SubscriberRepairBatch, SummaryForm,
+        TouchedScopeSummary, TransitiveFrontierRoot,
     };
 }
 
@@ -172,11 +183,12 @@ pub mod diagnostics {
         ExecutionFailureContext, ExecutionFailurePhase, ExecutionHistoryNodeSummary,
         ExecutionHistorySummary, ExecutionInspector, ExecutionReportDiff, ExecutionReportSummary,
         ExplanationDiff, ExplanationSummary, FailureDiff, FailureSummary, FlowCauseSample,
-        FlowDiff, FlowInspector, FlowSummary, GraphDiagnostics, GraphDiff, GraphInspector,
-        GraphSummary, HistoryDiff, InvalidationCause, InvalidationSummary, LineageArtifactId,
-        LineageDiff, LineageRecord, LineageRecordKind, ParallelAdmissionPolicy, PlanDiff,
-        PlanInspector, PlanningSummary, PrecomputeSummary, ReplayCursor, ReplayDetailPolicy,
-        ReplayDiff, ReplayEventKind, ReplayFrame, ReplaySlice, ReportInspector, RollbackDiagnostic,
+        FlowDiff, FlowInspector, FlowSummary, FrontierCyclePolicy, FrontierPropagationPolicy,
+        FrontierTracingPolicy, GraphDiagnostics, GraphDiff, GraphInspector, GraphSummary,
+        HistoryDiff, InvalidationCause, InvalidationSummary, LineageArtifactId, LineageDiff,
+        LineageRecord, LineageRecordKind, ParallelAdmissionPolicy, PlanDiff, PlanInspector,
+        PlanningSummary, PrecomputeSummary, ReplayCursor, ReplayDetailPolicy, ReplayDiff,
+        ReplayEventKind, ReplayFrame, ReplaySlice, ReportInspector, RollbackDiagnostic,
         RollbackSummary, RuntimeDiagnostics, SemanticRetentionPolicy, SignalRuntimePolicy,
         SnapshotRestoreKind, SnapshotRestoreLineageMode,
     };

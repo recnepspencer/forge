@@ -16,6 +16,9 @@ use crate::logic::planning::RelationalExecutionModel;
 use crate::logic::runtime::RelationalRuntime;
 use crate::transactions::data::MergedCommitPlan;
 use crate::validation::data::InvariantRegistration;
+use crate::validation::engine::{
+    InvariantPlanScopeClass, InvariantProofBoundarySummary, InvariantScopeWideningCause,
+};
 use crate::validation::engine::InvariantExecutionRequest;
 use std::collections::BTreeSet;
 
@@ -29,9 +32,6 @@ pub(crate) enum TestPreparationFault {
     ReductionIdentityConflict,
     WorkerEvaluationFailure,
 }
-
-#[cfg(test)]
-static TEST_PREPARATION_FAULT_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 #[cfg(test)]
 static TEST_PREPARATION_FAULT: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
@@ -52,7 +52,24 @@ pub(crate) fn with_test_preparation_fault<T>(
     fault: TestPreparationFault,
     run: impl FnOnce() -> T,
 ) -> T {
-    let _guard = TEST_PREPARATION_FAULT_LOCK.lock().unwrap();
+    struct ResetGuard<'a> {
+        fault: &'a std::sync::atomic::AtomicU8,
+        _lock: std::sync::MutexGuard<'a, ()>,
+    }
+
+    impl Drop for ResetGuard<'_> {
+        fn drop(&mut self) {
+            self.fault.store(0, std::sync::atomic::Ordering::SeqCst);
+        }
+    }
+
+    let guard = crate::testing::fault_injection_lock()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _reset = ResetGuard {
+        fault: &TEST_PREPARATION_FAULT,
+        _lock: guard,
+    };
     TEST_PREPARATION_FAULT.store(
         match fault {
             TestPreparationFault::PlanningProofInsufficient => 1,
@@ -62,9 +79,7 @@ pub(crate) fn with_test_preparation_fault<T>(
         },
         std::sync::atomic::Ordering::SeqCst,
     );
-    let result = run();
-    TEST_PREPARATION_FAULT.store(0, std::sync::atomic::Ordering::SeqCst);
-    result
+    run()
 }
 
 #[cfg(test)]
@@ -208,9 +223,59 @@ fn planning_context(
         plan_contract: request.plan_contract(),
         schema_registry_entry_count: runtime.config.schema.registry.entity_kinds.len()
             + runtime.config.schema.registry.relation_kinds.len(),
-        invariant_registration_count: runtime.config.schema.invariant_catalog.registrations.len(),
+        invariant_registration_count: runtime.config.schema.invariant_catalog.registrations.len()
+            + runtime.aspect_semantics.relation_integrity_registrations.len(),
         planning_contract: runtime.config.execution.planning.clone(),
     }
+}
+
+pub(crate) fn planned_proof_boundary_summary(
+    planned: &PreparedInvariantExecution<'_>,
+) -> InvariantProofBoundarySummary {
+    let mut widened_causes = Vec::new();
+    let mut touched_partitions = BTreeSet::new();
+    let mut saw_touched_only = false;
+
+    for packet in &planned.packets {
+        match &packet.locality.partition_scope {
+            PreparationPartitionScope::AllObserved => {
+                if !widened_causes.contains(&InvariantScopeWideningCause::AllObservedPartitionScope)
+                {
+                    widened_causes
+                        .push(InvariantScopeWideningCause::AllObservedPartitionScope);
+                }
+            }
+            PreparationPartitionScope::TouchedPartitions(partitions) => {
+                touched_partitions.extend(partitions.iter().copied());
+            }
+        }
+        match packet.locality.read_set_approximation {
+            PreparationReadSetApproximation::FullObservedScan => {
+                if !widened_causes.contains(&InvariantScopeWideningCause::FullObservedReadSet) {
+                    widened_causes.push(InvariantScopeWideningCause::FullObservedReadSet);
+                }
+            }
+            PreparationReadSetApproximation::TouchedOnly => {
+                saw_touched_only = true;
+            }
+            PreparationReadSetApproximation::SharedCommittedRead => {}
+        }
+    }
+
+    let scope_class = if !widened_causes.is_empty() {
+        InvariantPlanScopeClass::BroaderScope
+    } else if saw_touched_only {
+        InvariantPlanScopeClass::TouchedScope
+    } else {
+        InvariantPlanScopeClass::PartitionScope
+    };
+
+    InvariantProofBoundarySummary::new(
+        scope_class,
+        widened_causes,
+        planned.packets.len(),
+        touched_partitions.len(),
+    )
 }
 
 fn eligible_registrations(
@@ -222,6 +287,13 @@ fn eligible_registrations(
         .schema
         .invariant_catalog
         .registrations_for_execution_point(request.execution_point())
+        .chain(
+            runtime
+                .aspect_semantics
+                .relation_integrity_registrations
+                .iter()
+                .filter(move |registration| registration.execution_point == request.execution_point()),
+        )
         .filter(|registration| request.includes_registration(registration))
         .cloned()
         .collect()
@@ -237,4 +309,235 @@ fn packet_partition_scope(
         }
     }
     touched.into_iter().collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{plan_invariant_execution, planned_proof_boundary_summary};
+    use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
+    use crate::facade::{
+        runtime::RelationalRuntimeApi,
+        schema::{
+            EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration,
+            RelationalSchemaRegistry, SchemaId, SchemaVersionId,
+        },
+    };
+    use crate::identity::data::KindId;
+    use crate::schema::data::{
+        EndpointKindContractDeclaration, RelationIntegrityDeclarations, RelationPayloadClass,
+    };
+    use crate::identity::data::PartitionId;
+    use crate::payloads::data::RecordPayload;
+    use crate::transactions::data::{
+        CreateIntent, EntitySpec, MergedCommitPlan, MutationIntent, RelationSpec,
+        TransactionOptions, WorkerIntentBatch,
+    };
+    use crate::validation::data::InvariantPlanContract;
+    use crate::validation::engine::{InvariantExecutionRequest, InvariantObservation, InvariantRequestProfile};
+    use crate::validation::engine::{InvariantPlanScopeClass, InvariantScopeWideningCause};
+    use serde_json::json;
+
+    fn relation_runtime() -> crate::logic::runtime::RelationalRuntime {
+        let registry = RelationalSchemaRegistry::new()
+            .register_entity_kind(EntityKindRegistration {
+                kind_id: KindId(1),
+                kind_name: "test.entity".to_string(),
+                schema_id: SchemaId("test".to_string()),
+                schema_version_id: SchemaVersionId(1),
+                aspect_declarations: KindAspectDeclarations::default(),
+            })
+            .and_then(|registry| {
+                registry.register_relation_kind(RelationKindRegistration {
+                    kind_id: KindId(2),
+                    kind_name: "test.edge.a".to_string(),
+                    schema_id: SchemaId("test".to_string()),
+                    schema_version_id: SchemaVersionId(1),
+                    payload_class: RelationPayloadClass::PayloadBearingRelation,
+                    cross_context_policy: CrossContextPolicy::AllowExplicit,
+                    cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
+                    aspect_declarations: KindAspectDeclarations::default(),
+                    relation_integrity: RelationIntegrityDeclarations::new(
+                        vec![EndpointKindContractDeclaration {
+                            contract_id: "kind2".to_string(),
+                            allowed_source_kinds: vec![KindId(1)],
+                            allowed_target_kinds: vec![KindId(1)],
+                            self_edges_allowed: false,
+                            cross_context_policy: CrossContextPolicy::AllowExplicit,
+                        }],
+                        Vec::new(),
+                        Vec::new(),
+                        Vec::new(),
+                        Vec::new(),
+                    ),
+                })
+            })
+            .and_then(|registry| {
+                registry.register_relation_kind(RelationKindRegistration {
+                    kind_id: KindId(3),
+                    kind_name: "test.edge.b".to_string(),
+                    schema_id: SchemaId("test".to_string()),
+                    schema_version_id: SchemaVersionId(1),
+                    payload_class: RelationPayloadClass::PayloadBearingRelation,
+                    cross_context_policy: CrossContextPolicy::AllowExplicit,
+                    cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
+                    aspect_declarations: KindAspectDeclarations::default(),
+                    relation_integrity: RelationIntegrityDeclarations::new(
+                        vec![EndpointKindContractDeclaration {
+                            contract_id: "kind3".to_string(),
+                            allowed_source_kinds: vec![KindId(1)],
+                            allowed_target_kinds: vec![KindId(1)],
+                            self_edges_allowed: false,
+                            cross_context_policy: CrossContextPolicy::AllowExplicit,
+                        }],
+                        Vec::new(),
+                        Vec::new(),
+                        Vec::new(),
+                        Vec::new(),
+                    ),
+                })
+            })
+            .unwrap();
+        RelationalRuntimeApi::builder()
+            .schema_registry(registry)
+            .build()
+    }
+
+    fn request_for_plan<'runtime>(
+        runtime: &'runtime crate::logic::runtime::RelationalRuntime,
+        plan: &'runtime MergedCommitPlan,
+    ) -> InvariantExecutionRequest<'runtime> {
+        InvariantExecutionRequest::from_profile_with_contract(
+            InvariantRequestProfile::CommitBoundary,
+            runtime,
+            InvariantObservation::committed(runtime.storage_access().current_state()),
+            runtime.current_version_id(),
+            Some(plan),
+            Some(InvariantPlanContract::from_merged_plan(plan)),
+        )
+    }
+
+    fn create_entity(
+        runtime: &mut crate::logic::runtime::RelationalRuntime,
+        name: &str,
+    ) -> crate::identity::data::EntityId {
+        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        txn.push_batch(
+            WorkerIntentBatch::new(format!("entity-{name}")).push(MutationIntent::Create(
+                CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: crate::symbols::data::InternedString::Raw(name.to_string()),
+                    payload: RecordPayload::StructuredJson(json!({"name": name})),
+                }),
+            )),
+        );
+        let outcome = txn.commit().unwrap();
+        outcome
+            .changed_records
+            .iter()
+            .find_map(|record| match record {
+                crate::facade::transactions::RecordRef::Entity(entity_id) => Some(*entity_id),
+                crate::facade::transactions::RecordRef::Relation(_) => None,
+            })
+            .expect("created entity")
+    }
+
+    #[test]
+    fn planner_packets_only_include_relation_integrity_registrations_authorized_by_plan_scope() {
+        let mut runtime = relation_runtime();
+        let source = create_entity(&mut runtime, "source");
+        let target = create_entity(&mut runtime, "target");
+        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        txn.push_batch(
+            WorkerIntentBatch::new("planned").push(MutationIntent::Create(CreateIntent::Relation(
+                RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(2),
+                    client_key: crate::symbols::data::InternedString::Raw("planned".to_string()),
+                    source,
+                    target,
+                    payload: Some(RecordPayload::StructuredJson(json!({"label":"planned"}))),
+                },
+            ))),
+        );
+        let plan = txn.merged_plan().unwrap().clone();
+
+        let prepared = plan_invariant_execution(&runtime, &request_for_plan(&runtime, &plan));
+        let packet_relation_kinds = prepared
+            .packets
+            .iter()
+            .filter_map(|packet| match &packet.registration.rule {
+                crate::validation::data::InvariantRule::EndpointKindContract(contract) => {
+                    Some(contract.relation_kind_id)
+                }
+                crate::validation::data::InvariantRule::CardinalityContract(contract) => {
+                    Some(contract.relation_kind_id)
+                }
+                crate::validation::data::InvariantRule::UniquenessContract(contract) => {
+                    Some(contract.relation_kind_id)
+                }
+                crate::validation::data::InvariantRule::SymmetryContract(contract) => {
+                    Some(contract.relation_kind_id)
+                }
+                crate::validation::data::InvariantRule::EndpointDeletionIntegrityContract(contract) => {
+                    Some(contract.relation_kind_id)
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(packet_relation_kinds, vec![KindId(2)]);
+        assert_eq!(prepared.packets.len(), 1);
+    }
+
+    #[test]
+    fn planner_proof_boundary_reports_partition_scoped_relation_integrity_packets() {
+        let mut runtime = relation_runtime();
+        let source = create_entity(&mut runtime, "source");
+        let target = create_entity(&mut runtime, "target");
+        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        txn.push_batch(
+            WorkerIntentBatch::new("planned").push(MutationIntent::Create(CreateIntent::Relation(
+                RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(2),
+                    client_key: crate::symbols::data::InternedString::Raw("planned".to_string()),
+                    source,
+                    target,
+                    payload: Some(RecordPayload::StructuredJson(json!({"label":"planned"}))),
+                },
+            ))),
+        );
+        let plan = txn.merged_plan().unwrap().clone();
+
+        let prepared = plan_invariant_execution(&runtime, &request_for_plan(&runtime, &plan));
+        let summary = planned_proof_boundary_summary(&prepared);
+
+        assert_eq!(summary.scope_class(), InvariantPlanScopeClass::PartitionScope);
+        assert!(summary.widened_causes().is_empty());
+        assert_eq!(summary.packet_count(), 1);
+        assert_eq!(summary.touched_partition_count(), 1);
+    }
+
+    #[test]
+    fn planner_proof_boundary_reports_broader_scope_when_no_merged_plan_is_available() {
+        let runtime = relation_runtime();
+        let request = InvariantExecutionRequest::from_profile_with_contract(
+            InvariantRequestProfile::CommitBoundary,
+            &runtime,
+            InvariantObservation::committed(runtime.storage_access().current_state()),
+            runtime.current_version_id(),
+            None,
+            None,
+        );
+
+        let prepared = plan_invariant_execution(&runtime, &request);
+        let summary = planned_proof_boundary_summary(&prepared);
+
+        assert_eq!(summary.scope_class(), InvariantPlanScopeClass::BroaderScope);
+        assert_eq!(
+            summary.widened_causes(),
+            &[InvariantScopeWideningCause::AllObservedPartitionScope]
+        );
+    }
 }

@@ -11,7 +11,8 @@ use crate::durability::checkpoints::images::{partition_from_image, partition_to_
 use crate::durability::data::{
     CheckpointCoverage, CompactionOutcome, CompactionPlan, DurabilityError, DurabilityMode,
     DurableCheckpoint, DurableCheckpointId, DurableCheckpointManifest, DurableIntegrityStatus,
-    DurableSegmentId, DurableSegmentManifest, RecoveryCoverage, RecoveryFailureClass, RecoveryPlan,
+    DurableSegmentId, DurableSegmentManifest, RecoveryCompatibilityMismatch, RecoveryCoverage,
+    RecoveryFailureClass, RecoveryPlan, RelationIntegrityContractFamily,
 };
 use crate::durability::log::local_store::{
     checkpoint_file_path, current_segment_ids, ensure_loaded_store, persist_store_manifest,
@@ -151,19 +152,35 @@ impl<'runtime> DurabilityAuthority<'runtime> {
             return Err(DurabilityError::new(
                 RecoveryFailureClass::SchemaMismatch,
                 "recovery schema registry mismatch",
-            ));
+            )
+            .with_compatibility_mismatch(RecoveryCompatibilityMismatch::SchemaRegistryShape {
+                expected_primary_schema_version: plan.config.primary_schema_version_id(),
+                found_primary_schema_version: self.runtime.primary_schema_version_id(),
+                expected_entity_kind_count: plan.config.schema.registry.entity_kinds.len(),
+                found_entity_kind_count: self.runtime.schema_registry().entity_kinds.len(),
+                expected_relation_kind_count: plan.config.schema.registry.relation_kinds.len(),
+                found_relation_kind_count: self.runtime.schema_registry().relation_kinds.len(),
+            }));
         }
         if !plan.compatibility.profile_match {
             return Err(DurabilityError::new(
                 RecoveryFailureClass::ProfileMismatch,
                 "recovery profile mismatch",
-            ));
+            )
+            .with_compatibility_mismatch(RecoveryCompatibilityMismatch::RuntimeProfile {
+                expected: format!("{:?}", plan.config.profile),
+                found: format!("{:?}", self.runtime.runtime_profile()),
+            }));
         }
         if !plan.compatibility.runtime_name_match {
             return Err(DurabilityError::new(
                 RecoveryFailureClass::RuntimeNameMismatch,
                 "recovery runtime name mismatch",
-            ));
+            )
+            .with_compatibility_mismatch(RecoveryCompatibilityMismatch::RuntimeName {
+                expected: plan.config.execution.runtime_name.clone(),
+                found: self.runtime.runtime_name().to_string(),
+            }));
         }
         if plan.integrity_report.corrupt_segment_id.is_some() {
             return Err(DurabilityError::new(
@@ -668,26 +685,200 @@ fn rebuild_runtime_from_plan(plan: RecoveryPlan) -> Result<RelationalRuntime, Du
 }
 
 fn validate_recovery_compatibility(
-    runtime: &(impl SchemaSource + RuntimeIdentitySource),
+    runtime: &(impl SchemaSource + RuntimeIdentitySource + SchemaVersionSource),
     plan: &RecoveryPlan,
 ) -> Result<(), DurabilityError> {
     if plan.config.schema.registry != *runtime.schema_registry() {
         return Err(DurabilityError::new(
             RecoveryFailureClass::SchemaMismatch,
             "recovery schema registry mismatch",
-        ));
+        )
+        .with_compatibility_mismatch(schema_registry_mismatch(
+            &plan.config.schema.registry,
+            runtime.schema_registry(),
+            plan.config.primary_schema_version_id(),
+            runtime.primary_schema_version_id(),
+        )));
     }
     if plan.config.profile != runtime.runtime_profile() {
         return Err(DurabilityError::new(
             RecoveryFailureClass::ProfileMismatch,
             "recovery profile mismatch",
-        ));
+        )
+        .with_compatibility_mismatch(RecoveryCompatibilityMismatch::RuntimeProfile {
+            expected: format!("{:?}", plan.config.profile),
+            found: format!("{:?}", runtime.runtime_profile()),
+        }));
     }
     if plan.config.execution.runtime_name != runtime.runtime_name() {
         return Err(DurabilityError::new(
             RecoveryFailureClass::RuntimeNameMismatch,
             "recovery runtime name mismatch",
-        ));
+        )
+        .with_compatibility_mismatch(RecoveryCompatibilityMismatch::RuntimeName {
+            expected: plan.config.execution.runtime_name.clone(),
+            found: runtime.runtime_name().to_string(),
+        }));
     }
     Ok(())
+}
+
+fn schema_registry_mismatch(
+    expected: &crate::schema::data::RelationalSchemaRegistry,
+    found: &crate::schema::data::RelationalSchemaRegistry,
+    expected_primary_schema_version: crate::schema::data::SchemaVersionId,
+    found_primary_schema_version: crate::schema::data::SchemaVersionId,
+) -> RecoveryCompatibilityMismatch {
+    for (kind_id, expected_registration) in &expected.entity_kinds {
+        let Some(found_registration) = found.entity_kinds.get(kind_id) else {
+            break;
+        };
+        if expected_registration.kind_name == found_registration.kind_name
+            && expected_registration.schema_id == found_registration.schema_id
+            && expected_registration.schema_version_id == found_registration.schema_version_id
+            && expected_registration.aspect_declarations.plan_revision
+                != found_registration.aspect_declarations.plan_revision
+        {
+            return RecoveryCompatibilityMismatch::EntityAspectPlanRevision {
+                kind_id: *kind_id,
+                kind_name: expected_registration.kind_name.clone(),
+                expected_revision: expected_registration.aspect_declarations.plan_revision.0,
+                found_revision: found_registration.aspect_declarations.plan_revision.0,
+            };
+        }
+    }
+    for (kind_id, expected_registration) in &expected.relation_kinds {
+        let Some(found_registration) = found.relation_kinds.get(kind_id) else {
+            break;
+        };
+        if expected_registration.kind_name == found_registration.kind_name
+            && expected_registration.schema_id == found_registration.schema_id
+            && expected_registration.schema_version_id == found_registration.schema_version_id
+            && expected_registration.aspect_declarations.plan_revision
+                != found_registration.aspect_declarations.plan_revision
+        {
+            return RecoveryCompatibilityMismatch::RelationAspectPlanRevision {
+                kind_id: *kind_id,
+                kind_name: expected_registration.kind_name.clone(),
+                expected_revision: expected_registration.aspect_declarations.plan_revision.0,
+                found_revision: found_registration.aspect_declarations.plan_revision.0,
+            };
+        }
+        if expected_registration.kind_name == found_registration.kind_name
+            && expected_registration.schema_id == found_registration.schema_id
+            && expected_registration.schema_version_id == found_registration.schema_version_id
+            && expected_registration.relation_integrity.plan_revision
+                != found_registration.relation_integrity.plan_revision
+        {
+            let (contract_family, expected_contract_ids, found_contract_ids) =
+                relation_integrity_contract_mismatch(
+                    &expected_registration.relation_integrity,
+                    &found_registration.relation_integrity,
+                );
+            return RecoveryCompatibilityMismatch::RelationIntegrityPlanRevision {
+                kind_id: *kind_id,
+                kind_name: expected_registration.kind_name.clone(),
+                contract_family,
+                expected_revision: expected_registration.relation_integrity.plan_revision.0,
+                found_revision: found_registration.relation_integrity.plan_revision.0,
+                expected_contract_ids,
+                found_contract_ids,
+            };
+        }
+    }
+    RecoveryCompatibilityMismatch::SchemaRegistryShape {
+        expected_primary_schema_version,
+        found_primary_schema_version,
+        expected_entity_kind_count: expected.entity_kinds.len(),
+        found_entity_kind_count: found.entity_kinds.len(),
+        expected_relation_kind_count: expected.relation_kinds.len(),
+        found_relation_kind_count: found.relation_kinds.len(),
+    }
+}
+
+fn relation_integrity_contract_mismatch(
+    expected: &crate::schema::data::RelationIntegrityDeclarations,
+    found: &crate::schema::data::RelationIntegrityDeclarations,
+) -> (RelationIntegrityContractFamily, Vec<String>, Vec<String>) {
+    if expected.endpoint_kind_contracts != found.endpoint_kind_contracts {
+        return (
+            RelationIntegrityContractFamily::EndpointKind,
+            expected
+                .endpoint_kind_contracts
+                .iter()
+                .map(|contract| contract.contract_id.clone())
+                .collect(),
+            found
+                .endpoint_kind_contracts
+                .iter()
+                .map(|contract| contract.contract_id.clone())
+                .collect(),
+        );
+    }
+    if expected.cardinality_contracts != found.cardinality_contracts {
+        return (
+            RelationIntegrityContractFamily::Cardinality,
+            expected
+                .cardinality_contracts
+                .iter()
+                .map(|contract| contract.contract_id.clone())
+                .collect(),
+            found
+                .cardinality_contracts
+                .iter()
+                .map(|contract| contract.contract_id.clone())
+                .collect(),
+        );
+    }
+    if expected.uniqueness_contracts != found.uniqueness_contracts {
+        return (
+            RelationIntegrityContractFamily::Uniqueness,
+            expected
+                .uniqueness_contracts
+                .iter()
+                .map(|contract| contract.contract_id.clone())
+                .collect(),
+            found
+                .uniqueness_contracts
+                .iter()
+                .map(|contract| contract.contract_id.clone())
+                .collect(),
+        );
+    }
+    if expected.symmetry_contracts != found.symmetry_contracts {
+        return (
+            RelationIntegrityContractFamily::Symmetry,
+            expected
+                .symmetry_contracts
+                .iter()
+                .map(|contract| contract.contract_id.clone())
+                .collect(),
+            found
+                .symmetry_contracts
+                .iter()
+                .map(|contract| contract.contract_id.clone())
+                .collect(),
+        );
+    }
+    if expected.endpoint_deletion_integrity_contracts != found.endpoint_deletion_integrity_contracts
+    {
+        return (
+            RelationIntegrityContractFamily::EndpointDeletionIntegrity,
+            expected
+                .endpoint_deletion_integrity_contracts
+                .iter()
+                .map(|contract| contract.contract_id.clone())
+                .collect(),
+            found
+                .endpoint_deletion_integrity_contracts
+                .iter()
+                .map(|contract| contract.contract_id.clone())
+                .collect(),
+        );
+    }
+    (
+        RelationIntegrityContractFamily::Aggregate,
+        Vec::new(),
+        Vec::new(),
+    )
 }

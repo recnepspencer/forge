@@ -270,6 +270,357 @@ impl DirtyBatch {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+pub enum FrontierSeedCause {
+    #[default]
+    DirtySource,
+    StructuralDelta,
+    BatchRevalidation,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+pub enum FrontierEntryClassification {
+    DirectDirty,
+    #[default]
+    MaybeStale,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default, PartialOrd, Ord)]
+pub enum FrontierInclusionBasis {
+    #[default]
+    DirectSubscriptionMatch,
+    PartitionScopeOverlap,
+    DetailScopeOverlap,
+    TransitiveReachability,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum FrontierValidationDecision {
+    #[default]
+    ReachableCycleCheck,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InvalidationSeed {
+    pub source_node: NodeId,
+    pub aspect: Aspect,
+    pub changed_scopes: PartitionScopeSet,
+    pub cause: FrontierSeedCause,
+}
+
+impl InvalidationSeed {
+    pub fn new(
+        source_node: NodeId,
+        aspect: Aspect,
+        changed_scopes: impl Into<PartitionScopeSet>,
+        cause: FrontierSeedCause,
+    ) -> Self {
+        Self {
+            source_node,
+            aspect,
+            changed_scopes: changed_scopes.into(),
+            cause,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct InvalidationSeedBatch {
+    pub seeds: Vec<InvalidationSeed>,
+}
+
+impl InvalidationSeedBatch {
+    pub fn new(seeds: impl IntoIterator<Item = InvalidationSeed>) -> Self {
+        let mut seeds = seeds.into_iter().collect::<Vec<_>>();
+        if seeds.len() > 1 {
+            seeds.sort_unstable_by_key(|seed| {
+                (
+                    seed.aspect.index(),
+                    node_sort_key(&seed.source_node),
+                    seed.changed_scopes.as_slice().to_vec(),
+                    seed.cause,
+                )
+            });
+            let mut merged = Vec::<InvalidationSeed>::with_capacity(seeds.len());
+            for seed in seeds {
+                if let Some(previous) = merged.last_mut() {
+                    if previous.source_node == seed.source_node
+                        && previous.aspect == seed.aspect
+                        && previous.cause == seed.cause
+                    {
+                        let mut scopes = previous.changed_scopes.as_slice().to_vec();
+                        scopes.extend_from_slice(seed.changed_scopes.as_slice());
+                        previous.changed_scopes = PartitionScopeSet::new(scopes);
+                        continue;
+                    }
+                }
+                merged.push(seed);
+            }
+            seeds = merged;
+        }
+        Self { seeds }
+    }
+
+    pub fn as_slice(&self) -> &[InvalidationSeed] {
+        &self.seeds
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.seeds.is_empty()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FrontierWaveEntryPlan {
+    pub node: NodeId,
+    pub classification: FrontierEntryClassification,
+    pub inclusion_basis: FrontierInclusionBasis,
+    pub narrowed_scopes: PartitionScopeSet,
+    pub source_seed_refs: Vec<u32>,
+}
+
+impl FrontierWaveEntryPlan {
+    pub fn new(
+        node: NodeId,
+        classification: FrontierEntryClassification,
+        inclusion_basis: FrontierInclusionBasis,
+        narrowed_scopes: impl Into<PartitionScopeSet>,
+        source_seed_refs: impl IntoIterator<Item = u32>,
+    ) -> Self {
+        let mut source_seed_refs = source_seed_refs.into_iter().collect::<Vec<_>>();
+        if source_seed_refs.len() > 1 {
+            source_seed_refs.sort_unstable();
+            source_seed_refs.dedup();
+        }
+        Self {
+            node,
+            classification,
+            inclusion_basis,
+            narrowed_scopes: narrowed_scopes.into(),
+            source_seed_refs,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FrontierWavePlan {
+    pub wave_index: u32,
+    pub aspect: Aspect,
+    pub entries: Vec<FrontierWaveEntryPlan>,
+}
+
+impl FrontierWavePlan {
+    pub fn new(
+        wave_index: u32,
+        aspect: Aspect,
+        entries: impl IntoIterator<Item = FrontierWaveEntryPlan>,
+    ) -> Self {
+        let mut entries = entries.into_iter().collect::<Vec<_>>();
+        if entries.len() > 1 {
+            entries.sort_unstable_by_key(|entry| {
+                (
+                    node_sort_key(&entry.node),
+                    entry.classification,
+                    entry.inclusion_basis,
+                )
+            });
+        }
+        Self {
+            wave_index,
+            aspect,
+            entries,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TransitiveFrontierRoot {
+    pub node: NodeId,
+    pub aspect: Aspect,
+    pub classification: FrontierEntryClassification,
+    pub narrowed_scopes: PartitionScopeSet,
+    pub source_seed_refs: Vec<u32>,
+}
+
+impl TransitiveFrontierRoot {
+    pub fn new(
+        node: NodeId,
+        aspect: Aspect,
+        classification: FrontierEntryClassification,
+        narrowed_scopes: impl Into<PartitionScopeSet>,
+        source_seed_refs: impl IntoIterator<Item = u32>,
+    ) -> Self {
+        let mut source_seed_refs = source_seed_refs.into_iter().collect::<Vec<_>>();
+        if source_seed_refs.len() > 1 {
+            source_seed_refs.sort_unstable();
+            source_seed_refs.dedup();
+        }
+        Self {
+            node,
+            aspect,
+            classification,
+            narrowed_scopes: narrowed_scopes.into(),
+            source_seed_refs,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct FrontierPredictedCounters {
+    pub seed_count: u64,
+    pub group_count: u64,
+    pub direct_wave_count: u64,
+    pub transitive_wave_count: u64,
+    pub direct_dirty_count: u64,
+    pub maybe_stale_count: u64,
+    pub partition_scoped_checks: u64,
+    pub partition_match_count: u64,
+    pub detail_match_count: u64,
+    pub cycle_check_candidate_count: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FrontierPlan {
+    pub seed_batch: InvalidationSeedBatch,
+    pub direct_waves: Vec<FrontierWavePlan>,
+    pub transitive_roots: Vec<TransitiveFrontierRoot>,
+    pub touched_scope_summary: TouchedScopeSummary,
+    pub predicted: FrontierPredictedCounters,
+}
+
+impl FrontierPlan {
+    pub fn new(
+        seed_batch: InvalidationSeedBatch,
+        direct_waves: Vec<FrontierWavePlan>,
+        transitive_roots: Vec<TransitiveFrontierRoot>,
+        touched_scope_summary: TouchedScopeSummary,
+        predicted: FrontierPredictedCounters,
+    ) -> Self {
+        Self {
+            seed_batch,
+            direct_waves,
+            transitive_roots,
+            touched_scope_summary,
+            predicted,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FrontierWaveEntrySummary {
+    pub node: NodeId,
+    pub classification: FrontierEntryClassification,
+    pub inclusion_basis: FrontierInclusionBasis,
+    pub narrowed_scopes: PartitionScopeSet,
+}
+
+impl FrontierWaveEntrySummary {
+    pub fn new(
+        node: NodeId,
+        classification: FrontierEntryClassification,
+        inclusion_basis: FrontierInclusionBasis,
+        narrowed_scopes: impl Into<PartitionScopeSet>,
+    ) -> Self {
+        Self {
+            node,
+            classification,
+            inclusion_basis,
+            narrowed_scopes: narrowed_scopes.into(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FrontierWaveSummary {
+    pub wave_index: u32,
+    pub aspect: Aspect,
+    pub entries: Vec<FrontierWaveEntrySummary>,
+}
+
+impl FrontierWaveSummary {
+    pub fn new(
+        wave_index: u32,
+        aspect: Aspect,
+        entries: impl IntoIterator<Item = FrontierWaveEntrySummary>,
+    ) -> Self {
+        Self {
+            wave_index,
+            aspect,
+            entries: entries.into_iter().collect(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct FrontierExecutionCounters {
+    pub frontier_seed_count: u64,
+    pub frontier_group_count: u64,
+    pub frontier_direct_wave_count: u64,
+    pub frontier_transitive_wave_count: u64,
+    pub frontier_partition_scoped_check_count: u64,
+    pub frontier_direct_dirty_count: u64,
+    pub frontier_maybe_stale_count: u64,
+    pub frontier_partition_match_count: u64,
+    pub frontier_detail_match_count: u64,
+    pub frontier_cycle_check_candidate_count: u64,
+    pub frontier_cycle_check_visited_count: u64,
+    pub frontier_trace_retained_count: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FrontierExecutionSummary {
+    pub seed_count: u64,
+    pub direct_waves: Vec<FrontierWaveSummary>,
+    pub transitive_waves: Vec<FrontierWaveSummary>,
+    pub touched_scope_summary: TouchedScopeSummary,
+    pub counters: FrontierExecutionCounters,
+}
+
+impl FrontierExecutionSummary {
+    pub fn new(
+        seed_count: u64,
+        direct_waves: Vec<FrontierWaveSummary>,
+        transitive_waves: Vec<FrontierWaveSummary>,
+        touched_scope_summary: TouchedScopeSummary,
+        counters: FrontierExecutionCounters,
+    ) -> Self {
+        Self {
+            seed_count,
+            direct_waves,
+            transitive_waves,
+            touched_scope_summary,
+            counters,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InvalidationTraceRecord {
+    pub node: NodeId,
+    pub aspect: Aspect,
+    pub wave_index: u32,
+    pub classification: FrontierEntryClassification,
+    pub inclusion_basis: FrontierInclusionBasis,
+}
+
+impl InvalidationTraceRecord {
+    pub fn new(
+        node: NodeId,
+        aspect: Aspect,
+        wave_index: u32,
+        classification: FrontierEntryClassification,
+        inclusion_basis: FrontierInclusionBasis,
+    ) -> Self {
+        Self {
+            node,
+            aspect,
+            wave_index,
+            classification,
+            inclusion_basis,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SemanticBatchCommit {
     pub dirty: DirtyBatch,
@@ -683,7 +1034,11 @@ impl PatchPlan {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct TouchedScopeSummary {
-    pub scopes: PartitionScopeSet,
+    pub seed_scopes: PartitionScopeSet,
+    pub inclusion_scopes: PartitionScopeSet,
+    pub transitive_reached_scopes: PartitionScopeSet,
+    pub direct_dirty_scopes: PartitionScopeSet,
+    pub maybe_stale_scopes: PartitionScopeSet,
     pub touched_nodes: DedupedNodeBatch,
     pub touched_sources: SortedSourceBatch,
 }
@@ -822,15 +1177,46 @@ impl TouchedScopeSummary {
         touched_nodes: impl Into<DedupedNodeBatch>,
         touched_sources: impl Into<SortedSourceBatch>,
     ) -> Self {
+        let scopes = scopes.into();
         Self {
-            scopes: scopes.into(),
+            seed_scopes: scopes.clone(),
+            inclusion_scopes: scopes.clone(),
+            transitive_reached_scopes: PartitionScopeSet::default(),
+            direct_dirty_scopes: scopes,
+            maybe_stale_scopes: PartitionScopeSet::default(),
+            touched_nodes: touched_nodes.into(),
+            touched_sources: touched_sources.into(),
+        }
+    }
+
+    pub fn new_invalidation(
+        seed_scopes: impl Into<PartitionScopeSet>,
+        inclusion_scopes: impl Into<PartitionScopeSet>,
+        transitive_reached_scopes: impl Into<PartitionScopeSet>,
+        direct_dirty_scopes: impl Into<PartitionScopeSet>,
+        maybe_stale_scopes: impl Into<PartitionScopeSet>,
+        touched_nodes: impl Into<DedupedNodeBatch>,
+        touched_sources: impl Into<SortedSourceBatch>,
+    ) -> Self {
+        Self {
+            seed_scopes: seed_scopes.into(),
+            inclusion_scopes: inclusion_scopes.into(),
+            transitive_reached_scopes: transitive_reached_scopes.into(),
+            direct_dirty_scopes: direct_dirty_scopes.into(),
+            maybe_stale_scopes: maybe_stale_scopes.into(),
             touched_nodes: touched_nodes.into(),
             touched_sources: touched_sources.into(),
         }
     }
 
     pub fn is_empty(&self) -> bool {
-        self.scopes.is_empty() && self.touched_nodes.is_empty() && self.touched_sources.is_empty()
+        self.seed_scopes.is_empty()
+            && self.inclusion_scopes.is_empty()
+            && self.transitive_reached_scopes.is_empty()
+            && self.direct_dirty_scopes.is_empty()
+            && self.maybe_stale_scopes.is_empty()
+            && self.touched_nodes.is_empty()
+            && self.touched_sources.is_empty()
     }
 }
 
@@ -902,6 +1288,9 @@ impl SummaryForm for SubscriberRepairBatch {}
 impl SummaryForm for NarrowedPropagationSet {}
 impl SummaryForm for FrontierWave {}
 impl SummaryForm for InvalidationFrontier {}
+impl SummaryForm for InvalidationSeedBatch {}
+impl SummaryForm for FrontierPlan {}
+impl SummaryForm for FrontierExecutionSummary {}
 
 fn assert_strict_order<T: OrderedStreamItem>(items: &[T]) {
     for pair in items.windows(2) {

@@ -4,6 +4,7 @@ use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::handle::NodeId;
 use crate::data::node::ContextRequirement;
 use crate::data::output::PartitionSubscription;
+use crate::data::proof::PartitionScopeSet;
 use crate::data::performance::AuthorityPolicy;
 
 /// Compact runtime evidence needed to certify artifact reuse across semantic boundaries.
@@ -13,6 +14,92 @@ pub struct ReuseBoundaryContext {
     pub tolerance_regime: VersionComparatorPolicy,
     pub semantic_region: ReuseSemanticRegionIdentity,
     pub authority_policy: AuthorityPolicy,
+    #[serde(default)]
+    pub artifact_family: Option<String>,
+    #[serde(default)]
+    pub structural_dependency_basis: u32,
+    #[serde(default)]
+    pub partition_region_basis: PartitionScopeSet,
+    #[serde(default)]
+    pub persistent_correspondence: Option<PersistentCorrespondenceEvidence>,
+    #[serde(default)]
+    pub composition_regions: PartitionScopeSet,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum PersistentCorrespondenceKind {
+    HostSuppliedKey,
+    ContractDeclaredBasis,
+    LineageBackedMapping,
+    RegionIdentityBasis,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PersistentCorrespondenceEvidence {
+    HostSuppliedKey(String),
+    ContractDeclaredBasis(String),
+    LineageBackedMapping(String),
+    RegionIdentityBasis(String),
+}
+
+impl PersistentCorrespondenceEvidence {
+    pub fn host_supplied_key(value: impl Into<String>) -> Self {
+        Self::HostSuppliedKey(value.into())
+    }
+
+    pub fn contract_declared_basis(value: impl Into<String>) -> Self {
+        Self::ContractDeclaredBasis(value.into())
+    }
+
+    pub fn lineage_backed_mapping(value: impl Into<String>) -> Self {
+        Self::LineageBackedMapping(value.into())
+    }
+
+    pub fn region_identity_basis(value: impl Into<String>) -> Self {
+        Self::RegionIdentityBasis(value.into())
+    }
+
+    pub fn kind(&self) -> PersistentCorrespondenceKind {
+        match self {
+            Self::HostSuppliedKey(_) => PersistentCorrespondenceKind::HostSuppliedKey,
+            Self::ContractDeclaredBasis(_) => PersistentCorrespondenceKind::ContractDeclaredBasis,
+            Self::LineageBackedMapping(_) => PersistentCorrespondenceKind::LineageBackedMapping,
+            Self::RegionIdentityBasis(_) => PersistentCorrespondenceKind::RegionIdentityBasis,
+        }
+    }
+
+    pub fn is_structurally_valid(&self) -> bool {
+        match self {
+            Self::HostSuppliedKey(value) => !value.trim().is_empty(),
+            Self::ContractDeclaredBasis(value) => {
+                let trimmed = value.trim();
+                trimmed.starts_with("contract:")
+                    && trimmed.len() > "contract:".len()
+                    && !trimmed.contains('|')
+            }
+            Self::LineageBackedMapping(value) => {
+                let trimmed = value.trim();
+                if !trimmed.starts_with("lineage-map:") || trimmed.contains('|') {
+                    return false;
+                }
+                let mapping = &trimmed["lineage-map:".len()..];
+                let mut segments = mapping.split("->");
+                let Some(left) = segments.next() else {
+                    return false;
+                };
+                let Some(right) = segments.next() else {
+                    return false;
+                };
+                segments.next().is_none() && !left.trim().is_empty() && !right.trim().is_empty()
+            }
+            Self::RegionIdentityBasis(value) => {
+                let trimmed = value.trim();
+                trimmed.starts_with("region:")
+                    && trimmed.len() > "region:".len()
+                    && !trimmed.contains('|')
+            }
+        }
+    }
 }
 
 /// Stable node-local semantic region identity for one artifact family.

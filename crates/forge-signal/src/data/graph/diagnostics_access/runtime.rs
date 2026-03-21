@@ -1,6 +1,7 @@
 use crate::data::aspect::Aspect;
 use crate::data::graph::signal_graph::SignalGraph;
 use crate::data::handle::NodeId;
+use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
 use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::diagnostics::profile::DiagnosticsProfile;
 use crate::diagnostics::summary::GraphSummary;
@@ -73,24 +74,17 @@ impl SignalGraph {
         );
     }
 
-    pub(crate) fn record_invalidation_diagnostics(
-        &mut self,
-        invalidated_direct_subscribers: u32,
-        maybe_stale_direct_subscribers: u32,
-        partition_scoped_checks: u32,
-        narrowed_frontier_width: u32,
-        transitive_frontier_width: u32,
-    ) {
-        self.observation.diagnostics.record_invalidation_result(
-            invalidated_direct_subscribers,
-            maybe_stale_direct_subscribers,
-            partition_scoped_checks,
-            narrowed_frontier_width,
-            transitive_frontier_width,
-        );
-    }
-
     pub(crate) fn clear_pending_diagnostics_input(&mut self) {
         self.observation.diagnostics.clear_pending_input();
+    }
+
+    pub(crate) fn record_frontier_execution_diagnostics(
+        &mut self,
+        summary: FrontierExecutionSummary,
+        trace_records: Vec<InvalidationTraceRecord>,
+    ) {
+        self.observation
+            .diagnostics
+            .record_frontier_execution(summary, trace_records);
     }
 }

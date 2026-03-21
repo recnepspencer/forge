@@ -1,6 +1,7 @@
 use crate::data::error::SignalError;
 use crate::data::graph::{signal_graph::SignalGraph, EvaluationStrategy};
 use crate::data::handle::NodeId;
+use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
 use crate::data::trace::{
     assemble_historical_artifact_record, assemble_trace_summary, HistoricalArtifactRecord,
     RetainedDiagnosticArtifact, RuntimeArtifactState, TraceSummary,
@@ -87,6 +88,17 @@ impl<'a> GraphObserver<'a> {
 
     pub fn latest_rollback_diagnostics(&self) -> Option<&'a RollbackDiagnostic> {
         self.graph.observation.diagnostics.latest_rollback()
+    }
+
+    pub fn latest_frontier_execution_summary(&self) -> Option<&'a FrontierExecutionSummary> {
+        self.graph.observation.diagnostics.latest_frontier_execution()
+    }
+
+    pub fn latest_invalidation_trace_records(&self) -> &'a [InvalidationTraceRecord] {
+        self.graph
+            .observation
+            .diagnostics
+            .latest_invalidation_trace_records()
     }
 
     pub fn recent_execution_history_diagnostics(

@@ -1,6 +1,6 @@
 use crate::data::graph::SignalGraph;
 use crate::data::output::OutputChange;
-use crate::data::reuse::{ReuseBasis, ReuseSource};
+use crate::data::reuse::ReuseOrigin;
 use crate::diagnostics::failure::{ExecutionFailureContext, FailureSummary};
 use crate::diagnostics::lineage::{
     ArtifactTransitionKind, InvalidationCause, LineageRecord, SnapshotRestoreKind,
@@ -60,6 +60,8 @@ pub fn record_transaction_semantic_event(
             execution_record_id,
             semantic_segment_id,
             None,
+            None,
+            None,
             Some(detail.into()),
         ));
 }
@@ -79,6 +81,8 @@ pub fn record_snapshot_event(
             kind,
             branch_id,
             snapshot_id,
+            None,
+            None,
             None,
             None,
             None,
@@ -166,6 +170,8 @@ pub fn record_branch_merge_summary(
             ReplayEventKind::BranchMerged,
             branch_id,
             summary.target_snapshot_id_after,
+            None,
+            None,
             None,
             None,
             None,
@@ -274,6 +280,8 @@ pub fn record_branch_merge_failure(
             None,
             None,
             None,
+            None,
+            None,
             Some(detail),
         ));
 }
@@ -344,15 +352,41 @@ pub fn record_lineage_transition(
     };
     let previous_artifact_id = before_trace.and_then(|summary| summary.lineage_artifact_id);
     let (artifact_id, transition) = if matches!(
-        after_trace.reuse_basis,
-        ReuseBasis::Reused {
-            source: ReuseSource::MemoizedArtifact,
-            ..
-        }
+        after_trace.reuse_origin,
+        ReuseOrigin::MemoizedArtifactReuse
+            | ReuseOrigin::SnapshotRestore
+            | ReuseOrigin::ReconciliationAdoption
+            | ReuseOrigin::CrossIdentityPersistentReuse
+            | ReuseOrigin::PartialArtifactSplice
     ) {
         let artifact_id = previous_artifact_id
             .unwrap_or_else(|| graph.diagnostics_state_mut().allocate_lineage_artifact_id());
-        (artifact_id, ArtifactTransitionKind::MemoizedReuse)
+        (
+            artifact_id,
+            match after_trace.reuse_origin {
+                ReuseOrigin::MemoizedArtifactReuse => ArtifactTransitionKind::MemoizedReuse,
+                ReuseOrigin::SnapshotRestore => ArtifactTransitionKind::SnapshotRestoreReuse,
+                ReuseOrigin::ReconciliationAdoption => {
+                    ArtifactTransitionKind::ReconciliationAdoption
+                }
+                ReuseOrigin::CrossIdentityPersistentReuse => {
+                    ArtifactTransitionKind::CrossIdentityPersistentReuse {
+                        correspondence_kind: after_trace
+                            .reuse_boundary_context
+                            .as_ref()
+                            .and_then(|ctx| ctx.persistent_correspondence.as_ref())
+                            .map(|evidence| evidence.kind())
+                            .unwrap_or(
+                                crate::data::reuse::PersistentCorrespondenceKind::HostSuppliedKey,
+                            ),
+                    }
+                }
+                ReuseOrigin::PartialArtifactSplice => ArtifactTransitionKind::PartialArtifactSplice,
+                ReuseOrigin::FreshCompute | ReuseOrigin::OutputSuppressed => {
+                    unreachable!("guarded by matches!")
+                }
+            },
+        )
     } else if previous_artifact_id.is_some()
         && matches!(
             after_trace.output_change,

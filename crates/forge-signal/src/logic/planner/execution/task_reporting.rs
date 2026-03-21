@@ -1,7 +1,7 @@
 use crate::data::graph::SignalGraph;
 use crate::data::node::NodeState;
 use crate::data::output::MemoizedResultOrigin;
-use crate::data::reuse::{ReuseBasis, ReuseSource};
+use crate::data::reuse::{ReuseBasis, ReuseOrigin, ReuseStrategy};
 use crate::data::trace::RuntimeArtifactState;
 use crate::diagnostics::failure::ExecutionFailureContext;
 use crate::diagnostics::recorder::DiagnosticsRecorder;
@@ -26,13 +26,9 @@ pub(crate) fn classify_task_record(
 ) -> ExecutedTask {
     let trace_changed = before_trace != after_trace;
     let recomputed = matches!(verdict, EvaluationVerdict::Recomputed);
-    let memoized_reuse = matches!(
-        reuse_basis,
-        ReuseBasis::Reused {
-            source: ReuseSource::MemoizedArtifact,
-            ..
-        }
-    );
+    let reuse_origin = after_trace
+        .map(|trace| trace.reuse_origin)
+        .unwrap_or_else(|| classify_reuse_origin(&verdict, &reuse_basis));
     let propagation_suppressed = after_trace
         .map(|trace| trace.propagation_suppressed)
         .unwrap_or(false);
@@ -55,7 +51,21 @@ pub(crate) fn classify_task_record(
             SuppressionReason::ConditionRevertedClean => {
                 (TaskExecutionOutcome::ConditionRevertedClean, None)
             }
-            _ if memoized_reuse => (TaskExecutionOutcome::MemoizedReuse, None),
+            _ if matches!(reuse_origin, ReuseOrigin::MemoizedArtifactReuse) => {
+                (TaskExecutionOutcome::MemoizedReuse, None)
+            }
+            _ if matches!(reuse_origin, ReuseOrigin::SnapshotRestore) => {
+                (TaskExecutionOutcome::SnapshotRestoreReuse, None)
+            }
+            _ if matches!(reuse_origin, ReuseOrigin::ReconciliationAdoption) => {
+                (TaskExecutionOutcome::ReconciliationAdoption, None)
+            }
+            _ if matches!(reuse_origin, ReuseOrigin::CrossIdentityPersistentReuse) => {
+                (TaskExecutionOutcome::CrossIdentityPersistentReuse, None)
+            }
+            _ if matches!(reuse_origin, ReuseOrigin::PartialArtifactSplice) => {
+                (TaskExecutionOutcome::PartialArtifactSplice, None)
+            }
             _ if propagation_suppressed => (TaskExecutionOutcome::PropagationSuppressed, None),
             _ if !trace_changed
                 && matches!(
@@ -88,7 +98,30 @@ pub(crate) fn classify_task_record(
             recomputed,
             memoized_origin,
             reuse_basis,
+            reuse_origin,
             propagation_suppressed,
+        },
+    }
+}
+
+fn classify_reuse_origin(verdict: &EvaluationVerdict, reuse_basis: &ReuseBasis) -> ReuseOrigin {
+    match verdict {
+        EvaluationVerdict::Suppressed {
+            reason:
+                SuppressionReason::OutputIdentityUnchanged
+                | SuppressionReason::ContinuityTokenUnchanged
+                | SuppressionReason::ComparatorMatch,
+        } => ReuseOrigin::OutputSuppressed,
+        _ => match reuse_basis.strategy {
+            Some(ReuseStrategy::MemoizedArtifactReuse) => ReuseOrigin::MemoizedArtifactReuse,
+            Some(ReuseStrategy::SnapshotRestoreReuse) => ReuseOrigin::SnapshotRestore,
+            Some(ReuseStrategy::ReconciliationAdoption) => ReuseOrigin::ReconciliationAdoption,
+            Some(ReuseStrategy::CrossIdentityPersistentMatch) => {
+                ReuseOrigin::CrossIdentityPersistentReuse
+            }
+            Some(ReuseStrategy::PartialArtifactSplicing) => ReuseOrigin::PartialArtifactSplice,
+            Some(ReuseStrategy::OutputSuppression) => ReuseOrigin::OutputSuppressed,
+            None => ReuseOrigin::FreshCompute,
         },
     }
 }
@@ -117,6 +150,12 @@ pub(crate) fn accumulate_report_counters(
         }
         TaskExecutionOutcome::MemoizedReuse => {
             report.tasks_satisfied_by_memoization += 1;
+        }
+        TaskExecutionOutcome::SnapshotRestoreReuse
+        | TaskExecutionOutcome::ReconciliationAdoption
+        | TaskExecutionOutcome::CrossIdentityPersistentReuse
+        | TaskExecutionOutcome::PartialArtifactSplice => {
+            report.tasks_executed += 1;
         }
         TaskExecutionOutcome::Pruned => {
             report.tasks_pruned += 1;

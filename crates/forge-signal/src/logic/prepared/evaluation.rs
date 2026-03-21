@@ -5,6 +5,8 @@ use crate::data::output::{
     ComputationFamily, ComputationKey, IntoNodeEvaluationResult, MemoizedResultOrigin,
     NodeEvaluationResult, StructuralMemoKey,
 };
+use crate::data::proof::PartitionScopeSet;
+use crate::data::reuse::PersistentCorrespondenceEvidence;
 use crate::data::trace::CausalityMetadata;
 
 use super::capture::PreparedDependencyCapture;
@@ -31,6 +33,8 @@ pub enum PreparedEvaluationOrigin {
     #[default]
     DirectPrecompute,
     MemoizedReuse,
+    CrossIdentityPersistentReuse,
+    PartialArtifactSplice,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -50,6 +54,10 @@ pub struct PreparedKeyedContext {
     #[serde(default)]
     pub memo_key: Option<StructuralMemoKey>,
     pub memoized_origin: MemoizedResultOrigin,
+    #[serde(default)]
+    pub persistent_correspondence: Option<PersistentCorrespondenceEvidence>,
+    #[serde(default)]
+    pub composition_regions: PartitionScopeSet,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

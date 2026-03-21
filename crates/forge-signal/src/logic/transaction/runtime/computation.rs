@@ -3,7 +3,11 @@ use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeContract;
-use crate::data::output::{ComputationFamily, ComputationKey, KeyedComputation, StructuralMemoKey};
+use crate::data::output::{
+    ComputationFamily, ComputationKey, KeyedComputation, PartitionSubscription, StructuralMemoKey,
+};
+use crate::data::proof::PartitionScopeSet;
+use crate::data::reuse::PersistentCorrespondenceEvidence;
 use crate::logic::context::EvaluationContext;
 use crate::logic::evaluation::{EvaluationRequestMode, IntoEvaluationOutput};
 use crate::logic::planner::ExecutionReport;
@@ -180,5 +184,123 @@ where
     {
         let node = self.node_in_transaction(tx);
         tx.evaluate_keyed(node, &self.memoized(memo_key), &self.definition.evaluator)
+    }
+
+    pub fn evaluate_cross_identity<D, I, E, Ctx, O>(
+        &self,
+        tx: &mut SignalTransaction<'_, D, I, E, Ctx, T>,
+        source_key: impl Into<ComputationKey>,
+        memo_key: impl Into<StructuralMemoKey>,
+        correspondence: impl Into<String>,
+    ) -> Result<(), SignalError>
+    where
+        D: Copy + Ord + std::fmt::Debug + 'static,
+        I: Copy + Ord,
+        Ctx: Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
+    {
+        let node = self.node_in_transaction(tx);
+        tx.evaluate_keyed_cross_identity(
+            node,
+            &self.memoized(memo_key),
+            &self.definition.evaluator,
+            source_key.into(),
+            PersistentCorrespondenceEvidence::host_supplied_key(correspondence),
+        )
+    }
+
+    pub fn evaluate_cross_identity_with_contract_basis<D, I, E, Ctx, O>(
+        &self,
+        tx: &mut SignalTransaction<'_, D, I, E, Ctx, T>,
+        source_key: impl Into<ComputationKey>,
+        memo_key: impl Into<StructuralMemoKey>,
+        basis: impl Into<String>,
+    ) -> Result<(), SignalError>
+    where
+        D: Copy + Ord + std::fmt::Debug + 'static,
+        I: Copy + Ord,
+        Ctx: Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
+    {
+        let node = self.node_in_transaction(tx);
+        tx.evaluate_keyed_cross_identity(
+            node,
+            &self.memoized(memo_key),
+            &self.definition.evaluator,
+            source_key.into(),
+            PersistentCorrespondenceEvidence::contract_declared_basis(basis),
+        )
+    }
+
+    pub fn evaluate_cross_identity_with_lineage_mapping<D, I, E, Ctx, O>(
+        &self,
+        tx: &mut SignalTransaction<'_, D, I, E, Ctx, T>,
+        source_key: impl Into<ComputationKey>,
+        memo_key: impl Into<StructuralMemoKey>,
+        mapping: impl Into<String>,
+    ) -> Result<(), SignalError>
+    where
+        D: Copy + Ord + std::fmt::Debug + 'static,
+        I: Copy + Ord,
+        Ctx: Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
+    {
+        let node = self.node_in_transaction(tx);
+        tx.evaluate_keyed_cross_identity(
+            node,
+            &self.memoized(memo_key),
+            &self.definition.evaluator,
+            source_key.into(),
+            PersistentCorrespondenceEvidence::lineage_backed_mapping(mapping),
+        )
+    }
+
+    pub fn evaluate_cross_identity_with_region_identity<D, I, E, Ctx, O>(
+        &self,
+        tx: &mut SignalTransaction<'_, D, I, E, Ctx, T>,
+        source_key: impl Into<ComputationKey>,
+        memo_key: impl Into<StructuralMemoKey>,
+        region_identity: impl Into<String>,
+    ) -> Result<(), SignalError>
+    where
+        D: Copy + Ord + std::fmt::Debug + 'static,
+        I: Copy + Ord,
+        Ctx: Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
+    {
+        let node = self.node_in_transaction(tx);
+        tx.evaluate_keyed_cross_identity(
+            node,
+            &self.memoized(memo_key),
+            &self.definition.evaluator,
+            source_key.into(),
+            PersistentCorrespondenceEvidence::region_identity_basis(region_identity),
+        )
+    }
+
+    pub fn evaluate_partial_splice<D, I, E, Ctx, O>(
+        &self,
+        tx: &mut SignalTransaction<'_, D, I, E, Ctx, T>,
+        memo_key: impl Into<StructuralMemoKey>,
+        composition_regions: impl IntoIterator<Item = PartitionSubscription>,
+    ) -> Result<(), SignalError>
+    where
+        D: Copy + Ord + std::fmt::Debug + 'static,
+        I: Copy + Ord,
+        Ctx: Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
+    {
+        let node = self.node_in_transaction(tx);
+        tx.evaluate_keyed_partial_splice(
+            node,
+            &self.memoized(memo_key),
+            &self.definition.evaluator,
+            PartitionScopeSet::from(composition_regions.into_iter().collect::<Vec<_>>()),
+        )
     }
 }

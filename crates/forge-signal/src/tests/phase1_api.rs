@@ -260,6 +260,14 @@ fn graph_node_builder_sets_reuse_contract_accessibly() {
                 ArtifactSemanticBoundary::TopologyRegime,
                 ArtifactSemanticBoundary::AuthorityLane,
             ],
+            supported_strategies: vec![
+                crate::data::reuse::ReuseStrategy::OutputSuppression,
+                crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse,
+                crate::data::reuse::ReuseStrategy::SnapshotRestoreReuse,
+                crate::data::reuse::ReuseStrategy::ReconciliationAdoption,
+                crate::data::reuse::ReuseStrategy::CrossIdentityPersistentMatch,
+                crate::data::reuse::ReuseStrategy::PartialArtifactSplicing,
+            ],
             allows_snapshot_restore_reuse: true,
             allows_authority_reconciliation_reuse: false,
         })
@@ -293,11 +301,14 @@ fn graph_node_builder_sets_reuse_contract_accessibly() {
 
 #[test]
 fn reuse_domain_types_are_publicly_reachable() {
-    let basis = ReuseBasis::Reused {
-        source: ReuseSource::MemoizedArtifact,
-        crossing: ReuseCrossing::None,
-    };
+    let basis = ReuseBasis::strategy(
+        crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse,
+        ReuseSource::MemoizedArtifact,
+        ReuseCrossing::None,
+    );
     let record = ReuseCertificationRecord {
+        strategy: crate::data::reuse::ReuseStrategy::SnapshotRestoreReuse,
+        origin: crate::data::reuse::ReuseOrigin::SnapshotRestore,
         source: ReuseSource::SnapshotArtifact,
         crossing: ReuseCrossing::SnapshotRestore,
         proofs: vec![ReuseBoundaryProof {
@@ -308,10 +319,11 @@ fn reuse_domain_types_are_publicly_reachable() {
 
     assert_eq!(
         basis,
-        ReuseBasis::Reused {
-            source: ReuseSource::MemoizedArtifact,
-            crossing: ReuseCrossing::None,
-        }
+        ReuseBasis::strategy(
+            crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse,
+            ReuseSource::MemoizedArtifact,
+            ReuseCrossing::None,
+        )
     );
     assert_eq!(record.proofs.len(), 1);
     assert_eq!(
@@ -498,6 +510,9 @@ fn proof_bearing_form_families_exist_as_real_types() {
     assert_summary::<NarrowedPropagationSet>();
     assert_summary::<FrontierWave>();
     assert_summary::<InvalidationFrontier>();
+    assert_summary::<InvalidationSeedBatch>();
+    assert_summary::<FrontierPlan>();
+    assert_summary::<FrontierExecutionSummary>();
     assert_summary::<SemanticBatchCommit>();
     assert_summary::<TouchedScopeSummary>();
     assert_summary::<PendingSnapshotBatch>();
@@ -680,7 +695,7 @@ fn proof_bearing_batches_and_summaries_canonicalize_their_inputs() {
     assert!(!patch_plan.is_empty());
     assert_eq!(patch_plan.target_nodes.as_slice(), &[node_b, node_a]);
     assert_eq!(touched_sources.as_slice(), &[node_b, node_a]);
-    assert_eq!(touched_scope_summary.scopes.len(), 2);
+    assert_eq!(touched_scope_summary.seed_scopes.len(), 2);
     assert_eq!(
         touched_scope_summary.touched_nodes.as_slice(),
         &[node_b, node_a]
@@ -760,7 +775,7 @@ fn observer_exposes_runtime_and_retained_artifacts_separately() {
         Some("wing-lineage")
     );
     assert_eq!(runtime.memoized_origin, MemoizedResultOrigin::DirectCompute);
-    assert_eq!(runtime.reuse_basis, ReuseBasis::FreshCompute);
+    assert_eq!(runtime.reuse_basis, ReuseBasis::fresh_compute());
     assert_eq!(retained.labels, vec!["forensic".to_owned()]);
     assert_eq!(historical.node, node);
     assert_eq!(historical.runtime.output_identity, runtime.output_identity);

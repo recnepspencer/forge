@@ -41,6 +41,13 @@ pub struct RuntimeComplexityCounters {
     pub invariant_relation_slot_scans: usize,
     pub invariant_entity_records_materialized: usize,
     pub invariant_relation_records_materialized: usize,
+    pub relation_integrity_contracts_evaluated: usize,
+    pub relation_endpoint_kind_checks: usize,
+    pub relation_cardinality_checks: usize,
+    pub relation_uniqueness_checks: usize,
+    pub relation_uniqueness_candidates_scanned: usize,
+    pub relation_symmetry_checks: usize,
+    pub relation_endpoint_deletion_checks: usize,
     pub preparation_packet_count: usize,
     pub preparation_packet_item_count: usize,
     pub preparation_packet_peak_width_total: usize,
@@ -132,6 +139,17 @@ pub const COMPLEXITY_CONTRACTS: &[ComplexityContract] = &[
         proof_tests: &[
             "tests::complexity::contracts::complexity_budget_unique_entity_invariant_uses_changed_set_lookup",
             "tests::complexity::contracts::complexity_budget_commit_boundary_unique_invariant_uses_merged_plan_lookup",
+        ],
+    },
+    ComplexityContract {
+        id: "runtime.relation_integrity.contracts",
+        function_path: "validation/engine/evaluator.rs::{evaluate_endpoint_kind_contract,evaluate_cardinality_contract,evaluate_uniqueness_contract,evaluate_symmetry_contract,evaluate_endpoint_deletion_integrity_contract}",
+        declared_time_complexity: "O(touched_relation_creates + touched_relation_deletes + adjacency_local_candidate_scans)",
+        budget_summary: "Relation-integrity invariants must stay narrowed to touched endpoints and declared contract families rather than rediscovering global legality during execution.",
+        status: ComplexityStatus::Debt,
+        proof_tests: &[
+            "tests::schema::relation_integrity_declaration_lowering_is_stable",
+            "tests::transactions::relation_integrity_commit_boundary_rejects_illegal_shapes_without_global_scan",
         ],
     },
     ComplexityContract {

@@ -68,7 +68,8 @@ pub fn explain_with_policy_resolver(
         .map(|trace| trace.propagation_suppressed)
         .unwrap_or(false);
     let memoized_origin = trace_summary.as_ref().map(|trace| trace.memoized_origin);
-    let reuse_basis = trace_summary.as_ref().map(|trace| trace.reuse_basis);
+    let reuse_basis = trace_summary.as_ref().map(|trace| trace.reuse_basis.clone());
+    let reuse_origin = trace_summary.as_ref().map(|trace| trace.reuse_origin);
     let reuse_certification = historical_artifact_record
         .as_ref()
         .and_then(|record| record.retained.as_ref())
@@ -268,6 +269,7 @@ pub fn explain_with_policy_resolver(
         propagation_suppressed,
         memoized_origin,
         reuse_basis,
+        reuse_origin,
         reuse_certification,
         causal_links: upstream
             .iter()

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::data::handle::NodeId;
+use crate::data::reuse::{PersistentCorrespondenceKind, ReuseOrigin};
 use crate::diagnostics::lineage::LineageArtifactId;
 use crate::state::{SignalBranchId, SignalSnapshotId};
 
@@ -32,6 +33,8 @@ pub struct ReplayEvent {
     pub execution_record_id: Option<u64>,
     pub semantic_segment_id: Option<u64>,
     pub lineage_artifact_id: Option<LineageArtifactId>,
+    pub reuse_origin: Option<ReuseOrigin>,
+    pub persistent_correspondence_kind: Option<PersistentCorrespondenceKind>,
     pub detail: Option<String>,
 }
 
@@ -46,6 +49,8 @@ impl ReplayEvent {
         execution_record_id: Option<u64>,
         semantic_segment_id: Option<u64>,
         lineage_artifact_id: Option<LineageArtifactId>,
+        reuse_origin: Option<ReuseOrigin>,
+        persistent_correspondence_kind: Option<PersistentCorrespondenceKind>,
         detail: Option<String>,
     ) -> Self {
         Self {
@@ -57,6 +62,8 @@ impl ReplayEvent {
             execution_record_id,
             semantic_segment_id,
             lineage_artifact_id,
+            reuse_origin,
+            persistent_correspondence_kind,
             detail,
         }
     }

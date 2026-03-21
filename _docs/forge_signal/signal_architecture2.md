@@ -2172,6 +2172,23 @@ Normative rule:
 - partition-aware and aspect-aware frontier narrowing must be measurable at the
   invalidation boundary
 
+`S9.16.3` closeout status:
+
+- the canonical operational invalidation truth is now `FrontierPlan` plus
+  `FrontierExecutionSummary`, not legacy dirty-propagation scratch state
+- cycle preflight failure is required to fail before false frontier commit
+- entry-level `DirectDirty` vs `MaybeStale` classification is retained in the
+  canonical frontier summary surface
+- flow invalidation reporting must project from frontier execution truth rather
+  than from a second compatibility bookkeeping path
+- transitive-wave counters must report realized non-empty transitive waves, not
+  planned wave count
+- retained frontier tracing is policy-gated cold richness; ordinary
+  observational access must not reconstruct or mutate frontier state
+
+With those conditions met, `S9.16.3` is considered closeable and `S9.16.4`
+becomes the next linear phase.
+
 ### S9.16.4 â€” Geometry-Scale Equivalence and Reuse Contracts
 
 Reuse is mandatory for geometry scale, but it must stay truth-grade.

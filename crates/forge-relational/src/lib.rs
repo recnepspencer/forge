@@ -52,4 +52,7 @@ mod visibility;
 pub mod facade;
 
 #[cfg(test)]
+mod testing;
+
+#[cfg(test)]
 mod tests;

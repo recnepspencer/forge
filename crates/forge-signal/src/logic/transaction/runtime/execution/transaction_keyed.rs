@@ -4,6 +4,9 @@ use std::time::Instant;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::output::KeyedComputation;
+use crate::data::output::ComputationKey;
+use crate::data::proof::PartitionScopeSet;
+use crate::data::reuse::PersistentCorrespondenceEvidence;
 use crate::diagnostics::ExecutionFailurePhase;
 use crate::logic::context::EvaluationContext;
 use crate::logic::evaluation::{EvaluationRequestMode, IntoEvaluationOutput};
@@ -48,6 +51,71 @@ where
         F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
         O: IntoEvaluationOutput,
     {
+        self.evaluate_keyed_internal(
+            node,
+            computation,
+            evaluator,
+            request_mode,
+            KeyedReuseRequest::None,
+        )
+    }
+
+    pub fn evaluate_keyed_cross_identity<F, O>(
+        &mut self,
+        node: NodeId,
+        computation: &KeyedComputation,
+        evaluator: &F,
+        source_key: ComputationKey,
+        correspondence: PersistentCorrespondenceEvidence,
+    ) -> Result<(), SignalError>
+    where
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
+    {
+        self.evaluate_keyed_internal(
+            node,
+            computation,
+            evaluator,
+            EvaluationRequestMode::Default,
+            KeyedReuseRequest::CrossIdentity {
+                source_key,
+                correspondence,
+            },
+        )
+    }
+
+    pub fn evaluate_keyed_partial_splice<F, O>(
+        &mut self,
+        node: NodeId,
+        computation: &KeyedComputation,
+        evaluator: &F,
+        composition_regions: PartitionScopeSet,
+    ) -> Result<(), SignalError>
+    where
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
+    {
+        self.evaluate_keyed_internal(
+            node,
+            computation,
+            evaluator,
+            EvaluationRequestMode::Default,
+            KeyedReuseRequest::PartialSplice { composition_regions },
+        )
+    }
+
+    fn evaluate_keyed_internal<F, O>(
+        &mut self,
+        node: NodeId,
+        computation: &KeyedComputation,
+        evaluator: &F,
+        request_mode: EvaluationRequestMode,
+        reuse_request: KeyedReuseRequest,
+    ) -> Result<(), SignalError>
+    where
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
+    {
         let strategy = self.graph.derive_evaluation_strategy();
         let executor = executor_for_strategy(strategy);
         self.telemetry.invalidation.keyed_evaluation_count += 1;
@@ -63,9 +131,11 @@ where
             key: Some(computation.key.clone()),
             memo_key: computation.memo_key.clone(),
             memoized_origin: crate::data::output::MemoizedResultOrigin::DirectCompute,
+            persistent_correspondence: reuse_request.persistent_correspondence().cloned(),
+            composition_regions: reuse_request.composition_regions().cloned().unwrap_or_default(),
         };
         if let Some(memo_key) = computation.memo_key.as_ref() {
-            if let Some(cached) = self
+            let cached = self
                 .scratch
                 .staged_memo_writes
                 .get(&(
@@ -80,10 +150,26 @@ where
                         &computation.key,
                         memo_key,
                     )
-                })
-            {
+                });
+            let cached = cached.or_else(|| {
+                reuse_request.lookup_cached_result(
+                    self.config,
+                    &self.scratch,
+                    &computation.family,
+                    memo_key,
+                )
+            });
+            if let Some(cached) = cached {
                 self.telemetry.evaluation.memoization_hits += 1;
                 let cached_result = cached;
+                self.scratch.staged_memo_writes.insert(
+                    (
+                        family_id,
+                        key_id,
+                        memo_key_id.expect("memo key id should exist"),
+                    ),
+                    cached_result.clone(),
+                );
                 let execution_start = Instant::now();
                 let report = match execute_targets_with_prepared_runtime_config_detailed(
                     self.graph,
@@ -94,7 +180,7 @@ where
                         Ok(crate::logic::prepared::PreparedEvaluation::from_result(
                             cached_result.clone(),
                         )
-                        .with_origin(PreparedEvaluationOrigin::MemoizedReuse)
+                        .with_origin(reuse_request.prepared_origin())
                         .with_memo_decision(PreparedMemoDecision::Hit)
                         .with_keyed(PreparedKeyedContext {
                             memoized_origin:
@@ -135,6 +221,7 @@ where
                 let output = evaluator(&mut ctx)?;
                 let prepared = ctx
                     .into_prepared(output)
+                    .with_origin(reuse_request.compute_origin())
                     .with_memo_decision(PreparedMemoDecision::Miss)
                     .with_keyed(base_keyed_context.clone());
                 if current == node {
@@ -182,5 +269,76 @@ where
             }
         }
         result
+    }
+}
+
+#[derive(Debug, Clone)]
+enum KeyedReuseRequest {
+    None,
+    CrossIdentity {
+        source_key: ComputationKey,
+        correspondence: PersistentCorrespondenceEvidence,
+    },
+    PartialSplice {
+        composition_regions: PartitionScopeSet,
+    },
+}
+
+impl KeyedReuseRequest {
+    fn prepared_origin(&self) -> PreparedEvaluationOrigin {
+        match self {
+            Self::None => PreparedEvaluationOrigin::MemoizedReuse,
+            Self::CrossIdentity { .. } => PreparedEvaluationOrigin::CrossIdentityPersistentReuse,
+            Self::PartialSplice { .. } => PreparedEvaluationOrigin::PartialArtifactSplice,
+        }
+    }
+
+    fn compute_origin(&self) -> PreparedEvaluationOrigin {
+        match self {
+            Self::PartialSplice { composition_regions } if !composition_regions.is_empty() => {
+                PreparedEvaluationOrigin::PartialArtifactSplice
+            }
+            _ => PreparedEvaluationOrigin::DirectPrecompute,
+        }
+    }
+
+    fn persistent_correspondence(&self) -> Option<&PersistentCorrespondenceEvidence> {
+        match self {
+            Self::CrossIdentity { correspondence, .. } => Some(correspondence),
+            _ => None,
+        }
+    }
+
+    fn composition_regions(&self) -> Option<&PartitionScopeSet> {
+        match self {
+            Self::PartialSplice { composition_regions } => Some(composition_regions),
+            _ => None,
+        }
+    }
+
+    fn lookup_cached_result<T: Copy + Ord, D, I, E>(
+        &self,
+        config: &super::super::config::SignalRuntimeConfig<T>,
+        scratch: &crate::logic::transaction::runtime::transaction::TransactionScratch<D, I, E>,
+        family: &crate::data::output::ComputationFamily,
+        memo_key: &crate::data::output::StructuralMemoKey,
+    ) -> Option<crate::data::output::NodeEvaluationResult>
+    where
+        D: Copy + Ord + std::fmt::Debug + 'static,
+        I: Copy + Ord,
+    {
+        match self {
+            Self::CrossIdentity { source_key, .. } => {
+                let family_id = config.key_registry.family_lookup.get(family).copied()?;
+                let source_key_id = config.key_registry.key_lookup.get(source_key).copied()?;
+                let memo_key_id = config.key_registry.memo_key_lookup.get(memo_key).copied()?;
+                scratch
+                    .staged_memo_writes
+                    .get(&(family_id, source_key_id, memo_key_id))
+                    .cloned()
+                    .or_else(|| config.lookup_memoized_result(family, source_key, memo_key))
+            }
+            _ => None,
+        }
     }
 }

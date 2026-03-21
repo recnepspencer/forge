@@ -7,9 +7,33 @@ use super::basis_resolution::ResolvedReuseDecision;
 
 pub(crate) fn prove_reuse_boundaries(
     contract: &NodeReuseContract,
-    decision: ResolvedReuseDecision,
+    decision: &ResolvedReuseDecision,
     evidence: &ReuseBoundaryEvidence,
 ) -> Result<Vec<ReuseBoundaryProof>, ReuseBoundaryFailure> {
+    if let Some(strategy) = decision.strategy {
+        if !contract.equivalence.supports_strategy(strategy) {
+            return Err(ReuseBoundaryFailure::ContractStrategyDisallowed(strategy));
+        }
+        match strategy {
+            crate::data::reuse::ReuseStrategy::CrossIdentityPersistentMatch
+                if !contract
+                    .equivalence
+                    .required_boundaries
+                    .contains(&ArtifactSemanticBoundary::PersistentCorrespondence) =>
+            {
+                return Err(ReuseBoundaryFailure::ContractStrategyDisallowed(strategy));
+            }
+            crate::data::reuse::ReuseStrategy::PartialArtifactSplicing
+                if !contract
+                    .equivalence
+                    .required_boundaries
+                    .contains(&ArtifactSemanticBoundary::CompositionRegionSet) =>
+            {
+                return Err(ReuseBoundaryFailure::ContractStrategyDisallowed(strategy));
+            }
+            _ => {}
+        }
+    }
     if matches!(
         decision.crossing,
         crate::data::reuse::ReuseCrossing::SnapshotRestore
@@ -77,6 +101,77 @@ pub(crate) fn prove_reuse_boundaries(
                         .as_ref()
                         .map(|context| context.authority_policy),
                     evidence.current.authority_policy,
+                )?
+            }
+            ArtifactSemanticBoundary::ArtifactFamilyBasis => prove_boundary(
+                *boundary,
+                evidence
+                    .previous
+                    .as_ref()
+                    .map(|context| context.artifact_family.clone()),
+                evidence.current.artifact_family.clone(),
+            )?,
+            ArtifactSemanticBoundary::StructuralDependencyBasis => prove_boundary(
+                *boundary,
+                evidence
+                    .previous
+                    .as_ref()
+                    .map(|context| context.structural_dependency_basis),
+                evidence.current.structural_dependency_basis,
+            )?,
+            ArtifactSemanticBoundary::PartitionRegionBasis => prove_boundary(
+                *boundary,
+                evidence
+                    .previous
+                    .as_ref()
+                    .map(|context| context.partition_region_basis.clone()),
+                evidence.current.partition_region_basis.clone(),
+            )?,
+            ArtifactSemanticBoundary::PersistentCorrespondence => {
+                if !matches!(
+                    decision.strategy,
+                    Some(crate::data::reuse::ReuseStrategy::CrossIdentityPersistentMatch)
+                ) {
+                    continue;
+                }
+                let Some(previous) = evidence
+                    .previous
+                    .as_ref()
+                    .and_then(|context| context.persistent_correspondence.clone())
+                else {
+                    return Err(ReuseBoundaryFailure::PersistentCorrespondenceEvidenceMissing);
+                };
+                let Some(current) = evidence.current.persistent_correspondence.clone() else {
+                    return Err(ReuseBoundaryFailure::PersistentCorrespondenceEvidenceMissing);
+                };
+                if !previous.is_structurally_valid() || !current.is_structurally_valid() {
+                    return Err(ReuseBoundaryFailure::PersistentCorrespondenceEvidenceInvalid);
+                }
+                if previous != current {
+                    return Err(ReuseBoundaryFailure::PersistentCorrespondenceEvidenceInvalid);
+                }
+                ReuseBoundaryProof {
+                    boundary: *boundary,
+                    satisfied: true,
+                }
+            }
+            ArtifactSemanticBoundary::CompositionRegionSet => {
+                if !matches!(
+                    decision.strategy,
+                    Some(crate::data::reuse::ReuseStrategy::PartialArtifactSplicing)
+                ) {
+                    continue;
+                }
+                if evidence.current.composition_regions.is_empty() {
+                    return Err(ReuseBoundaryFailure::CompositionRegionLegalityFailure);
+                }
+                prove_boundary(
+                    *boundary,
+                    evidence
+                        .previous
+                        .as_ref()
+                        .map(|context| context.composition_regions.clone()),
+                    evidence.current.composition_regions.clone(),
                 )?
             }
             ArtifactSemanticBoundary::SnapshotLineage => ReuseBoundaryProof {

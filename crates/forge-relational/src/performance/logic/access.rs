@@ -56,6 +56,55 @@ impl<'runtime> PerformanceAccess<'runtime> {
             .count(|counters| counters.invariant_relation_slot_scans += slots);
     }
 
+    pub(crate) fn count_relation_integrity_contracts_evaluated(&self, count: usize) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.relation_integrity_contracts_evaluated += count);
+    }
+
+    pub(crate) fn count_relation_endpoint_kind_checks(&self, count: usize) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.relation_endpoint_kind_checks += count);
+    }
+
+    pub(crate) fn count_relation_cardinality_checks(&self, count: usize) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.relation_cardinality_checks += count);
+    }
+
+    pub(crate) fn count_relation_uniqueness_checks(&self, count: usize) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.relation_uniqueness_checks += count);
+    }
+
+    pub(crate) fn count_relation_uniqueness_candidates(&self, count: usize) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.relation_uniqueness_candidates_scanned += count);
+    }
+
+    pub(crate) fn count_relation_symmetry_checks(&self, count: usize) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.relation_symmetry_checks += count);
+    }
+
+    pub(crate) fn count_relation_endpoint_deletion_checks(&self, count: usize) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.relation_endpoint_deletion_checks += count);
+    }
+
     pub(crate) fn count_preparation_packet_shape(
         &self,
         packets: usize,

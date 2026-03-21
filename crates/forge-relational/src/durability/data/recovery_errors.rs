@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::errors::data::{ErrorContext, ErrorOperation, RelationalSubsystem, SuggestedFix};
+use crate::identity::data::KindId;
+use crate::schema::data::SchemaVersionId;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RecoveryFailureClass {
@@ -14,10 +16,127 @@ pub enum RecoveryFailureClass {
     DurableIoFailure,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RelationIntegrityContractFamily {
+    EndpointKind,
+    Cardinality,
+    Uniqueness,
+    Symmetry,
+    EndpointDeletionIntegrity,
+    Aggregate,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RecoveryCompatibilityMismatch {
+    SchemaRegistryShape {
+        expected_primary_schema_version: SchemaVersionId,
+        found_primary_schema_version: SchemaVersionId,
+        expected_entity_kind_count: usize,
+        found_entity_kind_count: usize,
+        expected_relation_kind_count: usize,
+        found_relation_kind_count: usize,
+    },
+    EntityAspectPlanRevision {
+        kind_id: KindId,
+        kind_name: String,
+        expected_revision: u128,
+        found_revision: u128,
+    },
+    RelationAspectPlanRevision {
+        kind_id: KindId,
+        kind_name: String,
+        expected_revision: u128,
+        found_revision: u128,
+    },
+    RelationIntegrityPlanRevision {
+        kind_id: KindId,
+        kind_name: String,
+        contract_family: RelationIntegrityContractFamily,
+        expected_revision: u128,
+        found_revision: u128,
+        expected_contract_ids: Vec<String>,
+        found_contract_ids: Vec<String>,
+    },
+    RuntimeProfile {
+        expected: String,
+        found: String,
+    },
+    RuntimeName {
+        expected: String,
+        found: String,
+    },
+}
+
+impl RecoveryCompatibilityMismatch {
+    pub fn summary(&self) -> String {
+        match self {
+            Self::SchemaRegistryShape {
+                expected_primary_schema_version,
+                found_primary_schema_version,
+                expected_entity_kind_count,
+                found_entity_kind_count,
+                expected_relation_kind_count,
+                found_relation_kind_count,
+            } => format!(
+                "schema basis mismatch: expected primary schema version {}, found {}; expected entity kinds {}, found {}; expected relation kinds {}, found {}",
+                expected_primary_schema_version.0,
+                found_primary_schema_version.0,
+                expected_entity_kind_count,
+                found_entity_kind_count,
+                expected_relation_kind_count,
+                found_relation_kind_count
+            ),
+            Self::EntityAspectPlanRevision {
+                kind_id,
+                kind_name,
+                expected_revision,
+                found_revision,
+            } => format!(
+                "entity aspect plan revision mismatch for {} ({}) expected {} found {}",
+                kind_name, kind_id.0, expected_revision, found_revision
+            ),
+            Self::RelationAspectPlanRevision {
+                kind_id,
+                kind_name,
+                expected_revision,
+                found_revision,
+            } => format!(
+                "relation aspect plan revision mismatch for {} ({}) expected {} found {}",
+                kind_name, kind_id.0, expected_revision, found_revision
+            ),
+            Self::RelationIntegrityPlanRevision {
+                kind_id,
+                kind_name,
+                contract_family,
+                expected_revision,
+                found_revision,
+                expected_contract_ids,
+                found_contract_ids,
+            } => format!(
+                "relation integrity plan revision mismatch for {} ({}) family {:?} expected {} found {} expected contracts {:?} found {:?}",
+                kind_name,
+                kind_id.0,
+                contract_family,
+                expected_revision,
+                found_revision,
+                expected_contract_ids,
+                found_contract_ids
+            ),
+            Self::RuntimeProfile { expected, found } => {
+                format!("runtime profile mismatch expected {expected} found {found}")
+            }
+            Self::RuntimeName { expected, found } => {
+                format!("runtime name mismatch expected {expected} found {found}")
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DurabilityError {
     pub class: RecoveryFailureClass,
     pub detail: String,
+    pub compatibility_mismatch: Option<RecoveryCompatibilityMismatch>,
     pub context: ErrorContext,
 }
 
@@ -36,8 +155,18 @@ impl DurabilityError {
         Self {
             class,
             detail: detail.into(),
+            compatibility_mismatch: None,
             context: ErrorContext::new(RelationalSubsystem::Durability, operation)
                 .with_fix(SuggestedFix::RepairDurableStore),
         }
+    }
+
+    pub fn with_compatibility_mismatch(
+        mut self,
+        mismatch: RecoveryCompatibilityMismatch,
+    ) -> Self {
+        self.detail = format!("{}: {}", self.detail, mismatch.summary());
+        self.compatibility_mismatch = Some(mismatch);
+        self
     }
 }

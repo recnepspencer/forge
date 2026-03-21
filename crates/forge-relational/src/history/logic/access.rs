@@ -119,6 +119,31 @@ impl<'runtime> HistoryAccess<'runtime> {
             .and_then(|head| head.as_ref())
     }
 
+    pub(crate) fn recent_commit_ids(
+        &self,
+        branch_id: Option<&BranchId>,
+        limit: usize,
+    ) -> Vec<CommitId> {
+        match branch_id {
+            Some(branch_id) => self
+                .branch_commit_envelopes(branch_id)
+                .into_iter()
+                .rev()
+                .take(limit)
+                .map(|envelope| envelope.commit.commit_id)
+                .collect(),
+            None => self
+                .runtime
+                .history
+                .commit_envelopes
+                .values()
+                .rev()
+                .take(limit)
+                .map(|envelope| envelope.commit.commit_id)
+                .collect(),
+        }
+    }
+
     pub fn branches(&self) -> Vec<BranchHead> {
         self.runtime
             .history

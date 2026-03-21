@@ -19,6 +19,8 @@ use crate::facade::transactions::{
 };
 use crate::tests::support::*;
 
+mod relation_integrity;
+
 #[test]
 fn runtime_defaults_to_serialized_authority() {
     let runtime = runtime_with_test_schema();
@@ -899,6 +901,7 @@ fn audit_retained_relations_remain_visible_after_endpoint_delete() {
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::RetainDanglingForAudit,
                 aspect_declarations: KindAspectDeclarations::default(),
+                relation_integrity: crate::schema::data::RelationIntegrityDeclarations::default(),
             })
         })
         .unwrap();

@@ -3,10 +3,14 @@ mod certification;
 mod context;
 mod contract;
 
-pub use basis::{ReuseBasis, ReuseCrossing, ReuseSource};
+pub use basis::{ReuseBasis, ReuseCrossing, ReuseOrigin, ReuseSource, ReuseStrategy};
 pub use certification::{
     ReuseBoundaryEvidence, ReuseBoundaryFailure, ReuseBoundaryProof, ReuseCertificationFailure,
     ReuseCertificationRecord,
 };
-pub use context::{ReuseBoundaryContext, ReuseSemanticRegionIdentity};
+#[allow(unused_imports)]
+pub use context::{
+    PersistentCorrespondenceEvidence, PersistentCorrespondenceKind, ReuseBoundaryContext,
+    ReuseSemanticRegionIdentity,
+};
 pub use contract::{ArtifactEquivalenceContract, ArtifactSemanticBoundary, NodeReuseContract};

@@ -2,7 +2,7 @@ use crate::config::data::RelationalRuntimeConfig;
 use crate::logic::runtime::RelationalRuntime;
 use crate::schema::data::{
     AspectDeclarationTrace, AspectLoweringTrace, AspectPlanCatalog, LoweredAspectPlan,
-    RelationalSchemaRegistry,
+    LoweredRelationIntegrityPlan, RelationIntegrityPlanCatalog, RelationalSchemaRegistry,
 };
 
 pub(crate) trait SchemaSource {
@@ -28,6 +28,11 @@ pub(crate) trait AspectPlanSource {
         &self,
         kind_id: crate::identity::data::KindId,
     ) -> Option<AspectLoweringTrace>;
+    fn relation_integrity_plan_catalog(&self) -> &RelationIntegrityPlanCatalog;
+    fn relation_integrity_plan(
+        &self,
+        kind_id: crate::identity::data::KindId,
+    ) -> Option<&LoweredRelationIntegrityPlan>;
 }
 
 impl SchemaSource for RelationalRuntime {
@@ -69,6 +74,17 @@ impl AspectPlanSource for RelationalRuntime {
     ) -> Option<AspectLoweringTrace> {
         self.relation_aspect_plan(kind_id)
             .map(LoweredAspectPlan::lowering_trace)
+    }
+
+    fn relation_integrity_plan_catalog(&self) -> &RelationIntegrityPlanCatalog {
+        &self.aspect_semantics.relation_integrity_plans
+    }
+
+    fn relation_integrity_plan(
+        &self,
+        kind_id: crate::identity::data::KindId,
+    ) -> Option<&LoweredRelationIntegrityPlan> {
+        self.aspect_semantics.relation_integrity_plans.relation_plans.get(&kind_id)
     }
 }
 
@@ -145,5 +161,12 @@ impl RelationalRuntime {
         kind_id: crate::identity::data::KindId,
     ) -> Option<AspectLoweringTrace> {
         AspectPlanSource::relation_aspect_plan_trace(self, kind_id)
+    }
+
+    pub fn relation_integrity_plan(
+        &self,
+        kind_id: crate::identity::data::KindId,
+    ) -> Option<&LoweredRelationIntegrityPlan> {
+        AspectPlanSource::relation_integrity_plan(self, kind_id)
     }
 }

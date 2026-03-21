@@ -19,7 +19,15 @@ pub enum SchemaRegistryErrorClass {
         kind_id: KindId,
         aspect_key: AspectKey,
     },
+    DuplicateRelationContractId {
+        kind_id: KindId,
+        contract_id: String,
+    },
     InvalidAspectDeclaration {
+        kind_id: KindId,
+        detail: String,
+    },
+    InvalidRelationIntegrityDeclaration {
         kind_id: KindId,
         detail: String,
     },
@@ -60,9 +68,22 @@ impl SchemaRegistryError {
                 "kind {:?} declares duplicate aspect key {:?}",
                 kind_id, aspect_key
             ),
+            SchemaRegistryErrorClass::DuplicateRelationContractId {
+                kind_id,
+                contract_id,
+            } => format!(
+                "kind {:?} declares duplicate relation contract id '{}'",
+                kind_id, contract_id
+            ),
             SchemaRegistryErrorClass::InvalidAspectDeclaration { kind_id, detail } => {
                 format!(
                     "kind {:?} has invalid aspect declaration: {detail}",
+                    kind_id
+                )
+            }
+            SchemaRegistryErrorClass::InvalidRelationIntegrityDeclaration { kind_id, detail } => {
+                format!(
+                    "kind {:?} has invalid relation integrity declaration: {detail}",
                     kind_id
                 )
             }
@@ -98,6 +119,23 @@ impl SchemaRegistryError {
 
     pub fn invalid_aspect_declaration(kind_id: KindId, detail: impl Into<String>) -> Self {
         Self::new(SchemaRegistryErrorClass::InvalidAspectDeclaration {
+            kind_id,
+            detail: detail.into(),
+        })
+    }
+
+    pub fn duplicate_relation_contract_id(kind_id: KindId, contract_id: impl Into<String>) -> Self {
+        Self::new(SchemaRegistryErrorClass::DuplicateRelationContractId {
+            kind_id,
+            contract_id: contract_id.into(),
+        })
+    }
+
+    pub fn invalid_relation_integrity_declaration(
+        kind_id: KindId,
+        detail: impl Into<String>,
+    ) -> Self {
+        Self::new(SchemaRegistryErrorClass::InvalidRelationIntegrityDeclaration {
             kind_id,
             detail: detail.into(),
         })

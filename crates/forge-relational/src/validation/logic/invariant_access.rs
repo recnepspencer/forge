@@ -186,6 +186,7 @@ impl<'runtime> InvariantAccess<'runtime> {
             self.runtime.config.execution.execution_model,
             None,
             Vec::new(),
+            None,
         )
     }
 }
@@ -194,13 +195,20 @@ impl<'runtime> InvariantAccess<'runtime> {
 mod tests {
     use super::InvariantAccess;
     use crate::authority::commit::preparation::planning::strategy::PreparationStrategySelection;
+    use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
     use crate::facade::identity::PartitionId;
     use crate::facade::runtime::{
         InvariantCatalog, InvariantRegistration, InvariantRule, RelationalExecutionModel,
     };
     use crate::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
-    use crate::facade::schema::RelationalSchemaRegistry;
+    use crate::facade::schema::{
+        EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration,
+        RelationalSchemaRegistry, SchemaId, SchemaVersionId,
+    };
     use crate::identity::data::KindId;
+    use crate::schema::data::{
+        EndpointKindContractDeclaration, RelationIntegrityDeclarations, RelationPayloadClass,
+    };
     use crate::payloads::data::RecordPayload;
     use crate::symbols::data::InternedString;
     use crate::transactions::data::{
@@ -208,6 +216,7 @@ mod tests {
         RelationMutationIntent, TransactionId,
     };
     use crate::validation::data::{InvariantFailureEffect, InvariantVerdict};
+    use crate::validation::engine::InvariantPlanScopeClass;
     use serde_json::json;
 
     fn runtime_with_invariants(
@@ -218,6 +227,46 @@ mod tests {
             .schema_registry(RelationalSchemaRegistry::new())
             .invariant_catalog(invariant_catalog)
             .execution_model(execution_model)
+            .build()
+    }
+
+    fn relation_integrity_runtime() -> RelationalRuntime {
+        let registry = RelationalSchemaRegistry::new()
+            .register_entity_kind(EntityKindRegistration {
+                kind_id: KindId(1),
+                kind_name: "test.entity".to_string(),
+                schema_id: SchemaId("test".to_string()),
+                schema_version_id: SchemaVersionId(1),
+                aspect_declarations: KindAspectDeclarations::default(),
+            })
+            .and_then(|registry| {
+                registry.register_relation_kind(RelationKindRegistration {
+                    kind_id: KindId(2),
+                    kind_name: "test.relation".to_string(),
+                    schema_id: SchemaId("test".to_string()),
+                    schema_version_id: SchemaVersionId(1),
+                    payload_class: RelationPayloadClass::PayloadBearingRelation,
+                    cross_context_policy: CrossContextPolicy::AllowExplicit,
+                    cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
+                    aspect_declarations: KindAspectDeclarations::default(),
+                    relation_integrity: RelationIntegrityDeclarations::new(
+                        vec![EndpointKindContractDeclaration {
+                            contract_id: "no_self".to_string(),
+                            allowed_source_kinds: vec![KindId(1)],
+                            allowed_target_kinds: vec![KindId(1)],
+                            self_edges_allowed: false,
+                            cross_context_policy: CrossContextPolicy::AllowExplicit,
+                        }],
+                        Vec::new(),
+                        Vec::new(),
+                        Vec::new(),
+                        Vec::new(),
+                    ),
+                })
+            })
+            .unwrap();
+        RelationalRuntimeApi::builder()
+            .schema_registry(registry)
             .build()
     }
 
@@ -294,5 +343,66 @@ mod tests {
             result.failure_effect == InvariantFailureEffect::BlockCommit
                 && matches!(result.verdict, InvariantVerdict::Violation(_))
         }));
+    }
+
+    #[test]
+    fn commit_boundary_metadata_exposes_proof_boundary_summary_for_packet_backed_execution() {
+        let mut runtime = relation_integrity_runtime();
+        let source = {
+            let mut txn = runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
+            txn.push_batch(crate::facade::transactions::WorkerIntentBatch::new("source").push(
+                MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: InternedString::Raw("source".to_string()),
+                    payload: RecordPayload::StructuredJson(json!({"name":"source"})),
+                })),
+            ));
+            let outcome = txn.commit().unwrap();
+            match outcome.changed_records[0] {
+                crate::facade::transactions::RecordRef::Entity(entity_id) => entity_id,
+                _ => panic!("expected entity"),
+            }
+        };
+        let target = {
+            let mut txn = runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
+            txn.push_batch(crate::facade::transactions::WorkerIntentBatch::new("target").push(
+                MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: InternedString::Raw("target".to_string()),
+                    payload: RecordPayload::StructuredJson(json!({"name":"target"})),
+                })),
+            ));
+            let outcome = txn.commit().unwrap();
+            match outcome.changed_records[0] {
+                crate::facade::transactions::RecordRef::Entity(entity_id) => entity_id,
+                _ => panic!("expected entity"),
+            }
+        };
+        let plan = MergedCommitPlan {
+            transaction_id: TransactionId(3),
+            merged_intents: vec![MutationIntent::Create(CreateIntent::Relation(
+                crate::transactions::data::RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(2),
+                    client_key: InternedString::Raw("planned".to_string()),
+                    source,
+                    target,
+                    payload: Some(RecordPayload::StructuredJson(json!({"label":"planned"}))),
+                },
+            ))],
+        };
+
+        let result = InvariantAccess::new(&runtime).commit_boundary(&plan);
+        let summary = result
+            .metadata()
+            .proof_boundary()
+            .expect("proof boundary summary");
+
+        assert_eq!(summary.scope_class(), InvariantPlanScopeClass::PartitionScope);
+        assert!(summary.widened_causes().is_empty());
+        assert_eq!(summary.packet_count(), 1);
+        assert_eq!(summary.touched_partition_count(), 1);
     }
 }

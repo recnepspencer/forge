@@ -6,6 +6,7 @@ use crate::authority::commit::preparation::reduction::merge::{
 };
 use crate::validation::engine::{
     InvariantExecutionMetadata, InvariantExecutionRequest, InvariantExecutionResult,
+    InvariantProofBoundarySummary,
 };
 
 use super::diagnostics::assert_canonical_diagnostic_observations;
@@ -14,6 +15,7 @@ use crate::validation::execution::{InvariantWorkerEnvelope, ValidationReducerCon
 pub(crate) fn reduce_invariant_execution(
     request: &InvariantExecutionRequest<'_>,
     strategy: PreparationStrategy,
+    proof_boundary: InvariantProofBoundarySummary,
     envelopes: Vec<InvariantWorkerEnvelope>,
 ) -> (
     InvariantExecutionResult,
@@ -79,6 +81,7 @@ pub(crate) fn reduce_invariant_execution(
         request.merged_plan().is_some(),
         strategy,
         preparation_failures.clone(),
+        Some(proof_boundary),
     );
     let result = InvariantExecutionResult::executed(metadata, results.clone());
     let counters = ValidationPreparationCounters {

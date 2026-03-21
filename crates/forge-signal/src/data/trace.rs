@@ -11,7 +11,9 @@ use crate::data::output::{
     OutputChange, OutputIdentity,
 };
 use crate::data::proof::PartitionScopeSet;
-use crate::data::reuse::{ReuseBasis, ReuseBoundaryContext, ReuseCertificationRecord};
+use crate::data::reuse::{
+    ReuseBasis, ReuseBoundaryContext, ReuseCertificationRecord, ReuseOrigin,
+};
 use crate::diagnostics::lineage::LineageArtifactId;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -76,6 +78,9 @@ pub struct RuntimeArtifactState {
     /// Compact runtime truth for how the current artifact became current.
     #[serde(default)]
     pub reuse_basis: ReuseBasis,
+    /// Realized runtime origin for how the current artifact became current.
+    #[serde(default)]
+    pub reuse_origin: ReuseOrigin,
     /// Boundary evidence for certifying later reuse of this artifact.
     #[serde(default)]
     pub reuse_boundary_context: Option<ReuseBoundaryContext>,
@@ -167,6 +172,8 @@ pub struct TraceSummary {
     #[serde(default)]
     pub reuse_basis: ReuseBasis,
     #[serde(default)]
+    pub reuse_origin: ReuseOrigin,
+    #[serde(default)]
     pub reuse_boundary_context: Option<ReuseBoundaryContext>,
     #[serde(default)]
     pub labels: Vec<String>,
@@ -199,7 +206,8 @@ impl TraceSummary {
             keyed_family: retained.and_then(|artifact| artifact.keyed_family.clone()),
             keyed_key: retained.and_then(|artifact| artifact.keyed_key.clone()),
             memoized_origin: runtime.memoized_origin,
-            reuse_basis: runtime.reuse_basis,
+            reuse_basis: runtime.reuse_basis.clone(),
+            reuse_origin: runtime.reuse_origin,
             reuse_boundary_context: runtime.reuse_boundary_context.clone(),
             labels: retained
                 .map(|artifact| artifact.labels.clone())

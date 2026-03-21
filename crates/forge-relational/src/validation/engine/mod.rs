@@ -18,4 +18,5 @@ pub(crate) use profile::InvariantRequestProfile;
 pub(crate) use request::InvariantExecutionRequest;
 pub use result::{
     InvariantExecutionDisposition, InvariantExecutionMetadata, InvariantExecutionResult,
+    InvariantPlanScopeClass, InvariantProofBoundarySummary, InvariantScopeWideningCause,
 };

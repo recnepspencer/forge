@@ -17,7 +17,6 @@ pub(crate) struct TraversalScratch {
     pub(crate) cycle_stack: Vec<(NodeId, bool)>,
     pub(crate) node_buffer_a: Vec<NodeId>,
     pub(crate) node_buffer_b: Vec<NodeId>,
-    pub(crate) node_buffer_c: Vec<NodeId>,
     pub(crate) planner_targets: Vec<NodeId>,
     pub(crate) planner_tasks: Vec<EligibleTask>,
     pub(crate) planner_stages: Vec<StageCursor>,

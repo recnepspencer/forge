@@ -54,6 +54,7 @@ pub use lineage::{
 };
 pub use policy::{
     ArtifactMaterializationMode, ArtifactRetentionPolicy, DiagnosticsPolicy,
+    FrontierCyclePolicy, FrontierPropagationPolicy, FrontierTracingPolicy,
     ParallelAdmissionPolicy, ReplayDetailPolicy, SemanticRetentionPolicy, SignalRuntimePolicy,
     SnapshotRestoreLineageMode,
 };

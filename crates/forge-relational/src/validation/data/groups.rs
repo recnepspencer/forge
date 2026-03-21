@@ -11,6 +11,7 @@ pub enum InvariantGroup {
     LineageIntegrity = 5,
     PublicationCoherence = 6,
     DurabilityConsistency = 7,
+    RelationIntegrity = 8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -26,7 +27,7 @@ pub struct InvariantGroupSet {
 }
 
 impl InvariantGroupSet {
-    pub const COUNT: usize = 8;
+    pub const COUNT: usize = 9;
 
     pub const fn empty() -> Self {
         Self { mask: 0 }
@@ -76,7 +77,7 @@ impl InvariantGroupSet {
 }
 
 impl InvariantGroup {
-    pub const COUNT: usize = 8;
+    pub const COUNT: usize = 9;
 
     pub const fn mask(self) -> u32 {
         1u32 << (self as u8)

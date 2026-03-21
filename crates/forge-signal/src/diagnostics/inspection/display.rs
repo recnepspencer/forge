@@ -31,12 +31,32 @@ pub fn render_plan_summary(summary: &EvaluationPlanSummary) -> String {
 
 pub fn render_execution_report_summary(summary: &ExecutionReportSummary) -> String {
     format!(
-        "ExecutionReportSummary profile={:?} stages={} tasks={} executed={} memoized={} suppressed={}",
+        "ExecutionReportSummary profile={:?} stages={} tasks={} executed={} memoized={} snapshot_restore={} reconciliation={} cross_identity={} partial_splice={} suppressed={}",
         summary.profile,
         summary.stage_count,
         summary.task_count,
         summary.tasks_executed,
         summary.tasks_satisfied_by_memoization,
+        summary
+            .task_outcome_counts
+            .get("SnapshotRestoreReuse")
+            .copied()
+            .unwrap_or(0),
+        summary
+            .task_outcome_counts
+            .get("ReconciliationAdoption")
+            .copied()
+            .unwrap_or(0),
+        summary
+            .task_outcome_counts
+            .get("CrossIdentityPersistentReuse")
+            .copied()
+            .unwrap_or(0),
+        summary
+            .task_outcome_counts
+            .get("PartialArtifactSplice")
+            .copied()
+            .unwrap_or(0),
         summary.tasks_with_suppressed_propagation
     )
 }
@@ -59,11 +79,12 @@ pub fn render_explanation_summary(summary: &ExplanationSummary) -> String {
 
 pub fn render_execution_history_summary(summary: &ExecutionHistorySummary) -> String {
     format!(
-        "ExecutionHistorySummary profile={:?} traced_nodes={} execution_records={} latest_execution_record_id={:?}",
+        "ExecutionHistorySummary profile={:?} traced_nodes={} execution_records={} latest_execution_record_id={:?} reuse_origins={:?}",
         summary.profile,
         summary.traced_node_count,
         summary.execution_record_count,
-        summary.latest_execution_record_id
+        summary.latest_execution_record_id,
+        summary.reuse_origin_counts
     )
 }
 

@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 
 use crate::data::graph::SignalGraph;
+use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
 use crate::diagnostics::compare::{
     explanations_semantically_equivalent, graphs_semantically_equivalent,
     plans_semantically_equivalent, repeat_run_summaries_equal, reports_semantically_equivalent,
@@ -45,6 +46,14 @@ impl<'a> GraphDiagnostics<'a> {
 
     pub fn latest_rollback(&self) -> Option<&'a RollbackDiagnostic> {
         self.graph.observe().latest_rollback_diagnostics()
+    }
+
+    pub fn latest_frontier_execution(&self) -> Option<&'a FrontierExecutionSummary> {
+        self.graph.observe().latest_frontier_execution_summary()
+    }
+
+    pub fn latest_invalidation_trace_records(&self) -> &'a [InvalidationTraceRecord] {
+        self.graph.observe().latest_invalidation_trace_records()
     }
 
     pub fn recent_history(&self) -> &'a VecDeque<ExecutionHistorySummary> {

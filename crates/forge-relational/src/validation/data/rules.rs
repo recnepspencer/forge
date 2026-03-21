@@ -1,5 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+use crate::schema::data::{
+    LoweredCardinalityContract, LoweredEndpointDeletionIntegrityContract,
+    LoweredEndpointKindContract, LoweredSymmetryContract, LoweredUniquenessContract,
+};
+
 use super::execution::InvariantExecutionPoint;
 use super::groups::{InvariantCostClass, InvariantGroup, InvariantGroupSet};
 
@@ -15,6 +20,11 @@ pub enum InvariantRule {
     MaxMergedIntents(usize),
     MaxSnapshotEntities(usize),
     UniqueEntityPayloadField(String),
+    EndpointKindContract(LoweredEndpointKindContract),
+    CardinalityContract(LoweredCardinalityContract),
+    UniquenessContract(LoweredUniquenessContract),
+    SymmetryContract(LoweredSymmetryContract),
+    EndpointDeletionIntegrityContract(LoweredEndpointDeletionIntegrityContract),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -43,6 +53,30 @@ impl InvariantRule {
             Self::UniqueEntityPayloadField(_) => InvariantRuleMetadata {
                 groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance)
                     .union(InvariantGroupSet::of(InvariantGroup::IdentityCoherence)),
+                cost: InvariantCostClass::Touched,
+            },
+            Self::EndpointKindContract(_) => InvariantRuleMetadata {
+                groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance)
+                    .union(InvariantGroupSet::of(InvariantGroup::RelationIntegrity)),
+                cost: InvariantCostClass::Touched,
+            },
+            Self::CardinalityContract(_) => InvariantRuleMetadata {
+                groups: InvariantGroupSet::of(InvariantGroup::RelationIntegrity),
+                cost: InvariantCostClass::Touched,
+            },
+            Self::UniquenessContract(_) => InvariantRuleMetadata {
+                groups: InvariantGroupSet::of(InvariantGroup::IdentityCoherence)
+                    .union(InvariantGroupSet::of(InvariantGroup::RelationIntegrity)),
+                cost: InvariantCostClass::Touched,
+            },
+            Self::SymmetryContract(_) => InvariantRuleMetadata {
+                groups: InvariantGroupSet::of(InvariantGroup::AdjacencyIntegrity)
+                    .union(InvariantGroupSet::of(InvariantGroup::RelationIntegrity)),
+                cost: InvariantCostClass::Touched,
+            },
+            Self::EndpointDeletionIntegrityContract(_) => InvariantRuleMetadata {
+                groups: InvariantGroupSet::of(InvariantGroup::RelationIntegrity)
+                    .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance)),
                 cost: InvariantCostClass::Touched,
             },
         }
@@ -76,6 +110,13 @@ impl InvariantRule {
             Self::MaxSnapshotEntities(_) => {
                 execution_point == InvariantExecutionPoint::SnapshotPublication
             }
+            Self::EndpointKindContract(_)
+            | Self::CardinalityContract(_)
+            | Self::UniquenessContract(_)
+            | Self::SymmetryContract(_)
+            | Self::EndpointDeletionIntegrityContract(_) => {
+                execution_point == InvariantExecutionPoint::CommitBoundary
+            }
         }
     }
 
@@ -88,6 +129,22 @@ impl InvariantRule {
             (Self::MaxMergedIntents(_), Self::MaxMergedIntents(_))
             | (Self::MaxSnapshotEntities(_), Self::MaxSnapshotEntities(_))
             | (Self::UniqueEntityPayloadField(_), Self::UniqueEntityPayloadField(_)) => true,
+            (Self::EndpointKindContract(left), Self::EndpointKindContract(right)) => {
+                left.contract_id == right.contract_id && left.relation_kind_id == right.relation_kind_id
+            }
+            (Self::CardinalityContract(left), Self::CardinalityContract(right)) => {
+                left.contract_id == right.contract_id && left.relation_kind_id == right.relation_kind_id
+            }
+            (Self::UniquenessContract(left), Self::UniquenessContract(right)) => {
+                left.contract_id == right.contract_id && left.relation_kind_id == right.relation_kind_id
+            }
+            (Self::SymmetryContract(left), Self::SymmetryContract(right)) => {
+                left.contract_id == right.contract_id && left.relation_kind_id == right.relation_kind_id
+            }
+            (
+                Self::EndpointDeletionIntegrityContract(left),
+                Self::EndpointDeletionIntegrityContract(right),
+            ) => left.contract_id == right.contract_id && left.relation_kind_id == right.relation_kind_id,
             _ => false,
         }
     }

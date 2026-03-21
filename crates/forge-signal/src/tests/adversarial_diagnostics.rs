@@ -1,7 +1,7 @@
 use crate::data::trace::TraceSummary;
 use crate::diagnostics::policy::DiagnosticsPolicy;
 use crate::facade::*;
-use crate::tests::support::{version_ab, ASPECT_A};
+use crate::tests::support::{evaluate, version_ab, ASPECT_A, ASPECT_B};
 
 #[test]
 fn operational_profile_stays_bounded_under_snapshot_and_dependency_churn() {
@@ -52,6 +52,102 @@ fn operational_profile_stays_bounded_under_snapshot_and_dependency_churn() {
     assert!(diagnostics.latest_failure().is_none());
     assert!(diagnostics.latest_rollback().is_none());
     assert!(diagnostics.latest_flow().is_some());
+}
+
+#[test]
+fn mixed_partition_heavy_invalidation_keeps_frontier_counters_and_flow_in_sync() {
+    let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(SignalRuntimePolicy::development());
+    let source = graph.node().partitioned_output().build();
+    let whole = graph.node().build();
+    let detail_a = graph.node().build();
+    let detail_b = graph.node().build();
+
+    graph
+        .append_partition_dependency(whole, source, ASPECT_A, "wing")
+        .unwrap();
+    graph
+        .append_partition_detail_dependency(detail_a, source, ASPECT_A, "wing", "rib-12")
+        .unwrap();
+    graph
+        .append_partition_detail_dependency(detail_b, source, ASPECT_A, "wing", "rib-13")
+        .unwrap();
+
+    let evaluator = |ctx: &mut EvaluationContext<'_, ()>| {
+        let result = if ctx.node() == source {
+            ctx.finish(
+                NodeEvaluationResult::from_version(version_ab(1, 0))
+                    .with_changed_region(ChangedRegion::new("wing").with_detail("rib-12")),
+            )
+        } else {
+            let version = ctx.read_aspect_version(source, ASPECT_A)?;
+            ctx.finish(NodeEvaluationResult::from_version(version))
+        };
+        Ok(result)
+    };
+
+    let bootstrap = graph
+        .build_evaluation_plan(&[source, whole, detail_a, detail_b], EvaluationRequestMode::ForceOnDemand)
+        .unwrap();
+    graph.execute_prepared_plan(&bootstrap, &(), &evaluator).unwrap();
+
+    mark_dirty_with_regions(
+        &mut graph,
+        source,
+        ASPECT_A,
+        &[ChangedRegion::new("wing").with_detail("rib-12")],
+    )
+    .unwrap();
+
+    let plan = graph
+        .build_evaluation_plan(&[whole, detail_a, detail_b], EvaluationRequestMode::Default)
+        .unwrap();
+    graph.execute_prepared_plan(&plan, &(), &evaluator).unwrap();
+
+    let diagnostics = graph.observe().diagnostics();
+    let flow = diagnostics.latest_flow().expect("flow diagnostics should be available");
+    let frontier = diagnostics
+        .latest_frontier_execution()
+        .expect("frontier execution summary should be available");
+
+    assert_eq!(frontier.seed_count, 1);
+    assert_eq!(frontier.direct_waves.len(), 1);
+    assert_eq!(
+        frontier.direct_waves[0].entries.len(),
+        3,
+        "all directly subscribed nodes should appear in the direct wave"
+    );
+    assert_eq!(
+        frontier
+            .direct_waves[0]
+            .entries
+            .iter()
+            .filter(|entry| matches!(entry.classification, FrontierEntryClassification::DirectDirty))
+            .count(),
+        3,
+        "mixed whole-partition and detail subscribers should stay within the direct wave without broadening beyond actual subscribers"
+    );
+    assert_eq!(
+        flow.invalidation.frontier_seed_count as u64,
+        frontier.counters.frontier_seed_count
+    );
+    assert_eq!(
+        flow.invalidation.frontier_direct_wave_count as u64,
+        frontier.counters.frontier_direct_wave_count
+    );
+    assert_eq!(
+        flow.invalidation.frontier_partition_match_count as u64,
+        frontier.counters.frontier_partition_match_count
+    );
+    assert_eq!(
+        flow.invalidation.frontier_detail_match_count as u64,
+        frontier.counters.frontier_detail_match_count
+    );
+    assert_eq!(
+        flow.invalidation.invalidated_direct_subscribers
+            + flow.invalidation.maybe_stale_direct_subscribers,
+        frontier.direct_waves[0].entries.len() as u32
+    );
 }
 
 #[test]
@@ -118,6 +214,73 @@ fn repeated_failure_and_rollback_loops_preserve_explanation_after_churn() {
     assert!(diagnostics.latest_rollback().is_some());
     let explanation = runtime.observe().explain(dependent).unwrap();
     assert!(!explanation.upstream.is_empty());
+}
+
+#[test]
+fn repeated_mixed_aspect_churn_keeps_frontier_grouping_bounded() {
+    let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(SignalRuntimePolicy::development());
+    let source = graph.node().build();
+    let dep_a = graph.node().build();
+    let dep_b = graph.node().build();
+    let dep_both = graph.node().build();
+
+    graph.append_dependency(dep_a, source, ASPECT_A).unwrap();
+    graph.append_dependency(dep_b, source, ASPECT_B).unwrap();
+    graph.append_dependency(dep_both, source, ASPECT_A).unwrap();
+    graph.append_dependency(dep_both, source, ASPECT_B).unwrap();
+
+    for wave in 0..24 {
+        mark_dirty_batch(
+            &mut graph,
+            &DirtyBatch::from_sources([(source, ASPECT_A), (source, ASPECT_B)]),
+        )
+        .unwrap();
+
+        let frontier = graph
+            .observe()
+            .latest_frontier_execution_summary()
+            .cloned()
+            .expect("frontier execution summary should be retained");
+        assert_eq!(frontier.seed_count, 2);
+        assert_eq!(frontier.direct_waves.len(), 2);
+        assert_eq!(frontier.counters.frontier_group_count, 2);
+        assert_eq!(frontier.counters.frontier_direct_wave_count, 2);
+        assert_eq!(
+            frontier.counters.frontier_transitive_wave_count,
+            frontier
+                .transitive_waves
+                .iter()
+                .filter(|wave| !wave.entries.is_empty())
+                .count() as u64
+        );
+
+        let wave_a = frontier
+            .direct_waves
+            .iter()
+            .find(|entry| entry.aspect == ASPECT_A)
+            .expect("aspect A wave should exist");
+        let wave_b = frontier
+            .direct_waves
+            .iter()
+            .find(|entry| entry.aspect == ASPECT_B)
+            .expect("aspect B wave should exist");
+        assert!(wave_a.entries.iter().any(|entry| entry.node == dep_a));
+        assert!(wave_a.entries.iter().any(|entry| entry.node == dep_both));
+        assert!(wave_b.entries.iter().any(|entry| entry.node == dep_b));
+        assert!(wave_b.entries.iter().any(|entry| entry.node == dep_both));
+
+        evaluate(&mut graph, source, &mut |_id, _graph| Ok(version_ab(wave as u64 + 1, wave as u64 + 1)))
+            .unwrap();
+        for node in [dep_a, dep_b, dep_both] {
+            evaluate(&mut graph, node, &mut |_id, graph| {
+                Ok(NodeEvaluationResult::from_version(
+                    graph.get_entry(source).unwrap().get_aspect_version(),
+                ))
+            })
+            .unwrap();
+        }
+    }
 }
 
 #[test]

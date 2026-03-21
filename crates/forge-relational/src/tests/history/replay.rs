@@ -277,3 +277,83 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
     assert!(recovered_bundle.latest_patch.is_none());
     assert!(recovered_bundle.latest_replay.is_none());
 }
+
+#[test]
+fn replay_contract_preserves_relation_integrity_declared_schema() {
+    let schema = RelationalSchemaRegistry::new()
+        .register_entity_kind(EntityKindRegistration {
+            kind_id: KindId(1),
+            kind_name: "test.entity".to_string(),
+            schema_id: SchemaId("test".to_string()),
+            schema_version_id: SchemaVersionId(1),
+            aspect_declarations: KindAspectDeclarations::default(),
+        })
+        .and_then(|registry| {
+            registry.register_relation_kind(RelationKindRegistration {
+                kind_id: KindId(2),
+                kind_name: "test.relation".to_string(),
+                schema_id: SchemaId("test".to_string()),
+                schema_version_id: SchemaVersionId(1),
+                payload_class: RelationPayloadClass::PayloadBearingRelation,
+                cross_context_policy: CrossContextPolicy::AllowExplicit,
+                cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
+                aspect_declarations: KindAspectDeclarations::default(),
+                relation_integrity: crate::schema::data::RelationIntegrityDeclarations::new(
+                    Vec::new(),
+                    vec![crate::schema::data::CardinalityContractDeclaration {
+                        contract_id: "source_max_one".to_string(),
+                        source_max: Some(1),
+                        target_max: None,
+                        pair_max: None,
+                    }],
+                    vec![crate::schema::data::UniquenessContractDeclaration {
+                        contract_id: "uniq".to_string(),
+                        scope: crate::schema::data::UniquenessScope::DirectedSemanticEdge,
+                    }],
+                    Vec::new(),
+                    Vec::new(),
+                ),
+            })
+        })
+        .unwrap();
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(schema)
+        .build();
+    let source = create_entity(&mut runtime, "source");
+    let target = create_entity(&mut runtime, "target");
+    let outcome = create_relation_outcome(&mut runtime, source, target, "guarded");
+
+    let replay = runtime
+        .replay_authority()
+        .replay_commit(RelationalReplayRequest {
+            commit_id: outcome.commit.commit_id,
+            branch_id: BranchId("main".to_string()),
+            execution_mode: ReplayExecutionMode::SerialDeterministic,
+        });
+    let replay_access = runtime.replay_access();
+    let envelope = replay_access
+        .canonical_commit_envelope(outcome.commit.commit_id)
+        .unwrap();
+
+    assert!(runtime.replay_access().compare_outcome(&replay));
+    assert_eq!(
+        envelope
+            .schema_registry
+            .relation_registration(KindId(2))
+            .unwrap()
+            .relation_integrity
+            .cardinality_contracts[0]
+            .contract_id,
+        "source_max_one"
+    );
+    assert_eq!(
+        envelope
+            .schema_registry
+            .relation_registration(KindId(2))
+            .unwrap()
+            .relation_integrity
+            .uniqueness_contracts[0]
+            .contract_id,
+        "uniq"
+    );
+}

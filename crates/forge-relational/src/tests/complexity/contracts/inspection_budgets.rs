@@ -26,8 +26,12 @@ fn complexity_budget_graph_summary_reports_explicit_inspection_work() {
     assert_eq!(summary.entity_count, 2);
     assert_eq!(summary.relation_count, 1);
     assert_eq!(counters.inspection_graph_summary_requests, 1);
-    assert!(counters.visible_entity_records_materialized >= 2);
-    assert!(counters.visible_relation_records_materialized >= 1);
+    assert_eq!(summary.origin, crate::facade::inspection::InspectionOrigin::CurrentTruth);
+    assert_eq!(summary.access_path, crate::facade::inspection::InspectionAccessPath::DirectLookup);
+    assert_eq!(counters.visible_entity_records_materialized, 0);
+    assert_eq!(counters.visible_relation_records_materialized, 0);
+    assert_eq!(counters.visibility_entity_slot_scans, 0);
+    assert_eq!(counters.visibility_relation_slot_scans, 0);
 }
 
 #[test]
@@ -83,7 +87,8 @@ fn complexity_budget_kind_summary_reports_request_shaped_scope() {
     assert_eq!(summary.count, 2);
     assert_eq!(summary.touched_partitions, vec![PartitionId(7)]);
     assert_eq!(counters.inspection_kind_summary_requests, 1);
-    assert!(counters.visible_entity_records_materialized >= 3);
+    assert_eq!(counters.visibility_entity_slot_scans, 0);
+    assert_eq!(counters.visible_relation_records_materialized, 0);
 }
 
 #[test]
@@ -109,13 +114,36 @@ fn complexity_budget_connectivity_summary_reports_broad_traversal_work_explicitl
     assert_eq!(summary.largest_component_size, 2);
     assert_eq!(summary.enumerated_entity_count, 3);
     assert_eq!(counters.inspection_connectivity_summary_requests, 1);
-    assert!(counters.visible_entity_records_materialized >= 3);
-    assert!(counters.visible_relation_records_materialized >= 1);
+    assert_eq!(summary.origin, crate::facade::inspection::InspectionOrigin::CurrentTruth);
+    assert_eq!(summary.access_path, crate::facade::inspection::InspectionAccessPath::DirectLookup);
+    assert_eq!(counters.visible_entity_records_materialized, 0);
+    assert_eq!(counters.visible_relation_records_materialized, 0);
+    assert_eq!(counters.visibility_entity_slot_scans, 0);
+    assert_eq!(counters.visibility_relation_slot_scans, 0);
     assert!(summary
         .components
         .iter()
         .all(|component| component.members.is_none()));
     assert_eq!(isolated.partition_id, PartitionId::main());
+}
+
+#[test]
+fn complexity_budget_neighbor_inspection_uses_adjacency_not_relation_materialization() {
+    let mut runtime = runtime_with_test_schema();
+    let source = create_entity(&mut runtime, "source");
+    let target = create_entity(&mut runtime, "target");
+    let relation = create_relation(&mut runtime, source, target, "rel");
+
+    runtime.performance_access().reset_counters();
+    let neighbors = runtime
+        .inspection_access()
+        .neighbors(InspectionScope::Current, source);
+    let counters = runtime.performance_access().counters();
+
+    assert_eq!(neighbors.outgoing_relation_ids, vec![relation]);
+    assert!(neighbors.incoming_relation_ids.is_empty());
+    assert_eq!(counters.visible_relation_records_materialized, 0);
+    assert_eq!(counters.visibility_relation_slot_scans, 0);
 }
 
 #[test]

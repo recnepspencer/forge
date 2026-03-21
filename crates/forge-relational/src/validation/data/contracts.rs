@@ -50,10 +50,17 @@ impl InvariantPlanContract {
                     .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
                     .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility))
             }
-            MutationIntent::Entity(EntityMutationIntent::Update(_))
-            | MutationIntent::Entity(EntityMutationIntent::Replace(_)) => {
+            MutationIntent::Entity(EntityMutationIntent::Update(_)) => {
                 InvariantGroupSet::of(InvariantGroup::IdentityCoherence)
                     .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance))
+                    .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
+                    .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility))
+            }
+            MutationIntent::Entity(EntityMutationIntent::Replace(_)) => {
+                InvariantGroupSet::of(InvariantGroup::AdjacencyIntegrity)
+                    .union(InvariantGroupSet::of(InvariantGroup::IdentityCoherence))
+                    .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance))
+                    .union(InvariantGroupSet::of(InvariantGroup::RelationIntegrity))
                     .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
                     .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility))
             }
@@ -61,6 +68,7 @@ impl InvariantPlanContract {
                 InvariantGroupSet::of(InvariantGroup::AdjacencyIntegrity)
                     .union(InvariantGroupSet::of(InvariantGroup::StorageCoherence))
                     .union(InvariantGroupSet::of(InvariantGroup::LineageIntegrity))
+                    .union(InvariantGroupSet::of(InvariantGroup::RelationIntegrity))
                     .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
                     .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility))
             }
@@ -69,12 +77,14 @@ impl InvariantPlanContract {
                 InvariantGroupSet::of(InvariantGroup::AdjacencyIntegrity)
                     .union(InvariantGroupSet::of(InvariantGroup::StorageCoherence))
                     .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance))
+                    .union(InvariantGroupSet::of(InvariantGroup::RelationIntegrity))
                     .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
                     .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility))
             }
             MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {
                 InvariantGroupSet::of(InvariantGroup::AdjacencyIntegrity)
                     .union(InvariantGroupSet::of(InvariantGroup::StorageCoherence))
+                    .union(InvariantGroupSet::of(InvariantGroup::RelationIntegrity))
                     .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
                     .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility))
             }
@@ -91,7 +101,7 @@ mod tests {
     use crate::symbols::data::InternedString;
     use crate::transactions::data::{
         BulkEntityCreateIntent, CreateIntent, DeleteEntityIntent, EntityMutationIntent,
-        MergedCommitPlan, MutationIntent, TransactionId,
+        EntitySpec, MergedCommitPlan, MutationIntent, ReplaceEntityIntent, TransactionId,
     };
 
     #[test]
@@ -133,5 +143,31 @@ mod tests {
         assert!(contract
             .may_invalidate_groups()
             .contains(crate::validation::data::InvariantGroup::LineageIntegrity));
+    }
+
+    #[test]
+    fn contract_marks_entity_replace_as_relation_integrity_sensitive() {
+        let plan = MergedCommitPlan {
+            transaction_id: TransactionId(3),
+            merged_intents: vec![MutationIntent::Entity(EntityMutationIntent::Replace(
+                ReplaceEntityIntent {
+                    entity_id: EntityId::new(PartitionId(1), LocalSlot(0).0, Generation(1).0),
+                    replacement: EntitySpec {
+                        partition_id: PartitionId(1),
+                        kind_id: KindId(9),
+                        client_key: InternedString::Raw("replacement".to_string()),
+                        payload: RecordPayload::OpaqueBytes(vec![2]),
+                    },
+                },
+            ))],
+        };
+
+        let contract = InvariantPlanContract::from_merged_plan(&plan);
+        assert!(contract
+            .may_invalidate_groups()
+            .contains(crate::validation::data::InvariantGroup::RelationIntegrity));
+        assert!(contract
+            .may_invalidate_groups()
+            .contains(crate::validation::data::InvariantGroup::AdjacencyIntegrity));
     }
 }

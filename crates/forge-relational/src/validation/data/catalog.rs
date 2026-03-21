@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::schema::data::LoweredRelationIntegrityPlan;
+
 use super::execution::{InvariantExecutionPoint, InvariantFailureEffect};
 use super::groups::InvariantCostClass;
 use super::results::{InvariantAdvisory, InvariantViolation};
@@ -123,6 +125,43 @@ impl InvariantCatalog {
     }
 }
 
+pub(crate) fn relation_integrity_registrations_for_plan(
+    plan: &LoweredRelationIntegrityPlan,
+) -> Vec<InvariantRegistration> {
+    let mut registrations = Vec::with_capacity(plan.contract_count());
+    registrations.extend(plan.endpoint_kind_contracts.iter().cloned().map(|contract| {
+        InvariantRegistration::commit_boundary_blocking(InvariantRule::EndpointKindContract(
+            contract,
+        ))
+    }));
+    registrations.extend(plan.cardinality_contracts.iter().cloned().map(|contract| {
+        InvariantRegistration::commit_boundary_blocking(InvariantRule::CardinalityContract(
+            contract,
+        ))
+    }));
+    registrations.extend(plan.uniqueness_contracts.iter().cloned().map(|contract| {
+        InvariantRegistration::commit_boundary_blocking(InvariantRule::UniquenessContract(
+            contract,
+        ))
+    }));
+    registrations.extend(plan.symmetry_contracts.iter().cloned().map(|contract| {
+        InvariantRegistration::commit_boundary_blocking(InvariantRule::SymmetryContract(
+            contract,
+        ))
+    }));
+    registrations.extend(
+        plan.endpoint_deletion_integrity_contracts
+            .iter()
+            .cloned()
+            .map(|contract| {
+                InvariantRegistration::commit_boundary_blocking(
+                    InvariantRule::EndpointDeletionIntegrityContract(contract),
+                )
+            }),
+    );
+    registrations
+}
+
 #[cfg(test)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum InvariantRegistrationContract {
@@ -139,6 +178,43 @@ impl InvariantRule {
             Self::MaxMergedIntents(1),
             Self::MaxSnapshotEntities(1),
             Self::UniqueEntityPayloadField("__registration_probe__".to_string()),
+            Self::EndpointKindContract(crate::schema::data::LoweredEndpointKindContract {
+                contract_id: "__registration_probe__".to_string(),
+                relation_kind_id: crate::identity::data::KindId(999),
+                allowed_source_kinds: vec![crate::identity::data::KindId(1)],
+                allowed_target_kinds: vec![crate::identity::data::KindId(1)],
+                self_edges_allowed: true,
+                cross_context_policy: crate::config::data::CrossContextPolicy::AllowExplicit,
+                plan_revision: crate::schema::data::RelationIntegrityPlanRevision(1),
+            }),
+            Self::CardinalityContract(crate::schema::data::LoweredCardinalityContract {
+                contract_id: "__registration_probe__".to_string(),
+                relation_kind_id: crate::identity::data::KindId(999),
+                source_max: Some(1),
+                target_max: None,
+                pair_max: None,
+                plan_revision: crate::schema::data::RelationIntegrityPlanRevision(1),
+            }),
+            Self::UniquenessContract(crate::schema::data::LoweredUniquenessContract {
+                contract_id: "__registration_probe__".to_string(),
+                relation_kind_id: crate::identity::data::KindId(999),
+                scope: crate::schema::data::UniquenessScope::DirectedSemanticEdge,
+                plan_revision: crate::schema::data::RelationIntegrityPlanRevision(1),
+            }),
+            Self::SymmetryContract(crate::schema::data::LoweredSymmetryContract {
+                contract_id: "__registration_probe__".to_string(),
+                relation_kind_id: crate::identity::data::KindId(999),
+                mode: crate::schema::data::SymmetryMode::InverseProhibited,
+                plan_revision: crate::schema::data::RelationIntegrityPlanRevision(1),
+            }),
+            Self::EndpointDeletionIntegrityContract(
+                crate::schema::data::LoweredEndpointDeletionIntegrityContract {
+                    contract_id: "__registration_probe__".to_string(),
+                    relation_kind_id: crate::identity::data::KindId(999),
+                    mode: crate::schema::data::EndpointDeletionIntegrityMode::RejectDeleteWithLiveRelations,
+                    plan_revision: crate::schema::data::RelationIntegrityPlanRevision(1),
+                },
+            ),
         ]
     }
 
@@ -149,7 +225,14 @@ impl InvariantRule {
             }
             Self::MaxMergedIntents(_)
             | Self::MaxSnapshotEntities(_)
-            | Self::UniqueEntityPayloadField(_) => InvariantRegistrationContract::OptInUserCatalog,
+            | Self::UniqueEntityPayloadField(_)
+            | Self::EndpointKindContract(_)
+            | Self::CardinalityContract(_)
+            | Self::UniquenessContract(_)
+            | Self::SymmetryContract(_)
+            | Self::EndpointDeletionIntegrityContract(_) => {
+                InvariantRegistrationContract::OptInUserCatalog
+            }
         }
     }
 }

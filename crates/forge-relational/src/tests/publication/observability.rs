@@ -675,6 +675,84 @@ fn harness_phase8_parity_suite_certifies_all_supported_parallel_lanes() {
 }
 
 #[test]
+fn harness_phase8_fault_injection_soak_does_not_corrupt_following_certification_runs() {
+    for _ in 0..3 {
+        let (fixture, batch, request) = harness_phase8_fixture_batch_request();
+        let fragment = crate::authority::commit::with_test_diff_preparation_fault(
+            crate::authority::commit::TestDiffPreparationFault::FragmentCanonicalizationFailure,
+            || {
+                forge_harness::facade::certification_matrix(
+                    RelationalHarnessAdapter,
+                    fixture,
+                    request,
+                    ExecutionProfile::serial("serial"),
+                )
+                .mutate(batch)
+                .candidate(ExecutionProfile::staged_parallel("staged"))
+                .certify()
+                .unwrap()
+            },
+        );
+        assert!(harness_diagnostic_entries(
+            certification_case(&fragment, "staged")
+                .diagnostics_summary
+                .as_ref()
+                .unwrap(),
+            "PreparationFailure"
+        )
+        .iter()
+        .any(|entry| entry["fields"]["failure_class"] == json!("fragment_canonicalization_failure")));
+
+        let (fixture, batch, request) = harness_phase8_fixture_batch_request();
+        let overlap = crate::authority::commit::with_test_diff_preparation_fault(
+            crate::authority::commit::TestDiffPreparationFault::PacketOverlapDetected,
+            || {
+                forge_harness::facade::certification_matrix(
+                    RelationalHarnessAdapter,
+                    fixture,
+                    request,
+                    ExecutionProfile::serial("serial"),
+                )
+                .mutate(batch)
+                .candidate(ExecutionProfile::staged_parallel("staged"))
+                .certify()
+                .unwrap()
+            },
+        );
+        assert!(harness_diagnostic_entries(
+            certification_case(&overlap, "staged")
+                .diagnostics_summary
+                .as_ref()
+                .unwrap(),
+            "PreparationFailure"
+        )
+        .iter()
+        .any(|entry| entry["fields"]["failure_class"] == json!("packet_overlap_detected")));
+
+        let (fixture, batch, request) = harness_phase8_fixture_batch_request();
+        let clean = forge_harness::facade::parity_suite(
+            RelationalHarnessAdapter,
+            fixture,
+            request,
+            ExecutionProfile::serial("serial"),
+        )
+        .mutate(batch)
+        .candidates([
+            ExecutionProfile::staged_parallel("staged"),
+            ExecutionProfile::full_parallel("post-commit"),
+        ])
+        .compare()
+        .unwrap();
+
+        assert!(clean.matched);
+        assert!(clean
+            .results
+            .iter()
+            .all(|result| result.comparison.mismatches.is_empty()));
+    }
+}
+
+#[test]
 fn harness_phase8_certification_matrix_reports_parallel_lane_diagnostics() {
     let (fixture, batch, request) = harness_phase8_fixture_batch_request();
 

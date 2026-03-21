@@ -519,13 +519,7 @@ fn classify_reason(
     }
 
     if trace.is_some_and(|summary| {
-        matches!(
-            summary.reuse_basis,
-            crate::data::reuse::ReuseBasis::Reused {
-                source: crate::data::reuse::ReuseSource::MemoizedArtifact,
-                ..
-            }
-        )
+        summary.reuse_basis.source == crate::data::reuse::ReuseSource::MemoizedArtifact
     }) {
         return Ok(TaskReason::MemoValidation);
     }
