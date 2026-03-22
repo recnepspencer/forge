@@ -73,67 +73,32 @@ pub(super) fn replay_recovery_plan_for_chain(
         .filter(|commit_id| tail_start.is_none_or(|start| *commit_id > start))
         .filter_map(|commit_id| source.commit_envelope(commit_id).cloned())
         .collect();
-    RecoveryPlan {
-        config: config.clone(),
-        store: source.durable_store().cloned(),
-        checkpoint_manifest: checkpoint.as_ref().and_then(|_| None),
+    RecoveryPlan::new(
+        config.clone(),
+        source.durable_store().cloned(),
+        checkpoint.as_ref().and_then(|_| None),
         checkpoint,
         tail_log,
-        cursor: crate::durability::data::RecoveryCursor {
+        crate::durability::data::RecoveryCursor {
             checkpoint_id: None,
             segment_ids: Vec::new(),
         },
-        integrity_report: crate::durability::data::RecoveryIntegrityReport {
+        crate::durability::data::RecoveryIntegrityReport {
             selected_checkpoint_id: None,
             skipped_corrupt_checkpoints: Vec::new(),
             verified_segment_ids: Vec::new(),
             corrupt_segment_id: None,
         },
-        compatibility: crate::durability::data::RecoveryCompatibilityCheck {
-            schema_parity: crate::durability::data::RecoveryAuthorityParity::verified_at(
-                ReplayVerificationLayer::DigestParity,
-            ),
-            profile_parity: crate::durability::data::RecoveryAuthorityParity::verified_at(
-                ReplayVerificationLayer::DigestParity,
-            ),
-            runtime_name_parity: crate::durability::data::RecoveryAuthorityParity::verified_at(
-                ReplayVerificationLayer::DigestParity,
-            ),
-            descriptor_version_parity:
-                crate::durability::data::RecoveryAuthorityParity::verified_at(
-                    ReplayVerificationLayer::DigestParity,
-                ),
-            schema_transition_parity:
-                crate::durability::data::RecoveryAuthorityParity::verified_at(
-                    ReplayVerificationLayer::DigestParity,
-                ),
-            continuation_descriptor_parity:
-                crate::durability::data::RecoveryAuthorityParity::verified_at(
-                    ReplayVerificationLayer::DigestParity,
-                ),
-            reconciliation_descriptor_parity:
-                crate::durability::data::RecoveryAuthorityParity::verified_at(
-                    ReplayVerificationLayer::DigestParity,
-                ),
-            schema_lineage_parity: crate::durability::data::RecoveryAuthorityParity::verified_at(
-                ReplayVerificationLayer::DigestParity,
-            ),
-            verification_outcome:
-                crate::durability::data::RecoveryVerificationOutcome::VerifiedAtLayer(
-                    ReplayVerificationLayer::DigestParity,
-                ),
-            first_mismatch: None,
-        },
-        verification_mode: crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
-        verification_plan: crate::durability::data::RecoveryVerificationPlan::from_mode(
-            crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+        crate::durability::data::RecoveryCompatibilityCheck::verified_at(
+            ReplayVerificationLayer::DigestParity,
         ),
-        descriptor_semantics_version: chain
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+        chain
             .last()
             .and_then(|commit_id| source.commit_envelope(*commit_id))
             .map(|envelope| envelope.descriptor_semantics_version)
             .unwrap_or_else(DescriptorSemanticsVersion::default),
-    }
+    )
 }
 
 fn visit_replay_chain(

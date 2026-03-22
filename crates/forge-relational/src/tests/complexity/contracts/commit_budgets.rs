@@ -699,3 +699,94 @@ fn complexity_budget_replay_verification_tracks_digest_and_deep_layers_separatel
     assert!(audit_counters.replay_digest_parity_checks > 0);
     assert!(audit_counters.replay_deep_artifact_parity_checks > 0);
 }
+
+#[test]
+fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_local() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    let baseline = create_entity_outcome(&mut runtime, "anchor");
+    let baseline_checkpoint =
+        checkpoint_for_schema_version(baseline.patch_position(), SchemaVersionId(1));
+
+    runtime.config.schema.registry = AspectSchemaFixture {
+        schema_version_id: SchemaVersionId(2),
+        ..AspectSchemaFixture::default()
+    }
+    .build_registry();
+
+    runtime.performance_access().reset_counters();
+    let mut txn = runtime.begin_transaction(
+        TransactionOptions::default().with_schema_transition(
+            schema_transition_for_subscriber_impact(
+                SchemaVersionId(2),
+                crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
+            ),
+            Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
+        ),
+    );
+    txn.push_batch(batch_create("after-boundary"));
+    let transitioned = txn.commit().unwrap();
+    let schema_counters = runtime.performance_access().counters();
+
+    assert_eq!(schema_counters.schema_transition_atoms_inspected, 1);
+    assert_eq!(schema_counters.schema_changed_subtrees_inspected, 1);
+    assert_eq!(schema_counters.schema_bridge_descriptors_built, 1);
+    assert_eq!(schema_counters.schema_transition_continue_visible_bridge_count, 1);
+    assert_eq!(schema_counters.replay_digest_parity_checks, 0);
+    assert_eq!(schema_counters.replay_deep_artifact_parity_checks, 0);
+
+    runtime.performance_access().reset_counters();
+    let _batch = runtime
+        .publication_access()
+        .read_subscriber_stream(SubscriberResumeRequest::resume_after(
+            baseline_checkpoint.clone(),
+            32,
+        ))
+        .unwrap();
+    let cdc_counters = runtime.performance_access().counters();
+
+    assert_eq!(cdc_counters.schema_transition_atoms_inspected, 0);
+    assert_eq!(cdc_counters.subscriber_resume_evaluations, 2);
+    assert_eq!(cdc_counters.subscriber_continue_visible_bridge_count, 2);
+    assert_eq!(cdc_counters.schema_normalized_descriptor_compositions, 2);
+    assert_eq!(cdc_counters.replay_digest_parity_checks, 0);
+    assert_eq!(cdc_counters.replay_deep_artifact_parity_checks, 0);
+
+    runtime.performance_access().reset_counters();
+    let plan = runtime.durability_access().recovery_plan();
+    let plan_counters = runtime.performance_access().counters();
+
+    assert!(plan_counters.replay_digest_parity_checks >= 1);
+    assert_eq!(plan_counters.replay_deep_artifact_parity_checks, 0);
+    assert_eq!(plan.compatibility.verification_outcome,
+        crate::durability::data::RecoveryVerificationOutcome::VerifiedAtLayer(
+            crate::replay::data::ReplayVerificationLayer::DigestParity
+        )
+    );
+
+    let mut recovered = RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::CertificationCore)
+        .schema_registry(
+            AspectSchemaFixture {
+                schema_version_id: SchemaVersionId(2),
+                ..AspectSchemaFixture::default()
+            }
+            .build_registry(),
+        )
+        .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
+        .durable_store_layout(DurableStoreLayout {
+            root_path: unique_test_store_path("forge-relational-m5-performance-closeout"),
+            segment_commit_capacity: 2,
+        })
+        .build();
+    let _ = recovered.durability_authority().recover(plan).unwrap();
+    let recovered_counters = recovered.performance_access().counters();
+
+    assert!(recovered_counters.replay_digest_parity_checks >= 1);
+    assert_eq!(recovered_counters.replay_deep_artifact_parity_checks, 0);
+    assert!(
+        recovered
+            .replay_access()
+            .canonical_commit_envelope(transitioned.commit.commit_id)
+            .is_some()
+    );
+}

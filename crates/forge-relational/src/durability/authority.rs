@@ -162,6 +162,12 @@ impl<'runtime> DurabilityAuthority<'runtime> {
             compatibility_artifact_kind,
             vec![compatibility_entry.clone()],
         );
+        if matches!(
+            plan.compatibility.verification_outcome,
+            crate::durability::data::RecoveryVerificationOutcome::Rejected { .. }
+        ) {
+            record_recovery_verification_counters(self.runtime, &plan.compatibility);
+        }
         validate_recovery_compatibility(self.runtime, &plan)?;
         if !plan.compatibility.schema_parity.is_verified() {
             return Err(DurabilityError::new(
@@ -213,6 +219,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
         let mut restored = rebuild_runtime_from_plan(plan.clone())?;
         restored.durability.log = plan.tail_log;
         restored.durability.store = plan.store.clone();
+        record_recovery_verification_counters(&restored, &plan.compatibility);
         restored.publication_authority().push_bounded_diagnostic(
             DiagnosticsScope::History,
             compatibility_artifact_kind,
@@ -768,7 +775,7 @@ fn recovery_compatibility_diagnostic(
         code: DiagnosticCode::DurableRecoveryCompatibilityEvaluated,
         message: "durable recovery compatibility evaluated before recovery execution".to_string(),
         fields: json!({
-            "verification_mode": format!("{:?}", plan.verification_mode),
+            "verification_mode": format!("{:?}", plan.verification_mode()),
             "verification_layer": verification_layer,
             "verification_rejected": rejected,
             "verification_detail": verification_detail,
@@ -781,6 +788,25 @@ fn recovery_compatibility_diagnostic(
             "reconciliation_descriptor_parity": format!("{:?}", plan.compatibility.reconciliation_descriptor_parity),
             "schema_lineage_parity": format!("{:?}", plan.compatibility.schema_lineage_parity),
         }),
+    }
+}
+
+fn record_recovery_verification_counters(
+    runtime: &RelationalRuntime,
+    compatibility: &crate::durability::data::RecoveryCompatibilityCheck,
+) {
+    let layer = match compatibility.verification_outcome {
+        crate::durability::data::RecoveryVerificationOutcome::VerifiedAtLayer(layer) => layer,
+        crate::durability::data::RecoveryVerificationOutcome::Rejected { layer, .. } => layer,
+    };
+    runtime
+        .performance_access()
+        .count_replay_verification_layer(layer);
+    if matches!(
+        compatibility.first_mismatch,
+        Some(RecoveryCompatibilityMismatch::DescriptorSemanticsVersion { .. })
+    ) {
+        runtime.performance_access().count_descriptor_version_mismatch();
     }
 }
 

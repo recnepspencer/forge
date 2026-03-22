@@ -37,6 +37,36 @@ fn source_max_one_relation_integrity_runtime() -> RelationalRuntime {
     .build_runtime()
 }
 
+fn schema_transition_for_subscriber_impact(
+    target_schema_version_id: SchemaVersionId,
+    subscriber_impact: SchemaSubscriberImpact,
+) -> ProposedSchemaTransition {
+    ProposedSchemaTransition {
+        source_schema_id: SchemaId("test".to_string()),
+        source_schema_version_id: SchemaVersionId(target_schema_version_id.0 - 1),
+        target_schema_id: SchemaId("test".to_string()),
+        target_schema_version_id,
+        diff_atoms: vec![SchemaDiffAtom::new(
+            SchemaElementRef::new(
+                SchemaElementKind::Field,
+                SchemaId("test".to_string()),
+                target_schema_version_id,
+                Some(KindId(1)),
+                "tag",
+            ),
+            vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
+            SchemaPublicationImpact::ObservableSurfaceChanged,
+            subscriber_impact,
+            HistoricalInterpretationSensitivity::NotSensitive,
+            SchemaDiffDetail::AddedField {
+                field_name: "tag".into(),
+                required: false,
+                default_expression: Some("null".into()),
+            },
+        )],
+    }
+}
+
 #[test]
 fn replay_contract_success_reproduces_canonical_surfaces() {
     let mut runtime = runtime_with_test_schema();
@@ -775,6 +805,18 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
             verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
         });
     assert!(runtime.replay_access().compare_outcome(&replay));
+    let replay_diagnostics = runtime.publication_access().diagnostics();
+    assert!(replay_diagnostics
+        .by_scope(DiagnosticsScope::Replay)
+        .into_iter()
+        .flat_map(|artifact| artifact.entries.iter())
+        .any(|entry| {
+            entry.code == DiagnosticCode::CommitPublished
+                && entry.fields["verification_mode"]
+                    == serde_json::json!("NormalRecoveryVerification")
+        }));
+    let replay_counters = runtime.performance_access().counters();
+    assert!(replay_counters.replay_digest_parity_checks > 0);
 
     let recovery_plan = runtime.durability_access().recovery_plan();
     let mut recovered =
@@ -809,6 +851,215 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
     );
     assert!(recovered_bundle.latest_patch.is_none());
     assert!(recovered_bundle.latest_replay.is_none());
+}
+
+#[test]
+fn hostile_commit_replay_equivalence_test() {
+    let mut runtime =
+        persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit);
+    let created = create_entity_outcome(&mut runtime, "anchor");
+    let anchor = changed_entities(&created)[0];
+    let source = create_entity(&mut runtime, "source");
+    let target = create_entity(&mut runtime, "target");
+    let relation_outcome = create_relation_outcome(&mut runtime, source, target, "net-edge");
+    let relation = changed_relations(&relation_outcome)[0];
+    create_branch_from_main(&mut runtime, "feature");
+    let _feature_update =
+        update_entity_on_branch(&mut runtime, anchor, "feature-anchor", BranchId("feature".to_string()));
+
+    runtime.config.schema.registry = AspectSchemaFixture {
+        schema_version_id: SchemaVersionId(2),
+        ..AspectSchemaFixture::default()
+    }
+    .build_registry();
+    let mut transition_txn = runtime.begin_transaction(
+        TransactionOptions::default().with_schema_transition(
+            schema_transition_for_subscriber_impact(
+                SchemaVersionId(2),
+                SchemaSubscriberImpact::ConsumableSurfaceChanged,
+            ),
+            Some(SchemaReconciliationPolicy::PreserveInformation),
+        ),
+    );
+    transition_txn.push_batch(batch_create("after-boundary"));
+    let _transition_outcome = transition_txn.commit().unwrap();
+
+    let merge = merge_commit_from_branches(
+        &mut runtime,
+        BranchId("main".to_string()),
+        vec![BranchId("feature".to_string())],
+    );
+    runtime.durability_authority().checkpoint().unwrap();
+
+    let anchor_lineage = runtime.lineage_access().for_record(anchor).unwrap().lineage_id;
+    let original_bundle =
+        capture_aspect_truth_bundle(&mut runtime, &[anchor], &[relation], &[anchor_lineage]);
+    let original_inspection = capture_inspection_truth_bundle(
+        &runtime,
+        &BranchId("main".to_string()),
+        anchor,
+        merge.commit.version_id,
+    );
+    let original_envelope = runtime
+        .replay_access()
+        .canonical_commit_envelope(merge.commit.commit_id)
+        .cloned()
+        .unwrap();
+    let replay = runtime
+        .replay_authority()
+        .replay_commit(RelationalReplayRequest {
+            commit_id: merge.commit.commit_id,
+            branch_id: BranchId("main".to_string()),
+            execution_mode: ReplayExecutionMode::SerialDeterministic,
+            verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
+        });
+    assert!(runtime.replay_access().compare_outcome(&replay));
+
+    let truth_digest = certification_digest(&(
+        format!("{:?}", &original_bundle.visible_truth),
+        &original_bundle.entity_history_digests,
+        &original_bundle.relation_history_digests,
+        &original_bundle.lineage_history_digests,
+    ));
+    let patch_digest = certification_digest(&original_envelope.patch);
+    let lineage_digest = certification_digest(&(
+        &original_envelope.lineage_events,
+        &original_envelope.index_generations,
+        &original_bundle.lineage_history_digests,
+    ));
+    let replay_digest = certification_digest(&(
+        &replay.compared_surfaces,
+        &replay.mismatches,
+        &replay.failure,
+    ));
+    let diagnostics_digest = certification_digest(&original_envelope.diagnostics_summary);
+    let branch_heads_digest = certification_digest(&(
+        runtime
+            .history_access()
+            .branch_head(&BranchId("main".to_string()))
+            .cloned(),
+        runtime
+            .history_access()
+            .branch_head(&BranchId("feature".to_string()))
+            .cloned(),
+    ));
+    let query_surface_digest = certification_digest(&(
+        format!("{:?}", &original_inspection.graph_summary),
+        format!("{:?}", &original_inspection.kind_summary),
+        format!("{:?}", &original_inspection.connectivity_summary),
+        format!("{:?}", &original_inspection.historical_record),
+        format!("{:?}", &original_inspection.retention_summary),
+        format!("{:?}", &original_inspection.record_retention),
+    ));
+
+    let recovery_plan = runtime.durability_access().recovery_plan();
+    let mut recovered = RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::CertificationCore)
+        .schema_registry(
+            AspectSchemaFixture {
+                schema_version_id: SchemaVersionId(2),
+                ..AspectSchemaFixture::default()
+            }
+            .build_registry(),
+        )
+        .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
+        .durable_store_layout(DurableStoreLayout {
+            root_path: unique_test_store_path("forge-relational-hostile-replay-equivalence"),
+            segment_commit_capacity: 2,
+        })
+        .build();
+    recovered
+        .durability_authority()
+        .recover(recovery_plan)
+        .unwrap();
+    let recovered_bundle =
+        capture_aspect_truth_bundle(&mut recovered, &[anchor], &[relation], &[anchor_lineage]);
+    let recovered_inspection = capture_inspection_truth_bundle(
+        &recovered,
+        &BranchId("main".to_string()),
+        anchor,
+        merge.commit.version_id,
+    );
+    let recovered_envelope = recovered
+        .replay_access()
+        .canonical_commit_envelope(merge.commit.commit_id)
+        .cloned()
+        .unwrap();
+    let recovered_replay = recovered
+        .replay_authority()
+        .replay_commit(RelationalReplayRequest {
+            commit_id: merge.commit.commit_id,
+            branch_id: BranchId("main".to_string()),
+            execution_mode: ReplayExecutionMode::SerialDeterministic,
+            verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
+        });
+    let recovered_replay_diagnostics = recovered.publication_access().diagnostics();
+    assert!(recovered_replay_diagnostics
+        .by_scope(DiagnosticsScope::Replay)
+        .into_iter()
+        .flat_map(|artifact| artifact.entries.iter())
+        .any(|entry| {
+            entry.code == DiagnosticCode::CommitPublished
+                && entry.fields["verification_mode"]
+                    == serde_json::json!("NormalRecoveryVerification")
+        }));
+
+    assert_eq!(
+        truth_digest,
+        certification_digest(&(
+            format!("{:?}", &recovered_bundle.visible_truth),
+            &recovered_bundle.entity_history_digests,
+            &recovered_bundle.relation_history_digests,
+            &recovered_bundle.lineage_history_digests,
+        ))
+    );
+    assert_eq!(patch_digest, certification_digest(&recovered_envelope.patch));
+    assert_eq!(
+        lineage_digest,
+        certification_digest(&(
+            &recovered_envelope.lineage_events,
+            &recovered_envelope.index_generations,
+            &recovered_bundle.lineage_history_digests,
+        ))
+    );
+    assert_eq!(
+        replay_digest,
+        certification_digest(&(
+            &recovered_replay.compared_surfaces,
+            &recovered_replay.mismatches,
+            &recovered_replay.failure,
+        ))
+    );
+    assert_eq!(
+        diagnostics_digest,
+        certification_digest(&recovered_envelope.diagnostics_summary)
+    );
+    assert_eq!(
+        branch_heads_digest,
+        certification_digest(&(
+            recovered
+                .history_access()
+                .branch_head(&BranchId("main".to_string()))
+                .cloned(),
+            recovered
+                .history_access()
+                .branch_head(&BranchId("feature".to_string()))
+                .cloned(),
+        ))
+    );
+    assert_eq!(
+        query_surface_digest,
+        certification_digest(&(
+            format!("{:?}", &recovered_inspection.graph_summary),
+            format!("{:?}", &recovered_inspection.kind_summary),
+            format!("{:?}", &recovered_inspection.connectivity_summary),
+            format!("{:?}", &recovered_inspection.historical_record),
+            format!("{:?}", &recovered_inspection.retention_summary),
+            format!("{:?}", &recovered_inspection.record_retention),
+        ))
+    );
+    let recovered_counters = recovered.performance_access().counters();
+    assert!(recovered_counters.replay_digest_parity_checks > 0);
 }
 
 #[test]

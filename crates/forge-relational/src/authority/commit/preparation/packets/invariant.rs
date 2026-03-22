@@ -22,4 +22,6 @@ pub(crate) struct InvariantWorkPacket<'runtime> {
     pub(crate) version_id: crate::identity::data::VersionId,
     pub(crate) merged_plan: Option<&'runtime MergedCommitPlan>,
     pub(crate) relation_integrity_scopes: Option<PreparedRelationIntegrityScopes>,
+    #[cfg(test)]
+    pub(crate) injected_test_fault: Option<crate::validation::execution::TestPreparationFault>,
 }

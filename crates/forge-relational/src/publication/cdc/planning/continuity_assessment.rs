@@ -63,13 +63,13 @@ pub(crate) fn assess_subscriber_continuity(
         } else {
             descriptor.bridge.continuation
         };
-        boundary_assessments.push(SubscriberBoundaryAssessment {
-            boundary_fingerprint: fingerprint,
-            descriptor_continuation: descriptor.bridge.continuation,
-            subscriber_outcome: subscriber_specific_outcome,
-            changed_strata: descriptor.bridge.changed_strata.clone(),
+        boundary_assessments.push(SubscriberBoundaryAssessment::new(
+            fingerprint,
+            descriptor.bridge.continuation,
+            subscriber_specific_outcome,
+            descriptor.bridge.changed_strata.clone(),
             contract_consumes_boundary,
-        });
+        ));
 
         match subscriber_specific_outcome {
             SchemaContinuationClassification::ContinueUnchanged => {
@@ -157,14 +157,14 @@ pub(crate) fn assess_subscriber_continuity(
         .performance_access()
         .count_subscriber_resume_evaluation(continuation_outcome);
 
-    Ok(SubscriberContinuationAssessment {
+    Ok(SubscriberContinuationAssessment::new(
         crossed_boundaries,
         continuation_outcome,
         contract_upgrade_applied,
         normalized_continuation_proof,
         continuation_summary,
         boundary_assessments,
-    })
+    ))
 }
 
 pub(crate) fn disposition_for_assessment(
@@ -273,36 +273,32 @@ fn unsupported_continuation_failure(
     normalized_boundary_count_at_failure: usize,
 ) -> SubscriberStreamFailure {
     let detail = detail.into();
-    let assessment = SubscriberContinuationAssessment {
-        crossed_boundaries: boundary_assessments
+    let continuation_outcome = boundary_assessments
+        .last()
+        .map(|assessment| assessment.subscriber_outcome)
+        .unwrap_or(SchemaContinuationClassification::ContinueUnchanged);
+    let contract_upgrade_applied = boundary_assessments.iter().any(|assessment| {
+        assessment.subscriber_outcome
+            == SchemaContinuationClassification::ContinueWithContractUpgrade
+    });
+    let assessment = SubscriberContinuationAssessment::new(
+        boundary_assessments
             .iter()
             .map(|assessment| assessment.boundary_fingerprint)
             .collect(),
-        continuation_outcome: boundary_assessments
-            .last()
-            .map(|assessment| assessment.subscriber_outcome)
-            .unwrap_or(SchemaContinuationClassification::ContinueUnchanged),
-        contract_upgrade_applied: boundary_assessments.iter().any(|assessment| {
-            assessment.subscriber_outcome
-                == SchemaContinuationClassification::ContinueWithContractUpgrade
-        }),
-        normalized_continuation_proof: NormalizedContinuationProof::default(),
-        continuation_summary: SubscriberContinuationSummary::new(
+        continuation_outcome,
+        contract_upgrade_applied,
+        NormalizedContinuationProof::default(),
+        SubscriberContinuationSummary::new(
             subscriber_contract.contract_id.clone(),
-            boundary_assessments
-                .last()
-                .map(|assessment| assessment.subscriber_outcome)
-                .unwrap_or(SchemaContinuationClassification::ContinueUnchanged),
+            continuation_outcome,
             boundary_assessments.len(),
             normalized_boundary_count_at_failure,
             DescriptorSemanticsVersion::default(),
-            boundary_assessments.iter().any(|assessment| {
-                assessment.subscriber_outcome
-                    == SchemaContinuationClassification::ContinueWithContractUpgrade
-            }),
+            contract_upgrade_applied,
         ),
-        boundary_assessments: boundary_assessments.to_vec(),
-    };
+        boundary_assessments.to_vec(),
+    );
     SubscriberStreamFailure::new(
         class,
         detail.clone(),

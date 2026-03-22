@@ -5,7 +5,6 @@ use crate::durability::data::{
     DurabilityMode, RecoveryAuthorityParity, RecoveryCompatibilityCheck, RecoveryCursor,
     RecoveryIntegrityReport, RecoveryCompatibilityMismatch, RecoveryPlan,
     RecoveryVerificationOutcome,
-    RecoveryVerificationPlan,
 };
 use crate::history::data::BranchHead;
 use crate::logic::runtime::RelationalRuntime;
@@ -44,59 +43,26 @@ impl<'runtime> DurabilityAccess<'runtime> {
 
     fn persisted_recovery_plan(&self) -> RecoveryPlan {
         let Ok(store) = load_store_from_disk(self.runtime) else {
-            return RecoveryPlan {
-                config: self.runtime.runtime_config().clone(),
-                store: self.runtime.durable_store().cloned(),
-                checkpoint_manifest: None,
-                checkpoint: None,
-                tail_log: Vec::new(),
-                cursor: RecoveryCursor {
+            return RecoveryPlan::new(
+                self.runtime.runtime_config().clone(),
+                self.runtime.durable_store().cloned(),
+                None,
+                None,
+                Vec::new(),
+                RecoveryCursor {
                     checkpoint_id: None,
                     segment_ids: Vec::new(),
                 },
-                integrity_report: RecoveryIntegrityReport {
+                RecoveryIntegrityReport {
                     selected_checkpoint_id: None,
                     skipped_corrupt_checkpoints: Vec::new(),
                     verified_segment_ids: Vec::new(),
                     corrupt_segment_id: None,
                 },
-                compatibility: RecoveryCompatibilityCheck {
-                    schema_parity: RecoveryAuthorityParity::verified_at(
-                        ReplayVerificationLayer::DigestParity,
-                    ),
-                    profile_parity: RecoveryAuthorityParity::verified_at(
-                        ReplayVerificationLayer::DigestParity,
-                    ),
-                    runtime_name_parity: RecoveryAuthorityParity::verified_at(
-                        ReplayVerificationLayer::DigestParity,
-                    ),
-                    descriptor_version_parity: RecoveryAuthorityParity::verified_at(
-                        ReplayVerificationLayer::DigestParity,
-                    ),
-                    schema_transition_parity: RecoveryAuthorityParity::verified_at(
-                        ReplayVerificationLayer::DigestParity,
-                    ),
-                    continuation_descriptor_parity: RecoveryAuthorityParity::verified_at(
-                        ReplayVerificationLayer::DigestParity,
-                    ),
-                    reconciliation_descriptor_parity: RecoveryAuthorityParity::verified_at(
-                        ReplayVerificationLayer::DigestParity,
-                    ),
-                    schema_lineage_parity: RecoveryAuthorityParity::verified_at(
-                        ReplayVerificationLayer::DigestParity,
-                    ),
-                    verification_outcome: RecoveryVerificationOutcome::VerifiedAtLayer(
-                        ReplayVerificationLayer::DigestParity,
-                    ),
-                    first_mismatch: None,
-                },
-                verification_mode: crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
-                verification_plan: RecoveryVerificationPlan::from_mode(
-                    crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
-                ),
-                descriptor_semantics_version:
-                    crate::schema::data::DescriptorSemanticsVersion::default(),
-            };
+                RecoveryCompatibilityCheck::verified_at(ReplayVerificationLayer::DigestParity),
+                crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+                crate::schema::data::DescriptorSemanticsVersion::default(),
+            );
         };
         let mut skipped_corrupt_checkpoints = Vec::new();
         let mut selected_checkpoint = None;
@@ -188,18 +154,19 @@ impl<'runtime> DurabilityAccess<'runtime> {
                 self.runtime.primary_schema_version_id(),
             );
         }
-        RecoveryPlan {
-            config: self.runtime.runtime_config().clone(),
-            store: Some(store.clone()),
-            checkpoint_manifest: selected_checkpoint_manifest.clone(),
-            checkpoint: selected_checkpoint.clone(),
-            cursor: RecoveryCursor {
+        RecoveryPlan::new(
+            self.runtime.runtime_config().clone(),
+            Some(store.clone()),
+            selected_checkpoint_manifest.clone(),
+            selected_checkpoint.clone(),
+            tail_log,
+            RecoveryCursor {
                 checkpoint_id: selected_checkpoint_manifest
                     .as_ref()
                     .map(|manifest| manifest.checkpoint_id),
                 segment_ids: verified_segment_ids.clone(),
             },
-            integrity_report: RecoveryIntegrityReport {
+            RecoveryIntegrityReport {
                 selected_checkpoint_id: selected_checkpoint_manifest
                     .as_ref()
                     .map(|manifest| manifest.checkpoint_id),
@@ -207,14 +174,10 @@ impl<'runtime> DurabilityAccess<'runtime> {
                 verified_segment_ids,
                 corrupt_segment_id,
             },
-            compatibility: continuity_compatibility,
-            verification_mode: crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
-            verification_plan: RecoveryVerificationPlan::from_mode(
-                crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
-            ),
+            continuity_compatibility,
+            crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
             descriptor_semantics_version,
-            tail_log,
-        }
+        )
     }
 }
 
@@ -253,29 +216,26 @@ fn in_memory_recovery_plan(runtime: &RelationalRuntime) -> RecoveryPlan {
             .unwrap_or(&[]),
         &tail_log,
     );
-    RecoveryPlan {
-        config: runtime.runtime_config().clone(),
-        store: runtime.durable_store().cloned(),
-        checkpoint_manifest: None,
+    RecoveryPlan::new(
+        runtime.runtime_config().clone(),
+        runtime.durable_store().cloned(),
+        None,
         checkpoint,
-        cursor: RecoveryCursor {
+        tail_log,
+        RecoveryCursor {
             checkpoint_id: None,
             segment_ids: Vec::new(),
         },
-        integrity_report: RecoveryIntegrityReport {
+        RecoveryIntegrityReport {
             selected_checkpoint_id: None,
             skipped_corrupt_checkpoints: Vec::new(),
             verified_segment_ids: Vec::new(),
             corrupt_segment_id: None,
         },
-        compatibility: continuity_compatibility,
-        verification_mode: crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
-        verification_plan: RecoveryVerificationPlan::from_mode(
-            crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
-        ),
+        continuity_compatibility,
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
         descriptor_semantics_version,
-        tail_log,
-    }
+    )
 }
 
 fn descriptor_semantics_version_for_envelopes(
@@ -296,34 +256,8 @@ fn continuity_compatibility_for_envelopes(
 ) -> RecoveryCompatibilityCheck {
     let expected_descriptor_semantics_version =
         crate::schema::data::DescriptorSemanticsVersion::default();
-    let mut compatibility = RecoveryCompatibilityCheck {
-        schema_parity: RecoveryAuthorityParity::verified_at(ReplayVerificationLayer::DigestParity),
-        profile_parity: RecoveryAuthorityParity::verified_at(
-            ReplayVerificationLayer::DigestParity,
-        ),
-        runtime_name_parity: RecoveryAuthorityParity::verified_at(
-            ReplayVerificationLayer::DigestParity,
-        ),
-        descriptor_version_parity: RecoveryAuthorityParity::verified_at(
-            ReplayVerificationLayer::DigestParity,
-        ),
-        schema_transition_parity: RecoveryAuthorityParity::verified_at(
-            ReplayVerificationLayer::DigestParity,
-        ),
-        continuation_descriptor_parity: RecoveryAuthorityParity::verified_at(
-            ReplayVerificationLayer::DigestParity,
-        ),
-        reconciliation_descriptor_parity: RecoveryAuthorityParity::verified_at(
-            ReplayVerificationLayer::DigestParity,
-        ),
-        schema_lineage_parity: RecoveryAuthorityParity::verified_at(
-            ReplayVerificationLayer::DigestParity,
-        ),
-        verification_outcome: RecoveryVerificationOutcome::VerifiedAtLayer(
-            ReplayVerificationLayer::DigestParity,
-        ),
-        first_mismatch: None,
-    };
+    let mut compatibility =
+        RecoveryCompatibilityCheck::verified_at(ReplayVerificationLayer::DigestParity);
 
     for envelope in checkpoint_envelopes.iter().chain(tail_log.iter()) {
         if envelope.descriptor_semantics_version != expected_descriptor_semantics_version {

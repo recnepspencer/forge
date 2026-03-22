@@ -2,7 +2,7 @@ use crate::facade::durability::{
     DurabilityMode, DurableStore, DurableStoreLayout, RecoveryAuthorityParity,
     RecoveryCompatibilityCheck, RecoveryCompatibilityMismatch, RecoveryCursor,
     RecoveryFailureClass, RecoveryIntegrityReport, RecoveryPlan, RecoveryVerificationMode,
-    RecoveryVerificationOutcome, RecoveryVerificationPlan,
+    RecoveryVerificationOutcome,
     RelationIntegrityContractFamily,
 };
 use crate::facade::diagnostics::{DiagnosticCode, DiagnosticsScope};
@@ -17,8 +17,10 @@ use crate::facade::replay::ReplayVerificationLayer;
 use crate::facade::schema::DescriptorSemanticsVersion;
 use crate::facade::runtime::RelationalRuntimeApi;
 use crate::facade::schema::{
-    EntityKindRegistration, KindAspectDeclarations, RelationalSchemaRegistry, SchemaId,
-    SchemaVersionId,
+    EntityKindRegistration, HistoricalInterpretationSensitivity, KindAspectDeclarations,
+    ProposedSchemaTransition, RelationalSchemaRegistry, SchemaDiffAtom, SchemaDiffDetail,
+    SchemaElementKind, SchemaElementRef, SchemaId, SchemaPublicationImpact,
+    SchemaReconciliationPolicy, SchemaStratum, SchemaSubscriberImpact, SchemaVersionId,
 };
 use crate::facade::transactions::{TransactionCommitError, TransactionOptions};
 use crate::tests::support::*;
@@ -26,6 +28,36 @@ use serde_json::json;
 
 // CONTRACT: durability
 // LANES: success, failure, recovery
+
+fn schema_transition_for_subscriber_impact(
+    target_schema_version_id: SchemaVersionId,
+    subscriber_impact: SchemaSubscriberImpact,
+) -> ProposedSchemaTransition {
+    ProposedSchemaTransition {
+        source_schema_id: SchemaId("test".to_string()),
+        source_schema_version_id: SchemaVersionId(target_schema_version_id.0 - 1),
+        target_schema_id: SchemaId("test".to_string()),
+        target_schema_version_id,
+        diff_atoms: vec![SchemaDiffAtom::new(
+            SchemaElementRef::new(
+                SchemaElementKind::Field,
+                SchemaId("test".to_string()),
+                target_schema_version_id,
+                Some(KindId(1)),
+                "tag",
+            ),
+            vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
+            SchemaPublicationImpact::ObservableSurfaceChanged,
+            subscriber_impact,
+            HistoricalInterpretationSensitivity::NotSensitive,
+            SchemaDiffDetail::AddedField {
+                field_name: "tag".into(),
+                required: false,
+                default_expression: Some("null".into()),
+            },
+        )],
+    }
+}
 
 #[test]
 fn durability_contract_recovery_rebuilds_branch_heads_and_latest_commit() {
@@ -461,6 +493,125 @@ fn durability_certification_recovery_compatibility_is_explained_and_counted() {
 }
 
 #[test]
+fn durable_recovery_and_schema_mismatch_test() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    let _baseline = create_entity_outcome(&mut runtime, "main-a");
+
+    runtime.config.schema.registry = AspectSchemaFixture {
+        schema_version_id: SchemaVersionId(2),
+        ..AspectSchemaFixture::default()
+    }
+    .build_registry();
+    let mut txn = runtime.begin_transaction(
+        TransactionOptions::default().with_schema_transition(
+            schema_transition_for_subscriber_impact(
+                SchemaVersionId(2),
+                SchemaSubscriberImpact::ConsumableSurfaceChanged,
+            ),
+            Some(SchemaReconciliationPolicy::PreserveInformation),
+        ),
+    );
+    txn.push_batch(batch_create("main-b"));
+    let transitioned = txn.commit().unwrap();
+
+    let plan = runtime.durability_access().recovery_plan();
+    let recovery_schema_bundle_digest = certification_digest(&(
+        transitioned.envelope().schema_transition.clone(),
+        transitioned.envelope().schema_continuation_descriptor.clone(),
+        transitioned.envelope().schema_reconciliation_descriptor.clone(),
+        plan.compatibility.clone(),
+    ));
+
+    let mut recovered = RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::CertificationCore)
+        .schema_registry(
+            AspectSchemaFixture {
+                schema_version_id: SchemaVersionId(2),
+                ..AspectSchemaFixture::default()
+            }
+            .build_registry(),
+        )
+        .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
+        .durable_store_layout(DurableStoreLayout {
+            root_path: unique_test_store_path("forge-relational-durable-recovery-schema-match"),
+            segment_commit_capacity: 2,
+        })
+        .build();
+    let _outcome = recovered
+        .durability_authority()
+        .recover(plan.clone())
+        .unwrap();
+    let recovered_envelope = recovered
+        .replay_access()
+        .canonical_commit_envelope(transitioned.commit.commit_id)
+        .cloned()
+        .expect("recovered transitioned envelope");
+    let recovered_diagnostics = recovered.publication_access().diagnostics();
+    let recovery_compatibility_diagnostic_digest = certification_digest(
+        &recovered_diagnostics
+            .by_scope(DiagnosticsScope::History)
+            .into_iter()
+            .flat_map(|artifact| artifact.entries.iter())
+            .find(|entry| entry.code == DiagnosticCode::DurableRecoveryCompatibilityEvaluated)
+            .expect("recovery compatibility diagnostic"),
+    );
+
+    assert_eq!(
+        recovery_schema_bundle_digest,
+        certification_digest(&(
+            recovered_envelope.schema_transition.clone(),
+            recovered_envelope.schema_continuation_descriptor.clone(),
+            recovered_envelope.schema_reconciliation_descriptor.clone(),
+            plan.compatibility.clone(),
+        ))
+    );
+    assert!(recovered_diagnostics
+        .by_scope(DiagnosticsScope::History)
+        .into_iter()
+        .flat_map(|artifact| artifact.entries.iter())
+        .any(|entry| {
+            entry.code == DiagnosticCode::DurableRecoveryCompatibilityEvaluated
+                && entry.fields["verification_layer"] == json!("DigestParity")
+        }));
+    let recovered_counters = recovered.performance_access().counters();
+    assert!(recovered_counters.replay_digest_parity_checks >= 1);
+
+    let mismatched_registry = RelationalSchemaRegistry::new()
+        .register_entity_kind(EntityKindRegistration {
+            kind_id: KindId(3),
+            kind_name: "other.entity".to_string(),
+            schema_id: SchemaId("other".to_string()),
+            schema_version_id: SchemaVersionId(99),
+            aspect_declarations: KindAspectDeclarations::default(),
+        })
+        .unwrap();
+    let mut mismatched = RelationalRuntimeApi::builder()
+        .schema_registry(mismatched_registry)
+        .build();
+    let error = mismatched.durability_authority().recover(plan).unwrap_err();
+    let mismatch_failure_digest = certification_digest(&(
+        &error.class,
+        &error.compatibility_mismatch,
+        &error.detail,
+    ));
+
+    assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
+    assert!(matches!(
+        error.compatibility_mismatch,
+        Some(RecoveryCompatibilityMismatch::SchemaRegistryShape { .. })
+    ));
+    assert!(matches!(
+        error.compatibility_mismatch,
+        Some(RecoveryCompatibilityMismatch::SchemaRegistryShape {
+            expected_primary_schema_version: SchemaVersionId(2),
+            ..
+        })
+    ));
+    assert!(!recovery_compatibility_diagnostic_digest.is_empty());
+    assert!(!mismatch_failure_digest.is_empty());
+}
+
+#[test]
 fn durability_contract_failure_aspect_plan_mismatch_is_explicit() {
     let mut runtime =
         persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
@@ -726,9 +877,9 @@ fn durability_contract_failure_missing_parent_chain_is_explicit() {
         .canonical_commit_envelope(child.commit.commit_id)
         .cloned()
         .unwrap();
-    let corrupt_plan = RecoveryPlan {
-        config: runtime.config().clone(),
-        store: runtime
+    let corrupt_plan = RecoveryPlan::new(
+        runtime.config().clone(),
+        runtime
             .config()
             .durability
             .policy
@@ -739,58 +890,26 @@ fn durability_contract_failure_missing_parent_chain_is_explicit() {
                 segments: Vec::new(),
                 checkpoints: Vec::new(),
             }),
-        checkpoint_manifest: None,
-        checkpoint: None,
-        tail_log: vec![CanonicalCommitEnvelope {
+        None,
+        None,
+        vec![CanonicalCommitEnvelope {
             commit: child_envelope.commit.clone(),
             ..child_envelope
         }],
-        cursor: RecoveryCursor {
+        RecoveryCursor {
             checkpoint_id: None,
             segment_ids: Vec::new(),
         },
-        integrity_report: RecoveryIntegrityReport {
+        RecoveryIntegrityReport {
             selected_checkpoint_id: None,
             skipped_corrupt_checkpoints: Vec::new(),
             verified_segment_ids: Vec::new(),
             corrupt_segment_id: None,
         },
-        compatibility: RecoveryCompatibilityCheck {
-            schema_parity: RecoveryAuthorityParity::verified_at(
-                ReplayVerificationLayer::DigestParity,
-            ),
-            profile_parity: RecoveryAuthorityParity::verified_at(
-                ReplayVerificationLayer::DigestParity,
-            ),
-            runtime_name_parity: RecoveryAuthorityParity::verified_at(
-                ReplayVerificationLayer::DigestParity,
-            ),
-            descriptor_version_parity: RecoveryAuthorityParity::verified_at(
-                ReplayVerificationLayer::DigestParity,
-            ),
-            schema_transition_parity: RecoveryAuthorityParity::verified_at(
-                ReplayVerificationLayer::DigestParity,
-            ),
-            continuation_descriptor_parity: RecoveryAuthorityParity::verified_at(
-                ReplayVerificationLayer::DigestParity,
-            ),
-            reconciliation_descriptor_parity: RecoveryAuthorityParity::verified_at(
-                ReplayVerificationLayer::DigestParity,
-            ),
-            schema_lineage_parity: RecoveryAuthorityParity::verified_at(
-                ReplayVerificationLayer::DigestParity,
-            ),
-            verification_outcome: RecoveryVerificationOutcome::VerifiedAtLayer(
-                ReplayVerificationLayer::DigestParity,
-            ),
-            first_mismatch: None,
-        },
-        verification_mode: RecoveryVerificationMode::NormalRecoveryVerification,
-        verification_plan: RecoveryVerificationPlan::from_mode(
-            RecoveryVerificationMode::NormalRecoveryVerification,
-        ),
-        descriptor_semantics_version: DescriptorSemanticsVersion::default(),
-    };
+        RecoveryCompatibilityCheck::verified_at(ReplayVerificationLayer::DigestParity),
+        RecoveryVerificationMode::NormalRecoveryVerification,
+        DescriptorSemanticsVersion::default(),
+    );
     let mut recovered = runtime_with_test_schema();
     let error = recovered
         .durability_authority()

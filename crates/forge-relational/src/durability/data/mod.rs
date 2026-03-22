@@ -283,7 +283,6 @@ pub struct RecoveryPlan {
     pub cursor: RecoveryCursor,
     pub integrity_report: RecoveryIntegrityReport,
     pub compatibility: RecoveryCompatibilityCheck,
-    pub verification_mode: RecoveryVerificationMode,
     pub verification_plan: RecoveryVerificationPlan,
     pub descriptor_semantics_version: DescriptorSemanticsVersion,
 }
@@ -306,6 +305,14 @@ impl RecoveryVerificationPlan {
     pub fn allows_deep_artifact_parity(&self) -> bool {
         !matches!(self, Self::Normal(_))
     }
+
+    pub fn mode(&self) -> RecoveryVerificationMode {
+        match self {
+            Self::Normal(_) => RecoveryVerificationMode::NormalRecoveryVerification,
+            Self::Audit(_) => RecoveryVerificationMode::AuditRecoveryVerification,
+            Self::CorruptionDiagnosis(_) => RecoveryVerificationMode::CorruptionDiagnosisReplay,
+        }
+    }
 }
 
 impl RecoveryAuthorityParity {
@@ -319,6 +326,56 @@ impl RecoveryAuthorityParity {
 
     pub fn is_verified(&self) -> bool {
         matches!(self, Self::VerifiedAtLayer(_))
+    }
+}
+
+impl RecoveryCompatibilityCheck {
+    pub fn verified_at(layer: ReplayVerificationLayer) -> Self {
+        Self {
+            schema_parity: RecoveryAuthorityParity::verified_at(layer),
+            profile_parity: RecoveryAuthorityParity::verified_at(layer),
+            runtime_name_parity: RecoveryAuthorityParity::verified_at(layer),
+            descriptor_version_parity: RecoveryAuthorityParity::verified_at(layer),
+            schema_transition_parity: RecoveryAuthorityParity::verified_at(layer),
+            continuation_descriptor_parity: RecoveryAuthorityParity::verified_at(layer),
+            reconciliation_descriptor_parity: RecoveryAuthorityParity::verified_at(layer),
+            schema_lineage_parity: RecoveryAuthorityParity::verified_at(layer),
+            verification_outcome: RecoveryVerificationOutcome::VerifiedAtLayer(layer),
+            first_mismatch: None,
+        }
+    }
+}
+
+impl RecoveryPlan {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        config: crate::logic::runtime::RelationalRuntimeConfig,
+        store: Option<DurableStore>,
+        checkpoint_manifest: Option<DurableCheckpointManifest>,
+        checkpoint: Option<DurableCheckpoint>,
+        tail_log: Vec<CanonicalCommitEnvelope>,
+        cursor: RecoveryCursor,
+        integrity_report: RecoveryIntegrityReport,
+        compatibility: RecoveryCompatibilityCheck,
+        verification_mode: RecoveryVerificationMode,
+        descriptor_semantics_version: DescriptorSemanticsVersion,
+    ) -> Self {
+        Self {
+            config,
+            store,
+            checkpoint_manifest,
+            checkpoint,
+            tail_log,
+            cursor,
+            integrity_report,
+            compatibility,
+            verification_plan: RecoveryVerificationPlan::from_mode(verification_mode),
+            descriptor_semantics_version,
+        }
+    }
+
+    pub fn verification_mode(&self) -> RecoveryVerificationMode {
+        self.verification_plan.mode()
     }
 }
 

@@ -156,14 +156,14 @@ pub(crate) fn plan_subscriber_recovery(
     ));
     diagnostics.push(recovery_decision_artifact(&decision));
     Ok((
-        SubscriberRecoveryPlan {
+        SubscriberRecoveryPlan::new(
+            request,
+            decision,
             latest_available_checkpoint,
             start_after_position,
-            decision,
-            request,
             selected_envelopes,
             continuation_assessment,
-        },
+        ),
         diagnostics,
     ))
 }

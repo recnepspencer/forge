@@ -35,17 +35,14 @@ pub(crate) enum TestPreparationFault {
 }
 
 #[cfg(test)]
-static TEST_PREPARATION_FAULT: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+thread_local! {
+    static TEST_PREPARATION_FAULT: std::cell::Cell<Option<TestPreparationFault>> =
+        const { std::cell::Cell::new(None) };
+}
 
 #[cfg(test)]
 pub(crate) fn current_test_preparation_fault() -> Option<TestPreparationFault> {
-    match TEST_PREPARATION_FAULT.load(std::sync::atomic::Ordering::SeqCst) {
-        1 => Some(TestPreparationFault::PlanningProofInsufficient),
-        2 => Some(TestPreparationFault::PublicationIsolationViolation),
-        3 => Some(TestPreparationFault::ReductionIdentityConflict),
-        4 => Some(TestPreparationFault::WorkerEvaluationFailure),
-        _ => None,
-    }
+    TEST_PREPARATION_FAULT.with(std::cell::Cell::get)
 }
 
 #[cfg(test)]
@@ -53,39 +50,23 @@ pub(crate) fn with_test_preparation_fault<T>(
     fault: TestPreparationFault,
     run: impl FnOnce() -> T,
 ) -> T {
-    struct ResetGuard<'a> {
-        fault: &'a std::sync::atomic::AtomicU8,
-        _lock: std::sync::MutexGuard<'a, ()>,
+    struct ResetGuard {
+        previous: Option<TestPreparationFault>,
     }
 
-    impl Drop for ResetGuard<'_> {
+    impl Drop for ResetGuard {
         fn drop(&mut self) {
-            self.fault.store(0, std::sync::atomic::Ordering::SeqCst);
+            TEST_PREPARATION_FAULT.with(|slot| slot.set(self.previous));
         }
     }
 
-    let guard = crate::testing::fault_injection_lock()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    let _reset = ResetGuard {
-        fault: &TEST_PREPARATION_FAULT,
-        _lock: guard,
-    };
-    TEST_PREPARATION_FAULT.store(
-        match fault {
-            TestPreparationFault::PlanningProofInsufficient => 1,
-            TestPreparationFault::PublicationIsolationViolation => 2,
-            TestPreparationFault::ReductionIdentityConflict => 3,
-            TestPreparationFault::WorkerEvaluationFailure => 4,
-        },
-        std::sync::atomic::Ordering::SeqCst,
-    );
+    let previous = TEST_PREPARATION_FAULT.with(|slot| {
+        let previous = slot.get();
+        slot.set(Some(fault));
+        previous
+    });
+    let _reset = ResetGuard { previous };
     run()
-}
-
-#[cfg(test)]
-pub(crate) fn has_test_preparation_fault() -> bool {
-    current_test_preparation_fault().is_some()
 }
 
 pub(crate) fn plan_invariant_execution<'runtime>(
@@ -177,6 +158,8 @@ pub(crate) fn plan_invariant_execution<'runtime>(
                 version_id: request.version_id(),
                 merged_plan: request.merged_plan(),
                 relation_integrity_scopes: relation_integrity_scopes.clone(),
+                #[cfg(test)]
+                injected_test_fault: current_test_preparation_fault(),
             };
             #[cfg(test)]
             match current_test_preparation_fault() {

@@ -25,7 +25,7 @@ pub(crate) fn evaluate_invariant_packet(
     let mut preparation_failures = invariant_packet_failures(packet);
     #[cfg(test)]
     if matches!(
-        crate::validation::execution::current_test_preparation_fault(),
+        packet.injected_test_fault,
         Some(crate::validation::execution::TestPreparationFault::WorkerEvaluationFailure)
     ) {
         preparation_failures.push(PreparationFailureClass::WorkerEvaluationFailure);
@@ -39,7 +39,7 @@ pub(crate) fn evaluate_invariant_packet(
     #[cfg(test)]
     debug_assert!(
         preparation_failures.is_empty()
-            || crate::validation::execution::has_test_preparation_fault(),
+            || packet.injected_test_fault.is_some(),
         "planned invariant packet violated preparation proof contract: {:?}",
         preparation_failures
     );
@@ -75,7 +75,7 @@ pub(crate) fn evaluate_invariant_packet(
     );
     #[cfg(test)]
     if matches!(
-        crate::validation::execution::current_test_preparation_fault(),
+        packet.injected_test_fault,
         Some(crate::validation::execution::TestPreparationFault::ReductionIdentityConflict)
     ) {
         result_identity = ValidationResultIdentity {

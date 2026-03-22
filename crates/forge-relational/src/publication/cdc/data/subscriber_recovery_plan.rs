@@ -44,24 +44,42 @@ pub struct SubscriberBoundaryAssessment {
 }
 
 impl SubscriberContinuationAssessment {
+    pub(crate) fn new(
+        crossed_boundaries: Vec<SchemaBoundaryFingerprint>,
+        continuation_outcome: SchemaContinuationClassification,
+        contract_upgrade_applied: bool,
+        normalized_continuation_proof: NormalizedContinuationProof,
+        continuation_summary: SubscriberContinuationSummary,
+        boundary_assessments: Vec<SubscriberBoundaryAssessment>,
+    ) -> Self {
+        Self {
+            crossed_boundaries,
+            continuation_outcome,
+            contract_upgrade_applied,
+            normalized_continuation_proof,
+            continuation_summary,
+            boundary_assessments,
+        }
+    }
+
     pub(crate) fn unchanged(
         contract_id: String,
         descriptor_semantics_version: DescriptorSemanticsVersion,
     ) -> Self {
-        Self {
-            crossed_boundaries: Vec::new(),
-            continuation_outcome: SchemaContinuationClassification::ContinueUnchanged,
-            contract_upgrade_applied: false,
-            normalized_continuation_proof: crate::publication::cdc::data::NormalizedContinuationProof::new(
+        Self::new(
+            Vec::new(),
+            SchemaContinuationClassification::ContinueUnchanged,
+            false,
+            crate::publication::cdc::data::NormalizedContinuationProof::new(
                 Vec::new(),
                 descriptor_semantics_version,
             ),
-            continuation_summary: crate::publication::cdc::data::SubscriberContinuationSummary::unchanged(
+            crate::publication::cdc::data::SubscriberContinuationSummary::unchanged(
                 contract_id,
                 descriptor_semantics_version,
             ),
-            boundary_assessments: Vec::new(),
-        }
+            Vec::new(),
+        )
     }
 
     pub(crate) fn to_summary_artifact(
@@ -187,6 +205,22 @@ impl SubscriberContinuationAssessment {
 }
 
 impl SubscriberBoundaryAssessment {
+    pub(crate) fn new(
+        boundary_fingerprint: SchemaBoundaryFingerprint,
+        descriptor_continuation: SchemaContinuationClassification,
+        subscriber_outcome: SchemaContinuationClassification,
+        changed_strata: Vec<crate::schema::data::SchemaStratum>,
+        contract_consumes_boundary: bool,
+    ) -> Self {
+        Self {
+            boundary_fingerprint,
+            descriptor_continuation,
+            subscriber_outcome,
+            changed_strata,
+            contract_consumes_boundary,
+        }
+    }
+
     pub(crate) fn to_diagnostic_entry(&self) -> RelationalDiagnosticsEntry {
         RelationalDiagnosticsEntry {
             code: DiagnosticCode::SubscriberBoundaryEvaluated,
@@ -229,6 +263,26 @@ impl SubscriberBoundaryAssessment {
                     .accepted_upgrade_classes
                     .contains(&self.subscriber_outcome),
             }),
+        }
+    }
+}
+
+impl SubscriberRecoveryPlan {
+    pub(crate) fn new(
+        request: SubscriberResumeRequest,
+        decision: SubscriberRecoveryDecision,
+        latest_available_checkpoint: Option<SubscriberCheckpoint>,
+        start_after_position: Option<PatchStreamPosition>,
+        selected_envelopes: Vec<CanonicalCommitEnvelope>,
+        continuation_assessment: SubscriberContinuationAssessment,
+    ) -> Self {
+        Self {
+            request,
+            decision,
+            latest_available_checkpoint,
+            start_after_position,
+            selected_envelopes,
+            continuation_assessment,
         }
     }
 }

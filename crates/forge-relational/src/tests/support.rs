@@ -2,7 +2,9 @@ pub(super) use forge_harness::facade::{
     DiagnosticsHarnessAdapter, ExecutionProfile, ExecutionRequest, HarnessAdapter, MutationBatch,
     ReplayHarnessAdapter, ReplayRequest, ScenarioPlan,
 };
+use serde::Serialize;
 pub(super) use serde_json::json;
+use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -89,6 +91,12 @@ pub(super) use relation_integrity::*;
 pub(super) use runtime::*;
 pub(super) use savepoint::*;
 pub(super) use schema::*;
+
+pub(super) fn certification_digest<T: Serialize>(value: &T) -> String {
+    let bytes = serde_json::to_vec(value).expect("certification serialization");
+    let digest = Sha256::digest(bytes);
+    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct AspectTruthBundle {

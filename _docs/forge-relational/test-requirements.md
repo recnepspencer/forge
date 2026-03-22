@@ -1011,3 +1011,37 @@ query surfaces
 retained-vs-reconstructed historical surfaces where applicable
 
 Without that, the suite can still be good — but it will not be truth-grade.
+Milestone 5 named certification suites
+
+- Schema evolution CDC contract test
+  Required machine-checkable outputs:
+  - schema_transition_digest
+  - schema_boundary_cdc_digest
+  - subscriber_contract_matrix
+  - transition_decision_digest
+- Schema reconciliation classification test
+  Required machine-checkable outputs:
+  - schema_reconciliation_digest
+  - reconciliation_policy_matrix
+  - schema_conflict_localization_report
+  - reconciliation_replay_digest
+- Diff/CDC truth parity test
+  Required machine-checkable outputs:
+  - diff_digest
+  - cdc_digest
+  - cdc_diagnostics_digest
+  - continuation_counter_snapshot
+- Hostile commit/replay equivalence test
+  Required machine-checkable outputs:
+  - truth_digest
+  - patch_digest
+  - lineage_digest
+  - replay_digest
+  - diagnostics_digest
+  - branch_heads_digest
+  - query_surface_digest
+- Durable recovery and schema mismatch test
+  Required machine-checkable outputs:
+  - recovery_schema_bundle_digest
+  - recovery_compatibility_diagnostic_digest
+  - mismatch_failure_digest
