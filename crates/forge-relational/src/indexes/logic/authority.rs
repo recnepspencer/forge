@@ -206,13 +206,9 @@ impl<'runtime> IndexAuthority<'runtime> {
         commit_id: CommitId,
         generations: &[DerivedIndexGeneration],
     ) {
-        let ids = generations
-            .iter()
-            .map(|generation| generation.generation_id.0)
-            .collect::<Vec<_>>();
         self.runtime
             .history_authority()
-            .append_index_generation_ids(commit_id, &ids);
+            .append_index_generations(commit_id, generations);
         if let Some(log_entry) = self
             .runtime
             .durability
@@ -220,7 +216,7 @@ impl<'runtime> IndexAuthority<'runtime> {
             .iter_mut()
             .find(|entry| entry.commit.commit_id == commit_id)
         {
-            log_entry.index_generation_ids.extend(ids.iter().copied());
+            log_entry.append_index_generations_canonical(generations);
         }
     }
 }

@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
 
-use super::context::ReuseBoundaryContext;
+use crate::data::dependency::DependencySnapshotId;
+
+use super::context::{ArtifactFamilyId, ReuseBoundaryContext};
 
 /// The operational shortcut admitted by prepared/runtime reuse planning.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -17,7 +17,7 @@ pub enum ReuseStrategy {
 }
 
 /// The realized runtime outcome after apply/execution.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub enum ReuseOrigin {
     #[default]
     FreshCompute,
@@ -30,7 +30,7 @@ pub enum ReuseOrigin {
 }
 
 /// Lowered compact admission packet used on the hot path.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct ReuseBasis {
     #[serde(default)]
     pub strategy: Option<ReuseStrategy>,
@@ -39,13 +39,13 @@ pub struct ReuseBasis {
     #[serde(default)]
     pub crossing: ReuseCrossing,
     #[serde(default)]
-    pub dependency_snapshot_basis: Option<u32>,
+    pub dependency_snapshot_basis: Option<DependencySnapshotId>,
     #[serde(default)]
     pub topology_regime_basis: Option<u32>,
     #[serde(default)]
-    pub structural_dependency_basis: Option<u32>,
+    pub structural_dependency_basis: Option<DependencySnapshotId>,
     #[serde(default)]
-    pub artifact_family_basis: Option<u32>,
+    pub artifact_family_basis: Option<ArtifactFamilyId>,
     #[serde(default)]
     pub partition_region_basis_count: u32,
 }
@@ -125,7 +125,7 @@ impl ReuseBasis {
             dependency_snapshot_basis: Some(context.structural_dependency_basis),
             topology_regime_basis: Some(context.topology_regime),
             structural_dependency_basis: Some(context.structural_dependency_basis),
-            artifact_family_basis: context.artifact_family.as_ref().map(compact_hash),
+            artifact_family_basis: context.artifact_family.clone(),
             partition_region_basis_count: context.partition_region_basis.len() as u32,
         }
     }
@@ -133,12 +133,6 @@ impl ReuseBasis {
     pub fn is_fresh_compute(&self) -> bool {
         self.strategy.is_none() && self.source == ReuseSource::None
     }
-}
-
-fn compact_hash(value: &String) -> u32 {
-    let mut hasher = DefaultHasher::new();
-    value.hash(&mut hasher);
-    (hasher.finish() & u32::MAX as u64) as u32
 }
 
 #[cfg(test)]
@@ -149,7 +143,7 @@ mod tests {
     use crate::data::node::ContextRequirement;
     use crate::data::performance::AuthorityPolicy;
     use crate::data::proof::PartitionScopeSet;
-    use crate::data::reuse::ReuseSemanticRegionIdentity;
+    use crate::data::reuse::{ReuseSemanticRegionIdentity, ReuseStrategyBoundaryContext};
 
     #[test]
     fn reuse_strategy_and_origin_are_distinct() {
@@ -173,11 +167,10 @@ mod tests {
                 ContextRequirement::None,
             ),
             authority_policy: AuthorityPolicy::SpeculativeThenReconcile,
-            artifact_family: Some("mesh".to_string()),
-            structural_dependency_basis: 19,
+            artifact_family: Some(ArtifactFamilyId::new("mesh")),
+            structural_dependency_basis: DependencySnapshotId::EMPTY,
             partition_region_basis: PartitionScopeSet::default(),
-            persistent_correspondence: None,
-            composition_regions: PartitionScopeSet::default(),
+            strategy_detail: ReuseStrategyBoundaryContext::None,
         };
 
         let basis = ReuseBasis::from_boundary_context(
@@ -189,7 +182,10 @@ mod tests {
 
         assert_eq!(basis.strategy, Some(ReuseStrategy::MemoizedArtifactReuse));
         assert_eq!(basis.topology_regime_basis, Some(11));
-        assert_eq!(basis.structural_dependency_basis, Some(19));
+        assert_eq!(
+            basis.structural_dependency_basis,
+            Some(DependencySnapshotId::EMPTY)
+        );
         assert!(basis.artifact_family_basis.is_some());
     }
 }

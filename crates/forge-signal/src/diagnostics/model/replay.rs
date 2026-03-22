@@ -1,8 +1,11 @@
+use std::collections::VecDeque;
+
 use serde::{Deserialize, Serialize};
 
 use crate::data::handle::NodeId;
 use crate::data::reuse::{PersistentCorrespondenceKind, ReuseOrigin};
 use crate::diagnostics::lineage::LineageArtifactId;
+use crate::logic::planner::TaskExecutionOutcome;
 use crate::state::{SignalBranchId, SignalSnapshotId};
 
 #[derive(
@@ -24,6 +27,21 @@ pub enum ReplayEventKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ReplayEventDetail {
+    TaskOutcome(TaskExecutionOutcome),
+    Message(String),
+}
+
+impl ReplayEventDetail {
+    pub fn as_message(&self) -> Option<&str> {
+        match self {
+            Self::Message(message) => Some(message.as_str()),
+            Self::TaskOutcome(_) => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReplayEvent {
     pub cursor: ReplayCursor,
     pub kind: ReplayEventKind,
@@ -35,7 +53,8 @@ pub struct ReplayEvent {
     pub lineage_artifact_id: Option<LineageArtifactId>,
     pub reuse_origin: Option<ReuseOrigin>,
     pub persistent_correspondence_kind: Option<PersistentCorrespondenceKind>,
-    pub detail: Option<String>,
+    pub composition_region_count: Option<u32>,
+    pub detail: Option<ReplayEventDetail>,
 }
 
 impl ReplayEvent {
@@ -51,7 +70,8 @@ impl ReplayEvent {
         lineage_artifact_id: Option<LineageArtifactId>,
         reuse_origin: Option<ReuseOrigin>,
         persistent_correspondence_kind: Option<PersistentCorrespondenceKind>,
-        detail: Option<String>,
+        composition_region_count: Option<u32>,
+        detail: Option<ReplayEventDetail>,
     ) -> Self {
         Self {
             cursor,
@@ -64,6 +84,7 @@ impl ReplayEvent {
             lineage_artifact_id,
             reuse_origin,
             persistent_correspondence_kind,
+            composition_region_count,
             detail,
         }
     }
@@ -71,9 +92,130 @@ impl ReplayEvent {
 
 pub type ReplayFrame = ReplayEvent;
 
+#[derive(Debug, Clone, Copy, Default)]
+pub struct RetainedReplayView<'a> {
+    start: Option<ReplayCursor>,
+    end: Option<ReplayCursor>,
+    frames: Option<&'a VecDeque<ReplayEvent>>,
+    offset: usize,
+    len: usize,
+}
+
+impl<'a> RetainedReplayView<'a> {
+    pub fn new(
+        start: Option<ReplayCursor>,
+        end: Option<ReplayCursor>,
+        frames: &'a VecDeque<ReplayEvent>,
+        offset: usize,
+        len: usize,
+    ) -> Self {
+        Self {
+            start,
+            end,
+            frames: Some(frames),
+            offset,
+            len,
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            start: None,
+            end: None,
+            frames: None,
+            offset: 0,
+            len: 0,
+        }
+    }
+
+    pub fn start(&self) -> Option<ReplayCursor> {
+        self.start
+    }
+
+    pub fn end(&self) -> Option<ReplayCursor> {
+        self.end
+    }
+
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    pub fn iter(&self) -> Box<dyn Iterator<Item = &'a ReplayEvent> + 'a> {
+        match self.frames {
+            Some(frames) => Box::new(frames.iter().skip(self.offset).take(self.len)),
+            None => Box::new(std::iter::empty()),
+        }
+    }
+
+    pub fn first(&self) -> Option<&'a ReplayEvent> {
+        self.iter().next()
+    }
+
+    pub fn last(&self) -> Option<&'a ReplayEvent> {
+        self.iter().last()
+    }
+
+    pub fn to_owned_slice(&self) -> ReplaySlice {
+        ReplaySlice {
+            start: self.start,
+            end: self.end,
+            frames: self.iter().cloned().collect(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct ReplaySlice {
     pub start: Option<ReplayCursor>,
     pub end: Option<ReplayCursor>,
     pub frames: Vec<ReplayFrame>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct SynthesizedReplaySlice {
+    pub start: Option<ReplayCursor>,
+    pub end: Option<ReplayCursor>,
+    pub frames: Vec<ReplayFrame>,
+}
+
+impl SynthesizedReplaySlice {
+    pub fn new(
+        start: Option<ReplayCursor>,
+        end: Option<ReplayCursor>,
+        frames: Vec<ReplayFrame>,
+    ) -> Self {
+        Self { start, end, frames }
+    }
+
+    pub fn len(&self) -> usize {
+        self.frames.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.frames.is_empty()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &ReplayFrame> {
+        self.frames.iter()
+    }
+
+    pub fn first(&self) -> Option<&ReplayFrame> {
+        self.frames.first()
+    }
+
+    pub fn last(&self) -> Option<&ReplayFrame> {
+        self.frames.last()
+    }
+
+    pub fn to_owned_slice(&self) -> ReplaySlice {
+        ReplaySlice {
+            start: self.start,
+            end: self.end,
+            frames: self.frames.clone(),
+        }
+    }
 }

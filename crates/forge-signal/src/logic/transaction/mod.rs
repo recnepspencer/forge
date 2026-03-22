@@ -21,8 +21,8 @@ pub use runtime::{
     EvaluationSummary, ExistingTargetMergePolicy, IntegrityMarkers, JournalSegment,
     MergeCandidateScope, MergeDecisionBasis, MergeNodeMap, MergeTouchedNodeSet,
     MergedArtifactRecord, NodeMergeInputState, NodeMergePlan, NodeReconciliationDecision,
-    NodeReconciliationShape, ReconstructabilityRecord, RuntimeObserver, SignalRuntime,
-    SignalRuntimeBuilder, SignalRuntimeConfig, SignalTransaction, SourceNodeAdoptionPlanCore,
-    SourceOnlyMergePolicy, StructuralMergeCandidateRecord, TransactionOutcome,
-    TransactionReplayEntry, TransactionResult, TransactionTiming,
+    NodeReconciliationShape, ReconstructabilityRecord, RuntimeMaterializer, RuntimeObserver,
+    SignalRuntime, SignalRuntimeBuilder, SignalRuntimeConfig, SignalTransaction,
+    SourceNodeAdoptionPlanCore, SourceOnlyMergePolicy, StructuralMergeCandidateRecord,
+    TransactionOutcome, TransactionReplayEntry, TransactionResult, TransactionTiming,
 };

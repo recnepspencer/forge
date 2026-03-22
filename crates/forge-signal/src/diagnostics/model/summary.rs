@@ -4,11 +4,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
-use crate::data::node::NodeState;
+use crate::data::node::{ContextRequirement, NodeState};
 use crate::data::output::{MemoizedResultOrigin, OutputChange};
 use crate::data::reuse::{PersistentCorrespondenceKind, ReuseBasis, ReuseOrigin};
 use crate::diagnostics::epochs::EventEpochSummary;
-use crate::diagnostics::profile::DiagnosticsProfile;
+use crate::diagnostics::policy::{
+    DetailLimit, DiagnosticsAvailability, OrdinaryAccessLane, RetentionBudget,
+};
+use crate::diagnostics::profile::DiagnosticsTier;
 use crate::logic::explain::{CausalDisposition, NodeExplanation, UpstreamCause};
 use crate::logic::planner::{
     EvaluationPlan, ExecutionReport, SessionScratch, StageExecutionOutcome, TaskExecutionOutcome,
@@ -16,9 +19,14 @@ use crate::logic::planner::{
 };
 use crate::presentation::metrics::GraphMetrics;
 
+pub type TaskReasonCounts = BTreeMap<TaskReason, u32>;
+pub type TaskOutcomeCounts = BTreeMap<TaskExecutionOutcome, u32>;
+pub type StageOutcomeCounts = BTreeMap<StageExecutionOutcome, u32>;
+pub type ReuseOriginCounts = BTreeMap<ReuseOrigin, u32>;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GraphSummary {
-    pub profile: DiagnosticsProfile,
+    pub profile: DiagnosticsTier,
     pub active_node_count: u32,
     pub arena_capacity: u32,
     pub tombstone_count: u32,
@@ -39,7 +47,7 @@ pub struct GraphSummary {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EvaluationPlanSummary {
-    pub profile: DiagnosticsProfile,
+    pub profile: DiagnosticsTier,
     pub requested_target_count: u32,
     pub stage_count: u32,
     pub task_count: u32,
@@ -48,12 +56,12 @@ pub struct EvaluationPlanSummary {
     pub stage_widths: Vec<u32>,
     pub direct_request_count: u32,
     pub transitive_task_count: u32,
-    pub task_reason_counts: BTreeMap<String, u32>,
+    pub task_reason_counts: TaskReasonCounts,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExecutionReportSummary {
-    pub profile: DiagnosticsProfile,
+    pub profile: DiagnosticsTier,
     pub stage_count: u32,
     pub task_count: u32,
     pub tasks_executed: u32,
@@ -67,15 +75,15 @@ pub struct ExecutionReportSummary {
     pub prepared_evaluations_applied: u32,
     pub dependency_capture_updates: u32,
     pub semantic_segment_count: u32,
-    pub task_outcome_counts: BTreeMap<String, u32>,
-    pub stage_outcome_counts: BTreeMap<String, u32>,
+    pub task_outcome_counts: TaskOutcomeCounts,
+    pub stage_outcome_counts: StageOutcomeCounts,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ExplanationSummary {
-    pub profile: DiagnosticsProfile,
+    pub profile: DiagnosticsTier,
     pub node: NodeId,
-    pub materialization_mode: String,
+    pub materialization_mode: DiagnosticsAvailability,
     pub state: NodeState,
     pub dirty_aspect_count: u32,
     pub upstream_count: u32,
@@ -91,7 +99,7 @@ pub struct ExplanationSummary {
     pub discarded_scope_count: u32,
     pub insufficient_scope_count: u32,
     pub rewired_dependency_count: u32,
-    pub direct_cause_kinds: Vec<String>,
+    pub direct_cause_kinds: Vec<crate::logic::explain::CausalLinkKind>,
     pub scope_provenance_kinds: Vec<String>,
     pub cause_note_samples: Vec<String>,
     pub triage_classes: Vec<String>,
@@ -99,7 +107,7 @@ pub struct ExplanationSummary {
     pub contract_reads_mask: u128,
     pub contract_produces_mask: u128,
     pub contract_partition_scope_count: u32,
-    pub required_context: String,
+    pub required_context: ContextRequirement,
     pub execution_record_id: Option<u64>,
     pub semantic_segment_id: Option<u64>,
     pub output_change: Option<OutputChange>,
@@ -121,6 +129,7 @@ pub struct ExecutionHistoryNodeSummary {
     pub reuse_basis: Option<ReuseBasis>,
     pub reuse_origin: Option<crate::data::reuse::ReuseOrigin>,
     pub persistent_correspondence_kind: Option<PersistentCorrespondenceKind>,
+    pub composition_region_count: u32,
     pub reuse_certification_proof_count: u32,
     pub changed_partition_count: u32,
     pub causality_kind: Option<String>,
@@ -128,11 +137,11 @@ pub struct ExecutionHistoryNodeSummary {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExecutionHistorySummary {
-    pub profile: DiagnosticsProfile,
+    pub profile: DiagnosticsTier,
     pub traced_node_count: u32,
     pub execution_record_count: u32,
     pub latest_execution_record_id: Option<u64>,
-    pub reuse_origin_counts: BTreeMap<String, u32>,
+    pub reuse_origin_counts: ReuseOriginCounts,
     pub nodes: Vec<ExecutionHistoryNodeSummary>,
 }
 
@@ -142,7 +151,18 @@ pub struct EventEpochHistorySummary {
 }
 
 impl GraphSummary {
-    pub fn from_graph(graph: &SignalGraph, profile: DiagnosticsProfile) -> Self {
+    pub fn with_profile(&self, profile: DiagnosticsTier) -> Self {
+        let mut cloned = self.clone();
+        cloned.profile = profile;
+        cloned
+    }
+
+    pub fn from_graph(
+        graph: &SignalGraph,
+        profile: DiagnosticsTier,
+        detail_limit: DetailLimit,
+        _lane: OrdinaryAccessLane,
+    ) -> Self {
         let mut clean_node_count = 0_u32;
         let mut maybe_stale_node_count = 0_u32;
         let mut dirty_node_count = 0_u32;
@@ -167,7 +187,7 @@ impl GraphSummary {
                 NodeState::MaybeStale => maybe_stale_node_count += 1,
                 NodeState::Dirty => {
                     dirty_node_count += 1;
-                    if sample_dirty_nodes.len() < profile.detail_limit() {
+                    if sample_dirty_nodes.len() < detail_limit.get() {
                         sample_dirty_nodes.push(node);
                     }
                 }
@@ -186,7 +206,7 @@ impl GraphSummary {
                 nodes_with_trace_summary += 1;
                 if trace.execution_record_id.is_some() {
                     nodes_with_execution_record += 1;
-                    if sample_nodes_with_execution_record.len() < profile.detail_limit() {
+                    if sample_nodes_with_execution_record.len() < detail_limit.get() {
                         sample_nodes_with_execution_record.push(node);
                     }
                 }
@@ -195,6 +215,8 @@ impl GraphSummary {
                 nodes_with_causality += 1;
             }
         }
+
+        let metrics = graph.observe().metrics();
 
         Self {
             profile,
@@ -210,16 +232,16 @@ impl GraphSummary {
             nodes_with_trace_summary,
             nodes_with_execution_record,
             nodes_with_causality,
-            partition_interner_size: graph.observe().metrics().partition_interner_size as u32,
+            partition_interner_size: metrics.partition_interner_size as u32,
             sample_dirty_nodes,
             sample_nodes_with_execution_record,
-            metrics: graph.observe().metrics(),
+            metrics,
         }
     }
 }
 
 impl EvaluationPlanSummary {
-    pub fn from_plan(plan: &EvaluationPlan, profile: DiagnosticsProfile) -> Self {
+    pub fn from_plan(plan: &EvaluationPlan, profile: DiagnosticsTier) -> Self {
         Self::from_components(
             plan.summary.requested_target_count,
             plan.summary.stage_count,
@@ -232,7 +254,7 @@ impl EvaluationPlanSummary {
         )
     }
 
-    pub(crate) fn from_session(session: &SessionScratch<'_>, profile: DiagnosticsProfile) -> Self {
+    pub(crate) fn from_session(session: &SessionScratch<'_>, profile: DiagnosticsTier) -> Self {
         Self::from_components(
             session.summary.requested_target_count,
             session.summary.stage_count,
@@ -256,21 +278,22 @@ impl EvaluationPlanSummary {
         contract_pruned_count: u32,
         stage_widths_iter: impl Iterator<Item = u32>,
         tasks_iter: impl Iterator<Item = &'a crate::logic::planner::EligibleTask>,
-        profile: DiagnosticsProfile,
+        profile: DiagnosticsTier,
     ) -> Self {
-        let mut task_reason_counts = BTreeMap::new();
+        let mut task_reason_counts = TaskReasonCounts::new();
         let mut direct_request_count = 0_u32;
         let mut stage_widths = stage_widths_iter.collect::<Vec<_>>();
         for task in tasks_iter {
             *task_reason_counts
-                .entry(format!("{:?}", task.reason))
+                .entry(task.reason)
                 .or_insert(0) += 1;
             if task.direct_request {
                 direct_request_count += 1;
             }
         }
-        if stage_widths.len() > profile.detail_limit() {
-            stage_widths.truncate(profile.detail_limit());
+        let detail_limit = RetentionBudget::for_tier(profile).detail_limit.get();
+        if stage_widths.len() > detail_limit {
+            stage_widths.truncate(detail_limit);
         }
         Self {
             profile,
@@ -288,16 +311,16 @@ impl EvaluationPlanSummary {
 }
 
 impl ExecutionReportSummary {
-    pub fn from_report(report: &ExecutionReport, profile: DiagnosticsProfile) -> Self {
-        let mut task_outcome_counts = BTreeMap::new();
-        let mut stage_outcome_counts = BTreeMap::new();
+    pub fn from_report(report: &ExecutionReport, profile: DiagnosticsTier) -> Self {
+        let mut task_outcome_counts = TaskOutcomeCounts::new();
+        let mut stage_outcome_counts = StageOutcomeCounts::new();
         for stage in &report.stages {
             *stage_outcome_counts
-                .entry(format!("{:?}", stage.outcome))
+                .entry(stage.outcome)
                 .or_insert(0) += 1;
             for task in &stage.task_records {
                 *task_outcome_counts
-                    .entry(format!("{:?}", task.outcome))
+                    .entry(task.outcome)
                     .or_insert(0) += 1;
             }
         }
@@ -324,7 +347,7 @@ impl ExecutionReportSummary {
 }
 
 impl ExplanationSummary {
-    pub fn from_explanation(explanation: &NodeExplanation, profile: DiagnosticsProfile) -> Self {
+    pub fn from_explanation(explanation: &NodeExplanation, profile: DiagnosticsTier) -> Self {
         let mut changed_upstream_count = 0_u32;
         let mut skipped_upstream_count = 0_u32;
         let mut condition_deferred_count = 0_u32;
@@ -351,6 +374,7 @@ impl ExplanationSummary {
                 UpstreamCause::DependencyRemoved { .. } => dependency_removed_count += 1,
             }
         }
+        let detail_limit = RetentionBudget::for_tier(profile).detail_limit.get();
         for link in &explanation.causal_links {
             if matches!(link.disposition, CausalDisposition::Conservative) {
                 conservative_cause_count += 1;
@@ -366,18 +390,18 @@ impl ExplanationSummary {
                 }
                 crate::logic::explain::ScopeProvenanceKind::None => {}
             }
-            if direct_cause_kinds.len() < profile.detail_limit() {
+            if direct_cause_kinds.len() < detail_limit {
                 direct_cause_kinds.push(link.kind.clone());
             }
             if !matches!(
                 link.scope.kind,
                 crate::logic::explain::ScopeProvenanceKind::None
-            ) && scope_provenance_kinds.len() < profile.detail_limit()
+            ) && scope_provenance_kinds.len() < detail_limit
             {
                 scope_provenance_kinds.push(format!("{:?}", link.scope.kind));
             }
             if let Some(note) = &link.note {
-                if cause_note_samples.len() < profile.detail_limit() {
+                if cause_note_samples.len() < detail_limit {
                     cause_note_samples.push(note.clone());
                 }
             }
@@ -393,7 +417,7 @@ impl ExplanationSummary {
         Self {
             profile,
             node: explanation.node,
-            materialization_mode: format!("{:?}", explanation.materialization_mode),
+            materialization_mode: explanation.materialization_mode,
             state: explanation.state,
             dirty_aspect_count: explanation.dirty_aspects.bits().count_ones(),
             upstream_count: explanation.upstream.len() as u32,
@@ -425,12 +449,12 @@ impl ExplanationSummary {
                 .as_ref()
                 .map(|scopes| scopes.len() as u32)
                 .unwrap_or(0),
-            required_context: format!("{:?}", explanation.required_context),
+            required_context: explanation.required_context,
             execution_record_id: explanation.execution_record_id,
             semantic_segment_id: explanation.semantic_segment_id,
             output_change: explanation.output_change,
             memoized_origin: explanation.memoized_origin,
-            reuse_basis: explanation.reuse_basis,
+            reuse_basis: explanation.reuse_basis.clone(),
             reuse_origin: explanation.reuse_origin,
             reuse_certification_proof_count: explanation
                 .reuse_certification
@@ -444,13 +468,25 @@ impl ExplanationSummary {
 }
 
 impl ExecutionHistorySummary {
-    pub fn from_graph(graph: &SignalGraph, profile: DiagnosticsProfile) -> Self {
+    pub fn with_profile(&self, profile: DiagnosticsTier) -> Self {
+        let mut cloned = self.clone();
+        cloned.profile = profile;
+        cloned
+    }
+
+    pub fn from_graph(
+        graph: &SignalGraph,
+        profile: DiagnosticsTier,
+        detail_limit: DetailLimit,
+        retain_history_details: bool,
+        _lane: OrdinaryAccessLane,
+    ) -> Self {
         let mut traced_node_count = 0_u32;
         let mut execution_record_count = 0_u32;
         let mut latest_execution_record_id = None;
-        let mut reuse_origin_counts = BTreeMap::new();
+        let mut reuse_origin_counts = ReuseOriginCounts::new();
         let mut nodes = Vec::new();
-        let retain_nodes = profile.retains_history_details();
+        let retain_nodes = retain_history_details;
 
         for index in 0..graph.arena_capacity() {
             let Some(node) = graph.live_node_id_at(index) else {
@@ -464,7 +500,7 @@ impl ExecutionHistorySummary {
             };
             traced_node_count += 1;
             *reuse_origin_counts
-                .entry(reuse_origin_label(trace.reuse_origin).to_string())
+                .entry(trace.reuse_origin)
                 .or_insert(0) += 1;
             if let Some(id) = trace.execution_record_id {
                 execution_record_count += 1;
@@ -483,8 +519,14 @@ impl ExecutionHistorySummary {
                     persistent_correspondence_kind: trace
                         .reuse_boundary_context
                         .as_ref()
-                        .and_then(|context| context.persistent_correspondence.as_ref())
+                        .and_then(|context| context.persistent_correspondence())
                         .map(|evidence| evidence.kind()),
+                    composition_region_count: trace
+                        .reuse_boundary_context
+                        .as_ref()
+                        .and_then(|context| context.composition_regions())
+                        .map(|regions| regions.as_slice().len() as u32)
+                        .unwrap_or(0),
                     reuse_certification_proof_count: entry
                         .retained_diagnostic_artifact()
                         .and_then(|retained| retained.reuse_certification.as_ref())
@@ -505,8 +547,8 @@ impl ExecutionHistorySummary {
                     .then_with(|| left.node.index().cmp(&right.node.index()))
                     .then_with(|| left.node.generation().cmp(&right.node.generation()))
             });
-            if nodes.len() > profile.detail_limit() {
-                nodes.truncate(profile.detail_limit());
+            if nodes.len() > detail_limit.get() {
+                nodes.truncate(detail_limit.get());
             }
         }
 
@@ -521,32 +563,20 @@ impl ExecutionHistorySummary {
     }
 }
 
-fn reuse_origin_label(origin: ReuseOrigin) -> &'static str {
-    match origin {
-        ReuseOrigin::FreshCompute => "FreshCompute",
-        ReuseOrigin::OutputSuppressed => "OutputSuppressed",
-        ReuseOrigin::MemoizedArtifactReuse => "MemoizedArtifactReuse",
-        ReuseOrigin::SnapshotRestore => "SnapshotRestore",
-        ReuseOrigin::ReconciliationAdoption => "ReconciliationAdoption",
-        ReuseOrigin::CrossIdentityPersistentReuse => "CrossIdentityPersistentReuse",
-        ReuseOrigin::PartialArtifactSplice => "PartialArtifactSplice",
-    }
-}
-
 impl EvaluationPlan {
-    pub fn diagnostics_summary(&self, profile: DiagnosticsProfile) -> EvaluationPlanSummary {
+    pub fn diagnostics_summary(&self, profile: DiagnosticsTier) -> EvaluationPlanSummary {
         EvaluationPlanSummary::from_plan(self, profile)
     }
 }
 
 impl ExecutionReport {
-    pub fn diagnostics_summary(&self, profile: DiagnosticsProfile) -> ExecutionReportSummary {
+    pub fn diagnostics_summary(&self, profile: DiagnosticsTier) -> ExecutionReportSummary {
         ExecutionReportSummary::from_report(self, profile)
     }
 }
 
 impl NodeExplanation {
-    pub fn diagnostics_summary(&self, profile: DiagnosticsProfile) -> ExplanationSummary {
+    pub fn diagnostics_summary(&self, profile: DiagnosticsTier) -> ExplanationSummary {
         ExplanationSummary::from_explanation(self, profile)
     }
 }
@@ -568,8 +598,11 @@ fn triage_class_for_link(
         return Some("locality".to_string());
     }
     if matches!(link.disposition, CausalDisposition::Conservative)
-        || link.kind == "SkippedByComparator"
-        || link.kind.starts_with("ConditionDeferred::")
+        || matches!(
+            link.kind,
+            crate::logic::explain::CausalLinkKind::SkippedByComparator
+                | crate::logic::explain::CausalLinkKind::ConditionDeferred { .. }
+        )
     {
         return Some("validation".to_string());
     }
@@ -621,3 +654,6 @@ fn _task_reason_key(reason: TaskReason) -> &'static str {
         TaskReason::OutputDiffDependent => "OutputDiffDependent",
     }
 }
+
+
+

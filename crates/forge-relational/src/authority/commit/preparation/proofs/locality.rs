@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::identity::data::PartitionId;
 use crate::validation::data::InvariantGroupSet;
 use crate::validation::engine::InvariantObservationKind;
@@ -13,7 +15,7 @@ pub(crate) enum PreparationRecordDomain {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum PreparationPartitionScope {
     AllObserved,
-    TouchedPartitions(Vec<PartitionId>),
+    TouchedPartitions(Arc<[PartitionId]>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

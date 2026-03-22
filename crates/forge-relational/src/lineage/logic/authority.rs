@@ -249,9 +249,10 @@ impl<'runtime> LineageAuthority<'runtime> {
     }
 
     fn attach_events_to_commit(&mut self, commit_id: CommitId, event_ids: &[u64]) {
+        let events = self.runtime.lineage_access().events_by_ids(event_ids);
         self.runtime
             .history_authority()
-            .append_lineage_event_ids(commit_id, event_ids);
+            .append_lineage_events(commit_id, &events);
         if let Some(log_entry) = self
             .runtime
             .durability
@@ -259,9 +260,7 @@ impl<'runtime> LineageAuthority<'runtime> {
             .iter_mut()
             .find(|entry| entry.commit.commit_id == commit_id)
         {
-            log_entry
-                .lineage_event_ids
-                .extend(event_ids.iter().copied());
+            log_entry.append_lineage_events_canonical(&events);
         }
         self.runtime
             .publication_authority()

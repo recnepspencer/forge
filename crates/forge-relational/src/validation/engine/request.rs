@@ -1,3 +1,6 @@
+use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
+
 use crate::transactions::data::MergedCommitPlan;
 use crate::validation::data::{
     InvariantCostClass, InvariantExecutionPoint, InvariantGroupSet, InvariantPlanContract,
@@ -23,6 +26,93 @@ pub(crate) struct InvariantExecutionRequest<'runtime> {
     applicable_groups: InvariantGroupSet,
     plan_contract: Option<InvariantPlanContract>,
     merged_plan: Option<&'runtime MergedCommitPlan>,
+    relation_integrity_scopes: Option<PreparedRelationIntegrityScopes>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct PlannedRelationEdge {
+    pub(crate) source: EntityId,
+    pub(crate) target: EntityId,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct PreparedRelationPairKey {
+    pub(crate) source: EntityId,
+    pub(crate) target: EntityId,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct PreparedRelationEndpointKey {
+    pub(crate) entity_id: EntityId,
+}
+
+#[derive(Debug, Clone, Default)]
+pub(crate) struct PreparedRelationIntegrityScope {
+    pub(crate) planned_edges: Vec<PlannedRelationEdge>,
+    pub(crate) source_counts: HashMap<PreparedRelationEndpointKey, usize>,
+    pub(crate) target_counts: HashMap<PreparedRelationEndpointKey, usize>,
+    pub(crate) directed_pair_counts: HashMap<PreparedRelationPairKey, usize>,
+    pub(crate) normalized_pair_counts: HashMap<PreparedRelationPairKey, usize>,
+    pub(crate) deleted_entities: HashSet<EntityId>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct PreparedRelationIntegrityScopes(
+    Arc<HashMap<KindId, PreparedRelationIntegrityScope>>,
+);
+
+impl PreparedRelationIntegrityScopes {
+    pub(crate) fn new(scopes: HashMap<KindId, PreparedRelationIntegrityScope>) -> Self {
+        Self(Arc::new(scopes))
+    }
+
+    pub(crate) fn scope_for(
+        &self,
+        relation_kind_id: KindId,
+    ) -> Option<&PreparedRelationIntegrityScope> {
+        self.0.get(&relation_kind_id)
+    }
+
+    pub(crate) fn contains_relation_kind(&self, relation_kind_id: KindId) -> bool {
+        self.0.contains_key(&relation_kind_id)
+    }
+}
+
+impl PreparedRelationIntegrityScope {
+    pub(crate) fn is_empty(&self) -> bool {
+        self.planned_edges.is_empty()
+            && self.source_counts.is_empty()
+            && self.target_counts.is_empty()
+            && self.directed_pair_counts.is_empty()
+            && self.deleted_entities.is_empty()
+    }
+
+    fn increment_counts(&mut self, source: EntityId, target: EntityId) {
+        *self
+            .source_counts
+            .entry(PreparedRelationEndpointKey { entity_id: source })
+            .or_insert(0) += 1;
+        *self
+            .target_counts
+            .entry(PreparedRelationEndpointKey { entity_id: target })
+            .or_insert(0) += 1;
+        *self
+            .directed_pair_counts
+            .entry(PreparedRelationPairKey { source, target })
+            .or_insert(0) += 1;
+        let (left, right) = if target < source {
+            (target, source)
+        } else {
+            (source, target)
+        };
+        *self
+            .normalized_pair_counts
+            .entry(PreparedRelationPairKey {
+                source: left,
+                target: right,
+            })
+            .or_insert(0) += 1;
+    }
 }
 
 impl<'runtime> InvariantExecutionRequest<'runtime> {
@@ -52,6 +142,11 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
                     .intersection(consumed_groups)
             })
             .unwrap_or(consumed_groups);
+        let relation_integrity_scopes = prepare_relation_integrity_scopes(
+            merged_plan,
+            observation.partition_access(),
+            runtime.performance_access(),
+        );
         Self {
             observation,
             version_id,
@@ -62,6 +157,7 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
             applicable_groups,
             plan_contract,
             merged_plan,
+            relation_integrity_scopes,
         }
     }
 
@@ -101,6 +197,10 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
         self.runtime_policy.max_cost_at(self.checkpoint)
     }
 
+    pub(crate) fn relation_integrity_scopes(&self) -> Option<&PreparedRelationIntegrityScopes> {
+        self.relation_integrity_scopes.as_ref()
+    }
+
     pub(crate) fn should_execute_anything(&self) -> bool {
         self.merged_plan.is_none() || !self.applicable_groups.is_empty()
     }
@@ -120,17 +220,15 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
     }
 
     fn rule_matches_plan_scope(&self, rule: &InvariantRule) -> bool {
-        let Some(merged_plan) = self.merged_plan else {
+        let Some(_merged_plan) = self.merged_plan else {
             return true;
         };
         let Some(relation_kind_id) = relation_kind_scope(rule) else {
             return true;
         };
-        merged_plan_touches_relation_kind(
-            merged_plan,
-            self.observation.partition_access(),
-            relation_kind_id,
-        )
+        self.relation_integrity_scopes
+            .as_ref()
+            .is_some_and(|scopes| scopes.contains_relation_kind(relation_kind_id))
     }
 
     #[cfg(test)]
@@ -151,29 +249,137 @@ fn relation_kind_scope(rule: &InvariantRule) -> Option<KindId> {
     }
 }
 
-fn merged_plan_touches_relation_kind(
-    merged_plan: &MergedCommitPlan,
+fn prepare_relation_integrity_scopes(
+    merged_plan: Option<&MergedCommitPlan>,
     partitions: &dyn PartitionAccess,
-    relation_kind_id: KindId,
-) -> bool {
-    merged_plan.merged_intents.iter().any(|intent| match intent {
-        crate::transactions::data::MutationIntent::Create(
-            crate::transactions::data::CreateIntent::Relation(spec),
-        ) => spec.kind_id == relation_kind_id,
-        crate::transactions::data::MutationIntent::Create(
-            crate::transactions::data::CreateIntent::BulkRelations(spec),
-        ) => spec.kind_id == relation_kind_id,
-        crate::transactions::data::MutationIntent::Relation(
-            crate::transactions::data::RelationMutationIntent::Delete(spec),
-        ) => relation_kind_for_id(partitions, spec.relation_id) == Some(relation_kind_id),
-        crate::transactions::data::MutationIntent::Entity(
-            crate::transactions::data::EntityMutationIntent::Delete(spec),
-        ) => entity_has_adjacent_relation_kind(partitions, spec.entity_id, relation_kind_id),
-        crate::transactions::data::MutationIntent::Entity(
-            crate::transactions::data::EntityMutationIntent::Replace(spec),
-        ) => entity_has_adjacent_relation_kind(partitions, spec.entity_id, relation_kind_id),
-        _ => false,
-    })
+    performance: crate::performance::logic::PerformanceAccess<'_>,
+) -> Option<PreparedRelationIntegrityScopes> {
+    let merged_plan = merged_plan?;
+    let mut scopes = HashMap::<KindId, PreparedRelationIntegrityScope>::new();
+    let mut touched_entities = HashSet::new();
+    let mut deleted_entities = HashSet::new();
+    let mut deleted_relations = HashSet::new();
+
+    for intent in &merged_plan.merged_intents {
+        match intent {
+            crate::transactions::data::MutationIntent::Create(
+                crate::transactions::data::CreateIntent::Relation(spec),
+            ) => {
+                scopes
+                    .entry(spec.kind_id)
+                    .or_default()
+                    .planned_edges
+                    .push(PlannedRelationEdge {
+                        source: spec.source,
+                        target: spec.target,
+                    });
+                touched_entities.insert(spec.source);
+                touched_entities.insert(spec.target);
+            }
+            crate::transactions::data::MutationIntent::Create(
+                crate::transactions::data::CreateIntent::BulkRelations(spec),
+            ) => {
+                let scope = scopes.entry(spec.kind_id).or_default();
+                for (source, target) in &spec.endpoints {
+                    scope.planned_edges.push(PlannedRelationEdge {
+                        source: *source,
+                        target: *target,
+                    });
+                    touched_entities.insert(*source);
+                    touched_entities.insert(*target);
+                }
+            }
+            crate::transactions::data::MutationIntent::Relation(
+                crate::transactions::data::RelationMutationIntent::Delete(spec),
+            ) => {
+                deleted_relations.insert(spec.relation_id);
+                if let Some(kind_id) = relation_kind_for_id(partitions, spec.relation_id) {
+                    scopes.entry(kind_id).or_default();
+                }
+            }
+            crate::transactions::data::MutationIntent::Entity(
+                crate::transactions::data::EntityMutationIntent::Delete(spec),
+            ) => {
+                touched_entities.insert(spec.entity_id);
+                deleted_entities.insert(spec.entity_id);
+            }
+            crate::transactions::data::MutationIntent::Entity(
+                crate::transactions::data::EntityMutationIntent::Replace(spec),
+            ) => {
+                touched_entities.insert(spec.entity_id);
+                deleted_entities.insert(spec.entity_id);
+            }
+            _ => {}
+        }
+    }
+
+    let mut scanned_relations = HashSet::new();
+    for entity_id in touched_entities {
+        let Some(partition) = partitions.get_partition(entity_id.partition_id) else {
+            continue;
+        };
+        let slot = entity_id.local_slot.0 as usize;
+        let outgoing = partition
+            .adjacency
+            .get(slot)
+            .map(|set| set.as_slice())
+            .into_iter()
+            .flatten();
+        let incoming = partition
+            .reverse_adjacency
+            .get(slot)
+            .map(|set| set.as_slice())
+            .into_iter()
+            .flatten();
+        for relation_id in outgoing.chain(incoming).copied() {
+            if !scanned_relations.insert(relation_id) || deleted_relations.contains(&relation_id) {
+                continue;
+            }
+            let Some(relation_partition) = partitions.get_partition(relation_id.partition_id) else {
+                continue;
+            };
+            let Some(slot) = relation_partition.relation_arena.get(&relation_id) else {
+                continue;
+            };
+            let Some(kind_id) = slot.kind_id() else {
+                continue;
+            };
+            let Some(endpoints) = slot.extra().as_ref() else {
+                continue;
+            };
+            if slot.lifecycle()
+                != crate::storage::data::RecordLifecycleState::Live
+            {
+                continue;
+            }
+            let scope = scopes.entry(kind_id).or_default();
+            scope.increment_counts(endpoints.source, endpoints.target);
+            performance.count_relation_uniqueness_candidates(1);
+            if deleted_entities.contains(&endpoints.source) {
+                scope.deleted_entities.insert(endpoints.source);
+            }
+            if deleted_entities.contains(&endpoints.target) {
+                scope.deleted_entities.insert(endpoints.target);
+            }
+        }
+    }
+
+    for scope in scopes.values_mut() {
+        let planned_edges = std::mem::take(&mut scope.planned_edges);
+        for edge in planned_edges {
+            scope.increment_counts(edge.source, edge.target);
+            if deleted_entities.contains(&edge.source) {
+                scope.deleted_entities.insert(edge.source);
+            }
+            if deleted_entities.contains(&edge.target) {
+                scope.deleted_entities.insert(edge.target);
+            }
+            scope.planned_edges.push(edge);
+        }
+    }
+
+    scopes.retain(|_, scope| !scope.is_empty());
+    (!scopes.is_empty()).then(|| PreparedRelationIntegrityScopes::new(scopes))
 }
 
 fn relation_kind_for_id(
@@ -185,32 +391,6 @@ fn relation_kind_for_id(
         .relation_arena
         .get(&relation_id)
         .and_then(|slot| slot.kind_id())
-}
-
-fn entity_has_adjacent_relation_kind(
-    partitions: &dyn PartitionAccess,
-    entity_id: EntityId,
-    relation_kind_id: KindId,
-) -> bool {
-    let Some(partition) = partitions.get_partition(entity_id.partition_id) else {
-        return false;
-    };
-    let slot = entity_id.local_slot.0 as usize;
-    let outgoing = partition
-        .adjacency
-        .get(slot)
-        .map(|set| set.as_slice())
-        .into_iter()
-        .flatten();
-    let incoming = partition
-        .reverse_adjacency
-        .get(slot)
-        .map(|set| set.as_slice())
-        .into_iter()
-        .flatten();
-    outgoing.chain(incoming).any(|relation_id| {
-        relation_kind_for_id(partitions, *relation_id) == Some(relation_kind_id)
-    })
 }
 
 #[cfg(test)]

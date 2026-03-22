@@ -1,12 +1,12 @@
 use crate::data::trace::TraceSummary;
-use crate::diagnostics::policy::DiagnosticsPolicy;
+use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::facade::*;
 use crate::tests::support::{evaluate, version_ab, ASPECT_A, ASPECT_B};
 
 #[test]
 fn operational_profile_stays_bounded_under_snapshot_and_dependency_churn() {
     let mut graph = SignalGraph::new();
-    graph.set_diagnostics_profile(DiagnosticsProfile::Operational);
+    graph.set_diagnostics_profile(DiagnosticsTier::Operational);
     let source_a = graph.node().build();
     let source_b = graph.node().build();
     let dependent = graph.node().build();
@@ -47,8 +47,8 @@ fn operational_profile_stays_bounded_under_snapshot_and_dependency_churn() {
     }
 
     let diagnostics = graph.observe().diagnostics();
-    let policy = DiagnosticsPolicy::from_profile(DiagnosticsProfile::Operational);
-    assert!(diagnostics.recent_history().len() <= policy.history_limit);
+    let policy = SignalRuntimePolicy::for_tier(DiagnosticsTier::Operational);
+    assert!(diagnostics.recent_history().len() <= policy.retention_budget.history_limit);
     assert!(diagnostics.latest_failure().is_none());
     assert!(diagnostics.latest_rollback().is_none());
     assert!(diagnostics.latest_flow().is_some());
@@ -157,7 +157,7 @@ fn repeated_failure_and_rollback_loops_preserve_explanation_after_churn() {
         .build();
     runtime
         .graph_mut()
-        .set_diagnostics_profile(DiagnosticsProfile::Development);
+        .set_diagnostics_profile(DiagnosticsTier::Development);
     let source_a = runtime.graph_mut().node().build();
     let source_b = runtime.graph_mut().node().build();
     let dependent = runtime.graph_mut().node().build();
@@ -287,7 +287,7 @@ fn repeated_mixed_aspect_churn_keeps_frontier_grouping_bounded() {
 #[ignore = "stress coverage for repeated development-profile diagnostics waves"]
 fn stress_development_profile_repeated_waves_remains_semantically_stable() {
     let mut graph = SignalGraph::new();
-    graph.set_diagnostics_profile(DiagnosticsProfile::Development);
+    graph.set_diagnostics_profile(DiagnosticsTier::Development);
     let source = graph.node().output_identity().build();
     let dependents: Vec<_> = (0..64)
         .map(|_| graph.node().partitioned_output().build())
@@ -349,7 +349,7 @@ fn stress_development_profile_repeated_waves_remains_semantically_stable() {
 #[test]
 fn execution_history_prefers_most_recent_records_over_low_arena_indices() {
     let mut graph = SignalGraph::new();
-    graph.set_diagnostics_profile(DiagnosticsProfile::Development);
+    graph.set_diagnostics_profile(DiagnosticsTier::Development);
     let mut nodes = Vec::new();
     for _ in 0..96 {
         nodes.push(graph.node().build());
@@ -366,7 +366,7 @@ fn execution_history_prefers_most_recent_records_over_low_arena_indices() {
 
     let history = graph
         .observe()
-        .execution_history_summary(DiagnosticsProfile::Development);
+        .execution_history_summary(DiagnosticsTier::Development);
     let retained = history
         .nodes
         .iter()
@@ -382,3 +382,5 @@ fn execution_history_prefers_most_recent_records_over_low_arena_indices() {
         "history detail should not be dominated by stale low-index nodes when detail_limit is exceeded: {history:?}"
     );
 }
+
+

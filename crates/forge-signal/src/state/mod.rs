@@ -181,8 +181,8 @@ impl SignalSnapshotMeta {
 impl SnapshotArtifactRetentionPolicy {
     pub fn from_runtime_policy(policy: SignalRuntimePolicy) -> Self {
         Self {
-            explanation_retention: policy.explanation_retention,
-            provenance_retention: policy.provenance_retention,
+            explanation_retention: policy.retention_budget.explanation_retention,
+            provenance_retention: policy.retention_budget.provenance_retention,
         }
     }
 
@@ -235,3 +235,4 @@ impl SignalSnapshotV1 {
         self.meta.snapshot_id
     }
 }
+

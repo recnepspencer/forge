@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 
 use crate::data::graph::SignalGraph;
+use crate::data::handle::NodeId;
 use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
 use crate::diagnostics::compare::{
     explanations_semantically_equivalent, graphs_semantically_equivalent,
@@ -8,18 +9,25 @@ use crate::diagnostics::compare::{
     serial_parallel_reports_equivalent,
 };
 use crate::diagnostics::failure::{FailureSummary, RollbackDiagnostic};
+use crate::diagnostics::facts::ProvenanceFact;
 use crate::diagnostics::flow::FlowSummary;
 use crate::diagnostics::history::{
     inspect_execution, inspect_flow, inspect_graph, inspect_plan, inspect_report,
     ExecutionInspector, FlowInspector, GraphInspector, PlanInspector, ReportInspector,
 };
-use crate::diagnostics::profile::DiagnosticsProfile;
+use crate::diagnostics::policy::DiagnosticsAvailability;
+use crate::diagnostics::profile::DiagnosticsTier;
 use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
 use crate::logic::planner::{EvaluationPlan, ExecutionReport};
 use crate::logic::transaction::SignalRuntime;
+use crate::logic::explain::NodeExplanation;
 
 /// Public diagnostics facade over one committed signal graph.
 pub struct GraphDiagnostics<'a> {
+    graph: &'a SignalGraph,
+}
+
+pub struct GraphForensicDiagnostics<'a> {
     graph: &'a SignalGraph,
 }
 
@@ -28,11 +36,15 @@ impl<'a> GraphDiagnostics<'a> {
         Self { graph }
     }
 
-    pub fn summary(&self, profile: DiagnosticsProfile) -> GraphSummary {
+    pub fn forensic(&self) -> GraphForensicDiagnostics<'a> {
+        GraphForensicDiagnostics { graph: self.graph }
+    }
+
+    pub fn summary(&self, profile: DiagnosticsTier) -> GraphSummary {
         self.graph.observe().diagnostics_summary(profile)
     }
 
-    pub fn history(&self, profile: DiagnosticsProfile) -> ExecutionHistorySummary {
+    pub fn history(&self, profile: DiagnosticsTier) -> ExecutionHistorySummary {
         self.graph.observe().execution_history_summary(profile)
     }
 
@@ -128,6 +140,58 @@ impl<'a> GraphDiagnostics<'a> {
     }
 }
 
+impl<'a> GraphForensicDiagnostics<'a> {
+    pub fn retained_explanation_artifact(&self, node: NodeId) -> Option<NodeExplanation> {
+        self.graph.observe().materialize().retained_explanation_artifact(node)
+    }
+
+    pub fn reconstruct_explanation_artifact(
+        &self,
+        node: NodeId,
+    ) -> Result<NodeExplanation, crate::data::error::SignalError> {
+        self.graph
+            .observe()
+            .materialize()
+            .reconstruct_explanation_artifact(node)
+    }
+
+    pub fn materialize_explanation_artifact(
+        &self,
+        node: NodeId,
+    ) -> Result<(Option<NodeExplanation>, DiagnosticsAvailability), crate::data::error::SignalError>
+    {
+        self.graph
+            .observe()
+            .materialize()
+            .materialize_explanation_artifact(node)
+    }
+
+    pub fn retained_provenance_artifact(&self, node: NodeId) -> Option<ProvenanceFact> {
+        self.graph.observe().materialize().retained_provenance_artifact(node)
+    }
+
+    pub fn reconstruct_provenance_artifact(
+        &self,
+        node: NodeId,
+    ) -> Result<ProvenanceFact, crate::data::error::SignalError> {
+        self.graph
+            .observe()
+            .materialize()
+            .reconstruct_provenance_artifact(node)
+    }
+
+    pub fn materialize_provenance_artifact(
+        &self,
+        node: NodeId,
+    ) -> Result<(Option<ProvenanceFact>, DiagnosticsAvailability), crate::data::error::SignalError>
+    {
+        self.graph
+            .observe()
+            .materialize()
+            .materialize_provenance_artifact(node)
+    }
+}
+
 pub type RuntimeDiagnostics<'a> = GraphDiagnostics<'a>;
 
 pub fn diagnostics_for_graph(graph: &SignalGraph) -> GraphDiagnostics<'_> {
@@ -144,3 +208,4 @@ where
 {
     GraphDiagnostics::new(runtime.graph())
 }
+

@@ -34,35 +34,29 @@ fn fintech_retained_and_reconstructed_artifacts_agree_across_runtime_policies() 
 
     let retained_explanation = retained_world
         .runtime
-        .observe()
-        .retained_explanation_artifact(retained_node)
+        .observe().materialize().retained_explanation_artifact(retained_node)
         .expect("development policy should retain explanations eagerly");
     let retained_provenance = retained_world
         .runtime
-        .observe()
-        .retained_provenance_artifact(retained_node)
+        .observe().materialize().retained_provenance_artifact(retained_node)
         .expect("development policy should retain provenance eagerly");
 
     assert!(reconstructed_world
         .runtime
-        .observe()
-        .retained_explanation_artifact(reconstructed_node)
+        .observe().materialize().retained_explanation_artifact(reconstructed_node)
         .is_none());
     assert!(reconstructed_world
         .runtime
-        .observe()
-        .retained_provenance_artifact(reconstructed_node)
+        .observe().materialize().retained_provenance_artifact(reconstructed_node)
         .is_none());
 
     let reconstructed_explanation = reconstructed_world
         .runtime
-        .observe()
-        .reconstruct_explanation_artifact(reconstructed_node)
+        .observe().materialize().reconstruct_explanation_artifact(reconstructed_node)
         .unwrap();
     let reconstructed_provenance = reconstructed_world
         .runtime
-        .observe()
-        .reconstruct_provenance_artifact(reconstructed_node)
+        .observe().materialize().reconstruct_provenance_artifact(reconstructed_node)
         .unwrap();
 
     assert_eq!(retained_explanation.node, reconstructed_explanation.node);
@@ -79,3 +73,4 @@ fn fintech_retained_and_reconstructed_artifacts_agree_across_runtime_policies() 
         .iter()
         .any(|vertex| vertex.node == reconstructed_node));
 }
+

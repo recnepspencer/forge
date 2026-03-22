@@ -6,7 +6,10 @@ mod transaction;
 
 pub use computation::{ComputationSpec, DefinedComputation, DefinedKeyedComputation};
 pub use config::SignalRuntimeConfig;
-pub use state::{CheckpointRecord, JournalSegment, ReconstructabilityRecord, RuntimeObserver, SignalRuntime, SignalRuntimeBuilder};
+pub use state::{
+    CheckpointRecord, JournalSegment, ReconstructabilityRecord, RuntimeMaterializer,
+    RuntimeObserver, SignalRuntime, SignalRuntimeBuilder,
+};
 pub use state::{
     ArtifactMergeAction, ArtifactMergeComparable, BranchConflictResolutionPlan, BranchMergeBase,
     BranchMergeConflictEvidence, BranchMergeConflictKind, BranchMergeConflictRecord,

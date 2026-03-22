@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::diagnostics::epochs::EventEpochSummary;
-use crate::diagnostics::profile::DiagnosticsProfile;
+use crate::diagnostics::profile::DiagnosticsTier;
 use crate::logic::planner::{ExecutionRecordId, PlanSummary, StageExecutor};
 
 /// High-level phase where an execution failure occurred.
@@ -45,7 +45,7 @@ pub struct RollbackDiagnostic {
 /// Compact failure summary suitable for comparison and persistence.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FailureSummary {
-    pub profile: DiagnosticsProfile,
+    pub profile: DiagnosticsTier,
     pub phase: ExecutionFailurePhase,
     pub stage_index: Option<u32>,
     pub node: Option<NodeId>,
@@ -100,7 +100,7 @@ impl ExecutionFailureContext {
     pub fn summarize(
         &self,
         rollback: Option<&RollbackDiagnostic>,
-        profile: DiagnosticsProfile,
+        profile: DiagnosticsTier,
     ) -> FailureSummary {
         FailureSummary {
             profile,
@@ -138,3 +138,4 @@ impl RollbackDiagnostic {
         }
     }
 }
+

@@ -31,6 +31,9 @@ pub enum SchemaRegistryErrorClass {
         kind_id: KindId,
         detail: String,
     },
+    InconsistentSchemaBasis {
+        detail: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -87,6 +90,9 @@ impl SchemaRegistryError {
                     kind_id
                 )
             }
+            SchemaRegistryErrorClass::InconsistentSchemaBasis { detail } => {
+                format!("schema registry has inconsistent authoritative basis: {detail}")
+            }
         };
         Self {
             class,
@@ -137,6 +143,12 @@ impl SchemaRegistryError {
     ) -> Self {
         Self::new(SchemaRegistryErrorClass::InvalidRelationIntegrityDeclaration {
             kind_id,
+            detail: detail.into(),
+        })
+    }
+
+    pub fn inconsistent_schema_basis(detail: impl Into<String>) -> Self {
+        Self::new(SchemaRegistryErrorClass::InconsistentSchemaBasis {
             detail: detail.into(),
         })
     }

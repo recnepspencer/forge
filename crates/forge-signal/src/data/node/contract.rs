@@ -1,3 +1,5 @@
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 
 use crate::data::aspect::AspectMask;
@@ -15,6 +17,16 @@ pub enum ContextRequirement {
     None,
     DomainContext,
     RelationalSnapshot,
+}
+
+impl fmt::Display for ContextRequirement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::None => write!(f, "None"),
+            Self::DomainContext => write!(f, "DomainContext"),
+            Self::RelationalSnapshot => write!(f, "RelationalSnapshot"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

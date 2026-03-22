@@ -103,7 +103,7 @@ where
         request: &BranchMergeRequest,
     ) -> Result<BranchMergePlan, SignalError> {
         let source_state_owned = if request.source_branch.id == self.graph.current_branch().id {
-            self.capture_branch_state()
+            self.capture_full_branch_state()
         } else {
             self.branches
                 .branch_state(request.source_branch.id)
@@ -116,7 +116,7 @@ where
                 })?
         };
         let target_state_owned = if request.target_branch.id == self.graph.current_branch().id {
-            Some(self.capture_branch_state())
+            Some(self.capture_full_branch_state())
         } else {
             None
         };
@@ -139,13 +139,15 @@ where
         let merge_base_snapshot = source_state.ancestry.forked_from_snapshot_id;
         let mut node_map = MergeNodeMap::default();
         let source_journal = source_state.mutation_ledger.structural_merge_journal();
-        let mut source_nodes = source_journal.candidate_nodes();
-        let candidate_scope = if source_nodes.is_empty()
-            && !source_state.mutation_ledger.boundary_established
-        {
-            source_nodes = source_state.authority.graph.live_node_ids();
-            source_nodes.sort_by_key(|node| (node.index(), node.generation()));
-            MergeCandidateScope::WholeLiveAuthoritySurface
+        let source_nodes = source_journal.candidate_nodes();
+        let candidate_scope = if source_nodes.is_empty() {
+            if !source_state.mutation_ledger.boundary_established {
+                return Err(SignalError::branch_merge_failed(
+                    BranchMergeFailureKind::UnsupportedMergeStrategy,
+                    "branch merge requires an established mutation-journal boundary; whole-live branch scans are no longer admitted",
+                ));
+            }
+            MergeCandidateScope::CandidateNodeSet(Vec::new())
         } else {
             MergeCandidateScope::CandidateNodeSet(source_nodes.clone())
         };
@@ -416,7 +418,7 @@ where
         plan: &BranchMergePlan,
     ) -> Result<BranchMergeExecutionSummary, SignalError> {
         let source_state = if request.source_branch.id == self.graph.current_branch().id {
-            self.capture_branch_state()
+            self.capture_full_branch_state()
         } else {
             self.branches
                 .branch_state(request.source_branch.id)
@@ -429,7 +431,7 @@ where
                 })?
         };
         let mut target_state = if request.target_branch.id == self.graph.current_branch().id {
-            self.capture_branch_state()
+            self.capture_full_branch_state()
         } else {
             self.branches
                 .branch_state(request.target_branch.id)
@@ -721,7 +723,7 @@ where
         self.branches
             .insert_branch(request.target_branch.id, target_state.clone());
         if request.source_branch.id == self.graph.current_branch().id {
-            let mut updated_source_state = self.capture_branch_state();
+            let mut updated_source_state = self.capture_full_branch_state();
             updated_source_state
                 .mutation_ledger
                 .clear_merged_nodes(merged_source_nodes.iter().copied(), plan.source_snapshot_id);
@@ -739,7 +741,7 @@ where
         }
         self.branches.insert_snapshot(
             merged_snapshot,
-            target_state,
+            crate::logic::transaction::runtime::state::branching::SnapshotBranchState::from_branch_state(&target_state),
         );
         let branch_catalog = if request.target_branch.id == self.graph.current_branch().id {
             self.graph.diagnostics_state().branch_catalog().clone()

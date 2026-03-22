@@ -48,8 +48,14 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
             .map(|telemetry| telemetry.checkpoint.checkpoint_size)
             .unwrap_or(0)
     );
-    assert_eq!(feature_record.checkpoint.journal_replay_span, 0);
-    assert!(feature_record.journal.is_none());
+    let feature_journal = feature_record
+        .journal
+        .as_ref()
+        .expect("runtime snapshot should carry a bounded retained replay journal");
+    assert_eq!(
+        feature_record.checkpoint.journal_replay_span,
+        feature_journal.replay_event_count as u64
+    );
 
     runtime.switch_branch(main).unwrap();
     let main_node = keyed.node(&mut runtime);
@@ -84,9 +90,13 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
     assert_eq!(main_compute_calls.load(Ordering::Relaxed), 1);
     let explanation = runtime.observe().explain(feature_node).unwrap();
     assert_eq!(
-        explanation.reuse_basis,
-        Some(ReuseBasis::strategy(
-            crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse,
+        explanation.reuse_basis.map(|basis| (
+            basis.strategy,
+            basis.source,
+            basis.crossing,
+        )),
+        Some((
+            Some(crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse),
             ReuseSource::MemoizedArtifact,
             ReuseCrossing::None,
         ))

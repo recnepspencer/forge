@@ -3,7 +3,13 @@ use super::support::{
     expected_patch_suffix_after_checkpoint, run_seeded_cdc_scenario,
     sampled_checkpoints_from_patches,
 };
+use crate::facade::diagnostics::DiagnosticCode;
 use crate::facade::publication::{SubscriberRecoverySource, SubscriberResumeRequest};
+use crate::facade::schema::{
+    HistoricalInterpretationSensitivity, ProposedSchemaTransition, SchemaDiffAtom,
+    SchemaDiffDetail, SchemaElementKind, SchemaElementRef, SchemaId, SchemaPublicationImpact,
+    SchemaReconciliationPolicy, SchemaStratum, SchemaSubscriberImpact, SchemaVersionId,
+};
 use crate::tests::harness::certify::assertions::{
     assert_multi_subscriber_converges, assert_visible_truth_matches, assert_window_matrix_matches,
 };
@@ -22,6 +28,36 @@ use crate::tests::harness::scenario::runner::{
 use crate::tests::support::*;
 use proptest::collection::vec;
 use proptest::prelude::*;
+
+fn schema_transition_for_subscriber_impact(
+    target_schema_version_id: SchemaVersionId,
+    subscriber_impact: SchemaSubscriberImpact,
+) -> ProposedSchemaTransition {
+    ProposedSchemaTransition {
+        source_schema_id: SchemaId("test".to_string()),
+        source_schema_version_id: SchemaVersionId(target_schema_version_id.0 - 1),
+        target_schema_id: SchemaId("test".to_string()),
+        target_schema_version_id,
+        diff_atoms: vec![SchemaDiffAtom::new(
+            SchemaElementRef::new(
+                SchemaElementKind::Field,
+                SchemaId("test".to_string()),
+                target_schema_version_id,
+                Some(KindId(1)),
+                "tag",
+            ),
+            vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
+            SchemaPublicationImpact::ObservableSurfaceChanged,
+            subscriber_impact,
+            HistoricalInterpretationSensitivity::NotSensitive,
+            SchemaDiffDetail::AddedField {
+                field_name: "tag".into(),
+                required: false,
+                default_expression: Some("null".into()),
+            },
+        )],
+    }
+}
 
 #[test]
 fn cdc_certification_snapshot_pinning_is_neutral_under_rewrite_churn() {
@@ -328,6 +364,54 @@ fn cdc_certification_durable_recovery_matches_head_and_midstream_consumers() {
         })
         .unwrap();
     assert_eq!(durable_mid_stitched, recovered_patch_batch.patches);
+}
+
+#[test]
+fn cdc_certification_schema_boundary_continuation_is_explained_and_counted() {
+    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+    let _ = create_entity_outcome(&mut runtime, "anchor");
+
+    runtime.config.schema.registry = AspectSchemaFixture {
+        schema_version_id: SchemaVersionId(2),
+        ..AspectSchemaFixture::default()
+    }
+    .build_registry();
+    let mut txn = runtime.begin_transaction(
+        TransactionOptions::default().with_schema_transition(
+            schema_transition_for_subscriber_impact(
+                SchemaVersionId(2),
+                SchemaSubscriberImpact::ConsumableSurfaceChanged,
+            ),
+            Some(SchemaReconciliationPolicy::PreserveInformation),
+        ),
+    );
+    txn.push_batch(batch_create("after-boundary"));
+    txn.commit().unwrap();
+
+    runtime.performance_access().reset_counters();
+    let batch = runtime
+        .publication_access()
+        .read_subscriber_stream(SubscriberResumeRequest::from_head(16))
+        .unwrap();
+    let counters = runtime.performance_access().counters();
+
+    assert_eq!(
+        batch.continuation_outcome,
+        crate::facade::schema::SchemaContinuationClassification::ContinueWithVisibleBridge
+    );
+    assert!(batch
+        .diagnostics
+        .iter()
+        .flat_map(|artifact| artifact.entries.iter())
+        .any(|entry| entry.code == DiagnosticCode::SubscriberContractEvaluated));
+    assert!(batch
+        .diagnostics
+        .iter()
+        .flat_map(|artifact| artifact.entries.iter())
+        .any(|entry| entry.code == DiagnosticCode::SubscriberBoundaryEvaluated));
+    assert_eq!(counters.subscriber_resume_evaluations, 2);
+    assert_eq!(counters.subscriber_continue_visible_bridge_count, 2);
+    assert_eq!(counters.schema_normalized_descriptor_compositions, 2);
 }
 
 #[test]

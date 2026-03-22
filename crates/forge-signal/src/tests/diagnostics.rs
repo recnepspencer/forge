@@ -98,10 +98,10 @@ fn graph_diagnostics_summary_is_deterministic_and_serializable() {
 
     let left = graph
         .observe()
-        .diagnostics_summary(DiagnosticsProfile::Development);
+        .diagnostics_summary(DiagnosticsTier::Development);
     let right = graph
         .observe()
-        .diagnostics_summary(DiagnosticsProfile::Development);
+        .diagnostics_summary(DiagnosticsTier::Development);
     assert_eq!(left, right);
     assert!(graphs_semantically_equivalent(&left, &right));
 
@@ -122,8 +122,8 @@ fn diagnostics_entrypoint_exposes_one_discoverable_surface() {
     graph.execute_prepared_plan(&plan, &(), &compute).unwrap();
 
     let diagnostics = graph.observe().diagnostics();
-    let summary = diagnostics.summary(DiagnosticsProfile::Operational);
-    let history = diagnostics.history(DiagnosticsProfile::Operational);
+    let summary = diagnostics.summary(DiagnosticsTier::Operational);
+    let history = diagnostics.history(DiagnosticsTier::Operational);
     let latest_flow = diagnostics.latest_flow();
     let graph_inspector = diagnostics.inspect_graph();
     let execution_inspector = diagnostics.inspect_execution();
@@ -154,7 +154,7 @@ fn diagnostics_plan_summary_reports_contract_pruning() {
     let plan = graph
         .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
         .unwrap();
-    let summary = plan.diagnostics_summary(DiagnosticsProfile::Development);
+    let summary = plan.diagnostics_summary(DiagnosticsTier::Development);
 
     assert_eq!(summary.task_count, 0);
     assert_eq!(summary.contract_pruned_count, 1);
@@ -172,7 +172,7 @@ fn explanation_summary_includes_contract_metadata() {
         .build();
 
     let explanation = graph.observe().explain(node).unwrap();
-    let summary = explanation.diagnostics_summary(DiagnosticsProfile::Development);
+    let summary = explanation.diagnostics_summary(DiagnosticsTier::Development);
 
     assert_eq!(
         summary.contract_reads_mask,
@@ -183,7 +183,7 @@ fn explanation_summary_includes_contract_metadata() {
         AspectMask::from([ASPECT_B]).bits() as u128
     );
     assert_eq!(summary.contract_partition_scope_count, 1);
-    assert_eq!(summary.required_context, "DomainContext");
+    assert_eq!(summary.required_context, ContextRequirement::DomainContext);
 }
 
 #[test]
@@ -203,8 +203,8 @@ fn graph_diff_detects_state_and_structure_mismatch() {
     evaluate(&mut graph_b, dependent, &mut compute).unwrap();
     mark_dirty(&mut graph_b, source, ASPECT_A).unwrap();
 
-    let left = graph_a.diagnostics_summary(DiagnosticsProfile::Operational);
-    let right = graph_b.diagnostics_summary(DiagnosticsProfile::Operational);
+    let left = graph_a.diagnostics_summary(DiagnosticsTier::Operational);
+    let right = graph_b.diagnostics_summary(DiagnosticsTier::Operational);
     let diff = compare_graphs(&left, &right);
     assert!(!diff.is_empty());
     assert!(!graphs_semantically_equivalent(&left, &right));
@@ -295,7 +295,7 @@ fn flow_and_failure_summaries_are_structured_and_diffable() {
     let explanation = graph.observe().explain(node).unwrap();
 
     let flow = FlowSummary::new(
-        DiagnosticsProfile::Development,
+        DiagnosticsTier::Development,
         ChangeInputSummary::new(
             vec![node],
             vec![ASPECT_A],
@@ -303,13 +303,13 @@ fn flow_and_failure_summaries_are_structured_and_diffable() {
             Some("host-change".to_string()),
         ),
         InvalidationSummary::new(1, 0, 0, 0, 0),
-        PlanningSummary::from_plan(&plan, DiagnosticsProfile::Development),
-        PrecomputeSummary::from_report(&report, DiagnosticsProfile::Development),
-        ApplySummary::from_report(&report, DiagnosticsProfile::Development),
+        PlanningSummary::from_plan(&plan, DiagnosticsTier::Development),
+        PrecomputeSummary::from_report(&report, DiagnosticsTier::Development),
+        ApplySummary::from_report(&report, DiagnosticsTier::Development),
         Vec::new(),
         Vec::new(),
         None,
-        Some(explanation.diagnostics_summary(DiagnosticsProfile::Development)),
+        Some(explanation.diagnostics_summary(DiagnosticsTier::Development)),
     );
     let flow_clone = flow.clone();
     assert!(compare_flows(&flow, &flow_clone).is_empty());
@@ -332,8 +332,8 @@ fn flow_and_failure_summaries_are_structured_and_diffable() {
         Some("rewound staged changes".to_string()),
         Vec::new(),
     );
-    let failure_summary = failure.summarize(Some(&rollback), DiagnosticsProfile::Forensic);
-    let failure_summary_2 = failure.summarize(None, DiagnosticsProfile::Forensic);
+    let failure_summary = failure.summarize(Some(&rollback), DiagnosticsTier::Forensic);
+    let failure_summary_2 = failure.summarize(None, DiagnosticsTier::Forensic);
     assert!(!compare_failures(&failure_summary, &failure_summary_2).is_empty());
     assert!(render_failure_summary(&failure_summary).contains("FailureSummary"));
 }
@@ -415,7 +415,7 @@ fn diagnostics_profiles_control_retention_bounds() {
     let node = graph.node().build();
     let compute = |ctx: &mut EvaluationContext<'_, ()>| Ok(ctx.finish(version_ab(1, 0)));
 
-    graph.set_diagnostics_profile(DiagnosticsProfile::Operational);
+    graph.set_diagnostics_profile(DiagnosticsTier::Operational);
     for _ in 0..8 {
         mark_dirty(&mut graph, node, ASPECT_A).unwrap();
         let plan = graph
@@ -425,7 +425,7 @@ fn diagnostics_profiles_control_retention_bounds() {
     }
     assert!(graph.observe().recent_execution_history_diagnostics().len() <= 4);
 
-    graph.set_diagnostics_profile(DiagnosticsProfile::Forensic);
+    graph.set_diagnostics_profile(DiagnosticsTier::Forensic);
     for _ in 0..8 {
         mark_dirty(&mut graph, node, ASPECT_A).unwrap();
         let plan = graph
@@ -440,7 +440,7 @@ fn diagnostics_profiles_control_retention_bounds() {
 fn operational_profile_repeated_waves_stay_bounded_and_shallow() {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
-    graph.set_diagnostics_profile(DiagnosticsProfile::Operational);
+    graph.set_diagnostics_profile(DiagnosticsTier::Operational);
     let compute = |ctx: &mut EvaluationContext<'_, ()>| Ok(ctx.finish(version_ab(1, 0)));
 
     for _ in 0..100 {
@@ -453,8 +453,8 @@ fn operational_profile_repeated_waves_stay_bounded_and_shallow() {
 
     let diagnostics = graph.observe().diagnostics();
     let history = diagnostics.recent_history();
-    let policy = DiagnosticsPolicy::from_profile(DiagnosticsProfile::Operational);
-    assert!(history.len() <= policy.history_limit);
+    let policy = SignalRuntimePolicy::for_tier(DiagnosticsTier::Operational);
+    assert!(history.len() <= policy.retention_budget.history_limit);
     assert!(history.iter().all(|summary| summary.nodes.is_empty()));
     assert!(diagnostics.latest_failure().is_none());
 }
@@ -504,7 +504,7 @@ fn repeated_failure_capture_stays_current_and_bounded() {
         .build();
     runtime
         .graph_mut()
-        .set_diagnostics_profile(DiagnosticsProfile::Development);
+        .set_diagnostics_profile(DiagnosticsTier::Development);
     let node = runtime.graph_mut().node().build();
     let mut runtime_ctx = ();
 
@@ -535,7 +535,7 @@ fn repeated_failure_capture_stays_current_and_bounded() {
     assert!(failure.message.contains("cycle 99"));
     assert!(
         diagnostics.recent_history().len()
-            <= DiagnosticsPolicy::from_profile(DiagnosticsProfile::Development).history_limit
+            <= SignalRuntimePolicy::for_tier(DiagnosticsTier::Development).retention_budget.history_limit
     );
 }
 
@@ -546,7 +546,7 @@ fn repeated_rollbacks_keep_latest_rollback_current_and_bounded() {
         .build();
     runtime
         .graph_mut()
-        .set_diagnostics_profile(DiagnosticsProfile::Development);
+        .set_diagnostics_profile(DiagnosticsTier::Development);
     let node = runtime.graph_mut().node().build();
     let mut runtime_ctx = ();
 
@@ -570,7 +570,7 @@ fn repeated_rollbacks_keep_latest_rollback_current_and_bounded() {
         .contains("explicit rollback"));
     assert!(
         diagnostics.recent_history().len()
-            <= DiagnosticsPolicy::from_profile(DiagnosticsProfile::Development).history_limit
+            <= SignalRuntimePolicy::for_tier(DiagnosticsTier::Development).retention_budget.history_limit
     );
 }
 
@@ -666,10 +666,10 @@ fn history_and_explanation_summaries_are_deterministic() {
 
     let history_a = graph
         .observe()
-        .execution_history_summary(DiagnosticsProfile::Forensic);
+        .execution_history_summary(DiagnosticsTier::Forensic);
     let history_b = graph
         .observe()
-        .execution_history_summary(DiagnosticsProfile::Forensic);
+        .execution_history_summary(DiagnosticsTier::Forensic);
     assert!(compare_execution_history(&history_a, &history_b).is_empty());
     assert!(repeat_run_summaries_equal(&[
         history_a.clone(),
@@ -681,12 +681,12 @@ fn history_and_explanation_summaries_are_deterministic() {
         .observe()
         .explain(node)
         .unwrap()
-        .diagnostics_summary(DiagnosticsProfile::Development);
+        .diagnostics_summary(DiagnosticsTier::Development);
     let explanation_b = graph
         .observe()
         .explain(node)
         .unwrap()
-        .diagnostics_summary(DiagnosticsProfile::Development);
+        .diagnostics_summary(DiagnosticsTier::Development);
     assert!(compare_explanations(&explanation_a, &explanation_b).is_empty());
     assert!(explanations_semantically_equivalent(
         &explanation_a,
@@ -699,6 +699,7 @@ fn history_and_explanation_summaries_are_deterministic() {
 fn diagnostics_history_and_replay_preserve_typed_advanced_reuse_origins() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new())
         .with_kernel_defaults()
+        .runtime_policy(SignalRuntimePolicy::kernel())
         .build();
     let compute_calls = AtomicU32::new(0);
     let projection = runtime
@@ -767,18 +768,18 @@ fn diagnostics_history_and_replay_preserve_typed_advanced_reuse_origins() {
 
     let history = runtime
         .observe()
-        .execution_history_summary(DiagnosticsProfile::Development);
+        .execution_history_summary(DiagnosticsTier::Development);
     assert_eq!(
         history
             .reuse_origin_counts
-            .get("CrossIdentityPersistentReuse")
+            .get(&ReuseOrigin::CrossIdentityPersistentReuse)
             .copied(),
         Some(1)
     );
     assert_eq!(
         history
             .reuse_origin_counts
-            .get("PartialArtifactSplice")
+            .get(&ReuseOrigin::PartialArtifactSplice)
             .copied(),
         Some(1)
     );
@@ -795,14 +796,14 @@ fn diagnostics_history_and_replay_preserve_typed_advanced_reuse_origins() {
     assert_eq!(
         latest
             .reuse_origin_counts
-            .get("CrossIdentityPersistentReuse")
+            .get(&ReuseOrigin::CrossIdentityPersistentReuse)
             .copied(),
         Some(1)
     );
     assert_eq!(
         latest
             .reuse_origin_counts
-            .get("PartialArtifactSplice")
+            .get(&ReuseOrigin::PartialArtifactSplice)
             .copied(),
         Some(1)
     );
@@ -826,7 +827,7 @@ fn rendered_execution_report_summary_names_advanced_reuse_families() {
     let _ = &mut report;
 
     let summary = ExecutionReportSummary {
-        profile: DiagnosticsProfile::Development,
+        profile: DiagnosticsTier::Development,
         stage_count: 1,
         task_count: 4,
         tasks_executed: 4,
@@ -841,21 +842,85 @@ fn rendered_execution_report_summary_names_advanced_reuse_families() {
         dependency_capture_updates: 0,
         semantic_segment_count: 4,
         task_outcome_counts: [
-            ("MemoizedReuse".to_string(), 1),
-            ("SnapshotRestoreReuse".to_string(), 1),
-            ("CrossIdentityPersistentReuse".to_string(), 1),
-            ("PartialArtifactSplice".to_string(), 1),
+            (crate::logic::planner::TaskExecutionOutcome::MemoizedReuse, 1),
+            (crate::logic::planner::TaskExecutionOutcome::SnapshotRestoreReuse, 1),
+            (
+                crate::logic::planner::TaskExecutionOutcome::CrossIdentityPersistentReuse,
+                1,
+            ),
+            (
+                crate::logic::planner::TaskExecutionOutcome::PartialArtifactSplice,
+                1,
+            ),
         ]
         .into_iter()
         .collect(),
-        stage_outcome_counts: [("CompletedSerial".to_string(), 1)].into_iter().collect(),
+        stage_outcome_counts: [
+            (crate::logic::planner::StageExecutionOutcome::CompletedSerial, 1),
+        ]
+        .into_iter()
+        .collect(),
     };
 
     let rendered = render_execution_report_summary(&summary);
     assert!(rendered.contains("memoized=1"));
+    assert!(rendered.contains("advanced_reuse=["));
     assert!(rendered.contains("snapshot_restore=1"));
     assert!(rendered.contains("cross_identity=1"));
     assert!(rendered.contains("partial_splice=1"));
+}
+
+#[test]
+fn rendered_execution_history_summary_surfaces_correspondence_and_splice_detail() {
+    let summary = ExecutionHistorySummary {
+        profile: DiagnosticsTier::Development,
+        traced_node_count: 2,
+        execution_record_count: 2,
+        latest_execution_record_id: Some(9),
+        reuse_origin_counts: [
+            (ReuseOrigin::CrossIdentityPersistentReuse, 1),
+            (ReuseOrigin::PartialArtifactSplice, 1),
+        ]
+        .into_iter()
+        .collect(),
+        nodes: vec![
+            ExecutionHistoryNodeSummary {
+                node: NodeId::new(1, 0),
+                execution_record_id: Some(8),
+                semantic_segment_id: Some(1),
+                output_change: Some(OutputChange::Refreshed),
+                memoized_origin: None,
+                reuse_basis: None,
+                reuse_origin: Some(ReuseOrigin::CrossIdentityPersistentReuse),
+                persistent_correspondence_kind: Some(
+                    crate::data::reuse::PersistentCorrespondenceKind::LineageBackedMapping,
+                ),
+                composition_region_count: 0,
+                reuse_certification_proof_count: 1,
+                changed_partition_count: 0,
+                causality_kind: None,
+            },
+            ExecutionHistoryNodeSummary {
+                node: NodeId::new(2, 0),
+                execution_record_id: Some(9),
+                semantic_segment_id: Some(2),
+                output_change: Some(OutputChange::Refreshed),
+                memoized_origin: None,
+                reuse_basis: None,
+                reuse_origin: Some(ReuseOrigin::PartialArtifactSplice),
+                persistent_correspondence_kind: None,
+                composition_region_count: 3,
+                reuse_certification_proof_count: 1,
+                changed_partition_count: 2,
+                causality_kind: None,
+            },
+        ],
+    };
+
+    let rendered = render_execution_history_summary(&summary);
+    assert!(rendered.contains("LineageBackedMapping"));
+    assert!(rendered.contains("partial_splice_nodes=1"));
+    assert!(rendered.contains("partial_splice_regions=3"));
 }
 
 #[cfg(feature = "parallel")]
@@ -921,8 +986,8 @@ fn serial_and_parallel_reports_are_semantically_equivalent() {
         )
         .unwrap();
 
-    let summary_serial = report_serial.diagnostics_summary(DiagnosticsProfile::Development);
-    let summary_parallel = report_parallel.diagnostics_summary(DiagnosticsProfile::Development);
+    let summary_serial = report_serial.diagnostics_summary(DiagnosticsTier::Development);
+    let summary_parallel = report_parallel.diagnostics_summary(DiagnosticsTier::Development);
     assert!(serial_parallel_reports_equivalent(
         &summary_serial,
         &summary_parallel
@@ -1007,8 +1072,8 @@ fn repeated_serial_parallel_lifecycle_parity_stays_stable() {
             .unwrap();
 
         assert!(serial_parallel_reports_equivalent(
-            &report_serial.diagnostics_summary(DiagnosticsProfile::Development),
-            &report_parallel.diagnostics_summary(DiagnosticsProfile::Development),
+            &report_serial.diagnostics_summary(DiagnosticsTier::Development),
+            &report_parallel.diagnostics_summary(DiagnosticsTier::Development),
         ));
         let serial_flow = graph_serial.observe().latest_flow_diagnostics().unwrap();
         let parallel_flow = graph_parallel.observe().latest_flow_diagnostics().unwrap();
@@ -1049,7 +1114,7 @@ fn repeated_memoized_execution_retains_bounded_diagnostics() {
         .build();
     runtime
         .graph_mut()
-        .set_diagnostics_profile(DiagnosticsProfile::Operational);
+        .set_diagnostics_profile(DiagnosticsTier::Operational);
     let family = define_keyed_computation(&mut runtime, "projection", ());
     let keyed = family.keyed("bulkhead");
     let node = keyed.node(&mut runtime);
@@ -1076,7 +1141,7 @@ fn repeated_memoized_execution_retains_bounded_diagnostics() {
     let diagnostics = runtime.observe().diagnostics();
     assert!(
         diagnostics.recent_history().len()
-            <= DiagnosticsPolicy::from_profile(DiagnosticsProfile::Operational).history_limit
+            <= SignalRuntimePolicy::for_tier(DiagnosticsTier::Operational).retention_budget.history_limit
     );
     assert!(diagnostics
         .recent_history()
@@ -1088,7 +1153,7 @@ fn repeated_memoized_execution_retains_bounded_diagnostics() {
 #[test]
 fn repeated_partition_heavy_invalidation_retains_bounded_diagnostics() {
     let mut graph = SignalGraph::new();
-    graph.set_diagnostics_profile(DiagnosticsProfile::Development);
+    graph.set_diagnostics_profile(DiagnosticsTier::Development);
     let source = graph.node().partitioned_output().build();
     let wing = graph.node().build();
     let tail = graph.node().build();
@@ -1150,7 +1215,7 @@ fn repeated_partition_heavy_invalidation_retains_bounded_diagnostics() {
     );
     assert!(
         diagnostics.recent_history().len()
-            <= DiagnosticsPolicy::from_profile(DiagnosticsProfile::Development).history_limit
+            <= SignalRuntimePolicy::for_tier(DiagnosticsTier::Development).retention_budget.history_limit
     );
 }
 
@@ -1344,3 +1409,5 @@ fn runtime_policy_history_budget_overrides_are_enforced() {
         "detail limit override should trim retained node detail"
     );
 }
+
+

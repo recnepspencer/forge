@@ -1,11 +1,18 @@
 mod replay_errors;
 
+use sha2::{Digest, Sha256};
 use serde::{Deserialize, Serialize};
 
 use crate::diagnostics::data::RelationalDiagnosticArtifact;
 use crate::history::data::{BranchId, CommitId, CommitReference};
+use crate::indexes::data::DerivedIndexGeneration;
+use crate::lineage::data::LineageEventRecord;
 use crate::publication::data::diff::RelationalPatchRecord;
-use crate::schema::data::{RelationalSchemaRegistry, SchemaVersionId};
+use crate::schema::data::{
+    DescriptorCanonicalizationVersion, DescriptorSemanticsVersion, RelationalSchemaRegistry,
+    SchemaContinuationDescriptor, SchemaReconciliationDescriptor, SchemaTransitionArtifact,
+    SchemaVersionId,
+};
 use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 use crate::transactions::data::MergedCommitPlan;
 
@@ -24,6 +31,56 @@ pub struct CanonicalCommitEnvelope {
     pub diagnostics_summary: RelationalDiagnosticArtifact,
     pub lineage_event_ids: Vec<u64>,
     pub index_generation_ids: Vec<u64>,
+    pub lineage_events: Vec<LineageEventRecord>,
+    pub index_generations: Vec<DerivedIndexGeneration>,
+    pub schema_transition: Option<SchemaTransitionArtifact>,
+    pub schema_continuation_descriptor: Option<SchemaContinuationDescriptor>,
+    pub schema_reconciliation_descriptor: Option<SchemaReconciliationDescriptor>,
+    pub descriptor_semantics_version: DescriptorSemanticsVersion,
+}
+
+impl CanonicalCommitEnvelope {
+    pub fn append_lineage_events_canonical(&mut self, events: &[LineageEventRecord]) {
+        for event in events {
+            if let Some(existing) = self
+                .lineage_events
+                .iter_mut()
+                .find(|candidate| candidate.event_id == event.event_id)
+            {
+                *existing = event.clone();
+            } else {
+                self.lineage_events.push(event.clone());
+            }
+        }
+        self.lineage_events.sort_by_key(|event| event.event_id);
+        self.lineage_event_ids = self
+            .lineage_events
+            .iter()
+            .map(|event| event.event_id)
+            .collect();
+    }
+
+    pub fn append_index_generations_canonical(&mut self, generations: &[DerivedIndexGeneration]) {
+        for generation in generations {
+            if let Some(existing) = self
+                .index_generations
+                .iter_mut()
+                .find(|candidate| candidate.generation_id == generation.generation_id)
+            {
+                *existing = generation.clone();
+            } else {
+                self.index_generations.push(generation.clone());
+            }
+        }
+        self.index_generations.sort_by_key(|generation| {
+            (generation.index_id.0, generation.generation_id.0)
+        });
+        self.index_generation_ids = self
+            .index_generations
+            .iter()
+            .map(|generation| generation.generation_id.0)
+            .collect();
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -43,6 +100,115 @@ pub enum ReplayExecutionMode {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ReplayVerificationMode {
+    NormalRecoveryVerification,
+    AuditRecoveryVerification,
+    CorruptionDiagnosisReplay,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ReplayVerificationLayer {
+    DigestParity,
+    SummaryParity,
+    DeepArtifactParity,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DescriptorAuthorityKind {
+    SchemaTransitionArtifact,
+    SchemaContinuationDescriptor,
+    SchemaReconciliationDescriptor,
+    SchemaLineageArtifact,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ReplaySurfaceAuthorityKind {
+    Patch,
+    Diagnostics,
+    History,
+    Snapshot,
+    BranchHead,
+    Lineage,
+    DerivedIndexes,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VerifiedDescriptorDigest {
+    pub kind: DescriptorAuthorityKind,
+    pub digest: [u8; 32],
+    pub descriptor_semantics_version: DescriptorSemanticsVersion,
+    pub canonicalization_version: Option<DescriptorCanonicalizationVersion>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DescriptorComparisonBasis {
+    pub kind: DescriptorAuthorityKind,
+    pub exact_digest: Option<VerifiedDescriptorDigest>,
+    pub summary_digest: Option<[u8; 32]>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VerifiedReplaySurfaceDigest {
+    pub kind: ReplaySurfaceAuthorityKind,
+    pub digest: [u8; 32],
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReplaySurfaceComparisonBasis {
+    pub kind: ReplaySurfaceAuthorityKind,
+    pub exact_digest: Option<VerifiedReplaySurfaceDigest>,
+    pub summary_digest: Option<[u8; 32]>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DescriptorParityCheck {
+    ExactDigestMatch {
+        kind: DescriptorAuthorityKind,
+    },
+    SummaryMatchDigestUnavailable {
+        kind: DescriptorAuthorityKind,
+    },
+    Drift {
+        kind: DescriptorAuthorityKind,
+        layer: ReplayVerificationLayer,
+        mismatch_class: ReplayMismatchClass,
+        detail: String,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ReplaySurfaceParityCheck {
+    ExactDigestMatch {
+        kind: ReplaySurfaceAuthorityKind,
+    },
+    SummaryMatchDigestUnavailable {
+        kind: ReplaySurfaceAuthorityKind,
+    },
+    Drift {
+        kind: ReplaySurfaceAuthorityKind,
+        layer: ReplayVerificationLayer,
+        mismatch_class: ReplayMismatchClass,
+        detail: String,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ReplayVerificationPlan {
+    Normal(NormalReplayVerificationPlan),
+    Audit(AuditReplayVerificationPlan),
+    CorruptionDiagnosis(CorruptionDiagnosisReplayPlan),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NormalReplayVerificationPlan;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AuditReplayVerificationPlan;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CorruptionDiagnosisReplayPlan;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ReplayMismatchClass {
     PatchDrift,
     DiagnosticsDrift,
@@ -51,12 +217,18 @@ pub enum ReplayMismatchClass {
     BranchHeadDrift,
     LineageDrift,
     DerivedIndexDrift,
+    SchemaTransitionDrift,
+    SchemaContinuationDescriptorDrift,
+    SchemaReconciliationDescriptorDrift,
+    DescriptorVersionDrift,
+    SchemaLineageDrift,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReplayMismatch {
     pub class: ReplayMismatchClass,
     pub surface: ReplayObservableSurface,
+    pub verification_layer: ReplayVerificationLayer,
     pub detail: String,
     pub expected: Option<String>,
     pub observed: Option<String>,
@@ -67,6 +239,7 @@ pub struct RelationalReplayRequest {
     pub commit_id: CommitId,
     pub branch_id: BranchId,
     pub execution_mode: ReplayExecutionMode,
+    pub verification_mode: ReplayVerificationMode,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -110,7 +283,182 @@ impl RelationalReplayOutcome {
             failure: Some(failure),
         }
     }
+
+    pub(crate) fn with_mismatch(mut self, mismatch: ReplayMismatch) -> Self {
+        self.compared_surfaces.push(mismatch.surface);
+        self.mismatches.push(mismatch);
+        self.failure = Some(ReplayFailureClass::ObservableMismatch);
+        self
+    }
 }
+
+impl ReplayVerificationPlan {
+    pub fn from_mode(mode: ReplayVerificationMode) -> Self {
+        match mode {
+            ReplayVerificationMode::NormalRecoveryVerification => {
+                Self::Normal(NormalReplayVerificationPlan)
+            }
+            ReplayVerificationMode::AuditRecoveryVerification => {
+                Self::Audit(AuditReplayVerificationPlan)
+            }
+            ReplayVerificationMode::CorruptionDiagnosisReplay => {
+                Self::CorruptionDiagnosis(CorruptionDiagnosisReplayPlan)
+            }
+        }
+    }
+
+    pub fn allows_deep_artifact_parity(&self) -> bool {
+        !matches!(self, Self::Normal(_))
+    }
+}
+
+impl VerifiedDescriptorDigest {
+    pub fn new<T: Serialize + ?Sized>(
+        kind: DescriptorAuthorityKind,
+        descriptor_semantics_version: DescriptorSemanticsVersion,
+        canonicalization_version: Option<DescriptorCanonicalizationVersion>,
+        value: &T,
+    ) -> Self {
+        Self {
+            kind,
+            digest: stable_digest(value),
+            descriptor_semantics_version,
+            canonicalization_version,
+        }
+    }
+}
+
+impl VerifiedReplaySurfaceDigest {
+    pub fn new<T: Serialize + ?Sized>(kind: ReplaySurfaceAuthorityKind, value: &T) -> Self {
+        Self {
+            kind,
+            digest: stable_digest(value),
+        }
+    }
+}
+
+impl DescriptorComparisonBasis {
+    pub fn new(
+        kind: DescriptorAuthorityKind,
+        exact_digest: Option<VerifiedDescriptorDigest>,
+        summary_digest: Option<[u8; 32]>,
+    ) -> Self {
+        Self {
+            kind,
+            exact_digest,
+            summary_digest,
+        }
+    }
+
+    pub fn compare(
+        &self,
+        other: &Self,
+        mismatch_class: ReplayMismatchClass,
+        detail: impl Into<String>,
+    ) -> DescriptorParityCheck {
+        let detail = detail.into();
+        if self.kind != other.kind {
+            return DescriptorParityCheck::Drift {
+                kind: self.kind,
+                layer: ReplayVerificationLayer::DigestParity,
+                mismatch_class,
+                detail,
+            };
+        }
+        match (&self.exact_digest, &other.exact_digest) {
+            (Some(expected), Some(observed)) if expected == observed => {
+                return DescriptorParityCheck::ExactDigestMatch { kind: self.kind }
+            }
+            (None, None) => {}
+            _ => {
+                return DescriptorParityCheck::Drift {
+                    kind: self.kind,
+                    layer: ReplayVerificationLayer::DigestParity,
+                    mismatch_class,
+                    detail,
+                }
+            }
+        }
+        match (self.summary_digest, other.summary_digest) {
+            (Some(expected), Some(observed)) if expected == observed => {
+                DescriptorParityCheck::SummaryMatchDigestUnavailable { kind: self.kind }
+            }
+            _ => DescriptorParityCheck::Drift {
+                kind: self.kind,
+                layer: ReplayVerificationLayer::SummaryParity,
+                mismatch_class,
+                detail,
+            },
+        }
+    }
+}
+
+impl ReplaySurfaceComparisonBasis {
+    pub fn new(
+        kind: ReplaySurfaceAuthorityKind,
+        exact_digest: Option<VerifiedReplaySurfaceDigest>,
+        summary_digest: Option<[u8; 32]>,
+    ) -> Self {
+        Self {
+            kind,
+            exact_digest,
+            summary_digest,
+        }
+    }
+
+    pub fn compare(
+        &self,
+        other: &Self,
+        mismatch_class: ReplayMismatchClass,
+        detail: impl Into<String>,
+    ) -> ReplaySurfaceParityCheck {
+        let detail = detail.into();
+        if self.kind != other.kind {
+            return ReplaySurfaceParityCheck::Drift {
+                kind: self.kind,
+                layer: ReplayVerificationLayer::DigestParity,
+                mismatch_class,
+                detail,
+            };
+        }
+        match (&self.exact_digest, &other.exact_digest) {
+            (Some(expected), Some(observed)) if expected == observed => {
+                return ReplaySurfaceParityCheck::ExactDigestMatch { kind: self.kind }
+            }
+            (None, None) => {}
+            _ => {
+                return ReplaySurfaceParityCheck::Drift {
+                    kind: self.kind,
+                    layer: ReplayVerificationLayer::DigestParity,
+                    mismatch_class,
+                    detail,
+                };
+            }
+        }
+        match (self.summary_digest, other.summary_digest) {
+            (Some(expected), Some(observed)) if expected == observed => {
+                ReplaySurfaceParityCheck::SummaryMatchDigestUnavailable { kind: self.kind }
+            }
+            _ => ReplaySurfaceParityCheck::Drift {
+                kind: self.kind,
+                layer: ReplayVerificationLayer::SummaryParity,
+                mismatch_class,
+                detail,
+            },
+        }
+    }
+}
+
+pub(crate) fn stable_digest<T: Serialize + ?Sized>(value: &T) -> [u8; 32] {
+    let bytes = serde_json::to_vec(value).expect("serializable replay authority input");
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    let digest = hasher.finalize();
+    let mut out = [0_u8; 32];
+    out.copy_from_slice(&digest);
+    out
+}
+
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReplaySchemaVersion(pub u32);

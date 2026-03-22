@@ -2003,8 +2003,8 @@ Supported S9.15 merge envelope:
   fresh target node identity, remapped dependencies, and merge-specific
   lineage rather than fake derivation ancestry
 - merge planning is bounded by branch-owned mutation truth via the branch
-  mutation ledger and structural mutation journal, with explicit
-  `WholeLiveAuthoritySurface` fallback only when no narrower proof exists
+  mutation ledger and structural mutation journal; missing bounded proof must
+  fail explicitly rather than falling back to branch-wide live scans
 - snapshot/restore preserves merge ledger boundaries and does not fabricate
   pending merge delta or false merge history
 - failed merges emit typed conflict evidence, typed reconciliation plans,
@@ -2197,15 +2197,23 @@ Required target forms:
 
 ```rust
 pub struct ArtifactEquivalenceContract { ... }
+pub struct ReuseBoundaryContext { ... }
 pub struct ReuseBasis { ... }
+pub enum ReuseOrigin { ... }
 pub struct ReuseCertificationRecord { ... }
 ```
 
 Semantic role:
 
 - `ArtifactEquivalenceContract` is the explicit equivalence contract that
-  defines when reuse is semantically legal
-- `ReuseBasis` is the compact runtime reuse basis used on the hot path
+  defines when artifact reuse is semantically legal
+- `ReuseBoundaryContext` is the structured runtime evidence packet used to
+  evaluate legality at the decision boundary
+- `ReuseBasis` is the lowered compact hot-path admission basis derived from
+  declared boundaries, not a second semantic owner
+- `ReuseOrigin` is the realized runtime outcome and must distinguish fresh
+  compute, suppression, memoized reuse, snapshot restore, reconciliation,
+  cross-identity persistent reuse, and partial artifact splice
 - `ReuseCertificationRecord` is the cold certification record explaining why
   reuse was valid
 
@@ -2213,8 +2221,15 @@ Normative rule:
 
 - expensive artifact reuse, suppression, memoization, and cache hits must be
   justified by explicit artifact equivalence contracts
-- reuse must record whether the result came from fresh computation,
-  memoized reuse, snapshot restore, or authoritative reconciliation
+- legality is planner/prepared-stage truth; apply/execution may realize or
+  reject an admitted strategy, but it must not rediscover legality from broad
+  runtime state
+- comparator/output equivalence may support suppression semantics, but it must
+  never independently authorize artifact reuse
+- cross-identity reuse requires explicit persistent correspondence evidence and
+  remains distinct from lineage continuity or merge identity
+- partial artifact splicing is composition semantics with explicit region-basis
+  legality and mixed-provenance lineage, not fake whole-artifact reuse
 - geometry kernels must be able to certify that reused artifacts did not cross
   invalid semantic boundaries such as topology regime, tolerance regime, or
   semantic region identity
@@ -2230,20 +2245,53 @@ Required target forms:
 pub struct DiagnosticsTier { ... }
 pub struct RetentionBudget { ... }
 pub struct ReconstructionBudget { ... }
+pub enum DiagnosticsAvailability { ... }
 ```
 
 Semantic role:
 
-- `DiagnosticsTier` is a policy-level richness availability contract, not a
+- `DiagnosticsTier` is the access-lane and richness-class contract, not a
   semantic mode switch
-- `RetentionBudget` is an explicit retained-richness budget for cold-path
-  storage
-- `ReconstructionBudget` is an explicit budget for cold historical assembly and
-  replay/explain reconstruction
+- `RetentionBudget` is the eager retained envelope for bounded history, replay,
+  and retained artifact detail
+- `ReconstructionBudget` is the explicit cold-work allowance for explanation,
+  provenance, and deep replay/history reconstruction
+- `DiagnosticsAvailability` is the typed answer surface for retained,
+  reconstructed, omitted, denied, and unavailable detail
+
+Tier invariant:
+
+- operational, development, and forensic tiers may differ in retained richness,
+  retained depth, and cold reconstruction allowance
+- they must remain equal in canonical runtime outcome, reuse/invalidation
+  classification, lineage relation meaning, and replay/history conclusion sets
+- retained envelopes bound observability cost and richness; they do not define
+  alternate runtime truths
+
+Access-lane rules:
+
+- ordinary access returns retained bounded summaries only and performs zero cold
+  reconstruction
+- retained forensic access may expose richer retained evidence without becoming
+  a second semantic authority
+- explicit cold materialization must remain named, budgeted, and observable in
+  counters
+
+Required observability counters:
+
+- explicit cold materialization requests
+- retained forensic reads
+- cold explanation reconstructions
+- cold provenance reconstructions
+- retained artifact reads
+- reconstructed artifact reads
+- denied reconstruction by tier
+- denied reconstruction by budget
+- denied reconstruction by API family
 
 Normative rule:
 
-- operational, development, and forensic profiles may differ in retained
+- operational, development, and forensic tiers may differ in retained
   richness but must not differ in execution semantics
 - a lower diagnostics tier may reconstruct less history, but it must not report
   different truth for the same boundary envelope or lineage event

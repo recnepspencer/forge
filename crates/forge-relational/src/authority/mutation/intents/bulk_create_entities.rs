@@ -84,9 +84,9 @@ fn stage_bulk_entity_rows(
                     observation_scope:
                         crate::validation::engine::InvariantObservationKind::Speculative,
                     record_domain: PreparationRecordDomain::Entity,
-                    partition_scope: PreparationPartitionScope::TouchedPartitions(vec![
-                        intent.partition_id,
-                    ]),
+                    partition_scope: PreparationPartitionScope::TouchedPartitions(
+                        vec![intent.partition_id].into(),
+                    ),
                     invariant_group_scope: InvariantGroupSet::empty(),
                     read_set_approximation: PreparationReadSetApproximation::TouchedOnly,
                     write_exclusion: PreparationWriteExclusionClass::PublicationExcluded,

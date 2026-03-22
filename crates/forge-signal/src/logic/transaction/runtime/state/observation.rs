@@ -2,7 +2,7 @@ use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::handle::NodeId;
 use crate::data::tier::TierPolicy;
 use crate::diagnostics::policy::SignalRuntimePolicy;
-use crate::diagnostics::profile::DiagnosticsProfile;
+use crate::diagnostics::profile::DiagnosticsTier;
 
 use super::runtime_state::SignalRuntime;
 
@@ -20,7 +20,7 @@ where
         self.graph.runtime_policy()
     }
 
-    pub fn set_diagnostics_profile(&mut self, profile: DiagnosticsProfile) {
+    pub fn set_diagnostics_profile(&mut self, profile: DiagnosticsTier) {
         self.graph.set_diagnostics_profile(profile);
     }
 
@@ -40,3 +40,4 @@ where
         self.config.set_fallback_comparator(policy);
     }
 }
+

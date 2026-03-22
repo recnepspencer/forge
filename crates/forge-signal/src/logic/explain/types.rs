@@ -11,7 +11,7 @@ use crate::data::output::{
 };
 use crate::data::reuse::{ReuseBasis, ReuseCertificationRecord};
 use crate::data::trace::{CausalityMetadata, HistoricalArtifactRecord, TraceSummary};
-use crate::diagnostics::policy::ArtifactMaterializationMode;
+use crate::diagnostics::policy::DiagnosticsAvailability;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MeaningfulChangeReason {
@@ -97,6 +97,39 @@ pub enum ScopeProvenanceKind {
     InsufficientEvidence,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum CausalLinkKind {
+    Changed,
+    SkippedByComparator,
+    ConditionDeferred {
+        condition: EvaluationCondition,
+        decision: ConditionDecision,
+    },
+    ScopeUntouched,
+    Clean,
+    MissingSnapshot,
+    DependencyAdded,
+    DependencyRemoved,
+}
+
+impl fmt::Display for CausalLinkKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Changed => write!(f, "Changed"),
+            Self::SkippedByComparator => write!(f, "SkippedByComparator"),
+            Self::ConditionDeferred {
+                condition,
+                decision,
+            } => write!(f, "ConditionDeferred::{condition:?}/{decision:?}"),
+            Self::ScopeUntouched => write!(f, "ScopeUntouched"),
+            Self::Clean => write!(f, "Clean"),
+            Self::MissingSnapshot => write!(f, "MissingSnapshot"),
+            Self::DependencyAdded => write!(f, "DependencyAdded"),
+            Self::DependencyRemoved => write!(f, "DependencyRemoved"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScopeProvenance {
     pub source_scope: Option<PartitionSubscription>,
@@ -105,12 +138,12 @@ pub struct ScopeProvenance {
     pub note: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CausalLink {
     pub source: Option<NodeId>,
     pub aspect: Option<Aspect>,
     pub disposition: CausalDisposition,
-    pub kind: String,
+    pub kind: CausalLinkKind,
     pub scope: ScopeProvenance,
     pub cached_version: Option<u64>,
     pub current_version: Option<u64>,
@@ -136,7 +169,7 @@ pub struct RewiringSummary {
 pub struct NodeExplanation {
     pub node: NodeId,
     #[serde(default)]
-    pub materialization_mode: ArtifactMaterializationMode,
+    pub materialization_mode: DiagnosticsAvailability,
     pub state: NodeState,
     pub dirty_aspects: AspectMask,
     pub contract_reads: AspectMask,
@@ -374,3 +407,4 @@ pub(super) fn reason_for_policy(
         }
     }
 }
+

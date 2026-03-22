@@ -2,13 +2,17 @@ pub(crate) mod counters;
 pub(crate) mod failures;
 pub(crate) mod observations;
 
+#[cfg(test)]
 use serde_json::Value;
 
+#[cfg(test)]
 use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
+#[cfg(test)]
 use crate::logic::runtime::RelationalRuntime;
 
+#[cfg(test)]
 pub(crate) fn emit_preparation_failure(
     runtime: &mut RelationalRuntime,
     scope: DiagnosticsScope,

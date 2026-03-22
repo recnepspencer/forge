@@ -2,7 +2,9 @@ use crate::data::error::SignalError;
 use crate::data::graph::signal_graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
-use crate::diagnostics::policy::ArtifactMaterializationMode;
+use crate::diagnostics::policy::DiagnosticsAvailability;
+use crate::diagnostics::policy::OrdinaryAccessLane;
+use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
 use crate::logic::explain::{explain, NodeExplanation};
 use crate::state::{
     SignalSnapshotMeta, SignalSnapshotV1, SnapshotArtifactRetentionPolicy,
@@ -11,6 +13,62 @@ use crate::state::{
 };
 
 impl SignalGraph {
+    pub(crate) fn record_operational_diagnostic_facts(
+        &mut self,
+        node: NodeId,
+        rewiring: Option<crate::logic::explain::RewiringSummary>,
+    ) -> Result<(), SignalError> {
+        let policy = self.runtime_policy();
+        if !policy.retains_explanation_facts() && !policy.retains_provenance_facts() {
+            return Ok(());
+        }
+        let entry = self.get_entry(node)?;
+        let Some(runtime) = entry.get_runtime_artifact_state() else {
+            return Ok(());
+        };
+        let eval = entry.get_eval_config();
+        let retained = entry.retained_diagnostic_artifact();
+        let causality = entry.get_causality();
+        let explanation_fact = policy.retains_explanation_facts().then(|| {
+            ExplanationFact::from_runtime_projection(
+                node,
+                *entry.get_state(),
+                eval.contract.semantics.reads,
+                eval.contract.semantics.produces,
+                eval.contract.semantics.partition_scope.clone(),
+                eval.contract.semantics.required_context,
+                eval.condition.clone(),
+                runtime,
+                retained,
+                causality,
+                rewiring.clone(),
+            )
+        });
+        let provenance_fact = policy.retains_provenance_facts().then(|| {
+            ProvenanceFact::from_runtime_projection(
+                node,
+                *entry.get_state(),
+                eval.contract.semantics.reads,
+                eval.contract.semantics.produces,
+                eval.contract.semantics.partition_scope.clone(),
+                eval.contract.semantics.required_context,
+                eval.condition.clone(),
+                runtime,
+                retained,
+                causality,
+                rewiring,
+            )
+        });
+        let diagnostics = self.diagnostics_state_mut();
+        if let Some(fact) = explanation_fact {
+            diagnostics.record_explanation_fact(fact);
+        }
+        if let Some(fact) = provenance_fact {
+            diagnostics.record_provenance_fact(fact);
+        }
+        Ok(())
+    }
+
     pub(crate) fn explanation_fact(&self, node: NodeId) -> Option<&ExplanationFact> {
         self.observation.diagnostics.explanation_facts().get(&node)
     }
@@ -178,43 +236,80 @@ impl SignalGraph {
             self,
             snapshot.meta.snapshot_id,
         );
+        let retention_budget = self.runtime_policy().retention_budget;
+        let profile = self.diagnostics_profile();
+        let history = ExecutionHistorySummary::from_graph(
+            self,
+            profile,
+            retention_budget.detail_limit,
+            retention_budget.retain_history_details,
+            OrdinaryAccessLane,
+        );
+        let graph_summary = GraphSummary::from_graph(
+            self,
+            profile,
+            retention_budget.detail_limit,
+            OrdinaryAccessLane,
+        );
+        self.diagnostics_state_mut()
+            .refresh_retained_views(history, graph_summary);
         Ok(())
     }
 
     pub(crate) fn materialize_explanation_artifact(
         &self,
         node: NodeId,
-    ) -> Result<(Option<NodeExplanation>, ArtifactMaterializationMode), SignalError> {
+    ) -> Result<(Option<NodeExplanation>, DiagnosticsAvailability), SignalError> {
+        self.record_explicit_cold_materialization_request();
         if let Some(fact) = self.explanation_fact(node) {
             let mut explanation = fact.explanation.clone();
-            explanation.materialization_mode = ArtifactMaterializationMode::Retained;
-            return Ok((Some(explanation), ArtifactMaterializationMode::Retained));
+            explanation.materialization_mode = DiagnosticsAvailability::RetainedAvailable;
+            self.record_retained_artifact_read();
+            return Ok((Some(explanation), DiagnosticsAvailability::RetainedAvailable));
+        }
+        if matches!(
+            self.runtime_policy().retention_budget.explanation_retention,
+            crate::diagnostics::policy::ArtifactRetentionPolicy::Omit
+        ) {
+            self.record_denied_reconstruction_by_tier(true);
+            return Ok((None, DiagnosticsAvailability::OmittedByTier));
         }
         if self.runtime_policy().can_reconstruct_explanation() {
             return Ok((
                 Some(self.reconstruct_explanation_artifact(node)?),
-                ArtifactMaterializationMode::Reconstructed,
+                DiagnosticsAvailability::ReconstructedAvailable,
             ));
         }
-        Ok((None, ArtifactMaterializationMode::Unavailable))
+        self.record_denied_reconstruction_by_budget(true);
+        Ok((None, DiagnosticsAvailability::DeniedByBudget))
     }
 
     pub(crate) fn materialize_provenance_artifact(
         &self,
         node: NodeId,
-    ) -> Result<(Option<ProvenanceFact>, ArtifactMaterializationMode), SignalError> {
+    ) -> Result<(Option<ProvenanceFact>, DiagnosticsAvailability), SignalError> {
+        self.record_explicit_cold_materialization_request();
         if let Some(fact) = self.provenance_fact(node) {
             let mut fact = fact.clone();
-            fact.materialization_mode = ArtifactMaterializationMode::Retained;
-            return Ok((Some(fact), ArtifactMaterializationMode::Retained));
+            fact.materialization_mode = DiagnosticsAvailability::RetainedAvailable;
+            self.record_retained_artifact_read();
+            return Ok((Some(fact), DiagnosticsAvailability::RetainedAvailable));
+        }
+        if matches!(
+            self.runtime_policy().retention_budget.provenance_retention,
+            crate::diagnostics::policy::ArtifactRetentionPolicy::Omit
+        ) {
+            self.record_denied_reconstruction_by_tier(false);
+            return Ok((None, DiagnosticsAvailability::OmittedByTier));
         }
         if self.runtime_policy().can_reconstruct_provenance() {
             return Ok((
                 Some(self.reconstruct_provenance_artifact(node)?),
-                ArtifactMaterializationMode::Reconstructed,
+                DiagnosticsAvailability::ReconstructedAvailable,
             ));
         }
-        Ok((None, ArtifactMaterializationMode::Unavailable))
+        self.record_denied_reconstruction_by_budget(false);
+        Ok((None, DiagnosticsAvailability::DeniedByBudget))
     }
 
     pub(crate) fn reconstruct_explanation_artifact(
@@ -222,8 +317,9 @@ impl SignalGraph {
         node: NodeId,
     ) -> Result<NodeExplanation, SignalError> {
         let mut explanation = explain(self, node)?;
-        explanation.materialization_mode = ArtifactMaterializationMode::Reconstructed;
+        explanation.materialization_mode = DiagnosticsAvailability::ReconstructedAvailable;
         self.record_hot_path_artifact_reconstruction();
+        self.record_cold_explanation_reconstruction();
         Ok(explanation)
     }
 
@@ -232,8 +328,9 @@ impl SignalGraph {
         node: NodeId,
     ) -> Result<ProvenanceFact, SignalError> {
         let mut explanation = explain(self, node)?;
-        explanation.materialization_mode = ArtifactMaterializationMode::Reconstructed;
+        explanation.materialization_mode = DiagnosticsAvailability::ReconstructedAvailable;
         self.record_hot_path_artifact_reconstruction();
+        self.record_cold_provenance_reconstruction();
         Ok(ProvenanceFact::from_explanation(&explanation))
     }
 
@@ -246,3 +343,5 @@ impl SignalGraph {
         )
     }
 }
+
+

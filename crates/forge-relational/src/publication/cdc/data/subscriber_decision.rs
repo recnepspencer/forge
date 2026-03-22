@@ -11,6 +11,10 @@ pub enum SubscriberRecoverySource {
 pub enum SubscriberRecoveryDisposition {
     StartFromBeginning,
     ResumeAfterCheckpoint,
+    ContinueWithTransparentBridge,
+    ContinueWithVisibleBridge,
+    ContinueWithContractUpgrade,
+    RequireRenegotiation,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -10,7 +10,7 @@ pub use certification::{
 };
 #[allow(unused_imports)]
 pub use context::{
-    PersistentCorrespondenceEvidence, PersistentCorrespondenceKind, ReuseBoundaryContext,
-    ReuseSemanticRegionIdentity,
+    ArtifactFamilyId, PersistentCorrespondenceEvidence, PersistentCorrespondenceKind,
+    ReuseBoundaryContext, ReuseSemanticRegionIdentity, ReuseStrategyBoundaryContext,
 };
 pub use contract::{ArtifactEquivalenceContract, ArtifactSemanticBoundary, NodeReuseContract};

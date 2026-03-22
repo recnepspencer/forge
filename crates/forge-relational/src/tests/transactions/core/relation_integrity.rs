@@ -338,6 +338,12 @@ fn relation_integrity_commit_boundary_requires_paired_inverse_edge() {
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::RelationSymmetryViolation);
+            let fields = error.fields().expect("symmetry localization fields");
+            assert_eq!(fields["contract_id"], json!("paired_inverse"));
+            assert_eq!(fields["relation_kind_id"], json!(2));
+            assert_eq!(fields["source"], json!(source));
+            assert_eq!(fields["target"], json!(target));
+            assert_eq!(fields["mode"], json!("paired"));
         }
         other => panic!("expected conflict, got {:?}", other),
     }
@@ -556,6 +562,13 @@ fn relation_integrity_commit_boundary_rejects_endpoint_delete_with_live_relation
                 error.code(),
                 DiagnosticCode::RelationEndpointDeletionIntegrityViolation
             );
+            let fields = error
+                .fields()
+                .expect("endpoint deletion localization fields");
+            assert_eq!(fields["contract_id"], json!("endpoint_delete"));
+            assert_eq!(fields["relation_kind_id"], json!(2));
+            assert_eq!(fields["entity_id"], json!(source));
+            assert_eq!(fields["mode"], json!("reject_delete_with_live_relations"));
         }
         other => panic!("expected conflict, got {:?}", other),
     }

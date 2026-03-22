@@ -131,8 +131,13 @@ where
             );
         result.performance_accounting = *self.telemetry;
         if restore_baseline {
-            *self.config = self.baseline_config.clone();
-            *self.graph.diagnostics_state_mut() = self.baseline_diagnostics_state.clone();
+            if let Some(baseline_config) = self.rollback_baseline.config.take() {
+                *self.config = baseline_config;
+            }
+            if let Some(baseline_diagnostics_state) = self.rollback_baseline.diagnostics_state.take()
+            {
+                *self.graph.diagnostics_state_mut() = baseline_diagnostics_state;
+            }
         }
         if let Some(rollback) = rollback {
             self.graph.diagnostics_state_mut().record_rollback(rollback);

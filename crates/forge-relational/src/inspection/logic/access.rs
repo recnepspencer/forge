@@ -671,6 +671,9 @@ impl<'runtime> InspectionAccess<'runtime> {
                 .map(|record| record.target.clone())
                 .collect(),
             lineage_event_ids: envelope.lineage_event_ids.clone(),
+            lineage_events: envelope.lineage_events.clone(),
+            index_generation_ids: envelope.index_generation_ids.clone(),
+            index_generations: envelope.index_generations.clone(),
             changed_aspects: CanonicalAspectSet::new(
                 envelope
                     .patch

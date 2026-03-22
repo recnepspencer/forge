@@ -105,10 +105,10 @@ mod tests {
                     authority_policy:
                         crate::data::performance::AuthorityPolicy::SpeculativeThenReconcile,
                     artifact_family: None,
-                    structural_dependency_basis: 0,
+                    structural_dependency_basis:
+                        crate::data::dependency::DependencySnapshotId::EMPTY,
                     partition_region_basis: crate::data::proof::PartitionScopeSet::default(),
-                    persistent_correspondence: None,
-                    composition_regions: crate::data::proof::PartitionScopeSet::default(),
+                    strategy_detail: crate::data::reuse::ReuseStrategyBoundaryContext::None,
                 },
                 dependency_snapshot_update: DependencySnapshotUpdate::Replace(
                     SharedDependencySnapshot::empty(),

@@ -605,7 +605,7 @@ fn parallel_executor_threshold_keeps_narrow_stage_serial() {
 
 #[cfg(feature = "parallel")]
 #[test]
-fn full_parallel_executor_matches_serial_results() {
+fn full_parallel_executor_falls_back_honestly_when_mutable_apply_is_unavailable() {
     let mut serial_graph = SignalGraph::new();
     let serial_nodes = (0..12)
         .map(|_| serial_graph.node().build())
@@ -643,8 +643,9 @@ fn full_parallel_executor_matches_serial_results() {
     }
     assert_eq!(serial_report.task_count, parallel_report.task_count);
     assert_eq!(serial_report.tasks_executed, parallel_report.tasks_executed);
-    assert!(parallel_report.stages.iter().all(|stage| matches!(
-        stage.parallel_kind,
-        Some(crate::logic::planner::ParallelExecutionKind::FullParallel)
-    )));
+    assert!(parallel_report.stages.iter().all(|stage| {
+        stage.parallel_kind.is_none()
+            && stage.parallel_admission_reason.as_deref()
+                == Some("full-parallel-unsupported-by-mutable-engine")
+    }));
 }

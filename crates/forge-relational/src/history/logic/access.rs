@@ -77,6 +77,17 @@ impl<'runtime> HistoryAccess<'runtime> {
         after_position: Option<PatchStreamPosition>,
         max_commits: usize,
     ) -> Vec<RelationalPatchRecord> {
+        self.envelopes_after(after_position, max_commits)
+            .into_iter()
+            .map(|envelope| envelope.patch)
+            .collect()
+    }
+
+    pub(crate) fn envelopes_after(
+        &self,
+        after_position: Option<PatchStreamPosition>,
+        max_commits: usize,
+    ) -> Vec<CanonicalCommitEnvelope> {
         let start = after_position
             .map(std::ops::Bound::Excluded)
             .unwrap_or(std::ops::Bound::Unbounded);
@@ -85,7 +96,7 @@ impl<'runtime> HistoryAccess<'runtime> {
             .patch_stream_index
             .range((start, std::ops::Bound::Unbounded))
             .filter_map(|(_, commit_id)| self.commit_envelope(*commit_id))
-            .map(|envelope| envelope.patch.clone())
+            .cloned()
             .take(max_commits)
             .collect()
     }

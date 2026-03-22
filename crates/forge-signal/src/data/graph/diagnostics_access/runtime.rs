@@ -3,7 +3,8 @@ use crate::data::graph::signal_graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
 use crate::diagnostics::policy::SignalRuntimePolicy;
-use crate::diagnostics::profile::DiagnosticsProfile;
+use crate::diagnostics::policy::OrdinaryAccessLane;
+use crate::diagnostics::profile::DiagnosticsTier;
 use crate::diagnostics::summary::GraphSummary;
 
 impl SignalGraph {
@@ -25,15 +26,15 @@ impl SignalGraph {
         self.observation.telemetry = crate::data::telemetry::RuntimeTelemetry::default();
     }
 
-    pub(crate) fn diagnostics_profile(&self) -> DiagnosticsProfile {
-        self.observation.diagnostics.profile()
+    pub(crate) fn diagnostics_profile(&self) -> DiagnosticsTier {
+        self.observation.diagnostics.tier()
     }
 
     pub(crate) fn runtime_policy(&self) -> SignalRuntimePolicy {
         self.observation.diagnostics.policy()
     }
 
-    pub fn set_diagnostics_profile(&mut self, profile: DiagnosticsProfile) {
+    pub fn set_diagnostics_profile(&mut self, profile: DiagnosticsTier) {
         self.observation.diagnostics.set_profile(profile);
     }
 
@@ -41,8 +42,20 @@ impl SignalGraph {
         self.observation.diagnostics.set_policy(policy);
     }
 
-    pub(crate) fn diagnostics_summary(&self, profile: DiagnosticsProfile) -> GraphSummary {
-        GraphSummary::from_graph(self, profile)
+    pub(crate) fn diagnostics_summary(&self, profile: DiagnosticsTier) -> GraphSummary {
+        if self.diagnostics_state().has_pending_change_input() {
+            if let Some(summary) = self.diagnostics_state().pending_graph_summary() {
+                return summary.with_profile(profile);
+            }
+        } else if let Some(summary) = self.diagnostics_state().latest_graph_summary() {
+            return summary.with_profile(profile);
+        }
+        GraphSummary::from_graph(
+            self,
+            profile,
+            self.runtime_policy().retention_budget.detail_limit,
+            OrdinaryAccessLane,
+        )
     }
 
     pub(crate) fn diagnostics_state(&self) -> &crate::diagnostics::state::DiagnosticsState {
@@ -83,8 +96,23 @@ impl SignalGraph {
         summary: FrontierExecutionSummary,
         trace_records: Vec<InvalidationTraceRecord>,
     ) {
+        if let Some(summary) = self.diagnostics_state().latest_graph_summary().cloned() {
+            self.observation
+                .diagnostics
+                .set_pending_graph_summary(summary.with_profile(self.diagnostics_profile()));
+        } else {
+            let retention_budget = self.runtime_policy().retention_budget;
+            self.observation.diagnostics.set_pending_graph_summary(GraphSummary::from_graph(
+                self,
+                self.diagnostics_profile(),
+                retention_budget.detail_limit,
+                OrdinaryAccessLane,
+            ));
+        }
         self.observation
             .diagnostics
             .record_frontier_execution(summary, trace_records);
     }
 }
+
+

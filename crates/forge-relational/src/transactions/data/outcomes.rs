@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -10,6 +11,9 @@ use crate::performance::data::RuntimeComplexityCounters;
 use crate::publication::data::diff::PatchRecord;
 use crate::publication::data::{PublicationError, PublicationStatus};
 use crate::replay::data::CanonicalCommitEnvelope;
+use crate::schema::data::{
+    DescriptorSemanticsVersion, SchemaTransitionSummary, SchemaVersionId,
+};
 use crate::snapshots::data::SnapshotHandle;
 use crate::validation::data::{InvariantExecutionPoint, InvariantGroupSet};
 use crate::validation::engine::{
@@ -47,6 +51,7 @@ pub struct CommitConflict {
     pub class: ConflictClass,
     pub code: DiagnosticCode,
     pub detail: String,
+    pub fields: Option<Value>,
     pub context: ErrorContext,
 }
 
@@ -54,10 +59,12 @@ impl CommitConflict {
     pub(crate) fn new(class: ConflictClass) -> Self {
         let code = class.code();
         let detail = class.detail();
+        let fields = class.fields();
         Self {
             class,
             code,
             detail,
+            fields,
             context: ErrorContext::new(RelationalSubsystem::Transaction, ErrorOperation::Validate)
                 .with_fix(SuggestedFix::InspectDiagnostics),
         }
@@ -69,6 +76,10 @@ impl CommitConflict {
 
     pub fn detail(&self) -> String {
         self.detail.clone()
+    }
+
+    pub fn fields(&self) -> Option<&Value> {
+        self.fields.as_ref()
     }
 
     pub fn with_context(mut self, context: ErrorContext) -> Self {
@@ -92,6 +103,7 @@ pub enum ConflictClass {
     InvariantViolation {
         code: DiagnosticCode,
         detail: String,
+        fields: Value,
     },
     KindSchemaMismatch {
         detail: String,
@@ -111,6 +123,49 @@ pub enum ConflictClass {
     MissingMergeBase {
         detail: String,
     },
+    UndeclaredSchemaTransition {
+        previous_schema_version: SchemaVersionId,
+        current_schema_version: SchemaVersionId,
+        previous_descriptor_semantics_version: DescriptorSemanticsVersion,
+        current_descriptor_semantics_version: DescriptorSemanticsVersion,
+    },
+    DescriptorVersionIncompatibility {
+        previous_descriptor_semantics_version: DescriptorSemanticsVersion,
+        current_descriptor_semantics_version: DescriptorSemanticsVersion,
+    },
+    InvalidSchemaTransitionSourceBasis {
+        declared_schema_id: crate::schema::data::SchemaId,
+        declared_schema_version: SchemaVersionId,
+        expected_schema_id: crate::schema::data::SchemaId,
+        expected_schema_version: SchemaVersionId,
+    },
+    InvalidSchemaTransitionTargetBasis {
+        declared_schema_id: crate::schema::data::SchemaId,
+        declared_schema_version: SchemaVersionId,
+        expected_schema_id: crate::schema::data::SchemaId,
+        expected_schema_version: SchemaVersionId,
+    },
+    MissingSchemaBasisForTransition {
+        role: String,
+    },
+    UnsupportedBridgeDescriptor {
+        detail: String,
+    },
+    HistoricalReinterpretationViolation {
+        detail: String,
+    },
+    TypeIncompatibleSchemaTransition {
+        detail: String,
+    },
+    StructuralIncompatibleSchemaTransition {
+        detail: String,
+    },
+    DirectionalityMismatchUnderCanonicalReconciliation {
+        detail: String,
+    },
+    InvalidSchemaTransitionShape {
+        detail: String,
+    },
 }
 
 impl ConflictClass {
@@ -126,6 +181,19 @@ impl ConflictClass {
             Self::InvalidMergeParent { .. } => DiagnosticCode::InvalidMergeParent,
             Self::MergeConflictOverlap { .. } => DiagnosticCode::MergeConflictOverlap,
             Self::MissingMergeBase { .. } => DiagnosticCode::MissingMergeBase,
+            Self::UndeclaredSchemaTransition { .. }
+            | Self::DescriptorVersionIncompatibility { .. }
+            | Self::InvalidSchemaTransitionSourceBasis { .. }
+            | Self::InvalidSchemaTransitionTargetBasis { .. }
+            | Self::MissingSchemaBasisForTransition { .. }
+            | Self::UnsupportedBridgeDescriptor { .. }
+            | Self::HistoricalReinterpretationViolation { .. }
+            | Self::TypeIncompatibleSchemaTransition { .. }
+            | Self::StructuralIncompatibleSchemaTransition { .. }
+            | Self::DirectionalityMismatchUnderCanonicalReconciliation { .. }
+            | Self::InvalidSchemaTransitionShape { .. } => {
+                DiagnosticCode::SchemaContinuityViolation
+            }
         }
     }
 
@@ -146,8 +214,14 @@ impl ConflictClass {
             | Self::KindSchemaMismatch { detail }
             | Self::InvalidMergeParent { detail }
             | Self::MergeConflictOverlap { detail }
-            | Self::MissingMergeBase { detail } => detail.clone(),
+            | Self::MissingMergeBase { detail }
+            | Self::UnsupportedBridgeDescriptor { detail }
+            | Self::HistoricalReinterpretationViolation { detail }
+            | Self::TypeIncompatibleSchemaTransition { detail }
+            | Self::StructuralIncompatibleSchemaTransition { detail }
+            | Self::DirectionalityMismatchUnderCanonicalReconciliation { detail } => detail.clone(),
             Self::InvariantViolation { detail, .. } => detail.clone(),
+            Self::InvalidSchemaTransitionShape { detail } => detail.clone(),
             Self::ConflictingIntent { target } => match target {
                 ExistingRecordTarget::Entity(entity_id) => {
                     format!(
@@ -165,6 +239,128 @@ impl ConflictClass {
             Self::InvalidSavepoint { savepoint_id } => {
                 format!("savepoint {:?} does not exist", savepoint_id)
             }
+            Self::UndeclaredSchemaTransition {
+                previous_schema_version,
+                current_schema_version,
+                previous_descriptor_semantics_version,
+                current_descriptor_semantics_version,
+            } => format!(
+                "schema continuity violation: branch head schema {:?} cannot continue into {:?} without an explicit schema transition (descriptor semantics {:?} -> {:?})",
+                previous_schema_version,
+                current_schema_version,
+                previous_descriptor_semantics_version,
+                current_descriptor_semantics_version
+            ),
+            Self::DescriptorVersionIncompatibility {
+                previous_descriptor_semantics_version,
+                current_descriptor_semantics_version,
+            } => format!(
+                "descriptor semantics version mismatch: branch head uses {:?} but runtime requires {:?}",
+                previous_descriptor_semantics_version,
+                current_descriptor_semantics_version
+            ),
+            Self::InvalidSchemaTransitionSourceBasis {
+                declared_schema_id,
+                declared_schema_version,
+                expected_schema_id,
+                expected_schema_version,
+            } => format!(
+                "declared schema transition source {:?}/{:?} does not match authoritative prior schema basis {:?}/{:?}",
+                declared_schema_id,
+                declared_schema_version,
+                expected_schema_id,
+                expected_schema_version
+            ),
+            Self::InvalidSchemaTransitionTargetBasis {
+                declared_schema_id,
+                declared_schema_version,
+                expected_schema_id,
+                expected_schema_version,
+            } => format!(
+                "declared schema transition target {:?}/{:?} does not match authoritative runtime schema basis {:?}/{:?}",
+                declared_schema_id,
+                declared_schema_version,
+                expected_schema_id,
+                expected_schema_version
+            ),
+            Self::MissingSchemaBasisForTransition { role } => {
+                format!("declared schema transition requires a non-empty {role} schema basis")
+            }
+        }
+    }
+
+    pub fn fields(&self) -> Option<Value> {
+        match self {
+            Self::InvariantViolation { fields, .. } => Some(fields.clone()),
+            Self::UndeclaredSchemaTransition {
+                previous_schema_version,
+                current_schema_version,
+                previous_descriptor_semantics_version,
+                current_descriptor_semantics_version,
+            } => Some(serde_json::json!({
+                "previous_schema_version": previous_schema_version.0,
+                "current_schema_version": current_schema_version.0,
+                "previous_descriptor_semantics_version": previous_descriptor_semantics_version.0,
+                "current_descriptor_semantics_version": current_descriptor_semantics_version.0,
+            })),
+            Self::DescriptorVersionIncompatibility {
+                previous_descriptor_semantics_version,
+                current_descriptor_semantics_version,
+            } => Some(serde_json::json!({
+                "previous_descriptor_semantics_version": previous_descriptor_semantics_version.0,
+                "current_descriptor_semantics_version": current_descriptor_semantics_version.0,
+            })),
+            Self::InvalidSchemaTransitionShape { detail } => Some(serde_json::json!({
+                "detail": detail,
+            })),
+            Self::InvalidSchemaTransitionSourceBasis {
+                declared_schema_id,
+                declared_schema_version,
+                expected_schema_id,
+                expected_schema_version,
+            } => Some(serde_json::json!({
+                "declared_schema_id": declared_schema_id.0,
+                "declared_schema_version": declared_schema_version.0,
+                "expected_schema_id": expected_schema_id.0,
+                "expected_schema_version": expected_schema_version.0,
+                "role": "source",
+            })),
+            Self::InvalidSchemaTransitionTargetBasis {
+                declared_schema_id,
+                declared_schema_version,
+                expected_schema_id,
+                expected_schema_version,
+            } => Some(serde_json::json!({
+                "declared_schema_id": declared_schema_id.0,
+                "declared_schema_version": declared_schema_version.0,
+                "expected_schema_id": expected_schema_id.0,
+                "expected_schema_version": expected_schema_version.0,
+                "role": "target",
+            })),
+            Self::MissingSchemaBasisForTransition { role } => Some(serde_json::json!({
+                "role": role,
+            })),
+            Self::UnsupportedBridgeDescriptor { detail } => Some(serde_json::json!({
+                "detail": detail,
+                "class": "unsupported_bridge_descriptor",
+            })),
+            Self::HistoricalReinterpretationViolation { detail } => Some(serde_json::json!({
+                "detail": detail,
+                "class": "historical_reinterpretation_violation",
+            })),
+            Self::TypeIncompatibleSchemaTransition { detail } => Some(serde_json::json!({
+                "detail": detail,
+                "class": "type_incompatible_schema_transition",
+            })),
+            Self::StructuralIncompatibleSchemaTransition { detail } => Some(serde_json::json!({
+                "detail": detail,
+                "class": "structural_incompatible_schema_transition",
+            })),
+            Self::DirectionalityMismatchUnderCanonicalReconciliation { detail } => Some(serde_json::json!({
+                "detail": detail,
+                "class": "directionality_mismatch_under_canonical_reconciliation",
+            })),
+            _ => None,
         }
     }
 }
@@ -267,6 +463,13 @@ pub struct CommitStructuralSummary {
     pub touched_partitions: Vec<crate::identity::data::PartitionId>,
     pub bulk_entity_slots_reserved: usize,
     pub bulk_relation_slots_reserved: usize,
+    pub descriptor_semantics_version: DescriptorSemanticsVersion,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CommitSchemaSummary {
+    pub transition: Option<SchemaTransitionSummary>,
+    pub descriptor_semantics_version: DescriptorSemanticsVersion,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -307,6 +510,7 @@ pub struct CommitResult {
     pub outcome: CommitOutcome,
     pub summary: CommitSummary,
     pub structural_summary: CommitStructuralSummary,
+    pub schema_summary: CommitSchemaSummary,
     pub publication: CommitPublication,
     pub validation: CommitValidation,
     pub execution: CommitExecution,
@@ -389,6 +593,10 @@ impl CommitResult {
 
     pub fn validation(&self) -> &CommitValidation {
         &self.validation
+    }
+
+    pub fn schema_summary(&self) -> &CommitSchemaSummary {
+        &self.schema_summary
     }
 
     pub fn execution(&self) -> &CommitExecution {
@@ -482,6 +690,14 @@ impl CommitResult {
 
     pub fn envelope(&self) -> &CanonicalCommitEnvelope {
         self.publication.envelope.as_ref()
+    }
+
+    pub fn schema_transition_summary(&self) -> Option<&SchemaTransitionSummary> {
+        self.schema_summary.transition.as_ref()
+    }
+
+    pub fn descriptor_semantics_version(&self) -> DescriptorSemanticsVersion {
+        self.schema_summary.descriptor_semantics_version
     }
 
     pub fn invariant_executions(&self) -> &[InvariantExecutionResult] {

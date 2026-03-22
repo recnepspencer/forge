@@ -757,11 +757,12 @@ fn observer_exposes_runtime_and_retained_artifacts_separately() {
         .retained_diagnostic_artifact(node)
         .unwrap()
         .unwrap();
-    let historical = observer
+    let materializer = observer.materialize();
+    let historical = materializer
         .materialize_historical_artifact_record(node)
         .unwrap()
         .unwrap();
-    let trace = observer.materialize_trace_summary(node).unwrap().unwrap();
+    let trace = materializer.materialize_trace_summary(node).unwrap().unwrap();
 
     assert_eq!(
         runtime.output_identity.as_ref().map(|id| id.as_str()),
@@ -807,7 +808,7 @@ fn observer_exposes_runtime_and_retained_artifacts_separately() {
             .is_none(),
         "runtime-only artifacts must not require retained richness"
     );
-    let runtime_only_historical = observer
+    let runtime_only_historical = materializer
         .materialize_historical_artifact_record(runtime_only)
         .unwrap()
         .unwrap();
@@ -815,7 +816,7 @@ fn observer_exposes_runtime_and_retained_artifacts_separately() {
         runtime_only_historical.retained.is_none(),
         "cold historical assembly should remain available without retained payload"
     );
-    let runtime_only_trace = observer
+    let runtime_only_trace = materializer
         .materialize_trace_summary(runtime_only)
         .unwrap()
         .unwrap();

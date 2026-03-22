@@ -6,7 +6,8 @@ use crate::history::data::{
 use crate::identity::data::{
     EntityId, KindId, LineageId, PartitionId, RelationId, StructuralFingerprint, VersionId,
 };
-use crate::lineage::data::HistoricalLineageResolution;
+use crate::indexes::data::DerivedIndexGeneration;
+use crate::lineage::data::{HistoricalLineageResolution, LineageEventRecord};
 use crate::publication::patch::data::CanonicalAspectSet;
 use crate::snapshots::data::{SnapshotHandle, SnapshotInspectionSummary};
 use crate::storage::data::{
@@ -326,6 +327,9 @@ pub struct CommitInspection {
     pub commit: CommitReference,
     pub changed_records: Vec<RecordRef>,
     pub lineage_event_ids: Vec<u64>,
+    pub lineage_events: Vec<LineageEventRecord>,
+    pub index_generation_ids: Vec<u64>,
+    pub index_generations: Vec<DerivedIndexGeneration>,
     pub changed_aspects: CanonicalAspectSet,
     pub origin: InspectionOrigin,
     pub access_path: InspectionAccessPath,

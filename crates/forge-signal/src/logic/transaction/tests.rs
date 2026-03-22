@@ -463,7 +463,7 @@ fn hostile_commit_failure_does_not_leak_committed_semantic_outcome() {
         .back()
         .expect("rollback/failure replay should be recorded");
     assert_ne!(
-        last.detail.as_deref(),
+        last.detail.as_ref().and_then(|detail| detail.as_message()),
         Some("transaction committed"),
         "failed transaction must not leak committed replay outcome"
     );
@@ -472,7 +472,10 @@ fn hostile_commit_failure_does_not_leak_committed_semantic_outcome() {
             .iter()
             .rev()
             .take(2)
-            .any(|event| event.detail.as_deref() == Some("event bus flush failed")),
+            .any(|event| {
+                event.detail.as_ref().and_then(|detail| detail.as_message())
+                    == Some("event bus flush failed")
+            }),
         "failed transaction should surface flush failure in replay events"
     );
 }

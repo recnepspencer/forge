@@ -5,7 +5,7 @@ use crate::data::handle::NodeId;
 use crate::data::proof::{DedupedNodeBatch, FrontierExecutionSummary};
 use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::failure::RollbackDiagnostic;
-use crate::diagnostics::profile::DiagnosticsProfile;
+use crate::diagnostics::profile::DiagnosticsTier;
 use crate::diagnostics::summary::{
     EvaluationPlanSummary, ExecutionReportSummary, ExplanationSummary,
 };
@@ -49,9 +49,9 @@ pub struct InvalidationSummary {
 }
 
 /// End-to-end causal summary for one signal execution flow.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FlowSummary {
-    pub profile: DiagnosticsProfile,
+    pub profile: DiagnosticsTier,
     pub change: ChangeInputSummary,
     pub invalidation: InvalidationSummary,
     pub planning: PlanningSummary,
@@ -247,7 +247,7 @@ impl InvalidationSummary {
 
 impl FlowSummary {
     pub fn new(
-        profile: DiagnosticsProfile,
+        profile: DiagnosticsTier,
         change: ChangeInputSummary,
         invalidation: InvalidationSummary,
         planning: PlanningSummary,
@@ -274,7 +274,7 @@ impl FlowSummary {
 }
 
 impl PlanningSummary {
-    pub fn from_plan(plan: &EvaluationPlan, profile: DiagnosticsProfile) -> Self {
+    pub fn from_plan(plan: &EvaluationPlan, profile: DiagnosticsTier) -> Self {
         Self {
             plan: EvaluationPlanSummary::from_plan(plan, profile),
         }
@@ -286,7 +286,7 @@ impl PlanningSummary {
 }
 
 impl PrecomputeSummary {
-    pub fn from_report(report: &ExecutionReport, _profile: DiagnosticsProfile) -> Self {
+    pub fn from_report(report: &ExecutionReport, _profile: DiagnosticsTier) -> Self {
         let executor = report.stages.first().map(|stage| match stage.outcome {
             crate::logic::planner::StageExecutionOutcome::CompletedSerial => StageExecutor::Serial,
             #[cfg(feature = "parallel")]
@@ -306,7 +306,7 @@ impl PrecomputeSummary {
 }
 
 impl ApplySummary {
-    pub fn from_report(report: &ExecutionReport, profile: DiagnosticsProfile) -> Self {
+    pub fn from_report(report: &ExecutionReport, profile: DiagnosticsTier) -> Self {
         Self {
             report: ExecutionReportSummary::from_report(report, profile),
             prepared_evaluations_applied: report.prepared_evaluations_applied,
@@ -336,3 +336,4 @@ fn canonicalize_changed_aspects(mut changed_aspects: Vec<Aspect>) -> Vec<Aspect>
     }
     changed_aspects
 }
+

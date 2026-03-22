@@ -81,7 +81,6 @@ fn graph_snapshot_round_trip_restores_versions_and_emits_restore_replay_and_line
         .replay_around_snapshot(snapshot.meta.snapshot_id);
     assert!(
         around_restore
-            .frames
             .iter()
             .any(|event| event.kind == ReplayEventKind::SnapshotRestored),
         "snapshot-centered replay inspection should include the restore event"
@@ -1084,11 +1083,11 @@ fn replay_and_lineage_diff_helpers_compare_generic_phase5_artifacts() {
         Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("diff-a"))
     })
     .unwrap();
-    let left_replay = graph.observe().replay_for_node(source);
-    let left_lineage = graph.observe().lineage_for_node(source);
+    let left_replay = graph.observe().replay_for_node(source).to_owned_slice();
+    let left_lineage = graph.observe().lineage_for_node(source).to_owned_records();
 
-    let right_replay = graph.observe().replay_for_node(source);
-    let right_lineage = graph.observe().lineage_for_node(source);
+    let right_replay = graph.observe().replay_for_node(source).to_owned_slice();
+    let right_lineage = graph.observe().lineage_for_node(source).to_owned_records();
 
     assert!(replay_slices_equivalent(&left_replay, &right_replay));
     assert!(compare_replay_slices(&left_replay, &right_replay).is_empty());
@@ -1099,8 +1098,9 @@ fn replay_and_lineage_diff_helpers_compare_generic_phase5_artifacts() {
     graph.capture_snapshot();
     let changed_replay = graph
         .observe()
-        .replay_for_branch(graph.observe().current_branch().id);
-    let changed_lineage = graph.observe().lineage_for_node(source);
+        .replay_for_branch(graph.observe().current_branch().id)
+        .to_owned_slice();
+    let changed_lineage = graph.observe().lineage_for_node(source).to_owned_records();
     assert!(!compare_replay_slices(&left_replay, &changed_replay).is_empty());
     assert!(!compare_lineage_records(&left_lineage, &changed_lineage).is_empty());
 }
@@ -1143,7 +1143,11 @@ fn branch_local_transaction_failure_does_not_advance_heads_or_leak_committed_art
     let feature_snapshot = runtime.capture_branch_snapshot(feature.clone()).unwrap();
     let feature_head_before = runtime.observe().branch_head_snapshot_id(feature.id);
     let feature_artifact_before = runtime.observe().current_lineage_artifact(source);
-    let feature_lineage_before = runtime.graph().observe().lineage_for_node(source);
+    let feature_lineage_before = runtime
+        .graph()
+        .observe()
+        .lineage_for_node(source)
+        .to_owned_records();
     let feature_replay_before = runtime.observe().replay_for_branch(feature.id);
 
     let err = runtime.transaction(&mut runtime_ctx, |tx| {
@@ -1179,7 +1183,11 @@ fn branch_local_transaction_failure_does_not_advance_heads_or_leak_committed_art
         "failed branch-local work must rewind the active branch graph state"
     );
     assert_eq!(
-        runtime.graph().observe().lineage_for_node(source),
+        runtime
+            .graph()
+            .observe()
+            .lineage_for_node(source)
+            .to_owned_records(),
         feature_lineage_before,
         "failed branch-local work must not leak committed lineage transitions for the node"
     );
@@ -1296,7 +1304,11 @@ fn replay_and_lineage_overlap_stay_equivalent_across_runtime_policy_matrix() {
                 .observe()
                 .replay_for_branch(runtime.observe().current_branch().id),
             runtime.observe().replay_for_branch(feature.id),
-            runtime.graph().observe().lineage_for_node(source),
+            runtime
+                .graph()
+                .observe()
+                .lineage_for_node(source)
+                .to_owned_records(),
         )
     }
 
@@ -1407,6 +1419,150 @@ fn snapshot_contract_accepts_matching_schema_and_rejects_profile_or_schema_misma
 }
 
 #[test]
+fn snapshot_restore_preserves_advanced_reuse_history_truth() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    runtime.set_runtime_policy(SignalRuntimePolicy::development());
+    let projection = runtime
+        .define_computation(ComputationSpec {
+            family: "phase5-advanced-reuse".into(),
+            contract: NodeContract::reads([ASPECT_A])
+                .with_produces([ASPECT_B])
+                .with_cross_identity_persistent_matching()
+                .with_partial_artifact_splicing()
+                .with_partition_scope(PartitionSubscription::whole_partition("wing")),
+            tier: (),
+            comparator: VersionComparatorPolicy::OutputIdentity,
+            evaluator: |view: &mut EvaluationContext<'_, ()>| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 0))
+                        .with_output_identity("phase5-advanced-artifact")
+                        .with_output_change(OutputChange::Refreshed)
+                        .with_changed_region(ChangedRegion::new("wing")),
+                ))
+            },
+        })
+        .unwrap();
+    let source = projection.keyed("source");
+    let alias = projection.keyed("alias");
+    let wing = projection.keyed("wing");
+    let alias_node = alias.node(&mut runtime);
+    let wing_node = wing.node(&mut runtime);
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| source.evaluate_memoized(tx, "shape-v1"))
+        .unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            alias.evaluate_cross_identity_with_lineage_mapping(
+                tx,
+                "source",
+                "shape-v1",
+                "lineage-map:mesh-42->mesh-77",
+            )
+        })
+        .unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| wing.evaluate_memoized(tx, "shape-v1"))
+        .unwrap();
+    mark_dirty(runtime.graph_mut(), wing_node, ASPECT_A).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            wing.evaluate_partial_splice(
+                tx,
+                "shape-v1",
+                [PartitionSubscription::whole_partition("wing")],
+            )
+        })
+        .unwrap();
+
+    let snapshot = runtime.capture_snapshot();
+
+    mark_dirty(runtime.graph_mut(), alias_node, ASPECT_A).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| alias.evaluate_memoized(tx, "shape-v2"))
+        .unwrap();
+    mark_dirty(runtime.graph_mut(), wing_node, ASPECT_A).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| wing.evaluate_memoized(tx, "shape-v2"))
+        .unwrap();
+
+    runtime.restore_snapshot(&snapshot).unwrap();
+
+    let history = runtime
+        .observe()
+        .execution_history_summary(DiagnosticsTier::Development);
+    let alias_summary = history
+        .nodes
+        .iter()
+        .find(|node| node.node == alias_node)
+        .expect("alias history summary");
+    assert_eq!(
+        alias_summary.reuse_origin,
+        Some(ReuseOrigin::CrossIdentityPersistentReuse)
+    );
+    assert_eq!(
+        alias_summary.persistent_correspondence_kind,
+        Some(crate::data::reuse::PersistentCorrespondenceKind::LineageBackedMapping)
+    );
+
+    let wing_summary = history
+        .nodes
+        .iter()
+        .find(|node| node.node == wing_node)
+        .expect("wing history summary");
+    assert_eq!(wing_summary.reuse_origin, Some(ReuseOrigin::PartialArtifactSplice));
+    assert_eq!(wing_summary.composition_region_count, 1);
+
+    let alias_explain = runtime.observe().explain(alias_node).unwrap();
+    assert_eq!(
+        alias_explain.reuse_origin,
+        Some(ReuseOrigin::CrossIdentityPersistentReuse)
+    );
+    let wing_explain = runtime.observe().explain(wing_node).unwrap();
+    assert_eq!(wing_explain.reuse_origin, Some(ReuseOrigin::PartialArtifactSplice));
+
+    assert!(runtime.graph().replay_events().iter().any(|event| {
+        event.kind == ReplayEventKind::SnapshotRestored
+            && event.snapshot_id == Some(snapshot.meta.snapshot_id)
+    }));
+    let branch_replay = runtime
+        .observe()
+        .replay_for_branch(runtime.observe().current_branch().id);
+    assert!(branch_replay.frames.iter().any(|event| {
+        event.kind == ReplayEventKind::SnapshotRestored
+            && event.snapshot_id == Some(snapshot.meta.snapshot_id)
+    }));
+
+    let alias_lineage = runtime.observe().lineage_chain_for_node(alias_node);
+    assert!(alias_lineage.iter().any(|record| matches!(
+        &record.kind,
+        LineageRecordKind::ArtifactTransition {
+            transition:
+                ArtifactTransitionKind::CrossIdentityPersistentReuse {
+                    correspondence_kind:
+                        crate::data::reuse::PersistentCorrespondenceKind::LineageBackedMapping
+                },
+            ..
+        }
+    )));
+    let wing_lineage = runtime.observe().lineage_chain_for_node(wing_node);
+    assert!(wing_lineage.iter().any(|record| matches!(
+        &record.kind,
+        LineageRecordKind::ArtifactTransition {
+            transition:
+                ArtifactTransitionKind::PartialArtifactSplice {
+                    composition_region_count: 1,
+                    recomputed_region_count: 1
+                },
+            ..
+        }
+    )));
+}
+
+#[test]
 fn snapshot_artifact_retention_policy_changes_richness_not_restore_truth() {
     let mut graph = SignalGraph::new();
     graph.set_runtime_policy(SignalRuntimePolicy::development());
@@ -1419,8 +1575,7 @@ fn snapshot_artifact_retention_policy_changes_richness_not_restore_truth() {
     })
     .unwrap();
     let retained_explanation = graph
-        .observe()
-        .materialize_explanation_artifact(node)
+        .observe().materialize().materialize_explanation_artifact(node)
         .unwrap()
         .0
         .expect("development policy should materialize explanation artifacts");
@@ -1505,12 +1660,16 @@ fn snapshot_artifact_retention_policy_changes_richness_not_restore_truth() {
         "snapshot restore should rewind operational truth even when cold artifact richness was omitted"
     );
     let (explanation, materialization_mode) =
-        graph.observe().materialize_explanation_artifact(node).unwrap();
+    graph
+        .observe()
+        .materialize()
+        .materialize_explanation_artifact(node)
+        .unwrap();
     assert!(
         explanation.is_none(),
         "omitted snapshot richness should remain absent after restore under the active runtime policy"
     );
-    assert_eq!(materialization_mode, ArtifactMaterializationMode::Unavailable);
+    assert_eq!(materialization_mode, DiagnosticsAvailability::OmittedByTier);
 }
 
 #[test]
@@ -1599,8 +1758,7 @@ fn restore_snapshot_with_active_policy_prunes_cold_richness_without_changing_ope
         .unwrap();
 
     let explanation = runtime
-        .observe()
-        .materialize_explanation_artifact(node)
+        .observe().materialize().materialize_explanation_artifact(node)
         .unwrap()
         .0
         .expect("development policy should materialize explanation");
@@ -1662,11 +1820,10 @@ fn restore_snapshot_with_active_policy_prunes_cold_richness_without_changing_ope
         "active-policy restore should still rewind operational state"
     );
     let (artifact, materialization_mode) = runtime
-        .observe()
-        .materialize_explanation_artifact(node)
+        .observe().materialize().materialize_explanation_artifact(node)
         .unwrap();
     assert!(artifact.is_none());
-    assert_eq!(materialization_mode, ArtifactMaterializationMode::Unavailable);
+    assert_eq!(materialization_mode, DiagnosticsAvailability::OmittedByTier);
     assert!(
         runtime.observe().metrics().checkpoint.snapshot_restore_count >= 1,
         "restore intent should be visible in checkpoint telemetry"
@@ -1919,15 +2076,15 @@ fn branch_churn_respects_history_and_replay_budgets_under_tight_policy() {
             .observe()
             .recent_execution_history_diagnostics()
             .len()
-            <= policy.history_limit,
+            <= policy.retention_budget.history_limit,
         "execution history should stay within the configured history budget under branch churn"
     );
     assert!(
-        runtime.graph().replay_events().len() <= policy.history_limit.max(1) * 32,
+        runtime.graph().replay_events().len() <= policy.retention_budget.history_limit.max(1) * 32,
         "replay retention should stay within the policy-derived bound under branch churn"
     );
     assert!(
-        runtime.graph().observe().lineage_records().len() <= policy.history_limit.max(1) * 32,
+        runtime.graph().observe().lineage_records().len() <= policy.retention_budget.history_limit.max(1) * 32,
         "lineage retention should stay within the policy-derived bound under branch churn"
     );
     assert_eq!(
@@ -1946,3 +2103,7 @@ fn branch_churn_respects_history_and_replay_budgets_under_tight_policy() {
         "feature head should remain pinned to its snapshot under churn"
     );
 }
+
+
+
+

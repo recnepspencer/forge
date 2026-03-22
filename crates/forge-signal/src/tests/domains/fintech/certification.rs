@@ -692,7 +692,7 @@ impl WorkflowCertificationAdapter for SignalFintechWorkflowCertificationAdapter 
                 "known_branches": session.named_branches.keys().collect::<Vec<_>>(),
                 "known_snapshots": session.named_snapshots.keys().collect::<Vec<_>>(),
                 "known_audits": session.named_audits.keys().collect::<Vec<_>>(),
-                "policy": format!("{:?}", session.policy.profile),
+                "policy": format!("{:?}", session.policy.tier),
             })
             .to_string(),
         })
@@ -1090,3 +1090,4 @@ fn workflow_certification_runner_keeps_serial_parallel_fintech_overlap_honest() 
         outcome.mismatches
     );
 }
+

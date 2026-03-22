@@ -13,10 +13,10 @@ use crate::data::trace::{assemble_historical_artifact_record, assemble_trace_sum
 
 use super::analysis::{classify_condition_decision, partition_scope_untouched};
 use super::types::{
-    reason_for_policy, CausalDisposition, CausalLink, NodeExplanation, RewiringDependency,
-    RewiringSummary, ScopeProvenance, ScopeProvenanceKind, UpstreamCause,
+    reason_for_policy, CausalDisposition, CausalLink, CausalLinkKind, NodeExplanation,
+    RewiringDependency, RewiringSummary, ScopeProvenance, ScopeProvenanceKind, UpstreamCause,
 };
-use crate::diagnostics::policy::ArtifactMaterializationMode;
+use crate::diagnostics::policy::DiagnosticsAvailability;
 
 pub fn explain_with_policy_resolver(
     graph: &SignalGraph,
@@ -25,16 +25,18 @@ pub fn explain_with_policy_resolver(
 ) -> Result<NodeExplanation, SignalError> {
     let entry = graph.get_entry(node)?;
     if let Some(fact) = graph.explanation_fact(node) {
-        let current_record = assemble_historical_artifact_record(
-            node,
-            entry.get_runtime_artifact_state(),
-            entry.retained_diagnostic_artifact(),
-            entry.get_causality(),
-        );
-        if fact.explanation.state == *entry.get_state()
-            && fact.explanation.historical_artifact_record == current_record
-        {
-            return Ok(fact.explanation.clone());
+        if !fact.compact_projection {
+            let current_record = assemble_historical_artifact_record(
+                node,
+                entry.get_runtime_artifact_state(),
+                entry.retained_diagnostic_artifact(),
+                entry.get_causality(),
+            );
+            if fact.explanation.state == *entry.get_state()
+                && fact.explanation.historical_artifact_record == current_record
+            {
+                return Ok(fact.explanation.clone());
+            }
         }
     }
     let state = *entry.get_state();
@@ -252,7 +254,7 @@ pub fn explain_with_policy_resolver(
 
     Ok(NodeExplanation {
         node,
-        materialization_mode: ArtifactMaterializationMode::Reconstructed,
+        materialization_mode: DiagnosticsAvailability::ReconstructedAvailable,
         state,
         dirty_aspects,
         contract_reads: contract.semantics.reads,
@@ -403,7 +405,7 @@ fn build_causal_link_with_graph(graph: &SignalGraph, cause: &UpstreamCause) -> C
                 source: Some(*source),
                 aspect: Some(*aspect),
                 disposition: CausalDisposition::Semantic,
-                kind: "Changed".to_string(),
+                kind: CausalLinkKind::Changed,
                 scope,
                 cached_version: Some(*cached_version),
                 current_version: Some(*current_version),
@@ -424,7 +426,7 @@ fn build_causal_link_with_graph(graph: &SignalGraph, cause: &UpstreamCause) -> C
             source: Some(*source),
             aspect: Some(*aspect),
             disposition: CausalDisposition::Suppressed,
-            kind: "SkippedByComparator".to_string(),
+            kind: CausalLinkKind::SkippedByComparator,
             scope,
             cached_version: Some(*cached_version),
             current_version: Some(*current_version),
@@ -444,7 +446,10 @@ fn build_causal_link_with_graph(graph: &SignalGraph, cause: &UpstreamCause) -> C
             source: Some(*source),
             aspect: Some(*aspect),
             disposition: CausalDisposition::Ignored,
-            kind: format!("ConditionDeferred::{condition:?}/{decision:?}"),
+            kind: CausalLinkKind::ConditionDeferred {
+                condition: condition.clone(),
+                decision: *decision,
+            },
             scope,
             cached_version: Some(*cached_version),
             current_version: Some(*current_version),
@@ -463,9 +468,9 @@ fn build_causal_link_with_graph(graph: &SignalGraph, cause: &UpstreamCause) -> C
             aspect: Some(*aspect),
             disposition: CausalDisposition::Ignored,
             kind: if subscription.is_some() && cached_version != current_version {
-                "ScopeUntouched".to_string()
+                CausalLinkKind::ScopeUntouched
             } else {
-                "Clean".to_string()
+                CausalLinkKind::Clean
             },
             scope,
             cached_version: Some(*cached_version),
@@ -487,7 +492,7 @@ fn build_causal_link_with_graph(graph: &SignalGraph, cause: &UpstreamCause) -> C
             source: Some(*source),
             aspect: Some(*aspect),
             disposition: CausalDisposition::Conservative,
-            kind: "MissingSnapshot".to_string(),
+            kind: CausalLinkKind::MissingSnapshot,
             scope,
             cached_version: None,
             current_version: *current_version,
@@ -504,7 +509,7 @@ fn build_causal_link_with_graph(graph: &SignalGraph, cause: &UpstreamCause) -> C
             source: Some(*source),
             aspect: Some(*aspect),
             disposition: CausalDisposition::Topology,
-            kind: "DependencyRemoved".to_string(),
+            kind: CausalLinkKind::DependencyRemoved,
             scope,
             cached_version: Some(*cached_version),
             current_version: None,
@@ -647,3 +652,5 @@ pub fn explain(graph: &SignalGraph, node: NodeId) -> Result<NodeExplanation, Sig
     };
     explain_with_policy_resolver(graph, node, &resolver)
 }
+
+

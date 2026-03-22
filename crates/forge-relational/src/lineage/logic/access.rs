@@ -184,6 +184,16 @@ impl<'runtime> LineageAccess<'runtime> {
         self.runtime.lineage.events.clone()
     }
 
+    pub(crate) fn events_by_ids(&self, event_ids: &[u64]) -> Vec<LineageEventRecord> {
+        self.runtime
+            .lineage
+            .events
+            .iter()
+            .filter(|event| event_ids.contains(&event.event_id))
+            .cloned()
+            .collect()
+    }
+
     pub(crate) fn correspondence_candidates_snapshot(&self) -> Vec<CorrespondenceCandidate> {
         self.runtime.lineage.correspondence_candidates.clone()
     }

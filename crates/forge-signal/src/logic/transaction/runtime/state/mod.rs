@@ -26,7 +26,7 @@ pub use merge::{
     SourceNodeAdoptionPlanCore, SourceOnlyMergePolicy, StructuralMergeCandidateRecord,
     TargetNodeIdentityIntent, TopologyRepairSummary,
 };
-pub use observer::RuntimeObserver;
+pub use observer::{RuntimeMaterializer, RuntimeObserver};
 #[allow(unused_imports)]
 pub use reconstructability::{CheckpointRecord, JournalSegment, ReconstructabilityRecord};
 pub use runtime_state::SignalRuntime;

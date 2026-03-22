@@ -321,11 +321,11 @@ fn undo_redo_style_session_with_failures_and_memo_reuse_preserves_branch_local_t
             .observe()
             .recent_execution_history_diagnostics()
             .len()
-            <= policy.history_limit,
+            <= policy.retention_budget.history_limit,
         "history must stay bounded under long undo/redo churn"
     );
     assert!(
-        runtime.graph().replay_events().len() <= policy.history_limit.max(1) * 32,
+        runtime.graph().replay_events().len() <= policy.retention_budget.history_limit.max(1) * 32,
         "replay must stay bounded under long undo/redo churn"
     );
 }
@@ -1138,7 +1138,7 @@ fn retained_vs_reconstructed_artifacts_match_after_long_churn() {
 
         (
             runtime.observe().replay_for_branch(feature.id),
-            runtime.observe().lineage_chain_for_node(dependent),
+            runtime.observe().lineage_chain_for_node(dependent).to_owned_records(),
             runtime.observe().explain(dependent).unwrap(),
         )
     }
@@ -2208,3 +2208,4 @@ fn dynamic_rewire_threshold_session_with_parallel_restore_preserves_subscriber_s
             .contains(&target));
     }
 }
+

@@ -14,9 +14,9 @@ use crate::diagnostics::failure::{FailureSummary, RollbackDiagnostic};
 use crate::diagnostics::flow::{ChangeInputSummary, FlowSummary, InvalidationSummary};
 use crate::diagnostics::lineage::{LineageArtifactId, LineageRecord};
 use crate::diagnostics::policy::SignalRuntimePolicy;
-use crate::diagnostics::profile::DiagnosticsProfile;
+use crate::diagnostics::profile::DiagnosticsTier;
 use crate::diagnostics::replay::{ReplayCursor, ReplayEvent};
-use crate::diagnostics::summary::ExecutionHistorySummary;
+use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
 use crate::state::{
     SignalBranchHandle, SignalBranchId, SignalSnapshotDiagnostics, SignalSnapshotId,
     SignalSnapshotMeta, SnapshotArtifactRetentionPolicy,
@@ -33,11 +33,31 @@ pub(crate) struct DiagnosticsState {
     #[serde(default)]
     latest_rollback: Option<RollbackDiagnostic>,
     #[serde(default)]
+    latest_graph_summary: Option<GraphSummary>,
+    #[serde(default)]
+    pending_graph_summary: Option<GraphSummary>,
+    #[serde(default)]
     recent_history: VecDeque<ExecutionHistorySummary>,
     #[serde(default)]
     replay_events: VecDeque<ReplayEvent>,
     #[serde(default)]
     lineage_records: VecDeque<LineageRecord>,
+    #[serde(skip)]
+    replay_events_by_branch: BTreeMap<SignalBranchId, VecDeque<ReplayEvent>>,
+    #[serde(skip)]
+    replay_events_by_node: BTreeMap<NodeId, VecDeque<ReplayEvent>>,
+    #[serde(skip)]
+    replay_events_by_artifact: BTreeMap<LineageArtifactId, VecDeque<ReplayEvent>>,
+    #[serde(skip)]
+    replay_cursor_offsets: BTreeMap<ReplayCursor, usize>,
+    #[serde(skip, default)]
+    replay_cursor_offset_base: usize,
+    #[serde(skip)]
+    snapshot_replay_cursors: BTreeMap<SignalSnapshotId, ReplayCursor>,
+    #[serde(skip)]
+    lineage_records_by_artifact: BTreeMap<LineageArtifactId, VecDeque<LineageRecord>>,
+    #[serde(skip)]
+    lineage_records_by_node: BTreeMap<NodeId, VecDeque<LineageRecord>>,
     #[serde(default)]
     explanation_facts: BTreeMap<NodeId, ExplanationFact>,
     #[serde(default)]
@@ -87,12 +107,16 @@ impl DiagnosticsState {
         }
     }
 
-    pub fn profile(&self) -> DiagnosticsProfile {
-        self.policy.profile
+    pub fn profile(&self) -> DiagnosticsTier {
+        self.policy.tier
     }
 
-    pub fn set_profile(&mut self, profile: DiagnosticsProfile) {
-        self.policy = SignalRuntimePolicy::from_profile(profile);
+    pub fn tier(&self) -> DiagnosticsTier {
+        self.profile()
+    }
+
+    pub fn set_profile(&mut self, profile: DiagnosticsTier) {
+        self.policy = SignalRuntimePolicy::for_tier(profile);
         self.trim_history();
     }
 
@@ -129,6 +153,14 @@ impl DiagnosticsState {
         self.latest_rollback.as_ref()
     }
 
+    pub fn latest_graph_summary(&self) -> Option<&GraphSummary> {
+        self.latest_graph_summary.as_ref()
+    }
+
+    pub fn pending_graph_summary(&self) -> Option<&GraphSummary> {
+        self.pending_graph_summary.as_ref()
+    }
+
     pub fn latest_frontier_execution(&self) -> Option<&FrontierExecutionSummary> {
         self.latest_frontier_execution.as_ref()
     }
@@ -145,8 +177,48 @@ impl DiagnosticsState {
         &self.replay_events
     }
 
+    pub fn replay_events_for_branch(
+        &self,
+        branch_id: SignalBranchId,
+    ) -> Option<&VecDeque<ReplayEvent>> {
+        self.replay_events_by_branch.get(&branch_id)
+    }
+
+    pub fn replay_events_for_node(&self, node: NodeId) -> Option<&VecDeque<ReplayEvent>> {
+        self.replay_events_by_node.get(&node)
+    }
+
+    pub fn replay_events_for_artifact(
+        &self,
+        artifact_id: LineageArtifactId,
+    ) -> Option<&VecDeque<ReplayEvent>> {
+        self.replay_events_by_artifact.get(&artifact_id)
+    }
+
+    pub fn replay_cursor_offset(&self, cursor: ReplayCursor) -> Option<usize> {
+        self.replay_cursor_offsets
+            .get(&cursor)
+            .copied()
+            .map(|absolute| absolute.saturating_sub(self.replay_cursor_offset_base))
+    }
+
+    pub fn snapshot_replay_cursor(&self, snapshot_id: SignalSnapshotId) -> Option<ReplayCursor> {
+        self.snapshot_replay_cursors.get(&snapshot_id).copied()
+    }
+
     pub fn lineage_records(&self) -> &VecDeque<LineageRecord> {
         &self.lineage_records
+    }
+
+    pub fn lineage_records_for_artifact(
+        &self,
+        artifact_id: LineageArtifactId,
+    ) -> Option<&VecDeque<LineageRecord>> {
+        self.lineage_records_by_artifact.get(&artifact_id)
+    }
+
+    pub fn lineage_records_for_node(&self, node: NodeId) -> Option<&VecDeque<LineageRecord>> {
+        self.lineage_records_by_node.get(&node)
     }
 
     pub fn explanation_facts(&self) -> &BTreeMap<NodeId, ExplanationFact> {
@@ -203,11 +275,33 @@ impl DiagnosticsState {
         self.latest_invalidation_trace_records = trace_records;
     }
 
-    pub fn complete_flow(&mut self, flow: FlowSummary, history: ExecutionHistorySummary) {
+    pub fn set_pending_graph_summary(&mut self, summary: GraphSummary) {
+        self.pending_graph_summary = Some(summary);
+    }
+
+    pub fn complete_flow(
+        &mut self,
+        flow: FlowSummary,
+        history: ExecutionHistorySummary,
+        graph_summary: GraphSummary,
+    ) {
         self.latest_flow = Some(flow);
+        self.latest_graph_summary = Some(graph_summary);
         self.recent_history.push_back(history);
         self.trim_history();
         self.pending_input = None;
+        self.pending_graph_summary = None;
+    }
+
+    pub fn refresh_retained_views(
+        &mut self,
+        history: ExecutionHistorySummary,
+        graph_summary: GraphSummary,
+    ) {
+        self.latest_graph_summary = Some(graph_summary);
+        self.recent_history.push_back(history);
+        self.trim_history();
+        self.pending_graph_summary = None;
     }
 
     pub fn record_failure(&mut self, failure: FailureSummary) {
@@ -220,6 +314,7 @@ impl DiagnosticsState {
 
     pub fn clear_pending_input(&mut self) {
         self.pending_input = None;
+        self.pending_graph_summary = None;
         self.latest_frontier_execution = None;
         self.latest_invalidation_trace_records.clear();
     }
@@ -241,10 +336,37 @@ impl DiagnosticsState {
     }
 
     pub fn record_replay_event(&mut self, event: ReplayEvent) {
+        self.replay_events_by_branch
+            .entry(event.branch_id)
+            .or_default()
+            .push_back(event.clone());
+        if let Some(node) = event.node {
+            self.replay_events_by_node
+                .entry(node)
+                .or_default()
+                .push_back(event.clone());
+        }
+        if let Some(artifact_id) = event.lineage_artifact_id {
+            self.replay_events_by_artifact
+                .entry(artifact_id)
+                .or_default()
+                .push_back(event.clone());
+        }
+        if let Some(snapshot_id) = event.snapshot_id {
+            self.snapshot_replay_cursors.insert(snapshot_id, event.cursor);
+        }
         self.replay_events.push_back(event);
-        let limit = self.policy.history_limit.max(1) * 32;
+        let absolute_index = self.replay_cursor_offset_base + self.replay_events.len() - 1;
+        let latest_cursor = self.replay_events.back().map(|latest| latest.cursor);
+        if let Some(cursor) = latest_cursor {
+            self.replay_cursor_offsets.insert(cursor, absolute_index);
+        }
+        let limit = self.policy.retention_budget.history_limit.max(1) * 32;
         while self.replay_events.len() > limit {
-            self.replay_events.pop_front();
+            if let Some(event) = self.replay_events.pop_front() {
+                self.replay_cursor_offset_base += 1;
+                self.remove_replay_event_from_index(&event);
+            }
         }
     }
 
@@ -363,10 +485,24 @@ impl DiagnosticsState {
     }
 
     pub fn record_lineage_record(&mut self, record: LineageRecord) {
+        if let Some(node) = record.node() {
+            self.lineage_records_by_node
+                .entry(node)
+                .or_default()
+                .push_back(record.clone());
+        }
+        if let Some(artifact_id) = record.subject_artifact_id() {
+            self.lineage_records_by_artifact
+                .entry(artifact_id)
+                .or_default()
+                .push_back(record.clone());
+        }
         self.lineage_records.push_back(record);
-        let limit = self.policy.history_limit.max(1) * 32;
+        let limit = self.policy.retention_budget.history_limit.max(1) * 32;
         while self.lineage_records.len() > limit {
-            self.lineage_records.pop_front();
+            if let Some(record) = self.lineage_records.pop_front() {
+                self.remove_lineage_record_from_index(&record);
+            }
         }
     }
 
@@ -418,6 +554,8 @@ impl DiagnosticsState {
         self.next_lineage_artifact_id = payload.next_lineage_artifact_id;
         self.next_lineage_sequence = payload.next_lineage_sequence;
         self.pending_input = None;
+        self.pending_graph_summary = None;
+        self.rebuild_indexes();
     }
 
     pub fn restore_snapshot_payload_preserving_history_from(
@@ -497,12 +635,17 @@ impl DiagnosticsState {
             .next_lineage_sequence
             .max(current_next_lineage_sequence);
         self.trim_history();
-        let limit = self.policy.history_limit.max(1) * 32;
+        self.rebuild_indexes();
+        let limit = self.policy.retention_budget.history_limit.max(1) * 32;
         while self.replay_events.len() > limit {
-            self.replay_events.pop_front();
+            if let Some(event) = self.replay_events.pop_front() {
+                self.remove_replay_event_from_index(&event);
+            }
         }
         while self.lineage_records.len() > limit {
-            self.lineage_records.pop_front();
+            if let Some(record) = self.lineage_records.pop_front() {
+                self.remove_lineage_record_from_index(&record);
+            }
         }
     }
 
@@ -528,10 +671,163 @@ impl DiagnosticsState {
         })
     }
 
+    pub fn has_pending_change_input(&self) -> bool {
+        self.pending_input.is_some()
+    }
+
     fn trim_history(&mut self) {
-        let limit = self.policy.history_limit;
+        let limit = self.policy.retention_budget.history_limit;
         while self.recent_history.len() > limit {
             self.recent_history.pop_front();
+        }
+    }
+
+    fn rebuild_indexes(&mut self) {
+        self.replay_events_by_branch.clear();
+        self.replay_events_by_node.clear();
+        self.replay_events_by_artifact.clear();
+        self.replay_cursor_offsets.clear();
+        self.snapshot_replay_cursors.clear();
+        self.replay_cursor_offset_base = 0;
+        for event in &self.replay_events {
+            self.replay_events_by_branch
+                .entry(event.branch_id)
+                .or_default()
+                .push_back(event.clone());
+            if let Some(node) = event.node {
+                self.replay_events_by_node
+                    .entry(node)
+                    .or_default()
+                    .push_back(event.clone());
+            }
+            if let Some(artifact_id) = event.lineage_artifact_id {
+                self.replay_events_by_artifact
+                    .entry(artifact_id)
+                    .or_default()
+                    .push_back(event.clone());
+            }
+            if let Some(snapshot_id) = event.snapshot_id {
+                self.snapshot_replay_cursors.insert(snapshot_id, event.cursor);
+            }
+        }
+        self.rebuild_replay_cursor_offsets();
+        self.lineage_records_by_artifact.clear();
+        self.lineage_records_by_node.clear();
+        for record in &self.lineage_records {
+            if let Some(node) = record.node() {
+                self.lineage_records_by_node
+                    .entry(node)
+                    .or_default()
+                    .push_back(record.clone());
+            }
+            if let Some(artifact_id) = record.subject_artifact_id() {
+                self.lineage_records_by_artifact
+                    .entry(artifact_id)
+                    .or_default()
+                    .push_back(record.clone());
+            }
+        }
+    }
+
+    fn remove_replay_event_from_index(&mut self, event: &ReplayEvent) {
+        let mut remove_branch = false;
+        if let Some(events) = self.replay_events_by_branch.get_mut(&event.branch_id) {
+            if let Some(front) = events.front() {
+                if front == event {
+                    events.pop_front();
+                } else if let Some(index) = events.iter().position(|candidate| candidate == event) {
+                    events.remove(index);
+                }
+            }
+            remove_branch = events.is_empty();
+        }
+        if remove_branch {
+            self.replay_events_by_branch.remove(&event.branch_id);
+        }
+        if let Some(node) = event.node {
+            let mut remove_node = false;
+            if let Some(events) = self.replay_events_by_node.get_mut(&node) {
+                if let Some(front) = events.front() {
+                    if front == event {
+                        events.pop_front();
+                    } else if let Some(index) = events.iter().position(|candidate| candidate == event)
+                    {
+                        events.remove(index);
+                    }
+                }
+                remove_node = events.is_empty();
+            }
+            if remove_node {
+                self.replay_events_by_node.remove(&node);
+            }
+        }
+        if let Some(artifact_id) = event.lineage_artifact_id {
+            let mut remove_artifact = false;
+            if let Some(events) = self.replay_events_by_artifact.get_mut(&artifact_id) {
+                if let Some(front) = events.front() {
+                    if front == event {
+                        events.pop_front();
+                    } else if let Some(index) = events.iter().position(|candidate| candidate == event)
+                    {
+                        events.remove(index);
+                    }
+                }
+                remove_artifact = events.is_empty();
+            }
+            if remove_artifact {
+                self.replay_events_by_artifact.remove(&artifact_id);
+            }
+        }
+        self.replay_cursor_offsets.remove(&event.cursor);
+        if event.snapshot_id.is_some() {
+            self.snapshot_replay_cursors.retain(|_, cursor| *cursor != event.cursor);
+        }
+    }
+
+    fn remove_lineage_record_from_index(&mut self, record: &LineageRecord) {
+        if let Some(node) = record.node() {
+            let mut remove_node = false;
+            if let Some(records) = self.lineage_records_by_node.get_mut(&node) {
+                if let Some(front) = records.front() {
+                    if front == record {
+                        records.pop_front();
+                    } else if let Some(index) =
+                        records.iter().position(|candidate| candidate == record)
+                    {
+                        records.remove(index);
+                    }
+                }
+                remove_node = records.is_empty();
+            }
+            if remove_node {
+                self.lineage_records_by_node.remove(&node);
+            }
+        }
+        let Some(artifact_id) = record.subject_artifact_id() else {
+            return;
+        };
+        let mut remove_artifact = false;
+        if let Some(records) = self.lineage_records_by_artifact.get_mut(&artifact_id) {
+            if let Some(front) = records.front() {
+                if front == record {
+                    records.pop_front();
+                } else if let Some(index) = records.iter().position(|candidate| candidate == record)
+                {
+                    records.remove(index);
+                }
+            }
+            remove_artifact = records.is_empty();
+        }
+        if remove_artifact {
+            self.lineage_records_by_artifact.remove(&artifact_id);
+        }
+    }
+
+    fn rebuild_replay_cursor_offsets(&mut self) {
+        self.replay_cursor_offsets.clear();
+        self.replay_cursor_offset_base = 0;
+        for (index, event) in self.replay_events.iter().enumerate() {
+            self.replay_cursor_offsets.insert(event.cursor, index);
         }
     }
 }
@@ -543,9 +839,19 @@ impl Default for DiagnosticsState {
             latest_flow: None,
             latest_failure: None,
             latest_rollback: None,
+            latest_graph_summary: None,
+            pending_graph_summary: None,
             recent_history: VecDeque::new(),
             replay_events: VecDeque::new(),
             lineage_records: VecDeque::new(),
+            replay_events_by_branch: BTreeMap::new(),
+            replay_events_by_node: BTreeMap::new(),
+            replay_events_by_artifact: BTreeMap::new(),
+            replay_cursor_offsets: BTreeMap::new(),
+            replay_cursor_offset_base: 0,
+            snapshot_replay_cursors: BTreeMap::new(),
+            lineage_records_by_artifact: BTreeMap::new(),
+            lineage_records_by_node: BTreeMap::new(),
             explanation_facts: BTreeMap::new(),
             provenance_facts: BTreeMap::new(),
             branch_catalog: BTreeMap::new(),
@@ -563,3 +869,6 @@ impl Default for DiagnosticsState {
         state
     }
 }
+
+
+

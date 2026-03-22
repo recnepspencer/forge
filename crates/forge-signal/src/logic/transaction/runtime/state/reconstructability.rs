@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::graph::SignalGraph;
 use crate::data::telemetry::{CheckpointTelemetry, RuntimeTelemetry};
-use crate::diagnostics::replay::ReplayEventKind;
+use crate::diagnostics::replay::{ReplayEvent, ReplayEventKind};
 use crate::diagnostics::ReplayCursor;
 use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::planner::{ExecutionRecordId, SemanticSegmentId};
@@ -108,6 +108,31 @@ impl JournalSegment {
         }
         segment
     }
+
+    pub fn from_replay_events(entries: &[ReplayEvent]) -> Self {
+        let mut segment = Self {
+            replay_event_count: entries.len() as u32,
+            ..Self::default()
+        };
+        for entry in entries {
+            let execution_record_id =
+                entry.execution_record_id.map(crate::logic::planner::ExecutionRecordId);
+            let semantic_segment_id =
+                entry.semantic_segment_id.map(crate::logic::planner::SemanticSegmentId);
+            segment.first_execution_record_id =
+                segment.first_execution_record_id.or(execution_record_id);
+            segment.last_execution_record_id =
+                execution_record_id.or(segment.last_execution_record_id);
+            segment.first_semantic_segment_id =
+                segment.first_semantic_segment_id.or(semantic_segment_id);
+            segment.last_semantic_segment_id =
+                semantic_segment_id.or(segment.last_semantic_segment_id);
+            segment.contains_rollback |=
+                matches!(entry.kind, ReplayEventKind::TransactionRolledBack);
+            segment.contains_failure |= matches!(entry.kind, ReplayEventKind::FailureRecorded);
+        }
+        segment
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -141,17 +166,16 @@ impl ReconstructabilityRecord {
         authority_snapshot_id: SignalSnapshotId,
         replay_head: Option<ReplayCursor>,
         mut checkpoint: CheckpointRecord,
+        replay_entries: &[ReplayEvent],
     ) -> Self {
-        // Snapshot capture does not yet isolate a bounded post-checkpoint
-        // journal span, so reconstructability must not claim one here.
-        checkpoint.journal_replay_span = 0;
+        let journal = JournalSegment::from_replay_events(replay_entries);
+        checkpoint.journal_replay_span = journal.replay_event_count as u64;
         Self {
             authority_branch_id,
             authority_snapshot_id: Some(authority_snapshot_id),
             replay_head,
             checkpoint,
-            // Snapshot capture does not yet isolate a bounded post-checkpoint journal span.
-            journal: None,
+            journal: Some(journal),
         }
     }
 }

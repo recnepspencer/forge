@@ -16,7 +16,8 @@ pub use runtime::ScratchLeaseKind;
 pub use runtime::SignalGraph;
 pub(crate) use runtime::TraversalScratch;
 pub use runtime::{
-    EvaluationStrategy, GcPressure, GraphObserver, ObservationLevel, ParallelismHint,
+    EvaluationStrategy, GcPressure, GraphMaterializer, GraphObserver, ObservationLevel,
+    ParallelismHint,
 };
 #[cfg(test)]
 pub(crate) use storage::checked_segment_component_for_test;

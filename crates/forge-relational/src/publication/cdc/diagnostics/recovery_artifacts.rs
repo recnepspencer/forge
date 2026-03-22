@@ -2,7 +2,10 @@ use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
     RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
 };
-use crate::publication::cdc::data::{SubscriberCheckpoint, SubscriberRecoveryDecision};
+use crate::publication::cdc::data::{
+    SubscriberCheckpoint, SubscriberContinuationAssessment, SubscriberRecoveryDecision,
+    SubscriberResumeRequest,
+};
 use serde_json::json;
 
 pub(crate) fn checkpoint_resolution_artifact(
@@ -41,4 +44,11 @@ pub(crate) fn recovery_decision_artifact(
             }),
         }],
     }
+}
+
+pub(crate) fn continuation_assessment_artifact(
+    request: &SubscriberResumeRequest,
+    assessment: &SubscriberContinuationAssessment,
+) -> RelationalDiagnosticArtifact {
+    assessment.to_summary_artifact(&request.subscriber_contract().contract_id)
 }

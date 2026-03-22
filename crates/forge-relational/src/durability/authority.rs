@@ -21,6 +21,7 @@ use crate::durability::log::local_store::{
 use crate::history::data::VersionNode;
 use crate::logic::runtime::{RecoveryOutcome as RuntimeRecoveryOutcome, RelationalRuntime};
 use crate::replay::data::CanonicalCommitEnvelope;
+use crate::schema::logic::{validate_schema_continuity_bundle, SchemaContinuityBundleIssue};
 use crate::transactions::data::{TransactionOptions, WorkerIntentBatch};
 use serde_json::json;
 use std::sync::Arc;
@@ -147,8 +148,22 @@ impl<'runtime> DurabilityAuthority<'runtime> {
         &mut self,
         plan: RecoveryPlan,
     ) -> Result<RuntimeRecoveryOutcome, DurabilityError> {
+        let compatibility_entry = recovery_compatibility_diagnostic(&plan);
+        let compatibility_artifact_kind = match &plan.compatibility.verification_outcome {
+            crate::durability::data::RecoveryVerificationOutcome::VerifiedAtLayer(_) => {
+                DiagnosticsArtifactKind::MinimalSummary
+            }
+            crate::durability::data::RecoveryVerificationOutcome::Rejected { .. } => {
+                DiagnosticsArtifactKind::Failure
+            }
+        };
+        self.runtime.publication_authority().push_bounded_diagnostic(
+            DiagnosticsScope::History,
+            compatibility_artifact_kind,
+            vec![compatibility_entry.clone()],
+        );
         validate_recovery_compatibility(self.runtime, &plan)?;
-        if !plan.compatibility.schema_match {
+        if !plan.compatibility.schema_parity.is_verified() {
             return Err(DurabilityError::new(
                 RecoveryFailureClass::SchemaMismatch,
                 "recovery schema registry mismatch",
@@ -162,7 +177,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                 found_relation_kind_count: self.runtime.schema_registry().relation_kinds.len(),
             }));
         }
-        if !plan.compatibility.profile_match {
+        if !plan.compatibility.profile_parity.is_verified() {
             return Err(DurabilityError::new(
                 RecoveryFailureClass::ProfileMismatch,
                 "recovery profile mismatch",
@@ -172,7 +187,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                 found: format!("{:?}", self.runtime.runtime_profile()),
             }));
         }
-        if !plan.compatibility.runtime_name_match {
+        if !plan.compatibility.runtime_name_parity.is_verified() {
             return Err(DurabilityError::new(
                 RecoveryFailureClass::RuntimeNameMismatch,
                 "recovery runtime name mismatch",
@@ -198,6 +213,11 @@ impl<'runtime> DurabilityAuthority<'runtime> {
         let mut restored = rebuild_runtime_from_plan(plan.clone())?;
         restored.durability.log = plan.tail_log;
         restored.durability.store = plan.store.clone();
+        restored.publication_authority().push_bounded_diagnostic(
+            DiagnosticsScope::History,
+            compatibility_artifact_kind,
+            vec![compatibility_entry],
+        );
         restored.publication_authority().push_bounded_diagnostic(
             DiagnosticsScope::History,
             DiagnosticsArtifactKind::MinimalSummary,
@@ -450,6 +470,9 @@ fn rebuild_runtime_from_plan(plan: RecoveryPlan) -> Result<RelationalRuntime, Du
     let original_durability_mode = restored.config.durability.policy.mode;
     restored.config.durability.policy.mode = DurabilityMode::InMemoryCanonical;
     restored.durability.store = None;
+    if let Some(first_envelope) = plan.tail_log.first() {
+        restored.config.schema.registry = first_envelope.schema_registry.clone();
+    }
 
     if let Some(checkpoint) = &plan.checkpoint {
         restored.partitions = checkpoint
@@ -558,6 +581,7 @@ fn rebuild_runtime_from_plan(plan: RecoveryPlan) -> Result<RelationalRuntime, Du
         .collect::<BTreeSet<_>>();
 
     for envelope in &plan.tail_log {
+        restored.config.schema.registry = envelope.schema_registry.clone();
         if envelope
             .commit
             .parents
@@ -605,7 +629,7 @@ fn rebuild_runtime_from_plan(plan: RecoveryPlan) -> Result<RelationalRuntime, Du
         let mut txn = restored.begin_transaction(TransactionOptions {
             target_branch: Some(envelope.branch_context.clone()),
             merge_parent_branches: envelope.merge_parent_branches.clone(),
-            ..TransactionOptions::default()
+            ..schema_transition_options_for_replay(envelope)
         });
         txn.push_batch(WorkerIntentBatch {
             name: format!("recovery-commit-{}", envelope.commit.commit_id.0),
@@ -628,6 +652,7 @@ fn rebuild_runtime_from_plan(plan: RecoveryPlan) -> Result<RelationalRuntime, Du
                 ),
             )
         })?;
+        apply_authoritative_commit_artifacts(&mut restored, envelope);
     }
 
     restored.indexes.next_index_id = restored
@@ -720,7 +745,237 @@ fn validate_recovery_compatibility(
             found: runtime.runtime_name().to_string(),
         }));
     }
+    validate_schema_continuity_compatibility(runtime, plan)?;
     Ok(())
+}
+
+fn recovery_compatibility_diagnostic(
+    plan: &RecoveryPlan,
+) -> RelationalDiagnosticsEntry {
+    let (verification_layer, verification_detail, rejected) = match &plan.compatibility.verification_outcome {
+        crate::durability::data::RecoveryVerificationOutcome::VerifiedAtLayer(layer) => (
+            format!("{layer:?}"),
+            None,
+            false,
+        ),
+        crate::durability::data::RecoveryVerificationOutcome::Rejected { layer, detail } => (
+            format!("{layer:?}"),
+            Some(detail.clone()),
+            true,
+        ),
+    };
+    RelationalDiagnosticsEntry {
+        code: DiagnosticCode::DurableRecoveryCompatibilityEvaluated,
+        message: "durable recovery compatibility evaluated before recovery execution".to_string(),
+        fields: json!({
+            "verification_mode": format!("{:?}", plan.verification_mode),
+            "verification_layer": verification_layer,
+            "verification_rejected": rejected,
+            "verification_detail": verification_detail,
+            "descriptor_semantics_version": plan.descriptor_semantics_version.0,
+            "first_mismatch": plan.compatibility.first_mismatch.as_ref().map(|mismatch| format!("{:?}", mismatch)),
+            "schema_parity": format!("{:?}", plan.compatibility.schema_parity),
+            "descriptor_version_parity": format!("{:?}", plan.compatibility.descriptor_version_parity),
+            "schema_transition_parity": format!("{:?}", plan.compatibility.schema_transition_parity),
+            "continuation_descriptor_parity": format!("{:?}", plan.compatibility.continuation_descriptor_parity),
+            "reconciliation_descriptor_parity": format!("{:?}", plan.compatibility.reconciliation_descriptor_parity),
+            "schema_lineage_parity": format!("{:?}", plan.compatibility.schema_lineage_parity),
+        }),
+    }
+}
+
+fn apply_authoritative_commit_artifacts(
+    runtime: &mut RelationalRuntime,
+    envelope: &CanonicalCommitEnvelope,
+) {
+    if !envelope.lineage_events.is_empty() {
+        for event in &envelope.lineage_events {
+            if let Some(existing) = runtime
+                .lineage
+                .events
+                .iter_mut()
+                .find(|candidate| candidate.event_id == event.event_id)
+            {
+                *existing = event.clone();
+            } else {
+                runtime.lineage.events.push(event.clone());
+            }
+        }
+        runtime
+            .lineage
+            .events
+            .sort_by_key(|event| event.event_id);
+        if let Some(commit_envelope) = runtime
+            .history
+            .commit_envelopes
+            .get_mut(&envelope.commit.commit_id)
+        {
+            let commit_envelope = Arc::make_mut(commit_envelope);
+            commit_envelope.append_lineage_events_canonical(&envelope.lineage_events);
+        }
+    }
+
+    if !envelope.index_generations.is_empty() {
+        for generation in &envelope.index_generations {
+            let generations = runtime
+                .indexes
+                .generations
+                .entry(generation.index_id)
+                .or_default();
+            if let Some(existing) = generations
+                .iter_mut()
+                .find(|candidate| candidate.generation_id == generation.generation_id)
+            {
+                *existing = generation.clone();
+            } else {
+                generations.push(generation.clone());
+                generations.sort_by_key(|candidate| candidate.generation_id);
+            }
+        }
+        if let Some(commit_envelope) = runtime
+            .history
+            .commit_envelopes
+            .get_mut(&envelope.commit.commit_id)
+        {
+            let commit_envelope = Arc::make_mut(commit_envelope);
+            commit_envelope.append_index_generations_canonical(&envelope.index_generations);
+        }
+    }
+}
+
+fn schema_transition_options_for_replay(
+    envelope: &CanonicalCommitEnvelope,
+) -> TransactionOptions {
+    let options = TransactionOptions::default();
+    let Some(transition) = envelope.schema_transition.as_ref() else {
+        return options;
+    };
+    options.with_schema_transition(
+        crate::schema::data::ProposedSchemaTransition {
+            source_schema_id: transition.source_schema_id.clone(),
+            source_schema_version_id: transition.source_schema_version_id,
+            target_schema_id: transition.target_schema_id.clone(),
+            target_schema_version_id: transition.target_schema_version_id,
+            diff_atoms: transition.diff_atoms.clone(),
+        },
+        Some(transition.reconciliation_descriptor.policy),
+    )
+}
+
+fn validate_schema_continuity_compatibility(
+    runtime: &(impl SchemaSource + RuntimeIdentitySource + SchemaVersionSource),
+    plan: &RecoveryPlan,
+) -> Result<(), DurabilityError> {
+    let runtime_descriptor_version = crate::schema::data::DescriptorSemanticsVersion::default();
+    if plan.descriptor_semantics_version != runtime_descriptor_version {
+        return Err(DurabilityError::new(
+            RecoveryFailureClass::SchemaMismatch,
+            "recovery descriptor semantics version mismatch",
+        )
+        .with_compatibility_mismatch(
+            RecoveryCompatibilityMismatch::DescriptorSemanticsVersion {
+                expected: plan.descriptor_semantics_version,
+                found: runtime_descriptor_version,
+            },
+        ));
+    }
+
+    let checkpoint_envelopes = plan
+        .checkpoint
+        .as_ref()
+        .map(|checkpoint| checkpoint.envelopes.as_slice())
+        .unwrap_or(&[]);
+    for envelope in checkpoint_envelopes.iter().chain(plan.tail_log.iter()) {
+        if envelope.descriptor_semantics_version != plan.descriptor_semantics_version {
+            return Err(DurabilityError::new(
+                RecoveryFailureClass::SchemaMismatch,
+                "recovery envelope descriptor semantics version mismatch",
+            )
+            .with_compatibility_mismatch(
+                RecoveryCompatibilityMismatch::DescriptorSemanticsVersion {
+                    expected: plan.descriptor_semantics_version,
+                    found: envelope.descriptor_semantics_version,
+                },
+            ));
+        }
+
+        let validated_bundle = validate_schema_continuity_bundle(envelope)
+            .map_err(|issue| schema_continuity_recovery_error(envelope, issue))?;
+        let _ = (
+            validated_bundle.envelope(),
+            validated_bundle.transition(),
+            validated_bundle.continuation(),
+            validated_bundle.reconciliation(),
+        );
+    }
+
+    let _ = runtime;
+    Ok(())
+}
+
+fn schema_continuity_recovery_error(
+    envelope: &CanonicalCommitEnvelope,
+    issue: SchemaContinuityBundleIssue,
+) -> DurabilityError {
+    let detail = issue.detail();
+    let mismatch = match issue {
+        SchemaContinuityBundleIssue::IncompleteBundle => {
+            RecoveryCompatibilityMismatch::SchemaTransitionArtifact {
+                commit_id: envelope.commit.commit_id.0,
+                detail,
+            }
+        }
+        SchemaContinuityBundleIssue::ContinuationDescriptorDrift {
+            boundary_fingerprint,
+        } => RecoveryCompatibilityMismatch::ContinuationDescriptor {
+            commit_id: envelope.commit.commit_id.0,
+            boundary_fingerprint,
+            detail,
+        },
+        SchemaContinuityBundleIssue::ReconciliationDescriptorDrift => {
+            RecoveryCompatibilityMismatch::ReconciliationDescriptor {
+                commit_id: envelope.commit.commit_id.0,
+                detail,
+            }
+        }
+        SchemaContinuityBundleIssue::ContinuationBoundaryFingerprintMismatch {
+            boundary_fingerprint,
+        } => RecoveryCompatibilityMismatch::ContinuationDescriptor {
+            commit_id: envelope.commit.commit_id.0,
+            boundary_fingerprint: Some(boundary_fingerprint),
+            detail,
+        },
+        SchemaContinuityBundleIssue::DescriptorSemanticsVersionMismatch { expected, found } => {
+            RecoveryCompatibilityMismatch::DescriptorSemanticsVersion { expected, found }
+        }
+        SchemaContinuityBundleIssue::TargetSchemaVersionMismatch => {
+            RecoveryCompatibilityMismatch::SchemaTransitionArtifact {
+                commit_id: envelope.commit.commit_id.0,
+                detail,
+            }
+        }
+        SchemaContinuityBundleIssue::LineageSchemaVersionMismatch => {
+            RecoveryCompatibilityMismatch::SchemaLineage {
+                commit_id: envelope.commit.commit_id.0,
+                detail,
+            }
+        }
+        SchemaContinuityBundleIssue::HistoricalReinterpretationViolation => {
+            RecoveryCompatibilityMismatch::ContinuationDescriptor {
+                commit_id: envelope.commit.commit_id.0,
+                boundary_fingerprint: envelope
+                    .schema_continuation_descriptor
+                    .as_ref()
+                    .map(|descriptor| descriptor.boundary_fingerprint),
+                detail,
+            }
+        }
+    };
+    DurabilityError::new(
+        RecoveryFailureClass::SchemaMismatch,
+        "recovery schema continuity compatibility failure",
+    )
+    .with_compatibility_mismatch(mismatch)
 }
 
 fn schema_registry_mismatch(

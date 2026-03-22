@@ -1,5 +1,6 @@
 mod aspect_semantics;
 mod aspect_traces;
+mod continuity;
 mod relation_integrity;
 mod registry_errors;
 
@@ -12,6 +13,7 @@ use crate::identity::data::KindId;
 
 pub use aspect_semantics::*;
 pub use aspect_traces::*;
+pub use continuity::*;
 pub use relation_integrity::*;
 pub use registry_errors::*;
 
@@ -150,5 +152,34 @@ impl RelationalSchemaRegistry {
             .get(&kind_id)
             .ok_or_else(|| SchemaRegistryError::unknown_relation_kind(kind_id))?;
         Ok(registration.aspect_declarations.declaration_trace(kind_id))
+    }
+
+    pub fn authoritative_schema_basis(
+        &self,
+    ) -> Result<Option<(SchemaId, SchemaVersionId)>, SchemaRegistryError> {
+        let mut registrations = self
+            .entity_kinds
+            .values()
+            .map(|registration| (&registration.schema_id, registration.schema_version_id))
+            .chain(
+                self.relation_kinds
+                    .values()
+                    .map(|registration| (&registration.schema_id, registration.schema_version_id)),
+            );
+        let Some((schema_id, schema_version_id)) = registrations.next() else {
+            return Ok(None);
+        };
+        for (next_schema_id, next_schema_version_id) in registrations {
+            if next_schema_id != schema_id || next_schema_version_id != schema_version_id {
+                return Err(SchemaRegistryError::inconsistent_schema_basis(format!(
+                    "found mixed schema basis {:?}/{:?} and {:?}/{:?}",
+                    schema_id,
+                    schema_version_id,
+                    next_schema_id,
+                    next_schema_version_id
+                )));
+            }
+        }
+        Ok(Some((schema_id.clone(), schema_version_id)))
     }
 }

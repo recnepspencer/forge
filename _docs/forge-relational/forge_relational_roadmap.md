@@ -192,6 +192,9 @@ named requirements from
 
 ## Milestone 4: Relation Integrity and Schema Contracts
 
+Status: Closed on 2026-03-21. See
+[milestone-4-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-relational/milestone-4-closeout.md).
+
 ### Goal
 
 Finish the runtime contract layer for relation legality, schema-defined
@@ -241,6 +244,9 @@ explicit policy rather than blanket rejection or silent corruption.
 ### Must Ship
 
 - explicit schema evolution model for authoritative runtimes
+- schema strata classification so structural, value-domain, identity,
+  behavioral, publication, and subscriber-contract change surfaces are not
+  collapsed into one vague schema-diff bucket
 - canonical publication of schema transition boundaries
 - subscriber-facing schema transition semantics for checkpoint/resume and
   active stream continuation
@@ -254,6 +260,10 @@ explicit policy rather than blanket rejection or silent corruption.
   - incompatible schema mismatch
   - resumable compatible evolution
   - transitions that require a new subscriber contract
+- descriptor semantics versioning, canonicalization versioning, and explicit
+  invalidation rules for continuation/reconciliation descriptors
+- explicit verification modes that separate normal recovery verification from
+  audit-only recomputation and corruption diagnosis
 
 #### Schema Reconciliation
 

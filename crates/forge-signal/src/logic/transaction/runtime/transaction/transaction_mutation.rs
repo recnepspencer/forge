@@ -21,6 +21,11 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    pub(in crate::logic::transaction::runtime) fn ensure_rollback_baseline(&mut self) {
+        self.rollback_baseline
+            .capture_if_needed(self.config, self.graph.diagnostics_state());
+    }
+
     pub fn staged_graph(&self) -> &crate::data::graph::SignalGraph {
         self.graph
     }
@@ -30,6 +35,7 @@ where
         family: &crate::data::output::ComputationFamily,
         key: impl Into<crate::data::output::ComputationKey>,
     ) -> NodeId {
+        self.ensure_rollback_baseline();
         let (node, created) = self
             .config
             .resolve_defined_node_with_created(self.graph, family, key);
@@ -85,6 +91,7 @@ where
         &mut self,
         dirty: &DirtyBatch,
     ) -> Result<SemanticBatchCommit, SignalError> {
+        self.ensure_rollback_baseline();
         for entry in dirty.as_slice() {
             self.stage_mark_dirty_candidates(entry.source)?;
         }
@@ -188,6 +195,7 @@ where
         &mut self,
         node: NodeId,
     ) -> Result<(), SignalError> {
+        self.ensure_rollback_baseline();
         let mut stack = vec![node];
         self.scratch.evaluate_seen.clear_all();
         self.scratch

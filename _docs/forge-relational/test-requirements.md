@@ -593,6 +593,122 @@ Pass condition
 
 Recovery is exact when valid, and loudly rejected when invalid.
 
+11. Schema evolution CDC contract test
+Purpose
+
+Prove that schema transition boundaries are first-class canonical artifacts and
+that CDC/subscriber continuation consumes those boundary artifacts rather than
+rediscovering compatibility from raw schema state.
+
+Scenario
+
+Run deterministic workloads containing:
+
+explicit schema transition commits
+
+harmless additive surface growth
+
+subscriber-visible but still bridgeable boundaries
+
+contract-upgrade boundaries
+
+renegotiation-required boundaries
+
+rejected incompatible boundaries
+
+checkpoint/resume before and after schema boundaries
+
+replay and durable recovery over schema-transition-bearing histories
+
+Must verify
+
+schema boundary truth is preserved in canonical commit artifacts
+
+subscriber continuation outcome is determined by persisted continuation descriptors
+
+harmless boundaries continue without host choreography
+
+visible bridges remain semantically correct even if boundary metadata is ignored
+
+upgrade-only boundaries require declared subscriber support
+
+renegotiation-required boundaries fail explicitly instead of drifting silently
+
+replay and recovery reproduce identical schema boundary and continuation outcomes
+
+Required verification output
+
+schema_transition_digest
+
+schema_boundary_cdc_digest
+
+subscriber_contract_matrix
+
+transition_decision_digest
+
+descriptor_version_digest
+
+Pass condition
+
+Schema-bearing CDC continuity is exact, explicit, and replay/recovery-stable.
+
+12. Schema reconciliation classification test
+Purpose
+
+Prove that schema divergence is classified deterministically, reconciled by
+explicit preservation policy, and emitted as lineage-bearing canonical truth.
+
+Scenario
+
+Run reconciliation workloads containing:
+
+additive divergence
+
+narrowing divergence with no policy
+
+narrowing divergence with preservation policies
+
+type-incompatible conflicts
+
+structural-incompatible conflicts
+
+canonicalized ordering of schema pairs
+
+direction-sensitive cases where direction is explicit input
+
+replay and durable recovery over reconciliation-bearing histories
+
+Must verify
+
+reconciliation classification is deterministic
+
+generic compatibility summaries never govern runtime behavior
+
+resulting schema identity and lineage are explicit
+
+lossy reconciliation is annotated explicitly when permitted
+
+incompatible transitions fail closed with structured diagnostics
+
+replay and recovery preserve reconciliation artifacts exactly
+
+Required verification output
+
+schema_reconciliation_digest
+
+schema_lineage_digest
+
+reconciliation_policy_matrix
+
+schema_conflict_localization_report
+
+descriptor_version_digest
+
+Pass condition
+
+Schema reconciliation is deterministic, policy-driven, lineage-aware, and
+truth-grade.
+
 2 CAD-specific ultimate tests
 CAD 1. Topology identity survival test
 Purpose

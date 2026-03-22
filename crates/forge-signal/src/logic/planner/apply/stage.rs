@@ -142,7 +142,7 @@ fn build_lowered_stage_plan(
         .map(|patch| lower_task_patch(graph, patch))
         .collect::<Result<Vec<_>, SignalError>>()?;
     let resolved_policy =
-        SignalRuntimePolicy::from_profile(graph.diagnostics_profile()).resolve_performance_policy();
+        SignalRuntimePolicy::for_tier(graph.diagnostics_profile()).resolve_performance_policy();
     let apply_groups = build_lowered_apply_groups(&lowered_tasks, executor);
     let dirty_delta = build_lowered_dirty_delta(&lowered_tasks);
     let touched_scope = build_touched_scope_summary(&lowered_tasks);
@@ -366,7 +366,7 @@ fn apply_lowered_task(
     let reuse_basis = graph
         .get_entry(node)?
         .get_runtime_artifact_state()
-        .map(|trace| trace.reuse_basis)
+        .map(|trace| trace.reuse_basis.clone())
         .unwrap_or(crate::data::reuse::ReuseBasis::fresh_compute());
     Ok(SemanticTaskUpdate {
         task_index,
@@ -538,18 +538,17 @@ fn build_prepared_dependency_edges(
     graph: &mut SignalGraph,
     capture: &PreparedDependencyCapture,
 ) -> Result<Vec<DependencyEdge>, SignalError> {
-    let mut edges = Vec::with_capacity(capture.as_slice().len());
-    for dependency in capture.as_slice() {
-        let edge = graph.build_dependency_edge(
-            dependency.source,
-            dependency.aspect,
-            dependency.scope.clone(),
-        );
-        if !edges.contains(&edge) {
-            edges.push(edge);
-        }
-    }
-    Ok(edges)
+    Ok(capture
+        .as_slice()
+        .iter()
+        .map(|dependency| {
+            graph.build_dependency_edge(
+                dependency.source,
+                dependency.aspect,
+                dependency.scope.clone(),
+            )
+        })
+        .collect())
 }
 
 fn count_dependency_updates(
@@ -604,24 +603,60 @@ fn rewiring_summary_from_lowered_edges(
     current_dependencies: &[DependencyEdge],
     next_dependencies: &[DependencyEdge],
 ) -> Option<RewiringSummary> {
-    let mut added = next_dependencies
-        .iter()
-        .filter(|candidate| !current_dependencies.contains(candidate))
-        .map(|edge| RewiringDependency {
+    let mut current_index = 0usize;
+    let mut next_index = 0usize;
+    let mut added = Vec::new();
+    let mut removed = Vec::new();
+
+    while current_index < current_dependencies.len() && next_index < next_dependencies.len() {
+        match compare_dependency_edges(
+            &current_dependencies[current_index],
+            &next_dependencies[next_index],
+        ) {
+            std::cmp::Ordering::Less => {
+                let edge = &current_dependencies[current_index];
+                removed.push(RewiringDependency {
+                    source: edge.source(),
+                    aspect: edge.aspect(),
+                    subscription: edge.scope_ref().cloned(),
+                });
+                current_index += 1;
+            }
+            std::cmp::Ordering::Greater => {
+                let edge = &next_dependencies[next_index];
+                added.push(RewiringDependency {
+                    source: edge.source(),
+                    aspect: edge.aspect(),
+                    subscription: edge.scope_ref().cloned(),
+                });
+                next_index += 1;
+            }
+            std::cmp::Ordering::Equal => {
+                current_index += 1;
+                next_index += 1;
+            }
+        }
+    }
+
+    while current_index < current_dependencies.len() {
+        let edge = &current_dependencies[current_index];
+        removed.push(RewiringDependency {
             source: edge.source(),
             aspect: edge.aspect(),
             subscription: edge.scope_ref().cloned(),
-        })
-        .collect::<Vec<_>>();
-    let mut removed = current_dependencies
-        .iter()
-        .filter(|candidate| !next_dependencies.contains(candidate))
-        .map(|edge| RewiringDependency {
+        });
+        current_index += 1;
+    }
+
+    while next_index < next_dependencies.len() {
+        let edge = &next_dependencies[next_index];
+        added.push(RewiringDependency {
             source: edge.source(),
             aspect: edge.aspect(),
             subscription: edge.scope_ref().cloned(),
-        })
-        .collect::<Vec<_>>();
+        });
+        next_index += 1;
+    }
 
     if added.is_empty() && removed.is_empty() {
         None
@@ -643,3 +678,4 @@ fn rewiring_summary_from_lowered_edges(
         Some(RewiringSummary { added, removed })
     }
 }
+

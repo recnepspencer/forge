@@ -498,7 +498,7 @@ impl SnapshotDeltaRecord {
 }
 
 /// Stable handle into graph-owned dependency snapshot storage.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub struct DependencySnapshotId(Option<NonZeroU32>);
 
 impl DependencySnapshotId {

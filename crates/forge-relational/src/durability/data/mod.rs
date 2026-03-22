@@ -12,7 +12,8 @@ use crate::indexes::data::{DerivedIndexDefinition, DerivedIndexGeneration};
 use crate::lineage::data::{CorrespondenceCandidate, LineageEventRecord, LineageNode};
 use crate::payloads::data::RecordPayload;
 use crate::replay::data::CanonicalCommitEnvelope;
-use crate::schema::data::SchemaVersionId;
+use crate::replay::data::ReplayVerificationLayer;
+use crate::schema::data::{DescriptorSemanticsVersion, SchemaVersionId};
 use crate::storage::data::RecordLifecycleState;
 use crate::symbols::data::{Symbol, SymbolTableSnapshot};
 
@@ -222,9 +223,54 @@ pub use recovery_errors::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RecoveryCompatibilityCheck {
-    pub schema_match: bool,
-    pub profile_match: bool,
-    pub runtime_name_match: bool,
+    pub schema_parity: RecoveryAuthorityParity,
+    pub profile_parity: RecoveryAuthorityParity,
+    pub runtime_name_parity: RecoveryAuthorityParity,
+    pub descriptor_version_parity: RecoveryAuthorityParity,
+    pub schema_transition_parity: RecoveryAuthorityParity,
+    pub continuation_descriptor_parity: RecoveryAuthorityParity,
+    pub reconciliation_descriptor_parity: RecoveryAuthorityParity,
+    pub schema_lineage_parity: RecoveryAuthorityParity,
+    pub verification_outcome: RecoveryVerificationOutcome,
+    pub first_mismatch: Option<RecoveryCompatibilityMismatch>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RecoveryVerificationMode {
+    NormalRecoveryVerification,
+    AuditRecoveryVerification,
+    CorruptionDiagnosisReplay,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RecoveryVerificationPlan {
+    Normal(NormalRecoveryVerificationPlan),
+    Audit(AuditRecoveryVerificationPlan),
+    CorruptionDiagnosis(CorruptionDiagnosisReplayPlan),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NormalRecoveryVerificationPlan;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AuditRecoveryVerificationPlan;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CorruptionDiagnosisReplayPlan;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RecoveryVerificationOutcome {
+    VerifiedAtLayer(ReplayVerificationLayer),
+    Rejected {
+        layer: ReplayVerificationLayer,
+        detail: String,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RecoveryAuthorityParity {
+    VerifiedAtLayer(ReplayVerificationLayer),
+    Drift,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -237,6 +283,43 @@ pub struct RecoveryPlan {
     pub cursor: RecoveryCursor,
     pub integrity_report: RecoveryIntegrityReport,
     pub compatibility: RecoveryCompatibilityCheck,
+    pub verification_mode: RecoveryVerificationMode,
+    pub verification_plan: RecoveryVerificationPlan,
+    pub descriptor_semantics_version: DescriptorSemanticsVersion,
+}
+
+impl RecoveryVerificationPlan {
+    pub fn from_mode(mode: RecoveryVerificationMode) -> Self {
+        match mode {
+            RecoveryVerificationMode::NormalRecoveryVerification => {
+                Self::Normal(NormalRecoveryVerificationPlan)
+            }
+            RecoveryVerificationMode::AuditRecoveryVerification => {
+                Self::Audit(AuditRecoveryVerificationPlan)
+            }
+            RecoveryVerificationMode::CorruptionDiagnosisReplay => {
+                Self::CorruptionDiagnosis(CorruptionDiagnosisReplayPlan)
+            }
+        }
+    }
+
+    pub fn allows_deep_artifact_parity(&self) -> bool {
+        !matches!(self, Self::Normal(_))
+    }
+}
+
+impl RecoveryAuthorityParity {
+    pub fn verified_at(layer: ReplayVerificationLayer) -> Self {
+        Self::VerifiedAtLayer(layer)
+    }
+
+    pub fn drift() -> Self {
+        Self::Drift
+    }
+
+    pub fn is_verified(&self) -> bool {
+        matches!(self, Self::VerifiedAtLayer(_))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

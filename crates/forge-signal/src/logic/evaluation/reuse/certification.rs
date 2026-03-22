@@ -45,6 +45,7 @@ mod tests {
         PersistentCorrespondenceEvidence, ReuseBasis, ReuseBoundaryContext,
         ReuseBoundaryEvidence, ReuseBoundaryFailure, ReuseCrossing, ReuseOrigin,
         ReuseSemanticRegionIdentity, ReuseSource, ReuseStrategy,
+        ReuseStrategyBoundaryContext,
     };
     use crate::data::{
         comparator::VersionComparatorPolicy, node::ContextRequirement, performance::AuthorityPolicy,
@@ -66,10 +67,10 @@ mod tests {
                 ),
                 authority_policy: AuthorityPolicy::SpeculativeThenReconcile,
                 artifact_family: None,
-                structural_dependency_basis: 7,
+                structural_dependency_basis:
+                    crate::data::dependency::DependencySnapshotId::EMPTY,
                 partition_region_basis: Default::default(),
-                persistent_correspondence: None,
-                composition_regions: Default::default(),
+                strategy_detail: ReuseStrategyBoundaryContext::None,
             },
             previous: Some(ReuseBoundaryContext {
                 topology_regime: 7,
@@ -82,10 +83,10 @@ mod tests {
                 ),
                 authority_policy: AuthorityPolicy::SpeculativeThenReconcile,
                 artifact_family: None,
-                structural_dependency_basis: 7,
+                structural_dependency_basis:
+                    crate::data::dependency::DependencySnapshotId::EMPTY,
                 partition_region_basis: Default::default(),
-                persistent_correspondence: None,
-                composition_regions: Default::default(),
+                strategy_detail: ReuseStrategyBoundaryContext::None,
             }),
         }
     }
@@ -265,7 +266,7 @@ mod tests {
             recomputed: false,
         };
         let mut evidence = evidence();
-        evidence.current.composition_regions = Default::default();
+        evidence.current.strategy_detail = ReuseStrategyBoundaryContext::None;
 
         let failure = certify_reuse_decision(&contract, &decision, &evidence).unwrap_err();
         assert_eq!(
@@ -301,9 +302,13 @@ mod tests {
         let mut evidence = evidence();
         let correspondence =
             PersistentCorrespondenceEvidence::HostSuppliedKey("mesh-001".to_string());
-        evidence.current.persistent_correspondence = Some(correspondence.clone());
-        evidence.previous.as_mut().expect("previous context").persistent_correspondence =
-            Some(correspondence);
+        evidence.current.strategy_detail = ReuseStrategyBoundaryContext::CrossIdentity {
+            persistent_correspondence: correspondence.clone(),
+        };
+        evidence.previous.as_mut().expect("previous context").strategy_detail =
+            ReuseStrategyBoundaryContext::CrossIdentity {
+                persistent_correspondence: correspondence,
+            };
 
         let certification = certify_reuse_decision(&contract, &decision, &evidence).unwrap();
         assert!(certification.is_some());

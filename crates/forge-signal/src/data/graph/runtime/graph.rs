@@ -18,7 +18,7 @@ use crate::data::reuse::ReuseBasis;
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::diagnostics::lineage::LineageArtifactId;
 use crate::diagnostics::state::DiagnosticsState;
-use crate::diagnostics::DiagnosticsProfile;
+use crate::diagnostics::DiagnosticsTier;
 
 use super::super::compaction::CompactionState;
 use super::super::storage::Slot;
@@ -186,6 +186,16 @@ pub struct RuntimeArtifactStructuralDelta {
 #[derive(Debug, Default)]
 pub(crate) struct ReconstructionCounters {
     hot_path_artifact_reconstruction_count: Arc<AtomicU64>,
+    explicit_cold_materialization_request_count: Arc<AtomicU64>,
+    retained_forensic_read_count: Arc<AtomicU64>,
+    cold_explanation_reconstruction_count: Arc<AtomicU64>,
+    cold_provenance_reconstruction_count: Arc<AtomicU64>,
+    retained_artifact_read_count: Arc<AtomicU64>,
+    reconstructed_artifact_read_count: Arc<AtomicU64>,
+    denied_reconstruction_by_budget_count: Arc<AtomicU64>,
+    denied_reconstruction_by_tier_count: Arc<AtomicU64>,
+    denied_reconstruction_explanation_api_count: Arc<AtomicU64>,
+    denied_reconstruction_provenance_api_count: Arc<AtomicU64>,
 }
 
 impl ReconstructionCounters {
@@ -198,6 +208,106 @@ impl ReconstructionCounters {
         self.hot_path_artifact_reconstruction_count
             .load(Ordering::Relaxed)
     }
+
+    pub(crate) fn record_explicit_cold_materialization_request(&self) {
+        self.explicit_cold_materialization_request_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn explicit_cold_materialization_request_count(&self) -> u64 {
+        self.explicit_cold_materialization_request_count
+            .load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn record_retained_forensic_read(&self) {
+        self.retained_forensic_read_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn retained_forensic_read_count(&self) -> u64 {
+        self.retained_forensic_read_count.load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn record_cold_explanation_reconstruction(&self) {
+        self.cold_explanation_reconstruction_count
+            .fetch_add(1, Ordering::Relaxed);
+        self.reconstructed_artifact_read_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn cold_explanation_reconstruction_count(&self) -> u64 {
+        self.cold_explanation_reconstruction_count
+            .load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn record_cold_provenance_reconstruction(&self) {
+        self.cold_provenance_reconstruction_count
+            .fetch_add(1, Ordering::Relaxed);
+        self.reconstructed_artifact_read_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn cold_provenance_reconstruction_count(&self) -> u64 {
+        self.cold_provenance_reconstruction_count
+            .load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn reconstructed_artifact_read_count(&self) -> u64 {
+        self.reconstructed_artifact_read_count.load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn record_retained_artifact_read(&self) {
+        self.retained_artifact_read_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn retained_artifact_read_count(&self) -> u64 {
+        self.retained_artifact_read_count.load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn record_denied_reconstruction_by_budget(&self, explanation_api: bool) {
+        self.denied_reconstruction_by_budget_count
+            .fetch_add(1, Ordering::Relaxed);
+        if explanation_api {
+            self.denied_reconstruction_explanation_api_count
+                .fetch_add(1, Ordering::Relaxed);
+        } else {
+            self.denied_reconstruction_provenance_api_count
+                .fetch_add(1, Ordering::Relaxed);
+        }
+    }
+
+    pub(crate) fn denied_reconstruction_by_budget_count(&self) -> u64 {
+        self.denied_reconstruction_by_budget_count
+            .load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn record_denied_reconstruction_by_tier(&self, explanation_api: bool) {
+        self.denied_reconstruction_by_tier_count
+            .fetch_add(1, Ordering::Relaxed);
+        if explanation_api {
+            self.denied_reconstruction_explanation_api_count
+                .fetch_add(1, Ordering::Relaxed);
+        } else {
+            self.denied_reconstruction_provenance_api_count
+                .fetch_add(1, Ordering::Relaxed);
+        }
+    }
+
+    pub(crate) fn denied_reconstruction_by_tier_count(&self) -> u64 {
+        self.denied_reconstruction_by_tier_count
+            .load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn denied_reconstruction_explanation_api_count(&self) -> u64 {
+        self.denied_reconstruction_explanation_api_count
+            .load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn denied_reconstruction_provenance_api_count(&self) -> u64 {
+        self.denied_reconstruction_provenance_api_count
+            .load(Ordering::Relaxed)
+    }
 }
 
 impl Clone for ReconstructionCounters {
@@ -205,6 +315,36 @@ impl Clone for ReconstructionCounters {
         Self {
             hot_path_artifact_reconstruction_count: Arc::new(AtomicU64::new(
                 self.hot_path_artifact_reconstruction_count(),
+            )),
+            explicit_cold_materialization_request_count: Arc::new(AtomicU64::new(
+                self.explicit_cold_materialization_request_count(),
+            )),
+            retained_forensic_read_count: Arc::new(AtomicU64::new(
+                self.retained_forensic_read_count(),
+            )),
+            cold_explanation_reconstruction_count: Arc::new(AtomicU64::new(
+                self.cold_explanation_reconstruction_count(),
+            )),
+            cold_provenance_reconstruction_count: Arc::new(AtomicU64::new(
+                self.cold_provenance_reconstruction_count(),
+            )),
+            retained_artifact_read_count: Arc::new(AtomicU64::new(
+                self.retained_artifact_read_count(),
+            )),
+            reconstructed_artifact_read_count: Arc::new(AtomicU64::new(
+                self.reconstructed_artifact_read_count(),
+            )),
+            denied_reconstruction_by_budget_count: Arc::new(AtomicU64::new(
+                self.denied_reconstruction_by_budget_count(),
+            )),
+            denied_reconstruction_by_tier_count: Arc::new(AtomicU64::new(
+                self.denied_reconstruction_by_tier_count(),
+            )),
+            denied_reconstruction_explanation_api_count: Arc::new(AtomicU64::new(
+                self.denied_reconstruction_explanation_api_count(),
+            )),
+            denied_reconstruction_provenance_api_count: Arc::new(AtomicU64::new(
+                self.denied_reconstruction_provenance_api_count(),
             )),
         }
     }
@@ -359,7 +499,7 @@ impl SignalGraph {
     pub fn derive_evaluation_strategy(&self) -> EvaluationStrategy {
         let active_nodes = self.active_node_count();
         let tombstone_ratio = self.tombstone_ratio();
-        let diagnostics_profile = self.observation.diagnostics.profile();
+        let diagnostics_profile = self.observation.diagnostics.tier();
         EvaluationStrategy {
             parallelism: if active_nodes >= Self::PARALLELISM_NODE_THRESHOLD {
                 ParallelismHint::Preferred
@@ -454,6 +594,108 @@ impl SignalGraph {
             .hot_path_artifact_reconstruction_count()
     }
 
+    pub(crate) fn record_explicit_cold_materialization_request(&self) {
+        self.observation
+            .reconstruction_counters
+            .record_explicit_cold_materialization_request();
+    }
+
+    pub(crate) fn explicit_cold_materialization_request_count(&self) -> u64 {
+        self.observation
+            .reconstruction_counters
+            .explicit_cold_materialization_request_count()
+    }
+
+    pub(crate) fn record_retained_forensic_read(&self) {
+        self.observation
+            .reconstruction_counters
+            .record_retained_forensic_read();
+    }
+
+    pub(crate) fn retained_forensic_read_count(&self) -> u64 {
+        self.observation
+            .reconstruction_counters
+            .retained_forensic_read_count()
+    }
+
+    pub(crate) fn record_cold_explanation_reconstruction(&self) {
+        self.observation
+            .reconstruction_counters
+            .record_cold_explanation_reconstruction();
+    }
+
+    pub(crate) fn cold_explanation_reconstruction_count(&self) -> u64 {
+        self.observation
+            .reconstruction_counters
+            .cold_explanation_reconstruction_count()
+    }
+
+    pub(crate) fn record_cold_provenance_reconstruction(&self) {
+        self.observation
+            .reconstruction_counters
+            .record_cold_provenance_reconstruction();
+    }
+
+    pub(crate) fn cold_provenance_reconstruction_count(&self) -> u64 {
+        self.observation
+            .reconstruction_counters
+            .cold_provenance_reconstruction_count()
+    }
+
+    pub(crate) fn record_retained_artifact_read(&self) {
+        self.observation
+            .reconstruction_counters
+            .record_retained_artifact_read();
+    }
+
+    pub(crate) fn retained_artifact_read_count(&self) -> u64 {
+        self.observation
+            .reconstruction_counters
+            .retained_artifact_read_count()
+    }
+
+    pub(crate) fn reconstructed_artifact_read_count(&self) -> u64 {
+        self.observation
+            .reconstruction_counters
+            .reconstructed_artifact_read_count()
+    }
+
+    pub(crate) fn record_denied_reconstruction_by_budget(&self, explanation_api: bool) {
+        self.observation
+            .reconstruction_counters
+            .record_denied_reconstruction_by_budget(explanation_api);
+    }
+
+    pub(crate) fn denied_reconstruction_by_budget_count(&self) -> u64 {
+        self.observation
+            .reconstruction_counters
+            .denied_reconstruction_by_budget_count()
+    }
+
+    pub(crate) fn record_denied_reconstruction_by_tier(&self, explanation_api: bool) {
+        self.observation
+            .reconstruction_counters
+            .record_denied_reconstruction_by_tier(explanation_api);
+    }
+
+    pub(crate) fn denied_reconstruction_by_tier_count(&self) -> u64 {
+        self.observation
+            .reconstruction_counters
+            .denied_reconstruction_by_tier_count()
+    }
+
+    pub(crate) fn denied_reconstruction_explanation_api_count(&self) -> u64 {
+        self.observation
+            .reconstruction_counters
+            .denied_reconstruction_explanation_api_count()
+    }
+
+    pub(crate) fn denied_reconstruction_provenance_api_count(&self) -> u64 {
+        self.observation
+            .reconstruction_counters
+            .denied_reconstruction_provenance_api_count()
+    }
+
     fn tombstone_ratio(&self) -> f32 {
         let active_nodes = self.active_node_count();
         let total = active_nodes + self.arena.compaction.tombstone_count as usize;
@@ -464,10 +706,10 @@ impl SignalGraph {
         }
     }
 
-    fn observation_level_for_profile(profile: DiagnosticsProfile) -> ObservationLevel {
+    fn observation_level_for_profile(profile: DiagnosticsTier) -> ObservationLevel {
         match profile {
-            DiagnosticsProfile::Operational => ObservationLevel::Minimal,
-            DiagnosticsProfile::Development | DiagnosticsProfile::Forensic => {
+            DiagnosticsTier::Operational => ObservationLevel::Minimal,
+            DiagnosticsTier::Development | DiagnosticsTier::Forensic => {
                 ObservationLevel::Full
             }
         }
@@ -628,3 +870,5 @@ impl RuntimeObservation {
 pub(in crate::data::graph) fn stale_error(id: NodeId, expected_generation: u32) -> SignalError {
     SignalError::stale_handle(id, expected_generation)
 }
+
+

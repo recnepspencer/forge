@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::history::data::BranchId;
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId};
 use crate::payloads::data::RecordPayload;
+use crate::schema::data::{ProposedSchemaTransition, SchemaReconciliationPolicy};
 use crate::symbols::data::InternedString;
 
 use super::intents::MutationIntent;
@@ -40,6 +41,8 @@ pub struct TransactionOptions {
     pub deterministic_merge_required: bool,
     pub target_branch: Option<BranchId>,
     pub merge_parent_branches: Vec<BranchId>,
+    pub proposed_schema_transition: Option<ProposedSchemaTransition>,
+    pub schema_reconciliation_policy: Option<SchemaReconciliationPolicy>,
 }
 
 impl Default for TransactionOptions {
@@ -50,6 +53,8 @@ impl Default for TransactionOptions {
             deterministic_merge_required: true,
             target_branch: None,
             merge_parent_branches: Vec::new(),
+            proposed_schema_transition: None,
+            schema_reconciliation_policy: None,
         }
     }
 }
@@ -57,6 +62,16 @@ impl Default for TransactionOptions {
 impl TransactionOptions {
     pub fn merge_from_branches(mut self, branches: Vec<BranchId>) -> Self {
         self.merge_parent_branches = branches;
+        self
+    }
+
+    pub fn with_schema_transition(
+        mut self,
+        proposed_schema_transition: ProposedSchemaTransition,
+        schema_reconciliation_policy: Option<SchemaReconciliationPolicy>,
+    ) -> Self {
+        self.proposed_schema_transition = Some(proposed_schema_transition);
+        self.schema_reconciliation_policy = schema_reconciliation_policy;
         self
     }
 }

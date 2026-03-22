@@ -4,8 +4,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::aspect::Aspect;
 use crate::data::handle::NodeId;
+use crate::data::node::{ContextRequirement, EvaluationCondition, NodeState};
 use crate::data::output::PartitionSubscription;
-use crate::diagnostics::policy::ArtifactMaterializationMode;
+use crate::data::trace::{
+    assemble_historical_artifact_record, CausalityMetadata, RetainedDiagnosticArtifact,
+    RuntimeArtifactState,
+};
+use crate::diagnostics::policy::DiagnosticsAvailability;
 use crate::logic::explain::{CausalLink, RewiringSummary};
 use crate::logic::explain::{NodeExplanation, UpstreamCause};
 
@@ -13,7 +18,9 @@ use crate::logic::explain::{NodeExplanation, UpstreamCause};
 pub struct ExplanationFact {
     pub node: NodeId,
     pub explanation: NodeExplanation,
-    pub materialization_mode: ArtifactMaterializationMode,
+    #[serde(default)]
+    pub compact_projection: bool,
+    pub materialization_mode: DiagnosticsAvailability,
     pub execution_record_id: Option<u64>,
     pub semantic_segment_id: Option<u64>,
     pub state: String,
@@ -23,10 +30,10 @@ pub struct ExplanationFact {
     pub output_change: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ProvenanceFact {
     pub node: NodeId,
-    pub materialization_mode: ArtifactMaterializationMode,
+    pub materialization_mode: DiagnosticsAvailability,
     pub execution_record_id: Option<u64>,
     pub semantic_segment_id: Option<u64>,
     pub vertices: Vec<ProvenanceVertex>,
@@ -37,16 +44,32 @@ pub struct ProvenanceFact {
     pub causality_kind: Option<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum ProvenanceVertexRole {
+    Target,
+    Upstream,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum ProvenanceEdgeKind {
+    Changed,
+    SkippedByComparator,
+    ConditionDeferred,
+    Clean,
+    MissingSnapshot,
+    DependencyRemoved,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProvenanceVertex {
     pub node: NodeId,
-    pub role: String,
+    pub role: ProvenanceVertexRole,
     pub state: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProvenanceEdge {
-    pub kind: String,
+    pub kind: ProvenanceEdgeKind,
     pub source: NodeId,
     pub aspect: Aspect,
     pub subscription: Option<PartitionSubscription>,
@@ -61,6 +84,7 @@ impl ExplanationFact {
         Self {
             node: explanation.node,
             explanation: explanation.clone(),
+            compact_projection: false,
             materialization_mode: explanation.materialization_mode,
             execution_record_id: explanation.execution_record_id,
             semantic_segment_id: explanation.semantic_segment_id,
@@ -73,6 +97,37 @@ impl ExplanationFact {
                 .map(|change| format!("{change:?}")),
         }
     }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_runtime_projection(
+        node: NodeId,
+        state: NodeState,
+        contract_reads: crate::data::aspect::AspectMask,
+        contract_produces: crate::data::aspect::AspectMask,
+        contract_partition_scope: Option<Vec<PartitionSubscription>>,
+        required_context: ContextRequirement,
+        condition: EvaluationCondition,
+        runtime: &RuntimeArtifactState,
+        retained: Option<&RetainedDiagnosticArtifact>,
+        causality: Option<&CausalityMetadata>,
+        rewiring: Option<RewiringSummary>,
+    ) -> Self {
+        let mut fact = Self::from_explanation(&compact_retained_explanation(
+            node,
+            state,
+            contract_reads,
+            contract_produces,
+            contract_partition_scope,
+            required_context,
+            condition,
+            runtime,
+            retained,
+            causality,
+            rewiring,
+        ));
+        fact.compact_projection = true;
+        fact
+    }
 }
 
 impl ProvenanceFact {
@@ -82,7 +137,7 @@ impl ProvenanceFact {
             explanation.node,
             ProvenanceVertex {
                 node: explanation.node,
-                role: "Target".to_string(),
+                role: ProvenanceVertexRole::Target,
                 state: Some(format!("{:?}", explanation.state)),
             },
         );
@@ -95,7 +150,7 @@ impl ProvenanceFact {
                     .entry(edge.source)
                     .or_insert_with(|| ProvenanceVertex {
                         node: edge.source,
-                        role: "Upstream".to_string(),
+                        role: ProvenanceVertexRole::Upstream,
                         state: None,
                     });
                 edge
@@ -132,6 +187,84 @@ impl ProvenanceFact {
             causality_kind: explanation.causality.as_ref().map(|c| c.kind.clone()),
         }
     }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_runtime_projection(
+        node: NodeId,
+        state: NodeState,
+        contract_reads: crate::data::aspect::AspectMask,
+        contract_produces: crate::data::aspect::AspectMask,
+        contract_partition_scope: Option<Vec<PartitionSubscription>>,
+        required_context: ContextRequirement,
+        condition: EvaluationCondition,
+        runtime: &RuntimeArtifactState,
+        retained: Option<&RetainedDiagnosticArtifact>,
+        causality: Option<&CausalityMetadata>,
+        rewiring: Option<RewiringSummary>,
+    ) -> Self {
+        Self::from_explanation(&compact_retained_explanation(
+            node,
+            state,
+            contract_reads,
+            contract_produces,
+            contract_partition_scope,
+            required_context,
+            condition,
+            runtime,
+            retained,
+            causality,
+            rewiring,
+        ))
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn compact_retained_explanation(
+    node: NodeId,
+    state: NodeState,
+    contract_reads: crate::data::aspect::AspectMask,
+    contract_produces: crate::data::aspect::AspectMask,
+    contract_partition_scope: Option<Vec<PartitionSubscription>>,
+    required_context: ContextRequirement,
+    condition: EvaluationCondition,
+    runtime: &RuntimeArtifactState,
+    retained: Option<&RetainedDiagnosticArtifact>,
+    causality: Option<&CausalityMetadata>,
+    rewiring: Option<RewiringSummary>,
+) -> NodeExplanation {
+    NodeExplanation {
+        node,
+        materialization_mode: DiagnosticsAvailability::RetainedAvailable,
+        state,
+        dirty_aspects: Default::default(),
+        contract_reads,
+        contract_produces,
+        contract_partition_scope,
+        required_context,
+        condition,
+        historical_artifact_record: assemble_historical_artifact_record(
+            node,
+            Some(runtime),
+            retained,
+            causality,
+        ),
+        execution_record_id: runtime.execution_record_id,
+        semantic_segment_id: runtime.semantic_segment_id,
+        output_identity: runtime.output_identity.clone(),
+        output_change: Some(runtime.output_change),
+        changed_regions: retained
+            .map(|artifact| artifact.changed_regions.as_slice().to_vec())
+            .unwrap_or_default(),
+        propagation_suppressed: runtime.propagation_suppressed,
+        memoized_origin: Some(runtime.memoized_origin),
+        reuse_basis: Some(runtime.reuse_basis.clone()),
+        reuse_origin: Some(runtime.reuse_origin),
+        reuse_certification: retained.and_then(|artifact| artifact.reuse_certification.clone()),
+        upstream: Vec::new(),
+        causal_links: Vec::new(),
+        rewiring,
+        causality: causality.cloned(),
+    }
 }
 
 impl ProvenanceEdge {
@@ -146,7 +279,7 @@ impl ProvenanceEdge {
                 comparator,
                 reason,
             } => Self {
-                kind: "Changed".to_string(),
+                kind: ProvenanceEdgeKind::Changed,
                 source: *source,
                 aspect: *aspect,
                 subscription: subscription.clone(),
@@ -164,7 +297,7 @@ impl ProvenanceEdge {
                 comparator,
                 reason,
             } => Self {
-                kind: "SkippedByComparator".to_string(),
+                kind: ProvenanceEdgeKind::SkippedByComparator,
                 source: *source,
                 aspect: *aspect,
                 subscription: subscription.clone(),
@@ -179,10 +312,10 @@ impl ProvenanceEdge {
                 subscription,
                 cached_version,
                 current_version,
-                condition,
-                decision,
+                condition: _,
+                decision: _,
             } => Self {
-                kind: format!("ConditionDeferred::{condition:?}/{decision:?}"),
+                kind: ProvenanceEdgeKind::ConditionDeferred,
                 source: *source,
                 aspect: *aspect,
                 subscription: subscription.clone(),
@@ -198,7 +331,7 @@ impl ProvenanceEdge {
                 cached_version,
                 current_version,
             } => Self {
-                kind: "Clean".to_string(),
+                kind: ProvenanceEdgeKind::Clean,
                 source: *source,
                 aspect: *aspect,
                 subscription: subscription.clone(),
@@ -213,7 +346,7 @@ impl ProvenanceEdge {
                 subscription,
                 current_version,
             } => Self {
-                kind: "MissingSnapshot".to_string(),
+                kind: ProvenanceEdgeKind::MissingSnapshot,
                 source: *source,
                 aspect: *aspect,
                 subscription: subscription.clone(),
@@ -228,7 +361,7 @@ impl ProvenanceEdge {
                 subscription,
                 cached_version,
             } => Self {
-                kind: "DependencyRemoved".to_string(),
+                kind: ProvenanceEdgeKind::DependencyRemoved,
                 source: *source,
                 aspect: *aspect,
                 subscription: subscription.clone(),
@@ -243,3 +376,4 @@ impl ProvenanceEdge {
 
 pub type ExplanationFactTable = BTreeMap<NodeId, ExplanationFact>;
 pub type ProvenanceFactTable = BTreeMap<NodeId, ProvenanceFact>;
+

@@ -20,7 +20,7 @@ pub(crate) fn merge_comparable(
     Some(ArtifactMergeComparable {
         output_identity: runtime.output_identity.clone(),
         continuity_token: runtime.continuity_token.clone(),
-        reuse_basis: runtime.reuse_basis,
+        reuse_basis: runtime.reuse_basis.clone(),
         dependency_fingerprint: DependencyFingerprint {
             dependency_count: runtime.dependency_count,
             meaningful_input_changes: runtime.meaningful_input_changes,

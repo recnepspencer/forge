@@ -26,9 +26,12 @@ pub mod durability {
         CheckpointCoverage, CompactionOutcome, CompactionPlan, CompactionPolicy, DurabilityError,
         DurabilityMode, DurableCheckpoint, DurableCheckpointId, DurableCheckpointManifest,
         DurableIntegrityStatus, DurableSegmentId, DurableSegmentManifest, DurableStore,
-        DurableStoreLayout, PartitionCheckpointImage, RecoveryCompatibilityCheck,
+        DurableStoreLayout, PartitionCheckpointImage, RecoveryAuthorityParity,
+        RecoveryCompatibilityCheck,
         RecoveryCompatibilityMismatch, RecoveryCoverage, RecoveryCursor, RecoveryFailureClass,
-        RecoveryIntegrityReport, RecoveryPlan, RelationIntegrityContractFamily,
+        RecoveryIntegrityReport, RecoveryPlan, RecoveryVerificationMode,
+        RecoveryVerificationOutcome, RecoveryVerificationPlan,
+        RelationIntegrityContractFamily,
         SegmentRetentionClass,
     };
 }
@@ -155,7 +158,8 @@ pub mod replay {
     pub use crate::replay::data::{
         CanonicalCommitEnvelope, RelationalReplayOutcome, RelationalReplayRequest, ReplayError,
         ReplayExecutionMode, ReplayFailureClass, ReplayMismatch, ReplayMismatchClass,
-        ReplayObservableSurface, ReplaySnapshotSurface,
+        ReplayObservableSurface, ReplaySnapshotSurface, ReplayVerificationLayer,
+        ReplayVerificationMode, ReplayVerificationPlan,
     };
 }
 
@@ -164,16 +168,25 @@ pub mod schema {
     pub use crate::schema::data::{
         AspectBinding, AspectComparator, AspectDeclarationTrace, AspectDeclarationTraceRow,
         AspectLoweringTrace, AspectLoweringTraceRow, AspectPlanRevision, AspectPrecision,
-        CardinalityContractDeclaration, DeclaredAspect, EndpointDeletionIntegrityDeclaration,
-        EndpointDeletionIntegrityMode, EndpointKindContractDeclaration, EntityKindRegistration,
+        CardinalityContractDeclaration, CompatibilityObservation, DeclaredAspect,
+        DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
+        EndpointDeletionIntegrityDeclaration, EndpointDeletionIntegrityMode,
+        EndpointKindContractDeclaration, EntityKindRegistration, HistoricalInterpretationSensitivity,
         KindAspectDeclarations, KindResolution, LoweredAspectBinding, LoweredAspectComparator,
         LoweredAspectExtractor, LoweredAspectPlan, LoweredCardinalityContract,
         LoweredEndpointDeletionIntegrityContract, LoweredEndpointKindContract,
-        LoweredRelationIntegrityPlan, LoweredSymmetryContract, LoweredUniquenessContract,
-        RelationIntegrityDeclarations, RelationIntegrityPlanCatalog, RelationIntegrityPlanRevision,
-        RelationKindRegistration, RelationPayloadClass, RelationalSchemaRegistry, SchemaId,
-        SchemaRegistryError, SchemaRegistryErrorClass, SchemaVersionId, SymmetryContractDeclaration,
-        SymmetryMode, UniquenessContractDeclaration, UniquenessScope,
+        LoweredSchemaTransitionPlan, LoweredRelationIntegrityPlan, LoweredSymmetryContract,
+        LoweredUniquenessContract, ProposedSchemaTransition, RelationIntegrityDeclarations,
+        RelationIntegrityPlanCatalog, RelationIntegrityPlanRevision, RelationKindRegistration,
+        RelationPayloadClass, RelationalSchemaRegistry, SchemaBoundaryFingerprint, SchemaBridgeDescriptor,
+        SchemaBridgeabilityClassification, SchemaDiffAtom, SchemaDiffDetail, SchemaElementKind,
+        SchemaElementRef, SchemaId, SchemaLineageArtifact, SchemaReconciliationClassification,
+        SchemaReconciliationDescriptor, SchemaReconciliationOrderingMode, SchemaReconciliationPolicy,
+        SchemaRegistryError, SchemaRegistryErrorClass, SchemaStratum, SchemaSubscriberImpact,
+        SchemaPublicationImpact, SchemaTransitionArtifact, SchemaTransitionBarrier,
+        SchemaTransitionSummary, SchemaVersionId, SchemaContinuationClassification,
+        SchemaContinuationDescriptor, SchemaLineageOrderingSemantics, SymmetryContractDeclaration,
+        SymmetryMode, UniquenessContractDeclaration, UniquenessScope, ValidatedSchemaTransition,
     };
 }
 
@@ -200,7 +213,8 @@ pub mod transactions {
         AuthoritativeApplyPlan, AuthorityMode, BulkEntityCreateIntent, BulkRelationCreateIntent,
         CommitAspectSummary, CommitAuthority, CommitChangeSummary, CommitConflict,
         CommitHistorySummary, CommitLog, CommitOutcome, CommitPatchBudgetSummary, CommitPhase,
-        CommitPhaseTiming, CommitPublicationSummary, CommitResult, CommitStructuralSummary,
+        CommitPhaseTiming, CommitPublicationSummary, CommitResult, CommitSchemaSummary,
+        CommitStructuralSummary,
         CommitSummary, CommitTopology, CommitTraceEvent, ConflictClass, CreateIntent,
         CrossContextEndpointClass, DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent,
         MergedCommitPlan, MutationIntent, PatchVsTruthDeltaReport, RecordRef,

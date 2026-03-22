@@ -3,7 +3,11 @@ use std::collections::BTreeSet;
 use crate::capabilities::{CommitEnvelopeSource, DurabilityRead};
 use crate::durability::data::RecoveryPlan;
 use crate::history::data::CommitId;
-use crate::replay::data::{CanonicalCommitEnvelope, ReplayFailureClass, ReplayObservableSurface};
+use crate::replay::data::{
+    CanonicalCommitEnvelope, ReplayFailureClass, ReplayObservableSurface,
+    ReplayVerificationLayer,
+};
+use crate::schema::data::DescriptorSemanticsVersion;
 
 pub(super) fn load_replay_envelope(
     source: &impl CommitEnvelopeSource,
@@ -22,10 +26,10 @@ pub(super) fn promised_replay_surfaces(
         ReplayObservableSurface::History,
         ReplayObservableSurface::BranchHead,
     ];
-    if !envelope.lineage_event_ids.is_empty() {
+    if !envelope.lineage_events.is_empty() {
         surfaces.push(ReplayObservableSurface::Lineage);
     }
-    if !envelope.index_generation_ids.is_empty() {
+    if !envelope.index_generations.is_empty() {
         surfaces.push(ReplayObservableSurface::DerivedIndexes);
     }
     surfaces
@@ -86,10 +90,49 @@ pub(super) fn replay_recovery_plan_for_chain(
             corrupt_segment_id: None,
         },
         compatibility: crate::durability::data::RecoveryCompatibilityCheck {
-            schema_match: true,
-            profile_match: true,
-            runtime_name_match: true,
+            schema_parity: crate::durability::data::RecoveryAuthorityParity::verified_at(
+                ReplayVerificationLayer::DigestParity,
+            ),
+            profile_parity: crate::durability::data::RecoveryAuthorityParity::verified_at(
+                ReplayVerificationLayer::DigestParity,
+            ),
+            runtime_name_parity: crate::durability::data::RecoveryAuthorityParity::verified_at(
+                ReplayVerificationLayer::DigestParity,
+            ),
+            descriptor_version_parity:
+                crate::durability::data::RecoveryAuthorityParity::verified_at(
+                    ReplayVerificationLayer::DigestParity,
+                ),
+            schema_transition_parity:
+                crate::durability::data::RecoveryAuthorityParity::verified_at(
+                    ReplayVerificationLayer::DigestParity,
+                ),
+            continuation_descriptor_parity:
+                crate::durability::data::RecoveryAuthorityParity::verified_at(
+                    ReplayVerificationLayer::DigestParity,
+                ),
+            reconciliation_descriptor_parity:
+                crate::durability::data::RecoveryAuthorityParity::verified_at(
+                    ReplayVerificationLayer::DigestParity,
+                ),
+            schema_lineage_parity: crate::durability::data::RecoveryAuthorityParity::verified_at(
+                ReplayVerificationLayer::DigestParity,
+            ),
+            verification_outcome:
+                crate::durability::data::RecoveryVerificationOutcome::VerifiedAtLayer(
+                    ReplayVerificationLayer::DigestParity,
+                ),
+            first_mismatch: None,
         },
+        verification_mode: crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+        verification_plan: crate::durability::data::RecoveryVerificationPlan::from_mode(
+            crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+        ),
+        descriptor_semantics_version: chain
+            .last()
+            .and_then(|commit_id| source.commit_envelope(*commit_id))
+            .map(|envelope| envelope.descriptor_semantics_version)
+            .unwrap_or_else(DescriptorSemanticsVersion::default),
     }
 }
 

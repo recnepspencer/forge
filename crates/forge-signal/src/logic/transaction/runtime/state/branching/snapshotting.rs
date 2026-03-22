@@ -1,10 +1,13 @@
 use crate::data::error::SignalError;
+use crate::diagnostics::policy::OrdinaryAccessLane;
+use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
 use crate::state::{
     SignalBranchHandle, SignalSnapshotV1, SnapshotArtifactRetentionPolicy,
     SnapshotArtifactRestoreMode, SnapshotDependencyRestoreMode, SnapshotRestoreIntent,
 };
 
 use super::branches::BranchState;
+use super::branches::SnapshotBranchState;
 use super::super::runtime_state::SignalRuntime;
 
 impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
@@ -15,6 +18,13 @@ where
 {
     pub fn capture_snapshot(&mut self) -> SignalSnapshotV1 {
         let mut snapshot = self.graph.capture_snapshot();
+        let retained_replay = self
+            .graph
+            .observe()
+            .replay_events()
+            .iter()
+            .cloned()
+            .collect::<Vec<_>>();
         snapshot.graph.clear_branch_mutation_nodes();
         snapshot.runtime_telemetry = Some(self.telemetry.clone());
         snapshot.reconstructability = Some(
@@ -54,14 +64,17 @@ where
                         journal_replay_span: self.telemetry.checkpoint.journal_replay_span,
                     },
                 ),
+                &retained_replay,
             ),
         );
-        let mut branch_state = self.capture_branch_state();
+        let mut branch_state = self.capture_full_branch_state();
         branch_state
             .mutation_ledger
             .clear_all(Some(snapshot.meta.snapshot_id));
-        self.branches
-            .insert_snapshot(snapshot.meta.snapshot_id, branch_state.clone());
+        self.branches.insert_snapshot(
+            snapshot.meta.snapshot_id,
+            SnapshotBranchState::from_branch_state(&branch_state),
+        );
         self.branches
             .insert_branch(snapshot.meta.branch_id, branch_state);
         let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
@@ -123,7 +136,7 @@ where
             let mut state = BranchState {
                 authority: super::super::reconstructability::AuthorityState {
                     graph,
-                    config: snapshot_state.authority.config,
+                    config: snapshot_state.config,
                 },
                 derived: super::super::reconstructability::DerivedState {
                     checkpoint: snapshot_state.derived.checkpoint,
@@ -139,6 +152,26 @@ where
                 &mut state.authority.graph,
                 snapshot.meta.snapshot_id,
             );
+            let retention_budget = state.authority.graph.runtime_policy().retention_budget;
+            let profile = state.authority.graph.diagnostics_profile();
+            let history = ExecutionHistorySummary::from_graph(
+                &state.authority.graph,
+                profile,
+                retention_budget.detail_limit,
+                retention_budget.retain_history_details,
+                OrdinaryAccessLane,
+            );
+            let graph_summary = GraphSummary::from_graph(
+                &state.authority.graph,
+                profile,
+                retention_budget.detail_limit,
+                OrdinaryAccessLane,
+            );
+            state
+                .authority
+                .graph
+                .diagnostics_state_mut()
+                .refresh_retained_views(history, graph_summary);
             let branch_catalog = state.authority.graph.diagnostics_state().branch_catalog().clone();
             self.load_branch_state(state.clone());
             self.telemetry.checkpoint.snapshot_restore_count += 1;
@@ -199,6 +232,14 @@ where
                 .diagnostics_state()
                 .snapshot_payload_with_retention(artifact_retention);
             let graph_telemetry = state.authority.graph.telemetry().clone();
+            let retained_replay = state
+                .authority
+                .graph
+                .observe()
+                .replay_events()
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>();
             let replay_head = meta.replay_head;
             let snapshot_id = meta.snapshot_id;
             let snapshot = SignalSnapshotV1 {
@@ -261,6 +302,7 @@ where
                                     .journal_replay_span,
                             },
                         ),
+                        &retained_replay,
                     ),
                 ),
             };
@@ -270,8 +312,10 @@ where
                 .clear_all(Some(snapshot.meta.snapshot_id));
             (snapshot, branch_catalog, state.clone())
         };
-        self.branches
-            .insert_snapshot(snapshot.meta.snapshot_id, branch_state.clone());
+        self.branches.insert_snapshot(
+            snapshot.meta.snapshot_id,
+            SnapshotBranchState::from_branch_state(&branch_state),
+        );
         self.branches.insert_branch(branch.id, branch_state);
         self.synchronize_branch_catalogs(branch_catalog);
         Ok(snapshot)
@@ -357,18 +401,18 @@ where
         graph
             .diagnostics_state_mut()
             .set_branch_head_snapshot(branch.id, snapshot.meta.snapshot_id);
-        let state = BranchState {
-            authority: super::super::reconstructability::AuthorityState {
-                graph,
-                config: snapshot_state.authority.config,
-            },
-            derived: super::super::reconstructability::DerivedState {
-                checkpoint: snapshot_state.derived.checkpoint,
-                telemetry: snapshot
-                    .runtime_telemetry
-                    .clone()
-                    .unwrap_or(snapshot_state.derived.telemetry),
-            },
+            let state = BranchState {
+                authority: super::super::reconstructability::AuthorityState {
+                    graph,
+                    config: snapshot_state.config,
+                },
+                derived: super::super::reconstructability::DerivedState {
+                    checkpoint: snapshot_state.derived.checkpoint,
+                    telemetry: snapshot
+                        .runtime_telemetry
+                        .clone()
+                        .unwrap_or(snapshot_state.derived.telemetry),
+                },
             ancestry: snapshot_state.ancestry,
             mutation_ledger: snapshot_state.mutation_ledger,
         };
@@ -377,6 +421,26 @@ where
             &mut state.authority.graph,
             snapshot.meta.snapshot_id,
         );
+        let retention_budget = state.authority.graph.runtime_policy().retention_budget;
+        let profile = state.authority.graph.diagnostics_profile();
+        let history = ExecutionHistorySummary::from_graph(
+            &state.authority.graph,
+            profile,
+            retention_budget.detail_limit,
+            retention_budget.retain_history_details,
+            OrdinaryAccessLane,
+        );
+        let graph_summary = GraphSummary::from_graph(
+            &state.authority.graph,
+            profile,
+            retention_budget.detail_limit,
+            OrdinaryAccessLane,
+        );
+        state
+            .authority
+            .graph
+            .diagnostics_state_mut()
+            .refresh_retained_views(history, graph_summary);
         let branch_catalog = state.authority.graph.diagnostics_state().branch_catalog().clone();
         self.telemetry.checkpoint.snapshot_restore_count += 1;
         if matches!(

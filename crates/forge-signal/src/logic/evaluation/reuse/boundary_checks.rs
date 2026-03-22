@@ -137,11 +137,11 @@ pub(crate) fn prove_reuse_boundaries(
                 let Some(previous) = evidence
                     .previous
                     .as_ref()
-                    .and_then(|context| context.persistent_correspondence.clone())
+                    .and_then(|context| context.persistent_correspondence().cloned())
                 else {
                     return Err(ReuseBoundaryFailure::PersistentCorrespondenceEvidenceMissing);
                 };
-                let Some(current) = evidence.current.persistent_correspondence.clone() else {
+                let Some(current) = evidence.current.persistent_correspondence().cloned() else {
                     return Err(ReuseBoundaryFailure::PersistentCorrespondenceEvidenceMissing);
                 };
                 if !previous.is_structurally_valid() || !current.is_structurally_valid() {
@@ -162,7 +162,10 @@ pub(crate) fn prove_reuse_boundaries(
                 ) {
                     continue;
                 }
-                if evidence.current.composition_regions.is_empty() {
+                let Some(current_regions) = evidence.current.composition_regions().cloned() else {
+                    return Err(ReuseBoundaryFailure::CompositionRegionLegalityFailure);
+                };
+                if current_regions.is_empty() {
                     return Err(ReuseBoundaryFailure::CompositionRegionLegalityFailure);
                 }
                 prove_boundary(
@@ -170,8 +173,8 @@ pub(crate) fn prove_reuse_boundaries(
                     evidence
                         .previous
                         .as_ref()
-                        .map(|context| context.composition_regions.clone()),
-                    evidence.current.composition_regions.clone(),
+                        .and_then(|context| context.composition_regions().cloned()),
+                    current_regions,
                 )?
             }
             ArtifactSemanticBoundary::SnapshotLineage => ReuseBoundaryProof {

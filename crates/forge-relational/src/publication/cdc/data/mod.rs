@@ -1,4 +1,5 @@
 mod subscriber_checkpoint;
+mod subscriber_contract;
 mod subscriber_decision;
 mod subscriber_failure;
 mod subscriber_recovery_plan;
@@ -6,6 +7,7 @@ mod subscriber_resume_request;
 mod subscriber_stream_batch;
 
 pub use subscriber_checkpoint::*;
+pub use subscriber_contract::*;
 pub use subscriber_decision::*;
 pub use subscriber_failure::*;
 pub use subscriber_recovery_plan::*;

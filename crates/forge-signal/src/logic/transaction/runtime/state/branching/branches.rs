@@ -40,6 +40,35 @@ where
     pub mutation_ledger: BranchMutationLedger,
 }
 
+#[derive(Debug, Clone)]
+pub(in crate::logic::transaction::runtime) struct SnapshotBranchState<D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub config: SignalRuntimeConfig<T>,
+    pub derived: DerivedState<D, I>,
+    pub ancestry: BranchAncestryState,
+    pub mutation_ledger: BranchMutationLedger,
+}
+
+impl<D, I, T> SnapshotBranchState<D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub fn from_branch_state(state: &BranchState<D, I, T>) -> Self {
+        Self {
+            config: state.authority.config.clone(),
+            derived: state.derived.clone(),
+            ancestry: state.ancestry.clone(),
+            mutation_ledger: state.mutation_ledger.clone(),
+        }
+    }
+}
+
 pub(in crate::logic::transaction::runtime) struct BranchManager<D, I, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
@@ -47,7 +76,7 @@ where
     T: Copy + Ord,
 {
     branches: BTreeMap<SignalBranchId, BranchState<D, I, T>>,
-    snapshots: BTreeMap<SignalSnapshotId, BranchState<D, I, T>>,
+    snapshots: BTreeMap<SignalSnapshotId, SnapshotBranchState<D, I, T>>,
     next_node_index: u32,
     next_snapshot_id: u64,
     next_branch_id: u64,
@@ -150,6 +179,10 @@ where
         self.branches.get(&branch_id)
     }
 
+    pub fn take_branch_state(&mut self, branch_id: SignalBranchId) -> Option<BranchState<D, I, T>> {
+        self.branches.remove(&branch_id)
+    }
+
     pub fn branch_state_mut_with_allocator_sync(
         &mut self,
         branch_id: SignalBranchId,
@@ -177,34 +210,18 @@ where
         Some(state)
     }
 
-    pub fn cloned_branch_state(&self, branch_id: SignalBranchId) -> Option<BranchState<D, I, T>> {
-        let mut state = self.branches.get(&branch_id).cloned()?;
-        state
-            .authority
-            .graph
-            .synchronize_node_allocator(self.next_node_index);
-        state
-            .authority
-            .graph
-            .diagnostics_state_mut()
-            .synchronize_branch_snapshot_allocator(self.next_snapshot_id, self.next_branch_id);
-        state
-            .authority
-            .graph
-            .diagnostics_state_mut()
-            .synchronize_lineage_allocator(
-                self.next_lineage_artifact_id,
-                self.next_lineage_sequence,
-            );
-        Some(state)
-    }
-
-    pub fn insert_snapshot(&mut self, snapshot_id: SignalSnapshotId, state: BranchState<D, I, T>) {
-        self.observe_allocator_state(&state.authority.graph);
+    pub fn insert_snapshot(
+        &mut self,
+        snapshot_id: SignalSnapshotId,
+        state: SnapshotBranchState<D, I, T>,
+    ) {
         self.snapshots.insert(snapshot_id, state);
     }
 
-    pub fn snapshot_state(&self, snapshot_id: SignalSnapshotId) -> Option<&BranchState<D, I, T>> {
+    pub fn snapshot_state(
+        &self,
+        snapshot_id: SignalSnapshotId,
+    ) -> Option<&SnapshotBranchState<D, I, T>> {
         self.snapshots.get(&snapshot_id)
     }
 

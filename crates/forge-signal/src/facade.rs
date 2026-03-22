@@ -78,8 +78,8 @@ pub mod graph {
     pub use crate::data::evaluator::CheckpointEvaluator;
     pub use crate::data::event_subscriber::{EventSubscriber, SubscriberId};
     pub use crate::data::graph::{
-        EvaluationStrategy, GcPressure, GraphObserver, NodeBuilder, ObservationLevel,
-        ParallelismHint, SignalGraph,
+        EvaluationStrategy, GcPressure, GraphMaterializer, GraphObserver, NodeBuilder,
+        ObservationLevel, ParallelismHint, SignalGraph,
     };
     pub use crate::data::node_meta::NodeMetaStore;
     pub use crate::data::subscriber_context::{SubscriberContext, SubscriberContextError};
@@ -148,9 +148,9 @@ pub mod transaction {
     pub use crate::logic::transaction::{
         emit_event_in_txn, flush_checkpoint_in_txn, AdvisoryRecord, ComputationSpec,
         DecisionDetail, DecisionLog, DecisionRecord, DecisionSummary, DefinedComputation,
-        DefinedKeyedComputation, EvaluationSummary, IntegrityMarkers, SignalRuntime,
-        SignalRuntimeBuilder, SignalRuntimeConfig, SignalTransaction, TransactionOutcome,
-        TransactionReplayEntry, TransactionResult, TransactionTiming, ArtifactMergeAction,
+        DefinedKeyedComputation, EvaluationSummary, IntegrityMarkers, RuntimeMaterializer,
+        SignalRuntime, SignalRuntimeBuilder, SignalRuntimeConfig, SignalTransaction,
+        TransactionOutcome, TransactionReplayEntry, TransactionResult, TransactionTiming, ArtifactMergeAction,
         ArtifactMergeComparable, BranchMergeBase, BranchMergeCounters,
         BranchMergeConflictEvidence, BranchMergeConflictKind, BranchMergeConflictRecord,
         BranchMergeConflictSummary, BranchMergeDivergence, BranchMergeExecutionSummary,
@@ -176,10 +176,10 @@ pub mod diagnostics {
         render_execution_report_summary, render_explanation_summary, render_failure_summary,
         render_flow_summary, render_graph_summary, render_plan_summary, repeat_run_summaries_equal,
         replay_slices_equivalent, reports_semantically_equivalent,
-        serial_parallel_reports_equivalent, ApplySummary, ArtifactMaterializationMode,
+        serial_parallel_reports_equivalent, ApplySummary, DiagnosticsAvailability,
         ArtifactRetentionPolicy, ArtifactTransitionKind, ChangeInputSummary, DiagnosticMismatch,
-        DiagnosticMismatchCategory, DiagnosticsPolicy, DiagnosticsProfile, EvaluationPlanSummary,
-        EventEpochOutcome, EventEpochSummary, EventSubscriberOutcome, EventSubscriberOutcomeKind,
+        DiagnosticMismatchCategory, DiagnosticsTier, EvaluationPlanSummary, EventEpochOutcome,
+        EventEpochSummary, EventSubscriberOutcome, EventSubscriberOutcomeKind,
         ExecutionFailureContext, ExecutionFailurePhase, ExecutionHistoryNodeSummary,
         ExecutionHistorySummary, ExecutionInspector, ExecutionReportDiff, ExecutionReportSummary,
         ExplanationDiff, ExplanationSummary, FailureDiff, FailureSummary, FlowCauseSample,
@@ -187,10 +187,11 @@ pub mod diagnostics {
         FrontierTracingPolicy, GraphDiagnostics, GraphDiff, GraphInspector, GraphSummary,
         HistoryDiff, InvalidationCause, InvalidationSummary, LineageArtifactId, LineageDiff,
         LineageRecord, LineageRecordKind, ParallelAdmissionPolicy, PlanDiff, PlanInspector,
-        PlanningSummary, PrecomputeSummary, ReplayCursor, ReplayDetailPolicy, ReplayDiff,
-        ReplayEventKind, ReplayFrame, ReplaySlice, ReportInspector, RollbackDiagnostic,
-        RollbackSummary, RuntimeDiagnostics, SemanticRetentionPolicy, SignalRuntimePolicy,
-        SnapshotRestoreKind, SnapshotRestoreLineageMode,
+        PlanningSummary, PrecomputeSummary, ReconstructionBudget, ReplayCursor,
+        ReplayDetailPolicy, ReplayDiff, ReplayEventKind, ReplayFrame, ReplaySlice,
+        ReportInspector, RetentionBudget, RollbackDiagnostic, RollbackSummary,
+        RuntimeDiagnostics, SemanticRetentionPolicy, SignalRuntimePolicy, SnapshotRestoreKind,
+        SnapshotRestoreLineageMode,
     };
 }
 
@@ -219,3 +220,4 @@ pub(crate) use self::{
 pub(crate) use crate::logic::invalidation::{mark_dirty, mark_dirty_with_regions};
 #[cfg(test)]
 pub use crate::tests::support::GraphDependencyBatchExt;
+

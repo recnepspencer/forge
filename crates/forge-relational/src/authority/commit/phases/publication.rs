@@ -3,8 +3,11 @@ use serde_json::json;
 use crate::capabilities::{
     DiagnosticsSink, DurabilityWrite, PublicationPolicySource, SchemaSource, SchemaVersionSource,
 };
+use crate::authority::commit::phases::schema_continuity::validate_schema_continuity_publication;
 use crate::diagnostics::data::{DiagnosticCode, DiagnosticsScope};
 use crate::history::data::{BranchId, CommitId, CommitReference};
+use crate::indexes::data::DerivedIndexGeneration;
+use crate::lineage::data::LineageEventRecord;
 use crate::publication::data::diff::RelationalPatchRecord;
 use crate::publication::data::{PublicationError, PublicationStage};
 use crate::replay::data::CanonicalCommitEnvelope;
@@ -34,7 +37,7 @@ pub(crate) fn enforce_patch_budget(
 }
 
 pub(crate) fn canonical_commit_envelope(
-    runtime: &(impl SchemaSource + SchemaVersionSource),
+    runtime: &mut crate::logic::runtime::RelationalRuntime,
     commit_reference: &CommitReference,
     branch_id: &BranchId,
     merge_parent_branches: &[BranchId],
@@ -43,8 +46,12 @@ pub(crate) fn canonical_commit_envelope(
     patch: crate::publication::data::diff::RelationalPatchRecord,
     diagnostics_summary: crate::diagnostics::data::RelationalDiagnosticArtifact,
     lineage_event_ids: Vec<u64>,
-) -> CanonicalCommitEnvelope {
-    CanonicalCommitEnvelope {
+    lineage_events: Vec<LineageEventRecord>,
+    index_generation_ids: Vec<u64>,
+    index_generations: Vec<DerivedIndexGeneration>,
+    schema_continuity: &crate::authority::commit::phases::schema_continuity::SchemaContinuityPlan,
+) -> Result<CanonicalCommitEnvelope, TransactionCommitError> {
+    let envelope = CanonicalCommitEnvelope {
         commit: commit_reference.clone(),
         branch_context: branch_id.clone(),
         merge_parent_branches: merge_parent_branches.to_vec(),
@@ -55,8 +62,18 @@ pub(crate) fn canonical_commit_envelope(
         patch,
         diagnostics_summary,
         lineage_event_ids,
-        index_generation_ids: Vec::new(),
-    }
+        index_generation_ids,
+        lineage_events,
+        index_generations,
+        schema_transition: schema_continuity.schema_transition.clone(),
+        schema_continuation_descriptor: schema_continuity.schema_continuation_descriptor.clone(),
+        schema_reconciliation_descriptor: schema_continuity
+            .schema_reconciliation_descriptor
+            .clone(),
+        descriptor_semantics_version: schema_continuity.descriptor_semantics_version,
+    };
+    validate_schema_continuity_publication(runtime, branch_id, schema_continuity, &envelope)?;
+    Ok(envelope)
 }
 
 pub(crate) fn append_durable_commit(

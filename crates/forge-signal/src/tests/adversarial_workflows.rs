@@ -221,7 +221,7 @@ impl SignalAdversarialHarness {
             domain: self.domain,
             workflow: self.workflow,
             seed: self.seed,
-            policy: format!("{:?}", policy.profile),
+            policy: format!("{:?}", policy.tier),
             executor: executor.to_string(),
             steps: self.steps.clone(),
             note: report.errors.join(" | "),
@@ -243,7 +243,7 @@ impl SignalAdversarialHarness {
             domain: self.domain,
             workflow: self.workflow,
             seed: self.seed,
-            policy: format!("{:?}", policy.profile),
+            policy: format!("{:?}", policy.tier),
             executor: executor.to_string(),
             steps: self.steps.clone(),
             note: note.into(),
@@ -681,11 +681,11 @@ fn assert_runtime_invariants(
             current_branch.name,
         ));
     }
-    if graph.observe().recent_execution_history_diagnostics().len() > policy.history_limit {
+    if graph.observe().recent_execution_history_diagnostics().len() > policy.retention_budget.history_limit {
         errors.push(format!(
             "history retention exceeded policy: {} > {}",
             graph.observe().recent_execution_history_diagnostics().len(),
-            policy.history_limit
+            policy.retention_budget.history_limit
         ));
     }
 
@@ -1001,7 +1001,8 @@ fn geometry_session(
         .runtime
         .graph()
         .observe()
-        .lineage_for_node(fixture.fused);
+        .lineage_for_node(fixture.fused)
+        .to_owned_records();
     (harness, replay, lineage)
 }
 
@@ -1305,7 +1306,8 @@ fn fintech_session(
         .runtime
         .graph()
         .observe()
-        .lineage_for_node(fixture.risk);
+        .lineage_for_node(fixture.risk)
+        .to_owned_records();
     (harness, replay, lineage)
 }
 
@@ -1702,3 +1704,4 @@ fn long_fintech_parallel_churn_seed_matrix_stays_hard_to_surprise() {
         );
     }
 }
+

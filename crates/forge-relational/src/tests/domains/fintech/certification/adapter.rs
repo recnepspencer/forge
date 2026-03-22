@@ -11,7 +11,9 @@ use forge_harness::facade::{
 use serde_json::json;
 
 use crate::facade::history::BranchId;
-use crate::facade::replay::{RelationalReplayRequest, ReplayExecutionMode};
+use crate::facade::replay::{
+    RelationalReplayRequest, ReplayExecutionMode, ReplayVerificationMode,
+};
 
 use super::super::actions::{
     correct_seeded_trade_candidate, open_analysis_branch, refresh_risk_views,
@@ -246,6 +248,7 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
                         commit_id,
                         branch_id: branch,
                         execution_mode: ReplayExecutionMode::SerialDeterministic,
+                        verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
                     },
                 );
                 session.named_replays.insert((*alias).to_string(), replay);

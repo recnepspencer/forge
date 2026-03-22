@@ -1,6 +1,7 @@
 use crate::facade::history::BranchId;
 use crate::facade::replay::{
     RelationalReplayOutcome, RelationalReplayRequest, ReplayExecutionMode,
+    ReplayVerificationMode,
 };
 use crate::facade::runtime::RelationalRuntime;
 
@@ -27,6 +28,7 @@ pub(crate) fn replay_latest_commit_on_wrong_branch(
                 commit_id: latest,
                 branch_id: BranchId("wrong".to_string()),
                 execution_mode: ReplayExecutionMode::SerialDeterministic,
+                verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
             }),
     )
 }

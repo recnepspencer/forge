@@ -241,6 +241,20 @@ the runtime is not just usually correct; it is historically reproducible, causal
 
 If this fails, the “deterministic transactional auditable derived runtime” claim is not yet real.
 
+S9.16.5 alignment note
+
+Any certification bundle that exercises replay, lineage, explanation, provenance,
+or cold artifact access must also prove the diagnostics-tier contract:
+
+- DiagnosticsTier changes retained richness, not canonical runtime/replay/lineage truth
+- RetentionBudget bounds retained history/detail/replay envelopes
+- ReconstructionBudget gates explicit cold materialization only
+- DiagnosticsAvailability distinguishes retained, reconstructed, omitted, denied, and unavailable outcomes explicitly
+- ordinary summary/history/replay reads must perform zero cold reconstruction
+- retained/reconstructed/denied cold-work counters must be attributable by access lane and API family
+- retained-envelope shaping must follow the active runtime policy budget rather than tier defaults alone
+- long-session branch/snapshot churn must remain bounded by retained history/detail/replay envelopes
+
 2. The adversarial granularity suppression test
 Purpose
 

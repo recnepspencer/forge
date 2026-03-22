@@ -21,7 +21,7 @@ fn canonical_runtime_artifacts(graph: &SignalGraph, node: NodeId) -> serde_json:
     let provenance = graph.provenance_fact(node).cloned();
     let diagnostics = graph
         .observe()
-        .diagnostics_summary(DiagnosticsProfile::Development);
+        .diagnostics_summary(DiagnosticsTier::Development);
     let replay = graph
         .replay_events()
         .iter()
@@ -1096,3 +1096,4 @@ fn stress_repeated_parallel_parity_on_wide_branch_graph() {
         assert!(report.matched);
     }
 }
+

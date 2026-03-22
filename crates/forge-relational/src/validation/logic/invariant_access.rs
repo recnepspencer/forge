@@ -207,7 +207,9 @@ mod tests {
     };
     use crate::identity::data::KindId;
     use crate::schema::data::{
-        EndpointKindContractDeclaration, RelationIntegrityDeclarations, RelationPayloadClass,
+        CardinalityContractDeclaration, EndpointKindContractDeclaration,
+        RelationIntegrityDeclarations, RelationPayloadClass, SymmetryContractDeclaration,
+        SymmetryMode,
     };
     use crate::payloads::data::RecordPayload;
     use crate::symbols::data::InternedString;
@@ -258,6 +260,82 @@ mod tests {
                             cross_context_policy: CrossContextPolicy::AllowExplicit,
                         }],
                         Vec::new(),
+                        Vec::new(),
+                        Vec::new(),
+                        Vec::new(),
+                    ),
+                })
+            })
+            .unwrap();
+        RelationalRuntimeApi::builder()
+            .schema_registry(registry)
+            .build()
+    }
+
+    fn relation_symmetry_runtime(mode: SymmetryMode) -> RelationalRuntime {
+        let registry = RelationalSchemaRegistry::new()
+            .register_entity_kind(EntityKindRegistration {
+                kind_id: KindId(1),
+                kind_name: "test.entity".to_string(),
+                schema_id: SchemaId("test".to_string()),
+                schema_version_id: SchemaVersionId(1),
+                aspect_declarations: KindAspectDeclarations::default(),
+            })
+            .and_then(|registry| {
+                registry.register_relation_kind(RelationKindRegistration {
+                    kind_id: KindId(2),
+                    kind_name: "test.relation".to_string(),
+                    schema_id: SchemaId("test".to_string()),
+                    schema_version_id: SchemaVersionId(1),
+                    payload_class: RelationPayloadClass::PayloadBearingRelation,
+                    cross_context_policy: CrossContextPolicy::AllowExplicit,
+                    cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
+                    aspect_declarations: KindAspectDeclarations::default(),
+                    relation_integrity: RelationIntegrityDeclarations::new(
+                        Vec::new(),
+                        Vec::new(),
+                        Vec::new(),
+                        vec![SymmetryContractDeclaration {
+                            contract_id: "paired_twin".to_string(),
+                            mode,
+                        }],
+                        Vec::new(),
+                    ),
+                })
+            })
+            .unwrap();
+        RelationalRuntimeApi::builder()
+            .schema_registry(registry)
+            .build()
+    }
+
+    fn relation_cardinality_runtime() -> RelationalRuntime {
+        let registry = RelationalSchemaRegistry::new()
+            .register_entity_kind(EntityKindRegistration {
+                kind_id: KindId(1),
+                kind_name: "test.entity".to_string(),
+                schema_id: SchemaId("test".to_string()),
+                schema_version_id: SchemaVersionId(1),
+                aspect_declarations: KindAspectDeclarations::default(),
+            })
+            .and_then(|registry| {
+                registry.register_relation_kind(RelationKindRegistration {
+                    kind_id: KindId(2),
+                    kind_name: "test.relation".to_string(),
+                    schema_id: SchemaId("test".to_string()),
+                    schema_version_id: SchemaVersionId(1),
+                    payload_class: RelationPayloadClass::PayloadBearingRelation,
+                    cross_context_policy: CrossContextPolicy::AllowExplicit,
+                    cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
+                    aspect_declarations: KindAspectDeclarations::default(),
+                    relation_integrity: RelationIntegrityDeclarations::new(
+                        Vec::new(),
+                        vec![CardinalityContractDeclaration {
+                            contract_id: "source_max_one".to_string(),
+                            source_max: Some(1),
+                            target_max: None,
+                            pair_max: None,
+                        }],
                         Vec::new(),
                         Vec::new(),
                         Vec::new(),
@@ -404,5 +482,174 @@ mod tests {
         assert!(summary.widened_causes().is_empty());
         assert_eq!(summary.packet_count(), 1);
         assert_eq!(summary.touched_partition_count(), 1);
+    }
+
+    #[test]
+    fn commit_boundary_symmetry_failure_fields_localize_missing_twin_endpoints() {
+        let mut runtime = relation_symmetry_runtime(SymmetryMode::PairedTwinRequired);
+        let source = {
+            let mut txn =
+                runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
+            txn.push_batch(crate::facade::transactions::WorkerIntentBatch::new("source").push(
+                MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: InternedString::Raw("source".to_string()),
+                    payload: RecordPayload::StructuredJson(json!({"name":"source"})),
+                })),
+            ));
+            let outcome = txn.commit().unwrap();
+            match outcome.changed_records[0] {
+                crate::facade::transactions::RecordRef::Entity(entity_id) => entity_id,
+                _ => panic!("expected entity"),
+            }
+        };
+        let target = {
+            let mut txn =
+                runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
+            txn.push_batch(crate::facade::transactions::WorkerIntentBatch::new("target").push(
+                MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: InternedString::Raw("target".to_string()),
+                    payload: RecordPayload::StructuredJson(json!({"name":"target"})),
+                })),
+            ));
+            let outcome = txn.commit().unwrap();
+            match outcome.changed_records[0] {
+                crate::facade::transactions::RecordRef::Entity(entity_id) => entity_id,
+                _ => panic!("expected entity"),
+            }
+        };
+        let plan = MergedCommitPlan {
+            transaction_id: TransactionId(4),
+            merged_intents: vec![MutationIntent::Create(CreateIntent::Relation(
+                crate::transactions::data::RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(2),
+                    client_key: InternedString::Raw("missing-twin".to_string()),
+                    source,
+                    target,
+                    payload: Some(RecordPayload::StructuredJson(json!({"label":"missing-twin"}))),
+                },
+            ))],
+        };
+
+        let result = InvariantAccess::new(&runtime).commit_boundary(&plan);
+        let failure = result
+            .summary()
+            .blocking_failure()
+            .expect("blocking symmetry failure");
+        let fields = failure.fields();
+
+        assert_eq!(failure.violation().code, crate::diagnostics::data::DiagnosticCode::RelationSymmetryViolation);
+        assert_eq!(fields["contract_id"], json!("paired_twin"));
+        assert_eq!(fields["relation_kind_id"], json!(2));
+        assert_eq!(fields["source"], json!(source));
+        assert_eq!(fields["target"], json!(target));
+        assert_eq!(fields["mode"], json!("paired"));
+    }
+
+    #[test]
+    fn commit_boundary_cardinality_failure_fields_localize_nonmanifold_like_overflow() {
+        let mut runtime = relation_cardinality_runtime();
+        let source = {
+            let mut txn =
+                runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
+            txn.push_batch(crate::facade::transactions::WorkerIntentBatch::new("source").push(
+                MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: InternedString::Raw("source".to_string()),
+                    payload: RecordPayload::StructuredJson(json!({"name":"source"})),
+                })),
+            ));
+            let outcome = txn.commit().unwrap();
+            match outcome.changed_records[0] {
+                crate::facade::transactions::RecordRef::Entity(entity_id) => entity_id,
+                _ => panic!("expected entity"),
+            }
+        };
+        let target_a = {
+            let mut txn =
+                runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
+            txn.push_batch(crate::facade::transactions::WorkerIntentBatch::new("target-a").push(
+                MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: InternedString::Raw("target-a".to_string()),
+                    payload: RecordPayload::StructuredJson(json!({"name":"target-a"})),
+                })),
+            ));
+            let outcome = txn.commit().unwrap();
+            match outcome.changed_records[0] {
+                crate::facade::transactions::RecordRef::Entity(entity_id) => entity_id,
+                _ => panic!("expected entity"),
+            }
+        };
+        let target_b = {
+            let mut txn =
+                runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
+            txn.push_batch(crate::facade::transactions::WorkerIntentBatch::new("target-b").push(
+                MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: InternedString::Raw("target-b".to_string()),
+                    payload: RecordPayload::StructuredJson(json!({"name":"target-b"})),
+                })),
+            ));
+            let outcome = txn.commit().unwrap();
+            match outcome.changed_records[0] {
+                crate::facade::transactions::RecordRef::Entity(entity_id) => entity_id,
+                _ => panic!("expected entity"),
+            }
+        };
+        let _accepted = {
+            let mut txn =
+                runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
+            txn.push_batch(
+                crate::facade::transactions::WorkerIntentBatch::new("accepted").push(
+                    MutationIntent::Create(CreateIntent::Relation(
+                        crate::transactions::data::RelationSpec {
+                            partition_id: PartitionId::main(),
+                            kind_id: KindId(2),
+                            client_key: InternedString::Raw("accepted".to_string()),
+                            source,
+                            target: target_a,
+                            payload: Some(RecordPayload::StructuredJson(json!({"label":"accepted"}))),
+                        },
+                    )),
+                ),
+            );
+            txn.commit().unwrap()
+        };
+        let overflow_plan = MergedCommitPlan {
+            transaction_id: TransactionId(5),
+            merged_intents: vec![MutationIntent::Create(CreateIntent::Relation(
+                crate::transactions::data::RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(2),
+                    client_key: InternedString::Raw("overflow".to_string()),
+                    source,
+                    target: target_b,
+                    payload: Some(RecordPayload::StructuredJson(json!({"label":"overflow"}))),
+                },
+            ))],
+        };
+
+        let result = InvariantAccess::new(&runtime).commit_boundary(&overflow_plan);
+        let failure = result
+            .summary()
+            .blocking_failure()
+            .expect("blocking cardinality failure");
+        let fields = failure.fields();
+
+        assert_eq!(failure.violation().code, crate::diagnostics::data::DiagnosticCode::RelationCardinalityViolation);
+        assert_eq!(fields["contract_id"], json!("source_max_one"));
+        assert_eq!(fields["relation_kind_id"], json!(2));
+        assert_eq!(fields["entity_id"], json!(source));
+        assert_eq!(fields["boundary"], json!("source"));
+        assert_eq!(fields["count"], json!(2));
+        assert_eq!(fields["limit"], json!(1));
     }
 }

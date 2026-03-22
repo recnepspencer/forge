@@ -1,6 +1,7 @@
 use crate::authority::commit::phases::publication::{
     canonical_commit_envelope, canonicalize_changed_records,
 };
+use crate::authority::commit::phases::schema_continuity::SchemaContinuityPlan;
 use crate::authority::commit::publication::diagnostics_summary_artifact;
 use crate::history::data::CommitReference;
 use crate::publication::data::diff::RelationalPatchRecord;
@@ -36,6 +37,7 @@ pub(crate) fn prepare_publication_artifacts(
     merge_parent_branches: &[crate::history::data::BranchId],
     merge_base_commits: &[crate::history::data::CommitId],
     merged_plan: &MergedCommitPlan,
+    schema_continuity: &SchemaContinuityPlan,
     effect: crate::authority::mutation::MutationEffect,
 ) -> Result<PublicationPreparation, TransactionCommitError> {
     let diagnostics_summary =
@@ -63,6 +65,9 @@ pub(crate) fn prepare_publication_artifacts(
         &merged_plan.merged_intents,
         &effect.publication.changed_records,
     );
+    let lineage_events = runtime
+        .lineage_access()
+        .events_by_ids(&lineage_event_ids);
     let lineage_event_count = lineage_event_ids.len();
     let canonical_commit_envelope = canonical_commit_envelope(
         runtime,
@@ -74,7 +79,11 @@ pub(crate) fn prepare_publication_artifacts(
         patch.clone(),
         diagnostics_summary.clone(),
         lineage_event_ids,
-    );
+        lineage_events,
+        Vec::new(),
+        Vec::new(),
+        schema_continuity,
+    )?;
     let mut changed_records = effect.publication.changed_records;
     let adjacency_deltas = effect.adjacency.deltas;
     canonicalize_changed_records(&mut changed_records);

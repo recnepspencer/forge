@@ -7,7 +7,7 @@ pub(crate) mod strategy;
 
 pub(crate) use graph::{BranchMutationRecord, BranchStructuralDelta};
 pub use graph::SignalGraph;
-pub use observer::GraphObserver;
+pub use observer::{GraphMaterializer, GraphObserver};
 pub use scratch::ScratchLeaseKind;
 pub(crate) use scratch::TraversalScratch;
 pub use strategy::{EvaluationStrategy, GcPressure, ObservationLevel, ParallelismHint};

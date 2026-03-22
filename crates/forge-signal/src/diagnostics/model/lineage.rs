@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use serde::{Deserialize, Serialize};
 
 use crate::data::handle::NodeId;
@@ -26,7 +28,10 @@ pub enum ArtifactTransitionKind {
     CrossIdentityPersistentReuse {
         correspondence_kind: PersistentCorrespondenceKind,
     },
-    PartialArtifactSplice,
+    PartialArtifactSplice {
+        composition_region_count: u32,
+        recomputed_region_count: u32,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -444,7 +449,7 @@ impl LineageRecord {
                 ..
             } => "CrossIdentityPersistentReuse",
             LineageRecordKind::ArtifactTransition {
-                transition: ArtifactTransitionKind::PartialArtifactSplice,
+                transition: ArtifactTransitionKind::PartialArtifactSplice { .. },
                 ..
             } => "PartialArtifactSplice",
             LineageRecordKind::BranchFork { .. } => "BranchedFrom",
@@ -454,5 +459,100 @@ impl LineageRecord {
             LineageRecordKind::SnapshotRestore { .. } => "Restored",
             LineageRecordKind::Invalidation { .. } => "InvalidatedWithoutReplacement",
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct RetainedLineageView<'a> {
+    records: Option<&'a VecDeque<LineageRecord>>,
+    offset: usize,
+    len: usize,
+}
+
+impl<'a> RetainedLineageView<'a> {
+    pub fn new(records: &'a VecDeque<LineageRecord>, offset: usize, len: usize) -> Self {
+        Self {
+            records: Some(records),
+            offset,
+            len,
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            records: None,
+            offset: 0,
+            len: 0,
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    pub fn iter(&self) -> Box<dyn Iterator<Item = &'a LineageRecord> + 'a> {
+        match self.records {
+            Some(records) => Box::new(records.iter().skip(self.offset).take(self.len)),
+            None => Box::new(std::iter::empty()),
+        }
+    }
+
+    pub fn first(&self) -> Option<&'a LineageRecord> {
+        self.iter().next()
+    }
+
+    pub fn last(&self) -> Option<&'a LineageRecord> {
+        self.iter().last()
+    }
+
+    pub fn to_owned_records(&self) -> Vec<LineageRecord> {
+        self.iter().cloned().collect()
+    }
+}
+
+impl<'a> PartialEq for RetainedLineageView<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        self.iter().eq(other.iter())
+    }
+}
+
+impl<'a> Eq for RetainedLineageView<'a> {}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct SynthesizedLineageChain {
+    records: Vec<LineageRecord>,
+}
+
+impl SynthesizedLineageChain {
+    pub fn new(records: Vec<LineageRecord>) -> Self {
+        Self { records }
+    }
+
+    pub fn len(&self) -> usize {
+        self.records.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.records.is_empty()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &LineageRecord> {
+        self.records.iter()
+    }
+
+    pub fn first(&self) -> Option<&LineageRecord> {
+        self.records.first()
+    }
+
+    pub fn last(&self) -> Option<&LineageRecord> {
+        self.records.last()
+    }
+
+    pub fn to_owned_records(&self) -> Vec<LineageRecord> {
+        self.records.clone()
     }
 }

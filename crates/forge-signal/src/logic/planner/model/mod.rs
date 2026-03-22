@@ -23,7 +23,7 @@ use crate::logic::evaluation::{DeferralReason, EvaluationVerdict, SuppressionRea
 use crate::logic::explain::RewiringSummary;
 use crate::logic::prepared::PreparedEvaluation;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum TaskReason {
     Dirty,
     MaybeStaleValidation,
@@ -202,7 +202,7 @@ pub enum ExecutionPruneReason {
     CleanAfterValidation,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum TaskExecutionOutcome {
     Recomputed,
     ValidatedClean,
@@ -217,7 +217,7 @@ pub enum TaskExecutionOutcome {
     Pruned,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum StageExecutionOutcome {
     CompletedSerial,
     #[cfg(feature = "parallel")]
@@ -306,6 +306,9 @@ impl StageExecutionRecord {
             }
             Some("below-full-parallel-threshold") => {
                 "stage stayed out of full parallel mode because the active policy requires a larger stage for grouped concurrent apply"
+            }
+            Some("full-parallel-unsupported-by-mutable-engine") => {
+                "stage stayed out of full parallel mode because the current mutable graph engine does not support concurrent apply yet"
             }
             Some("admitted-operational") => {
                 "stage ran in parallel under the low-overhead operational policy"

@@ -212,7 +212,7 @@ where
                     .unwrap_or(crate::data::output::MemoizedResultOrigin::DirectCompute),
                 after_trace
                     .as_ref()
-                    .map(|trace| trace.reuse_basis)
+                    .map(|trace| trace.reuse_basis.clone())
                     .unwrap_or(crate::data::reuse::ReuseBasis::fresh_compute()),
             );
             accumulate_report_counters(&mut report, &task_record.record);
@@ -432,7 +432,7 @@ where
                     .unwrap_or(crate::data::output::MemoizedResultOrigin::DirectCompute),
                 after_trace
                     .as_ref()
-                    .map(|trace| trace.reuse_basis)
+                    .map(|trace| trace.reuse_basis.clone())
                     .unwrap_or(crate::data::reuse::ReuseBasis::fresh_compute()),
             );
             accumulate_report_counters(&mut report, &task_record.record);

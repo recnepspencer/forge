@@ -49,17 +49,20 @@ pub use history::{
     ExecutionInspector, FlowInspector, GraphInspector, PlanInspector, ReportInspector,
 };
 pub use lineage::{
-    ArtifactTransitionKind, InvalidationCause, LineageArtifactId, LineageRecord, LineageRecordKind,
-    SnapshotRestoreKind,
+    ArtifactTransitionKind, InvalidationCause, LineageArtifactId, LineageRecord,
+    LineageRecordKind, RetainedLineageView, SnapshotRestoreKind, SynthesizedLineageChain,
 };
 pub use policy::{
-    ArtifactMaterializationMode, ArtifactRetentionPolicy, DiagnosticsPolicy,
+    ArtifactRetentionPolicy, DiagnosticsAvailability,
     FrontierCyclePolicy, FrontierPropagationPolicy, FrontierTracingPolicy,
-    ParallelAdmissionPolicy, ReplayDetailPolicy, SemanticRetentionPolicy, SignalRuntimePolicy,
-    SnapshotRestoreLineageMode,
+    ParallelAdmissionPolicy, ReconstructionBudget, ReplayDetailPolicy, RetentionBudget,
+    SemanticRetentionPolicy, SignalRuntimePolicy, SnapshotRestoreLineageMode,
 };
-pub use profile::DiagnosticsProfile;
-pub use replay::{ReplayCursor, ReplayEvent, ReplayEventKind, ReplayFrame, ReplaySlice};
+pub use profile::DiagnosticsTier;
+pub use replay::{
+    ReplayCursor, ReplayEvent, ReplayEventKind, ReplayFrame, ReplaySlice, RetainedReplayView,
+    SynthesizedReplaySlice,
+};
 pub use summary::{
     EvaluationPlanSummary, ExecutionHistoryNodeSummary, ExecutionHistorySummary,
     ExecutionReportSummary, ExplanationSummary, GraphSummary,

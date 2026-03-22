@@ -10,6 +10,11 @@ pub enum SubscriberStreamFailureClass {
     InvalidBatchSize,
     DurableCoverageGap,
     SubscriberContractMismatch,
+    UnsupportedContinuation,
+    ContractUpgradeUnsupported,
+    RenegotiationRequired,
+    DescriptorVersionMismatch,
+    CheckpointContinuitySummaryMismatch,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

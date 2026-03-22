@@ -192,6 +192,7 @@ fn diff_packet_stream(
 
     for (offset, record) in packet.records.iter().enumerate() {
         let canonical = record.canonicalized();
+        #[allow(unused_mut)]
         let mut key = DiffReductionKey::new(
             canonical.target.clone(),
             diff_kind_order(

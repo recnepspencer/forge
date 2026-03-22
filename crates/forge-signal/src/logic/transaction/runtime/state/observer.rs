@@ -1,16 +1,18 @@
 use crate::data::comparator::TierPolicyResolver;
 use crate::data::error::SignalError;
-use crate::data::graph::{EvaluationStrategy, GraphObserver};
+use crate::data::graph::{EvaluationStrategy, GraphMaterializer, GraphObserver};
 use crate::data::handle::NodeId;
 use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
 use crate::diagnostics::access::RuntimeDiagnostics;
 use crate::diagnostics::facts::ProvenanceFact;
 use crate::diagnostics::history::ExecutionInspector;
-use crate::diagnostics::lineage::{LineageArtifactId, LineageRecord};
+use crate::diagnostics::lineage::{LineageArtifactId, SynthesizedLineageChain};
 use crate::diagnostics::policy::SignalRuntimePolicy;
-use crate::diagnostics::profile::DiagnosticsProfile;
+use crate::diagnostics::profile::DiagnosticsTier;
 use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
-use crate::diagnostics::{FailureSummary, FlowSummary, ReplaySlice, RollbackDiagnostic};
+use crate::diagnostics::{
+    FailureSummary, FlowSummary, ReplaySlice, RollbackDiagnostic, SynthesizedReplaySlice,
+};
 use crate::logic::explain::{explain_with_policy_resolver, NodeExplanation};
 use crate::presentation::metrics::RuntimeMetrics;
 use crate::data::telemetry::{EvaluationTelemetry, InvalidationTelemetry};
@@ -20,6 +22,15 @@ use super::runtime_state::SignalRuntime;
 use super::CheckpointRecord;
 
 pub struct RuntimeObserver<'a, D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    runtime: &'a SignalRuntime<D, I, E, Ctx, T>,
+}
+
+pub struct RuntimeMaterializer<'a, D, I, E, Ctx, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
@@ -42,6 +53,12 @@ where
         self.runtime.graph.observe()
     }
 
+    pub fn materialize(&self) -> RuntimeMaterializer<'a, D, I, E, Ctx, T> {
+        RuntimeMaterializer {
+            runtime: self.runtime,
+        }
+    }
+
     pub fn explain(&self, node: NodeId) -> Result<NodeExplanation, SignalError> {
         let resolver = TierPolicyResolver::new(
             self.runtime.config.node_meta(),
@@ -49,54 +66,6 @@ where
             self.runtime.config.fallback_comparator(),
         );
         explain_with_policy_resolver(&self.runtime.graph, node, &resolver)
-    }
-
-    pub fn retained_explanation_artifact(&self, node: NodeId) -> Option<NodeExplanation> {
-        self.graph().retained_explanation_artifact(node)
-    }
-
-    pub fn reconstruct_explanation_artifact(
-        &self,
-        node: NodeId,
-    ) -> Result<NodeExplanation, SignalError> {
-        self.graph().reconstruct_explanation_artifact(node)
-    }
-
-    pub fn materialize_explanation_artifact(
-        &self,
-        node: NodeId,
-    ) -> Result<
-        (
-            Option<NodeExplanation>,
-            crate::diagnostics::policy::ArtifactMaterializationMode,
-        ),
-        SignalError,
-    > {
-        self.graph().materialize_explanation_artifact(node)
-    }
-
-    pub fn retained_provenance_artifact(&self, node: NodeId) -> Option<ProvenanceFact> {
-        self.graph().retained_provenance_artifact(node)
-    }
-
-    pub fn reconstruct_provenance_artifact(
-        &self,
-        node: NodeId,
-    ) -> Result<ProvenanceFact, SignalError> {
-        self.graph().reconstruct_provenance_artifact(node)
-    }
-
-    pub fn materialize_provenance_artifact(
-        &self,
-        node: NodeId,
-    ) -> Result<
-        (
-            Option<ProvenanceFact>,
-            crate::diagnostics::policy::ArtifactMaterializationMode,
-        ),
-        SignalError,
-    > {
-        self.graph().materialize_provenance_artifact(node)
     }
 
     pub fn metrics(&self) -> RuntimeMetrics {
@@ -122,7 +91,7 @@ where
         CheckpointRecord::from_checkpoint_telemetry(self.composed_checkpoint_telemetry())
     }
 
-    pub fn diagnostics_summary(&self, profile: DiagnosticsProfile) -> GraphSummary {
+    pub fn diagnostics_summary(&self, profile: DiagnosticsTier) -> GraphSummary {
         self.graph().diagnostics_summary(profile)
     }
 
@@ -130,7 +99,7 @@ where
         crate::diagnostics::access::diagnostics_for_runtime(self.runtime)
     }
 
-    pub fn diagnostics_profile(&self) -> DiagnosticsProfile {
+    pub fn diagnostics_profile(&self) -> DiagnosticsTier {
         self.graph().diagnostics_profile()
     }
 
@@ -186,15 +155,15 @@ where
     }
 
     pub fn replay_for_node(&self, node: NodeId) -> ReplaySlice {
-        self.graph().replay_for_node(node)
+        self.graph().replay_for_node(node).to_owned_slice()
     }
 
     pub fn replay_for_artifact(&self, artifact_id: LineageArtifactId) -> ReplaySlice {
-        self.graph().replay_for_artifact(artifact_id)
+        self.graph().replay_for_artifact(artifact_id).to_owned_slice()
     }
 
     pub fn replay_from_cursor(&self, start: crate::diagnostics::ReplayCursor) -> ReplaySlice {
-        self.graph().replay_from_cursor(start)
+        self.graph().replay_from_cursor(start).to_owned_slice()
     }
 
     pub fn replay_between(
@@ -202,11 +171,11 @@ where
         start: crate::diagnostics::ReplayCursor,
         end: crate::diagnostics::ReplayCursor,
     ) -> ReplaySlice {
-        self.graph().replay_between(start, end)
+        self.graph().replay_between(start, end).to_owned_slice()
     }
 
     pub fn replay_around_snapshot(&self, snapshot_id: SignalSnapshotId) -> ReplaySlice {
-        self.graph().replay_around_snapshot(snapshot_id)
+        self.graph().replay_around_snapshot(snapshot_id).to_owned_slice()
     }
 
     pub fn replay_for_branch(&self, branch_id: SignalBranchId) -> ReplaySlice {
@@ -217,25 +186,35 @@ where
                 self.runtime.graph.current_branch().id,
                 &self.runtime.graph,
             )
-            .map(|graph| graph.observe().replay_for_branch(branch_id))
+            .map(|graph| graph.observe().replay_for_branch(branch_id).to_owned_slice())
             .unwrap_or_default()
+    }
+
+    pub fn replay_where(
+        &self,
+        predicate: impl FnMut(&crate::diagnostics::ReplayEvent) -> bool,
+    ) -> SynthesizedReplaySlice {
+        self.graph().replay_where(predicate)
     }
 
     pub fn current_lineage_artifact(&self, node: NodeId) -> Option<LineageArtifactId> {
         self.graph().current_lineage_artifact(node)
     }
 
-    pub fn lineage_chain_for_node(&self, node: NodeId) -> Vec<LineageRecord> {
+    pub fn lineage_chain_for_node(&self, node: NodeId) -> SynthesizedLineageChain {
         self.graph().lineage_chain_for_node(node)
     }
 
-    pub fn lineage_chain_for_artifact(&self, artifact_id: LineageArtifactId) -> Vec<LineageRecord> {
+    pub fn lineage_chain_for_artifact(
+        &self,
+        artifact_id: LineageArtifactId,
+    ) -> SynthesizedLineageChain {
         self.graph().lineage_chain_for_artifact(artifact_id)
     }
 
     pub fn execution_history_summary(
         &self,
-        profile: DiagnosticsProfile,
+        profile: DiagnosticsTier,
     ) -> ExecutionHistorySummary {
         self.graph().execution_history_summary(profile)
     }
@@ -363,6 +342,79 @@ fn merge_evaluation_telemetry(
     }
 }
 
+impl<'a, D, I, E, Ctx, T> RuntimeMaterializer<'a, D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub fn graph(&self) -> GraphMaterializer<'a> {
+        self.runtime.graph.observe().materialize()
+    }
+
+    pub fn retained_explanation_artifact(&self, node: NodeId) -> Option<NodeExplanation> {
+        self.graph().retained_explanation_artifact(node)
+    }
+
+    pub fn materialize_historical_artifact_record(
+        &self,
+        node: NodeId,
+    ) -> Result<Option<crate::data::trace::HistoricalArtifactRecord>, SignalError> {
+        self.graph().materialize_historical_artifact_record(node)
+    }
+
+    pub fn materialize_trace_summary(
+        &self,
+        node: NodeId,
+    ) -> Result<Option<crate::data::trace::TraceSummary>, SignalError> {
+        self.graph().materialize_trace_summary(node)
+    }
+
+    pub fn reconstruct_explanation_artifact(
+        &self,
+        node: NodeId,
+    ) -> Result<NodeExplanation, SignalError> {
+        self.graph().reconstruct_explanation_artifact(node)
+    }
+
+    pub fn materialize_explanation_artifact(
+        &self,
+        node: NodeId,
+    ) -> Result<
+        (
+            Option<NodeExplanation>,
+            crate::diagnostics::policy::DiagnosticsAvailability,
+        ),
+        SignalError,
+    > {
+        self.graph().materialize_explanation_artifact(node)
+    }
+
+    pub fn retained_provenance_artifact(&self, node: NodeId) -> Option<ProvenanceFact> {
+        self.graph().retained_provenance_artifact(node)
+    }
+
+    pub fn reconstruct_provenance_artifact(
+        &self,
+        node: NodeId,
+    ) -> Result<ProvenanceFact, SignalError> {
+        self.graph().reconstruct_provenance_artifact(node)
+    }
+
+    pub fn materialize_provenance_artifact(
+        &self,
+        node: NodeId,
+    ) -> Result<
+        (
+            Option<ProvenanceFact>,
+            crate::diagnostics::policy::DiagnosticsAvailability,
+        ),
+        SignalError,
+    > {
+        self.graph().materialize_provenance_artifact(node)
+    }
+}
+
 fn merge_invalidation_telemetry(
     graph: InvalidationTelemetry,
     runtime: InvalidationTelemetry,
@@ -410,3 +462,4 @@ fn merge_invalidation_telemetry(
         subscriber_repair_breadth: graph.subscriber_repair_breadth + runtime.subscriber_repair_breadth,
     }
 }
+

@@ -247,8 +247,8 @@ fn operational_profile_reconstructs_rich_artifacts_without_retaining_facts() {
 
     assert!(explanation.is_some());
     assert!(prov.is_some());
-    assert_eq!(explanation_mode, ArtifactMaterializationMode::Reconstructed);
-    assert_eq!(provenance_mode, ArtifactMaterializationMode::Reconstructed);
+    assert_eq!(explanation_mode, DiagnosticsAvailability::ReconstructedAvailable);
+    assert_eq!(provenance_mode, DiagnosticsAvailability::ReconstructedAvailable);
     assert_eq!(
         explanations[0].extensions["artifact_materialization"],
         "reconstructed"
@@ -258,3 +258,5 @@ fn operational_profile_reconstructs_rich_artifacts_without_retaining_facts() {
         "reconstructed"
     );
 }
+
+

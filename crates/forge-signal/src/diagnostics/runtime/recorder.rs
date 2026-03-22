@@ -5,8 +5,8 @@ use crate::diagnostics::failure::{ExecutionFailureContext, FailureSummary};
 use crate::diagnostics::lineage::{
     ArtifactTransitionKind, InvalidationCause, LineageRecord, SnapshotRestoreKind,
 };
-use crate::diagnostics::policy::{DiagnosticsPolicy, SnapshotRestoreLineageMode};
-use crate::diagnostics::replay::{ReplayEvent, ReplayEventKind};
+use crate::diagnostics::policy::{SignalRuntimePolicy, SnapshotRestoreLineageMode};
+use crate::diagnostics::replay::{ReplayEvent, ReplayEventDetail, ReplayEventKind};
 use crate::logic::planner::{ExecutionRecordId, SemanticSegmentId};
 use crate::logic::transaction::BranchMergeExecutionSummary;
 use crate::state::SignalSnapshotId;
@@ -20,15 +20,15 @@ impl<'a> DiagnosticsRecorder<'a> {
         Self { graph }
     }
 
-    fn policy(&self) -> DiagnosticsPolicy {
-        DiagnosticsPolicy::from_profile(self.graph.diagnostics_profile())
+    fn policy(&self) -> SignalRuntimePolicy {
+        SignalRuntimePolicy::for_tier(self.graph.diagnostics_profile())
     }
 
     pub fn record_failure(&mut self, context: ExecutionFailureContext) -> FailureSummary {
         let policy = self.policy();
         let summary = context.summarize(
             self.graph.observe().latest_rollback_diagnostics(),
-            policy.profile,
+            policy.tier,
         );
         self.record_failure_summary(summary.clone());
         self.graph.clear_pending_diagnostics_input();
@@ -62,7 +62,8 @@ pub fn record_transaction_semantic_event(
             None,
             None,
             None,
-            Some(detail.into()),
+            None,
+            Some(ReplayEventDetail::Message(detail.into())),
         ));
 }
 
@@ -87,7 +88,8 @@ pub fn record_snapshot_event(
             None,
             None,
             None,
-            Some(detail.into()),
+            None,
+            Some(ReplayEventDetail::Message(detail.into())),
         ));
 }
 
@@ -176,7 +178,8 @@ pub fn record_branch_merge_summary(
             None,
             None,
             None,
-            Some(detail),
+            None,
+            Some(ReplayEventDetail::Message(detail)),
         ));
 
     let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();
@@ -282,7 +285,8 @@ pub fn record_branch_merge_failure(
             None,
             None,
             None,
-            Some(detail),
+            None,
+            Some(ReplayEventDetail::Message(detail)),
         ));
 }
 
@@ -374,14 +378,20 @@ pub fn record_lineage_transition(
                         correspondence_kind: after_trace
                             .reuse_boundary_context
                             .as_ref()
-                            .and_then(|ctx| ctx.persistent_correspondence.as_ref())
+                            .and_then(|ctx| ctx.persistent_correspondence())
                             .map(|evidence| evidence.kind())
-                            .unwrap_or(
-                                crate::data::reuse::PersistentCorrespondenceKind::HostSuppliedKey,
-                            ),
+                            .unwrap_or(crate::data::reuse::PersistentCorrespondenceKind::Unknown),
                     }
                 }
-                ReuseOrigin::PartialArtifactSplice => ArtifactTransitionKind::PartialArtifactSplice,
+                ReuseOrigin::PartialArtifactSplice => ArtifactTransitionKind::PartialArtifactSplice {
+                    composition_region_count: after_trace
+                        .reuse_boundary_context
+                        .as_ref()
+                        .and_then(|ctx| ctx.composition_regions())
+                        .map(|regions| regions.as_slice().len() as u32)
+                        .unwrap_or(0),
+                    recomputed_region_count: after_trace.changed_partition_count,
+                },
                 ReuseOrigin::FreshCompute | ReuseOrigin::OutputSuppressed => {
                     unreachable!("guarded by matches!")
                 }
@@ -451,3 +461,5 @@ pub fn record_invalidation_lineage(
             cause,
         ));
 }
+
+

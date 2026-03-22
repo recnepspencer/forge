@@ -77,17 +77,16 @@ impl InvariantEngine<'_> {
         }) {
             1
         } else {
-            planned
-                .packets
-                .iter()
-                .flat_map(|packet| match &packet.locality.partition_scope {
-                    crate::authority::commit::preparation::proofs::locality::PreparationPartitionScope::AllObserved => Vec::new(),
-                    crate::authority::commit::preparation::proofs::locality::PreparationPartitionScope::TouchedPartitions(
-                        partitions,
-                    ) => partitions.clone(),
-                })
-                .collect::<BTreeSet<_>>()
-                .len()
+            let mut touched = BTreeSet::new();
+            for packet in &planned.packets {
+                if let crate::authority::commit::preparation::proofs::locality::PreparationPartitionScope::TouchedPartitions(
+                    partitions,
+                ) = &packet.locality.partition_scope
+                {
+                    touched.extend(partitions.iter().copied());
+                }
+            }
+            touched.len()
         };
         performance.count_preparation_packet_shape(
             counters.packet_count,

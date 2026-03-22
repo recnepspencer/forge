@@ -9,6 +9,7 @@ use crate::publication::data::{PublicationError, PublicationStage};
 use crate::publication::logic::publication_failure_diagnostic;
 use crate::transactions::data::{CommitConflict, MergedCommitPlan, TransactionCommitError};
 use crate::validation::engine::InvariantExecutionResult;
+use serde_json::Value;
 
 impl RelationalRuntime {
     pub(crate) fn invariant_authority(&mut self) -> InvariantAuthority<'_> {
@@ -32,11 +33,7 @@ impl<'runtime> InvariantAuthority<'runtime> {
         let result = self.runtime.invariant_access().commit_boundary(merged_plan);
         self.emit_preparation_diagnostics(&result);
         if let Some(failure) = result.summary().blocking_failure() {
-            self.emit_conflict_diagnostic(
-                failure.execution_point(),
-                failure.detail().to_string(),
-                failure.fields().clone(),
-            );
+            self.emit_conflict_diagnostic(&result, failure);
             return Err(TransactionCommitError::conflict(
                 failure.clone().into_commit_conflict(),
             ));
@@ -59,11 +56,7 @@ impl<'runtime> InvariantAuthority<'runtime> {
         };
         self.emit_preparation_diagnostics(&result);
         if let Some(failure) = result.summary().blocking_failure() {
-            self.emit_conflict_diagnostic(
-                failure.execution_point(),
-                failure.detail().to_string(),
-                failure.fields().clone(),
-            );
+            self.emit_conflict_diagnostic(&result, failure);
             return Err(failure.clone().into_commit_conflict());
         }
         Ok(result)
@@ -84,7 +77,7 @@ impl<'runtime> InvariantAuthority<'runtime> {
         };
         self.emit_preparation_diagnostics(&result);
         if let Some(failure) = result.summary().publication_failure() {
-            self.emit_publication_failure(failure.detail().to_string());
+            self.emit_publication_failure(&result, failure);
             return Err(failure
                 .clone()
                 .into_publication_error(PublicationStage::InvariantCheck));
@@ -94,35 +87,67 @@ impl<'runtime> InvariantAuthority<'runtime> {
 
     fn emit_conflict_diagnostic(
         &mut self,
-        execution_point: crate::validation::data::InvariantExecutionPoint,
-        detail: String,
-        fields: serde_json::Value,
+        result: &InvariantExecutionResult,
+        failure: &crate::validation::engine::InvariantFailure,
     ) {
         self.runtime
             .publication_authority()
             .diagnostic(DiagnosticsScope::Invariant)
             .failure()
             .emit_entry(
-                DiagnosticCode::InvariantViolation,
-                detail,
-                json!({
-                    "execution_point": execution_point.diagnostic_label(),
-                    "violation": fields,
-                }),
+                failure.code(),
+                failure.detail().to_string(),
+                invariant_failure_fields(result, failure),
             );
     }
 
-    fn emit_publication_failure(&mut self, detail: String) {
+    fn emit_publication_failure(
+        &mut self,
+        result: &InvariantExecutionResult,
+        failure: &crate::validation::engine::InvariantFailure,
+    ) {
         self.runtime
             .publication_authority()
             .push_bounded_diagnostic(
                 DiagnosticsScope::Invariant,
                 DiagnosticsArtifactKind::Failure,
-                vec![publication_failure_diagnostic(detail)],
+                vec![publication_failure_diagnostic(
+                    failure.code(),
+                    failure.detail().to_string(),
+                    invariant_failure_fields(result, failure),
+                )],
             );
     }
 
     fn emit_preparation_diagnostics(&mut self, result: &InvariantExecutionResult) {
+        if self
+            .runtime
+            .config
+            .diagnostics
+            .profile
+            .detailed_traces_enabled
+        {
+            if let Some(proof_boundary) = result.metadata().proof_boundary() {
+                self.runtime
+                    .publication_authority()
+                    .push_bounded_diagnostic(
+                        DiagnosticsScope::Invariant,
+                        DiagnosticsArtifactKind::DetailedTrace,
+                        vec![RelationalDiagnosticsEntry {
+                            code: DiagnosticCode::InvariantProofBoundaryObserved,
+                            message: "invariant execution preserved an explicit planner/executor proof boundary"
+                                .to_string(),
+                            fields: json!({
+                                "execution_point": result.metadata().execution_point().diagnostic_label(),
+                                "scope_class": format!("{:?}", proof_boundary.scope_class()),
+                                "widened_causes": proof_boundary.widened_causes().iter().map(|cause| format!("{cause:?}")).collect::<Vec<_>>(),
+                                "packet_count": proof_boundary.packet_count(),
+                                "touched_partition_count": proof_boundary.touched_partition_count(),
+                            }),
+                        }],
+                    );
+            }
+        }
         let fallback_reason = result
             .metadata()
             .preparation_strategy()
@@ -162,6 +187,26 @@ impl<'runtime> InvariantAuthority<'runtime> {
                 entries,
             );
     }
+}
+
+fn invariant_failure_fields(
+    result: &InvariantExecutionResult,
+    failure: &crate::validation::engine::InvariantFailure,
+) -> Value {
+    let proof_boundary = result.metadata().proof_boundary().map(|proof_boundary| {
+        json!({
+            "scope_class": format!("{:?}", proof_boundary.scope_class()),
+            "widened_causes": proof_boundary.widened_causes().iter().map(|cause| format!("{cause:?}")).collect::<Vec<_>>(),
+            "packet_count": proof_boundary.packet_count(),
+            "touched_partition_count": proof_boundary.touched_partition_count(),
+        })
+    });
+
+    json!({
+        "execution_point": failure.execution_point().diagnostic_label(),
+        "proof_boundary": proof_boundary,
+        "violation": failure.fields(),
+    })
 }
 
 fn preparation_failure_label(failure: PreparationFailureClass) -> &'static str {

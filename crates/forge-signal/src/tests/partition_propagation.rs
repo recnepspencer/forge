@@ -80,7 +80,10 @@ fn local_scope_explanations_mark_untouched_partition_evidence_as_discarded() {
 
     let explanation = graph.observe().explain(dependent).unwrap();
     assert!(explanation.causal_links.iter().any(|link| {
-        link.kind == "ScopeUntouched" && matches!(link.scope.kind, ScopeProvenanceKind::Discarded)
+        matches!(
+            link.kind,
+            crate::logic::explain::CausalLinkKind::ScopeUntouched
+        ) && matches!(link.scope.kind, ScopeProvenanceKind::Discarded)
     }));
 }
 
@@ -133,7 +136,7 @@ fn broader_partition_validation_scopes_report_translated_upstream_region_evidenc
 
     let explanation = graph.observe().explain(dependent).unwrap();
     assert!(explanation.causal_links.iter().any(|link| {
-        link.kind == "Changed"
+        matches!(link.kind, crate::logic::explain::CausalLinkKind::Changed)
             && matches!(link.scope.kind, ScopeProvenanceKind::Translated)
             && link.scope.source_scope.as_ref().is_some_and(|scope| {
                 scope.partition.0 == "wing" && scope.detail.as_deref() == Some("rib-13")

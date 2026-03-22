@@ -20,6 +20,7 @@ use crate::validation::engine::{
     InvariantPlanScopeClass, InvariantProofBoundarySummary, InvariantScopeWideningCause,
 };
 use crate::validation::engine::InvariantExecutionRequest;
+use std::sync::Arc;
 use std::collections::BTreeSet;
 
 pub(crate) type PlannedInvariantExecution<'runtime> = PreparedInvariantExecution<'runtime>;
@@ -89,10 +90,13 @@ pub(crate) fn has_test_preparation_fault() -> bool {
 
 pub(crate) fn plan_invariant_execution<'runtime>(
     runtime: &'runtime RelationalRuntime,
-    request: &InvariantExecutionRequest<'runtime>,
+    request: &'runtime InvariantExecutionRequest<'runtime>,
 ) -> PlannedInvariantExecution<'runtime> {
     let registrations = eligible_registrations(runtime, &request);
-    let context = planning_context(runtime, &request);
+    let context = Arc::new(planning_context(runtime, &request));
+    let partition_scope = packet_partition_scope(request.merged_plan());
+    let observation = request.observation();
+    let relation_integrity_scopes = request.relation_integrity_scopes().cloned();
     let proof_kind = if matches!(
         runtime.config.execution.execution_model,
         RelationalExecutionModel::StagedParallelPreparation
@@ -129,7 +133,6 @@ pub(crate) fn plan_invariant_execution<'runtime>(
         .into_iter()
         .enumerate()
         .map(|(packet_index, registration)| {
-            let partition_scope = packet_partition_scope(request.merged_plan());
             let invariant_group_scope = registration.rule.groups();
             let record_domain = if request.merged_plan().is_some() {
                 PreparationRecordDomain::Mixed
@@ -153,13 +156,14 @@ pub(crate) fn plan_invariant_execution<'runtime>(
                     _ => PreparationWriteExclusionClass::ReadOnly,
                 },
             };
+            #[allow(unused_mut)]
             let mut packet = crate::authority::commit::preparation::InvariantWorkPacket {
                 packet_index,
                 registration,
                 reduction_key: ValidationReductionKey::new(
                     request.execution_point(),
-                    request.observation().kind(),
-                    partition_scope,
+                    observation.kind(),
+                    partition_scope.clone(),
                     invariant_group_scope,
                     packet_index,
                 ),
@@ -169,14 +173,15 @@ pub(crate) fn plan_invariant_execution<'runtime>(
                     context: context.clone(),
                 },
                 planning_context: context.clone(),
-                observation: request.observation().clone(),
+                observation,
                 version_id: request.version_id(),
                 merged_plan: request.merged_plan(),
+                relation_integrity_scopes: relation_integrity_scopes.clone(),
             };
             #[cfg(test)]
             match current_test_preparation_fault() {
                 Some(TestPreparationFault::PlanningProofInsufficient) => {
-                    packet.validity.context.invariant_registration_count += 1;
+                    Arc::make_mut(&mut packet.validity.context).invariant_registration_count += 1;
                 }
                 Some(TestPreparationFault::PublicationIsolationViolation) => {
                     packet.locality.write_exclusion =
@@ -301,14 +306,17 @@ fn eligible_registrations(
 
 fn packet_partition_scope(
     merged_plan: Option<&MergedCommitPlan>,
-) -> Vec<crate::identity::data::PartitionId> {
+) -> Arc<[crate::identity::data::PartitionId]> {
     let mut touched = BTreeSet::new();
     if let Some(plan) = merged_plan {
         for intent in &plan.merged_intents {
             intent.seed_touched_partitions(&mut touched);
         }
     }
-    touched.into_iter().collect()
+    touched
+        .into_iter()
+        .collect::<Vec<_>>()
+        .into()
 }
 
 #[cfg(test)]
@@ -462,7 +470,8 @@ mod tests {
         );
         let plan = txn.merged_plan().unwrap().clone();
 
-        let prepared = plan_invariant_execution(&runtime, &request_for_plan(&runtime, &plan));
+        let request = request_for_plan(&runtime, &plan);
+        let prepared = plan_invariant_execution(&runtime, &request);
         let packet_relation_kinds = prepared
             .packets
             .iter()
@@ -510,7 +519,8 @@ mod tests {
         );
         let plan = txn.merged_plan().unwrap().clone();
 
-        let prepared = plan_invariant_execution(&runtime, &request_for_plan(&runtime, &plan));
+        let request = request_for_plan(&runtime, &plan);
+        let prepared = plan_invariant_execution(&runtime, &request);
         let summary = planned_proof_boundary_summary(&prepared);
 
         assert_eq!(summary.scope_class(), InvariantPlanScopeClass::PartitionScope);

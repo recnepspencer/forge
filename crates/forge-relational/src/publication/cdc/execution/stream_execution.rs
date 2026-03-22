@@ -1,30 +1,37 @@
 use crate::logic::runtime::RelationalRuntime;
-use crate::publication::cdc::data::{SubscriberStreamBatch, SubscriberStreamFailure};
-use crate::publication::cdc::planning::checkpoint_from_patch_position;
+use crate::publication::cdc::data::{SubscriberCheckpoint, SubscriberStreamBatch, SubscriberStreamFailure};
+use crate::publication::cdc::planning::checkpoint_basis_from_patch_position;
+#[cfg(test)]
+use crate::schema::data::SchemaBoundaryFingerprint;
+#[cfg(test)]
+use std::collections::BTreeSet;
 
 pub(crate) fn execute_subscriber_stream(
     runtime: &RelationalRuntime,
     plan: crate::publication::cdc::data::SubscriberRecoveryPlan,
     diagnostics: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
 ) -> Result<SubscriberStreamBatch, SubscriberStreamFailure> {
-    let patches = match plan.decision.source {
-        crate::publication::cdc::data::SubscriberRecoverySource::InMemoryHistory => runtime
-            .history_access()
-            .patches_after(plan.start_after_position, plan.request.max_commits()),
-        crate::publication::cdc::data::SubscriberRecoverySource::DurableCanonicalRecovery => plan
-            .source_envelopes
-            .iter()
-            .filter(|envelope| {
-                plan.start_after_position
-                    .is_none_or(|position| envelope.patch.position > position)
-            })
-            .map(|envelope| envelope.patch.clone())
-            .take(plan.request.max_commits())
-            .collect(),
-    };
+    let continuation_assessment = &plan.continuation_assessment;
+    let patches = plan
+        .selected_envelopes
+        .iter()
+        .map(|envelope| envelope.patch.clone())
+        .collect::<Vec<_>>();
     let next_checkpoint = patches
         .last()
-        .and_then(|patch| checkpoint_from_patch_position(runtime, patch.position));
+        .and_then(|patch| checkpoint_basis_from_patch_position(runtime, patch.position));
+    let next_checkpoint = next_checkpoint.map(|basis| {
+        let descriptor_semantics_version =
+            continuation_assessment
+                .normalized_continuation_proof
+                .descriptor_semantics_version();
+        SubscriberCheckpoint::from_basis_with_assessment(
+            basis,
+            plan.request.subscriber_contract().contract_id.clone(),
+            continuation_assessment,
+            descriptor_semantics_version,
+        )
+    });
     let latest_commit_id = runtime
         .history_access()
         .latest_commit()
@@ -36,7 +43,28 @@ pub(crate) fn execute_subscriber_stream(
         latest_available_checkpoint: plan.latest_available_checkpoint,
         recovery_decision: plan.decision,
         latest_commit_id,
+        crossed_boundaries: continuation_assessment.crossed_boundaries.clone(),
+        continuation_outcome: continuation_assessment.continuation_outcome,
+        continuation_summary: continuation_assessment.continuation_summary.clone(),
+        contract_upgrade_applied: continuation_assessment.contract_upgrade_applied,
         patches,
         diagnostics,
     })
+}
+
+#[cfg(test)]
+pub(crate) fn collect_crossed_boundaries(
+    selected_envelopes: &[crate::replay::data::CanonicalCommitEnvelope],
+) -> Vec<SchemaBoundaryFingerprint> {
+    let mut boundaries = Vec::new();
+    let mut seen = BTreeSet::new();
+    for envelope in selected_envelopes {
+        if let Some(descriptor) = &envelope.schema_continuation_descriptor {
+            let fingerprint = descriptor.boundary_fingerprint;
+            if seen.insert(fingerprint) {
+                boundaries.push(fingerprint);
+            }
+        }
+    }
+    boundaries
 }

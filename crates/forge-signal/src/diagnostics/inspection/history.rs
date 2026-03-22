@@ -31,78 +31,104 @@ pub struct GraphInspector<'a> {
 
 impl<'a> GraphInspector<'a> {
     pub fn nodes_in_state(&self, state: NodeState) -> Vec<NodeId> {
-        self.live_nodes()
-            .into_iter()
-            .filter(|node| self.graph.get_state(*node).ok() == Some(state))
-            .collect()
+        let mut nodes = Vec::new();
+        for index in 0..self.graph.arena_capacity() {
+            let Some(node) = self.graph.live_node_id_at(index) else {
+                continue;
+            };
+            if self.graph.get_state(node).ok() == Some(state) {
+                nodes.push(node);
+            }
+        }
+        nodes
     }
 
     pub fn nodes_with_dirty_aspect(&self, aspect: Aspect) -> Vec<NodeId> {
-        self.live_nodes()
-            .into_iter()
-            .filter(|node| {
-                self.graph
-                    .get_entry(*node)
-                    .map(|entry| entry.get_dirty_aspects().contains(aspect.into()))
-                    .unwrap_or(false)
-            })
-            .collect()
+        let mut nodes = Vec::new();
+        for index in 0..self.graph.arena_capacity() {
+            let Some(node) = self.graph.live_node_id_at(index) else {
+                continue;
+            };
+            if self
+                .graph
+                .get_entry(node)
+                .map(|entry| entry.get_dirty_aspects().contains(aspect.into()))
+                .unwrap_or(false)
+            {
+                nodes.push(node);
+            }
+        }
+        nodes
     }
 
     pub fn nodes_with_partition_scopes(&self) -> Vec<NodeId> {
-        self.live_nodes()
-            .into_iter()
-            .filter(|node| {
-                self.graph
-                    .dependencies_of(*node)
-                    .map(|dependencies| dependencies.iter().any(|edge| edge.scope_ref().is_some()))
-                    .unwrap_or(false)
-            })
-            .collect()
+        let mut nodes = Vec::new();
+        for index in 0..self.graph.arena_capacity() {
+            let Some(node) = self.graph.live_node_id_at(index) else {
+                continue;
+            };
+            if self
+                .graph
+                .dependencies_of(node)
+                .map(|dependencies| dependencies.iter().any(|edge| edge.scope_ref().is_some()))
+                .unwrap_or(false)
+            {
+                nodes.push(node);
+            }
+        }
+        nodes
     }
 
     pub fn nodes_with_condition(&self, condition: &EvaluationCondition) -> Vec<NodeId> {
-        self.live_nodes()
-            .into_iter()
-            .filter(|node| {
-                self.graph
-                    .get_entry(*node)
-                    .map(|entry| entry.get_eval_config().condition == *condition)
-                    .unwrap_or(false)
-            })
-            .collect()
+        let mut nodes = Vec::new();
+        for index in 0..self.graph.arena_capacity() {
+            let Some(node) = self.graph.live_node_id_at(index) else {
+                continue;
+            };
+            if self
+                .graph
+                .get_entry(node)
+                .map(|entry| entry.get_eval_config().condition == *condition)
+                .unwrap_or(false)
+            {
+                nodes.push(node);
+            }
+        }
+        nodes
     }
 
     pub fn nodes_with_execution_record(&self) -> Vec<NodeId> {
-        self.live_nodes()
-            .into_iter()
-            .filter(|node| {
-                self.graph
-                    .get_entry(*node)
-                    .ok()
-                    .and_then(|entry| entry.get_runtime_artifact_state())
-                    .and_then(|state| state.execution_record_id)
-                    .is_some()
-            })
-            .collect()
+        let mut nodes = Vec::new();
+        for index in 0..self.graph.arena_capacity() {
+            let Some(node) = self.graph.live_node_id_at(index) else {
+                continue;
+            };
+            if self
+                .graph
+                .get_entry(node)
+                .ok()
+                .and_then(|entry| entry.get_runtime_artifact_state())
+                .and_then(|state| state.execution_record_id)
+                .is_some()
+            {
+                nodes.push(node);
+            }
+        }
+        nodes
     }
 
     pub fn nodes_with_causality(&self) -> Vec<NodeId> {
-        self.live_nodes()
-            .into_iter()
-            .filter(|node| {
-                self.graph
-                    .get_entry(*node)
-                    .map(|entry| entry.get_causality().is_some())
-                    .unwrap_or(false)
-            })
-            .collect()
-    }
-
-    fn live_nodes(&self) -> Vec<NodeId> {
         let mut nodes = Vec::new();
         for index in 0..self.graph.arena_capacity() {
-            if let Some(node) = self.graph.live_node_id_at(index) {
+            let Some(node) = self.graph.live_node_id_at(index) else {
+                continue;
+            };
+            if self
+                .graph
+                .get_entry(node)
+                .map(|entry| entry.get_causality().is_some())
+                .unwrap_or(false)
+            {
                 nodes.push(node);
             }
         }
@@ -185,29 +211,40 @@ pub struct ExecutionInspector<'a> {
 
 impl<'a> ExecutionInspector<'a> {
     pub fn nodes_with_trace_summaries(&self) -> Vec<NodeId> {
-        inspect_graph(self.graph)
-            .live_nodes()
-            .into_iter()
-            .filter(|node| {
-                self.graph
-                    .get_entry(*node)
-                    .map(|entry| entry.get_runtime_artifact_state().is_some())
-                    .unwrap_or(false)
-            })
-            .collect()
+        let mut nodes = Vec::new();
+        for index in 0..self.graph.arena_capacity() {
+            let Some(node) = self.graph.live_node_id_at(index) else {
+                continue;
+            };
+            if self
+                .graph
+                .get_entry(node)
+                .map(|entry| entry.get_runtime_artifact_state().is_some())
+                .unwrap_or(false)
+            {
+                nodes.push(node);
+            }
+        }
+        nodes
     }
 
     pub fn latest_execution_record_id(&self) -> Option<u64> {
-        self.nodes_with_trace_summaries()
-            .into_iter()
-            .filter_map(|node| {
-                self.graph
-                    .get_entry(node)
-                    .ok()
-                    .and_then(|entry| entry.get_runtime_artifact_state())
-                    .and_then(|state| state.execution_record_id)
-            })
-            .max()
+        let mut latest = None;
+        for index in 0..self.graph.arena_capacity() {
+            let Some(node) = self.graph.live_node_id_at(index) else {
+                continue;
+            };
+            let current = self
+                .graph
+                .get_entry(node)
+                .ok()
+                .and_then(|entry| entry.get_runtime_artifact_state())
+                .and_then(|state| state.execution_record_id);
+            if let Some(current) = current {
+                latest = Some(latest.map_or(current, |seen: u64| seen.max(current)));
+            }
+        }
+        latest
     }
 }
 

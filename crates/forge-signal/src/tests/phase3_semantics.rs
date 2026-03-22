@@ -364,11 +364,11 @@ fn defined_computation_evaluate_cross_identity_reuses_cached_result_via_public_a
     );
     let history = runtime
         .observe()
-        .execution_history_summary(DiagnosticsProfile::Development);
+        .execution_history_summary(DiagnosticsTier::Development);
     assert_eq!(
         history
             .reuse_origin_counts
-            .get("CrossIdentityPersistentReuse")
+            .get(&crate::data::reuse::ReuseOrigin::CrossIdentityPersistentReuse)
             .copied(),
         Some(1)
     );
@@ -436,7 +436,7 @@ fn cross_identity_contract_declared_basis_is_retained_in_runtime_truth() {
         runtime_state
             .reuse_boundary_context
             .as_ref()
-            .and_then(|ctx| ctx.persistent_correspondence.as_ref()),
+            .and_then(|ctx| ctx.persistent_correspondence()),
         Some(&crate::data::reuse::PersistentCorrespondenceEvidence::ContractDeclaredBasis(
             "contract:mesh-family:v2".to_string()
         ))
@@ -495,7 +495,7 @@ fn cross_identity_lineage_mapping_is_retained_in_runtime_truth() {
         runtime_state
             .reuse_boundary_context
             .as_ref()
-            .and_then(|ctx| ctx.persistent_correspondence.as_ref()),
+            .and_then(|ctx| ctx.persistent_correspondence()),
         Some(&crate::data::reuse::PersistentCorrespondenceEvidence::LineageBackedMapping(
             "lineage-map:mesh-42->mesh-77".to_string()
         ))
@@ -556,7 +556,7 @@ fn cross_identity_region_identity_basis_is_retained_in_runtime_truth() {
         runtime_state
             .reuse_boundary_context
             .as_ref()
-            .and_then(|ctx| ctx.persistent_correspondence.as_ref()),
+            .and_then(|ctx| ctx.persistent_correspondence()),
         Some(&crate::data::reuse::PersistentCorrespondenceEvidence::RegionIdentityBasis(
             "region:wing".to_string()
         ))
@@ -636,7 +636,7 @@ fn cross_identity_changed_contract_basis_is_rejected_and_preserves_previous_corr
         runtime_state
             .reuse_boundary_context
             .as_ref()
-            .and_then(|ctx| ctx.persistent_correspondence.as_ref()),
+            .and_then(|ctx| ctx.persistent_correspondence()),
         Some(&crate::data::reuse::PersistentCorrespondenceEvidence::ContractDeclaredBasis(
             "contract:mesh-family:v2".to_string()
         )),
@@ -716,7 +716,7 @@ fn cross_identity_evidence_family_change_is_rejected_and_not_treated_as_equivale
         runtime_state
             .reuse_boundary_context
             .as_ref()
-            .and_then(|ctx| ctx.persistent_correspondence.as_ref()),
+            .and_then(|ctx| ctx.persistent_correspondence()),
         Some(&crate::data::reuse::PersistentCorrespondenceEvidence::HostSuppliedKey(
             "mesh-001".to_string()
         )),
@@ -842,7 +842,7 @@ fn cross_identity_lineage_and_history_preserve_correspondence_family() {
 
     let history = runtime
         .observe()
-        .execution_history_summary(DiagnosticsProfile::Development);
+        .execution_history_summary(DiagnosticsTier::Development);
     let node_summary = history
         .nodes
         .iter()
@@ -938,7 +938,7 @@ fn branch_local_cross_identity_rejection_preserves_main_correspondence_and_linea
             .runtime_artifact_state(alias_node)
             .unwrap()
             .and_then(|state| state.reuse_boundary_context.as_ref())
-            .and_then(|ctx| ctx.persistent_correspondence.as_ref()),
+            .and_then(|ctx| ctx.persistent_correspondence()),
         Some(&crate::data::reuse::PersistentCorrespondenceEvidence::HostSuppliedKey(
             "mesh-branch-001".to_string()
         )),
@@ -993,7 +993,7 @@ fn branch_local_cross_identity_rejection_preserves_main_correspondence_and_linea
             .runtime_artifact_state(alias_node)
             .unwrap()
             .and_then(|state| state.reuse_boundary_context.as_ref())
-            .and_then(|ctx| ctx.persistent_correspondence.as_ref()),
+            .and_then(|ctx| ctx.persistent_correspondence()),
         Some(&crate::data::reuse::PersistentCorrespondenceEvidence::HostSuppliedKey(
             "mesh-branch-001".to_string()
         )),
@@ -1058,7 +1058,7 @@ fn branch_local_cross_identity_history_retains_committed_family_after_rejected_e
 
     let feature_history = runtime
         .observe()
-        .execution_history_summary(DiagnosticsProfile::Development);
+        .execution_history_summary(DiagnosticsTier::Development);
     let feature_summary = feature_history
         .nodes
         .iter()
@@ -1078,7 +1078,7 @@ fn branch_local_cross_identity_history_retains_committed_family_after_rejected_e
     runtime.switch_branch(main.clone()).unwrap();
     let main_history = runtime
         .observe()
-        .execution_history_summary(DiagnosticsProfile::Development);
+        .execution_history_summary(DiagnosticsTier::Development);
     let main_summary = main_history
         .nodes
         .iter()
@@ -1162,24 +1162,261 @@ fn defined_computation_evaluate_partial_splice_uses_public_api() {
         replay_event.reuse_origin,
         Some(crate::data::reuse::ReuseOrigin::PartialArtifactSplice)
     );
+    assert_eq!(replay_event.composition_region_count, Some(1));
     let history = runtime
         .observe()
-        .execution_history_summary(DiagnosticsProfile::Development);
+        .execution_history_summary(DiagnosticsTier::Development);
     assert_eq!(
         history
             .reuse_origin_counts
-            .get("PartialArtifactSplice")
+            .get(&crate::data::reuse::ReuseOrigin::PartialArtifactSplice)
             .copied(),
         Some(1)
     );
-    assert!(history.nodes.iter().any(|entry| {
-        entry.node == node
-            && entry.reuse_origin == Some(crate::data::reuse::ReuseOrigin::PartialArtifactSplice)
-    }));
+    let history_entry = history
+        .nodes
+        .iter()
+        .find(|entry| entry.node == node)
+        .expect("partial splice history entry");
+    assert_eq!(
+        history_entry.reuse_origin,
+        Some(crate::data::reuse::ReuseOrigin::PartialArtifactSplice)
+    );
+    assert_eq!(history_entry.composition_region_count, 1);
+    let lineage = runtime.observe().lineage_chain_for_node(node);
+    assert!(lineage.iter().any(|record| matches!(
+        &record.kind,
+        LineageRecordKind::ArtifactTransition {
+            transition:
+                ArtifactTransitionKind::PartialArtifactSplice {
+                    composition_region_count: 1,
+                    recomputed_region_count: 1
+                },
+            ..
+        }
+    )));
     assert_eq!(
         runtime.observe().metrics().evaluation.partial_artifact_splice_count,
         1
     );
+}
+
+#[test]
+fn branch_local_partial_splice_rejection_preserves_main_mixed_provenance() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let projection = runtime
+        .define_computation(ComputationSpec {
+            family: "projection".into(),
+            contract: NodeContract::reads([ASPECT_A])
+                .with_produces([ASPECT_B])
+                .with_partial_artifact_splicing()
+                .with_partition_scope(PartitionSubscription::whole_partition("wing")),
+            tier: (),
+            comparator: VersionComparatorPolicy::OutputIdentity,
+            evaluator: |view: &mut EvaluationContext<'_, ()>| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 0))
+                        .with_output_identity("branch-splice-artifact")
+                        .with_output_change(OutputChange::Refreshed)
+                        .with_changed_region(ChangedRegion::new("wing")),
+                ))
+            },
+        })
+        .unwrap();
+    let wing = projection.keyed("wing-branch");
+    let node = wing.node(&mut runtime);
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| wing.evaluate_memoized(tx, "shape-v1"))
+        .unwrap();
+    mark_dirty(runtime.graph_mut(), node, ASPECT_A).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            wing.evaluate_partial_splice(
+                tx,
+                "shape-v1",
+                [PartitionSubscription::whole_partition("wing")],
+            )
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let main_lineage_before = runtime.observe().lineage_chain_for_node(node);
+    let main_replay_before = runtime.observe().replay_for_branch(main.id);
+
+    let feature = runtime.create_branch("feature-partial-splice").unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    mark_dirty(runtime.graph_mut(), node, ASPECT_A).unwrap();
+
+    let err = runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            wing.evaluate_partial_splice(
+                tx,
+                "shape-v1",
+                [PartitionSubscription::whole_partition("tail")],
+            )
+        })
+        .expect_err("feature branch should reject changed composition regions");
+    assert!(err.to_string().contains("reuse certification failed"));
+    assert_eq!(
+        runtime.observe().metrics().evaluation.reuse_rejected_boundary_mismatch_count,
+        1
+    );
+    assert_eq!(
+        runtime
+            .graph()
+            .observe()
+            .runtime_artifact_state(node)
+            .unwrap()
+            .and_then(|state| state.reuse_boundary_context.as_ref())
+            .and_then(|ctx| ctx.composition_regions())
+            .map(|regions| regions.as_slice().len()),
+        Some(1),
+        "failed branch-local splice admission must preserve the last committed composition basis"
+    );
+
+    let feature_replay_after = runtime.observe().replay_for_branch(feature.id);
+    assert!(
+        feature_replay_after
+            .frames
+            .iter()
+            .all(|frame| frame.branch_id == feature.id),
+        "feature replay must remain branch-local after stale splice rejection"
+    );
+
+    runtime.switch_branch(main.clone()).unwrap();
+    assert_eq!(
+        runtime.observe().lineage_chain_for_node(node),
+        main_lineage_before,
+        "feature-branch splice rejection must not contaminate main lineage"
+    );
+    let main_replay_after = runtime.observe().replay_for_branch(main.id);
+    assert_eq!(
+        main_replay_after
+            .frames
+            .iter()
+            .filter(|frame| frame.kind == ReplayEventKind::TaskApplied)
+            .count(),
+        main_replay_before
+            .frames
+            .iter()
+            .filter(|frame| frame.kind == ReplayEventKind::TaskApplied)
+            .count(),
+        "feature-branch splice rejection must not append task-apply replay on main"
+    );
+    assert_eq!(
+        main_replay_after
+            .frames
+            .iter()
+            .filter(|frame| frame.kind == ReplayEventKind::TransactionCommitted)
+            .count(),
+        main_replay_before
+            .frames
+            .iter()
+            .filter(|frame| frame.kind == ReplayEventKind::TransactionCommitted)
+            .count(),
+        "feature-branch splice rejection must not append committed execution replay on main"
+    );
+}
+
+#[test]
+fn branch_local_partial_splice_history_retains_committed_region_accounting_after_rejection() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let projection = runtime
+        .define_computation(ComputationSpec {
+            family: "projection".into(),
+            contract: NodeContract::reads([ASPECT_A])
+                .with_produces([ASPECT_B])
+                .with_partial_artifact_splicing()
+                .with_partition_scope(PartitionSubscription::whole_partition("wing")),
+            tier: (),
+            comparator: VersionComparatorPolicy::OutputIdentity,
+            evaluator: |view: &mut EvaluationContext<'_, ()>| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 0))
+                        .with_output_identity("branch-splice-history-artifact")
+                        .with_output_change(OutputChange::Refreshed)
+                        .with_changed_region(ChangedRegion::new("wing")),
+                ))
+            },
+        })
+        .unwrap();
+    let wing = projection.keyed("wing-branch-history");
+    let node = wing.node(&mut runtime);
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| wing.evaluate_memoized(tx, "shape-v1"))
+        .unwrap();
+    mark_dirty(runtime.graph_mut(), node, ASPECT_A).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            wing.evaluate_partial_splice(
+                tx,
+                "shape-v1",
+                [PartitionSubscription::whole_partition("wing")],
+            )
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime.create_branch("feature-partial-splice-history").unwrap();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    mark_dirty(runtime.graph_mut(), node, ASPECT_A).unwrap();
+    let _ = runtime.transaction(&mut runtime_ctx, |tx| {
+        wing.evaluate_partial_splice(
+            tx,
+            "shape-v1",
+            [PartitionSubscription::whole_partition("tail")],
+        )
+    });
+
+    let feature_history = runtime
+        .observe()
+        .execution_history_summary(DiagnosticsTier::Development);
+    let feature_entry = feature_history
+        .nodes
+        .iter()
+        .find(|entry| entry.node == node)
+        .expect("feature history entry");
+    assert_eq!(
+        feature_entry.reuse_origin,
+        Some(crate::data::reuse::ReuseOrigin::PartialArtifactSplice),
+        "rejected splice evolution must not erase the last committed splice origin"
+    );
+    assert_eq!(
+        feature_entry.composition_region_count, 1,
+        "history should keep the committed composition region count after rejected branch-local splice evolution"
+    );
+
+    runtime.switch_branch(main.clone()).unwrap();
+    let main_history = runtime
+        .observe()
+        .execution_history_summary(DiagnosticsTier::Development);
+    let main_entry = main_history
+        .nodes
+        .iter()
+        .find(|entry| entry.node == node)
+        .expect("main history entry");
+    assert_eq!(main_entry.composition_region_count, 1);
+    let lineage = runtime.observe().lineage_chain_for_node(node);
+    assert!(lineage.iter().any(|record| matches!(
+        &record.kind,
+        LineageRecordKind::ArtifactTransition {
+            transition:
+                ArtifactTransitionKind::PartialArtifactSplice {
+                    composition_region_count: 1,
+                    recomputed_region_count: 1
+                },
+            ..
+        }
+    )));
 }
 
 #[test]
@@ -1925,3 +2162,4 @@ fn sparse_partition_fanout_keeps_most_subscribers_out_of_dirty_state() {
         1
     );
 }
+

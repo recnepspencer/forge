@@ -526,6 +526,9 @@ fn commit_inspection_is_canonical_and_not_story_shaped() {
         vec![crate::facade::transactions::RecordRef::Entity(entity)]
     );
     assert_eq!(inspection.lineage_event_ids, envelope.lineage_event_ids);
+    assert_eq!(inspection.lineage_events, envelope.lineage_events);
+    assert_eq!(inspection.index_generation_ids, envelope.index_generation_ids);
+    assert_eq!(inspection.index_generations, envelope.index_generations);
     assert_eq!(
         inspection.changed_aspects,
         crate::publication::patch::data::CanonicalAspectSet::new(
@@ -590,6 +593,9 @@ fn merge_commit_inspection_stays_envelope_projected() {
             .collect::<Vec<_>>()
     );
     assert_eq!(inspection.lineage_event_ids, envelope.lineage_event_ids);
+    assert_eq!(inspection.lineage_events, envelope.lineage_events);
+    assert_eq!(inspection.index_generation_ids, envelope.index_generation_ids);
+    assert_eq!(inspection.index_generations, envelope.index_generations);
     assert_eq!(
         inspection.changed_aspects,
         crate::publication::patch::data::CanonicalAspectSet::new(

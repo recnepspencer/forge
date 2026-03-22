@@ -193,19 +193,25 @@ Current contract tests:
 
 Required adversarial cases:
 
+- diagnostics tier changes richness, not runtime/reuse/lineage/replay truth
 - retained-vs-reconstructed semantics are explicit and policy-correct
+- typed availability distinguishes retained, reconstructed, omitted-by-tier, denied-by-budget, and unavailable states
 - diagnostics history prefers recency, not arena-index accident
 - repeated failure/rollback churn keeps latest retained state current and bounded
 - explanation/provenance surfaces remain deterministic under mixed upstream states
-- history/detail budget overrides are enforced
+- history/detail retention budget overrides are enforced
+- ordinary summary/history/replay access performs zero cold reconstruction
+- cold artifact access counters attribute retained reads, reconstructed reads, and denial reasons
 
 Current contract tests:
 
 - `tests::observability::explicit_retained_and_reconstructed_artifact_apis_match_policy`
+- `tests::observability::artifact_access_counters_attribute_lane_api_and_denial_reason`
 - `tests::adversarial_diagnostics::execution_history_prefers_most_recent_records_over_low_arena_indices`
 - `tests::adversarial_diagnostics::repeated_failure_and_rollback_loops_preserve_explanation_after_churn`
 - `tests::observability::explanation_is_deterministic_with_multiple_upstreams_and_mixed_states`
 - `tests::diagnostics::runtime_policy_history_budget_overrides_are_enforced`
+- `tests::observability::ordinary_summary_surfaces_do_not_trigger_artifact_reconstruction`
 
 ### Resource boundedness and stale-state pressure
 
@@ -262,6 +268,9 @@ Current contract tests:
 - `tests::phase5_state::lineage_distinguishes_replacement_refresh_and_memoized_reuse`
 - `tests::phase5_state::invalidation_emits_lineage_without_replacement_and_branch_restore_is_local`
 - `tests::phase5_state::continuity_token_preserves_lineage_without_requiring_output_identity`
+- `tests::observability::tier_matrix_public_observer_surfaces_preserve_truth_while_availability_changes`
+- `tests::observability::branch_and_snapshot_churn_respect_retention_budget_under_all_tiers`
+- `tests::observability::long_session_branch_churn_with_mixed_reads_keeps_bounds_and_cold_work_honest`
 - `bash scripts/ci/check_signal_phase5_contracts.sh`
 
 ### Public API and contract surfaces
@@ -280,6 +289,8 @@ Current contract tests:
 - `tests::phase1_api::easy_mode_supports_input_computed_get_set_and_batch`
 - `tests::harness_adapter::signal_harness_adapter_captures_v2_replay_summary`
 - `tests::harness_platform::signal_harness_platform_runs_serial_parallel_parity`
+- `tests::observability::ordinary_observer_access_never_increments_cold_or_denial_counters_across_tiers`
+- `tests::observability::ordinary_summary_and_history_rendering_respect_retained_detail_limits`
 
 ## Enforcement
 

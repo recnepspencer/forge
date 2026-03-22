@@ -173,7 +173,7 @@ fn graph_strategy_reflects_gc_pressure_and_observation_profile() {
     let mut graph = SignalGraph::with_gc_threshold(5);
     let retired = graph.node().build();
     graph.unregister_node(retired).unwrap();
-    graph.set_diagnostics_profile(DiagnosticsProfile::Development);
+    graph.set_diagnostics_profile(DiagnosticsTier::Development);
 
     let strategy = graph.observe().evaluation_strategy();
 
@@ -257,3 +257,4 @@ fn double_unregister_is_rejected_without_free_list_corruption() {
     assert_eq!(graph.arena_capacity(), capacity_before);
     assert_ne!(reused.generation(), node.generation());
 }
+

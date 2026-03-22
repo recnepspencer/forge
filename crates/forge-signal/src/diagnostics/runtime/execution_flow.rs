@@ -4,11 +4,12 @@ use crate::diagnostics::flow::{
     ApplySummary, ChangeInputSummary, FlowCauseSample, FlowSummary, InvalidationSummary,
     PlanningSummary, PrecomputeSummary,
 };
-use crate::diagnostics::policy::DiagnosticsPolicy;
-use crate::diagnostics::replay::{ReplayEvent, ReplayEventKind};
+use crate::diagnostics::replay::{ReplayEvent, ReplayEventDetail, ReplayEventKind};
 use crate::diagnostics::summary::{
-    EvaluationPlanSummary, ExecutionHistorySummary, ExplanationSummary,
+    EvaluationPlanSummary, ExecutionHistorySummary, ExplanationSummary, GraphSummary,
 };
+use crate::diagnostics::policy::OrdinaryAccessLane;
+use crate::logic::explain::CausalLinkKind;
 use crate::logic::planner::{ExecutionReport, TaskExecutionOutcome};
 
 pub(crate) fn record_semantic_execution(
@@ -17,7 +18,9 @@ pub(crate) fn record_semantic_execution(
     first_target: Option<NodeId>,
     report: &ExecutionReport,
 ) {
-    let profile = DiagnosticsPolicy::from_profile(graph.diagnostics_profile()).profile;
+    let runtime_policy = graph.runtime_policy();
+    let retention_budget = runtime_policy.retention_budget;
+    let profile = runtime_policy.tier;
     let (change, invalidation) = graph
         .diagnostics_state()
         .pending_change_summary()
@@ -27,7 +30,7 @@ pub(crate) fn record_semantic_execution(
                 InvalidationSummary::empty_frontier(),
             )
         });
-    let explanation = if DiagnosticsPolicy::from_profile(profile).retain_flow_explanation {
+    let explanation = if retention_budget.retain_flow_explanation {
         first_target
             .as_ref()
             .and_then(|target| graph.observe().explain(*target).ok())
@@ -42,10 +45,20 @@ pub(crate) fn record_semantic_execution(
         PlanningSummary::from_summary(plan_summary),
         PrecomputeSummary::from_report(report, profile),
         ApplySummary::from_report(report, profile),
-        sample_flow_causes(graph, report, profile.detail_limit()),
+        if retention_budget.retain_stage_details {
+            sample_flow_causes(graph, report, retention_budget.detail_limit.get())
+        } else {
+            Vec::new()
+        },
         Vec::new(),
         None,
         explanation,
+    );
+    let graph_summary = GraphSummary::from_graph(
+        graph,
+        profile,
+        retention_budget.detail_limit,
+        OrdinaryAccessLane,
     );
     let history = if execution_history_unchanged(report) {
         graph
@@ -53,11 +66,27 @@ pub(crate) fn record_semantic_execution(
             .recent_history()
             .back()
             .cloned()
-            .unwrap_or_else(|| ExecutionHistorySummary::from_graph(graph, profile))
+            .unwrap_or_else(|| {
+                ExecutionHistorySummary::from_graph(
+                    graph,
+                    profile,
+                    retention_budget.detail_limit,
+                    retention_budget.retain_history_details,
+                    OrdinaryAccessLane,
+                )
+            })
     } else {
-        ExecutionHistorySummary::from_graph(graph, profile)
+        ExecutionHistorySummary::from_graph(
+            graph,
+            profile,
+            retention_budget.detail_limit,
+            retention_budget.retain_history_details,
+            OrdinaryAccessLane,
+        )
     };
-    graph.diagnostics_state_mut().complete_flow(flow, history);
+    graph
+        .diagnostics_state_mut()
+        .complete_flow(flow, history, graph_summary);
     for task in report
         .stages
         .iter()
@@ -75,8 +104,16 @@ pub(crate) fn record_semantic_execution(
             .ok()
             .and_then(|entry| entry.get_runtime_artifact_state())
             .and_then(|state| state.reuse_boundary_context.as_ref())
-            .and_then(|context| context.persistent_correspondence.as_ref())
+            .and_then(|context| context.persistent_correspondence())
             .map(|evidence| evidence.kind());
+        let composition_region_count = graph
+            .get_entry(task.node)
+            .ok()
+            .and_then(|entry| entry.get_runtime_artifact_state())
+            .and_then(|state| state.reuse_boundary_context.as_ref())
+            .and_then(|context| context.composition_regions())
+            .map(|regions| regions.as_slice().len() as u32)
+            .filter(|count| *count > 0);
         graph
             .diagnostics_state_mut()
             .record_replay_event(ReplayEvent::new(
@@ -90,7 +127,8 @@ pub(crate) fn record_semantic_execution(
                 lineage_artifact_id,
                 Some(task.reuse_origin),
                 persistent_correspondence_kind,
-                Some(task_outcome_label(task.outcome).to_owned()),
+                composition_region_count,
+                Some(ReplayEventDetail::TaskOutcome(task.outcome)),
             ));
     }
 }
@@ -139,8 +177,10 @@ fn sample_flow_causes(
             matches!(
                 link.disposition,
                 crate::logic::explain::CausalDisposition::Conservative
-            ) || link.kind == "SkippedByComparator"
-                || link.kind.starts_with("ConditionDeferred::")
+            ) || matches!(
+                link.kind,
+                CausalLinkKind::SkippedByComparator | CausalLinkKind::ConditionDeferred { .. }
+            )
         }) && !suspect_classes.contains(&"validation".to_string())
         {
             suspect_classes.push("validation".to_string());
@@ -151,7 +191,7 @@ fn sample_flow_causes(
                 .causal_links
                 .iter()
                 .take(limit)
-                .map(|link| link.kind.clone())
+                .map(|link| link.kind.to_string())
                 .collect(),
             scope_kinds: explanation
                 .causal_links
@@ -184,22 +224,6 @@ fn sample_flow_causes(
     samples
 }
 
-fn task_outcome_label(outcome: TaskExecutionOutcome) -> &'static str {
-    match outcome {
-        TaskExecutionOutcome::Recomputed => "Recomputed",
-        TaskExecutionOutcome::ValidatedClean => "ValidatedClean",
-        TaskExecutionOutcome::ConditionDeferred => "ConditionDeferred",
-        TaskExecutionOutcome::ConditionRevertedClean => "ConditionRevertedClean",
-        TaskExecutionOutcome::MemoizedReuse => "MemoizedReuse",
-        TaskExecutionOutcome::SnapshotRestoreReuse => "SnapshotRestoreReuse",
-        TaskExecutionOutcome::ReconciliationAdoption => "ReconciliationAdoption",
-        TaskExecutionOutcome::CrossIdentityPersistentReuse => "CrossIdentityPersistentReuse",
-        TaskExecutionOutcome::PartialArtifactSplice => "PartialArtifactSplice",
-        TaskExecutionOutcome::PropagationSuppressed => "PropagationSuppressed",
-        TaskExecutionOutcome::Pruned => "Pruned",
-    }
-}
-
 fn execution_history_unchanged(report: &ExecutionReport) -> bool {
     report
         .stages
@@ -215,3 +239,6 @@ fn execution_history_unchanged(report: &ExecutionReport) -> bool {
             )
         })
 }
+
+
+

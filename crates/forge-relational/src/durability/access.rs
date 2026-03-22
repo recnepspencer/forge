@@ -2,11 +2,17 @@ use crate::capabilities::{
     DurabilityRead, RuntimeConfigSource, RuntimeIdentitySource, SchemaVersionSource,
 };
 use crate::durability::data::{
-    DurabilityMode, RecoveryCompatibilityCheck, RecoveryCursor, RecoveryIntegrityReport,
-    RecoveryPlan,
+    DurabilityMode, RecoveryAuthorityParity, RecoveryCompatibilityCheck, RecoveryCursor,
+    RecoveryIntegrityReport, RecoveryCompatibilityMismatch, RecoveryPlan,
+    RecoveryVerificationOutcome,
+    RecoveryVerificationPlan,
 };
 use crate::history::data::BranchHead;
 use crate::logic::runtime::RelationalRuntime;
+use crate::replay::data::ReplayVerificationLayer;
+use crate::schema::logic::{
+    validate_schema_continuity_bundle, SchemaContinuityBundleIssue, ValidatedSchemaContinuityBundle,
+};
 
 use crate::durability::log::local_store::{
     load_store_from_disk, read_json, DurableCheckpointFile, DurableSegmentFile,
@@ -55,10 +61,41 @@ impl<'runtime> DurabilityAccess<'runtime> {
                     corrupt_segment_id: None,
                 },
                 compatibility: RecoveryCompatibilityCheck {
-                    schema_match: true,
-                    profile_match: true,
-                    runtime_name_match: true,
+                    schema_parity: RecoveryAuthorityParity::verified_at(
+                        ReplayVerificationLayer::DigestParity,
+                    ),
+                    profile_parity: RecoveryAuthorityParity::verified_at(
+                        ReplayVerificationLayer::DigestParity,
+                    ),
+                    runtime_name_parity: RecoveryAuthorityParity::verified_at(
+                        ReplayVerificationLayer::DigestParity,
+                    ),
+                    descriptor_version_parity: RecoveryAuthorityParity::verified_at(
+                        ReplayVerificationLayer::DigestParity,
+                    ),
+                    schema_transition_parity: RecoveryAuthorityParity::verified_at(
+                        ReplayVerificationLayer::DigestParity,
+                    ),
+                    continuation_descriptor_parity: RecoveryAuthorityParity::verified_at(
+                        ReplayVerificationLayer::DigestParity,
+                    ),
+                    reconciliation_descriptor_parity: RecoveryAuthorityParity::verified_at(
+                        ReplayVerificationLayer::DigestParity,
+                    ),
+                    schema_lineage_parity: RecoveryAuthorityParity::verified_at(
+                        ReplayVerificationLayer::DigestParity,
+                    ),
+                    verification_outcome: RecoveryVerificationOutcome::VerifiedAtLayer(
+                        ReplayVerificationLayer::DigestParity,
+                    ),
+                    first_mismatch: None,
                 },
+                verification_mode: crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+                verification_plan: RecoveryVerificationPlan::from_mode(
+                    crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+                ),
+                descriptor_semantics_version:
+                    crate::schema::data::DescriptorSemanticsVersion::default(),
             };
         };
         let mut skipped_corrupt_checkpoints = Vec::new();
@@ -100,6 +137,57 @@ impl<'runtime> DurabilityAccess<'runtime> {
                 }
             }
         }
+        let descriptor_semantics_version = descriptor_semantics_version_for_envelopes(
+            selected_checkpoint
+                .as_ref()
+                .map(|checkpoint| checkpoint.envelopes.as_slice())
+                .unwrap_or(&[]),
+            &tail_log,
+        );
+        let mut continuity_compatibility = continuity_compatibility_for_envelopes(
+            self.runtime,
+            selected_checkpoint
+                .as_ref()
+                .map(|checkpoint| checkpoint.envelopes.as_slice())
+                .unwrap_or(&[]),
+            &tail_log,
+        );
+        let schema_match = selected_checkpoint_manifest
+            .as_ref()
+            .map(|manifest| manifest.schema_version == self.runtime.primary_schema_version_id())
+            .unwrap_or(true);
+        let profile_match = selected_checkpoint_manifest
+            .as_ref()
+            .map(|manifest| manifest.profile == self.runtime.runtime_profile())
+            .unwrap_or(true);
+        let runtime_name_match = selected_checkpoint_manifest
+            .as_ref()
+            .map(|manifest| manifest.runtime_name == self.runtime.runtime_name())
+            .unwrap_or(true);
+        continuity_compatibility.schema_parity = if schema_match {
+            RecoveryAuthorityParity::verified_at(ReplayVerificationLayer::DigestParity)
+        } else {
+            RecoveryAuthorityParity::drift()
+        };
+        continuity_compatibility.profile_parity = if profile_match {
+            RecoveryAuthorityParity::verified_at(ReplayVerificationLayer::DigestParity)
+        } else {
+            RecoveryAuthorityParity::drift()
+        };
+        continuity_compatibility.runtime_name_parity = if runtime_name_match {
+            RecoveryAuthorityParity::verified_at(ReplayVerificationLayer::DigestParity)
+        } else {
+            RecoveryAuthorityParity::drift()
+        };
+        if continuity_compatibility.first_mismatch.is_none() {
+            continuity_compatibility.first_mismatch = recovery_basis_mismatch(
+                selected_checkpoint_manifest.as_ref(),
+                &self.runtime.runtime_config().schema.registry,
+                self.runtime.runtime_profile(),
+                self.runtime.runtime_name(),
+                self.runtime.primary_schema_version_id(),
+            );
+        }
         RecoveryPlan {
             config: self.runtime.runtime_config().clone(),
             store: Some(store.clone()),
@@ -119,22 +207,12 @@ impl<'runtime> DurabilityAccess<'runtime> {
                 verified_segment_ids,
                 corrupt_segment_id,
             },
-            compatibility: RecoveryCompatibilityCheck {
-                schema_match: selected_checkpoint_manifest
-                    .as_ref()
-                    .map(|manifest| {
-                        manifest.schema_version == self.runtime.primary_schema_version_id()
-                    })
-                    .unwrap_or(true),
-                profile_match: selected_checkpoint_manifest
-                    .as_ref()
-                    .map(|manifest| manifest.profile == self.runtime.runtime_profile())
-                    .unwrap_or(true),
-                runtime_name_match: selected_checkpoint_manifest
-                    .as_ref()
-                    .map(|manifest| manifest.runtime_name == self.runtime.runtime_name())
-                    .unwrap_or(true),
-            },
+            compatibility: continuity_compatibility,
+            verification_mode: crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+            verification_plan: RecoveryVerificationPlan::from_mode(
+                crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+            ),
+            descriptor_semantics_version,
             tail_log,
         }
     }
@@ -146,7 +224,7 @@ impl RelationalRuntime {
     }
 }
 
-fn in_memory_recovery_plan(runtime: &(impl DurabilityRead + RuntimeConfigSource)) -> RecoveryPlan {
+fn in_memory_recovery_plan(runtime: &RelationalRuntime) -> RecoveryPlan {
     let checkpoint = runtime.durable_checkpoints().last().cloned();
     let tail_log = match checkpoint
         .as_ref()
@@ -160,6 +238,21 @@ fn in_memory_recovery_plan(runtime: &(impl DurabilityRead + RuntimeConfigSource)
             .collect(),
         None => runtime.durable_log().to_vec(),
     };
+    let descriptor_semantics_version = descriptor_semantics_version_for_envelopes(
+        checkpoint
+            .as_ref()
+            .map(|checkpoint| checkpoint.envelopes.as_slice())
+            .unwrap_or(&[]),
+        &tail_log,
+    );
+    let continuity_compatibility = continuity_compatibility_for_envelopes(
+        runtime,
+        checkpoint
+            .as_ref()
+            .map(|checkpoint| checkpoint.envelopes.as_slice())
+            .unwrap_or(&[]),
+        &tail_log,
+    );
     RecoveryPlan {
         config: runtime.runtime_config().clone(),
         store: runtime.durable_store().cloned(),
@@ -175,11 +268,236 @@ fn in_memory_recovery_plan(runtime: &(impl DurabilityRead + RuntimeConfigSource)
             verified_segment_ids: Vec::new(),
             corrupt_segment_id: None,
         },
-        compatibility: RecoveryCompatibilityCheck {
-            schema_match: true,
-            profile_match: true,
-            runtime_name_match: true,
-        },
+        compatibility: continuity_compatibility,
+        verification_mode: crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+        verification_plan: RecoveryVerificationPlan::from_mode(
+            crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+        ),
+        descriptor_semantics_version,
         tail_log,
     }
+}
+
+fn descriptor_semantics_version_for_envelopes(
+    checkpoint_envelopes: &[crate::replay::data::CanonicalCommitEnvelope],
+    tail_log: &[crate::replay::data::CanonicalCommitEnvelope],
+) -> crate::schema::data::DescriptorSemanticsVersion {
+    tail_log
+        .last()
+        .or_else(|| checkpoint_envelopes.last())
+        .map(|envelope| envelope.descriptor_semantics_version)
+        .unwrap_or_else(crate::schema::data::DescriptorSemanticsVersion::default)
+}
+
+fn continuity_compatibility_for_envelopes(
+    runtime: &RelationalRuntime,
+    checkpoint_envelopes: &[crate::replay::data::CanonicalCommitEnvelope],
+    tail_log: &[crate::replay::data::CanonicalCommitEnvelope],
+) -> RecoveryCompatibilityCheck {
+    let expected_descriptor_semantics_version =
+        crate::schema::data::DescriptorSemanticsVersion::default();
+    let mut compatibility = RecoveryCompatibilityCheck {
+        schema_parity: RecoveryAuthorityParity::verified_at(ReplayVerificationLayer::DigestParity),
+        profile_parity: RecoveryAuthorityParity::verified_at(
+            ReplayVerificationLayer::DigestParity,
+        ),
+        runtime_name_parity: RecoveryAuthorityParity::verified_at(
+            ReplayVerificationLayer::DigestParity,
+        ),
+        descriptor_version_parity: RecoveryAuthorityParity::verified_at(
+            ReplayVerificationLayer::DigestParity,
+        ),
+        schema_transition_parity: RecoveryAuthorityParity::verified_at(
+            ReplayVerificationLayer::DigestParity,
+        ),
+        continuation_descriptor_parity: RecoveryAuthorityParity::verified_at(
+            ReplayVerificationLayer::DigestParity,
+        ),
+        reconciliation_descriptor_parity: RecoveryAuthorityParity::verified_at(
+            ReplayVerificationLayer::DigestParity,
+        ),
+        schema_lineage_parity: RecoveryAuthorityParity::verified_at(
+            ReplayVerificationLayer::DigestParity,
+        ),
+        verification_outcome: RecoveryVerificationOutcome::VerifiedAtLayer(
+            ReplayVerificationLayer::DigestParity,
+        ),
+        first_mismatch: None,
+    };
+
+    for envelope in checkpoint_envelopes.iter().chain(tail_log.iter()) {
+        if envelope.descriptor_semantics_version != expected_descriptor_semantics_version {
+            runtime
+                .performance_access()
+                .count_descriptor_version_mismatch();
+            runtime
+                .performance_access()
+                .count_replay_verification_layer(ReplayVerificationLayer::DigestParity);
+            compatibility.descriptor_version_parity = RecoveryAuthorityParity::drift();
+            compatibility.first_mismatch.get_or_insert(
+                RecoveryCompatibilityMismatch::DescriptorSemanticsVersion {
+                    expected: expected_descriptor_semantics_version,
+                    found: envelope.descriptor_semantics_version,
+                },
+            );
+            compatibility.verification_outcome = RecoveryVerificationOutcome::Rejected {
+                layer: ReplayVerificationLayer::DigestParity,
+                detail: "descriptor semantics version mismatch".to_string(),
+            };
+        }
+
+        match validated_recovery_continuity_envelope(envelope) {
+            Ok(validated_bundle) => {
+                runtime
+                    .performance_access()
+                    .count_replay_verification_layer(ReplayVerificationLayer::DigestParity);
+                let _ = (
+                    validated_bundle.envelope(),
+                    validated_bundle.transition(),
+                    validated_bundle.continuation(),
+                    validated_bundle.reconciliation(),
+                );
+            }
+            Err(issue) => apply_continuity_issue(runtime, &mut compatibility, envelope, issue),
+        }
+    }
+
+    compatibility
+}
+
+fn apply_continuity_issue(
+    runtime: &RelationalRuntime,
+    compatibility: &mut RecoveryCompatibilityCheck,
+    envelope: &crate::replay::data::CanonicalCommitEnvelope,
+    issue: SchemaContinuityBundleIssue,
+) {
+    let detail = issue.detail();
+    runtime
+        .performance_access()
+        .count_replay_verification_layer(ReplayVerificationLayer::DigestParity);
+    compatibility.verification_outcome = RecoveryVerificationOutcome::Rejected {
+        layer: ReplayVerificationLayer::DigestParity,
+        detail: detail.clone(),
+    };
+    match issue {
+        SchemaContinuityBundleIssue::IncompleteBundle => {
+            compatibility.schema_transition_parity = RecoveryAuthorityParity::drift();
+            compatibility.first_mismatch.get_or_insert(
+                RecoveryCompatibilityMismatch::SchemaTransitionArtifact {
+                    commit_id: envelope.commit.commit_id.0,
+                    detail,
+                },
+            );
+        }
+        SchemaContinuityBundleIssue::ContinuationDescriptorDrift {
+            boundary_fingerprint,
+        } => {
+            compatibility.continuation_descriptor_parity = RecoveryAuthorityParity::drift();
+            compatibility.first_mismatch.get_or_insert(
+                RecoveryCompatibilityMismatch::ContinuationDescriptor {
+                    commit_id: envelope.commit.commit_id.0,
+                    boundary_fingerprint,
+                    detail,
+                },
+            );
+        }
+        SchemaContinuityBundleIssue::ReconciliationDescriptorDrift => {
+            compatibility.reconciliation_descriptor_parity = RecoveryAuthorityParity::drift();
+            compatibility.first_mismatch.get_or_insert(
+                RecoveryCompatibilityMismatch::ReconciliationDescriptor {
+                    commit_id: envelope.commit.commit_id.0,
+                    detail,
+                },
+            );
+        }
+        SchemaContinuityBundleIssue::ContinuationBoundaryFingerprintMismatch {
+            boundary_fingerprint,
+        } => {
+            compatibility.continuation_descriptor_parity = RecoveryAuthorityParity::drift();
+            compatibility.first_mismatch.get_or_insert(
+                RecoveryCompatibilityMismatch::ContinuationDescriptor {
+                    commit_id: envelope.commit.commit_id.0,
+                    boundary_fingerprint: Some(boundary_fingerprint),
+                    detail,
+                },
+            );
+        }
+        SchemaContinuityBundleIssue::DescriptorSemanticsVersionMismatch { expected, found } => {
+            runtime.performance_access().count_descriptor_version_mismatch();
+            compatibility.descriptor_version_parity = RecoveryAuthorityParity::drift();
+            compatibility.first_mismatch.get_or_insert(
+                RecoveryCompatibilityMismatch::DescriptorSemanticsVersion { expected, found },
+            );
+        }
+        SchemaContinuityBundleIssue::TargetSchemaVersionMismatch => {
+            compatibility.schema_transition_parity = RecoveryAuthorityParity::drift();
+            compatibility.first_mismatch.get_or_insert(
+                RecoveryCompatibilityMismatch::SchemaTransitionArtifact {
+                    commit_id: envelope.commit.commit_id.0,
+                    detail,
+                },
+            );
+        }
+        SchemaContinuityBundleIssue::LineageSchemaVersionMismatch => {
+            compatibility.schema_lineage_parity = RecoveryAuthorityParity::drift();
+            compatibility.first_mismatch.get_or_insert(
+                RecoveryCompatibilityMismatch::SchemaLineage {
+                    commit_id: envelope.commit.commit_id.0,
+                    detail,
+                },
+            );
+        }
+        SchemaContinuityBundleIssue::HistoricalReinterpretationViolation => {
+            compatibility.continuation_descriptor_parity = RecoveryAuthorityParity::drift();
+            compatibility.first_mismatch.get_or_insert(
+                RecoveryCompatibilityMismatch::ContinuationDescriptor {
+                    commit_id: envelope.commit.commit_id.0,
+                    boundary_fingerprint: envelope
+                        .schema_continuation_descriptor
+                        .as_ref()
+                        .map(|descriptor| descriptor.boundary_fingerprint),
+                    detail,
+                },
+            );
+        }
+    }
+}
+
+fn validated_recovery_continuity_envelope(
+    envelope: &crate::replay::data::CanonicalCommitEnvelope,
+) -> Result<ValidatedSchemaContinuityBundle<'_>, SchemaContinuityBundleIssue> {
+    validate_schema_continuity_bundle(envelope)
+}
+
+fn recovery_basis_mismatch(
+    checkpoint_manifest: Option<&crate::durability::data::DurableCheckpointManifest>,
+    runtime_registry: &crate::schema::data::RelationalSchemaRegistry,
+    runtime_profile: crate::config::data::RelationalRuntimeProfile,
+    runtime_name: &str,
+    primary_schema_version_id: crate::schema::data::SchemaVersionId,
+) -> Option<RecoveryCompatibilityMismatch> {
+    let manifest = checkpoint_manifest?;
+    if manifest.schema_version != primary_schema_version_id {
+        return Some(RecoveryCompatibilityMismatch::SchemaRegistryShape {
+            expected_primary_schema_version: manifest.schema_version,
+            found_primary_schema_version: primary_schema_version_id,
+            expected_entity_kind_count: runtime_registry.entity_kinds.len(),
+            found_entity_kind_count: runtime_registry.entity_kinds.len(),
+            expected_relation_kind_count: runtime_registry.relation_kinds.len(),
+            found_relation_kind_count: runtime_registry.relation_kinds.len(),
+        });
+    }
+    if manifest.profile != runtime_profile {
+        return Some(RecoveryCompatibilityMismatch::RuntimeProfile {
+            expected: format!("{:?}", manifest.profile),
+            found: format!("{runtime_profile:?}"),
+        });
+    }
+    if manifest.runtime_name != runtime_name {
+        return Some(RecoveryCompatibilityMismatch::RuntimeName {
+            expected: manifest.runtime_name.clone(),
+            found: runtime_name.to_string(),
+        });
+    }
+    None
 }

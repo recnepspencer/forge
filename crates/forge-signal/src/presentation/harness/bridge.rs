@@ -52,34 +52,34 @@ impl SignalHarnessBridge {
         Ok(false)
     }
 
-    pub(super) fn diagnostics_profile(level: DiagnosticsLevel) -> DiagnosticsProfile {
+    pub(super) fn diagnostics_profile(level: DiagnosticsLevel) -> DiagnosticsTier {
         match level {
             DiagnosticsLevel::Off | DiagnosticsLevel::Operational => {
-                DiagnosticsProfile::Operational
+                DiagnosticsTier::Operational
             }
-            DiagnosticsLevel::Development => DiagnosticsProfile::Development,
-            DiagnosticsLevel::Forensic => DiagnosticsProfile::Forensic,
+            DiagnosticsLevel::Development => DiagnosticsTier::Development,
+            DiagnosticsLevel::Forensic => DiagnosticsTier::Forensic,
         }
     }
 
     pub(super) fn runtime_policy(level: DiagnosticsLevel) -> SignalRuntimePolicy {
-        SignalRuntimePolicy::from_profile(Self::diagnostics_profile(level))
+        SignalRuntimePolicy::for_tier(Self::diagnostics_profile(level))
     }
 
     pub(super) fn runtime_policy_summary(policy: SignalRuntimePolicy) -> Value {
         json!({
-            "profile": format!("{:?}", policy.profile),
-            "history_limit": policy.history_limit,
-            "detail_limit": policy.detail_limit,
-            "retain_history_details": policy.retain_history_details,
-            "retain_flow_explanation": policy.retain_flow_explanation,
-            "retain_latest_failure_context": policy.retain_latest_failure_context,
-            "retain_stage_details": policy.retain_stage_details,
-            "capture_forensic_failure_context": policy.capture_forensic_failure_context,
-            "explanation_retention": format!("{:?}", policy.explanation_retention),
-            "provenance_retention": format!("{:?}", policy.provenance_retention),
-            "replay_detail": format!("{:?}", policy.replay_detail),
-            "semantic_retention": format!("{:?}", policy.semantic_retention),
+            "profile": format!("{:?}", policy.tier),
+            "history_limit": policy.retention_budget.history_limit,
+            "detail_limit": policy.retention_budget.detail_limit,
+            "retain_history_details": policy.retention_budget.retain_history_details,
+            "retain_flow_explanation": policy.retention_budget.retain_flow_explanation,
+            "retain_latest_failure_context": policy.retention_budget.retain_latest_failure_context,
+            "retain_stage_details": policy.retention_budget.retain_stage_details,
+            "capture_forensic_failure_context": policy.retention_budget.capture_forensic_failure_context,
+            "explanation_retention": format!("{:?}", policy.retention_budget.explanation_retention),
+            "provenance_retention": format!("{:?}", policy.retention_budget.provenance_retention),
+            "replay_detail": format!("{:?}", policy.retention_budget.replay_detail),
+            "semantic_retention": format!("{:?}", policy.retention_budget.semantic_detail),
             "parallel_admission": {
                 "operational_min_parallel_tasks": policy.parallel_admission.operational_min_parallel_tasks,
                 "development_min_parallel_tasks": policy.parallel_admission.development_min_parallel_tasks,
@@ -90,12 +90,15 @@ impl SignalHarnessBridge {
     }
 
     pub(super) fn artifact_materialization_label(
-        mode: ArtifactMaterializationMode,
+        mode: DiagnosticsAvailability,
     ) -> &'static str {
         match mode {
-            ArtifactMaterializationMode::Retained => "retained",
-            ArtifactMaterializationMode::Reconstructed => "reconstructed",
-            ArtifactMaterializationMode::Unavailable => "unavailable",
+            DiagnosticsAvailability::RetainedAvailable => "retained",
+            DiagnosticsAvailability::ReconstructedAvailable => "reconstructed",
+            DiagnosticsAvailability::OmittedByTier => "omitted_by_tier",
+            DiagnosticsAvailability::DeniedByBudget => "denied_by_budget",
+            DiagnosticsAvailability::UnavailableNotRetained => "unavailable_not_retained",
+            DiagnosticsAvailability::UnavailableNotReconstructable => "unavailable_not_reconstructable",
         }
     }
 
@@ -462,3 +465,6 @@ impl HarnessAdapter for SignalHarnessBridge {
         })
     }
 }
+
+
+

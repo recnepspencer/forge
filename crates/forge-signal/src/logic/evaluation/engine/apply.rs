@@ -106,7 +106,7 @@ fn build_evaluation_effect(
         .map(|metadata| metadata.memoized_origin)
         .unwrap_or(MemoizedResultOrigin::DirectCompute);
     let reuse_basis = execution_metadata
-        .map(|metadata| metadata.reuse_basis)
+        .map(|metadata| metadata.reuse_basis.clone())
         .unwrap_or_else(crate::data::reuse::ReuseBasis::fresh_compute);
     let reuse_origin = execution_metadata
         .map(|metadata| metadata.reuse_origin)

@@ -395,34 +395,23 @@ fn duplicate_field_violation(
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct RelationPairKey {
-    kind_id: crate::identity::data::KindId,
-    source: crate::identity::data::EntityId,
-    target: crate::identity::data::EntityId,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct RelationEndpointKey {
-    kind_id: crate::identity::data::KindId,
-    entity_id: crate::identity::data::EntityId,
-}
-
 fn evaluate_endpoint_kind_contract(
     context: &InvariantExecutionContext<'_>,
     class: InvariantClass,
     contract: &LoweredEndpointKindContract,
 ) -> Option<InvariantViolation> {
-    let creates = planned_relation_specs(context.merged_plan(), contract.relation_kind_id);
-    if creates.is_empty() {
+    let Some(scope) = context.relation_integrity_scope(contract.relation_kind_id) else {
+        return None;
+    };
+    if scope.planned_edges.is_empty() {
         return None;
     }
 
     context.metrics().count_relation_contracts_evaluated(1);
-    for spec in creates {
+    for edge in &scope.planned_edges {
         context.metrics().count_relation_endpoint_kind_checks(1);
-        let source_kind = entity_kind_in_state(context, spec.source)?;
-        let target_kind = entity_kind_in_state(context, spec.target)?;
+        let source_kind = entity_kind_in_state(context, edge.source)?;
+        let target_kind = entity_kind_in_state(context, edge.target)?;
         if !contract.allowed_source_kinds.contains(&source_kind) {
             return Some(relation_violation(
                 class,
@@ -434,8 +423,8 @@ fn evaluate_endpoint_kind_contract(
                 json!({
                     "contract_id": contract.contract_id,
                     "relation_kind_id": contract.relation_kind_id.0,
-                    "source": spec.source,
-                    "target": spec.target,
+                    "source": edge.source,
+                    "target": edge.target,
                     "source_kind_id": source_kind.0,
                     "target_kind_id": target_kind.0,
                 }),
@@ -452,14 +441,14 @@ fn evaluate_endpoint_kind_contract(
                 json!({
                     "contract_id": contract.contract_id,
                     "relation_kind_id": contract.relation_kind_id.0,
-                    "source": spec.source,
-                    "target": spec.target,
+                    "source": edge.source,
+                    "target": edge.target,
                     "source_kind_id": source_kind.0,
                     "target_kind_id": target_kind.0,
                 }),
             ));
         }
-        if !contract.self_edges_allowed && spec.source == spec.target {
+        if !contract.self_edges_allowed && edge.source == edge.target {
             return Some(relation_violation(
                 class,
                 DiagnosticCode::RelationEndpointKindViolation,
@@ -470,13 +459,13 @@ fn evaluate_endpoint_kind_contract(
                 json!({
                     "contract_id": contract.contract_id,
                     "relation_kind_id": contract.relation_kind_id.0,
-                    "source": spec.source,
-                    "target": spec.target,
+                    "source": edge.source,
+                    "target": edge.target,
                     "self_edge": true,
                 }),
             ));
         }
-        if spec.source.partition_id != spec.target.partition_id
+        if edge.source.partition_id != edge.target.partition_id
             && contract.cross_context_policy != crate::config::data::CrossContextPolicy::AllowExplicit
         {
             return Some(relation_violation(
@@ -489,8 +478,8 @@ fn evaluate_endpoint_kind_contract(
                 json!({
                     "contract_id": contract.contract_id,
                     "relation_kind_id": contract.relation_kind_id.0,
-                    "source_partition_id": spec.source.partition_id.0,
-                    "target_partition_id": spec.target.partition_id.0,
+                    "source_partition_id": edge.source.partition_id.0,
+                    "target_partition_id": edge.target.partition_id.0,
                 }),
             ));
         }
@@ -503,12 +492,14 @@ fn evaluate_cardinality_contract(
     class: InvariantClass,
     contract: &LoweredCardinalityContract,
 ) -> Option<InvariantViolation> {
-    let touched_counts = touched_relation_counts(context, contract.relation_kind_id);
-    if touched_counts.is_empty() {
+    let Some(scope) = context.relation_integrity_scope(contract.relation_kind_id) else {
+        return None;
+    };
+    if scope.is_empty() {
         return None;
     }
     context.metrics().count_relation_contracts_evaluated(1);
-    for (key, count) in &touched_counts.source_counts {
+    for (key, count) in &scope.source_counts {
         if let Some(limit) = contract.source_max {
             context.metrics().count_relation_cardinality_checks(1);
             if *count > limit {
@@ -519,19 +510,19 @@ fn evaluate_cardinality_contract(
                         "relation contract '{}' overflowed source cardinality for entity {:?}: {} > {}",
                         contract.contract_id, key.entity_id, count, limit
                     ),
-                    json!({
-                        "contract_id": contract.contract_id,
-                        "relation_kind_id": key.kind_id.0,
-                        "entity_id": key.entity_id,
-                        "boundary": "source",
-                        "count": count,
+                json!({
+                    "contract_id": contract.contract_id,
+                    "relation_kind_id": contract.relation_kind_id.0,
+                    "entity_id": key.entity_id,
+                    "boundary": "source",
+                    "count": count,
                         "limit": limit,
                     }),
                 ));
             }
         }
     }
-    for (key, count) in &touched_counts.target_counts {
+    for (key, count) in &scope.target_counts {
         if let Some(limit) = contract.target_max {
             context.metrics().count_relation_cardinality_checks(1);
             if *count > limit {
@@ -542,10 +533,10 @@ fn evaluate_cardinality_contract(
                         "relation contract '{}' overflowed target cardinality for entity {:?}: {} > {}",
                         contract.contract_id, key.entity_id, count, limit
                     ),
-                    json!({
-                        "contract_id": contract.contract_id,
-                        "relation_kind_id": key.kind_id.0,
-                        "entity_id": key.entity_id,
+                json!({
+                    "contract_id": contract.contract_id,
+                    "relation_kind_id": contract.relation_kind_id.0,
+                    "entity_id": key.entity_id,
                         "boundary": "target",
                         "count": count,
                         "limit": limit,
@@ -554,7 +545,7 @@ fn evaluate_cardinality_contract(
             }
         }
     }
-    for (key, count) in &touched_counts.directed_pair_counts {
+    for (key, count) in &scope.directed_pair_counts {
         if let Some(limit) = contract.pair_max {
             context.metrics().count_relation_cardinality_checks(1);
             if *count > limit {
@@ -565,10 +556,10 @@ fn evaluate_cardinality_contract(
                         "relation contract '{}' overflowed pair cardinality for {:?}->{:?}: {} > {}",
                         contract.contract_id, key.source, key.target, count, limit
                     ),
-                    json!({
-                        "contract_id": contract.contract_id,
-                        "relation_kind_id": key.kind_id.0,
-                        "source": key.source,
+                json!({
+                    "contract_id": contract.contract_id,
+                    "relation_kind_id": contract.relation_kind_id.0,
+                    "source": key.source,
                         "target": key.target,
                         "count": count,
                         "limit": limit,
@@ -585,14 +576,16 @@ fn evaluate_uniqueness_contract(
     class: InvariantClass,
     contract: &LoweredUniquenessContract,
 ) -> Option<InvariantViolation> {
-    let counts = touched_relation_counts(context, contract.relation_kind_id);
-    if counts.is_empty() {
+    let Some(scope) = context.relation_integrity_scope(contract.relation_kind_id) else {
+        return None;
+    };
+    if scope.is_empty() {
         return None;
     }
     context.metrics().count_relation_contracts_evaluated(1);
     match contract.scope {
         UniquenessScope::DirectedSemanticEdge => {
-            for (key, count) in &counts.directed_pair_counts {
+            for (key, count) in &scope.directed_pair_counts {
                 context.metrics().count_relation_uniqueness_checks(1);
                 if *count > 1 {
                     return Some(relation_violation(
@@ -604,7 +597,7 @@ fn evaluate_uniqueness_contract(
                         ),
                         json!({
                             "contract_id": contract.contract_id,
-                            "relation_kind_id": key.kind_id.0,
+                            "relation_kind_id": contract.relation_kind_id.0,
                             "scope": "directed",
                             "source": key.source,
                             "target": key.target,
@@ -615,7 +608,7 @@ fn evaluate_uniqueness_contract(
             }
         }
         UniquenessScope::NormalizedSymmetricEdge => {
-            for (key, count) in &counts.normalized_pair_counts {
+            for (key, count) in &scope.normalized_pair_counts {
                 context.metrics().count_relation_uniqueness_checks(1);
                 if *count > 1 {
                     return Some(relation_violation(
@@ -627,7 +620,7 @@ fn evaluate_uniqueness_contract(
                         ),
                         json!({
                             "contract_id": contract.contract_id,
-                            "relation_kind_id": key.kind_id.0,
+                            "relation_kind_id": contract.relation_kind_id.0,
                             "scope": "normalized",
                             "source": key.source,
                             "target": key.target,
@@ -646,17 +639,18 @@ fn evaluate_symmetry_contract(
     class: InvariantClass,
     contract: &LoweredSymmetryContract,
 ) -> Option<InvariantViolation> {
-    let counts = touched_relation_counts(context, contract.relation_kind_id);
-    let creates = planned_relation_specs(context.merged_plan(), contract.relation_kind_id);
-    if creates.is_empty() {
+    let Some(scope) = context.relation_integrity_scope(contract.relation_kind_id) else {
+        return None;
+    };
+    if scope.planned_edges.is_empty() {
         return None;
     }
     context.metrics().count_relation_contracts_evaluated(1);
-    for spec in creates {
+    for edge in &scope.planned_edges {
         context.metrics().count_relation_symmetry_checks(1);
         match contract.mode {
             SymmetryMode::CanonicalUndirected => {
-                if spec.target < spec.source {
+                if edge.target < edge.source {
                     return Some(relation_violation(
                         class,
                         DiagnosticCode::RelationSymmetryViolation,
@@ -667,56 +661,66 @@ fn evaluate_symmetry_contract(
                         json!({
                             "contract_id": contract.contract_id,
                             "relation_kind_id": contract.relation_kind_id.0,
-                            "source": spec.source,
-                            "target": spec.target,
+                            "source": edge.source,
+                            "target": edge.target,
                             "mode": "canonical_undirected",
                         }),
                     ));
                 }
             }
             SymmetryMode::PairedInverseRequired | SymmetryMode::PairedTwinRequired => {
-                let inverse = RelationPairKey {
-                    kind_id: contract.relation_kind_id,
-                    source: spec.target,
-                    target: spec.source,
+                let inverse = super::request::PreparedRelationPairKey {
+                    source: edge.target,
+                    target: edge.source,
                 };
-                if counts.directed_pair_counts.get(&inverse).copied().unwrap_or_default() == 0 {
+                if scope
+                    .directed_pair_counts
+                    .get(&inverse)
+                    .copied()
+                    .unwrap_or_default()
+                    == 0
+                {
                     return Some(relation_violation(
                         class,
                         DiagnosticCode::RelationSymmetryViolation,
                         format!(
                             "relation contract '{}' requires an inverse/twin edge for {:?}->{:?}",
-                            contract.contract_id, spec.source, spec.target
+                            contract.contract_id, edge.source, edge.target
                         ),
                         json!({
                             "contract_id": contract.contract_id,
                             "relation_kind_id": contract.relation_kind_id.0,
-                            "source": spec.source,
-                            "target": spec.target,
+                            "source": edge.source,
+                            "target": edge.target,
                             "mode": "paired",
                         }),
                     ));
                 }
             }
             SymmetryMode::InverseProhibited => {
-                let inverse = RelationPairKey {
-                    kind_id: contract.relation_kind_id,
-                    source: spec.target,
-                    target: spec.source,
+                let inverse = super::request::PreparedRelationPairKey {
+                    source: edge.target,
+                    target: edge.source,
                 };
-                if counts.directed_pair_counts.get(&inverse).copied().unwrap_or_default() > 0 {
+                if scope
+                    .directed_pair_counts
+                    .get(&inverse)
+                    .copied()
+                    .unwrap_or_default()
+                    > 0
+                {
                     return Some(relation_violation(
                         class,
                         DiagnosticCode::RelationSymmetryViolation,
                         format!(
                             "relation contract '{}' prohibits inverse duplication for {:?}->{:?}",
-                            contract.contract_id, spec.source, spec.target
+                            contract.contract_id, edge.source, edge.target
                         ),
                         json!({
                             "contract_id": contract.contract_id,
                             "relation_kind_id": contract.relation_kind_id.0,
-                            "source": spec.source,
-                            "target": spec.target,
+                            "source": edge.source,
+                            "target": edge.target,
                             "mode": "inverse_prohibited",
                         }),
                     ));
@@ -732,8 +736,10 @@ fn evaluate_endpoint_deletion_integrity_contract(
     class: InvariantClass,
     contract: &LoweredEndpointDeletionIntegrityContract,
 ) -> Option<InvariantViolation> {
-    let counts = touched_relation_counts(context, contract.relation_kind_id);
-    if counts.deleted_entities.is_empty() {
+    let Some(scope) = context.relation_integrity_scope(contract.relation_kind_id) else {
+        return None;
+    };
+    if scope.deleted_entities.is_empty() {
         return None;
     }
     context.metrics().count_relation_contracts_evaluated(1);
@@ -745,13 +751,12 @@ fn evaluate_endpoint_deletion_integrity_contract(
         .relation_registration(contract.relation_kind_id)
         .ok()
         .map(|registration| registration.cascade_delete_policy);
-    for entity_id in &counts.deleted_entities {
-        let endpoint_key = RelationEndpointKey {
-            kind_id: contract.relation_kind_id,
+    for entity_id in &scope.deleted_entities {
+        let endpoint_key = super::request::PreparedRelationEndpointKey {
             entity_id: *entity_id,
         };
-        let live_relations = counts.source_counts.get(&endpoint_key).copied().unwrap_or_default()
-            + counts.target_counts.get(&endpoint_key).copied().unwrap_or_default();
+        let live_relations = scope.source_counts.get(&endpoint_key).copied().unwrap_or_default()
+            + scope.target_counts.get(&endpoint_key).copied().unwrap_or_default();
         context.metrics().count_relation_endpoint_deletion_checks(1);
         if live_relations > 0 {
             match contract.mode {
@@ -823,208 +828,6 @@ fn endpoint_deletion_policy_label(policy: CascadeDeletePolicy) -> &'static str {
         CascadeDeletePolicy::CascadeDeleteRelations => "cascade_delete_relations",
         CascadeDeletePolicy::RetainDanglingForAudit => "retain_dangling_for_audit",
     }
-}
-
-struct TouchedRelationCounts {
-    source_counts: HashMap<RelationEndpointKey, usize>,
-    target_counts: HashMap<RelationEndpointKey, usize>,
-    directed_pair_counts: HashMap<RelationPairKey, usize>,
-    normalized_pair_counts: HashMap<RelationPairKey, usize>,
-    deleted_entities: HashSet<crate::identity::data::EntityId>,
-}
-
-impl TouchedRelationCounts {
-    fn empty() -> Self {
-        Self {
-            source_counts: HashMap::new(),
-            target_counts: HashMap::new(),
-            directed_pair_counts: HashMap::new(),
-            normalized_pair_counts: HashMap::new(),
-            deleted_entities: HashSet::new(),
-        }
-    }
-
-    fn is_empty(&self) -> bool {
-        self.source_counts.is_empty()
-            && self.target_counts.is_empty()
-            && self.directed_pair_counts.is_empty()
-            && self.deleted_entities.is_empty()
-    }
-}
-
-fn touched_relation_counts(
-    context: &InvariantExecutionContext<'_>,
-    relation_kind_id: crate::identity::data::KindId,
-) -> TouchedRelationCounts {
-    let Some(plan) = context.merged_plan() else {
-        return TouchedRelationCounts::empty();
-    };
-    let mut touched_entities = HashSet::new();
-    let mut deleted_relations = HashSet::new();
-    let mut counts = TouchedRelationCounts::empty();
-
-    for intent in &plan.merged_intents {
-        match intent {
-            crate::transactions::data::MutationIntent::Create(
-                crate::transactions::data::CreateIntent::Relation(spec),
-            ) if spec.kind_id == relation_kind_id => {
-                touched_entities.insert(spec.source);
-                touched_entities.insert(spec.target);
-            }
-            crate::transactions::data::MutationIntent::Create(
-                crate::transactions::data::CreateIntent::BulkRelations(spec),
-            ) if spec.kind_id == relation_kind_id => {
-                for (source, target) in &spec.endpoints {
-                    touched_entities.insert(*source);
-                    touched_entities.insert(*target);
-                }
-            }
-            crate::transactions::data::MutationIntent::Relation(
-                crate::transactions::data::RelationMutationIntent::Delete(spec),
-            ) => {
-                deleted_relations.insert(spec.relation_id);
-            }
-            crate::transactions::data::MutationIntent::Entity(
-                crate::transactions::data::EntityMutationIntent::Delete(spec),
-            ) => {
-                counts.deleted_entities.insert(spec.entity_id);
-                touched_entities.insert(spec.entity_id);
-            }
-            crate::transactions::data::MutationIntent::Entity(
-                crate::transactions::data::EntityMutationIntent::Replace(spec),
-            ) => {
-                counts.deleted_entities.insert(spec.entity_id);
-                touched_entities.insert(spec.entity_id);
-            }
-            _ => {}
-        }
-    }
-
-    for entity_id in touched_entities {
-        scan_current_relations_for_entity(
-            context,
-            relation_kind_id,
-            entity_id,
-            &deleted_relations,
-            &mut counts,
-        );
-    }
-
-    for spec in planned_relation_specs(Some(plan), relation_kind_id) {
-        increment_counts(&mut counts, relation_kind_id, spec.source, spec.target);
-    }
-
-    counts
-}
-
-fn scan_current_relations_for_entity(
-    context: &InvariantExecutionContext<'_>,
-    relation_kind_id: crate::identity::data::KindId,
-    entity_id: crate::identity::data::EntityId,
-    deleted_relations: &HashSet<crate::identity::data::RelationId>,
-    counts: &mut TouchedRelationCounts,
-) {
-    let Some(partition) = context.partition_access().get_partition(entity_id.partition_id) else {
-        return;
-    };
-    let Some(outgoing) = partition.adjacency.get(entity_id.local_slot.0 as usize) else {
-        return;
-    };
-    for relation_id in outgoing.as_slice().iter().copied() {
-        if deleted_relations.contains(&relation_id) {
-            continue;
-        }
-        let Some(relation_partition) = context.partition_access().get_partition(relation_id.partition_id) else {
-            continue;
-        };
-        let Some(slot) = relation_partition.relation_arena.get(&relation_id) else {
-            continue;
-        };
-        if slot.kind_id() != Some(relation_kind_id) || slot.lifecycle() != RecordLifecycleState::Live {
-            continue;
-        }
-        let Some(endpoints) = slot.extra().as_ref() else {
-            continue;
-        };
-        context.metrics().count_relation_uniqueness_candidates(1);
-        increment_counts(counts, relation_kind_id, endpoints.source, endpoints.target);
-    }
-}
-
-fn increment_counts(
-    counts: &mut TouchedRelationCounts,
-    relation_kind_id: crate::identity::data::KindId,
-    source: crate::identity::data::EntityId,
-    target: crate::identity::data::EntityId,
-) {
-    *counts
-        .source_counts
-        .entry(RelationEndpointKey {
-            kind_id: relation_kind_id,
-            entity_id: source,
-        })
-        .or_insert(0) += 1;
-    *counts
-        .target_counts
-        .entry(RelationEndpointKey {
-            kind_id: relation_kind_id,
-            entity_id: target,
-        })
-        .or_insert(0) += 1;
-    *counts
-        .directed_pair_counts
-        .entry(RelationPairKey {
-            kind_id: relation_kind_id,
-            source,
-            target,
-        })
-        .or_insert(0) += 1;
-    let (left, right) = if target < source {
-        (target, source)
-    } else {
-        (source, target)
-    };
-    *counts
-        .normalized_pair_counts
-        .entry(RelationPairKey {
-            kind_id: relation_kind_id,
-            source: left,
-            target: right,
-        })
-        .or_insert(0) += 1;
-}
-
-fn planned_relation_specs(
-    merged_plan: Option<&MergedCommitPlan>,
-    relation_kind_id: crate::identity::data::KindId,
-) -> Vec<crate::transactions::data::RelationSpec> {
-    let Some(plan) = merged_plan else {
-        return Vec::new();
-    };
-    let mut specs = Vec::new();
-    for intent in &plan.merged_intents {
-        match intent {
-            crate::transactions::data::MutationIntent::Create(
-                crate::transactions::data::CreateIntent::Relation(spec),
-            ) if spec.kind_id == relation_kind_id => specs.push(spec.clone()),
-            crate::transactions::data::MutationIntent::Create(
-                crate::transactions::data::CreateIntent::BulkRelations(spec),
-            ) if spec.kind_id == relation_kind_id => {
-                for ((source, target), payload) in spec.endpoints.iter().zip(spec.payloads.iter()) {
-                    specs.push(crate::transactions::data::RelationSpec {
-                        partition_id: spec.partition_id,
-                        kind_id: spec.kind_id,
-                        client_key: crate::symbols::data::InternedString::Raw("bulk".to_string()),
-                        source: *source,
-                        target: *target,
-                        payload: payload.clone(),
-                    });
-                }
-            }
-            _ => {}
-        }
-    }
-    specs
 }
 
 fn entity_kind_in_state(

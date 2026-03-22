@@ -69,12 +69,17 @@ impl<'runtime> PublicationAccess<'runtime> {
     }
 }
 
-pub(crate) fn publication_failure_diagnostic(detail: String) -> RelationalDiagnosticsEntry {
+pub(crate) fn publication_failure_diagnostic(
+    code: crate::diagnostics::data::DiagnosticCode,
+    detail: String,
+    fields: serde_json::Value,
+) -> RelationalDiagnosticsEntry {
     RelationalDiagnosticsEntry {
-        code: crate::diagnostics::data::DiagnosticCode::InvariantViolation,
+        code,
         message: detail,
         fields: serde_json::json!({
-            "execution_point": InvariantExecutionPoint::SnapshotPublication.diagnostic_label()
+            "execution_point": InvariantExecutionPoint::SnapshotPublication.diagnostic_label(),
+            "failure": fields,
         }),
     }
 }

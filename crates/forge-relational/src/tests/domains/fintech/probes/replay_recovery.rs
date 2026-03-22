@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use crate::facade::history::BranchId;
 use crate::facade::replay::{
     RelationalReplayOutcome, RelationalReplayRequest, ReplayExecutionMode,
+    ReplayVerificationMode,
 };
 use crate::facade::runtime::RelationalRuntime;
 use crate::logic::runtime::RecoveryOutcome;
@@ -40,6 +41,7 @@ pub(crate) fn capture_replay_probe(
                 commit_id,
                 branch_id: branch_id.clone(),
                 execution_mode: ReplayExecutionMode::SerialDeterministic,
+                verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
             })
     });
     replay_probe_from_outcome(branch_id.0.clone(), replay.as_ref())

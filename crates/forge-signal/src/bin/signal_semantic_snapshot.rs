@@ -3,7 +3,7 @@ use std::num::NonZeroUsize;
 
 #[cfg(feature = "parallel")]
 use forge_signal::facade::diagnostics::{
-    ArtifactMaterializationMode, DiagnosticsProfile, SignalRuntimePolicy,
+    DiagnosticsAvailability, DiagnosticsTier, SignalRuntimePolicy,
 };
 #[cfg(feature = "parallel")]
 use forge_signal::facade::evaluation::EvaluationRequestMode;
@@ -33,10 +33,10 @@ fn version_ab(a: u64, b: u64) -> AspectVersion {
 
 #[cfg(feature = "parallel")]
 fn policy_name(policy: SignalRuntimePolicy) -> &'static str {
-    match policy.profile {
-        DiagnosticsProfile::Operational => "operational",
-        DiagnosticsProfile::Development => "development",
-        DiagnosticsProfile::Forensic => "forensic",
+    match policy.tier {
+        DiagnosticsTier::Operational => "operational",
+        DiagnosticsTier::Development => "development",
+        DiagnosticsTier::Forensic => "forensic",
     }
 }
 
@@ -51,11 +51,11 @@ fn parse_runtime_policy(label: &str) -> SignalRuntimePolicy {
 }
 
 #[cfg(feature = "parallel")]
-fn materialization_label(mode: ArtifactMaterializationMode) -> &'static str {
+fn materialization_label(mode: DiagnosticsAvailability) -> &'static str {
     match mode {
-        ArtifactMaterializationMode::Retained => "retained",
-        ArtifactMaterializationMode::Reconstructed => "reconstructed",
-        ArtifactMaterializationMode::Unavailable => "unavailable",
+        DiagnosticsAvailability::RetainedAvailable => "retained",
+        DiagnosticsAvailability::ReconstructedAvailable => "reconstructed",
+        DiagnosticsAvailability::OmittedByTier => "unavailable",
     }
 }
 
@@ -67,12 +67,18 @@ fn canonical_runtime_artifacts(
 ) -> serde_json::Value {
     let observer = graph.observe();
         let (explanation, explanation_mode) =
-            observer.materialize_explanation_artifact(node).unwrap();
+            observer
+                .materialize()
+                .materialize_explanation_artifact(node)
+                .unwrap();
         let (provenance, provenance_mode) =
-            observer.materialize_provenance_artifact(node).unwrap();
+            observer
+                .materialize()
+                .materialize_provenance_artifact(node)
+                .unwrap();
     let explanation = explanation.expect("snapshot fixture should have an explainable target");
     let explanation_fact = observer.explanation_fact(node);
-    let diagnostics = observer.diagnostics_summary(DiagnosticsProfile::Development);
+    let diagnostics = observer.diagnostics_summary(DiagnosticsTier::Development);
     let replay = observer
         .replay_events()
         .iter()
@@ -291,3 +297,5 @@ fn main() {
 fn main() {
     panic!("signal_semantic_snapshot requires the `parallel` feature");
 }
+
+

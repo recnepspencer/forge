@@ -33,10 +33,6 @@ impl<'runtime> InvariantMetrics<'runtime> {
         self.access.count_relation_uniqueness_checks(count);
     }
 
-    pub(crate) fn count_relation_uniqueness_candidates(&self, count: usize) {
-        self.access.count_relation_uniqueness_candidates(count);
-    }
-
     pub(crate) fn count_relation_symmetry_checks(&self, count: usize) {
         self.access.count_relation_symmetry_checks(count);
     }

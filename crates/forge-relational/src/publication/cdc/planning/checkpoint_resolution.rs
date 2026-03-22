@@ -1,18 +1,40 @@
 use crate::logic::runtime::RelationalRuntime;
-use crate::publication::cdc::data::{SubscriberCheckpoint, SubscriberStreamFailureClass};
+use crate::publication::cdc::data::{
+    SubscriberCheckpoint, SubscriberCheckpointBasis, SubscriberContinuationAssessment,
+    SubscriberStreamFailureClass,
+};
 use crate::publication::cdc::diagnostics::{checkpoint_resolution_artifact, rejection_artifact};
 use crate::publication::patch::data::PatchStreamPosition;
 use crate::replay::data::ReplaySchemaVersion;
-use crate::{publication::cdc::data::SubscriberStreamFailure, schema::data::SchemaVersionId};
+use crate::{
+    publication::cdc::data::SubscriberStreamFailure,
+};
+#[cfg(test)]
+use crate::schema::data::SchemaVersionId;
 
 pub(crate) fn latest_available_checkpoint(
     runtime: &RelationalRuntime,
 ) -> Option<SubscriberCheckpoint> {
+    let basis = latest_available_checkpoint_basis(runtime)?;
+    Some(SubscriberCheckpoint::from_basis_with_assessment(
+        basis,
+        "default.subscriber.contract".to_string(),
+        &SubscriberContinuationAssessment::unchanged(
+            "default.subscriber.contract".to_string(),
+            crate::schema::data::DescriptorSemanticsVersion::default(),
+        ),
+        crate::schema::data::DescriptorSemanticsVersion::default(),
+    ))
+}
+
+pub(crate) fn latest_available_checkpoint_basis(
+    runtime: &RelationalRuntime,
+) -> Option<SubscriberCheckpointBasis> {
     let latest_position = runtime.history_access().latest_patch_stream_position()?;
     let commit_id = *runtime.history.patch_stream_index.get(&latest_position)?;
     let history = runtime.history_access();
     let envelope = history.commit_envelope(commit_id)?;
-    Some(SubscriberCheckpoint::new(
+    Some(SubscriberCheckpointBasis::new(
         latest_position,
         ReplaySchemaVersion(1),
         envelope.schema_version,
@@ -95,6 +117,111 @@ pub(crate) fn resolve_checkpoint(
             ));
         }
 
+        if envelope.descriptor_semantics_version != checkpoint.descriptor_semantics_version() {
+            let detail = format!(
+                "subscriber checkpoint descriptor semantics version {} does not match retained canonical descriptor semantics version {}",
+                checkpoint.descriptor_semantics_version().0,
+                envelope.descriptor_semantics_version.0
+            );
+            diagnostics.push(rejection_artifact(
+                SubscriberStreamFailureClass::DescriptorVersionMismatch,
+                &detail,
+            ));
+            return Err(SubscriberStreamFailure::new(
+                SubscriberStreamFailureClass::DescriptorVersionMismatch,
+                detail,
+                latest,
+                diagnostics,
+            ));
+        }
+
+        if checkpoint
+            .normalized_continuation_proof()
+            .descriptor_semantics_version()
+            != checkpoint.descriptor_semantics_version()
+        {
+            let detail = format!(
+                "subscriber checkpoint normalized proof descriptor semantics version {} does not match checkpoint descriptor semantics version {}",
+                checkpoint
+                    .normalized_continuation_proof()
+                    .descriptor_semantics_version()
+                    .0,
+                checkpoint.descriptor_semantics_version().0
+            );
+            diagnostics.push(rejection_artifact(
+                SubscriberStreamFailureClass::DescriptorVersionMismatch,
+                &detail,
+            ));
+            return Err(SubscriberStreamFailure::new(
+                SubscriberStreamFailureClass::DescriptorVersionMismatch,
+                detail,
+                latest,
+                diagnostics,
+            ));
+        }
+
+        if checkpoint.continuation_summary().contract_id != checkpoint.subscriber_contract_id() {
+            let detail = format!(
+                "subscriber checkpoint continuation summary contract {} does not match checkpoint contract {}",
+                checkpoint.continuation_summary().contract_id,
+                checkpoint.subscriber_contract_id()
+            );
+            diagnostics.push(rejection_artifact(
+                SubscriberStreamFailureClass::CheckpointContinuitySummaryMismatch,
+                &detail,
+            ));
+            return Err(SubscriberStreamFailure::new(
+                SubscriberStreamFailureClass::CheckpointContinuitySummaryMismatch,
+                detail,
+                latest,
+                diagnostics,
+            ));
+        }
+
+        if checkpoint.continuation_summary().descriptor_semantics_version
+            != checkpoint.descriptor_semantics_version()
+        {
+            let detail = format!(
+                "subscriber checkpoint continuation summary descriptor semantics version {} does not match checkpoint descriptor semantics version {}",
+                checkpoint.continuation_summary().descriptor_semantics_version.0,
+                checkpoint.descriptor_semantics_version().0
+            );
+            diagnostics.push(rejection_artifact(
+                SubscriberStreamFailureClass::CheckpointContinuitySummaryMismatch,
+                &detail,
+            ));
+            return Err(SubscriberStreamFailure::new(
+                SubscriberStreamFailureClass::CheckpointContinuitySummaryMismatch,
+                detail,
+                latest,
+                diagnostics,
+            ));
+        }
+
+        if checkpoint.continuation_summary().normalized_boundary_count
+            != checkpoint
+                .normalized_continuation_proof()
+                .normalized_boundary_count()
+        {
+            let detail = format!(
+                "subscriber checkpoint continuation summary normalized boundary count {} does not match checkpoint proof normalized boundary count {}",
+                checkpoint.continuation_summary().normalized_boundary_count,
+                checkpoint
+                    .normalized_continuation_proof()
+                    .normalized_boundary_count()
+            );
+            diagnostics.push(rejection_artifact(
+                SubscriberStreamFailureClass::CheckpointContinuitySummaryMismatch,
+                &detail,
+            ));
+            return Err(SubscriberStreamFailure::new(
+                SubscriberStreamFailureClass::CheckpointContinuitySummaryMismatch,
+                detail,
+                latest,
+                diagnostics,
+            ));
+        }
+
         return Ok((Some(checkpoint.position()), diagnostics));
     }
 
@@ -141,23 +268,32 @@ pub(crate) fn durable_envelopes(
     envelopes
 }
 
-pub(crate) fn checkpoint_from_patch_position(
+pub(crate) fn checkpoint_basis_from_patch_position(
     runtime: &RelationalRuntime,
     position: PatchStreamPosition,
-) -> Option<SubscriberCheckpoint> {
+) -> Option<SubscriberCheckpointBasis> {
     let commit_id = *runtime.history.patch_stream_index.get(&position)?;
     let history = runtime.history_access();
     let envelope = history.commit_envelope(commit_id)?;
-    Some(SubscriberCheckpoint::new(
+    Some(SubscriberCheckpointBasis::new(
         position,
         ReplaySchemaVersion(1),
         envelope.schema_version,
     ))
 }
 
+#[cfg(test)]
 pub(crate) fn checkpoint_for_schema_version(
     position: PatchStreamPosition,
     schema_version: SchemaVersionId,
 ) -> SubscriberCheckpoint {
-    SubscriberCheckpoint::new(position, ReplaySchemaVersion(1), schema_version)
+    SubscriberCheckpoint::from_basis_with_assessment(
+        SubscriberCheckpointBasis::new(position, ReplaySchemaVersion(1), schema_version),
+        "default.subscriber.contract".to_string(),
+        &SubscriberContinuationAssessment::unchanged(
+            "default.subscriber.contract".to_string(),
+            crate::schema::data::DescriptorSemanticsVersion::default(),
+        ),
+        crate::schema::data::DescriptorSemanticsVersion::default(),
+    )
 }

@@ -1,0 +1,462 @@
+use std::collections::BTreeSet;
+use std::sync::Arc;
+
+use serde::{Deserialize, Serialize};
+
+use crate::history::data::BranchId;
+use crate::identity::data::KindId;
+
+use super::{SchemaId, SchemaVersionId};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct DescriptorSemanticsVersion(pub u32);
+
+impl Default for DescriptorSemanticsVersion {
+    fn default() -> Self {
+        Self(1)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct DescriptorCanonicalizationVersion(pub u32);
+
+impl Default for DescriptorCanonicalizationVersion {
+    fn default() -> Self {
+        Self(1)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct SchemaBoundaryFingerprint(pub [u8; 32]);
+
+impl SchemaBoundaryFingerprint {
+    pub const ZERO: Self = Self([0; 32]);
+
+    pub fn new(bytes: [u8; 32]) -> Self {
+        Self(bytes)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum SchemaStratum {
+    StructuralShape,
+    ValueDomain,
+    EntityIdentitySemantics,
+    CorrespondenceSemantics,
+    LineageSemantics,
+    BehavioralSemantics,
+    PublicationContract,
+    SubscriberContract,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum HistoricalInterpretationSensitivity {
+    NotSensitive,
+    SensitiveToValueMeaning,
+    SensitiveToLegalityMeaning,
+    SensitiveToIdentityMeaning,
+    SensitiveToPublicationMeaning,
+    SensitiveToDerivedMeaning,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum SchemaElementKind {
+    Schema,
+    EntityKind,
+    RelationKind,
+    Field,
+    RelationEndpoint,
+    EnumDomain,
+    PrecisionContract,
+    InvariantContract,
+    ProjectionContract,
+    SubscriberContract,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct SchemaElementRef {
+    pub kind: SchemaElementKind,
+    pub schema_id: SchemaId,
+    pub schema_version_id: SchemaVersionId,
+    pub kind_id: Option<KindId>,
+    pub element_name: Arc<str>,
+}
+
+impl SchemaElementRef {
+    pub fn new(
+        kind: SchemaElementKind,
+        schema_id: SchemaId,
+        schema_version_id: SchemaVersionId,
+        kind_id: Option<KindId>,
+        element_name: impl Into<Arc<str>>,
+    ) -> Self {
+        Self {
+            kind,
+            schema_id,
+            schema_version_id,
+            kind_id,
+            element_name: element_name.into(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum SchemaPublicationImpact {
+    None,
+    ObservableSurfaceChanged,
+    PatchEncodingChanged,
+    ProjectionContractChanged,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum SchemaSubscriberImpact {
+    None,
+    ConsumableSurfaceChanged,
+    ContractUpgradeRequired,
+    RenegotiationRequired,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SchemaDiffDetail {
+    AddedField {
+        field_name: Arc<str>,
+        required: bool,
+        default_expression: Option<Arc<str>>,
+    },
+    RemovedField {
+        field_name: Arc<str>,
+    },
+    TypeChanged {
+        field_name: Arc<str>,
+        from_type: Arc<str>,
+        to_type: Arc<str>,
+    },
+    EnumDomainExpanded {
+        field_name: Arc<str>,
+        added_variants: Vec<Arc<str>>,
+    },
+    InvariantContractChanged {
+        contract_name: Arc<str>,
+    },
+    ProjectionContractChanged {
+        projection_name: Arc<str>,
+    },
+    SubscriberContractChanged {
+        contract_name: Arc<str>,
+    },
+    FreeText {
+        detail: Arc<str>,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SchemaDiffAtom {
+    pub element: SchemaElementRef,
+    pub strata: Vec<SchemaStratum>,
+    pub publication_impact: SchemaPublicationImpact,
+    pub subscriber_impact: SchemaSubscriberImpact,
+    pub historical_interpretation: HistoricalInterpretationSensitivity,
+    pub detail: SchemaDiffDetail,
+}
+
+impl SchemaDiffAtom {
+    pub fn new(
+        element: SchemaElementRef,
+        strata: Vec<SchemaStratum>,
+        publication_impact: SchemaPublicationImpact,
+        subscriber_impact: SchemaSubscriberImpact,
+        historical_interpretation: HistoricalInterpretationSensitivity,
+        detail: SchemaDiffDetail,
+    ) -> Self {
+        Self {
+            element,
+            strata,
+            publication_impact,
+            subscriber_impact,
+            historical_interpretation,
+            detail,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SchemaTransitionBarrier {
+    ConstructionBarrier,
+    ValidationBarrier,
+    LoweringBarrier,
+    ExecutionBarrier,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum SchemaReconciliationClassification {
+    Additive,
+    Narrowing,
+    TypeIncompatible,
+    StructuralIncompatible,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum SchemaBridgeabilityClassification {
+    Transparent,
+    SubscriberVisible,
+    ContractUpgradeOnly,
+    RenegotiationOnly,
+    Rejected,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum SchemaContinuationClassification {
+    ContinueUnchanged,
+    ContinueWithTransparentBridge,
+    ContinueWithVisibleBridge,
+    ContinueWithContractUpgrade,
+    RequireRenegotiation,
+    Rejected,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CompatibilityObservation {
+    RejectedInAllLayers,
+    NonRejectedInAtLeastOneLayer,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SchemaReconciliationPolicy {
+    RejectLossyNarrowing,
+    PreserveInformation,
+    PreserveTargetContract,
+    PreserveSourceContract,
+    PermitLossyNarrowingWithAnnotation,
+    RequireExplicitProjection,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SchemaReconciliationOrderingMode {
+    CanonicalizedPair,
+    ExplicitDirectional,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SchemaLineageOrderingSemantics {
+    SymmetricResult,
+    DirectionSensitiveResult,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProposedSchemaTransition {
+    pub source_schema_id: SchemaId,
+    pub source_schema_version_id: SchemaVersionId,
+    pub target_schema_id: SchemaId,
+    pub target_schema_version_id: SchemaVersionId,
+    pub diff_atoms: Vec<SchemaDiffAtom>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ValidatedSchemaTransition {
+    pub proposed: ProposedSchemaTransition,
+    pub compatibility_observation: CompatibilityObservation,
+    pub reconciliation: SchemaReconciliationClassification,
+    pub continuation: SchemaContinuationClassification,
+    pub bridgeability: SchemaBridgeabilityClassification,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SchemaBridgeDescriptor {
+    pub boundary_fingerprint: SchemaBoundaryFingerprint,
+    pub semantics_version: DescriptorSemanticsVersion,
+    pub canonicalization_version: DescriptorCanonicalizationVersion,
+    pub continuation: SchemaContinuationClassification,
+    pub bridgeability: SchemaBridgeabilityClassification,
+    pub historical_interpretation: HistoricalInterpretationSensitivity,
+    pub changed_strata: Vec<SchemaStratum>,
+}
+
+impl SchemaBridgeDescriptor {
+    pub fn new(
+        boundary_fingerprint: SchemaBoundaryFingerprint,
+        semantics_version: DescriptorSemanticsVersion,
+        canonicalization_version: DescriptorCanonicalizationVersion,
+        continuation: SchemaContinuationClassification,
+        bridgeability: SchemaBridgeabilityClassification,
+        historical_interpretation: HistoricalInterpretationSensitivity,
+        changed_strata: Vec<SchemaStratum>,
+    ) -> Self {
+        Self {
+            boundary_fingerprint,
+            semantics_version,
+            canonicalization_version,
+            continuation,
+            bridgeability,
+            historical_interpretation,
+            changed_strata,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SchemaContinuationDescriptor {
+    pub boundary_fingerprint: SchemaBoundaryFingerprint,
+    pub bridge: SchemaBridgeDescriptor,
+    pub normalized_boundary_count: usize,
+}
+
+impl SchemaContinuationDescriptor {
+    pub fn new(
+        boundary_fingerprint: SchemaBoundaryFingerprint,
+        bridge: SchemaBridgeDescriptor,
+        normalized_boundary_count: usize,
+    ) -> Self {
+        Self {
+            boundary_fingerprint,
+            bridge,
+            normalized_boundary_count,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SchemaLineageArtifact {
+    pub resulting_schema_id: SchemaId,
+    pub resulting_schema_version_id: SchemaVersionId,
+    pub parent_schema_ids: Vec<SchemaId>,
+    pub parent_schema_version_ids: Vec<SchemaVersionId>,
+    pub branch_context: Option<BranchId>,
+    pub ordering_mode: SchemaReconciliationOrderingMode,
+    pub ordering_semantics: SchemaLineageOrderingSemantics,
+}
+
+impl SchemaLineageArtifact {
+    pub fn new(
+        resulting_schema_id: SchemaId,
+        resulting_schema_version_id: SchemaVersionId,
+        parent_schema_ids: Vec<SchemaId>,
+        parent_schema_version_ids: Vec<SchemaVersionId>,
+        branch_context: Option<BranchId>,
+        ordering_mode: SchemaReconciliationOrderingMode,
+        ordering_semantics: SchemaLineageOrderingSemantics,
+    ) -> Self {
+        Self {
+            resulting_schema_id,
+            resulting_schema_version_id,
+            parent_schema_ids,
+            parent_schema_version_ids,
+            branch_context,
+            ordering_mode,
+            ordering_semantics,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SchemaReconciliationDescriptor {
+    pub semantics_version: DescriptorSemanticsVersion,
+    pub canonicalization_version: DescriptorCanonicalizationVersion,
+    pub classification: SchemaReconciliationClassification,
+    pub policy: SchemaReconciliationPolicy,
+    pub resulting_lineage: SchemaLineageArtifact,
+}
+
+impl SchemaReconciliationDescriptor {
+    pub fn new(
+        semantics_version: DescriptorSemanticsVersion,
+        canonicalization_version: DescriptorCanonicalizationVersion,
+        classification: SchemaReconciliationClassification,
+        policy: SchemaReconciliationPolicy,
+        resulting_lineage: SchemaLineageArtifact,
+    ) -> Self {
+        Self {
+            semantics_version,
+            canonicalization_version,
+            classification,
+            policy,
+            resulting_lineage,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LoweredSchemaTransitionPlan {
+    pub validated: ValidatedSchemaTransition,
+    pub continuation_descriptor: SchemaContinuationDescriptor,
+    pub reconciliation_descriptor: SchemaReconciliationDescriptor,
+}
+
+impl LoweredSchemaTransitionPlan {
+    pub fn new(
+        validated: ValidatedSchemaTransition,
+        continuation_descriptor: SchemaContinuationDescriptor,
+        reconciliation_descriptor: SchemaReconciliationDescriptor,
+    ) -> Self {
+        Self {
+            validated,
+            continuation_descriptor,
+            reconciliation_descriptor,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SchemaTransitionArtifact {
+    pub source_schema_id: SchemaId,
+    pub source_schema_version_id: SchemaVersionId,
+    pub target_schema_id: SchemaId,
+    pub target_schema_version_id: SchemaVersionId,
+    pub diff_atoms: Vec<SchemaDiffAtom>,
+    pub continuation_descriptor: SchemaContinuationDescriptor,
+    pub reconciliation_descriptor: SchemaReconciliationDescriptor,
+}
+
+impl SchemaTransitionArtifact {
+    pub fn new(
+        source_schema_id: SchemaId,
+        source_schema_version_id: SchemaVersionId,
+        target_schema_id: SchemaId,
+        target_schema_version_id: SchemaVersionId,
+        diff_atoms: Vec<SchemaDiffAtom>,
+        continuation_descriptor: SchemaContinuationDescriptor,
+        reconciliation_descriptor: SchemaReconciliationDescriptor,
+    ) -> Self {
+        Self {
+            source_schema_id,
+            source_schema_version_id,
+            target_schema_id,
+            target_schema_version_id,
+            diff_atoms,
+            continuation_descriptor,
+            reconciliation_descriptor,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SchemaTransitionSummary {
+    pub changed_atom_count: usize,
+    pub changed_strata: Vec<SchemaStratum>,
+    pub continuation: SchemaContinuationClassification,
+    pub bridgeability: SchemaBridgeabilityClassification,
+    pub reconciliation: SchemaReconciliationClassification,
+    pub historical_interpretation: HistoricalInterpretationSensitivity,
+}
+
+impl SchemaTransitionSummary {
+    pub fn from_artifact(artifact: &SchemaTransitionArtifact) -> Self {
+        let changed_strata = artifact
+            .diff_atoms
+            .iter()
+            .flat_map(|atom| atom.strata.iter().copied())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        Self {
+            changed_atom_count: artifact.diff_atoms.len(),
+            changed_strata,
+            continuation: artifact.continuation_descriptor.bridge.continuation,
+            bridgeability: artifact.continuation_descriptor.bridge.bridgeability,
+            reconciliation: artifact.reconciliation_descriptor.classification,
+            historical_interpretation: artifact
+                .continuation_descriptor
+                .bridge
+                .historical_interpretation,
+        }
+    }
+}

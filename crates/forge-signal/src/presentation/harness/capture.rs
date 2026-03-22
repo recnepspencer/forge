@@ -281,3 +281,4 @@ impl ReplayHarnessAdapter for SignalHarnessBridge {
         })
     }
 }
+

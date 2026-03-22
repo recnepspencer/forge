@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::identity::data::PartitionId;
 use crate::indexes::data::DerivedIndexId;
 use crate::transactions::data::RecordRef;
@@ -8,7 +10,7 @@ use crate::validation::engine::InvariantObservationKind;
 pub(crate) struct ValidationReductionKey {
     pub(crate) execution_point: InvariantExecutionPoint,
     pub(crate) observation_kind: InvariantObservationKind,
-    pub(crate) partition_scope: Vec<PartitionId>,
+    pub(crate) partition_scope: Arc<[PartitionId]>,
     pub(crate) invariant_group_scope_mask: u32,
     pub(crate) packet_index: usize,
 }
@@ -73,7 +75,7 @@ impl ValidationReductionKey {
     pub(crate) fn new(
         execution_point: InvariantExecutionPoint,
         observation_kind: InvariantObservationKind,
-        partition_scope: Vec<PartitionId>,
+        partition_scope: Arc<[PartitionId]>,
         invariant_group_scope: InvariantGroupSet,
         packet_index: usize,
     ) -> Self {

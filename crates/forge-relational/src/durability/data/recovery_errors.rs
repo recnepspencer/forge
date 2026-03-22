@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::errors::data::{ErrorContext, ErrorOperation, RelationalSubsystem, SuggestedFix};
 use crate::identity::data::KindId;
-use crate::schema::data::SchemaVersionId;
+use crate::schema::data::{DescriptorSemanticsVersion, SchemaBoundaryFingerprint, SchemaVersionId};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RecoveryFailureClass {
@@ -64,6 +64,27 @@ pub enum RecoveryCompatibilityMismatch {
     RuntimeName {
         expected: String,
         found: String,
+    },
+    DescriptorSemanticsVersion {
+        expected: DescriptorSemanticsVersion,
+        found: DescriptorSemanticsVersion,
+    },
+    SchemaTransitionArtifact {
+        commit_id: u64,
+        detail: String,
+    },
+    ContinuationDescriptor {
+        commit_id: u64,
+        boundary_fingerprint: Option<SchemaBoundaryFingerprint>,
+        detail: String,
+    },
+    ReconciliationDescriptor {
+        commit_id: u64,
+        detail: String,
+    },
+    SchemaLineage {
+        commit_id: u64,
+        detail: String,
     },
 }
 
@@ -127,6 +148,27 @@ impl RecoveryCompatibilityMismatch {
             }
             Self::RuntimeName { expected, found } => {
                 format!("runtime name mismatch expected {expected} found {found}")
+            }
+            Self::DescriptorSemanticsVersion { expected, found } => format!(
+                "descriptor semantics version mismatch expected {} found {}",
+                expected.0, found.0
+            ),
+            Self::SchemaTransitionArtifact { commit_id, detail } => {
+                format!("schema transition artifact mismatch at commit {commit_id}: {detail}")
+            }
+            Self::ContinuationDescriptor {
+                commit_id,
+                boundary_fingerprint,
+                detail,
+            } => format!(
+                "schema continuation descriptor mismatch at commit {commit_id} boundary {:?}: {detail}",
+                boundary_fingerprint
+            ),
+            Self::ReconciliationDescriptor { commit_id, detail } => {
+                format!("schema reconciliation descriptor mismatch at commit {commit_id}: {detail}")
+            }
+            Self::SchemaLineage { commit_id, detail } => {
+                format!("schema lineage mismatch at commit {commit_id}: {detail}")
             }
         }
     }

@@ -201,15 +201,21 @@ Why it matters:
 
 Primary surfaces:
 
+- `DiagnosticsTier`
+- `RetentionBudget`
+- `ReconstructionBudget`
+- `DiagnosticsAvailability`
 - replay
 - lineage
 - explanation
 - retained vs reconstructed artifact access
-- runtime policy retention differences
+- runtime policy retention and reconstruction differences
 
 Why it matters:
 
 - the signal vision is diagnostics-first, not diagnostics-later
+- certification must prove that lower tiers omit richness rather than changing replay, lineage, or reuse meaning
+- fintech workflows should certify explicit omission/denial semantics and cold-work attribution, not just whether an artifact can be fetched
 
 ### 12. Harness and Certification Honesty
 
@@ -265,6 +271,17 @@ Serial and parallel runs disagree beyond guaranteed overlap.
 ### B9. Tier-Policy Inconsistency
 
 Node scheduling behavior changes silently under tier policy differences.
+
+`S9.16.5` alignment:
+
+- tier changes retained richness and availability only; it must not change
+  canonical runtime, replay, reuse, or lineage truth
+- ordinary summary/history/replay inspection must perform zero cold
+  reconstruction
+- long-session branch/snapshot churn must stay within retained envelopes
+  without leaking hidden reconstruction cost
+- retained/reconstructed/denied cold-work counters must remain attributable by
+  access lane and API family
 
 ### B10. Keyed Cache / Memo Corruption
 

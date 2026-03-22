@@ -10,7 +10,6 @@ use crate::data::telemetry::RuntimeTelemetry;
 use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::failure::FailureSummary;
 use crate::diagnostics::replay::ReplayEventKind;
-use crate::diagnostics::state::DiagnosticsState;
 use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::evaluation::EvaluationVerdict;
 use crate::logic::events::EventBus;
@@ -164,6 +163,36 @@ where
     }
 }
 
+#[derive(Debug, Clone)]
+pub(in crate::logic::transaction::runtime) struct TransactionRollbackBaseline<T: Copy + Ord> {
+    pub config: Option<SignalRuntimeConfig<T>>,
+    pub diagnostics_state: Option<crate::diagnostics::state::DiagnosticsState>,
+}
+
+impl<T: Copy + Ord> TransactionRollbackBaseline<T> {
+    pub fn capture_if_needed(
+        &mut self,
+        config: &SignalRuntimeConfig<T>,
+        diagnostics_state: &crate::diagnostics::state::DiagnosticsState,
+    ) {
+        if self.config.is_none() {
+            self.config = Some(config.clone());
+        }
+        if self.diagnostics_state.is_none() {
+            self.diagnostics_state = Some(diagnostics_state.clone());
+        }
+    }
+}
+
+impl<T: Copy + Ord> Default for TransactionRollbackBaseline<T> {
+    fn default() -> Self {
+        Self {
+            config: None,
+            diagnostics_state: None,
+        }
+    }
+}
+
 pub struct SignalTransaction<'a, D, I, E, Ctx, T = ()>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
@@ -177,8 +206,7 @@ where
     pub(in crate::logic::transaction::runtime) event_bus: &'a mut EventBus<E, D, Ctx>,
     pub(in crate::logic::transaction::runtime) telemetry: &'a mut RuntimeTelemetry,
     pub(in crate::logic::transaction::runtime) scratch: TransactionScratch<D, I, E>,
-    pub(in crate::logic::transaction::runtime) baseline_config: SignalRuntimeConfig<T>,
-    pub(in crate::logic::transaction::runtime) baseline_diagnostics_state: DiagnosticsState,
+    pub(in crate::logic::transaction::runtime) rollback_baseline: TransactionRollbackBaseline<T>,
     pub(in crate::logic::transaction::runtime) poisoned: bool,
     pub(in crate::logic::transaction::runtime) finished: bool,
     pub(in crate::logic::transaction::runtime) execution_state: TransactionExecutionState,

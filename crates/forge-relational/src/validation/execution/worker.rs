@@ -8,7 +8,9 @@ use crate::authority::commit::preparation::proofs::locality::{
 };
 use crate::authority::commit::preparation::reduction::identity::ValidationResultIdentity;
 use crate::logic::runtime::RelationalRuntime;
-use crate::validation::data::{InvariantCheckResult, InvariantRule, InvariantVerdict};
+use crate::validation::data::{InvariantCheckResult, InvariantVerdict};
+#[cfg(test)]
+use crate::validation::data::InvariantRule;
 use crate::validation::engine::context::InvariantExecutionContext;
 use crate::validation::engine::evaluator::evaluate_rule;
 
@@ -19,6 +21,7 @@ pub(crate) fn evaluate_invariant_packet(
     runtime: &RelationalRuntime,
     packet: &InvariantWorkPacket<'_>,
 ) -> InvariantWorkerEnvelope {
+    #[allow(unused_mut)]
     let mut preparation_failures = invariant_packet_failures(packet);
     #[cfg(test)]
     if matches!(
@@ -46,6 +49,7 @@ pub(crate) fn evaluate_invariant_packet(
         packet.version_id,
         packet.registration.execution_point,
         packet.merged_plan,
+        packet.relation_integrity_scopes.clone(),
     );
     let verdict = if let Some(violation) = evaluate_rule(
         &context,
@@ -62,6 +66,7 @@ pub(crate) fn evaluate_invariant_packet(
         rule: packet.registration.rule.clone(),
         verdict,
     };
+    #[allow(unused_mut)]
     let mut result_identity = ValidationResultIdentity::from_parts(
         result.execution_point,
         result.failure_effect,

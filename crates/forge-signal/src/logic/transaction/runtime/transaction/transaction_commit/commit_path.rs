@@ -2,7 +2,6 @@ use crate::data::error::SignalError;
 use crate::diagnostics::epochs::{
     EventEpochOutcome, EventEpochSummary, EventSubscriberOutcome, EventSubscriberOutcomeKind,
 };
-use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
 use crate::diagnostics::replay::ReplayEventKind;
 use crate::logic::events::EventFlushError;
 use std::time::Instant;
@@ -230,22 +229,8 @@ where
             .transaction
             .max_touched_nodes_in_txn
             .max(self.scratch.staged_patch_count);
-        let policy = self.graph.runtime_policy();
-        if policy.retains_explanation_facts() || policy.retains_provenance_facts() {
-            for node in touched_nodes.as_slice().iter().copied() {
-                if let Ok(explanation) = self.graph.observe().explain(node) {
-                    if policy.retains_explanation_facts() {
-                        self.graph.diagnostics_state_mut().record_explanation_fact(
-                            ExplanationFact::from_explanation(&explanation),
-                        );
-                    }
-                    if policy.retains_provenance_facts() {
-                        self.graph
-                            .diagnostics_state_mut()
-                            .record_provenance_fact(ProvenanceFact::from_explanation(&explanation));
-                    }
-                }
-            }
+        for node in touched_nodes.as_slice().iter().copied() {
+            let _ = self.graph.record_operational_diagnostic_facts(node, None);
         }
         self.scratch
             .semantic_delta

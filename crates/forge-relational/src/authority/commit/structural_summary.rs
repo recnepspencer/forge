@@ -6,6 +6,7 @@ use crate::authority::commit::touched_scope::{
 };
 use crate::identity::data::PartitionId;
 use crate::logic::runtime::PartitionAccess;
+use crate::schema::data::DescriptorSemanticsVersion;
 use crate::transactions::data::{CommitTopology, MergedCommitPlan};
 use crate::validation::data::InvariantPlanContract;
 
@@ -52,6 +53,7 @@ impl CommitStructuralSummary {
             touched_partitions: self.touched_partitions.iter().copied().collect(),
             bulk_entity_slots_reserved: self.bulk_entity_slots_reserved,
             bulk_relation_slots_reserved: self.bulk_relation_slots_reserved,
+            descriptor_semantics_version: DescriptorSemanticsVersion::default(),
         }
     }
 }

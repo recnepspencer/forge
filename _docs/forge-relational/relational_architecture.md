@@ -27,12 +27,9 @@ As of March 20, 2026:
 
 - the architecture program through Phase F is closed enough to treat the core
   runtime shape as established
-- Milestones 1, 2, and 3 are closed
-- Milestone 4 (Relation Integrity and Schema Contracts) is in active
-  implementation and should not be treated as closed until its certification
-  work is complete
-- the next major work is Milestone 4 completion, then feature expansion,
-  hardening, scale proof, and parallel-preparation work
+- Milestones 1, 2, 3, and 4 are closed
+- the next major work is Milestone 5 schema evolution and reconciliation, then
+  subsequent feature expansion, hardening, scale proof, and later roadmap work
 
 ## Core Runtime Model
 

@@ -32,8 +32,6 @@ where
     ) -> SignalTransaction<'a, D, I, E, Ctx, T> {
         self.telemetry.transaction.transaction_begin_count += 1;
         self.config.sync_graph_capacity(&self.graph);
-        let baseline_config = self.config.clone();
-        let baseline_diagnostics_state = self.graph.diagnostics_state().clone();
         SignalTransaction {
             runtime_ctx,
             config: &mut self.config,
@@ -42,8 +40,7 @@ where
             event_bus: &mut self.event_bus,
             telemetry: &mut self.telemetry,
             scratch: TransactionScratch::new(),
-            baseline_config,
-            baseline_diagnostics_state,
+            rollback_baseline: super::super::transaction::TransactionRollbackBaseline::default(),
             poisoned: false,
             finished: false,
             execution_state: TransactionExecutionState::default(),

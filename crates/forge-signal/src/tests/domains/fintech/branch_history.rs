@@ -52,4 +52,5 @@ pub(super) fn lineage_for_main_risk(fixture: &FintechDomainFixture) -> Vec<Linea
         .runtime
         .observe()
         .lineage_chain_for_node(fixture.main_risk_node())
+        .to_owned_records()
 }

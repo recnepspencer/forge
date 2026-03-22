@@ -18,7 +18,7 @@ where
         let current_branch_name = self.graph.current_branch().name;
         let parent_branch_id = self.graph.current_branch().id;
         let handle = self.graph.diagnostics_state_mut().create_branch(name);
-        let mut branch_state = self.capture_branch_state();
+        let mut branch_state = self.capture_full_branch_state();
         branch_state.ancestry = BranchAncestryState {
             branch_id: handle.id,
             parent_branch_id: Some(parent_branch_id),
@@ -54,11 +54,11 @@ where
 
     pub fn switch_branch(&mut self, branch: SignalBranchHandle) -> Result<(), SignalError> {
         let current = self.graph.current_branch();
-        let current_state = self.capture_branch_state();
-        self.branches.insert_branch(current.id, current_state);
-        let Some(state) = self.branches.cloned_branch_state(branch.id) else {
+        let Some(state) = self.branches.take_branch_state(branch.id) else {
             return Err(SignalError::unknown_branch(Some(branch.id), branch.name));
         };
+        let current_state = self.take_active_branch_state();
+        self.branches.insert_branch(current.id, current_state);
         self.load_branch_state(state);
         self.graph.diagnostics_state_mut().set_active_branch(branch.id);
         let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
@@ -119,5 +119,23 @@ where
         self.replay_graph_for_branch(branch_id)
             .map(|graph| graph.replay_for_branch(branch_id))
             .unwrap_or_default()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn clear_branch_merge_boundary_for_test(
+        &mut self,
+        branch_id: SignalBranchId,
+    ) -> Result<(), SignalError> {
+        if self.graph.current_branch().id == branch_id {
+            let mut state = self.capture_full_branch_state();
+            state.mutation_ledger = crate::logic::transaction::BranchMutationLedger::default();
+            self.branches.insert_branch(branch_id, state);
+            return Ok(());
+        }
+        let Some(state) = self.branches.branch_state_mut_with_allocator_sync(branch_id) else {
+            return Err(SignalError::unknown_branch(Some(branch_id), "test-branch"));
+        };
+        state.mutation_ledger = crate::logic::transaction::BranchMutationLedger::default();
+        Ok(())
     }
 }

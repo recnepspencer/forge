@@ -230,6 +230,10 @@ pub struct InvariantFailure {
 }
 
 impl InvariantFailure {
+    pub fn code(&self) -> crate::diagnostics::data::DiagnosticCode {
+        self.violation.code
+    }
+
     pub fn execution_point(&self) -> InvariantExecutionPoint {
         self.execution_point
     }
@@ -254,6 +258,7 @@ impl InvariantFailure {
         CommitConflict::new(ConflictClass::InvariantViolation {
             code: self.violation.code,
             detail: self.violation.detail,
+            fields: self.violation.fields,
         })
     }
 

@@ -103,8 +103,7 @@ fn same_stage_dependency_rewiring_updates_dependency_edges_and_subscriber_sets_t
     let left_explanation = graph.observe().explain(left).unwrap();
     assert!(left_explanation.rewiring.is_some());
     let left_provenance = graph
-        .observe()
-        .reconstruct_provenance_artifact(left)
+        .observe().materialize().reconstruct_provenance_artifact(left)
         .unwrap();
     assert!(left_provenance.rewiring.is_some());
     assert!(left_provenance
@@ -113,3 +112,4 @@ fn same_stage_dependency_rewiring_updates_dependency_edges_and_subscriber_sets_t
         .any(|link| matches!(link.disposition, CausalDisposition::Topology)));
     graph.assert_bidirectional_consistency().unwrap();
 }
+

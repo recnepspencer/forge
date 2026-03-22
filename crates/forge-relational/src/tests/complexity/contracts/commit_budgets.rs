@@ -1,5 +1,127 @@
+use crate::facade::history::BranchId;
 use crate::facade::transactions::CommitTopology;
 use crate::tests::support::*;
+
+fn relation_integrity_cardinality_runtime() -> RelationalRuntime {
+    RelationIntegritySchemaFixture {
+        relation_integrity: RelationIntegrityDeclarations::new(
+            Vec::new(),
+            vec![crate::schema::data::CardinalityContractDeclaration {
+                contract_id: "source_max_one".to_string(),
+                source_max: Some(1),
+                target_max: None,
+                pair_max: None,
+            }],
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+        ),
+        ..RelationIntegritySchemaFixture::default()
+    }
+    .build_runtime()
+}
+
+fn relation_integrity_uniqueness_runtime() -> RelationalRuntime {
+    RelationIntegritySchemaFixture {
+        relation_integrity: RelationIntegrityDeclarations::new(
+            Vec::new(),
+            Vec::new(),
+            vec![crate::schema::data::UniquenessContractDeclaration {
+                contract_id: "uniq".to_string(),
+                scope: crate::schema::data::UniquenessScope::NormalizedSymmetricEdge,
+            }],
+            Vec::new(),
+            Vec::new(),
+        ),
+        ..RelationIntegritySchemaFixture::default()
+    }
+    .build_runtime()
+}
+
+fn relation_integrity_symmetry_runtime() -> RelationalRuntime {
+    RelationIntegritySchemaFixture {
+        relation_integrity: RelationIntegrityDeclarations::new(
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            vec![crate::schema::data::SymmetryContractDeclaration {
+                contract_id: "paired_twin".to_string(),
+                mode: crate::schema::data::SymmetryMode::PairedTwinRequired,
+            }],
+            Vec::new(),
+        ),
+        ..RelationIntegritySchemaFixture::default()
+    }
+    .build_runtime()
+}
+
+fn relation_integrity_multi_contract_runtime() -> RelationalRuntime {
+    RelationIntegritySchemaFixture {
+        relation_integrity: RelationIntegrityDeclarations::new(
+            vec![crate::schema::data::EndpointKindContractDeclaration {
+                contract_id: "kind".to_string(),
+                allowed_source_kinds: vec![KindId(1)],
+                allowed_target_kinds: vec![KindId(1)],
+                self_edges_allowed: false,
+                cross_context_policy: CrossContextPolicy::AllowExplicit,
+            }],
+            vec![crate::schema::data::CardinalityContractDeclaration {
+                contract_id: "source_max_two".to_string(),
+                source_max: Some(2),
+                target_max: None,
+                pair_max: None,
+            }],
+            vec![crate::schema::data::UniquenessContractDeclaration {
+                contract_id: "uniq".to_string(),
+                scope: crate::schema::data::UniquenessScope::NormalizedSymmetricEdge,
+            }],
+            Vec::new(),
+            Vec::new(),
+        ),
+        ..RelationIntegritySchemaFixture::default()
+    }
+    .build_runtime()
+}
+
+fn relation_integrity_endpoint_deletion_runtime() -> RelationalRuntime {
+    endpoint_deletion_runtime(
+        crate::schema::data::EndpointDeletionIntegrityMode::RejectDeleteWithLiveRelations,
+        CascadeDeletePolicy::RetainDanglingForAudit,
+    )
+}
+
+fn schema_transition_for_subscriber_impact(
+    target_schema_version_id: SchemaVersionId,
+    subscriber_impact: crate::schema::data::SchemaSubscriberImpact,
+) -> crate::schema::data::ProposedSchemaTransition {
+    crate::schema::data::ProposedSchemaTransition {
+        source_schema_id: crate::schema::data::SchemaId("test".to_string()),
+        source_schema_version_id: SchemaVersionId(target_schema_version_id.0 - 1),
+        target_schema_id: crate::schema::data::SchemaId("test".to_string()),
+        target_schema_version_id,
+        diff_atoms: vec![crate::schema::data::SchemaDiffAtom::new(
+            crate::schema::data::SchemaElementRef::new(
+                crate::schema::data::SchemaElementKind::Field,
+                crate::schema::data::SchemaId("test".to_string()),
+                target_schema_version_id,
+                Some(KindId(1)),
+                "tag",
+            ),
+            vec![
+                crate::schema::data::SchemaStratum::StructuralShape,
+                crate::schema::data::SchemaStratum::PublicationContract,
+            ],
+            crate::schema::data::SchemaPublicationImpact::ObservableSurfaceChanged,
+            subscriber_impact,
+            crate::schema::data::HistoricalInterpretationSensitivity::NotSensitive,
+            crate::schema::data::SchemaDiffDetail::AddedField {
+                field_name: "tag".into(),
+                required: false,
+                default_expression: Some("null".into()),
+            },
+        )],
+    }
+}
 
 #[test]
 fn complexity_contract_registry_covers_runtime_hot_paths() {
@@ -314,4 +436,266 @@ fn complexity_budget_preparation_narrow_delta_falls_back_to_serial() {
     assert!(counters.preparation_packet_peak_width_total >= 1);
     assert!(counters.preparation_scope_unit_count >= 1);
     assert!(counters.preparation_serial_strategy_count >= 1);
+}
+
+#[test]
+fn complexity_budget_relation_integrity_skips_entity_only_mutation_work() {
+    let mut runtime = relation_integrity_cardinality_runtime();
+    let entity = create_entity(&mut runtime, "entity-only");
+
+    runtime.performance_access().reset_counters();
+    let _ = update_entity(&mut runtime, entity, "entity-only-updated");
+    let counters = runtime.performance_access().counters();
+
+    assert_eq!(counters.relation_integrity_contracts_evaluated, 0);
+    assert_eq!(counters.relation_endpoint_kind_checks, 0);
+    assert_eq!(counters.relation_cardinality_checks, 0);
+    assert_eq!(counters.relation_uniqueness_checks, 0);
+    assert_eq!(counters.relation_symmetry_checks, 0);
+    assert_eq!(counters.relation_endpoint_deletion_checks, 0);
+}
+
+#[test]
+fn complexity_budget_relation_integrity_uniqueness_uses_adjacency_local_candidates() {
+    let mut runtime = relation_integrity_uniqueness_runtime();
+    let source = create_entity(&mut runtime, "source");
+    let target = create_entity(&mut runtime, "target");
+    let _existing = create_relation(&mut runtime, source, target, "existing");
+    for index in 0..10 {
+        let other_source = create_entity(&mut runtime, &format!("other-source-{index}"));
+        let other_target = create_entity(&mut runtime, &format!("other-target-{index}"));
+        let _ = create_relation(
+            &mut runtime,
+            other_source,
+            other_target,
+            &format!("other-rel-{index}"),
+        );
+    }
+
+    runtime.performance_access().reset_counters();
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("duplicate-unique-relation").push(MutationIntent::Create(
+            CreateIntent::Relation(crate::transactions::data::RelationSpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(2),
+                client_key: InternedString::Raw("duplicate".to_string()),
+                source: target,
+                target: source,
+                payload: Some(RecordPayload::StructuredJson(json!({"label":"duplicate"}))),
+            }),
+        )),
+    );
+    let error = txn.commit().unwrap_err();
+    let counters = runtime.performance_access().counters();
+
+    assert!(matches!(
+        error,
+        TransactionCommitError::Conflict { error: ref conflict, .. }
+            if conflict.code == DiagnosticCode::RelationUniquenessViolation
+    ));
+    assert_eq!(counters.relation_integrity_contracts_evaluated, 1);
+    assert_eq!(counters.relation_uniqueness_checks, 1);
+    assert_eq!(counters.relation_uniqueness_candidates_scanned, 1);
+}
+
+#[test]
+fn complexity_budget_relation_integrity_symmetry_checks_only_touched_pairs() {
+    let mut runtime = relation_integrity_symmetry_runtime();
+    let source = create_entity(&mut runtime, "source");
+    let target = create_entity(&mut runtime, "target");
+
+    runtime.performance_access().reset_counters();
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("missing-twin").push(MutationIntent::Create(
+            CreateIntent::Relation(crate::transactions::data::RelationSpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(2),
+                client_key: InternedString::Raw("missing-twin".to_string()),
+                source,
+                target,
+                payload: Some(RecordPayload::StructuredJson(json!({"label":"missing-twin"}))),
+            }),
+        )),
+    );
+    let error = txn.commit().unwrap_err();
+    let counters = runtime.performance_access().counters();
+
+    assert!(matches!(
+        error,
+        TransactionCommitError::Conflict { error: ref conflict, .. }
+            if conflict.code == DiagnosticCode::RelationSymmetryViolation
+    ));
+    assert_eq!(counters.relation_integrity_contracts_evaluated, 1);
+    assert_eq!(counters.relation_symmetry_checks, 1);
+    assert_eq!(counters.relation_uniqueness_candidates_scanned, 0);
+}
+
+#[test]
+fn complexity_budget_relation_integrity_endpoint_deletion_checks_only_deleted_endpoints() {
+    let mut runtime = relation_integrity_endpoint_deletion_runtime();
+    let (source, _target, _relation) =
+        create_endpoint_deletion_relation_fixture(&mut runtime, "live");
+
+    runtime.performance_access().reset_counters();
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("delete-source").push(MutationIntent::Entity(
+            EntityMutationIntent::Delete(DeleteEntityIntent { entity_id: source }),
+        )),
+    );
+    let error = txn.commit().unwrap_err();
+    let counters = runtime.performance_access().counters();
+
+    assert!(matches!(
+        error,
+        TransactionCommitError::Conflict { error: ref conflict, .. }
+            if conflict.code == DiagnosticCode::RelationEndpointDeletionIntegrityViolation
+    ));
+    assert_eq!(counters.relation_integrity_contracts_evaluated, 1);
+    assert_eq!(counters.relation_endpoint_deletion_checks, 1);
+    assert_eq!(counters.relation_symmetry_checks, 0);
+}
+
+#[test]
+fn complexity_budget_relation_integrity_reuses_touched_scope_across_multiple_contracts() {
+    let mut runtime = relation_integrity_multi_contract_runtime();
+    let source = create_entity(&mut runtime, "source");
+    let target = create_entity(&mut runtime, "target");
+    let _existing = create_relation(&mut runtime, source, target, "existing");
+
+    runtime.performance_access().reset_counters();
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("duplicate-and-missing-twin").push(MutationIntent::Create(
+            CreateIntent::Relation(crate::transactions::data::RelationSpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(2),
+                client_key: InternedString::Raw("duplicate".to_string()),
+                source: target,
+                target: source,
+                payload: Some(RecordPayload::StructuredJson(json!({"label":"duplicate"}))),
+            }),
+        )),
+    );
+    let _error = txn.commit().unwrap_err();
+    let counters = runtime.performance_access().counters();
+
+    assert_eq!(counters.relation_integrity_contracts_evaluated, 3);
+    assert_eq!(
+        counters.relation_uniqueness_candidates_scanned,
+        1,
+        "touched live relation scope should be scanned once per relation kind, not once per contract"
+    );
+}
+
+#[test]
+fn complexity_budget_schema_transition_classification_is_changed_atom_bounded() {
+    let mut runtime = runtime_with_test_schema();
+    let _ = create_entity_outcome(&mut runtime, "anchor");
+
+    runtime.config.schema.registry = AspectSchemaFixture {
+        schema_version_id: SchemaVersionId(2),
+        ..AspectSchemaFixture::default()
+    }
+    .build_registry();
+
+    runtime.performance_access().reset_counters();
+    let mut txn = runtime.begin_transaction(
+        TransactionOptions::default().with_schema_transition(
+            schema_transition_for_subscriber_impact(
+                SchemaVersionId(2),
+                crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
+            ),
+            Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
+        ),
+    );
+    txn.push_batch(batch_create("b"));
+    txn.commit().unwrap();
+    let counters = runtime.performance_access().counters();
+
+    assert_eq!(counters.schema_transition_atoms_inspected, 1);
+    assert_eq!(counters.schema_changed_subtrees_inspected, 1);
+    assert_eq!(counters.schema_unchanged_subtrees_reused_by_fingerprint, 0);
+    assert_eq!(counters.schema_bridge_descriptors_built, 1);
+    assert_eq!(counters.schema_transition_continue_visible_bridge_count, 1);
+    assert_eq!(counters.schema_reconciliation_preserve_information_count, 1);
+}
+
+#[test]
+fn complexity_budget_subscriber_resume_continuity_is_boundary_local() {
+    let mut runtime = runtime_with_test_schema();
+    let _ = create_entity_outcome(&mut runtime, "anchor");
+
+    runtime.config.schema.registry = AspectSchemaFixture {
+        schema_version_id: SchemaVersionId(2),
+        ..AspectSchemaFixture::default()
+    }
+    .build_registry();
+    let mut txn = runtime.begin_transaction(
+        TransactionOptions::default().with_schema_transition(
+            schema_transition_for_subscriber_impact(
+                SchemaVersionId(2),
+                crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
+            ),
+            Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
+        ),
+    );
+    txn.push_batch(batch_create("b"));
+    txn.commit().unwrap();
+
+    runtime.performance_access().reset_counters();
+    let _ = runtime
+        .publication_access()
+        .read_subscriber_stream(SubscriberResumeRequest::from_head(10))
+        .unwrap();
+    let counters = runtime.performance_access().counters();
+
+    assert_eq!(counters.subscriber_resume_evaluations, 2);
+    assert_eq!(counters.subscriber_continue_visible_bridge_count, 2);
+    assert_eq!(counters.schema_normalized_descriptor_compositions, 2);
+}
+
+#[test]
+fn complexity_budget_replay_verification_tracks_digest_and_deep_layers_separately() {
+    let mut runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&mut runtime, "replayable");
+
+    runtime.performance_access().reset_counters();
+    let normal = runtime.replay_authority().replay_commit(
+        crate::replay::data::RelationalReplayRequest {
+            commit_id: created.commit.commit_id,
+            branch_id: BranchId("main".to_string()),
+            execution_mode: crate::replay::data::ReplayExecutionMode::SerialDeterministic,
+            verification_mode: crate::replay::data::ReplayVerificationMode::NormalRecoveryVerification,
+        },
+    );
+    assert!(runtime.replay_access().compare_outcome(&normal));
+    let normal_counters = runtime.performance_access().counters();
+    assert!(normal_counters.replay_digest_parity_checks > 0);
+    assert_eq!(normal_counters.replay_deep_artifact_parity_checks, 0);
+
+    runtime
+        .history_authority()
+        .tamper_commit_patch_for_test(created.commit.commit_id, |patch| {
+            patch.records.clear();
+        });
+
+    runtime.performance_access().reset_counters();
+    let audited = runtime.replay_authority().replay_commit(
+        crate::replay::data::RelationalReplayRequest {
+            commit_id: created.commit.commit_id,
+            branch_id: BranchId("main".to_string()),
+            execution_mode: crate::replay::data::ReplayExecutionMode::SerialDeterministic,
+            verification_mode: crate::replay::data::ReplayVerificationMode::AuditRecoveryVerification,
+        },
+    );
+    assert_eq!(
+        audited.failure,
+        Some(crate::replay::data::ReplayFailureClass::ObservableMismatch)
+    );
+    let audit_counters = runtime.performance_access().counters();
+    assert!(audit_counters.replay_digest_parity_checks > 0);
+    assert!(audit_counters.replay_deep_artifact_parity_checks > 0);
 }

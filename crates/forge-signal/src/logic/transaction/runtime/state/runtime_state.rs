@@ -152,15 +152,15 @@ where
         &self.telemetry
     }
 
-    pub(super) fn capture_authority_state(&self) -> AuthorityState<T> {
+    pub(super) fn capture_full_authority_state(&self) -> AuthorityState<T> {
         AuthorityState::capture(&self.graph, &self.config)
     }
 
-    pub(super) fn capture_derived_state(&self) -> DerivedState<D, I> {
+    pub(super) fn capture_full_derived_state(&self) -> DerivedState<D, I> {
         DerivedState::capture(&self.checkpoint, &self.telemetry)
     }
 
-    pub(super) fn capture_branch_state(&mut self) -> BranchState<D, I, T> {
+    pub(super) fn capture_full_branch_state(&mut self) -> BranchState<D, I, T> {
         let handle = self.graph.current_branch();
         let ancestry = self
             .branches
@@ -182,11 +182,49 @@ where
         mutation_ledger.absorb_records(self.graph.branch_mutation_records());
         self.graph.clear_branch_mutation_nodes();
         self.branches.capture_active_state(
-            self.capture_authority_state(),
-            self.capture_derived_state(),
+            self.capture_full_authority_state(),
+            self.capture_full_derived_state(),
             ancestry,
             mutation_ledger,
         )
+    }
+
+    pub(super) fn take_active_branch_state(&mut self) -> BranchState<D, I, T> {
+        let handle = self.graph.current_branch();
+        let ancestry = self
+            .branches
+            .branch_ancestry_state(handle.id)
+            .cloned()
+            .unwrap_or(BranchAncestryState {
+                branch_id: handle.id,
+                parent_branch_id: handle.parent_branch_id,
+                forked_from_snapshot_id: handle.head_snapshot_id,
+                latest_merge_reference: None,
+            });
+        let mut mutation_ledger = self
+            .branches
+            .branch_state(handle.id)
+            .map(|state| state.mutation_ledger.clone())
+            .unwrap_or_else(|| {
+                BranchMutationLedger::default().with_baseline_snapshot(handle.head_snapshot_id)
+            });
+        mutation_ledger.absorb_records(self.graph.branch_mutation_records());
+        self.graph.clear_branch_mutation_nodes();
+
+        let authority = AuthorityState {
+            graph: std::mem::take(&mut self.graph),
+            config: std::mem::take(&mut self.config),
+        };
+        let checkpoint_policy = self.checkpoint.policy().clone();
+        let derived = DerivedState {
+            checkpoint: std::mem::replace(
+                &mut self.checkpoint,
+                CheckpointRuntime::new(checkpoint_policy),
+            ),
+            telemetry: std::mem::take(&mut self.telemetry),
+        };
+        self.branches
+            .capture_active_state(authority, derived, ancestry, mutation_ledger)
     }
 
     pub(super) fn load_branch_state(&mut self, state: BranchState<D, I, T>) {

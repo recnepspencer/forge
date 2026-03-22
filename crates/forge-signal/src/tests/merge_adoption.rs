@@ -1,4 +1,5 @@
 use crate::data::dependency::DependencySnapshot;
+use crate::data::error::SignalError;
 use crate::facade::*;
 use crate::logic::transaction::{
     BranchMergeResolutionRequirement, ConflictResolutionStrategy,
@@ -829,7 +830,8 @@ fn merge_branch_divergent_shared_node_requires_typed_conflict_surface() {
                     event.kind == ReplayEventKind::FailureRecorded
                         && event
                             .detail
-                            .as_deref()
+                            .as_ref()
+                            .and_then(|detail| detail.as_message())
                             .map(|detail| detail.contains("ReconcileRuntimeArtifactState"))
                             .unwrap_or(false)
                 }),
@@ -1212,7 +1214,7 @@ fn merge_branch_conflict_resolved_emits_resolution_traceability() {
         .iter()
         .rev()
         .find(|event| matches!(event.kind, ReplayEventKind::BranchMerged))
-        .and_then(|event| event.detail.as_deref())
+        .and_then(|event| event.detail.as_ref().and_then(|detail| detail.as_message()))
         .expect("conflict-resolved merge should emit branch merge replay detail");
     assert!(
         replay_detail.contains("resolved_requirements"),
@@ -1686,6 +1688,52 @@ fn active_restore_reinstates_branch_merge_ledger_boundary_for_later_fast_forward
         result.divergence,
         BranchMergeDivergence::None,
         "active restore should clear stale target overlap from the restored branch ledger"
+    );
+}
+
+#[test]
+fn merge_branch_without_established_journal_boundary_fails_explicitly() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let mut runtime_ctx = ();
+    let main = runtime.observe().current_branch();
+    let shared = runtime.graph_mut().node().output_identity().build();
+    let feature = runtime.create_branch("feature-missing-merge-boundary").unwrap();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(140, 0))
+                        .with_output_identity("missing-boundary-feature"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime
+        .clear_branch_merge_boundary_for_test(feature.id)
+        .expect("feature branch state should be present");
+
+    runtime.switch_branch(main.clone()).unwrap();
+    let err = runtime
+        .merge_branch(feature.clone(), main.clone())
+        .expect_err("merge must fail explicitly when no bounded journal boundary exists");
+
+    assert!(matches!(
+        err,
+        SignalError::BranchMergeFailed {
+            kind: BranchMergeFailureKind::UnsupportedMergeStrategy,
+            evidence: None,
+            ..
+        }
+    ));
+    assert!(
+        err.to_string().contains("mutation-journal boundary"),
+        "failure message should explain that bounded journal proof is required"
     );
 }
 

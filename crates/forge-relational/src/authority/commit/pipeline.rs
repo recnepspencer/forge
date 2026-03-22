@@ -8,6 +8,9 @@ use crate::authority::commit::phases::prepare::{
     prepare_working_state_scope, record_preparation_counters,
 };
 use crate::authority::commit::phases::publication::{append_durable_commit, enforce_patch_budget};
+use crate::authority::commit::phases::schema_continuity::{
+    emit_schema_continuity_diagnostic, resolve_schema_continuity,
+};
 use crate::authority::commit::publication::assemble_patch;
 #[cfg(test)]
 use crate::authority::commit::{
@@ -15,9 +18,11 @@ use crate::authority::commit::{
     publication::{current_test_diff_preparation_fault, TestDiffPreparationFault},
 };
 use crate::publication::data::PublicationStatus;
+use crate::schema::data::SchemaTransitionSummary;
 use crate::transactions::data::{
     CommitExecution, CommitLog, CommitOutcome, CommitPatchBudgetSummary, CommitPhase,
-    CommitPhaseTiming, CommitPublication, CommitResult, CommitValidation, TransactionCommitError,
+    CommitPhaseTiming, CommitPublication, CommitResult, CommitSchemaSummary, CommitValidation,
+    TransactionCommitError,
 };
 use crate::transactions::logic::RelationalTransaction;
 use std::sync::Arc;
@@ -111,6 +116,12 @@ impl<'a> RelationalTransaction<'a> {
         commit_log.complete_phase(CommitPhase::HistoryResolution);
         phase_timing.history_resolution_micros = elapsed_micros(phase_started);
 
+        let schema_continuity =
+            resolve_schema_continuity(&mut *self.runtime, &branch_id, &self.options).map_err(|error| {
+                attach_rejection(&mut commit_log, CommitPhase::ArtifactAssembly, error)
+            })?;
+        emit_schema_continuity_diagnostic(self.runtime, &branch_id, &schema_continuity);
+
         {
             commit_log.begin_phase(CommitPhase::InvariantPostCheck);
             let phase_started = Instant::now();
@@ -182,6 +193,7 @@ impl<'a> RelationalTransaction<'a> {
             &merge_parent_branches,
             &merge_base_commits,
             &merged_plan,
+            &schema_continuity,
             effect,
         )
         .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::ArtifactAssembly, error))?;
@@ -287,6 +299,13 @@ impl<'a> RelationalTransaction<'a> {
             .publication_access()
             .diagnostics_since(diagnostics_start);
         let commit_summary = commit_log.summary().clone();
+        let schema_summary = CommitSchemaSummary {
+            transition: canonical_commit_envelope
+                .schema_transition
+                .as_ref()
+                .map(SchemaTransitionSummary::from_artifact),
+            descriptor_semantics_version: canonical_commit_envelope.descriptor_semantics_version,
+        };
         let commit_outcome = CommitOutcome {
             transaction_id: self.transaction_id,
             commit: commit_reference,
@@ -301,6 +320,7 @@ impl<'a> RelationalTransaction<'a> {
             outcome: commit_outcome,
             summary: commit_summary,
             structural_summary: public_structural_summary,
+            schema_summary,
             publication: CommitPublication {
                 diagnostics,
                 envelope: canonical_commit_envelope,
@@ -533,5 +553,6 @@ fn complexity_delta(
         reverse_adjacency_updates: after
             .reverse_adjacency_updates
             .saturating_sub(before.reverse_adjacency_updates),
+        ..RuntimeComplexityCounters::default()
     }
 }

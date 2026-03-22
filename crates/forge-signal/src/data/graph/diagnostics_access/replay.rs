@@ -7,24 +7,16 @@ impl SignalGraph {
         self.observation.diagnostics.replay_events()
     }
 
-    pub(crate) fn replay_where(
-        &self,
-        mut predicate: impl FnMut(&ReplayEvent) -> bool,
-    ) -> ReplaySlice {
+    pub(crate) fn replay_for_branch(&self, branch_id: crate::state::SignalBranchId) -> ReplaySlice {
         ReplaySlice {
             start: None,
             end: None,
             frames: self
-                .replay_events()
-                .iter()
-                .filter(|frame| predicate(frame))
-                .cloned()
-                .collect(),
+                .diagnostics_state()
+                .replay_events_for_branch(branch_id)
+                .map(|frames| frames.iter().cloned().collect())
+                .unwrap_or_default(),
         }
-    }
-
-    pub(crate) fn replay_for_branch(&self, branch_id: crate::state::SignalBranchId) -> ReplaySlice {
-        self.replay_where(|frame| frame.branch_id == branch_id)
     }
 
     pub(crate) fn current_branch(&self) -> SignalBranchHandle {

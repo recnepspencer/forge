@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use crate::diagnostics::data::{DiagnosticCode, DiagnosticsScope, RelationalDiagnosticsEntry};
 use crate::history::data::{BranchCreateError, BranchId, CommitId, CommitReference, VersionNode};
+use crate::indexes::data::DerivedIndexGeneration;
+use crate::lineage::data::LineageEventRecord;
 use crate::logic::runtime::RelationalRuntime;
 use crate::publication::data::diff::PatchStreamPosition;
 use crate::replay::data::CanonicalCommitEnvelope;
@@ -188,19 +190,23 @@ impl<'runtime> HistoryAuthority<'runtime> {
             .insert(patch_position, commit_id);
     }
 
-    pub(crate) fn append_index_generation_ids(&mut self, commit_id: CommitId, ids: &[u64]) {
+    pub(crate) fn append_index_generations(
+        &mut self,
+        commit_id: CommitId,
+        generations: &[DerivedIndexGeneration],
+    ) {
         if let Some(envelope) = self.runtime.history.commit_envelopes.get_mut(&commit_id) {
-            Arc::make_mut(envelope)
-                .index_generation_ids
-                .extend(ids.iter().copied());
+            Arc::make_mut(envelope).append_index_generations_canonical(generations);
         }
     }
 
-    pub(crate) fn append_lineage_event_ids(&mut self, commit_id: CommitId, event_ids: &[u64]) {
+    pub(crate) fn append_lineage_events(
+        &mut self,
+        commit_id: CommitId,
+        events: &[LineageEventRecord],
+    ) {
         if let Some(envelope) = self.runtime.history.commit_envelopes.get_mut(&commit_id) {
-            Arc::make_mut(envelope)
-                .lineage_event_ids
-                .extend(event_ids.iter().copied());
+            Arc::make_mut(envelope).append_lineage_events_canonical(events);
         }
     }
 
@@ -229,6 +235,19 @@ impl<'runtime> HistoryAuthority<'runtime> {
             return false;
         };
         mutate(&mut Arc::make_mut(envelope).patch);
+        true
+    }
+
+    #[cfg(test)]
+    pub(crate) fn tamper_commit_envelope_for_test(
+        &mut self,
+        commit_id: crate::history::data::CommitId,
+        mutate: impl FnOnce(&mut CanonicalCommitEnvelope),
+    ) -> bool {
+        let Some(envelope) = self.runtime.history.commit_envelopes.get_mut(&commit_id) else {
+            return false;
+        };
+        mutate(Arc::make_mut(envelope));
         true
     }
 }
