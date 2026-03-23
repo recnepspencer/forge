@@ -439,12 +439,13 @@ mod tests {
         symbols: &'a mut StringInterner,
         aspect_plans: &'a AspectPlanCatalog,
         config: &'a crate::config::data::MutationConfig,
+        schema: &'a RelationalSchemaRegistry,
     ) -> MutationWorkspace<'a> {
         MutationWorkspace::new(
             state,
             symbols,
             config,
-            &RelationalSchemaRegistry::new(),
+            schema,
             aspect_plans,
             VersionId(1),
         )
@@ -456,6 +457,7 @@ mod tests {
         let mut state = WorkingState::new(BTreeMap::new(), config.adjacency_policy.clone());
         let mut symbols = StringInterner::default();
         let catalog = AspectPlanCatalog::empty();
+        let schema = RelationalSchemaRegistry::new();
         let mutation = RecordMutation::EntityCreated {
             entity_id: EntityId::new(PartitionId(1), 0, 1),
             kind_id: KindId(999),
@@ -464,7 +466,7 @@ mod tests {
 
         let error = canonical_delta_for_mutation(
             &mutation,
-            &empty_workspace(&mut state, &mut symbols, &catalog, &config),
+            &empty_workspace(&mut state, &mut symbols, &catalog, &config, &schema),
         )
         .unwrap_err();
 
@@ -482,6 +484,7 @@ mod tests {
         let mut state = WorkingState::new(BTreeMap::new(), config.adjacency_policy.clone());
         let mut symbols = StringInterner::default();
         let catalog = AspectPlanCatalog::empty();
+        let schema = RelationalSchemaRegistry::new();
         let source = EntityId::new(PartitionId(1), 0, 1);
         let target = EntityId::new(PartitionId(1), 1, 1);
         let mutation = RecordMutation::RelationCreated {
@@ -496,7 +499,7 @@ mod tests {
 
         let error = canonical_delta_for_mutation(
             &mutation,
-            &empty_workspace(&mut state, &mut symbols, &catalog, &config),
+            &empty_workspace(&mut state, &mut symbols, &catalog, &config, &schema),
         )
         .unwrap_err();
 
@@ -513,6 +516,7 @@ mod tests {
         let config = mutation_config();
         let mut state = WorkingState::new(BTreeMap::new(), config.adjacency_policy.clone());
         let mut symbols = StringInterner::default();
+        let schema = RelationalSchemaRegistry::new();
         let symbolic = InternedString::Symbol(symbols.intern("symbolic-field"));
         let mut catalog = AspectPlanCatalog::empty();
         catalog.entity_plans.insert(
@@ -537,7 +541,7 @@ mod tests {
 
         let error = canonical_delta_for_mutation(
             &mutation,
-            &empty_workspace(&mut state, &mut symbols, &catalog, &config),
+            &empty_workspace(&mut state, &mut symbols, &catalog, &config, &schema),
         )
         .unwrap_err();
 

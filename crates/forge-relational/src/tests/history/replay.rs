@@ -676,8 +676,8 @@ fn replay_contract_preserves_aspect_bearing_patch_and_history_surfaces() {
     assert_eq!(expected_relation_history.len(), 1);
     assert_eq!(expected_entity_digest.entry_count, 2);
     assert_eq!(expected_relation_digest.entry_count, 1);
-    assert_patch_truth_invariants(&updated);
-    assert_patch_truth_invariants(&relation_outcome);
+    let _ = assert_patch_truth_invariants(&updated);
+    let _ = assert_patch_truth_invariants(&relation_outcome);
 }
 
 #[test]

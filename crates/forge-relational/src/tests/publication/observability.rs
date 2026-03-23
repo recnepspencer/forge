@@ -588,9 +588,9 @@ fn aspect_traces_and_diagnostics_are_stable_across_supported_execution_models() 
         aspect_relevant_diagnostics(serial_outcome.diagnostics()),
         aspect_relevant_diagnostics(post_commit_outcome.diagnostics())
     );
-    assert_patch_truth_invariants(&serial_outcome);
-    assert_patch_truth_invariants(&staged_outcome);
-    assert_patch_truth_invariants(&post_commit_outcome);
+    let _ = assert_patch_truth_invariants(&serial_outcome);
+    let _ = assert_patch_truth_invariants(&staged_outcome);
+    let _ = assert_patch_truth_invariants(&post_commit_outcome);
 }
 
 fn aspect_relevant_diagnostics(

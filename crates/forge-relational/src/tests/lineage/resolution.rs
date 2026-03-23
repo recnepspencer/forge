@@ -140,7 +140,7 @@ fn lineage_aspect_history_keeps_origin_events_and_marks_resolution_context() {
     assert_eq!(digest.traversed_lineage_events, 1);
     assert_eq!(
         digest.resolved_lineage_chain_len,
-        history.resolved_lineage_chain.len()
+        history.resolved_lineage_chain.len() as u64
     );
     assert_eq!(traced.history.as_ref(), Some(&history));
     assert_eq!(history.traversed_event_ids.len(), 1);

@@ -268,9 +268,9 @@ pub(super) fn assert_patch_truth_invariants(result: &CommitResult) -> PatchVsTru
         "patch surface diverged from canonical aspect truth: {:?}",
         patch_vs_truth
     );
-    assert_eq!(patch_vs_truth.records_checked, result.patch().len());
-    assert_eq!(tag_accuracy.records_checked, result.patch().len());
-    assert_eq!(tag_accuracy.correctly_tagged_records, result.patch().len());
+    assert_eq!(patch_vs_truth.records_checked, result.patch().len() as u64);
+    assert_eq!(tag_accuracy.records_checked, result.patch().len() as u64);
+    assert_eq!(tag_accuracy.correctly_tagged_records, result.patch().len() as u64);
 
     patch_vs_truth
 }

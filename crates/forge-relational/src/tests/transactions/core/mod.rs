@@ -589,7 +589,7 @@ fn entity_patch_aspects_follow_declared_semantics_not_payload_keys() {
     let created_patch = &created.patch()[0];
     let created_aspect_summary = created.aspect_summary().unwrap();
 
-    assert_patch_truth_invariants(&created);
+    let _ = assert_patch_truth_invariants(&created);
 
     assert_eq!(
         created_patch.structural_change,
@@ -624,7 +624,7 @@ fn entity_patch_aspects_follow_declared_semantics_not_payload_keys() {
     let updated_patch = &updated.patch()[0];
     let updated_aspect_summary = updated.aspect_summary().unwrap();
 
-    assert_patch_truth_invariants(&updated);
+    let _ = assert_patch_truth_invariants(&updated);
 
     assert_eq!(
         updated_patch.structural_change,
@@ -671,7 +671,7 @@ fn retained_relation_patch_only_emits_declared_lifecycle_delta_when_endpoints_an
     let relation_patch = &relation_outcome.patch()[0];
     let relation_aspect_summary = relation_outcome.aspect_summary().unwrap();
 
-    assert_patch_truth_invariants(&relation_outcome);
+    let _ = assert_patch_truth_invariants(&relation_outcome);
 
     assert_eq!(
         relation_patch.structural_change,
@@ -696,7 +696,7 @@ fn retained_relation_patch_only_emits_declared_lifecycle_delta_when_endpoints_an
         .expect("retained relation patch");
     let deleted_source_aspect_summary = deleted_source.aspect_summary().unwrap();
 
-    assert_patch_truth_invariants(&deleted_source);
+    let _ = assert_patch_truth_invariants(&deleted_source);
 
     assert_eq!(
         retained_relation_patch.structural_change,

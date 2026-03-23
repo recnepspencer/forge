@@ -154,7 +154,7 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
 
     assert!(rollback_b.has_effects());
     assert!(rollback_a.has_effects());
-    assert_patch_truth_invariants(&outcome);
+    let _ = assert_patch_truth_invariants(&outcome);
     assert_patch_omits_detail(&outcome, "abandoned");
 
     assert_subscriber_stream_omits_detail(&runtime, checkpoint, "abandoned");
