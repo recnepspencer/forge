@@ -2,14 +2,14 @@ use crate::data::graph::SignalGraph;
 
 use super::super::execution::StageSlice;
 #[cfg(feature = "parallel")]
-use super::super::types::ParallelExecutionKind;
+use super::super::types::{ParallelAdmissionReason, ParallelExecutionKind};
 use super::super::types::StageExecutor;
 
 #[cfg(feature = "parallel")]
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct StageParallelAdmission {
     pub(crate) use_parallel: bool,
-    pub(crate) reason: &'static str,
+    pub(crate) reason: ParallelAdmissionReason,
     pub(crate) kind: Option<ParallelExecutionKind>,
 }
 
@@ -22,14 +22,14 @@ pub(crate) fn decide_stage_parallel_admission(
     let Some(parallel_policy) = executor.parallel_policy() else {
         return StageParallelAdmission {
             use_parallel: false,
-            reason: "serial-executor",
+            reason: ParallelAdmissionReason::SerialExecutor,
             kind: None,
         };
     };
     if executor.is_full_parallel() {
         return StageParallelAdmission {
             use_parallel: false,
-            reason: "full-parallel-unsupported-by-mutable-engine",
+            reason: ParallelAdmissionReason::FullParallelUnsupportedByMutableEngine,
             kind: None,
         };
     }
@@ -37,7 +37,7 @@ pub(crate) fn decide_stage_parallel_admission(
     if stage_width < parallel_policy.min_stage_width.get() {
         return StageParallelAdmission {
             use_parallel: false,
-            reason: "below-min-stage-width",
+            reason: ParallelAdmissionReason::BelowMinStageWidth,
             kind: None,
         };
     }
@@ -54,7 +54,7 @@ pub(crate) fn decide_stage_parallel_admission(
     if stage_width < effective_parallel_threshold {
         return StageParallelAdmission {
             use_parallel: false,
-            reason: "below-policy-work-threshold",
+            reason: ParallelAdmissionReason::BelowPolicyWorkThreshold,
             kind: None,
         };
     }
@@ -74,7 +74,7 @@ pub(crate) fn decide_stage_parallel_admission(
     {
         return StageParallelAdmission {
             use_parallel: false,
-            reason: "validation-heavy-stage",
+            reason: ParallelAdmissionReason::ValidationHeavyStage,
             kind: None,
         };
     }
@@ -87,16 +87,22 @@ pub(crate) fn decide_stage_parallel_admission(
     {
         return StageParallelAdmission {
             use_parallel: false,
-            reason: "below-full-parallel-threshold",
+            reason: ParallelAdmissionReason::BelowFullParallelThreshold,
             kind: None,
         };
     }
     StageParallelAdmission {
         use_parallel: true,
         reason: match runtime_policy.tier {
-            crate::diagnostics::profile::DiagnosticsTier::Operational => "admitted-operational",
-            crate::diagnostics::profile::DiagnosticsTier::Development => "admitted-development",
-            crate::diagnostics::profile::DiagnosticsTier::Forensic => "admitted-forensic",
+            crate::diagnostics::profile::DiagnosticsTier::Operational => {
+                ParallelAdmissionReason::AdmittedOperational
+            }
+            crate::diagnostics::profile::DiagnosticsTier::Development => {
+                ParallelAdmissionReason::AdmittedDevelopment
+            }
+            crate::diagnostics::profile::DiagnosticsTier::Forensic => {
+                ParallelAdmissionReason::AdmittedForensic
+            }
         },
         kind: executor.parallel_kind(),
     }

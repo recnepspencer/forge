@@ -10,9 +10,10 @@ use crate::diagnostics::lineage::LineageArtifactId;
 use super::adoption::{SourceNodeAdoptionCarryPolicy, SourceNodeAdoptionPlanCore};
 use super::conflict::{BranchConflictResolutionPlan, BranchMergeConflictKind};
 use super::core::{
-    BranchMergeBase, BranchMergeDivergence, BranchMergeKind, BranchMergeStrategy, MergeCandidateScope,
+    BranchMergeBase, BranchMergeDivergence, BranchMergeKind, BranchMergeStrategy,
+    MergeBoundaryWitness,
 };
-use super::journal::{BranchMutationJournalSlice, MergeNodeMap};
+use super::journal::{BranchMutationJournalSlice, MergeNodeMap, StructuralMergeJournalSlice};
 use super::policy::BranchMergeReconciliationPolicy;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -65,17 +66,54 @@ pub struct NodeMergePlan {
     pub resolved_conflict_kinds: Vec<BranchMergeConflictKind>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProofMinimalOverlapBasis {
+    pub shared_nodes: Vec<NodeId>,
+}
+
+impl ProofMinimalOverlapBasis {
+    pub fn breadth(&self) -> u64 {
+        self.shared_nodes.len() as u64
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ConservativeOverlapExpansion {
+    pub expanded_nodes: Vec<NodeId>,
+    pub support_nodes: Vec<NodeId>,
+}
+
+impl ConservativeOverlapExpansion {
+    pub fn breadth(&self) -> u64 {
+        self.expanded_nodes.len() as u64
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PlannedMergeCandidateSet {
+    pub nodes: Vec<NodeId>,
+}
+
+impl PlannedMergeCandidateSet {
+    pub fn breadth(&self) -> u64 {
+        self.nodes.len() as u64
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct BranchMergePlan {
+pub struct LoweredMergePlan {
     pub source_branch_id: crate::state::SignalBranchId,
     pub target_branch_id: crate::state::SignalBranchId,
     pub merge_kind: BranchMergeKind,
     pub divergence: BranchMergeDivergence,
     pub merge_strategy: BranchMergeStrategy,
     pub reconciliation_policy: BranchMergeReconciliationPolicy,
-    pub candidate_scope: MergeCandidateScope,
-    pub source_journal: BranchMutationJournalSlice,
+    pub boundary_witness: MergeBoundaryWitness,
+    pub source_journal: StructuralMergeJournalSlice,
     pub target_overlap_journal: BranchMutationJournalSlice,
+    pub proof_minimal_overlap: ProofMinimalOverlapBasis,
+    pub conservative_overlap: ConservativeOverlapExpansion,
+    pub planned_candidates: PlannedMergeCandidateSet,
     pub source_snapshot_id: Option<crate::state::SignalSnapshotId>,
     pub target_snapshot_id_before: Option<crate::state::SignalSnapshotId>,
     pub merge_base: Option<BranchMergeBase>,
@@ -85,3 +123,5 @@ pub struct BranchMergePlan {
     pub adoption_core: Vec<SourceNodeAdoptionPlanCore>,
     pub adoption_policy: Vec<SourceNodeAdoptionCarryPolicy>,
 }
+
+pub type BranchMergePlan = LoweredMergePlan;

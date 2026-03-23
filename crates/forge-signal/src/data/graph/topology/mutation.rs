@@ -171,6 +171,9 @@ impl SignalGraph {
         desired: &[DependencyEdge],
     ) -> Result<DependencyReconciliationReport, SignalError> {
         self.validate_handle(node)?;
+        for edge in desired {
+            self.validate_handle(edge.source())?;
+        }
         let mut report = DependencyReconciliationReport::default();
         let (current_sources, desired_sources) = {
             let current = self.raw_dependencies_of(node)?;
@@ -212,14 +215,28 @@ impl SignalGraph {
         &mut self,
         reconciliations: &[(NodeId, CanonicalDependencies)],
     ) -> Result<Vec<DependencyReconciliationReport>, SignalError> {
+        self.reconcile_dependencies_batch_borrowed(
+            &reconciliations
+                .iter()
+                .map(|(node, desired)| (*node, desired.as_slice()))
+                .collect::<Vec<_>>(),
+        )
+    }
+
+    pub(crate) fn reconcile_dependencies_batch_borrowed(
+        &mut self,
+        reconciliations: &[(NodeId, &[DependencyEdge])],
+    ) -> Result<Vec<DependencyReconciliationReport>, SignalError> {
         let mut reports = vec![DependencyReconciliationReport::default(); reconciliations.len()];
         let mut subscriber_ops = Vec::<SubscriberBatchOp>::new();
 
         for (index, reconciliation) in reconciliations.iter().enumerate() {
             let (node, desired) = reconciliation;
             self.validate_handle(*node)?;
+            for edge in *desired {
+                self.validate_handle(edge.source())?;
+            }
             let current = self.raw_dependencies_of(*node)?;
-            let desired = desired.as_slice();
             let current_sources = unique_sources_from_sorted_dependencies(current);
             let desired_sources = unique_sources_from_sorted_dependencies(desired);
             let report = reconcile_dependency_slices(current, desired);

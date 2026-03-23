@@ -119,6 +119,17 @@ fn schema_transition_for_subscriber_impact(
                 required: false,
                 default_expression: Some("null".into()),
             },
+        )
+        .with_boundary_visibility_proof(
+            match subscriber_impact {
+                crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged => {
+                    crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable
+                }
+                crate::schema::data::SchemaSubscriberImpact::ContractUpgradeRequired => {
+                    crate::schema::data::SubscriberBoundaryVisibility::VisibleRequiresContractUptake
+                }
+                _ => crate::schema::data::SubscriberBoundaryVisibility::NotVisible,
+            },
         )],
     }
 }
@@ -652,9 +663,9 @@ fn complexity_budget_subscriber_resume_continuity_is_boundary_local() {
         .unwrap();
     let counters = runtime.performance_access().counters();
 
-    assert_eq!(counters.subscriber_resume_evaluations, 2);
-    assert_eq!(counters.subscriber_continue_visible_bridge_count, 2);
-    assert_eq!(counters.schema_normalized_descriptor_compositions, 2);
+    assert_eq!(counters.subscriber_resume_evaluations, 1);
+    assert_eq!(counters.subscriber_continue_visible_bridge_count, 1);
+    assert_eq!(counters.schema_normalized_descriptor_compositions, 1);
 }
 
 #[test]
@@ -745,14 +756,14 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
     let cdc_counters = runtime.performance_access().counters();
 
     assert_eq!(cdc_counters.schema_transition_atoms_inspected, 0);
-    assert_eq!(cdc_counters.subscriber_resume_evaluations, 2);
-    assert_eq!(cdc_counters.subscriber_continue_visible_bridge_count, 2);
-    assert_eq!(cdc_counters.schema_normalized_descriptor_compositions, 2);
+    assert_eq!(cdc_counters.subscriber_resume_evaluations, 1);
+    assert_eq!(cdc_counters.subscriber_continue_visible_bridge_count, 1);
+    assert_eq!(cdc_counters.schema_normalized_descriptor_compositions, 1);
     assert_eq!(cdc_counters.replay_digest_parity_checks, 0);
     assert_eq!(cdc_counters.replay_deep_artifact_parity_checks, 0);
 
     runtime.performance_access().reset_counters();
-    let plan = runtime.durability_access().recovery_plan();
+    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     let plan_counters = runtime.performance_access().counters();
 
     assert!(plan_counters.replay_digest_parity_checks >= 1);
@@ -790,3 +801,4 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
             .is_some()
     );
 }
+

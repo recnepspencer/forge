@@ -29,6 +29,48 @@ It is the implementation-side acceptance companion for that plan.
 - If a batch depends on future certification harness work, the gap must be named explicitly.
 - Cold reconstruction may be exposed, but only through explicitly named materialization or reconstruction APIs.
 - No acceptance row is complete until both success and negative-space behavior are covered.
+- For work that closes `S9.9`, `S9.10`, `S9.12`, or `S9.15`, acceptance must also name the retired legacy surface, not only the new target surface.
+- "Supported" means "representable through the public or owned internal execution path," not "documented as preferred."
+
+## Implementation Control Addendum For `S9.9` / `S9.10` / `S9.12` / `S9.15`
+
+These workstreams need tighter acceptance scaffolding than ordinary batch work
+because they are substrate-replacement programs, not feature additions.
+
+### Required Acceptance Questions
+
+Every implementation batch touching one of these workstreams must answer all of
+the following:
+
+1. What legacy execution surface is being retired?
+2. What proof-bearing type now owns admissibility?
+3. What phase boundary now emits the named proof?
+4. What counter proves the new path stayed bounded?
+5. What exact invalid path is now impossible or rejected before construction?
+
+If a batch cannot answer those five questions, it has not yet produced an
+acceptance-quality architectural change.
+
+### Required Migration Tracking Shape
+
+Implementation notes or closeout notes for these workstreams must include a row
+using this schema:
+
+| Workstream | Legacy surface retired | Bridge surface remaining | Final proof-bearing surface | Counter surface | Negative-space proof |
+| --- | --- | --- | --- | --- | --- |
+
+### Required Closeout Impossibility Checks
+
+The following must be tracked explicitly as negative-space acceptance items:
+
+- reconstructability without bounded journal proof
+- restore from snapshot-like bundles
+- whole-live candidate scope on supported merge paths
+- grouped concurrent apply that serializes semantic work under a parallel label
+- worker writes to shared runtime surfaces
+- rollback via baseline bundle semantics
+- branch restore without reconstructability proof
+- routine lifecycle access to heavy capture
 
 ## Acceptance Table
 
@@ -43,6 +85,17 @@ It is the implementation-side acceptance companion for that plan.
 | `S9.16.6` certification harness | Geometry-readiness claims come from workload-shaped certification, not anecdote | runtime counters and canonical summaries consumed by harness | future work | no log-scraping, no microbench overclaiming |
 
 ## Batch Tracking
+
+### Substrate Completion Tracking
+
+The following rows bind the completion spec to acceptance ownership.
+
+| Workstream | Invariant | Required proof surface | Required counters | Negative space |
+| --- | --- | --- | --- | --- |
+| `S9.12` reconstructability completion | checkpoint + bounded journal + required derived rebuild is the only supported restore truth | `CheckpointBoundary`, `BoundedJournalSegment`, `RequiredDerivedRebuildSet`, `ReconstructabilityProof` | `journal_replay_span`, `journal_suffix_breadth`, `restore_authority_breadth`, `restore_required_derived_breadth`, `restore_diagnostic_richness_breadth` | no restore from snapshot bundle, no optional journal proof, no diagnostics-driven semantic rebuild |
+| `S9.15` bounded merge completion | supported merge candidate construction is purely proof-driven and bounded | `MergeBoundaryWitness`, `StructuralMergeJournalSlice`, `ProofMinimalOverlapBasis`, `ConservativeOverlapExpansion`, `LoweredMergePlan` | `boundary_witness_kind`, `source_slice_breadth`, `proof_minimal_overlap_breadth`, `conservative_overlap_expansion_breadth`, `final_candidate_breadth`, `reconciliation_breadth` | no `MergeCandidateScope`, no whole-live supported candidate scope, no ambient branch-state discovery |
+| `S9.9` true parallel apply completion | grouped concurrent apply is real on proof-safe static stages and all other full-parallel requests lower honestly to serial | `DisjointApplyProof`, `GroupLocalApplyPacket`, `ConcurrentApplyReductionPlan`, `LoweredApplyPlan` | `group_local_packet_breadth`, `reduction_packet_breadth`, `reduction_group_count`, `shared_surface_publication_breadth`, `parallel_admission_rejection_reason` | no fake `FullParallel`, no worker access to shared surfaces, no reduction-side semantic recomputation |
+| `S9.10` rollback and lifecycle completion | rollback is effect-derived and lifecycle transfer is type-separated and cost-honest | `TransactionRollbackPacket`, `AuthorityTransferPacket`, `ExplicitBranchForkPacket`, `HeavyCaptureWitness`, `BranchLifecycleTransfer` | `rollback_packet_breadth`, `rollback_packet_count_by_subsystem`, `move_transfer_count`, `explicit_fork_count`, `restore_transfer_count`, `heavy_capture_count` | no baseline-bundle rollback truth, no implicit duplication on branch switch, no raw branch-bundle restore |
 
 ### `S9.16.1` Current Batch
 
@@ -142,3 +195,8 @@ This map should be read alongside:
 
 Those docs define certification philosophy and domain workflow expectations.
 This map binds `S9.16` implementation batches to concrete acceptance ownership inside `forge-signal`.
+
+For `S9.9`, `S9.10`, `S9.12`, and `S9.15`, this map should be read together
+with [s9_missing_substrate_completion.md](/C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge_signal/s9_missing_substrate_completion.md).
+That document defines the proof chain and migration discipline; this map defines
+the acceptance owner, counters, and negative-space obligations.

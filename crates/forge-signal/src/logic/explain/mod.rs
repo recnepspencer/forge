@@ -4,6 +4,7 @@ mod resolver;
 mod types;
 
 pub use chain::dependency_chain_to;
+pub(crate) use resolver::derive_rewiring_summary;
 pub use resolver::{explain, explain_with_policy_resolver};
 pub use types::{
     CausalDisposition, CausalLink, CausalLinkKind, ConditionDecision, MeaningfulChangeReason,

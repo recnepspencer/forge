@@ -7,8 +7,7 @@ use crate::publication::cdc::diagnostics::{
     continuation_assessment_artifact, recovery_decision_artifact,
 };
 use crate::publication::cdc::planning::checkpoint_resolution::{
-    durable_checkpoint_available, durable_envelopes, latest_available_checkpoint,
-    latest_available_checkpoint_basis,
+    checkpoint_basis_from_patch_position, durable_envelopes, latest_available_checkpoint,
     resolve_checkpoint,
 };
 use crate::publication::cdc::planning::{
@@ -37,27 +36,30 @@ pub(crate) fn plan_subscriber_recovery(
         ));
     }
 
-    let (start_after_position, mut diagnostics) =
-        resolve_checkpoint(runtime, request.checkpoint())?;
-    let use_durable_source = request.checkpoint().is_some_and(|checkpoint| {
-        !runtime
+    let preloaded_durable_envelopes = request.checkpoint().and_then(|checkpoint| {
+        (!runtime
             .history_access()
-            .contains_patch_stream_position(checkpoint.position())
-            && durable_checkpoint_available(runtime, checkpoint)
+            .contains_patch_stream_position(checkpoint.position()))
+        .then(|| durable_envelopes(runtime))
     });
-    let source_envelopes = if use_durable_source {
-        durable_envelopes(runtime)
+    let (start_after_position, mut diagnostics) = resolve_checkpoint(
+        runtime,
+        request.checkpoint(),
+        preloaded_durable_envelopes.as_deref(),
+    )?;
+    let use_durable_source = preloaded_durable_envelopes
+        .as_ref()
+        .is_some_and(|envelopes| {
+            request
+                .checkpoint()
+                .is_some_and(|checkpoint| envelopes.iter().any(|envelope| envelope.patch.position == checkpoint.position()))
+        });
+    let source_envelopes = if let Some(envelopes) = preloaded_durable_envelopes {
+        envelopes
     } else {
         runtime
             .history_access()
             .envelopes_after(start_after_position, request.max_commits())
-    };
-    let latest_available_envelopes = if use_durable_source {
-        durable_envelopes(runtime)
-    } else {
-        runtime
-            .history_access()
-            .envelopes_after(start_after_position, usize::MAX)
     };
     if let Some(checkpoint) = request.checkpoint() {
         if checkpoint.subscriber_contract_id() != request.subscriber_contract().contract_id {
@@ -79,7 +81,6 @@ pub(crate) fn plan_subscriber_recovery(
     }
     let selected_envelopes = select_execution_envelopes(
         &source_envelopes,
-        use_durable_source,
         start_after_position,
         request.max_commits(),
     );
@@ -123,33 +124,21 @@ pub(crate) fn plan_subscriber_recovery(
         },
         start_after_position,
     };
-    let latest_available_assessment = assess_subscriber_continuity(
-        runtime,
-        &latest_available_envelopes,
-        request.subscriber_contract(),
-        &prior_proof,
-        fallback_descriptor_semantics_version,
-    )
-    .map_err(|failure| {
-        SubscriberStreamFailure::new(
-            failure.class,
-            failure.detail,
-            latest_available_checkpoint(runtime),
-            failure.diagnostics,
-        )
-    })?;
-    let latest_available_checkpoint = latest_available_checkpoint_basis(runtime).map(|basis| {
-        let descriptor_semantics_version =
-            latest_available_assessment
+    let latest_available_checkpoint = selected_envelopes
+        .last()
+        .and_then(|envelope| checkpoint_basis_from_patch_position(runtime, envelope.patch.position))
+        .map(|basis| {
+            let descriptor_semantics_version = continuation_assessment
                 .normalized_continuation_proof
                 .descriptor_semantics_version();
-        crate::publication::cdc::data::SubscriberCheckpoint::from_basis_with_assessment(
-            basis,
-            request.subscriber_contract().contract_id.clone(),
-            &latest_available_assessment,
-            descriptor_semantics_version,
-        )
-    });
+            crate::publication::cdc::data::SubscriberCheckpoint::from_basis_with_assessment(
+                basis,
+                request.subscriber_contract().contract_id.clone(),
+                &continuation_assessment,
+                descriptor_semantics_version,
+            )
+        })
+        .or_else(|| request.checkpoint().cloned());
     diagnostics.push(continuation_assessment_artifact(
         &request,
         &continuation_assessment,

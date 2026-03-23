@@ -55,7 +55,10 @@ fn materialization_label(mode: DiagnosticsAvailability) -> &'static str {
     match mode {
         DiagnosticsAvailability::RetainedAvailable => "retained",
         DiagnosticsAvailability::ReconstructedAvailable => "reconstructed",
-        DiagnosticsAvailability::OmittedByTier => "unavailable",
+        DiagnosticsAvailability::OmittedByTier
+        | DiagnosticsAvailability::DeniedByBudget
+        | DiagnosticsAvailability::UnavailableNotRetained
+        | DiagnosticsAvailability::UnavailableNotReconstructable => "unavailable",
     }
 }
 

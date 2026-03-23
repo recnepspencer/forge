@@ -67,13 +67,14 @@ impl RecordKind for EntityRecordKind {
         kind_id: KindId,
         generation: u32,
         version_id: VersionId,
-        _extra: &Self::Extra,
+        extra: &Self::Extra,
     ) -> Self::Meta {
         VersionedEntityMetadata {
             effective_at: version_id,
             retired_at: None,
             generation,
             kind_id,
+            lineage_id: extra.lineage_id,
         }
     }
 }

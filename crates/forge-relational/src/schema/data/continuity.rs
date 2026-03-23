@@ -17,6 +17,45 @@ impl Default for DescriptorSemanticsVersion {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DescriptorSemanticsCompatibilityPolicy {
+    current_write_version: DescriptorSemanticsVersion,
+    supported_historical_versions: BTreeSet<DescriptorSemanticsVersion>,
+}
+
+impl DescriptorSemanticsCompatibilityPolicy {
+    pub fn new(
+        current_write_version: DescriptorSemanticsVersion,
+        supported_historical_versions: impl IntoIterator<Item = DescriptorSemanticsVersion>,
+    ) -> Self {
+        let mut supported_historical_versions =
+            supported_historical_versions.into_iter().collect::<BTreeSet<_>>();
+        supported_historical_versions.insert(current_write_version);
+        Self {
+            current_write_version,
+            supported_historical_versions,
+        }
+    }
+
+    pub fn current_write_version(&self) -> DescriptorSemanticsVersion {
+        self.current_write_version
+    }
+
+    pub fn supports(&self, version: DescriptorSemanticsVersion) -> bool {
+        self.supported_historical_versions.contains(&version)
+    }
+}
+
+impl Default for DescriptorSemanticsCompatibilityPolicy {
+    fn default() -> Self {
+        Self::new(DescriptorSemanticsVersion::default(), [DescriptorSemanticsVersion::default()])
+    }
+}
+
+pub fn runtime_descriptor_semantics_policy() -> DescriptorSemanticsCompatibilityPolicy {
+    DescriptorSemanticsCompatibilityPolicy::default()
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct DescriptorCanonicalizationVersion(pub u32);
 
@@ -24,6 +63,49 @@ impl Default for DescriptorCanonicalizationVersion {
     fn default() -> Self {
         Self(1)
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DescriptorCanonicalizationCompatibilityPolicy {
+    current_write_version: DescriptorCanonicalizationVersion,
+    supported_historical_versions: BTreeSet<DescriptorCanonicalizationVersion>,
+}
+
+impl DescriptorCanonicalizationCompatibilityPolicy {
+    pub fn new(
+        current_write_version: DescriptorCanonicalizationVersion,
+        supported_historical_versions: impl IntoIterator<Item = DescriptorCanonicalizationVersion>,
+    ) -> Self {
+        let mut supported_historical_versions =
+            supported_historical_versions.into_iter().collect::<BTreeSet<_>>();
+        supported_historical_versions.insert(current_write_version);
+        Self {
+            current_write_version,
+            supported_historical_versions,
+        }
+    }
+
+    pub fn current_write_version(&self) -> DescriptorCanonicalizationVersion {
+        self.current_write_version
+    }
+
+    pub fn supports(&self, version: DescriptorCanonicalizationVersion) -> bool {
+        self.supported_historical_versions.contains(&version)
+    }
+}
+
+impl Default for DescriptorCanonicalizationCompatibilityPolicy {
+    fn default() -> Self {
+        Self::new(
+            DescriptorCanonicalizationVersion::default(),
+            [DescriptorCanonicalizationVersion::default()],
+        )
+    }
+}
+
+pub fn runtime_descriptor_canonicalization_policy(
+) -> DescriptorCanonicalizationCompatibilityPolicy {
+    DescriptorCanonicalizationCompatibilityPolicy::default()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -116,6 +198,13 @@ pub enum SchemaSubscriberImpact {
     RenegotiationRequired,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum SubscriberBoundaryVisibility {
+    NotVisible,
+    VisibleSemanticallyIgnorable,
+    VisibleRequiresContractUptake,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SchemaDiffDetail {
     AddedField {
@@ -155,6 +244,7 @@ pub struct SchemaDiffAtom {
     pub strata: Vec<SchemaStratum>,
     pub publication_impact: SchemaPublicationImpact,
     pub subscriber_impact: SchemaSubscriberImpact,
+    pub boundary_visibility: SubscriberBoundaryVisibility,
     pub historical_interpretation: HistoricalInterpretationSensitivity,
     pub detail: SchemaDiffDetail,
 }
@@ -173,9 +263,23 @@ impl SchemaDiffAtom {
             strata,
             publication_impact,
             subscriber_impact,
+            boundary_visibility: match subscriber_impact {
+                SchemaSubscriberImpact::ContractUpgradeRequired => {
+                    SubscriberBoundaryVisibility::VisibleRequiresContractUptake
+                }
+                _ => SubscriberBoundaryVisibility::NotVisible,
+            },
             historical_interpretation,
             detail,
         }
+    }
+
+    pub fn with_boundary_visibility_proof(
+        mut self,
+        boundary_visibility: SubscriberBoundaryVisibility,
+    ) -> Self {
+        self.boundary_visibility = boundary_visibility;
+        self
     }
 }
 
@@ -267,6 +371,7 @@ pub struct SchemaBridgeDescriptor {
     pub canonicalization_version: DescriptorCanonicalizationVersion,
     pub continuation: SchemaContinuationClassification,
     pub bridgeability: SchemaBridgeabilityClassification,
+    pub boundary_visibility: SubscriberBoundaryVisibility,
     pub historical_interpretation: HistoricalInterpretationSensitivity,
     pub changed_strata: Vec<SchemaStratum>,
 }
@@ -281,12 +386,39 @@ impl SchemaBridgeDescriptor {
         historical_interpretation: HistoricalInterpretationSensitivity,
         changed_strata: Vec<SchemaStratum>,
     ) -> Self {
+        Self::new_with_visibility(
+            boundary_fingerprint,
+            semantics_version,
+            canonicalization_version,
+            continuation,
+            bridgeability,
+            if continuation == SchemaContinuationClassification::ContinueWithContractUpgrade {
+                SubscriberBoundaryVisibility::VisibleRequiresContractUptake
+            } else {
+                SubscriberBoundaryVisibility::NotVisible
+            },
+            historical_interpretation,
+            changed_strata,
+        )
+    }
+
+    pub fn new_with_visibility(
+        boundary_fingerprint: SchemaBoundaryFingerprint,
+        semantics_version: DescriptorSemanticsVersion,
+        canonicalization_version: DescriptorCanonicalizationVersion,
+        continuation: SchemaContinuationClassification,
+        bridgeability: SchemaBridgeabilityClassification,
+        boundary_visibility: SubscriberBoundaryVisibility,
+        historical_interpretation: HistoricalInterpretationSensitivity,
+        changed_strata: Vec<SchemaStratum>,
+    ) -> Self {
         Self {
             boundary_fingerprint,
             semantics_version,
             canonicalization_version,
             continuation,
             bridgeability,
+            boundary_visibility,
             historical_interpretation,
             changed_strata,
         }

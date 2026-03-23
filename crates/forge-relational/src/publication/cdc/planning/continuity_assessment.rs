@@ -15,22 +15,17 @@ use crate::schema::data::{
 
 pub(crate) fn select_execution_envelopes(
     source: &[CanonicalCommitEnvelope],
-    source_is_durable: bool,
     start_after_position: Option<PatchStreamPosition>,
     max_commits: usize,
 ) -> Vec<CanonicalCommitEnvelope> {
-    if source_is_durable {
-        source
-            .iter()
-            .filter(|envelope| {
-                start_after_position.is_none_or(|position| envelope.patch.position > position)
-            })
-            .take(max_commits)
-            .cloned()
-            .collect()
-    } else {
-        source.to_vec()
-    }
+    source
+        .iter()
+        .filter(|envelope| {
+            start_after_position.is_none_or(|position| envelope.patch.position > position)
+        })
+        .take(max_commits)
+        .cloned()
+        .collect()
 }
 
 pub(crate) fn assess_subscriber_continuity(
@@ -80,6 +75,7 @@ pub(crate) fn assess_subscriber_continuity(
                         subscriber_contract,
                         &boundary_assessments,
                         prior_proof.normalized_boundary_count(),
+                        descriptor_semantics_version(selected_envelopes, fallback_descriptor_semantics_version),
                     ));
                 }
             }
@@ -95,6 +91,7 @@ pub(crate) fn assess_subscriber_continuity(
                         subscriber_contract,
                         &boundary_assessments,
                         prior_proof.normalized_boundary_count(),
+                        descriptor_semantics_version(selected_envelopes, fallback_descriptor_semantics_version),
                     ));
                 }
             }
@@ -106,6 +103,7 @@ pub(crate) fn assess_subscriber_continuity(
                         subscriber_contract,
                         &boundary_assessments,
                         prior_proof.normalized_boundary_count(),
+                        descriptor_semantics_version(selected_envelopes, fallback_descriptor_semantics_version),
                     ));
                 }
                 contract_upgrade_applied = true;
@@ -117,6 +115,7 @@ pub(crate) fn assess_subscriber_continuity(
                     subscriber_contract,
                     &boundary_assessments,
                     prior_proof.normalized_boundary_count(),
+                    descriptor_semantics_version(selected_envelopes, fallback_descriptor_semantics_version),
                 ));
             }
             SchemaContinuationClassification::Rejected => {
@@ -126,6 +125,7 @@ pub(crate) fn assess_subscriber_continuity(
                     subscriber_contract,
                     &boundary_assessments,
                     prior_proof.normalized_boundary_count(),
+                    descriptor_semantics_version(selected_envelopes, fallback_descriptor_semantics_version),
                 ));
             }
         }
@@ -234,6 +234,7 @@ fn compose_normalized_proof(
             subscriber_contract,
             boundary_assessments,
             boundary_fingerprints.len(),
+            descriptor_semantics_version,
         ));
     }
 
@@ -271,6 +272,7 @@ fn unsupported_continuation_failure(
     subscriber_contract: &SubscriberContractDeclaration,
     boundary_assessments: &[SubscriberBoundaryAssessment],
     normalized_boundary_count_at_failure: usize,
+    descriptor_semantics_version: DescriptorSemanticsVersion,
 ) -> SubscriberStreamFailure {
     let detail = detail.into();
     let continuation_outcome = boundary_assessments
@@ -294,7 +296,7 @@ fn unsupported_continuation_failure(
             continuation_outcome,
             boundary_assessments.len(),
             normalized_boundary_count_at_failure,
-            DescriptorSemanticsVersion::default(),
+            descriptor_semantics_version,
             contract_upgrade_applied,
         ),
         boundary_assessments.to_vec(),
@@ -311,4 +313,14 @@ fn unsupported_continuation_failure(
             normalized_boundary_count_at_failure,
         )],
     )
+}
+
+fn descriptor_semantics_version(
+    selected_envelopes: &[CanonicalCommitEnvelope],
+    fallback_descriptor_semantics_version: DescriptorSemanticsVersion,
+) -> DescriptorSemanticsVersion {
+    selected_envelopes
+        .last()
+        .map(|envelope| envelope.descriptor_semantics_version)
+        .unwrap_or(fallback_descriptor_semantics_version)
 }

@@ -21,8 +21,8 @@ use self::helpers::{
 use super::execution::diagnostics::{record_successful_execution, summarize_recorded_plan};
 use super::reporting::{accumulate_report_counters, classify_task_record};
 use super::types::{
-    EligibleTask, EvaluationPlan, ExecutionRecordId, ExecutionReport, StageExecutionOutcome,
-    StageExecutionRecord, StageExecutor, TaskExecutionOutcome, TaskReason,
+    EligibleTask, EvaluationPlan, ExecutionRecordId, ExecutionReport, ParallelAdmissionReason,
+    StageExecutionOutcome, StageExecutionRecord, StageExecutor, TaskExecutionOutcome, TaskReason,
 };
 
 #[cfg(test)]
@@ -136,13 +136,15 @@ where
             stage_index: stage.index,
             outcome: StageExecutionOutcome::CompletedSerial,
             authority_policy: None,
-            parallel_admission_reason: Some("serial-executor".to_string()),
+            parallel_admission_reason: Some(ParallelAdmissionReason::SerialExecutor),
             #[cfg(feature = "parallel")]
             parallel_kind: None,
             #[cfg(feature = "parallel")]
             apply_mode: None,
             #[cfg(feature = "parallel")]
             apply_group_count: 0,
+            #[cfg(feature = "parallel")]
+            serial_apply_rejection_reason: None,
             #[cfg(feature = "parallel")]
             serial_fallback_group_count: 0,
             #[cfg(feature = "parallel")]
@@ -356,13 +358,15 @@ where
             stage_index: stage.index,
             outcome: StageExecutionOutcome::CompletedSerial,
             authority_policy: None,
-            parallel_admission_reason: Some("serial-executor".to_string()),
+            parallel_admission_reason: Some(ParallelAdmissionReason::SerialExecutor),
             #[cfg(feature = "parallel")]
             parallel_kind: None,
             #[cfg(feature = "parallel")]
             apply_mode: None,
             #[cfg(feature = "parallel")]
             apply_group_count: 0,
+            #[cfg(feature = "parallel")]
+            serial_apply_rejection_reason: None,
             #[cfg(feature = "parallel")]
             serial_fallback_group_count: 0,
             #[cfg(feature = "parallel")]

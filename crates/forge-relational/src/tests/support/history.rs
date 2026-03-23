@@ -88,6 +88,12 @@ pub(crate) fn lineage_aspect_history_digest_on_branch(
 ) -> crate::facade::history::LineageAspectResolutionDigest {
     runtime
         .lineage_access()
-        .entity_aspect_history_with_trace(branch_id, lineage_id, filter)
+        .entity_aspect_history_with_trace(
+            crate::facade::lineage::HistoricalResolutionRequest {
+                branch_id: branch_id.clone(),
+                lineage_id,
+            },
+            filter,
+        )
         .lineage_aspect_resolution_digest()
 }

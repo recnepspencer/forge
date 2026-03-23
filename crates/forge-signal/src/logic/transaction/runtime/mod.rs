@@ -7,8 +7,11 @@ mod transaction;
 pub use computation::{ComputationSpec, DefinedComputation, DefinedKeyedComputation};
 pub use config::SignalRuntimeConfig;
 pub use state::{
-    CheckpointRecord, JournalSegment, ReconstructabilityRecord, RuntimeMaterializer,
-    RuntimeObserver, SignalRuntime, SignalRuntimeBuilder,
+    BoundedJournalSegment, CheckpointBoundary, CheckpointRecord,
+    DependencyIndexRebuildProof, JournalSegment, MergeSupportRebuildProof,
+    ReconstructabilityProof, ReconstructabilityRecord, ReplaySuffixRebuildProof,
+    RequiredDerivedRebuildSet, RuntimeMaterializer, RuntimeObserver, SignalRuntime,
+    SignalRuntimeBuilder,
 };
 pub use state::{
     ArtifactMergeAction, ArtifactMergeComparable, BranchConflictResolutionPlan, BranchMergeBase,
@@ -18,12 +21,14 @@ pub use state::{
     BranchMergeReconciliationPolicy, BranchMergeRequest, BranchMergeResolutionRequirement,
     BranchMergeResult, ConflictResolutionRecord, ConflictResolutionStrategy,
     BranchMergeStrategy, BranchMergeFailureKind, BranchMutationJournalSlice,
-    BranchMutationLedger, ConflictMergePolicy, DependencyFingerprint,
-    DependencyRemapRecord, ExistingTargetMergePolicy, MergeCandidateScope,
+    BranchMutationLedger, ConflictMergePolicy, ConservativeOverlapExpansion,
+    DependencyFingerprint, DependencyRemapRecord, ExistingTargetMergePolicy,
+    LoweredMergePlan, MergeBoundaryWitness, MergeBoundaryWitnessKind,
     MergeDecisionBasis, MergeNodeMap, MergeTouchedNodeSet, MergedArtifactRecord,
     NodeMergeInputState, NodeMergePlan, NodeReconciliationDecision,
-    NodeReconciliationShape, SourceNodeAdoptionPlanCore, SourceOnlyMergePolicy,
-    StructuralMergeCandidateRecord,
+    NodeReconciliationShape, PlannedMergeCandidateSet, ProofMinimalOverlapBasis,
+    SourceNodeAdoptionPlanCore, SourceOnlyMergePolicy, StructuralMergeCandidateRecord,
+    StructuralMergeJournalSlice,
 };
 pub use transaction::{
     AdvisoryRecord, DecisionDetail, DecisionLog, DecisionRecord, DecisionSummary,

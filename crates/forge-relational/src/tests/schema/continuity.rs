@@ -323,6 +323,9 @@ fn schema_transition_classification_and_lowering_are_deterministic_for_visible_b
                     required: false,
                     default_expression: Some(Arc::<str>::from("null")),
                 },
+            )
+            .with_boundary_visibility_proof(
+                crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable,
             ),
             SchemaDiffAtom::new(
                 SchemaElementRef::new(
@@ -339,6 +342,9 @@ fn schema_transition_classification_and_lowering_are_deterministic_for_visible_b
                 SchemaDiffDetail::ProjectionContractChanged {
                     projection_name: Arc::<str>::from("orders.list"),
                 },
+            )
+            .with_boundary_visibility_proof(
+                crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable,
             ),
         ],
     };
@@ -355,6 +361,8 @@ fn schema_transition_classification_and_lowering_are_deterministic_for_visible_b
     let lowered = lower_schema_transition(
         validated.clone(),
         Some(SchemaReconciliationPolicy::PreserveInformation),
+        DescriptorSemanticsVersion::default(),
+        DescriptorCanonicalizationVersion::default(),
     );
     let lowered_again = lower_schema_transition(
         validate_schema_transition(
@@ -363,6 +371,8 @@ fn schema_transition_classification_and_lowering_are_deterministic_for_visible_b
         )
         .unwrap(),
         Some(SchemaReconciliationPolicy::PreserveInformation),
+        DescriptorSemanticsVersion::default(),
+        DescriptorCanonicalizationVersion::default(),
     );
 
     assert_eq!(
@@ -388,6 +398,59 @@ fn schema_transition_classification_and_lowering_are_deterministic_for_visible_b
 }
 
 #[test]
+fn consumable_surface_change_requires_explicit_visible_bridge_proof() {
+    let proposed = ProposedSchemaTransition {
+        source_schema_id: SchemaId("web".to_string()),
+        source_schema_version_id: SchemaVersionId(3),
+        target_schema_id: SchemaId("web".to_string()),
+        target_schema_version_id: SchemaVersionId(4),
+        diff_atoms: vec![SchemaDiffAtom::new(
+            SchemaElementRef::new(
+                SchemaElementKind::Field,
+                SchemaId("web".to_string()),
+                SchemaVersionId(4),
+                None,
+                Arc::<str>::from("optional_tag"),
+            ),
+            vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
+            SchemaPublicationImpact::ObservableSurfaceChanged,
+            SchemaSubscriberImpact::ConsumableSurfaceChanged,
+            HistoricalInterpretationSensitivity::NotSensitive,
+            SchemaDiffDetail::AddedField {
+                field_name: Arc::<str>::from("optional_tag"),
+                required: false,
+                default_expression: Some(Arc::<str>::from("null")),
+            },
+        )
+        .with_boundary_visibility_proof(
+            crate::schema::data::SubscriberBoundaryVisibility::VisibleRequiresContractUptake,
+        )],
+    };
+
+    let classified =
+        classify_schema_transition(proposed, Some(SchemaReconciliationPolicy::PreserveInformation));
+
+    assert_eq!(
+        classified.continuation,
+        SchemaContinuationClassification::RequireRenegotiation
+    );
+}
+
+#[test]
+fn descriptor_semantics_policy_supports_explicit_historical_versions() {
+    let policy = crate::schema::data::DescriptorSemanticsCompatibilityPolicy::new(
+        DescriptorSemanticsVersion(3),
+        [DescriptorSemanticsVersion(1), DescriptorSemanticsVersion(2)],
+    );
+
+    assert_eq!(policy.current_write_version(), DescriptorSemanticsVersion(3));
+    assert!(policy.supports(DescriptorSemanticsVersion(1)));
+    assert!(policy.supports(DescriptorSemanticsVersion(2)));
+    assert!(policy.supports(DescriptorSemanticsVersion(3)));
+    assert!(!policy.supports(DescriptorSemanticsVersion(4)));
+}
+
+#[test]
 fn schema_boundary_fingerprint_is_canonical_across_diff_atom_orderings() {
     let atom_a = SchemaDiffAtom::new(
         SchemaElementRef::new(
@@ -400,12 +463,15 @@ fn schema_boundary_fingerprint_is_canonical_across_diff_atom_orderings() {
         vec![SchemaStratum::PublicationContract, SchemaStratum::StructuralShape],
         SchemaPublicationImpact::ObservableSurfaceChanged,
         SchemaSubscriberImpact::ConsumableSurfaceChanged,
-        HistoricalInterpretationSensitivity::NotSensitive,
+                HistoricalInterpretationSensitivity::NotSensitive,
         SchemaDiffDetail::AddedField {
             field_name: Arc::<str>::from("optional_tag"),
             required: false,
             default_expression: Some(Arc::<str>::from("null")),
         },
+    )
+    .with_boundary_visibility_proof(
+        crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable,
     );
     let atom_b = SchemaDiffAtom::new(
         SchemaElementRef::new(
@@ -418,10 +484,13 @@ fn schema_boundary_fingerprint_is_canonical_across_diff_atom_orderings() {
         vec![SchemaStratum::SubscriberContract, SchemaStratum::PublicationContract],
         SchemaPublicationImpact::ProjectionContractChanged,
         SchemaSubscriberImpact::ConsumableSurfaceChanged,
-        HistoricalInterpretationSensitivity::NotSensitive,
+                HistoricalInterpretationSensitivity::NotSensitive,
         SchemaDiffDetail::ProjectionContractChanged {
             projection_name: Arc::<str>::from("orders.list"),
         },
+    )
+    .with_boundary_visibility_proof(
+        crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable,
     );
 
     let lowered_a = lower_schema_transition(
@@ -437,6 +506,8 @@ fn schema_boundary_fingerprint_is_canonical_across_diff_atom_orderings() {
         )
         .unwrap(),
         Some(SchemaReconciliationPolicy::PreserveInformation),
+        DescriptorSemanticsVersion::default(),
+        DescriptorCanonicalizationVersion::default(),
     );
     let lowered_b = lower_schema_transition(
         validate_schema_transition(
@@ -451,6 +522,8 @@ fn schema_boundary_fingerprint_is_canonical_across_diff_atom_orderings() {
         )
         .unwrap(),
         Some(SchemaReconciliationPolicy::PreserveInformation),
+        DescriptorSemanticsVersion::default(),
+        DescriptorCanonicalizationVersion::default(),
     );
 
     assert_eq!(
@@ -477,7 +550,7 @@ fn type_incompatible_schema_transition_is_rejected_not_continued() {
             vec![SchemaStratum::ValueDomain, SchemaStratum::PublicationContract],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
-            HistoricalInterpretationSensitivity::SensitiveToValueMeaning,
+                HistoricalInterpretationSensitivity::SensitiveToValueMeaning,
             SchemaDiffDetail::TypeChanged {
                 field_name: Arc::<str>::from("timing_domain"),
                 from_type: Arc::<str>::from("enum<legacy>"),
@@ -635,12 +708,15 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
             vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
-            HistoricalInterpretationSensitivity::NotSensitive,
+                HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
                 field_name: Arc::<str>::from("tag"),
                 required: false,
                 default_expression: Some(Arc::<str>::from("null")),
             },
+        )
+        .with_boundary_visibility_proof(
+            crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable,
         )],
     };
 
@@ -746,7 +822,7 @@ fn schema_certification_transition_is_explained_and_counted() {
             vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
-            HistoricalInterpretationSensitivity::NotSensitive,
+                HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
                 field_name: Arc::<str>::from("tag"),
                 required: false,
@@ -1019,7 +1095,7 @@ fn declared_type_incompatible_schema_transition_reports_specific_conflict_class(
             vec![SchemaStratum::ValueDomain, SchemaStratum::PublicationContract],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
-            HistoricalInterpretationSensitivity::SensitiveToValueMeaning,
+                HistoricalInterpretationSensitivity::SensitiveToValueMeaning,
             SchemaDiffDetail::TypeChanged {
                 field_name: Arc::<str>::from("tag"),
                 from_type: Arc::<str>::from("string"),
@@ -1154,7 +1230,7 @@ fn schema_continuity_publication_rejects_descriptor_semantics_mismatch() {
             vec![SchemaStratum::PublicationContract],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
-            HistoricalInterpretationSensitivity::NotSensitive,
+                HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
                 field_name: Arc::<str>::from("tag"),
                 required: false,
@@ -1241,7 +1317,7 @@ fn shared_continuity_bundle_validator_reports_boundary_fingerprint_mismatch() {
             vec![SchemaStratum::PublicationContract],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
-            HistoricalInterpretationSensitivity::NotSensitive,
+                HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
                 field_name: Arc::<str>::from("tag"),
                 required: false,
@@ -1291,3 +1367,6 @@ fn shared_continuity_bundle_validator_reports_boundary_fingerprint_mismatch() {
         } if boundary_fingerprint == fingerprint
     ));
 }
+
+
+

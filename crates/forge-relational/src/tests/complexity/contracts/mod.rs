@@ -3,4 +3,5 @@
 
 mod commit_budgets;
 mod inspection_budgets;
+mod lineage_budgets;
 mod visibility_budgets;

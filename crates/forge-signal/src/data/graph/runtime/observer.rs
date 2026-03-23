@@ -460,18 +460,21 @@ impl<'a> GraphMaterializer<'a> {
     }
 
     pub fn retained_explanation_artifact(&self, node: NodeId) -> Option<NodeExplanation> {
-        self.graph
+        let fact = self
+            .graph
             .observation
             .diagnostics
             .explanation_facts()
-            .get(&node)
-            .map(|fact| {
-                let mut explanation = fact.explanation.clone();
-                explanation.materialization_mode = DiagnosticsAvailability::RetainedAvailable;
-                self.graph.record_retained_forensic_read();
-                self.graph.record_retained_artifact_read();
-                explanation
-            })
+            .get(&node)?;
+        let mut explanation = if fact.compact_projection {
+            self.graph.reconstruct_explanation_artifact(node).ok()?
+        } else {
+            fact.explanation.clone()
+        };
+        explanation.materialization_mode = DiagnosticsAvailability::RetainedAvailable;
+        self.graph.record_retained_forensic_read();
+        self.graph.record_retained_artifact_read();
+        Some(explanation)
     }
 
     pub fn reconstruct_explanation_artifact(
@@ -482,18 +485,29 @@ impl<'a> GraphMaterializer<'a> {
     }
 
     pub fn retained_provenance_artifact(&self, node: NodeId) -> Option<ProvenanceFact> {
-        self.graph
+        let explanation_fact = self
+            .graph
             .observation
             .diagnostics
-            .provenance_facts()
-            .get(&node)
-            .cloned()
-            .map(|mut fact| {
-                fact.materialization_mode = DiagnosticsAvailability::RetainedAvailable;
-                self.graph.record_retained_forensic_read();
-                self.graph.record_retained_artifact_read();
-                fact
-            })
+            .explanation_facts()
+            .get(&node);
+        let mut fact = match (
+            explanation_fact.map(|fact| fact.compact_projection),
+            self.graph
+                .observation
+                .diagnostics
+                .provenance_facts()
+                .get(&node)
+                .cloned(),
+        ) {
+            (Some(true), _) => self.graph.reconstruct_provenance_artifact(node).ok()?,
+            (_, Some(fact)) => fact,
+            _ => return None,
+        };
+        fact.materialization_mode = DiagnosticsAvailability::RetainedAvailable;
+        self.graph.record_retained_forensic_read();
+        self.graph.record_retained_artifact_read();
+        Some(fact)
     }
 
     pub fn reconstruct_provenance_artifact(

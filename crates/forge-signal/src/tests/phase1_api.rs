@@ -89,22 +89,19 @@ fn transaction_helper_commits_on_success() {
         outcome.reconstructability.authority_snapshot_id,
         runtime.observe().current_branch().head_snapshot_id
     );
-    assert!(outcome.reconstructability.journal.is_some());
     assert!(
         outcome
             .reconstructability
             .journal
-            .as_ref()
-            .is_some_and(|journal| journal.replay_event_count >= 1)
+            .replay_event_count
+            >= 1
     );
     assert_eq!(
         outcome.reconstructability.checkpoint.journal_replay_span,
         outcome
             .reconstructability
             .journal
-            .as_ref()
-            .map(|journal| journal.replay_event_count as u64)
-            .unwrap_or(0)
+            .replay_event_count as u64
     );
     let metrics = runtime.observe().metrics();
     let graph_metrics = runtime.observe().graph().metrics();
@@ -116,22 +113,29 @@ fn transaction_helper_commits_on_success() {
             >= outcome
                 .reconstructability
                 .journal
-                .as_ref()
-                .map(|journal| journal.replay_event_count as u64)
-                .unwrap_or(0)
+                .replay_event_count as u64
     );
     assert!(
         outcome.performance_accounting.checkpoint.journal_replay_span
             >= outcome
                 .reconstructability
                 .journal
-                .as_ref()
-                .map(|journal| journal.replay_event_count as u64)
-                .unwrap_or(0)
+                .replay_event_count as u64
     );
     assert_eq!(
         outcome.reconstructability.checkpoint.checkpoint_size,
         outcome.performance_accounting.checkpoint.checkpoint_size
+    );
+    let proof = outcome
+        .reconstructability
+        .proof();
+    assert_eq!(
+        proof.checkpoint.authority_branch_id,
+        outcome.reconstructability.authority_branch_id
+    );
+    assert!(
+        proof.required_rebuild.len() >= 2,
+        "transaction proof should classify semantically required derived rebuild surfaces"
     );
     assert_eq!(
         runtime.graph().get_state(dependent).unwrap(),

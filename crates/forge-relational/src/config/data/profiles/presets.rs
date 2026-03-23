@@ -5,7 +5,10 @@ use crate::history::data::{BranchId, HistoryRetentionClass, VersionGraphPolicy};
 use crate::logic::commit::CommitAuthorityContract;
 use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
 use crate::payloads::data::{PayloadClass, PayloadPolicy};
-use crate::schema::data::RelationalSchemaRegistry;
+use crate::schema::data::{
+    runtime_descriptor_canonicalization_policy, runtime_descriptor_semantics_policy,
+    RelationalSchemaRegistry,
+};
 use crate::symbols::data::{StringInterner, SymbolPolicy};
 use crate::validation::data::InvariantCatalog;
 
@@ -46,6 +49,8 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
         schema: SchemaConfig {
             registry: RelationalSchemaRegistry::default(),
             invariant_catalog: InvariantCatalog::default(),
+            descriptor_semantics_policy: runtime_descriptor_semantics_policy(),
+            descriptor_canonicalization_policy: runtime_descriptor_canonicalization_policy(),
         },
         identity: IdentityConfig {
             symbol_policy,

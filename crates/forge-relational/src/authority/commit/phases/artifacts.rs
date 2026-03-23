@@ -59,27 +59,24 @@ pub(crate) fn prepare_publication_artifacts(
         patch.clone(),
         diagnostics_summary.clone(),
     );
-    let lineage_event_ids = runtime.lineage_authority().ensure_lineage_for_commit(
+    let lineage_artifact = runtime.lineage_authority().ensure_lineage_for_commit(
         working_state,
         commit_reference,
         &merged_plan.merged_intents,
         &effect.publication.changed_records,
     );
-    let lineage_events = runtime
-        .lineage_access()
-        .events_by_ids(&lineage_event_ids);
-    let lineage_event_count = lineage_event_ids.len();
+    let lineage_event_count = lineage_artifact.event_batch().counters().event_batch_width;
     let canonical_commit_envelope = canonical_commit_envelope(
         runtime,
         commit_reference,
         branch_id,
+        crate::replay::data::CanonicalCommitAuthorityKind::VersionedTransaction,
         merge_parent_branches,
         merge_base_commits,
         merged_plan,
         patch.clone(),
         diagnostics_summary.clone(),
-        lineage_event_ids,
-        lineage_events,
+        lineage_artifact,
         Vec::new(),
         Vec::new(),
         schema_continuity,

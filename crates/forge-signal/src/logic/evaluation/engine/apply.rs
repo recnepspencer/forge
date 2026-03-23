@@ -90,7 +90,7 @@ fn dependency_inputs_match_graph(
     )
 }
 
-fn build_evaluation_effect(
+pub(crate) fn build_evaluation_effect(
     node: NodeId,
     result: NodeEvaluationResult,
     execution_metadata: Option<&EvaluationExecutionMetadata>,
@@ -149,13 +149,16 @@ fn resolve_effect_comparator(
     Ok(comparator_resolver.policy_for_node(node, entry.get_eval_config().comparator.as_ref()))
 }
 
-pub(crate) fn collect_effect_dependency_inputs_batch(
+pub(crate) fn collect_effect_dependency_inputs_iter<I>(
     graph: &mut SignalGraph,
-    nodes: &[NodeId],
-) -> Result<Vec<EffectDependencyInputs>, SignalError> {
+    nodes: I,
+) -> Result<Vec<EffectDependencyInputs>, SignalError>
+where
+    I: IntoIterator<Item = NodeId>,
+{
     nodes
-        .iter()
-        .map(|&node| build_effect_dependency_inputs(graph, node))
+        .into_iter()
+        .map(|node| build_effect_dependency_inputs(graph, node))
         .collect()
 }
 
@@ -184,16 +187,19 @@ pub(crate) fn verdict_for_evaluated_result(
     // 2. explicit continuity token continuity
     // 3. comparator-match suppression when no recompute occurred
     // 4. otherwise the result is authoritative recomputation
-    let verdict = if output_identity_unchanged {
+    let verdict = if recomputed {
+        EvaluationVerdict::Recomputed
+    } else if output_identity_unchanged {
         EvaluationVerdict::Suppressed {
             reason: SuppressionReason::OutputIdentityUnchanged,
         }
-    } else if continuity_token_unchanged {
+    } else if continuity_token_unchanged
+        && previous_output_identity.is_none()
+        && result.output_identity.is_none()
+    {
         EvaluationVerdict::Suppressed {
             reason: SuppressionReason::ContinuityTokenUnchanged,
         }
-    } else if recomputed {
-        EvaluationVerdict::Recomputed
     } else {
         EvaluationVerdict::Suppressed {
             reason: SuppressionReason::ComparatorMatch,
@@ -212,15 +218,16 @@ fn build_effect_dependency_inputs(
         dependency_set_id: entry.get_dependencies_id(),
         dependency_snapshot_id: entry.get_dep_snapshot_id(),
     };
-    let previous_snapshot = graph.get_dep_snapshot(node)?.clone();
+    graph.refresh_runtime_dependencies_of(node)?;
+    let previous_snapshot = graph.get_dep_snapshot(node)?;
     let previous_entries = previous_snapshot.entries();
-    let dependencies = graph.runtime_dependencies_of(node)?.to_vec();
+    let dependencies = graph.current_runtime_dependencies_of(node)?;
     let mut previous_index = 0usize;
     let mut shape_stable = dependencies.len() == previous_entries.len();
     let mut changes = 0_u32;
     let mut stable_shape_versions = Vec::with_capacity(dependencies.len());
 
-    for dep in &dependencies {
+    for dep in dependencies {
         let source = dep.source();
         let aspect = dep.aspect();
         let Some(previous_entry) = previous_entries.get(previous_index) else {
@@ -246,33 +253,27 @@ fn build_effect_dependency_inputs(
     }
 
     if shape_stable && previous_index == previous_entries.len() {
-        let dependency_snapshot_update = if changes == 0 {
-            DependencySnapshotUpdate::Replace(SharedDependencySnapshot::new(
-                previous_snapshot.clone(),
-            ))
+        let (snapshot_delta, dependency_snapshot_update) = if changes == 0 {
+            let shared_snapshot = SharedDependencySnapshot::new(previous_snapshot.clone());
+            (
+                SnapshotDeltaRecord::between(node, previous_snapshot, &shared_snapshot),
+                DependencySnapshotUpdate::Replace(shared_snapshot),
+            )
         } else {
-            DependencySnapshotUpdate::VersionOnly(DependencySnapshotVersionDelta::new(
-                stable_shape_versions.clone(),
-            ))
+            (
+                SnapshotDeltaRecord::for_version_update(
+                    node,
+                    previous_snapshot,
+                    &stable_shape_versions,
+                ),
+                DependencySnapshotUpdate::VersionOnly(DependencySnapshotVersionDelta::new(
+                    stable_shape_versions,
+                )),
+            )
         };
         return Ok(EffectDependencyInputs {
             context,
-            snapshot_delta: if changes == 0 {
-                SnapshotDeltaRecord::between(
-                    node,
-                    &previous_snapshot,
-                    match &dependency_snapshot_update {
-                        DependencySnapshotUpdate::Replace(snapshot) => snapshot,
-                        DependencySnapshotUpdate::VersionOnly(_) => unreachable!(),
-                    },
-                )
-            } else {
-                SnapshotDeltaRecord::for_version_update(
-                    node,
-                    &previous_snapshot,
-                    &stable_shape_versions,
-                )
-            },
+            snapshot_delta,
             dependency_snapshot_update,
             meaningful_input_changes: changes,
         });
@@ -317,7 +318,7 @@ fn build_effect_dependency_inputs(
         context,
         snapshot_delta: SnapshotDeltaRecord::between(
             node,
-            &previous_snapshot,
+            previous_snapshot,
             &dependency_snapshot,
         ),
         dependency_snapshot_update: DependencySnapshotUpdate::Replace(dependency_snapshot),

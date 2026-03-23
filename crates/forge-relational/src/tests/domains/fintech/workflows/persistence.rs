@@ -9,7 +9,7 @@ fn fintech_persisted_workflow_recovers_checkpoint_tail_and_keeps_queryable_portf
     let _checkpoint = checkpoint_world(&mut world).unwrap();
     let _correction = correct_seeded_trade_candidate(&mut world, analysis);
     let expected = {
-        let plan = world.runtime.durability_access().recovery_plan();
+        let plan = world.runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
         let mut recovered = FintechWorld::setup_persisted_world().runtime;
         let outcome = recovered.durability_authority().recover(plan).unwrap();
         capture_recovery_probe(&recovered, &outcome)
@@ -132,7 +132,7 @@ fn fintech_failure_injection_helpers_cover_savepoints_replay_and_checkpoint_corr
     let mut persisted = setup_world_for(FintechScenario::PersistedSmokeBook);
     checkpoint_world(&mut persisted).unwrap();
     let path =
-        corrupt_latest_checkpoint_file(&persisted.runtime.durability_access().recovery_plan());
+        corrupt_latest_checkpoint_file(&persisted.runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification));
     assert!(path.is_some());
 }
 
@@ -228,7 +228,9 @@ fn fintech_metadata_survives_hostile_workflow_recovery() {
     let (recovered, _outcome) = recover_persisted_world(&world).unwrap();
     let graph = recovered
         .lineage_access()
-        .graph(&BranchId("main".to_string()));
+        .graph(crate::facade::lineage::LineageGraphRequest {
+            branch_id: BranchId("main".to_string()),
+        });
     let index_access = recovered.index_access();
     let generation = index_access
         .latest_generation(index.index_id, &BranchId("analysis".to_string()))
@@ -261,12 +263,12 @@ fn fintech_recovery_falls_back_from_corrupt_latest_checkpoint_and_keeps_truth() 
     checkpoint_world(&mut world).unwrap();
     let correction = correct_seeded_trade_candidate(&mut world, analysis);
     checkpoint_world(&mut world).unwrap();
-    let plan = world.runtime.durability_access().recovery_plan();
+    let plan = world.runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     let corrupted = corrupt_latest_checkpoint_file(&plan);
     assert!(corrupted.is_some());
 
     let (recovered, outcome) =
-        recover_runtime_from_plan(world.runtime.durability_access().recovery_plan()).unwrap();
+        recover_runtime_from_plan(world.runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification)).unwrap();
     let packet = world.packet_for_correction_probe();
     let version_id = recovered
         .history_access()
@@ -292,3 +294,4 @@ fn fintech_recovery_falls_back_from_corrupt_latest_checkpoint_and_keeps_truth() 
 use crate::facade::diagnostics::DiagnosticCode;
 use crate::facade::payloads::RecordPayload;
 use crate::facade::replay::ReplayFailureClass;
+

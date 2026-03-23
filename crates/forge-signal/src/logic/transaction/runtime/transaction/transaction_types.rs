@@ -164,32 +164,64 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub(in crate::logic::transaction::runtime) struct TransactionRollbackBaseline<T: Copy + Ord> {
-    pub config: Option<SignalRuntimeConfig<T>>,
-    pub diagnostics_state: Option<crate::diagnostics::state::DiagnosticsState>,
+pub(in crate::logic::transaction::runtime) struct ConfigRollbackDelta<T: Copy + Ord> {
+    pub baseline: SignalRuntimeConfig<T>,
 }
 
-impl<T: Copy + Ord> TransactionRollbackBaseline<T> {
+#[derive(Debug, Clone)]
+pub(in crate::logic::transaction::runtime) struct DiagnosticsRollbackDelta {
+    pub baseline: crate::diagnostics::state::DiagnosticsState,
+}
+
+#[derive(Debug, Clone)]
+pub(in crate::logic::transaction::runtime) enum TransactionRollbackPacket<T: Copy + Ord> {
+    Config(ConfigRollbackDelta<T>),
+    DiagnosticsRequired(DiagnosticsRollbackDelta),
+}
+
+#[derive(Debug, Clone)]
+pub(in crate::logic::transaction::runtime) struct TransactionRollbackPacketSet<T: Copy + Ord> {
+    packets: Vec<TransactionRollbackPacket<T>>,
+}
+
+impl<T: Copy + Ord> Default for TransactionRollbackPacketSet<T> {
+    fn default() -> Self {
+        Self { packets: Vec::new() }
+    }
+}
+
+impl<T: Copy + Ord> TransactionRollbackPacketSet<T> {
     pub fn capture_if_needed(
         &mut self,
         config: &SignalRuntimeConfig<T>,
         diagnostics_state: &crate::diagnostics::state::DiagnosticsState,
     ) {
-        if self.config.is_none() {
-            self.config = Some(config.clone());
+        if !self
+            .packets
+            .iter()
+            .any(|packet| matches!(packet, TransactionRollbackPacket::Config(_)))
+        {
+            self.packets
+                .push(TransactionRollbackPacket::Config(ConfigRollbackDelta {
+                    baseline: config.clone(),
+                }));
         }
-        if self.diagnostics_state.is_none() {
-            self.diagnostics_state = Some(diagnostics_state.clone());
+        if !self.packets.iter().any(|packet| {
+            matches!(
+                packet,
+                TransactionRollbackPacket::DiagnosticsRequired(_)
+            )
+        }) {
+            self.packets.push(TransactionRollbackPacket::DiagnosticsRequired(
+                DiagnosticsRollbackDelta {
+                    baseline: diagnostics_state.clone(),
+                },
+            ));
         }
     }
-}
 
-impl<T: Copy + Ord> Default for TransactionRollbackBaseline<T> {
-    fn default() -> Self {
-        Self {
-            config: None,
-            diagnostics_state: None,
-        }
+    pub fn drain(&mut self) -> Vec<TransactionRollbackPacket<T>> {
+        std::mem::take(&mut self.packets)
     }
 }
 
@@ -206,7 +238,7 @@ where
     pub(in crate::logic::transaction::runtime) event_bus: &'a mut EventBus<E, D, Ctx>,
     pub(in crate::logic::transaction::runtime) telemetry: &'a mut RuntimeTelemetry,
     pub(in crate::logic::transaction::runtime) scratch: TransactionScratch<D, I, E>,
-    pub(in crate::logic::transaction::runtime) rollback_baseline: TransactionRollbackBaseline<T>,
+    pub(in crate::logic::transaction::runtime) rollback_packets: TransactionRollbackPacketSet<T>,
     pub(in crate::logic::transaction::runtime) poisoned: bool,
     pub(in crate::logic::transaction::runtime) finished: bool,
     pub(in crate::logic::transaction::runtime) execution_state: TransactionExecutionState,

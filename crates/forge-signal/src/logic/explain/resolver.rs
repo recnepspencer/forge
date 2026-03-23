@@ -25,18 +25,17 @@ pub fn explain_with_policy_resolver(
 ) -> Result<NodeExplanation, SignalError> {
     let entry = graph.get_entry(node)?;
     if let Some(fact) = graph.explanation_fact(node) {
-        if !fact.compact_projection {
-            let current_record = assemble_historical_artifact_record(
-                node,
-                entry.get_runtime_artifact_state(),
-                entry.retained_diagnostic_artifact(),
-                entry.get_causality(),
-            );
-            if fact.explanation.state == *entry.get_state()
-                && fact.explanation.historical_artifact_record == current_record
-            {
-                return Ok(fact.explanation.clone());
-            }
+        let current_record = assemble_historical_artifact_record(
+            node,
+            entry.get_runtime_artifact_state(),
+            entry.retained_diagnostic_artifact(),
+            entry.get_causality(),
+        );
+        if !fact.compact_projection
+            && fact.explanation.state == *entry.get_state()
+            && fact.explanation.historical_artifact_record == current_record
+        {
+            return Ok(fact.explanation.clone());
         }
     }
     let state = *entry.get_state();
@@ -281,6 +280,16 @@ pub fn explain_with_policy_resolver(
         upstream,
         causality,
     })
+}
+
+pub(crate) fn derive_rewiring_summary(
+    graph: &SignalGraph,
+    node: NodeId,
+) -> Result<Option<RewiringSummary>, SignalError> {
+    Ok(rewiring_summary(
+        graph.get_dep_snapshot(node)?.entries(),
+        graph.dependencies_of(node)?,
+    ))
 }
 
 fn rewiring_summary(

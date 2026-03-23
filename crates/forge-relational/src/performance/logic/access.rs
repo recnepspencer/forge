@@ -2,6 +2,7 @@ use crate::logic::runtime::RelationalRuntime;
 use crate::performance::data::{
     ComplexityContract, RuntimeComplexityCounters, COMPLEXITY_CONTRACTS,
 };
+use crate::replay::data::ReplayAuthorityBasisKind;
 use crate::replay::data::ReplayVerificationLayer;
 use crate::schema::data::{
     HistoricalInterpretationSensitivity, SchemaContinuationClassification,
@@ -10,6 +11,12 @@ use crate::schema::data::{
 
 pub struct PerformanceAccess<'runtime> {
     runtime: &'runtime RelationalRuntime,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ReplayLineageAuthorityIndexedSource {
+    DurableLog,
+    Checkpoint,
 }
 
 impl RelationalRuntime {
@@ -189,6 +196,49 @@ impl<'runtime> PerformanceAccess<'runtime> {
             .count(|counters| counters.post_commit_parallel_strategy_count += 1);
     }
 
+    pub(crate) fn count_lineage_graph_snapshot_request(&self, node_count: usize) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.lineage_graph_snapshot_requests += 1;
+            counters.lineage_graph_snapshot_nodes_materialized += node_count;
+        });
+    }
+
+    pub(crate) fn count_lineage_graph_snapshot_visibility_cache(&self, hit: bool) {
+        self.runtime.services.instrumentation.count(|counters| {
+            if hit {
+                counters.lineage_graph_snapshot_visibility_cache_hits += 1;
+            } else {
+                counters.lineage_graph_snapshot_visibility_cache_miss_reconstructions += 1;
+            }
+        });
+    }
+
+    pub(crate) fn count_lineage_historical_resolution(
+        &self,
+        branch_event_scans: usize,
+        traversed_events: usize,
+    ) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.lineage_historical_resolution_requests += 1;
+            counters.lineage_historical_resolution_branch_event_scans += branch_event_scans;
+            counters.lineage_historical_resolution_traversed_events += traversed_events;
+        });
+    }
+
+    pub(crate) fn count_lineage_branch_divergence(
+        &self,
+        left_event_count: usize,
+        right_event_count: usize,
+        left_node_count: usize,
+        right_node_count: usize,
+    ) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.lineage_branch_divergence_requests += 1;
+            counters.lineage_branch_divergence_event_scans += left_event_count + right_event_count;
+            counters.lineage_branch_divergence_node_scans += left_node_count + right_node_count;
+        });
+    }
+
     pub(crate) fn count_schema_transition_classification(
         &self,
         atoms_inspected: usize,
@@ -300,6 +350,43 @@ impl<'runtime> PerformanceAccess<'runtime> {
             ReplayVerificationLayer::DeepArtifactParity => {
                 counters.replay_deep_artifact_parity_checks += 1
             }
+        });
+    }
+
+    pub(crate) fn count_replay_lineage_authority_basis(
+        &self,
+        indexed_source: Option<ReplayLineageAuthorityIndexedSource>,
+        kind: ReplayAuthorityBasisKind,
+        event_width: usize,
+        decision_width: usize,
+    ) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.replay_lineage_authority_lookup_requests += 1;
+            match indexed_source {
+                Some(ReplayLineageAuthorityIndexedSource::DurableLog) => {
+                    counters.replay_lineage_log_index_hits += 1;
+                }
+                Some(ReplayLineageAuthorityIndexedSource::Checkpoint) => {
+                    counters.replay_lineage_checkpoint_index_hits += 1;
+                }
+                None => {}
+            }
+            match kind {
+                ReplayAuthorityBasisKind::DurableLogCanonical => {
+                    counters.replay_lineage_durable_basis_selections += 1;
+                }
+                ReplayAuthorityBasisKind::HistoryEnvelopeFallback => {
+                    counters.replay_lineage_history_fallback_basis_selections += 1;
+                }
+            }
+            counters.replay_lineage_digest_event_width += event_width;
+            counters.replay_lineage_digest_decision_width += decision_width;
+        });
+    }
+
+    pub(crate) fn count_replay_lineage_authoritative_basis_rejection(&self) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.replay_lineage_authoritative_basis_rejections += 1;
         });
     }
 

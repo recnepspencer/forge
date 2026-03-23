@@ -6,10 +6,13 @@ use std::thread::available_parallelism;
 
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "parallel")]
+use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::dependency::CanonicalDependencies;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
-use crate::data::node::{AuthorityPolicy, NodeContract, PathClass};
+use crate::data::aspect::AspectMask;
+use crate::data::node::{AuthorityPolicy, PathClass};
 use crate::data::output::MemoizedResultOrigin;
 use crate::data::performance::{ResolvedExecutionStrategy, ResolvedMaintenanceStrategy};
 use crate::data::proof::{
@@ -89,17 +92,156 @@ pub struct MaybeStaleAdmission {
     pub unchanged_at_admission: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ApplyFootprint {
     pub partitions: PartitionScopeSet,
     pub touched_nodes: DedupedNodeBatch,
     pub touched_sources: SortedSourceBatch,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DisjointApplyGroup {
     pub task_indices: Vec<usize>,
     pub footprint: ApplyFootprint,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SharedSurfacePolicy {
+    ReductionOnly,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MutationDomain {
+    LoweredStage,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DisjointApplyProof {
+    pub stage_index: u32,
+    pub mutation_domain: MutationDomain,
+    pub group_footprints: Vec<ApplyFootprint>,
+    pub shared_surface_policy: SharedSurfacePolicy,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ReductionOrderingContract {
+    StageTaskIndexOrder,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ReductionWorkClass {
+    DeterministicPublicationOnly,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ConcurrentApplyReductionPlan {
+    pub ordering_contract: ReductionOrderingContract,
+    pub allowed_work: ReductionWorkClass,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ApplyPlanSerialFallbackReason {
+    FullParallelUnsupportedByMutableEngine,
+}
+
+impl ApplyPlanSerialFallbackReason {
+    #[cfg(feature = "parallel")]
+    pub fn code(self) -> &'static str {
+        match self {
+            Self::FullParallelUnsupportedByMutableEngine => {
+                "full-parallel-unsupported-by-mutable-engine"
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ParallelAdmissionReason {
+    SerialExecutor,
+    BelowMinStageWidth,
+    BelowPolicyWorkThreshold,
+    ValidationHeavyStage,
+    BelowFullParallelThreshold,
+    FullParallelUnsupportedByMutableEngine,
+    AdmittedOperational,
+    AdmittedDevelopment,
+    AdmittedForensic,
+    AdmittedProofSafeGroupedConcurrent,
+}
+
+impl ParallelAdmissionReason {
+    pub fn code(self) -> &'static str {
+        match self {
+            Self::SerialExecutor => "serial-executor",
+            Self::BelowMinStageWidth => "below-min-stage-width",
+            Self::BelowPolicyWorkThreshold => "below-policy-work-threshold",
+            Self::ValidationHeavyStage => "validation-heavy-stage",
+            Self::BelowFullParallelThreshold => "below-full-parallel-threshold",
+            Self::FullParallelUnsupportedByMutableEngine => {
+                "full-parallel-unsupported-by-mutable-engine"
+            }
+            Self::AdmittedOperational => "admitted-operational",
+            Self::AdmittedDevelopment => "admitted-development",
+            Self::AdmittedForensic => "admitted-forensic",
+            Self::AdmittedProofSafeGroupedConcurrent => {
+                "admitted-proof-safe-grouped-concurrent"
+            }
+        }
+    }
+
+    pub fn message(self) -> &'static str {
+        match self {
+            Self::SerialExecutor => "parallelism was not requested for this stage",
+            Self::BelowMinStageWidth => {
+                "stage stayed serial because it did not meet the executor's minimum stage width"
+            }
+            Self::BelowPolicyWorkThreshold => {
+                "stage stayed serial because the active runtime policy estimated the work was too small to amortize parallel overhead"
+            }
+            Self::ValidationHeavyStage => {
+                "stage stayed serial because it was validation-heavy and unlikely to benefit from parallel overhead"
+            }
+            Self::BelowFullParallelThreshold => {
+                "stage stayed out of full parallel mode because the active policy requires a larger stage for grouped concurrent apply"
+            }
+            Self::FullParallelUnsupportedByMutableEngine => {
+                "stage stayed out of full parallel mode because the current mutable graph engine does not support concurrent apply yet"
+            }
+            Self::AdmittedOperational => {
+                "stage ran in parallel under the low-overhead operational policy"
+            }
+            Self::AdmittedDevelopment => {
+                "stage ran in parallel under the development policy"
+            }
+            Self::AdmittedForensic => {
+                "stage ran in parallel under the forensic policy"
+            }
+            Self::AdmittedProofSafeGroupedConcurrent => {
+                "stage ran through proof-safe grouped concurrent apply with deterministic reduction-only publication"
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SerialApplyPlan {
+    pub groups: Vec<DisjointApplyGroup>,
+    pub rejection_reason: Option<ApplyPlanSerialFallbackReason>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ConcurrentApplyPlan {
+    pub groups: Vec<DisjointApplyGroup>,
+    pub proof: DisjointApplyProof,
+    pub reduction: ConcurrentApplyReductionPlan,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LoweredApplyPlan {
+    Serial(SerialApplyPlan),
+    GroupedConcurrent(ConcurrentApplyPlan),
 }
 
 #[derive(Debug, Clone)]
@@ -117,8 +259,10 @@ pub(crate) struct LoweredTaskExecution {
 pub struct LoweredTask {
     pub task_index: usize,
     pub node: NodeId,
-    pub contract: NodeContract,
+    pub produced_aspects: AspectMask,
     pub dependency_inputs: CanonicalDependencies,
+    #[cfg(feature = "parallel")]
+    pub comparator_policy: VersionComparatorPolicy,
     pub path_class: PathClass,
     pub authority_policy: AuthorityPolicy,
     pub footprint: ApplyFootprint,
@@ -129,7 +273,7 @@ pub struct LoweredTask {
 pub struct LoweredStagePlan {
     pub stage_index: u32,
     pub tasks: Vec<LoweredTask>,
-    pub apply_groups: Vec<DisjointApplyGroup>,
+    pub lowered_apply_plan: LoweredApplyPlan,
     pub dirty_delta: StructuralDelta,
     pub execution_strategy: ResolvedExecutionStrategy,
     pub maintenance_strategy: ResolvedMaintenanceStrategy,
@@ -139,6 +283,13 @@ pub struct LoweredStagePlan {
 impl LoweredStagePlan {
     pub fn task_count(&self) -> usize {
         self.tasks.len()
+    }
+
+    pub fn apply_groups(&self) -> &[DisjointApplyGroup] {
+        match &self.lowered_apply_plan {
+            LoweredApplyPlan::Serial(plan) => plan.groups.as_slice(),
+            LoweredApplyPlan::GroupedConcurrent(plan) => plan.groups.as_slice(),
+        }
     }
 }
 
@@ -234,7 +385,7 @@ pub enum ParallelExecutionKind {
 #[cfg(feature = "parallel")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ParallelApplyMode {
-    SerialFallback,
+    SerialApply,
     GroupedConcurrentApply,
 }
 
@@ -268,13 +419,15 @@ pub struct StageExecutionRecord {
     pub stage_index: u32,
     pub outcome: StageExecutionOutcome,
     pub authority_policy: Option<AuthorityPolicy>,
-    pub parallel_admission_reason: Option<String>,
+    pub parallel_admission_reason: Option<ParallelAdmissionReason>,
     #[cfg(feature = "parallel")]
     pub parallel_kind: Option<ParallelExecutionKind>,
     #[cfg(feature = "parallel")]
     pub apply_mode: Option<ParallelApplyMode>,
     #[cfg(feature = "parallel")]
     pub apply_group_count: u32,
+    #[cfg(feature = "parallel")]
+    pub serial_apply_rejection_reason: Option<ApplyPlanSerialFallbackReason>,
     #[cfg(feature = "parallel")]
     pub serial_fallback_group_count: u32,
     #[cfg(feature = "parallel")]
@@ -293,34 +446,9 @@ pub struct StageExecutionRecord {
 
 impl StageExecutionRecord {
     pub fn parallel_admission_message(&self) -> &'static str {
-        match self.parallel_admission_reason.as_deref() {
-            Some("serial-executor") => "parallelism was not requested for this stage",
-            Some("below-min-stage-width") => {
-                "stage stayed serial because it did not meet the executor's minimum stage width"
-            }
-            Some("below-policy-work-threshold") => {
-                "stage stayed serial because the active runtime policy estimated the work was too small to amortize parallel overhead"
-            }
-            Some("validation-heavy-stage") => {
-                "stage stayed serial because it was validation-heavy and unlikely to benefit from parallel overhead"
-            }
-            Some("below-full-parallel-threshold") => {
-                "stage stayed out of full parallel mode because the active policy requires a larger stage for grouped concurrent apply"
-            }
-            Some("full-parallel-unsupported-by-mutable-engine") => {
-                "stage stayed out of full parallel mode because the current mutable graph engine does not support concurrent apply yet"
-            }
-            Some("admitted-operational") => {
-                "stage ran in parallel under the low-overhead operational policy"
-            }
-            Some("admitted-development") => {
-                "stage ran in parallel under the development policy"
-            }
-            Some("admitted-forensic") => {
-                "stage ran in parallel under the forensic policy"
-            }
-            _ => "parallel admission reason was not recorded",
-        }
+        self.parallel_admission_reason
+            .map(ParallelAdmissionReason::message)
+            .unwrap_or("parallel admission reason was not recorded")
     }
 }
 

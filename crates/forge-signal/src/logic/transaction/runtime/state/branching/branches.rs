@@ -8,6 +8,7 @@ use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
 
 use super::super::merge::{BranchMergeKind, BranchMergeStrategy, BranchMutationLedger};
 use super::super::reconstructability::{AuthorityState, DerivedState};
+use super::super::runtime_state::{AuthorityTransferPacket, ExplicitBranchForkPacket};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::logic::transaction::runtime) struct LatestMergeReference {
@@ -175,12 +176,25 @@ where
         self.branches.insert(branch_id, state);
     }
 
+    pub fn insert_branch_fork_packet(&mut self, packet: ExplicitBranchForkPacket<D, I, T>) {
+        debug_assert_eq!(packet.source_branch, packet.state.ancestry.parent_branch_id.unwrap_or(packet.source_branch));
+        self.insert_branch(packet.branch_id, packet.state);
+    }
+
     pub fn branch_state(&self, branch_id: SignalBranchId) -> Option<&BranchState<D, I, T>> {
         self.branches.get(&branch_id)
     }
 
     pub fn take_branch_state(&mut self, branch_id: SignalBranchId) -> Option<BranchState<D, I, T>> {
         self.branches.remove(&branch_id)
+    }
+
+    pub fn take_branch_transfer_packet(
+        &mut self,
+        branch_id: SignalBranchId,
+    ) -> Option<AuthorityTransferPacket<D, I, T>> {
+        self.take_branch_state(branch_id)
+            .map(|state| AuthorityTransferPacket { branch_id, state })
     }
 
     pub fn branch_state_mut_with_allocator_sync(

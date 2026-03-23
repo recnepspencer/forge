@@ -106,14 +106,15 @@ fn fintech_keyed_audit_cache_reuses_stable_memo_entries_without_cross_shape_corr
     assert_eq!(compute_calls.load(Ordering::Relaxed), 2);
 
     let explanation = world.runtime.observe().explain(cache).unwrap();
+    let reuse_basis = explanation
+        .reuse_basis
+        .expect("memoized audit cache should expose reuse basis");
     assert_eq!(
-        explanation.reuse_basis,
-        Some(ReuseBasis::strategy(
-            crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse,
-            ReuseSource::MemoizedArtifact,
-            ReuseCrossing::None,
-        ))
+        reuse_basis.strategy,
+        Some(crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse)
     );
+    assert_eq!(reuse_basis.source, ReuseSource::MemoizedArtifact);
+    assert_eq!(reuse_basis.crossing, ReuseCrossing::None);
     assert_eq!(
         explanation.memoized_origin,
         Some(MemoizedResultOrigin::MemoizedFromCache)

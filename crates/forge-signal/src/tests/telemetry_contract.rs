@@ -1,9 +1,11 @@
 use crate::facade::*;
+#[cfg(feature = "parallel")]
+use crate::logic::planner::model::ParallelAdmissionReason;
 use crate::tests::support::*;
 
 #[cfg(feature = "parallel")]
 #[test]
-fn transaction_parallel_execution_increments_parallel_not_serial_runtime_usage() {
+fn transaction_full_parallel_executor_usage_is_recorded_across_honest_apply_modes() {
     let graph = SignalGraph::new();
     let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
     let nodes = (0..16)
@@ -27,10 +29,75 @@ fn transaction_parallel_execution_increments_parallel_not_serial_runtime_usage()
     assert!(report
         .stages
         .iter()
-        .any(|stage| matches!(stage.outcome, StageExecutionOutcome::CompletedParallel)));
+        .all(|stage| matches!(
+            stage.outcome,
+            StageExecutionOutcome::CompletedSerial | StageExecutionOutcome::CompletedParallel
+        )));
+    assert!(report.stages.iter().all(|stage| {
+        matches!(
+            stage.parallel_admission_reason,
+            Some(ParallelAdmissionReason::FullParallelUnsupportedByMutableEngine)
+                | Some(ParallelAdmissionReason::AdmittedProofSafeGroupedConcurrent)
+        )
+    }));
     assert_eq!(metrics.execution.serial_executor_usage_count, 0);
     assert_eq!(metrics.execution.parallel_executor_usage_count, 1);
-    assert!(metrics.execution.parallel_stage_dispatch_count >= 1);
+}
+
+#[cfg(feature = "parallel")]
+#[test]
+fn full_parallel_honest_serial_apply_emits_group_local_packet_and_reduction_counters() {
+    use std::num::NonZeroUsize;
+
+    let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(SignalRuntimePolicy::operational().with_parallel_admission(
+        ParallelAdmissionPolicy {
+            operational_min_parallel_tasks: 1,
+            development_min_parallel_tasks: 1,
+            forensic_min_parallel_tasks: 1,
+            full_parallel_min_tasks: 1,
+        },
+    ));
+    let requested: Vec<_> = (0..4).map(|_| graph.node().build()).collect();
+
+    let bootstrap = graph
+        .build_evaluation_plan(&requested, EvaluationRequestMode::ForceOnDemand)
+        .unwrap();
+    graph
+        .execute_prepared_plan(&bootstrap, &(), &|ctx| Ok(ctx.finish(version_ab(1, 0))))
+        .unwrap();
+
+    for &node in &requested {
+        mark_dirty(&mut graph, node, ASPECT_A).unwrap();
+    }
+
+    let plan = graph
+        .build_evaluation_plan(&requested, EvaluationRequestMode::Default)
+        .unwrap();
+    let before = graph.observe().metrics().execution;
+    graph
+        .execute_prepared_plan_with_executor(
+            &plan,
+            &(),
+            &|ctx| Ok(ctx.finish(version_ab(2, 0))),
+            StageExecutor::full_parallel(1).with_parallel_policy(
+                ParallelExecutionPolicy::new(NonZeroUsize::new(1).unwrap())
+                    .with_apply_group_min_width(2)
+                    .with_max_concurrent_apply_groups(2),
+            ),
+        )
+        .unwrap();
+
+    let metrics = graph.observe().metrics();
+    let execution = metrics.execution;
+    assert_eq!(execution.group_local_packet_breadth - before.group_local_packet_breadth, 4);
+    assert_eq!(execution.reduction_packet_breadth - before.reduction_packet_breadth, 2);
+    assert_eq!(execution.reduction_group_count - before.reduction_group_count, 2);
+    assert!(
+        execution.shared_surface_publication_breadth - before.shared_surface_publication_breadth
+            >= 4,
+        "reducer publication breadth should at least cover one semantic publication per task"
+    );
 }
 
 #[test]

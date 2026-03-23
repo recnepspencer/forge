@@ -3,7 +3,9 @@ use std::collections::{BTreeMap, VecDeque};
 use serde::{Deserialize, Serialize};
 
 use crate::data::core_profile::CORE_STORAGE_PROFILE_ID;
+use crate::data::graph::{DependencyEdgeStore, SubscriberEdgeStore};
 use crate::data::graph::SignalGraph;
+use crate::data::node::NodeEntry;
 use crate::data::proof::SnapshotBatchCommit;
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
@@ -11,9 +13,10 @@ use crate::diagnostics::flow::FlowSummary;
 use crate::diagnostics::lineage::LineageRecord;
 use crate::diagnostics::policy::{ArtifactRetentionPolicy, SignalRuntimePolicy};
 use crate::diagnostics::replay::{ReplayCursor, ReplayFrame};
+use crate::diagnostics::state::DiagnosticsState;
 use crate::diagnostics::summary::ExecutionHistorySummary;
 use crate::diagnostics::{FailureSummary, RollbackDiagnostic};
-use crate::logic::transaction::ReconstructabilityRecord;
+use crate::logic::transaction::{ReconstructabilityProof, ReconstructabilityRecord};
 
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
@@ -141,6 +144,46 @@ pub struct SignalSnapshotDiagnostics {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SignalCheckpointSlot {
+    pub entry: Option<NodeEntry>,
+    pub generation: u32,
+    pub retired: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SignalCheckpointArena {
+    pub slots: Vec<SignalCheckpointSlot>,
+    pub free_list: Vec<u32>,
+    pub active_nodes: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SignalCheckpointTopology {
+    pub dependency_edges: DependencyEdgeStore,
+    pub subscriber_edges: SubscriberEdgeStore,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Narrow checkpoint-owned authority payload used to reconstruct operational
+/// graph truth without carrying runtime observation baggage.
+pub struct SignalCheckpointAuthority {
+    pub(crate) arena: SignalCheckpointArena,
+    pub(crate) topology: SignalCheckpointTopology,
+    pub(crate) diagnostics: DiagnosticsState,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Canonical checkpoint-carried authority image for reconstructive restore.
+///
+/// Supported restore paths must consume this image rather than treating the
+/// entire snapshot bundle as the authority carrier.
+pub struct SignalCheckpointImage {
+    pub authority: SignalCheckpointAuthority,
+    pub dependency_snapshot_batch: SnapshotBatchCommit,
+    pub graph_telemetry: RuntimeTelemetry,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 /// Versioned snapshot of `forge-signal` evaluation state.
 ///
 /// This captures graph-local evaluation state, runtime diagnostics required for
@@ -148,7 +191,9 @@ pub struct SignalSnapshotDiagnostics {
 /// It intentionally does not claim ownership of host-managed source truth.
 pub struct SignalSnapshotV1 {
     pub meta: SignalSnapshotMeta,
-    pub graph: SignalGraph,
+    pub checkpoint_image: SignalCheckpointImage,
+    #[serde(alias = "graph")]
+    pub diagnostic_graph: SignalGraph,
     pub diagnostics: SignalSnapshotDiagnostics,
     pub graph_telemetry: RuntimeTelemetry,
     pub runtime_telemetry: Option<RuntimeTelemetry>,
@@ -233,6 +278,32 @@ impl SignalSnapshotV1 {
     /// Stable snapshot identifier for replay and lineage references.
     pub fn snapshot_id(&self) -> SignalSnapshotId {
         self.meta.snapshot_id
+    }
+
+    pub fn checkpoint_image(&self) -> &SignalCheckpointImage {
+        &self.checkpoint_image
+    }
+
+    /// Rich diagnostics/inspection payload captured with the snapshot.
+    ///
+    /// This is not restore authority. Supported restore paths must consume the
+    /// checkpoint image instead.
+    pub fn diagnostic_graph(&self) -> &SignalGraph {
+        &self.diagnostic_graph
+    }
+
+    pub fn authority_graph(&self) -> SignalGraph {
+        SignalGraph::restore_from_checkpoint_authority(&self.checkpoint_image.authority)
+    }
+
+    pub fn reconstructability_proof(&self) -> Result<ReconstructabilityProof, crate::data::error::SignalError> {
+        let record = self.reconstructability.as_ref().ok_or_else(|| {
+            crate::data::error::SignalError::incompatible_snapshot(format!(
+                "snapshot `{}` is missing reconstructability record",
+                self.meta.snapshot_id.0
+            ))
+        })?;
+        Ok(record.proof())
     }
 }
 

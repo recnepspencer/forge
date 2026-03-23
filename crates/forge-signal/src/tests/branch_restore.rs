@@ -2,6 +2,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use crate::data::output::MemoizedResultOrigin;
 use crate::facade::*;
+use crate::logic::transaction::RequiredDerivedRebuildSet;
 use crate::tests::support::*;
 
 #[test]
@@ -49,13 +50,23 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
             .unwrap_or(0)
     );
     let feature_journal = feature_record
-        .journal
-        .as_ref()
-        .expect("runtime snapshot should carry a bounded retained replay journal");
+        .journal;
     assert_eq!(
         feature_record.checkpoint.journal_replay_span,
         feature_journal.replay_event_count as u64
     );
+    let feature_proof = feature_snapshot
+        .reconstructability_proof()
+        .expect("runtime snapshot should expose reconstructability proof");
+    assert_eq!(feature_proof.checkpoint.authority_branch_id, feature.id);
+    assert!(matches!(
+        feature_proof.required_rebuild[0],
+        RequiredDerivedRebuildSet::DependencyIndexes(_)
+    ));
+    assert!(feature_proof.required_rebuild.iter().any(|proof| matches!(
+        proof,
+        RequiredDerivedRebuildSet::ReplaySuffix(_)
+    )));
 
     runtime.switch_branch(main).unwrap();
     let main_node = keyed.node(&mut runtime);
@@ -104,6 +115,22 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
     assert_eq!(
         explanation.memoized_origin,
         Some(MemoizedResultOrigin::MemoizedFromCache)
+    );
+}
+
+#[test]
+fn restore_snapshot_rejects_missing_reconstructability_proof_before_mutation() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let snapshot = runtime.capture_snapshot();
+    let mut missing_proof = snapshot.clone();
+    missing_proof.reconstructability = None;
+
+    let err = runtime.restore_snapshot(&missing_proof).unwrap_err();
+    assert!(
+        format!("{err}").contains("missing reconstructability record"),
+        "restore should fail at the proof boundary rather than restoring from a raw snapshot bundle"
     );
 }
 

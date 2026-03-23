@@ -1,5 +1,6 @@
 use crate::tests::support::*;
 use crate::facade::storage::RecordLifecycleState;
+use crate::facade::lineage::LineageDecisionKind;
 
 #[test]
 fn savepoint_abandoned_work_never_appears_in_subscriber_cdc() {
@@ -172,8 +173,10 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
     assert_direct_history_origin_invariants(&direct_history, RecordRef::Entity(anchor));
 
     let lineage_traced = runtime.lineage_access().entity_aspect_history_with_trace(
-        &BranchId("main".to_string()),
-        start_lineage,
+        crate::facade::lineage::HistoricalResolutionRequest {
+            branch_id: BranchId("main".to_string()),
+            lineage_id: start_lineage,
+        },
         None,
     );
     let lineage_history = lineage_traced
@@ -205,6 +208,14 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
     assert!(entity_names.contains(&"surviving-final-anchor"));
     assert!(!entity_names.iter().any(|name| name.contains("abandoned")));
     assert_eq!(read.relations().len(), 1);
+    let replay = runtime.replay_access();
+    let envelope = replay
+        .canonical_commit_envelope(outcome.commit.commit_id)
+        .unwrap();
+    assert!(!envelope
+        .lineage_decision_log()
+        .iter()
+        .any(|decision| decision.kind == LineageDecisionKind::ReplaceAccepted));
 }
 
 #[test]

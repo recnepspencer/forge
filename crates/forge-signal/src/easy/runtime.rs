@@ -1,5 +1,5 @@
 use std::any::Any;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::marker::PhantomData;
 use std::sync::Mutex;
 
@@ -18,15 +18,18 @@ use super::signal::{ComputedSignal, InputSignal, Signal, DEFAULT_ASPECT};
 ///
 /// This surface intentionally trades execution-model explicitness for ergonomics.
 /// It is not the canonical kernel-grade runtime interface.
+#[cfg_attr(
+    doc,
+    deprecated(note = "ReactiveGraph is convenience-only and intentionally not the production runtime surface")
+)]
 pub struct ReactiveGraph {
     graph: SignalGraph,
     values: HashMap<NodeId, Box<dyn Any + Send + Sync>>,
     computed: HashMap<NodeId, Box<dyn ErasedComputed>>,
     batch_depth: usize,
-    batched_dirty_nodes: Vec<NodeId>,
+    batched_dirty_nodes: BTreeSet<NodeId>,
     batch_value_undo: HashMap<NodeId, Option<Box<dyn Any + Send + Sync>>>,
     batch_entry_undo: HashMap<NodeId, crate::data::node::NodeEntry>,
-    batch_graph_undo: Option<SignalGraph>,
 }
 
 impl Default for ReactiveGraph {
@@ -42,10 +45,9 @@ impl ReactiveGraph {
             values: HashMap::new(),
             computed: HashMap::new(),
             batch_depth: 0,
-            batched_dirty_nodes: Vec::new(),
+            batched_dirty_nodes: BTreeSet::new(),
             batch_value_undo: HashMap::new(),
             batch_entry_undo: HashMap::new(),
-            batch_graph_undo: None,
         }
     }
 
@@ -123,7 +125,7 @@ impl ReactiveGraph {
         }
 
         if self.batch_depth > 0 {
-            self.batched_dirty_nodes.push(signal.node);
+            self.batched_dirty_nodes.insert(signal.node);
         } else {
             mark_dirty_batch(
                 &mut self.graph,
@@ -148,9 +150,6 @@ impl ReactiveGraph {
     where
         F: FnOnce(&mut Self) -> Result<(), SignalError>,
     {
-        if self.batch_depth == 0 {
-            self.batch_graph_undo = Some(self.graph.clone());
-        }
         self.batch_depth += 1;
         let apply_result = apply(self);
         self.batch_depth -= 1;
@@ -164,9 +163,7 @@ impl ReactiveGraph {
         }
 
         if self.batch_depth == 0 {
-            let mut dirty_nodes = std::mem::take(&mut self.batched_dirty_nodes);
-            dirty_nodes.sort();
-            dirty_nodes.dedup();
+            let dirty_nodes = std::mem::take(&mut self.batched_dirty_nodes);
             if let Err(err) = mark_dirty_batch(
                 &mut self.graph,
                 &DirtyBatch::from_sources(
@@ -272,9 +269,6 @@ impl ReactiveGraph {
     }
 
     fn restore_batch_undo(&mut self) {
-        if let Some(graph) = self.batch_graph_undo.take() {
-            self.graph = graph;
-        }
         let entry_undo = std::mem::take(&mut self.batch_entry_undo);
         for (node, entry) in entry_undo {
             if let Ok(slot) = self.graph.get_entry_mut(node) {
@@ -295,7 +289,6 @@ impl ReactiveGraph {
     }
 
     fn clear_batch_undo(&mut self) {
-        self.batch_graph_undo = None;
         self.batch_value_undo.clear();
         self.batch_entry_undo.clear();
     }

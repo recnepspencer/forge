@@ -8,7 +8,7 @@ These are not polish tasks. They are the remaining places where the runtime is a
 
 - `S9.12`: reconstructability is improved, but restore still is not fully forced through a canonical proof chain of `checkpoint + bounded journal + required derived rebuild`
 - `S9.15`: whole-live merge fallback is gone, but bounded merge proof is not yet complete enough to make all supported merge flows purely proof-driven
-- `S9.9`: disjoint parallel structure exists, but true grouped concurrent apply on the mutable engine is not yet complete
+- `S9.9`: proof-driven grouped concurrent apply is now closed for proof-safe static stages, and ineligible full-parallel stages lower honestly to serial execution with named rejection
 - `S9.10`: rollback and lifecycle are improved, but rollback is not yet fully reduced to typed inverse authority effects and lifecycle transfers are not yet completely type-separated
 
 This spec is governed by:
@@ -30,6 +30,80 @@ Implementation order:
 4. `S9.9` true parallel apply completion
 5. `S9.10` rollback and lifecycle completion
 6. cross-phase certification closeout
+
+## Execution Control Layer
+
+This section is mandatory implementation scaffolding for the rest of the spec.
+It exists to keep the work intelligible under active implementation pressure.
+
+Every workstream below must be executable through the same control surfaces:
+
+- migration table
+  - current substrate
+  - temporary bridge substrate
+  - final proof-bearing substrate
+  - supported callers during migration
+  - surfaces that must stop compiling at closeout
+- proof inventory row
+  - producer
+  - consumer
+  - invalidation trigger
+  - replay-verifiable yes/no
+  - persistence lifetime
+  - measurement boundary
+  - negative-space condition
+- closeout impossibility checklist
+  - the exact legacy behaviors that must be unrepresentable when the workstream closes
+- certification staging
+  - compile-time barrier
+  - local proof tests
+  - adversarial/property tests
+  - cross-phase equivalence tests
+  - named harness debt if final harness work is deferred
+
+No workstream is complete if it lands target nouns but leaves legacy execution
+routes structurally valid.
+
+## Global Closeout Impossibility Checklist
+
+The following behaviors must be unrepresentable on supported paths by the end
+of this program:
+
+- reconstructability with `journal: None`
+- restore from raw snapshot-like state bundles
+- restore that mixes authority rebuild and diagnostic rebuild in one semantic phase
+- whole-live merge candidate scope on supported merge paths
+- candidate construction that depends on ambient branch inspection
+- grouped concurrent apply that performs the majority of semantic authority work in serial reduction
+- worker access to shared runtime surfaces during grouped concurrent apply
+- rollback that depends on baseline state bundles rather than typed inverse authority effects
+- routine lifecycle paths that can construct heavy capture witnesses
+- diagnostics policy that changes authority truth, semantically required derived truth, or admissibility
+
+## Global Proof Inventory Contract
+
+Every proof-bearing type introduced by this spec must have an implementation-time
+inventory row in code review or closeout notes using this shape:
+
+| Proof type | Producer | Consumer | Invalidation trigger | Replay-verifiable | Lifetime | Measurement boundary | Negative space |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+
+The purpose of the table is not documentation. It is to prevent silent drift in
+what each subsystem means by "proof."
+
+## Execution Phase Chain Template
+
+Every workstream phase chain must be rendered using the following exact
+questions:
+
+1. What proof-bearing type is accepted at the entry boundary?
+2. What narrower proof or typed packet does this phase produce?
+3. What facts become illegal to rediscover after this phase?
+4. What counter surface proves the phase remained bounded?
+5. What caller-visible API is allowed to consume the output?
+
+If a phase cannot answer those questions concretely, it is still descriptive
+architecture rather than executable architecture.
 
 ## Shared Proof Substrate Laws
 
@@ -172,6 +246,90 @@ Hard rules:
 - policy may not affect semantically required derived truth
 - policy may not affect merge/apply/restore admissibility
 - restore, merge, rollback, and planning may depend only on authoritative or semantically required derived truth
+
+## Workstream Migration Tables
+
+The tables in this section are implementation control surfaces. They name the
+legacy substrate that must be retired rather than merely surrounded by new
+types.
+
+### `S9.12` Reconstructability Migration Table
+
+| Category | Current substrate | Temporary bridge substrate | Final substrate | Must stop compiling at closeout |
+| --- | --- | --- | --- | --- |
+| restore authority proof | `ReconstructabilityRecord` and snapshot-like metadata bundles | adapters that construct `ReconstructabilityProof` from existing checkpoint and retained journal capture | `ReconstructabilityProof` | restore helpers that accept raw snapshot bundles or partially descriptive metadata |
+| journal truth | `JournalSegment` with optional attachment | bridge validation that rejects missing or discontinuous journal early | `BoundedJournalSegment` | any supported path with absent journal proof |
+| rebuild classification | open-ended derived rebuild logic | explicit bridge mapper from existing rebuild lanes into closed semantic classes | `RequiredDerivedRebuildSet` | rebuild code that can mix required derived truth with policy-rich diagnostics |
+| restore pipeline | mixed restore helpers | wrappers that call the new 3-phase chain internally | `restore_authority_from_checkpoint -> rebuild_required_derived_from_authority -> apply_diagnostic_policy_richness` | any supported restore helper that collapses those phases |
+
+### `S9.15` Bounded Merge Migration Table
+
+| Category | Current substrate | Temporary bridge substrate | Final substrate | Must stop compiling at closeout |
+| --- | --- | --- | --- | --- |
+| merge boundary | branch/snapshot-adjacent merge inputs | bridge constructor that lowers existing branch metadata into boundary witness form | `MergeBoundaryWitness` | merge helpers that infer admissibility from ambient branch state |
+| source delta | `BranchMutationJournalSlice` without full proof split | source journal bridge with explicit boundary attachment | `StructuralMergeJournalSlice` | candidate construction from branch-state bundles alone |
+| overlap | combined overlap/candidate shaping | temporary derivation functions that emit distinct overlap forms before final executor adoption | `ProofMinimalOverlapBasis` plus `ConservativeOverlapExpansion` | overlap and candidate scope collapsed into one concept |
+| candidate scope | `MergeCandidateScope`, including whole-live scope | temporary narrow candidate adapters | `PlannedMergeCandidateSet` inside `LoweredMergePlan` | whole-live supported candidate scope |
+| execution | merge plan plus ambient lookups | executor wrapper that only reads lowered plan fields and proof-authorized indexes | `LoweredMergePlan` | executor-side candidate discovery or ambient branch inspection |
+
+### `S9.9` Parallel Apply Migration Table
+
+| Category | Current substrate | Temporary bridge substrate | Final substrate | Must stop compiling at closeout |
+| --- | --- | --- | --- | --- |
+| grouping | disjoint grouping from footprints | explicit lowering from grouping result into proof-bearing concurrent admission object | `DisjointApplyProof` | grouped concurrent admission without proof object |
+| execution truth | grouped planning with serial mutable apply reality | staged worker packet buffering behind current executor shape | `LoweredApplyPlan::GroupedConcurrent(ConcurrentApplyPlan)` | `FullParallel` execution that is semantically serial |
+| worker output | mixed direct/shared writes or shared-surface temptation | bridge worker packets that isolate existing outputs before reduction | `GroupLocalApplyPacket` | worker access to shared runtime surfaces |
+| reduction | broad serial post-pass | narrow deterministic publication-only reducer | `ConcurrentApplyReductionPlan` | reduction that redoes majority semantic work |
+
+### `S9.10` Rollback and Lifecycle Migration Table
+
+| Category | Current substrate | Temporary bridge substrate | Final substrate | Must stop compiling at closeout |
+| --- | --- | --- | --- | --- |
+| rollback truth | lazy rollback baselines and repair ceremony | bridge that derives typed rollback packets from existing effect and patch surfaces | `TransactionRollbackPacket` | rollback via baseline bundles as supported semantic truth |
+| branch move | branch-state load/store helpers | wrappers that materialize move-only transfer packets internally | `AuthorityTransferPacket` | branch switch APIs that imply duplication |
+| branch duplicate | generic branch capture/fork helpers | explicit bridge for duplication-only call paths | `ExplicitBranchForkPacket` | branch fork without explicit duplicate truth packet |
+| restore | branch restore from snapshot-shaped bundles | bridge constructor from checkpoint plus retained journal capture | `BranchLifecycleTransfer::Restore(ReconstructabilityProof)` | branch restore APIs that accept raw branch bundles |
+| heavy capture | helper-accessible heavyweight capture | sealed witness bridge owned by one lifecycle module | `HeavyCaptureWitness` | routine lifecycle code that can construct heavy capture directly |
+
+## Proof Inventory by Workstream
+
+This section is the minimum inventory expected during implementation.
+
+### `S9.12` Required Proof Inventory
+
+| Proof type | Producer | Consumer | Invalidation trigger | Replay-verifiable | Lifetime | Measurement boundary | Negative space |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `CheckpointBoundary` | checkpoint capture | restore phase 1 | mutation beyond checkpoint authority | yes | persistent | checkpoint facade counters | raw checkpoint metadata must not act as authority proof |
+| `BoundedJournalSegment` | retained journal capture | restore phase 1 and replay verification | continuity break or truncation | yes | replay-stable | journal span and retained-bytes counters | optional journal attachment |
+| `RequiredDerivedRebuildSet` | reconstructability lowering | restore phase 2 | mismatch with checkpoint or authority basis | phase-dependent | inspectable | required-derived breadth counters | policy-rich diagnostics inside required rebuild set |
+| `ReconstructabilityProof` | checkpoint plus journal boundary capture | restore facade | mutation beyond end cursor or checkpoint mismatch | yes | restore-consumable | restore breadth counters | restore from snapshot bundle or descriptive record |
+
+### `S9.15` Required Proof Inventory
+
+| Proof type | Producer | Consumer | Invalidation trigger | Replay-verifiable | Lifetime | Measurement boundary | Negative space |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `MergeBoundaryWitness` | branch lifecycle plus mutation ledger plus merge-base proof | merge lowering | source or target mutation past boundary | yes | inspectable until mutation | boundary witness counters | merge admissibility from ambient branch truth |
+| `StructuralMergeJournalSlice` | mutation ledger | overlap derivation | further source mutation | yes | inspectable | source slice breadth | whole-live source inspection |
+| `ProofMinimalOverlapBasis` | merge lowering | overlap expansion and candidate lowering | boundary or index invalidation | yes | planning-only | proof-minimal breadth | heuristic overlap expansion inside minimal proof |
+| `ConservativeOverlapExpansion` | merge lowering using proof-authorized indexes | candidate lowering | same as overlap basis | yes | planning-only | overlap expansion breadth | silent widening from convenience indexes |
+| `LoweredMergePlan` | merge lowering | merge executor | mutation beyond witness basis | yes | single-use per merge execution | final candidate and reconciliation breadth | executor-side candidate discovery |
+
+### `S9.9` Required Proof Inventory
+
+| Proof type | Producer | Consumer | Invalidation trigger | Replay-verifiable | Lifetime | Measurement boundary | Negative space |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `DisjointApplyProof` | planner lowering from canonical footprints | concurrent executor | planning basis or policy change | indirectly | single-use | admission and group-local breadth counters | grouped concurrency without proof |
+| `GroupLocalApplyPacket` | worker-local apply path | deterministic reducer | packet mutation or ordering mismatch | indirectly | single-use | group-local packet breadth | worker writes to shared surfaces |
+| `ConcurrentApplyReductionPlan` | planner lowering | reducer only | planning basis or policy change | indirectly | single-use | reduction breadth counters | reduction as hidden serial semantic engine |
+
+### `S9.10` Required Proof Inventory
+
+| Proof type | Producer | Consumer | Invalidation trigger | Replay-verifiable | Lifetime | Measurement boundary | Negative space |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `TransactionRollbackPacket` | effect application | rollback/finalize path | wrong baseline or wrong transaction order | yes | single-use | rollback packet counters | rollback as imperative undo script or bundle |
+| `AuthorityTransferPacket` | lifecycle move path | branch switch | mutation after packet creation | no | single-use move-only | move transfer counters | move that secretly duplicates |
+| `ExplicitBranchForkPacket` | lifecycle duplicate path | branch fork | mutation after packet creation | no | single-use | explicit fork counters | duplicate truth created by generic switch/capture |
+| `HeavyCaptureWitness` | sealed lifecycle owner | heavy capture path only | module boundary escape | no | scoped | heavy capture counters | routine path access to heavyweight capture |
 
 ## Workstream 1: `S9.12` Reconstructability Completion
 
@@ -320,19 +478,57 @@ Checkpoint/reconstructability facade must expose:
 - authority, semantically required derived truth, performance-only derived state, and diagnostic richness are structurally distinct
 - restore no longer accepts snapshot-like bundles as authority proof
 
+### Certification staging
+
+Compile-time barrier:
+
+- restore facade accepts `ReconstructabilityProof` only
+- required-derived rebuild APIs cannot accept policy-rich diagnostic carriers
+
+Local proof tests:
+
+- `checkpoint_plus_bounded_journal_is_sufficient_for_restore`
+- `required_derived_rebuild_set_contains_no_policy_optional_richness`
+
+Adversarial/property tests:
+
+- discontinuous retained journal rejection under churn
+- destroy-all-derived-and-rebuild equivalence under repeated checkpoint/restore cycles
+
+Cross-phase equivalence tests:
+
+- restore under diagnostics tier matrix preserves authority and semantically required derived truth
+- replay suffix equivalence across repeated restore churn
+
+Allowed harness debt:
+
+- large-scale slope harness work may remain open if named counters and exact local proof tests already exist
+
 ## Workstream 2: `S9.15` Bounded Merge Completion
 
 ### Adversarial constraint
 
 Under long-lived branch divergence, repeated snapshot restore, and hostile overlapping mutation journals, merge planning must remain bounded by carried proof rather than ambient whole-branch knowledge. Supported merge flows must either lower to a bounded merge plan or fail before candidate construction.
 
-### Current defect
+### Closeout status
 
-The whole-live fallback has been removed, which is correct. But merge still is not fully proof-complete:
+`S9.15` is closed for the supported S9 merge envelope.
 
-- merge still captures or consults branch-state-adjacent structures too freely
-- the semantic status of target overlap is not sharp enough
-- candidate construction is not yet specified as a pure function of lowered planning inputs plus proof-authorized indexes
+The whole-live supported scope is retired, merge candidate construction is now
+lowered through the proof chain below, and supported execution consumes only
+`LoweredMergePlan`.
+
+Retired legacy surface:
+
+- `MergeCandidateScope`, including whole-live supported scope
+
+Closeout evidence:
+
+- merge boundary proof is required before candidate construction
+- source journal truth is carried as `StructuralMergeJournalSlice`
+- proof-minimal overlap and conservative expansion are distinct carried forms
+- repeated merge and restore preserve future bounded merge boundary validity
+- convenience performance-only index churn does not alter lowered merge candidates
 
 ### Required target forms
 
@@ -482,11 +678,51 @@ Merge planning/execution must expose:
 - `restore_after_merge_preserves_future_boundary_validity`
 - `unsupported_merge_families_fail_before_candidate_construction`
 
+Implemented crate-level evidence:
+
+- `tests::merge_adoption::merge_branch_uses_branch_local_mutation_scope_instead_of_whole_live_scan`
+- `tests::merge_adoption::proof_minimal_overlap_and_conservative_expansion_remain_distinct_and_bounded`
+- `tests::merge_adoption::merge_candidate_construction_is_identical_with_and_without_convenience_branch_indexes`
+- `tests::merge_adoption::active_restore_reinstates_branch_merge_ledger_boundary_for_later_fast_forward_merge`
+- `tests::merge_adoption::repeated_merge_after_target_restore_stays_bounded_and_history_honest`
+- `tests::merge_adoption::merge_branch_without_established_journal_boundary_fails_explicitly`
+
 ### Closeout criteria
 
 - supported merge flows are always bounded by carried proof
 - candidate construction is pure and proof-driven
 - whole-live merge is unrepresentable on supported paths
+
+Closeout statement:
+
+- these criteria are satisfied for the supported S9 merge envelope; remaining
+  richer merge-expansion work belongs to `S10`, not to `S9.15`
+
+### Certification staging
+
+Compile-time barrier:
+
+- merge executor accepts `LoweredMergePlan` only
+- supported merge variants cannot express whole-live candidate scope
+
+Local proof tests:
+
+- `supported_merge_candidate_construction_is_purely_proof_driven`
+- `proof_minimal_overlap_and_conservative_expansion_remain_distinct_and_bounded`
+
+Adversarial/property tests:
+
+- overlapping mutation journals under repeated restore/merge churn
+- convenience index presence or absence preserves identical candidate construction
+
+Cross-phase equivalence tests:
+
+- restore after merge preserves future boundary validity
+- supported merge outcomes remain stable across diagnostics tier changes
+
+Allowed harness debt:
+
+- richer unsupported-family certification may remain open if unsupported flows already reject before candidate construction
 
 ## Workstream 3: `S9.9` True Parallel Apply Completion
 
@@ -496,17 +732,14 @@ Under wide disjoint stages on geometry-style graphs, the runtime must either exe
 
 ### Current defect
 
-The plan structure exists:
+The original defect is now retired on the supported S9 path.
 
-- disjoint groups
-- lowering
-- admission/reporting
+The runtime now provides:
 
-But the execution substrate is incomplete:
-
-- apply still serializes groups on the mutable engine
-- hidden shared outputs are the likely failure point
-- reduction is not yet sharply constrained
+- proof-bearing grouped concurrent lowering through `DisjointApplyProof`
+- real grouped concurrent worker packet derivation for proof-safe static stages
+- deterministic reduction-only publication through `ConcurrentApplyReductionPlan`
+- honest serial lowering with named rejection when a stage would require shared-surface suppression or local rewiring beyond the current proof-safe envelope
 
 ### Required target forms
 
@@ -640,6 +873,45 @@ Planner/apply must expose:
 - `FullParallel` means real grouped concurrent apply or does not exist
 - reduction is narrow publication, not a backdoor serial semantic engine
 - planner, lowered plan, executor, and reporting all agree on execution truth
+
+### Certification staging
+
+Compile-time barrier:
+
+- grouped concurrent execution requires `DisjointApplyProof`
+- worker code cannot access shared runtime surfaces directly
+
+Local proof tests:
+
+- `workers_write_only_group_local_buffers`
+- `no_grouped_concurrent_plan_exists_without_disjoint_apply_proof`
+
+Adversarial/property tests:
+
+- disjoint geometry-style subgraph workloads across varying batch width
+- rejection of unsupported mutable-engine parallelism before execution
+
+Cross-phase equivalence tests:
+
+- grouped concurrent and serial apply are equivalent across authoritative, replay, lineage, and required diagnostic surfaces
+- reduction breadth scales with publication packets rather than semantic work
+
+Allowed harness debt:
+
+- throughput slope reporting may remain open if equivalence and breadth counters are already certified locally
+
+### Closeout note
+
+- `S9.9` is closed for the supported S9 envelope
+- retired legacy surface: `FullParallel` execution that was semantically serial on the supported path
+- supported proof-driven path: `DisjointApplyProof -> LoweredApplyPlan::GroupedConcurrent(ConcurrentApplyPlan) -> GroupLocalApplyPacket -> ConcurrentApplyReductionPlan`
+- named crate-level evidence:
+  - `tests::adversarial_parallel::full_parallel_splits_wide_stage_into_deterministic_apply_groups`
+  - `tests::adversarial_parallel::full_parallel_rewires_dynamic_dependencies_without_losing_parity`
+  - `tests::adversarial_parallel::full_parallel_apply_failure_does_not_leak_partial_semantic_state`
+  - `tests::adversarial_parallel::full_parallel_policy_matrix_preserves_semantic_artifacts_on_tolerance_heavy_partition_graph`
+  - `tests::adversarial_parallel::logically_equivalent_region_orders_produce_identical_provenance_and_replay`
+  - `tests::telemetry_contract::full_parallel_honest_serial_apply_emits_group_local_packet_and_reduction_counters`
 
 ## Workstream 4: `S9.10` Rollback and Lifecycle Completion
 
@@ -808,6 +1080,34 @@ Transaction/lifecycle surfaces must expose:
 - branch lifecycle operations are type-separated and cost-honest
 - heavy capture is narrow, counted, and non-routine
 
+### Certification staging
+
+Compile-time barrier:
+
+- rollback/finalize consumes `TransactionRollbackPacket`s only
+- branch switch/fork/restore each accept their own transfer packet family only
+- heavy capture requires sealed witness construction
+
+Local proof tests:
+
+- `read_only_and_no_op_transactions_emit_zero_rollback_packets`
+- `branch_switch_is_move_only`
+- `branch_restore_requires_reconstructability_proof`
+
+Adversarial/property tests:
+
+- failure injection at multiple commit phases with repeated branch switch/fork/restore churn
+- allocator/catalog churn under rollback-heavy workloads
+
+Cross-phase equivalence tests:
+
+- rollback restores pre-transaction authority and semantically required derived truth exactly
+- deterministic diagnostic rebuild after rollback does not alter semantic truth
+
+Allowed harness debt:
+
+- long-duration branch churn harness may remain open if packet counters and exact rollback equivalence tests already land
+
 ## Cross-Phase Measurement and Certification
 
 ### Required measurement boundaries
@@ -874,6 +1174,26 @@ When implemented, the following docs must be updated together:
 Required closeout statement:
 
 - `S9.12`, `S9.15`, `S9.9`, and `S9.10` are complete only when supported execution is proof-driven, no forbidden fallback path remains representable, and the certification suite proves breadth, equivalence, and exactness through named counters and proof-bearing runtime surfaces.
+
+## Module Ownership and Facade Rule
+
+To prevent proof construction from leaking across unrelated modules:
+
+- each workstream must have one owning module subtree
+- proof constructors must be private to the owning subtree unless the proof is itself a public facade artifact
+- sealed witness constructors must live in exactly one internal module
+- facade surfaces may expose proof consumption, counters, and typed failure, but must not expose internal assembly shortcuts
+
+Recommended ownership split:
+
+- `S9.12`: reconstructability/checkpoint subtree
+- `S9.15`: merge planning and merge execution subtree
+- `S9.9`: planner/apply lowering plus concurrent apply execution subtree
+- `S9.10`: transaction rollback and lifecycle transfer subtree
+
+If a proof is created opportunistically in a caller because the owning module did
+not provide a constructor, the architecture is incomplete and the caller code is
+wrong.
 
 ## Assumptions and Defaults
 

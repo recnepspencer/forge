@@ -4,13 +4,15 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use crate::schema::data::{
-    CompatibilityObservation, DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
+    CompatibilityObservation,
+    DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
     HistoricalInterpretationSensitivity, LoweredSchemaTransitionPlan, ProposedSchemaTransition,
     SchemaBoundaryFingerprint, SchemaBridgeDescriptor, SchemaBridgeabilityClassification,
     SchemaContinuationClassification, SchemaContinuationDescriptor, SchemaDiffAtom, SchemaDiffDetail,
     SchemaReconciliationClassification, SchemaReconciliationDescriptor,
     SchemaReconciliationOrderingMode, SchemaReconciliationPolicy, SchemaStratum,
     SchemaSubscriberImpact, SchemaLineageArtifact, SchemaLineageOrderingSemantics,
+    SubscriberBoundaryVisibility,
     ValidatedSchemaTransition,
 };
 
@@ -39,6 +41,11 @@ pub enum SchemaContinuityBundleIssue {
         expected: DescriptorSemanticsVersion,
         found: DescriptorSemanticsVersion,
     },
+    DescriptorCanonicalizationVersionMismatch {
+        expected: DescriptorCanonicalizationVersion,
+        found: DescriptorCanonicalizationVersion,
+    },
+    VisibleBridgeProofMismatch,
     TargetSchemaVersionMismatch,
     LineageSchemaVersionMismatch,
     HistoricalReinterpretationViolation,
@@ -94,6 +101,12 @@ impl SchemaContinuityBundleIssue {
             }
             Self::DescriptorSemanticsVersionMismatch { .. } => {
                 "descriptor semantics version must agree across envelope, continuation descriptor, and reconciliation descriptor".to_string()
+            }
+            Self::DescriptorCanonicalizationVersionMismatch { .. } => {
+                "descriptor canonicalization version must agree across continuation and reconciliation descriptors and remain supported by runtime policy".to_string()
+            }
+            Self::VisibleBridgeProofMismatch => {
+                "visible bridge continuity requires explicit proof that surfaced boundary metadata is semantically ignorable".to_string()
             }
             Self::TargetSchemaVersionMismatch => {
                 "transition target schema version does not match canonical envelope schema version"
@@ -257,17 +270,18 @@ pub fn classify_schema_transition(
 pub fn lower_schema_transition(
     validated: ValidatedSchemaTransition,
     policy: Option<SchemaReconciliationPolicy>,
+    semantics_version: DescriptorSemanticsVersion,
+    canonicalization_version: DescriptorCanonicalizationVersion,
 ) -> LoweredSchemaTransitionPlan {
-    let semantics_version = DescriptorSemanticsVersion::default();
-    let canonicalization_version = DescriptorCanonicalizationVersion::default();
     let normalized_transition = normalize_transition(&validated.proposed.diff_atoms);
     let fingerprint = fingerprint_transition_from_normalized(&normalized_transition);
-    let bridge = SchemaBridgeDescriptor::new(
+    let bridge = SchemaBridgeDescriptor::new_with_visibility(
         fingerprint,
         semantics_version,
         canonicalization_version,
         validated.continuation,
         validated.bridgeability,
+        strongest_boundary_visibility(&validated.proposed.diff_atoms),
         normalized_transition.historical_interpretation,
         normalized_transition.changed_strata,
     );
@@ -349,6 +363,23 @@ pub fn validate_schema_continuity_bundle(
             expected: envelope.descriptor_semantics_version,
             found: reconciliation.semantics_version,
         });
+    }
+    if continuation.bridge.canonicalization_version
+        != reconciliation.canonicalization_version
+    {
+        return Err(
+            SchemaContinuityBundleIssue::DescriptorCanonicalizationVersionMismatch {
+                expected: continuation.bridge.canonicalization_version,
+                found: reconciliation.canonicalization_version,
+            },
+        );
+    }
+    if continuation.bridge.continuation
+        == crate::schema::data::SchemaContinuationClassification::ContinueWithVisibleBridge
+        && continuation.bridge.boundary_visibility
+            != crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable
+    {
+        return Err(SchemaContinuityBundleIssue::VisibleBridgeProofMismatch);
     }
     if transition.target_schema_version_id != envelope.schema_version {
         return Err(SchemaContinuityBundleIssue::TargetSchemaVersionMismatch);
@@ -716,7 +747,10 @@ fn classify_continuation(atom: &SchemaDiffAtom) -> SchemaContinuationClassificat
     match atom.subscriber_impact {
         SchemaSubscriberImpact::None => SchemaContinuationClassification::ContinueUnchanged,
         SchemaSubscriberImpact::ConsumableSurfaceChanged => {
-            if atom.historical_interpretation == HistoricalInterpretationSensitivity::NotSensitive {
+            if atom.historical_interpretation == HistoricalInterpretationSensitivity::NotSensitive
+                && atom.boundary_visibility
+                    == SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable
+            {
                 SchemaContinuationClassification::ContinueWithVisibleBridge
             } else {
                 SchemaContinuationClassification::RequireRenegotiation
@@ -729,6 +763,14 @@ fn classify_continuation(atom: &SchemaDiffAtom) -> SchemaContinuationClassificat
             SchemaContinuationClassification::RequireRenegotiation
         }
     }
+}
+
+fn strongest_boundary_visibility(diff_atoms: &[SchemaDiffAtom]) -> SubscriberBoundaryVisibility {
+    diff_atoms
+        .iter()
+        .map(|atom| atom.boundary_visibility)
+        .max()
+        .unwrap_or(SubscriberBoundaryVisibility::NotVisible)
 }
 
 fn classify_bridgeability(atom: &SchemaDiffAtom) -> SchemaBridgeabilityClassification {

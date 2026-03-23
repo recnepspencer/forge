@@ -36,6 +36,7 @@ pub(super) fn materialize_current_entity_record(
             slot as u64,
             entity_slot.generation(),
         ),
+        lineage_id: entity_slot.extra().lineage_id,
         kind,
         lifecycle: entity_slot.lifecycle(),
         created_at_version: partition.entity_arena.created_at[slot],
@@ -76,6 +77,7 @@ pub(super) fn materialize_entity_record_at_version(
             slot as u64,
             metadata.generation,
         ),
+        lineage_id: metadata.lineage_id,
         kind,
         lifecycle: historical_lifecycle(
             partition.entity_arena.retired_at_for_slot(slot),

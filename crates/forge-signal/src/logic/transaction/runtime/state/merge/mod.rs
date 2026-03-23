@@ -26,16 +26,18 @@ pub use conflict::{
 #[allow(unused_imports)]
 pub use core::{
     BranchMergeBase, BranchMergeDivergence, BranchMergeFailureKind, BranchMergeKind,
-    BranchMergeRequest, BranchMergeStrategy, MergeCandidateScope,
+    BranchMergeRequest, BranchMergeStrategy, MergeBoundaryWitness, MergeBoundaryWitnessKind,
 };
 #[allow(unused_imports)]
 pub use journal::{
     BranchMutationJournalSlice, BranchMutationLedger, MergeNodeMap, StructuralMergeCandidateRecord,
+    StructuralMergeJournalSlice,
 };
 #[allow(unused_imports)]
 pub use plan::{
-    ArtifactMergeComparable, BranchMergePlan, DependencyFingerprint, NodeMergeInputState,
-    NodeMergePlan, NodeReconciliationDecision, NodeReconciliationShape,
+    ArtifactMergeComparable, BranchMergePlan, ConservativeOverlapExpansion, DependencyFingerprint,
+    LoweredMergePlan, NodeMergeInputState, NodeMergePlan, NodeReconciliationDecision,
+    NodeReconciliationShape, PlannedMergeCandidateSet, ProofMinimalOverlapBasis,
 };
 #[allow(unused_imports)]
 pub use policy::{

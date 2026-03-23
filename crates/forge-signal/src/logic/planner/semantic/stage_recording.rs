@@ -1,4 +1,6 @@
 use super::super::types::{StageExecutionOutcome, StageExecutionRecord};
+#[cfg(not(feature = "parallel"))]
+use super::super::types::ParallelAdmissionReason;
 
 #[cfg(feature = "parallel")]
 use super::super::precompute::admission::StageParallelAdmission;
@@ -29,11 +31,11 @@ pub(crate) fn begin_stage_record(
         parallel_admission_reason: Some({
             #[cfg(feature = "parallel")]
             {
-                parallel_admission.reason.to_string()
+                parallel_admission.reason
             }
             #[cfg(not(feature = "parallel"))]
             {
-                "serial-executor".to_string()
+                ParallelAdmissionReason::SerialExecutor
             }
         }),
         #[cfg(feature = "parallel")]
@@ -42,6 +44,8 @@ pub(crate) fn begin_stage_record(
         apply_mode: None,
         #[cfg(feature = "parallel")]
         apply_group_count: 0,
+        #[cfg(feature = "parallel")]
+        serial_apply_rejection_reason: None,
         #[cfg(feature = "parallel")]
         serial_fallback_group_count: 0,
         #[cfg(feature = "parallel")]

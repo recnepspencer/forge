@@ -24,6 +24,7 @@ pub(crate) struct VersionedEntityMetadata {
     pub(crate) retired_at: Option<VersionId>,
     pub(crate) generation: u32,
     pub(crate) kind_id: KindId,
+    pub(crate) lineage_id: Option<LineageId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

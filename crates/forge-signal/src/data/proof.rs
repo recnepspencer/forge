@@ -752,7 +752,7 @@ impl<T> SingleConsumer<T> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct DedupedNodeBatch {
-    nodes: Vec<NodeId>,
+    nodes: std::sync::Arc<Vec<NodeId>>,
 }
 
 impl DedupedNodeBatch {
@@ -766,13 +766,17 @@ impl DedupedNodeBatch {
             nodes.sort_unstable_by_key(node_sort_key);
             nodes.dedup();
         }
-        Self { nodes }
+        Self {
+            nodes: std::sync::Arc::new(nodes),
+        }
     }
 
     pub fn from_ordered_unique(nodes: impl IntoIterator<Item = NodeId>) -> Self {
         let nodes = nodes.into_iter().collect::<Vec<_>>();
         debug_assert!(is_strict_node_order(nodes.as_slice()));
-        Self { nodes }
+        Self {
+            nodes: std::sync::Arc::new(nodes),
+        }
     }
 
     pub fn from_slice(nodes: &[NodeId]) -> Self {
@@ -780,11 +784,14 @@ impl DedupedNodeBatch {
     }
 
     pub fn as_slice(&self) -> &[NodeId] {
-        &self.nodes
+        self.nodes.as_slice()
     }
 
     pub fn into_vec(self) -> Vec<NodeId> {
-        self.nodes
+        match std::sync::Arc::try_unwrap(self.nodes) {
+            Ok(nodes) => nodes,
+            Err(nodes) => nodes.as_ref().clone(),
+        }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -798,7 +805,7 @@ impl DedupedNodeBatch {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct SortedSourceBatch {
-    sources: Vec<NodeId>,
+    sources: std::sync::Arc<Vec<NodeId>>,
 }
 
 impl SortedSourceBatch {
@@ -812,13 +819,17 @@ impl SortedSourceBatch {
             sources.sort_unstable_by_key(node_sort_key);
             sources.dedup();
         }
-        Self { sources }
+        Self {
+            sources: std::sync::Arc::new(sources),
+        }
     }
 
     pub fn from_ordered_unique(sources: impl IntoIterator<Item = NodeId>) -> Self {
         let sources = sources.into_iter().collect::<Vec<_>>();
         debug_assert!(is_strict_node_order(sources.as_slice()));
-        Self { sources }
+        Self {
+            sources: std::sync::Arc::new(sources),
+        }
     }
 
     pub fn from_slice(sources: &[NodeId]) -> Self {
@@ -826,11 +837,14 @@ impl SortedSourceBatch {
     }
 
     pub fn as_slice(&self) -> &[NodeId] {
-        &self.sources
+        self.sources.as_slice()
     }
 
     pub fn into_vec(self) -> Vec<NodeId> {
-        self.sources
+        match std::sync::Arc::try_unwrap(self.sources) {
+            Ok(sources) => sources,
+            Err(sources) => sources.as_ref().clone(),
+        }
     }
 
     pub fn is_empty(&self) -> bool {

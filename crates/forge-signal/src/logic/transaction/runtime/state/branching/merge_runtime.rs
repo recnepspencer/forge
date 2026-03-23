@@ -9,13 +9,16 @@ use super::super::merge::{
     BranchConflictResolutionPlan, BranchMergeConflictEvidence, BranchMergeConflictRecord, BranchMergeCounters,
     BranchMergeConflictKind, BranchMergeConflictSummary, BranchMergeDivergence,
     BranchMergeExecutionSummary, BranchMergeKind, BranchMergePlan,
+    ConservativeOverlapExpansion, LoweredMergePlan, MergeBoundaryWitness,
+    MergeBoundaryWitnessKind, PlannedMergeCandidateSet, ProofMinimalOverlapBasis,
     BranchMergeReconciliationPolicy, BranchMergeRequest, BranchMergeResult,
     BranchMergeResolutionRequirement, BranchMergeStrategy, BranchMergeFailureKind, ConflictMergePolicy,
     ConflictResolutionRecord, ConflictResolutionStrategy,
-    CausalityCarryPolicy, MergeCandidateScope, MergeDecisionBasis,
+    CausalityCarryPolicy, MergeDecisionBasis,
     ExistingTargetMergePolicy, MergeNodeMap, MergeTouchedNodeSet, MergedArtifactRecord,
     NodeMergeInputState, NodeMergePlan, NodeReconciliationDecision,
     NodeReconciliationShape, SourceOnlyMergePolicy, StructuralMergeCandidateRecord,
+    StructuralMergeJournalSlice,
     RetainedArtifactCarryPolicy, RuntimeArtifactCarryPolicy, SourceNodeAdoptionCarryPolicy,
     SourceNodeAdoptionPlanCore, TargetNodeIdentityIntent, TopologyRepairSummary,
     AdoptedNodeContract, AdoptionDependencySnapshotRef, AdoptionDependencyTopology,
@@ -87,7 +90,10 @@ where
             divergence: summary.divergence,
             merge_strategy: summary.merge_strategy,
             reconciliation_policy: summary.reconciliation_policy,
-            candidate_scope: summary.candidate_scope.clone(),
+            boundary_witness: summary.boundary_witness.clone(),
+            proof_minimal_overlap: summary.proof_minimal_overlap.clone(),
+            conservative_overlap: summary.conservative_overlap.clone(),
+            planned_candidates: summary.planned_candidates.clone(),
             merged_snapshot_id: summary.target_snapshot_id_after,
             target_snapshot_id_before: summary.target_snapshot_id_before,
             target_snapshot_id_after: summary.target_snapshot_id_after,
@@ -103,7 +109,10 @@ where
         request: &BranchMergeRequest,
     ) -> Result<BranchMergePlan, SignalError> {
         let source_state_owned = if request.source_branch.id == self.graph.current_branch().id {
-            self.capture_full_branch_state()
+            {
+                let witness = self.heavy_capture_witness();
+                self.capture_full_branch_state(&witness)
+            }
         } else {
             self.branches
                 .branch_state(request.source_branch.id)
@@ -116,7 +125,10 @@ where
                 })?
         };
         let target_state_owned = if request.target_branch.id == self.graph.current_branch().id {
-            Some(self.capture_full_branch_state())
+            Some({
+                let witness = self.heavy_capture_witness();
+                self.capture_full_branch_state(&witness)
+            })
         } else {
             None
         };
@@ -138,26 +150,45 @@ where
             .branch_head_snapshot_id(request.source_branch.id);
         let merge_base_snapshot = source_state.ancestry.forked_from_snapshot_id;
         let mut node_map = MergeNodeMap::default();
-        let source_journal = source_state.mutation_ledger.structural_merge_journal();
-        let source_nodes = source_journal.candidate_nodes();
-        let candidate_scope = if source_nodes.is_empty() {
-            if !source_state.mutation_ledger.boundary_established {
-                return Err(SignalError::branch_merge_failed(
-                    BranchMergeFailureKind::UnsupportedMergeStrategy,
-                    "branch merge requires an established mutation-journal boundary; whole-live branch scans are no longer admitted",
-                ));
-            }
-            MergeCandidateScope::CandidateNodeSet(Vec::new())
-        } else {
-            MergeCandidateScope::CandidateNodeSet(source_nodes.clone())
+        if !source_state.mutation_ledger.boundary_established {
+            return Err(SignalError::branch_merge_failed(
+                BranchMergeFailureKind::UnsupportedMergeStrategy,
+                "branch merge requires an established mutation-journal boundary; whole-live branch scans are no longer admitted",
+            ));
+        }
+        let boundary_witness = MergeBoundaryWitness {
+            source_branch_id: request.source_branch.id,
+            target_branch_id: request.target_branch.id,
+            kind: MergeBoundaryWitnessKind::MutationJournalBoundary,
+            forked_from_snapshot_id: merge_base_snapshot,
+            source_snapshot_id,
+            target_snapshot_id_before,
         };
+        let source_journal = StructuralMergeJournalSlice::from_branch_journal(
+            boundary_witness.clone(),
+            source_state.mutation_ledger.structural_merge_journal(),
+        );
+        let source_nodes = source_journal.candidate_nodes();
+        let planned_candidates = PlannedMergeCandidateSet {
+            nodes: source_nodes.clone(),
+        };
+        let mut proof_minimal_overlap_nodes = Vec::new();
+        let mut conservative_overlap_nodes =
+            planned_candidates.nodes.iter().copied().collect::<BTreeSet<_>>();
+        let mut conservative_support_nodes = BTreeSet::new();
         for source_node in &source_nodes {
             if target_graph.is_alive(*source_node) {
+                proof_minimal_overlap_nodes.push(*source_node);
+                conservative_overlap_nodes.insert(*source_node);
                 node_map.insert(*source_node, *source_node);
             }
             for dependency in source_state.authority.graph.dependencies_of(*source_node)? {
                 if target_graph.is_alive(dependency.source()) {
                     node_map.insert(dependency.source(), dependency.source());
+                    if !planned_candidates.nodes.contains(&dependency.source()) {
+                        conservative_support_nodes.insert(dependency.source());
+                    }
+                    conservative_overlap_nodes.insert(dependency.source());
                 }
             }
             for snapshot_entry in source_state
@@ -168,18 +199,30 @@ where
             {
                 if target_graph.is_alive(snapshot_entry.source) {
                     node_map.insert(snapshot_entry.source, snapshot_entry.source);
+                    if !planned_candidates.nodes.contains(&snapshot_entry.source) {
+                        conservative_support_nodes.insert(snapshot_entry.source);
+                    }
+                    conservative_overlap_nodes.insert(snapshot_entry.source);
                 }
             }
         }
-        let target_overlap_journal = {
-            let target_journal = target_state.mutation_ledger.structural_merge_journal();
-            crate::logic::transaction::BranchMutationJournalSlice {
-                records: target_journal
-                    .records
-                    .into_iter()
-                    .filter(|record| source_journal.contains_node(record.node))
-                    .collect(),
+        let proof_minimal_overlap = {
+            ProofMinimalOverlapBasis {
+                shared_nodes: proof_minimal_overlap_nodes,
             }
+        };
+        let target_overlap_journal = crate::logic::transaction::BranchMutationJournalSlice {
+            records: target_state
+                .mutation_ledger
+                .structural_merge_journal()
+                .records
+                .into_iter()
+                .filter(|record| proof_minimal_overlap.shared_nodes.contains(&record.node))
+                .collect(),
+        };
+        let conservative_overlap = ConservativeOverlapExpansion {
+            expanded_nodes: conservative_overlap_nodes.into_iter().collect(),
+            support_nodes: conservative_support_nodes.into_iter().collect(),
         };
         let target_has_overlapping_merge_delta = !target_overlap_journal.records.is_empty();
         let divergence = if merge_base_snapshot == target_snapshot_id_before
@@ -385,16 +428,19 @@ where
             }
         }
 
-        Ok(BranchMergePlan {
+        Ok(LoweredMergePlan {
             source_branch_id: request.source_branch.id,
             target_branch_id: request.target_branch.id,
             merge_kind,
             divergence,
             merge_strategy,
             reconciliation_policy,
-            candidate_scope,
+            boundary_witness,
             source_journal,
             target_overlap_journal,
+            proof_minimal_overlap,
+            conservative_overlap,
+            planned_candidates,
             source_snapshot_id,
             target_snapshot_id_before,
             merge_base: Some(BranchMergeBase {
@@ -412,13 +458,28 @@ where
         })
     }
 
+    #[cfg(test)]
+    pub(crate) fn inspect_branch_merge_plan_for_test(
+        &mut self,
+        source: SignalBranchHandle,
+        target: SignalBranchHandle,
+    ) -> Result<BranchMergePlan, SignalError> {
+        self.build_branch_merge_plan(&BranchMergeRequest {
+            source_branch: source,
+            target_branch: target,
+        })
+    }
+
     fn execute_branch_merge_plan(
         &mut self,
         request: &BranchMergeRequest,
         plan: &BranchMergePlan,
     ) -> Result<BranchMergeExecutionSummary, SignalError> {
         let source_state = if request.source_branch.id == self.graph.current_branch().id {
-            self.capture_full_branch_state()
+            {
+                let witness = self.heavy_capture_witness();
+                self.capture_full_branch_state(&witness)
+            }
         } else {
             self.branches
                 .branch_state(request.source_branch.id)
@@ -431,7 +492,10 @@ where
                 })?
         };
         let mut target_state = if request.target_branch.id == self.graph.current_branch().id {
-            self.capture_full_branch_state()
+            {
+                let witness = self.heavy_capture_witness();
+                self.capture_full_branch_state(&witness)
+            }
         } else {
             self.branches
                 .branch_state(request.target_branch.id)
@@ -646,6 +710,12 @@ where
             nodes: touched.into_iter().collect(),
         };
         let counters = BranchMergeCounters {
+            boundary_witness_kind: plan.boundary_witness.kind,
+            source_slice_breadth: plan.source_journal.breadth(),
+            proof_minimal_overlap_breadth: plan.proof_minimal_overlap.breadth(),
+            conservative_overlap_expansion_breadth: plan.conservative_overlap.breadth(),
+            final_candidate_breadth: plan.planned_candidates.breadth(),
+            reconciliation_breadth: plan.node_plan.len() as u64,
             candidate_node_count: plan.node_plan.len() as u64,
             examined_node_count: plan.node_plan.len() as u64,
             adopted_count: records
@@ -682,10 +752,6 @@ where
             subscriber_repair_breadth: repaired_sources.len() as u64,
             merge_lineage_record_count: (records.len() + 1) as u64,
             replay_event_count: 1,
-            branch_wide_scan_performed: matches!(
-                plan.candidate_scope,
-                MergeCandidateScope::WholeLiveAuthoritySurface
-            ),
         };
         let summary = BranchMergeExecutionSummary {
             source_branch_id: plan.source_branch_id,
@@ -694,7 +760,10 @@ where
             divergence: plan.divergence,
             merge_strategy: plan.merge_strategy,
             reconciliation_policy: plan.reconciliation_policy,
-            candidate_scope: plan.candidate_scope.clone(),
+            boundary_witness: plan.boundary_witness.clone(),
+            proof_minimal_overlap: plan.proof_minimal_overlap.clone(),
+            conservative_overlap: plan.conservative_overlap.clone(),
+            planned_candidates: plan.planned_candidates.clone(),
             merge_base: plan.merge_base.clone(),
             source_snapshot_id: plan.source_snapshot_id,
             target_snapshot_id_before: target_snapshot_before,
@@ -718,17 +787,28 @@ where
             .collect::<Vec<_>>();
 
         if request.target_branch.id == self.graph.current_branch().id {
-            self.load_branch_state(target_state.clone());
+            self.load_branch_state(
+                crate::logic::transaction::runtime::state::runtime_state::AuthorityTransferPacket {
+                    branch_id: request.target_branch.id,
+                    state: target_state.clone(),
+                },
+            );
         }
         self.branches
             .insert_branch(request.target_branch.id, target_state.clone());
         if request.source_branch.id == self.graph.current_branch().id {
-            let mut updated_source_state = self.capture_full_branch_state();
+            let witness = self.heavy_capture_witness();
+            let mut updated_source_state = self.capture_full_branch_state(&witness);
             updated_source_state
                 .mutation_ledger
                 .clear_merged_nodes(merged_source_nodes.iter().copied(), plan.source_snapshot_id);
             updated_source_state.authority.graph.clear_branch_mutation_nodes();
-            self.load_branch_state(updated_source_state);
+            self.load_branch_state(
+                crate::logic::transaction::runtime::state::runtime_state::AuthorityTransferPacket {
+                    branch_id: request.source_branch.id,
+                    state: updated_source_state,
+                },
+            );
         } else if let Some(source_state) = self
             .branches
             .branch_state_mut_with_allocator_sync(request.source_branch.id)

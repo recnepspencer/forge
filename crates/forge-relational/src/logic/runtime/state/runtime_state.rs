@@ -86,6 +86,7 @@ impl RelationalRuntime {
             retired_at: None,
             generation: next_generation,
             kind_id: arena.kind_ids[slot].expect("entity kind must exist for slot reuse test"),
+            lineage_id,
         });
         arena.created_at[slot] = replacement_version;
         arena.retired_at[slot] = None;

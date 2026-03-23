@@ -123,7 +123,7 @@ fn branch_summary(session: &CertifiedRelationalFintechSession) -> Value {
 }
 
 fn diagnostics_summary(session: &CertifiedRelationalFintechSession) -> Value {
-    let recovery = session.world.runtime.durability_access().recovery_plan();
+    let recovery = session.world.runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     json!({
         "latest_patch_present": session.world.runtime.publication_access().latest_patch().is_some(),
         "latest_replay_present": session.world.runtime.publication_access().latest_replay().is_some(),
@@ -294,3 +294,4 @@ pub(super) fn capture_artifacts(
     }
     artifacts
 }
+

@@ -55,6 +55,17 @@ fn schema_transition_for_subscriber_impact(
                 required: false,
                 default_expression: Some("null".into()),
             },
+        )
+        .with_boundary_visibility_proof(
+            match subscriber_impact {
+                SchemaSubscriberImpact::ConsumableSurfaceChanged => {
+                    crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable
+                }
+                SchemaSubscriberImpact::ContractUpgradeRequired => {
+                    crate::schema::data::SubscriberBoundaryVisibility::VisibleRequiresContractUptake
+                }
+                _ => crate::schema::data::SubscriberBoundaryVisibility::NotVisible,
+            },
         )],
     }
 }
@@ -350,7 +361,7 @@ fn cdc_certification_durable_recovery_matches_head_and_midstream_consumers() {
     );
     assert_eq!(durable_mid_stitched, expected_mid);
 
-    let recovery_plan = runtime.durability_access().recovery_plan();
+    let recovery_plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = persisted_runtime_with_test_schema();
     recovered
         .durability_authority()
@@ -409,9 +420,9 @@ fn cdc_certification_schema_boundary_continuation_is_explained_and_counted() {
         .iter()
         .flat_map(|artifact| artifact.entries.iter())
         .any(|entry| entry.code == DiagnosticCode::SubscriberBoundaryEvaluated));
-    assert_eq!(counters.subscriber_resume_evaluations, 2);
-    assert_eq!(counters.subscriber_continue_visible_bridge_count, 2);
-    assert_eq!(counters.schema_normalized_descriptor_compositions, 2);
+    assert_eq!(counters.subscriber_resume_evaluations, 1);
+    assert_eq!(counters.subscriber_continue_visible_bridge_count, 1);
+    assert_eq!(counters.schema_normalized_descriptor_compositions, 1);
 }
 
 #[test]
@@ -540,8 +551,8 @@ fn diff_cdc_truth_parity_test() {
         ))
     );
     assert!(live_counters.replay_digest_parity_checks == 0);
-    assert!(live_counters.subscriber_continue_visible_bridge_count >= 2);
-    assert!(live_counters.schema_normalized_descriptor_compositions >= 2);
+    assert!(live_counters.subscriber_continue_visible_bridge_count >= 1);
+    assert!(live_counters.schema_normalized_descriptor_compositions >= 1);
 }
 
 #[test]
@@ -637,7 +648,7 @@ fn cdc_certification_persisted_seeded_matrix_survives_checkpoint_compaction_and_
             &full_from_head,
         );
 
-        let recovery_plan = world.runtime.durability_access().recovery_plan();
+        let recovery_plan = world.runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
         let mut recovered = build_property_runtime(RuntimeHarnessMode::Persisted);
         recovered
             .durability_authority()
@@ -924,7 +935,7 @@ proptest! {
         );
 
         world.runtime.durability_authority().checkpoint().unwrap();
-        let recovery_plan = world.runtime.durability_access().recovery_plan();
+        let recovery_plan = world.runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
         let mut recovered = build_property_runtime(RuntimeHarnessMode::Persisted);
         recovered.durability_authority().recover(recovery_plan).unwrap();
         let recovered_patch_stream = collect_patch_stream_from_head(&recovered, 4096);
@@ -968,3 +979,4 @@ fn patch_detail_contains(record: &crate::facade::publication::PatchRecord, needl
         PatchDetail::DenseBitset(_) => false,
     }
 }
+

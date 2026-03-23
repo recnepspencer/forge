@@ -2,7 +2,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::errors::data::{ErrorContext, ErrorOperation, RelationalSubsystem, SuggestedFix};
 use crate::identity::data::KindId;
-use crate::schema::data::{DescriptorSemanticsVersion, SchemaBoundaryFingerprint, SchemaVersionId};
+use crate::schema::data::{
+    DescriptorCanonicalizationVersion, DescriptorSemanticsVersion, SchemaBoundaryFingerprint,
+    SchemaVersionId,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RecoveryFailureClass {
@@ -68,6 +71,10 @@ pub enum RecoveryCompatibilityMismatch {
     DescriptorSemanticsVersion {
         expected: DescriptorSemanticsVersion,
         found: DescriptorSemanticsVersion,
+    },
+    DescriptorCanonicalizationVersion {
+        expected: DescriptorCanonicalizationVersion,
+        found: DescriptorCanonicalizationVersion,
     },
     SchemaTransitionArtifact {
         commit_id: u64,
@@ -151,6 +158,10 @@ impl RecoveryCompatibilityMismatch {
             }
             Self::DescriptorSemanticsVersion { expected, found } => format!(
                 "descriptor semantics version mismatch expected {} found {}",
+                expected.0, found.0
+            ),
+            Self::DescriptorCanonicalizationVersion { expected, found } => format!(
+                "descriptor canonicalization version mismatch expected {} found {}",
                 expected.0, found.0
             ),
             Self::SchemaTransitionArtifact { commit_id, detail } => {

@@ -60,6 +60,18 @@ where
                         .snapshot_restore_coarse_reason_count,
                     checkpoint_size: self.telemetry.checkpoint.checkpoint_size,
                     journal_replay_span: self.telemetry.checkpoint.journal_replay_span,
+                    restore_authority_breadth: self
+                        .telemetry
+                        .checkpoint
+                        .restore_authority_breadth,
+                    restore_required_derived_breadth: self
+                        .telemetry
+                        .checkpoint
+                        .restore_required_derived_breadth,
+                    restore_diagnostic_richness_breadth: self
+                        .telemetry
+                        .checkpoint
+                        .restore_diagnostic_richness_breadth,
                 },
             );
         let reconstructability =
@@ -90,12 +102,8 @@ where
                 + u64::from(result.integrity_markers.execution_report_attached)
                 + u64::from(result.integrity_markers.rollback_attached)
                 + u64::from(result.integrity_markers.failure_attached);
-        self.telemetry.checkpoint.journal_replay_span += result
-            .reconstructability
-            .journal
-            .as_ref()
-            .map(|journal| journal.replay_event_count as u64)
-            .unwrap_or(0);
+        self.telemetry.checkpoint.journal_replay_span +=
+            result.reconstructability.journal.replay_event_count as u64;
         result.reconstructability.checkpoint =
             crate::logic::transaction::runtime::state::CheckpointRecord::from_checkpoint_telemetry(
                 crate::data::telemetry::CheckpointTelemetry {
@@ -127,16 +135,39 @@ where
                         .snapshot_restore_coarse_reason_count,
                     checkpoint_size: self.telemetry.checkpoint.checkpoint_size,
                     journal_replay_span: self.telemetry.checkpoint.journal_replay_span,
+                    restore_authority_breadth: self
+                        .telemetry
+                        .checkpoint
+                        .restore_authority_breadth,
+                    restore_required_derived_breadth: self
+                        .telemetry
+                        .checkpoint
+                        .restore_required_derived_breadth,
+                    restore_diagnostic_richness_breadth: self
+                        .telemetry
+                        .checkpoint
+                        .restore_diagnostic_richness_breadth,
                 },
             );
         result.performance_accounting = *self.telemetry;
         if restore_baseline {
-            if let Some(baseline_config) = self.rollback_baseline.config.take() {
-                *self.config = baseline_config;
-            }
-            if let Some(baseline_diagnostics_state) = self.rollback_baseline.diagnostics_state.take()
-            {
-                *self.graph.diagnostics_state_mut() = baseline_diagnostics_state;
+            let rollback_packets = self.rollback_packets.drain();
+            self.telemetry.transaction.rollback_packet_breadth += rollback_packets.len() as u64;
+            for packet in rollback_packets {
+                match packet {
+                    crate::logic::transaction::runtime::transaction::TransactionRollbackPacket::Config(
+                        delta,
+                    ) => {
+                        self.telemetry.transaction.rollback_packet_config_count += 1;
+                        *self.config = delta.baseline;
+                    }
+                    crate::logic::transaction::runtime::transaction::TransactionRollbackPacket::DiagnosticsRequired(
+                        delta,
+                    ) => {
+                        self.telemetry.transaction.rollback_packet_diagnostics_count += 1;
+                        *self.graph.diagnostics_state_mut() = delta.baseline;
+                    }
+                }
             }
         }
         if let Some(rollback) = rollback {

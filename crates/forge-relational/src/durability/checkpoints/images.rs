@@ -52,6 +52,7 @@ impl CheckpointArenaKind for EntityRecordKind {
             retired_at: meta.retired_at,
             generation: meta.generation,
             kind_id: meta.kind_id,
+            lineage_id: meta.lineage_id,
         }
     }
 
@@ -61,6 +62,7 @@ impl CheckpointArenaKind for EntityRecordKind {
             retired_at: meta.retired_at,
             generation: meta.generation,
             kind_id: meta.kind_id,
+            lineage_id: meta.lineage_id,
         }
     }
 }

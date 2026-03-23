@@ -26,7 +26,7 @@ pub(super) fn promised_replay_surfaces(
         ReplayObservableSurface::History,
         ReplayObservableSurface::BranchHead,
     ];
-    if !envelope.lineage_events.is_empty() {
+    if envelope.has_lineage_authority() {
         surfaces.push(ReplayObservableSurface::Lineage);
     }
     if !envelope.index_generations.is_empty() {
@@ -49,6 +49,7 @@ pub(super) fn replay_recovery_plan_for_chain(
     source: &(impl CommitEnvelopeSource + DurabilityRead),
     config: &crate::logic::runtime::RelationalRuntimeConfig,
     chain: &[CommitId],
+    verification_mode: crate::replay::data::ReplayVerificationMode,
 ) -> RecoveryPlan {
     let checkpoint = source
         .durable_checkpoints()
@@ -92,13 +93,29 @@ pub(super) fn replay_recovery_plan_for_chain(
         crate::durability::data::RecoveryCompatibilityCheck::verified_at(
             ReplayVerificationLayer::DigestParity,
         ),
-        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+        replay_verification_mode_to_recovery_mode(verification_mode),
         chain
             .last()
             .and_then(|commit_id| source.commit_envelope(*commit_id))
             .map(|envelope| envelope.descriptor_semantics_version)
             .unwrap_or_else(DescriptorSemanticsVersion::default),
     )
+}
+
+fn replay_verification_mode_to_recovery_mode(
+    mode: crate::replay::data::ReplayVerificationMode,
+) -> crate::durability::data::RecoveryVerificationMode {
+    match mode {
+        crate::replay::data::ReplayVerificationMode::NormalRecoveryVerification => {
+            crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification
+        }
+        crate::replay::data::ReplayVerificationMode::AuditRecoveryVerification => {
+            crate::durability::data::RecoveryVerificationMode::AuditRecoveryVerification
+        }
+        crate::replay::data::ReplayVerificationMode::CorruptionDiagnosisReplay => {
+            crate::durability::data::RecoveryVerificationMode::CorruptionDiagnosisReplay
+        }
+    }
 }
 
 fn visit_replay_chain(

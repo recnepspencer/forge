@@ -40,7 +40,7 @@ where
             event_bus: &mut self.event_bus,
             telemetry: &mut self.telemetry,
             scratch: TransactionScratch::new(),
-            rollback_baseline: super::super::transaction::TransactionRollbackBaseline::default(),
+            rollback_packets: super::super::transaction::TransactionRollbackPacketSet::default(),
             poisoned: false,
             finished: false,
             execution_state: TransactionExecutionState::default(),

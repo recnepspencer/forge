@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::identity::data::{EntityId, RelationId, VersionId};
+use crate::identity::data::{EntityId, LineageId, RelationId, VersionId};
 use crate::payloads::data::RecordPayload;
 use crate::query::data::QueryExecutionShape;
 use crate::schema::data::KindResolution;
@@ -22,6 +22,7 @@ pub enum RecordLifecycleState {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EntityReadRecord {
     pub entity_id: EntityId,
+    pub lineage_id: Option<LineageId>,
     pub kind: KindResolution,
     pub lifecycle: RecordLifecycleState,
     pub created_at_version: VersionId,

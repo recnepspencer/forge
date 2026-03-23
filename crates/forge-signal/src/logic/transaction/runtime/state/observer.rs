@@ -143,6 +143,21 @@ where
                 .snapshot_restore_coarse_reason_count,
             checkpoint_size: self.runtime.telemetry.checkpoint.checkpoint_size,
             journal_replay_span: self.runtime.telemetry.checkpoint.journal_replay_span,
+            restore_authority_breadth: self
+                .runtime
+                .telemetry
+                .checkpoint
+                .restore_authority_breadth,
+            restore_required_derived_breadth: self
+                .runtime
+                .telemetry
+                .checkpoint
+                .restore_required_derived_breadth,
+            restore_diagnostic_richness_breadth: self
+                .runtime
+                .telemetry
+                .checkpoint
+                .restore_diagnostic_richness_breadth,
         }
     }
 

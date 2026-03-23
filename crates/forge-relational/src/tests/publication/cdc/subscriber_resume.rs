@@ -40,6 +40,17 @@ fn schema_transition_for_subscriber_impact(
                 required: false,
                 default_expression: Some("null".into()),
             },
+        )
+        .with_boundary_visibility_proof(
+            match subscriber_impact {
+                SchemaSubscriberImpact::ConsumableSurfaceChanged => {
+                    crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable
+                }
+                SchemaSubscriberImpact::ContractUpgradeRequired => {
+                    crate::schema::data::SubscriberBoundaryVisibility::VisibleRequiresContractUptake
+                }
+                _ => crate::schema::data::SubscriberBoundaryVisibility::NotVisible,
+            },
         )],
     }
 }
@@ -71,7 +82,7 @@ fn subscriber_stream_resume_uses_checkpoint_type_and_batches_without_duplication
             .unwrap()
             .position()
             .0,
-        3
+        2
     );
     assert_eq!(resumed.patches.len(), 1);
     assert_eq!(resumed.resumed_from.unwrap().position().0, 2);

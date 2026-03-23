@@ -1,6 +1,14 @@
 1. The hostile replay equivalence test
 Purpose
 
+S9.9 closeout note
+
+Proof-safe grouped concurrent apply must now be certified at crate scope
+alongside honest serial fallback for ineligible full-parallel stages. The
+required owning lanes are `tests::adversarial_parallel` and
+`tests::telemetry_contract`, and success means semantic equivalence plus bounded
+packet/reduction counters rather than a generic "parallel mode ran" assertion.
+
 Prove that the runtime is truly:
 
 deterministic
@@ -773,6 +781,38 @@ branch histories
 replay outcomes
 
 If you do not make the outputs canonical and comparable, you will accidentally turn a truth-runtime claim into a vibes-runtime claim.
+
+S9.15 bounded merge closeout note
+
+The bounded merge substrate is considered closeable only if the crate-level
+test bundle proves all of the following on supported paths:
+
+- merge planning lowers from `MergeBoundaryWitness` through
+  `StructuralMergeJournalSlice`, `ProofMinimalOverlapBasis`,
+  `ConservativeOverlapExpansion`, `PlannedMergeCandidateSet`, and
+  `LoweredMergePlan`
+- supported merge candidate construction never depends on whole-live branch
+  scans or ambient branch-state discovery
+- proof-minimal overlap and conservative expansion remain distinct bounded
+  phases rather than two names for the same candidate set
+- repeated merge and restore preserve future bounded-merge boundary validity
+- convenience performance-only index churn does not change lowered merge
+  candidates
+
+Minimum named crate-level evidence:
+
+- `tests::merge_adoption::merge_branch_without_established_journal_boundary_fails_explicitly`
+- `tests::merge_adoption::merge_branch_uses_branch_local_mutation_scope_instead_of_whole_live_scan`
+- `tests::merge_adoption::proof_minimal_overlap_and_conservative_expansion_remain_distinct_and_bounded`
+- `tests::merge_adoption::merge_candidate_construction_is_identical_with_and_without_convenience_branch_indexes`
+- `tests::merge_adoption::active_restore_reinstates_branch_merge_ledger_boundary_for_later_fast_forward_merge`
+- `tests::merge_adoption::repeated_merge_after_target_restore_stays_bounded_and_history_honest`
+
+Negative-space rule:
+
+- any future supported merge path that reintroduces `MergeCandidateScope`,
+  whole-live supported candidate scope, executor-side candidate discovery, or
+  convenience-index-dependent candidate shaping is a certification regression
 
 1. The topology churn test
 

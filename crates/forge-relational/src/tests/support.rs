@@ -64,6 +64,7 @@ use crate::tests::harness::model::truth_model::VisibleTruthSummary;
 // - `durability`: branch/recovery helpers for persisted round trips
 // - `relation_integrity`: schema fixtures and scenario helpers for milestone-4 legality work
 // - `savepoint`: hostile savepoint residue assertions for patch/subscriber surfaces
+// - `lineage`: generic lineage-specific helpers and candidate builders
 //
 // Prefer reusing these helpers before introducing new ad hoc setup in test files.
 #[path = "support/schema.rs"]
@@ -82,6 +83,12 @@ mod durability;
 mod relation_integrity;
 #[path = "support/savepoint.rs"]
 mod savepoint;
+#[path = "support/lineage.rs"]
+mod lineage;
+#[path = "support/domains/cad.rs"]
+mod cad_domain;
+#[path = "support/domains/chip.rs"]
+mod chip_domain;
 
 pub(super) use durability::*;
 pub(super) use history::*;
@@ -91,6 +98,9 @@ pub(super) use relation_integrity::*;
 pub(super) use runtime::*;
 pub(super) use savepoint::*;
 pub(super) use schema::*;
+pub(super) use lineage::*;
+pub(super) use cad_domain::*;
+pub(super) use chip_domain::*;
 
 pub(super) fn certification_digest<T: Serialize>(value: &T) -> String {
     let bytes = serde_json::to_vec(value).expect("certification serialization");

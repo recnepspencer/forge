@@ -403,10 +403,17 @@ impl HarnessAdapter for SignalHarnessBridge {
                         .stages
                         .iter()
                         .map(|stage| {
+                            #[cfg(feature = "parallel")]
+                            let serial_apply_rejection_reason = stage
+                                .serial_apply_rejection_reason
+                                .map(|reason| reason.code());
+                            #[cfg(not(feature = "parallel"))]
+                            let serial_apply_rejection_reason: Option<&'static str> = None;
                             json!({
                                 "stage_index": stage.stage_index,
-                                "reason": stage.parallel_admission_reason,
+                                "reason": stage.parallel_admission_reason.map(|reason| reason.code()),
                                 "message": stage.parallel_admission_message(),
+                                "serial_apply_rejection_reason": serial_apply_rejection_reason,
                             })
                         })
                         .collect::<Vec<_>>()),

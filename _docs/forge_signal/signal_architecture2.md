@@ -1664,6 +1664,12 @@ Normative rule:
 
 - parallel apply admission must depend on `DisjointApplyGroup` and
   `ApplyFootprint`, not only executor policy
+- supported grouped-concurrent apply must consume a proof-bearing lowered plan
+  and derive worker-local packets before any shared publication step
+- stages that would require shared-surface suppression or local rewiring beyond
+  the proof-safe concurrent envelope must lower honestly to serial execution
+  with an explicit rejection reason instead of keeping a fake `FullParallel`
+  execution label
 - locality boundaries must travel with lowered plans and repair summaries
 - touched or affected scope must be carried as `*Summary` or scope-set forms
   instead of rediscovered later
@@ -1813,20 +1819,39 @@ This addendum modifies earlier phases as follows:
 Branching is incomplete without a way to reconcile accepted branch-local work
 back into an authoritative branch.
 
-Required future completion:
+Landed closeout status for the supported S9 envelope:
+
+- supported merge planning is now proof-driven through `MergeBoundaryWitness`,
+  `StructuralMergeJournalSlice`, `ProofMinimalOverlapBasis`,
+  `ConservativeOverlapExpansion`, `PlannedMergeCandidateSet`, and
+  `LoweredMergePlan`
+- `MergeCandidateScope`, including whole-live supported scope, is retired from
+  the supported merge path
+- merge executor and merge reporting now consume lowered proof-bearing merge
+  packets rather than ambient candidate discovery
+- merge counters expose `boundary_witness_kind`, `source_slice_breadth`,
+  `proof_minimal_overlap_breadth`,
+  `conservative_overlap_expansion_breadth`, `final_candidate_breadth`, and
+  `reconciliation_breadth`
+- repeated merge, restore-after-merge, and convenience-index churn are
+  certified against the bounded merge substrate
+
+Canonical supported result shape:
 
 ```rust
 pub struct BranchMergeResult {
     pub source_branch: SignalBranchId,
     pub target_branch: SignalBranchId,
-    pub adopted_artifacts: DedupedArtifactBatch,
-    pub replaced_artifacts: DedupedArtifactBatch,
+    pub boundary_witness: MergeBoundaryWitness,
+    pub proof_minimal_overlap: ProofMinimalOverlapBasis,
+    pub conservative_overlap: ConservativeOverlapExpansion,
+    pub planned_candidates: PlannedMergeCandidateSet,
     pub merge_kind: BranchMergeKind,
 }
 
 pub enum BranchMergeKind {
     FastForward,
-    ReplayApplied,
+    Applied,
     ConflictResolved,
 }
 ```
@@ -1995,6 +2020,15 @@ Completion criteria:
 
 - S9.15 ends with an explicit supported merge envelope
 - deferred behaviors are documented as S10 work, not soft TODOs
+
+Closeout statement:
+
+- S9.15 is considered closed for the supported merge envelope because supported
+  merge candidate construction is now a pure function of carried proof plus
+  proof-authorized indexes, whole-live supported merge scope is no longer
+  representable on the supported path, repeated merge and restore preserve
+  bounded boundary truth, and convenience subscriber-index rebuilds do not
+  change lowered merge candidates
 
 Supported S9.15 merge envelope:
 

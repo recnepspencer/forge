@@ -136,120 +136,119 @@ fn visit_node(
     planned_nodes: &mut Vec<NodeId>,
     stats: &mut PlanningStats,
 ) -> Result<(), SignalError> {
-    let node = candidate.node;
-    let node_index = node.index() as usize;
-    if visiting.contains(node_index) {
-        return Err(SignalError::invalid_input(format!(
-            "cycle detected while building evaluation plan at {node}"
-        )));
-    }
-    if let Some(existing) = &mut planned[node_index] {
-        existing.direct_request |= candidate.direct_request;
-        return Ok(());
-    }
-    visiting.mark(node_index);
-
-    let entry = graph.get_entry(node)?;
-    verify_required_context(node, graph.get_contract(node)?.semantics.required_context)?;
-    let state = *entry.get_state();
-    let dirty_partition_scopes = entry.get_dirty_partition_scopes();
-    let contract_reads_dirty = graph
-        .get_contract(node)?
-        .cares_about_change(entry.get_dirty_aspects(), &dirty_partition_scopes);
-    let should_include = (matches!(state, NodeState::Dirty | NodeState::MaybeStale)
-        && contract_reads_dirty)
-        || (candidate.direct_request
-            && matches!(
-                candidate.request_mode,
-                EvaluationRequestMode::ForceOnDemand
-            ));
-    if should_include {
-        planned[node_index] = Some(PlannedNode {
-            direct_request: candidate.direct_request,
-            maybe_stale_admission: None,
-        });
-        planned_nodes.push(node);
-    } else {
-        stats.contract_pruned_count += 1;
-        visiting.clear(node_index);
-        return Ok(());
+    #[derive(Debug, Clone, Copy)]
+    enum VisitFrame {
+        Enter(CandidateTask),
+        Exit(NodeId),
     }
 
-    match state {
-        NodeState::Dirty => {
-            for dependency in runtime_sorted_dependencies(graph, node)? {
-                visit_node(
-                    graph,
-                    CandidateTask {
-                        node: dependency.source(),
-                        request_mode: candidate.request_mode,
-                        direct_request: false,
-                        trigger_reason: TaskReason::DependencyRequired,
-                    },
-                    resolver,
-                    visiting,
-                    planned,
-                    planned_nodes,
-                    stats,
-                )?;
-            }
-        }
-        NodeState::MaybeStale => {
-            let preview = preview_maybe_stale(graph, node, resolver)?;
-            if let Some(existing) = &mut planned[node_index] {
-                existing.maybe_stale_admission = Some(MaybeStaleAdmission {
-                    unchanged_at_admission: preview.unchanged,
+    let mut stack = vec![VisitFrame::Enter(candidate)];
+    while let Some(frame) = stack.pop() {
+        match frame {
+            VisitFrame::Enter(candidate) => {
+                let node = candidate.node;
+                let node_index = node.index() as usize;
+                if visiting.contains(node_index) {
+                    return Err(SignalError::invalid_input(format!(
+                        "cycle detected while building evaluation plan at {node}"
+                    )));
+                }
+                if let Some(existing) = &mut planned[node_index] {
+                    existing.direct_request |= candidate.direct_request;
+                    continue;
+                }
+
+                let entry = graph.get_entry(node)?;
+                verify_required_context(node, graph.get_contract(node)?.semantics.required_context)?;
+                let state = *entry.get_state();
+                let dirty_partition_scopes = entry.get_dirty_partition_scopes();
+                let contract_reads_dirty = graph
+                    .get_contract(node)?
+                    .cares_about_change(entry.get_dirty_aspects(), &dirty_partition_scopes);
+                let should_include = matches!(state, NodeState::MaybeStale)
+                    || (matches!(state, NodeState::Dirty) && contract_reads_dirty)
+                    || (candidate.direct_request
+                        && matches!(
+                            candidate.request_mode,
+                            EvaluationRequestMode::ForceOnDemand
+                        ));
+                if !should_include {
+                    stats.contract_pruned_count += 1;
+                    continue;
+                }
+
+                planned[node_index] = Some(PlannedNode {
+                    direct_request: candidate.direct_request,
+                    maybe_stale_admission: None,
                 });
-            }
-            let upstream_reason = if matches!(candidate.trigger_reason, TaskReason::MaybeStaleValidation) {
-                TaskReason::MaybeStaleValidation
-            } else {
-                TaskReason::DependencyRequired
-            };
-            for source in preview.requires_upstream_evaluation {
-                visit_node(
-                    graph,
-                    CandidateTask {
-                        node: source,
-                        request_mode: candidate.request_mode,
-                        direct_request: false,
-                        trigger_reason: upstream_reason,
-                    },
-                    resolver,
-                    visiting,
-                    planned,
-                    planned_nodes,
-                    stats,
-                )?;
-            }
-        }
-        NodeState::Clean
-            if candidate.direct_request
-                && matches!(candidate.request_mode, EvaluationRequestMode::ForceOnDemand) =>
-        {
-            for dependency in runtime_sorted_dependencies(graph, node)? {
-                if !matches!(graph.get_state(dependency.source())?, NodeState::Clean) {
-                    visit_node(
-                        graph,
-                        CandidateTask {
-                            node: dependency.source(),
-                            request_mode: candidate.request_mode,
-                            direct_request: false,
-                            trigger_reason: TaskReason::DependencyRequired,
-                        },
-                        resolver,
-                        visiting,
-                        planned,
-                        planned_nodes,
-                        stats,
-                    )?;
+                planned_nodes.push(node);
+                visiting.mark(node_index);
+                stack.push(VisitFrame::Exit(node));
+
+                match state {
+                    NodeState::Dirty => {
+                        let dependencies = runtime_sorted_dependencies(graph, node)?;
+                        for dependency in dependencies.into_iter().rev() {
+                            stack.push(VisitFrame::Enter(CandidateTask {
+                                node: dependency.source(),
+                                request_mode: candidate.request_mode,
+                                direct_request: false,
+                                trigger_reason: TaskReason::DependencyRequired,
+                            }));
+                        }
+                    }
+                    NodeState::MaybeStale => {
+                        let preview = preview_maybe_stale(graph, node, resolver)?;
+                        if let Some(existing) = &mut planned[node_index] {
+                            existing.maybe_stale_admission = Some(MaybeStaleAdmission {
+                                unchanged_at_admission: preview.unchanged,
+                            });
+                        }
+                        let upstream_reason = if matches!(
+                            candidate.trigger_reason,
+                            TaskReason::MaybeStaleValidation
+                        ) {
+                            TaskReason::MaybeStaleValidation
+                        } else {
+                            TaskReason::DependencyRequired
+                        };
+                        for source in preview.requires_upstream_evaluation.into_iter().rev() {
+                            stack.push(VisitFrame::Enter(CandidateTask {
+                                node: source,
+                                request_mode: candidate.request_mode,
+                                direct_request: false,
+                                trigger_reason: upstream_reason,
+                            }));
+                        }
+                    }
+                    NodeState::Clean
+                        if candidate.direct_request
+                            && matches!(
+                                candidate.request_mode,
+                                EvaluationRequestMode::ForceOnDemand
+                            ) =>
+                    {
+                        let dependencies = runtime_sorted_dependencies(graph, node)?;
+                        for dependency in dependencies.into_iter().rev() {
+                            if !matches!(graph.get_state(dependency.source())?, NodeState::Clean) {
+                                stack.push(VisitFrame::Enter(CandidateTask {
+                                    node: dependency.source(),
+                                    request_mode: candidate.request_mode,
+                                    direct_request: false,
+                                    trigger_reason: TaskReason::DependencyRequired,
+                                }));
+                            }
+                        }
+                    }
+                    NodeState::Clean => {}
                 }
             }
+            VisitFrame::Exit(node) => {
+                visiting.clear(node.index() as usize);
+            }
         }
-        NodeState::Clean => {}
     }
 
-    visiting.clear(node_index);
     Ok(())
 }
 

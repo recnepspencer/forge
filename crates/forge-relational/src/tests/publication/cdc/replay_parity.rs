@@ -41,7 +41,7 @@ fn durable_source_subscriber_stream_matches_recovered_runtime_patch_stream() {
         ))
         .unwrap();
 
-    let recovery_plan = runtime.durability_access().recovery_plan();
+    let recovery_plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = persisted_runtime_with_test_schema();
     recovered
         .durability_authority()
@@ -57,3 +57,4 @@ fn durable_source_subscriber_stream_matches_recovered_runtime_patch_stream() {
 
     assert_eq!(subscriber_batch.patches, recovered_patch_batch.patches);
 }
+

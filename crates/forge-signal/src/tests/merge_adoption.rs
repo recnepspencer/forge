@@ -403,8 +403,11 @@ fn merge_branch_counters_and_summary_surface_match_introduced_work() {
         "merge counters should account for one branch merge record plus per-node artifact merge records"
     );
     assert!(
-        !result.counters.branch_wide_scan_performed,
-        "tracked branch-local mutation scope should suppress whole-live merge breadth in this case"
+        matches!(
+            result.boundary_witness.kind,
+            MergeBoundaryWitnessKind::MutationJournalBoundary
+        ),
+        "tracked branch-local mutation scope should surface a bounded merge witness"
     );
 }
 
@@ -462,16 +465,147 @@ fn merge_branch_uses_branch_local_mutation_scope_instead_of_whole_live_scan() {
     let result = runtime.merge_branch(feature, main).unwrap();
 
     assert!(
-        matches!(result.candidate_scope, MergeCandidateScope::CandidateNodeSet(_)),
-        "tracked branch-local mutations should lower an explicit candidate node set"
+        result.counters.final_candidate_breadth == result.planned_candidates.nodes.len() as u64,
+        "tracked branch-local mutations should lower an explicit planned candidate set"
     );
     assert!(
-        !result.counters.branch_wide_scan_performed,
-        "candidate-node merge should not report a whole-live branch scan"
+        result.counters.source_slice_breadth >= result.counters.final_candidate_breadth,
+        "candidate-node merge should stay bounded by the source journal slice"
     );
     assert!(
         result.records.len() < runtime.graph().active_node_count(),
         "narrow candidate scope should plan fewer nodes than the full live authority surface"
+    );
+}
+
+#[test]
+fn proof_minimal_overlap_and_conservative_expansion_remain_distinct_and_bounded() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let shared = runtime.graph_mut().node().output_identity().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(13, 0))
+                        .with_output_identity("proof-shared"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime.create_branch("feature-proof-overlap").unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+
+    let source_only = runtime.graph_mut().node().output_identity().build();
+    runtime
+        .graph_mut()
+        .append_dependency(source_only, shared, ASPECT_A)
+        .unwrap();
+
+    runtime.switch_branch(main).unwrap();
+    let result = runtime
+        .merge_branch(feature, runtime.observe().current_branch())
+        .unwrap();
+
+    assert!(
+        result.proof_minimal_overlap.shared_nodes.is_empty(),
+        "source-only introductions should not fabricate shared-node minimal overlap"
+    );
+    assert_eq!(
+        result.planned_candidates.nodes,
+        vec![source_only],
+        "final merge candidates should remain bounded to the source mutation set"
+    );
+    assert!(
+        result.conservative_overlap.support_nodes.contains(&shared),
+        "conservative overlap should expand only to the target support surface needed for remaps"
+    );
+    assert!(
+        result.counters.proof_minimal_overlap_breadth
+            < result.counters.conservative_overlap_expansion_breadth,
+        "conservative expansion should be measurably broader than proof-minimal overlap here"
+    );
+    assert!(
+        result.counters.final_candidate_breadth
+            < result.counters.conservative_overlap_expansion_breadth,
+        "support expansion should remain distinct from the final candidate set"
+    );
+}
+
+#[test]
+fn merge_candidate_construction_is_identical_with_and_without_convenience_branch_indexes() {
+    let prepare_runtime = || {
+        let mut runtime = SignalRuntime::builder(SignalGraph::new())
+            .with_kernel_defaults()
+            .build();
+        let shared = runtime.graph_mut().node().output_identity().build();
+        let mut runtime_ctx = ();
+
+        runtime
+            .transaction(&mut runtime_ctx, |tx| {
+                tx.read(shared, &|view| {
+                    Ok(view.finish(
+                        NodeEvaluationResult::from_version(version_ab(14, 0))
+                            .with_output_identity("index-shared"),
+                    ))
+                })?;
+                Ok(())
+            })
+            .unwrap();
+
+        let main = runtime.observe().current_branch();
+        let feature = runtime.create_branch("feature-index-stability").unwrap();
+        runtime.switch_branch(feature.clone()).unwrap();
+
+        let source_only = runtime.graph_mut().node().output_identity().build();
+        runtime
+            .graph_mut()
+            .append_dependency(source_only, shared, ASPECT_A)
+            .unwrap();
+
+        runtime.switch_branch(main.clone()).unwrap();
+        (runtime, feature, main)
+    };
+
+    let (mut baseline_runtime, baseline_feature, baseline_main) = prepare_runtime();
+    let initial = baseline_runtime
+        .inspect_branch_merge_plan_for_test(baseline_feature, baseline_main)
+        .unwrap();
+
+    let (mut rebuilt_runtime, rebuilt_feature, rebuilt_main) = prepare_runtime();
+    rebuilt_runtime
+        .graph_mut()
+        .rebuild_subscriber_index_from_dependencies()
+        .unwrap();
+    let rebuilt = rebuilt_runtime
+        .inspect_branch_merge_plan_for_test(rebuilt_feature, rebuilt_main)
+        .unwrap();
+
+    assert_eq!(
+        initial.planned_candidates,
+        rebuilt.planned_candidates,
+        "convenience index rebuilds must not change planned merge candidates"
+    );
+    assert_eq!(
+        initial.proof_minimal_overlap,
+        rebuilt.proof_minimal_overlap,
+        "convenience index rebuilds must not widen proof-minimal overlap"
+    );
+    assert_eq!(
+        initial.conservative_overlap,
+        rebuilt.conservative_overlap,
+        "convenience index rebuilds must not change bounded conservative expansion"
+    );
+    assert_eq!(
+        initial.target_overlap_journal,
+        rebuilt.target_overlap_journal,
+        "convenience index rebuilds must not perturb target overlap classification"
     );
 }
 
@@ -524,7 +658,7 @@ fn repeated_merge_advances_source_branch_ledger_boundary() {
     let second_merge = runtime.merge_branch(feature, runtime.observe().current_branch()).unwrap();
 
     assert!(
-        matches!(second_merge.candidate_scope, MergeCandidateScope::CandidateNodeSet(_)),
+        second_merge.counters.source_slice_breadth == second_merge.planned_candidates.nodes.len() as u64,
         "repeated merge should continue using the source ledger candidate set"
     );
     assert!(
@@ -581,7 +715,7 @@ fn retained_only_branch_churn_does_not_force_merge_replanning() {
     let result = runtime.merge_branch(feature, runtime.observe().current_branch()).unwrap();
 
     assert!(
-        matches!(result.candidate_scope, MergeCandidateScope::CandidateNodeSet(ref nodes) if nodes.is_empty()),
+        result.planned_candidates.nodes.is_empty(),
         "retained-only churn should produce an explicit empty merge candidate set, not a whole-branch fallback"
     );
     assert!(
@@ -589,8 +723,8 @@ fn retained_only_branch_churn_does_not_force_merge_replanning() {
         "diagnostics-only retained churn should not create merge reconciliation work"
     );
     assert!(
-        !result.counters.branch_wide_scan_performed,
-        "diagnostics-only retained churn must not report a broad branch scan"
+        result.counters.final_candidate_breadth == 0,
+        "diagnostics-only retained churn must report zero final candidate breadth"
     );
 }
 
@@ -1348,10 +1482,7 @@ fn merge_branch_target_advanced_without_shared_conflict_surfaces_applied_diverge
     let result = runtime.merge_branch(feature, main).unwrap();
     assert_eq!(result.merge_kind, BranchMergeKind::Applied);
     assert_eq!(result.divergence, BranchMergeDivergence::TargetAdvanced);
-    assert!(matches!(
-        result.candidate_scope,
-        MergeCandidateScope::CandidateNodeSet(_)
-    ));
+    assert!(result.counters.final_candidate_breadth > 0);
     assert!(
         result
             .records
@@ -1838,12 +1969,15 @@ fn repeated_merge_after_target_restore_stays_bounded_and_history_honest() {
 
     let second_merge = runtime.merge_branch(feature, main).unwrap();
     assert!(
-        matches!(second_merge.candidate_scope, MergeCandidateScope::CandidateNodeSet(_)),
+        second_merge.counters.final_candidate_breadth == second_merge.planned_candidates.nodes.len() as u64,
         "repeated merge after restore should remain bounded to the branch mutation candidate set"
     );
     assert!(
-        !second_merge.counters.branch_wide_scan_performed,
-        "repeated merge after restore must not fall back to a whole-live branch scan"
+        matches!(
+            second_merge.boundary_witness.kind,
+            MergeBoundaryWitnessKind::MutationJournalBoundary
+        ),
+        "repeated merge after restore must remain anchored to the mutation-journal witness"
     );
     assert!(
         second_merge.records.iter().all(|record| record.source_node != first),

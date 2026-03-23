@@ -12,9 +12,11 @@ use rayon::prelude::*;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
+use crate::data::node::EvaluationCondition;
 #[cfg(feature = "parallel")]
 use crate::data::proof::{LocallyOrderedShard, MergeableOrderedStream, OrderedStreamMergeError};
 use crate::data::proof::{OrderedStreamItem, SingleConsumer};
+use crate::logic::evaluation::{ConditionEvaluationContext, ConditionResolver, DefaultConditionResolver};
 use crate::logic::prepared::{ExecutionSnapshot, PreparedEvaluation};
 
 #[cfg(feature = "parallel")]
@@ -265,13 +267,94 @@ fn prevalidate_stage_tasks(
 ) -> Result<Vec<Option<PreparedEvaluation>>, SignalError> {
     let mut prevalidated = Vec::with_capacity(tasks.len());
     for task in tasks {
-        prevalidated.push(prepare_validated_clean_if_unchanged(
-            graph,
-            task,
-            comparator_resolver,
-        )?);
+        let prepared = if let Some(prepared) = prepare_condition_outcome_if_blocked(graph, task)? {
+            Some(prepared)
+        } else {
+            prepare_validated_clean_if_unchanged(graph, task, comparator_resolver)?
+        };
+        prevalidated.push(prepared);
     }
     Ok(prevalidated)
+}
+
+fn prepare_condition_outcome_if_blocked(
+    graph: &mut SignalGraph,
+    task: &super::types::EligibleTask,
+) -> Result<Option<PreparedEvaluation>, SignalError> {
+    let entry = graph.get_entry(task.node)?;
+    let dirty_aspects = entry.get_dirty_aspects();
+    let required_context = graph.get_contract(task.node)?.semantics.required_context;
+    let max_dependency_delta = max_dependency_delta(graph, task.node)?;
+    let ctx = ConditionEvaluationContext {
+        node: task.node,
+        request_mode: task.request_mode,
+        dirty_aspects,
+        max_dependency_delta,
+        required_context,
+    };
+    let has_dependency_snapshot = !graph.get_dep_snapshot(task.node)?.entries().is_empty();
+    let mut default_resolver = DefaultConditionResolver;
+
+    match entry.get_eval_config().condition.clone() {
+        EvaluationCondition::Always => Ok(None),
+        EvaluationCondition::AspectFilter(mask) => {
+            if dirty_aspects.is_empty() || dirty_aspects.intersects(mask) {
+                Ok(None)
+            } else {
+                prepare_condition_blocked_result(
+                    graph,
+                    task.node,
+                    PreparedEvaluation::deferred_by_condition(),
+                )
+            }
+        }
+        EvaluationCondition::OnDemand => Ok(None),
+        EvaluationCondition::DeltaThreshold(threshold) => {
+            if !has_dependency_snapshot
+                || dirty_aspects.is_empty()
+                || (max_dependency_delta as f64) > threshold
+            {
+                Ok(None)
+            } else {
+                prepare_condition_blocked_result(
+                    graph,
+                    task.node,
+                    PreparedEvaluation::reverted_clean_by_condition(),
+                )
+            }
+        }
+        EvaluationCondition::Debounce(quiet_period_ms) => {
+            if default_resolver.debounce_ready(quiet_period_ms, &ctx)? {
+                Ok(None)
+            } else {
+                prepare_condition_blocked_result(
+                    graph,
+                    task.node,
+                    PreparedEvaluation::deferred_by_condition(),
+                )
+            }
+        }
+        EvaluationCondition::Custom(key) => {
+            if default_resolver.resolve_custom(&key, &ctx)? {
+                Ok(None)
+            } else {
+                prepare_condition_blocked_result(
+                    graph,
+                    task.node,
+                    PreparedEvaluation::deferred_by_condition(),
+                )
+            }
+        }
+    }
+}
+
+fn prepare_condition_blocked_result(
+    graph: &mut SignalGraph,
+    node: NodeId,
+    prepared: PreparedEvaluation,
+) -> Result<Option<PreparedEvaluation>, SignalError> {
+    let dependencies = capture_current_dependencies(graph, node)?;
+    Ok(Some(prepared.with_dependencies(dependencies)))
 }
 
 fn prepare_validated_clean_if_unchanged(
@@ -309,4 +392,18 @@ fn prepare_validated_clean_if_unchanged(
     Ok(Some(
         PreparedEvaluation::validated_clean().with_dependencies(dependencies),
     ))
+}
+
+fn max_dependency_delta(graph: &SignalGraph, node: NodeId) -> Result<u64, SignalError> {
+    let mut max_delta = 0;
+    for snapshot_entry in graph.get_dep_snapshot(node)?.entries() {
+        if !graph.is_alive(snapshot_entry.source) {
+            continue;
+        }
+        let current_version = graph
+            .get_entry(snapshot_entry.source)?
+            .version_for_scope(snapshot_entry.aspect, snapshot_entry.scope.as_ref());
+        max_delta = max_delta.max(current_version.abs_diff(snapshot_entry.cached_version));
+    }
+    Ok(max_delta)
 }

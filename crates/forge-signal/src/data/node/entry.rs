@@ -363,6 +363,20 @@ impl NodeEntry {
         self.eval_config = config;
     }
 
+    /// Strip cold retained artifact and causality payloads when capturing an
+    /// authority-only checkpoint image. These lanes remain available from the
+    /// rich snapshot diagnostics payload, but they are not semantic restore
+    /// truth.
+    pub(crate) fn strip_checkpoint_cold_lanes(&mut self) {
+        self.cold = None;
+    }
+
+    /// Strip derived dependency snapshot state so restore must rebuild it from
+    /// the checkpoint proof lane instead of inheriting it from authority.
+    pub(crate) fn strip_checkpoint_dependency_snapshot_lane(&mut self) {
+        self.dep_snapshot_id = DependencySnapshotId::EMPTY;
+    }
+
     fn cold_mut(&mut self) -> &mut NodeColdData {
         self.cold
             .get_or_insert_with(|| Box::new(NodeColdData::default()))

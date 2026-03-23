@@ -13,6 +13,32 @@ use super::builder::SignalRuntimeBuilder;
 use super::observer::RuntimeObserver;
 use super::reconstructability::{AuthorityState, DerivedState};
 
+#[derive(Debug)]
+pub(in crate::logic::transaction::runtime) struct HeavyCaptureWitness(());
+
+#[derive(Debug)]
+pub(in crate::logic::transaction::runtime) struct AuthorityTransferPacket<D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub branch_id: SignalBranchId,
+    pub state: BranchState<D, I, T>,
+}
+
+#[derive(Debug)]
+pub(in crate::logic::transaction::runtime) struct ExplicitBranchForkPacket<D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub source_branch: SignalBranchId,
+    pub branch_id: SignalBranchId,
+    pub state: BranchState<D, I, T>,
+}
+
 /// Full runtime surface for transactional evaluation, diagnostics, replay, and
 /// keyed or tier-aware execution.
 pub struct SignalRuntime<D, I, E, Ctx, T = ()>
@@ -160,7 +186,17 @@ where
         DerivedState::capture(&self.checkpoint, &self.telemetry)
     }
 
-    pub(super) fn capture_full_branch_state(&mut self) -> BranchState<D, I, T> {
+    pub(in crate::logic::transaction::runtime::state) fn heavy_capture_witness(
+        &mut self,
+    ) -> HeavyCaptureWitness {
+        self.telemetry.transaction.heavy_capture_count += 1;
+        HeavyCaptureWitness(())
+    }
+
+    pub(super) fn capture_full_branch_state(
+        &mut self,
+        _witness: &HeavyCaptureWitness,
+    ) -> BranchState<D, I, T> {
         let handle = self.graph.current_branch();
         let ancestry = self
             .branches
@@ -189,7 +225,10 @@ where
         )
     }
 
-    pub(super) fn take_active_branch_state(&mut self) -> BranchState<D, I, T> {
+    pub(super) fn take_active_branch_state(
+        &mut self,
+        _witness: &HeavyCaptureWitness,
+    ) -> BranchState<D, I, T> {
         let handle = self.graph.current_branch();
         let ancestry = self
             .branches
@@ -227,9 +266,13 @@ where
             .capture_active_state(authority, derived, ancestry, mutation_ledger)
     }
 
-    pub(super) fn load_branch_state(&mut self, state: BranchState<D, I, T>) {
+    pub(super) fn load_branch_state(
+        &mut self,
+        packet: AuthorityTransferPacket<D, I, T>,
+    ) {
+        debug_assert_eq!(packet.branch_id, packet.state.ancestry.branch_id);
         self.branches.restore_active_state(
-            state,
+            packet.state,
             &mut self.graph,
             &mut self.config,
             &mut self.checkpoint,

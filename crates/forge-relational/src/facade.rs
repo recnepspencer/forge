@@ -92,9 +92,13 @@ pub mod indexes {
 
 pub mod lineage {
     pub use crate::lineage::data::{
-        CorrespondenceCandidate, CorrespondenceResolution, HistoricalLineageResolution,
-        LineageDivergenceSummary, LineageEventKind, LineageEventRecord, LineageGraphSnapshot,
-        LineageInvariant, LineageNode, LineageResolutionStatus,
+        CorrespondenceCandidate, CorrespondenceCandidateId, CorrespondencePromotionOutcome,
+        CorrespondencePromotionRejectionClass, CorrespondenceResolution,
+        HistoricalLineageResolution, HistoricalLineageResolutionMetrics,
+        HistoricalResolutionRequest, HistoricalResolutionTrace, LineageDecisionKind,
+        LineageDivergenceMetrics, LineageDivergenceRequest, LineageDivergenceSummary,
+        LineageEventKind, LineageEventRecord, LineageGraphRequest, LineageGraphSnapshot,
+        LineageInvariant, LineageNode, LineageResolutionStatus, RecordHistoryRequest,
     };
 }
 
@@ -156,8 +160,10 @@ pub mod query {
 
 pub mod replay {
     pub use crate::replay::data::{
-        CanonicalCommitEnvelope, RelationalReplayOutcome, RelationalReplayRequest, ReplayError,
-        ReplayExecutionMode, ReplayFailureClass, ReplayMismatch, ReplayMismatchClass,
+        CanonicalCommitAuthorityKind, CanonicalCommitEnvelope, RelationalReplayOutcome,
+        RelationalReplayRequest,
+        ReplayAuthorityBasisKind, ReplayError, ReplayExecutionMode, ReplayFailureClass,
+        ReplayLineageAuthorityBasis, ReplayMismatch, ReplayMismatchClass,
         ReplayObservableSurface, ReplaySnapshotSurface, ReplayVerificationLayer,
         ReplayVerificationMode, ReplayVerificationPlan,
     };
@@ -169,7 +175,8 @@ pub mod schema {
         AspectBinding, AspectComparator, AspectDeclarationTrace, AspectDeclarationTraceRow,
         AspectLoweringTrace, AspectLoweringTraceRow, AspectPlanRevision, AspectPrecision,
         CardinalityContractDeclaration, CompatibilityObservation, DeclaredAspect,
-        DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
+        DescriptorCanonicalizationCompatibilityPolicy, DescriptorCanonicalizationVersion,
+        DescriptorSemanticsCompatibilityPolicy, DescriptorSemanticsVersion,
         EndpointDeletionIntegrityDeclaration, EndpointDeletionIntegrityMode,
         EndpointKindContractDeclaration, EntityKindRegistration, HistoricalInterpretationSensitivity,
         KindAspectDeclarations, KindResolution, LoweredAspectBinding, LoweredAspectComparator,
@@ -183,6 +190,7 @@ pub mod schema {
         SchemaElementRef, SchemaId, SchemaLineageArtifact, SchemaReconciliationClassification,
         SchemaReconciliationDescriptor, SchemaReconciliationOrderingMode, SchemaReconciliationPolicy,
         SchemaRegistryError, SchemaRegistryErrorClass, SchemaStratum, SchemaSubscriberImpact,
+        SubscriberBoundaryVisibility,
         SchemaPublicationImpact, SchemaTransitionArtifact, SchemaTransitionBarrier,
         SchemaTransitionSummary, SchemaVersionId, SchemaContinuationClassification,
         SchemaContinuationDescriptor, SchemaLineageOrderingSemantics, SymmetryContractDeclaration,

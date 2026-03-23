@@ -1803,7 +1803,7 @@ fn long_session_replay_and_lineage_stay_equivalent_between_serial_and_parallel_e
 
         (
             runtime.observe().replay_for_branch(feature.id),
-            runtime.observe().lineage_chain_for_node(sink),
+            runtime.observe().lineage_chain_for_node(sink).to_owned_records(),
             runtime.observe().explain(sink).unwrap(),
         )
     }

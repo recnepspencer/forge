@@ -4,7 +4,6 @@ use std::sync::Arc;
 use crate::diagnostics::data::{DiagnosticCode, DiagnosticsScope, RelationalDiagnosticsEntry};
 use crate::history::data::{BranchCreateError, BranchId, CommitId, CommitReference, VersionNode};
 use crate::indexes::data::DerivedIndexGeneration;
-use crate::lineage::data::LineageEventRecord;
 use crate::logic::runtime::RelationalRuntime;
 use crate::publication::data::diff::PatchStreamPosition;
 use crate::replay::data::CanonicalCommitEnvelope;
@@ -190,6 +189,35 @@ impl<'runtime> HistoryAuthority<'runtime> {
             .insert(patch_position, commit_id);
     }
 
+    pub(crate) fn publish_metadata_only_commit(
+        &mut self,
+        commit_id: CommitId,
+        commit_reference: CommitReference,
+        branch_id: BranchId,
+        patch_position: PatchStreamPosition,
+        canonical_commit_envelope: Arc<CanonicalCommitEnvelope>,
+    ) {
+        self.runtime.history.advance_metadata_commit_sequence();
+        self.runtime
+            .history
+            .branch_heads
+            .insert(branch_id, Some(commit_reference.clone()));
+        self.runtime.history.commit_graph.insert(
+            commit_id,
+            VersionNode {
+                commit: commit_reference,
+            },
+        );
+        self.runtime
+            .history
+            .commit_envelopes
+            .insert(commit_id, canonical_commit_envelope);
+        self.runtime
+            .history
+            .patch_stream_index
+            .insert(patch_position, commit_id);
+    }
+
     pub(crate) fn append_index_generations(
         &mut self,
         commit_id: CommitId,
@@ -197,16 +225,6 @@ impl<'runtime> HistoryAuthority<'runtime> {
     ) {
         if let Some(envelope) = self.runtime.history.commit_envelopes.get_mut(&commit_id) {
             Arc::make_mut(envelope).append_index_generations_canonical(generations);
-        }
-    }
-
-    pub(crate) fn append_lineage_events(
-        &mut self,
-        commit_id: CommitId,
-        events: &[LineageEventRecord],
-    ) {
-        if let Some(envelope) = self.runtime.history.commit_envelopes.get_mut(&commit_id) {
-            Arc::make_mut(envelope).append_lineage_events_canonical(events);
         }
     }
 

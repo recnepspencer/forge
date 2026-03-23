@@ -81,6 +81,12 @@ These are not optional add-ons. They are the capabilities that make
 - shared subscription bases for overlapping client views
 - provenance-bearing patches that explain causality
 - server-side view materialization for hot collaborative surfaces
+- typed middleware pipeline with declarative policy enforcement
+- aspect-level authorization — not just route-level, but per-aspect delivery scoping
+- view-shaped patch delivery (collection splices, group membership changes)
+- optimistic mutation protocol with branch-based conflict resolution
+- multi-tenant workspace routing with automatic branch scoping
+- schema-validated mutations with typed error responses
 
 If these are treated as "nice to have later," the server becomes an ordinary
 REST API with a WebSocket bolted on, and the entire value of the runtime stack
@@ -510,6 +516,188 @@ What this enables:
 - audit surfaces that trace truth changes through delivery
 - compliance reporting for regulated collaborative workflows
 
+### Request Pipeline Architecture
+
+#### Typed middleware pipeline
+
+Technical role:
+Every request — HTTP, WebSocket message, lease operation, mutation — flows
+through a typed middleware pipeline. Middleware layers compose functionally
+and execute in declared order:
+
+- **transport decoding**: message framing, deserialization
+- **authentication**: identity resolution, session validation, token
+  verification
+- **tenant resolution**: workspace identification, branch scoping for
+  multi-tenant deployments
+- **rate limiting**: per-tenant, per-user, per-operation rate enforcement
+- **authorization**: route-level, entity-level, and aspect-level permission
+  checks
+- **query/mutation validation**: schema-aware validation of the request
+  payload
+- **execution**: query evaluation or mutation commit
+- **response transformation**: result shaping, delivery formatting
+- **observability**: logging, metrics, provenance tagging
+
+What this enables:
+
+- impossible to accidentally bypass auth, tenant scoping, or validation
+- middleware is composable and declarative, not hand-coded per endpoint
+- new middleware layers can be added without modifying existing handlers
+- the pipeline is inspectable and testable as a typed composition
+- developers never write per-endpoint boilerplate for cross-cutting
+  concerns — they declare pipeline policy once
+
+#### Policy pipeline and declarative authorization
+
+Technical role:
+Authorization is enforced through a declarative policy pipeline that
+operates at multiple granularities:
+
+- **route-level**: can this user access this endpoint at all?
+- **entity-level**: can this user read or mutate this specific entity?
+- **aspect-level**: can this user see this specific aspect of this entity?
+- **branch-level**: can this user read or write to this branch?
+- **operation-level**: can this user perform this specific mutation type?
+
+Policies are declared against the schema, not coded per handler. The server
+enforces them structurally — an aspect the user cannot see is never included
+in delivery, not filtered client-side.
+
+What this enables:
+
+- aspect-level security where salary data is never sent to unauthorized
+  users, without the developer writing conditional checks
+- branch-level access control where draft branches are visible only to
+  their owners or reviewers
+- policy changes that take effect immediately on existing subscriptions
+- authorization that composes with shared subscription bases (shared base
+  evaluation, per-client aspect masking on top)
+- zero per-endpoint authorization boilerplate
+
+### View-Specific Delivery Architecture
+
+#### View-shaped patch delivery
+
+Technical role:
+When a query declares a view shape (table, kanban, timeline, chart), the
+server uses that intent to deliver patches in view-appropriate formats:
+
+- **table view patches**: collection splices ("insert at position 3,"
+  "remove from position 9," "update row 7 field X")
+- **kanban view patches**: group membership changes ("move entity from
+  group A to group B," "add entity to group C")
+- **timeline view patches**: range intersection updates
+- **chart view patches**: aggregation value deltas with tolerance-aware
+  suppression
+- **detail view patches**: per-aspect field-level diffs
+
+What this enables:
+
+- frontends apply surgical UI updates instead of re-rendering entire lists
+- bandwidth reduction since patches carry only the structurally meaningful
+  change for the declared view
+- the server and query layer collaborate on delivery format without the
+  frontend specifying how to apply patches
+- different clients viewing the same data as different view shapes receive
+  view-appropriate patches from the same underlying truth change
+
+#### Server-side view materialization
+
+Technical role:
+For hot collaborative surfaces where many clients share the same view, the
+server can materialize and maintain the view result server-side, delivering
+incremental patches to all subscribers from the maintained view rather than
+re-evaluating per client.
+
+What this enables:
+
+- O(1) view evaluation for N subscribers on the same collaborative page
+- reduced server compute for high-fan-out collaborative surfaces
+- consistent delivery to all clients viewing the same materialized view
+- view materialization as a server-managed optimization, transparent to
+  clients
+
+### Mutation Architecture
+
+#### Schema-validated mutations
+
+Technical role:
+Every mutation flowing through the server is validated against the current
+schema before execution. The server rejects invalid mutations with typed
+error responses that explain which fields failed validation and why.
+
+What this enables:
+
+- schema-enforced data integrity at the server boundary
+- typed validation error responses that frontends can render into
+  field-level error messages
+- no possibility of invalid truth commits through the server API
+- validation rules that derive from schema declarations, not hand-coded
+  per endpoint
+
+#### Optimistic mutation protocol
+
+Technical role:
+The server supports an optimistic mutation protocol where clients can:
+
+1. Apply a mutation locally and render the result immediately
+2. Send the mutation to the server
+3. Receive confirmation (mutation committed) or rejection (conflict or
+   validation failure)
+4. On confirmation: the local state is already correct
+5. On rejection: roll back the local state and apply the server's
+   canonical state
+
+For branch-aware clients, optimistic mutations can be committed to a
+local branch and merged on confirmation, providing clean rollback
+semantics.
+
+What this enables:
+
+- zero-latency perceived mutations for interactive applications
+- clean rollback semantics backed by branch isolation
+- server-side validation without sacrificing responsive UI
+- collaborative editing where local edits appear immediately and
+  settle against canonical truth asynchronously
+
+### Multi-Tenant Architecture
+
+#### Tenant workspace routing
+
+Technical role:
+The server resolves tenant identity from request context (subdomain,
+header, path, token) and routes all operations to the correct workspace.
+Tenant resolution is a middleware layer that applies to every request,
+ensuring all reads, mutations, subscriptions, and file operations are
+scoped to the correct tenant workspace.
+
+What this enables:
+
+- multi-tenant SaaS deployment from a single server instance
+- tenant isolation enforced at the routing layer, not the application
+  layer
+- per-tenant policy, rate limiting, and budget enforcement
+- workspace-scoped subscriptions that never leak data across tenants
+
+#### Tenant-scoped delivery
+
+Technical role:
+Subscription delivery is scoped to the resolved tenant workspace. A
+subscription in tenant A never receives patches from tenant B, even if
+the underlying store uses branch-based tenant isolation with shared base
+structure.
+
+What this enables:
+
+- shared base data across tenants (e.g., system configuration, default
+  templates) with per-tenant branch-local customization
+- tenant-specific CDC streams that only include changes relevant to that
+  tenant
+- cross-tenant isolation that is structural, not filtered
+- tenant-aware shared subscription optimization within a single tenant's
+  user base
+
 ## Domain Fit
 
 ### Collaborative Web Applications
@@ -578,14 +766,21 @@ should be derivable from it.
 The highest-signal server programs are:
 
 - axum server with HTTP routes and WebSocket upgrade
+- typed middleware pipeline with declarative composition
 - lease management and durable subscription state
 - CDC-triggered subscription evaluation through the signal graph
 - sync protocol message types and cursor semantics
 - typed delivery classes and lane separation
 - basis negotiation and compound catchup
+- policy pipeline with route-, entity-, aspect-, and branch-level enforcement
+- schema-validated mutations with typed error responses
+- optimistic mutation protocol with branch-based rollback
 - authentication middleware and subscription-scoped authorization
 - file upload handling and binary asset management
 - freshness mode negotiation
+- view-shaped patch delivery (table splices, kanban moves, chart deltas)
+- server-side view materialization for collaborative surfaces
+- tenant workspace routing and tenant-scoped delivery
 - shared subscription optimization
 - branch-scoped subscriptions and branch-aware reads
 - postcard binary encoding with JSON fallback

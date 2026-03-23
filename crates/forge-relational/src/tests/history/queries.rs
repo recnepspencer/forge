@@ -453,7 +453,7 @@ fn bulk_like_aspect_history_filters_and_query_packets_stay_stable_after_recovery
         .map(|relation| relation_aspect_history_digest(&runtime, *relation, Some(&lifecycle_filter)))
         .collect::<Vec<_>>();
     runtime.durability_authority().checkpoint().unwrap();
-    let recovery_plan = runtime.durability_access().recovery_plan();
+    let recovery_plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
 
     let mut recovered =
         persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit);
@@ -492,3 +492,4 @@ fn bulk_like_aspect_history_filters_and_query_packets_stay_stable_after_recovery
         .iter()
         .all(|digest| digest.entry_count == 2));
 }
+

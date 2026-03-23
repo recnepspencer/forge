@@ -8,6 +8,7 @@ use crate::history::data::{
     MergeConflictRecord, MergeInspection, VersionGraphSnapshot,
 };
 use crate::identity::data::{EntityId, LineageId, RelationId};
+use crate::lineage::data::HistoricalResolutionRequest;
 use crate::logic::runtime::RelationalRuntime;
 use crate::publication::data::diff::{PatchStreamPosition, RelationalPatchRecord};
 use crate::publication::patch::data::CanonicalAspectSet;
@@ -34,19 +35,29 @@ impl<'runtime> HistoryAccess<'runtime> {
     }
 
     pub fn latest_commit(&self) -> Option<&CommitReference> {
-        self.runtime
+        let latest_published = self
+            .runtime
             .publication
             .latest_bundle
             .as_ref()
-            .map(|bundle| &bundle.commit)
-            .or_else(|| {
-                self.runtime
-                    .history
-                    .commit_envelopes
-                    .values()
-                    .max_by_key(|envelope| envelope.commit.commit_id)
-                    .map(|envelope| &envelope.commit)
-            })
+            .map(|bundle| &bundle.commit);
+        let latest_history = self
+            .runtime
+            .history
+            .commit_envelopes
+            .values()
+            .max_by_key(|envelope| envelope.commit.commit_id)
+            .map(|envelope| &envelope.commit);
+        match (latest_published, latest_history) {
+            (Some(published), Some(history)) => Some(if published.commit_id >= history.commit_id {
+                published
+            } else {
+                history
+            }),
+            (Some(published), None) => Some(published),
+            (None, Some(history)) => Some(history),
+            (None, None) => None,
+        }
     }
 
     pub(crate) fn commit_envelope(&self, commit_id: CommitId) -> Option<&CanonicalCommitEnvelope> {
@@ -389,7 +400,10 @@ impl<'runtime> HistoryAccess<'runtime> {
         let resolution = self
             .runtime
             .lineage_access()
-            .resolve_historical_lineage(branch_id, lineage_id);
+            .resolve_historical_lineage(HistoricalResolutionRequest {
+                branch_id: branch_id.clone(),
+                lineage_id,
+            });
         let lineage_scope = self.lineage_scope(&resolution.start, &resolution.traversed_event_ids);
         let envelopes = self.branch_commit_envelopes(branch_id);
         let mut entries = envelopes

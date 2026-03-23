@@ -41,10 +41,20 @@ pub enum BranchMergeFailureKind {
     UnresolvedDependencyRemap,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum MergeBoundaryWitnessKind {
+    #[default]
+    MutationJournalBoundary,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MergeCandidateScope {
-    WholeLiveAuthoritySurface,
-    CandidateNodeSet(Vec<crate::data::handle::NodeId>),
+pub struct MergeBoundaryWitness {
+    pub source_branch_id: SignalBranchId,
+    pub target_branch_id: SignalBranchId,
+    pub kind: MergeBoundaryWitnessKind,
+    pub forked_from_snapshot_id: Option<SignalSnapshotId>,
+    pub source_snapshot_id: Option<SignalSnapshotId>,
+    pub target_snapshot_id_before: Option<SignalSnapshotId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -12,7 +12,6 @@ use crate::replay::data::ReplayVerificationLayer;
 use crate::schema::logic::{
     validate_schema_continuity_bundle, SchemaContinuityBundleIssue, ValidatedSchemaContinuityBundle,
 };
-
 use crate::durability::log::local_store::{
     load_store_from_disk, read_json, DurableCheckpointFile, DurableSegmentFile,
 };
@@ -26,10 +25,10 @@ impl<'runtime> DurabilityAccess<'runtime> {
         Self { runtime }
     }
 
-    pub fn recovery_plan(&self) -> RecoveryPlan {
+    pub fn recovery_plan(&self, verification_mode: crate::durability::data::RecoveryVerificationMode) -> RecoveryPlan {
         match self.runtime.runtime_config().durability.policy.mode {
-            DurabilityMode::InMemoryCanonical => in_memory_recovery_plan(self.runtime),
-            DurabilityMode::PersistedSegmentedLocalFs => self.persisted_recovery_plan(),
+            DurabilityMode::InMemoryCanonical => in_memory_recovery_plan(self.runtime, verification_mode),
+            DurabilityMode::PersistedSegmentedLocalFs => self.persisted_recovery_plan(verification_mode),
         }
     }
 
@@ -41,7 +40,7 @@ impl<'runtime> DurabilityAccess<'runtime> {
         self.runtime.history_access().branches()
     }
 
-    fn persisted_recovery_plan(&self) -> RecoveryPlan {
+    fn persisted_recovery_plan(&self, verification_mode: crate::durability::data::RecoveryVerificationMode) -> RecoveryPlan {
         let Ok(store) = load_store_from_disk(self.runtime) else {
             return RecoveryPlan::new(
                 self.runtime.runtime_config().clone(),
@@ -60,8 +59,12 @@ impl<'runtime> DurabilityAccess<'runtime> {
                     corrupt_segment_id: None,
                 },
                 RecoveryCompatibilityCheck::verified_at(ReplayVerificationLayer::DigestParity),
-                crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
-                crate::schema::data::DescriptorSemanticsVersion::default(),
+                verification_mode,
+                self.runtime
+                    .runtime_config()
+                    .schema
+                    .descriptor_semantics_policy
+                    .current_write_version(),
             );
         };
         let mut skipped_corrupt_checkpoints = Vec::new();
@@ -175,7 +178,7 @@ impl<'runtime> DurabilityAccess<'runtime> {
                 corrupt_segment_id,
             },
             continuity_compatibility,
-            crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+            verification_mode,
             descriptor_semantics_version,
         )
     }
@@ -187,7 +190,10 @@ impl RelationalRuntime {
     }
 }
 
-fn in_memory_recovery_plan(runtime: &RelationalRuntime) -> RecoveryPlan {
+fn in_memory_recovery_plan(
+    runtime: &RelationalRuntime,
+    verification_mode: crate::durability::data::RecoveryVerificationMode,
+) -> RecoveryPlan {
     let checkpoint = runtime.durable_checkpoints().last().cloned();
     let tail_log = match checkpoint
         .as_ref()
@@ -233,7 +239,7 @@ fn in_memory_recovery_plan(runtime: &RelationalRuntime) -> RecoveryPlan {
             corrupt_segment_id: None,
         },
         continuity_compatibility,
-        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+        verification_mode,
         descriptor_semantics_version,
     )
 }
@@ -254,13 +260,24 @@ fn continuity_compatibility_for_envelopes(
     checkpoint_envelopes: &[crate::replay::data::CanonicalCommitEnvelope],
     tail_log: &[crate::replay::data::CanonicalCommitEnvelope],
 ) -> RecoveryCompatibilityCheck {
-    let expected_descriptor_semantics_version =
-        crate::schema::data::DescriptorSemanticsVersion::default();
+    let descriptor_policy = runtime
+        .runtime_config()
+        .schema
+        .descriptor_semantics_policy
+        .clone();
+    let canonicalization_policy = runtime
+        .runtime_config()
+        .schema
+        .descriptor_canonicalization_policy
+        .clone();
+    let expected_descriptor_semantics_version = descriptor_policy.current_write_version();
+    let expected_descriptor_canonicalization_version =
+        canonicalization_policy.current_write_version();
     let mut compatibility =
         RecoveryCompatibilityCheck::verified_at(ReplayVerificationLayer::DigestParity);
 
     for envelope in checkpoint_envelopes.iter().chain(tail_log.iter()) {
-        if envelope.descriptor_semantics_version != expected_descriptor_semantics_version {
+        if !descriptor_policy.supports(envelope.descriptor_semantics_version) {
             runtime
                 .performance_access()
                 .count_descriptor_version_mismatch();
@@ -278,6 +295,29 @@ fn continuity_compatibility_for_envelopes(
                 layer: ReplayVerificationLayer::DigestParity,
                 detail: "descriptor semantics version mismatch".to_string(),
             };
+            continue;
+        }
+
+        if let Some(found) = unsupported_canonicalization_version(envelope, &canonicalization_policy)
+        {
+            runtime
+                .performance_access()
+                .count_descriptor_version_mismatch();
+            runtime
+                .performance_access()
+                .count_replay_verification_layer(ReplayVerificationLayer::DigestParity);
+            compatibility.descriptor_version_parity = RecoveryAuthorityParity::drift();
+            compatibility.first_mismatch.get_or_insert(
+                RecoveryCompatibilityMismatch::DescriptorCanonicalizationVersion {
+                    expected: expected_descriptor_canonicalization_version,
+                    found,
+                },
+            );
+            compatibility.verification_outcome = RecoveryVerificationOutcome::Rejected {
+                layer: ReplayVerificationLayer::DigestParity,
+                detail: "descriptor canonicalization version mismatch".to_string(),
+            };
+            continue;
         }
 
         match validated_recovery_continuity_envelope(envelope) {
@@ -297,6 +337,24 @@ fn continuity_compatibility_for_envelopes(
     }
 
     compatibility
+}
+
+fn unsupported_canonicalization_version(
+    envelope: &crate::replay::data::CanonicalCommitEnvelope,
+    policy: &crate::schema::data::DescriptorCanonicalizationCompatibilityPolicy,
+) -> Option<crate::schema::data::DescriptorCanonicalizationVersion> {
+    let continuation = envelope
+        .schema_continuation_descriptor
+        .as_ref()
+        .map(|descriptor| descriptor.bridge.canonicalization_version);
+    let reconciliation = envelope
+        .schema_reconciliation_descriptor
+        .as_ref()
+        .map(|descriptor| descriptor.canonicalization_version);
+    continuation
+        .into_iter()
+        .chain(reconciliation)
+        .find(|version| !policy.supports(*version))
 }
 
 fn apply_continuity_issue(
@@ -361,6 +419,29 @@ fn apply_continuity_issue(
             compatibility.descriptor_version_parity = RecoveryAuthorityParity::drift();
             compatibility.first_mismatch.get_or_insert(
                 RecoveryCompatibilityMismatch::DescriptorSemanticsVersion { expected, found },
+            );
+        }
+        SchemaContinuityBundleIssue::DescriptorCanonicalizationVersionMismatch { expected, found } => {
+            runtime.performance_access().count_descriptor_version_mismatch();
+            compatibility.descriptor_version_parity = RecoveryAuthorityParity::drift();
+            compatibility.first_mismatch.get_or_insert(
+                RecoveryCompatibilityMismatch::DescriptorCanonicalizationVersion {
+                    expected,
+                    found,
+                },
+            );
+        }
+        SchemaContinuityBundleIssue::VisibleBridgeProofMismatch => {
+            compatibility.continuation_descriptor_parity = RecoveryAuthorityParity::drift();
+            compatibility.first_mismatch.get_or_insert(
+                RecoveryCompatibilityMismatch::ContinuationDescriptor {
+                    commit_id: envelope.commit.commit_id.0,
+                    boundary_fingerprint: envelope
+                        .schema_continuation_descriptor
+                        .as_ref()
+                        .map(|descriptor| descriptor.boundary_fingerprint),
+                    detail,
+                },
             );
         }
         SchemaContinuityBundleIssue::TargetSchemaVersionMismatch => {

@@ -1,0 +1,11 @@
+error[E0603]: module `lineage` is private
+ --> tests/ui/lineage/lowered_promotion_plan_private.rs:1:23
+  |
+1 | use forge_relational::lineage::logic::authority::phase_types::LoweredPromotionPlan;
+  |                       ^^^^^^^ private module     ----------- module `phase_types` is not publicly re-exported
+  |
+note: the module `lineage` is defined here
+ --> src/lib.rs
+  |
+  | mod lineage;
+  | ^^^^^^^^^^^

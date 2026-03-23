@@ -7,6 +7,7 @@ use crate::diagnostics::failure::ExecutionFailurePhase;
 use crate::diagnostics::failure::FailureSummary;
 use crate::diagnostics::failure::RollbackDiagnostic;
 use crate::logic::planner::ExecutionReport;
+use crate::logic::planner::model::ParallelAdmissionReason;
 
 use super::transaction_types::{
     EvaluationSummary, TransactionOutcome, TransactionReplayEntry, TransactionResult,
@@ -28,7 +29,7 @@ pub enum DecisionDetail {
         authority_policy: AuthorityPolicy,
     },
     StageParallelAdmission {
-        admission_reason: String,
+        admission_reason: ParallelAdmissionReason,
     },
     Rollback {
         reason: String,
@@ -110,7 +111,7 @@ impl TransactionResult {
                     records.push(DecisionRecord {
                         stage_index: Some(stage.stage_index),
                         detail: DecisionDetail::StageParallelAdmission {
-                            admission_reason: reason.clone(),
+                            admission_reason: *reason,
                         },
                     });
                 }

@@ -19,10 +19,15 @@ pub(crate) use effect::{
 pub(crate) use engine::apply_prepared_evaluation_with_policy;
 pub use engine::EvaluationExecutionMetadata;
 pub(crate) use engine::{
-    apply_prepared_evaluation_after_dependencies_with_policy,
-    collect_effect_dependency_inputs_batch,
+    apply_prepared_evaluation_after_dependencies_with_policy, collect_effect_dependency_inputs_iter,
+};
+#[cfg(feature = "parallel")]
+pub(crate) use engine::{
+    build_prepared_apply_commit_packet, record_reuse_rejection_telemetry, ApplyCommitBuildError,
 };
 pub use output::{EvaluationOutput, IntoEvaluationOutput};
 pub(crate) use reuse::{
     certify_reuse_decision, resolve_prepared_reuse_decision, resolve_reuse_boundary_context,
 };
+#[cfg(feature = "parallel")]
+pub(crate) use reuse::resolve_reuse_boundary_context_with_policy;

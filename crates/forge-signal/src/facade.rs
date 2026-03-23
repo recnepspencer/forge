@@ -157,11 +157,13 @@ pub mod transaction {
         BranchMergeKind, BranchMergePlan, BranchMergeReconciliationPolicy,
         BranchMergeRequest, BranchMergeResult, BranchMergeStrategy,
         BranchMergeFailureKind, BranchMutationJournalSlice, BranchMutationLedger,
-        ConflictMergePolicy, DependencyFingerprint, DependencyRemapRecord,
-        ExistingTargetMergePolicy, MergeCandidateScope, MergeDecisionBasis, MergeNodeMap,
+        ConflictMergePolicy, ConservativeOverlapExpansion, DependencyFingerprint,
+        DependencyRemapRecord, ExistingTargetMergePolicy, LoweredMergePlan,
+        MergeBoundaryWitness, MergeBoundaryWitnessKind, MergeDecisionBasis, MergeNodeMap,
         MergeTouchedNodeSet, MergedArtifactRecord, NodeMergeInputState, NodeMergePlan,
-        NodeReconciliationDecision, NodeReconciliationShape, SourceNodeAdoptionPlanCore,
-        SourceOnlyMergePolicy, StructuralMergeCandidateRecord,
+        NodeReconciliationDecision, NodeReconciliationShape, PlannedMergeCandidateSet,
+        ProofMinimalOverlapBasis, SourceNodeAdoptionPlanCore, SourceOnlyMergePolicy,
+        StructuralMergeCandidateRecord, StructuralMergeJournalSlice,
     };
 }
 

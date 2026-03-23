@@ -373,7 +373,7 @@ fn structural_identity_recovery_preserves_current_evidence_and_queries() {
             fingerprint_family: Symbol(51),
         });
 
-    let plan = runtime.durability_access().recovery_plan();
+    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = persisted_runtime_with_test_schema();
     recovered.durability_authority().recover(plan).unwrap();
 
@@ -410,7 +410,7 @@ fn inspection_truth_bundle_recovery_parity_holds_for_current_and_historical_surf
         entity,
         created.version_id,
     );
-    let plan = runtime.durability_access().recovery_plan();
+    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = persisted_runtime_with_test_schema();
     recovered.durability_authority().recover(plan).unwrap();
     let actual = capture_inspection_truth_bundle(
@@ -525,8 +525,8 @@ fn commit_inspection_is_canonical_and_not_story_shaped() {
         inspection.changed_records,
         vec![crate::facade::transactions::RecordRef::Entity(entity)]
     );
-    assert_eq!(inspection.lineage_event_ids, envelope.lineage_event_ids);
-    assert_eq!(inspection.lineage_events, envelope.lineage_events);
+    assert_eq!(inspection.lineage_event_ids, envelope.lineage_event_ids());
+    assert_eq!(inspection.lineage_events, envelope.lineage_events());
     assert_eq!(inspection.index_generation_ids, envelope.index_generation_ids);
     assert_eq!(inspection.index_generations, envelope.index_generations);
     assert_eq!(
@@ -592,8 +592,8 @@ fn merge_commit_inspection_stays_envelope_projected() {
             .map(|record| record.target.clone())
             .collect::<Vec<_>>()
     );
-    assert_eq!(inspection.lineage_event_ids, envelope.lineage_event_ids);
-    assert_eq!(inspection.lineage_events, envelope.lineage_events);
+    assert_eq!(inspection.lineage_event_ids, envelope.lineage_event_ids());
+    assert_eq!(inspection.lineage_events, envelope.lineage_events());
     assert_eq!(inspection.index_generation_ids, envelope.index_generation_ids);
     assert_eq!(inspection.index_generations, envelope.index_generations);
     assert_eq!(
@@ -1204,3 +1204,4 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
         .iter()
         .any(|inspection| inspection.commit.commit_id == main_update.commit.commit_id));
 }
+

@@ -127,7 +127,7 @@ impl DependencyEdge {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct CanonicalDependencies {
-    edges: Vec<DependencyEdge>,
+    edges: Arc<Vec<DependencyEdge>>,
 }
 
 impl CanonicalDependencies {
@@ -141,13 +141,17 @@ impl CanonicalDependencies {
             edges.sort_by(|left, right| left.sort_key().cmp(&right.sort_key()));
             edges.dedup_by(|left, right| left.sort_key() == right.sort_key());
         }
-        Self { edges }
+        Self {
+            edges: Arc::new(edges),
+        }
     }
 
     pub fn from_ordered_unique(edges: impl IntoIterator<Item = DependencyEdge>) -> Self {
         let edges = edges.into_iter().collect::<Vec<_>>();
         debug_assert!(is_strict_dependency_edge_order(edges.as_slice()));
-        Self { edges }
+        Self {
+            edges: Arc::new(edges),
+        }
     }
 
     pub fn from_slice(edges: &[DependencyEdge]) -> Self {
@@ -155,11 +159,14 @@ impl CanonicalDependencies {
     }
 
     pub fn as_slice(&self) -> &[DependencyEdge] {
-        &self.edges
+        self.edges.as_slice()
     }
 
     pub fn into_vec(self) -> Vec<DependencyEdge> {
-        self.edges
+        match Arc::try_unwrap(self.edges) {
+            Ok(edges) => edges,
+            Err(edges) => edges.as_ref().clone(),
+        }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -512,6 +519,13 @@ impl DependencySnapshotId {
 
     fn index(self) -> Option<usize> {
         self.0.map(|index| index.get() as usize)
+    }
+
+    pub(crate) fn from_semantic_fingerprint(fingerprint: u32) -> Self {
+        match std::num::NonZeroU32::new(fingerprint) {
+            Some(non_zero) => Self(Some(non_zero)),
+            None => Self(Some(std::num::NonZeroU32::new(1).expect("1 is non-zero"))),
+        }
     }
 }
 

@@ -38,7 +38,7 @@ struct PerfRecord {
     executor_profile: &'static str,
     runtime_policy: &'static str,
     core_storage_profile: &'static str,
-    stage_parallel_admission_reasons: Vec<String>,
+    stage_parallel_admission_reasons: Vec<&'static str>,
     plan_task_count: u32,
     plan_stage_count: u32,
     planning_nanos: u64,
@@ -107,7 +107,7 @@ fn summarize(
         stage_parallel_admission_reasons: report
             .stages
             .iter()
-            .filter_map(|stage| stage.parallel_admission_reason.clone())
+            .filter_map(|stage| stage.parallel_admission_reason.map(|reason| reason.code()))
             .collect(),
         plan_task_count: report.plan_summary.task_count,
         plan_stage_count: report.plan_summary.stage_count,

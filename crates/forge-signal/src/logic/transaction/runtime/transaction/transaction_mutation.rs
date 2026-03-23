@@ -22,7 +22,7 @@ where
     T: Copy + Ord,
 {
     pub(in crate::logic::transaction::runtime) fn ensure_rollback_baseline(&mut self) {
-        self.rollback_baseline
+        self.rollback_packets
             .capture_if_needed(self.config, self.graph.diagnostics_state());
     }
 

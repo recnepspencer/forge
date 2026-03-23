@@ -1,5 +1,9 @@
 use crate::facade::*;
 use crate::data::trace::assemble_trace_summary;
+#[cfg(feature = "parallel")]
+use crate::logic::planner::model::{
+    ParallelAdmissionReason, ParallelApplyMode, ParallelExecutionKind,
+};
 use crate::logic::planner::MaybeStaleAdmission;
 use crate::tests::support::*;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -643,9 +647,15 @@ fn full_parallel_executor_falls_back_honestly_when_mutable_apply_is_unavailable(
     }
     assert_eq!(serial_report.task_count, parallel_report.task_count);
     assert_eq!(serial_report.tasks_executed, parallel_report.tasks_executed);
-    assert!(parallel_report.stages.iter().all(|stage| {
-        stage.parallel_kind.is_none()
-            && stage.parallel_admission_reason.as_deref()
-                == Some("full-parallel-unsupported-by-mutable-engine")
+    assert!(parallel_report.stages.iter().all(|stage| match stage.parallel_admission_reason {
+        Some(ParallelAdmissionReason::FullParallelUnsupportedByMutableEngine) => {
+            stage.parallel_kind.is_none()
+                && stage.apply_mode == Some(ParallelApplyMode::SerialApply)
+        }
+        Some(ParallelAdmissionReason::AdmittedProofSafeGroupedConcurrent) => {
+            stage.parallel_kind == Some(ParallelExecutionKind::FullParallel)
+                && stage.apply_mode == Some(ParallelApplyMode::GroupedConcurrentApply)
+        }
+        _ => false,
     }));
 }

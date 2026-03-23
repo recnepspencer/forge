@@ -33,6 +33,28 @@ Other existing crate-level suites still matter for:
 
 The fintech domain exists to prove that those capabilities survive in realistic, hostile, world-shaped workflows.
 
+S9.15 bounded merge alignment note:
+
+- crate-level `merge_adoption` certification now closes the supported bounded
+  merge substrate for `S9.15`
+- fintech does not yet own a world-shaped merge workflow, so merge boundedness
+  and proof-chain closeout remain enforced at crate scope rather than domain
+  scope
+- a future fintech merge workflow should be added only when it can exercise
+  world-shaped branch divergence and restore pressure honestly instead of
+  duplicating crate-level merge substrate tests
+
+S9.9 parallel apply alignment note:
+
+- crate-level `adversarial_parallel` and `telemetry_contract` certification now
+  close the supported proof-safe grouped concurrent apply substrate for `S9.9`
+- fintech does not yet own a world-shaped grouped-concurrent workflow, so the
+  exact packet/reduction proof chain remains enforced at crate scope rather than
+  domain scope
+- a future fintech parallel workflow should be added only when it can exercise
+  broad static disjoint stages plus honest serial fallback under world-shaped
+  dependency pressure instead of duplicating crate-level substrate tests
+
 ---
 
 ## Signal Surface Reference

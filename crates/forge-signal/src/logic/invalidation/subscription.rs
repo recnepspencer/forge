@@ -31,11 +31,15 @@ pub(super) fn subscriber_invalidation_evidence(
         dependencies.partition_point(|dep| (dep.source().index(), dep.source().generation()) <= source_key);
 
     let mut partition_checks = 0_u64;
+    let mut saw_matching_aspect_dependency = false;
+    let mut saw_same_source_dependency = false;
     let mut fallback_unmatched = false;
     for dep in &dependencies[start..end] {
+        saw_same_source_dependency = true;
         if !dep.aspect_mask().intersects(changed_mask) {
             continue;
         }
+        saw_matching_aspect_dependency = true;
         let Some(scope) = dep.scope_ref() else {
             return Ok(Some(SubscriptionInvalidationEvidence {
                 classification: FrontierEntryClassification::DirectDirty,
@@ -86,6 +90,22 @@ pub(super) fn subscriber_invalidation_evidence(
     }
 
     if fallback_unmatched {
+        return Ok(Some(SubscriptionInvalidationEvidence {
+            classification: FrontierEntryClassification::MaybeStale,
+            inclusion_basis: FrontierInclusionBasis::DirectSubscriptionMatch,
+            partition_scoped_checks: partition_checks,
+        }));
+    }
+
+    if saw_matching_aspect_dependency {
+        return Ok(Some(SubscriptionInvalidationEvidence {
+            classification: FrontierEntryClassification::MaybeStale,
+            inclusion_basis: FrontierInclusionBasis::DirectSubscriptionMatch,
+            partition_scoped_checks: partition_checks,
+        }));
+    }
+
+    if saw_same_source_dependency && !graph.get_entry(source)?.get_eval_config().partitioned_output {
         return Ok(Some(SubscriptionInvalidationEvidence {
             classification: FrontierEntryClassification::MaybeStale,
             inclusion_basis: FrontierInclusionBasis::DirectSubscriptionMatch,

@@ -8,12 +8,12 @@ use rayon::ThreadPoolBuilder;
 use crate::data::error::SignalError;
 
 #[derive(Debug, Clone)]
-pub(super) struct PlannerExecutorPool {
+pub(in crate::logic::planner) struct PlannerExecutorPool {
     pool: Arc<ThreadPool>,
 }
 
 impl PlannerExecutorPool {
-    pub(super) fn shared(_worker_count: usize) -> Result<Self, SignalError> {
+    pub(in crate::logic::planner) fn shared(_worker_count: usize) -> Result<Self, SignalError> {
         let pool = SHARED_POOL.get_or_init(|| {
             let threads = std::thread::available_parallelism()
                 .map(|parallelism| parallelism.get())
@@ -33,7 +33,7 @@ impl PlannerExecutorPool {
         })
     }
 
-    pub(super) fn install<R: Send>(&self, run: impl FnOnce() -> R + Send) -> R {
+    pub(in crate::logic::planner) fn install<R: Send>(&self, run: impl FnOnce() -> R + Send) -> R {
         self.pool.install(run)
     }
 

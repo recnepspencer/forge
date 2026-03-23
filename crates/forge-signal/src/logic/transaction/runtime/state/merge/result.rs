@@ -4,11 +4,12 @@ use crate::data::handle::NodeId;
 use crate::diagnostics::lineage::LineageArtifactId;
 
 use super::conflict::{BranchConflictResolutionPlan, BranchMergeConflictKind};
-use super::core::{
-    BranchMergeBase, BranchMergeDivergence, BranchMergeKind, BranchMergeStrategy, MergeCandidateScope,
-};
+use super::core::{BranchMergeBase, BranchMergeDivergence, BranchMergeKind, BranchMergeStrategy, MergeBoundaryWitnessKind, MergeBoundaryWitness};
 use super::journal::MergeNodeMap;
-use super::plan::ArtifactMergeComparable;
+use super::plan::{
+    ArtifactMergeComparable, ConservativeOverlapExpansion, PlannedMergeCandidateSet,
+    ProofMinimalOverlapBasis,
+};
 use super::policy::BranchMergeReconciliationPolicy;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -68,6 +69,12 @@ pub struct TopologyRepairSummary {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct BranchMergeCounters {
+    pub boundary_witness_kind: MergeBoundaryWitnessKind,
+    pub source_slice_breadth: u64,
+    pub proof_minimal_overlap_breadth: u64,
+    pub conservative_overlap_expansion_breadth: u64,
+    pub final_candidate_breadth: u64,
+    pub reconciliation_breadth: u64,
     pub candidate_node_count: u64,
     pub examined_node_count: u64,
     pub adopted_count: u64,
@@ -82,7 +89,6 @@ pub struct BranchMergeCounters {
     pub subscriber_repair_breadth: u64,
     pub merge_lineage_record_count: u64,
     pub replay_event_count: u64,
-    pub branch_wide_scan_performed: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -93,7 +99,10 @@ pub struct BranchMergeResult {
     pub divergence: BranchMergeDivergence,
     pub merge_strategy: BranchMergeStrategy,
     pub reconciliation_policy: BranchMergeReconciliationPolicy,
-    pub candidate_scope: MergeCandidateScope,
+    pub boundary_witness: MergeBoundaryWitness,
+    pub proof_minimal_overlap: ProofMinimalOverlapBasis,
+    pub conservative_overlap: ConservativeOverlapExpansion,
+    pub planned_candidates: PlannedMergeCandidateSet,
     pub merged_snapshot_id: Option<crate::state::SignalSnapshotId>,
     pub target_snapshot_id_before: Option<crate::state::SignalSnapshotId>,
     pub target_snapshot_id_after: Option<crate::state::SignalSnapshotId>,
@@ -111,7 +120,10 @@ pub struct BranchMergeExecutionSummary {
     pub divergence: BranchMergeDivergence,
     pub merge_strategy: BranchMergeStrategy,
     pub reconciliation_policy: BranchMergeReconciliationPolicy,
-    pub candidate_scope: MergeCandidateScope,
+    pub boundary_witness: MergeBoundaryWitness,
+    pub proof_minimal_overlap: ProofMinimalOverlapBasis,
+    pub conservative_overlap: ConservativeOverlapExpansion,
+    pub planned_candidates: PlannedMergeCandidateSet,
     pub merge_base: Option<BranchMergeBase>,
     pub source_snapshot_id: Option<crate::state::SignalSnapshotId>,
     pub target_snapshot_id_before: Option<crate::state::SignalSnapshotId>,

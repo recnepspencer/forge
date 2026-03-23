@@ -6,7 +6,6 @@ use crate::authority::commit::touched_scope::{
 };
 use crate::identity::data::PartitionId;
 use crate::logic::runtime::PartitionAccess;
-use crate::schema::data::DescriptorSemanticsVersion;
 use crate::transactions::data::{CommitTopology, MergedCommitPlan};
 use crate::validation::data::InvariantPlanContract;
 
@@ -46,14 +45,17 @@ impl CommitStructuralSummary {
         }
     }
 
-    pub(crate) fn public_summary(&self) -> crate::transactions::data::CommitStructuralSummary {
+    pub(crate) fn public_summary(
+        &self,
+        descriptor_semantics_version: crate::schema::data::DescriptorSemanticsVersion,
+    ) -> crate::transactions::data::CommitStructuralSummary {
         crate::transactions::data::CommitStructuralSummary {
             invariant_groups: self.invariant_contract.may_invalidate_groups(),
             commit_topology: self.commit_topology,
             touched_partitions: self.touched_partitions.iter().copied().collect(),
             bulk_entity_slots_reserved: self.bulk_entity_slots_reserved,
             bulk_relation_slots_reserved: self.bulk_relation_slots_reserved,
-            descriptor_semantics_version: DescriptorSemanticsVersion::default(),
+            descriptor_semantics_version,
         }
     }
 }

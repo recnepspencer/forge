@@ -114,17 +114,21 @@ impl NormalizedContinuationProof {
         boundary_fingerprints: Vec<SchemaBoundaryFingerprint>,
         descriptor_semantics_version: DescriptorSemanticsVersion,
     ) -> Self {
-        debug_assert_eq!(boundary_fingerprints.len(), {
-            let mut deduped = BTreeSet::new();
-            for fingerprint in &boundary_fingerprints {
-                deduped.insert(*fingerprint);
+        let mut deduped = BTreeSet::new();
+        let mut normalized = Vec::with_capacity(boundary_fingerprints.len());
+        for fingerprint in boundary_fingerprints {
+            if deduped.insert(fingerprint) {
+                normalized.push(fingerprint);
             }
-            deduped.len()
-        });
-        debug_assert!(boundary_fingerprints.len() <= MAX_NORMALIZED_CONTINUATION_BOUNDARIES);
+        }
+        assert!(
+            normalized.len() <= MAX_NORMALIZED_CONTINUATION_BOUNDARIES,
+            "normalized continuation proof exceeded boundary complexity ceiling of {}",
+            MAX_NORMALIZED_CONTINUATION_BOUNDARIES
+        );
         Self {
-            normalized_boundary_count: boundary_fingerprints.len(),
-            boundary_fingerprints,
+            normalized_boundary_count: normalized.len(),
+            boundary_fingerprints: normalized,
             descriptor_semantics_version,
         }
     }

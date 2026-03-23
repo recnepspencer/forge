@@ -1,15 +1,14 @@
-use crate::capabilities::{
-    HistorySource, LineageRead, ReplayRead, RuntimeConfigSource, SchemaSource,
-};
+use crate::capabilities::{HistorySource, ReplayRead, RuntimeConfigSource, SchemaSource};
+use crate::performance::logic::ReplayLineageAuthorityIndexedSource;
 use crate::history::data::{BranchId, CommitId};
 use crate::logic::runtime::RelationalRuntime;
 use crate::replay::data::{
     CanonicalCommitEnvelope, DescriptorAuthorityKind, DescriptorComparisonBasis,
     DescriptorParityCheck, RelationalReplayOutcome, RelationalReplayRequest,
-    ReplayExecutionMode, ReplayFailureClass, ReplayMismatch, ReplayMismatchClass,
-    ReplayObservableSurface, ReplaySurfaceAuthorityKind, ReplaySurfaceComparisonBasis,
-    ReplaySurfaceParityCheck, ReplayVerificationLayer, ReplayVerificationMode,
-    ReplayVerificationPlan, VerifiedDescriptorDigest,
+    ReplayAuthorityBasisKind, ReplayExecutionMode, ReplayFailureClass, ReplayLineageAuthorityBasis,
+    ReplayMismatch, ReplayMismatchClass, ReplayObservableSurface, ReplaySurfaceAuthorityKind,
+    ReplaySurfaceComparisonBasis, ReplaySurfaceParityCheck, ReplayVerificationLayer,
+    ReplayVerificationMode, ReplayVerificationPlan, VerifiedDescriptorDigest,
     VerifiedReplaySurfaceDigest,
 };
 use crate::schema::logic::{validate_schema_continuity_bundle, ValidatedSchemaContinuityBundle};
@@ -29,6 +28,12 @@ struct ValidatedReplayContinuityEnvelope<'a> {
     continuation_basis: Option<DescriptorComparisonBasis>,
     reconciliation_basis: Option<DescriptorComparisonBasis>,
     lineage_basis: Option<DescriptorComparisonBasis>,
+}
+
+struct SelectedPublishedLineageAuthority<'a> {
+    kind: ReplayAuthorityBasisKind,
+    indexed_source: Option<ReplayLineageAuthorityIndexedSource>,
+    artifact: &'a crate::lineage::data::PublishedLineageArtifact,
 }
 
 impl<'runtime> ReplayAuthority<'runtime> {
@@ -90,8 +95,12 @@ impl<'runtime> ReplayAuthority<'runtime> {
             }
         };
 
-        let replay_plan =
-            replay_recovery_plan_for_chain(self.runtime, self.runtime.runtime_config(), &chain);
+        let replay_plan = replay_recovery_plan_for_chain(
+            self.runtime,
+            self.runtime.runtime_config(),
+            &chain,
+            request.verification_mode,
+        );
         let replay_runtime = match RelationalRuntime::rebuild_runtime_from_plan(replay_plan) {
             Ok(runtime) => runtime,
             Err(_) => {
@@ -112,7 +121,7 @@ impl<'runtime> ReplayAuthority<'runtime> {
             .expect("replayed target envelope");
         let verification_plan = ReplayVerificationPlan::from_mode(request.verification_mode);
         let validated_envelope =
-            match validated_replay_continuity_envelope(&envelope, &verification_plan) {
+            match validated_replay_continuity_envelope(self.runtime, &envelope, &verification_plan) {
             Ok(validated) => validated,
             Err(mismatch) => {
                 if mismatch.class == ReplayMismatchClass::DescriptorVersionDrift {
@@ -134,7 +143,11 @@ impl<'runtime> ReplayAuthority<'runtime> {
             }
         };
         let validated_replayed_envelope =
-            match validated_replay_continuity_envelope(&replayed_envelope, &verification_plan) {
+            match validated_replay_continuity_envelope(
+                self.runtime,
+                &replayed_envelope,
+                &verification_plan,
+            ) {
                 Ok(validated) => validated,
                 Err(mismatch) => {
                     if mismatch.class == ReplayMismatchClass::DescriptorVersionDrift {
@@ -157,6 +170,35 @@ impl<'runtime> ReplayAuthority<'runtime> {
             };
         let compared_surfaces = promised_replay_surfaces(&envelope);
         let mut mismatches = Vec::new();
+        let selected_lineage_authority =
+            if compared_surfaces.contains(&ReplayObservableSurface::Lineage) {
+                let selected = select_published_lineage_authority(self.runtime, &envelope);
+                self.runtime
+                    .performance_access()
+                    .count_replay_lineage_authority_basis(
+                        selected.indexed_source,
+                        selected.kind,
+                        selected.artifact.lineage_events().len(),
+                        selected.artifact.lineage_decision_log().len(),
+                    );
+                if selected.kind == ReplayAuthorityBasisKind::HistoryEnvelopeFallback
+                    && request.verification_mode != ReplayVerificationMode::NormalRecoveryVerification
+                {
+                    self.runtime
+                        .performance_access()
+                        .count_replay_lineage_authoritative_basis_rejection();
+                    return self.fail_and_record(
+                        request,
+                        Some(&envelope),
+                        Some(&chain),
+                        ReplayFailureClass::AuthoritativeBasisUnavailable,
+                        None,
+                    );
+                }
+                Some(selected)
+            } else {
+                None
+            };
 
         compare_replay_surface(
             self.runtime,
@@ -346,20 +388,22 @@ impl<'runtime> ReplayAuthority<'runtime> {
             || format!("{:?}", replayed_branch_head),
         );
         if compared_surfaces.contains(&ReplayObservableSurface::Lineage) {
-            let original_lineage_events = self.runtime.lineage_events();
-            let replayed_lineage_events = replay_runtime.lineage_events();
+            let original_lineage = selected_lineage_authority
+                .as_ref()
+                .expect("lineage authority selected for replay parity");
+            let replayed_lineage = replayed_envelope.published_lineage();
             compare_replay_surface(
                 self.runtime,
                 &verification_plan,
                 &mut mismatches,
                 ReplayObservableSurface::Lineage,
                 ReplayMismatchClass::LineageDrift,
-                surface_basis_for_lineage_events(original_lineage_events),
-                surface_basis_for_lineage_events(replayed_lineage_events),
+                surface_basis_for_published_lineage(original_lineage.artifact),
+                surface_basis_for_published_lineage(replayed_lineage),
                 "lineage artifacts differed",
-                || replayed_lineage_events == original_lineage_events,
-                || format!("{:?}", original_lineage_events),
-                || format!("{:?}", replayed_lineage_events),
+                || replayed_lineage == original_lineage.artifact,
+                || format!("{:?}", original_lineage.artifact),
+                || format!("{:?}", replayed_lineage),
             );
         }
         if compared_surfaces.contains(&ReplayObservableSurface::DerivedIndexes) {
@@ -388,6 +432,14 @@ impl<'runtime> ReplayAuthority<'runtime> {
             commit: Some(envelope.commit.clone()),
             reconstructed_parent_chain: chain.clone(),
             snapshot_version: Some(envelope.commit.version_id),
+            lineage_authority_basis: selected_lineage_authority.as_ref().map(|selected| {
+                ReplayLineageAuthorityBasis {
+                    kind: selected.kind,
+                    commit_id: envelope.commit.commit_id,
+                    lineage_event_count: selected.artifact.lineage_events().len(),
+                    lineage_decision_count: selected.artifact.lineage_decision_log().len(),
+                }
+            }),
             compared_surfaces: compared_surfaces.clone(),
             mismatches: mismatches.clone(),
             failure: (!mismatches.is_empty()).then_some(ReplayFailureClass::ObservableMismatch),
@@ -400,6 +452,7 @@ impl<'runtime> ReplayAuthority<'runtime> {
         &mut self,
         branch_id: BranchId,
         commits: &[CommitId],
+        verification_mode: ReplayVerificationMode,
     ) -> Vec<RelationalReplayOutcome> {
         commits
             .iter()
@@ -409,7 +462,7 @@ impl<'runtime> ReplayAuthority<'runtime> {
                     commit_id,
                     branch_id: branch_id.clone(),
                     execution_mode: ReplayExecutionMode::SerialDeterministic,
-                    verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
+                    verification_mode,
                 })
             })
             .collect()
@@ -487,11 +540,38 @@ fn compare_replay_surface(
 }
 
 fn validated_replay_continuity_envelope<'a>(
+    runtime: &RelationalRuntime,
     envelope: &'a crate::replay::data::CanonicalCommitEnvelope,
     verification_plan: &ReplayVerificationPlan,
 ) -> Result<ValidatedReplayContinuityEnvelope<'a>, ReplayMismatch> {
     let validated_bundle = validate_schema_continuity_bundle(envelope)
         .map_err(|issue| replay_mismatch_for_continuity_issue(issue, verification_plan))?;
+    let canonicalization_policy = runtime
+        .runtime_config()
+        .schema
+        .descriptor_canonicalization_policy
+        .clone();
+    if let Some(found) = envelope
+        .schema_continuation_descriptor
+        .as_ref()
+        .map(|descriptor| descriptor.bridge.canonicalization_version)
+        .into_iter()
+        .chain(
+            envelope
+                .schema_reconciliation_descriptor
+                .as_ref()
+                .map(|descriptor| descriptor.canonicalization_version),
+        )
+        .find(|version| !canonicalization_policy.supports(*version))
+    {
+        return Err(replay_mismatch_for_continuity_issue(
+            crate::schema::logic::SchemaContinuityBundleIssue::DescriptorCanonicalizationVersionMismatch {
+                expected: canonicalization_policy.current_write_version(),
+                found,
+            },
+            verification_plan,
+        ));
+    }
     Ok(ValidatedReplayContinuityEnvelope {
         transition_basis: descriptor_basis_for_transition(envelope),
         continuation_basis: descriptor_basis_for_continuation(envelope),
@@ -513,6 +593,7 @@ fn replay_mismatch_for_continuity_issue(
         ),
         crate::schema::logic::SchemaContinuityBundleIssue::ContinuationDescriptorDrift { .. }
         | crate::schema::logic::SchemaContinuityBundleIssue::ContinuationBoundaryFingerprintMismatch { .. }
+        | crate::schema::logic::SchemaContinuityBundleIssue::VisibleBridgeProofMismatch
         | crate::schema::logic::SchemaContinuityBundleIssue::HistoricalReinterpretationViolation => (
             ReplayMismatchClass::SchemaContinuationDescriptorDrift,
             replay_issue_layer(verification_plan, ReplayVerificationLayer::DigestParity),
@@ -521,7 +602,8 @@ fn replay_mismatch_for_continuity_issue(
             ReplayMismatchClass::SchemaReconciliationDescriptorDrift,
             replay_issue_layer(verification_plan, ReplayVerificationLayer::DigestParity),
         ),
-        crate::schema::logic::SchemaContinuityBundleIssue::DescriptorSemanticsVersionMismatch { .. } => (
+        crate::schema::logic::SchemaContinuityBundleIssue::DescriptorSemanticsVersionMismatch { .. }
+        | crate::schema::logic::SchemaContinuityBundleIssue::DescriptorCanonicalizationVersionMismatch { .. } => (
             ReplayMismatchClass::DescriptorVersionDrift,
             replay_issue_layer(verification_plan, ReplayVerificationLayer::DigestParity),
         ),
@@ -810,17 +892,50 @@ fn surface_basis_for_branch_head(
     )
 }
 
-fn surface_basis_for_lineage_events<T: serde::Serialize + ?Sized>(
-    lineage_events: &T,
+fn surface_basis_for_published_lineage<T: serde::Serialize + ?Sized>(
+    published_lineage: &T,
 ) -> ReplaySurfaceComparisonBasis {
     ReplaySurfaceComparisonBasis::new(
         ReplaySurfaceAuthorityKind::Lineage,
         Some(VerifiedReplaySurfaceDigest::new(
             ReplaySurfaceAuthorityKind::Lineage,
-            lineage_events,
+            published_lineage,
         )),
-        Some(crate::replay::data::stable_digest(lineage_events)),
+        Some(crate::replay::data::stable_digest(published_lineage)),
     )
+}
+
+fn select_published_lineage_authority<'a>(
+    runtime: &'a RelationalRuntime,
+    envelope: &'a CanonicalCommitEnvelope,
+) -> SelectedPublishedLineageAuthority<'a> {
+    if let Some(artifact) = runtime
+        .durability
+        .durable_log_envelope(envelope.commit.commit_id)
+        .map(|candidate| candidate.published_lineage())
+    {
+        SelectedPublishedLineageAuthority {
+            kind: ReplayAuthorityBasisKind::DurableLogCanonical,
+            indexed_source: Some(ReplayLineageAuthorityIndexedSource::DurableLog),
+            artifact,
+        }
+    } else if let Some(artifact) = runtime
+        .durability
+        .checkpoint_envelope(envelope.commit.commit_id)
+        .map(|candidate| candidate.published_lineage())
+    {
+        SelectedPublishedLineageAuthority {
+            kind: ReplayAuthorityBasisKind::DurableLogCanonical,
+            indexed_source: Some(ReplayLineageAuthorityIndexedSource::Checkpoint),
+            artifact,
+        }
+    } else {
+        SelectedPublishedLineageAuthority {
+            kind: ReplayAuthorityBasisKind::HistoryEnvelopeFallback,
+            indexed_source: None,
+            artifact: envelope.published_lineage(),
+        }
+    }
 }
 
 fn surface_basis_for_derived_indexes<T: serde::Serialize + ?Sized>(

@@ -2,10 +2,11 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use crate::facade::schema::{
+    DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
     HistoricalInterpretationSensitivity, ProposedSchemaTransition, SchemaDiffAtom,
-    SchemaDiffDetail, SchemaElementKind, SchemaElementRef, SchemaId, SchemaPublicationImpact,
-    SchemaReconciliationClassification, SchemaReconciliationPolicy, SchemaStratum,
-    SchemaSubscriberImpact, SchemaVersionId,
+    SchemaDiffDetail, SchemaElementKind, SchemaElementRef, SchemaId,
+    SchemaPublicationImpact, SchemaReconciliationClassification, SchemaReconciliationPolicy,
+    SchemaStratum, SchemaSubscriberImpact, SchemaVersionId,
 };
 use crate::schema::logic::{
     classify_schema_transition, lower_schema_transition, validate_schema_transition,
@@ -43,6 +44,17 @@ fn schema_transition_for_subscriber_impact(
                 field_name: "tag".into(),
                 required: false,
                 default_expression: Some("null".into()),
+            },
+        )
+        .with_boundary_visibility_proof(
+            match subscriber_impact {
+                SchemaSubscriberImpact::ConsumableSurfaceChanged => {
+                    crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable
+                }
+                SchemaSubscriberImpact::ContractUpgradeRequired => {
+                    crate::schema::data::SubscriberBoundaryVisibility::VisibleRequiresContractUptake
+                }
+                _ => crate::schema::data::SubscriberBoundaryVisibility::NotVisible,
             },
         )],
     }
@@ -180,6 +192,8 @@ fn schema_reconciliation_classification_test() {
     let additive_plan = lower_schema_transition(
         additive.clone(),
         Some(SchemaReconciliationPolicy::PreserveInformation),
+        DescriptorSemanticsVersion::default(),
+        DescriptorCanonicalizationVersion::default(),
     );
 
     let narrowing = ProposedSchemaTransition {
@@ -213,6 +227,8 @@ fn schema_reconciliation_classification_test() {
     let narrowing_plan = lower_schema_transition(
         narrowing_validated.clone(),
         Some(SchemaReconciliationPolicy::PreserveInformation),
+        DescriptorSemanticsVersion::default(),
+        DescriptorCanonicalizationVersion::default(),
     );
 
     let type_conflict = classify_schema_transition(
@@ -309,6 +325,8 @@ fn schema_reconciliation_classification_test() {
         lower_schema_transition(
             additive,
             Some(SchemaReconciliationPolicy::PreserveInformation),
+            DescriptorSemanticsVersion::default(),
+            DescriptorCanonicalizationVersion::default(),
         )
         .reconciliation_descriptor,
     ));

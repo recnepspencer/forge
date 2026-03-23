@@ -1,6 +1,7 @@
 use crate::facade::*;
 use crate::diagnostics::{ExplanationFact, ProvenanceFact};
 use crate::data::dependency::DependencySnapshot;
+use crate::data::trace::{CausalityMetadata, RetainedDiagnosticArtifact};
 use crate::tests::support::*;
 
 #[test]
@@ -1419,6 +1420,83 @@ fn snapshot_contract_accepts_matching_schema_and_rejects_profile_or_schema_misma
 }
 
 #[test]
+fn graph_restore_uses_checkpoint_image_not_raw_snapshot_graph_bundle() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().output_identity().build();
+
+    let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("artifact-v1"))
+    };
+    let mut source_v2 = |_id: NodeId, _graph: &SignalGraph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(9, 0)).with_output_identity("artifact-v9"))
+    };
+
+    evaluate(&mut graph, source, &mut source_v1).unwrap();
+    let mut snapshot = graph.capture_snapshot();
+
+    let mut tampered_graph = snapshot.diagnostic_graph.clone();
+    tampered_graph
+        .get_entry_mut(source)
+        .unwrap()
+        .set_aspect_version(version_ab(77, 0));
+    snapshot.diagnostic_graph = tampered_graph;
+
+    mark_dirty(&mut graph, source, ASPECT_A).unwrap();
+    evaluate(&mut graph, source, &mut source_v2).unwrap();
+    assert_eq!(
+        graph.get_entry(source).unwrap().get_aspect_version().get(ASPECT_A),
+        9
+    );
+
+    graph.restore_snapshot(&snapshot).unwrap();
+
+    assert_eq!(
+        graph.get_entry(source).unwrap().get_aspect_version().get(ASPECT_A),
+        1,
+        "restore should follow the checkpoint image authority carrier rather than the raw snapshot graph bundle"
+    );
+}
+
+#[test]
+fn checkpoint_image_omits_diagnostic_richness_while_snapshot_bundle_retains_it() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().output_identity().build();
+
+    let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("artifact-v1"))
+    };
+
+    evaluate(&mut graph, source, &mut source_v1).unwrap();
+    let snapshot = graph.capture_snapshot();
+
+    assert!(
+        snapshot.authority_graph().observe().replay_events().is_empty(),
+        "checkpoint image should not carry retained replay richness"
+    );
+    assert!(
+        snapshot
+            .authority_graph()
+            .observe()
+            .lineage_records()
+            .is_empty(),
+        "checkpoint image should not carry retained lineage richness"
+    );
+    assert!(
+        snapshot
+            .authority_graph()
+            .diagnostics_state()
+            .explanation_facts()
+            .is_empty(),
+        "checkpoint image should not carry retained explanation richness"
+    );
+    assert!(
+        !snapshot.diagnostics.replay_frames.is_empty()
+            || !snapshot.diagnostic_graph.observe().replay_events().is_empty(),
+        "rich snapshot bundle should still carry explicit diagnostics/replay payloads"
+    );
+}
+
+#[test]
 fn snapshot_restore_preserves_advanced_reuse_history_truth() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new())
         .with_kernel_defaults()
@@ -1732,6 +1810,191 @@ fn branch_snapshot_records_explicit_artifact_retention_for_non_active_branches()
     assert!(
         feature_snapshot.diagnostics.provenance_facts.is_empty(),
         "non-active branch snapshots should not retain omitted provenance richness"
+    );
+}
+
+#[test]
+fn checkpoint_image_strips_node_local_cold_payloads_while_snapshot_bundle_retains_them() {
+    let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(SignalRuntimePolicy::development());
+    let node = graph.node().output_identity().build();
+
+    evaluate(&mut graph, node, &mut |_id, _graph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+            .with_output_identity("checkpoint-cold"))
+    })
+    .unwrap();
+
+    {
+        let entry = graph.get_entry_mut(node).unwrap();
+        entry.set_retained_diagnostic_artifact(Some(RetainedDiagnosticArtifact {
+            changed_regions: CanonicalChangedRegions::from(vec![ChangedRegion::new("wing")]),
+            labels: vec!["retained".to_string()],
+            keyed_family: Some("airframe".to_string()),
+            keyed_key: Some("wing".to_string()),
+            reuse_certification: None,
+        }));
+        entry.set_causality(Some(CausalityMetadata {
+            kind: "bridge".to_string(),
+            fields: [("patch".to_string(), "s9-12".to_string())]
+                .into_iter()
+                .collect(),
+        }));
+    }
+
+    let snapshot = graph.capture_snapshot();
+
+    let checkpoint_graph = snapshot.authority_graph();
+    let checkpoint_entry = checkpoint_graph
+        .get_entry(node)
+        .expect("checkpoint node entry");
+    assert!(
+        checkpoint_entry.retained_diagnostic_artifact().is_none(),
+        "checkpoint image must not carry retained node-local cold artifacts"
+    );
+    assert!(
+        checkpoint_entry.get_causality().is_none(),
+        "checkpoint image must not carry causality metadata through the authority lane"
+    );
+
+    let rich_entry = snapshot
+        .diagnostic_graph
+        .get_entry(node)
+        .expect("rich snapshot node entry");
+    assert!(
+        rich_entry.retained_diagnostic_artifact().is_some(),
+        "rich snapshot bundle should still retain node-local cold artifacts for diagnostics"
+    );
+    assert!(
+        rich_entry.get_causality().is_some(),
+        "rich snapshot bundle should still retain node-local causality for diagnostics"
+    );
+}
+
+#[test]
+fn checkpoint_image_omits_dependency_snapshots_and_restore_rebuilds_them_from_explicit_batch() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().output_identity().build();
+    let target = graph.node().build();
+    graph.append_dependency(target, source, ASPECT_A).unwrap();
+
+    evaluate(&mut graph, source, &mut |_id, _graph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+            .with_output_identity("checkpoint-deps"))
+    })
+    .unwrap();
+    evaluate(&mut graph, target, &mut |_id, graph| {
+        Ok(NodeEvaluationResult::from_version(
+            graph.get_entry(source).unwrap().get_aspect_version(),
+        ))
+    })
+    .unwrap();
+
+    let snapshot = graph.capture_snapshot();
+    let authority_graph = snapshot.authority_graph();
+    assert!(
+        authority_graph
+            .get_dep_snapshot(target)
+            .unwrap()
+            .entries()
+            .is_empty(),
+        "checkpoint authority lane must not carry dependency snapshot state"
+    );
+    assert_eq!(
+        snapshot
+            .checkpoint_image
+            .dependency_snapshot_batch
+            .target_nodes()
+            .as_slice(),
+        &[target],
+        "checkpoint image should carry dependency snapshot rebuild work explicitly"
+    );
+
+    let mut overwritten = DependencySnapshot::empty();
+    overwritten.record(source, ASPECT_A, 9, None);
+    graph.set_dep_snapshot(target, overwritten).unwrap();
+    assert_eq!(
+        graph.get_dep_snapshot(target).unwrap().entries()[0].cached_version,
+        9
+    );
+
+    graph.restore_snapshot(&snapshot).unwrap();
+
+    assert_eq!(
+        graph.get_dep_snapshot(target).unwrap().entries()[0].cached_version,
+        1,
+        "restore must rebuild dependency snapshots from the explicit checkpoint batch"
+    );
+}
+
+#[test]
+fn restore_uses_checkpoint_authority_even_when_rich_snapshot_node_cold_payloads_are_tampered() {
+    let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(SignalRuntimePolicy::development());
+    let node = graph.node().output_identity().build();
+
+    evaluate(&mut graph, node, &mut |_id, _graph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+            .with_output_identity("checkpoint-restore"))
+    })
+    .unwrap();
+
+    {
+        let entry = graph.get_entry_mut(node).unwrap();
+        entry.set_retained_diagnostic_artifact(Some(RetainedDiagnosticArtifact {
+            changed_regions: CanonicalChangedRegions::from(vec![ChangedRegion::new("fuselage")]),
+            labels: vec!["captured".to_string()],
+            keyed_family: Some("airframe".to_string()),
+            keyed_key: Some("fuselage".to_string()),
+            reuse_certification: None,
+        }));
+        entry.set_causality(Some(CausalityMetadata {
+            kind: "capture".to_string(),
+            fields: [("rev".to_string(), "1".to_string())]
+                .into_iter()
+                .collect(),
+        }));
+    }
+
+    let snapshot = graph.capture_snapshot();
+
+    {
+        let entry = graph.get_entry_mut(node).unwrap();
+        entry.set_retained_diagnostic_artifact(None);
+        entry.set_causality(None);
+    }
+    mark_dirty(&mut graph, node, ASPECT_A).unwrap();
+    evaluate(&mut graph, node, &mut |_id, _graph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(2, 0))
+            .with_output_identity("checkpoint-restore-updated"))
+    })
+    .unwrap();
+
+    let mut tampered = snapshot.clone();
+    {
+        let entry = tampered.diagnostic_graph.get_entry_mut(node).unwrap();
+        entry.set_retained_diagnostic_artifact(None);
+        entry.set_causality(None);
+    }
+
+    graph.restore_snapshot(&tampered).unwrap();
+
+    assert_eq!(
+        graph.get_entry(node).unwrap().get_aspect_version().get(ASPECT_A),
+        1,
+        "restore must still follow checkpoint authority for operational state"
+    );
+    assert!(
+        graph
+            .get_entry(node)
+            .unwrap()
+            .retained_diagnostic_artifact()
+            .is_none(),
+        "restored authority lane must not rehydrate node-local retained artifacts from the checkpoint image"
+    );
+    assert!(
+        graph.get_entry(node).unwrap().get_causality().is_none(),
+        "restored authority lane must not rehydrate causality from the checkpoint image"
     );
 }
 

@@ -9,7 +9,9 @@ use crate::identity::data::{
     EntityId, KindId, LineageId, PartitionId, RelationId, StructuralFingerprint, VersionId,
 };
 use crate::indexes::data::{DerivedIndexDefinition, DerivedIndexGeneration};
-use crate::lineage::data::{CorrespondenceCandidate, LineageEventRecord, LineageNode};
+use crate::lineage::data::{
+    CorrespondenceCandidate, LineageDecisionRecord, LineageEventRecord, LineageNode,
+};
 use crate::payloads::data::RecordPayload;
 use crate::replay::data::CanonicalCommitEnvelope;
 use crate::replay::data::ReplayVerificationLayer;
@@ -98,6 +100,7 @@ pub struct VersionedEntityMetadataImage {
     pub retired_at: Option<VersionId>,
     pub generation: u32,
     pub kind_id: KindId,
+    pub lineage_id: Option<LineageId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -190,6 +193,7 @@ pub struct DurableCheckpoint {
     pub lineage_nodes: Vec<LineageNode>,
     pub lineage_events: Vec<LineageEventRecord>,
     pub correspondence_candidates: Vec<CorrespondenceCandidate>,
+    pub rejected_lineage_decisions: Vec<LineageDecisionRecord>,
     pub index_definitions: Vec<DerivedIndexDefinition>,
     pub index_generations: Vec<DerivedIndexGeneration>,
     pub symbol_table: SymbolTableSnapshot,

@@ -8,17 +8,22 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::bitset::DenseBitset;
 use crate::data::core_profile::StableHashValue;
-use crate::data::dependency::{DependencyEdge, SnapshotDeltaRecord};
+use crate::data::dependency::{DependencyEdge, DependencySnapshot, DependencySnapshotUpdate, SnapshotDeltaRecord};
 use crate::data::dependency::DependencySnapshotStore;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeEntry;
 use crate::data::output::PartitionInterner;
+use crate::data::proof::{PendingSnapshotBatch, PendingSnapshotCommit, SnapshotBatchCommit};
 use crate::data::reuse::ReuseBasis;
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::diagnostics::lineage::LineageArtifactId;
 use crate::diagnostics::state::DiagnosticsState;
 use crate::diagnostics::DiagnosticsTier;
+use crate::state::{
+    SignalCheckpointArena, SignalCheckpointAuthority, SignalCheckpointSlot,
+    SignalCheckpointTopology,
+};
 
 use super::super::compaction::CompactionState;
 use super::super::storage::Slot;
@@ -397,6 +402,154 @@ impl SignalGraph {
 
     pub(crate) fn clone_stateful(&self) -> Self {
         self.clone()
+    }
+
+    pub(crate) fn capture_checkpoint_authority(&self) -> SignalCheckpointAuthority {
+        let mut graph = self.clone_stateful();
+        for slot in &mut graph.arena.nodes {
+            if let Some(entry) = &mut slot.data {
+                entry.strip_checkpoint_cold_lanes();
+                entry.strip_checkpoint_dependency_snapshot_lane();
+            }
+        }
+        graph.observation.telemetry = RuntimeTelemetry::default();
+        graph.observation.reconstruction_counters = ReconstructionCounters::default();
+        graph.observation.branch_mutation_records.clear();
+        graph.topology.dependency_snapshots = DependencySnapshotStore::default();
+        graph.observation.diagnostics = self.observation.diagnostics.authority_carrier_clone();
+        SignalCheckpointAuthority {
+            arena: SignalCheckpointArena {
+                slots: graph
+                    .arena
+                    .nodes
+                    .into_iter()
+                    .map(|slot| SignalCheckpointSlot {
+                        entry: slot.data,
+                        generation: slot.generation,
+                        retired: slot.retired,
+                    })
+                    .collect(),
+                free_list: graph.arena.free_list,
+                active_nodes: graph.arena.active_nodes,
+            },
+            topology: SignalCheckpointTopology {
+                dependency_edges: graph.topology.dependency_edges,
+                subscriber_edges: graph.topology.subscriber_edges,
+            },
+            diagnostics: graph.observation.diagnostics,
+        }
+    }
+
+    pub(crate) fn restore_from_checkpoint_authority(
+        authority: &SignalCheckpointAuthority,
+    ) -> Self {
+        let mut free_slots = DenseBitset::default();
+        for index in &authority.arena.free_list {
+            free_slots.mark(*index as usize);
+        }
+        Self {
+            arena: NodeArena {
+                nodes: authority
+                    .arena
+                    .slots
+                    .iter()
+                    .cloned()
+                    .map(|slot| Slot {
+                        data: slot.entry,
+                        generation: slot.generation,
+                        retired: slot.retired,
+                    })
+                    .collect(),
+                free_list: authority.arena.free_list.clone(),
+                free_slots,
+                active_nodes: authority.arena.active_nodes,
+                compaction: CompactionState::default(),
+            },
+            topology: EdgeTopology {
+                dependency_snapshots: DependencySnapshotStore::default(),
+                dependency_edges: authority.topology.dependency_edges.clone(),
+                subscriber_edges: authority.topology.subscriber_edges.clone(),
+            },
+            traversal: TraversalResources::default(),
+            observation: RuntimeObservation {
+                telemetry: RuntimeTelemetry::default(),
+                reconstruction_counters: ReconstructionCounters::default(),
+                partition_interner: PartitionInterner::default(),
+                branch_mutation_records: BTreeMap::new(),
+                diagnostics: authority.diagnostics.clone(),
+            },
+        }
+    }
+
+    pub(crate) fn checkpoint_authority_arena_capacity(
+        authority: &SignalCheckpointAuthority,
+    ) -> usize {
+        authority.arena.slots.len()
+    }
+
+    pub(crate) fn checkpoint_authority_live_node_id_at(
+        authority: &SignalCheckpointAuthority,
+        index: usize,
+    ) -> Option<NodeId> {
+        let slot = authority.arena.slots.get(index)?;
+        if slot.entry.is_none() {
+            return None;
+        }
+        Some(NodeId::new(index as u32, slot.generation))
+    }
+
+    pub(crate) fn capture_checkpoint_dependency_snapshot_batch(&self) -> SnapshotBatchCommit {
+        let entries = self
+            .live_node_ids()
+            .into_iter()
+            .filter_map(|node| {
+                let snapshot = self
+                    .get_dep_snapshot(node)
+                    .expect("live node must have readable dependency snapshot")
+                    .clone();
+                (!snapshot.entries().is_empty()).then_some((node, snapshot))
+            })
+            .collect::<Vec<_>>();
+        SnapshotBatchCommit::from_pairs(entries)
+    }
+
+    pub(crate) fn derive_dependency_snapshot_restore_batch_from_checkpoint_batch(
+        &self,
+        authority: &SignalCheckpointAuthority,
+        checkpoint_batch: &SnapshotBatchCommit,
+    ) -> Result<SnapshotBatchCommit, SignalError> {
+        let target_snapshots = checkpoint_batch
+            .pending()
+            .as_slice()
+            .iter()
+            .map(|entry| {
+                let target = entry
+                    .update
+                    .clone()
+                    .apply_to(&DependencySnapshot::empty())
+                    .into_snapshot();
+                (entry.node, target)
+            })
+            .collect::<BTreeMap<_, _>>();
+        let mut entries = Vec::new();
+        for index in 0..Self::checkpoint_authority_arena_capacity(authority) {
+            let Some(node) = Self::checkpoint_authority_live_node_id_at(authority, index) else {
+                continue;
+            };
+            if !self.is_alive(node) {
+                continue;
+            }
+            let previous = self.get_dep_snapshot(node)?.clone();
+            let next = target_snapshots
+                .get(&node)
+                .cloned()
+                .unwrap_or_else(DependencySnapshot::empty);
+            let (update, delta) = DependencySnapshotUpdate::between(node, &previous, next);
+            if delta.changed() {
+                entries.push(PendingSnapshotCommit { node, update, delta });
+            }
+        }
+        Ok(SnapshotBatchCommit::new(PendingSnapshotBatch::new(entries)))
     }
 
     pub(crate) fn node_allocator_state(&self) -> u32 {

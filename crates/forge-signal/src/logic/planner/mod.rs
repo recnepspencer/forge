@@ -27,10 +27,12 @@ pub(crate) use model::SessionScratch;
 pub(crate) use model::StageCursor;
 #[allow(unused_imports)]
 pub use model::{
-    ApplyFootprint, CandidateTask, DisjointApplyGroup, EligibleTask, EligibleTaskAdmission,
-    EvaluationPlan, ExecutedTask, ExecutionPruneReason,
-    ExecutionRecordId, ExecutionReport, ExecutionStage, LoweredStagePlan, LoweredTask, PlanSummary,
-    MaybeStaleAdmission, SemanticSegmentId, SemanticTaskRange, StageBarrier, StageExecutionOutcome,
+    ApplyFootprint, CandidateTask, ConcurrentApplyPlan, ConcurrentApplyReductionPlan,
+    DisjointApplyGroup, DisjointApplyProof, EligibleTask, EligibleTaskAdmission, EvaluationPlan,
+    ExecutedTask, ExecutionPruneReason, ExecutionRecordId, ExecutionReport, ExecutionStage,
+    LoweredApplyPlan, LoweredStagePlan, LoweredTask, MutationDomain, PlanSummary,
+    MaybeStaleAdmission, ReductionOrderingContract, ReductionWorkClass, SemanticSegmentId,
+    SemanticTaskRange, SerialApplyPlan, SharedSurfacePolicy, StageBarrier, StageExecutionOutcome,
     StageExecutionRecord, StageExecutor, TaskExecutionOutcome, TaskExecutionRecord, TaskReason,
 };
 #[cfg(feature = "parallel")]

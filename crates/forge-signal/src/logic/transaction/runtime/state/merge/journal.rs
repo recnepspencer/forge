@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use crate::data::graph::{BranchMutationRecord, BranchStructuralDelta};
 use crate::data::handle::NodeId;
 
+use super::core::MergeBoundaryWitness;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StructuralMergeCandidateRecord {
     pub node: NodeId,
@@ -30,6 +32,36 @@ impl BranchMutationJournalSlice {
 
     pub fn contains_node(&self, node: NodeId) -> bool {
         self.records.iter().any(|record| record.node == node)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StructuralMergeJournalSlice {
+    pub boundary_witness: MergeBoundaryWitness,
+    pub records: Vec<StructuralMergeCandidateRecord>,
+}
+
+impl StructuralMergeJournalSlice {
+    pub fn from_branch_journal(
+        boundary_witness: MergeBoundaryWitness,
+        journal: BranchMutationJournalSlice,
+    ) -> Self {
+        Self {
+            boundary_witness,
+            records: journal.records,
+        }
+    }
+
+    pub fn candidate_nodes(&self) -> Vec<NodeId> {
+        self.records.iter().map(|record| record.node).collect()
+    }
+
+    pub fn contains_node(&self, node: NodeId) -> bool {
+        self.records.iter().any(|record| record.node == node)
+    }
+
+    pub fn breadth(&self) -> u64 {
+        self.records.len() as u64
     }
 }
 

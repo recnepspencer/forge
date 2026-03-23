@@ -17,6 +17,33 @@ use smallvec::SmallVec;
 
 use super::graph::{RuntimeArtifactStructuralDelta, SignalGraph};
 
+#[cfg_attr(not(feature = "parallel"), allow(dead_code))]
+#[derive(Debug)]
+pub(crate) struct ApplyCommitPacket {
+    pub(crate) effect: EvaluationEffect,
+    pub(crate) comparison: EffectComparison,
+    pub(crate) artifact: Option<(RuntimeArtifactState, Option<RetainedDiagnosticArtifact>)>,
+    pub(crate) pending_snapshot: Option<crate::logic::evaluation::PendingDependencySnapshot>,
+    pub(crate) defer_snapshot_commit: bool,
+}
+
+#[cfg_attr(not(feature = "parallel"), allow(dead_code))]
+#[derive(Debug)]
+pub(crate) struct SuppressionFreeApplyCommitPacket(ApplyCommitPacket);
+
+impl TryFrom<ApplyCommitPacket> for SuppressionFreeApplyCommitPacket {
+    type Error = SignalError;
+
+    fn try_from(packet: ApplyCommitPacket) -> Result<Self, Self::Error> {
+        if packet.comparison.propagation_suppressed {
+            return Err(SignalError::internal(
+                "grouped concurrent commit packet unexpectedly required shared suppression",
+            ));
+        }
+        Ok(Self(packet))
+    }
+}
+
 impl SignalGraph {
     pub(crate) fn apply_effect(
         &mut self,
@@ -45,6 +72,66 @@ impl SignalGraph {
         })
     }
 
+    #[cfg_attr(not(feature = "parallel"), allow(dead_code))]
+    pub(crate) fn build_apply_commit_packet(
+        &self,
+        effect: EvaluationEffect,
+        comparator: VersionComparatorPolicy,
+        defer_snapshot_commit: bool,
+    ) -> Result<ApplyCommitPacket, SignalError> {
+        let comparison = self.compare_effect(&effect, comparator)?;
+        let artifact = self.build_effect_trace(&effect, comparison)?;
+        let pending_snapshot = if defer_snapshot_commit {
+            Some(crate::logic::evaluation::PendingDependencySnapshot {
+                node: effect.operational.node,
+                update: effect.operational.dependency_snapshot_update.clone(),
+                delta: effect.operational.snapshot_delta,
+            })
+        } else {
+            None
+        };
+        Ok(ApplyCommitPacket {
+            effect,
+            comparison,
+            artifact,
+            pending_snapshot,
+            defer_snapshot_commit,
+        })
+    }
+
+    #[cfg_attr(not(feature = "parallel"), allow(dead_code))]
+    pub(crate) fn publish_suppression_free_apply_commit_packet(
+        &mut self,
+        packet: SuppressionFreeApplyCommitPacket,
+    ) -> Result<
+        (
+            AppliedEffectReport,
+            Option<crate::logic::evaluation::PendingDependencySnapshot>,
+        ),
+        SignalError,
+    > {
+        let ApplyCommitPacket {
+            mut effect,
+            comparison,
+            artifact,
+            pending_snapshot,
+            defer_snapshot_commit,
+        } = packet.0;
+        self.transition_effect_state(&mut effect, artifact)?;
+        if !defer_snapshot_commit {
+            self.commit_effect_snapshot(&mut effect)?;
+        }
+        self.record_effect_telemetry(&effect, &comparison, 0);
+        Ok((
+            AppliedEffectReport {
+                verdict: effect.operational.verdict,
+                comparison,
+                suppressed_downstream: 0,
+            },
+            pending_snapshot,
+        ))
+    }
+
     fn compare_effect(
         &self,
         effect: &EvaluationEffect,
@@ -67,12 +154,16 @@ impl SignalGraph {
             ),
             (Some(previous), Some(current)) if previous == current
         );
-        let propagation_suppressed =
-            matches!(
+        let propagation_suppressed = matches!(comparator, VersionComparatorPolicy::OutputIdentity)
+            && output_identity_unchanged
+            && !matches!(
                 effect.operational.verdict,
-                EvaluationVerdict::Suppressed { .. }
-            ) && matches!(comparator, VersionComparatorPolicy::OutputIdentity)
-                && output_identity_unchanged;
+                EvaluationVerdict::Deferred { .. }
+                    | EvaluationVerdict::Suppressed {
+                        reason: SuppressionReason::ValidatedClean
+                            | SuppressionReason::ConditionRevertedClean,
+                    }
+            );
 
         Ok(EffectComparison {
             output_identity_unchanged,
@@ -93,14 +184,12 @@ impl SignalGraph {
         comparison: EffectComparison,
     ) -> Result<Option<(RuntimeArtifactState, Option<RetainedDiagnosticArtifact>)>, SignalError>
     {
+        let previous_trace = self
+            .get_entry(effect.operational.node)?
+            .get_runtime_artifact_state()
+            .cloned();
         let trace = match effect.operational.verdict {
-            EvaluationVerdict::Recomputed
-            | EvaluationVerdict::Suppressed {
-                reason:
-                    SuppressionReason::OutputIdentityUnchanged
-                    | SuppressionReason::ContinuityTokenUnchanged
-                    | SuppressionReason::ComparatorMatch,
-            } => Some((
+            EvaluationVerdict::Recomputed => Some((
                 RuntimeArtifactState {
                     output_hash: effect
                         .output_identity()
@@ -127,34 +216,47 @@ impl SignalGraph {
                     lineage_artifact_id: None,
                     merge_authority: ArtifactMergeAuthority::default(),
                 },
-                {
-                    let retained = RetainedDiagnosticArtifact {
-                        changed_regions: CanonicalChangedRegions::from_slice(
-                            effect.changed_regions(),
-                        ),
-                        labels: effect.labels().to_vec(),
-                        keyed_family: effect.keyed_context().and_then(|keyed| {
-                            keyed
-                                .family
-                                .as_ref()
-                                .map(|family| family.as_str().to_owned())
-                        }),
-                        keyed_key: effect.keyed_context().and_then(|keyed| {
-                            keyed.key.as_ref().map(|key| key.as_str().to_owned())
-                        }),
-                        reuse_certification: effect.reuse_certification().cloned(),
-                    };
-                    if retained.changed_regions.is_empty()
-                        && retained.labels.is_empty()
-                        && retained.keyed_family.is_none()
-                        && retained.keyed_key.is_none()
-                        && retained.reuse_certification.is_none()
-                    {
-                        None
-                    } else {
-                        Some(retained)
-                    }
+                build_retained_diagnostic_artifact(effect),
+            )),
+            EvaluationVerdict::Suppressed {
+                reason:
+                    SuppressionReason::OutputIdentityUnchanged
+                    | SuppressionReason::ContinuityTokenUnchanged
+                    | SuppressionReason::ComparatorMatch,
+            } => Some((
+                RuntimeArtifactState {
+                    output_hash: previous_trace
+                        .as_ref()
+                        .map(|trace| trace.output_hash)
+                        .unwrap_or_else(|| trace_output_hash(effect.operational.aspect_version)),
+                    output_identity: previous_trace
+                        .as_ref()
+                        .and_then(|trace| trace.output_identity.clone())
+                        .or_else(|| effect.output_identity().cloned()),
+                    continuity_token: previous_trace
+                        .as_ref()
+                        .and_then(|trace| trace.continuity_token.clone())
+                        .or_else(|| effect.continuity_token().cloned()),
+                    output_change: comparison.output_change,
+                    recomputed: effect.recomputed(),
+                    dependency_count: effect.operational.dependency_snapshot_update.entry_count()
+                        as u32,
+                    meaningful_input_changes: effect.operational.meaningful_input_changes,
+                    changed_partition_count: comparison.changed_partition_count,
+                    propagation_suppressed: comparison.propagation_suppressed,
+                    changed_scopes: PartitionScopeSet::from_changed_regions(
+                        &CanonicalChangedRegions::from_slice(effect.changed_regions()),
+                    ),
+                    memoized_origin: effect.memoized_origin(),
+                    reuse_basis: effect.operational.reuse_basis.clone(),
+                    reuse_origin: effect.operational.reuse_origin,
+                    reuse_boundary_context: Some(effect.operational.reuse_boundary_context.clone()),
+                    execution_record_id: None,
+                    semantic_segment_id: None,
+                    lineage_artifact_id: None,
+                    merge_authority: ArtifactMergeAuthority::default(),
                 },
+                build_retained_diagnostic_artifact(effect),
             )),
             EvaluationVerdict::Suppressed {
                 reason:
@@ -183,17 +285,41 @@ impl SignalGraph {
                 causality_changed = true;
             }
             match effect.operational.verdict {
-                EvaluationVerdict::Recomputed
-                | EvaluationVerdict::Suppressed {
+                EvaluationVerdict::Recomputed => {
+                    entry.apply_aspect_version(
+                        effect.operational.aspect_version,
+                        effect.changed_regions(),
+                    );
+                    if let Some((runtime_artifact_state, retained_artifact)) = artifact {
+                        runtime_artifact_delta = Some(RuntimeArtifactStructuralDelta {
+                            previous_artifact_id: previous_runtime_artifact
+                                .as_ref()
+                                .and_then(|runtime| runtime.lineage_artifact_id),
+                            next_artifact_id: runtime_artifact_state.lineage_artifact_id,
+                            previous_output_hash: previous_runtime_artifact
+                                .as_ref()
+                                .map(|runtime| runtime.output_hash),
+                            next_output_hash: Some(runtime_artifact_state.output_hash),
+                            previous_reuse_basis: previous_runtime_artifact
+                                .as_ref()
+                                .map(|runtime| runtime.reuse_basis.clone()),
+                            next_reuse_basis: Some(runtime_artifact_state.reuse_basis.clone()),
+                        });
+                        entry.apply_artifact_write_delta(ArtifactWriteDelta {
+                            runtime: Some(runtime_artifact_state),
+                            retained: retained_artifact,
+                        });
+                        retained_artifact_changed = true;
+                    }
+                    entry.transition_clean();
+                    state_changed = true;
+                }
+                EvaluationVerdict::Suppressed {
                     reason:
                         SuppressionReason::OutputIdentityUnchanged
                         | SuppressionReason::ContinuityTokenUnchanged
                         | SuppressionReason::ComparatorMatch,
                 } => {
-                    entry.apply_aspect_version(
-                        effect.operational.aspect_version,
-                        effect.changed_regions(),
-                    );
                     if let Some((runtime_artifact_state, retained_artifact)) = artifact {
                         runtime_artifact_delta = Some(RuntimeArtifactStructuralDelta {
                             previous_artifact_id: previous_runtime_artifact
@@ -294,16 +420,19 @@ impl SignalGraph {
     fn apply_effect_suppression(
         &mut self,
         node: NodeId,
-        verdict: &EvaluationVerdict,
+        _verdict: &EvaluationVerdict,
         propagation_suppressed: bool,
         comparator_resolver: &mut impl ComparatorPolicyResolver,
     ) -> Result<u64, SignalError> {
-        if !propagation_suppressed || !matches!(verdict, EvaluationVerdict::Suppressed { .. }) {
+        if !propagation_suppressed {
             return Ok(0);
         }
 
         let mut suppressed = 0_u64;
-        let mut stack: Vec<NodeId> = self.runtime_subscribers_of(node)?.to_vec();
+        let mut stack = std::mem::take(&mut self.traversal.topology_node_buffer);
+        stack.clear();
+        self.refresh_runtime_subscribers_of(node)?;
+        stack.extend_from_slice(self.current_runtime_subscribers_of(node)?);
         self.traversal
             .suppression_marks
             .ensure_len(self.arena_capacity());
@@ -325,9 +454,11 @@ impl SignalGraph {
             if self.check_upstream_unchanged_ignoring_source(current, node, comparator_resolver)? {
                 self.get_entry_mut(current)?.transition_clean();
                 suppressed += 1;
-                stack.extend_from_slice(self.runtime_subscribers_of(current)?);
+                self.refresh_runtime_subscribers_of(current)?;
+                stack.extend_from_slice(self.current_runtime_subscribers_of(current)?);
             }
         }
+        self.traversal.topology_node_buffer = stack;
         Ok(suppressed)
     }
 
@@ -410,6 +541,14 @@ impl SignalGraph {
                 if effect.recomputed() {
                     self.telemetry_mut().evaluation.nodes_recomputed += 1;
                 }
+                if comparison.propagation_suppressed {
+                    self.telemetry_mut()
+                        .evaluation
+                        .output_identity_unchanged_count += 1;
+                    self.telemetry_mut()
+                        .evaluation
+                        .suppressed_downstream_propagations += suppressed_downstream;
+                }
                 record_reuse_telemetry(self.telemetry_mut(), effect);
                 self.telemetry_mut().storage.hot_path_artifact_retention_count += 1;
             }
@@ -417,9 +556,13 @@ impl SignalGraph {
                 SuppressionReason::ValidatedClean => {
                     self.telemetry_mut().evaluation.skipped_by_comparator += 1;
                 }
+                SuppressionReason::ComparatorMatch => {
+                    self.telemetry_mut().evaluation.skipped_by_comparator += 1;
+                    self.telemetry_mut().storage.hot_path_artifact_retention_count += 1;
+                    record_reuse_telemetry(self.telemetry_mut(), effect);
+                }
                 SuppressionReason::OutputIdentityUnchanged
-                | SuppressionReason::ContinuityTokenUnchanged
-                | SuppressionReason::ComparatorMatch => {
+                | SuppressionReason::ContinuityTokenUnchanged => {
                     self.telemetry_mut().storage.hot_path_artifact_retention_count += 1;
                     self.telemetry_mut()
                         .evaluation
@@ -481,6 +624,35 @@ fn trace_output_hash(version: crate::data::aspect::AspectVersion) -> StableHashV
         hash = hash.wrapping_mul(0x100000001b3_u128);
     }
     hash as StableHashValue
+}
+
+fn build_retained_diagnostic_artifact(
+    effect: &EvaluationEffect,
+) -> Option<RetainedDiagnosticArtifact> {
+    let retained = RetainedDiagnosticArtifact {
+        changed_regions: CanonicalChangedRegions::from_slice(effect.changed_regions()),
+        labels: effect.labels().to_vec(),
+        keyed_family: effect.keyed_context().and_then(|keyed| {
+            keyed
+                .family
+                .as_ref()
+                .map(|family| family.as_str().to_owned())
+        }),
+        keyed_key: effect
+            .keyed_context()
+            .and_then(|keyed| keyed.key.as_ref().map(|key| key.as_str().to_owned())),
+        reuse_certification: effect.reuse_certification().cloned(),
+    };
+    if retained.changed_regions.is_empty()
+        && retained.labels.is_empty()
+        && retained.keyed_family.is_none()
+        && retained.keyed_key.is_none()
+        && retained.reuse_certification.is_none()
+    {
+        None
+    } else {
+        Some(retained)
+    }
 }
 
 fn record_reuse_telemetry(

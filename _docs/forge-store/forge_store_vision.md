@@ -2,25 +2,50 @@
 
 ## Thesis
 
-`forge-relational` defines what truth is. `forge-store` makes it survive.
+`forge-relational` defines what truth is. `forge-signal` defines how truth
+propagates. Together they form the Forge runtime — a library that can be
+instantiated in any process. `forge-store` makes truth survive.
 
-`forge-store` is a durable storage engine for graph-native truth runtimes. It
+`forge-store` is a durable persistence service for the Forge runtime. It
 persists canonical commit envelopes, immutable snapshots, branch version graphs,
 lineage, schema evolution boundaries, and retention-aware history so that
-everything `forge-relational` guarantees in-memory — transactional correctness,
-deterministic replay, branchable version history, structured CDC, and
-identity-safe lineage — extends to durable, crash-recoverable, long-lived
-storage.
+everything the runtime guarantees in-memory — transactional correctness,
+deterministic replay, branchable version history, structured CDC, reactive
+evaluation, and identity-safe lineage — extends to durable, crash-recoverable,
+long-lived storage.
 
-It is not a general-purpose database. It is a semantics-preserving storage
-engine beneath a database-grade truth runtime. `forge-relational` owns
-semantics. `forge-store` owns survival.
+The runtime is a library. Store is a service. They are not one continuous layer.
+The runtime can be instantiated independently — in a geometry kernel doing
+60 Hz modeling with no disk I/O, in a server managing subscriptions and delivery,
+in a client maintaining optimistic local state. Store provides durability to
+runtime instances that need it, in whichever mode fits the deployment.
 
-The runtime is intended for systems where authoritative truth must outlive
-process boundaries, survive crashes, span deployments, replicate across nodes,
-and retain retrievable history under explicit policy — without collapsing into
-a generic key-value store that discards the structural contracts the truth
-runtime provides.
+### Operating modes
+
+- **Durable mode** — Store manages its own internal runtime instance. Every
+  mutation is WAL-logged before acknowledgment. The store IS the database.
+  Crash recovery replays the WAL through the runtime to reconstruct state.
+  Used by web platforms, data systems, and any deployment where every committed
+  write must survive.
+
+- **Embedded mode** — The application owns its own runtime instance and uses
+  store as a persistence backend. The application mutates the runtime at full
+  in-memory speed, and periodically checkpoints or persists commits to the
+  store. If the application crashes between saves, unsaved work is lost —
+  like any desktop application. Used by geometry kernels, local tools, and
+  interactive modeling sessions where in-memory performance matters more than
+  per-operation durability.
+
+- **Absent** — The runtime runs in-memory with no store at all. State lives
+  only as long as the process. Used by AI agents doing ephemeral speculative
+  evaluation, test harnesses, and transient computation.
+
+The same store code supports all modes. The same runtime code runs inside all
+modes. The difference is lifecycle ownership and durability contracts.
+
+It is not a general-purpose database. It is a semantics-preserving persistence
+service for the Forge runtime. The runtime owns semantics. The store owns
+survival.
 
 ## What This Storage Engine Is For
 
@@ -122,15 +147,37 @@ It must answer these questions as native storage responsibilities:
 
 ## Architectural Model
 
-### Runtime stack
+### Runtime as a library
+
+The Forge runtime — `forge-relational` + `forge-signal` + the bridge between
+them — is a Rust library. It can be instantiated in any process. Multiple
+runtime instances can coexist in a single system, each serving a different
+purpose.
+
+### Separate runtime instances
+
+A full Forge deployment may have multiple runtime instances:
+
+| Instance | Location | Purpose | Durability |
+| --- | --- | --- | --- |
+| Store runtime | Inside `forge-store` (durable mode) | Canonical truth, WAL-backed, crash-safe | Every commit durable |
+| Server runtime | Inside `forge-server` | Subscription evaluation, view materialization, delivery narrowing | Transient — rebuilt from store on restart |
+| Client runtime | Inside `forge-client` | Optimistic local state, branch-local mutations, instant rendering | Transient — reconciled against server |
+| Application runtime | Inside the geometry kernel, AI agent, etc. | Direct in-memory truth manipulation at full speed | Periodic checkpoints to store (embedded mode) |
+
+Each instance uses the same runtime library but holds different state, serves
+a different purpose, and has different lifecycle guarantees. They communicate
+through artifacts: commit envelopes, CDC patches, sync protocol messages.
+
+### Layer responsibilities
 
 | Layer | Responsibility | Owns |
 | --- | --- | --- |
-| `forge-relational` | Truth-state semantics | identity, transactions, MVCC, diffs, CDC, lineage, schema, integrity |
-| `forge-store` | Durable storage engine | commit persistence, snapshot storage, WAL, compaction, recovery, backends |
-| `forge-signal` | Derived-computation runtime | dependency DAG, invalidation, recomputation, scheduling, convergence |
-| Bridge / integration | Decoupled coordination | patch-to-invalidation, aspect mapping, snapshot evaluation |
-| `forge-server` | Network delivery | subscriptions, cursors, delivery classes, basis negotiation, HTTP surface |
+| `forge-relational` | Truth-state semantics (library) | identity, transactions, MVCC, diffs, CDC, lineage, schema, integrity |
+| `forge-signal` | Derived-computation (library) | dependency DAG, invalidation, recomputation, scheduling, convergence |
+| Bridge / integration | Decoupled coordination (library) | patch-to-invalidation, aspect mapping, snapshot evaluation |
+| `forge-store` | Durable persistence (service) | commit persistence, snapshot storage, WAL, compaction, recovery, backends |
+| `forge-server` | Network delivery (service) | subscriptions, cursors, delivery classes, basis negotiation, HTTP surface |
 
 ### Ownership boundary
 
@@ -148,6 +195,9 @@ It must answer these questions as native storage responsibilities:
 - storage backend abstraction and pluggable implementations
 - storage-level diagnostics and integrity verification
 - replication-ready artifact publishing
+- memory management: deciding what lives in memory vs on disk
+- runtime lifecycle in durable mode (owns the internal runtime instance)
+- checkpoint coordination in embedded mode (receives state from external runtime)
 
 `forge-store` does not own:
 
@@ -158,13 +208,24 @@ It must answer these questions as native storage responsibilities:
 - domain-specific meaning of stored entities or relations
 - application-level query planning or optimization
 - sync protocol delivery or subscription management
+- the runtime itself — store uses the runtime, it does not replace it
 
 ### Structural rule
 
-`forge-store` persists exactly the canonical artifacts that `forge-relational`
+`forge-store` persists exactly the canonical artifacts that the runtime
 produces. It does not invent its own truth representation, define its own
 identity model, or add semantic behavior beyond faithful storage, recovery,
-and lifecycle management of what the truth runtime commits.
+and lifecycle management of what the runtime commits.
+
+In durable mode, store coordinates the runtime's commit lifecycle: opening
+WAL entries, delegating mutations to the internal runtime, persisting the
+resulting commit envelopes, and managing recovery. The runtime handles
+semantics. The store handles durability. They do not overlap.
+
+In embedded mode, the application's runtime handles everything in memory.
+Store receives commit envelopes or checkpoint images and persists them.
+The runtime does not know or care how store persists — it just produces
+artifacts.
 
 Physical layouts, indexes, and derived storage structures may exist for
 performance, but any such derived structure must be reconstructible from
@@ -1272,6 +1333,7 @@ The highest-signal storage programs are:
 - region-aware locality clustering
 - simulation and analysis checkpoint lanes
 - deterministic bulk-ingest and bulk-transform paths
+- memory management: hot/warm/cold tier enforcement
 - durable working set intelligence
 - edge-first replication primitives and import/export capsules
 - merge-assistance durable artifacts
@@ -1281,6 +1343,8 @@ The highest-signal storage programs are:
 - schema evolution boundary persistence
 - exact vs approximate derived artifact classification
 - solver-friendly pinned basis objects
+- durable mode: WAL-coordinated runtime lifecycle
+- embedded mode: checkpoint and commit reception from external runtime
 
 If a capability is named here and not yet built, it is roadmap work.
 
@@ -1289,14 +1353,20 @@ and scale scenarios, it is certification work.
 
 ## Non-Goals
 
-- turning the storage engine into a truth runtime (that is `forge-relational`)
-- implementing query planning or optimization (that belongs above the store)
-- owning signal evaluation or reactive scheduling
-- defining sync protocol delivery or subscription management
+- reimplementing truth semantics, transaction semantics, or identity semantics
+  (those belong to the runtime)
+- implementing query planning or optimization (that belongs to `forge-query`)
+- owning signal evaluation or reactive scheduling (that belongs to `forge-signal`)
+- defining sync protocol delivery or subscription management (that belongs to
+  `forge-server`)
 - baking domain-specific meaning into stored artifacts
 - requiring a specific storage backend for correctness
 - treating the embedded backend as "just for testing"
-- replacing the truth runtime's in-memory arena with direct storage I/O
+- replacing the runtime's in-memory arena with direct storage I/O
+- forcing all deployments into durable mode — the runtime runs independently
+  and store is opt-in
+- owning the runtime lifecycle in embedded mode — the application owns the
+  runtime and store receives artifacts
 
 ## Companion Documents
 
@@ -1308,5 +1378,6 @@ and scale scenarios, it is certification work.
 The storage engine's structural delta model, branch delta layering, commit
 envelope persistence, and retention-aware compaction are what make durable
 truth practical instead of expensive. If these are weak, every layer above
-the store — runtimes, bridge, protocol, applications — pays the cost of
-either losing history or paying for full-state storage at every version.
+the store — server, cloud, applications — pays the cost of either losing
+history or paying for full-state storage at every version. The runtime provides
+the semantic precision. The store makes that precision permanent.

@@ -11,10 +11,13 @@ use crate::facade::identity::KindId;
 use crate::facade::indexes::{
     DerivedIndexBuildRequest, DerivedIndexDefinition, DerivedIndexId, DerivedIndexKind,
 };
-use crate::facade::lineage::LineageEventKind;
-use crate::facade::replay::CanonicalCommitEnvelope;
+use crate::facade::lineage::{
+    CorrespondencePromotionRejectionClass, LineageDecisionKind, LineageEventKind,
+};
 use crate::facade::replay::ReplayVerificationLayer;
-use crate::facade::schema::DescriptorSemanticsVersion;
+use crate::facade::schema::{
+    DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
+};
 use crate::facade::runtime::RelationalRuntimeApi;
 use crate::facade::schema::{
     EntityKindRegistration, HistoricalInterpretationSensitivity, KindAspectDeclarations,
@@ -54,6 +57,17 @@ fn schema_transition_for_subscriber_impact(
                 field_name: "tag".into(),
                 required: false,
                 default_expression: Some("null".into()),
+            },
+        )
+        .with_boundary_visibility_proof(
+            match subscriber_impact {
+                SchemaSubscriberImpact::ConsumableSurfaceChanged => {
+                    crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable
+                }
+                SchemaSubscriberImpact::ContractUpgradeRequired => {
+                    crate::schema::data::SubscriberBoundaryVisibility::VisibleRequiresContractUptake
+                }
+                _ => crate::schema::data::SubscriberBoundaryVisibility::NotVisible,
             },
         )],
     }
@@ -285,7 +299,7 @@ fn durability_contract_recovery_preserves_branch_local_endpoint_deletion_retirem
     );
 
     runtime.durability_authority().checkpoint().unwrap();
-    let plan = runtime.durability_access().recovery_plan();
+    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = RelationalRuntimeApi::builder()
         .schema_registry(registry)
         .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
@@ -341,7 +355,7 @@ fn durability_contract_recovery_preserves_branch_local_endpoint_deletion_retirem
 fn durability_contract_failure_schema_mismatch_is_explicit() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "main-a");
-    let plan = runtime.durability_access().recovery_plan();
+    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     let mismatched_registry = RelationalSchemaRegistry::new()
         .register_entity_kind(EntityKindRegistration {
             kind_id: KindId(3),
@@ -371,7 +385,7 @@ fn durability_contract_failure_schema_mismatch_is_explicit() {
 fn durability_contract_failure_descriptor_semantics_version_mismatch_is_explicit() {
     let mut runtime = runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "main-a");
-    let mut plan = runtime.durability_access().recovery_plan();
+    let mut plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     plan.descriptor_semantics_version = DescriptorSemanticsVersion(99);
 
     let mut recovered = runtime_with_test_schema();
@@ -388,11 +402,33 @@ fn durability_contract_failure_descriptor_semantics_version_mismatch_is_explicit
 }
 
 #[test]
+fn durability_recovery_plan_preserves_explicit_verification_mode() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&mut runtime, "main-a");
+
+    let normal = runtime
+        .durability_access()
+        .recovery_plan(RecoveryVerificationMode::NormalRecoveryVerification);
+    let audit = runtime
+        .durability_access()
+        .recovery_plan(RecoveryVerificationMode::AuditRecoveryVerification);
+
+    assert_eq!(
+        normal.verification_mode(),
+        RecoveryVerificationMode::NormalRecoveryVerification
+    );
+    assert_eq!(
+        audit.verification_mode(),
+        RecoveryVerificationMode::AuditRecoveryVerification
+    );
+}
+
+#[test]
 fn durability_recovery_plan_reports_descriptor_version_mismatch_before_recovery() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "main-a");
     runtime.performance_access().reset_counters();
-    let store = runtime.durability_access().recovery_plan().store.unwrap();
+    let store = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification).store.unwrap();
     let segment_path = store
         .segments
         .last()
@@ -404,7 +440,7 @@ fn durability_recovery_plan_reports_descriptor_version_mismatch_before_recovery(
     file.entries[0].descriptor_semantics_version = DescriptorSemanticsVersion(99);
     crate::durability::log::local_store::write_json(&segment_path, &file).unwrap();
 
-    let plan = runtime.durability_access().recovery_plan();
+    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
 
     assert_eq!(plan.descriptor_semantics_version, DescriptorSemanticsVersion(99));
     assert_eq!(
@@ -431,10 +467,73 @@ fn durability_recovery_plan_reports_descriptor_version_mismatch_before_recovery(
 }
 
 #[test]
+fn durability_contract_failure_descriptor_canonicalization_version_mismatch_is_explicit() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    let _ = create_entity_outcome(&mut runtime, "main-a");
+
+    runtime.config.schema.registry = AspectSchemaFixture {
+        schema_version_id: SchemaVersionId(2),
+        ..AspectSchemaFixture::default()
+    }
+    .build_registry();
+    let mut txn = runtime.begin_transaction(
+        TransactionOptions::default().with_schema_transition(
+            schema_transition_for_subscriber_impact(
+                SchemaVersionId(2),
+                SchemaSubscriberImpact::ConsumableSurfaceChanged,
+            ),
+            Some(SchemaReconciliationPolicy::PreserveInformation),
+        ),
+    );
+    txn.push_batch(batch_create("transitioned"));
+    txn.commit().unwrap();
+
+    let segment_path = runtime
+        .durability_access()
+        .recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification)
+        .store
+        .unwrap()
+        .segments
+        .last()
+        .expect("persisted segment after transition")
+        .path
+        .clone();
+    let mut file: crate::durability::log::local_store::DurableSegmentFile =
+        crate::durability::log::local_store::read_json(&segment_path).unwrap();
+    if let Some(descriptor) = file.entries[1].schema_continuation_descriptor.as_mut() {
+        descriptor.bridge.canonicalization_version = DescriptorCanonicalizationVersion(99);
+    }
+    crate::durability::log::local_store::write_json(&segment_path, &file).unwrap();
+
+    let plan = runtime
+        .durability_access()
+        .recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
+
+    assert_eq!(
+        plan.compatibility.descriptor_version_parity,
+        RecoveryAuthorityParity::Drift
+    );
+    assert!(matches!(
+        plan.compatibility.first_mismatch,
+        Some(RecoveryCompatibilityMismatch::DescriptorCanonicalizationVersion {
+            expected: DescriptorCanonicalizationVersion(1),
+            found: DescriptorCanonicalizationVersion(99),
+        })
+    ));
+    assert_eq!(
+        plan.compatibility.verification_outcome,
+        RecoveryVerificationOutcome::Rejected {
+            layer: ReplayVerificationLayer::DigestParity,
+            detail: "descriptor canonicalization version mismatch".to_string(),
+        }
+    );
+}
+
+#[test]
 fn durability_recovery_emits_compatibility_diagnostic_before_execution() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "main-a");
-    let plan = runtime.durability_access().recovery_plan();
+    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
 
     let mut recovered = persisted_runtime_with_test_schema();
     let _ = recovered.durability_authority().recover(plan).unwrap();
@@ -458,7 +557,7 @@ fn durability_certification_recovery_compatibility_is_explained_and_counted() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "main-a");
     runtime.performance_access().reset_counters();
-    let plan = runtime.durability_access().recovery_plan();
+    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
 
     let mut recovered = persisted_runtime_with_test_schema();
     let _ = recovered.durability_authority().recover(plan).unwrap();
@@ -514,7 +613,7 @@ fn durable_recovery_and_schema_mismatch_test() {
     txn.push_batch(batch_create("main-b"));
     let transitioned = txn.commit().unwrap();
 
-    let plan = runtime.durability_access().recovery_plan();
+    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     let recovery_schema_bundle_digest = certification_digest(&(
         transitioned.envelope().schema_transition.clone(),
         transitioned.envelope().schema_continuation_descriptor.clone(),
@@ -616,7 +715,7 @@ fn durability_contract_failure_aspect_plan_mismatch_is_explicit() {
     let mut runtime =
         persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     create_entity_outcome(&mut runtime, "main-a");
-    let plan = runtime.durability_access().recovery_plan();
+    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     let expected_registry =
         declared_aspect_schema_registry(CascadeDeletePolicy::CascadeDeleteRelations);
     let mismatched_registry = AspectSchemaFixture {
@@ -708,7 +807,7 @@ fn durability_contract_failure_relation_integrity_plan_mismatch_is_explicit() {
     let source = create_entity(&mut runtime, "source");
     let target = create_entity(&mut runtime, "target");
     create_relation_outcome(&mut runtime, source, target, "guarded");
-    let plan = runtime.durability_access().recovery_plan();
+    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
 
     let mismatched_registry = RelationalSchemaRegistry::new()
         .register_entity_kind(EntityKindRegistration {
@@ -843,7 +942,7 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
     );
 
     runtime.durability_authority().checkpoint().unwrap();
-    let plan = runtime.durability_access().recovery_plan();
+    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = RelationalRuntimeApi::builder()
         .schema_registry(fixture.build_registry())
         .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
@@ -892,10 +991,7 @@ fn durability_contract_failure_missing_parent_chain_is_explicit() {
             }),
         None,
         None,
-        vec![CanonicalCommitEnvelope {
-            commit: child_envelope.commit.clone(),
-            ..child_envelope
-        }],
+        vec![child_envelope],
         RecoveryCursor {
             checkpoint_id: None,
             segment_ids: Vec::new(),
@@ -938,7 +1034,7 @@ fn durability_contract_recovery_preserves_merge_parent_order() {
         BranchId("main".to_string()),
         vec![BranchId("feature".to_string())],
     );
-    let plan = runtime.durability_access().recovery_plan();
+    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = persisted_runtime_with_test_schema();
     recovered.durability_authority().recover(plan).unwrap();
     let replay = recovered.replay_access();
@@ -966,7 +1062,7 @@ fn durability_contract_checkpoint_tail_recovery_preserves_post_checkpoint_commit
     let main = create_entity_outcome(&mut runtime, "main-a");
     let _checkpoint = runtime.durability_authority().checkpoint().unwrap();
     let later = create_entity_outcome(&mut runtime, "main-b");
-    let plan = runtime.durability_access().recovery_plan();
+    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = persisted_runtime_with_test_schema();
     let outcome = recovered.durability_authority().recover(plan).unwrap();
 
@@ -1009,7 +1105,7 @@ fn durability_contract_checkpoint_recovers_index_metadata() {
             index_ids: vec![index.index_id],
         });
     runtime.durability_authority().checkpoint().unwrap();
-    let plan = runtime.durability_access().recovery_plan();
+    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = persisted_runtime_with_test_schema();
     recovered.durability_authority().recover(plan).unwrap();
 
@@ -1046,24 +1142,49 @@ fn durability_contract_checkpoint_recovers_lineage_metadata() {
         .lineage_authority()
         .promote_correspondence(candidate.candidate_id, second.commit.clone())
         .unwrap();
+    let rejected_candidate = runtime.lineage_authority().record_correspondence_candidate(
+        BranchId("main".to_string()),
+        vec![LineageId(999)],
+        vec![LineageId(1000)],
+        "reject-me",
+    );
+    let rejected_resolution = runtime
+        .lineage_authority()
+        .promote_correspondence(rejected_candidate.candidate_id, second.commit.clone());
+    assert_eq!(
+        rejected_resolution,
+        Err(CorrespondencePromotionRejectionClass::MissingLineageReference)
+    );
     runtime.durability_authority().checkpoint().unwrap();
-    let plan = runtime.durability_access().recovery_plan();
+    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = persisted_runtime_with_test_schema();
     recovered.durability_authority().recover(plan).unwrap();
     let graph = recovered
         .lineage_access()
-        .graph(&BranchId("main".to_string()));
+        .graph(crate::facade::lineage::LineageGraphRequest {
+            branch_id: BranchId("main".to_string()),
+        });
 
     assert_eq!(graph.nodes.len(), 2);
     assert!(graph
         .events
         .iter()
         .any(|event| event.kind == LineageEventKind::Correspond));
-    assert!(graph
-        .correspondence_candidates
-        .iter()
-        .any(|entry| entry.candidate_id == candidate.candidate_id));
-}
+      assert!(graph
+          .correspondence_candidates
+          .iter()
+          .any(|entry| entry.candidate_id == candidate.candidate_id));
+      assert!(recovered
+          .lineage_access()
+          .rejected_decisions_snapshot()
+          .iter()
+          .any(|decision| {
+              decision.kind == LineageDecisionKind::CorrespondencePromotionRejected
+                  && decision.candidate_id == Some(rejected_candidate.candidate_id)
+                  && decision.rejection_class
+                      == Some(CorrespondencePromotionRejectionClass::MissingLineageReference)
+          }));
+  }
 
 #[test]
 fn durability_contract_corrupt_latest_checkpoint_falls_back_to_prior_valid_checkpoint() {
@@ -1072,11 +1193,11 @@ fn durability_contract_corrupt_latest_checkpoint_falls_back_to_prior_valid_check
     runtime.durability_authority().checkpoint().unwrap();
     let second = create_entity_outcome(&mut runtime, "second");
     runtime.durability_authority().checkpoint().unwrap();
-    let store = runtime.durability_access().recovery_plan().store.unwrap();
+    let store = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification).store.unwrap();
     let latest_checkpoint = store.checkpoints.last().unwrap();
     std::fs::write(&latest_checkpoint.path, b"{not-json").unwrap();
 
-    let plan = runtime.durability_access().recovery_plan();
+    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = persisted_runtime_with_test_schema();
     let outcome = recovered.durability_authority().recover(plan).unwrap();
 
@@ -1104,10 +1225,10 @@ fn durability_contract_compaction_only_removes_segments_covered_by_checkpoint() 
     create_entity_outcome(&mut runtime, "b");
     runtime.durability_authority().checkpoint().unwrap();
     create_entity_outcome(&mut runtime, "c");
-    let before = runtime.durability_access().recovery_plan().store.unwrap();
+    let before = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification).store.unwrap();
 
     let compaction = runtime.durability_authority().compact_store().unwrap();
-    let after = runtime.durability_access().recovery_plan().store.unwrap();
+    let after = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification).store.unwrap();
 
     assert!(!before.segments.is_empty());
     assert!(after.segments.len() <= before.segments.len());
@@ -1131,7 +1252,7 @@ fn durability_contract_recovery_rebuilds_branch_pinned_retention_from_branch_hea
         .unwrap();
     let _deleted = delete_entity(&mut runtime, source_entity);
     runtime.durability_authority().checkpoint().unwrap();
-    let plan = runtime.durability_access().recovery_plan();
+    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = persisted_runtime_with_test_schema();
     recovered.durability_authority().recover(plan).unwrap();
 
@@ -1177,7 +1298,7 @@ fn durability_contract_recovery_preserves_inspection_truth_bundle() {
         created.version_id,
     );
 
-    let plan = runtime.durability_access().recovery_plan();
+    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = persisted_runtime_with_test_schema();
     recovered.durability_authority().recover(plan).unwrap();
     let actual = capture_inspection_truth_bundle(
@@ -1270,3 +1391,4 @@ fn durability_contract_persisted_commit_fails_closed_when_store_path_is_not_dire
     assert!(matches!(error, TransactionCommitError::Publication { .. }));
     assert!(runtime.history_access().latest_commit().is_none());
 }
+

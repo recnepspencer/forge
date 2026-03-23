@@ -40,6 +40,8 @@ The current signal vision makes five core promises. Each promise must stay mappe
 Required evidence:
 
 - serial, staged-parallel, and full-parallel agree on canonical retained surfaces
+- proof-safe grouped concurrent apply either matches serial semantics exactly or
+  lowers honestly to serial with named rejection
 - replay ordering is canonical
 - explanation, provenance, lineage, and report surfaces remain stable across executor-policy churn
 
@@ -272,6 +274,30 @@ Current contract tests:
 - `tests::observability::branch_and_snapshot_churn_respect_retention_budget_under_all_tiers`
 - `tests::observability::long_session_branch_churn_with_mixed_reads_keeps_bounds_and_cold_work_honest`
 - `bash scripts/ci/check_signal_phase5_contracts.sh`
+
+### Branch merge and bounded reconciliation
+
+Required adversarial cases:
+
+- supported merge fails before candidate construction when no bounded
+  mutation-journal boundary exists
+- supported merge candidate construction remains bounded to lowered proof and
+  never falls back to whole-live branch scope
+- proof-minimal overlap and conservative overlap expansion remain distinct
+  bounded phases
+- repeated merge and restore preserve future bounded merge truth rather than
+  fabricating stale overlap
+- convenience performance-only index churn does not alter lowered merge
+  candidates
+
+Current contract tests:
+
+- `tests::merge_adoption::merge_branch_without_established_journal_boundary_fails_explicitly`
+- `tests::merge_adoption::merge_branch_uses_branch_local_mutation_scope_instead_of_whole_live_scan`
+- `tests::merge_adoption::proof_minimal_overlap_and_conservative_expansion_remain_distinct_and_bounded`
+- `tests::merge_adoption::active_restore_reinstates_branch_merge_ledger_boundary_for_later_fast_forward_merge`
+- `tests::merge_adoption::repeated_merge_after_target_restore_stays_bounded_and_history_honest`
+- `tests::merge_adoption::merge_candidate_construction_is_identical_with_and_without_convenience_branch_indexes`
 
 ### Public API and contract surfaces
 

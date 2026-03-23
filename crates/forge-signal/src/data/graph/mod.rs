@@ -8,6 +8,8 @@ mod topology;
 
 pub(crate) use construction::node_builder;
 pub use construction::NodeBuilder;
+#[cfg_attr(not(feature = "parallel"), allow(unused_imports))]
+pub(crate) use runtime::{ApplyCommitPacket, SuppressionFreeApplyCommitPacket};
 pub(crate) use runtime::graph as signal_graph;
 #[allow(unused_imports)]
 pub(crate) use runtime::{BranchMutationRecord, BranchStructuralDelta};

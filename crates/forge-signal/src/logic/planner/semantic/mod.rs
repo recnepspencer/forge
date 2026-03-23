@@ -61,6 +61,14 @@ impl StageSemanticBatch {
         self.segments.push(segment);
     }
 
+    pub(in crate::logic::planner) fn extend(&mut self, mut other: StageSemanticBatch) {
+        self.segments.append(&mut other.segments);
+    }
+
+    pub(in crate::logic::planner) fn segment_count(&self) -> usize {
+        self.segments.len()
+    }
+
     pub fn is_empty(&self) -> bool {
         self.segments.is_empty()
     }

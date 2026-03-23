@@ -97,7 +97,6 @@ impl PreparedEvaluation {
         }
     }
 
-    #[cfg(test)]
     pub fn deferred_by_condition() -> Self {
         Self {
             result: NodeEvaluationResult::from_version(AspectVersion::zero()),
@@ -110,7 +109,6 @@ impl PreparedEvaluation {
         }
     }
 
-    #[cfg(test)]
     pub fn reverted_clean_by_condition() -> Self {
         Self {
             result: NodeEvaluationResult::from_version(AspectVersion::zero()),

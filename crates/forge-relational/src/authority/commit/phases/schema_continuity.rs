@@ -4,8 +4,8 @@ use crate::diagnostics::data::{
 };
 use crate::replay::data::CanonicalCommitEnvelope;
 use crate::schema::data::{
-    DescriptorSemanticsVersion, LoweredSchemaTransitionPlan, SchemaContinuationDescriptor,
-    SchemaDiffDetail, SchemaReconciliationDescriptor, SchemaStratum, SchemaTransitionArtifact,
+    DescriptorSemanticsVersion, LoweredSchemaTransitionPlan, SchemaContinuationDescriptor, SchemaDiffDetail,
+    SchemaReconciliationDescriptor, SchemaStratum, SchemaTransitionArtifact,
     SchemaTransitionSummary,
 };
 use crate::schema::logic::{
@@ -29,9 +29,9 @@ enum FailureTransitionView<'a> {
 }
 
 impl SchemaContinuityPlan {
-    pub(crate) fn current() -> Self {
+    pub(crate) fn current(descriptor_semantics_version: DescriptorSemanticsVersion) -> Self {
         Self {
-            descriptor_semantics_version: DescriptorSemanticsVersion::default(),
+            descriptor_semantics_version,
             schema_transition: None,
             schema_continuation_descriptor: None,
             schema_reconciliation_descriptor: None,
@@ -44,7 +44,13 @@ pub(crate) fn resolve_schema_continuity(
     branch_id: &crate::history::data::BranchId,
     options: &crate::transactions::data::TransactionOptions,
 ) -> Result<SchemaContinuityPlan, TransactionCommitError> {
-    let current_descriptor_semantics_version = DescriptorSemanticsVersion::default();
+    let descriptor_policy = runtime.config.schema.descriptor_semantics_policy.clone();
+    let current_descriptor_semantics_version = descriptor_policy.current_write_version();
+    let current_descriptor_canonicalization_version = runtime
+        .config
+        .schema
+        .descriptor_canonicalization_policy
+        .current_write_version();
     let current_schema_version = runtime.primary_schema_version_id();
     let current_schema_registry = runtime.schema_registry().clone();
     let current_schema_basis = current_schema_registry
@@ -71,23 +77,28 @@ pub(crate) fn resolve_schema_continuity(
                 proposed_transition.clone(),
                 options.schema_reconciliation_policy,
                 current_descriptor_semantics_version,
+                current_descriptor_canonicalization_version,
                 branch_id,
                 None,
                 current_schema_basis,
                 current_schema_version,
             );
         }
-        return Ok(SchemaContinuityPlan::current());
+        return Ok(SchemaContinuityPlan::current(
+            current_descriptor_semantics_version,
+        ));
     };
     let previous_envelope = {
         let history = runtime.history_access();
         history.commit_envelope(previous_head.commit_id).cloned()
     };
     let Some(previous_envelope) = previous_envelope.as_ref() else {
-        return Ok(SchemaContinuityPlan::current());
+        return Ok(SchemaContinuityPlan::current(
+            current_descriptor_semantics_version,
+        ));
     };
 
-    if previous_envelope.descriptor_semantics_version != current_descriptor_semantics_version {
+    if !descriptor_policy.supports(previous_envelope.descriptor_semantics_version) {
         runtime.performance_access().count_descriptor_version_mismatch();
         return Err(schema_continuity_conflict(
             runtime,
@@ -110,6 +121,7 @@ pub(crate) fn resolve_schema_continuity(
             proposed_transition.clone(),
             options.schema_reconciliation_policy,
             current_descriptor_semantics_version,
+            current_descriptor_canonicalization_version,
             branch_id,
             Some(previous_envelope),
             current_schema_basis,
@@ -128,7 +140,9 @@ pub(crate) fn resolve_schema_continuity(
                 current_descriptor_semantics_version,
             },
         )),
-        None => Ok(SchemaContinuityPlan::current()),
+        None => Ok(SchemaContinuityPlan::current(
+            current_descriptor_semantics_version,
+        )),
     }
 }
 
@@ -137,6 +151,7 @@ fn materialize_declared_transition(
     proposed_transition: crate::schema::data::ProposedSchemaTransition,
     policy: Option<crate::schema::data::SchemaReconciliationPolicy>,
     descriptor_semantics_version: DescriptorSemanticsVersion,
+    descriptor_canonicalization_version: crate::schema::data::DescriptorCanonicalizationVersion,
     branch_id: &crate::history::data::BranchId,
     previous_envelope: Option<&crate::replay::data::CanonicalCommitEnvelope>,
     current_schema_basis: Option<(crate::schema::data::SchemaId, crate::schema::data::SchemaVersionId)>,
@@ -253,7 +268,12 @@ fn materialize_declared_transition(
         }
         _ => {}
     }
-    let lowered = lower_schema_transition(validated, policy);
+    let lowered = lower_schema_transition(
+        validated,
+        policy,
+        descriptor_semantics_version,
+        descriptor_canonicalization_version,
+    );
     runtime.performance_access().count_schema_transition_classification(
         proposed_transition.diff_atoms.len(),
         proposed_transition.diff_atoms.len(),
@@ -401,6 +421,7 @@ fn schema_continuity_conflict_from_issue(
     if matches!(
         issue,
         SchemaContinuityBundleIssue::DescriptorSemanticsVersionMismatch { .. }
+            | SchemaContinuityBundleIssue::DescriptorCanonicalizationVersionMismatch { .. }
     ) {
         runtime.performance_access().count_descriptor_version_mismatch();
     }
@@ -408,7 +429,9 @@ fn schema_continuity_conflict_from_issue(
         SchemaContinuityBundleIssue::IncompleteBundle
         | SchemaContinuityBundleIssue::ContinuationDescriptorDrift { .. }
         | SchemaContinuityBundleIssue::ContinuationBoundaryFingerprintMismatch { .. }
-        | SchemaContinuityBundleIssue::DescriptorSemanticsVersionMismatch { .. } => {
+        | SchemaContinuityBundleIssue::DescriptorSemanticsVersionMismatch { .. }
+        | SchemaContinuityBundleIssue::DescriptorCanonicalizationVersionMismatch { .. }
+        | SchemaContinuityBundleIssue::VisibleBridgeProofMismatch => {
             ConflictClass::UnsupportedBridgeDescriptor {
                 detail: issue.detail(),
             }

@@ -68,7 +68,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                 }],
             );
         }
-        self.runtime.durability.checkpoints.push(checkpoint.clone());
+        self.runtime.durability.push_checkpoint(checkpoint.clone());
         Ok(checkpoint)
     }
 
@@ -217,7 +217,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
             .map(|checkpoint| checkpoint.envelopes.len())
             .unwrap_or(0);
         let mut restored = rebuild_runtime_from_plan(plan.clone())?;
-        restored.durability.log = plan.tail_log;
+        restored.durability.set_log(plan.tail_log);
         restored.durability.store = plan.store.clone();
         record_recovery_verification_counters(&restored, &plan.compatibility);
         restored.publication_authority().push_bounded_diagnostic(
@@ -280,12 +280,13 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                             .durability
                             .log
                             .retain(|entry| entry.commit.commit_id > commit.commit_id);
+                        self.runtime.durability.rebuild_log_commit_index();
                     }
                 }
                 if self.runtime.durability.log.len() > policy.max_in_memory_envelopes {
                     let overflow =
                         self.runtime.durability.log.len() - policy.max_in_memory_envelopes;
-                    self.runtime.durability.log.drain(0..overflow);
+                    self.runtime.durability.trim_log_front(overflow);
                 }
             }
         }
@@ -309,7 +310,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
     ) -> Result<(), DurabilityError> {
         match self.runtime.runtime_config().durability.policy.mode {
             DurabilityMode::InMemoryCanonical => {
-                self.runtime.durability.log.push(envelope.clone());
+                self.runtime.durability.push_log_envelope(envelope.clone());
                 Ok(())
             }
             DurabilityMode::PersistedSegmentedLocalFs => {
@@ -365,6 +366,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                 }
                 persist_store_manifest(&store)?;
                 self.runtime.durability.store = Some(store);
+                self.runtime.durability.push_log_envelope(envelope.clone());
                 let latest_commit_id = self
                     .runtime
                     .durability
@@ -389,6 +391,14 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                 Ok(())
             }
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn remove_durable_envelope_for_test(
+        &mut self,
+        commit_id: crate::history::data::CommitId,
+    ) -> bool {
+        self.runtime.durability.remove_log_commit(commit_id)
     }
 
     fn build_checkpoint_image(&self) -> DurableCheckpoint {
@@ -416,6 +426,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                 .runtime
                 .lineage_access()
                 .correspondence_candidates_snapshot(),
+            rejected_lineage_decisions: self.runtime.lineage_access().rejected_decisions_snapshot(),
             index_definitions: self.runtime.index_access().definitions_snapshot(),
             index_generations: self.runtime.index_access().generations_snapshot(),
             symbol_table: self.runtime.services.symbols.snapshot(),
@@ -535,7 +546,9 @@ fn rebuild_runtime_from_plan(plan: RecoveryPlan) -> Result<RelationalRuntime, Du
             .map(|node| (node.lineage_id, node))
             .collect();
         restored.lineage.events = checkpoint.lineage_events.clone();
+        restored.lineage.rebuild_branch_event_positions();
         restored.lineage.correspondence_candidates = checkpoint.correspondence_candidates.clone();
+        restored.lineage.rejected_decisions = checkpoint.rejected_lineage_decisions.clone();
         restored.indexes.definitions = checkpoint
             .index_definitions
             .iter()
@@ -554,7 +567,7 @@ fn rebuild_runtime_from_plan(plan: RecoveryPlan) -> Result<RelationalRuntime, Du
             .services
             .symbols
             .restore_snapshot(checkpoint.symbol_table.clone());
-        restored.durability.checkpoints.push(checkpoint.clone());
+        restored.durability.push_checkpoint(checkpoint.clone());
     }
 
     restored.history.next_commit_id = restored
@@ -633,33 +646,44 @@ fn rebuild_runtime_from_plan(plan: RecoveryPlan) -> Result<RelationalRuntime, Du
                 .history_authority()
                 .create_branch(envelope.branch_context.clone(), &parent_branch);
         }
-        let mut txn = restored.begin_transaction(TransactionOptions {
-            target_branch: Some(envelope.branch_context.clone()),
-            merge_parent_branches: envelope.merge_parent_branches.clone(),
-            ..schema_transition_options_for_replay(envelope)
-        });
-        txn.push_batch(WorkerIntentBatch {
-            name: format!("recovery-commit-{}", envelope.commit.commit_id.0),
-            partition_key: None,
-            worker_local_only: true,
-            intents: envelope
-                .merged_plan
-                .merged_intents
-                .clone()
-                .into_iter()
-                .map(crate::transactions::data::MutationIntent::from)
-                .collect(),
-        });
-        txn.commit().map_err(|_| {
-            DurabilityError::new(
-                RecoveryFailureClass::ReplayFailure,
-                format!(
-                    "failed to replay durable commit {}",
-                    envelope.commit.commit_id.0
-                ),
-            )
-        })?;
-        apply_authoritative_commit_artifacts(&mut restored, envelope);
+        if is_metadata_only_lineage_commit(envelope) {
+            restored.history_authority().publish_metadata_only_commit(
+                envelope.commit.commit_id,
+                envelope.commit.clone(),
+                envelope.branch_context.clone(),
+                envelope.patch.position,
+                Arc::new(envelope.clone()),
+            );
+            apply_authoritative_commit_artifacts(&mut restored, envelope);
+        } else {
+            let mut txn = restored.begin_transaction(TransactionOptions {
+                target_branch: Some(envelope.branch_context.clone()),
+                merge_parent_branches: envelope.merge_parent_branches.clone(),
+                ..schema_transition_options_for_replay(envelope)
+            });
+            txn.push_batch(WorkerIntentBatch {
+                name: format!("recovery-commit-{}", envelope.commit.commit_id.0),
+                partition_key: None,
+                worker_local_only: true,
+                intents: envelope
+                    .merged_plan
+                    .merged_intents
+                    .clone()
+                    .into_iter()
+                    .map(crate::transactions::data::MutationIntent::from)
+                    .collect(),
+            });
+            txn.commit().map_err(|_| {
+                DurabilityError::new(
+                    RecoveryFailureClass::ReplayFailure,
+                    format!(
+                        "failed to replay durable commit {}",
+                        envelope.commit.commit_id.0
+                    ),
+                )
+            })?;
+            apply_authoritative_commit_artifacts(&mut restored, envelope);
+        }
     }
 
     restored.indexes.next_index_id = restored
@@ -695,13 +719,14 @@ fn rebuild_runtime_from_plan(plan: RecoveryPlan) -> Result<RelationalRuntime, Du
         .events
         .iter()
         .map(|event| event.event_id)
-        .chain(
-            restored
-                .lineage
-                .correspondence_candidates
-                .iter()
-                .map(|candidate| candidate.candidate_id),
-        )
+        .max()
+        .unwrap_or(0)
+        + 1;
+    restored.lineage.next_candidate_id = restored
+        .lineage
+        .correspondence_candidates
+        .iter()
+        .map(|candidate| candidate.candidate_id.0)
         .max()
         .unwrap_or(0)
         + 1;
@@ -717,7 +742,9 @@ fn rebuild_runtime_from_plan(plan: RecoveryPlan) -> Result<RelationalRuntime, Du
 }
 
 fn validate_recovery_compatibility(
-    runtime: &(impl SchemaSource + RuntimeIdentitySource + SchemaVersionSource),
+    runtime: &(
+        impl SchemaSource + RuntimeIdentitySource + SchemaVersionSource + RuntimeConfigSource
+    ),
     plan: &RecoveryPlan,
 ) -> Result<(), DurabilityError> {
     if plan.config.schema.registry != *runtime.schema_registry() {
@@ -805,6 +832,7 @@ fn record_recovery_verification_counters(
     if matches!(
         compatibility.first_mismatch,
         Some(RecoveryCompatibilityMismatch::DescriptorSemanticsVersion { .. })
+            | Some(RecoveryCompatibilityMismatch::DescriptorCanonicalizationVersion { .. })
     ) {
         runtime.performance_access().count_descriptor_version_mismatch();
     }
@@ -814,8 +842,8 @@ fn apply_authoritative_commit_artifacts(
     runtime: &mut RelationalRuntime,
     envelope: &CanonicalCommitEnvelope,
 ) {
-    if !envelope.lineage_events.is_empty() {
-        for event in &envelope.lineage_events {
+    if !envelope.lineage_events().is_empty() {
+        for event in envelope.lineage_events() {
             if let Some(existing) = runtime
                 .lineage
                 .events
@@ -831,14 +859,6 @@ fn apply_authoritative_commit_artifacts(
             .lineage
             .events
             .sort_by_key(|event| event.event_id);
-        if let Some(commit_envelope) = runtime
-            .history
-            .commit_envelopes
-            .get_mut(&envelope.commit.commit_id)
-        {
-            let commit_envelope = Arc::make_mut(commit_envelope);
-            commit_envelope.append_lineage_events_canonical(&envelope.lineage_events);
-        }
     }
 
     if !envelope.index_generations.is_empty() {
@@ -869,6 +889,11 @@ fn apply_authoritative_commit_artifacts(
     }
 }
 
+fn is_metadata_only_lineage_commit(envelope: &CanonicalCommitEnvelope) -> bool {
+    envelope.authority_kind()
+        == crate::replay::data::CanonicalCommitAuthorityKind::MetadataOnlyLineage
+}
+
 fn schema_transition_options_for_replay(
     envelope: &CanonicalCommitEnvelope,
 ) -> TransactionOptions {
@@ -889,11 +914,24 @@ fn schema_transition_options_for_replay(
 }
 
 fn validate_schema_continuity_compatibility(
-    runtime: &(impl SchemaSource + RuntimeIdentitySource + SchemaVersionSource),
+    runtime: &(
+        impl SchemaSource + RuntimeIdentitySource + SchemaVersionSource + RuntimeConfigSource
+    ),
     plan: &RecoveryPlan,
 ) -> Result<(), DurabilityError> {
-    let runtime_descriptor_version = crate::schema::data::DescriptorSemanticsVersion::default();
-    if plan.descriptor_semantics_version != runtime_descriptor_version {
+    let descriptor_policy = runtime
+        .runtime_config()
+        .schema
+        .descriptor_semantics_policy
+        .clone();
+    let canonicalization_policy = runtime
+        .runtime_config()
+        .schema
+        .descriptor_canonicalization_policy
+        .clone();
+    let runtime_descriptor_version = descriptor_policy.current_write_version();
+    let runtime_canonicalization_version = canonicalization_policy.current_write_version();
+    if !descriptor_policy.supports(plan.descriptor_semantics_version) {
         return Err(DurabilityError::new(
             RecoveryFailureClass::SchemaMismatch,
             "recovery descriptor semantics version mismatch",
@@ -921,6 +959,31 @@ fn validate_schema_continuity_compatibility(
                 RecoveryCompatibilityMismatch::DescriptorSemanticsVersion {
                     expected: plan.descriptor_semantics_version,
                     found: envelope.descriptor_semantics_version,
+                },
+            ));
+        }
+
+        if let Some(found) = envelope
+            .schema_continuation_descriptor
+            .as_ref()
+            .map(|descriptor| descriptor.bridge.canonicalization_version)
+            .into_iter()
+            .chain(
+                envelope
+                    .schema_reconciliation_descriptor
+                    .as_ref()
+                    .map(|descriptor| descriptor.canonicalization_version),
+            )
+            .find(|version| !canonicalization_policy.supports(*version))
+        {
+            return Err(DurabilityError::new(
+                RecoveryFailureClass::SchemaMismatch,
+                "recovery envelope descriptor canonicalization version mismatch",
+            )
+            .with_compatibility_mismatch(
+                RecoveryCompatibilityMismatch::DescriptorCanonicalizationVersion {
+                    expected: runtime_canonicalization_version,
+                    found,
                 },
             ));
         }
@@ -973,6 +1036,22 @@ fn schema_continuity_recovery_error(
         },
         SchemaContinuityBundleIssue::DescriptorSemanticsVersionMismatch { expected, found } => {
             RecoveryCompatibilityMismatch::DescriptorSemanticsVersion { expected, found }
+        }
+        SchemaContinuityBundleIssue::DescriptorCanonicalizationVersionMismatch { expected, found } => {
+            RecoveryCompatibilityMismatch::DescriptorCanonicalizationVersion {
+                expected,
+                found,
+            }
+        }
+        SchemaContinuityBundleIssue::VisibleBridgeProofMismatch => {
+            RecoveryCompatibilityMismatch::ContinuationDescriptor {
+                commit_id: envelope.commit.commit_id.0,
+                boundary_fingerprint: envelope
+                    .schema_continuation_descriptor
+                    .as_ref()
+                    .map(|descriptor| descriptor.boundary_fingerprint),
+                detail,
+            }
         }
         SchemaContinuityBundleIssue::TargetSchemaVersionMismatch => {
             RecoveryCompatibilityMismatch::SchemaTransitionArtifact {

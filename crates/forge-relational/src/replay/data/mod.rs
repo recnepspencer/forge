@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::diagnostics::data::RelationalDiagnosticArtifact;
 use crate::history::data::{BranchId, CommitId, CommitReference};
 use crate::indexes::data::DerivedIndexGeneration;
-use crate::lineage::data::LineageEventRecord;
+use crate::lineage::data::{LineageDecisionRecord, LineageEventRecord, PublishedLineageArtifact};
 use crate::publication::data::diff::RelationalPatchRecord;
 use crate::schema::data::{
     DescriptorCanonicalizationVersion, DescriptorSemanticsVersion, RelationalSchemaRegistry,
@@ -22,6 +22,7 @@ pub use replay_errors::*;
 pub struct CanonicalCommitEnvelope {
     pub commit: CommitReference,
     pub branch_context: BranchId,
+    pub authority_kind: CanonicalCommitAuthorityKind,
     pub merge_parent_branches: Vec<BranchId>,
     pub merge_base_commits: Vec<CommitId>,
     pub schema_version: SchemaVersionId,
@@ -29,9 +30,8 @@ pub struct CanonicalCommitEnvelope {
     pub merged_plan: MergedCommitPlan,
     pub patch: RelationalPatchRecord,
     pub diagnostics_summary: RelationalDiagnosticArtifact,
-    pub lineage_event_ids: Vec<u64>,
     pub index_generation_ids: Vec<u64>,
-    pub lineage_events: Vec<LineageEventRecord>,
+    lineage: PublishedLineageArtifact,
     pub index_generations: Vec<DerivedIndexGeneration>,
     pub schema_transition: Option<SchemaTransitionArtifact>,
     pub schema_continuation_descriptor: Option<SchemaContinuationDescriptor>,
@@ -39,25 +39,81 @@ pub struct CanonicalCommitEnvelope {
     pub descriptor_semantics_version: DescriptorSemanticsVersion,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CanonicalCommitAuthorityKind {
+    VersionedTransaction,
+    MetadataOnlyLineage,
+}
+
 impl CanonicalCommitEnvelope {
-    pub fn append_lineage_events_canonical(&mut self, events: &[LineageEventRecord]) {
-        for event in events {
-            if let Some(existing) = self
-                .lineage_events
-                .iter_mut()
-                .find(|candidate| candidate.event_id == event.event_id)
-            {
-                *existing = event.clone();
-            } else {
-                self.lineage_events.push(event.clone());
-            }
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new(
+        commit: CommitReference,
+        branch_context: BranchId,
+        authority_kind: CanonicalCommitAuthorityKind,
+        merge_parent_branches: Vec<BranchId>,
+        merge_base_commits: Vec<CommitId>,
+        schema_version: SchemaVersionId,
+        schema_registry: RelationalSchemaRegistry,
+        merged_plan: MergedCommitPlan,
+        patch: RelationalPatchRecord,
+        diagnostics_summary: RelationalDiagnosticArtifact,
+        index_generation_ids: Vec<u64>,
+        lineage: PublishedLineageArtifact,
+        index_generations: Vec<DerivedIndexGeneration>,
+        schema_transition: Option<SchemaTransitionArtifact>,
+        schema_continuation_descriptor: Option<SchemaContinuationDescriptor>,
+        schema_reconciliation_descriptor: Option<SchemaReconciliationDescriptor>,
+        descriptor_semantics_version: DescriptorSemanticsVersion,
+    ) -> Self {
+        Self {
+            commit,
+            branch_context,
+            authority_kind,
+            merge_parent_branches,
+            merge_base_commits,
+            schema_version,
+            schema_registry,
+            merged_plan,
+            patch,
+            diagnostics_summary,
+            index_generation_ids,
+            lineage,
+            index_generations,
+            schema_transition,
+            schema_continuation_descriptor,
+            schema_reconciliation_descriptor,
+            descriptor_semantics_version,
         }
-        self.lineage_events.sort_by_key(|event| event.event_id);
-        self.lineage_event_ids = self
-            .lineage_events
-            .iter()
-            .map(|event| event.event_id)
-            .collect();
+    }
+
+    pub fn lineage_event_ids(&self) -> &[u64] {
+        self.lineage.lineage_event_ids()
+    }
+
+    pub fn lineage_events(&self) -> &[LineageEventRecord] {
+        self.lineage.lineage_events()
+    }
+
+    pub fn lineage_decision_log(&self) -> &[LineageDecisionRecord] {
+        self.lineage.lineage_decision_log()
+    }
+
+    pub fn has_lineage_authority(&self) -> bool {
+        self.lineage.has_authority_content()
+    }
+
+    pub fn authority_kind(&self) -> CanonicalCommitAuthorityKind {
+        self.authority_kind
+    }
+
+    pub(crate) fn published_lineage(&self) -> &PublishedLineageArtifact {
+        &self.lineage
+    }
+
+    #[cfg(test)]
+    pub(crate) fn published_lineage_mut_for_test(&mut self) -> &mut PublishedLineageArtifact {
+        &mut self.lineage
     }
 
     pub fn append_index_generations_canonical(&mut self, generations: &[DerivedIndexGeneration]) {
@@ -130,6 +186,20 @@ pub enum ReplaySurfaceAuthorityKind {
     BranchHead,
     Lineage,
     DerivedIndexes,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ReplayAuthorityBasisKind {
+    DurableLogCanonical,
+    HistoryEnvelopeFallback,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReplayLineageAuthorityBasis {
+    pub kind: ReplayAuthorityBasisKind,
+    pub commit_id: CommitId,
+    pub lineage_event_count: usize,
+    pub lineage_decision_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -248,6 +318,7 @@ pub struct RelationalReplayOutcome {
     pub commit: Option<CommitReference>,
     pub reconstructed_parent_chain: Vec<CommitId>,
     pub snapshot_version: Option<crate::identity::data::VersionId>,
+    pub lineage_authority_basis: Option<ReplayLineageAuthorityBasis>,
     pub compared_surfaces: Vec<ReplayObservableSurface>,
     pub mismatches: Vec<ReplayMismatch>,
     pub failure: Option<ReplayFailureClass>,
@@ -278,6 +349,7 @@ impl RelationalReplayOutcome {
             commit,
             reconstructed_parent_chain,
             snapshot_version,
+            lineage_authority_basis: None,
             compared_surfaces: Vec::new(),
             mismatches: Vec::new(),
             failure: Some(failure),

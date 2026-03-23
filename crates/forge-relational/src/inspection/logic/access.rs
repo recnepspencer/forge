@@ -543,7 +543,12 @@ impl<'runtime> InspectionAccess<'runtime> {
         };
         let lineage_resolution_context = match target {
             RecordRef::Entity(entity_id) => {
-                self.runtime.lineage_access().resolve_record_history(branch_id, entity_id)
+                self.runtime.lineage_access().resolve_record_history(
+                    crate::facade::lineage::RecordHistoryRequest {
+                        branch_id: branch_id.clone(),
+                        entity_id,
+                    },
+                )
             }
             RecordRef::Relation(_) => None,
         };
@@ -670,8 +675,8 @@ impl<'runtime> InspectionAccess<'runtime> {
                 .iter()
                 .map(|record| record.target.clone())
                 .collect(),
-            lineage_event_ids: envelope.lineage_event_ids.clone(),
-            lineage_events: envelope.lineage_events.clone(),
+            lineage_event_ids: envelope.lineage_event_ids().to_vec(),
+            lineage_events: envelope.lineage_events().to_vec(),
             index_generation_ids: envelope.index_generation_ids.clone(),
             index_generations: envelope.index_generations.clone(),
             changed_aspects: CanonicalAspectSet::new(

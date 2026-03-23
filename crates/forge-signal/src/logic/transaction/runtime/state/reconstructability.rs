@@ -135,13 +135,80 @@ impl JournalSegment {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CheckpointBoundary {
+    pub authority_branch_id: SignalBranchId,
+    pub authority_snapshot_id: Option<SignalSnapshotId>,
+    pub replay_head: Option<ReplayCursor>,
+    pub checkpoint: CheckpointRecord,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BoundedJournalSegment {
+    pub replay_head: Option<ReplayCursor>,
+    pub replay_event_count: u32,
+    pub first_execution_record_id: Option<ExecutionRecordId>,
+    pub last_execution_record_id: Option<ExecutionRecordId>,
+    pub first_semantic_segment_id: Option<SemanticSegmentId>,
+    pub last_semantic_segment_id: Option<SemanticSegmentId>,
+    pub contains_rollback: bool,
+    pub contains_failure: bool,
+}
+
+impl BoundedJournalSegment {
+    pub fn from_record(replay_head: Option<ReplayCursor>, segment: &JournalSegment) -> Self {
+        Self {
+            replay_head,
+            replay_event_count: segment.replay_event_count,
+            first_execution_record_id: segment.first_execution_record_id,
+            last_execution_record_id: segment.last_execution_record_id,
+            first_semantic_segment_id: segment.first_semantic_segment_id,
+            last_semantic_segment_id: segment.last_semantic_segment_id,
+            contains_rollback: segment.contains_rollback,
+            contains_failure: segment.contains_failure,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DependencyIndexRebuildProof {
+    pub authority_branch_id: SignalBranchId,
+    pub authority_snapshot_id: Option<SignalSnapshotId>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReplaySuffixRebuildProof {
+    pub replay_head: Option<ReplayCursor>,
+    pub replay_event_count: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MergeSupportRebuildProof {
+    pub authority_branch_id: SignalBranchId,
+    pub replay_event_count: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RequiredDerivedRebuildSet {
+    DependencyIndexes(DependencyIndexRebuildProof),
+    ReplaySuffix(ReplaySuffixRebuildProof),
+    MergeSupport(MergeSupportRebuildProof),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReconstructabilityProof {
+    pub checkpoint: CheckpointBoundary,
+    pub journal: BoundedJournalSegment,
+    pub required_rebuild: Vec<RequiredDerivedRebuildSet>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReconstructabilityRecord {
     pub authority_branch_id: SignalBranchId,
     pub authority_snapshot_id: Option<SignalSnapshotId>,
     pub replay_head: Option<ReplayCursor>,
     pub checkpoint: CheckpointRecord,
-    pub journal: Option<JournalSegment>,
+    pub journal: JournalSegment,
 }
 
 impl ReconstructabilityRecord {
@@ -157,7 +224,7 @@ impl ReconstructabilityRecord {
             authority_snapshot_id,
             replay_head,
             checkpoint,
-            journal: Some(JournalSegment::from_entries(replay_entries)),
+            journal: JournalSegment::from_entries(replay_entries),
         }
     }
 
@@ -175,7 +242,48 @@ impl ReconstructabilityRecord {
             authority_snapshot_id: Some(authority_snapshot_id),
             replay_head,
             checkpoint,
-            journal: Some(journal),
+            journal,
+        }
+    }
+
+    pub fn checkpoint_boundary(&self) -> CheckpointBoundary {
+        CheckpointBoundary {
+            authority_branch_id: self.authority_branch_id,
+            authority_snapshot_id: self.authority_snapshot_id,
+            replay_head: self.replay_head,
+            checkpoint: self.checkpoint,
+        }
+    }
+
+    pub fn required_derived_rebuild_set(&self) -> Vec<RequiredDerivedRebuildSet> {
+        let mut rebuild = vec![RequiredDerivedRebuildSet::DependencyIndexes(
+            DependencyIndexRebuildProof {
+                authority_branch_id: self.authority_branch_id,
+                authority_snapshot_id: self.authority_snapshot_id,
+            },
+        )];
+        rebuild.push(RequiredDerivedRebuildSet::ReplaySuffix(
+            ReplaySuffixRebuildProof {
+                replay_head: self.replay_head,
+                replay_event_count: self.journal.replay_event_count,
+            },
+        ));
+        if self.journal.replay_event_count > 0 {
+            rebuild.push(RequiredDerivedRebuildSet::MergeSupport(
+                MergeSupportRebuildProof {
+                    authority_branch_id: self.authority_branch_id,
+                    replay_event_count: self.journal.replay_event_count,
+                },
+            ));
+        }
+        rebuild
+    }
+
+    pub fn proof(&self) -> ReconstructabilityProof {
+        ReconstructabilityProof {
+            checkpoint: self.checkpoint_boundary(),
+            journal: BoundedJournalSegment::from_record(self.replay_head, &self.journal),
+            required_rebuild: self.required_derived_rebuild_set(),
         }
     }
 }

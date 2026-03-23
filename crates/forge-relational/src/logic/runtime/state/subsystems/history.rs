@@ -46,6 +46,10 @@ impl HistorySubsystem {
         self.next_commit_id += 1;
         self.next_version_id += 1;
     }
+
+    pub(crate) fn advance_metadata_commit_sequence(&mut self) {
+        self.next_commit_id += 1;
+    }
 }
 
 impl RuntimeSubsystem for HistorySubsystem {

@@ -79,6 +79,18 @@ These are not optional add-ons. They are the capabilities that make
 - pagination and cursor-based traversal as first-class query features
 - diff queries across branches, versions, and time ranges
 - correspondence queries across branches via lineage
+- named scopes — reusable, composable query fragments
+- view shapes — intent-driven query types (table, kanban, timeline, chart)
+- eager relation loading with depth control
+- query templates with parameter slots
+- saved and named query definitions as workspace artifacts
+- workflow-aware predicates (branch state, approval state, role-scoped)
+- structured content aspect queries (queryable typed rich text)
+- relational rollups and cross-entity computed fields
+- result shape declarations for delivery contracts
+- inspector-pattern entity detail with live aspect projection
+- policy-aware aspect masking — aspects the user cannot see are never queried
+- tenant-scoped query narrowing — automatic branch scoping per tenant
 
 If these are treated as separate APIs bolted onto traditional read paths,
 the developer experience fractures into "reads here, subscriptions there,
@@ -501,6 +513,282 @@ What this enables:
 - clear separation between "query for humans" and "query for pipelines"
   while using the same underlying query expressions
 
+### Query Composition Architecture
+
+#### Named scopes
+
+Technical role:
+Queries support reusable, composable query fragments — named scopes — that
+can be defined once and mixed into any query. A scope encapsulates a
+combination of filters, projections, or ordering and can be applied across
+entity types when the aspect fields are compatible.
+
+What this enables:
+
+- reusable business rules expressed as query fragments ("active," "recent,"
+  "mine," "pending approval")
+- composition of multiple scopes without manual filter merging
+- shared query vocabulary across a codebase
+- scopes that compose across entity types when aspects are shared
+
+#### Saved and named query definitions
+
+Technical role:
+Query definitions can be persisted as first-class workspace artifacts.
+A saved query captures the full query expression — projections, filters,
+scopes, ordering, view shape — as a named, shareable, subscribable
+definition.
+
+What this enables:
+
+- shared views across team members ("the team's active tasks" as a named
+  query anyone can subscribe to)
+- server-managed query definitions that multiple clients consume
+- named queries as the basis for dashboard widgets and reporting
+- parameterized saved queries that accept runtime arguments
+
+#### Query templates with parameter slots
+
+Technical role:
+Query templates define a query shape with typed parameter slots. Consumers
+instantiate templates by binding parameters, producing fully specified
+queries. Templates are reusable across contexts and parameterizable without
+redefining the full query expression.
+
+What this enables:
+
+- reusable query patterns across features and modules
+- parameterized saved queries where the same shape serves different contexts
+- SDK generation from template definitions
+- query variants that share structure but differ by parameters
+
+#### Eager relation loading with depth control
+
+Technical role:
+Queries can declare relation chains to eagerly load in a single query
+operation, preventing N+1 access patterns. Eager loading follows typed
+relation edges to a declared depth, bringing back related entities in the
+same result set with their own aspect projections.
+
+What this enables:
+
+- loading an entity with its relations in one round trip
+- declarative prevention of N+1 access patterns
+- depth-bounded eager loading that prevents unbounded fan-out
+- per-relation aspect projection (load related entities with only the
+  aspects needed for each relation level)
+
+### View Shape Architecture
+
+#### Intent-driven view shapes
+
+Technical role:
+Queries can declare a view shape that communicates the presentation intent
+of the result. View shapes are not just grouping and sorting — they
+communicate how the consumer will render the results, which the query layer
+and signal graph can use for optimization and narrowing.
+
+Supported view shapes include:
+
+- **table view**: flat collection with column projection, sort, and
+  paginate
+- **kanban view**: grouped by a status or category aspect, with count per
+  group and collection splices per group for live updates
+- **timeline view**: ordered by a date range aspect, with range-overlap
+  filtering
+- **chart view**: aggregation with group-by, tolerance-aware for live
+  suppression of trivial changes
+- **detail view**: single entity with full aspect projection and live
+  updates
+- **inspector view**: single entity with selective aspect projection,
+  optimized for zero-latency live property inspection
+
+What this enables:
+
+- the query layer and signal graph can narrow invalidation to the aspects
+  that matter for the declared view shape (a kanban view only re-evaluates
+  when the grouping aspect changes)
+- the server can optimize delivery format based on view shape intent
+- live subscriptions can use view-shape-specific patch formats (collection
+  splices for table, group membership changes for kanban)
+- the same underlying truth serves radically different presentation
+  lenses without separate query APIs
+
+#### Workflow-aware predicates
+
+Technical role:
+Filter predicates can express workflow-level concepts that are backed by
+branch state, aspect state, and context:
+
+- items pending current user's approval
+- items on a draft branch
+- items that changed since the branch diverged from its base
+- items assigned to the current user or team
+- items in a specific workflow stage
+
+What this enables:
+
+- workflow UIs where the query naturally expresses "show me what I need to
+  act on" without manual filter construction
+- branch-aware queries where "drafts" and "pending review" are predicates,
+  not separate APIs
+- role-scoped queries that narrow based on the current user's context
+- approval and review surfaces driven by query predicates rather than
+  custom application logic
+
+### Rich Content Query Architecture
+
+#### Structured content aspect queries
+
+Technical role:
+Rich text and structured content are first-class aspect types with
+schema-enforced structure. Content aspects are not opaque blobs — they
+are composed of typed content blocks (headings, paragraphs, checklists,
+embedded references, media refs) that can be queried, filtered, and
+projected individually.
+
+What this enables:
+
+- querying documents by content structure ("documents with unchecked
+  checklist items," "documents mentioning entity X")
+- projecting specific content blocks without loading the entire content
+  aspect
+- CDC narrowing to specific content blocks for efficient live updates
+- schema-enforced content structure that prevents the untyped chaos of
+  "anything goes" block editors
+- content that participates in the full query model: filterable, sortable,
+  subscribable, branch-aware
+
+### Relational Computation Architecture
+
+#### Relational rollups
+
+Technical role:
+Queries can express aggregations over related entities through typed
+relation edges. Rollups compose relation traversal with aggregation to
+produce cross-entity computed fields as part of the query result.
+
+What this enables:
+
+- "count of related tasks where status is done" as a query expression
+- completion percentages, totals, and summaries computed from related
+  entities without application-level aggregation
+- rollup results that are incrementally maintainable through the signal
+  graph for live subscriptions
+- multi-level rollups (aggregate over relations of relations)
+
+#### Query-time derived fields
+
+Technical role:
+Queries can declare computed fields derived from aspect field values.
+Derived fields are evaluated at query time and are included in the result
+shape alongside projected aspect fields.
+
+What this enables:
+
+- computed display values without stored redundancy
+- formatted, combined, or transformed fields in query results
+- derived fields that participate in filtering and sorting
+- result shapes that match presentation needs without post-processing
+
+### Result Transformation Architecture
+
+#### Result shape declarations for delivery
+
+Technical role:
+Queries can declare an explicit result shape that transforms the raw
+query result into a delivery-ready structure. Result shape declarations
+specify field mapping, renaming, nesting, and flattening to produce
+results shaped for consumer needs.
+
+What this enables:
+
+- query results that arrive in the shape the consumer needs, not the
+  shape the storage uses
+- typed delivery contracts between the query layer and the server
+- SDK generation from result shape declarations
+- clear contracts between backend query definitions and frontend
+  consumption
+
+### Policy-Aware Query Architecture
+
+#### Aspect-level policy masking
+
+Technical role:
+The query layer enforces aspect-level access policies structurally. When
+a policy declares that a user role cannot see a specific aspect, the query
+layer removes that aspect from the projection before execution. The aspect
+is never read from storage, never included in results, and never delivered.
+
+Policies are declared against the schema, not per query. The query layer
+consults the active policy context (user identity, roles, tenant,
+branch permissions) and masks the query's aspect projection accordingly.
+
+What this enables:
+
+- sensitive data (salary, PII, internal notes) is structurally invisible
+  to unauthorized users, not filtered after the fact
+- zero per-query authorization code — policies are declared once against
+  the schema
+- policy changes take effect immediately on existing live subscriptions
+- CDC narrowing respects policy masks, so unauthorized aspect changes
+  never trigger delivery
+- aspect masking composes with all other query features (scopes, view
+  shapes, aggregation, rollups) without special cases
+
+#### Branch-level access scoping
+
+Technical role:
+The query layer enforces branch-level access policies. Queries targeting a
+branch the user cannot access are rejected at validation time. Queries that
+do not specify a branch are scoped to the branches the user has permission
+to read.
+
+What this enables:
+
+- draft branches visible only to their creators or designated reviewers
+- protected branches that require elevated permissions to read
+- branch-level isolation for multi-tenant or team-scoped deployments
+- branch access enforcement at the query layer, before storage access
+
+### Multi-Tenant Query Architecture
+
+#### Automatic tenant branch scoping
+
+Technical role:
+In multi-tenant deployments where tenants are isolated via branches, the
+query layer automatically scopes every query to the resolved tenant's
+branch. Developers writing queries for a multi-tenant application do not
+need to specify or manage branch scoping — the tenant context provides it.
+
+What this enables:
+
+- multi-tenant applications where every query is tenant-scoped without
+  explicit branch parameters in application code
+- shared base data (system configuration, templates, default values)
+  visible through automatic branch inheritance
+- tenant-specific truth that is structurally isolated, not just filtered
+- the same query expressions used for single-tenant and multi-tenant
+  deployments without code changes
+
+#### Tenant-scoped schema awareness
+
+Technical role:
+In multi-tenant deployments with branch-local schema evolution, the query
+layer validates queries against the tenant's active schema, not the global
+base schema. If a tenant has branch-local schema customizations, queries
+against that tenant's truth are validated and projected according to the
+tenant's schema.
+
+What this enables:
+
+- per-tenant custom fields and schema extensions without affecting other
+  tenants
+- query validation that respects tenant-specific schema boundaries
+- schema-aware projections and filters that adapt to per-tenant schemas
+- multi-tenant platforms where tenants can customize their truth model
+  without breaking shared infrastructure
+
 ## Domain Fit
 
 ### Web Applications
@@ -586,6 +874,19 @@ The highest-signal query programs are:
 - CDC-shaped output formatting
 - schema-aware query validation
 - query planning and optimization
+- named scopes and query composition
+- saved and named query definitions
+- query templates with parameter slots
+- eager relation loading with depth control
+- intent-driven view shapes
+- workflow-aware predicates
+- structured content aspect queries
+- relational rollups and query-time derived fields
+- result shape declarations for delivery contracts
+- policy-aware aspect masking
+- branch-level access scoping
+- automatic tenant branch scoping
+- tenant-scoped schema awareness
 
 If a capability is named here and not yet built, it is roadmap work.
 

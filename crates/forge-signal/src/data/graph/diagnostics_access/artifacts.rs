@@ -5,14 +5,176 @@ use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
 use crate::diagnostics::policy::DiagnosticsAvailability;
 use crate::diagnostics::policy::OrdinaryAccessLane;
 use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
-use crate::logic::explain::{explain, NodeExplanation};
+use crate::logic::explain::{
+    explain, CausalDisposition, CausalLink, CausalLinkKind, NodeExplanation, ScopeProvenance,
+    ScopeProvenanceKind,
+};
 use crate::state::{
-    SignalSnapshotMeta, SignalSnapshotV1, SnapshotArtifactRetentionPolicy,
-    SnapshotArtifactRestoreMode, SnapshotDependencyRestoreMode, SnapshotRestoreIntent,
-    SnapshotRestoreCoarseReason, SnapshotRestorePlan,
+    SignalCheckpointImage, SignalSnapshotMeta, SignalSnapshotV1,
+    SnapshotArtifactRetentionPolicy, SnapshotArtifactRestoreMode,
+    SnapshotDependencyRestoreMode, SnapshotRestoreIntent, SnapshotRestoreCoarseReason,
+    SnapshotRestorePlan,
 };
 
 impl SignalGraph {
+    fn attach_rewiring_topology_links(
+        &self,
+        explanation: &mut NodeExplanation,
+        rewiring: &crate::logic::explain::RewiringSummary,
+    ) {
+        for dependency in &rewiring.removed {
+            let already_present = explanation.causal_links.iter().any(|link| {
+                matches!(link.kind, CausalLinkKind::DependencyRemoved)
+                    && link.source == Some(dependency.source)
+                    && link.aspect == Some(dependency.aspect)
+                    && link.scope.validation_scope == dependency.subscription
+            });
+            if already_present {
+                continue;
+            }
+            explanation.causal_links.push(CausalLink {
+                source: Some(dependency.source),
+                aspect: Some(dependency.aspect),
+                disposition: CausalDisposition::Topology,
+                kind: CausalLinkKind::DependencyRemoved,
+                scope: ScopeProvenance {
+                    source_scope: dependency.subscription.clone(),
+                    validation_scope: dependency.subscription.clone(),
+                    kind: ScopeProvenanceKind::Direct,
+                    note: Some("dependency rewired away from current topology".to_string()),
+                },
+                cached_version: None,
+                current_version: None,
+                comparator: None,
+                reason: None,
+                note: Some("rewiring removed this dependency during apply".to_string()),
+            });
+        }
+
+        for dependency in &rewiring.added {
+            let already_present = explanation.causal_links.iter().any(|link| {
+                matches!(link.kind, CausalLinkKind::DependencyAdded)
+                    && link.source == Some(dependency.source)
+                    && link.aspect == Some(dependency.aspect)
+                    && link.scope.validation_scope == dependency.subscription
+            });
+            if already_present {
+                continue;
+            }
+            explanation.causal_links.push(CausalLink {
+                source: Some(dependency.source),
+                aspect: Some(dependency.aspect),
+                disposition: CausalDisposition::Topology,
+                kind: CausalLinkKind::DependencyAdded,
+                scope: ScopeProvenance {
+                    source_scope: dependency.subscription.clone(),
+                    validation_scope: dependency.subscription.clone(),
+                    kind: ScopeProvenanceKind::Direct,
+                    note: Some("dependency entered the active topology during rewiring".to_string()),
+                },
+                cached_version: None,
+                current_version: self
+                    .get_entry(dependency.source)
+                    .ok()
+                    .map(|entry| entry.version_for_scope(dependency.aspect, dependency.subscription.as_ref())),
+                comparator: None,
+                reason: None,
+                note: Some("rewiring added this dependency during apply".to_string()),
+            });
+        }
+    }
+
+    fn restore_authority_from_snapshot_proof(
+        &self,
+        snapshot: &SignalSnapshotV1,
+        proof: &crate::logic::transaction::ReconstructabilityProof,
+    ) -> Result<SignalGraph, SignalError> {
+        if proof.checkpoint.authority_branch_id != snapshot.meta.branch_id
+            || proof.checkpoint.authority_snapshot_id != Some(snapshot.meta.snapshot_id)
+        {
+            return Err(SignalError::incompatible_snapshot(format!(
+                "snapshot `{}` reconstructability proof does not match snapshot identity",
+                snapshot.meta.snapshot_id.0
+            )));
+        }
+        let mut restored =
+            SignalGraph::restore_from_checkpoint_authority(&snapshot.checkpoint_image.authority);
+        restored.telemetry_mut().checkpoint.restore_authority_breadth +=
+            restored.active_node_count() as u64;
+        Ok(restored)
+    }
+
+    fn rebuild_required_derived_from_snapshot_proof(
+        restored: &mut SignalGraph,
+        snapshot: &SignalSnapshotV1,
+        proof: &crate::logic::transaction::ReconstructabilityProof,
+        restore_plan: &SnapshotRestorePlan,
+    ) -> Result<(), SignalError> {
+        let mut rebuild_breadth = 0_u64;
+        for requirement in &proof.required_rebuild {
+            match requirement {
+                crate::logic::transaction::RequiredDerivedRebuildSet::DependencyIndexes(_) => {
+                    restored.apply_snapshot_batch_commit(
+                        &snapshot.checkpoint_image.dependency_snapshot_batch,
+                    )?;
+                    rebuild_breadth += snapshot
+                        .checkpoint_image
+                        .dependency_snapshot_batch
+                        .target_nodes()
+                        .as_slice()
+                        .len() as u64;
+                }
+                crate::logic::transaction::RequiredDerivedRebuildSet::ReplaySuffix(replay) => {
+                    if snapshot.diagnostics.replay_frames.len() < replay.replay_event_count as usize {
+                        return Err(SignalError::incompatible_snapshot(format!(
+                            "snapshot `{}` replay payload is shorter than reconstructability proof",
+                            snapshot.meta.snapshot_id.0
+                        )));
+                    }
+                    rebuild_breadth += replay.replay_event_count as u64;
+                }
+                crate::logic::transaction::RequiredDerivedRebuildSet::MergeSupport(_) => {
+                    restored.clear_branch_mutation_nodes();
+                    rebuild_breadth += restore_plan.coarse_reasons.len() as u64;
+                }
+            }
+        }
+        restored.telemetry_mut().checkpoint.restore_required_derived_breadth += rebuild_breadth;
+        Ok(())
+    }
+
+    fn apply_snapshot_diagnostic_policy_richness(
+        restored: &mut SignalGraph,
+        snapshot: &SignalSnapshotV1,
+        current_diagnostics: &crate::diagnostics::state::DiagnosticsState,
+        current_policy: crate::diagnostics::policy::SignalRuntimePolicy,
+        intent: SnapshotRestoreIntent,
+    ) {
+        restored
+            .observation
+            .diagnostics
+            .restore_snapshot_payload_preserving_history_from(
+                snapshot.diagnostics.clone(),
+                current_diagnostics,
+            );
+        match intent.artifacts {
+            SnapshotArtifactRestoreMode::RestoreCapturedRetention => {}
+            SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy => {
+                restored
+                    .observation
+                    .diagnostics
+                    .set_policy(current_policy);
+            }
+        }
+        let diagnostics_breadth = snapshot.diagnostics.recent_history.len() as u64
+            + snapshot.diagnostics.replay_frames.len() as u64
+            + snapshot.diagnostics.explanation_facts.len() as u64
+            + snapshot.diagnostics.provenance_facts.len() as u64
+            + snapshot.diagnostics.lineage_records.len() as u64;
+        restored.telemetry_mut().checkpoint.restore_diagnostic_richness_breadth +=
+            diagnostics_breadth;
+    }
+
     pub(crate) fn record_operational_diagnostic_facts(
         &mut self,
         node: NodeId,
@@ -22,43 +184,27 @@ impl SignalGraph {
         if !policy.retains_explanation_facts() && !policy.retains_provenance_facts() {
             return Ok(());
         }
-        let entry = self.get_entry(node)?;
-        let Some(runtime) = entry.get_runtime_artifact_state() else {
+        if self.get_entry(node)?.get_runtime_artifact_state().is_none() {
             return Ok(());
-        };
-        let eval = entry.get_eval_config();
-        let retained = entry.retained_diagnostic_artifact();
-        let causality = entry.get_causality();
-        let explanation_fact = policy.retains_explanation_facts().then(|| {
-            ExplanationFact::from_runtime_projection(
-                node,
-                *entry.get_state(),
-                eval.contract.semantics.reads,
-                eval.contract.semantics.produces,
-                eval.contract.semantics.partition_scope.clone(),
-                eval.contract.semantics.required_context,
-                eval.condition.clone(),
-                runtime,
-                retained,
-                causality,
-                rewiring.clone(),
-            )
-        });
-        let provenance_fact = policy.retains_provenance_facts().then(|| {
-            ProvenanceFact::from_runtime_projection(
-                node,
-                *entry.get_state(),
-                eval.contract.semantics.reads,
-                eval.contract.semantics.produces,
-                eval.contract.semantics.partition_scope.clone(),
-                eval.contract.semantics.required_context,
-                eval.condition.clone(),
-                runtime,
-                retained,
-                causality,
-                rewiring,
-            )
-        });
+        }
+        let mut explanation = crate::logic::explain::explain(self, node)?;
+        if explanation.rewiring.is_none() {
+            explanation.rewiring = rewiring.or_else(|| {
+                crate::logic::explain::derive_rewiring_summary(self, node)
+                    .ok()
+                    .flatten()
+            });
+        }
+        if let Some(rewiring) = explanation.rewiring.clone() {
+            self.attach_rewiring_topology_links(&mut explanation, &rewiring);
+        }
+        explanation.materialization_mode = DiagnosticsAvailability::RetainedAvailable;
+        let explanation_fact = policy
+            .retains_explanation_facts()
+            .then(|| ExplanationFact::from_explanation(&explanation));
+        let provenance_fact = policy
+            .retains_provenance_facts()
+            .then(|| ProvenanceFact::from_explanation(&explanation));
         let diagnostics = self.diagnostics_state_mut();
         if let Some(fact) = explanation_fact {
             diagnostics.record_explanation_fact(fact);
@@ -89,15 +235,54 @@ impl SignalGraph {
             Some(meta.snapshot_id),
             format!("snapshot {}", meta.snapshot_id.0),
         );
+        let snapshot_id = meta.snapshot_id;
+        let replay_head = meta.replay_head;
+        let retained_replay = self
+            .observe()
+            .replay_events()
+            .iter()
+            .cloned()
+            .collect::<Vec<_>>();
         SignalSnapshotV1 {
             meta,
-            graph: self.clone(),
+            checkpoint_image: SignalCheckpointImage {
+                authority: self.capture_checkpoint_authority(),
+                dependency_snapshot_batch: self.capture_checkpoint_dependency_snapshot_batch(),
+                graph_telemetry: self.telemetry().clone(),
+            },
+            diagnostic_graph: self.clone(),
             diagnostics: self
                 .diagnostics_state()
                 .snapshot_payload_with_retention(artifact_retention),
             graph_telemetry: self.telemetry().clone(),
             runtime_telemetry: None,
-            reconstructability: None,
+            reconstructability: Some(
+                crate::logic::transaction::ReconstructabilityRecord::from_snapshot_boundary(
+                    self.current_branch().id,
+                    snapshot_id,
+                    replay_head,
+                    crate::logic::transaction::CheckpointRecord::from_checkpoint_telemetry(
+                        crate::data::telemetry::CheckpointTelemetry {
+                            checkpoint_size: self.telemetry().checkpoint.checkpoint_size,
+                            journal_replay_span: self.telemetry().checkpoint.journal_replay_span,
+                            restore_authority_breadth: self
+                                .telemetry()
+                                .checkpoint
+                                .restore_authority_breadth,
+                            restore_required_derived_breadth: self
+                                .telemetry()
+                                .checkpoint
+                                .restore_required_derived_breadth,
+                            restore_diagnostic_richness_breadth: self
+                                .telemetry()
+                                .checkpoint
+                                .restore_diagnostic_richness_breadth,
+                            ..crate::data::telemetry::CheckpointTelemetry::default()
+                        },
+                    ),
+                    &retained_replay,
+                ),
+            ),
         }
     }
 
@@ -140,7 +325,7 @@ impl SignalGraph {
             let Some(node) = self.live_node_id_at(index) else {
                 continue;
             };
-            if snapshot.graph.is_alive(node) {
+            if snapshot.diagnostic_graph.is_alive(node) {
                 shared_node_count += 1;
             } else {
                 current_only_node_count += 1;
@@ -148,8 +333,13 @@ impl SignalGraph {
         }
 
         let mut snapshot_only_node_count = 0_u64;
-        for index in 0..snapshot.graph.arena_capacity() {
-            let Some(node) = snapshot.graph.live_node_id_at(index) else {
+        for index in 0..SignalGraph::checkpoint_authority_arena_capacity(
+            &snapshot.checkpoint_image.authority,
+        ) {
+            let Some(node) = SignalGraph::checkpoint_authority_live_node_id_at(
+                &snapshot.checkpoint_image.authority,
+                index,
+            ) else {
                 continue;
             };
             if !self.is_alive(node) {
@@ -157,8 +347,11 @@ impl SignalGraph {
             }
         }
 
-        let dependency_snapshot_batch =
-            self.derive_dependency_snapshot_restore_batch(&snapshot.graph)?;
+        let dependency_snapshot_batch = self
+            .derive_dependency_snapshot_restore_batch_from_checkpoint_batch(
+                &snapshot.checkpoint_image.authority,
+                &snapshot.checkpoint_image.dependency_snapshot_batch,
+            )?;
         let dependency_snapshot_delta_node_count =
             dependency_snapshot_batch.target_nodes().as_slice().len() as u64;
         let mut coarse_reasons = vec![
@@ -186,6 +379,7 @@ impl SignalGraph {
         snapshot: &SignalSnapshotV1,
         intent: SnapshotRestoreIntent,
     ) -> Result<(), SignalError> {
+        let reconstructability_proof = snapshot.reconstructability_proof()?;
         let restore_plan = self.plan_snapshot_restore(snapshot, intent)?;
         self.validate_snapshot_compatibility(snapshot)?;
         if matches!(
@@ -198,24 +392,22 @@ impl SignalGraph {
         }
         let current_diagnostics = self.observation.diagnostics.clone();
         let current_policy = current_diagnostics.policy();
-        let mut restored = snapshot.graph.clone();
-        restored.observation.telemetry = snapshot.graph_telemetry.clone();
-        restored
-            .observation
-            .diagnostics
-            .restore_snapshot_payload_preserving_history_from(
-                snapshot.diagnostics.clone(),
-                &current_diagnostics,
-            );
-        match intent.artifacts {
-            SnapshotArtifactRestoreMode::RestoreCapturedRetention => {}
-            SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy => {
-                restored
-                    .observation
-                    .diagnostics
-                    .set_policy(current_policy);
-            }
-        }
+        let mut restored =
+            self.restore_authority_from_snapshot_proof(snapshot, &reconstructability_proof)?;
+        restored.observation.telemetry = snapshot.checkpoint_image.graph_telemetry.clone();
+        Self::rebuild_required_derived_from_snapshot_proof(
+            &mut restored,
+            snapshot,
+            &reconstructability_proof,
+            &restore_plan,
+        )?;
+        Self::apply_snapshot_diagnostic_policy_richness(
+            &mut restored,
+            snapshot,
+            &current_diagnostics,
+            current_policy,
+            intent,
+        );
         *self = restored;
         self.telemetry_mut().checkpoint.snapshot_restore_count += 1;
         if matches!(

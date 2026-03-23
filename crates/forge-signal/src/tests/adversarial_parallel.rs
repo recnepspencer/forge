@@ -9,6 +9,7 @@ use crate::data::comparator::{
     DefaultComparatorPolicyResolver, DefaultComparatorResolver, VersionComparatorPolicy,
 };
 use crate::facade::*;
+use crate::logic::planner::model::ParallelAdmissionReason;
 use crate::logic::planner::{ParallelApplyMode, ParallelExecutionPolicy};
 use crate::logic::prepared::{PreparedDependencyCapture, PreparedEvaluation};
 use crate::tests::support::{version_ab, ASPECT_A};
@@ -254,11 +255,17 @@ fn full_parallel_splits_wide_stage_into_deterministic_apply_groups() {
 
     assert_eq!(report.stages.len(), 1);
     let stage = &report.stages[0];
+    assert!(matches!(stage.outcome, StageExecutionOutcome::CompletedParallel));
     assert_eq!(
         stage.apply_mode,
         Some(ParallelApplyMode::GroupedConcurrentApply)
     );
+    assert_eq!(
+        stage.parallel_admission_reason,
+        Some(ParallelAdmissionReason::AdmittedProofSafeGroupedConcurrent)
+    );
     assert_eq!(stage.apply_group_count, 2);
+    assert_eq!(stage.serial_fallback_group_count, 0);
     assert_eq!(stage.concurrent_apply_task_count, requested.len() as u32);
 }
 
@@ -396,7 +403,7 @@ fn full_parallel_rewires_dynamic_dependencies_without_losing_parity() {
     assert!(parallel_report
         .stages
         .iter()
-        .any(|stage| { stage.apply_mode == Some(ParallelApplyMode::GroupedConcurrentApply) }));
+        .any(|stage| { stage.apply_mode == Some(ParallelApplyMode::SerialApply) }));
     assert_eq!(serial_report.tasks_executed, parallel_report.tasks_executed);
 }
 

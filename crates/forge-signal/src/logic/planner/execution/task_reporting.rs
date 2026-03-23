@@ -25,7 +25,9 @@ pub(crate) fn classify_task_record(
     reuse_basis: ReuseBasis,
 ) -> ExecutedTask {
     let trace_changed = before_trace != after_trace;
-    let recomputed = matches!(verdict, EvaluationVerdict::Recomputed);
+    let recomputed = after_trace
+        .map(|trace| trace.recomputed)
+        .unwrap_or(matches!(verdict, EvaluationVerdict::Recomputed));
     let reuse_origin = after_trace
         .map(|trace| trace.reuse_origin)
         .unwrap_or_else(|| classify_reuse_origin(&verdict, &reuse_basis));
@@ -66,6 +68,9 @@ pub(crate) fn classify_task_record(
             _ if matches!(reuse_origin, ReuseOrigin::PartialArtifactSplice) => {
                 (TaskExecutionOutcome::PartialArtifactSplice, None)
             }
+            _ if recomputed && !propagation_suppressed => {
+                (TaskExecutionOutcome::Recomputed, None)
+            }
             _ if propagation_suppressed => (TaskExecutionOutcome::PropagationSuppressed, None),
             _ if !trace_changed
                 && matches!(
@@ -105,23 +110,23 @@ pub(crate) fn classify_task_record(
 }
 
 fn classify_reuse_origin(verdict: &EvaluationVerdict, reuse_basis: &ReuseBasis) -> ReuseOrigin {
-    match verdict {
-        EvaluationVerdict::Suppressed {
-            reason:
-                SuppressionReason::OutputIdentityUnchanged
-                | SuppressionReason::ContinuityTokenUnchanged
-                | SuppressionReason::ComparatorMatch,
-        } => ReuseOrigin::OutputSuppressed,
-        _ => match reuse_basis.strategy {
-            Some(ReuseStrategy::MemoizedArtifactReuse) => ReuseOrigin::MemoizedArtifactReuse,
-            Some(ReuseStrategy::SnapshotRestoreReuse) => ReuseOrigin::SnapshotRestore,
-            Some(ReuseStrategy::ReconciliationAdoption) => ReuseOrigin::ReconciliationAdoption,
-            Some(ReuseStrategy::CrossIdentityPersistentMatch) => {
-                ReuseOrigin::CrossIdentityPersistentReuse
-            }
-            Some(ReuseStrategy::PartialArtifactSplicing) => ReuseOrigin::PartialArtifactSplice,
-            Some(ReuseStrategy::OutputSuppression) => ReuseOrigin::OutputSuppressed,
-            None => ReuseOrigin::FreshCompute,
+    match reuse_basis.strategy {
+        Some(ReuseStrategy::MemoizedArtifactReuse) => ReuseOrigin::MemoizedArtifactReuse,
+        Some(ReuseStrategy::SnapshotRestoreReuse) => ReuseOrigin::SnapshotRestore,
+        Some(ReuseStrategy::ReconciliationAdoption) => ReuseOrigin::ReconciliationAdoption,
+        Some(ReuseStrategy::CrossIdentityPersistentMatch) => {
+            ReuseOrigin::CrossIdentityPersistentReuse
+        }
+        Some(ReuseStrategy::PartialArtifactSplicing) => ReuseOrigin::PartialArtifactSplice,
+        Some(ReuseStrategy::OutputSuppression) => ReuseOrigin::OutputSuppressed,
+        None => match verdict {
+            EvaluationVerdict::Suppressed {
+                reason:
+                    SuppressionReason::OutputIdentityUnchanged
+                    | SuppressionReason::ContinuityTokenUnchanged
+                    | SuppressionReason::ComparatorMatch,
+            } => ReuseOrigin::OutputSuppressed,
+            _ => ReuseOrigin::FreshCompute,
         },
     }
 }

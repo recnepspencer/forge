@@ -67,7 +67,13 @@ impl<'a> RelationalTransaction<'a> {
         })?;
         let merged_plan = prepared.merged_plan;
         let structural_summary = prepared.structural_summary;
-        let public_structural_summary = structural_summary.public_summary();
+        let public_structural_summary = structural_summary.public_summary(
+            self.runtime
+                .config
+                .schema
+                .descriptor_semantics_policy
+                .current_write_version(),
+        );
         let mut working_state = prepared.working_state;
         record_preparation_counters(self.runtime, &working_state, &structural_summary);
         commit_log.record_structural_summary(&public_structural_summary);

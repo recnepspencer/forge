@@ -9,6 +9,7 @@ pub enum ReplayFailureClass {
     BranchMismatch,
     SchemaMismatch,
     UnsupportedReplaySchema,
+    AuthoritativeBasisUnavailable,
     ObservableMismatch,
 }
 
