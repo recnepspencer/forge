@@ -115,7 +115,7 @@ impl SignalGraph {
             match requirement {
                 crate::logic::transaction::RequiredDerivedRebuildSet::DependencyIndexes(_) => {
                     restored.apply_snapshot_batch_commit(
-                        &snapshot.checkpoint_image.dependency_snapshot_batch,
+                        snapshot.checkpoint_image.dependency_snapshot_batch.clone(),
                     )?;
                     rebuild_breadth += snapshot
                         .checkpoint_image
@@ -184,27 +184,39 @@ impl SignalGraph {
         if !policy.retains_explanation_facts() && !policy.retains_provenance_facts() {
             return Ok(());
         }
-        if self.get_entry(node)?.get_runtime_artifact_state().is_none() {
+        let entry = self.get_entry(node)?;
+        let Some(runtime) = entry.get_runtime_artifact_state() else {
             return Ok(());
+        };
+        let contract = self.get_contract(node)?.clone();
+        let condition = entry.get_eval_config().condition.clone();
+        let rewiring = rewiring;
+        let mut compact_explanation = ExplanationFact::from_runtime_projection(
+            node,
+            *entry.get_state(),
+            contract.semantics.reads,
+            contract.semantics.produces,
+            contract.semantics.partition_scope.clone(),
+            contract.semantics.required_context,
+            condition,
+            runtime,
+            entry.retained_diagnostic_artifact(),
+            entry.get_causality(),
+            rewiring.clone(),
+        )
+        .explanation;
+        if let Some(rewiring) = compact_explanation.rewiring.clone() {
+            self.attach_rewiring_topology_links(&mut compact_explanation, &rewiring);
         }
-        let mut explanation = crate::logic::explain::explain(self, node)?;
-        if explanation.rewiring.is_none() {
-            explanation.rewiring = rewiring.or_else(|| {
-                crate::logic::explain::derive_rewiring_summary(self, node)
-                    .ok()
-                    .flatten()
-            });
-        }
-        if let Some(rewiring) = explanation.rewiring.clone() {
-            self.attach_rewiring_topology_links(&mut explanation, &rewiring);
-        }
-        explanation.materialization_mode = DiagnosticsAvailability::RetainedAvailable;
-        let explanation_fact = policy
-            .retains_explanation_facts()
-            .then(|| ExplanationFact::from_explanation(&explanation));
+        compact_explanation.materialization_mode = DiagnosticsAvailability::RetainedAvailable;
+        let explanation_fact = policy.retains_explanation_facts().then(|| {
+            let mut fact = ExplanationFact::from_explanation(&compact_explanation);
+            fact.compact_projection = true;
+            fact
+        });
         let provenance_fact = policy
             .retains_provenance_facts()
-            .then(|| ProvenanceFact::from_explanation(&explanation));
+            .then(|| ProvenanceFact::from_explanation(&compact_explanation));
         let diagnostics = self.diagnostics_state_mut();
         if let Some(fact) = explanation_fact {
             diagnostics.record_explanation_fact(fact);
@@ -515,11 +527,49 @@ impl SignalGraph {
         Ok(explanation)
     }
 
+    pub(crate) fn reconstruct_explanation_artifact_without_retained_fast_path(
+        &self,
+        node: NodeId,
+    ) -> Result<NodeExplanation, SignalError> {
+        let mut comparator = crate::data::comparator::DefaultComparatorResolver;
+        let resolver = crate::data::comparator::DefaultComparatorPolicyResolver {
+            fallback: crate::data::comparator::VersionComparatorPolicy::Exact,
+            custom: &mut comparator,
+        };
+        let mut explanation =
+            crate::logic::explain::explain_reconstructing_with_policy_resolver(
+                self, node, &resolver,
+            )?;
+        explanation.materialization_mode = DiagnosticsAvailability::ReconstructedAvailable;
+        self.record_hot_path_artifact_reconstruction();
+        self.record_cold_explanation_reconstruction();
+        Ok(explanation)
+    }
+
     pub(crate) fn reconstruct_provenance_artifact(
         &self,
         node: NodeId,
     ) -> Result<ProvenanceFact, SignalError> {
         let mut explanation = explain(self, node)?;
+        explanation.materialization_mode = DiagnosticsAvailability::ReconstructedAvailable;
+        self.record_hot_path_artifact_reconstruction();
+        self.record_cold_provenance_reconstruction();
+        Ok(ProvenanceFact::from_explanation(&explanation))
+    }
+
+    pub(crate) fn reconstruct_provenance_artifact_without_retained_fast_path(
+        &self,
+        node: NodeId,
+    ) -> Result<ProvenanceFact, SignalError> {
+        let mut comparator = crate::data::comparator::DefaultComparatorResolver;
+        let resolver = crate::data::comparator::DefaultComparatorPolicyResolver {
+            fallback: crate::data::comparator::VersionComparatorPolicy::Exact,
+            custom: &mut comparator,
+        };
+        let mut explanation =
+            crate::logic::explain::explain_reconstructing_with_policy_resolver(
+                self, node, &resolver,
+            )?;
         explanation.materialization_mode = DiagnosticsAvailability::ReconstructedAvailable;
         self.record_hot_path_artifact_reconstruction();
         self.record_cold_provenance_reconstruction();

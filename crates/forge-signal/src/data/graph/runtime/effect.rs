@@ -14,6 +14,7 @@ use crate::logic::evaluation::{
     SuppressionReason,
 };
 use smallvec::SmallVec;
+use std::time::Instant;
 
 use super::graph::{RuntimeArtifactStructuralDelta, SignalGraph};
 
@@ -51,9 +52,33 @@ impl SignalGraph {
         comparator: VersionComparatorPolicy,
         comparator_resolver: &mut impl ComparatorPolicyResolver,
         defer_snapshot_commit: bool,
-    ) -> Result<AppliedEffectReport, SignalError> {
+    ) -> Result<
+        (
+            AppliedEffectReport,
+            Option<crate::logic::evaluation::PendingDependencySnapshot>,
+        ),
+        SignalError,
+    > {
         let comparison = self.compare_effect(&effect, comparator)?;
         let trace = self.build_effect_trace(&effect, comparison)?;
+        let pending_snapshot = if defer_snapshot_commit {
+            let snapshot_start = Instant::now();
+            let pending = crate::logic::evaluation::PendingDependencySnapshot {
+                node: effect.operational.node,
+                update: std::mem::replace(
+                    &mut effect.operational.dependency_snapshot_update,
+                    crate::data::dependency::DependencySnapshotUpdate::Replace(
+                        crate::data::dependency::SharedDependencySnapshot::empty(),
+                    ),
+                ),
+                delta: effect.operational.snapshot_delta,
+            };
+            self.telemetry_mut().execution.deferred_snapshot_packet_nanos +=
+                snapshot_start.elapsed().as_nanos();
+            Some(pending)
+        } else {
+            None
+        };
         self.transition_effect_state(&mut effect, trace)?;
         if !defer_snapshot_commit {
             self.commit_effect_snapshot(&mut effect)?;
@@ -65,11 +90,14 @@ impl SignalGraph {
             comparator_resolver,
         )?;
         self.record_effect_telemetry(&effect, &comparison, suppressed_downstream);
-        Ok(AppliedEffectReport {
-            verdict: effect.operational.verdict,
-            comparison,
-            suppressed_downstream,
-        })
+        Ok((
+            AppliedEffectReport {
+                verdict: effect.operational.verdict,
+                comparison,
+                suppressed_downstream,
+            },
+            pending_snapshot,
+        ))
     }
 
     #[cfg_attr(not(feature = "parallel"), allow(dead_code))]
@@ -186,8 +214,7 @@ impl SignalGraph {
     {
         let previous_trace = self
             .get_entry(effect.operational.node)?
-            .get_runtime_artifact_state()
-            .cloned();
+            .get_runtime_artifact_state();
         let trace = match effect.operational.verdict {
             EvaluationVerdict::Recomputed => Some((
                 RuntimeArtifactState {
@@ -226,15 +253,12 @@ impl SignalGraph {
             } => Some((
                 RuntimeArtifactState {
                     output_hash: previous_trace
-                        .as_ref()
                         .map(|trace| trace.output_hash)
                         .unwrap_or_else(|| trace_output_hash(effect.operational.aspect_version)),
                     output_identity: previous_trace
-                        .as_ref()
                         .and_then(|trace| trace.output_identity.clone())
                         .or_else(|| effect.output_identity().cloned()),
                     continuity_token: previous_trace
-                        .as_ref()
                         .and_then(|trace| trace.continuity_token.clone())
                         .or_else(|| effect.continuity_token().cloned()),
                     output_change: comparison.output_change,
@@ -279,7 +303,15 @@ impl SignalGraph {
         let mut state_changed = false;
         {
             let entry = self.get_entry_mut(node)?;
-            let previous_runtime_artifact = entry.get_runtime_artifact_state().cloned();
+            let previous_artifact_id = entry
+                .get_runtime_artifact_state()
+                .and_then(|runtime| runtime.lineage_artifact_id);
+            let previous_output_hash = entry
+                .get_runtime_artifact_state()
+                .map(|runtime| runtime.output_hash);
+            let previous_reuse_basis = entry
+                .get_runtime_artifact_state()
+                .map(|runtime| runtime.reuse_basis.clone());
             if let Some(causality) = effect.take_causality() {
                 entry.set_causality(Some(causality));
                 causality_changed = true;
@@ -292,17 +324,11 @@ impl SignalGraph {
                     );
                     if let Some((runtime_artifact_state, retained_artifact)) = artifact {
                         runtime_artifact_delta = Some(RuntimeArtifactStructuralDelta {
-                            previous_artifact_id: previous_runtime_artifact
-                                .as_ref()
-                                .and_then(|runtime| runtime.lineage_artifact_id),
+                            previous_artifact_id,
                             next_artifact_id: runtime_artifact_state.lineage_artifact_id,
-                            previous_output_hash: previous_runtime_artifact
-                                .as_ref()
-                                .map(|runtime| runtime.output_hash),
+                            previous_output_hash,
                             next_output_hash: Some(runtime_artifact_state.output_hash),
-                            previous_reuse_basis: previous_runtime_artifact
-                                .as_ref()
-                                .map(|runtime| runtime.reuse_basis.clone()),
+                            previous_reuse_basis: previous_reuse_basis.clone(),
                             next_reuse_basis: Some(runtime_artifact_state.reuse_basis.clone()),
                         });
                         entry.apply_artifact_write_delta(ArtifactWriteDelta {
@@ -322,17 +348,11 @@ impl SignalGraph {
                 } => {
                     if let Some((runtime_artifact_state, retained_artifact)) = artifact {
                         runtime_artifact_delta = Some(RuntimeArtifactStructuralDelta {
-                            previous_artifact_id: previous_runtime_artifact
-                                .as_ref()
-                                .and_then(|runtime| runtime.lineage_artifact_id),
+                            previous_artifact_id,
                             next_artifact_id: runtime_artifact_state.lineage_artifact_id,
-                            previous_output_hash: previous_runtime_artifact
-                                .as_ref()
-                                .map(|runtime| runtime.output_hash),
+                            previous_output_hash,
                             next_output_hash: Some(runtime_artifact_state.output_hash),
-                            previous_reuse_basis: previous_runtime_artifact
-                                .as_ref()
-                                .map(|runtime| runtime.reuse_basis.clone()),
+                            previous_reuse_basis,
                             next_reuse_basis: Some(runtime_artifact_state.reuse_basis.clone()),
                         });
                         entry.apply_artifact_write_delta(ArtifactWriteDelta {

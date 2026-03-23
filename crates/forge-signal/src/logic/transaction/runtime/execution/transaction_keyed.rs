@@ -126,6 +126,13 @@ where
             .memo_key
             .as_ref()
             .map(|memo_key| self.config.key_registry.intern_memo_key(memo_key));
+        let resolve_memo_key_id = || {
+            memo_key_id.ok_or_else(|| {
+                SignalError::internal(
+                    "memoized keyed execution is missing an interned memo key id",
+                )
+            })
+        };
         let base_keyed_context = PreparedKeyedContext {
             family: Some(computation.family.clone()),
             key: Some(computation.key.clone()),
@@ -141,7 +148,7 @@ where
                 .get(&(
                     family_id,
                     key_id,
-                    memo_key_id.expect("memo key id should exist"),
+                    resolve_memo_key_id()?,
                 ))
                 .cloned()
                 .or_else(|| {
@@ -166,7 +173,7 @@ where
                     (
                         family_id,
                         key_id,
-                        memo_key_id.expect("memo key id should exist"),
+                        resolve_memo_key_id()?,
                     ),
                     cached_result.clone(),
                 );
@@ -261,7 +268,7 @@ where
                         (
                             family_id,
                             key_id,
-                            memo_key_id.expect("memo key id should exist when memo key exists"),
+                            resolve_memo_key_id()?,
                         ),
                         last_result,
                     );

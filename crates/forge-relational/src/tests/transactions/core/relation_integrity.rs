@@ -6,10 +6,16 @@ fn source_max_one_runtime() -> RelationalRuntime {
         relation_integrity: crate::schema::data::RelationIntegrityDeclarations::new(
             Vec::new(),
             vec![crate::schema::data::CardinalityContractDeclaration {
-                contract_id: "source_max_one".to_string(),
+                contract_id: "source_max_one".into(),
                 source_max: Some(1),
+                source_min: None,
                 target_max: None,
+                target_min: None,
                 pair_max: None,
+                pair_min: None,
+                pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                minimum_enforcement:
+                    crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
             }],
             Vec::new(),
             Vec::new(),
@@ -18,6 +24,72 @@ fn source_max_one_runtime() -> RelationalRuntime {
         ..RelationIntegritySchemaFixture::default()
     }
     .build_runtime()
+}
+
+fn publication_source_min_one_runtime() -> RelationalRuntime {
+    RelationIntegritySchemaFixture {
+        relation_integrity: crate::schema::data::RelationIntegrityDeclarations::new(
+            vec![crate::schema::data::EndpointKindContractDeclaration {
+                contract_id: "endpoint_domain".into(),
+                allowed_source_kinds: vec![KindId(1)],
+                allowed_target_kinds: vec![KindId(1)],
+                self_edges_allowed: true,
+                cross_context_policy: CrossContextPolicy::AllowExplicit,
+            }],
+            vec![crate::schema::data::CardinalityContractDeclaration {
+                contract_id: "source_min_one".into(),
+                source_max: None,
+                source_min: Some(1),
+                target_max: None,
+                target_min: None,
+                pair_max: None,
+                pair_min: None,
+                pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                minimum_enforcement:
+                    crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
+            }],
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+        ),
+        ..RelationIntegritySchemaFixture::default()
+    }
+    .build_runtime()
+}
+
+fn publication_pair_min_two_runtime() -> RelationalRuntime {
+    RelationIntegritySchemaFixture {
+        relation_integrity: crate::schema::data::RelationIntegrityDeclarations::new(
+            vec![crate::schema::data::EndpointKindContractDeclaration {
+                contract_id: "endpoint_domain".into(),
+                allowed_source_kinds: vec![KindId(1)],
+                allowed_target_kinds: vec![KindId(1)],
+                self_edges_allowed: true,
+                cross_context_policy: CrossContextPolicy::AllowExplicit,
+            }],
+            vec![crate::schema::data::CardinalityContractDeclaration {
+                contract_id: "pair_min_two".into(),
+                source_max: None,
+                source_min: None,
+                target_max: None,
+                target_min: None,
+                pair_max: None,
+                pair_min: Some(2),
+                pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                minimum_enforcement:
+                    crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
+            }],
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+        ),
+        ..RelationIntegritySchemaFixture::default()
+    }
+    .build_runtime()
+}
+
+fn certification_authority_source_min_one_runtime() -> RelationalRuntime {
+    publication_source_min_one_runtime()
 }
 
 #[test]
@@ -42,7 +114,7 @@ fn relation_integrity_commit_boundary_rejects_forbidden_self_edge() {
                 aspect_declarations: KindAspectDeclarations::default(),
                 relation_integrity: crate::schema::data::RelationIntegrityDeclarations::new(
                     vec![crate::schema::data::EndpointKindContractDeclaration {
-                        contract_id: "no_self".to_string(),
+                        contract_id: "no_self".into(),
                         allowed_source_kinds: vec![KindId(1)],
                         allowed_target_kinds: vec![KindId(1)],
                         self_edges_allowed: false,
@@ -114,6 +186,66 @@ fn relation_integrity_commit_boundary_rejects_source_cardinality_overflow() {
         }
         other => panic!("expected conflict, got {:?}", other),
     }
+}
+
+#[test]
+fn relation_integrity_certification_boundary_rejects_zero_edge_entity_for_minimum_cardinality() {
+    let mut runtime = publication_source_min_one_runtime();
+    let _orphan = create_entity(&mut runtime, "orphan");
+
+    let result = runtime.invariant_access().certification_state();
+    let failure = result
+        .summary()
+        .publication_failure()
+        .expect("certification minimum cardinality failure");
+
+    assert_eq!(failure.code(), DiagnosticCode::RelationCardinalityViolation);
+    let fields = failure.fields();
+    assert_eq!(fields["contract_id"], json!("source_min_one"));
+    assert_eq!(fields["relation_kind_id"], json!(2));
+    assert_eq!(fields["boundary"], json!("source"));
+    assert_eq!(fields["count"], json!(0));
+    assert_eq!(fields["limit"], json!(1));
+    assert_eq!(
+        result.metadata().execution_point().diagnostic_label(),
+        "certification_boundary"
+    );
+}
+
+#[test]
+fn relation_integrity_certification_boundary_rejects_observed_pair_below_parallel_minimum() {
+    let mut runtime = publication_pair_min_two_runtime();
+    let source = create_entity(&mut runtime, "source");
+    let target = create_entity(&mut runtime, "target");
+    create_relation(&mut runtime, source, target, "single");
+
+    let result = runtime.invariant_access().certification_state();
+    let failure = result
+        .summary()
+        .publication_failure()
+        .expect("certification pair minimum failure");
+
+    assert_eq!(failure.code(), DiagnosticCode::RelationCardinalityViolation);
+    let fields = failure.fields();
+    assert_eq!(fields["contract_id"], json!("pair_min_two"));
+    assert_eq!(fields["relation_kind_id"], json!(2));
+    assert_eq!(fields["source"], json!(source));
+    assert_eq!(fields["target"], json!(target));
+    assert_eq!(fields["count"], json!(1));
+    assert_eq!(fields["limit"], json!(2));
+}
+
+#[test]
+fn relation_integrity_certification_boundary_is_authority_owned_and_blocks_publication() {
+    let mut runtime = certification_authority_source_min_one_runtime();
+    let _orphan = create_entity(&mut runtime, "orphan");
+
+    let error = runtime
+        .certify_current_state()
+        .expect_err("certification boundary should block incomplete topology");
+
+    assert_eq!(error.stage, PublicationStage::InvariantCheck);
+    assert!(error.detail.contains("source_min_one"));
 }
 
 #[test]
@@ -241,7 +373,7 @@ fn relation_integrity_commit_boundary_rejects_duplicate_normalized_symmetric_edg
                     Vec::new(),
                     Vec::new(),
                     vec![crate::schema::data::UniquenessContractDeclaration {
-                        contract_id: "uniq_norm".to_string(),
+                        contract_id: "uniq_norm".into(),
                         scope: crate::schema::data::UniquenessScope::NormalizedSymmetricEdge,
                     }],
                     Vec::new(),
@@ -306,7 +438,7 @@ fn relation_integrity_commit_boundary_requires_paired_inverse_edge() {
                     Vec::new(),
                     Vec::new(),
                     vec![crate::schema::data::SymmetryContractDeclaration {
-                        contract_id: "paired_inverse".to_string(),
+                        contract_id: "paired_inverse".into(),
                         mode: crate::schema::data::SymmetryMode::PairedInverseRequired,
                     }],
                     Vec::new(),
@@ -374,7 +506,7 @@ fn relation_integrity_commit_boundary_requires_canonical_undirected_ordering() {
                     Vec::new(),
                     Vec::new(),
                     vec![crate::schema::data::SymmetryContractDeclaration {
-                        contract_id: "canonical_undirected".to_string(),
+                        contract_id: "canonical_undirected".into(),
                         mode: crate::schema::data::SymmetryMode::CanonicalUndirected,
                     }],
                     Vec::new(),
@@ -438,7 +570,7 @@ fn relation_integrity_commit_boundary_prohibits_inverse_duplication() {
                     Vec::new(),
                     Vec::new(),
                     vec![crate::schema::data::SymmetryContractDeclaration {
-                        contract_id: "inverse_prohibited".to_string(),
+                        contract_id: "inverse_prohibited".into(),
                         mode: crate::schema::data::SymmetryMode::InverseProhibited,
                     }],
                     Vec::new(),
@@ -502,7 +634,7 @@ fn relation_integrity_commit_boundary_requires_paired_twin_edge() {
                     Vec::new(),
                     Vec::new(),
                     vec![crate::schema::data::SymmetryContractDeclaration {
-                        contract_id: "paired_twin".to_string(),
+                        contract_id: "paired_twin".into(),
                         mode: crate::schema::data::SymmetryMode::PairedTwinRequired,
                     }],
                     Vec::new(),
@@ -596,20 +728,26 @@ fn relation_integrity_commit_reports_contract_counters_on_success() {
                 aspect_declarations: KindAspectDeclarations::default(),
                 relation_integrity: crate::schema::data::RelationIntegrityDeclarations::new(
                     vec![crate::schema::data::EndpointKindContractDeclaration {
-                        contract_id: "no_self".to_string(),
+                        contract_id: "no_self".into(),
                         allowed_source_kinds: vec![KindId(1)],
                         allowed_target_kinds: vec![KindId(1)],
                         self_edges_allowed: false,
                         cross_context_policy: CrossContextPolicy::AllowExplicit,
                     }],
                     vec![crate::schema::data::CardinalityContractDeclaration {
-                        contract_id: "source_max_two".to_string(),
+                        contract_id: "source_max_two".into(),
                         source_max: Some(2),
+                        source_min: None,
                         target_max: None,
+                        target_min: None,
                         pair_max: None,
+                        pair_min: None,
+                        pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                        minimum_enforcement:
+                            crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
                     }],
                     vec![crate::schema::data::UniquenessContractDeclaration {
-                        contract_id: "uniq".to_string(),
+                        contract_id: "uniq".into(),
                         scope: crate::schema::data::UniquenessScope::DirectedSemanticEdge,
                     }],
                     Vec::new(),

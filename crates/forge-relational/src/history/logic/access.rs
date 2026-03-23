@@ -452,9 +452,9 @@ impl<'runtime> HistoryAccess<'runtime> {
             resolved_aspects: Self::resolved_aspects(entries.iter()),
             searched_commit_span: Self::commit_span(&envelopes),
             searched_lineage_event_span: Self::lineage_event_span(&resolution.traversed_event_ids),
-            returned_entries: entries.len(),
-            traversed_commits: envelopes.len(),
-            traversed_lineage_events: resolution.traversed_event_ids.len(),
+            returned_entries: entries.len() as u64,
+            traversed_commits: envelopes.len() as u64,
+            traversed_lineage_events: resolution.traversed_event_ids.len() as u64,
         };
         let history = if entries.is_empty() && lineage_scope.is_empty() {
             None
@@ -513,8 +513,8 @@ impl<'runtime> HistoryAccess<'runtime> {
                 resolved_aspects: Self::resolved_aspects(entries.iter()),
                 searched_commit_span: Self::commit_span(&envelopes),
                 searched_lineage_event_span: None,
-                returned_entries: entries.len(),
-                traversed_commits: envelopes.len(),
+                returned_entries: entries.len() as u64,
+                traversed_commits: envelopes.len() as u64,
                 traversed_lineage_events: 0,
             },
             entries,

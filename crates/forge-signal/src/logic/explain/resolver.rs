@@ -23,19 +23,38 @@ pub fn explain_with_policy_resolver(
     node: NodeId,
     comparator_resolver: &impl ComparatorPolicyResolver,
 ) -> Result<NodeExplanation, SignalError> {
+    explain_with_policy_resolver_mode(graph, node, comparator_resolver, true)
+}
+
+pub(crate) fn explain_reconstructing_with_policy_resolver(
+    graph: &SignalGraph,
+    node: NodeId,
+    comparator_resolver: &impl ComparatorPolicyResolver,
+) -> Result<NodeExplanation, SignalError> {
+    explain_with_policy_resolver_mode(graph, node, comparator_resolver, false)
+}
+
+fn explain_with_policy_resolver_mode(
+    graph: &SignalGraph,
+    node: NodeId,
+    comparator_resolver: &impl ComparatorPolicyResolver,
+    allow_retained_fast_path: bool,
+) -> Result<NodeExplanation, SignalError> {
     let entry = graph.get_entry(node)?;
-    if let Some(fact) = graph.explanation_fact(node) {
+    if allow_retained_fast_path {
+        if let Some(fact) = graph.explanation_fact(node) {
         let current_record = assemble_historical_artifact_record(
             node,
             entry.get_runtime_artifact_state(),
             entry.retained_diagnostic_artifact(),
             entry.get_causality(),
         );
-        if !fact.compact_projection
-            && fact.explanation.state == *entry.get_state()
-            && fact.explanation.historical_artifact_record == current_record
-        {
-            return Ok(fact.explanation.clone());
+            if (!fact.compact_projection || fact.explanation.rewiring.is_some())
+                && fact.explanation.state == *entry.get_state()
+                && fact.explanation.historical_artifact_record == current_record
+            {
+                return Ok(fact.explanation.clone());
+            }
         }
     }
     let state = *entry.get_state();
@@ -282,6 +301,7 @@ pub fn explain_with_policy_resolver(
     })
 }
 
+#[allow(dead_code)]
 pub(crate) fn derive_rewiring_summary(
     graph: &SignalGraph,
     node: NodeId,

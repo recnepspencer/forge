@@ -5,6 +5,7 @@ use super::results::{InvariantAdvisory, InvariantViolation};
 use super::rules::InvariantRule;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum InvariantClass {
     AlwaysOnStructural,
     CommitBoundary,
@@ -13,21 +14,24 @@ pub enum InvariantClass {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum InvariantExecutionPoint {
     MutationSensitive,
     CommitBoundary,
     SnapshotPublication,
+    CertificationBoundary,
     HarnessAudit,
 }
 
 impl InvariantExecutionPoint {
-    pub const COUNT: usize = 4;
+    pub const COUNT: usize = 5;
 
     pub const fn class(self) -> InvariantClass {
         match self {
             Self::MutationSensitive => InvariantClass::AlwaysOnStructural,
             Self::CommitBoundary => InvariantClass::CommitBoundary,
             Self::SnapshotPublication => InvariantClass::SnapshotAudit,
+            Self::CertificationBoundary => InvariantClass::SnapshotAudit,
             Self::HarnessAudit => InvariantClass::HarnessHeavy,
         }
     }
@@ -37,12 +41,14 @@ impl InvariantExecutionPoint {
             Self::MutationSensitive => "mutation_sensitive",
             Self::CommitBoundary => "commit_boundary",
             Self::SnapshotPublication => "snapshot_publication",
+            Self::CertificationBoundary => "certification_boundary",
             Self::HarnessAudit => "harness_audit",
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum InvariantFailureEffect {
     BlockCommit,
     BlockPublication,
@@ -50,6 +56,7 @@ pub enum InvariantFailureEffect {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum InvariantVerdict {
     Pass,
     Advisory {

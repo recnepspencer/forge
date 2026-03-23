@@ -28,6 +28,7 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
                 cascade_delete_policy: CascadeDeletePolicy,
                 publication: PublicationConfig,
                 compiled_lane_policy: CompiledLanePolicy,
+                relation_integrity_scope_budget: RelationIntegrityScopeBudget,
                 initial_entity_capacity: usize,
                 initial_relation_capacity: usize| RelationalRuntimeConfig {
         profile,
@@ -37,6 +38,7 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
             planning: PlanningContract::default(),
             commit_authority: CommitAuthorityContract::default(),
             compiled_lane_policy,
+            relation_integrity_scope_budget,
         },
         diagnostics: DiagnosticsConfig {
             profile: diagnostics,
@@ -86,6 +88,7 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
             "forge-relational",
             RelationalDiagnosticsProfile {
                 detailed_traces_enabled: true,
+                collect_all_invariant_failures: false,
                 max_entries_per_artifact: 512,
                 ..RelationalDiagnosticsProfile::default()
             },
@@ -140,6 +143,13 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
                 patch_surface_policy: PatchSurfacePolicy::StructuredPatchSurface,
             },
             CompiledLanePolicy::Disabled,
+            RelationIntegrityScopeBudget {
+                max_relation_kinds: 1_024,
+                max_touched_entities: 8_192,
+                max_deleted_entities: 4_096,
+                max_scanned_relations: 65_536,
+                max_planned_edges: 32_768,
+            },
             64,
             64,
         ),
@@ -147,6 +157,7 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
             "forge-relational-geometry",
             RelationalDiagnosticsProfile {
                 detailed_traces_enabled: true,
+                collect_all_invariant_failures: false,
                 max_entries_per_artifact: 768,
                 ..RelationalDiagnosticsProfile::default()
             },
@@ -204,6 +215,13 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
                 patch_surface_policy: PatchSurfacePolicy::StructuredPatchSurface,
             },
             CompiledLanePolicy::Disabled,
+            RelationIntegrityScopeBudget {
+                max_relation_kinds: 2_048,
+                max_touched_entities: 16_384,
+                max_deleted_entities: 8_192,
+                max_scanned_relations: 131_072,
+                max_planned_edges: 65_536,
+            },
             256,
             256,
         ),
@@ -211,6 +229,7 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
             "forge-relational-chip",
             RelationalDiagnosticsProfile {
                 detailed_traces_enabled: false,
+                collect_all_invariant_failures: false,
                 max_entries_per_artifact: 384,
                 ..RelationalDiagnosticsProfile::default()
             },
@@ -268,6 +287,13 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
                 patch_surface_policy: PatchSurfacePolicy::DensePatchSurface,
             },
             CompiledLanePolicy::DerivedCompiledLane,
+            RelationIntegrityScopeBudget {
+                max_relation_kinds: 4_096,
+                max_touched_entities: 32_768,
+                max_deleted_entities: 16_384,
+                max_scanned_relations: 262_144,
+                max_planned_edges: 131_072,
+            },
             512,
             512,
         ),
@@ -275,6 +301,7 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
             "forge-relational-ai",
             RelationalDiagnosticsProfile {
                 detailed_traces_enabled: false,
+                collect_all_invariant_failures: false,
                 max_entries_per_artifact: 256,
                 ..RelationalDiagnosticsProfile::default()
             },
@@ -332,6 +359,13 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
                 patch_surface_policy: PatchSurfacePolicy::StructuredPatchSurface,
             },
             CompiledLanePolicy::Disabled,
+            RelationIntegrityScopeBudget {
+                max_relation_kinds: 1_024,
+                max_touched_entities: 8_192,
+                max_deleted_entities: 4_096,
+                max_scanned_relations: 65_536,
+                max_planned_edges: 32_768,
+            },
             128,
             128,
         ),

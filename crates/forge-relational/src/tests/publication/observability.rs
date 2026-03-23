@@ -1,7 +1,8 @@
 use crate::facade::diagnostics::RelationalDiagnosticsProfile;
 use crate::facade::runtime::HarnessAuditMode;
 use crate::schema::data::{
-    RelationIntegrityDeclarations, SymmetryContractDeclaration, SymmetryMode,
+    EndpointKindContractDeclaration, RelationIntegrityDeclarations, SymmetryContractDeclaration,
+    SymmetryMode,
 };
 use serde_json::json;
 use crate::tests::support::*;
@@ -130,7 +131,7 @@ fn invariant_failure_artifact_preserves_specific_code_localization_and_proof_bou
             Vec::new(),
             Vec::new(),
             vec![SymmetryContractDeclaration {
-                contract_id: "paired_twin".to_string(),
+                contract_id: "paired_twin".into(),
                 mode: SymmetryMode::PairedTwinRequired,
             }],
             Vec::new(),
@@ -196,7 +197,7 @@ fn invariant_diagnostics_trace_proof_boundary_for_relation_integrity_execution()
             Vec::new(),
             Vec::new(),
             vec![SymmetryContractDeclaration {
-                contract_id: "paired_twin".to_string(),
+                contract_id: "paired_twin".into(),
                 mode: SymmetryMode::PairedTwinRequired,
             }],
             Vec::new(),
@@ -250,6 +251,71 @@ fn invariant_diagnostics_trace_proof_boundary_for_relation_integrity_execution()
     assert_eq!(entry.fields["scope_class"], json!("PartitionScope"));
     assert_eq!(entry.fields["packet_count"], json!(1));
     assert_eq!(entry.fields["touched_partition_count"], json!(1));
+}
+
+#[test]
+fn collect_all_invariant_failures_emits_multiple_relation_integrity_entries_for_one_commit() {
+    let diagnostics = RelationalDiagnosticsProfile {
+        collect_all_invariant_failures: true,
+        ..RelationalDiagnosticsProfile::default()
+    };
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(
+            RelationIntegritySchemaFixture {
+                relation_integrity: RelationIntegrityDeclarations::new(
+                    vec![EndpointKindContractDeclaration {
+                        contract_id: "no_self".into(),
+                        allowed_source_kinds: vec![KindId(1)],
+                        allowed_target_kinds: vec![KindId(1)],
+                        self_edges_allowed: false,
+                        cross_context_policy: CrossContextPolicy::AllowExplicit,
+                    }],
+                    Vec::new(),
+                    Vec::new(),
+                    vec![SymmetryContractDeclaration {
+                        contract_id: "paired_twin".into(),
+                        mode: SymmetryMode::InverseProhibited,
+                    }],
+                    Vec::new(),
+                ),
+                ..RelationIntegritySchemaFixture::default()
+            }
+            .build_registry(),
+        )
+        .diagnostics(diagnostics)
+        .build();
+    let source = create_entity(&mut runtime, "source");
+
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("self-edge").push(MutationIntent::Create(CreateIntent::Relation(
+            crate::transactions::data::RelationSpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(2),
+                client_key: InternedString::Raw("self-edge".to_string()),
+                source,
+                target: source,
+                payload: Some(RecordPayload::StructuredJson(json!({"label":"self-edge"}))),
+            },
+        ))),
+    );
+    let _error = txn.commit().unwrap_err();
+
+    let diagnostics = runtime.publication_access().diagnostics();
+    let failure_artifact = diagnostics
+        .by_scope(DiagnosticsScope::Invariant)
+        .into_iter()
+        .find(|artifact| artifact.kind == DiagnosticsArtifactKind::Failure)
+        .expect("collect-all invariant failure artifact");
+
+    assert!(failure_artifact
+        .entries
+        .iter()
+        .any(|entry| entry.code == DiagnosticCode::RelationEndpointKindViolation));
+    assert!(failure_artifact
+        .entries
+        .iter()
+        .any(|entry| entry.code == DiagnosticCode::RelationSymmetryViolation));
 }
 
 #[test]

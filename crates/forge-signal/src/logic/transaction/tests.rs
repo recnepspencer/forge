@@ -202,6 +202,32 @@ fn rollback_result_carries_rollback_diagnostic() {
 }
 
 #[test]
+fn read_only_rollback_emits_zero_rollback_packets() {
+    let graph = crate::data::graph::SignalGraph::new();
+    let mut runtime = build_runtime(graph);
+    let mut ctx = ();
+
+    let result = runtime.begin(&mut ctx).rollback().unwrap();
+
+    assert_eq!(result.outcome, TransactionOutcome::RolledBack);
+    assert_eq!(runtime.telemetry().transaction.rollback_packet_breadth, 0);
+    assert_eq!(runtime.telemetry().transaction.rollback_packet_config_count, 0);
+    assert_eq!(runtime.telemetry().transaction.rollback_packet_diagnostics_count, 0);
+    assert_eq!(
+        runtime.telemetry().transaction.rollback_packet_graph_patch_count,
+        0
+    );
+    assert_eq!(
+        runtime.telemetry().transaction.rollback_packet_created_node_count,
+        0
+    );
+    assert_eq!(
+        runtime.telemetry().transaction.rollback_packet_subscriber_repair_count,
+        0
+    );
+}
+
+#[test]
 fn failed_event_flush_does_not_commit_graph_state() {
     let mut graph = crate::data::graph::SignalGraph::new();
     let a = graph.node().build();
@@ -500,6 +526,10 @@ fn transaction_created_keyed_nodes_are_removed_on_rollback() {
     assert_eq!(runtime.graph().arena_capacity(), arena_before);
     assert_eq!(runtime.graph().active_node_count(), active_before);
     assert!(!runtime.graph().is_alive(created));
+    assert_eq!(
+        runtime.telemetry().transaction.rollback_packet_created_node_count,
+        1
+    );
 }
 
 #[test]
@@ -864,4 +894,12 @@ fn rollback_restores_original_source_subscriber_membership_after_rewire() {
         .graph()
         .assert_bidirectional_consistency()
         .expect("rollback should restore bidirectional dependency/subscriber topology");
+    assert_eq!(
+        runtime.telemetry().transaction.rollback_packet_graph_patch_count,
+        1
+    );
+    assert_eq!(
+        runtime.telemetry().transaction.rollback_packet_subscriber_repair_count,
+        1
+    );
 }

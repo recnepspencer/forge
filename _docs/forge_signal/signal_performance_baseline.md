@@ -13,7 +13,7 @@
 Run the ignored performance suite with output enabled:
 
 ```bash
-cargo test -p forge-signal performance_profiles -- --ignored --nocapture
+cargo test -p forge-signal performance_profiles -- --ignored --nocapture --test-threads=1
 ```
 
 Each test emits one or more JSON lines. Record those results in the sections below before and after each performance phase.
@@ -24,6 +24,7 @@ Current suite:
 - `perf_topology_rewiring_churn_serial`
 - `perf_topology_rewiring_rotating_window_serial`
 - `perf_dependency_reconciliation_rotating_window_serial`
+- `perf_dependency_reconciliation_rotating_window_staged_serial`
 - `perf_suppression_wide_fanout_serial`
 - `perf_harness_observability_profile_delta`
 
@@ -38,9 +39,10 @@ To keep comparisons honest:
 
 1. run on the same machine when possible
 2. use the same build mode and feature flags
-3. do not compare noisy one-off runs; capture at least 3 runs when making claims
+3. run the ignored suite single-threaded (`--test-threads=1`) so separate perf tests do not perturb each other
 4. compare both elapsed time and the emitted metric deltas
-5. do not use `easy/` as evidence of engine performance
+5. do not compare noisy one-off runs; capture at least 3 runs when making claims
+6. do not use `easy/` as evidence of engine performance
 
 ---
 
@@ -285,3 +287,55 @@ Interpretation:
 | harness observability / forensic | 393 | Tiny workload; same caveat. |
 
 Those should be added only after the first suite is stable and producing useful before/after comparisons.
+
+---
+
+## March 23, 2026 Hardened Baseline
+
+Captured with:
+
+```bash
+FORGE_SIGNAL_PERF_SAMPLES=3 cargo test -p forge-signal performance_profiles -- --ignored --nocapture --test-threads=1
+```
+
+Important measurement note:
+
+- The raw topology churn profiles now disable the debug-only full bidirectional topology auditor during the ignored perf run itself.
+- That auditor still runs in ordinary debug validation; it is excluded here only so the perf suite measures the mutation substrate rather than "mutation plus whole-graph proof walk on every edit."
+- The rotating-window topology numbers below therefore replace the older contaminated captures at `1,657,133 us` and `1,457,129 us` as the honest comparison set for current churn-path work.
+
+### Fresh Single-Threaded Medians
+
+| Workload | Median (us) | Prior Recorded Reference (us) | Delta | Notes |
+| --- | ---: | ---: | ---: | --- |
+| fintech mixed fanout / operational | 11142 | 455911 | -97.6% | Representative production-path workflow; still recompute-heavy but no longer remotely in the old cost regime. |
+| fintech mixed fanout / development | 17213 | 427872 | -96.0% | Development observability overhead is still visible but far below the old snapshot. |
+| fintech mixed fanout / forensic | 17111 | 486165 | -96.5% | Forensic now sits near development instead of exploding into a separate cost class. |
+| topology rewiring churn | 9515 | 116815 | -91.9% | Raw rewiring churn is no longer a red-alert workload. |
+| topology rewiring rotating window | 78455 | 1657133 | -95.3% | Previous doc number was debug-auditor contaminated; this is the current honest baseline. |
+| dependency reconciliation rotating window | 18718 | 1457129 | -98.7% | Production reconciliation path is now in a much healthier range. |
+| dependency reconciliation rotating window / staged | 191683 | n/a | n/a | This is now the clearest remaining serial hotspot. |
+| suppression wide fanout | 1708 | 4548 | -62.4% | Small workload remains noisy; still use repeated runs rather than one-shot claims. |
+| harness observability / development | 93 | 4202 | -97.8% | Tiny workload; useful for profile shape only. |
+| harness observability / forensic | 56 | 393 | -85.8% | Tiny workload; same caveat. |
+
+### Staged Rotating-Window Attribution
+
+Median metric deltas from `perf_dependency_reconciliation_rotating_window_staged_serial`:
+
+| Metric | Median |
+| --- | ---: |
+| elapsed | 191683 us |
+| nodes recomputed | 24704 |
+| rewiring apply count | 12288 |
+| dependency capture updates | 24576 |
+| dependency reconcile time | 10394200 ns |
+| dependency input build time | 4179200 ns |
+| deferred snapshot packet build time | 485500 ns |
+| snapshot batch commit time | 5111300 ns |
+
+Interpretation:
+
+- The staged path is now paying for real staged execution work, not the old debug-auditor contamination.
+- The biggest named runtime subphases inside the staged lane are currently dependency reconciliation, dependency-input reconstruction, and deferred snapshot batch commit.
+- The next optimization pass should continue inside that staged lane, not back on the already-corrected raw topology microbenchmarks.

@@ -1,12 +1,13 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use crate::transactions::data::MergedCommitPlan;
 use crate::validation::data::{
     InvariantCostClass, InvariantExecutionPoint, InvariantGroupSet, InvariantPlanContract,
-    InvariantRegistration,
+    InvariantRegistration, InvariantViolation, InvariantViolationFields,
 };
 use crate::{
+    config::data::RelationIntegrityScopeBudget,
     identity::data::{EntityId, KindId, RelationId},
     storage::overlay::PartitionAccess,
     validation::data::InvariantRule,
@@ -27,21 +28,22 @@ pub(crate) struct InvariantExecutionRequest<'runtime> {
     plan_contract: Option<InvariantPlanContract>,
     merged_plan: Option<&'runtime MergedCommitPlan>,
     relation_integrity_scopes: Option<PreparedRelationIntegrityScopes>,
+    preparation_violation: Option<InvariantViolation>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct PlannedRelationEdge {
     pub(crate) source: EntityId,
     pub(crate) target: EntityId,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct PreparedRelationPairKey {
     pub(crate) source: EntityId,
     pub(crate) target: EntityId,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct PreparedRelationEndpointKey {
     pub(crate) entity_id: EntityId,
 }
@@ -49,20 +51,63 @@ pub(crate) struct PreparedRelationEndpointKey {
 #[derive(Debug, Clone, Default)]
 pub(crate) struct PreparedRelationIntegrityScope {
     pub(crate) planned_edges: Vec<PlannedRelationEdge>,
-    pub(crate) source_counts: HashMap<PreparedRelationEndpointKey, usize>,
-    pub(crate) target_counts: HashMap<PreparedRelationEndpointKey, usize>,
-    pub(crate) directed_pair_counts: HashMap<PreparedRelationPairKey, usize>,
-    pub(crate) normalized_pair_counts: HashMap<PreparedRelationPairKey, usize>,
-    pub(crate) deleted_entities: HashSet<EntityId>,
+    pub(crate) source_counts: BTreeMap<PreparedRelationEndpointKey, usize>,
+    pub(crate) target_counts: BTreeMap<PreparedRelationEndpointKey, usize>,
+    pub(crate) directed_pair_counts: BTreeMap<PreparedRelationPairKey, usize>,
+    pub(crate) normalized_pair_counts: BTreeMap<PreparedRelationPairKey, usize>,
+    pub(crate) deleted_entities: BTreeSet<EntityId>,
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct PreparedRelationIntegrityScopes(
-    Arc<HashMap<KindId, PreparedRelationIntegrityScope>>,
+    Arc<BTreeMap<KindId, PreparedRelationIntegrityScope>>,
 );
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct RelationIntegrityScopeBudgetSnapshot {
+    relation_kind_count: usize,
+    touched_entity_count: usize,
+    deleted_entity_count: usize,
+    scanned_relation_count: usize,
+    planned_edge_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct PreparedRelationIntegrityScopeBudgetExceeded {
+    limit_name: &'static str,
+    limit: usize,
+    observed: usize,
+    snapshot: RelationIntegrityScopeBudgetSnapshot,
+}
+
+impl PreparedRelationIntegrityScopeBudgetExceeded {
+    fn into_violation(
+        self,
+        execution_point: InvariantExecutionPoint,
+    ) -> InvariantViolation {
+        InvariantViolation {
+            class: execution_point.class(),
+            code: crate::diagnostics::data::DiagnosticCode::PreparationFailure,
+            detail: format!(
+                "relation integrity scope preparation exceeded '{}' budget: {} > {}",
+                self.limit_name, self.observed, self.limit
+            ),
+            fields: InvariantViolationFields::RelationIntegrityScopeBudgetExceeded {
+                limit_name: self.limit_name.to_string(),
+                limit: self.limit,
+                observed: self.observed,
+                relation_kind_count: self.snapshot.relation_kind_count,
+                touched_entity_count: self.snapshot.touched_entity_count,
+                deleted_entity_count: self.snapshot.deleted_entity_count,
+                scanned_relation_count: self.snapshot.scanned_relation_count,
+                planned_edge_count: self.snapshot.planned_edge_count,
+            },
+        }
+    }
+}
+
 impl PreparedRelationIntegrityScopes {
-    pub(crate) fn new(scopes: HashMap<KindId, PreparedRelationIntegrityScope>) -> Self {
+    pub(crate) fn new(scopes: BTreeMap<KindId, PreparedRelationIntegrityScope>) -> Self {
         Self(Arc::new(scopes))
     }
 
@@ -142,11 +187,16 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
                     .intersection(consumed_groups)
             })
             .unwrap_or(consumed_groups);
-        let relation_integrity_scopes = prepare_relation_integrity_scopes(
+        let (relation_integrity_scopes, preparation_violation) =
+            match prepare_relation_integrity_scopes(
             merged_plan,
             observation.partition_access(),
             runtime.performance_access(),
-        );
+            &runtime.config.execution.relation_integrity_scope_budget,
+        ) {
+                Ok(scopes) => (scopes, None),
+                Err(exceeded) => (None, Some(exceeded.into_violation(profile.execution_point()))),
+            };
         Self {
             observation,
             version_id,
@@ -158,6 +208,7 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
             plan_contract,
             merged_plan,
             relation_integrity_scopes,
+            preparation_violation,
         }
     }
 
@@ -201,6 +252,10 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
         self.relation_integrity_scopes.as_ref()
     }
 
+    pub(crate) fn preparation_violation(&self) -> Option<&InvariantViolation> {
+        self.preparation_violation.as_ref()
+    }
+
     pub(crate) fn should_execute_anything(&self) -> bool {
         self.merged_plan.is_none() || !self.applicable_groups.is_empty()
     }
@@ -241,7 +296,8 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
 fn relation_kind_scope(rule: &InvariantRule) -> Option<KindId> {
     match rule {
         InvariantRule::EndpointKindContract(contract) => Some(contract.relation_kind_id),
-        InvariantRule::CardinalityContract(contract) => Some(contract.relation_kind_id),
+        InvariantRule::CardinalityMaximumContract(contract) => Some(contract.relation_kind_id),
+        InvariantRule::CardinalityMinimumContract(contract) => Some(contract.relation_kind_id),
         InvariantRule::UniquenessContract(contract) => Some(contract.relation_kind_id),
         InvariantRule::SymmetryContract(contract) => Some(contract.relation_kind_id),
         InvariantRule::EndpointDeletionIntegrityContract(contract) => Some(contract.relation_kind_id),
@@ -253,12 +309,17 @@ fn prepare_relation_integrity_scopes(
     merged_plan: Option<&MergedCommitPlan>,
     partitions: &dyn PartitionAccess,
     performance: crate::performance::logic::PerformanceAccess<'_>,
-) -> Option<PreparedRelationIntegrityScopes> {
-    let merged_plan = merged_plan?;
-    let mut scopes = HashMap::<KindId, PreparedRelationIntegrityScope>::new();
-    let mut touched_entities = HashSet::new();
-    let mut deleted_entities = HashSet::new();
-    let mut deleted_relations = HashSet::new();
+    budget: &RelationIntegrityScopeBudget,
+) -> Result<Option<PreparedRelationIntegrityScopes>, PreparedRelationIntegrityScopeBudgetExceeded> {
+    let Some(merged_plan) = merged_plan else {
+        return Ok(None);
+    };
+    let mut scopes = BTreeMap::<KindId, PreparedRelationIntegrityScope>::new();
+    let mut touched_entities = BTreeSet::new();
+    let mut deleted_entities = BTreeSet::new();
+    let mut deleted_relations = BTreeSet::new();
+    let empty_scanned_relations = BTreeSet::new();
+    let mut planned_edge_count = 0usize;
 
     for intent in &merged_plan.merged_intents {
         match intent {
@@ -273,20 +334,41 @@ fn prepare_relation_integrity_scopes(
                         source: spec.source,
                         target: spec.target,
                     });
+                planned_edge_count += 1;
                 touched_entities.insert(spec.source);
                 touched_entities.insert(spec.target);
+                ensure_relation_integrity_scope_budget(
+                    budget,
+                    scope_budget_snapshot(
+                        &scopes,
+                        &touched_entities,
+                        &deleted_entities,
+                        &empty_scanned_relations,
+                        planned_edge_count,
+                    ),
+                )?;
             }
             crate::transactions::data::MutationIntent::Create(
                 crate::transactions::data::CreateIntent::BulkRelations(spec),
             ) => {
-                let scope = scopes.entry(spec.kind_id).or_default();
                 for (source, target) in &spec.endpoints {
-                    scope.planned_edges.push(PlannedRelationEdge {
+                    scopes.entry(spec.kind_id).or_default().planned_edges.push(PlannedRelationEdge {
                         source: *source,
                         target: *target,
                     });
+                    planned_edge_count += 1;
                     touched_entities.insert(*source);
                     touched_entities.insert(*target);
+                    ensure_relation_integrity_scope_budget(
+                        budget,
+                        scope_budget_snapshot(
+                            &scopes,
+                            &touched_entities,
+                            &deleted_entities,
+                            &empty_scanned_relations,
+                            planned_edge_count,
+                        ),
+                    )?;
                 }
             }
             crate::transactions::data::MutationIntent::Relation(
@@ -302,19 +384,39 @@ fn prepare_relation_integrity_scopes(
             ) => {
                 touched_entities.insert(spec.entity_id);
                 deleted_entities.insert(spec.entity_id);
+                ensure_relation_integrity_scope_budget(
+                    budget,
+                    scope_budget_snapshot(
+                        &scopes,
+                        &touched_entities,
+                        &deleted_entities,
+                        &empty_scanned_relations,
+                        planned_edge_count,
+                    ),
+                )?;
             }
             crate::transactions::data::MutationIntent::Entity(
                 crate::transactions::data::EntityMutationIntent::Replace(spec),
             ) => {
                 touched_entities.insert(spec.entity_id);
                 deleted_entities.insert(spec.entity_id);
+                ensure_relation_integrity_scope_budget(
+                    budget,
+                    scope_budget_snapshot(
+                        &scopes,
+                        &touched_entities,
+                        &deleted_entities,
+                        &empty_scanned_relations,
+                        planned_edge_count,
+                    ),
+                )?;
             }
             _ => {}
         }
     }
 
-    let mut scanned_relations = HashSet::new();
-    for entity_id in touched_entities {
+    let mut scanned_relations = BTreeSet::new();
+    for &entity_id in &touched_entities {
         let Some(partition) = partitions.get_partition(entity_id.partition_id) else {
             continue;
         };
@@ -335,6 +437,16 @@ fn prepare_relation_integrity_scopes(
             if !scanned_relations.insert(relation_id) || deleted_relations.contains(&relation_id) {
                 continue;
             }
+            ensure_relation_integrity_scope_budget(
+                budget,
+                scope_budget_snapshot(
+                    &scopes,
+                    &touched_entities,
+                    &deleted_entities,
+                    &scanned_relations,
+                    planned_edge_count,
+                ),
+            )?;
             let Some(relation_partition) = partitions.get_partition(relation_id.partition_id) else {
                 continue;
             };
@@ -379,7 +491,67 @@ fn prepare_relation_integrity_scopes(
     }
 
     scopes.retain(|_, scope| !scope.is_empty());
-    (!scopes.is_empty()).then(|| PreparedRelationIntegrityScopes::new(scopes))
+    Ok((!scopes.is_empty()).then(|| PreparedRelationIntegrityScopes::new(scopes)))
+}
+
+fn scope_budget_snapshot(
+    scopes: &BTreeMap<KindId, PreparedRelationIntegrityScope>,
+    touched_entities: &BTreeSet<EntityId>,
+    deleted_entities: &BTreeSet<EntityId>,
+    scanned_relations: &BTreeSet<RelationId>,
+    planned_edge_count: usize,
+) -> RelationIntegrityScopeBudgetSnapshot {
+    RelationIntegrityScopeBudgetSnapshot {
+        relation_kind_count: scopes.len(),
+        touched_entity_count: touched_entities.len(),
+        deleted_entity_count: deleted_entities.len(),
+        scanned_relation_count: scanned_relations.len(),
+        planned_edge_count,
+    }
+}
+
+fn ensure_relation_integrity_scope_budget(
+    budget: &RelationIntegrityScopeBudget,
+    snapshot: RelationIntegrityScopeBudgetSnapshot,
+) -> Result<(), PreparedRelationIntegrityScopeBudgetExceeded> {
+    let checks = [
+        (
+            "max_relation_kinds",
+            budget.max_relation_kinds,
+            snapshot.relation_kind_count,
+        ),
+        (
+            "max_touched_entities",
+            budget.max_touched_entities,
+            snapshot.touched_entity_count,
+        ),
+        (
+            "max_deleted_entities",
+            budget.max_deleted_entities,
+            snapshot.deleted_entity_count,
+        ),
+        (
+            "max_scanned_relations",
+            budget.max_scanned_relations,
+            snapshot.scanned_relation_count,
+        ),
+        (
+            "max_planned_edges",
+            budget.max_planned_edges,
+            snapshot.planned_edge_count,
+        ),
+    ];
+    for (limit_name, limit, observed) in checks {
+        if observed > limit {
+            return Err(PreparedRelationIntegrityScopeBudgetExceeded {
+                limit_name,
+                limit,
+                observed,
+                snapshot,
+            });
+        }
+    }
+    Ok(())
 }
 
 fn relation_kind_for_id(
@@ -440,7 +612,7 @@ mod tests {
                     aspect_declarations: KindAspectDeclarations::default(),
                     relation_integrity: RelationIntegrityDeclarations::new(
                         vec![EndpointKindContractDeclaration {
-                            contract_id: "kind2".to_string(),
+                            contract_id: "kind2".into(),
                             allowed_source_kinds: vec![KindId(1)],
                             allowed_target_kinds: vec![KindId(1)],
                             self_edges_allowed: false,
@@ -465,7 +637,7 @@ mod tests {
                     aspect_declarations: KindAspectDeclarations::default(),
                     relation_integrity: RelationIntegrityDeclarations::new(
                         vec![EndpointKindContractDeclaration {
-                            contract_id: "kind3".to_string(),
+                            contract_id: "kind3".into(),
                             allowed_source_kinds: vec![KindId(1)],
                             allowed_target_kinds: vec![KindId(1)],
                             self_edges_allowed: false,
@@ -552,7 +724,10 @@ mod tests {
             crate::validation::data::InvariantRule::EndpointKindContract(contract) => {
                 Some(contract.relation_kind_id)
             }
-            crate::validation::data::InvariantRule::CardinalityContract(contract) => {
+            crate::validation::data::InvariantRule::CardinalityMaximumContract(contract) => {
+                Some(contract.relation_kind_id)
+            }
+            crate::validation::data::InvariantRule::CardinalityMinimumContract(contract) => {
                 Some(contract.relation_kind_id)
             }
             crate::validation::data::InvariantRule::UniquenessContract(contract) => {

@@ -22,6 +22,16 @@ impl PreparedDependencyCapture {
             aspect,
             scope,
         };
+        if let Some(last) = self.edges.last() {
+            match compare_prepared_dependency_edges(last, &edge) {
+                Ordering::Less => {
+                    self.edges.push(edge);
+                    return;
+                }
+                Ordering::Equal => return,
+                Ordering::Greater => {}
+            }
+        }
         match self
             .edges
             .binary_search_by(|candidate| compare_prepared_dependency_edges(candidate, &edge))

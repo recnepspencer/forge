@@ -51,6 +51,7 @@ pub enum DiagnosticCode {
     PreparationFailure,
     PreparationFallback,
     InvariantProofBoundaryObserved,
+    StorageInconsistencyDetected,
     CanonicalOrderingViolation,
     DeterministicMergeViolation,
     SidecarConsistencyFailure,
@@ -101,6 +102,7 @@ pub enum DiagnosticCode {
     VisibilityCacheTransientRead,
     AspectHistoryResolved,
     LineageAspectHistoryResolved,
+    AspectDeltaFailure,
     AspectEvaluationTraced,
     AspectEmissionTraced,
     AspectDeclarationTraced,
@@ -128,6 +130,7 @@ pub struct RelationalDiagnosticsProfile {
     pub capture_rollbacks: bool,
     pub capture_comparisons: bool,
     pub detailed_traces_enabled: bool,
+    pub collect_all_invariant_failures: bool,
     pub max_entries_per_artifact: usize,
 }
 
@@ -138,6 +141,7 @@ impl Default for RelationalDiagnosticsProfile {
             capture_rollbacks: true,
             capture_comparisons: true,
             detailed_traces_enabled: false,
+            collect_all_invariant_failures: false,
             max_entries_per_artifact: 256,
         }
     }

@@ -188,6 +188,18 @@ impl<'runtime> StorageAccess<'runtime> {
             version_id,
         )
     }
+
+    pub fn all_relations_for_entity(
+        &self,
+        entity_id: crate::identity::data::EntityId,
+        version_id: crate::identity::data::VersionId,
+    ) -> Vec<crate::identity::data::RelationId> {
+        crate::storage::partition::adjacency_queries::all_relations_for_entity(
+            self.runtime,
+            entity_id,
+            version_id,
+        )
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

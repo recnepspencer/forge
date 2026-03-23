@@ -435,6 +435,61 @@ fn detailed_trace_profile_emits_commit_side_aspect_trace_diagnostics() {
 }
 
 #[test]
+fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
+    let fixture = AspectSchemaFixture {
+        entity_aspects: vec![
+            entity_payload_aspect("name", "name"),
+            entity_payload_aspect("status", "status"),
+            lifecycle_aspect(),
+        ],
+        relation_aspects: vec![relation_source_aspect(), relation_target_aspect()],
+        ..AspectSchemaFixture::default()
+    };
+    let mut runtime = fixture.build_runtime();
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("create").push(MutationIntent::Create(CreateIntent::Entity(
+            crate::transactions::data::EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: InternedString::Raw("row".to_string()),
+                payload: RecordPayload::StructuredJson(json!({
+                    "name": "before",
+                    "status": "stable"
+                })),
+            },
+        ))),
+    );
+    let created = txn.commit().unwrap();
+    let entity = changed_entities(&created)[0];
+
+    let mut update_txn = runtime.begin_transaction(TransactionOptions::default());
+    update_txn.push_batch(
+        WorkerIntentBatch::new("update-name-only").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id: entity,
+                payload: RecordPayload::StructuredJson(json!({
+                    "name": "after",
+                    "status": "stable"
+                })),
+            }),
+        )),
+    );
+    let result = update_txn.commit().unwrap();
+    let trace = &result.aspect_evaluation_traces()[0];
+    let status_key = AspectKey(InternedString::Raw("status".to_string()));
+    let status_row = trace
+        .binding_rows
+        .iter()
+        .find(|row| row.aspect_key == status_key)
+        .expect("status aspect row");
+
+    assert_eq!(trace.binding_rows.len(), 3);
+    assert!(!status_row.changed);
+    assert!(!trace.changed_aspects.iter().any(|aspect| aspect == &status_key));
+}
+
+#[test]
 fn staged_parallel_commit_records_preparation_strategy_and_packet_counters() {
     let mut runtime = runtime_with_test_schema_execution_model(
         RelationalExecutionModel::StagedParallelPreparation,

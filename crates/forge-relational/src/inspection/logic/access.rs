@@ -1,28 +1,17 @@
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::BTreeSet;
 
-use crate::history::data::{AspectFilter, BranchId, CommitId};
+use crate::identity::data::{KindId, PartitionId, VersionId};
 use crate::inspection::data::{
-    CommitInspection, ConnectivityComponentSummary, ConnectivityInspectionRequest,
-    ConnectivityInspectionSummary, GraphInspectionRequest, GraphInspectionSummary,
-    HistoricalAspectObservation, HistoricalAvailabilityObservation, HistoricalInspectionMode,
-    HistoricalOpenResult, HistoricalRecordInspection, HistoricalRecordObservation,
-    HistoricalRecordValue, HistoricalSnapshotView, InspectionAccessPath, InspectionAvailability,
-    InspectionDegradation, InspectionOrigin, InspectionRecordClass, InspectionResolutionContext,
-    InspectionScope, KindInspectionRequest, KindInspectionSummary, NeighborInspectionResult,
-    PinStateObservation, RecentCommitInspectionRequest, RecentCommitInspectionWindow,
-    ReclaimEligibility, RecordRetentionInspection, RetentionInspectionSummary,
-    RetentionStateObservation, SnapshotPinInspection, StructuralIdentityComparison,
-    StructuralIdentityComparisonVerdict, StructuralIdentityEvidence,
-    StructuralIdentityQueryRequest,
+    ConnectivityInspectionRequest, ConnectivityInspectionSummary, GraphInspectionRequest,
+    GraphInspectionSummary, InspectionAccessPath, InspectionAvailability, InspectionDegradation,
+    InspectionOrigin, InspectionScope,
 };
 use crate::logic::runtime::RelationalRuntime;
-use crate::publication::patch::data::CanonicalAspectSet;
-use crate::storage::data::{RecordLifecycleState, RelationalReadView, RetentionPlan};
-use crate::transactions::data::RecordRef;
+use crate::storage::data::{RelationalReadView, RetentionPlan};
 use crate::visibility::cache_state::cached_state_for_version;
 
 pub struct InspectionAccess<'runtime> {
-    runtime: &'runtime RelationalRuntime,
+    pub(super) runtime: &'runtime RelationalRuntime,
 }
 
 impl RelationalRuntime {
@@ -36,1030 +25,7 @@ impl<'runtime> InspectionAccess<'runtime> {
         Self { runtime }
     }
 
-    pub fn structural_identity(
-        &self,
-        scope: InspectionScope,
-        target: RecordRef,
-    ) -> Option<StructuralIdentityEvidence> {
-        self.runtime
-            .services
-            .instrumentation
-            .count(|counters| counters.inspection_structural_identity_lookups += 1);
-        let version_id = self.scope_version_id(&scope)?;
-        match target {
-            RecordRef::Entity(entity_id) => {
-                let read = self.runtime.visibility_reads().entity_record_for_id_at_version(
-                    &self.runtime.storage_access().current_state(),
-                    entity_id,
-                    version_id,
-                )?;
-                let extra = self
-                    .runtime
-                    .storage_access()
-                    .partition_state(entity_id.partition_id)
-                    .and_then(|partition| partition.entity_arena.get(&entity_id))
-                    .map(|slot_view| slot_view.extra().clone())
-                    .unwrap_or_default();
-                let mut degradations = Vec::new();
-                if extra.structural_fingerprint.is_none() {
-                    degradations.push(InspectionDegradation::MissingStructuralFingerprint);
-                }
-                if extra.lineage_id.is_none() {
-                    degradations.push(InspectionDegradation::MissingLineageIdentity);
-                }
-                Some(StructuralIdentityEvidence {
-                    target,
-                    record_class: InspectionRecordClass::Entity,
-                    kind_id: read.kind.kind_id,
-                    storage_identity: RecordRef::Entity(entity_id),
-                    lineage_id: extra.lineage_id,
-                    structural_fingerprint: extra.structural_fingerprint,
-                    observed_version: version_id,
-                    lifecycle: read.lifecycle,
-                    origin: InspectionOrigin::CurrentTruth,
-                    access_path: self.scope_access_path(&scope, version_id),
-                    availability: self.scope_availability(&scope, version_id),
-                    degradations,
-                })
-            }
-            RecordRef::Relation(relation_id) => {
-                let read = self.runtime.visibility_reads().relation_record_for_id_at_version(
-                    &self.runtime.storage_access().current_state(),
-                    relation_id,
-                    version_id,
-                )?;
-                Some(StructuralIdentityEvidence {
-                    target,
-                    record_class: InspectionRecordClass::Relation,
-                    kind_id: read.kind.kind_id,
-                    storage_identity: RecordRef::Relation(relation_id),
-                    lineage_id: None,
-                    structural_fingerprint: None,
-                    observed_version: version_id,
-                    lifecycle: read.lifecycle,
-                    origin: InspectionOrigin::CurrentTruth,
-                    access_path: self.scope_access_path(&scope, version_id),
-                    availability: self.scope_availability(&scope, version_id),
-                    degradations: vec![
-                        InspectionDegradation::MissingStructuralFingerprint,
-                        InspectionDegradation::MissingLineageIdentity,
-                    ],
-                })
-            }
-        }
-    }
-
-    pub fn compare_structural_identity(
-        &self,
-        scope: InspectionScope,
-        left: RecordRef,
-        right: RecordRef,
-    ) -> StructuralIdentityComparison {
-        let left_evidence = self.structural_identity(scope.clone(), left);
-        let right_evidence = self.structural_identity(scope, right);
-        let verdict = match (&left_evidence, &right_evidence) {
-            (Some(left), Some(right)) => match (left.structural_fingerprint, right.structural_fingerprint) {
-                (Some(left), Some(right)) if left.family == right.family && left.value == right.value => {
-                    StructuralIdentityComparisonVerdict::EqualByFingerprint
-                }
-                (Some(left), Some(right)) if left.family == right.family => {
-                    StructuralIdentityComparisonVerdict::NotEqualByFingerprint
-                }
-                (Some(_), Some(_)) => {
-                    StructuralIdentityComparisonVerdict::IncomparableFingerprintFamilyMismatch
-                }
-                _ => StructuralIdentityComparisonVerdict::IncomparableMissingFingerprint,
-            },
-            _ => StructuralIdentityComparisonVerdict::IncomparableMissingFingerprint,
-        };
-        StructuralIdentityComparison {
-            left: left_evidence,
-            right: right_evidence,
-            verdict,
-        }
-    }
-
-    pub fn query_structural_identity(
-        &self,
-        request: &StructuralIdentityQueryRequest,
-    ) -> Vec<StructuralIdentityEvidence> {
-        self.runtime.services.instrumentation.count(|counters| {
-            counters.inspection_structural_identity_query_scans += 1;
-        });
-        let Some(version_id) = self.scope_version_id(&request.scope) else {
-            return Vec::new();
-        };
-        let Some(read_view) = self.read_view_for_scope(&request.scope) else {
-            return Vec::new();
-        };
-        let partition_scope = request
-            .partition_scope
-            .as_ref()
-            .map(|scope| scope.iter().copied().collect::<BTreeSet<_>>());
-        read_view
-            .entities()
-            .iter()
-            .filter(|record| {
-                partition_scope
-                    .as_ref()
-                    .is_none_or(|scope| scope.contains(&record.entity_id.partition_id))
-            })
-            .filter_map(|record| {
-                let evidence = self.structural_identity(
-                    InspectionScope::Version(version_id),
-                    RecordRef::Entity(record.entity_id),
-                )?;
-                evidence
-                    .structural_fingerprint
-                    .is_some_and(|fingerprint| fingerprint.family == request.fingerprint_family)
-                    .then_some(evidence)
-            })
-            .collect()
-    }
-
-    pub fn graph_summary(&self, request: &GraphInspectionRequest) -> GraphInspectionSummary {
-        self.runtime
-            .services
-            .instrumentation
-            .count(|counters| counters.inspection_graph_summary_requests += 1);
-        if matches!(request.scope, InspectionScope::Current) {
-            return self.current_graph_summary(request);
-        }
-        let version_id = self
-            .scope_version_id(&request.scope)
-            .unwrap_or_else(|| self.runtime.current_version_id());
-        let read_view = self
-            .read_view_for_scope(&request.scope)
-            .unwrap_or_else(|| self.runtime.visibility_reads().read_version(version_id));
-        let partition_scope = request
-            .partition_scope
-            .as_ref()
-            .map(|scope| scope.iter().copied().collect::<BTreeSet<_>>());
-
-        let entity_records = read_view
-            .entities()
-            .iter()
-            .filter(|record| {
-                partition_scope
-                    .as_ref()
-                    .is_none_or(|scope| scope.contains(&record.entity_id.partition_id))
-            })
-            .collect::<Vec<_>>();
-        let relation_records = read_view
-            .relations()
-            .iter()
-            .filter(|record| {
-                partition_scope
-                    .as_ref()
-                    .is_none_or(|scope| scope.contains(&record.relation_id.partition_id))
-            })
-            .filter(|record| {
-                request
-                    .relation_kind_scope
-                    .as_ref()
-                    .is_none_or(|scope| scope.contains(&record.kind.kind_id))
-            })
-            .collect::<Vec<_>>();
-
-        let mut entity_kinds = BTreeMap::<_, usize>::new();
-        let mut relation_kinds = BTreeMap::<_, usize>::new();
-        let mut partition_ids = BTreeSet::new();
-        for record in &entity_records {
-            *entity_kinds.entry(record.kind.kind_id).or_default() += 1;
-            partition_ids.insert(record.entity_id.partition_id);
-        }
-        for record in &relation_records {
-            *relation_kinds.entry(record.kind.kind_id).or_default() += 1;
-            partition_ids.insert(record.relation_id.partition_id);
-        }
-
-        GraphInspectionSummary {
-            scope: request.scope.clone(),
-            version_id,
-            partition_count: partition_ids.len(),
-            entity_count: entity_records.len(),
-            relation_count: relation_records.len(),
-            entity_kinds: entity_kinds.into_iter().collect(),
-            relation_kinds: relation_kinds.into_iter().collect(),
-            origin: InspectionOrigin::VisibilitySnapshot,
-            access_path: self.scope_access_path(&request.scope, version_id),
-            availability: self.scope_availability(&request.scope, version_id),
-            degradations: if request.summary_only {
-                vec![InspectionDegradation::SummaryOnly]
-            } else {
-                Vec::new()
-            },
-        }
-    }
-
-    pub fn kind_summary(&self, request: &KindInspectionRequest) -> KindInspectionSummary {
-        self.runtime
-            .services
-            .instrumentation
-            .count(|counters| counters.inspection_kind_summary_requests += 1);
-        let version_id = self
-            .scope_version_id(&request.scope)
-            .unwrap_or_else(|| self.runtime.current_version_id());
-        let mut touched_partitions = BTreeSet::new();
-        let count = match request.record_class {
-            InspectionRecordClass::Entity => {
-                let records = match request.partition_scope.as_ref() {
-                    Some(partitions) => partitions
-                        .iter()
-                        .flat_map(|partition_id| {
-                            self.runtime
-                                .visibility_reads()
-                                .visible_entities_of_kind_in_partition(
-                                    *partition_id,
-                                    request.kind_id,
-                                    version_id,
-                                )
-                        })
-                        .collect::<Vec<_>>(),
-                    None => self
-                        .runtime
-                        .visibility_reads()
-                        .visible_entities_of_kind(request.kind_id, version_id),
-                };
-                for record in &records {
-                    touched_partitions.insert(record.entity_id.partition_id);
-                }
-                records.len()
-            }
-            InspectionRecordClass::Relation => {
-                let records = match request.partition_scope.as_ref() {
-                    Some(partitions) => partitions
-                        .iter()
-                        .flat_map(|partition_id| {
-                            self.runtime
-                                .visibility_reads()
-                                .visible_relations_of_kind_in_partition(
-                                    *partition_id,
-                                    request.kind_id,
-                                    version_id,
-                                )
-                        })
-                        .collect::<Vec<_>>(),
-                    None => self
-                        .runtime
-                        .visibility_reads()
-                        .visible_relations_of_kind(request.kind_id, version_id),
-                };
-                for record in &records {
-                    touched_partitions.insert(record.relation_id.partition_id);
-                }
-                records.len()
-            }
-        };
-        KindInspectionSummary {
-            scope: request.scope.clone(),
-            version_id,
-            kind_id: request.kind_id,
-            record_class: request.record_class,
-            count,
-            touched_partitions: touched_partitions.into_iter().collect(),
-            origin: InspectionOrigin::VisibilitySnapshot,
-            access_path: self.scope_access_path(&request.scope, version_id),
-            availability: self.scope_availability(&request.scope, version_id),
-        }
-    }
-
-    pub fn connectivity_summary(
-        &self,
-        request: &ConnectivityInspectionRequest,
-    ) -> ConnectivityInspectionSummary {
-        self.runtime.services.instrumentation.count(|counters| {
-            counters.inspection_connectivity_summary_requests += 1;
-        });
-        if matches!(request.scope, InspectionScope::Current) {
-            return self.current_connectivity_summary(request);
-        }
-        let version_id = self
-            .scope_version_id(&request.scope)
-            .unwrap_or_else(|| self.runtime.current_version_id());
-        let read_view = self
-            .read_view_for_scope(&request.scope)
-            .unwrap_or_else(|| self.runtime.visibility_reads().read_version(version_id));
-        let partition_scope = request
-            .partition_scope
-            .as_ref()
-            .map(|scope| scope.iter().copied().collect::<BTreeSet<_>>());
-        let entities = read_view
-            .entities()
-            .iter()
-            .filter(|record| {
-                partition_scope
-                    .as_ref()
-                    .is_none_or(|scope| scope.contains(&record.entity_id.partition_id))
-            })
-            .map(|record| record.entity_id)
-            .collect::<Vec<_>>();
-        let entity_set = entities.iter().copied().collect::<BTreeSet<_>>();
-        let relations = read_view
-            .relations()
-            .iter()
-            .filter(|record| entity_set.contains(&record.source) && entity_set.contains(&record.target))
-            .filter(|record| {
-                request
-                    .relation_kind_scope
-                    .as_ref()
-                    .is_none_or(|scope| scope.contains(&record.kind.kind_id))
-            })
-            .collect::<Vec<_>>();
-
-        let mut adjacency = BTreeMap::<_, BTreeSet<_>>::new();
-        for entity in &entities {
-            adjacency.entry(*entity).or_default();
-        }
-        for relation in relations {
-            adjacency.entry(relation.source).or_default().insert(relation.target);
-            adjacency.entry(relation.target).or_default().insert(relation.source);
-        }
-
-        let mut visited = BTreeSet::new();
-        let mut components = Vec::new();
-        for entity in &entities {
-            if !visited.insert(*entity) {
-                continue;
-            }
-            let mut queue = VecDeque::from([*entity]);
-            let mut members = vec![*entity];
-            while let Some(current) = queue.pop_front() {
-                for neighbor in adjacency.get(&current).into_iter().flatten() {
-                    if visited.insert(*neighbor) {
-                        members.push(*neighbor);
-                        queue.push_back(*neighbor);
-                    }
-                }
-            }
-            members.sort();
-            components.push(ConnectivityComponentSummary {
-                member_count: members.len(),
-                members: request.include_members.then_some(members),
-            });
-        }
-
-        ConnectivityInspectionSummary {
-            scope: request.scope.clone(),
-            version_id,
-            component_count: components.len(),
-            largest_component_size: components
-                .iter()
-                .map(|component| component.member_count)
-                .max()
-                .unwrap_or(0),
-            enumerated_entity_count: entities.len(),
-            components,
-            origin: InspectionOrigin::VisibilitySnapshot,
-            access_path: self.scope_access_path(&request.scope, version_id),
-            resolution_context: InspectionResolutionContext::ConnectivityTraversal,
-            availability: self.scope_availability(&request.scope, version_id),
-            degradations: if request.include_members {
-                Vec::new()
-            } else {
-                vec![InspectionDegradation::SummaryOnly]
-            },
-        }
-    }
-
-    pub fn neighbors(
-        &self,
-        scope: InspectionScope,
-        entity_id: crate::identity::data::EntityId,
-    ) -> NeighborInspectionResult {
-        self.runtime.services.instrumentation.count(|counters| {
-            counters.inspection_neighbor_requests += 1;
-        });
-        let version_id = self
-            .scope_version_id(&scope)
-            .unwrap_or_else(|| self.runtime.current_version_id());
-        NeighborInspectionResult {
-            entity_id,
-            version_id,
-            outgoing_relation_ids: self
-                .runtime
-                .storage_access()
-                .outgoing_relations_for_entity(entity_id, version_id),
-            incoming_relation_ids: self
-                .runtime
-                .storage_access()
-                .incoming_relations_for_entity(entity_id, version_id),
-            origin: InspectionOrigin::VisibilitySnapshot,
-            access_path: self.scope_access_path(&scope, version_id),
-            resolution_context: InspectionResolutionContext::RelationNeighborhood,
-            availability: self.scope_availability(&scope, version_id),
-        }
-    }
-
-    pub fn open_historical_view(
-        &self,
-        version_id: crate::identity::data::VersionId,
-        mode: HistoricalInspectionMode,
-    ) -> HistoricalOpenResult {
-        self.runtime.services.instrumentation.count(|counters| {
-            counters.inspection_historical_view_opens += 1;
-        });
-        let direct_available = version_id == self.runtime.current_version_id()
-            || cached_state_for_version(self.runtime, version_id).is_some();
-        match mode {
-            HistoricalInspectionMode::RetainedOnly if !direct_available => HistoricalOpenResult {
-                view: None,
-                origin: InspectionOrigin::VisibilitySnapshot,
-                access_path: InspectionAccessPath::HistoricalRetainedRead,
-                availability: InspectionAvailability::UnavailableByRetention,
-                degradations: vec![InspectionDegradation::ReconstructionOmittedByMode],
-            },
-            HistoricalInspectionMode::RetainedOnly | HistoricalInspectionMode::AllowCanonicalReconstruction => {
-                let read_view = self.runtime.visibility_reads().read_version(version_id);
-                let availability = if direct_available {
-                    InspectionAvailability::Direct
-                } else {
-                    InspectionAvailability::Reconstructed
-                };
-                let access_path = if direct_available {
-                    InspectionAccessPath::HistoricalRetainedRead
-                } else {
-                    InspectionAccessPath::HistoricalReconstructedRead
-                };
-                HistoricalOpenResult {
-                    view: Some(HistoricalSnapshotView {
-                        snapshot: read_view.snapshot().clone(),
-                        read_view,
-                        origin: InspectionOrigin::VisibilitySnapshot,
-                        access_path,
-                        availability,
-                    }),
-                    origin: InspectionOrigin::VisibilitySnapshot,
-                    access_path,
-                    availability,
-                    degradations: Vec::new(),
-                }
-            }
-        }
-    }
-
-    pub fn inspect_historical_record(
-        &self,
-        branch_id: &BranchId,
-        version_id: crate::identity::data::VersionId,
-        target: RecordRef,
-        mode: HistoricalInspectionMode,
-    ) -> HistoricalRecordInspection {
-        let open_result = self.open_historical_view(version_id, mode);
-        let target_for_observation = target.clone();
-        let record_observation = match (&open_result.view, target_for_observation) {
-            (Some(view), RecordRef::Entity(entity_id)) => HistoricalRecordObservation {
-                target: target.clone(),
-                version_id,
-                value: view
-                    .read_view
-                    .get_entity(entity_id)
-                    .cloned()
-                    .map(HistoricalRecordValue::Entity),
-                origin: InspectionOrigin::VisibilitySnapshot,
-                access_path: open_result.access_path,
-                availability: open_result.availability,
-            },
-            (Some(view), RecordRef::Relation(relation_id)) => HistoricalRecordObservation {
-                target: target.clone(),
-                version_id,
-                value: view
-                    .read_view
-                    .get_relation(relation_id)
-                    .cloned()
-                    .map(HistoricalRecordValue::Relation),
-                origin: InspectionOrigin::VisibilitySnapshot,
-                access_path: open_result.access_path,
-                availability: open_result.availability,
-            },
-            (None, _) => HistoricalRecordObservation {
-                target: target.clone(),
-                version_id,
-                value: None,
-                origin: InspectionOrigin::VisibilitySnapshot,
-                access_path: open_result.access_path,
-                availability: open_result.availability,
-            },
-        };
-        let lineage_resolution_context = match target {
-            RecordRef::Entity(entity_id) => {
-                self.runtime.lineage_access().resolve_record_history(
-                    crate::facade::lineage::RecordHistoryRequest {
-                        branch_id: branch_id.clone(),
-                        entity_id,
-                    },
-                )
-            }
-            RecordRef::Relation(_) => None,
-        };
-        let aspect_history_observation = match target.clone() {
-            RecordRef::Entity(entity_id) => Some(HistoricalAspectObservation {
-                query_result: self
-                    .runtime
-                    .history_access()
-                    .entity_aspect_history_with_trace(branch_id, entity_id, None::<&AspectFilter>),
-                origin: InspectionOrigin::CanonicalCommitStorage,
-                access_path: InspectionAccessPath::CommitIndexRead,
-                availability: InspectionAvailability::Direct,
-            }),
-            RecordRef::Relation(relation_id) => Some(HistoricalAspectObservation {
-                query_result: self.runtime.history_access().relation_aspect_history_with_trace(
-                    branch_id,
-                    relation_id,
-                    None::<&AspectFilter>,
-                ),
-                origin: InspectionOrigin::CanonicalCommitStorage,
-                access_path: InspectionAccessPath::CommitIndexRead,
-                availability: InspectionAvailability::Direct,
-            }),
-        };
-        let structural_identity_evidence = open_result.view.as_ref().and_then(|_| {
-            self.structural_identity(InspectionScope::Version(version_id), target.clone())
-        });
-        HistoricalRecordInspection {
-            branch_id: branch_id.clone(),
-            record_observation,
-            lineage_resolution_context,
-            aspect_history_observation,
-            structural_identity_evidence,
-            retention_availability_observation: Some(HistoricalAvailabilityObservation {
-                version_id,
-                availability: open_result.availability,
-                retained_directly: open_result.availability == InspectionAvailability::Direct,
-            }),
-        }
-    }
-
-    pub fn retention_summary(&self) -> RetentionInspectionSummary {
-        let plan = self.inspect_retention_plan();
-        RetentionInspectionSummary {
-            current_version_id: self.runtime.current_version_id(),
-            active_snapshot_count: plan.active_snapshot_count,
-            branch_pinned_entities: plan.branch_pinned_entities,
-            replay_pinned_entities: plan.replay_pinned_entities,
-            snapshot_pinned_entities: plan.snapshot_pinned_entities,
-            branch_pinned_relations: plan.branch_pinned_relations,
-            replay_pinned_relations: plan.replay_pinned_relations,
-            snapshot_pinned_relations: plan.snapshot_pinned_relations,
-            reclaimable_entities: plan.reclaimable_entities,
-            reclaimable_relations: plan.reclaimable_relations,
-            origin: InspectionOrigin::RetentionState,
-            access_path: InspectionAccessPath::DirectLookup,
-            availability: InspectionAvailability::Direct,
-        }
-    }
-
-    pub fn inspect_record_retention(&self, target: RecordRef) -> Option<RecordRetentionInspection> {
-        let version_id = self.runtime.current_version_id();
-        match target {
-            RecordRef::Entity(entity_id) => {
-                let surface = self
-                    .runtime
-                    .storage_access()
-                    .record_slot_surface::<crate::storage::logic::state::EntityRecordKind>(
-                        entity_id.partition_id,
-                        entity_id.local_slot.0 as usize,
-                    )?;
-                Some(self.record_retention_inspection(
-                    target,
-                    surface.lifecycle,
-                    surface.snapshot_pins,
-                    surface.branch_pins,
-                    surface.replay_pins,
-                    version_id,
-                ))
-            }
-            RecordRef::Relation(relation_id) => {
-                let surface = self
-                    .runtime
-                    .storage_access()
-                    .record_slot_surface::<crate::storage::logic::state::RelationRecordKind>(
-                        relation_id.partition_id,
-                        relation_id.local_slot.0 as usize,
-                    )?;
-                Some(self.record_retention_inspection(
-                    target,
-                    surface.lifecycle,
-                    surface.snapshot_pins,
-                    surface.branch_pins,
-                    surface.replay_pins,
-                    version_id,
-                ))
-            }
-        }
-    }
-
-    pub fn inspect_snapshot_pinning(
-        &self,
-        handle: &crate::snapshots::data::SnapshotHandle,
-    ) -> Option<SnapshotPinInspection> {
-        Some(SnapshotPinInspection {
-            snapshot: self.runtime.visibility_reads().inspect_snapshot(handle)?,
-            origin: InspectionOrigin::VisibilitySnapshot,
-            access_path: InspectionAccessPath::SnapshotRead,
-            availability: InspectionAvailability::Direct,
-        })
-    }
-
-    pub fn inspect_commit(&self, commit_id: CommitId) -> Option<CommitInspection> {
-        self.runtime.services.instrumentation.count(|counters| {
-            counters.inspection_commit_reads += 1;
-        });
-        let history_access = self.runtime.history_access();
-        let envelope = history_access.commit_envelope(commit_id)?;
-        Some(CommitInspection {
-            commit: envelope.commit.clone(),
-            changed_records: envelope
-                .patch
-                .records
-                .iter()
-                .map(|record| record.target.clone())
-                .collect(),
-            lineage_event_ids: envelope.lineage_event_ids().to_vec(),
-            lineage_events: envelope.lineage_events().to_vec(),
-            index_generation_ids: envelope.index_generation_ids.clone(),
-            index_generations: envelope.index_generations.clone(),
-            changed_aspects: CanonicalAspectSet::new(
-                envelope
-                    .patch
-                    .records
-                    .iter()
-                    .flat_map(|record| record.aspects.iter().cloned()),
-            ),
-            origin: InspectionOrigin::CanonicalCommitStorage,
-            access_path: InspectionAccessPath::CommitIndexRead,
-        })
-    }
-
-    pub fn inspect_recent_commits(
-        &self,
-        request: &RecentCommitInspectionRequest,
-    ) -> RecentCommitInspectionWindow {
-        let history_access = self.runtime.history_access();
-        let commits = self
-            .runtime
-            .history_access()
-            .recent_commit_ids(request.branch_id.as_ref(), request.limit)
-            .into_iter()
-            .filter_map(|commit_id| self.inspect_commit(commit_id))
-            .collect();
-        let branch_head = request
-            .branch_id
-            .as_ref()
-            .and_then(|branch_id| history_access.branch_head(branch_id).cloned());
-        RecentCommitInspectionWindow {
-            branch_head,
-            commits,
-            origin: InspectionOrigin::CanonicalCommitStorage,
-            access_path: InspectionAccessPath::CommitIndexRead,
-        }
-    }
-
-    pub fn inspect_branch_head(&self, branch_id: &BranchId) -> Option<CommitInspection> {
-        let history = self.runtime.history_access();
-        let head = history.branch_head(branch_id)?;
-        self.inspect_commit(head.commit_id)
-    }
-
-    fn record_retention_inspection(
-        &self,
-        target: RecordRef,
-        lifecycle: RecordLifecycleState,
-        snapshot_pins: u32,
-        branch_pins: u32,
-        replay_pins: u32,
-        version_id: crate::identity::data::VersionId,
-    ) -> RecordRetentionInspection {
-        let reclaim_eligibility = if !self.runtime.config.storage.mvcc.auto_reclaim_deleted_records {
-            ReclaimEligibility::BlockedByPolicy
-        } else if snapshot_pins > 0 {
-            ReclaimEligibility::BlockedBySnapshotPins
-        } else if branch_pins > 0 {
-            ReclaimEligibility::BlockedByBranchPins
-        } else if replay_pins > 0 {
-            ReclaimEligibility::BlockedByReplayPins
-        } else if lifecycle == RecordLifecycleState::Reclaimable {
-            ReclaimEligibility::EligibleNow
-        } else {
-            ReclaimEligibility::BlockedByRetentionFence
-        };
-        RecordRetentionInspection {
-            state: RetentionStateObservation {
-                target: target.clone(),
-                lifecycle,
-            },
-            pins: PinStateObservation {
-                target,
-                snapshot_pins,
-                branch_pins,
-                replay_pins,
-            },
-            reclaim_eligibility,
-            historical_availability: HistoricalAvailabilityObservation {
-                version_id,
-                availability: if lifecycle == RecordLifecycleState::Reusable {
-                    InspectionAvailability::UnavailableByRetention
-                } else {
-                    InspectionAvailability::Direct
-                },
-                retained_directly: lifecycle != RecordLifecycleState::Reusable,
-            },
-        }
-    }
-
-    fn inspect_retention_plan(&self) -> RetentionPlan {
-        let retention_fence = self
-            .runtime
-            .visibility
-            .retention_fence_version(self.runtime.current_version_id());
-        let mut branch_pinned_entities = 0;
-        let mut replay_pinned_entities = 0;
-        let mut snapshot_pinned_entities = 0;
-        let mut branch_pinned_relations = 0;
-        let mut replay_pinned_relations = 0;
-        let mut snapshot_pinned_relations = 0;
-        let mut reclaimable_entities = 0;
-        let mut reclaimable_relations = 0;
-        for partition_id in self.runtime.storage_access().partition_ids() {
-            for slot in 0..self
-                .runtime
-                .storage_access()
-                .record_slot_count::<crate::storage::logic::state::EntityRecordKind>(partition_id)
-            {
-                if let Some(surface) = self
-                    .runtime
-                    .storage_access()
-                    .record_slot_surface::<crate::storage::logic::state::EntityRecordKind>(
-                        partition_id, slot,
-                    )
-                {
-                    if surface.branch_pins > 0 {
-                        branch_pinned_entities += 1;
-                    }
-                    if surface.replay_pins > 0 {
-                        replay_pinned_entities += 1;
-                    }
-                    if surface.snapshot_pins > 0 {
-                        snapshot_pinned_entities += 1;
-                    }
-                    if surface.lifecycle == RecordLifecycleState::Reclaimable {
-                        reclaimable_entities += 1;
-                    }
-                }
-            }
-            for slot in 0..self
-                .runtime
-                .storage_access()
-                .record_slot_count::<crate::storage::logic::state::RelationRecordKind>(partition_id)
-            {
-                if let Some(surface) = self
-                    .runtime
-                    .storage_access()
-                    .record_slot_surface::<crate::storage::logic::state::RelationRecordKind>(
-                        partition_id, slot,
-                    )
-                {
-                    if surface.branch_pins > 0 {
-                        branch_pinned_relations += 1;
-                    }
-                    if surface.replay_pins > 0 {
-                        replay_pinned_relations += 1;
-                    }
-                    if surface.snapshot_pins > 0 {
-                        snapshot_pinned_relations += 1;
-                    }
-                    if surface.lifecycle == RecordLifecycleState::Reclaimable {
-                        reclaimable_relations += 1;
-                    }
-                }
-            }
-        }
-        RetentionPlan {
-            retention_fence_version: retention_fence,
-            active_snapshot_count: self.runtime.visibility.active_snapshot_count(),
-            branch_pinned_entities,
-            replay_pinned_entities,
-            snapshot_pinned_entities,
-            branch_pinned_relations,
-            replay_pinned_relations,
-            snapshot_pinned_relations,
-            reclaimable_entities,
-            reclaimable_relations,
-        }
-    }
-
-    fn current_graph_summary(&self, request: &GraphInspectionRequest) -> GraphInspectionSummary {
-        let partition_scope = request
-            .partition_scope
-            .as_ref()
-            .map(|scope| scope.iter().copied().collect::<BTreeSet<_>>());
-        let relation_kind_scope = request
-            .relation_kind_scope
-            .as_ref()
-            .map(|scope| scope.iter().copied().collect::<BTreeSet<_>>());
-        let mut entity_count = 0;
-        let mut relation_count = 0;
-        let mut entity_kinds = BTreeMap::<_, usize>::new();
-        let mut relation_kinds = BTreeMap::<_, usize>::new();
-        let mut touched_partitions = BTreeSet::new();
-
-        for partition_id in self.runtime.storage_access().partition_ids() {
-            if partition_scope
-                .as_ref()
-                .is_some_and(|scope| !scope.contains(&partition_id))
-            {
-                continue;
-            }
-            let Some(partition) = self.runtime.storage_access().partition_state(partition_id) else {
-                continue;
-            };
-            for slot in partition.entity_arena.live_bitset.iter_set_slots() {
-                let Some(slot_view) = partition.entity_arena.get_slot(slot) else {
-                    continue;
-                };
-                let Some(kind_id) = slot_view.kind_id() else {
-                    continue;
-                };
-                entity_count += 1;
-                *entity_kinds.entry(kind_id).or_default() += 1;
-                touched_partitions.insert(partition_id);
-            }
-            for slot in partition.relation_arena.live_bitset.iter_set_slots() {
-                let Some(slot_view) = partition.relation_arena.get_slot(slot) else {
-                    continue;
-                };
-                let Some(kind_id) = slot_view.kind_id() else {
-                    continue;
-                };
-                if relation_kind_scope
-                    .as_ref()
-                    .is_some_and(|scope| !scope.contains(&kind_id))
-                {
-                    continue;
-                }
-                relation_count += 1;
-                *relation_kinds.entry(kind_id).or_default() += 1;
-                touched_partitions.insert(partition_id);
-            }
-        }
-
-        GraphInspectionSummary {
-            scope: request.scope.clone(),
-            version_id: self.runtime.current_version_id(),
-            partition_count: touched_partitions.len(),
-            entity_count,
-            relation_count,
-            entity_kinds: entity_kinds.into_iter().collect(),
-            relation_kinds: relation_kinds.into_iter().collect(),
-            origin: InspectionOrigin::CurrentTruth,
-            access_path: InspectionAccessPath::DirectLookup,
-            availability: InspectionAvailability::Direct,
-            degradations: if request.summary_only {
-                vec![InspectionDegradation::SummaryOnly]
-            } else {
-                Vec::new()
-            },
-        }
-    }
-
-    fn current_connectivity_summary(
-        &self,
-        request: &ConnectivityInspectionRequest,
-    ) -> ConnectivityInspectionSummary {
-        let partition_scope = request
-            .partition_scope
-            .as_ref()
-            .map(|scope| scope.iter().copied().collect::<BTreeSet<_>>());
-        let relation_kind_scope = request
-            .relation_kind_scope
-            .as_ref()
-            .map(|scope| scope.iter().copied().collect::<BTreeSet<_>>());
-        let mut entities = Vec::new();
-
-        for partition_id in self.runtime.storage_access().partition_ids() {
-            if partition_scope
-                .as_ref()
-                .is_some_and(|scope| !scope.contains(&partition_id))
-            {
-                continue;
-            }
-            let Some(partition) = self.runtime.storage_access().partition_state(partition_id) else {
-                continue;
-            };
-            for slot in partition.entity_arena.live_bitset.iter_set_slots() {
-                let Some(slot_view) = partition.entity_arena.get_slot(slot) else {
-                    continue;
-                };
-                entities.push(crate::identity::data::EntityId::new(
-                    partition_id,
-                    slot as u64,
-                    slot_view.generation(),
-                ));
-            }
-        }
-        entities.sort();
-        let entity_set = entities.iter().copied().collect::<BTreeSet<_>>();
-        let mut adjacency = BTreeMap::<_, BTreeSet<_>>::new();
-        let mut seen_relations = BTreeSet::new();
-
-        for entity in &entities {
-            adjacency.entry(*entity).or_default();
-            let relation_ids = self
-                .runtime
-                .storage_access()
-                .outgoing_relations_for_entity(*entity, self.runtime.current_version_id())
-                .into_iter()
-                .chain(
-                    self.runtime
-                        .storage_access()
-                        .incoming_relations_for_entity(*entity, self.runtime.current_version_id()),
-                );
-            for relation_id in relation_ids {
-                if !seen_relations.insert(relation_id) {
-                    continue;
-                }
-                let Some(partition) = self
-                    .runtime
-                    .storage_access()
-                    .partition_state(relation_id.partition_id)
-                else {
-                    continue;
-                };
-                let Some(slot_view) = partition.relation_arena.get(&relation_id) else {
-                    continue;
-                };
-                let Some(kind_id) = slot_view.kind_id() else {
-                    continue;
-                };
-                if relation_kind_scope
-                    .as_ref()
-                    .is_some_and(|scope| !scope.contains(&kind_id))
-                {
-                    continue;
-                }
-                let Some(endpoints) = slot_view.extra().clone() else {
-                    continue;
-                };
-                if entity_set.contains(&endpoints.source) && entity_set.contains(&endpoints.target) {
-                    adjacency
-                        .entry(endpoints.source)
-                        .or_default()
-                        .insert(endpoints.target);
-                    adjacency
-                        .entry(endpoints.target)
-                        .or_default()
-                        .insert(endpoints.source);
-                }
-            }
-        }
-
-        let mut visited = BTreeSet::new();
-        let mut components = Vec::new();
-        for entity in &entities {
-            if !visited.insert(*entity) {
-                continue;
-            }
-            let mut queue = VecDeque::from([*entity]);
-            let mut members = vec![*entity];
-            while let Some(current) = queue.pop_front() {
-                for neighbor in adjacency.get(&current).into_iter().flatten() {
-                    if visited.insert(*neighbor) {
-                        members.push(*neighbor);
-                        queue.push_back(*neighbor);
-                    }
-                }
-            }
-            members.sort();
-            components.push(ConnectivityComponentSummary {
-                member_count: members.len(),
-                members: request.include_members.then_some(members),
-            });
-        }
-
-        ConnectivityInspectionSummary {
-            scope: request.scope.clone(),
-            version_id: self.runtime.current_version_id(),
-            component_count: components.len(),
-            largest_component_size: components
-                .iter()
-                .map(|component| component.member_count)
-                .max()
-                .unwrap_or(0),
-            enumerated_entity_count: entities.len(),
-            components,
-            origin: InspectionOrigin::CurrentTruth,
-            access_path: InspectionAccessPath::DirectLookup,
-            resolution_context: InspectionResolutionContext::ConnectivityTraversal,
-            availability: InspectionAvailability::Direct,
-            degradations: if request.include_members {
-                Vec::new()
-            } else {
-                vec![InspectionDegradation::SummaryOnly]
-            },
-        }
-    }
-
-    fn read_view_for_scope(&self, scope: &InspectionScope) -> Option<RelationalReadView> {
+    pub(super) fn read_view_for_scope(&self, scope: &InspectionScope) -> Option<RelationalReadView> {
         match scope {
             InspectionScope::Current => Some(
                 self.runtime
@@ -1073,18 +39,18 @@ impl<'runtime> InspectionAccess<'runtime> {
         }
     }
 
-    fn scope_version_id(&self, scope: &InspectionScope) -> Option<crate::identity::data::VersionId> {
+    pub(super) fn scope_version_id(&self, scope: &InspectionScope) -> VersionId {
         match scope {
-            InspectionScope::Current => Some(self.runtime.current_version_id()),
-            InspectionScope::Version(version_id) => Some(*version_id),
-            InspectionScope::Snapshot(handle) => Some(handle.version_id),
+            InspectionScope::Current => self.runtime.current_version_id(),
+            InspectionScope::Version(version_id) => *version_id,
+            InspectionScope::Snapshot(handle) => handle.version_id,
         }
     }
 
-    fn scope_access_path(
+    pub(super) fn scope_access_path(
         &self,
         scope: &InspectionScope,
-        version_id: crate::identity::data::VersionId,
+        version_id: VersionId,
     ) -> InspectionAccessPath {
         match scope {
             InspectionScope::Current => InspectionAccessPath::DirectLookup,
@@ -1098,10 +64,10 @@ impl<'runtime> InspectionAccess<'runtime> {
         }
     }
 
-    fn scope_availability(
+    pub(super) fn scope_availability(
         &self,
         scope: &InspectionScope,
-        version_id: crate::identity::data::VersionId,
+        version_id: VersionId,
     ) -> InspectionAvailability {
         match scope {
             InspectionScope::Current => InspectionAvailability::Direct,
@@ -1113,5 +79,147 @@ impl<'runtime> InspectionAccess<'runtime> {
             InspectionScope::Version(_) => InspectionAvailability::Reconstructed,
             InspectionScope::Snapshot(_) => InspectionAvailability::Direct,
         }
+    }
+
+    pub(super) fn unavailable_graph_summary(
+        &self,
+        request: &GraphInspectionRequest,
+        version_id: VersionId,
+    ) -> GraphInspectionSummary {
+        GraphInspectionSummary {
+            scope: request.scope.clone(),
+            version_id,
+            partition_count: 0,
+            entity_count: 0,
+            relation_count: 0,
+            entity_kinds: Vec::new(),
+            relation_kinds: Vec::new(),
+            origin: InspectionOrigin::VisibilitySnapshot,
+            access_path: self.scope_access_path(&request.scope, version_id),
+            availability: unavailable_scope_availability(&request.scope),
+            degradations: summary_degradations(!request.summary_only, None),
+        }
+    }
+
+    pub(super) fn budget_exceeded_graph_summary(
+        &self,
+        request: &GraphInspectionRequest,
+        version_id: VersionId,
+        degradation: InspectionDegradation,
+    ) -> GraphInspectionSummary {
+        GraphInspectionSummary {
+            scope: request.scope.clone(),
+            version_id,
+            partition_count: 0,
+            entity_count: 0,
+            relation_count: 0,
+            entity_kinds: Vec::new(),
+            relation_kinds: Vec::new(),
+            origin: match request.scope {
+                InspectionScope::Current => InspectionOrigin::CurrentTruth,
+                _ => InspectionOrigin::VisibilitySnapshot,
+            },
+            access_path: self.scope_access_path(&request.scope, version_id),
+            availability: InspectionAvailability::UnavailableByBudget,
+            degradations: summary_degradations(!request.summary_only, Some(degradation)),
+        }
+    }
+
+    pub(super) fn unavailable_connectivity_summary(
+        &self,
+        request: &ConnectivityInspectionRequest,
+        version_id: VersionId,
+    ) -> ConnectivityInspectionSummary {
+        ConnectivityInspectionSummary {
+            scope: request.scope.clone(),
+            version_id,
+            component_count: 0,
+            largest_component_size: 0,
+            enumerated_entity_count: 0,
+            components: Vec::new(),
+            origin: InspectionOrigin::VisibilitySnapshot,
+            access_path: self.scope_access_path(&request.scope, version_id),
+            resolution_context: crate::inspection::data::InspectionResolutionContext::ConnectivityTraversal,
+            availability: unavailable_scope_availability(&request.scope),
+            degradations: summary_degradations(request.include_members, None),
+        }
+    }
+
+    pub(super) fn budget_exceeded_connectivity_summary(
+        &self,
+        request: &ConnectivityInspectionRequest,
+        version_id: VersionId,
+        degradation: InspectionDegradation,
+    ) -> ConnectivityInspectionSummary {
+        ConnectivityInspectionSummary {
+            scope: request.scope.clone(),
+            version_id,
+            component_count: 0,
+            largest_component_size: 0,
+            enumerated_entity_count: 0,
+            components: Vec::new(),
+            origin: match request.scope {
+                InspectionScope::Current => InspectionOrigin::CurrentTruth,
+                _ => InspectionOrigin::VisibilitySnapshot,
+            },
+            access_path: self.scope_access_path(&request.scope, version_id),
+            resolution_context: crate::inspection::data::InspectionResolutionContext::ConnectivityTraversal,
+            availability: InspectionAvailability::UnavailableByBudget,
+            degradations: summary_degradations(request.include_members, Some(degradation)),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub(super) struct ScopeFilter<T: Ord + Copy>(Option<BTreeSet<T>>);
+
+impl<T: Ord + Copy> ScopeFilter<T> {
+    pub(super) fn from_scope(scope: Option<&Vec<T>>) -> Self {
+        Self(scope.map(|values| values.iter().copied().collect()))
+    }
+
+    pub(super) fn allows(&self, value: T) -> bool {
+        self.0.as_ref().is_none_or(|scope| scope.contains(&value))
+    }
+}
+
+pub(super) type PartitionScopeFilter = ScopeFilter<PartitionId>;
+pub(super) type KindScopeFilter = ScopeFilter<KindId>;
+
+pub(super) fn summary_degradations(
+    include_full_detail: bool,
+    extra: Option<InspectionDegradation>,
+) -> Vec<InspectionDegradation> {
+    let mut degradations = Vec::new();
+    if !include_full_detail {
+        degradations.push(InspectionDegradation::SummaryOnly);
+    }
+    if let Some(extra) = extra {
+        degradations.push(extra);
+    }
+    degradations
+}
+
+pub(super) fn unavailable_scope_availability(scope: &InspectionScope) -> InspectionAvailability {
+    match scope {
+        InspectionScope::Snapshot(_) => InspectionAvailability::UnavailableByRetention,
+        InspectionScope::Current | InspectionScope::Version(_) => {
+            InspectionAvailability::UnavailableByMissingCanonicalArtifacts
+        }
+    }
+}
+
+pub(super) fn empty_retention_plan(retention_fence_version: VersionId) -> RetentionPlan {
+    RetentionPlan {
+        retention_fence_version,
+        active_snapshot_count: 0,
+        branch_pinned_entities: 0,
+        replay_pinned_entities: 0,
+        snapshot_pinned_entities: 0,
+        branch_pinned_relations: 0,
+        replay_pinned_relations: 0,
+        snapshot_pinned_relations: 0,
+        reclaimable_entities: 0,
+        reclaimable_relations: 0,
     }
 }

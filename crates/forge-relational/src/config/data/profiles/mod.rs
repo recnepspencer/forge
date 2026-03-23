@@ -68,6 +68,10 @@ fn apply_execution_overrides(
         "execution.compiled_lane_policy".to_string(),
         provenance_entry(section.compiled_lane_policy.is_some()),
     );
+    provenance.insert(
+        "execution.relation_integrity_scope_budget".to_string(),
+        provenance_entry(section.relation_integrity_scope_budget.is_some()),
+    );
 
     if let Some(runtime_name) = &section.runtime_name {
         config.execution.runtime_name = runtime_name.clone();
@@ -83,6 +87,9 @@ fn apply_execution_overrides(
     }
     if let Some(compiled_lane_policy) = section.compiled_lane_policy {
         config.execution.compiled_lane_policy = compiled_lane_policy;
+    }
+    if let Some(relation_integrity_scope_budget) = &section.relation_integrity_scope_budget {
+        config.execution.relation_integrity_scope_budget = relation_integrity_scope_budget.clone();
     }
 }
 

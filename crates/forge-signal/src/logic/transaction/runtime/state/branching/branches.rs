@@ -171,25 +171,44 @@ where
         }
     }
 
-    pub fn insert_branch(&mut self, branch_id: SignalBranchId, state: BranchState<D, I, T>) {
+    pub(in crate::logic::transaction::runtime::state::branching) fn store_branch_state(
+        &mut self,
+        branch_id: SignalBranchId,
+        state: BranchState<D, I, T>,
+    ) {
         self.observe_allocator_state(&state.authority.graph);
         self.branches.insert(branch_id, state);
     }
 
-    pub fn insert_branch_fork_packet(&mut self, packet: ExplicitBranchForkPacket<D, I, T>) {
-        debug_assert_eq!(packet.source_branch, packet.state.ancestry.parent_branch_id.unwrap_or(packet.source_branch));
-        self.insert_branch(packet.branch_id, packet.state);
+    pub(in crate::logic::transaction::runtime::state::branching) fn store_fork_packet(
+        &mut self,
+        packet: ExplicitBranchForkPacket<D, I, T>,
+    ) -> Result<(), crate::data::error::SignalError> {
+        let expected_parent = packet
+            .state
+            .ancestry
+            .parent_branch_id
+            .unwrap_or(packet.source_branch);
+        if packet.source_branch != expected_parent {
+            return Err(crate::data::error::SignalError::internal(format!(
+                "fork packet ancestry mismatch: source branch {} does not match stored parent {}",
+                packet.source_branch.0,
+                expected_parent.0
+            )));
+        }
+        self.store_branch_state(packet.branch_id, packet.state);
+        Ok(())
     }
 
     pub fn branch_state(&self, branch_id: SignalBranchId) -> Option<&BranchState<D, I, T>> {
         self.branches.get(&branch_id)
     }
 
-    pub fn take_branch_state(&mut self, branch_id: SignalBranchId) -> Option<BranchState<D, I, T>> {
+    fn take_branch_state(&mut self, branch_id: SignalBranchId) -> Option<BranchState<D, I, T>> {
         self.branches.remove(&branch_id)
     }
 
-    pub fn take_branch_transfer_packet(
+    pub(in crate::logic::transaction::runtime::state::branching) fn take_stored_branch_transfer(
         &mut self,
         branch_id: SignalBranchId,
     ) -> Option<AuthorityTransferPacket<D, I, T>> {
@@ -197,10 +216,11 @@ where
             .map(|state| AuthorityTransferPacket { branch_id, state })
     }
 
-    pub fn branch_state_mut_with_allocator_sync(
+    pub(in crate::logic::transaction::runtime::state::branching) fn with_stored_branch_state_mut<R>(
         &mut self,
         branch_id: SignalBranchId,
-    ) -> Option<&mut BranchState<D, I, T>> {
+        f: impl FnOnce(&mut BranchState<D, I, T>) -> R,
+    ) -> Option<R> {
         let next_node_index = self.next_node_index;
         let next_snapshot_id = self.next_snapshot_id;
         let next_branch_id = self.next_branch_id;
@@ -221,7 +241,7 @@ where
             .graph
             .diagnostics_state_mut()
             .synchronize_lineage_allocator(next_lineage_artifact_id, next_lineage_sequence);
-        Some(state)
+        Some(f(state))
     }
 
     pub fn insert_snapshot(

@@ -3,7 +3,8 @@ use serde_json::json;
 use crate::authority::mutation::aspect_versions::write_aspect_versions_for_delta;
 use crate::authority::mutation::canonical_deltas::canonical_delta_for_mutation;
 use crate::authority::mutation::patch_details::{
-    patch_detail_for_entity, patch_detail_for_relation,
+    patch_detail_for_entity, patch_detail_for_relation, EntityPatchDetailKind,
+    RelationPatchDetailKind,
 };
 use crate::diagnostics::data::{DiagnosticCode, RelationalDiagnosticsEntry};
 use crate::publication::data::diff::{PatchRecord, PatchRecordKind, RecordStructuralChange};
@@ -15,21 +16,23 @@ use super::{AdjacencyDelta, AdjacencyDeltaKind, MutationEffect, MutationWorkspac
 pub(crate) fn assemble_effect(
     outcome: MutationOutcome,
     workspace: &mut MutationWorkspace<'_>,
-) -> MutationEffect {
+) -> Result<MutationEffect, crate::transactions::data::CommitConflict> {
     let patch_surface_policy = workspace.patch_surface_policy();
     let version_id = workspace.version_id();
     let mut effect = MutationEffect::default();
 
     for change in outcome.changes {
-        let canonical_delta = canonical_delta_for_mutation(&change, workspace);
+        let canonical_delta = canonical_delta_for_mutation(&change, workspace)
+            .map_err(|error| error.to_commit_conflict())?;
         workspace.with_context(|context| {
             write_aspect_versions_for_delta(
                 context.state,
                 &canonical_delta,
                 version_id,
                 context.symbols,
-            );
-        });
+            )
+        })
+        .map_err(|error| error.to_commit_conflict())?;
         let patch_aspects = canonical_delta.changed_aspects.clone();
         let contains_degraded_precision = canonical_delta.contains_degraded_precision;
         match change {
@@ -49,7 +52,7 @@ pub(crate) fn assemble_effect(
                     contains_degraded_precision,
                     detail: patch_detail_for_entity(
                         patch_surface_policy,
-                        PatchRecordKind::Created,
+                        EntityPatchDetailKind::Created,
                         entity_id,
                         Some(&payload),
                     ),
@@ -73,7 +76,7 @@ pub(crate) fn assemble_effect(
                     contains_degraded_precision,
                     detail: patch_detail_for_entity(
                         patch_surface_policy,
-                        PatchRecordKind::Updated,
+                        EntityPatchDetailKind::Updated,
                         entity_id,
                         Some(&new_payload),
                     ),
@@ -93,7 +96,7 @@ pub(crate) fn assemble_effect(
                     contains_degraded_precision,
                     detail: patch_detail_for_entity(
                         patch_surface_policy,
-                        PatchRecordKind::Deleted,
+                        EntityPatchDetailKind::Deleted,
                         entity_id,
                         None,
                     ),
@@ -123,7 +126,7 @@ pub(crate) fn assemble_effect(
                     contains_degraded_precision,
                     detail: patch_detail_for_relation(
                         patch_surface_policy,
-                        PatchRecordKind::Created,
+                        RelationPatchDetailKind::Created,
                         relation_id,
                         source,
                         target,
@@ -154,7 +157,7 @@ pub(crate) fn assemble_effect(
                     contains_degraded_precision,
                     detail: patch_detail_for_relation(
                         patch_surface_policy,
-                        PatchRecordKind::Deleted,
+                        RelationPatchDetailKind::Deleted,
                         relation_id,
                         source,
                         target,
@@ -182,7 +185,7 @@ pub(crate) fn assemble_effect(
                     contains_degraded_precision,
                     detail: patch_detail_for_relation(
                         patch_surface_policy,
-                        PatchRecordKind::RetainedForAudit,
+                        RelationPatchDetailKind::RetainedForAudit,
                         relation_id,
                         source,
                         target,
@@ -197,7 +200,7 @@ pub(crate) fn assemble_effect(
         effect.diagnostics.entries.push(event_diagnostic(event));
     }
 
-    effect
+    Ok(effect)
 }
 
 fn event_diagnostic(event: MutationEvent) -> RelationalDiagnosticsEntry {

@@ -134,7 +134,7 @@ fn derive_aspect_emission_traces(
             AspectEmissionTrace {
                 target: delta.target.clone(),
                 patch_position,
-                patch_record_index,
+                patch_record_index: patch_record_index as u64,
                 structural_change: delta.structural_change,
                 changed_aspects: delta.changed_aspects.clone(),
                 contains_degraded_precision: delta.contains_degraded_precision,

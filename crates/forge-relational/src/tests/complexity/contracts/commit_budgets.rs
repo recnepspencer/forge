@@ -7,10 +7,16 @@ fn relation_integrity_cardinality_runtime() -> RelationalRuntime {
         relation_integrity: RelationIntegrityDeclarations::new(
             Vec::new(),
             vec![crate::schema::data::CardinalityContractDeclaration {
-                contract_id: "source_max_one".to_string(),
+                contract_id: "source_max_one".into(),
                 source_max: Some(1),
+                source_min: None,
                 target_max: None,
+                target_min: None,
                 pair_max: None,
+                pair_min: None,
+                pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                minimum_enforcement:
+                    crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
             }],
             Vec::new(),
             Vec::new(),
@@ -27,7 +33,7 @@ fn relation_integrity_uniqueness_runtime() -> RelationalRuntime {
             Vec::new(),
             Vec::new(),
             vec![crate::schema::data::UniquenessContractDeclaration {
-                contract_id: "uniq".to_string(),
+                contract_id: "uniq".into(),
                 scope: crate::schema::data::UniquenessScope::NormalizedSymmetricEdge,
             }],
             Vec::new(),
@@ -45,7 +51,7 @@ fn relation_integrity_symmetry_runtime() -> RelationalRuntime {
             Vec::new(),
             Vec::new(),
             vec![crate::schema::data::SymmetryContractDeclaration {
-                contract_id: "paired_twin".to_string(),
+                contract_id: "paired_twin".into(),
                 mode: crate::schema::data::SymmetryMode::PairedTwinRequired,
             }],
             Vec::new(),
@@ -59,20 +65,26 @@ fn relation_integrity_multi_contract_runtime() -> RelationalRuntime {
     RelationIntegritySchemaFixture {
         relation_integrity: RelationIntegrityDeclarations::new(
             vec![crate::schema::data::EndpointKindContractDeclaration {
-                contract_id: "kind".to_string(),
+                contract_id: "kind".into(),
                 allowed_source_kinds: vec![KindId(1)],
                 allowed_target_kinds: vec![KindId(1)],
                 self_edges_allowed: false,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
             }],
             vec![crate::schema::data::CardinalityContractDeclaration {
-                contract_id: "source_max_two".to_string(),
+                contract_id: "source_max_two".into(),
                 source_max: Some(2),
+                source_min: None,
                 target_max: None,
+                target_min: None,
                 pair_max: None,
+                pair_min: None,
+                pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                minimum_enforcement:
+                    crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
             }],
             vec![crate::schema::data::UniquenessContractDeclaration {
-                contract_id: "uniq".to_string(),
+                contract_id: "uniq".into(),
                 scope: crate::schema::data::UniquenessScope::NormalizedSymmetricEdge,
             }],
             Vec::new(),
@@ -88,6 +100,37 @@ fn relation_integrity_endpoint_deletion_runtime() -> RelationalRuntime {
         crate::schema::data::EndpointDeletionIntegrityMode::RejectDeleteWithLiveRelations,
         CascadeDeletePolicy::RetainDanglingForAudit,
     )
+}
+
+fn relation_integrity_minimum_certification_runtime() -> RelationalRuntime {
+    RelationIntegritySchemaFixture {
+        relation_integrity: RelationIntegrityDeclarations::new(
+            vec![crate::schema::data::EndpointKindContractDeclaration {
+                contract_id: "endpoint".into(),
+                allowed_source_kinds: vec![KindId(1)],
+                allowed_target_kinds: vec![KindId(1)],
+                self_edges_allowed: true,
+                cross_context_policy: CrossContextPolicy::AllowExplicit,
+            }],
+            vec![crate::schema::data::CardinalityContractDeclaration {
+                contract_id: "minimum".into(),
+                source_max: None,
+                source_min: Some(1),
+                target_max: None,
+                target_min: None,
+                pair_max: None,
+                pair_min: Some(2),
+                pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                minimum_enforcement:
+                    crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
+            }],
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+        ),
+        ..RelationIntegritySchemaFixture::default()
+    }
+    .build_runtime()
 }
 
 fn schema_transition_for_subscriber_impact(
@@ -599,6 +642,35 @@ fn complexity_budget_relation_integrity_reuses_touched_scope_across_multiple_con
         1,
         "touched live relation scope should be scanned once per relation kind, not once per contract"
     );
+}
+
+#[test]
+fn complexity_budget_relation_integrity_minimum_certification_reports_snapshot_breadth() {
+    let mut runtime = relation_integrity_minimum_certification_runtime();
+    let source = create_entity(&mut runtime, "source");
+    let target = create_entity(&mut runtime, "target");
+    create_relation(&mut runtime, source, target, "single");
+
+    runtime.performance_access().reset_counters();
+    let result = runtime.invariant_access().certification_state();
+    let counters = runtime.performance_access().counters();
+
+    assert!(result.summary().publication_failure().is_some());
+    assert_eq!(
+        counters.relation_cardinality_minimum_certification_contracts_evaluated,
+        1
+    );
+    assert_eq!(
+        counters.relation_cardinality_minimum_certification_relation_slot_scans,
+        counters.invariant_relation_slot_scans
+    );
+    assert_eq!(
+        counters.relation_cardinality_minimum_certification_entity_slot_scans,
+        counters.invariant_entity_slot_scans
+    );
+    assert!(counters.relation_cardinality_minimum_certification_relation_slot_scans >= 1);
+    assert!(counters.relation_cardinality_minimum_certification_entity_slot_scans >= 2);
+    assert!(counters.relation_cardinality_checks >= 1);
 }
 
 #[test]

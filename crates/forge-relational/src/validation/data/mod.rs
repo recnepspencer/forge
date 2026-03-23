@@ -15,5 +15,8 @@ pub use execution::{
     InvariantVerdict,
 };
 pub use groups::{InvariantCostClass, InvariantGroup, InvariantGroupSet};
-pub use results::{InvariantAdvisory, InvariantViolation};
+pub use results::{
+    InvariantAdvisory, InvariantViolation, InvariantViolationFields, RelationCardinalityBoundary,
+    RelationEndpointBoundary,
+};
 pub use rules::{InvariantRule, RecordKindTag};

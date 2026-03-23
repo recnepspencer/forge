@@ -1,5 +1,5 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde_json::json;
+use serde_json::{json, to_value, Value};
 use smallvec::SmallVec;
 
 use crate::diagnostics::data::{
@@ -13,6 +13,7 @@ use crate::transactions::data::RecordRef;
 use super::{BranchId, CommitId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum AspectFilterMode {
     Any,
     All,
@@ -39,6 +40,7 @@ pub struct AspectHistoryOrigin {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum AspectResolutionContext {
     DirectRecordHistory,
     ResolvedViaLineage {
@@ -63,6 +65,7 @@ pub struct LineageAspectHistory {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum HistoryAspectQueryTarget {
     Entity(EntityId),
     Relation(RelationId),
@@ -77,9 +80,9 @@ pub struct AspectHistoryResolutionTrace {
     pub resolved_aspects: CanonicalAspectSet,
     pub searched_commit_span: Option<AspectHistoryCommitSpan>,
     pub searched_lineage_event_span: Option<AspectHistoryLineageEventSpan>,
-    pub returned_entries: usize,
-    pub traversed_commits: usize,
-    pub traversed_lineage_events: usize,
+    pub returned_entries: u64,
+    pub traversed_commits: u64,
+    pub traversed_lineage_events: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -95,52 +98,88 @@ pub struct AspectHistoryLineageEventSpan {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct AspectHistoryQueryResult {
     pub entries: Vec<AspectHistoryEntry>,
     pub trace: AspectHistoryResolutionTrace,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct LineageAspectHistoryQueryResult {
     pub history: Option<LineageAspectHistory>,
     pub trace: AspectHistoryResolutionTrace,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct AspectHistoryDigest {
     pub requested_target: HistoryAspectQueryTarget,
     pub branch_id: BranchId,
     pub resolved_aspects: CanonicalAspectSet,
-    pub entry_count: usize,
-    pub degraded_precision_entry_count: usize,
-    pub traversed_commits: usize,
+    pub entry_count: u64,
+    pub degraded_precision_entry_count: u64,
+    pub traversed_commits: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct LineageAspectResolutionDigest {
     pub requested_target: HistoryAspectQueryTarget,
     pub branch_id: BranchId,
     pub resolved_aspects: CanonicalAspectSet,
-    pub entry_count: usize,
-    pub degraded_precision_entry_count: usize,
-    pub traversed_commits: usize,
-    pub traversed_lineage_events: usize,
-    pub resolved_lineage_chain_len: usize,
+    pub entry_count: u64,
+    pub degraded_precision_entry_count: u64,
+    pub traversed_commits: u64,
+    pub traversed_lineage_events: u64,
+    pub resolved_lineage_chain_len: u64,
 }
 
 impl AspectFilter {
     pub fn matches(&self, aspects: &CanonicalAspectSet) -> bool {
         match self.mode {
-            AspectFilterMode::Any => self
-                .aspects
-                .iter()
-                .any(|requested| aspects.iter().any(|actual| actual == requested)),
-            AspectFilterMode::All => self
-                .aspects
-                .iter()
-                .all(|requested| aspects.iter().any(|actual| actual == requested)),
+            AspectFilterMode::Any => intersects_sorted(&self.aspects, aspects),
+            AspectFilterMode::All => contains_all_sorted(&self.aspects, aspects),
         }
     }
+}
+
+fn intersects_sorted(requested: &RequestedAspectSet, actual: &CanonicalAspectSet) -> bool {
+    let mut requested = requested.iter().peekable();
+    let mut actual = actual.iter().peekable();
+    while let (Some(left), Some(right)) = (requested.peek(), actual.peek()) {
+        match left.cmp(right) {
+            std::cmp::Ordering::Equal => return true,
+            std::cmp::Ordering::Less => {
+                requested.next();
+            }
+            std::cmp::Ordering::Greater => {
+                actual.next();
+            }
+        }
+    }
+    false
+}
+
+fn contains_all_sorted(requested: &RequestedAspectSet, actual: &CanonicalAspectSet) -> bool {
+    let mut requested = requested.iter().peekable();
+    let mut actual = actual.iter().peekable();
+    while let Some(left) = requested.peek() {
+        let Some(right) = actual.peek() else {
+            return false;
+        };
+        match left.cmp(right) {
+            std::cmp::Ordering::Equal => {
+                requested.next();
+                actual.next();
+            }
+            std::cmp::Ordering::Less => return false,
+            std::cmp::Ordering::Greater => {
+                actual.next();
+            }
+        }
+    }
+    true
 }
 
 impl RequestedAspectSet {
@@ -208,6 +247,7 @@ impl AspectHistoryResolutionTrace {
     }
 
     pub fn diagnostic_artifact(&self) -> RelationalDiagnosticArtifact {
+        let fields = AspectHistoryResolutionTraceFields::from_trace(self);
         RelationalDiagnosticArtifact {
             scope: self.diagnostics_scope(),
             kind: DiagnosticsArtifactKind::DetailedTrace,
@@ -222,30 +262,81 @@ impl AspectHistoryResolutionTrace {
                     }
                 },
                 message: "aspect history resolved from committed aspect truth".to_string(),
-                fields: json!({
-                    "requested_target": self.requested_target,
-                    "branch_id": self.branch_id,
-                    "filter_mode": self.filter.as_ref().map(|filter| filter.mode),
-                    "requested_aspects": self.filter.as_ref().map(|filter| {
-                        filter
-                            .aspects
-                            .iter()
-                            .cloned()
-                            .collect::<Vec<AspectKey>>()
-                    }),
-                    "resolved_aspects": self
-                        .resolved_aspects
-                        .iter()
-                        .cloned()
-                        .collect::<Vec<AspectKey>>(),
-                    "searched_commit_span": self.searched_commit_span,
-                    "searched_lineage_event_span": self.searched_lineage_event_span,
-                    "returned_entries": self.returned_entries,
-                    "traversed_commits": self.traversed_commits,
-                    "traversed_lineage_events": self.traversed_lineage_events,
-                }),
+                fields: trace_fields_value(&fields, "aspect history resolution trace"),
             }],
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+struct AspectHistoryResolutionTraceFields {
+    requested_target: HistoryAspectQueryTarget,
+    branch_id: BranchId,
+    filter_mode: Option<AspectFilterMode>,
+    requested_aspects: Option<Vec<AspectKey>>,
+    resolved_aspects: Vec<AspectKey>,
+    searched_commit_span: Option<AspectHistoryCommitSpan>,
+    searched_lineage_event_span: Option<AspectHistoryLineageEventSpan>,
+    returned_entries: u64,
+    traversed_commits: u64,
+    traversed_lineage_events: u64,
+}
+
+impl AspectHistoryResolutionTraceFields {
+    fn from_trace(trace: &AspectHistoryResolutionTrace) -> Self {
+        Self {
+            requested_target: trace.requested_target.clone(),
+            branch_id: trace.branch_id.clone(),
+            filter_mode: trace.filter.as_ref().map(|filter| filter.mode),
+            requested_aspects: trace
+                .filter
+                .as_ref()
+                .map(|filter| filter.aspects.iter().cloned().collect()),
+            resolved_aspects: trace.resolved_aspects.iter().cloned().collect(),
+            searched_commit_span: trace.searched_commit_span,
+            searched_lineage_event_span: trace.searched_lineage_event_span,
+            returned_entries: trace.returned_entries,
+            traversed_commits: trace.traversed_commits,
+            traversed_lineage_events: trace.traversed_lineage_events,
+        }
+    }
+}
+
+fn trace_fields_value<T>(fields: &T, trace_kind: &str) -> Value
+where
+    T: Serialize,
+{
+    match to_value(fields) {
+        Ok(value) => value,
+        Err(error) => json!({
+            "trace_kind": trace_kind,
+            "serialization_failure": error.to_string(),
+        }),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::history::data::{AspectHistoryDigest, BranchId, HistoryAspectQueryTarget};
+    use crate::identity::data::{EntityId, PartitionId};
+    use crate::publication::patch::data::CanonicalAspectSet;
+
+    #[test]
+    fn aspect_history_digest_counts_roundtrip_as_u64() {
+        let digest = AspectHistoryDigest {
+            requested_target: HistoryAspectQueryTarget::Entity(EntityId::new(PartitionId(1), 0, 1)),
+            branch_id: BranchId("main".to_string()),
+            resolved_aspects: CanonicalAspectSet::new([]),
+            entry_count: u64::from(u32::MAX) + 17,
+            degraded_precision_entry_count: 9,
+            traversed_commits: u64::from(u32::MAX) + 23,
+        };
+
+        let encoded = serde_json::to_string(&digest).expect("serialize aspect history digest");
+        let decoded: AspectHistoryDigest =
+            serde_json::from_str(&encoded).expect("deserialize aspect history digest");
+
+        assert_eq!(decoded, digest);
     }
 }
 
@@ -255,12 +346,12 @@ impl AspectHistoryQueryResult {
             requested_target: self.trace.requested_target.clone(),
             branch_id: self.trace.branch_id.clone(),
             resolved_aspects: self.trace.resolved_aspects.clone(),
-            entry_count: self.entries.len(),
+            entry_count: self.entries.len() as u64,
             degraded_precision_entry_count: self
                 .entries
                 .iter()
                 .filter(|entry| entry.origin.contains_degraded_precision)
-                .count(),
+                .count() as u64,
             traversed_commits: self.trace.traversed_commits,
         }
     }
@@ -275,7 +366,7 @@ impl LineageAspectHistoryQueryResult {
             entry_count: self
                 .history
                 .as_ref()
-                .map(|history| history.entries.len())
+                .map(|history| history.entries.len() as u64)
                 .unwrap_or(0),
             degraded_precision_entry_count: self
                 .history
@@ -285,7 +376,7 @@ impl LineageAspectHistoryQueryResult {
                         .entries
                         .iter()
                         .filter(|entry| entry.origin.contains_degraded_precision)
-                        .count()
+                        .count() as u64
                 })
                 .unwrap_or(0),
             traversed_commits: self.trace.traversed_commits,
@@ -293,7 +384,7 @@ impl LineageAspectHistoryQueryResult {
             resolved_lineage_chain_len: self
                 .history
                 .as_ref()
-                .map(|history| history.resolved_lineage_chain.len())
+                .map(|history| history.resolved_lineage_chain.len() as u64)
                 .unwrap_or(0),
         }
     }

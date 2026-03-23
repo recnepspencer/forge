@@ -15,6 +15,7 @@ use super::policies::{
     DurableLogPolicy, MvccConfig, PublicationConfig, RetentionPolicy, StorageLayoutConfig,
     VisibilityCachePolicy,
 };
+use super::sections::RelationIntegrityScopeBudget;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct ExecutionConfigOverride {
@@ -23,6 +24,7 @@ pub struct ExecutionConfigOverride {
     pub planning: Option<PlanningContract>,
     pub commit_authority: Option<CommitAuthorityContract>,
     pub compiled_lane_policy: Option<CompiledLanePolicy>,
+    pub relation_integrity_scope_budget: Option<RelationIntegrityScopeBudget>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]

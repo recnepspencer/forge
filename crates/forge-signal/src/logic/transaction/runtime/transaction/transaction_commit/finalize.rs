@@ -1,4 +1,5 @@
 use crate::diagnostics::recorder::record_transaction_semantic_event;
+use crate::diagnostics::{ExecutionFailureContext, ExecutionFailurePhase};
 
 use super::super::transaction_types::{
     SignalTransaction, TransactionOutcome, TransactionResult, TransactionTiming,
@@ -10,6 +11,47 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    fn apply_rollback_packets(&mut self) -> Result<(), crate::data::error::SignalError> {
+        let rollback_packets = self.rollback_packets.drain_ordered();
+        self.telemetry.transaction.rollback_packet_breadth += rollback_packets.len() as u64;
+        for packet in rollback_packets {
+            match packet {
+                crate::logic::transaction::runtime::transaction::TransactionRollbackPacket::Config(
+                    delta,
+                ) => {
+                    self.telemetry.transaction.rollback_packet_config_count += 1;
+                    *self.config = delta.baseline;
+                }
+                crate::logic::transaction::runtime::transaction::TransactionRollbackPacket::DiagnosticsRequired(
+                    delta,
+                ) => {
+                    self.telemetry.transaction.rollback_packet_diagnostics_count += 1;
+                    *self.graph.diagnostics_state_mut() = delta.baseline;
+                }
+                crate::logic::transaction::runtime::transaction::TransactionRollbackPacket::GraphPatches(
+                    delta,
+                ) => {
+                    self.telemetry.transaction.rollback_packet_graph_patch_count += 1;
+                    delta.patches.rollback_from_packet(self.graph)?;
+                }
+                crate::logic::transaction::runtime::transaction::TransactionRollbackPacket::CreatedNodes(
+                    delta,
+                ) => {
+                    self.telemetry.transaction.rollback_packet_created_node_count += 1;
+                    self.graph.rollback_created_nodes(&delta.created_nodes);
+                }
+                crate::logic::transaction::runtime::transaction::TransactionRollbackPacket::SubscriberRepair(
+                    delta,
+                ) => {
+                    self.telemetry.transaction.rollback_packet_subscriber_repair_count += 1;
+                    self.graph
+                        .reconcile_subscriber_membership_for_sources(&delta.sources)?;
+                }
+            }
+        }
+        Ok(())
+    }
+
     pub(super) fn finalize_semantic_delta(
         &mut self,
         restore_baseline: bool,
@@ -17,6 +59,33 @@ where
         touched_nodes: u32,
         commit_nanos: u128,
     ) -> TransactionResult {
+        let mut outcome = outcome;
+        if restore_baseline {
+            if let Err(error) = self.apply_rollback_packets() {
+                self.telemetry.transaction.transaction_poison_count += 1;
+                outcome = TransactionOutcome::Poisoned;
+                self.scratch.semantic_delta.failure_summary = Some(
+                    ExecutionFailureContext::from_error(
+                        ExecutionFailurePhase::Rollback,
+                        &error,
+                        None,
+                    )
+                    .summarize(
+                        self.scratch.semantic_delta.rollback.as_ref(),
+                        self.graph.diagnostics_profile(),
+                    ),
+                );
+                self.scratch
+                    .semantic_delta
+                    .replay_events
+                    .push(crate::logic::transaction::runtime::transaction::TransactionReplayEntry {
+                        kind: crate::diagnostics::replay::ReplayEventKind::FailureRecorded,
+                        detail: error.to_string(),
+                        execution_record_id: None,
+                        semantic_segment_id: None,
+                    });
+            }
+        }
         let rollback = self.scratch.semantic_delta.rollback.take();
         let failure_summary = self.scratch.semantic_delta.failure_summary.take();
         let replay_events = std::mem::take(&mut self.scratch.semantic_delta.replay_events);
@@ -150,26 +219,6 @@ where
                 },
             );
         result.performance_accounting = *self.telemetry;
-        if restore_baseline {
-            let rollback_packets = self.rollback_packets.drain();
-            self.telemetry.transaction.rollback_packet_breadth += rollback_packets.len() as u64;
-            for packet in rollback_packets {
-                match packet {
-                    crate::logic::transaction::runtime::transaction::TransactionRollbackPacket::Config(
-                        delta,
-                    ) => {
-                        self.telemetry.transaction.rollback_packet_config_count += 1;
-                        *self.config = delta.baseline;
-                    }
-                    crate::logic::transaction::runtime::transaction::TransactionRollbackPacket::DiagnosticsRequired(
-                        delta,
-                    ) => {
-                        self.telemetry.transaction.rollback_packet_diagnostics_count += 1;
-                        *self.graph.diagnostics_state_mut() = delta.baseline;
-                    }
-                }
-            }
-        }
         if let Some(rollback) = rollback {
             self.graph.diagnostics_state_mut().record_rollback(rollback);
         }

@@ -4,7 +4,8 @@ use crate::diagnostics::{ExecutionFailureContext, ExecutionFailurePhase, Rollbac
 use std::time::Instant;
 
 use super::super::transaction_types::{
-    SignalTransaction, TransactionOutcome, TransactionReplayEntry, TransactionResult,
+    CreatedNodeRollbackDelta, GraphPatchRollbackDelta, SignalTransaction,
+    SubscriberRepairRollbackDelta, TransactionOutcome, TransactionReplayEntry, TransactionResult,
 };
 
 impl<'a, D, I, E, Ctx, T> SignalTransaction<'a, D, I, E, Ctx, T>
@@ -20,8 +21,9 @@ where
         }
         self.finished = true;
         let rollback_patch_count = self.rollback_patch_count();
+        let touched_nodes = self.scratch.graph_patches.touched_nodes(self.graph).len() as u32;
         self.event_bus.rollback(self.runtime_ctx);
-        self.rollback_graph_state()?;
+        self.stage_graph_rollback_packets()?;
         if !self.poisoned {
             self.telemetry.transaction.transaction_rollback_count += 1;
         }
@@ -37,7 +39,6 @@ where
             self.scratch.semantic_delta.event_epochs.clone(),
         );
         self.scratch.semantic_delta.rollback = Some(rollback);
-        let touched_nodes = self.scratch.graph_patches.touched_nodes(self.graph).len() as u32;
         if self.poisoned {
             self.telemetry.transaction.transaction_poison_count += 1;
             self.scratch
@@ -73,21 +74,30 @@ where
         ))
     }
 
-    pub(super) fn rollback_graph_state(&mut self) -> Result<(), SignalError> {
-        let mut rewired_sources = self
-            .scratch
-            .graph_patches
-            .rollback_and_collect_dependency_sources_for_rollback(self.graph)?;
-        for node in &self.scratch.created_nodes {
-            if self.graph.is_alive(*node) {
-                rewired_sources.extend(self.graph.dependency_sources_of(*node)?);
+    pub(super) fn stage_graph_rollback_packets(&mut self) -> Result<(), SignalError> {
+        let graph_patches = std::mem::take(&mut self.scratch.graph_patches);
+        let created_nodes = std::mem::take(&mut self.scratch.created_nodes);
+        let mut rewired_sources = graph_patches.collect_dependency_sources_for_rollback(self.graph)?;
+        for &node in &created_nodes {
+            if self.graph.is_alive(node) {
+                rewired_sources.extend(self.graph.dependency_sources_of(node)?);
             }
         }
-        self.graph
-            .rollback_created_nodes(&self.scratch.created_nodes);
-        self.scratch.created_nodes.clear();
-        self.graph
-            .reconcile_subscriber_membership_for_sources(&rewired_sources)?;
+        if !graph_patches.is_empty() {
+            self.rollback_packets.stage_graph_patches(GraphPatchRollbackDelta {
+                patches: graph_patches,
+            })?;
+        }
+        if !created_nodes.is_empty() {
+            self.rollback_packets
+                .stage_created_nodes(CreatedNodeRollbackDelta { created_nodes })?;
+        }
+        if !rewired_sources.is_empty() {
+            self.rollback_packets
+                .stage_subscriber_repair(SubscriberRepairRollbackDelta {
+                    sources: rewired_sources,
+                })?;
+        }
         self.scratch.dirty_targets.clear_all();
         Ok(())
     }
@@ -107,9 +117,9 @@ where
         commit_start: Instant,
     ) -> Result<TransactionResult, SignalError> {
         let rollback_patch_count = self.rollback_patch_count();
-        self.event_bus.rollback(self.runtime_ctx);
-        self.rollback_graph_state()?;
         let touched_nodes = self.scratch.graph_patches.touched_nodes(self.graph).len() as u32;
+        self.event_bus.rollback(self.runtime_ctx);
+        self.stage_graph_rollback_packets()?;
         let rollback = RollbackDiagnostic::new(
             true,
             rollback_patch_count,

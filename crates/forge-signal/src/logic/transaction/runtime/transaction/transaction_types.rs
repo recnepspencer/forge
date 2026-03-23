@@ -14,6 +14,7 @@ use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::evaluation::EvaluationVerdict;
 use crate::logic::events::EventBus;
 use crate::logic::planner::{ExecutionRecordId, ExecutionReport, SemanticSegmentId};
+use crate::data::handle::NodeId;
 
 use super::super::super::key_registry::RuntimeStringId;
 use super::super::super::patch_buffer::SparsePatchBuffer;
@@ -174,54 +175,125 @@ pub(in crate::logic::transaction::runtime) struct DiagnosticsRollbackDelta {
 }
 
 #[derive(Debug, Clone)]
+pub(in crate::logic::transaction::runtime) struct GraphPatchRollbackDelta {
+    pub patches: SparsePatchBuffer,
+}
+
+#[derive(Debug, Clone)]
+pub(in crate::logic::transaction::runtime) struct CreatedNodeRollbackDelta {
+    pub created_nodes: Vec<NodeId>,
+}
+
+#[derive(Debug, Clone)]
+pub(in crate::logic::transaction::runtime) struct SubscriberRepairRollbackDelta {
+    pub sources: Vec<NodeId>,
+}
+
+#[derive(Debug, Clone)]
 pub(in crate::logic::transaction::runtime) enum TransactionRollbackPacket<T: Copy + Ord> {
     Config(ConfigRollbackDelta<T>),
     DiagnosticsRequired(DiagnosticsRollbackDelta),
+    GraphPatches(GraphPatchRollbackDelta),
+    CreatedNodes(CreatedNodeRollbackDelta),
+    SubscriberRepair(SubscriberRepairRollbackDelta),
 }
 
 #[derive(Debug, Clone)]
 pub(in crate::logic::transaction::runtime) struct TransactionRollbackPacketSet<T: Copy + Ord> {
-    packets: Vec<TransactionRollbackPacket<T>>,
+    config: Option<ConfigRollbackDelta<T>>,
+    diagnostics: Option<DiagnosticsRollbackDelta>,
+    graph_patches: Option<GraphPatchRollbackDelta>,
+    created_nodes: Option<CreatedNodeRollbackDelta>,
+    subscriber_repair: Option<SubscriberRepairRollbackDelta>,
 }
 
 impl<T: Copy + Ord> Default for TransactionRollbackPacketSet<T> {
     fn default() -> Self {
-        Self { packets: Vec::new() }
+        Self {
+            config: None,
+            diagnostics: None,
+            graph_patches: None,
+            created_nodes: None,
+            subscriber_repair: None,
+        }
     }
 }
 
 impl<T: Copy + Ord> TransactionRollbackPacketSet<T> {
-    pub fn capture_if_needed(
+    pub fn capture_runtime_baseline_if_needed(
         &mut self,
         config: &SignalRuntimeConfig<T>,
         diagnostics_state: &crate::diagnostics::state::DiagnosticsState,
     ) {
-        if !self
-            .packets
-            .iter()
-            .any(|packet| matches!(packet, TransactionRollbackPacket::Config(_)))
-        {
-            self.packets
-                .push(TransactionRollbackPacket::Config(ConfigRollbackDelta {
-                    baseline: config.clone(),
-                }));
+        if self.config.is_none() {
+            self.config = Some(ConfigRollbackDelta {
+                baseline: config.clone(),
+            });
         }
-        if !self.packets.iter().any(|packet| {
-            matches!(
-                packet,
-                TransactionRollbackPacket::DiagnosticsRequired(_)
-            )
-        }) {
-            self.packets.push(TransactionRollbackPacket::DiagnosticsRequired(
-                DiagnosticsRollbackDelta {
-                    baseline: diagnostics_state.clone(),
-                },
-            ));
+        if self.diagnostics.is_none() {
+            self.diagnostics = Some(DiagnosticsRollbackDelta {
+                baseline: diagnostics_state.clone(),
+            });
         }
     }
 
-    pub fn drain(&mut self) -> Vec<TransactionRollbackPacket<T>> {
-        std::mem::take(&mut self.packets)
+    pub fn stage_graph_patches(
+        &mut self,
+        delta: GraphPatchRollbackDelta,
+    ) -> Result<(), crate::data::error::SignalError> {
+        if self.graph_patches.is_some() {
+            return Err(crate::data::error::SignalError::internal(
+                "graph patch rollback packet was staged more than once",
+            ));
+        }
+        self.graph_patches = Some(delta);
+        Ok(())
+    }
+
+    pub fn stage_created_nodes(
+        &mut self,
+        delta: CreatedNodeRollbackDelta,
+    ) -> Result<(), crate::data::error::SignalError> {
+        if self.created_nodes.is_some() {
+            return Err(crate::data::error::SignalError::internal(
+                "created-node rollback packet was staged more than once",
+            ));
+        }
+        self.created_nodes = Some(delta);
+        Ok(())
+    }
+
+    pub fn stage_subscriber_repair(
+        &mut self,
+        delta: SubscriberRepairRollbackDelta,
+    ) -> Result<(), crate::data::error::SignalError> {
+        if self.subscriber_repair.is_some() {
+            return Err(crate::data::error::SignalError::internal(
+                "subscriber-repair rollback packet was staged more than once",
+            ));
+        }
+        self.subscriber_repair = Some(delta);
+        Ok(())
+    }
+
+    pub fn drain_ordered(&mut self) -> Vec<TransactionRollbackPacket<T>> {
+        let mut packets = Vec::with_capacity(5);
+        if let Some(delta) = self.graph_patches.take() {
+            packets.push(TransactionRollbackPacket::GraphPatches(delta));
+        }
+        if let Some(delta) = self.created_nodes.take() {
+            packets.push(TransactionRollbackPacket::CreatedNodes(delta));
+        }
+        if let Some(delta) = self.subscriber_repair.take() {
+            packets.push(TransactionRollbackPacket::SubscriberRepair(delta));
+        }
+        if let Some(delta) = self.config.take() {
+            packets.push(TransactionRollbackPacket::Config(delta));
+        }
+        if let Some(delta) = self.diagnostics.take() {
+            packets.push(TransactionRollbackPacket::DiagnosticsRequired(delta));
+        }
+        packets
     }
 }
 

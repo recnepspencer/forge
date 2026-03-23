@@ -18,12 +18,22 @@ use super::policies::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RelationIntegrityScopeBudget {
+    pub max_relation_kinds: usize,
+    pub max_touched_entities: usize,
+    pub max_deleted_entities: usize,
+    pub max_scanned_relations: usize,
+    pub max_planned_edges: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExecutionConfig {
     pub runtime_name: String,
     pub execution_model: RelationalExecutionModel,
     pub planning: PlanningContract,
     pub commit_authority: CommitAuthorityContract,
     pub compiled_lane_policy: CompiledLanePolicy,
+    pub relation_integrity_scope_budget: RelationIntegrityScopeBudget,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

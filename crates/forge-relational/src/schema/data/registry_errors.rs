@@ -4,7 +4,7 @@ use crate::errors::data::{ErrorContext, ErrorOperation, RelationalSubsystem, Sug
 use crate::identity::data::KindId;
 use crate::publication::patch::data::AspectKey;
 
-use super::SchemaVersionId;
+use super::{ContractId, SchemaVersionId};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SchemaRegistryErrorClass {
@@ -21,7 +21,7 @@ pub enum SchemaRegistryErrorClass {
     },
     DuplicateRelationContractId {
         kind_id: KindId,
-        contract_id: String,
+        contract_id: ContractId,
     },
     InvalidAspectDeclaration {
         kind_id: KindId,
@@ -130,7 +130,10 @@ impl SchemaRegistryError {
         })
     }
 
-    pub fn duplicate_relation_contract_id(kind_id: KindId, contract_id: impl Into<String>) -> Self {
+    pub fn duplicate_relation_contract_id(
+        kind_id: KindId,
+        contract_id: impl Into<ContractId>,
+    ) -> Self {
         Self::new(SchemaRegistryErrorClass::DuplicateRelationContractId {
             kind_id,
             contract_id: contract_id.into(),

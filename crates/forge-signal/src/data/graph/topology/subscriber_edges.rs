@@ -111,8 +111,19 @@ impl SignalGraph {
         current_sources: &[NodeId],
         desired_sources: &[NodeId],
     ) -> Result<(), SignalError> {
-        let current_sources = sorted_unique_nodes(current_sources);
-        let desired_sources = sorted_unique_nodes(desired_sources);
+        self.reconcile_dependency_subscribers_sorted_unique(
+            node,
+            &sorted_unique_nodes(current_sources),
+            &sorted_unique_nodes(desired_sources),
+        )
+    }
+
+    pub(super) fn reconcile_dependency_subscribers_sorted_unique(
+        &mut self,
+        node: NodeId,
+        current_sources: &[NodeId],
+        desired_sources: &[NodeId],
+    ) -> Result<(), SignalError> {
         let mut current_index = 0usize;
         let mut desired_index = 0usize;
 
@@ -252,23 +263,47 @@ impl SignalGraph {
 
             let mut updated = std::mem::take(&mut self.traversal.topology_node_buffer);
             updated.clear();
-            updated.extend_from_slice(self.raw_subscribers_of(source)?);
-
+            let current = self.raw_subscribers_of(source)?;
             let mut changed = false;
+            let mut current_index = 0usize;
             let mut range_index = start;
+
+            while current_index < current.len() && range_index < op_index {
+                let existing = current[current_index];
+                let op = ordered[range_index];
+                match node_id_sort_key(existing).cmp(&node_id_sort_key(op.subscriber)) {
+                    std::cmp::Ordering::Less => {
+                        updated.push(existing);
+                        current_index += 1;
+                    }
+                    std::cmp::Ordering::Equal => {
+                        if op.should_subscribe {
+                            updated.push(existing);
+                        } else {
+                            changed = true;
+                        }
+                        current_index += 1;
+                        range_index += 1;
+                    }
+                    std::cmp::Ordering::Greater => {
+                        if op.should_subscribe {
+                            updated.push(op.subscriber);
+                            changed = true;
+                        }
+                        range_index += 1;
+                    }
+                }
+            }
+
+            if current_index < current.len() {
+                updated.extend_from_slice(&current[current_index..]);
+            }
+
             while range_index < op_index {
                 let op = ordered[range_index];
-                match updated.binary_search(&op.subscriber) {
-                    Ok(index) if !op.should_subscribe => {
-                        updated.remove(index);
-                        changed = true;
-                    }
-                    Ok(_) => {}
-                    Err(index) if op.should_subscribe => {
-                        updated.insert(index, op.subscriber);
-                        changed = true;
-                    }
-                    Err(_) => {}
+                if op.should_subscribe {
+                    updated.push(op.subscriber);
+                    changed = true;
                 }
                 range_index += 1;
             }

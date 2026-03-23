@@ -240,7 +240,7 @@ fn rolled_back_illegal_relation_work_leaves_zero_cdc_and_diagnostic_residue() {
                 aspect_declarations: KindAspectDeclarations::default(),
                 relation_integrity: crate::schema::data::RelationIntegrityDeclarations::new(
                     vec![crate::schema::data::EndpointKindContractDeclaration {
-                        contract_id: "no_self".to_string(),
+                        contract_id: "no_self".into(),
                         allowed_source_kinds: vec![KindId(1)],
                         allowed_target_kinds: vec![KindId(1)],
                         self_edges_allowed: false,
@@ -332,7 +332,7 @@ fn rolled_back_endpoint_deletion_work_leaves_zero_cdc_and_diagnostic_residue() {
                     Vec::new(),
                     Vec::new(),
                     vec![crate::schema::data::EndpointDeletionIntegrityDeclaration {
-                        contract_id: "require_retirement".to_string(),
+                        contract_id: "require_retirement".into(),
                         mode: crate::schema::data::EndpointDeletionIntegrityMode::RequireRelationRetirement,
                     }],
                 ),

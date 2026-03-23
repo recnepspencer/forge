@@ -1090,14 +1090,19 @@ impl PendingSnapshotBatch {
         }))
     }
 
-    pub(crate) fn from_pending_snapshots(
+    pub(crate) fn from_unique_pending_snapshots_in_stage_order(
         entries: impl IntoIterator<Item = crate::logic::evaluation::PendingDependencySnapshot>,
     ) -> Self {
-        Self::new(entries.into_iter().map(|pending| PendingSnapshotCommit {
-            node: pending.node,
-            update: pending.update,
-            delta: pending.delta,
-        }))
+        let entries = entries
+            .into_iter()
+            .map(|pending| PendingSnapshotCommit {
+                node: pending.node,
+                update: pending.update,
+                delta: pending.delta,
+            })
+            .collect::<Vec<_>>();
+        debug_assert!(pending_snapshot_nodes_are_unique(entries.as_slice()));
+        Self { entries }
     }
 
     pub fn as_slice(&self) -> &[PendingSnapshotCommit] {
@@ -1132,10 +1137,10 @@ impl SnapshotBatchCommit {
         Self::new(PendingSnapshotBatch::from_pairs(entries))
     }
 
-    pub(crate) fn from_pending_snapshots(
+    pub(crate) fn from_unique_pending_snapshots_in_stage_order(
         entries: impl IntoIterator<Item = crate::logic::evaluation::PendingDependencySnapshot>,
     ) -> Self {
-        Self::new(PendingSnapshotBatch::from_pending_snapshots(entries))
+        Self::new(PendingSnapshotBatch::from_unique_pending_snapshots_in_stage_order(entries))
     }
 
     pub fn pending(&self) -> &PendingSnapshotBatch {
@@ -1296,6 +1301,11 @@ impl DeltaForm for DirtyBatch {}
 impl SummaryForm for LocalityFootprint {}
 impl SummaryForm for TouchedScopeSummary {}
 impl SummaryForm for PendingSnapshotBatch {}
+
+fn pending_snapshot_nodes_are_unique(entries: &[PendingSnapshotCommit]) -> bool {
+    let mut seen = std::collections::HashSet::with_capacity(entries.len());
+    entries.iter().all(|entry| seen.insert(entry.node))
+}
 impl SummaryForm for SemanticBatchCommit {}
 impl SummaryForm for SnapshotBatchCommit {}
 impl SummaryForm for SubscriberRepairBatch {}

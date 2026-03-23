@@ -40,6 +40,7 @@ pub struct DeclaredAspect {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum AspectBinding {
     EntityPayloadField { field: InternedString },
     RelationPayloadField { field: InternedString },
@@ -50,6 +51,7 @@ pub enum AspectBinding {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum AspectComparator {
     JsonScalarEquality,
     EndpointIdentityEquality,
@@ -58,6 +60,7 @@ pub enum AspectComparator {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum AspectPrecision {
     Structured,
     Opaque,
@@ -94,12 +97,12 @@ pub struct LoweredAspectPlan {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoweredAspectBinding {
     pub aspect_key: AspectKey,
-    pub extractor: LoweredAspectExtractor,
-    pub comparator: LoweredAspectComparator,
+    pub binding_kind: LoweredExecutableAspectBindingKind,
     pub precision: AspectPrecision,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum LoweredAspectExtractor {
     EntityJsonField { field: InternedString },
     RelationJsonField { field: InternedString },
@@ -110,9 +113,69 @@ pub enum LoweredAspectExtractor {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum LoweredAspectComparator {
     JsonScalarEquality,
     EndpointIdentityEquality,
     LifecycleTransitionEquality,
     OpaquePayloadByteEquality,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum LoweredExecutableAspectBindingKind {
+    EntityJsonScalarField { field: InternedString },
+    RelationJsonScalarField { field: InternedString },
+    RelationSourceEndpointIdentity,
+    RelationTargetEndpointIdentity,
+    LifecycleTransitionEquality,
+    OpaqueWholePayloadBytes,
+}
+
+impl LoweredAspectBinding {
+    pub fn extractor(&self) -> LoweredAspectExtractor {
+        match &self.binding_kind {
+            LoweredExecutableAspectBindingKind::EntityJsonScalarField { field } => {
+                LoweredAspectExtractor::EntityJsonField {
+                    field: field.clone(),
+                }
+            }
+            LoweredExecutableAspectBindingKind::RelationJsonScalarField { field } => {
+                LoweredAspectExtractor::RelationJsonField {
+                    field: field.clone(),
+                }
+            }
+            LoweredExecutableAspectBindingKind::RelationSourceEndpointIdentity => {
+                LoweredAspectExtractor::RelationSourceEndpoint
+            }
+            LoweredExecutableAspectBindingKind::RelationTargetEndpointIdentity => {
+                LoweredAspectExtractor::RelationTargetEndpoint
+            }
+            LoweredExecutableAspectBindingKind::LifecycleTransitionEquality => {
+                LoweredAspectExtractor::LifecycleTransition
+            }
+            LoweredExecutableAspectBindingKind::OpaqueWholePayloadBytes => {
+                LoweredAspectExtractor::OpaqueWholePayloadBytes
+            }
+        }
+    }
+
+    pub fn comparator(&self) -> LoweredAspectComparator {
+        match self.binding_kind {
+            LoweredExecutableAspectBindingKind::EntityJsonScalarField { .. }
+            | LoweredExecutableAspectBindingKind::RelationJsonScalarField { .. } => {
+                LoweredAspectComparator::JsonScalarEquality
+            }
+            LoweredExecutableAspectBindingKind::RelationSourceEndpointIdentity
+            | LoweredExecutableAspectBindingKind::RelationTargetEndpointIdentity => {
+                LoweredAspectComparator::EndpointIdentityEquality
+            }
+            LoweredExecutableAspectBindingKind::LifecycleTransitionEquality => {
+                LoweredAspectComparator::LifecycleTransitionEquality
+            }
+            LoweredExecutableAspectBindingKind::OpaqueWholePayloadBytes => {
+                LoweredAspectComparator::OpaquePayloadByteEquality
+            }
+        }
+    }
 }

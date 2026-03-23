@@ -15,6 +15,10 @@ impl RelationalRuntime {
     pub(crate) fn invariant_authority(&mut self) -> InvariantAuthority<'_> {
         InvariantAuthority::new(self)
     }
+
+    pub fn certify_current_state(&mut self) -> Result<InvariantExecutionResult, PublicationError> {
+        self.invariant_authority().enforce_certification_boundary()
+    }
 }
 
 pub(crate) struct InvariantAuthority<'runtime> {
@@ -32,8 +36,11 @@ impl<'runtime> InvariantAuthority<'runtime> {
     ) -> Result<InvariantExecutionResult, TransactionCommitError> {
         let result = self.runtime.invariant_access().commit_boundary(merged_plan);
         self.emit_preparation_diagnostics(&result);
+        let collect_all = self.emit_collect_all_failure_diagnostics(&result);
         if let Some(failure) = result.summary().blocking_failure() {
-            self.emit_conflict_diagnostic(&result, failure);
+            if !collect_all {
+                self.emit_conflict_diagnostic(&result, failure);
+            }
             return Err(TransactionCommitError::conflict(
                 failure.clone().into_commit_conflict(),
             ));
@@ -55,8 +62,11 @@ impl<'runtime> InvariantAuthority<'runtime> {
                 .mutation_sensitive_for_state(overlay_state, version_id, Some(merged_plan))
         };
         self.emit_preparation_diagnostics(&result);
+        let collect_all = self.emit_collect_all_failure_diagnostics(&result);
         if let Some(failure) = result.summary().blocking_failure() {
-            self.emit_conflict_diagnostic(&result, failure);
+            if !collect_all {
+                self.emit_conflict_diagnostic(&result, failure);
+            }
             return Err(failure.clone().into_commit_conflict());
         }
         Ok(result)
@@ -76,11 +86,33 @@ impl<'runtime> InvariantAuthority<'runtime> {
                 .snapshot_publication_for_state(overlay_state, version_id, Some(merged_plan))
         };
         self.emit_preparation_diagnostics(&result);
+        let collect_all = self.emit_collect_all_failure_diagnostics(&result);
         if let Some(failure) = result.summary().publication_failure() {
-            self.emit_publication_failure(&result, failure);
+            if !collect_all {
+                self.emit_publication_failure(&result, failure);
+            }
             return Err(failure
                 .clone()
                 .into_publication_error(PublicationStage::InvariantCheck));
+        }
+        Ok(result)
+    }
+
+    pub(crate) fn enforce_certification_boundary(
+        &mut self,
+    ) -> Result<InvariantExecutionResult, PublicationError> {
+        let result = self.runtime.invariant_access().certification_state();
+        self.emit_preparation_diagnostics(&result);
+        let collect_all = self.emit_collect_all_failure_diagnostics(&result);
+        if let Some(failure) = result.summary().publication_failure() {
+            if !collect_all {
+                self.emit_publication_failure(&result, failure);
+            }
+            return Err(
+                failure
+                    .clone()
+                    .into_publication_error(PublicationStage::InvariantCheck),
+            );
         }
         Ok(result)
     }
@@ -99,6 +131,45 @@ impl<'runtime> InvariantAuthority<'runtime> {
                 failure.detail().to_string(),
                 invariant_failure_fields(result, failure),
             );
+    }
+
+    fn emit_collect_all_failure_diagnostics(&mut self, result: &InvariantExecutionResult) -> bool {
+        if !self
+            .runtime
+            .config
+            .diagnostics
+            .profile
+            .collect_all_invariant_failures
+        {
+            return false;
+        }
+
+        let mut entries = Vec::new();
+        for failure in result.blocking_failures() {
+            entries.push(publication_failure_diagnostic(
+                failure.code(),
+                failure.detail().to_string(),
+                invariant_failure_fields(result, &failure),
+            ));
+        }
+        for failure in result.publication_failures() {
+            entries.push(publication_failure_diagnostic(
+                failure.code(),
+                failure.detail().to_string(),
+                invariant_failure_fields(result, &failure),
+            ));
+        }
+        if entries.is_empty() {
+            return false;
+        }
+        self.runtime
+            .publication_authority()
+            .push_bounded_diagnostic(
+                DiagnosticsScope::Invariant,
+                DiagnosticsArtifactKind::Failure,
+                entries,
+            );
+        true
     }
 
     fn emit_publication_failure(

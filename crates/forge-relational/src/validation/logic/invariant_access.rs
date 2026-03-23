@@ -49,6 +49,10 @@ impl<'runtime> InvariantAccess<'runtime> {
         self.execute_for_runtime(InvariantRequestProfile::SnapshotPublication)
     }
 
+    pub fn certification_state(&self) -> InvariantExecutionResult {
+        self.execute_for_runtime(InvariantRequestProfile::CertificationBoundary)
+    }
+
     pub(crate) fn mutation_sensitive_for_state(
         &self,
         state: crate::storage::overlay::OverlayStateView<
@@ -146,6 +150,34 @@ impl<'runtime> InvariantAccess<'runtime> {
             merged_plan,
             plan_contract,
         );
+        if let Some(preparation_violation) = request.preparation_violation().cloned() {
+            return InvariantExecutionResult::executed(
+                self.execution_metadata(
+                    profile,
+                    observation_kind,
+                    version_id,
+                    merged_plan,
+                    plan_contract,
+                    request.applicable_groups(),
+                    request.max_cost(),
+                    InvariantExecutionDisposition::Executed,
+                ),
+                vec![crate::validation::data::InvariantCheckResult {
+                    execution_point: profile.execution_point(),
+                    failure_effect: crate::validation::data::InvariantFailureEffect::BlockCommit,
+                    rule: crate::validation::data::InvariantRule::RelationIntegrityScopeBudget(
+                        self.runtime
+                            .config
+                            .execution
+                            .relation_integrity_scope_budget
+                            .max_planned_edges,
+                    ),
+                    verdict: crate::validation::data::InvariantVerdict::Violation(
+                        preparation_violation,
+                    ),
+                }],
+            );
+        }
         if !request.should_execute_anything() {
             return InvariantExecutionResult::skipped(self.execution_metadata(
                 profile,
@@ -194,8 +226,11 @@ impl<'runtime> InvariantAccess<'runtime> {
 #[cfg(test)]
 mod tests {
     use super::InvariantAccess;
+    use crate::capabilities::SchemaSource;
     use crate::authority::commit::preparation::planning::strategy::PreparationStrategySelection;
-    use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
+    use crate::config::data::{
+        CascadeDeletePolicy, CrossContextPolicy, RelationIntegrityScopeBudget,
+    };
     use crate::facade::identity::PartitionId;
     use crate::facade::runtime::{
         InvariantCatalog, InvariantRegistration, InvariantRule, RelationalExecutionModel,
@@ -214,8 +249,8 @@ mod tests {
     use crate::payloads::data::RecordPayload;
     use crate::symbols::data::InternedString;
     use crate::transactions::data::{
-        CreateIntent, DeleteRelationIntent, EntitySpec, MergedCommitPlan, MutationIntent,
-        RelationMutationIntent, TransactionId,
+        BulkRelationCreateIntent, CreateIntent, DeleteRelationIntent, EntitySpec, MergedCommitPlan,
+        MutationIntent, RelationMutationIntent, TransactionId,
     };
     use crate::validation::data::{InvariantFailureEffect, InvariantVerdict};
     use crate::validation::engine::InvariantPlanScopeClass;
@@ -253,7 +288,7 @@ mod tests {
                     aspect_declarations: KindAspectDeclarations::default(),
                     relation_integrity: RelationIntegrityDeclarations::new(
                         vec![EndpointKindContractDeclaration {
-                            contract_id: "no_self".to_string(),
+                            contract_id: "no_self".into(),
                             allowed_source_kinds: vec![KindId(1)],
                             allowed_target_kinds: vec![KindId(1)],
                             self_edges_allowed: false,
@@ -296,7 +331,7 @@ mod tests {
                         Vec::new(),
                         Vec::new(),
                         vec![SymmetryContractDeclaration {
-                            contract_id: "paired_twin".to_string(),
+                            contract_id: "paired_twin".into(),
                             mode,
                         }],
                         Vec::new(),
@@ -331,10 +366,17 @@ mod tests {
                     relation_integrity: RelationIntegrityDeclarations::new(
                         Vec::new(),
                         vec![CardinalityContractDeclaration {
-                            contract_id: "source_max_one".to_string(),
+                            contract_id: "source_max_one".into(),
                             source_max: Some(1),
+                            source_min: None,
                             target_max: None,
+                            target_min: None,
                             pair_max: None,
+                            pair_min: None,
+                            pair_min_semantics:
+                                crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                            minimum_enforcement:
+                                crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
                         }],
                         Vec::new(),
                         Vec::new(),
@@ -346,6 +388,37 @@ mod tests {
         RelationalRuntimeApi::builder()
             .schema_registry(registry)
             .build()
+    }
+
+    fn relation_integrity_runtime_with_scope_budget(
+        relation_integrity_scope_budget: RelationIntegrityScopeBudget,
+    ) -> RelationalRuntime {
+        let registry = relation_integrity_runtime().schema_registry().clone();
+        RelationalRuntimeApi::builder()
+            .schema_registry(registry)
+            .relation_integrity_scope_budget(relation_integrity_scope_budget)
+            .build()
+    }
+
+    fn create_entity(
+        runtime: &mut RelationalRuntime,
+        name: &str,
+    ) -> crate::identity::data::EntityId {
+        let mut txn =
+            runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
+        txn.push_batch(crate::facade::transactions::WorkerIntentBatch::new(name).push(
+            MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: InternedString::Raw(name.to_string()),
+                payload: RecordPayload::StructuredJson(json!({"name": name})),
+            })),
+        ));
+        let outcome = txn.commit().unwrap();
+        match outcome.changed_records[0] {
+            crate::facade::transactions::RecordRef::Entity(entity_id) => entity_id,
+            _ => panic!("expected entity"),
+        }
     }
 
     #[test]
@@ -651,5 +724,57 @@ mod tests {
         assert_eq!(fields["boundary"], json!("source"));
         assert_eq!(fields["count"], json!(2));
         assert_eq!(fields["limit"], json!(1));
+    }
+
+    #[test]
+    fn commit_boundary_reports_relation_integrity_scope_budget_violation_as_blocking_failure() {
+        let mut runtime = relation_integrity_runtime_with_scope_budget(RelationIntegrityScopeBudget {
+            max_relation_kinds: 8,
+            max_touched_entities: 16,
+            max_deleted_entities: 8,
+            max_scanned_relations: 16,
+            max_planned_edges: 1,
+        });
+        let source_a = create_entity(&mut runtime, "source-a");
+        let target_a = create_entity(&mut runtime, "target-a");
+        let source_b = create_entity(&mut runtime, "source-b");
+        let target_b = create_entity(&mut runtime, "target-b");
+        let plan = MergedCommitPlan {
+            transaction_id: TransactionId(6),
+            merged_intents: vec![MutationIntent::Create(CreateIntent::BulkRelations(
+                BulkRelationCreateIntent {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(2),
+                    client_keys: vec![
+                        InternedString::Raw("edge-a".to_string()),
+                        InternedString::Raw("edge-b".to_string()),
+                    ],
+                    endpoints: vec![(source_a, target_a), (source_b, target_b)],
+                    payloads: vec![
+                        Some(RecordPayload::StructuredJson(json!({"label":"edge-a"}))),
+                        Some(RecordPayload::StructuredJson(json!({"label":"edge-b"}))),
+                    ],
+                },
+            ))],
+        };
+
+        let result = InvariantAccess::new(&runtime).commit_boundary(&plan);
+        let failure = result
+            .summary()
+            .blocking_failure()
+            .expect("blocking scope budget failure");
+        let fields = failure.fields();
+
+        assert_eq!(
+            failure.code(),
+            crate::diagnostics::data::DiagnosticCode::PreparationFailure
+        );
+        assert_eq!(
+            fields["limit_name"],
+            json!("max_planned_edges")
+        );
+        assert_eq!(fields["limit"], json!(1));
+        assert_eq!(fields["observed"], json!(2));
+        assert_eq!(fields["planned_edge_count"], json!(2));
     }
 }

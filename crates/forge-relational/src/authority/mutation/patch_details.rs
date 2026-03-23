@@ -3,11 +3,25 @@ use serde_json::json;
 use crate::config::data::PatchSurfacePolicy;
 use crate::identity::data::{EntityId, RelationId};
 use crate::payloads::data::RecordPayload;
-use crate::publication::data::diff::{PatchDetail, PatchRecordKind};
+use crate::publication::data::diff::PatchDetail;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum EntityPatchDetailKind {
+    Created,
+    Updated,
+    Deleted,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum RelationPatchDetailKind {
+    Created,
+    Deleted,
+    RetainedForAudit,
+}
 
 pub(super) fn patch_detail_for_entity(
     patch_surface_policy: PatchSurfacePolicy,
-    kind: PatchRecordKind,
+    kind: EntityPatchDetailKind,
     entity_id: EntityId,
     payload: Option<&RecordPayload>,
 ) -> PatchDetail {
@@ -28,7 +42,7 @@ pub(super) fn patch_detail_for_entity(
 
 pub(super) fn patch_detail_for_relation(
     patch_surface_policy: PatchSurfacePolicy,
-    kind: PatchRecordKind,
+    kind: RelationPatchDetailKind,
     relation_id: RelationId,
     source: EntityId,
     target: EntityId,
@@ -53,23 +67,19 @@ pub(super) fn patch_detail_for_relation(
     }
 }
 
-fn entity_patch_kind_code(kind: PatchRecordKind) -> u64 {
+fn entity_patch_kind_code(kind: EntityPatchDetailKind) -> u64 {
     match kind {
-        PatchRecordKind::Created => 1,
-        PatchRecordKind::Updated => 2,
-        PatchRecordKind::Deleted => 3,
-        PatchRecordKind::RetainedForAudit => {
-            unreachable!("entities do not emit retained-for-audit patch records")
-        }
+        EntityPatchDetailKind::Created => 1,
+        EntityPatchDetailKind::Updated => 2,
+        EntityPatchDetailKind::Deleted => 3,
     }
 }
 
-fn relation_patch_kind_code(kind: PatchRecordKind) -> u64 {
+fn relation_patch_kind_code(kind: RelationPatchDetailKind) -> u64 {
     match kind {
-        PatchRecordKind::Created => 4,
-        PatchRecordKind::Updated => unreachable!("relations do not emit update patch records"),
-        PatchRecordKind::Deleted => 5,
-        PatchRecordKind::RetainedForAudit => 6,
+        RelationPatchDetailKind::Created => 4,
+        RelationPatchDetailKind::Deleted => 5,
+        RelationPatchDetailKind::RetainedForAudit => 6,
     }
 }
 

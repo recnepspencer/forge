@@ -8,7 +8,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::bitset::DenseBitset;
 use crate::data::core_profile::StableHashValue;
-use crate::data::dependency::{DependencyEdge, DependencySnapshot, DependencySnapshotUpdate, SnapshotDeltaRecord};
+use crate::data::dependency::{
+    DependencyEdge, DependencySnapshot, DependencySnapshotUpdate, SnapshotDeltaRecord,
+};
 use crate::data::dependency::DependencySnapshotStore;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
@@ -62,6 +64,9 @@ pub(crate) struct TraversalResources {
     pub(in crate::data::graph) suppression_marks: DenseBitset,
     #[serde(skip, default)]
     pub(in crate::data::graph) topology_node_buffer: Vec<NodeId>,
+    #[cfg_attr(not(test), allow(dead_code))]
+    #[serde(skip, default)]
+    pub(in crate::data::graph) topology_dependency_buffer: Vec<DependencyEdge>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -115,8 +120,16 @@ impl BranchMutationRecord {
 
     fn mark_dependencies_changed(&mut self, delta: DependencyTopologyDelta) {
         self.dependencies_changed = true;
-        self.structural_deltas
-            .push(BranchStructuralDelta::DependencyTopologyChanged(delta));
+        if let Some(BranchStructuralDelta::DependencyTopologyChanged(existing)) = self
+            .structural_deltas
+            .iter_mut()
+            .find(|delta| matches!(delta, BranchStructuralDelta::DependencyTopologyChanged(_)))
+        {
+            merge_dependency_topology_delta(existing, delta);
+        } else {
+            self.structural_deltas
+                .push(BranchStructuralDelta::DependencyTopologyChanged(delta));
+        }
     }
 
     fn mark_dependency_snapshot_changed(&mut self, delta: DependencySnapshotStructuralDelta) {
@@ -159,6 +172,27 @@ pub enum BranchStructuralDelta {
 pub struct DependencyTopologyDelta {
     pub added_edges: Vec<DependencyEdge>,
     pub removed_edges: Vec<DependencyEdge>,
+}
+
+fn merge_dependency_topology_delta(
+    existing: &mut DependencyTopologyDelta,
+    delta: DependencyTopologyDelta,
+) {
+    for added in delta.added_edges {
+        if let Some(index) = existing.removed_edges.iter().position(|edge| edge == &added) {
+            existing.removed_edges.remove(index);
+        } else if !existing.added_edges.iter().any(|edge| edge == &added) {
+            existing.added_edges.push(added);
+        }
+    }
+
+    for removed in delta.removed_edges {
+        if let Some(index) = existing.added_edges.iter().position(|edge| edge == &removed) {
+            existing.added_edges.remove(index);
+        } else if !existing.removed_edges.iter().any(|edge| edge == &removed) {
+            existing.removed_edges.push(removed);
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

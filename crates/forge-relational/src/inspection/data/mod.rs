@@ -18,6 +18,7 @@ use crate::symbols::data::Symbol;
 use crate::transactions::data::{RecordRef, SavepointId, TransactionId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum InspectionOrigin {
     CurrentTruth,
     VisibilitySnapshot,
@@ -28,6 +29,7 @@ pub enum InspectionOrigin {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum InspectionAccessPath {
     DirectLookup,
     SnapshotRead,
@@ -39,8 +41,9 @@ pub enum InspectionAccessPath {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum InspectionResolutionContext {
-    None,
+    NoContext,
     BranchAncestry,
     LineageTraversal,
     RelationNeighborhood,
@@ -48,23 +51,34 @@ pub enum InspectionResolutionContext {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum InspectionAvailability {
     Direct,
     Reconstructed,
+    UnavailableByBudget,
     UnavailableByRetention,
     UnavailableByPolicy,
     UnavailableByMissingCanonicalArtifacts,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum InspectionDegradation {
     MissingStructuralFingerprint,
     MissingLineageIdentity,
     SummaryOnly,
+    WorkBudgetExceeded,
+    EntityBudgetExceeded,
+    RelationBudgetExceeded,
+    FrontierBudgetExceeded,
+    ComponentBudgetExceeded,
+    EntitySlotBudgetExceeded,
+    RelationSlotBudgetExceeded,
     ReconstructionOmittedByMode,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum InspectionRecordClass {
     Entity,
     Relation,
@@ -78,6 +92,7 @@ pub enum InspectionScope {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct StructuralIdentityEvidence {
     pub target: RecordRef,
     pub record_class: InspectionRecordClass,
@@ -94,6 +109,7 @@ pub struct StructuralIdentityEvidence {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum StructuralIdentityComparisonVerdict {
     EqualByFingerprint,
     NotEqualByFingerprint,
@@ -102,6 +118,7 @@ pub enum StructuralIdentityComparisonVerdict {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct StructuralIdentityComparison {
     pub left: Option<StructuralIdentityEvidence>,
     pub right: Option<StructuralIdentityEvidence>,
@@ -121,6 +138,14 @@ pub struct GraphInspectionRequest {
     pub partition_scope: Option<Vec<PartitionId>>,
     pub relation_kind_scope: Option<Vec<KindId>>,
     pub summary_only: bool,
+    pub budget: GraphInspectionBudget,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GraphInspectionBudget {
+    pub max_entities: u64,
+    pub max_relations: u64,
+    pub max_work_units: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -137,17 +162,28 @@ pub struct ConnectivityInspectionRequest {
     pub partition_scope: Option<Vec<PartitionId>>,
     pub relation_kind_scope: Option<Vec<KindId>>,
     pub include_members: bool,
+    pub budget: ConnectivityInspectionBudget,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ConnectivityInspectionBudget {
+    pub max_entities: u64,
+    pub max_relations: u64,
+    pub max_frontier: u64,
+    pub max_components: u64,
+    pub max_work_units: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct GraphInspectionSummary {
     pub scope: InspectionScope,
     pub version_id: VersionId,
-    pub partition_count: usize,
-    pub entity_count: usize,
-    pub relation_count: usize,
-    pub entity_kinds: Vec<(KindId, usize)>,
-    pub relation_kinds: Vec<(KindId, usize)>,
+    pub partition_count: u64,
+    pub entity_count: u64,
+    pub relation_count: u64,
+    pub entity_kinds: Vec<(KindId, u64)>,
+    pub relation_kinds: Vec<(KindId, u64)>,
     pub origin: InspectionOrigin,
     pub access_path: InspectionAccessPath,
     pub availability: InspectionAvailability,
@@ -155,12 +191,13 @@ pub struct GraphInspectionSummary {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct KindInspectionSummary {
     pub scope: InspectionScope,
     pub version_id: VersionId,
     pub kind_id: KindId,
     pub record_class: InspectionRecordClass,
-    pub count: usize,
+    pub count: u64,
     pub touched_partitions: Vec<PartitionId>,
     pub origin: InspectionOrigin,
     pub access_path: InspectionAccessPath,
@@ -168,18 +205,20 @@ pub struct KindInspectionSummary {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct ConnectivityComponentSummary {
-    pub member_count: usize,
+    pub member_count: u64,
     pub members: Option<Vec<EntityId>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct ConnectivityInspectionSummary {
     pub scope: InspectionScope,
     pub version_id: VersionId,
-    pub component_count: usize,
-    pub largest_component_size: usize,
-    pub enumerated_entity_count: usize,
+    pub component_count: u64,
+    pub largest_component_size: u64,
+    pub enumerated_entity_count: u64,
     pub components: Vec<ConnectivityComponentSummary>,
     pub origin: InspectionOrigin,
     pub access_path: InspectionAccessPath,
@@ -189,6 +228,7 @@ pub struct ConnectivityInspectionSummary {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct NeighborInspectionResult {
     pub entity_id: EntityId,
     pub version_id: VersionId,
@@ -201,12 +241,14 @@ pub struct NeighborInspectionResult {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum HistoricalInspectionMode {
     RetainedOnly,
     AllowCanonicalReconstruction,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct HistoricalSnapshotView {
     pub snapshot: SnapshotHandle,
     pub read_view: RelationalReadView,
@@ -216,6 +258,7 @@ pub struct HistoricalSnapshotView {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct HistoricalOpenResult {
     pub view: Option<HistoricalSnapshotView>,
     pub origin: InspectionOrigin,
@@ -231,6 +274,7 @@ pub enum HistoricalRecordValue {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct HistoricalRecordObservation {
     pub target: RecordRef,
     pub version_id: VersionId,
@@ -241,6 +285,7 @@ pub struct HistoricalRecordObservation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct HistoricalAspectObservation {
     pub query_result: AspectHistoryQueryResult,
     pub origin: InspectionOrigin,
@@ -249,6 +294,7 @@ pub struct HistoricalAspectObservation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct HistoricalAvailabilityObservation {
     pub version_id: VersionId,
     pub availability: InspectionAvailability,
@@ -256,6 +302,7 @@ pub struct HistoricalAvailabilityObservation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct HistoricalRecordInspection {
     pub branch_id: BranchId,
     pub record_observation: HistoricalRecordObservation,
@@ -280,6 +327,7 @@ pub struct PinStateObservation {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum ReclaimEligibility {
     EligibleNow,
     BlockedBySnapshotPins,
@@ -290,6 +338,7 @@ pub enum ReclaimEligibility {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct RecordRetentionInspection {
     pub state: RetentionStateObservation,
     pub pins: PinStateObservation,
@@ -298,23 +347,33 @@ pub struct RecordRetentionInspection {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct RetentionInspectionSummary {
     pub current_version_id: VersionId,
-    pub active_snapshot_count: usize,
-    pub branch_pinned_entities: usize,
-    pub replay_pinned_entities: usize,
-    pub snapshot_pinned_entities: usize,
-    pub branch_pinned_relations: usize,
-    pub replay_pinned_relations: usize,
-    pub snapshot_pinned_relations: usize,
-    pub reclaimable_entities: usize,
-    pub reclaimable_relations: usize,
+    pub active_snapshot_count: u64,
+    pub branch_pinned_entities: u64,
+    pub replay_pinned_entities: u64,
+    pub snapshot_pinned_entities: u64,
+    pub branch_pinned_relations: u64,
+    pub replay_pinned_relations: u64,
+    pub snapshot_pinned_relations: u64,
+    pub reclaimable_entities: u64,
+    pub reclaimable_relations: u64,
     pub origin: InspectionOrigin,
     pub access_path: InspectionAccessPath,
     pub availability: InspectionAvailability,
+    pub degradations: Vec<InspectionDegradation>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RetentionInspectionRequest {
+    pub max_entity_slots_scanned: u64,
+    pub max_relation_slots_scanned: u64,
+    pub max_work_units: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct SnapshotPinInspection {
     pub snapshot: SnapshotInspectionSummary,
     pub origin: InspectionOrigin,
@@ -338,10 +397,11 @@ pub struct CommitInspection {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RecentCommitInspectionRequest {
     pub branch_id: Option<BranchId>,
-    pub limit: usize,
+    pub limit: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[must_use]
 pub struct RecentCommitInspectionWindow {
     pub branch_head: Option<CommitReference>,
     pub commits: Vec<CommitInspection>,
@@ -351,27 +411,28 @@ pub struct RecentCommitInspectionWindow {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct TransactionIntentCounts {
-    pub create_count: usize,
-    pub entity_mutation_count: usize,
-    pub relation_mutation_count: usize,
+    pub create_count: u64,
+    pub entity_mutation_count: u64,
+    pub relation_mutation_count: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SavepointInspectionSurface {
     pub savepoint_id: SavepointId,
-    pub retained_batch_count: usize,
+    pub retained_batch_count: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct TransactionInspectionSurface {
     pub transaction_id: TransactionId,
     pub target_branch: Option<BranchId>,
-    pub batch_count: usize,
+    pub batch_count: u64,
     pub savepoints: Vec<SavepointInspectionSurface>,
     pub touched_records: Vec<RecordRef>,
     pub intent_counts: TransactionIntentCounts,
-    pub reserved_bulk_entity_slots: usize,
-    pub reserved_bulk_relation_slots: usize,
+    pub reserved_bulk_entity_slots: u64,
+    pub reserved_bulk_relation_slots: u64,
     pub contains_lineage_affecting_intents: bool,
     pub origin: InspectionOrigin,
     pub access_path: InspectionAccessPath,
@@ -379,6 +440,7 @@ pub struct TransactionInspectionSurface {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct RetentionExecutionInspection {
     pub outcome: RetentionPassOutcome,
     pub origin: InspectionOrigin,

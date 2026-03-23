@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use serde_json::json;
+use serde_json::{json, Value};
 
 use super::performance_support::{capture_perf_samples, PerfMeasurement};
 use crate::data::dependency::DependencyEdge;
@@ -34,10 +34,25 @@ fn graph_metrics_delta(before: GraphMetrics, after: GraphMetrics) -> serde_json:
         "suppressed_downstream_propagations": after.evaluation.suppressed_downstream_propagations - before.evaluation.suppressed_downstream_propagations,
         "rewiring_apply_count": after.execution.rewiring_apply_count - before.execution.rewiring_apply_count,
         "dependency_capture_updates": after.execution.dependency_capture_updates - before.execution.dependency_capture_updates,
+        "dependency_reconcile_nanos": after.execution.dependency_reconcile_nanos - before.execution.dependency_reconcile_nanos,
+        "dependency_input_build_nanos": after.execution.dependency_input_build_nanos - before.execution.dependency_input_build_nanos,
+        "deferred_snapshot_packet_nanos": after.execution.deferred_snapshot_packet_nanos - before.execution.deferred_snapshot_packet_nanos,
         "graph_storage_compaction_count": after.storage.graph_storage_compaction_count - before.storage.graph_storage_compaction_count,
         "dependency_segments_rewritten": after.storage.graph_storage_dependency_segments_rewritten - before.storage.graph_storage_dependency_segments_rewritten,
         "subscriber_segments_rewritten": after.storage.graph_storage_subscriber_segments_rewritten - before.storage.graph_storage_subscriber_segments_rewritten,
+        "snapshot_batch_commit_nanos": after.storage.snapshot_batch_commit_nanos - before.storage.snapshot_batch_commit_nanos,
     })
+}
+
+fn with_perf_topology_asserts_disabled<T>(run: impl FnOnce() -> T) -> T {
+    let previous = std::env::var_os("FORGE_SIGNAL_SKIP_TOPOLOGY_DEBUG_ASSERTS");
+    std::env::set_var("FORGE_SIGNAL_SKIP_TOPOLOGY_DEBUG_ASSERTS", "1");
+    let result = run();
+    match previous {
+        Some(value) => std::env::set_var("FORGE_SIGNAL_SKIP_TOPOLOGY_DEBUG_ASSERTS", value),
+        None => std::env::remove_var("FORGE_SIGNAL_SKIP_TOPOLOGY_DEBUG_ASSERTS"),
+    }
+    result
 }
 
 #[test]
@@ -79,10 +94,11 @@ fn perf_fintech_mixed_fanout_profile_matrix() {
 #[test]
 #[ignore = "performance baseline capture; run with -- --ignored --nocapture"]
 fn perf_topology_rewiring_churn_serial() {
-    let samples = capture_perf_samples("topology_rewiring_churn", "balanced", "serial", || {
-        let mut graph = SignalGraph::new();
-        let sources = (0..32).map(|_| graph.node().build()).collect::<Vec<_>>();
-        let leaves = (0..256).map(|_| graph.node().build()).collect::<Vec<_>>();
+    let samples = with_perf_topology_asserts_disabled(|| {
+        capture_perf_samples("topology_rewiring_churn", "balanced", "serial", || {
+            let mut graph = SignalGraph::new();
+            let sources = (0..32).map(|_| graph.node().build()).collect::<Vec<_>>();
+            let leaves = (0..256).map(|_| graph.node().build()).collect::<Vec<_>>();
 
         for (index, &leaf) in leaves.iter().enumerate() {
             graph
@@ -104,7 +120,8 @@ fn perf_topology_rewiring_churn_serial() {
         let after = graph.observe().metrics();
 
         graph.assert_bidirectional_consistency().unwrap();
-        PerfMeasurement::new(elapsed.as_micros(), graph_metrics_delta(before, after))
+            PerfMeasurement::new(elapsed.as_micros(), graph_metrics_delta(before, after))
+        })
     });
 
     assert!(samples.iter().all(|sample| sample.elapsed_micros > 0));
@@ -113,14 +130,15 @@ fn perf_topology_rewiring_churn_serial() {
 #[test]
 #[ignore = "performance baseline capture; run with -- --ignored --nocapture"]
 fn perf_topology_rewiring_rotating_window_serial() {
-    let samples = capture_perf_samples(
-        "topology_rewiring_rotating_window",
-        "balanced",
-        "serial",
-        || {
-            let mut graph = SignalGraph::new();
-            let sources = (0..64).map(|_| graph.node().build()).collect::<Vec<_>>();
-            let leaves = (0..512).map(|_| graph.node().build()).collect::<Vec<_>>();
+    let samples = with_perf_topology_asserts_disabled(|| {
+        capture_perf_samples(
+            "topology_rewiring_rotating_window",
+            "balanced",
+            "serial",
+            || {
+                let mut graph = SignalGraph::new();
+                let sources = (0..64).map(|_| graph.node().build()).collect::<Vec<_>>();
+                let leaves = (0..512).map(|_| graph.node().build()).collect::<Vec<_>>();
             let window = 8usize;
 
             for (index, &leaf) in leaves.iter().enumerate() {
@@ -146,9 +164,10 @@ fn perf_topology_rewiring_rotating_window_serial() {
             let after = graph.observe().metrics();
 
             graph.assert_bidirectional_consistency().unwrap();
-            PerfMeasurement::new(elapsed.as_micros(), graph_metrics_delta(before, after))
-        },
-    );
+                PerfMeasurement::new(elapsed.as_micros(), graph_metrics_delta(before, after))
+            },
+        )
+    });
 
     assert!(samples.iter().all(|sample| sample.elapsed_micros > 0));
 }
@@ -156,14 +175,15 @@ fn perf_topology_rewiring_rotating_window_serial() {
 #[test]
 #[ignore = "performance baseline capture; run with -- --ignored --nocapture"]
 fn perf_dependency_reconciliation_rotating_window_serial() {
-    let samples = capture_perf_samples(
-        "dependency_reconciliation_rotating_window",
-        "balanced",
-        "serial",
-        || {
-            let mut graph = SignalGraph::new();
-            let sources = (0..64).map(|_| graph.node().build()).collect::<Vec<_>>();
-            let leaves = (0..512).map(|_| graph.node().build()).collect::<Vec<_>>();
+    let samples = with_perf_topology_asserts_disabled(|| {
+        capture_perf_samples(
+            "dependency_reconciliation_rotating_window",
+            "balanced",
+            "serial",
+            || {
+                let mut graph = SignalGraph::new();
+                let sources = (0..64).map(|_| graph.node().build()).collect::<Vec<_>>();
+                let leaves = (0..512).map(|_| graph.node().build()).collect::<Vec<_>>();
             let window = 8usize;
 
             for (index, &leaf) in leaves.iter().enumerate() {
@@ -196,9 +216,10 @@ fn perf_dependency_reconciliation_rotating_window_serial() {
             let after = graph.observe().metrics();
 
             graph.assert_bidirectional_consistency().unwrap();
-            PerfMeasurement::new(elapsed.as_micros(), graph_metrics_delta(before, after))
-        },
-    );
+                PerfMeasurement::new(elapsed.as_micros(), graph_metrics_delta(before, after))
+            },
+        )
+    });
 
     assert!(samples.iter().all(|sample| sample.elapsed_micros > 0));
 }
@@ -206,13 +227,14 @@ fn perf_dependency_reconciliation_rotating_window_serial() {
 #[test]
 #[ignore = "performance baseline capture; run with -- --ignored --nocapture"]
 fn perf_dependency_reconciliation_rotating_window_staged_serial() {
-    let samples = capture_perf_samples(
-        "dependency_reconciliation_rotating_window_staged",
-        "balanced",
-        "serial",
-        || {
-            let mut graph = SignalGraph::new();
-            graph.set_runtime_policy(SignalRuntimePolicy::development());
+    let samples = with_perf_topology_asserts_disabled(|| {
+        capture_perf_samples(
+            "dependency_reconciliation_rotating_window_staged",
+            "balanced",
+            "serial",
+            || {
+                let mut graph = SignalGraph::new();
+                graph.set_runtime_policy(SignalRuntimePolicy::development());
             let sources = (0..64).map(|_| graph.node().build()).collect::<Vec<_>>();
             let leaves = (0..512).map(|_| graph.node().build()).collect::<Vec<_>>();
             let window = 8usize;
@@ -257,14 +279,20 @@ fn perf_dependency_reconciliation_rotating_window_staged_serial() {
 
             let before = graph.observe().metrics();
             let start = Instant::now();
+            let mut planning_nanos = 0_u128;
+            let mut report_precompute_nanos = 0_u128;
+            let mut report_apply_nanos = 0_u128;
+            let mut report_semantic_finalize_nanos = 0_u128;
             for round in 0..24 {
                 for &leaf in &leaves {
                     mark_dirty(&mut graph, leaf, ASPECT_A).unwrap();
                 }
+                let planning_start = Instant::now();
                 let plan = graph
                     .build_evaluation_plan(&leaves, EvaluationRequestMode::Default)
                     .unwrap();
-                graph
+                planning_nanos += planning_start.elapsed().as_nanos();
+                let report = graph
                     .execute_prepared_plan_with_precompute(&plan, &|node, _view| {
                         let leaf_index = leaf_positions[node.index() as usize];
                         if leaf_index == usize::MAX {
@@ -291,14 +319,31 @@ fn perf_dependency_reconciliation_rotating_window_staged_serial() {
                         )
                     })
                     .unwrap();
+                report_precompute_nanos += report.stage_precompute_nanos;
+                report_apply_nanos += report.stage_apply_nanos;
+                report_semantic_finalize_nanos += report.semantic_finalize_nanos;
             }
             let elapsed = start.elapsed();
             let after = graph.observe().metrics();
 
             graph.assert_bidirectional_consistency().unwrap();
-            PerfMeasurement::new(elapsed.as_micros(), graph_metrics_delta(before, after))
-        },
-    );
+            let mut metrics = graph_metrics_delta(before, after);
+            if let Value::Object(ref mut map) = metrics {
+                map.insert("planning_nanos".into(), json!(planning_nanos));
+                map.insert(
+                    "report_stage_precompute_nanos".into(),
+                    json!(report_precompute_nanos),
+                );
+                map.insert("report_stage_apply_nanos".into(), json!(report_apply_nanos));
+                map.insert(
+                    "report_semantic_finalize_nanos".into(),
+                    json!(report_semantic_finalize_nanos),
+                );
+            }
+            PerfMeasurement::new(elapsed.as_micros(), metrics)
+            },
+        )
+    });
 
     assert!(samples.iter().all(|sample| sample.elapsed_micros > 0));
 }
@@ -388,6 +433,11 @@ fn perf_suppression_wide_fanout_serial() {
             .as_u64()
             .unwrap_or(0)
             > 0
+            || sample.metrics["skipped_by_comparator"].as_u64().unwrap_or(0) > 0
+            || sample.metrics["suppressed_downstream_propagations"]
+                .as_u64()
+                .unwrap_or(0)
+                > 0
     }));
 }
 

@@ -349,7 +349,7 @@ mod tests {
                     aspect_declarations: KindAspectDeclarations::default(),
                     relation_integrity: RelationIntegrityDeclarations::new(
                         vec![EndpointKindContractDeclaration {
-                            contract_id: "kind2".to_string(),
+                            contract_id: "kind2".into(),
                             allowed_source_kinds: vec![KindId(1)],
                             allowed_target_kinds: vec![KindId(1)],
                             self_edges_allowed: false,
@@ -374,7 +374,7 @@ mod tests {
                     aspect_declarations: KindAspectDeclarations::default(),
                     relation_integrity: RelationIntegrityDeclarations::new(
                         vec![EndpointKindContractDeclaration {
-                            contract_id: "kind3".to_string(),
+                            contract_id: "kind3".into(),
                             allowed_source_kinds: vec![KindId(1)],
                             allowed_target_kinds: vec![KindId(1)],
                             self_edges_allowed: false,
@@ -462,7 +462,10 @@ mod tests {
                 crate::validation::data::InvariantRule::EndpointKindContract(contract) => {
                     Some(contract.relation_kind_id)
                 }
-                crate::validation::data::InvariantRule::CardinalityContract(contract) => {
+                crate::validation::data::InvariantRule::CardinalityMaximumContract(contract) => {
+                    Some(contract.relation_kind_id)
+                }
+                crate::validation::data::InvariantRule::CardinalityMinimumContract(contract) => {
                     Some(contract.relation_kind_id)
                 }
                 crate::validation::data::InvariantRule::UniquenessContract(contract) => {

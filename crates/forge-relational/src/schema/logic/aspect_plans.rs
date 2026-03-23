@@ -4,15 +4,17 @@ use smallvec::SmallVec;
 
 use crate::schema::data::{
     AspectBinding, AspectComparator, AspectPlanCatalog, AspectPlanRevision, AspectPrecision,
-    CardinalityContractDeclaration, DeclaredAspect, EndpointDeletionIntegrityDeclaration,
-    EndpointKindContractDeclaration, EntityKindRegistration, KindAspectDeclarations,
-    LoweredAspectBinding, LoweredAspectComparator, LoweredAspectExtractor, LoweredAspectPlan,
-    LoweredCardinalityContract, LoweredEndpointDeletionIntegrityContract,
+    CardinalityContractDeclaration, DeclaredAspect, EndpointKindContractDeclaration,
+    EntityKindRegistration, KindAspectDeclarations, ContractId,
+    LoweredAspectBinding, LoweredExecutableAspectBindingKind, LoweredAspectPlan,
+    LoweredCardinalityMaximumContract, LoweredCardinalityMinimumContract,
+    LoweredEndpointDeletionIntegrityContract,
     LoweredEndpointKindContract, LoweredRelationIntegrityPlan, LoweredSymmetryContract,
-    LoweredUniquenessContract, RelationIntegrityDeclarations, RelationIntegrityPlanCatalog,
-    RelationIntegrityPlanRevision, RelationKindRegistration, RelationPayloadClass,
-    RelationalSchemaRegistry, SchemaRegistryError, SymmetryContractDeclaration,
-    UniquenessContractDeclaration,
+    LoweredUniquenessContract, MinimumCardinalityEnforcement, PairMinimumSemantics,
+    RelationIntegrityDeclarations,
+    RelationIntegrityPlanCatalog,
+    RelationKindRegistration, RelationPayloadClass, RelationalSchemaRegistry,
+    SchemaRegistryError, derive_relation_integrity_plan_revision,
 };
 use crate::symbols::data::InternedString;
 
@@ -83,7 +85,11 @@ pub(crate) fn lower_relation_integrity_plans(
         .map(|(kind_id, registration)| {
             (
                 *kind_id,
-                lower_relation_integrity_plan(*kind_id, &registration.relation_integrity),
+                lower_relation_integrity_plan(
+                    *kind_id,
+                    &registration.relation_integrity,
+                    registration.cascade_delete_policy,
+                ),
             )
         })
         .collect();
@@ -264,6 +270,12 @@ fn canonicalize_relation_integrity(
     symmetry_contracts.sort_by(|left, right| left.contract_id.cmp(&right.contract_id));
     endpoint_deletion_integrity_contracts
         .sort_by(|left, right| left.contract_id.cmp(&right.contract_id));
+    for declaration in &mut endpoint_kind_contracts {
+        declaration.allowed_source_kinds.sort();
+        declaration.allowed_source_kinds.dedup();
+        declaration.allowed_target_kinds.sort();
+        declaration.allowed_target_kinds.dedup();
+    }
 
     for declaration in &endpoint_kind_contracts {
         validate_contract_id(kind_id, &declaration.contract_id, &mut seen_contract_ids)?;
@@ -271,7 +283,7 @@ fn canonicalize_relation_integrity(
     }
     for declaration in &cardinality_contracts {
         validate_contract_id(kind_id, &declaration.contract_id, &mut seen_contract_ids)?;
-        validate_cardinality_contract(kind_id, declaration)?;
+        validate_cardinality_contract(kind_id, declaration, &endpoint_kind_contracts)?;
     }
     for declaration in &uniqueness_contracts {
         validate_contract_id(kind_id, &declaration.contract_id, &mut seen_contract_ids)?;
@@ -301,8 +313,8 @@ fn canonicalize_relation_integrity(
 
 fn validate_contract_id(
     kind_id: crate::identity::data::KindId,
-    contract_id: &str,
-    seen_contract_ids: &mut BTreeSet<String>,
+    contract_id: &ContractId,
+    seen_contract_ids: &mut BTreeSet<ContractId>,
 ) -> Result<(), SchemaRegistryError> {
     if contract_id.trim().is_empty() {
         return Err(SchemaRegistryError::invalid_relation_integrity_declaration(
@@ -310,10 +322,10 @@ fn validate_contract_id(
             "relation contract id must not be empty",
         ));
     }
-    if !seen_contract_ids.insert(contract_id.to_string()) {
+    if !seen_contract_ids.insert(contract_id.clone()) {
         return Err(SchemaRegistryError::duplicate_relation_contract_id(
             kind_id,
-            contract_id,
+            contract_id.clone(),
         ));
     }
     Ok(())
@@ -347,15 +359,31 @@ fn validate_endpoint_kind_contract(
 fn validate_cardinality_contract(
     kind_id: crate::identity::data::KindId,
     declaration: &CardinalityContractDeclaration,
+    endpoint_kind_contracts: &[EndpointKindContractDeclaration],
 ) -> Result<(), SchemaRegistryError> {
     if declaration.source_max.is_none()
         && declaration.target_max.is_none()
         && declaration.pair_max.is_none()
+        && declaration.source_min.is_none()
+        && declaration.target_min.is_none()
+        && declaration.pair_min.is_none()
     {
         return Err(SchemaRegistryError::invalid_relation_integrity_declaration(
             kind_id,
             format!(
                 "cardinality contract '{}' must declare at least one bound",
+                declaration.contract_id
+            ),
+        ));
+    }
+    if declaration.source_min == Some(0)
+        || declaration.target_min == Some(0)
+        || declaration.pair_min == Some(0)
+    {
+        return Err(SchemaRegistryError::invalid_relation_integrity_declaration(
+            kind_id,
+            format!(
+                "cardinality contract '{}' minimums must be greater than zero",
                 declaration.contract_id
             ),
         ));
@@ -369,13 +397,65 @@ fn validate_cardinality_contract(
             ),
         ));
     }
+    if declaration.pair_min.is_some() {
+        match declaration.pair_min_semantics {
+            PairMinimumSemantics::ObservedDirectedPairs => {}
+        }
+    }
+    for (minimum, maximum, label) in [
+        (declaration.source_min, declaration.source_max, "source"),
+        (declaration.target_min, declaration.target_max, "target"),
+        (declaration.pair_min, declaration.pair_max, "pair"),
+    ] {
+        if let (Some(minimum), Some(maximum)) = (minimum, maximum) {
+            if minimum > maximum {
+                return Err(SchemaRegistryError::invalid_relation_integrity_declaration(
+                    kind_id,
+                    format!(
+                        "cardinality contract '{}' declares {label}_min > {label}_max",
+                        declaration.contract_id
+                    ),
+                ));
+            }
+        }
+    }
+    match declaration.minimum_enforcement {
+        MinimumCardinalityEnforcement::CommitBoundary
+        | MinimumCardinalityEnforcement::CertificationBoundary => {}
+    }
+    if (declaration.source_min.is_some() || declaration.target_min.is_some())
+        && endpoint_kind_contracts.is_empty()
+    {
+        return Err(SchemaRegistryError::invalid_relation_integrity_declaration(
+            kind_id,
+            format!(
+                "cardinality contract '{}' requires endpoint kind contracts to define minimum candidate domains",
+                declaration.contract_id
+            ),
+        ));
+    }
     Ok(())
 }
 
 fn lower_relation_integrity_plan(
     kind_id: crate::identity::data::KindId,
     declarations: &RelationIntegrityDeclarations,
+    cascade_delete_policy: crate::config::data::CascadeDeletePolicy,
 ) -> LoweredRelationIntegrityPlan {
+    let candidate_source_kinds = declarations
+        .endpoint_kind_contracts
+        .iter()
+        .flat_map(|declaration| declaration.allowed_source_kinds.iter().copied())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let candidate_target_kinds = declarations
+        .endpoint_kind_contracts
+        .iter()
+        .flat_map(|declaration| declaration.allowed_target_kinds.iter().copied())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
     LoweredRelationIntegrityPlan {
         kind_id,
         plan_revision: declarations.plan_revision,
@@ -392,15 +472,41 @@ fn lower_relation_integrity_plan(
                 plan_revision: declarations.plan_revision,
             })
             .collect(),
-        cardinality_contracts: declarations
+        cardinality_maximum_contracts: declarations
             .cardinality_contracts
             .iter()
-            .map(|declaration| LoweredCardinalityContract {
+            .filter(|declaration| {
+                declaration.source_max.is_some()
+                    || declaration.target_max.is_some()
+                    || declaration.pair_max.is_some()
+            })
+            .map(|declaration| LoweredCardinalityMaximumContract {
                 contract_id: declaration.contract_id.clone(),
                 relation_kind_id: kind_id,
                 source_max: declaration.source_max,
                 target_max: declaration.target_max,
                 pair_max: declaration.pair_max,
+                plan_revision: declarations.plan_revision,
+            })
+            .collect(),
+        cardinality_minimum_contracts: declarations
+            .cardinality_contracts
+            .iter()
+            .filter(|declaration| {
+                declaration.source_min.is_some()
+                    || declaration.target_min.is_some()
+                    || declaration.pair_min.is_some()
+            })
+            .map(|declaration| LoweredCardinalityMinimumContract {
+                contract_id: declaration.contract_id.clone(),
+                relation_kind_id: kind_id,
+                source_min: declaration.source_min,
+                target_min: declaration.target_min,
+                pair_min: declaration.pair_min,
+                pair_min_semantics: declaration.pair_min_semantics,
+                candidate_source_kinds: candidate_source_kinds.clone(),
+                candidate_target_kinds: candidate_target_kinds.clone(),
+                minimum_enforcement: declaration.minimum_enforcement,
                 plan_revision: declarations.plan_revision,
             })
             .collect(),
@@ -431,6 +537,7 @@ fn lower_relation_integrity_plan(
                 contract_id: declaration.contract_id.clone(),
                 relation_kind_id: kind_id,
                 mode: declaration.mode,
+                cascade_delete_policy,
                 plan_revision: declarations.plan_revision,
             })
             .collect(),
@@ -440,144 +547,38 @@ fn lower_relation_integrity_plan(
 fn lower_binding(aspect: &DeclaredAspect) -> LoweredAspectBinding {
     LoweredAspectBinding {
         aspect_key: aspect.key.clone(),
-        extractor: match &aspect.binding {
-            AspectBinding::EntityPayloadField { field } => {
-                LoweredAspectExtractor::EntityJsonField {
+        binding_kind: match (&aspect.binding, aspect.comparator) {
+            (AspectBinding::EntityPayloadField { field }, AspectComparator::JsonScalarEquality) => {
+                LoweredExecutableAspectBindingKind::EntityJsonScalarField {
                     field: field.clone(),
                 }
             }
-            AspectBinding::RelationPayloadField { field } => {
-                LoweredAspectExtractor::RelationJsonField {
-                    field: field.clone(),
-                }
-            }
-            AspectBinding::RelationSourceEndpoint => LoweredAspectExtractor::RelationSourceEndpoint,
-            AspectBinding::RelationTargetEndpoint => LoweredAspectExtractor::RelationTargetEndpoint,
-            AspectBinding::LifecycleTransition => LoweredAspectExtractor::LifecycleTransition,
-            AspectBinding::OpaqueWholePayload => LoweredAspectExtractor::OpaqueWholePayloadBytes,
-        },
-        comparator: match aspect.comparator {
-            AspectComparator::JsonScalarEquality => LoweredAspectComparator::JsonScalarEquality,
-            AspectComparator::EndpointIdentityEquality => {
-                LoweredAspectComparator::EndpointIdentityEquality
-            }
-            AspectComparator::LifecycleTransitionEquality => {
-                LoweredAspectComparator::LifecycleTransitionEquality
-            }
-            AspectComparator::OpaquePayloadByteEquality => {
-                LoweredAspectComparator::OpaquePayloadByteEquality
-            }
+            (
+                AspectBinding::RelationPayloadField { field },
+                AspectComparator::JsonScalarEquality,
+            ) => LoweredExecutableAspectBindingKind::RelationJsonScalarField {
+                field: field.clone(),
+            },
+            (
+                AspectBinding::RelationSourceEndpoint,
+                AspectComparator::EndpointIdentityEquality,
+            ) => LoweredExecutableAspectBindingKind::RelationSourceEndpointIdentity,
+            (
+                AspectBinding::RelationTargetEndpoint,
+                AspectComparator::EndpointIdentityEquality,
+            ) => LoweredExecutableAspectBindingKind::RelationTargetEndpointIdentity,
+            (
+                AspectBinding::LifecycleTransition,
+                AspectComparator::LifecycleTransitionEquality,
+            ) => LoweredExecutableAspectBindingKind::LifecycleTransitionEquality,
+            (
+                AspectBinding::OpaqueWholePayload,
+                AspectComparator::OpaquePayloadByteEquality,
+            ) => LoweredExecutableAspectBindingKind::OpaqueWholePayloadBytes,
+            _ => unreachable!("aspect declarations are canonicalized before lowering"),
         },
         precision: aspect.precision,
     }
-}
-
-fn derive_relation_integrity_plan_revision(
-    endpoint_kind_contracts: &[EndpointKindContractDeclaration],
-    cardinality_contracts: &[CardinalityContractDeclaration],
-    uniqueness_contracts: &[UniquenessContractDeclaration],
-    symmetry_contracts: &[SymmetryContractDeclaration],
-    endpoint_deletion_integrity_contracts: &[EndpointDeletionIntegrityDeclaration],
-) -> RelationIntegrityPlanRevision {
-    const FNV_OFFSET: u128 = 0x6c62272e07bb014262b821756295c58d;
-    const FNV_PRIME: u128 = 0x0000000001000000000000000000013B;
-
-    fn mix_bytes(hash: &mut u128, bytes: &[u8]) {
-        for byte in bytes {
-            *hash ^= *byte as u128;
-            *hash = hash.wrapping_mul(FNV_PRIME);
-        }
-        *hash ^= 0xff_u128;
-        *hash = hash.wrapping_mul(FNV_PRIME);
-    }
-
-    fn mix_string(hash: &mut u128, value: &str) {
-        mix_bytes(hash, value.as_bytes());
-    }
-
-    fn mix_kind_ids(hash: &mut u128, kinds: &[crate::identity::data::KindId]) {
-        for kind in kinds {
-            mix_bytes(hash, &kind.0.to_le_bytes());
-        }
-    }
-
-    let mut hash = FNV_OFFSET;
-    for declaration in endpoint_kind_contracts {
-        mix_bytes(&mut hash, b"endpoint_kind");
-        mix_string(&mut hash, &declaration.contract_id);
-        mix_kind_ids(&mut hash, &declaration.allowed_source_kinds);
-        mix_kind_ids(&mut hash, &declaration.allowed_target_kinds);
-        mix_bytes(&mut hash, &[u8::from(declaration.self_edges_allowed)]);
-        mix_bytes(
-            &mut hash,
-            match declaration.cross_context_policy {
-                crate::config::data::CrossContextPolicy::AllowExplicit => b"allow_explicit",
-                crate::config::data::CrossContextPolicy::SchemaControlled => b"schema_controlled",
-                crate::config::data::CrossContextPolicy::Forbid => b"forbid",
-            },
-        );
-    }
-    for declaration in cardinality_contracts {
-        mix_bytes(&mut hash, b"cardinality");
-        mix_string(&mut hash, &declaration.contract_id);
-        mix_bytes(
-            &mut hash,
-            &declaration.source_max.unwrap_or(usize::MAX).to_le_bytes(),
-        );
-        mix_bytes(
-            &mut hash,
-            &declaration.target_max.unwrap_or(usize::MAX).to_le_bytes(),
-        );
-        mix_bytes(
-            &mut hash,
-            &declaration.pair_max.unwrap_or(usize::MAX).to_le_bytes(),
-        );
-    }
-    for declaration in uniqueness_contracts {
-        mix_bytes(&mut hash, b"uniqueness");
-        mix_string(&mut hash, &declaration.contract_id);
-        mix_bytes(
-            &mut hash,
-            match declaration.scope {
-                crate::schema::data::UniquenessScope::DirectedSemanticEdge => b"directed",
-                crate::schema::data::UniquenessScope::NormalizedSymmetricEdge => b"normalized",
-            },
-        );
-    }
-    for declaration in symmetry_contracts {
-        mix_bytes(&mut hash, b"symmetry");
-        mix_string(&mut hash, &declaration.contract_id);
-        mix_bytes(
-            &mut hash,
-            match declaration.mode {
-                crate::schema::data::SymmetryMode::CanonicalUndirected => b"canonical_undirected",
-                crate::schema::data::SymmetryMode::PairedInverseRequired => {
-                    b"paired_inverse_required"
-                }
-                crate::schema::data::SymmetryMode::InverseProhibited => b"inverse_prohibited",
-                crate::schema::data::SymmetryMode::PairedTwinRequired => b"paired_twin_required",
-            },
-        );
-    }
-    for declaration in endpoint_deletion_integrity_contracts {
-        mix_bytes(&mut hash, b"endpoint_delete");
-        mix_string(&mut hash, &declaration.contract_id);
-        mix_bytes(
-            &mut hash,
-            match declaration.mode {
-                crate::schema::data::EndpointDeletionIntegrityMode::RejectDeleteWithLiveRelations => {
-                    b"reject_delete_with_live_relations"
-                }
-                crate::schema::data::EndpointDeletionIntegrityMode::RequireRelationDeletionInSameCommit => {
-                    b"require_relation_deletion_in_same_commit"
-                }
-                crate::schema::data::EndpointDeletionIntegrityMode::RequireRelationRetirement => {
-                    b"require_relation_retirement"
-                }
-            },
-        );
-    }
-    RelationIntegrityPlanRevision(hash)
 }
 
 fn derive_plan_revision(aspects: &[DeclaredAspect]) -> AspectPlanRevision {

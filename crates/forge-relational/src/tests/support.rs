@@ -218,6 +218,7 @@ pub(super) fn capture_inspection_truth_bundle(
             partition_scope: None,
             relation_kind_scope: None,
             summary_only: true,
+            budget: crate::tests::support::inspection::default_graph_budget(),
         }),
         kind_summary: inspection.kind_summary(&crate::facade::inspection::KindInspectionRequest {
             scope: crate::facade::inspection::InspectionScope::Current,
@@ -231,6 +232,7 @@ pub(super) fn capture_inspection_truth_bundle(
                 partition_scope: None,
                 relation_kind_scope: None,
                 include_members: false,
+                budget: crate::tests::support::inspection::default_connectivity_budget(),
             },
         ),
         historical_record: inspection.inspect_historical_record(
@@ -239,7 +241,8 @@ pub(super) fn capture_inspection_truth_bundle(
             RecordRef::Entity(entity_id),
             crate::facade::inspection::HistoricalInspectionMode::AllowCanonicalReconstruction,
         ),
-        retention_summary: inspection.retention_summary(),
+        retention_summary: inspection
+            .retention_summary(&crate::tests::support::inspection::default_retention_request()),
         record_retention: inspection
             .inspect_record_retention(RecordRef::Entity(entity_id))
             .expect("record retention"),

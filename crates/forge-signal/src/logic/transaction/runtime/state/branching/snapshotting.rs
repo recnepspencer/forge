@@ -48,7 +48,7 @@ where
             match requirement {
                 crate::logic::transaction::RequiredDerivedRebuildSet::DependencyIndexes(_) => {
                     graph.apply_snapshot_batch_commit(
-                        &snapshot.checkpoint_image.dependency_snapshot_batch,
+                        snapshot.checkpoint_image.dependency_snapshot_batch.clone(),
                     )?;
                     rebuild_breadth += snapshot
                         .checkpoint_image
@@ -166,8 +166,7 @@ where
                 &retained_replay,
             ),
         );
-        let witness = self.heavy_capture_witness();
-        let mut branch_state = self.capture_full_branch_state(&witness);
+        let mut branch_state = self.capture_heavy_branch_state();
         branch_state
             .mutation_ledger
             .clear_all(Some(snapshot.meta.snapshot_id));
@@ -176,7 +175,7 @@ where
             SnapshotBranchState::from_branch_state(&branch_state),
         );
         self.branches
-            .insert_branch(snapshot.meta.branch_id, branch_state);
+            .store_branch_state(snapshot.meta.branch_id, branch_state);
         let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
         self.synchronize_branch_catalogs(branch_catalog);
         snapshot
@@ -276,11 +275,18 @@ where
                 .diagnostics_state_mut()
                 .refresh_retained_views(history, graph_summary);
             let branch_catalog = state.authority.graph.diagnostics_state().branch_catalog().clone();
-            self.load_branch_state(
-                crate::logic::transaction::runtime::state::runtime_state::AuthorityTransferPacket {
+            let preserved_transaction = self.telemetry.transaction;
+            self.apply_branch_lifecycle_transfer(
+                crate::logic::transaction::runtime::state::runtime_state::BranchLifecycleTransfer::Restore(
+                    crate::logic::transaction::runtime::state::runtime_state::RestoreTransferPacket {
                     branch_id: snapshot.meta.branch_id,
                     state: state.clone(),
-                },
+                    },
+                ),
+            )?;
+            Self::merge_global_transaction_telemetry(
+                preserved_transaction,
+                &mut self.telemetry.transaction,
             );
             self.telemetry.checkpoint.snapshot_restore_count += 1;
             if matches!(
@@ -297,7 +303,7 @@ where
                 restore_plan.dependency_snapshot_delta_node_count;
             self.telemetry.checkpoint.snapshot_restore_coarse_reason_count +=
                 restore_plan.coarse_reasons.len() as u64;
-            self.branches.insert_branch(snapshot.meta.branch_id, state);
+            self.branches.store_branch_state(snapshot.meta.branch_id, state);
             self.synchronize_branch_catalogs(branch_catalog);
             return Ok(());
         }
@@ -318,10 +324,8 @@ where
         if branch.id == self.graph.current_branch().id {
             return Ok(self.capture_snapshot());
         }
-        let (snapshot, branch_catalog, branch_state) = {
-            let Some(state) = self.branches.branch_state_mut_with_allocator_sync(branch.id) else {
-                return Err(SignalError::unknown_branch(Some(branch.id), branch.name));
-            };
+        let Some((snapshot, branch_catalog, branch_state)) =
+            self.branches.with_stored_branch_state_mut(branch.id, |state| {
             let policy = state.authority.graph.runtime_policy();
             let artifact_retention = SnapshotArtifactRetentionPolicy::from_runtime_policy(policy);
             let meta = state
@@ -442,12 +446,14 @@ where
                 .mutation_ledger
                 .clear_all(Some(snapshot.meta.snapshot_id));
             (snapshot, branch_catalog, state.clone())
+        }) else {
+            return Err(SignalError::unknown_branch(Some(branch.id), branch.name));
         };
         self.branches.insert_snapshot(
             snapshot.meta.snapshot_id,
             SnapshotBranchState::from_branch_state(&branch_state),
         );
-        self.branches.insert_branch(branch.id, branch_state);
+        self.branches.store_branch_state(branch.id, branch_state);
         self.synchronize_branch_catalogs(branch_catalog);
         Ok(snapshot)
     }
@@ -591,7 +597,7 @@ where
             restore_plan.dependency_snapshot_delta_node_count;
         self.telemetry.checkpoint.snapshot_restore_coarse_reason_count +=
             restore_plan.coarse_reasons.len() as u64;
-        self.branches.insert_branch(branch.id, state);
+        self.branches.store_branch_state(branch.id, state);
         self.synchronize_branch_catalogs(branch_catalog);
         Ok(())
     }

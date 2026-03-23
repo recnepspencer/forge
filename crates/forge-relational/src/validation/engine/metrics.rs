@@ -29,6 +29,19 @@ impl<'runtime> InvariantMetrics<'runtime> {
         self.access.count_relation_cardinality_checks(count);
     }
 
+    pub(crate) fn count_relation_cardinality_minimum_certification(
+        &self,
+        contracts: usize,
+        entity_slot_scans: usize,
+        relation_slot_scans: usize,
+    ) {
+        self.access.count_relation_cardinality_minimum_certification(
+            contracts,
+            entity_slot_scans,
+            relation_slot_scans,
+        );
+    }
+
     pub(crate) fn count_relation_uniqueness_checks(&self, count: usize) {
         self.access.count_relation_uniqueness_checks(count);
     }

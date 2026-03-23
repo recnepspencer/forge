@@ -1,6 +1,7 @@
 use crate::facade::inspection::{
     ConnectivityInspectionRequest, GraphInspectionRequest, InspectionRecordClass,
     InspectionScope, KindInspectionRequest, RecentCommitInspectionRequest,
+    RetentionInspectionRequest,
     StructuralIdentityQueryRequest,
 };
 use crate::identity::data::KindId;
@@ -20,6 +21,11 @@ fn complexity_budget_graph_summary_reports_explicit_inspection_work() {
         partition_scope: None,
         relation_kind_scope: None,
         summary_only: true,
+        budget: crate::facade::inspection::GraphInspectionBudget {
+            max_entities: 32,
+            max_relations: 32,
+            max_work_units: 128,
+        },
     });
     let counters = runtime.performance_access().counters();
 
@@ -107,6 +113,13 @@ fn complexity_budget_connectivity_summary_reports_broad_traversal_work_explicitl
             partition_scope: None,
             relation_kind_scope: None,
             include_members: false,
+            budget: crate::facade::inspection::ConnectivityInspectionBudget {
+                max_entities: 32,
+                max_relations: 32,
+                max_frontier: 32,
+                max_components: 32,
+                max_work_units: 256,
+            },
         });
     let counters = runtime.performance_access().counters();
 
@@ -114,6 +127,10 @@ fn complexity_budget_connectivity_summary_reports_broad_traversal_work_explicitl
     assert_eq!(summary.largest_component_size, 2);
     assert_eq!(summary.enumerated_entity_count, 3);
     assert_eq!(counters.inspection_connectivity_summary_requests, 1);
+    assert!(counters.inspection_connectivity_entity_scans >= 3);
+    assert!(counters.inspection_connectivity_relation_scans >= 1);
+    assert!(counters.inspection_connectivity_frontier_expansions >= 3);
+    assert!(counters.inspection_connectivity_components_evaluated >= 2);
     assert_eq!(summary.origin, crate::facade::inspection::InspectionOrigin::CurrentTruth);
     assert_eq!(summary.access_path, crate::facade::inspection::InspectionAccessPath::DirectLookup);
     assert_eq!(counters.visible_entity_records_materialized, 0);
@@ -125,6 +142,27 @@ fn complexity_budget_connectivity_summary_reports_broad_traversal_work_explicitl
         .iter()
         .all(|component| component.members.is_none()));
     assert_eq!(isolated.partition_id, PartitionId::main());
+}
+
+#[test]
+fn complexity_budget_retention_summary_reports_bounded_slot_scans() {
+    let mut runtime = runtime_with_test_schema();
+    let left = create_entity(&mut runtime, "left");
+    let right = create_entity(&mut runtime, "right");
+    let _relation = create_relation(&mut runtime, left, right, "rel");
+
+    runtime.performance_access().reset_counters();
+    let summary = runtime.inspection_access().retention_summary(&RetentionInspectionRequest {
+        max_entity_slots_scanned: 32,
+        max_relation_slots_scanned: 32,
+        max_work_units: 128,
+    });
+    let counters = runtime.performance_access().counters();
+
+    assert_eq!(summary.availability, crate::facade::inspection::InspectionAvailability::Direct);
+    assert!(counters.inspection_retention_entity_slot_scans >= 2);
+    assert!(counters.inspection_retention_relation_slot_scans >= 1);
+    assert_eq!(counters.inspection_budget_refusals, 0);
 }
 
 #[test]

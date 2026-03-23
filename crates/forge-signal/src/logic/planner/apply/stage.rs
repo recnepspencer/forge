@@ -42,25 +42,29 @@ use super::super::stage_precompute::StagePrecomputeResult;
 use super::super::types::{
     ApplyFootprint, ConcurrentApplyPlan, DisjointApplyGroup, EligibleTask, ExecutionReport,
     LoweredApplyPlan, LoweredStagePlan, LoweredTask, LoweredTaskExecution, PlanSummary,
-    ReductionOrderingContract, ReductionWorkClass, SerialApplyPlan, StageExecutionRecord,
-    StageExecutor,
+    SerialApplyPlan, StageExecutionRecord, StageExecutor,
 };
 #[cfg(feature = "parallel")]
 use super::super::types::{
     ApplyPlanSerialFallbackReason, ConcurrentApplyReductionPlan, DisjointApplyProof,
-    MutationDomain, ParallelAdmissionReason, ParallelExecutionKind, SharedSurfacePolicy,
+    MutationDomain, ParallelAdmissionReason, ParallelExecutionKind, ReductionOrderingContract,
+    ReductionWorkClass, SharedSurfacePolicy,
 };
-use super::workspace::{
-    reduce_group_local_apply_packets, GroupLocalApplyPacket, StageScratch,
-};
+use super::workspace::StageScratch;
 #[cfg(feature = "parallel")]
 use super::workspace::{
-    ConcurrentApplyGroupInput, ConcurrentWorkerInput, GroupLocalTaskCommit, GroupedApplyFailure,
+    ConcurrentApplyGroupInput, ConcurrentWorkerInput, GroupLocalApplyPacket,
+    GroupLocalTaskCommit, GroupedApplyFailure,
 };
 #[cfg(feature = "parallel")]
 use super::groups::build_stage_apply_groups;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
+
+fn take_lowered_slot<T>(slot: &mut Option<T>, context: &'static str) -> Result<T, SignalError> {
+    slot.take()
+        .ok_or_else(|| SignalError::internal(context))
+}
 
 pub(in crate::logic::planner) fn apply_stage<F, R>(
     graph: &mut SignalGraph,
@@ -136,9 +140,11 @@ where
         stage_record,
     )?;
     if !stage_scratch.pending_snapshots.is_empty() {
-        graph.apply_snapshot_batch_commit(&SnapshotBatchCommit::from_pending_snapshots(
-            stage_scratch.pending_snapshots.into_iter(),
-        ))?;
+        graph.apply_snapshot_batch_commit(
+            SnapshotBatchCommit::from_unique_pending_snapshots_in_stage_order(
+                stage_scratch.pending_snapshots.into_iter(),
+            ),
+        )?;
     }
     let semantic_finalize_start = Instant::now();
     finalize_stage_batch(
@@ -310,67 +316,63 @@ fn run_serial_lowered_apply_pass(
     for task in &tasks {
         reconcile_batch.push((task.node, task.dependency_inputs.as_slice()));
     }
+    let reconcile_start = Instant::now();
     graph.reconcile_dependencies_batch_borrowed(&reconcile_batch)?;
+    graph.telemetry_mut().execution.dependency_reconcile_nanos +=
+        reconcile_start.elapsed().as_nanos();
+    let dependency_input_start = Instant::now();
     let mut dependency_inputs = collect_effect_dependency_inputs_iter(
         graph,
         tasks.iter().map(|task| task.node),
     )?
-        .into_iter()
-        .map(Some)
-        .collect::<Vec<_>>();
+    .into_iter()
+    .map(Some)
+    .collect::<Vec<_>>();
+    graph.telemetry_mut().execution.dependency_input_build_nanos +=
+        dependency_input_start.elapsed().as_nanos();
     let mut lowered_tasks = tasks.into_iter().map(Some).collect::<Vec<_>>();
-    let mut group_local_packets = Vec::with_capacity(plan.groups.len());
+    let mut semantic_batch = StageSemanticBatch::default();
+    let mut pending_snapshots = Vec::new();
 
-    for (group_index, group) in plan.groups.iter().enumerate() {
-        let mut group_semantic_batch = StageSemanticBatch::default();
-        let mut group_pending_snapshots = Vec::with_capacity(group.task_indices.len());
+    for group in &plan.groups {
+        let pending_snapshot_start_len = pending_snapshots.len();
         #[cfg(feature = "parallel")]
         {
             stage_record.serial_apply_task_count += group.task_indices.len() as u32;
         }
         for &task_index in &group.task_indices {
-            let lowered_task = lowered_tasks[task_index]
-                .take()
-                .expect("lowered apply task should be consumed exactly once");
-            group_semantic_batch.push_segment(segment_for_single_update(apply_lowered_task(
+            let update = apply_lowered_task(
                 graph,
                 summary,
                 stage_index,
-                lowered_task,
-                dependency_inputs[task_index]
-                    .take()
-                    .expect("dependency inputs should align with lowered tasks"),
+                take_lowered_slot(
+                    &mut lowered_tasks[task_index],
+                    "serial lowered apply task slot was consumed more than once",
+                )?,
+                take_lowered_slot(
+                    &mut dependency_inputs[task_index],
+                    "serial dependency inputs no longer align with lowered apply tasks",
+                )?,
                 comparator_resolver,
                 executor,
                 stage_identities,
-                &mut group_pending_snapshots,
-            )?));
+                &mut pending_snapshots,
+            )?;
+            semantic_batch.push_segment(segment_for_single_update(update));
         }
-        group_local_packets.push(GroupLocalApplyPacket {
-            group_index,
-            task_count: group.task_indices.len(),
-            task_commits: Vec::new(),
-            semantic_batch: group_semantic_batch,
-            pending_snapshots: group_pending_snapshots,
-        });
+        graph.telemetry_mut().execution.shared_surface_publication_breadth +=
+            (group.task_indices.len() + (pending_snapshots.len() - pending_snapshot_start_len))
+                as u64;
     }
 
-    graph.telemetry_mut().execution.group_local_packet_breadth += group_local_packets
-        .iter()
-        .map(|packet| packet.packet_breadth() as u64)
-        .sum::<u64>();
-    graph.telemetry_mut().execution.reduction_packet_breadth += group_local_packets.len() as u64;
-    graph.telemetry_mut().execution.reduction_group_count += group_local_packets.len() as u64;
-    graph.telemetry_mut().execution.shared_surface_publication_breadth += group_local_packets
-        .iter()
-        .map(|packet| packet.publication_breadth() as u64)
-        .sum::<u64>();
+    graph.telemetry_mut().execution.group_local_packet_breadth += lowered_tasks.len() as u64;
+    graph.telemetry_mut().execution.reduction_packet_breadth += plan.groups.len() as u64;
+    graph.telemetry_mut().execution.reduction_group_count += plan.groups.len() as u64;
 
-    Ok(reduce_group_local_apply_packets(
-        group_local_packets,
-        ReductionOrderingContract::StageTaskIndexOrder,
-        ReductionWorkClass::DeterministicPublicationOnly,
-    ))
+    Ok(StageScratch {
+        semantic_batch: crate::data::proof::SingleConsumer::new(semantic_batch),
+        pending_snapshots,
+    })
 }
 
 #[cfg(feature = "parallel")]
@@ -399,15 +401,18 @@ fn run_grouped_concurrent_apply_pass(
         .sum();
     graph.telemetry_mut().execution.parallel_stage_dispatch_count += 1;
 
+    let dependency_input_start = Instant::now();
     let dependency_inputs =
         collect_effect_dependency_inputs_iter(graph, tasks.iter().map(|task| task.node))?;
+    graph.telemetry_mut().execution.dependency_input_build_nanos +=
+        dependency_input_start.elapsed().as_nanos();
     let task_count = tasks.len();
     let group_inputs = build_concurrent_apply_group_inputs(
         tasks,
         dependency_inputs,
         &plan.groups,
         stage_identities,
-    );
+    )?;
     let worker_count = task_count.max(1).min(plan.groups.len().max(1));
     let pool = PlannerExecutorPool::shared(worker_count)?;
     let graph_ref = &*graph;
@@ -458,8 +463,6 @@ fn run_grouped_concurrent_apply_pass(
                     group_index: group.group_index,
                     task_count: task_commits.len(),
                     task_commits,
-                    semantic_batch: StageSemanticBatch::default(),
-                    pending_snapshots: Vec::new(),
                 })
             })
             .collect::<Result<Vec<_>, GroupedApplyFailure>>()
@@ -568,32 +571,18 @@ fn publish_group_local_task_commit(
     if let Some(snapshot) = pending_snapshot {
         pending_snapshots.push(snapshot);
     }
-    let after_state = graph.get_state(node).map_err(|error| GroupedApplyFailure {
+    let entry = graph.get_entry(node).map_err(|error| GroupedApplyFailure {
         node,
         record_id: identity.record_id,
         error,
         reuse_failure: None,
     })?;
-    let memoized_origin = graph
-        .get_entry(node)
-        .map_err(|error| GroupedApplyFailure {
-            node,
-            record_id: identity.record_id,
-            error,
-            reuse_failure: None,
-        })?
-        .get_runtime_artifact_state()
+    let after_state = *entry.get_state();
+    let after_trace = entry.get_runtime_artifact_state();
+    let memoized_origin = after_trace
         .map(|trace| trace.memoized_origin)
         .unwrap_or(crate::data::output::MemoizedResultOrigin::DirectCompute);
-    let reuse_basis = graph
-        .get_entry(node)
-        .map_err(|error| GroupedApplyFailure {
-            node,
-            record_id: identity.record_id,
-            error,
-            reuse_failure: None,
-        })?
-        .get_runtime_artifact_state()
+    let reuse_basis = after_trace
         .map(|trace| trace.reuse_basis.clone())
         .unwrap_or(crate::data::reuse::ReuseBasis::fresh_compute());
     Ok(SemanticTaskUpdate {
@@ -706,15 +695,13 @@ fn apply_lowered_task(
     if let Some(snapshot) = apply_result.pending_snapshot {
         pending_snapshots.push(snapshot);
     }
-    let after_state = graph.get_state(node)?;
-    let memoized_origin = graph
-        .get_entry(node)?
-        .get_runtime_artifact_state()
+    let entry = graph.get_entry(node)?;
+    let after_state = *entry.get_state();
+    let after_trace = entry.get_runtime_artifact_state();
+    let memoized_origin = after_trace
         .map(|trace| trace.memoized_origin)
         .unwrap_or(crate::data::output::MemoizedResultOrigin::DirectCompute);
-    let reuse_basis = graph
-        .get_entry(node)?
-        .get_runtime_artifact_state()
+    let reuse_basis = after_trace
         .map(|trace| trace.reuse_basis.clone())
         .unwrap_or(crate::data::reuse::ReuseBasis::fresh_compute());
     Ok(SemanticTaskUpdate {
@@ -805,7 +792,7 @@ fn build_concurrent_apply_group_inputs(
     dependency_inputs: Vec<crate::logic::evaluation::EffectDependencyInputs>,
     groups: &[DisjointApplyGroup],
     stage_identities: &[StageSemanticIdentity],
-) -> Vec<ConcurrentApplyGroupInput> {
+) -> Result<Vec<ConcurrentApplyGroupInput>, SignalError> {
     let mut task_slots = tasks.into_iter().map(Some).collect::<Vec<_>>();
     let mut dependency_input_slots = dependency_inputs.into_iter().map(Some).collect::<Vec<_>>();
     let mut group_inputs = Vec::with_capacity(groups.len());
@@ -813,12 +800,14 @@ fn build_concurrent_apply_group_inputs(
     for (group_index, group) in groups.iter().enumerate() {
         let mut worker_inputs = Vec::with_capacity(group.task_indices.len());
         for &task_index in &group.task_indices {
-            let lowered_task = task_slots[task_index]
-                .take()
-                .expect("grouped concurrent task should be consumed exactly once");
-            let dependency_input = dependency_input_slots[task_index]
-                .take()
-                .expect("grouped concurrent dependency inputs should align with tasks");
+            let lowered_task = take_lowered_slot(
+                &mut task_slots[task_index],
+                "grouped concurrent lowered task slot was consumed more than once",
+            )?;
+            let dependency_input = take_lowered_slot(
+                &mut dependency_input_slots[task_index],
+                "grouped concurrent dependency inputs no longer align with lowered tasks",
+            )?;
             worker_inputs.push(lowered_task.into_concurrent_worker_input(
                 stage_identities[task_index],
                 dependency_input,
@@ -830,7 +819,7 @@ fn build_concurrent_apply_group_inputs(
         });
     }
 
-    group_inputs
+    Ok(group_inputs)
 }
 
 #[cfg(feature = "parallel")]

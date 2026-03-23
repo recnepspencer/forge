@@ -108,6 +108,10 @@ pub enum ConflictClass {
     KindSchemaMismatch {
         detail: String,
     },
+    AspectDeltaFailure {
+        detail: String,
+        fields: Value,
+    },
     ConflictingIntent {
         target: ExistingRecordTarget,
     },
@@ -176,6 +180,7 @@ impl ConflictClass {
             Self::DuplicateRelationIdentity { .. } => DiagnosticCode::DuplicateRelationIdentity,
             Self::InvariantViolation { code, .. } => *code,
             Self::KindSchemaMismatch { .. } => DiagnosticCode::InvariantViolation,
+            Self::AspectDeltaFailure { .. } => DiagnosticCode::AspectDeltaFailure,
             Self::ConflictingIntent { .. } => DiagnosticCode::ConflictingIntent,
             Self::InvalidSavepoint { .. } => DiagnosticCode::InvalidSavepoint,
             Self::InvalidMergeParent { .. } => DiagnosticCode::InvalidMergeParent,
@@ -212,6 +217,7 @@ impl ConflictClass {
             Self::InvalidRelationEndpoint { detail }
             | Self::DuplicateRelationIdentity { detail }
             | Self::KindSchemaMismatch { detail }
+            | Self::AspectDeltaFailure { detail, .. }
             | Self::InvalidMergeParent { detail }
             | Self::MergeConflictOverlap { detail }
             | Self::MissingMergeBase { detail }
@@ -292,6 +298,7 @@ impl ConflictClass {
     pub fn fields(&self) -> Option<Value> {
         match self {
             Self::InvariantViolation { fields, .. } => Some(fields.clone()),
+            Self::AspectDeltaFailure { fields, .. } => Some(fields.clone()),
             Self::UndeclaredSchemaTransition {
                 previous_schema_version,
                 current_schema_version,
@@ -489,6 +496,7 @@ pub struct CommitValidationSummary {
     pub commit_boundary_seen: bool,
     pub mutation_sensitive_seen: bool,
     pub snapshot_publication_seen: bool,
+    pub certification_boundary_seen: bool,
     pub harness_audit_seen: bool,
     pub consumed_groups: InvariantGroupSet,
     pub applicable_groups: InvariantGroupSet,
@@ -640,27 +648,27 @@ impl CommitResult {
         }
 
         PatchVsTruthDeltaReport {
-            records_checked,
+            records_checked: records_checked as u64,
             exact_match: mismatched_targets.is_empty()
                 && structural_mismatches == 0
                 && aspect_mismatches == 0
                 && degraded_precision_mismatches == 0
                 && patch.len() == traces.len(),
             mismatched_targets,
-            structural_mismatches,
-            aspect_mismatches,
-            degraded_precision_mismatches,
+            structural_mismatches: structural_mismatches as u64,
+            aspect_mismatches: aspect_mismatches as u64,
+            degraded_precision_mismatches: degraded_precision_mismatches as u64,
         }
     }
 
     pub fn aspect_tag_accuracy_report(&self) -> AspectTagAccuracyReport {
         let traces = self.aspect_emission_traces();
         AspectTagAccuracyReport {
-            records_checked: traces.len(),
+            records_checked: traces.len() as u64,
             correctly_tagged_records: self
                 .patch_vs_truth_delta_report()
                 .exact_match
-                .then_some(traces.len())
+                .then_some(traces.len() as u64)
                 .unwrap_or_else(|| {
                     traces
                         .iter()
@@ -670,7 +678,7 @@ impl CommitResult {
                                 && trace.contains_degraded_precision
                                     == record.contains_degraded_precision
                         })
-                        .count()
+                        .count() as u64
                 }),
             touched_aspects: crate::publication::patch::data::CanonicalAspectSet::new(
                 traces
@@ -680,7 +688,7 @@ impl CommitResult {
             degraded_precision_record_count: traces
                 .iter()
                 .filter(|trace| trace.contains_degraded_precision)
-                .count(),
+                .count() as u64,
         }
     }
 
@@ -852,6 +860,9 @@ impl CommitValidation {
                 }
                 InvariantExecutionPoint::SnapshotPublication => {
                     summary.snapshot_publication_seen = true;
+                }
+                InvariantExecutionPoint::CertificationBoundary => {
+                    summary.certification_boundary_seen = true;
                 }
                 InvariantExecutionPoint::HarnessAudit => {
                     summary.harness_audit_seen = true;

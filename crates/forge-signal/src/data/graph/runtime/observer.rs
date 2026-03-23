@@ -467,7 +467,9 @@ impl<'a> GraphMaterializer<'a> {
             .explanation_facts()
             .get(&node)?;
         let mut explanation = if fact.compact_projection {
-            self.graph.reconstruct_explanation_artifact(node).ok()?
+            self.graph
+                .reconstruct_explanation_artifact_without_retained_fast_path(node)
+                .ok()?
         } else {
             fact.explanation.clone()
         };
@@ -500,7 +502,10 @@ impl<'a> GraphMaterializer<'a> {
                 .get(&node)
                 .cloned(),
         ) {
-            (Some(true), _) => self.graph.reconstruct_provenance_artifact(node).ok()?,
+            (Some(true), _) => self
+                .graph
+                .reconstruct_provenance_artifact_without_retained_fast_path(node)
+                .ok()?,
             (_, Some(fact)) => fact,
             _ => return None,
         };

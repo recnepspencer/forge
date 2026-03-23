@@ -84,6 +84,25 @@ impl<'state> InvariantStateView<'state> {
             .is_some()
     }
 
+    pub(crate) fn entity_metadata_at(
+        &self,
+        arena: &'state EntityArena,
+        partition_id: crate::identity::data::PartitionId,
+        slot: usize,
+    ) -> Option<VisibleEntityMetadata> {
+        let metadata = arena
+            .metadata_history_at(slot)
+            .and_then(|history| self.visible_entity_metadata(history))?;
+        Some(VisibleEntityMetadata {
+            entity_id: crate::identity::data::EntityId::new(
+                partition_id,
+                slot as u64,
+                metadata.generation,
+            ),
+            kind_id: metadata.kind_id,
+        })
+    }
+
     pub(crate) fn touched_entity_set(
         ids: &[crate::identity::data::EntityId],
     ) -> HashSet<crate::identity::data::EntityId> {
@@ -119,4 +138,10 @@ impl<'state> InvariantStateView<'state> {
                     .is_none_or(|retired| self.version_id < retired)
         })
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct VisibleEntityMetadata {
+    pub(crate) entity_id: crate::identity::data::EntityId,
+    pub(crate) kind_id: crate::identity::data::KindId,
 }

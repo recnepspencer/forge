@@ -7,6 +7,7 @@ pub(crate) enum InvariantRequestProfile {
     CommitBoundary,
     MutationSensitive,
     SnapshotPublication,
+    CertificationBoundary,
     HarnessAudit,
 }
 
@@ -31,6 +32,7 @@ impl InvariantRequestProfile {
             Self::CommitBoundary => InvariantExecutionPoint::CommitBoundary,
             Self::MutationSensitive => InvariantExecutionPoint::MutationSensitive,
             Self::SnapshotPublication => InvariantExecutionPoint::SnapshotPublication,
+            Self::CertificationBoundary => InvariantExecutionPoint::CertificationBoundary,
             Self::HarnessAudit => InvariantExecutionPoint::HarnessAudit,
         }
     }
@@ -51,6 +53,9 @@ impl InvariantRequestProfile {
                 .union(InvariantGroupSet::of(InvariantGroup::LineageIntegrity)),
             Self::SnapshotPublication => InvariantGroupSet::of(InvariantGroup::VersionVisibility)
                 .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence)),
+            Self::CertificationBoundary => InvariantGroupSet::of(InvariantGroup::VersionVisibility)
+                .union(InvariantGroupSet::of(InvariantGroup::RelationIntegrity))
+                .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence)),
             Self::HarnessAudit => InvariantGroupSet::all(),
         }
     }
@@ -60,7 +65,7 @@ impl InvariantRequestProfile {
             Self::CommitBoundary | Self::HarnessAudit => {
                 matches!(observation, InvariantObservationKind::Committed)
             }
-            Self::MutationSensitive | Self::SnapshotPublication => true,
+            Self::MutationSensitive | Self::SnapshotPublication | Self::CertificationBoundary => true,
         }
     }
 }

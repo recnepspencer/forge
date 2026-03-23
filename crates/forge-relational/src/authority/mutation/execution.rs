@@ -33,7 +33,7 @@ pub(crate) fn apply_plan_to_working_state(
 
     for intent in &apply_plan.merged_intents {
         let child = dispatch_intent(intent, &mut workspace)?;
-        effect.accumulate(assemble_effect(child, &mut workspace));
+        effect.accumulate(assemble_effect(child, &mut workspace)?);
     }
 
     Ok(MutationApplyOutcome {

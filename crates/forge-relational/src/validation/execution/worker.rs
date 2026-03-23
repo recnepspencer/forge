@@ -47,7 +47,6 @@ pub(crate) fn evaluate_invariant_packet(
         runtime,
         packet.observation.clone(),
         packet.version_id,
-        packet.registration.execution_point,
         packet.merged_plan,
         packet.relation_integrity_scopes.clone(),
     );

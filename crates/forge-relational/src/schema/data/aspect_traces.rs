@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{json, to_value, Value};
 
 use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
@@ -14,6 +14,7 @@ use super::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct AspectDeclarationTrace {
     pub kind_id: KindId,
     pub plan_revision: AspectPlanRevision,
@@ -29,6 +30,7 @@ pub struct AspectDeclarationTraceRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct AspectLoweringTrace {
     pub kind_id: KindId,
     pub plan_revision: AspectPlanRevision,
@@ -72,8 +74,8 @@ impl LoweredAspectPlan {
                 .iter()
                 .map(|binding| AspectLoweringTraceRow {
                     aspect_key: binding.aspect_key.clone(),
-                    extractor: binding.extractor.clone(),
-                    comparator: binding.comparator,
+                    extractor: binding.extractor(),
+                    comparator: binding.comparator(),
                     precision: binding.precision,
                 })
                 .collect(),
@@ -83,6 +85,7 @@ impl LoweredAspectPlan {
 
 impl AspectDeclarationTrace {
     pub fn diagnostic_artifact(&self) -> RelationalDiagnosticArtifact {
+        let fields = AspectDeclarationTraceFields::from_trace(self);
         RelationalDiagnosticArtifact {
             scope: DiagnosticsScope::Schema,
             kind: DiagnosticsArtifactKind::DetailedTrace,
@@ -91,11 +94,7 @@ impl AspectDeclarationTrace {
                 code: DiagnosticCode::AspectDeclarationTraced,
                 message: "aspect declaration trace derived from canonical schema declarations"
                     .to_string(),
-                fields: json!({
-                    "kind_id": self.kind_id.0,
-                    "plan_revision": self.plan_revision.0.to_string(),
-                    "declarations": self.declarations,
-                }),
+                fields: trace_fields_value(&fields, "aspect declaration trace"),
             }],
         }
     }
@@ -103,6 +102,7 @@ impl AspectDeclarationTrace {
 
 impl AspectLoweringTrace {
     pub fn diagnostic_artifact(&self) -> RelationalDiagnosticArtifact {
+        let fields = AspectLoweringTraceFields::from_trace(self);
         RelationalDiagnosticArtifact {
             scope: DiagnosticsScope::Schema,
             kind: DiagnosticsArtifactKind::DetailedTrace,
@@ -111,12 +111,55 @@ impl AspectLoweringTrace {
                 code: DiagnosticCode::AspectLoweringTraced,
                 message: "aspect lowering trace derived from canonical lowered aspect plan"
                     .to_string(),
-                fields: json!({
-                    "kind_id": self.kind_id.0,
-                    "plan_revision": self.plan_revision.0.to_string(),
-                    "bindings": self.bindings,
-                }),
+                fields: trace_fields_value(&fields, "aspect lowering trace"),
             }],
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+struct AspectDeclarationTraceFields {
+    kind_id: u64,
+    plan_revision: String,
+    declarations: Vec<AspectDeclarationTraceRow>,
+}
+
+impl AspectDeclarationTraceFields {
+    fn from_trace(trace: &AspectDeclarationTrace) -> Self {
+        Self {
+            kind_id: trace.kind_id.0 as u64,
+            plan_revision: trace.plan_revision.0.to_string(),
+            declarations: trace.declarations.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+struct AspectLoweringTraceFields {
+    kind_id: u64,
+    plan_revision: String,
+    bindings: Vec<AspectLoweringTraceRow>,
+}
+
+impl AspectLoweringTraceFields {
+    fn from_trace(trace: &AspectLoweringTrace) -> Self {
+        Self {
+            kind_id: trace.kind_id.0 as u64,
+            plan_revision: trace.plan_revision.0.to_string(),
+            bindings: trace.bindings.clone(),
+        }
+    }
+}
+
+fn trace_fields_value<T>(fields: &T, trace_kind: &str) -> Value
+where
+    T: Serialize,
+{
+    match to_value(fields) {
+        Ok(value) => value,
+        Err(error) => json!({
+            "trace_kind": trace_kind,
+            "serialization_failure": error.to_string(),
+        }),
     }
 }

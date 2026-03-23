@@ -382,6 +382,100 @@ named requirements from
 - `Netlist rewiring identity and history test`
 - `Hostile commit/replay equivalence test`
 
+## Milestone 6.5: Invariant Completion and Custom Invariant Support
+
+### Goal
+
+Complete the native invariant suite so the runtime enforces the full set of
+domain-agnostic structural truth rules, and ship the custom invariant
+extensibility surface so domain-specific structural invariants can participate
+in the same commit-time and publication-boundary enforcement pipeline as native
+rules.
+
+This milestone exists because the geometry kernel — the primary consumer of
+this runtime — requires both domain-agnostic topological invariants (acyclicity,
+cardinality minimum) and domain-specific structural invariants (manifold edge,
+orientation consistency, face loop closure) that cannot be expressed as signal
+computations. These must be enforced at the relational layer, not deferred to
+downstream consumers.
+
+### Must Ship
+
+#### New Native Invariants
+
+- **cardinality minimum**: schema-declared minimum relation count per endpoint,
+  enforced at publication boundary; entity creation with zero relations is
+  permitted during construction, but publication requires satisfaction of
+  declared minimums
+- **acyclicity**: schema-declared cycle prohibition for directed relation kinds,
+  enforced at commit boundary; cycle detection scoped to the subgraph reachable
+  from touched endpoints using bounded DFS from the newly created relation's
+  target through outgoing edges
+- **payload schema validation**: schema-declared JSON structure contracts per
+  entity and relation kind, enforced at commit boundary; the runtime validates
+  that committed payloads conform to declared field presence, type, and
+  constraint rules
+- **partition isolation**: schema-declared cross-partition prohibition for
+  specific relation kinds, enforced at commit boundary; prevents relations of
+  declared kinds from connecting entities in different partitions
+- **connectivity minimum**: schema-declared reachability requirement from
+  entities of one kind to entities of another kind, enforced at publication
+  boundary; prevents orphaned subgraphs that violate declared dependency
+  contracts
+
+#### Custom Invariant Extensibility
+
+- a public `CustomInvariantRule` trait that domain-specific invariants implement
+  to participate in the existing invariant execution pipeline
+- custom invariants must declare their execution point (commit boundary or
+  publication boundary), cost class, and invariant group membership
+- custom invariants receive the same `InvariantExecutionContext` and scoped
+  access to touched records, relation endpoints, kind counts, payload fields,
+  and bounded graph traversal as native invariants
+- custom invariants must not receive access to the signal graph or computed
+  values; the boundary between structural invariants and derived invariants is
+  enforced by the API surface
+- custom invariant failures participate in the same typed
+  `InvariantViolation` and diagnostics pipeline as native failures
+- custom invariants are registered at schema registration time alongside native
+  invariant declarations
+- the planner and evaluator must handle custom invariants without special-casing;
+  they flow through the same `InvariantRule` dispatch, planning, and packet
+  evaluation as native rules
+
+### Must Preserve
+
+- serialized authority for invariant-affecting truth mutation
+- canonical failure reporting for all invariant types (native and custom)
+- no partial publication after invariant failure
+- replay and recovery consistency for commits validated against custom invariants
+- the existing native invariant performance characteristics must not degrade
+  when custom invariants are registered
+- custom invariant panics must not crash the runtime; custom rule evaluation
+  must be isolated via `catch_unwind` or equivalent boundary
+
+### Acceptance Requirements
+
+This milestone is complete only when the implementation satisfies the following
+named requirements from
+[test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md):
+
+- `Hostile commit/replay equivalence test`
+- `Missing-twin / nonmanifold corruption localization test`
+- `Savepoint rollback fracture test`
+
+Additionally, this milestone must add and satisfy an explicit invariant
+extensibility certification requirement covering:
+
+- custom invariant registration, evaluation, and failure reporting parity with
+  native invariants
+- acyclicity enforcement under hostile cycle-inducing commit sequences
+- cardinality minimum enforcement at publication boundary with deferred
+  construction semantics
+- payload schema validation with structured rejection diagnostics
+- partition isolation enforcement with cross-partition relation rejection
+- connectivity minimum enforcement at publication boundary
+
 ## Milestone 7: Merge-Ready History and Merge Execution
 
 This milestone is intentionally split so the roadmap stays honest about what is
@@ -401,7 +495,7 @@ durability, diagnostics, and ancestry reasoning.
 - ordered parent persistence through durability
 - replay handling for ordered parent lists
 - diagnostics and ancestry reasoning that remain correct on ordered parents
-- explicit evidence that observable surfaces do not quietly assume “single parent or none”
+- explicit evidence that observable surfaces do not quietly assume "single parent or none"
 
 #### Acceptance Requirements
 

@@ -56,6 +56,8 @@ impl RelationalInvariantRuntime {
             profile.consumed_groups().mask();
         run_at[InvariantExecutionPoint::SnapshotPublication as usize] =
             profile.consumed_groups().mask();
+        run_at[InvariantExecutionPoint::CertificationBoundary as usize] =
+            profile.consumed_groups().mask();
         run_at[InvariantExecutionPoint::HarnessAudit as usize] = profile.consumed_groups().mask();
 
         max_cost[InvariantExecutionPoint::CommitBoundary as usize] = match context.scale {
@@ -69,6 +71,8 @@ impl RelationalInvariantRuntime {
             } else {
                 InvariantCostClass::Global
             };
+        max_cost[InvariantExecutionPoint::CertificationBoundary as usize] =
+            InvariantCostClass::Global;
         max_cost[InvariantExecutionPoint::HarnessAudit as usize] = InvariantCostClass::Global;
 
         if context.version_depth > 1_000 {

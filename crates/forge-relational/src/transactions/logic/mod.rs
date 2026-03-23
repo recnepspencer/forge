@@ -26,8 +26,8 @@ impl<'a> RelationalTransaction<'a> {
 
         let mut touched_records = BTreeSet::new();
         let mut intent_counts = TransactionIntentCounts::default();
-        let mut reserved_bulk_entity_slots = 0;
-        let mut reserved_bulk_relation_slots = 0;
+        let mut reserved_bulk_entity_slots = 0_u64;
+        let mut reserved_bulk_relation_slots = 0_u64;
         let mut contains_lineage_affecting_intents = false;
 
         for batch in &self.batches {
@@ -38,10 +38,10 @@ impl<'a> RelationalTransaction<'a> {
                         match create_intent {
                             CreateIntent::Entity(_) | CreateIntent::Relation(_) => {}
                             CreateIntent::BulkEntities(intent) => {
-                                reserved_bulk_entity_slots += intent.payloads.len();
+                                reserved_bulk_entity_slots += intent.payloads.len() as u64;
                             }
                             CreateIntent::BulkRelations(intent) => {
-                                reserved_bulk_relation_slots += intent.endpoints.len();
+                                reserved_bulk_relation_slots += intent.endpoints.len() as u64;
                             }
                         }
                     }
@@ -76,13 +76,13 @@ impl<'a> RelationalTransaction<'a> {
         TransactionInspectionSurface {
             transaction_id: self.transaction_id,
             target_branch: self.options.target_branch.clone(),
-            batch_count: self.batches.len(),
+            batch_count: self.batches.len() as u64,
             savepoints: self
                 .savepoints
                 .iter()
                 .map(|(savepoint_id, retained_batch_count)| SavepointInspectionSurface {
                     savepoint_id: *savepoint_id,
-                    retained_batch_count: *retained_batch_count,
+                    retained_batch_count: *retained_batch_count as u64,
                 })
                 .collect(),
             touched_records: touched_records.into_iter().collect(),

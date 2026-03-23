@@ -110,7 +110,7 @@ pub enum CrossContextPolicy {
     Forbid,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum CascadeDeletePolicy {
     RetainDanglingForAudit,
     CascadeDeleteRelations,

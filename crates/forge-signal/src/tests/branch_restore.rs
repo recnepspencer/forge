@@ -202,3 +202,57 @@ fn restore_branch_snapshot_keeps_sibling_branch_keyed_bindings_isolated() {
         "sibling restore must keep its own keyed binding rather than reusing feature state"
     );
 }
+
+#[test]
+fn branch_lifecycle_telemetry_distinguishes_fork_move_and_restore_packets() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let main = runtime.observe().current_branch();
+
+    let feature = runtime.create_branch("feature").unwrap();
+    assert_eq!(runtime.telemetry().transaction.explicit_fork_count, 1);
+    assert_eq!(runtime.telemetry().transaction.move_transfer_count, 0);
+    assert_eq!(runtime.telemetry().transaction.restore_transfer_count, 0);
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    assert_eq!(runtime.telemetry().transaction.move_transfer_count, 2);
+    assert_eq!(runtime.telemetry().transaction.explicit_fork_count, 1);
+
+    let snapshot = runtime.capture_snapshot();
+    runtime.restore_snapshot(&snapshot).unwrap();
+
+    assert_eq!(runtime.telemetry().transaction.restore_transfer_count, 1);
+    assert_eq!(runtime.telemetry().transaction.explicit_fork_count, 1);
+    assert_eq!(runtime.telemetry().transaction.move_transfer_count, 2);
+    assert!(
+        runtime.telemetry().transaction.heavy_capture_count >= 2,
+        "fork and switch should be witness-gated heavy capture operations"
+    );
+
+    runtime.switch_branch(main).unwrap();
+    assert_eq!(runtime.telemetry().transaction.move_transfer_count, 4);
+}
+
+#[test]
+fn inactive_branch_restore_does_not_count_as_active_restore_transfer() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let main = runtime.observe().current_branch();
+    let feature = runtime.create_branch("feature").unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    let snapshot = runtime.capture_snapshot();
+    runtime.switch_branch(main).unwrap();
+
+    let restore_before = runtime.telemetry().transaction.restore_transfer_count;
+    runtime
+        .restore_branch_snapshot(feature, &snapshot)
+        .unwrap();
+
+    assert_eq!(
+        runtime.telemetry().transaction.restore_transfer_count,
+        restore_before,
+        "restoring a non-active branch should update stored state but not count as an active restore transfer"
+    );
+}

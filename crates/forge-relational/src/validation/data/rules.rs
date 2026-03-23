@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::schema::data::{
-    LoweredCardinalityContract, LoweredEndpointDeletionIntegrityContract,
-    LoweredEndpointKindContract, LoweredSymmetryContract, LoweredUniquenessContract,
+    LoweredCardinalityMaximumContract, LoweredCardinalityMinimumContract,
+    LoweredEndpointDeletionIntegrityContract, LoweredEndpointKindContract,
+    MinimumCardinalityEnforcement, LoweredSymmetryContract, LoweredUniquenessContract,
 };
 
 use super::execution::InvariantExecutionPoint;
@@ -18,10 +19,12 @@ pub enum RecordKindTag {
 pub enum InvariantRule {
     LiveRecordRequiresSidecar(RecordKindTag),
     MaxMergedIntents(usize),
+    RelationIntegrityScopeBudget(usize),
     MaxSnapshotEntities(usize),
     UniqueEntityPayloadField(String),
     EndpointKindContract(LoweredEndpointKindContract),
-    CardinalityContract(LoweredCardinalityContract),
+    CardinalityMaximumContract(LoweredCardinalityMaximumContract),
+    CardinalityMinimumContract(LoweredCardinalityMinimumContract),
     UniquenessContract(LoweredUniquenessContract),
     SymmetryContract(LoweredSymmetryContract),
     EndpointDeletionIntegrityContract(LoweredEndpointDeletionIntegrityContract),
@@ -45,6 +48,11 @@ impl InvariantRule {
                 groups: InvariantGroupSet::of(InvariantGroup::PublicationCoherence),
                 cost: InvariantCostClass::Touched,
             },
+            Self::RelationIntegrityScopeBudget(_) => InvariantRuleMetadata {
+                groups: InvariantGroupSet::of(InvariantGroup::RelationIntegrity)
+                    .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence)),
+                cost: InvariantCostClass::Touched,
+            },
             Self::MaxSnapshotEntities(_) => InvariantRuleMetadata {
                 groups: InvariantGroupSet::of(InvariantGroup::VersionVisibility)
                     .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence)),
@@ -60,9 +68,14 @@ impl InvariantRule {
                     .union(InvariantGroupSet::of(InvariantGroup::RelationIntegrity)),
                 cost: InvariantCostClass::Touched,
             },
-            Self::CardinalityContract(_) => InvariantRuleMetadata {
+            Self::CardinalityMaximumContract(_) => InvariantRuleMetadata {
                 groups: InvariantGroupSet::of(InvariantGroup::RelationIntegrity),
                 cost: InvariantCostClass::Touched,
+            },
+            Self::CardinalityMinimumContract(_) => InvariantRuleMetadata {
+                groups: InvariantGroupSet::of(InvariantGroup::RelationIntegrity)
+                    .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility)),
+                cost: InvariantCostClass::Global,
             },
             Self::UniquenessContract(_) => InvariantRuleMetadata {
                 groups: InvariantGroupSet::of(InvariantGroup::IdentityCoherence)
@@ -102,6 +115,9 @@ impl InvariantRule {
                 execution_point == InvariantExecutionPoint::CommitBoundary
                     || execution_point == InvariantExecutionPoint::HarnessAudit
             }
+            Self::RelationIntegrityScopeBudget(_) => {
+                execution_point == InvariantExecutionPoint::CommitBoundary
+            }
             Self::UniqueEntityPayloadField(_) => {
                 execution_point == InvariantExecutionPoint::MutationSensitive
                     || execution_point == InvariantExecutionPoint::CommitBoundary
@@ -111,12 +127,22 @@ impl InvariantRule {
                 execution_point == InvariantExecutionPoint::SnapshotPublication
             }
             Self::EndpointKindContract(_)
-            | Self::CardinalityContract(_)
             | Self::UniquenessContract(_)
             | Self::SymmetryContract(_)
             | Self::EndpointDeletionIntegrityContract(_) => {
                 execution_point == InvariantExecutionPoint::CommitBoundary
             }
+            Self::CardinalityMaximumContract(_) => {
+                execution_point == InvariantExecutionPoint::CommitBoundary
+            }
+            Self::CardinalityMinimumContract(contract) => match contract.minimum_enforcement {
+                MinimumCardinalityEnforcement::CommitBoundary => {
+                    execution_point == InvariantExecutionPoint::CommitBoundary
+                }
+                MinimumCardinalityEnforcement::CertificationBoundary => {
+                    execution_point == InvariantExecutionPoint::CertificationBoundary
+                }
+            },
         }
     }
 
@@ -127,12 +153,16 @@ impl InvariantRule {
                 left == right
             }
             (Self::MaxMergedIntents(_), Self::MaxMergedIntents(_))
+            | (Self::RelationIntegrityScopeBudget(_), Self::RelationIntegrityScopeBudget(_))
             | (Self::MaxSnapshotEntities(_), Self::MaxSnapshotEntities(_))
             | (Self::UniqueEntityPayloadField(_), Self::UniqueEntityPayloadField(_)) => true,
             (Self::EndpointKindContract(left), Self::EndpointKindContract(right)) => {
                 left.contract_id == right.contract_id && left.relation_kind_id == right.relation_kind_id
             }
-            (Self::CardinalityContract(left), Self::CardinalityContract(right)) => {
+            (Self::CardinalityMaximumContract(left), Self::CardinalityMaximumContract(right)) => {
+                left.contract_id == right.contract_id && left.relation_kind_id == right.relation_kind_id
+            }
+            (Self::CardinalityMinimumContract(left), Self::CardinalityMinimumContract(right)) => {
                 left.contract_id == right.contract_id && left.relation_kind_id == right.relation_kind_id
             }
             (Self::UniquenessContract(left), Self::UniquenessContract(right)) => {

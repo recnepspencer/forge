@@ -12,6 +12,7 @@ use super::super::types::{
     SemanticSegmentId, TaskExecutionOutcome, TaskExecutionRecord,
 };
 
+#[allow(dead_code)]
 pub(crate) fn classify_task_record(
     id: ExecutionRecordId,
     semantic_segment_id: SemanticSegmentId,
@@ -24,6 +25,35 @@ pub(crate) fn classify_task_record(
     memoized_origin: MemoizedResultOrigin,
     reuse_basis: ReuseBasis,
 ) -> ExecutedTask {
+    ExecutedTask {
+        task: task.clone(),
+        record: classify_task_execution_record(
+            id,
+            semantic_segment_id,
+            task,
+            before_state,
+            after_state,
+            before_trace,
+            after_trace,
+            verdict,
+            memoized_origin,
+            reuse_basis,
+        ),
+    }
+}
+
+pub(crate) fn classify_task_execution_record(
+    id: ExecutionRecordId,
+    semantic_segment_id: SemanticSegmentId,
+    task: &EligibleTask,
+    before_state: NodeState,
+    after_state: NodeState,
+    before_trace: Option<&RuntimeArtifactState>,
+    after_trace: Option<&RuntimeArtifactState>,
+    verdict: EvaluationVerdict,
+    memoized_origin: MemoizedResultOrigin,
+    reuse_basis: ReuseBasis,
+) -> TaskExecutionRecord {
     let trace_changed = before_trace != after_trace;
     let recomputed = after_trace
         .map(|trace| trace.recomputed)
@@ -87,25 +117,22 @@ pub(crate) fn classify_task_record(
         },
     };
 
-    ExecutedTask {
-        task: task.clone(),
-        record: TaskExecutionRecord {
-            id,
-            semantic_segment_id,
-            node: task.node,
-            scheduled_reason: task.reason,
-            direct_request: task.direct_request,
-            outcome,
-            verdict: Some(verdict),
-            suppression_reason,
-            deferral_reason,
-            prune_reason,
-            recomputed,
-            memoized_origin,
-            reuse_basis,
-            reuse_origin,
-            propagation_suppressed,
-        },
+    TaskExecutionRecord {
+        id,
+        semantic_segment_id,
+        node: task.node,
+        scheduled_reason: task.reason,
+        direct_request: task.direct_request,
+        outcome,
+        verdict: Some(verdict),
+        suppression_reason,
+        deferral_reason,
+        prune_reason,
+        recomputed,
+        memoized_origin,
+        reuse_basis,
+        reuse_origin,
+        propagation_suppressed,
     }
 }
 

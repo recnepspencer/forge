@@ -9,15 +9,15 @@ use crate::data::node::NodeState;
 use crate::data::output::MemoizedResultOrigin;
 use crate::data::reuse::ReuseBasis;
 use crate::data::trace::RuntimeArtifactState;
-use crate::diagnostics::recorder::record_lineage_transition;
+use crate::diagnostics::recorder::stamp_trace_summary_and_record_lineage_transition;
 use crate::logic::evaluation::EvaluationVerdict;
 use crate::logic::explain::RewiringSummary;
 
 use self::artifacts::record_semantic_artifacts;
 use self::reporting::record_semantic_update;
-use super::reporting::classify_task_record;
+use super::reporting::classify_task_execution_record;
 use super::types::{
-    EligibleTask, ExecutedTask, ExecutionRecordId, ExecutionReport, SemanticSegmentId,
+    EligibleTask, ExecutionRecordId, ExecutionReport, SemanticSegmentId,
     SemanticTaskRange, StageExecutionRecord,
 };
 
@@ -61,10 +61,7 @@ impl StageSemanticBatch {
         self.segments.push(segment);
     }
 
-    pub(in crate::logic::planner) fn extend(&mut self, mut other: StageSemanticBatch) {
-        self.segments.append(&mut other.segments);
-    }
-
+    #[cfg(feature = "parallel")]
     pub(in crate::logic::planner) fn segment_count(&self) -> usize {
         self.segments.len()
     }
@@ -114,7 +111,9 @@ pub(super) fn finalize_stage_batch(
     }
 
     let mut segments = batch.segments;
-    segments.sort_by_key(|segment| (segment.task_range.start.0, segment.id.0));
+    if !segments_are_sorted(segments.as_slice()) {
+        segments.sort_by_key(|segment| (segment.task_range.start.0, segment.id.0));
+    }
     stage_record.semantic_segment_count = segments.len() as u32;
     report.semantic_segment_count += segments.len() as u32;
     stage_record.semantic_task_range = Some(SemanticTaskRange {
@@ -144,8 +143,7 @@ pub(super) fn finalize_stage_batch(
                 memoized_origin,
                 reuse_basis,
             } = update;
-            stamp_trace_summary(graph, node, identity.record_id, identity.segment_id)?;
-            record_lineage_transition(
+            stamp_trace_summary_and_record_lineage_transition(
                 graph,
                 node,
                 before_artifact_state.as_ref(),
@@ -153,7 +151,7 @@ pub(super) fn finalize_stage_batch(
                 identity.segment_id,
             )?;
             let task = &stage_tasks[task_index];
-            let executed_task = classify_task_record(
+            let task_record = classify_task_execution_record(
                 identity.record_id,
                 identity.segment_id,
                 task,
@@ -168,34 +166,32 @@ pub(super) fn finalize_stage_batch(
             record_semantic_update(
                 graph,
                 report,
-                &executed_task.record,
+                &task_record,
                 dependency_updates,
                 recomputed,
                 partition_aware,
             );
-            let ExecutedTask { record: task_record, .. } = executed_task;
             task_records.push(task_record);
             record_semantic_artifacts(graph, node, rewiring.as_ref())?;
         }
     }
-    task_records.sort_by_key(|record| record.id.0);
+    if !task_records_are_sorted(task_records.as_slice()) {
+        task_records.sort_by_key(|record| record.id.0);
+    }
     stage_record.task_records = task_records;
     Ok(())
 }
 
-fn stamp_trace_summary(
-    graph: &mut SignalGraph,
-    node: NodeId,
-    record_id: ExecutionRecordId,
-    segment_id: SemanticSegmentId,
-) -> Result<(), SignalError> {
-    let Some(mut summary) = graph.get_entry(node)?.get_runtime_artifact_state().cloned() else {
-        return Ok(());
-    };
-    summary.execution_record_id = Some(record_id.0);
-    summary.semantic_segment_id = Some(segment_id.0);
-    graph
-        .get_entry_mut(node)?
-        .set_runtime_artifact_state(Some(summary));
-    Ok(())
+fn segments_are_sorted(segments: &[SemanticSegment]) -> bool {
+    segments.windows(2).all(|pair| {
+        pair[0].task_range.start.0 < pair[1].task_range.start.0
+            || (pair[0].task_range.start.0 == pair[1].task_range.start.0
+                && pair[0].id.0 <= pair[1].id.0)
+    })
+}
+
+fn task_records_are_sorted(records: &[super::types::TaskExecutionRecord]) -> bool {
+    records
+        .windows(2)
+        .all(|pair| pair[0].id.0 <= pair[1].id.0)
 }

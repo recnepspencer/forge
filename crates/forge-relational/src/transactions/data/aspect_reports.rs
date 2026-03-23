@@ -5,19 +5,21 @@ use crate::publication::patch::data::CanonicalAspectSet;
 use super::RecordRef;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct PatchVsTruthDeltaReport {
-    pub records_checked: usize,
+    pub records_checked: u64,
     pub exact_match: bool,
     pub mismatched_targets: Vec<RecordRef>,
-    pub structural_mismatches: usize,
-    pub aspect_mismatches: usize,
-    pub degraded_precision_mismatches: usize,
+    pub structural_mismatches: u64,
+    pub aspect_mismatches: u64,
+    pub degraded_precision_mismatches: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[must_use]
 pub struct AspectTagAccuracyReport {
-    pub records_checked: usize,
-    pub correctly_tagged_records: usize,
+    pub records_checked: u64,
+    pub correctly_tagged_records: u64,
     pub touched_aspects: CanonicalAspectSet,
-    pub degraded_precision_record_count: usize,
+    pub degraded_precision_record_count: u64,
 }

@@ -17,5 +17,6 @@ pub use provenance::{ConfigProvenance, ConfigProvenanceEntry, ConfigValueSource}
 pub use runtime_config::RelationalRuntimeConfig;
 pub use sections::{
     DiagnosticsConfig, DurabilityConfig, ExecutionConfig, HistoryConfig, IdentityConfig,
-    PublicationRuntimeConfig, SchemaConfig, StorageConfig, VisibilityConfig,
+    PublicationRuntimeConfig, RelationIntegrityScopeBudget, SchemaConfig, StorageConfig,
+    VisibilityConfig,
 };

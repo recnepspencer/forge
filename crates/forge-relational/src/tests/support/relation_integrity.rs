@@ -65,7 +65,7 @@ pub(crate) fn endpoint_deletion_runtime(
             Vec::new(),
             Vec::new(),
             vec![crate::schema::data::EndpointDeletionIntegrityDeclaration {
-                contract_id: "endpoint_delete".to_string(),
+                contract_id: "endpoint_delete".into(),
                 mode,
             }],
         ),

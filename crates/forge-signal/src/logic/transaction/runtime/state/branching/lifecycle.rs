@@ -4,7 +4,7 @@ use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
 use super::branches::BranchAncestryState;
 use super::super::merge::BranchMutationLedger;
 use super::super::runtime_state::{
-    AuthorityTransferPacket, ExplicitBranchForkPacket, SignalRuntime,
+    AuthorityTransferPacket, BranchLifecycleTransfer, ExplicitBranchForkPacket, SignalRuntime,
 };
 
 impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
@@ -17,11 +17,10 @@ where
         &mut self,
         name: impl Into<String>,
     ) -> Result<SignalBranchHandle, SignalError> {
-        let witness = self.heavy_capture_witness();
         let current_branch_name = self.graph.current_branch().name;
         let parent_branch_id = self.graph.current_branch().id;
         let handle = self.graph.diagnostics_state_mut().create_branch(name);
-        let mut branch_state = self.capture_full_branch_state(&witness);
+        let mut branch_state = self.capture_heavy_branch_state();
         branch_state.ancestry = BranchAncestryState {
             branch_id: handle.id,
             parent_branch_id: Some(parent_branch_id),
@@ -37,11 +36,11 @@ where
             .diagnostics_state_mut()
             .set_active_branch(handle.id);
         self.telemetry.transaction.explicit_fork_count += 1;
-        self.branches.insert_branch_fork_packet(ExplicitBranchForkPacket {
+        self.branches.store_fork_packet(ExplicitBranchForkPacket {
             source_branch: parent_branch_id,
             branch_id: handle.id,
             state: branch_state,
-        });
+        })?;
         let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
         self.synchronize_branch_catalogs(branch_catalog);
         crate::diagnostics::recorder::record_snapshot_event(
@@ -61,24 +60,30 @@ where
     }
 
     pub fn switch_branch(&mut self, branch: SignalBranchHandle) -> Result<(), SignalError> {
-        let witness = self.heavy_capture_witness();
         let current = self.graph.current_branch();
+        let preserved_transaction = self.telemetry.transaction;
         if branch.id == current.id {
             return Ok(());
         }
-        let Some(state) = self.branches.take_branch_transfer_packet(branch.id) else {
+        let Some(state) = self.branches.take_stored_branch_transfer(branch.id) else {
             return Err(SignalError::unknown_branch(Some(branch.id), branch.name));
         };
-        let current_state = self.take_active_branch_state(&witness);
-        self.telemetry.transaction.move_transfer_count += 2;
-        self.branches.insert_branch(
+        let current_state = self.take_heavy_active_branch_state();
+        self.branches.store_branch_state(
             current.id,
             current_state,
         );
-        self.load_branch_state(AuthorityTransferPacket {
-            branch_id: branch.id,
-            state: state.state,
-        });
+        self.apply_branch_lifecycle_transfer(BranchLifecycleTransfer::Move(
+            AuthorityTransferPacket {
+                branch_id: branch.id,
+                state: state.state,
+            },
+        ))?;
+        Self::merge_global_transaction_telemetry(
+            preserved_transaction,
+            &mut self.telemetry.transaction,
+        );
+        self.telemetry.transaction.move_transfer_count += 2;
         self.graph.diagnostics_state_mut().set_active_branch(branch.id);
         let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
         self.synchronize_branch_catalogs(branch_catalog);
@@ -146,16 +151,16 @@ where
         branch_id: SignalBranchId,
     ) -> Result<(), SignalError> {
         if self.graph.current_branch().id == branch_id {
-            let witness = self.heavy_capture_witness();
-            let mut state = self.capture_full_branch_state(&witness);
+            let mut state = self.capture_heavy_branch_state();
             state.mutation_ledger = crate::logic::transaction::BranchMutationLedger::default();
-            self.branches.insert_branch(branch_id, state);
+            self.branches.store_branch_state(branch_id, state);
             return Ok(());
         }
-        let Some(state) = self.branches.branch_state_mut_with_allocator_sync(branch_id) else {
+        let Some(()) = self.branches.with_stored_branch_state_mut(branch_id, |state| {
+            state.mutation_ledger = crate::logic::transaction::BranchMutationLedger::default();
+        }) else {
             return Err(SignalError::unknown_branch(Some(branch_id), "test-branch"));
         };
-        state.mutation_ledger = crate::logic::transaction::BranchMutationLedger::default();
         Ok(())
     }
 }

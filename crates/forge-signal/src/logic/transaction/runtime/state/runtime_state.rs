@@ -1,7 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::data::graph::{EvaluationStrategy, SignalGraph};
-use crate::data::telemetry::RuntimeTelemetry;
+use crate::data::telemetry::{RuntimeTelemetry, TransactionTelemetry};
 use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::events::EventBus;
 use crate::state::{SignalBranchHandle, SignalBranchId};
@@ -28,6 +28,17 @@ where
 }
 
 #[derive(Debug)]
+pub(in crate::logic::transaction::runtime) struct RestoreTransferPacket<D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub branch_id: SignalBranchId,
+    pub state: BranchState<D, I, T>,
+}
+
+#[derive(Debug)]
 pub(in crate::logic::transaction::runtime) struct ExplicitBranchForkPacket<D, I, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
@@ -37,6 +48,17 @@ where
     pub source_branch: SignalBranchId,
     pub branch_id: SignalBranchId,
     pub state: BranchState<D, I, T>,
+}
+
+#[derive(Debug)]
+pub(in crate::logic::transaction::runtime) enum BranchLifecycleTransfer<D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    Move(AuthorityTransferPacket<D, I, T>),
+    Restore(RestoreTransferPacket<D, I, T>),
 }
 
 /// Full runtime surface for transactional evaluation, diagnostics, replay, and
@@ -119,6 +141,63 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    pub(in crate::logic::transaction::runtime::state) fn merge_global_transaction_telemetry(
+        current: TransactionTelemetry,
+        restored: &mut TransactionTelemetry,
+    ) {
+        restored.transaction_begin_count = restored
+            .transaction_begin_count
+            .max(current.transaction_begin_count);
+        restored.transaction_commit_count = restored
+            .transaction_commit_count
+            .max(current.transaction_commit_count);
+        restored.transaction_rollback_count = restored
+            .transaction_rollback_count
+            .max(current.transaction_rollback_count);
+        restored.transaction_poison_count = restored
+            .transaction_poison_count
+            .max(current.transaction_poison_count);
+        restored.rollback_packet_breadth = restored
+            .rollback_packet_breadth
+            .max(current.rollback_packet_breadth);
+        restored.rollback_packet_config_count = restored
+            .rollback_packet_config_count
+            .max(current.rollback_packet_config_count);
+        restored.rollback_packet_diagnostics_count = restored
+            .rollback_packet_diagnostics_count
+            .max(current.rollback_packet_diagnostics_count);
+        restored.rollback_packet_graph_patch_count = restored
+            .rollback_packet_graph_patch_count
+            .max(current.rollback_packet_graph_patch_count);
+        restored.rollback_packet_created_node_count = restored
+            .rollback_packet_created_node_count
+            .max(current.rollback_packet_created_node_count);
+        restored.rollback_packet_subscriber_repair_count = restored
+            .rollback_packet_subscriber_repair_count
+            .max(current.rollback_packet_subscriber_repair_count);
+        restored.move_transfer_count =
+            restored.move_transfer_count.max(current.move_transfer_count);
+        restored.explicit_fork_count =
+            restored.explicit_fork_count.max(current.explicit_fork_count);
+        restored.restore_transfer_count = restored
+            .restore_transfer_count
+            .max(current.restore_transfer_count);
+        restored.heavy_capture_count =
+            restored.heavy_capture_count.max(current.heavy_capture_count);
+        restored.decision_log_event_count = restored
+            .decision_log_event_count
+            .max(current.decision_log_event_count);
+        restored.staged_node_patch_count = restored
+            .staged_node_patch_count
+            .max(current.staged_node_patch_count);
+        restored.max_touched_nodes_in_txn = restored
+            .max_touched_nodes_in_txn
+            .max(current.max_touched_nodes_in_txn);
+        restored.transaction_mark_dirty_candidate_visits = restored
+            .transaction_mark_dirty_candidate_visits
+            .max(current.transaction_mark_dirty_candidate_visits);
+    }
+
     pub(crate) fn new(
         graph: SignalGraph,
         checkpoint: CheckpointRuntime<D, I>,
@@ -186,17 +265,13 @@ where
         DerivedState::capture(&self.checkpoint, &self.telemetry)
     }
 
-    pub(in crate::logic::transaction::runtime::state) fn heavy_capture_witness(
-        &mut self,
-    ) -> HeavyCaptureWitness {
+    fn heavy_capture_witness(&mut self) -> HeavyCaptureWitness {
         self.telemetry.transaction.heavy_capture_count += 1;
         HeavyCaptureWitness(())
     }
 
-    pub(super) fn capture_full_branch_state(
-        &mut self,
-        _witness: &HeavyCaptureWitness,
-    ) -> BranchState<D, I, T> {
+    pub(super) fn capture_heavy_branch_state(&mut self) -> BranchState<D, I, T> {
+        let _witness = self.heavy_capture_witness();
         let handle = self.graph.current_branch();
         let ancestry = self
             .branches
@@ -225,10 +300,8 @@ where
         )
     }
 
-    pub(super) fn take_active_branch_state(
-        &mut self,
-        _witness: &HeavyCaptureWitness,
-    ) -> BranchState<D, I, T> {
+    pub(super) fn take_heavy_active_branch_state(&mut self) -> BranchState<D, I, T> {
+        let _witness = self.heavy_capture_witness();
         let handle = self.graph.current_branch();
         let ancestry = self
             .branches
@@ -266,11 +339,18 @@ where
             .capture_active_state(authority, derived, ancestry, mutation_ledger)
     }
 
-    pub(super) fn load_branch_state(
+    fn load_branch_state(
         &mut self,
         packet: AuthorityTransferPacket<D, I, T>,
-    ) {
-        debug_assert_eq!(packet.branch_id, packet.state.ancestry.branch_id);
+    ) -> Result<(), crate::data::error::SignalError> {
+        let preserved_transaction = self.telemetry.transaction;
+        if packet.branch_id != packet.state.ancestry.branch_id {
+            return Err(crate::data::error::SignalError::internal(format!(
+                "branch lifecycle transfer mismatch: packet branch {} does not match state branch {}",
+                packet.branch_id.0,
+                packet.state.ancestry.branch_id.0
+            )));
+        }
         self.branches.restore_active_state(
             packet.state,
             &mut self.graph,
@@ -278,6 +358,32 @@ where
             &mut self.checkpoint,
             &mut self.telemetry,
         );
+        Self::merge_global_transaction_telemetry(
+            preserved_transaction,
+            &mut self.telemetry.transaction,
+        );
+        Ok(())
+    }
+
+    fn load_restored_branch_state(
+        &mut self,
+        packet: RestoreTransferPacket<D, I, T>,
+    ) -> Result<(), crate::data::error::SignalError> {
+        self.telemetry.transaction.restore_transfer_count += 1;
+        self.load_branch_state(AuthorityTransferPacket {
+            branch_id: packet.branch_id,
+            state: packet.state,
+        })
+    }
+
+    pub(super) fn apply_branch_lifecycle_transfer(
+        &mut self,
+        transfer: BranchLifecycleTransfer<D, I, T>,
+    ) -> Result<(), crate::data::error::SignalError> {
+        match transfer {
+            BranchLifecycleTransfer::Move(packet) => self.load_branch_state(packet),
+            BranchLifecycleTransfer::Restore(packet) => self.load_restored_branch_state(packet),
+        }
     }
 
     pub(super) fn synchronize_branch_catalogs(

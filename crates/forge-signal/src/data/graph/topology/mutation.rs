@@ -80,8 +80,10 @@ impl SignalGraph {
     #[inline]
     pub(super) fn debug_assert_bidirectional_consistency(&self) {
         #[cfg(debug_assertions)]
-        self.assert_bidirectional_consistency()
-            .expect("signal topology should remain bidirectionally consistent");
+        if topology_debug_asserts_enabled() {
+            self.assert_bidirectional_consistency()
+                .expect("signal topology should remain bidirectionally consistent");
+        }
     }
 
     pub fn set_dependencies(
@@ -165,6 +167,88 @@ impl SignalGraph {
         Ok(CanonicalDependencies::new(normalized))
     }
 
+    #[cfg(test)]
+    pub(crate) fn append_simple_dependency_edge(
+        &mut self,
+        node: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+    ) -> Result<bool, SignalError> {
+        self.validate_handle(node)?;
+        self.validate_handle(upstream)?;
+        let dependency = self.build_dependency_edge(upstream, aspect, None);
+        let mut updated = std::mem::take(&mut self.traversal.topology_dependency_buffer);
+        updated.clear();
+        updated.extend_from_slice(self.raw_dependencies_of(node)?);
+
+        let changed = match updated.binary_search_by(|edge| compare_dependency_edges(edge, &dependency))
+        {
+            Ok(_) => false,
+            Err(index) => {
+                updated.insert(index, dependency.clone());
+                self.set_dependency_edges_sorted_with_delta(
+                    node,
+                    &updated,
+                    DependencyTopologyDelta {
+                        added_edges: vec![dependency],
+                        removed_edges: Vec::new(),
+                    },
+                )?;
+                if self.is_alive(upstream) {
+                    self.add_subscriber_edge(upstream, node)?;
+                }
+                true
+            }
+        };
+
+        self.debug_assert_bidirectional_consistency();
+        updated.clear();
+        self.traversal.topology_dependency_buffer = updated;
+        Ok(changed)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn drop_simple_dependency_edge(
+        &mut self,
+        node: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+    ) -> Result<bool, SignalError> {
+        self.validate_handle(node)?;
+        self.validate_handle(upstream)?;
+        let mut updated = std::mem::take(&mut self.traversal.topology_dependency_buffer);
+        updated.clear();
+        updated.extend_from_slice(self.raw_dependencies_of(node)?);
+        let mut removed_edges = Vec::new();
+        updated.retain(|edge| {
+            let should_remove = edge.source() == upstream && edge.aspect() == aspect;
+            if should_remove {
+                removed_edges.push(edge.clone());
+            }
+            !should_remove
+        });
+        let changed = !removed_edges.is_empty();
+        if changed {
+            let upstream_still_present = updated.iter().any(|edge| edge.source() == upstream);
+            self.set_dependency_edges_sorted_with_delta(
+                node,
+                &updated,
+                DependencyTopologyDelta {
+                    added_edges: Vec::new(),
+                    removed_edges,
+                },
+            )?;
+            if !upstream_still_present && self.is_alive(upstream) {
+                self.remove_subscriber_edge(upstream, node)?;
+            }
+        }
+
+        self.debug_assert_bidirectional_consistency();
+        updated.clear();
+        self.traversal.topology_dependency_buffer = updated;
+        Ok(changed)
+    }
+
     pub(crate) fn reconcile_dependencies(
         &mut self,
         node: NodeId,
@@ -174,41 +258,17 @@ impl SignalGraph {
         for edge in desired {
             self.validate_handle(edge.source())?;
         }
-        let mut report = DependencyReconciliationReport::default();
-        let (current_sources, desired_sources) = {
-            let current = self.raw_dependencies_of(node)?;
-            let current_sources = unique_sources_from_sorted_dependencies(current);
-            let desired_sources = unique_sources_from_sorted_dependencies(desired);
-            let mut current_index = 0usize;
-            let mut desired_index = 0usize;
-
-            while current_index < current.len() && desired_index < desired.len() {
-                match compare_dependency_edges(&current[current_index], &desired[desired_index]) {
-                    Ordering::Less => {
-                        report.removed += 1;
-                        current_index += 1;
-                    }
-                    Ordering::Greater => {
-                        report.added += 1;
-                        desired_index += 1;
-                    }
-                    Ordering::Equal => {
-                        report.unchanged += 1;
-                        current_index += 1;
-                        desired_index += 1;
-                    }
-                }
-            }
-
-            report.removed += (current.len() - current_index) as u32;
-            report.added += (desired.len() - desired_index) as u32;
-            (current_sources, desired_sources)
-        };
-
-        self.set_dependency_edges_sorted(node, desired)?;
-        self.reconcile_dependency_subscribers(node, &current_sources, &desired_sources)?;
+        let analysis = analyze_dependency_reconciliation(self.raw_dependencies_of(node)?, desired);
+        if analysis.changed() {
+            self.set_dependency_edges_sorted_with_delta(node, desired, analysis.delta)?;
+            self.reconcile_dependency_subscribers(
+                node,
+                &analysis.current_sources,
+                &analysis.desired_sources,
+            )?;
+        }
         self.debug_assert_bidirectional_consistency();
-        Ok(report)
+        Ok(analysis.report)
     }
 
     pub(crate) fn reconcile_dependencies_batch(
@@ -236,18 +296,18 @@ impl SignalGraph {
             for edge in *desired {
                 self.validate_handle(edge.source())?;
             }
-            let current = self.raw_dependencies_of(*node)?;
-            let current_sources = unique_sources_from_sorted_dependencies(current);
-            let desired_sources = unique_sources_from_sorted_dependencies(desired);
-            let report = reconcile_dependency_slices(current, desired);
-            reports[index] = report;
+            let analysis = analyze_dependency_reconciliation(self.raw_dependencies_of(*node)?, desired);
+            reports[index] = analysis.report;
+            if !analysis.changed() {
+                continue;
+            }
             collect_subscriber_batch_ops(
                 &mut subscriber_ops,
                 *node,
-                &current_sources,
-                &desired_sources,
+                &analysis.current_sources,
+                &analysis.desired_sources,
             );
-            self.set_dependency_edges_sorted(*node, desired)?;
+            self.set_dependency_edges_sorted_with_delta(*node, desired, analysis.delta)?;
         }
 
         self.apply_subscriber_batch_ops(&subscriber_ops)?;
@@ -260,48 +320,29 @@ impl SignalGraph {
         node: NodeId,
         edges: &[DependencyEdge],
     ) -> Result<(), SignalError> {
-        let current = self.raw_dependencies_of(node)?.to_vec();
+        let current = self.raw_dependencies_of(node)?;
+        let delta = diff_dependency_topology(current, edges);
+        if delta.added_edges.is_empty() && delta.removed_edges.is_empty() {
+            return Ok(());
+        }
+        self.set_dependency_edges_sorted_with_delta(node, edges, delta)
+    }
+
+    fn set_dependency_edges_sorted_with_delta(
+        &mut self,
+        node: NodeId,
+        edges: &[DependencyEdge],
+        delta: DependencyTopologyDelta,
+    ) -> Result<(), SignalError> {
         let dependencies_id = self.topology.dependency_edges.insert_from_slice(edges);
         self.get_entry_mut(node)?
             .set_dependencies_id(dependencies_id);
-        self.record_branch_mutation_dependencies(
-            node,
-            DependencyTopologyDelta {
-                added_edges: diff_dependency_edges(edges, &current),
-                removed_edges: diff_dependency_edges(&current, edges),
-            },
-        );
+        if !delta.added_edges.is_empty() || !delta.removed_edges.is_empty() {
+            self.record_branch_mutation_dependencies(node, delta);
+        }
         self.record_graph_storage_pressure();
         Ok(())
     }
-}
-
-fn diff_dependency_edges(left: &[DependencyEdge], right: &[DependencyEdge]) -> Vec<DependencyEdge> {
-    let mut delta = Vec::new();
-    let mut left_index = 0usize;
-    let mut right_index = 0usize;
-
-    while left_index < left.len() && right_index < right.len() {
-        match compare_dependency_edges(&left[left_index], &right[right_index]) {
-            Ordering::Less => {
-                delta.push(left[left_index].clone());
-                left_index += 1;
-            }
-            Ordering::Equal => {
-                left_index += 1;
-                right_index += 1;
-            }
-            Ordering::Greater => {
-                right_index += 1;
-            }
-        }
-    }
-
-    if left_index < left.len() {
-        delta.extend_from_slice(&left[left_index..]);
-    }
-
-    delta
 }
 
 fn compare_dependency_edges(left: &DependencyEdge, right: &DependencyEdge) -> Ordering {
@@ -386,22 +427,58 @@ fn compare_dependency_identity_key(node: NodeId) -> (u32, u32) {
     (node.index(), node.generation())
 }
 
-fn reconcile_dependency_slices(
+#[derive(Debug)]
+struct DependencyReconciliationAnalysis {
+    report: DependencyReconciliationReport,
+    current_sources: Vec<NodeId>,
+    desired_sources: Vec<NodeId>,
+    delta: DependencyTopologyDelta,
+}
+
+impl DependencyReconciliationAnalysis {
+    fn changed(&self) -> bool {
+        self.report.added != 0 || self.report.removed != 0
+    }
+}
+
+fn analyze_dependency_reconciliation(
     current: &[DependencyEdge],
     desired: &[DependencyEdge],
-) -> DependencyReconciliationReport {
+) -> DependencyReconciliationAnalysis {
     let mut report = DependencyReconciliationReport::default();
+    let mut current_sources = Vec::new();
+    let mut desired_sources = Vec::new();
+    let mut added_edges = Vec::new();
+    let mut removed_edges = Vec::new();
+
     let mut current_index = 0usize;
     let mut desired_index = 0usize;
+    let mut last_current_source = None;
+    let mut last_desired_source = None;
 
     while current_index < current.len() && desired_index < desired.len() {
-        match compare_dependency_edges(&current[current_index], &desired[desired_index]) {
+        let current_edge = &current[current_index];
+        let desired_edge = &desired[desired_index];
+        let current_source = current_edge.source();
+        if last_current_source != Some(current_source) {
+            current_sources.push(current_source);
+            last_current_source = Some(current_source);
+        }
+        let desired_source = desired_edge.source();
+        if last_desired_source != Some(desired_source) {
+            desired_sources.push(desired_source);
+            last_desired_source = Some(desired_source);
+        }
+
+        match compare_dependency_edges(current_edge, desired_edge) {
             Ordering::Less => {
                 report.removed += 1;
+                removed_edges.push(current_edge.clone());
                 current_index += 1;
             }
             Ordering::Greater => {
                 report.added += 1;
+                added_edges.push(desired_edge.clone());
                 desired_index += 1;
             }
             Ordering::Equal => {
@@ -412,26 +489,53 @@ fn reconcile_dependency_slices(
         }
     }
 
-    report.removed += (current.len() - current_index) as u32;
-    report.added += (desired.len() - desired_index) as u32;
-    report
-}
-
-fn unique_sources_from_sorted_dependencies(edges: &[DependencyEdge]) -> Vec<NodeId> {
-    let mut sources = Vec::new();
-    let mut last = None;
-
-    for edge in edges {
-        let source = edge.source();
-        if last != Some(source) {
-            sources.push(source);
-            last = Some(source);
+    while current_index < current.len() {
+        let current_edge = &current[current_index];
+        let current_source = current_edge.source();
+        if last_current_source != Some(current_source) {
+            current_sources.push(current_source);
+            last_current_source = Some(current_source);
         }
+        report.removed += 1;
+        removed_edges.push(current_edge.clone());
+        current_index += 1;
     }
 
-    sources
+    while desired_index < desired.len() {
+        let desired_edge = &desired[desired_index];
+        let desired_source = desired_edge.source();
+        if last_desired_source != Some(desired_source) {
+            desired_sources.push(desired_source);
+            last_desired_source = Some(desired_source);
+        }
+        report.added += 1;
+        added_edges.push(desired_edge.clone());
+        desired_index += 1;
+    }
+
+    DependencyReconciliationAnalysis {
+        report,
+        current_sources,
+        desired_sources,
+        delta: DependencyTopologyDelta {
+            added_edges,
+            removed_edges,
+        },
+    }
+}
+
+fn diff_dependency_topology(
+    current: &[DependencyEdge],
+    desired: &[DependencyEdge],
+) -> DependencyTopologyDelta {
+    analyze_dependency_reconciliation(current, desired).delta
 }
 
 fn compare_dependency_identity(left: NodeId, right: NodeId) -> Ordering {
     (left.index(), left.generation()).cmp(&(right.index(), right.generation()))
+}
+
+#[cfg(debug_assertions)]
+fn topology_debug_asserts_enabled() -> bool {
+    std::env::var_os("FORGE_SIGNAL_SKIP_TOPOLOGY_DEBUG_ASSERTS").is_none()
 }

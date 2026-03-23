@@ -250,15 +250,15 @@ impl InvariantFailure {
         &self.violation.detail
     }
 
-    pub fn fields(&self) -> &serde_json::Value {
-        &self.violation.fields
+    pub fn fields(&self) -> serde_json::Value {
+        self.violation.fields_json()
     }
 
     pub fn into_commit_conflict(self) -> CommitConflict {
         CommitConflict::new(ConflictClass::InvariantViolation {
             code: self.violation.code,
             detail: self.violation.detail,
-            fields: self.violation.fields,
+            fields: self.violation.fields.to_json_value(),
         })
     }
 
@@ -345,8 +345,47 @@ impl InvariantExecutionSummary {
         self.blocking_failure.as_ref()
     }
 
+    pub fn blocking_failures(&self, results: &[InvariantCheckResult]) -> Vec<InvariantFailure> {
+        results
+            .iter()
+            .filter_map(|result| match &result.verdict {
+                InvariantVerdict::Violation(violation)
+                    if result.failure_effect == InvariantFailureEffect::BlockCommit =>
+                {
+                    Some(InvariantFailure {
+                        execution_point: result.execution_point,
+                        effect: result.failure_effect,
+                        violation: violation.clone(),
+                    })
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
     pub fn publication_failure(&self) -> Option<&InvariantFailure> {
         self.publication_failure.as_ref()
+    }
+
+    pub fn publication_failures(
+        &self,
+        results: &[InvariantCheckResult],
+    ) -> Vec<InvariantFailure> {
+        results
+            .iter()
+            .filter_map(|result| match &result.verdict {
+                InvariantVerdict::Violation(violation)
+                    if result.failure_effect == InvariantFailureEffect::BlockPublication =>
+                {
+                    Some(InvariantFailure {
+                        execution_point: result.execution_point,
+                        effect: result.failure_effect,
+                        violation: violation.clone(),
+                    })
+                }
+                _ => None,
+            })
+            .collect()
     }
 
     pub fn has_blocking_violation(&self) -> bool {
@@ -363,7 +402,7 @@ impl InvariantExecutionResult {
         metadata: InvariantExecutionMetadata,
         results: Vec<InvariantCheckResult>,
     ) -> Self {
-        debug_assert_eq!(
+        assert_eq!(
             metadata.disposition(),
             InvariantExecutionDisposition::Executed,
             "executed invariant results require an executed disposition",
@@ -377,7 +416,7 @@ impl InvariantExecutionResult {
     }
 
     pub fn skipped(metadata: InvariantExecutionMetadata) -> Self {
-        debug_assert_ne!(
+        assert_ne!(
             metadata.disposition(),
             InvariantExecutionDisposition::Executed,
             "skipped invariant results require a skipped disposition",
@@ -401,6 +440,14 @@ impl InvariantExecutionResult {
         &self.results
     }
 
+    pub fn blocking_failures(&self) -> Vec<InvariantFailure> {
+        self.summary.blocking_failures(&self.results)
+    }
+
+    pub fn publication_failures(&self) -> Vec<InvariantFailure> {
+        self.summary.publication_failures(&self.results)
+    }
+
     pub fn into_results(self) -> Vec<InvariantCheckResult> {
         self.results
     }
@@ -413,6 +460,7 @@ mod tests {
     use crate::publication::data::PublicationStage;
     use crate::validation::data::{
         InvariantClass, InvariantCostClass, InvariantFailureEffect, InvariantViolation,
+        InvariantViolationFields,
     };
     use crate::validation::engine::{
         InvariantExecutionDisposition, InvariantExecutionMetadata, InvariantObservationKind,
@@ -428,7 +476,7 @@ mod tests {
                 class: InvariantClass::SnapshotAudit,
                 code: DiagnosticCode::InvariantViolation,
                 detail: "detail".to_string(),
-                fields: serde_json::json!({}),
+                fields: InvariantViolationFields::None,
             },
         };
 

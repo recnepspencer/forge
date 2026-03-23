@@ -110,8 +110,7 @@ where
     ) -> Result<BranchMergePlan, SignalError> {
         let source_state_owned = if request.source_branch.id == self.graph.current_branch().id {
             {
-                let witness = self.heavy_capture_witness();
-                self.capture_full_branch_state(&witness)
+                self.capture_heavy_branch_state()
             }
         } else {
             self.branches
@@ -126,8 +125,7 @@ where
         };
         let target_state_owned = if request.target_branch.id == self.graph.current_branch().id {
             Some({
-                let witness = self.heavy_capture_witness();
-                self.capture_full_branch_state(&witness)
+                self.capture_heavy_branch_state()
             })
         } else {
             None
@@ -477,8 +475,7 @@ where
     ) -> Result<BranchMergeExecutionSummary, SignalError> {
         let source_state = if request.source_branch.id == self.graph.current_branch().id {
             {
-                let witness = self.heavy_capture_witness();
-                self.capture_full_branch_state(&witness)
+                self.capture_heavy_branch_state()
             }
         } else {
             self.branches
@@ -493,8 +490,7 @@ where
         };
         let mut target_state = if request.target_branch.id == self.graph.current_branch().id {
             {
-                let witness = self.heavy_capture_witness();
-                self.capture_full_branch_state(&witness)
+                self.capture_heavy_branch_state()
             }
         } else {
             self.branches
@@ -787,37 +783,41 @@ where
             .collect::<Vec<_>>();
 
         if request.target_branch.id == self.graph.current_branch().id {
-            self.load_branch_state(
-                crate::logic::transaction::runtime::state::runtime_state::AuthorityTransferPacket {
+            self.apply_branch_lifecycle_transfer(
+                crate::logic::transaction::runtime::state::runtime_state::BranchLifecycleTransfer::Move(
+                    crate::logic::transaction::runtime::state::runtime_state::AuthorityTransferPacket {
                     branch_id: request.target_branch.id,
                     state: target_state.clone(),
-                },
-            );
+                    },
+                ),
+            )?;
         }
         self.branches
-            .insert_branch(request.target_branch.id, target_state.clone());
+            .store_branch_state(request.target_branch.id, target_state.clone());
         if request.source_branch.id == self.graph.current_branch().id {
-            let witness = self.heavy_capture_witness();
-            let mut updated_source_state = self.capture_full_branch_state(&witness);
+            let mut updated_source_state = self.capture_heavy_branch_state();
             updated_source_state
                 .mutation_ledger
                 .clear_merged_nodes(merged_source_nodes.iter().copied(), plan.source_snapshot_id);
             updated_source_state.authority.graph.clear_branch_mutation_nodes();
-            self.load_branch_state(
-                crate::logic::transaction::runtime::state::runtime_state::AuthorityTransferPacket {
+            self.apply_branch_lifecycle_transfer(
+                crate::logic::transaction::runtime::state::runtime_state::BranchLifecycleTransfer::Move(
+                    crate::logic::transaction::runtime::state::runtime_state::AuthorityTransferPacket {
                     branch_id: request.source_branch.id,
                     state: updated_source_state,
-                },
-            );
-        } else if let Some(source_state) = self
+                    },
+                ),
+            )?;
+        } else if let Some(()) = self
             .branches
-            .branch_state_mut_with_allocator_sync(request.source_branch.id)
+            .with_stored_branch_state_mut(request.source_branch.id, |source_state| {
+                source_state.mutation_ledger.clear_merged_nodes(
+                    merged_source_nodes.iter().copied(),
+                    plan.source_snapshot_id,
+                );
+                source_state.authority.graph.clear_branch_mutation_nodes();
+            })
         {
-            source_state.mutation_ledger.clear_merged_nodes(
-                merged_source_nodes.iter().copied(),
-                plan.source_snapshot_id,
-            );
-            source_state.authority.graph.clear_branch_mutation_nodes();
         }
         self.branches.insert_snapshot(
             merged_snapshot,

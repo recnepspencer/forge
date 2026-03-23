@@ -9,7 +9,7 @@ These are not polish tasks. They are the remaining places where the runtime is a
 - `S9.12`: reconstructability is improved, but restore still is not fully forced through a canonical proof chain of `checkpoint + bounded journal + required derived rebuild`
 - `S9.15`: whole-live merge fallback is gone, but bounded merge proof is not yet complete enough to make all supported merge flows purely proof-driven
 - `S9.9`: proof-driven grouped concurrent apply is now closed for proof-safe static stages, and ineligible full-parallel stages lower honestly to serial execution with named rejection
-- `S9.10`: rollback and lifecycle are improved, but rollback is not yet fully reduced to typed inverse authority effects and lifecycle transfers are not yet completely type-separated
+- `S9.10`: rollback and lifecycle are now packetized and type-separated on the supported path, with only final sealing/doc closeout remaining
 
 This spec is governed by:
 
@@ -285,11 +285,11 @@ types.
 
 | Category | Current substrate | Temporary bridge substrate | Final substrate | Must stop compiling at closeout |
 | --- | --- | --- | --- | --- |
-| rollback truth | lazy rollback baselines and repair ceremony | bridge that derives typed rollback packets from existing effect and patch surfaces | `TransactionRollbackPacket` | rollback via baseline bundles as supported semantic truth |
+| rollback truth | lazy rollback baselines and repair ceremony | effect-derived packet staging from patch and created-node surfaces | `TransactionRollbackPacket` | rollback via baseline bundles as supported semantic truth |
 | branch move | branch-state load/store helpers | wrappers that materialize move-only transfer packets internally | `AuthorityTransferPacket` | branch switch APIs that imply duplication |
 | branch duplicate | generic branch capture/fork helpers | explicit bridge for duplication-only call paths | `ExplicitBranchForkPacket` | branch fork without explicit duplicate truth packet |
-| restore | branch restore from snapshot-shaped bundles | bridge constructor from checkpoint plus retained journal capture | `BranchLifecycleTransfer::Restore(ReconstructabilityProof)` | branch restore APIs that accept raw branch bundles |
-| heavy capture | helper-accessible heavyweight capture | sealed witness bridge owned by one lifecycle module | `HeavyCaptureWitness` | routine lifecycle code that can construct heavy capture directly |
+| restore | branch restore from snapshot-shaped bundles | typed lifecycle transfer wrapper over proof-gated restore state | `BranchLifecycleTransfer::Restore(...)` | branch restore APIs that accept raw branch bundles |
+| heavy capture | helper-accessible heavyweight capture | runtime-owned heavy-capture helpers with private witness construction | `HeavyCaptureWitness` | routine lifecycle code that can construct heavy capture directly |
 
 ## Proof Inventory by Workstream
 
@@ -329,6 +329,7 @@ This section is the minimum inventory expected during implementation.
 | `TransactionRollbackPacket` | effect application | rollback/finalize path | wrong baseline or wrong transaction order | yes | single-use | rollback packet counters | rollback as imperative undo script or bundle |
 | `AuthorityTransferPacket` | lifecycle move path | branch switch | mutation after packet creation | no | single-use move-only | move transfer counters | move that secretly duplicates |
 | `ExplicitBranchForkPacket` | lifecycle duplicate path | branch fork | mutation after packet creation | no | single-use | explicit fork counters | duplicate truth created by generic switch/capture |
+| `BranchLifecycleTransfer` | lifecycle owner | branch switch and active restore | wrong packet kind or stale branch state | no | single-use | move/restore counters | raw branch-state load on supported paths |
 | `HeavyCaptureWitness` | sealed lifecycle owner | heavy capture path only | module boundary escape | no | scoped | heavy capture counters | routine path access to heavyweight capture |
 
 ## Workstream 1: `S9.12` Reconstructability Completion
@@ -919,19 +920,21 @@ Allowed harness debt:
 
 Under frequent transactions, injected failures, branch switching, branch creation, and repeated restore cycles, rollback and lifecycle transfer must preserve exact pre-operation semantic truth while avoiding eager broad baseline cloning and avoiding heavyweight branch-state capture as a routine orchestration primitive.
 
-### Current defect
+### Current state
 
-We improved the system:
+The supported path is now substantially closed:
 
-- rollback baseline capture is lazy
-- branch switching is move-based
-- heavy capture is at least named honestly
+- rollback baseline bundles are retired from supported semantic truth
+- rollback stages typed packets for config, diagnostics, graph patch rewind, created-node cleanup, and subscriber repair
+- branch switching is move-only on the supported lifecycle path
+- active restore runs through a typed restore transfer lane rather than a raw branch-state load
+- heavy capture witness construction is private to runtime-owned helpers
 
-But the remaining substrate is incomplete:
+Remaining hardening is now mostly seal-and-certify work:
 
-- rollback can still decay into a broad undo engine if not typed precisely
-- rollback target truth boundary is not yet pinned tightly enough
-- lifecycle paths still need full type separation for move vs duplicate vs restore vs heavy capture
+- keep all supported lifecycle application on the `BranchLifecycleTransfer` lane
+- avoid reintroducing raw packet construction at future callsites
+- keep doc and acceptance matrices aligned with the sealed runtime-owned helper boundary
 
 ### Rollback truth boundary
 
@@ -951,8 +954,9 @@ Rollback packets must not carry policy-optional forensic richness unless require
 
 ```rust
 pub enum TransactionRollbackPacket {
-    Authority(AuthorityRollbackDelta),
-    Topology(TopologyRollbackDelta),
+    GraphPatches(GraphPatchRollbackDelta),
+    CreatedNodes(CreatedNodeRollbackDelta),
+    SubscriberRepair(SubscriberRepairRollbackDelta),
     Config(ConfigRollbackDelta),
     DiagnosticsRequired(DiagnosticsRollbackDelta),
 }
@@ -973,8 +977,7 @@ pub struct HeavyCaptureWitness(());
 
 pub enum BranchLifecycleTransfer {
     Move(AuthorityTransferPacket),
-    Duplicate(ExplicitBranchForkPacket),
-    Restore(ReconstructabilityProof),
+    Restore(RestoreTransferPacket),
 }
 ```
 
@@ -1048,10 +1051,10 @@ Rules:
 ### Compile-time enforcement
 
 - rollback/finalize consumes `TransactionRollbackPacket`s only
-- branch switch APIs accept `AuthorityTransferPacket` only
-- branch restore APIs accept `ReconstructabilityProof` only
+- branch switch and active restore apply lifecycle state through `BranchLifecycleTransfer`
+- branch restore APIs accept `ReconstructabilityProof` only at the public proof boundary
 - branch fork APIs accept `ExplicitBranchForkPacket` only
-- heavy capture APIs require `HeavyCaptureWitness` from a sealed constructor
+- heavy capture APIs require runtime-owned helper construction of `HeavyCaptureWitness`
 - rollback and transfer packets remain move-only unless a real second consumer exists
 
 ### Measurement boundaries
@@ -1073,12 +1076,15 @@ Transaction/lifecycle surfaces must expose:
 - `branch_fork_duplicates_only_explicit_branch_owned_truth`
 - `branch_restore_requires_reconstructability_proof`
 - `heavy_capture_requires_internal_witness_and_increments_counter`
+- `branch_lifecycle_telemetry_distinguishes_fork_move_and_restore_packets`
 
 ### Closeout criteria
 
 - rollback is effect-derived inverse authority restoration, not generic undo
 - branch lifecycle operations are type-separated and cost-honest
 - heavy capture is narrow, counted, and non-routine
+- no supported path can construct `HeavyCaptureWitness` outside runtime-owned helpers
+- no supported active lifecycle apply path can bypass `BranchLifecycleTransfer`
 
 ### Certification staging
 

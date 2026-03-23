@@ -23,10 +23,16 @@ fn source_max_one_relation_integrity_runtime() -> RelationalRuntime {
         relation_integrity: crate::schema::data::RelationIntegrityDeclarations::new(
             Vec::new(),
             vec![crate::schema::data::CardinalityContractDeclaration {
-                contract_id: "source_max_one".to_string(),
+                contract_id: "source_max_one".into(),
                 source_max: Some(1),
+                source_min: None,
                 target_max: None,
+                target_min: None,
                 pair_max: None,
+                pair_min: None,
+                pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                minimum_enforcement:
+                    crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
             }],
             Vec::new(),
             Vec::new(),
@@ -1360,13 +1366,19 @@ fn replay_contract_preserves_relation_integrity_declared_schema() {
                 relation_integrity: crate::schema::data::RelationIntegrityDeclarations::new(
                     Vec::new(),
                     vec![crate::schema::data::CardinalityContractDeclaration {
-                        contract_id: "source_max_one".to_string(),
+                        contract_id: "source_max_one".into(),
                         source_max: Some(1),
+                        source_min: None,
                         target_max: None,
+                        target_min: None,
                         pair_max: None,
+                        pair_min: None,
+                        pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                        minimum_enforcement:
+                            crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
                     }],
                     vec![crate::schema::data::UniquenessContractDeclaration {
-                        contract_id: "uniq".to_string(),
+                        contract_id: "uniq".into(),
                         scope: crate::schema::data::UniquenessScope::DirectedSemanticEdge,
                     }],
                     Vec::new(),
@@ -1404,7 +1416,7 @@ fn replay_contract_preserves_relation_integrity_declared_schema() {
             .relation_integrity
             .cardinality_contracts[0]
             .contract_id,
-        "source_max_one"
+        crate::schema::data::ContractId::from("source_max_one")
     );
     assert_eq!(
         envelope
@@ -1414,7 +1426,7 @@ fn replay_contract_preserves_relation_integrity_declared_schema() {
             .relation_integrity
             .uniqueness_contracts[0]
             .contract_id,
-        "uniq"
+        crate::schema::data::ContractId::from("uniq")
     );
 }
 

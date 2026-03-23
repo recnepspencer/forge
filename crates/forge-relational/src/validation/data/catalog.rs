@@ -26,7 +26,12 @@ impl InvariantRegistration {
         execution_point: InvariantExecutionPoint,
         failure_effect: InvariantFailureEffect,
     ) -> Self {
-        debug_assert!(rule.supports_execution_point(execution_point));
+        assert!(
+            rule.supports_execution_point(execution_point),
+            "invariant rule {:?} does not support execution point {:?}",
+            rule,
+            execution_point
+        );
         Self {
             rule,
             execution_point,
@@ -69,6 +74,10 @@ impl InvariantRegistration {
 
     pub fn snapshot_publication_blocking(rule: InvariantRule) -> Self {
         Self::block_publication(rule, InvariantExecutionPoint::SnapshotPublication)
+    }
+
+    pub fn certification_boundary_blocking(rule: InvariantRule) -> Self {
+        Self::block_publication(rule, InvariantExecutionPoint::CertificationBoundary)
     }
 
     pub fn harness_audit_only(rule: InvariantRule) -> Self {
@@ -134,11 +143,33 @@ pub(crate) fn relation_integrity_registrations_for_plan(
             contract,
         ))
     }));
-    registrations.extend(plan.cardinality_contracts.iter().cloned().map(|contract| {
-        InvariantRegistration::commit_boundary_blocking(InvariantRule::CardinalityContract(
-            contract,
-        ))
-    }));
+    registrations.extend(
+        plan.cardinality_maximum_contracts
+            .iter()
+            .cloned()
+            .map(|contract| {
+                InvariantRegistration::commit_boundary_blocking(
+                    InvariantRule::CardinalityMaximumContract(contract),
+                )
+            }),
+    );
+    registrations.extend(
+        plan.cardinality_minimum_contracts
+            .iter()
+            .cloned()
+            .map(|contract| match contract.minimum_enforcement {
+                crate::schema::data::MinimumCardinalityEnforcement::CommitBoundary => {
+                    InvariantRegistration::commit_boundary_blocking(
+                        InvariantRule::CardinalityMinimumContract(contract),
+                    )
+                }
+                crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary => {
+                    InvariantRegistration::certification_boundary_blocking(
+                        InvariantRule::CardinalityMinimumContract(contract),
+                    )
+                }
+            }),
+    );
     registrations.extend(plan.uniqueness_contracts.iter().cloned().map(|contract| {
         InvariantRegistration::commit_boundary_blocking(InvariantRule::UniquenessContract(
             contract,
@@ -171,15 +202,18 @@ pub(crate) enum InvariantRegistrationContract {
 
 #[cfg(test)]
 impl InvariantRule {
+    pub(crate) const REGISTRATION_EXAMPLE_COUNT: usize = 11;
+
     pub(crate) fn registration_examples() -> Vec<Self> {
         vec![
             Self::LiveRecordRequiresSidecar(RecordKindTag::Entity),
             Self::LiveRecordRequiresSidecar(RecordKindTag::Relation),
             Self::MaxMergedIntents(1),
+            Self::RelationIntegrityScopeBudget(1),
             Self::MaxSnapshotEntities(1),
             Self::UniqueEntityPayloadField("__registration_probe__".to_string()),
             Self::EndpointKindContract(crate::schema::data::LoweredEndpointKindContract {
-                contract_id: "__registration_probe__".to_string(),
+                contract_id: "__registration_probe__".into(),
                 relation_kind_id: crate::identity::data::KindId(999),
                 allowed_source_kinds: vec![crate::identity::data::KindId(1)],
                 allowed_target_kinds: vec![crate::identity::data::KindId(1)],
@@ -187,31 +221,44 @@ impl InvariantRule {
                 cross_context_policy: crate::config::data::CrossContextPolicy::AllowExplicit,
                 plan_revision: crate::schema::data::RelationIntegrityPlanRevision(1),
             }),
-            Self::CardinalityContract(crate::schema::data::LoweredCardinalityContract {
-                contract_id: "__registration_probe__".to_string(),
+            Self::CardinalityMaximumContract(crate::schema::data::LoweredCardinalityMaximumContract {
+                contract_id: "__registration_probe__".into(),
                 relation_kind_id: crate::identity::data::KindId(999),
                 source_max: Some(1),
                 target_max: None,
                 pair_max: None,
                 plan_revision: crate::schema::data::RelationIntegrityPlanRevision(1),
             }),
+            Self::CardinalityMinimumContract(crate::schema::data::LoweredCardinalityMinimumContract {
+                contract_id: "__registration_probe__".into(),
+                relation_kind_id: crate::identity::data::KindId(999),
+                source_min: Some(1),
+                target_min: None,
+                pair_min: None,
+                pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                candidate_source_kinds: vec![crate::identity::data::KindId(1)],
+                candidate_target_kinds: vec![crate::identity::data::KindId(1)],
+                minimum_enforcement: crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
+                plan_revision: crate::schema::data::RelationIntegrityPlanRevision(1),
+            }),
             Self::UniquenessContract(crate::schema::data::LoweredUniquenessContract {
-                contract_id: "__registration_probe__".to_string(),
+                contract_id: "__registration_probe__".into(),
                 relation_kind_id: crate::identity::data::KindId(999),
                 scope: crate::schema::data::UniquenessScope::DirectedSemanticEdge,
                 plan_revision: crate::schema::data::RelationIntegrityPlanRevision(1),
             }),
             Self::SymmetryContract(crate::schema::data::LoweredSymmetryContract {
-                contract_id: "__registration_probe__".to_string(),
+                contract_id: "__registration_probe__".into(),
                 relation_kind_id: crate::identity::data::KindId(999),
                 mode: crate::schema::data::SymmetryMode::InverseProhibited,
                 plan_revision: crate::schema::data::RelationIntegrityPlanRevision(1),
             }),
             Self::EndpointDeletionIntegrityContract(
                 crate::schema::data::LoweredEndpointDeletionIntegrityContract {
-                    contract_id: "__registration_probe__".to_string(),
+                    contract_id: "__registration_probe__".into(),
                     relation_kind_id: crate::identity::data::KindId(999),
                     mode: crate::schema::data::EndpointDeletionIntegrityMode::RejectDeleteWithLiveRelations,
+                    cascade_delete_policy: crate::config::data::CascadeDeletePolicy::CascadeDeleteRelations,
                     plan_revision: crate::schema::data::RelationIntegrityPlanRevision(1),
                 },
             ),
@@ -224,10 +271,12 @@ impl InvariantRule {
                 InvariantRegistrationContract::DefaultAlwaysOnStructural
             }
             Self::MaxMergedIntents(_)
+            | Self::RelationIntegrityScopeBudget(_)
             | Self::MaxSnapshotEntities(_)
             | Self::UniqueEntityPayloadField(_)
             | Self::EndpointKindContract(_)
-            | Self::CardinalityContract(_)
+            | Self::CardinalityMaximumContract(_)
+            | Self::CardinalityMinimumContract(_)
             | Self::UniquenessContract(_)
             | Self::SymmetryContract(_)
             | Self::EndpointDeletionIntegrityContract(_) => {
@@ -240,11 +289,15 @@ impl InvariantRule {
 #[cfg(test)]
 mod tests {
     use super::{InvariantCatalog, InvariantRegistrationContract};
-    use crate::validation::data::InvariantRule;
+    use crate::validation::data::{InvariantExecutionPoint, InvariantRegistration, InvariantRule};
 
     #[test]
     fn every_invariant_variant_has_a_registration_contract() {
         let catalog = InvariantCatalog::default();
+        assert_eq!(
+            InvariantRule::registration_examples().len(),
+            InvariantRule::REGISTRATION_EXAMPLE_COUNT
+        );
 
         for rule in InvariantRule::registration_examples() {
             match rule.registration_contract() {
@@ -262,6 +315,39 @@ mod tests {
                         rule
                     );
                 }
+            }
+        }
+    }
+
+    #[test]
+    fn every_invariant_variant_supports_at_least_one_execution_point_and_can_register() {
+        let execution_points = [
+            InvariantExecutionPoint::MutationSensitive,
+            InvariantExecutionPoint::CommitBoundary,
+            InvariantExecutionPoint::SnapshotPublication,
+            InvariantExecutionPoint::CertificationBoundary,
+            InvariantExecutionPoint::HarnessAudit,
+        ];
+
+        for rule in InvariantRule::registration_examples() {
+            let supported_points = execution_points
+                .into_iter()
+                .filter(|point| rule.supports_execution_point(*point))
+                .collect::<Vec<_>>();
+            assert!(
+                !supported_points.is_empty(),
+                "invariant rule {:?} does not support any execution point",
+                rule
+            );
+            for point in supported_points {
+                let registration =
+                    InvariantRegistration::for_rule(
+                        rule.clone(),
+                        point,
+                        crate::validation::data::InvariantFailureEffect::BlockCommit,
+                    );
+                assert_eq!(registration.execution_point, point);
+                assert_eq!(registration.rule, rule);
             }
         }
     }

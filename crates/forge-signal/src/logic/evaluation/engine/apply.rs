@@ -45,16 +45,7 @@ pub(crate) fn apply_effect_with_policy_and_condition(
         dependency_inputs,
     );
     let comparator = resolve_effect_comparator(graph, node, comparator_resolver)?;
-    let pending_snapshot = if defer_snapshot_commit {
-        Some(crate::logic::evaluation::PendingDependencySnapshot {
-            node,
-            update: effect.operational.dependency_snapshot_update.clone(),
-            delta: effect.operational.snapshot_delta,
-        })
-    } else {
-        None
-    };
-    let report = graph.apply_effect(
+    let (report, pending_snapshot) = graph.apply_effect(
         effect,
         comparator,
         comparator_resolver,

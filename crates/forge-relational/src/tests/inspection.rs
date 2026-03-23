@@ -12,7 +12,7 @@ use crate::facade::history::{BranchId, CommitId};
 use crate::facade::identity::{LineageId, StructuralFingerprint};
 use crate::facade::inspection::{
     HistoricalInspectionMode, InspectionAccessPath, InspectionAvailability, InspectionOrigin,
-    InspectionScope, KindInspectionRequest,
+    InspectionResolutionContext, InspectionScope, KindInspectionRequest,
     NeighborInspectionResult, RecentCommitInspectionRequest, StructuralIdentityQueryRequest,
     StructuralIdentityComparisonVerdict,
 };
@@ -127,6 +127,107 @@ fn current_graph_surfaces_match_version_and_snapshot_scopes_for_same_truth() {
     assert_eq!(current_connectivity.components, snapshot_connectivity.components);
     assert_eq!(neighbors_current.outgoing_relation_ids, vec![left_relation]);
     assert_eq!(neighbors_current.outgoing_relation_ids, neighbors_version.outgoing_relation_ids);
+}
+
+#[test]
+fn snapshot_graph_summary_fails_closed_when_snapshot_handle_is_unavailable() {
+    let mut runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&mut runtime, "alpha");
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&created.snapshot));
+
+    let summary = runtime.inspection_access().graph_summary(&snapshot_graph_request(
+        InspectionScope::Snapshot(created.snapshot.clone()),
+        None,
+        None,
+        true,
+    ));
+
+    assert_eq!(summary.scope, InspectionScope::Snapshot(created.snapshot.clone()));
+    assert_eq!(summary.version_id, created.version_id);
+    assert_eq!(summary.entity_count, 0);
+    assert_eq!(summary.relation_count, 0);
+    assert_eq!(summary.availability, InspectionAvailability::UnavailableByRetention);
+}
+
+#[test]
+fn connectivity_summary_refuses_oversized_budget_with_explicit_degradation() {
+    let mut runtime = runtime_with_test_schema();
+    let left = create_entity(&mut runtime, "left");
+    let right = create_entity(&mut runtime, "right");
+    let _relation = create_relation(&mut runtime, left, right, "rel");
+
+    let summary = runtime
+        .inspection_access()
+        .connectivity_summary(&crate::facade::inspection::ConnectivityInspectionRequest {
+            scope: InspectionScope::Current,
+            partition_scope: None,
+            relation_kind_scope: None,
+            include_members: false,
+            budget: crate::facade::inspection::ConnectivityInspectionBudget {
+                max_entities: 1,
+                max_relations: 1,
+                max_frontier: 1,
+                max_components: 1,
+                max_work_units: 1,
+            },
+        });
+
+    assert_eq!(summary.availability, InspectionAvailability::UnavailableByBudget);
+    assert!(summary
+        .degradations
+        .contains(&crate::facade::inspection::InspectionDegradation::WorkBudgetExceeded));
+}
+
+#[test]
+fn retention_summary_refuses_work_budget_with_explicit_degradation() {
+    let mut runtime = runtime_with_test_schema();
+    let entity = create_entity(&mut runtime, "retained");
+    let _relation = create_relation(&mut runtime, entity, entity, "loop");
+
+    let summary = runtime
+        .inspection_access()
+        .retention_summary(&crate::facade::inspection::RetentionInspectionRequest {
+            max_entity_slots_scanned: 32,
+            max_relation_slots_scanned: 32,
+            max_work_units: 1,
+        });
+
+    assert_eq!(summary.availability, InspectionAvailability::UnavailableByBudget);
+    assert!(summary
+        .degradations
+        .contains(&crate::facade::inspection::InspectionDegradation::WorkBudgetExceeded));
+}
+
+#[test]
+fn inspection_resolution_context_serializes_no_context_explicitly() {
+    let serialized = serde_json::to_string(&InspectionResolutionContext::NoContext)
+        .expect("serialize resolution context");
+    assert_eq!(serialized, "\"NoContext\"");
+}
+
+#[test]
+fn inspection_counts_roundtrip_as_u64() {
+    let summary = crate::facade::inspection::GraphInspectionSummary {
+        scope: InspectionScope::Current,
+        version_id: crate::facade::identity::VersionId(7),
+        partition_count: u64::MAX,
+        entity_count: u64::MAX,
+        relation_count: u64::MAX,
+        entity_kinds: Vec::new(),
+        relation_kinds: Vec::new(),
+        origin: InspectionOrigin::CurrentTruth,
+        access_path: InspectionAccessPath::DirectLookup,
+        availability: InspectionAvailability::Direct,
+        degradations: Vec::new(),
+    };
+    let json = serde_json::to_string(&summary).expect("serialize graph summary");
+    let roundtrip: crate::facade::inspection::GraphInspectionSummary =
+        serde_json::from_str(&json).expect("deserialize graph summary");
+    assert_eq!(roundtrip.partition_count, u64::MAX);
+    assert_eq!(roundtrip.entity_count, u64::MAX);
+    assert_eq!(roundtrip.relation_count, u64::MAX);
 }
 
 #[test]

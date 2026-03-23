@@ -22,7 +22,6 @@ impl<'runtime> InvariantExecutionContext<'runtime> {
         runtime: &'runtime RelationalRuntime,
         observation: InvariantObservation<'runtime>,
         version_id: crate::identity::data::VersionId,
-        _execution_point: crate::validation::data::InvariantExecutionPoint,
         merged_plan: Option<&'runtime MergedCommitPlan>,
         relation_integrity_scopes: Option<PreparedRelationIntegrityScopes>,
     ) -> Self {
@@ -50,10 +49,6 @@ impl<'runtime> InvariantExecutionContext<'runtime> {
 
     pub fn merged_plan(&self) -> Option<&'runtime MergedCommitPlan> {
         self.merged_plan
-    }
-
-    pub fn runtime(&self) -> &'runtime RelationalRuntime {
-        self.runtime
     }
 
     pub fn relation_integrity_scope(

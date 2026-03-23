@@ -6,6 +6,7 @@ use crate::data::handle::NodeId;
 use crate::data::node::{NodeContract, NodeEntry, NodeEvaluationConfig, NodeState};
 use crate::data::proof::{PendingSnapshotBatch, SnapshotBatchCommit};
 use crate::data::trace::CausalityMetadata;
+use std::time::Instant;
 
 use super::super::node_builder::NodeBuilder;
 use super::super::signal_graph::stale_error;
@@ -157,13 +158,17 @@ impl SignalGraph {
                     self.telemetry_mut().storage.version_only_snapshot_update_count += 1;
                 }
             }
-            let snapshot_id = self.topology.dependency_snapshots.insert(
-                snapshot
-                    .update
-                    .clone()
-                    .apply_to(self.get_dep_snapshot(snapshot.node)?)
-                    .into_snapshot(),
-            );
+            let next_snapshot = match &snapshot.update {
+                DependencySnapshotUpdate::Replace(shared_snapshot) => {
+                    shared_snapshot.snapshot().clone()
+                }
+                DependencySnapshotUpdate::VersionOnly(delta) => {
+                    DependencySnapshotUpdate::VersionOnly(delta.clone())
+                        .apply_to(self.get_dep_snapshot(snapshot.node)?)
+                        .into_snapshot()
+                }
+            };
+            let snapshot_id = self.topology.dependency_snapshots.insert(next_snapshot);
             self.get_entry_mut(snapshot.node)?
                 .set_dep_snapshot_id(snapshot_id);
             self.record_branch_mutation_snapshot(
@@ -177,9 +182,13 @@ impl SignalGraph {
 
     pub(crate) fn apply_snapshot_batch_commit(
         &mut self,
-        commit: &SnapshotBatchCommit,
+        commit: SnapshotBatchCommit,
     ) -> Result<(), SignalError> {
-        self.set_dep_snapshot_batch(commit.pending())
+        let commit_start = Instant::now();
+        let result = self.set_dep_snapshot_batch(commit.pending());
+        self.telemetry_mut().storage.snapshot_batch_commit_nanos +=
+            commit_start.elapsed().as_nanos();
+        result
     }
 
     #[allow(dead_code)]

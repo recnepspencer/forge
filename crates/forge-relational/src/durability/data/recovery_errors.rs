@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use crate::errors::data::{ErrorContext, ErrorOperation, RelationalSubsystem, SuggestedFix};
 use crate::identity::data::KindId;
 use crate::schema::data::{
-    DescriptorCanonicalizationVersion, DescriptorSemanticsVersion, SchemaBoundaryFingerprint,
-    SchemaVersionId,
+    ContractId, DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
+    SchemaBoundaryFingerprint, SchemaVersionId,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -57,8 +57,8 @@ pub enum RecoveryCompatibilityMismatch {
         contract_family: RelationIntegrityContractFamily,
         expected_revision: u128,
         found_revision: u128,
-        expected_contract_ids: Vec<String>,
-        found_contract_ids: Vec<String>,
+        expected_contract_ids: Vec<ContractId>,
+        found_contract_ids: Vec<ContractId>,
     },
     RuntimeProfile {
         expected: String,

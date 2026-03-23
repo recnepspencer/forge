@@ -229,7 +229,7 @@ fn durability_contract_recovery_preserves_branch_local_endpoint_deletion_retirem
                     Vec::new(),
                     Vec::new(),
                     vec![crate::schema::data::EndpointDeletionIntegrityDeclaration {
-                        contract_id: "require_retirement".to_string(),
+                        contract_id: "require_retirement".into(),
                         mode: crate::schema::data::EndpointDeletionIntegrityMode::RequireRelationRetirement,
                     }],
                 ),
@@ -783,10 +783,16 @@ fn durability_contract_failure_relation_integrity_plan_mismatch_is_explicit() {
                 relation_integrity: crate::schema::data::RelationIntegrityDeclarations::new(
                     Vec::new(),
                     vec![crate::schema::data::CardinalityContractDeclaration {
-                        contract_id: "source_max_one".to_string(),
+                        contract_id: "source_max_one".into(),
                         source_max: Some(1),
+                        source_min: None,
                         target_max: None,
+                        target_min: None,
                         pair_max: None,
+                        pair_min: None,
+                        pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                        minimum_enforcement:
+                            crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
                     }],
                     Vec::new(),
                     Vec::new(),
@@ -830,10 +836,16 @@ fn durability_contract_failure_relation_integrity_plan_mismatch_is_explicit() {
                 relation_integrity: crate::schema::data::RelationIntegrityDeclarations::new(
                     Vec::new(),
                     vec![crate::schema::data::CardinalityContractDeclaration {
-                        contract_id: "source_max_two".to_string(),
+                        contract_id: "source_max_two".into(),
                         source_max: Some(2),
+                        source_min: None,
                         target_max: None,
+                        target_min: None,
                         pair_max: None,
+                        pair_min: None,
+                        pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                        minimum_enforcement:
+                            crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
                     }],
                     Vec::new(),
                     Vec::new(),
@@ -858,8 +870,8 @@ fn durability_contract_failure_relation_integrity_plan_mismatch_is_explicit() {
             ref expected_contract_ids,
             ref found_contract_ids,
             ..
-        }) if expected_contract_ids == &vec!["source_max_one".to_string()]
-            && found_contract_ids == &vec!["source_max_two".to_string()]
+        }) if expected_contract_ids == &vec![crate::schema::data::ContractId::from("source_max_one")]
+            && found_contract_ids == &vec![crate::schema::data::ContractId::from("source_max_two")]
     ));
 }
 
@@ -869,10 +881,16 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
         relation_integrity: crate::schema::data::RelationIntegrityDeclarations::new(
             Vec::new(),
             vec![crate::schema::data::CardinalityContractDeclaration {
-                contract_id: "source_max_one".to_string(),
+                contract_id: "source_max_one".into(),
                 source_max: Some(1),
+                source_min: None,
                 target_max: None,
+                target_min: None,
                 pair_max: None,
+                pair_min: None,
+                pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                minimum_enforcement:
+                    crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
             }],
             Vec::new(),
             Vec::new(),

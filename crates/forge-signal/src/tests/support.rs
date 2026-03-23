@@ -139,9 +139,8 @@ impl GraphDependencyBatchExt for SignalGraph {
         upstream: NodeId,
         aspect: Aspect,
     ) -> Result<(), SignalError> {
-        self.edit_dependencies(downstream, |dependencies| {
-            dependencies.push(DependencyEdge::new(upstream, aspect));
-        })
+        self.append_simple_dependency_edge(downstream, upstream, aspect)
+            .map(|_| ())
     }
 
     fn append_partition_dependency(
@@ -177,11 +176,8 @@ impl GraphDependencyBatchExt for SignalGraph {
         upstream: NodeId,
         aspect: Aspect,
     ) -> Result<(), SignalError> {
-        self.edit_dependencies(downstream, |dependencies| {
-            dependencies.retain(|dependency| {
-                dependency.source() != upstream || dependency.aspect() != aspect
-            });
-        })
+        self.drop_simple_dependency_edge(downstream, upstream, aspect)
+            .map(|_| ())
     }
 }
 

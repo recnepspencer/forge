@@ -51,6 +51,10 @@ impl SparsePatchBuffer {
         self.patches.len()
     }
 
+    pub(super) fn is_empty(&self) -> bool {
+        self.patches.is_empty()
+    }
+
     pub(super) fn touched_nodes(&self, graph: &SignalGraph) -> DedupedNodeBatch {
         DedupedNodeBatch::canonicalize_unordered(
             self.patches
@@ -84,28 +88,40 @@ impl SparsePatchBuffer {
         Ok(())
     }
 
-    pub(super) fn rollback_and_collect_dependency_sources_for_rollback(
-        &mut self,
-        graph: &mut SignalGraph,
+    pub(super) fn collect_dependency_sources_for_rollback(
+        &self,
+        graph: &SignalGraph,
     ) -> Result<Vec<NodeId>, SignalError> {
-        self.patches.sort_by_key(|(index, _)| *index);
         let mut sources = BTreeSet::new();
 
-        for (index, patch) in std::mem::take(&mut self.patches) {
+        for (index, patch) in &self.patches {
             let node = graph
-                .live_node_id_at(index)
+                .live_node_id_at(*index)
                 .ok_or_else(|| SignalError::internal("rollback encountered stale patch node"))?;
-            for source in patch.original_dependency_sources {
+            for &source in &patch.original_dependency_sources {
                 sources.insert(source);
             }
             for source in graph.dependency_sources_of(node)? {
                 sources.insert(source);
             }
-            graph.replace_entry(node, patch.original)?;
         }
-        self.index_by_node.clear();
 
         Ok(sources.into_iter().collect())
+    }
+
+    pub(super) fn rollback_from_packet(
+        mut self,
+        graph: &mut SignalGraph,
+    ) -> Result<(), SignalError> {
+        self.patches.sort_by_key(|(index, _)| *index);
+        for (index, patch) in self.patches {
+            let node = graph
+                .live_node_id_at(index)
+                .ok_or_else(|| SignalError::internal("rollback encountered stale patch node"))?;
+            graph.replace_entry(node, patch.original)?;
+        }
+
+        Ok(())
     }
 }
 

@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum InvariantGroup {
     StorageCoherence = 0,
     VersionVisibility = 1,
@@ -13,6 +14,18 @@ pub enum InvariantGroup {
     DurabilityConsistency = 7,
     RelationIntegrity = 8,
 }
+
+const ALL_INVARIANT_GROUPS: [InvariantGroup; 9] = [
+    InvariantGroup::StorageCoherence,
+    InvariantGroup::VersionVisibility,
+    InvariantGroup::AdjacencyIntegrity,
+    InvariantGroup::IdentityCoherence,
+    InvariantGroup::SchemaCompliance,
+    InvariantGroup::LineageIntegrity,
+    InvariantGroup::PublicationCoherence,
+    InvariantGroup::DurabilityConsistency,
+    InvariantGroup::RelationIntegrity,
+];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum InvariantCostClass {
@@ -27,7 +40,7 @@ pub struct InvariantGroupSet {
 }
 
 impl InvariantGroupSet {
-    pub const COUNT: usize = 9;
+    pub const COUNT: usize = InvariantGroup::COUNT;
 
     pub const fn empty() -> Self {
         Self { mask: 0 }
@@ -35,7 +48,7 @@ impl InvariantGroupSet {
 
     pub const fn all() -> Self {
         Self {
-            mask: (1u32 << Self::COUNT) - 1,
+            mask: InvariantGroup::all_mask(),
         }
     }
 
@@ -77,10 +90,24 @@ impl InvariantGroupSet {
 }
 
 impl InvariantGroup {
-    pub const COUNT: usize = 9;
+    pub const COUNT: usize = ALL_INVARIANT_GROUPS.len();
 
     pub const fn mask(self) -> u32 {
         1u32 << (self as u8)
+    }
+
+    pub const fn all() -> [InvariantGroup; Self::COUNT] {
+        ALL_INVARIANT_GROUPS
+    }
+
+    pub const fn all_mask() -> u32 {
+        let mut index = 0;
+        let mut mask = 0u32;
+        while index < ALL_INVARIANT_GROUPS.len() {
+            mask |= ALL_INVARIANT_GROUPS[index].mask();
+            index += 1;
+        }
+        mask
     }
 }
 
@@ -98,5 +125,15 @@ mod tests {
         assert!(left.intersects(right));
         assert!(!left.intersects(disjoint));
         assert!(InvariantGroupSet::all().intersects(disjoint));
+    }
+
+    #[test]
+    fn all_group_mask_covers_every_declared_group() {
+        let all = InvariantGroupSet::all();
+        for group in InvariantGroup::all() {
+            assert!(all.contains(group));
+        }
+        assert_eq!(InvariantGroupSet::COUNT, InvariantGroup::COUNT);
+        assert_eq!(all.mask(), InvariantGroup::all_mask());
     }
 }

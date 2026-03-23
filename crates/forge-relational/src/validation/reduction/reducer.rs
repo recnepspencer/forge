@@ -41,10 +41,11 @@ pub(crate) fn reduce_invariant_execution(
     .collect::<Vec<_>>();
 
     let mut reducer_conflicts = Vec::new();
-    let diagnostics = envelopes
+    let mut diagnostics = envelopes
         .iter()
         .flat_map(|envelope| envelope.diagnostic_observations.clone())
         .collect::<Vec<_>>();
+    diagnostics.sort_by(|left, right| left.canonical_key().cmp(&right.canonical_key()));
     assert_canonical_diagnostic_observations(&diagnostics);
     let mut preparation_failures = envelopes
         .iter()

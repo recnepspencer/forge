@@ -1159,7 +1159,11 @@ fn schema_registry_mismatch(
 fn relation_integrity_contract_mismatch(
     expected: &crate::schema::data::RelationIntegrityDeclarations,
     found: &crate::schema::data::RelationIntegrityDeclarations,
-) -> (RelationIntegrityContractFamily, Vec<String>, Vec<String>) {
+) -> (
+    RelationIntegrityContractFamily,
+    Vec<crate::schema::data::ContractId>,
+    Vec<crate::schema::data::ContractId>,
+) {
     if expected.endpoint_kind_contracts != found.endpoint_kind_contracts {
         return (
             RelationIntegrityContractFamily::EndpointKind,

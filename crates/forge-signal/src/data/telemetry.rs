@@ -72,6 +72,9 @@ pub struct TransactionTelemetry {
     pub rollback_packet_breadth: u64,
     pub rollback_packet_config_count: u64,
     pub rollback_packet_diagnostics_count: u64,
+    pub rollback_packet_graph_patch_count: u64,
+    pub rollback_packet_created_node_count: u64,
+    pub rollback_packet_subscriber_repair_count: u64,
     pub move_transfer_count: u64,
     pub explicit_fork_count: u64,
     pub restore_transfer_count: u64,
@@ -118,6 +121,9 @@ pub struct ExecutionTelemetry {
     pub parallel_precompute_task_count: u64,
     pub stage_precompute_nanos: u128,
     pub stage_apply_nanos: u128,
+    pub dependency_reconcile_nanos: u128,
+    pub dependency_input_build_nanos: u128,
+    pub deferred_snapshot_packet_nanos: u128,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -131,6 +137,7 @@ pub struct StorageTelemetry {
     pub shared_snapshot_replacement_count: u64,
     pub version_only_snapshot_update_count: u64,
     pub snapshot_batch_size: u64,
+    pub snapshot_batch_commit_nanos: u128,
     pub rolled_back_created_node_count: u64,
     pub subscriber_index_rebuild_count: u64,
     pub scratch_reentry_error_count: u64,
