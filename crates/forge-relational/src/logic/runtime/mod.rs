@@ -30,11 +30,12 @@ pub use crate::validation::data::{
     CustomInvariantSemanticVersion, CustomInvariantTouchedSummary,
     CustomInvariantTraversalError, CustomInvariantTraversalSummary, CustomInvariantVerdict,
     CustomInvariantProvenance, InvariantCatalog, InvariantCheckResult, InvariantClass,
-    InvariantExecutionPoint, InvariantFailureEffect, InvariantRegistration, InvariantRule,
-    InvariantRuleDescriptor, InvariantRuleId, InvariantSemanticsClass, InvariantViolation,
-    NativeInvariantRuleId, PlannedEntityCreate, PlannedRelationCreate, StructuralCountView,
-    StructuralPayloadView, StructuralRelationRecord, StructuralRelationView,
-    StructuralTraversalResult, SupportedExecutionPoints, TouchedStructuralSet,
+    InvariantDecisionKind, InvariantDecisionRecord, InvariantExecutionPoint,
+    InvariantFailureEffect, InvariantRegistration, InvariantRule, InvariantRuleDescriptor,
+    InvariantRuleId, InvariantSemanticsClass, InvariantViolation, NativeInvariantRuleId,
+    PlannedEntityCreate, PlannedRelationCreate, StructuralCountView, StructuralPayloadView,
+    StructuralRelationRecord, StructuralRelationView, StructuralTraversalResult,
+    SupportedExecutionPoints, TouchedStructuralSet,
 };
 pub use crate::validation::engine::HarnessAuditMode;
 pub use crate::visibility::materialization::read_records::{

@@ -36,6 +36,14 @@ fn graph_metrics_delta(before: GraphMetrics, after: GraphMetrics) -> serde_json:
         "dependency_capture_updates": after.execution.dependency_capture_updates - before.execution.dependency_capture_updates,
         "dependency_reconcile_nanos": after.execution.dependency_reconcile_nanos - before.execution.dependency_reconcile_nanos,
         "dependency_input_build_nanos": after.execution.dependency_input_build_nanos - before.execution.dependency_input_build_nanos,
+        "dependency_input_shape_handle_lookup_nanos": after.execution.dependency_input_shape_handle_lookup_nanos - before.execution.dependency_input_shape_handle_lookup_nanos,
+        "dependency_input_previous_snapshot_fetch_nanos": after.execution.dependency_input_previous_snapshot_fetch_nanos - before.execution.dependency_input_previous_snapshot_fetch_nanos,
+        "dependency_input_version_scan_nanos": after.execution.dependency_input_version_scan_nanos - before.execution.dependency_input_version_scan_nanos,
+        "dependency_input_stable_proof_nanos": after.execution.dependency_input_stable_proof_nanos - before.execution.dependency_input_stable_proof_nanos,
+        "dependency_input_version_delta_nanos": after.execution.dependency_input_version_delta_nanos - before.execution.dependency_input_version_delta_nanos,
+        "dependency_input_replacement_build_nanos": after.execution.dependency_input_replacement_build_nanos - before.execution.dependency_input_replacement_build_nanos,
+        "dependency_input_stable_shape_count": after.execution.dependency_input_stable_shape_count - before.execution.dependency_input_stable_shape_count,
+        "dependency_input_replacement_count": after.execution.dependency_input_replacement_count - before.execution.dependency_input_replacement_count,
         "deferred_snapshot_packet_nanos": after.execution.deferred_snapshot_packet_nanos - before.execution.deferred_snapshot_packet_nanos,
         "graph_storage_compaction_count": after.storage.graph_storage_compaction_count - before.storage.graph_storage_compaction_count,
         "dependency_segments_rewritten": after.storage.graph_storage_dependency_segments_rewritten - before.storage.graph_storage_dependency_segments_rewritten,
@@ -348,6 +356,155 @@ fn perf_dependency_reconciliation_rotating_window_staged_serial() {
     });
 
     assert!(samples.iter().all(|sample| sample.elapsed_micros > 0));
+}
+
+#[test]
+#[ignore = "performance baseline capture; run with -- --ignored --nocapture"]
+fn perf_dependency_reconciliation_stable_shape_staged_serial() {
+    let samples = with_perf_topology_asserts_disabled(|| {
+        capture_perf_samples(
+            "dependency_reconciliation_stable_shape_staged",
+            "balanced",
+            "serial",
+            || {
+                let mut graph = SignalGraph::new();
+                graph.set_runtime_policy(SignalRuntimePolicy::development());
+                let sources = (0..64).map(|_| graph.node().build()).collect::<Vec<_>>();
+                let leaves = (0..512).map(|_| graph.node().build()).collect::<Vec<_>>();
+                let window = 8usize;
+                let all_nodes = sources
+                    .iter()
+                    .copied()
+                    .chain(leaves.iter().copied())
+                    .collect::<Vec<_>>();
+                let max_index = all_nodes
+                    .iter()
+                    .map(|node| node.index() as usize)
+                    .max()
+                    .unwrap_or(0);
+                let mut leaf_positions = vec![usize::MAX; max_index + 1];
+                let mut source_positions = vec![usize::MAX; max_index + 1];
+                for (index, leaf) in leaves.iter().enumerate() {
+                    leaf_positions[leaf.index() as usize] = index;
+                }
+                for (index, source) in sources.iter().enumerate() {
+                    source_positions[source.index() as usize] = index;
+                }
+
+                let bootstrap = graph
+                    .build_evaluation_plan(&leaves, EvaluationRequestMode::Default)
+                    .unwrap();
+                graph
+                    .execute_prepared_plan_with_precompute(&bootstrap, &|node, _view| {
+                        let source_index = source_positions[node.index() as usize];
+                        if source_index != usize::MAX {
+                            return Ok(PreparedEvaluation::from_result(
+                                NodeEvaluationResult::from_version(version_ab(
+                                    (source_index + 1) as u64,
+                                    0,
+                                )),
+                            ));
+                        }
+                        let leaf_index = leaf_positions[node.index() as usize];
+                        let mut capture = PreparedDependencyCapture::new();
+                        for offset in 0..window {
+                            capture.record(
+                                sources[(leaf_index + offset) % sources.len()],
+                                ASPECT_A,
+                                None,
+                            );
+                        }
+                        Ok(
+                            PreparedEvaluation::from_result(NodeEvaluationResult::from_version(
+                                version_ab((leaf_index + 1) as u64, 0),
+                            ))
+                            .with_dependencies(capture),
+                        )
+                    })
+                    .unwrap();
+
+                let before = graph.observe().metrics();
+                let start = Instant::now();
+                let mut planning_nanos = 0_u128;
+                let mut report_precompute_nanos = 0_u128;
+                let mut report_apply_nanos = 0_u128;
+                let mut report_semantic_finalize_nanos = 0_u128;
+                for round in 0..24 {
+                    for &source in &sources {
+                        mark_dirty(&mut graph, source, ASPECT_A).unwrap();
+                    }
+                    let planning_start = Instant::now();
+                    let plan = graph
+                        .build_evaluation_plan(&leaves, EvaluationRequestMode::Default)
+                        .unwrap();
+                    planning_nanos += planning_start.elapsed().as_nanos();
+                    let report =
+                        graph
+                            .execute_prepared_plan_with_precompute(&plan, &|node, _view| {
+                                let source_index = source_positions[node.index() as usize];
+                                if source_index != usize::MAX {
+                                    return Ok(PreparedEvaluation::from_result(
+                                        NodeEvaluationResult::from_version(version_ab(
+                                            (round + 2) as u64,
+                                            source_index as u64,
+                                        )),
+                                    ));
+                                }
+                                let leaf_index = leaf_positions[node.index() as usize];
+                                let mut capture = PreparedDependencyCapture::new();
+                                for offset in 0..window {
+                                    capture.record(
+                                        sources[(leaf_index + offset) % sources.len()],
+                                        ASPECT_A,
+                                        None,
+                                    );
+                                }
+                                Ok(
+                                    PreparedEvaluation::from_result(
+                                        NodeEvaluationResult::from_version(version_ab(
+                                            (round + 2) as u64,
+                                            leaf_index as u64,
+                                        )),
+                                    )
+                                    .with_dependencies(capture),
+                                )
+                            })
+                            .unwrap();
+                    report_precompute_nanos += report.stage_precompute_nanos;
+                    report_apply_nanos += report.stage_apply_nanos;
+                    report_semantic_finalize_nanos += report.semantic_finalize_nanos;
+                }
+                let elapsed = start.elapsed();
+                let after = graph.observe().metrics();
+
+                graph.assert_bidirectional_consistency().unwrap();
+                let mut metrics = graph_metrics_delta(before, after);
+                if let Value::Object(ref mut map) = metrics {
+                    map.insert("planning_nanos".into(), json!(planning_nanos));
+                    map.insert(
+                        "report_stage_precompute_nanos".into(),
+                        json!(report_precompute_nanos),
+                    );
+                    map.insert("report_stage_apply_nanos".into(), json!(report_apply_nanos));
+                    map.insert(
+                        "report_semantic_finalize_nanos".into(),
+                        json!(report_semantic_finalize_nanos),
+                    );
+                }
+                PerfMeasurement::new(elapsed.as_micros(), metrics)
+            },
+        )
+    });
+
+    assert!(samples.iter().all(|sample| sample.elapsed_micros > 0));
+    assert!(samples.iter().all(|sample| {
+        sample.metrics["dependency_input_stable_shape_count"]
+            .as_u64()
+            .unwrap_or(0)
+            > sample.metrics["dependency_input_replacement_count"]
+                .as_u64()
+                .unwrap_or(u64::MAX / 2)
+    }));
 }
 
 #[test]

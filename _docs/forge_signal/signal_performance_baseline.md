@@ -25,6 +25,7 @@ Current suite:
 - `perf_topology_rewiring_rotating_window_serial`
 - `perf_dependency_reconciliation_rotating_window_serial`
 - `perf_dependency_reconciliation_rotating_window_staged_serial`
+- `perf_dependency_reconciliation_stable_shape_staged_serial`
 - `perf_suppression_wide_fanout_serial`
 - `perf_harness_observability_profile_delta`
 
@@ -406,3 +407,72 @@ Interpretation:
 - End-to-end staged rotating-window time is now materially better than the post-M1 median (`138627 us` -> `124814 us`, about `-10.0%`).
 - The hardening pass preserved the semantic upgrade and did not cause a broad representative workload regression.
 - The remaining weakness is still the dependency-input lane: `dependency_input_build_nanos` improved again but remains materially above the post-M1 reference, so Milestone 3 is much closer to closure but still not a pure subphase win.
+
+### March 24, 2026 Benchmark Reclassification
+
+We added internal branch-count and subphase counters to the dependency-input builder to verify whether the staged rotating-window benchmark was actually measuring stable-shape churn.
+
+The answer was no.
+
+Representative March 24 capture from `perf_dependency_reconciliation_rotating_window_staged_serial`:
+
+| Metric | Median-ish Band |
+| --- | ---: |
+| elapsed | `127036` - `133921` us |
+| dependency_input_build_nanos | `11345500` - `11689400` ns |
+| dependency_input_replacement_build_nanos | `7456700` - `7781100` ns |
+| dependency_input_replacement_count | `12288` |
+| dependency_input_stable_shape_count | `64` |
+
+Interpretation:
+
+- this workload is overwhelmingly structural-replacement heavy
+- it is still a valuable staged serial pressure test
+- it is **not** the right primary acceptance lane for Milestone 3, because it mostly measures structural dependency-shape churn rather than stable-shape version-delta churn
+
+That benchmark should now be interpreted as a structural-replacement lane that informs later hot/cold/locality follow-up work.
+
+### March 24, 2026 Stable-Shape Acceptance Lane
+
+Captured with:
+
+```bash
+FORGE_SIGNAL_PERF_SAMPLES=3 cargo test -p forge-signal tests::performance_profiles::perf_dependency_reconciliation_stable_shape_staged_serial -- --ignored --nocapture --test-threads=1
+```
+
+This lane keeps dependency membership/order fixed and changes only upstream source versions, which makes it the correct primary benchmark for Milestone 3.
+
+| Metric | Median |
+| --- | ---: |
+| elapsed | 134347 us |
+| nodes recomputed | 27648 |
+| rewiring apply count | 0 |
+| dependency capture updates | 0 |
+| dependency reconcile_nanos | 2530000 ns |
+| dependency_input_build_nanos | 5774300 ns |
+| dependency_input_replacement_build_nanos | 0 ns |
+| dependency_input_replacement_count | 0 |
+| dependency_input_stable_shape_count | 13824 |
+| dependency_input_shape_handle_lookup_nanos | 354100 ns |
+| dependency_input_previous_snapshot_fetch_nanos | 356200 ns |
+| dependency_input_version_scan_nanos | 688400 ns |
+| dependency_input_stable_proof_nanos | 714600 ns |
+| dependency_input_version_delta_nanos | 381500 ns |
+| snapshot_batch_commit_nanos | 6361300 ns |
+
+Interpretation:
+
+- the stable-shape benchmark is overwhelmingly hitting the stable-shape path
+- the replacement path is absent in this workload (`replacement_count = 0`)
+- stable-shape proof, shape-handle lookup, snapshot fetch, and version-delta construction are all bounded and visible
+- this is the right benchmark to use when judging whether Milestone 3’s proof-carrying stable-shape design is working
+
+Final QA rerun note:
+
+- a later 3-sample rerun produced a noisier elapsed median (`167988 us`) and higher top-line subphase times on that machine state, but it preserved the same semantic classification:
+  - `dependency_input_replacement_count = 0`
+  - `dependency_input_stable_shape_count = 13824`
+- the rotating-window staged lane also preserved its structural-replacement classification on the final QA sweep:
+  - `dependency_input_replacement_count = 12288`
+  - `dependency_input_stable_shape_count = 64`
+- treat those branch counts as the stable truth; treat the elapsed spread as ordinary local perf noise unless repeated medians move together.

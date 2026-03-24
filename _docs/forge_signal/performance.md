@@ -216,10 +216,26 @@ The common case should avoid rebuilding whole snapshot objects.
 
 ### Acceptance Criteria
 
-- lower `dependency_input_build_nanos`
-- lower `dependency_reconcile_nanos` where the staged path is paying for snapshot-adjacent work
+- lower `dependency_input_build_nanos` on a benchmark that is actually stable-shape-dominant
+- lower `dependency_reconcile_nanos` where the staged path is paying for snapshot-adjacent work without structural rewiring
 - lower `snapshot_batch_commit_nanos` on stable-shape churn workloads
 - no regression in snapshot restore, dependency restore batches, or subscriber integrity
+
+> [!IMPORTANT]
+> `perf_dependency_reconciliation_rotating_window_staged_serial` is **not** the primary Milestone 3 acceptance lane.
+>
+> We instrumented the post-M3 runtime and found that this workload is overwhelmingly structural-replacement heavy rather than stable-shape heavy:
+>
+> - `dependency_input_replacement_count`: `12288`
+> - `dependency_input_stable_shape_count`: `64`
+>
+> That means the workload is a valuable staged serial stress test, but it is mostly measuring the cost of structural dependency-shape churn rather than the compact stable-shape version-delta path Milestone 3 was designed to improve.
+>
+> Milestone 3 must therefore be judged primarily against a benchmark that keeps dependency membership/order fixed and changes only upstream versions. The current dedicated lane for that is:
+>
+> - `perf_dependency_reconciliation_stable_shape_staged_serial`
+>
+> Keep the rotating-window staged benchmark in the suite, but interpret it as a structural-replacement pressure lane that informs Milestone 2 / Milestone 4 follow-up work rather than as the main Milestone 3 scorecard.
 
 ### Expected Difficulty
 
@@ -312,6 +328,7 @@ Every milestone should be verified with:
 Required perf profiles to watch:
 
 - `perf_dependency_reconciliation_rotating_window_staged_serial`
+- `perf_dependency_reconciliation_stable_shape_staged_serial`
 - `perf_dependency_reconciliation_rotating_window_serial`
 - `perf_topology_rewiring_rotating_window_serial`
 - `perf_fintech_mixed_fanout_profile_matrix`
@@ -324,7 +341,8 @@ As of the current roadmap checkpoint:
 
 - the runtime looks semantically strong enough to treat performance as the main frontier
 - the remaining gap is concentrated rather than diffuse
-- the staged rotating-window serial lane is still the clearest pressure point
+- the staged rotating-window serial lane is still an important pressure point, but it is now known to be mostly a structural-replacement workload rather than a stable-shape workload
+- the new stable-shape staged reconciliation lane is the correct primary acceptance benchmark for Milestone 3
 - the next best gains are likely to come from architectural restructuring, not local micro-tuning
 
 That is a healthy place to be.

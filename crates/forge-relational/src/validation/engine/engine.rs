@@ -127,29 +127,142 @@ mod tests {
 
     use super::super::{InvariantExecutionRequest, InvariantObservation, InvariantRequestProfile};
     use super::InvariantEngine;
+    use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
     use crate::facade::identity::{PartitionId, RelationId};
     use crate::facade::runtime::{InvariantCatalog, InvariantRegistration, InvariantRule};
     use crate::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
-    use crate::facade::schema::RelationalSchemaRegistry;
+    use crate::facade::schema::{
+        EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration,
+        RelationPayloadClass, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
+    };
     use crate::facade::transactions::{
         CreateIntent, DeleteRelationIntent, MergedCommitPlan, MutationIntent,
         RelationMutationIntent, TransactionId,
     };
-    use crate::transactions::data::{EntitySpec, RelationSpec};
+    use crate::identity::data::KindId;
+    use crate::payloads::data::RecordPayload;
+    use crate::schema::data::{
+        AcyclicityContractDeclaration, AllowedCycleClass,
+        ConnectivityMinimumContractDeclaration, ConnectivityMinimumEnforcement,
+        DirectedTraversalKind, PayloadFieldConstraintDeclaration, PayloadSchemaDeclaration,
+        PayloadSchemaValueType, PartitionIsolationContractDeclaration,
+        PartitionIsolationMode, RelationIntegrityDeclarations,
+    };
+    use crate::symbols::data::InternedString;
+    use crate::transactions::data::{EntitySpec, RelationSpec, TransactionOptions, WorkerIntentBatch};
     use crate::validation::data::{
         CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
         CustomInvariantOperationalMetadata, CustomInvariantPreparationError,
         CustomInvariantRegistration, CustomInvariantRule, CustomInvariantRuleId,
         CustomInvariantScopePlanner, CustomInvariantSemanticIdentity,
         CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantGroup,
-        InvariantGroupSet, InvariantReportedRule,
+        InvariantGroupSet, InvariantReportedRule, InvariantViolationFields,
     };
+    use serde_json::json;
 
     fn runtime_with_invariants(invariant_catalog: InvariantCatalog) -> RelationalRuntime {
         RelationalRuntimeApi::builder()
             .schema_registry(RelationalSchemaRegistry::new())
             .invariant_catalog(invariant_catalog)
             .build()
+    }
+
+    fn runtime_with_payload_schema_and_partition_isolation() -> RelationalRuntime {
+        let registry = RelationalSchemaRegistry::new()
+            .register_entity_kind(EntityKindRegistration {
+                kind_id: KindId(1),
+                kind_name: "geom.vertex".to_string(),
+                schema_id: SchemaId("test".to_string()),
+                schema_version_id: SchemaVersionId(1),
+                aspect_declarations: KindAspectDeclarations::default().with_payload_schema(
+                    PayloadSchemaDeclaration {
+                        contract_id: "vertex_payload".into(),
+                        allowed_payload_class: crate::payloads::data::PayloadClass::StructuredJson,
+                        field_constraints: vec![
+                            PayloadFieldConstraintDeclaration::Required {
+                                field: "name".to_string(),
+                            },
+                            PayloadFieldConstraintDeclaration::Type {
+                                field: "rank".to_string(),
+                                expected: PayloadSchemaValueType::Number,
+                            },
+                        ],
+                    },
+                ),
+            })
+            .and_then(|registry| {
+                registry.register_relation_kind(RelationKindRegistration {
+                    kind_id: KindId(2),
+                    kind_name: "geom.edge".to_string(),
+                    schema_id: SchemaId("test".to_string()),
+                    schema_version_id: SchemaVersionId(1),
+                    payload_class: RelationPayloadClass::PayloadBearingRelation,
+                    cross_context_policy: CrossContextPolicy::AllowExplicit,
+                    cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
+                    aspect_declarations: KindAspectDeclarations::default(),
+                    relation_integrity: RelationIntegrityDeclarations::default()
+                        .with_partition_isolation_contracts(vec![
+                            PartitionIsolationContractDeclaration {
+                                contract_id: "same_partition".into(),
+                                isolation_mode: PartitionIsolationMode::SamePartitionEndpoints,
+                            },
+                        ]),
+                })
+            })
+            .unwrap();
+
+        RelationalRuntimeApi::builder().schema_registry(registry).build()
+    }
+
+    fn runtime_with_acyclicity_and_connectivity() -> RelationalRuntime {
+        let registry = RelationalSchemaRegistry::new()
+            .register_entity_kind(EntityKindRegistration {
+                kind_id: KindId(1),
+                kind_name: "geom.node".to_string(),
+                schema_id: SchemaId("test".to_string()),
+                schema_version_id: SchemaVersionId(1),
+                aspect_declarations: KindAspectDeclarations::default(),
+            })
+            .and_then(|registry| {
+                registry.register_entity_kind(EntityKindRegistration {
+                    kind_id: KindId(3),
+                    kind_name: "geom.anchor".to_string(),
+                    schema_id: SchemaId("test".to_string()),
+                    schema_version_id: SchemaVersionId(1),
+                    aspect_declarations: KindAspectDeclarations::default(),
+                })
+            })
+            .and_then(|registry| {
+                registry.register_relation_kind(RelationKindRegistration {
+                    kind_id: KindId(2),
+                    kind_name: "geom.constraint".to_string(),
+                    schema_id: SchemaId("test".to_string()),
+                    schema_version_id: SchemaVersionId(1),
+                    payload_class: RelationPayloadClass::TopologyOnlyRelation,
+                    cross_context_policy: CrossContextPolicy::AllowExplicit,
+                    cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
+                    aspect_declarations: KindAspectDeclarations::default(),
+                    relation_integrity: RelationIntegrityDeclarations::default()
+                        .with_acyclicity_contracts(vec![AcyclicityContractDeclaration {
+                            contract_id: "no_cycles".into(),
+                            traversal_direction: DirectedTraversalKind::SourceToTarget,
+                            allowed_cycle_class: AllowedCycleClass::NoCycles,
+                        }])
+                        .with_connectivity_minimum_contracts(vec![
+                            ConnectivityMinimumContractDeclaration {
+                                contract_id: "reachable_anchor".into(),
+                                source_kind_ids: vec![KindId(1)],
+                                target_kind_ids: vec![KindId(3)],
+                                minimum_reachable_targets: 1,
+                                enforcement_boundary:
+                                    ConnectivityMinimumEnforcement::SnapshotPublication,
+                            },
+                        ]),
+                })
+            })
+            .unwrap();
+
+        RelationalRuntimeApi::builder().schema_registry(registry).build()
     }
 
     struct AlwaysViolatesCustomRule;
@@ -371,6 +484,183 @@ mod tests {
         let results = runtime.invariant_access().commit_boundary(&plan);
 
         assert!(results.results().is_empty());
+    }
+
+    #[test]
+    fn engine_rejects_entity_payloads_that_violate_payload_schema_contracts() {
+        let runtime = runtime_with_payload_schema_and_partition_isolation();
+        let plan = MergedCommitPlan {
+            transaction_id: TransactionId(10),
+            merged_intents: vec![MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: InternedString::Raw("vertex-a".to_string()),
+                payload: RecordPayload::StructuredJson(json!({"name": "vertex-a", "rank": "bad"})),
+            }))],
+        };
+
+        let results = InvariantEngine::new(&runtime).execute(
+            InvariantExecutionRequest::from_profile_with_contract(
+                InvariantRequestProfile::CommitBoundary,
+                &runtime,
+                InvariantObservation::committed(runtime.storage_access().current_state()),
+                runtime.current_version_id(),
+                Some(&plan),
+                Some(crate::validation::data::InvariantPlanContract::from_merged_plan(&plan)),
+            ),
+        );
+
+        let failure = results
+            .results()
+            .iter()
+            .find_map(|result| match &result.verdict {
+                crate::validation::data::InvariantVerdict::Violation(violation) => Some(violation),
+                _ => None,
+            })
+            .expect("payload schema violation");
+        match &failure.fields {
+            InvariantViolationFields::PayloadSchema {
+                contract_id,
+                field,
+                failure_kind,
+                expected_type,
+                ..
+            } => {
+                assert_eq!(contract_id.as_str(), "vertex_payload");
+                assert_eq!(field, "rank");
+                assert_eq!(failure_kind, "type");
+                assert_eq!(expected_type, &Some(PayloadSchemaValueType::Number));
+            }
+            other => panic!("expected payload schema violation, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn engine_rejects_cross_partition_relations_under_partition_isolation_contracts() {
+        let runtime = runtime_with_payload_schema_and_partition_isolation();
+        let source = crate::identity::data::EntityId::new(PartitionId(1), 0, 1);
+        let target = crate::identity::data::EntityId::new(PartitionId(2), 0, 1);
+        let plan = MergedCommitPlan {
+            transaction_id: TransactionId(11),
+            merged_intents: vec![MutationIntent::Create(CreateIntent::Relation(RelationSpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(2),
+                client_key: InternedString::Raw("edge-a".to_string()),
+                source,
+                target,
+                payload: Some(RecordPayload::StructuredJson(json!({"kind": "edge"}))),
+            }))],
+        };
+
+        let results = InvariantEngine::new(&runtime).execute(
+            InvariantExecutionRequest::from_profile_with_contract(
+                InvariantRequestProfile::CommitBoundary,
+                &runtime,
+                InvariantObservation::committed(runtime.storage_access().current_state()),
+                runtime.current_version_id(),
+                Some(&plan),
+                Some(crate::validation::data::InvariantPlanContract::from_merged_plan(&plan)),
+            ),
+        );
+
+        let failure = results
+            .results()
+            .iter()
+            .find_map(|result| match &result.verdict {
+                crate::validation::data::InvariantVerdict::Violation(violation) => Some(violation),
+                _ => None,
+            })
+            .expect("partition isolation violation");
+        match &failure.fields {
+            InvariantViolationFields::PartitionIsolation {
+                contract_id,
+                source_partition_id,
+                target_partition_id,
+                ..
+            } => {
+                assert_eq!(contract_id.as_str(), "same_partition");
+                assert_eq!(*source_partition_id, PartitionId(1));
+                assert_eq!(*target_partition_id, PartitionId(2));
+            }
+            other => panic!("expected partition isolation violation, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn engine_rejects_planned_cycles_under_acyclicity_contracts() {
+        let runtime = runtime_with_acyclicity_and_connectivity();
+        let a = crate::identity::data::EntityId::new(PartitionId::main(), 0, 1);
+        let b = crate::identity::data::EntityId::new(PartitionId::main(), 1, 1);
+        let plan = MergedCommitPlan {
+            transaction_id: TransactionId(12),
+            merged_intents: vec![
+                MutationIntent::Create(CreateIntent::Relation(RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(2),
+                    client_key: InternedString::Raw("edge-ab".to_string()),
+                    source: a,
+                    target: b,
+                    payload: None,
+                })),
+                MutationIntent::Create(CreateIntent::Relation(RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(2),
+                    client_key: InternedString::Raw("edge-ba".to_string()),
+                    source: b,
+                    target: a,
+                    payload: None,
+                })),
+            ],
+        };
+
+        let results = InvariantEngine::new(&runtime).execute(
+            InvariantExecutionRequest::from_profile_with_contract(
+                InvariantRequestProfile::CommitBoundary,
+                &runtime,
+                InvariantObservation::committed(runtime.storage_access().current_state()),
+                runtime.current_version_id(),
+                Some(&plan),
+                Some(crate::validation::data::InvariantPlanContract::from_merged_plan(&plan)),
+            ),
+        );
+
+        let failure = results
+            .results()
+            .iter()
+            .find_map(|result| match &result.verdict {
+                crate::validation::data::InvariantVerdict::Violation(violation) => Some(violation),
+                _ => None,
+            })
+            .expect("acyclicity violation");
+        match &failure.fields {
+            InvariantViolationFields::Acyclicity { contract_id, .. } => {
+                assert_eq!(contract_id.as_str(), "no_cycles");
+            }
+            other => panic!("expected acyclicity violation, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn commit_publication_stage_rejects_sources_without_required_connectivity() {
+        let mut runtime = runtime_with_acyclicity_and_connectivity();
+        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        txn.push_batch(WorkerIntentBatch::new("node-a").push(MutationIntent::Create(
+            CreateIntent::Entity(EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: InternedString::Raw("node-a".to_string()),
+                payload: RecordPayload::StructuredJson(json!({ "name": "node-a" })),
+            }),
+        )));
+
+        let error = txn.commit().expect_err("connectivity publication failure");
+        match error {
+            crate::facade::transactions::TransactionCommitError::Publication { error, .. } => {
+                assert!(error.detail.contains("reachable_anchor"));
+                assert!(error.detail.contains("at least 1 reachable target"));
+            }
+            other => panic!("expected publication error, got {other:?}"),
+        }
     }
 
     #[test]

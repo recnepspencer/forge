@@ -32,8 +32,8 @@ pub use descriptor::{
 };
 pub use contracts::InvariantPlanContract;
 pub use execution::{
-    InvariantCheckResult, InvariantClass, InvariantExecutionPoint, InvariantFailureEffect,
-    InvariantReportedRule, InvariantVerdict,
+    InvariantCheckResult, InvariantClass, InvariantDecisionKind, InvariantDecisionRecord,
+    InvariantExecutionPoint, InvariantFailureEffect, InvariantReportedRule, InvariantVerdict,
 };
 pub use groups::{InvariantCostClass, InvariantGroup, InvariantGroupSet};
 pub use results::{

@@ -3,8 +3,7 @@ use std::collections::BTreeSet;
 use smallvec::SmallVec;
 
 use crate::schema::data::{
-    AcyclicityContractDeclaration, AllowedCycleClass, ConnectivityMinimumContractDeclaration,
-    ConnectivityMinimumEnforcement, DirectedTraversalKind,
+    AllowedCycleClass, ConnectivityMinimumEnforcement, DirectedTraversalKind,
     AspectBinding, AspectComparator, AspectPlanCatalog, AspectPlanRevision, AspectPrecision,
     CardinalityContractDeclaration, DeclaredAspect, EndpointKindContractDeclaration,
     EntityKindRegistration, KindAspectDeclarations, ContractId,
@@ -13,8 +12,8 @@ use crate::schema::data::{
     LoweredEndpointDeletionIntegrityContract,
     LoweredEndpointKindContract, LoweredPartitionIsolationContract,
     LoweredRelationIntegrityPlan, LoweredSymmetryContract, LoweredUniquenessContract,
-    MinimumCardinalityEnforcement, PairMinimumSemantics, PartitionIsolationContractDeclaration,
-    PartitionIsolationMode, PayloadFieldConstraintDeclaration, PayloadSchemaDeclaration,
+    MinimumCardinalityEnforcement, PairMinimumSemantics, PartitionIsolationMode,
+    PayloadFieldConstraintDeclaration, PayloadSchemaDeclaration,
     RelationIntegrityDeclarations, RelationIntegrityPlanCatalog, RelationKindRegistration,
     RelationPayloadClass, RelationalSchemaRegistry, SchemaRegistryError,
     derive_relation_integrity_plan_revision,
@@ -108,7 +107,8 @@ fn canonicalize_declarations(
     let mut aspects = declarations.aspects;
     let payload_schema = declarations
         .payload_schema
-        .map(|payload_schema| canonicalize_payload_schema(kind_id, payload_schema))?;
+        .map(|payload_schema| canonicalize_payload_schema(kind_id, payload_schema))
+        .transpose()?;
     aspects.sort_by(|left, right| left.key.cmp(&right.key));
     for aspect in &aspects {
         if !seen.insert(aspect.key.clone()) {

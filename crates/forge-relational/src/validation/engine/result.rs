@@ -1,8 +1,8 @@
 use crate::publication::data::{PublicationError, PublicationStage};
 use crate::transactions::data::{CommitConflict, ConflictClass};
 use crate::validation::data::{
-    InvariantCheckResult, InvariantCostClass, InvariantExecutionPoint, InvariantFailureEffect,
-    InvariantGroupSet, InvariantPlanContract, InvariantVerdict, InvariantViolation,
+    InvariantCheckResult, InvariantCostClass, InvariantDecisionRecord, InvariantExecutionPoint,
+    InvariantFailureEffect, InvariantGroupSet, InvariantPlanContract, InvariantVerdict, InvariantViolation,
     InvariantViolationFields,
 };
 use crate::{
@@ -273,6 +273,7 @@ pub struct InvariantExecutionResult {
     metadata: InvariantExecutionMetadata,
     summary: InvariantExecutionSummary,
     results: Vec<InvariantCheckResult>,
+    decision_log: Vec<InvariantDecisionRecord>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -420,6 +421,13 @@ impl InvariantExecutionSummary {
     }
 }
 
+fn build_decision_log(results: &[InvariantCheckResult]) -> Vec<InvariantDecisionRecord> {
+    results
+        .iter()
+        .map(InvariantCheckResult::decision_record)
+        .collect()
+}
+
 impl InvariantExecutionResult {
     pub fn executed(
         metadata: InvariantExecutionMetadata,
@@ -431,10 +439,12 @@ impl InvariantExecutionResult {
             "executed invariant results require an executed disposition",
         );
         let summary = InvariantExecutionSummary::from_results(&results);
+        let decision_log = build_decision_log(&results);
         Self {
             metadata,
             summary,
             results,
+            decision_log,
         }
     }
 
@@ -448,6 +458,7 @@ impl InvariantExecutionResult {
             metadata,
             summary: InvariantExecutionSummary::from_results(&[]),
             results: Vec::new(),
+            decision_log: Vec::new(),
         }
     }
 
@@ -461,6 +472,10 @@ impl InvariantExecutionResult {
 
     pub fn results(&self) -> &[InvariantCheckResult] {
         &self.results
+    }
+
+    pub fn decision_log(&self) -> &[InvariantDecisionRecord] {
+        &self.decision_log
     }
 
     pub fn blocking_failures(&self) -> Vec<InvariantFailure> {
@@ -482,8 +497,9 @@ mod tests {
     use crate::diagnostics::data::DiagnosticCode;
     use crate::publication::data::PublicationStage;
     use crate::validation::data::{
-        InvariantClass, InvariantCostClass, InvariantFailureEffect, InvariantViolation,
-        InvariantViolationFields,
+        InvariantClass, InvariantCostClass, InvariantDecisionKind, InvariantFailureEffect,
+        InvariantGroupSet, InvariantReportedRule, InvariantRule, InvariantVerdict,
+        InvariantViolation, InvariantViolationFields,
     };
     use crate::validation::engine::{
         InvariantExecutionDisposition, InvariantExecutionMetadata, InvariantObservationKind,
@@ -544,5 +560,40 @@ mod tests {
             InvariantExecutionDisposition::SkippedByMayBreakMask
         );
         assert!(result.metadata().has_merged_plan());
+    }
+
+    #[test]
+    fn executed_result_builds_decision_log_from_results() {
+        let metadata = InvariantExecutionMetadata::new(
+            crate::validation::data::InvariantExecutionPoint::CommitBoundary,
+            InvariantObservationKind::Committed,
+            crate::identity::data::VersionId(2),
+            crate::identity::data::VersionId(2),
+            InvariantGroupSet::empty(),
+            InvariantGroupSet::empty(),
+            InvariantCostClass::Touched,
+            InvariantExecutionDisposition::Executed,
+            None,
+            false,
+            crate::logic::planning::RelationalExecutionModel::SerialAuthority,
+            None,
+            Vec::new(),
+            None,
+        );
+        let result = crate::validation::engine::InvariantExecutionResult::executed(
+            metadata,
+            vec![crate::validation::data::InvariantCheckResult {
+                execution_point: crate::validation::data::InvariantExecutionPoint::CommitBoundary,
+                failure_effect: InvariantFailureEffect::BlockCommit,
+                rule: InvariantReportedRule::Native(InvariantRule::MaxMergedIntents(1)),
+                groups: InvariantGroupSet::empty(),
+                cost: InvariantCostClass::Touched,
+                custom_provenance: None,
+                verdict: InvariantVerdict::Pass,
+            }],
+        );
+
+        assert_eq!(result.decision_log().len(), 1);
+        assert_eq!(result.decision_log()[0].decision, InvariantDecisionKind::Passed);
     }
 }

@@ -18,10 +18,7 @@ pub(crate) use effect::{
 #[cfg(test)]
 pub(crate) use engine::apply_prepared_evaluation_with_policy;
 pub use engine::EvaluationExecutionMetadata;
-pub(crate) use engine::{
-    apply_prepared_evaluation_after_dependencies_with_policy,
-    build_effect_dependency_inputs_for_dependencies,
-};
+pub(crate) use engine::apply_prepared_evaluation_after_dependencies_with_policy;
 pub(crate) use engine::collect_effect_dependency_inputs_iter;
 #[cfg(feature = "parallel")]
 pub(crate) use engine::{

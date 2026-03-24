@@ -85,6 +85,24 @@ pub struct InvariantCheckResult {
     pub verdict: InvariantVerdict,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum InvariantDecisionKind {
+    Passed,
+    Advisory,
+    Violated,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InvariantDecisionRecord {
+    pub execution_point: InvariantExecutionPoint,
+    pub failure_effect: InvariantFailureEffect,
+    pub rule: InvariantReportedRule,
+    pub decision: InvariantDecisionKind,
+    pub groups: InvariantGroupSet,
+    pub cost: InvariantCostClass,
+    pub custom_provenance_present: bool,
+}
+
 impl InvariantCheckResult {
     pub fn class(&self) -> InvariantClass {
         self.execution_point.class()
@@ -100,5 +118,21 @@ impl InvariantCheckResult {
 
     pub fn custom_provenance(&self) -> Option<&CustomInvariantProvenance> {
         self.custom_provenance.as_ref()
+    }
+
+    pub fn decision_record(&self) -> InvariantDecisionRecord {
+        InvariantDecisionRecord {
+            execution_point: self.execution_point,
+            failure_effect: self.failure_effect,
+            rule: self.rule.clone(),
+            decision: match self.verdict {
+                InvariantVerdict::Pass => InvariantDecisionKind::Passed,
+                InvariantVerdict::Advisory { .. } => InvariantDecisionKind::Advisory,
+                InvariantVerdict::Violation(_) => InvariantDecisionKind::Violated,
+            },
+            groups: self.groups,
+            cost: self.cost,
+            custom_provenance_present: self.custom_provenance.is_some(),
+        }
     }
 }

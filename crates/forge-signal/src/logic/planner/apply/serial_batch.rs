@@ -16,8 +16,7 @@ use crate::data::trace::RuntimeArtifactState;
 use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::logic::evaluation::{
     apply_prepared_evaluation_after_dependencies_with_policy,
-    build_effect_dependency_inputs_for_dependencies, EffectDependencyInputs, EvaluationVerdict,
-    PendingDependencySnapshot,
+    EffectDependencyInputs, EvaluationVerdict, PendingDependencySnapshot,
 };
 use crate::logic::explain::RewiringSummary;
 use crate::logic::planner::semantic::StageSemanticIdentity;
@@ -489,26 +488,11 @@ impl PreparedSerialStageBatch {
             reconcile_start.elapsed().as_nanos();
 
         let dependency_input_start = std::time::Instant::now();
-        let dependency_inputs = lowered
-            .lowered_tasks
-            .iter()
-            .map(|task| {
-                let entry = graph.get_entry(task.node)?;
-                let dependency_set_id = entry.get_dependencies_id();
-                let dependency_snapshot_id = entry.get_dep_snapshot_id();
-                let dependencies = graph.current_runtime_dependencies_of(task.node)?.to_vec();
-                let context = crate::logic::evaluation::DependencyInputContext {
-                    dependency_set_id,
-                    dependency_snapshot_id,
-                };
-                build_effect_dependency_inputs_for_dependencies(
-                    graph,
-                    task.node,
-                    context,
-                    dependencies.as_slice(),
-                )
-            })
-            .collect::<Result<Vec<_>, SignalError>>()?;
+        let dependency_inputs =
+            crate::logic::evaluation::collect_effect_dependency_inputs_iter(
+                graph,
+                lowered.lowered_tasks.iter().map(|task| task.node),
+            )?;
         graph.telemetry_mut().execution.dependency_input_build_nanos +=
             dependency_input_start.elapsed().as_nanos();
 

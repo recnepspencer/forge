@@ -11,6 +11,7 @@ pub(crate) struct DuplicateCustomInvariantRegistration {
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FrozenCustomInvariantRegistry {
     registrations: Arc<[CustomInvariantRegistration]>,
+    #[cfg_attr(not(test), allow(dead_code))]
     index_by_identity: Arc<BTreeMap<CustomInvariantSemanticIdentity, usize>>,
 }
 
@@ -31,6 +32,7 @@ impl FrozenCustomInvariantRegistry {
         })
     }
 
+    #[allow(dead_code)]
     pub(crate) fn is_empty(&self) -> bool {
         self.registrations.is_empty()
     }
@@ -43,6 +45,7 @@ impl FrozenCustomInvariantRegistry {
         self.registrations.iter()
     }
 
+    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn get(
         &self,
         identity: &CustomInvariantSemanticIdentity,

@@ -231,14 +231,19 @@ pub(crate) fn build_effect_dependency_inputs_for_dependencies(
     context: crate::logic::evaluation::DependencyInputContext,
     dependencies: &[DependencyEdge],
 ) -> Result<EffectDependencyInputs, SignalError> {
+    let shape_handle_lookup_start = std::time::Instant::now();
     let previous_shape_handle = graph.dependency_snapshot_shape_handle(context.dependency_snapshot_id);
+    let shape_handle_lookup_nanos = shape_handle_lookup_start.elapsed().as_nanos();
+    let previous_snapshot_fetch_start = std::time::Instant::now();
+    let previous_snapshot = graph.get_dep_snapshot(node)?;
+    let previous_snapshot_fetch_nanos = previous_snapshot_fetch_start.elapsed().as_nanos();
     let (stable_shape_proved, inputs) = {
-        let previous_snapshot = graph.get_dep_snapshot(node)?;
         let previous_entries = previous_snapshot.entries();
         let mut previous_index = 0usize;
         let mut shape_stable = dependencies.len() == previous_entries.len();
         let mut changes = 0_u32;
         let mut stable_shape_versions = Vec::with_capacity(dependencies.len());
+        let version_scan_start = std::time::Instant::now();
         for dep in dependencies {
             let source = dep.source();
             let aspect = dep.aspect();
@@ -263,8 +268,10 @@ pub(crate) fn build_effect_dependency_inputs_for_dependencies(
             }
             previous_index += 1;
         }
+        let version_scan_nanos = version_scan_start.elapsed().as_nanos();
 
         if shape_stable && previous_index == previous_entries.len() {
+            let stable_proof_start = std::time::Instant::now();
             let scan = DependencyInputScan::stable_shape(
                 node,
                 context.dependency_snapshot_id,
@@ -277,6 +284,8 @@ pub(crate) fn build_effect_dependency_inputs_for_dependencies(
                     SignalError::internal("stable-shape dependency scan failed to produce a proof")
                 })?;
             let versions = VersionVector::from_scan(&basis, &scan);
+            let stable_proof_nanos = stable_proof_start.elapsed().as_nanos();
+            let version_delta_start = std::time::Instant::now();
             let snapshot_delta = SnapshotDeltaRecord::for_version_update(
                 node,
                 previous_snapshot,
@@ -285,6 +294,17 @@ pub(crate) fn build_effect_dependency_inputs_for_dependencies(
             let dependency_snapshot_update = CommittedSnapshotUpdate::VersionOnly(
                 VersionOnlySnapshotUpdate::from_basis_and_versions(basis, versions),
             );
+            let version_delta_nanos = version_delta_start.elapsed().as_nanos();
+            {
+                let execution = &mut graph.telemetry_mut().execution;
+                execution.dependency_input_shape_handle_lookup_nanos += shape_handle_lookup_nanos;
+                execution.dependency_input_previous_snapshot_fetch_nanos +=
+                    previous_snapshot_fetch_nanos;
+                execution.dependency_input_version_scan_nanos += version_scan_nanos;
+                execution.dependency_input_stable_proof_nanos += stable_proof_nanos;
+                execution.dependency_input_version_delta_nanos += version_delta_nanos;
+                execution.dependency_input_stable_shape_count += 1;
+            }
             (
                 true,
                 EffectDependencyInputs {
@@ -304,6 +324,7 @@ pub(crate) fn build_effect_dependency_inputs_for_dependencies(
             let mut snapshot_index = 0usize;
             changes = 0_u32;
 
+            let replacement_build_start = std::time::Instant::now();
             for dep in dependencies {
                 let source = dep.source();
                 let aspect = dep.aspect();
@@ -336,6 +357,16 @@ pub(crate) fn build_effect_dependency_inputs_for_dependencies(
             let dependency_snapshot_update = CommittedSnapshotUpdate::Replace(
                 ReplacementSnapshotUpdate::from_snapshot(snapshot, graph.dependency_snapshot_shapes_mut()),
             );
+            let replacement_build_nanos = replacement_build_start.elapsed().as_nanos();
+            {
+                let execution = &mut graph.telemetry_mut().execution;
+                execution.dependency_input_shape_handle_lookup_nanos += shape_handle_lookup_nanos;
+                execution.dependency_input_previous_snapshot_fetch_nanos +=
+                    previous_snapshot_fetch_nanos;
+                execution.dependency_input_version_scan_nanos += version_scan_nanos;
+                execution.dependency_input_replacement_build_nanos += replacement_build_nanos;
+                execution.dependency_input_replacement_count += 1;
+            }
             (
                 false,
                 EffectDependencyInputs {
