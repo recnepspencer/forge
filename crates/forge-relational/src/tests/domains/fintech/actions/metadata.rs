@@ -43,6 +43,12 @@ pub(crate) fn promote_case_correspondence(
     right: FintechCaseRole,
     commit: CommitReference,
 ) -> LineageResolutionStatus {
+    let authoritative_commit = world
+        .runtime
+        .history_access()
+        .branch_head(&commit.branch_id)
+        .cloned()
+        .unwrap_or(commit.clone());
     let left_lineage = world
         .runtime
         .lineage_access()
@@ -59,7 +65,7 @@ pub(crate) fn promote_case_correspondence(
         .runtime
         .lineage_authority()
         .record_correspondence_candidate(
-            BranchId("main".to_string()),
+            authoritative_commit.branch_id.clone(),
             vec![left_lineage],
             vec![right_lineage],
             "fintech-case-correspondence",
@@ -67,7 +73,7 @@ pub(crate) fn promote_case_correspondence(
     world
         .runtime
         .lineage_authority()
-        .promote_correspondence(candidate.candidate_id, commit)
+        .promote_correspondence(candidate.candidate_id, authoritative_commit)
         .expect("candidate should promote")
-        .status
+        .status()
 }

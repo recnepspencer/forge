@@ -77,6 +77,17 @@ fn run_check(
                 format!("read `{alias}` should target case `{case_role}`"),
             )
         }
+        ["lineage_promotion_succeeded", alias] => {
+            let resolution = session
+                .named_lineage_resolutions
+                .get(*alias)
+                .copied()
+                .unwrap_or(crate::facade::lineage::LineageResolutionStatus::Rejected);
+            (
+                resolution == crate::facade::lineage::LineageResolutionStatus::Promoted,
+                format!("lineage promotion `{alias}` should succeed"),
+            )
+        }
         ["read_has_repaired_settlement", alias] => {
             let count = session
                 .named_reads
@@ -175,6 +186,29 @@ fn run_check(
             (
                 replay.requested.branch_id == branch,
                 format!("replay `{alias}` should target branch `{branch_alias}`"),
+            )
+        }
+        ["replay_has_lineage_authority_basis", alias] => {
+            let replay = session
+                .named_replays
+                .get(*alias)
+                .ok_or_else(|| format!("unknown certified fintech replay alias `{alias}`"))?;
+            (
+                replay.lineage_authority_basis.is_some(),
+                format!("replay `{alias}` should expose lineage authority basis"),
+            )
+        }
+        ["replay_uses_exact_lineage_digest", alias] => {
+            let replay = session
+                .named_replays
+                .get(*alias)
+                .ok_or_else(|| format!("unknown certified fintech replay alias `{alias}`"))?;
+            (
+                matches!(
+                    replay.lineage_authority_basis.as_ref().map(|basis| basis.digest_mode()),
+                    Some(crate::facade::replay::ReplayLineageDigestMode::ExactCanonicalArtifactDigest)
+                ),
+                format!("replay `{alias}` should use exact canonical lineage digest authority"),
             )
         }
         other => {

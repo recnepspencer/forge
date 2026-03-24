@@ -92,6 +92,8 @@ pub(crate) fn lineage_aspect_history_digest_on_branch(
             crate::facade::lineage::HistoricalResolutionRequest {
                 branch_id: branch_id.clone(),
                 lineage_id,
+                boundedness_basis:
+                    crate::facade::lineage::HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
             },
             filter,
         )

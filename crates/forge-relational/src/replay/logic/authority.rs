@@ -1,15 +1,17 @@
 use crate::capabilities::{HistorySource, ReplayRead, RuntimeConfigSource, SchemaSource};
 use crate::performance::logic::ReplayLineageAuthorityIndexedSource;
 use crate::history::data::{BranchId, CommitId};
+use crate::lineage::data::{CorrespondenceCandidateId, CorrespondencePromotionRejectionClass, PublishedLineageArtifact};
 use crate::logic::runtime::RelationalRuntime;
 use crate::replay::data::{
-    CanonicalCommitEnvelope, DescriptorAuthorityKind, DescriptorComparisonBasis,
-    DescriptorParityCheck, RelationalReplayOutcome, RelationalReplayRequest,
-    ReplayAuthorityBasisKind, ReplayExecutionMode, ReplayFailureClass, ReplayLineageAuthorityBasis,
-    ReplayMismatch, ReplayMismatchClass, ReplayObservableSurface, ReplaySurfaceAuthorityKind,
-    ReplaySurfaceComparisonBasis, ReplaySurfaceParityCheck, ReplayVerificationLayer,
-    ReplayVerificationMode, ReplayVerificationPlan, VerifiedDescriptorDigest,
-    VerifiedReplaySurfaceDigest,
+    CanonicalCommitEnvelope, CertifiedLineageSurfaceComparisonBasis,
+    CertifiedLineageSurfaceDigest, DescriptorAuthorityKind, DescriptorComparisonBasis,
+    DescriptorParityCheck, LineageCertifiedSurfaceKind, RelationalReplayOutcome,
+    RelationalReplayRequest, ReplayAuthorityBasisKind, ReplayExecutionMode, ReplayFailureClass,
+    ReplayLineageAuthorityBasis, ReplayLineageDigestMode, ReplayMismatch, ReplayMismatchClass,
+    ReplayObservableSurface, ReplaySurfaceAuthorityKind, ReplaySurfaceComparisonBasis,
+    ReplaySurfaceParityCheck, ReplayVerificationLayer, ReplayVerificationMode,
+    ReplayVerificationPlan, VerifiedDescriptorDigest, VerifiedReplaySurfaceDigest,
 };
 use crate::schema::logic::{validate_schema_continuity_bundle, ValidatedSchemaContinuityBundle};
 
@@ -114,11 +116,26 @@ impl<'runtime> ReplayAuthority<'runtime> {
             }
         };
 
-        let replayed_envelope = replay_runtime
+        let Some(replayed_envelope) = replay_runtime
             .replay_access()
             .canonical_commit_envelope(request.commit_id)
             .cloned()
-            .expect("replayed target envelope");
+        else {
+            return self.fail_and_record(
+                request,
+                Some(&envelope),
+                Some(&chain),
+                ReplayFailureClass::ObservableMismatch,
+                Some(ReplayMismatch {
+                    class: ReplayMismatchClass::HistoryDrift,
+                    surface: ReplayObservableSurface::History,
+                    verification_layer: ReplayVerificationLayer::DeepArtifactParity,
+                    detail: "replayed target envelope was not reconstructed".to_string(),
+                    expected: Some(format!("{:?}", envelope.commit.commit_id)),
+                    observed: None,
+                }),
+            );
+        };
         let verification_plan = ReplayVerificationPlan::from_mode(request.verification_mode);
         let validated_envelope =
             match validated_replay_continuity_envelope(self.runtime, &envelope, &verification_plan) {
@@ -178,8 +195,8 @@ impl<'runtime> ReplayAuthority<'runtime> {
                     .count_replay_lineage_authority_basis(
                         selected.indexed_source,
                         selected.kind,
-                        selected.artifact.lineage_events().len(),
-                        selected.artifact.lineage_decision_log().len(),
+                        selected.artifact.digest_basis().lineage_event_count(),
+                        selected.artifact.digest_basis().lineage_decision_count(),
                     );
                 if selected.kind == ReplayAuthorityBasisKind::HistoryEnvelopeFallback
                     && request.verification_mode != ReplayVerificationMode::NormalRecoveryVerification
@@ -388,9 +405,22 @@ impl<'runtime> ReplayAuthority<'runtime> {
             || format!("{:?}", replayed_branch_head),
         );
         if compared_surfaces.contains(&ReplayObservableSurface::Lineage) {
-            let original_lineage = selected_lineage_authority
-                .as_ref()
-                .expect("lineage authority selected for replay parity");
+            let Some(original_lineage) = selected_lineage_authority.as_ref() else {
+                return self.fail_and_record(
+                    request,
+                    Some(&envelope),
+                    Some(&chain),
+                    ReplayFailureClass::ObservableMismatch,
+                    Some(ReplayMismatch {
+                        class: ReplayMismatchClass::LineageDrift,
+                        surface: ReplayObservableSurface::Lineage,
+                        verification_layer: ReplayVerificationLayer::DeepArtifactParity,
+                        detail: "lineage replay parity promised a lineage surface without an authoritative lineage basis".to_string(),
+                        expected: Some("authoritative lineage basis".to_string()),
+                        observed: None,
+                    }),
+                );
+            };
             let replayed_lineage = replayed_envelope.published_lineage();
             compare_replay_surface(
                 self.runtime,
@@ -401,7 +431,7 @@ impl<'runtime> ReplayAuthority<'runtime> {
                 surface_basis_for_published_lineage(original_lineage.artifact),
                 surface_basis_for_published_lineage(replayed_lineage),
                 "lineage artifacts differed",
-                || replayed_lineage == original_lineage.artifact,
+                || published_lineage_artifacts_match(original_lineage.artifact, replayed_lineage),
                 || format!("{:?}", original_lineage.artifact),
                 || format!("{:?}", replayed_lineage),
             );
@@ -433,12 +463,15 @@ impl<'runtime> ReplayAuthority<'runtime> {
             reconstructed_parent_chain: chain.clone(),
             snapshot_version: Some(envelope.commit.version_id),
             lineage_authority_basis: selected_lineage_authority.as_ref().map(|selected| {
-                ReplayLineageAuthorityBasis {
-                    kind: selected.kind,
-                    commit_id: envelope.commit.commit_id,
-                    lineage_event_count: selected.artifact.lineage_events().len(),
-                    lineage_decision_count: selected.artifact.lineage_decision_log().len(),
-                }
+                ReplayLineageAuthorityBasis::new(
+                    selected.kind,
+                    envelope.commit.commit_id,
+                    ReplayLineageDigestMode::ExactCanonicalArtifactDigest,
+                    selected.artifact.digest_basis().lineage_event_count(),
+                    selected.artifact.digest_basis().lineage_decision_count(),
+                    lineage_event_batch_comparison_basis(selected.artifact),
+                    lineage_decision_log_comparison_basis(selected.artifact),
+                )
             }),
             compared_surfaces: compared_surfaces.clone(),
             mismatches: mismatches.clone(),
@@ -892,16 +925,141 @@ fn surface_basis_for_branch_head(
     )
 }
 
-fn surface_basis_for_published_lineage<T: serde::Serialize + ?Sized>(
-    published_lineage: &T,
+fn surface_basis_for_published_lineage(
+    published_lineage: &PublishedLineageArtifact,
 ) -> ReplaySurfaceComparisonBasis {
     ReplaySurfaceComparisonBasis::new(
         ReplaySurfaceAuthorityKind::Lineage,
         Some(VerifiedReplaySurfaceDigest::new(
             ReplaySurfaceAuthorityKind::Lineage,
-            published_lineage,
+            &(
+                lineage_event_batch_comparison_basis(published_lineage),
+                lineage_decision_log_comparison_basis(published_lineage),
+                published_lineage.observed_event_batch_digest_basis(),
+                published_lineage.observed_decision_log_digest_basis(),
+                published_lineage.digest_basis(),
+                published_lineage.counters(),
+            ),
         )),
-        Some(crate::replay::data::stable_digest(published_lineage)),
+        Some(crate::replay::data::stable_digest(&(
+            published_lineage.digest_basis().lineage_event_count(),
+            published_lineage.digest_basis().lineage_decision_count(),
+        ))),
+    )
+}
+
+fn published_lineage_artifacts_match(
+    expected: &PublishedLineageArtifact,
+    observed: &PublishedLineageArtifact,
+) -> bool {
+    if expected.branch_id() != observed.branch_id()
+        || expected.lineage_event_ids() != observed.lineage_event_ids()
+        || expected.lineage_events() != observed.lineage_events()
+        || expected.digest_basis() != observed.digest_basis()
+        || expected.observed_event_batch_digest_basis() != observed.observed_event_batch_digest_basis()
+        || expected.observed_decision_log_digest_basis() != observed.observed_decision_log_digest_basis()
+        || expected.counters() != observed.counters()
+        || expected.lineage_decision_log() != observed.lineage_decision_log()
+    {
+        return false;
+    }
+
+    let candidate_ids = expected
+        .lineage_decision_log()
+        .iter()
+        .chain(observed.lineage_decision_log().iter())
+        .filter_map(|decision| decision.candidate_id)
+        .collect::<std::collections::BTreeSet<CorrespondenceCandidateId>>();
+    for candidate_id in candidate_ids {
+        if expected
+            .decisions_for_candidate(candidate_id)
+            .collect::<Vec<_>>()
+            != observed
+                .decisions_for_candidate(candidate_id)
+                .collect::<Vec<_>>()
+        {
+            return false;
+        }
+    }
+
+    let event_ids = expected
+        .lineage_event_ids()
+        .iter()
+        .copied()
+        .chain(
+            expected
+                .lineage_decision_log()
+                .iter()
+                .chain(observed.lineage_decision_log().iter())
+                .filter_map(|decision| decision.event_id),
+        )
+        .collect::<std::collections::BTreeSet<u64>>();
+    for event_id in event_ids {
+        if expected.decisions_for_event_id(event_id).collect::<Vec<_>>()
+            != observed.decisions_for_event_id(event_id).collect::<Vec<_>>()
+        {
+            return false;
+        }
+    }
+
+    let mut rejection_classes = expected
+        .lineage_decision_log()
+        .iter()
+        .chain(observed.lineage_decision_log().iter())
+        .filter_map(|decision| decision.rejection_class)
+        .collect::<Vec<CorrespondencePromotionRejectionClass>>();
+    rejection_classes.sort_by_key(|class| format!("{class:?}"));
+    rejection_classes.dedup();
+    for rejection_class in rejection_classes {
+        if expected
+            .decisions_for_rejection_class(rejection_class)
+            .collect::<Vec<_>>()
+            != observed
+                .decisions_for_rejection_class(rejection_class)
+                .collect::<Vec<_>>()
+        {
+            return false;
+        }
+    }
+
+    true
+}
+
+fn lineage_event_batch_comparison_basis(
+    published_lineage: &PublishedLineageArtifact,
+) -> CertifiedLineageSurfaceComparisonBasis {
+    CertifiedLineageSurfaceComparisonBasis::new(
+        LineageCertifiedSurfaceKind::EventBatch,
+        Some(CertifiedLineageSurfaceDigest::new(
+            LineageCertifiedSurfaceKind::EventBatch,
+            &published_lineage.observed_event_batch_digest_basis(),
+        )),
+        Some(crate::replay::data::stable_digest(&(
+            published_lineage
+                .observed_event_batch_digest_basis()
+                .canonical_event_ids()
+                .len(),
+            published_lineage.event_batch_digest_basis().branch_id(),
+        ))),
+    )
+}
+
+fn lineage_decision_log_comparison_basis(
+    published_lineage: &PublishedLineageArtifact,
+) -> CertifiedLineageSurfaceComparisonBasis {
+    CertifiedLineageSurfaceComparisonBasis::new(
+        LineageCertifiedSurfaceKind::DecisionLog,
+        Some(CertifiedLineageSurfaceDigest::new(
+            LineageCertifiedSurfaceKind::DecisionLog,
+            &published_lineage.observed_decision_log_digest_basis(),
+        )),
+        Some(crate::replay::data::stable_digest(&(
+            published_lineage
+                .observed_decision_log_digest_basis()
+                .canonical_decision_kinds()
+                .len(),
+            published_lineage.decision_log_digest_basis().branch_id(),
+        ))),
     )
 }
 

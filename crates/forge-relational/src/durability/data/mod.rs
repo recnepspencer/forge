@@ -10,7 +10,7 @@ use crate::identity::data::{
 };
 use crate::indexes::data::{DerivedIndexDefinition, DerivedIndexGeneration};
 use crate::lineage::data::{
-    CorrespondenceCandidate, LineageDecisionRecord, LineageEventRecord, LineageNode,
+    LineageCheckpointArtifact,
 };
 use crate::payloads::data::RecordPayload;
 use crate::replay::data::CanonicalCommitEnvelope;
@@ -190,10 +190,7 @@ pub struct DurableCheckpoint {
     pub branches: Vec<BranchHead>,
     pub envelopes: Vec<CanonicalCommitEnvelope>,
     pub partition_images: Vec<PartitionCheckpointImage>,
-    pub lineage_nodes: Vec<LineageNode>,
-    pub lineage_events: Vec<LineageEventRecord>,
-    pub correspondence_candidates: Vec<CorrespondenceCandidate>,
-    pub rejected_lineage_decisions: Vec<LineageDecisionRecord>,
+    pub lineage: LineageCheckpointArtifact,
     pub index_definitions: Vec<DerivedIndexDefinition>,
     pub index_generations: Vec<DerivedIndexGeneration>,
     pub symbol_table: SymbolTableSnapshot,

@@ -141,7 +141,10 @@ where
                                 });
                             let err = match &flush_err {
                                 EventFlushError::Registry(source) => {
-                                    SignalError::event_flush_failed("registry", format!("{source:?}"))
+                                    SignalError::event_flush_failed(
+                                        "registry",
+                                        format!("{source:?}"),
+                                    )
                                 }
                                 EventFlushError::Subscriber {
                                     subscriber_name,

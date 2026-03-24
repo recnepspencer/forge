@@ -211,18 +211,36 @@ fn read_only_rollback_emits_zero_rollback_packets() {
 
     assert_eq!(result.outcome, TransactionOutcome::RolledBack);
     assert_eq!(runtime.telemetry().transaction.rollback_packet_breadth, 0);
-    assert_eq!(runtime.telemetry().transaction.rollback_packet_config_count, 0);
-    assert_eq!(runtime.telemetry().transaction.rollback_packet_diagnostics_count, 0);
     assert_eq!(
-        runtime.telemetry().transaction.rollback_packet_graph_patch_count,
+        runtime.telemetry().transaction.rollback_packet_config_count,
         0
     );
     assert_eq!(
-        runtime.telemetry().transaction.rollback_packet_created_node_count,
+        runtime
+            .telemetry()
+            .transaction
+            .rollback_packet_diagnostics_count,
         0
     );
     assert_eq!(
-        runtime.telemetry().transaction.rollback_packet_subscriber_repair_count,
+        runtime
+            .telemetry()
+            .transaction
+            .rollback_packet_graph_patch_count,
+        0
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .transaction
+            .rollback_packet_created_node_count,
+        0
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .transaction
+            .rollback_packet_subscriber_repair_count,
         0
     );
 }
@@ -494,14 +512,10 @@ fn hostile_commit_failure_does_not_leak_committed_semantic_outcome() {
         "failed transaction must not leak committed replay outcome"
     );
     assert!(
-        replay_events
-            .iter()
-            .rev()
-            .take(2)
-            .any(|event| {
-                event.detail.as_ref().and_then(|detail| detail.as_message())
-                    == Some("event bus flush failed")
-            }),
+        replay_events.iter().rev().take(2).any(|event| {
+            event.detail.as_ref().and_then(|detail| detail.as_message())
+                == Some("event bus flush failed")
+        }),
         "failed transaction should surface flush failure in replay events"
     );
 }
@@ -527,7 +541,10 @@ fn transaction_created_keyed_nodes_are_removed_on_rollback() {
     assert_eq!(runtime.graph().active_node_count(), active_before);
     assert!(!runtime.graph().is_alive(created));
     assert_eq!(
-        runtime.telemetry().transaction.rollback_packet_created_node_count,
+        runtime
+            .telemetry()
+            .transaction
+            .rollback_packet_created_node_count,
         1
     );
 }
@@ -895,11 +912,17 @@ fn rollback_restores_original_source_subscriber_membership_after_rewire() {
         .assert_bidirectional_consistency()
         .expect("rollback should restore bidirectional dependency/subscriber topology");
     assert_eq!(
-        runtime.telemetry().transaction.rollback_packet_graph_patch_count,
+        runtime
+            .telemetry()
+            .transaction
+            .rollback_packet_graph_patch_count,
         1
     );
     assert_eq!(
-        runtime.telemetry().transaction.rollback_packet_subscriber_repair_count,
+        runtime
+            .telemetry()
+            .transaction
+            .rollback_packet_subscriber_repair_count,
         1
     );
 }

@@ -93,6 +93,10 @@ fn replay_summary(replay: &RelationalReplayOutcome) -> Value {
         "compared_surfaces": replay.compared_surfaces.iter().map(|surface| format!("{surface:?}")).collect::<Vec<_>>(),
         "mismatch_count": replay.mismatches.len(),
         "failure": replay.failure.as_ref().map(|failure| format!("{failure:?}")),
+        "lineage_authority_basis_kind": replay.lineage_authority_basis.as_ref().map(|basis| format!("{:?}", basis.kind())),
+        "lineage_authority_digest_mode": replay.lineage_authority_basis.as_ref().map(|basis| format!("{:?}", basis.digest_mode())),
+        "lineage_authority_event_count": replay.lineage_authority_basis.as_ref().map(|basis| basis.lineage_event_count() as u64),
+        "lineage_authority_decision_count": replay.lineage_authority_basis.as_ref().map(|basis| basis.lineage_decision_count() as u64),
     })
 }
 

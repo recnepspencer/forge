@@ -52,6 +52,10 @@ pub(crate) fn canonical_commit_envelope(
     schema_continuity: &crate::authority::commit::phases::schema_continuity::SchemaContinuityPlan,
 ) -> Result<CanonicalCommitEnvelope, TransactionCommitError> {
     let published_lineage = lineage_artifact.publish();
+    runtime.performance_access().count_lineage_publication_artifact(
+        published_lineage.lineage_events().len(),
+        published_lineage.lineage_decision_log().len(),
+    );
     if published_lineage.branch_id() != branch_id || lineage_artifact.branch_id() != branch_id {
         runtime.emit_diagnostic_entry(
             DiagnosticsScope::Lineage,

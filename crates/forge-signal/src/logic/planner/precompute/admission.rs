@@ -1,9 +1,9 @@
 use crate::data::graph::SignalGraph;
 
 use super::super::execution::StageSlice;
+use super::super::types::StageExecutor;
 #[cfg(feature = "parallel")]
 use super::super::types::{ParallelAdmissionReason, ParallelExecutionKind};
-use super::super::types::StageExecutor;
 
 #[cfg(feature = "parallel")]
 #[derive(Debug, Clone, Copy)]
@@ -107,5 +107,3 @@ pub(crate) fn decide_stage_parallel_admission(
         kind: executor.parallel_kind(),
     }
 }
-
-

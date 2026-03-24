@@ -339,3 +339,70 @@ Interpretation:
 - The staged path is now paying for real staged execution work, not the old debug-auditor contamination.
 - The biggest named runtime subphases inside the staged lane are currently dependency reconciliation, dependency-input reconstruction, and deferred snapshot batch commit.
 - The next optimization pass should continue inside that staged lane, not back on the already-corrected raw topology microbenchmarks.
+
+### Milestone 1 Serial Batch Pass
+
+Captured on March 23, 2026 after the proof-typed batch-native serial staged apply/finalize pass with:
+
+```bash
+FORGE_SIGNAL_PERF_SAMPLES=3 cargo test -p forge-signal perf_dependency_reconciliation_rotating_window_staged_serial -- --ignored --nocapture --test-threads=1
+```
+
+| Metric | Median |
+| --- | ---: |
+| elapsed | 138627 us |
+| report_stage_apply_nanos | 70450600 ns |
+| report_semantic_finalize_nanos | 31246500 ns |
+| dependency_reconcile_nanos | 8140300 ns |
+| dependency_input_build_nanos | 3846700 ns |
+| deferred_snapshot_packet_nanos | 436400 ns |
+| snapshot_batch_commit_nanos | 4967000 ns |
+
+Interpretation:
+
+- Compared to the hardened March 23 staged baseline (`191683 us` median), the serial batch pass reduced end-to-end staged rotating-window time by about **27.7%**.
+- The named hot subphases also moved in the right direction: stage apply fell from `83284600 ns` to `70450600 ns` on the median sample, and semantic finalize fell from `40852000 ns` to `31246500 ns`.
+- The workload still pays substantial dependency reconciliation and snapshot batch commit cost, so Milestone 3 remains the next obvious structural target underneath this pass.
+
+Follow-up stability check after moving the serial split earlier in lowering:
+
+| Metric | Median |
+| --- | ---: |
+| elapsed | 142266 us |
+| report_stage_apply_nanos | 72253400 ns |
+| report_semantic_finalize_nanos | 31657500 ns |
+| dependency_reconcile_nanos | 8045600 ns |
+| dependency_input_build_nanos | 4102700 ns |
+| deferred_snapshot_packet_nanos | 414700 ns |
+| snapshot_batch_commit_nanos | 5610300 ns |
+
+Interpretation:
+
+- A subsequent 3-sample rerun remained in the same post-pass performance band and still materially outperformed the hardened `191683 us` baseline.
+- The small spread between the first and second post-pass medians indicates ordinary local-run noise rather than a substantive regression from the earlier serial-lowering split.
+
+### Milestone 3 Hardening Pass
+
+Captured on March 23, 2026 after the proof-carrying stable-shape snapshot hardening pass with:
+
+```bash
+FORGE_SIGNAL_PERF_SAMPLES=3 cargo test -p forge-signal perf_dependency_reconciliation_rotating_window_staged_serial -- --ignored --nocapture --test-threads=1
+```
+
+Representative same-build rerun after shape-handle cache reuse and dependency-input tightening:
+
+| Metric | Median |
+| --- | ---: |
+| elapsed | 124814 us |
+| report_stage_apply_nanos | 55767200 ns |
+| report_semantic_finalize_nanos | 32750900 ns |
+| dependency_reconcile_nanos | 8133700 ns |
+| dependency_input_build_nanos | 8939300 ns |
+| deferred_snapshot_packet_nanos | 1294900 ns |
+| snapshot_batch_commit_nanos | 5149300 ns |
+
+Interpretation:
+
+- End-to-end staged rotating-window time is now materially better than the post-M1 median (`138627 us` -> `124814 us`, about `-10.0%`).
+- The hardening pass preserved the semantic upgrade and did not cause a broad representative workload regression.
+- The remaining weakness is still the dependency-input lane: `dependency_input_build_nanos` improved again but remains materially above the post-M1 reference, so Milestone 3 is much closer to closure but still not a pure subphase win.

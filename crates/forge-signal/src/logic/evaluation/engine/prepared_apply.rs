@@ -3,25 +3,25 @@ use crate::data::comparator::ComparatorPolicyResolver;
 use crate::data::comparator::VersionComparatorPolicy;
 #[cfg(test)]
 use crate::data::dependency::DependencyEdge;
+use crate::data::dependency::DependencySnapshotId;
 use crate::data::error::SignalError;
-use crate::data::graph::SignalGraph;
 #[cfg(feature = "parallel")]
 use crate::data::graph::ApplyCommitPacket;
+use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::output::NodeEvaluationResult;
+use crate::data::reuse::ReuseBoundaryEvidence;
 #[cfg(feature = "parallel")]
 use crate::data::reuse::ReuseBoundaryFailure;
-use crate::data::reuse::ReuseBoundaryEvidence;
-use crate::data::dependency::DependencySnapshotId;
 use crate::logic::evaluation::EffectDependencyInputs;
 use crate::logic::evaluation::{DeferralReason, PreparedApplyResult, SuppressionReason};
 #[cfg(test)]
 use crate::logic::prepared::PreparedDependencyCapture;
 use crate::logic::prepared::{PreparedEvaluation, PreparedEvaluationOutcome};
 
-use super::apply::{apply_effect_with_policy_and_condition, verdict_for_evaluated_result};
 #[cfg(feature = "parallel")]
 use super::apply::build_evaluation_effect;
+use super::apply::{apply_effect_with_policy_and_condition, verdict_for_evaluated_result};
 use super::metadata::EvaluationExecutionMetadata;
 
 #[cfg(feature = "parallel")]
@@ -58,6 +58,68 @@ impl From<SignalError> for ApplyCommitBuildError {
     }
 }
 
+struct PassivePreparedEffect {
+    result: NodeEvaluationResult,
+    verdict: crate::logic::evaluation::EvaluationVerdict,
+    reuse_boundary_context: crate::data::reuse::ReuseBoundaryContext,
+    keyed: Option<crate::logic::prepared::PreparedKeyedContext>,
+    causality: Option<crate::data::trace::CausalityMetadata>,
+}
+
+fn lower_passive_prepared_effect<R>(
+    graph: &SignalGraph,
+    node: NodeId,
+    prepared: PreparedEvaluation,
+    resolve_reuse_boundary_context: R,
+) -> Result<PassivePreparedEffect, SignalError>
+where
+    R: FnOnce(
+        &SignalGraph,
+        NodeId,
+        Option<&NodeEvaluationResult>,
+        Option<&crate::logic::prepared::PreparedKeyedContext>,
+    ) -> Result<crate::data::reuse::ReuseBoundaryContext, SignalError>,
+{
+    let PreparedEvaluation {
+        outcome,
+        keyed,
+        trace_data,
+        ..
+    } = prepared;
+    let verdict = match outcome {
+        PreparedEvaluationOutcome::ValidatedClean => {
+            crate::logic::evaluation::EvaluationVerdict::Suppressed {
+                reason: SuppressionReason::ValidatedClean,
+            }
+        }
+        PreparedEvaluationOutcome::DeferredByCondition => {
+            crate::logic::evaluation::EvaluationVerdict::Deferred {
+                reason: DeferralReason::ConditionNotMet,
+            }
+        }
+        PreparedEvaluationOutcome::RevertedCleanByCondition => {
+            crate::logic::evaluation::EvaluationVerdict::Suppressed {
+                reason: SuppressionReason::ConditionRevertedClean,
+            }
+        }
+        PreparedEvaluationOutcome::Evaluate => {
+            return Err(SignalError::internal(
+                "passive prepared-effect lowering cannot accept evaluate outcomes",
+            ));
+        }
+    };
+    let result = NodeEvaluationResult::from_version(graph.get_entry(node)?.get_aspect_version());
+    let reuse_boundary_context = resolve_reuse_boundary_context(graph, node, None, keyed.as_ref())?;
+
+    Ok(PassivePreparedEffect {
+        result,
+        verdict,
+        reuse_boundary_context,
+        keyed,
+        causality: trace_data.causality,
+    })
+}
+
 #[cfg(test)]
 pub(crate) fn apply_prepared_evaluation_with_policy(
     graph: &mut SignalGraph,
@@ -89,6 +151,36 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
     dependency_inputs: Option<EffectDependencyInputs>,
     defer_snapshot_commit: bool,
 ) -> Result<PreparedApplyResult, SignalError> {
+    if !matches!(prepared.outcome, PreparedEvaluationOutcome::Evaluate) {
+        let passive =
+            lower_passive_prepared_effect(graph, node, prepared, |graph, node, result, keyed| {
+                crate::logic::evaluation::resolve_reuse_boundary_context(
+                    graph,
+                    node,
+                    comparator_resolver,
+                    result,
+                    keyed,
+                )
+            })?;
+        let mut apply_result = apply_effect_with_policy_and_condition(
+            graph,
+            node,
+            passive.result,
+            comparator_resolver,
+            execution_metadata,
+            passive.verdict,
+            false,
+            passive.reuse_boundary_context,
+            passive.keyed,
+            passive.causality,
+            None,
+            dependency_inputs,
+            defer_snapshot_commit,
+        )?;
+        apply_result.dependency_updates = dependency_updates;
+        return Ok(apply_result);
+    }
+
     match prepared.outcome {
         PreparedEvaluationOutcome::Evaluate => {
             let mut result = prepared.result;
@@ -121,18 +213,18 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
                 current_reuse_boundary_context,
                 previous_reuse_boundary_context.as_ref(),
             )?;
-            let admission_boundary_evidence = hydrate_reuse_boundary_evidence(
-                crate::data::reuse::ReuseBoundaryEvidence {
-                current: current_reuse_boundary_context.clone(),
-                previous: previous_reuse_boundary_context.or_else(|| {
-                    matches!(
-                        reuse_decision.strategy,
-                        Some(crate::data::reuse::ReuseStrategy::CrossIdentityPersistentMatch)
-                            | Some(crate::data::reuse::ReuseStrategy::PartialArtifactSplicing)
-                    )
-                    .then_some(current_reuse_boundary_context.clone())
-                }),
-            });
+            let admission_boundary_evidence =
+                hydrate_reuse_boundary_evidence(crate::data::reuse::ReuseBoundaryEvidence {
+                    current: current_reuse_boundary_context.clone(),
+                    previous: previous_reuse_boundary_context.or_else(|| {
+                        matches!(
+                            reuse_decision.strategy,
+                            Some(crate::data::reuse::ReuseStrategy::CrossIdentityPersistentMatch)
+                                | Some(crate::data::reuse::ReuseStrategy::PartialArtifactSplicing)
+                        )
+                        .then_some(current_reuse_boundary_context.clone())
+                    }),
+                });
             let reuse_certification = crate::logic::evaluation::certify_reuse_decision(
                 &reuse_contract,
                 &reuse_decision,
@@ -186,90 +278,11 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
             apply_result.dependency_updates = dependency_updates;
             Ok(apply_result)
         }
-        PreparedEvaluationOutcome::ValidatedClean => {
-            let current_version = graph.get_entry(node)?.get_aspect_version();
-            let mut apply_result = apply_effect_with_policy_and_condition(
-                graph,
-                node,
-                NodeEvaluationResult::from_version(current_version),
-                comparator_resolver,
-                execution_metadata,
-                crate::logic::evaluation::EvaluationVerdict::Suppressed {
-                    reason: SuppressionReason::ValidatedClean,
-                },
-                false,
-                crate::logic::evaluation::resolve_reuse_boundary_context(
-                    graph,
-                    node,
-                    comparator_resolver,
-                    None,
-                    prepared.keyed.as_ref(),
-                )?,
-                prepared.keyed,
-                prepared.trace_data.causality,
-                None,
-                dependency_inputs,
-                defer_snapshot_commit,
-            )?;
-            apply_result.dependency_updates = dependency_updates;
-            Ok(apply_result)
-        }
-        PreparedEvaluationOutcome::DeferredByCondition => {
-            let current_version = graph.get_entry(node)?.get_aspect_version();
-            let mut apply_result = apply_effect_with_policy_and_condition(
-                graph,
-                node,
-                NodeEvaluationResult::from_version(current_version),
-                comparator_resolver,
-                execution_metadata,
-                crate::logic::evaluation::EvaluationVerdict::Deferred {
-                    reason: DeferralReason::ConditionNotMet,
-                },
-                false,
-                crate::logic::evaluation::resolve_reuse_boundary_context(
-                    graph,
-                    node,
-                    comparator_resolver,
-                    None,
-                    prepared.keyed.as_ref(),
-                )?,
-                prepared.keyed,
-                prepared.trace_data.causality,
-                None,
-                dependency_inputs,
-                defer_snapshot_commit,
-            )?;
-            apply_result.dependency_updates = dependency_updates;
-            Ok(apply_result)
-        }
-        PreparedEvaluationOutcome::RevertedCleanByCondition => {
-            let current_version = graph.get_entry(node)?.get_aspect_version();
-            let mut apply_result = apply_effect_with_policy_and_condition(
-                graph,
-                node,
-                NodeEvaluationResult::from_version(current_version),
-                comparator_resolver,
-                execution_metadata,
-                crate::logic::evaluation::EvaluationVerdict::Suppressed {
-                    reason: SuppressionReason::ConditionRevertedClean,
-                },
-                false,
-                crate::logic::evaluation::resolve_reuse_boundary_context(
-                    graph,
-                    node,
-                    comparator_resolver,
-                    None,
-                    prepared.keyed.as_ref(),
-                )?,
-                prepared.keyed,
-                prepared.trace_data.causality,
-                None,
-                dependency_inputs,
-                defer_snapshot_commit,
-            )?;
-            apply_result.dependency_updates = dependency_updates;
-            Ok(apply_result)
-        }
+        PreparedEvaluationOutcome::ValidatedClean
+        | PreparedEvaluationOutcome::DeferredByCondition
+        | PreparedEvaluationOutcome::RevertedCleanByCondition => Err(SignalError::internal(
+            "passive prepared outcomes must be lowered before entering the evaluate branch",
+        )),
     }
 }
 
@@ -284,6 +297,34 @@ pub(crate) fn build_prepared_apply_commit_packet(
     dependency_inputs: EffectDependencyInputs,
     defer_snapshot_commit: bool,
 ) -> Result<ApplyCommitPacket, ApplyCommitBuildError> {
+    if !matches!(prepared.outcome, PreparedEvaluationOutcome::Evaluate) {
+        let passive =
+            lower_passive_prepared_effect(graph, node, prepared, |graph, node, result, keyed| {
+                crate::logic::evaluation::resolve_reuse_boundary_context_with_policy(
+                    graph,
+                    node,
+                    comparator_policy.clone(),
+                    result,
+                    keyed,
+                )
+            })?;
+        let effect = build_evaluation_effect(
+            node,
+            passive.result,
+            execution_metadata,
+            passive.verdict,
+            false,
+            passive.reuse_boundary_context,
+            passive.keyed,
+            passive.causality,
+            None,
+            dependency_inputs,
+        );
+        return graph
+            .build_apply_commit_packet(effect, comparator_policy, defer_snapshot_commit)
+            .map_err(ApplyCommitBuildError::Signal);
+    }
+
     let packet = match prepared.outcome {
         PreparedEvaluationOutcome::Evaluate => {
             let mut result = prepared.result;
@@ -316,32 +357,30 @@ pub(crate) fn build_prepared_apply_commit_packet(
                 current_reuse_boundary_context,
                 previous_reuse_boundary_context.as_ref(),
             )?;
-            let admission_boundary_evidence = hydrate_reuse_boundary_evidence(
-                crate::data::reuse::ReuseBoundaryEvidence {
-                current: current_reuse_boundary_context.clone(),
-                previous: previous_reuse_boundary_context.or_else(|| {
-                    matches!(
-                        reuse_decision.strategy,
-                        Some(crate::data::reuse::ReuseStrategy::CrossIdentityPersistentMatch)
-                            | Some(crate::data::reuse::ReuseStrategy::PartialArtifactSplicing)
-                    )
-                    .then_some(current_reuse_boundary_context.clone())
-                }),
-            });
+            let admission_boundary_evidence =
+                hydrate_reuse_boundary_evidence(crate::data::reuse::ReuseBoundaryEvidence {
+                    current: current_reuse_boundary_context.clone(),
+                    previous: previous_reuse_boundary_context.or_else(|| {
+                        matches!(
+                            reuse_decision.strategy,
+                            Some(crate::data::reuse::ReuseStrategy::CrossIdentityPersistentMatch)
+                                | Some(crate::data::reuse::ReuseStrategy::PartialArtifactSplicing)
+                        )
+                        .then_some(current_reuse_boundary_context.clone())
+                    }),
+                });
             let reuse_certification = crate::logic::evaluation::certify_reuse_decision(
                 &reuse_contract,
                 &reuse_decision,
                 &admission_boundary_evidence,
             )
-            .map_err(|failure| {
-                ApplyCommitBuildError::ReuseBoundary {
-                    error: SignalError::invalid_input(format!(
-                        "reuse certification failed for {node}: {:?}; {}",
-                        failure.failure,
-                        format_reuse_boundary_evidence(&admission_boundary_evidence)
-                    )),
-                    failure: failure.failure,
-                }
+            .map_err(|failure| ApplyCommitBuildError::ReuseBoundary {
+                error: SignalError::invalid_input(format!(
+                    "reuse certification failed for {node}: {:?}; {}",
+                    failure.failure,
+                    format_reuse_boundary_evidence(&admission_boundary_evidence)
+                )),
+                failure: failure.failure,
             })?;
             let lowered_reuse_basis = reuse_decision
                 .strategy
@@ -385,83 +424,12 @@ pub(crate) fn build_prepared_apply_commit_packet(
                 .build_apply_commit_packet(effect, comparator_policy, defer_snapshot_commit)
                 .map_err(ApplyCommitBuildError::Signal)?
         }
-        PreparedEvaluationOutcome::ValidatedClean => {
-            let current_version = graph.get_entry(node)?.get_aspect_version();
-            let effect = build_evaluation_effect(
-                node,
-                NodeEvaluationResult::from_version(current_version),
-                execution_metadata,
-                crate::logic::evaluation::EvaluationVerdict::Suppressed {
-                    reason: SuppressionReason::ValidatedClean,
-                },
-                false,
-                crate::logic::evaluation::resolve_reuse_boundary_context_with_policy(
-                    graph,
-                    node,
-                    comparator_policy.clone(),
-                    None,
-                    prepared.keyed.as_ref(),
-                )?,
-                prepared.keyed,
-                prepared.trace_data.causality,
-                None,
-                dependency_inputs,
-            );
-            graph
-                .build_apply_commit_packet(effect, comparator_policy, defer_snapshot_commit)
-                .map_err(ApplyCommitBuildError::Signal)?
-        }
-        PreparedEvaluationOutcome::DeferredByCondition => {
-            let current_version = graph.get_entry(node)?.get_aspect_version();
-            let effect = build_evaluation_effect(
-                node,
-                NodeEvaluationResult::from_version(current_version),
-                execution_metadata,
-                crate::logic::evaluation::EvaluationVerdict::Deferred {
-                    reason: DeferralReason::ConditionNotMet,
-                },
-                false,
-                crate::logic::evaluation::resolve_reuse_boundary_context_with_policy(
-                    graph,
-                    node,
-                    comparator_policy.clone(),
-                    None,
-                    prepared.keyed.as_ref(),
-                )?,
-                prepared.keyed,
-                prepared.trace_data.causality,
-                None,
-                dependency_inputs,
-            );
-            graph
-                .build_apply_commit_packet(effect, comparator_policy, defer_snapshot_commit)
-                .map_err(ApplyCommitBuildError::Signal)?
-        }
-        PreparedEvaluationOutcome::RevertedCleanByCondition => {
-            let current_version = graph.get_entry(node)?.get_aspect_version();
-            let effect = build_evaluation_effect(
-                node,
-                NodeEvaluationResult::from_version(current_version),
-                execution_metadata,
-                crate::logic::evaluation::EvaluationVerdict::Suppressed {
-                    reason: SuppressionReason::ConditionRevertedClean,
-                },
-                false,
-                crate::logic::evaluation::resolve_reuse_boundary_context_with_policy(
-                    graph,
-                    node,
-                    comparator_policy.clone(),
-                    None,
-                    prepared.keyed.as_ref(),
-                )?,
-                prepared.keyed,
-                prepared.trace_data.causality,
-                None,
-                dependency_inputs,
-            );
-            graph
-                .build_apply_commit_packet(effect, comparator_policy, defer_snapshot_commit)
-                .map_err(ApplyCommitBuildError::Signal)?
+        PreparedEvaluationOutcome::ValidatedClean
+        | PreparedEvaluationOutcome::DeferredByCondition
+        | PreparedEvaluationOutcome::RevertedCleanByCondition => {
+            return Err(ApplyCommitBuildError::Signal(SignalError::internal(
+                "passive prepared outcomes must be lowered before entering the evaluate branch",
+            )))
         }
     };
 

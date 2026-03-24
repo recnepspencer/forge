@@ -75,15 +75,14 @@ where
                         self.graph.diagnostics_profile(),
                     ),
                 );
-                self.scratch
-                    .semantic_delta
-                    .replay_events
-                    .push(crate::logic::transaction::runtime::transaction::TransactionReplayEntry {
+                self.scratch.semantic_delta.replay_events.push(
+                    crate::logic::transaction::runtime::transaction::TransactionReplayEntry {
                         kind: crate::diagnostics::replay::ReplayEventKind::FailureRecorded,
                         detail: error.to_string(),
                         execution_record_id: None,
                         semantic_segment_id: None,
-                    });
+                    },
+                );
             }
         }
         let rollback = self.scratch.semantic_delta.rollback.take();
@@ -103,11 +102,7 @@ where
                 crate::data::telemetry::CheckpointTelemetry {
                     event_flushes: self.event_bus.telemetry().checkpoint.event_flushes,
                     event_flush_nanos: self.event_bus.telemetry().checkpoint.event_flush_nanos,
-                    checkpoint_flushes: self
-                        .checkpoint
-                        .telemetry()
-                        .checkpoint
-                        .checkpoint_flushes,
+                    checkpoint_flushes: self.checkpoint.telemetry().checkpoint.checkpoint_flushes,
                     checkpoint_flush_nanos: self
                         .checkpoint
                         .telemetry()
@@ -129,10 +124,7 @@ where
                         .snapshot_restore_coarse_reason_count,
                     checkpoint_size: self.telemetry.checkpoint.checkpoint_size,
                     journal_replay_span: self.telemetry.checkpoint.journal_replay_span,
-                    restore_authority_breadth: self
-                        .telemetry
-                        .checkpoint
-                        .restore_authority_breadth,
+                    restore_authority_breadth: self.telemetry.checkpoint.restore_authority_breadth,
                     restore_required_derived_breadth: self
                         .telemetry
                         .checkpoint
@@ -166,11 +158,10 @@ where
         );
         self.telemetry.transaction.decision_log_event_count +=
             result.decision_log.records.len() as u64;
-        self.telemetry.checkpoint.checkpoint_size +=
-            result.event_epochs.len() as u64
-                + u64::from(result.integrity_markers.execution_report_attached)
-                + u64::from(result.integrity_markers.rollback_attached)
-                + u64::from(result.integrity_markers.failure_attached);
+        self.telemetry.checkpoint.checkpoint_size += result.event_epochs.len() as u64
+            + u64::from(result.integrity_markers.execution_report_attached)
+            + u64::from(result.integrity_markers.rollback_attached)
+            + u64::from(result.integrity_markers.failure_attached);
         self.telemetry.checkpoint.journal_replay_span +=
             result.reconstructability.journal.replay_event_count as u64;
         result.reconstructability.checkpoint =
@@ -178,11 +169,7 @@ where
                 crate::data::telemetry::CheckpointTelemetry {
                     event_flushes: self.event_bus.telemetry().checkpoint.event_flushes,
                     event_flush_nanos: self.event_bus.telemetry().checkpoint.event_flush_nanos,
-                    checkpoint_flushes: self
-                        .checkpoint
-                        .telemetry()
-                        .checkpoint
-                        .checkpoint_flushes,
+                    checkpoint_flushes: self.checkpoint.telemetry().checkpoint.checkpoint_flushes,
                     checkpoint_flush_nanos: self
                         .checkpoint
                         .telemetry()
@@ -204,10 +191,7 @@ where
                         .snapshot_restore_coarse_reason_count,
                     checkpoint_size: self.telemetry.checkpoint.checkpoint_size,
                     journal_replay_span: self.telemetry.checkpoint.journal_replay_span,
-                    restore_authority_breadth: self
-                        .telemetry
-                        .checkpoint
-                        .restore_authority_breadth,
+                    restore_authority_breadth: self.telemetry.checkpoint.restore_authority_breadth,
                     restore_required_derived_breadth: self
                         .telemetry
                         .checkpoint

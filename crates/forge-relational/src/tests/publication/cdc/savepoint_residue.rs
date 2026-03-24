@@ -176,6 +176,8 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
         crate::facade::lineage::HistoricalResolutionRequest {
             branch_id: BranchId("main".to_string()),
             lineage_id: start_lineage,
+            boundedness_basis:
+                crate::facade::lineage::HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
         },
         None,
     );

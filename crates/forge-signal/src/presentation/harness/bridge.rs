@@ -54,9 +54,7 @@ impl SignalHarnessBridge {
 
     pub(super) fn diagnostics_profile(level: DiagnosticsLevel) -> DiagnosticsTier {
         match level {
-            DiagnosticsLevel::Off | DiagnosticsLevel::Operational => {
-                DiagnosticsTier::Operational
-            }
+            DiagnosticsLevel::Off | DiagnosticsLevel::Operational => DiagnosticsTier::Operational,
             DiagnosticsLevel::Development => DiagnosticsTier::Development,
             DiagnosticsLevel::Forensic => DiagnosticsTier::Forensic,
         }
@@ -89,16 +87,16 @@ impl SignalHarnessBridge {
         })
     }
 
-    pub(super) fn artifact_materialization_label(
-        mode: DiagnosticsAvailability,
-    ) -> &'static str {
+    pub(super) fn artifact_materialization_label(mode: DiagnosticsAvailability) -> &'static str {
         match mode {
             DiagnosticsAvailability::RetainedAvailable => "retained",
             DiagnosticsAvailability::ReconstructedAvailable => "reconstructed",
             DiagnosticsAvailability::OmittedByTier => "omitted_by_tier",
             DiagnosticsAvailability::DeniedByBudget => "denied_by_budget",
             DiagnosticsAvailability::UnavailableNotRetained => "unavailable_not_retained",
-            DiagnosticsAvailability::UnavailableNotReconstructable => "unavailable_not_reconstructable",
+            DiagnosticsAvailability::UnavailableNotReconstructable => {
+                "unavailable_not_reconstructable"
+            }
         }
     }
 
@@ -472,6 +470,3 @@ impl HarnessAdapter for SignalHarnessBridge {
         })
     }
 }
-
-
-

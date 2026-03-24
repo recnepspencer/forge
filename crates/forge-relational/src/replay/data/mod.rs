@@ -2,11 +2,15 @@ mod replay_errors;
 
 use sha2::{Digest, Sha256};
 use serde::{Deserialize, Serialize};
+use std::io::{self, Write};
 
 use crate::diagnostics::data::RelationalDiagnosticArtifact;
 use crate::history::data::{BranchId, CommitId, CommitReference};
 use crate::indexes::data::DerivedIndexGeneration;
-use crate::lineage::data::{LineageDecisionRecord, LineageEventRecord, PublishedLineageArtifact};
+use crate::lineage::data::{
+    LineageArtifactCounters, LineageDecisionLogDigestBasis, LineageDecisionRecord,
+    LineageDigestBasis, LineageEventBatchDigestBasis, LineageEventRecord, PublishedLineageArtifact,
+};
 use crate::publication::data::diff::RelationalPatchRecord;
 use crate::schema::data::{
     DescriptorCanonicalizationVersion, DescriptorSemanticsVersion, RelationalSchemaRegistry,
@@ -97,6 +101,42 @@ impl CanonicalCommitEnvelope {
 
     pub fn lineage_decision_log(&self) -> &[LineageDecisionRecord] {
         self.lineage.lineage_decision_log()
+    }
+
+    pub fn lineage_decisions_for_candidate(
+        &self,
+        candidate_id: crate::lineage::data::CorrespondenceCandidateId,
+    ) -> Vec<&LineageDecisionRecord> {
+        self.lineage.decisions_for_candidate(candidate_id).collect()
+    }
+
+    pub fn lineage_decisions_for_event_id(&self, event_id: u64) -> Vec<&LineageDecisionRecord> {
+        self.lineage.decisions_for_event_id(event_id).collect()
+    }
+
+    pub fn lineage_decisions_for_rejection_class(
+        &self,
+        rejection_class: crate::lineage::data::CorrespondencePromotionRejectionClass,
+    ) -> Vec<&LineageDecisionRecord> {
+        self.lineage
+            .decisions_for_rejection_class(rejection_class)
+            .collect()
+    }
+
+    pub fn lineage_digest_basis(&self) -> &LineageDigestBasis {
+        self.lineage.digest_basis()
+    }
+
+    pub fn event_batch_digest_basis(&self) -> &LineageEventBatchDigestBasis {
+        self.lineage.event_batch_digest_basis()
+    }
+
+    pub fn decision_log_digest_basis(&self) -> &LineageDecisionLogDigestBasis {
+        self.lineage.decision_log_digest_basis()
+    }
+
+    pub fn lineage_artifact_counters(&self) -> LineageArtifactCounters {
+        self.lineage.counters()
     }
 
     pub fn has_lineage_authority(&self) -> bool {
@@ -196,10 +236,40 @@ pub enum ReplayAuthorityBasisKind {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReplayLineageAuthorityBasis {
-    pub kind: ReplayAuthorityBasisKind,
-    pub commit_id: CommitId,
-    pub lineage_event_count: usize,
-    pub lineage_decision_count: usize,
+    kind: ReplayAuthorityBasisKind,
+    commit_id: CommitId,
+    digest_mode: ReplayLineageDigestMode,
+    lineage_event_count: usize,
+    lineage_decision_count: usize,
+    event_batch_digest_basis: CertifiedLineageSurfaceComparisonBasis,
+    decision_log_digest_basis: CertifiedLineageSurfaceComparisonBasis,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ReplayLineageDigestMode {
+    ExactCanonicalArtifactDigest,
+    SummaryDigestOnly,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LineageCertifiedSurfaceKind {
+    EventBatch,
+    DecisionLog,
+    HistoricalResolution,
+    GraphExport,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CertifiedLineageSurfaceDigest {
+    kind: LineageCertifiedSurfaceKind,
+    digest: [u8; 32],
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CertifiedLineageSurfaceComparisonBasis {
+    kind: LineageCertifiedSurfaceKind,
+    exact_digest: Option<CertifiedLineageSurfaceDigest>,
+    summary_digest: Option<[u8; 32]>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -409,6 +479,23 @@ impl VerifiedReplaySurfaceDigest {
     }
 }
 
+impl CertifiedLineageSurfaceDigest {
+    pub(crate) fn new<T: Serialize + ?Sized>(kind: LineageCertifiedSurfaceKind, value: &T) -> Self {
+        Self {
+            kind,
+            digest: stable_digest(value),
+        }
+    }
+
+    pub fn kind(&self) -> LineageCertifiedSurfaceKind {
+        self.kind
+    }
+
+    pub fn digest(&self) -> &[u8; 32] {
+        &self.digest
+    }
+}
+
 impl DescriptorComparisonBasis {
     pub fn new(
         kind: DescriptorAuthorityKind,
@@ -521,10 +608,105 @@ impl ReplaySurfaceComparisonBasis {
     }
 }
 
+impl CertifiedLineageSurfaceComparisonBasis {
+    pub(crate) fn new(
+        kind: LineageCertifiedSurfaceKind,
+        exact_digest: Option<CertifiedLineageSurfaceDigest>,
+        summary_digest: Option<[u8; 32]>,
+    ) -> Self {
+        Self {
+            kind,
+            exact_digest,
+            summary_digest,
+        }
+    }
+
+    pub fn kind(&self) -> LineageCertifiedSurfaceKind {
+        self.kind
+    }
+
+    pub fn exact_digest(&self) -> Option<&CertifiedLineageSurfaceDigest> {
+        self.exact_digest.as_ref()
+    }
+
+    pub fn summary_digest(&self) -> Option<&[u8; 32]> {
+        self.summary_digest.as_ref()
+    }
+}
+
+impl ReplayLineageAuthorityBasis {
+    pub(crate) fn new(
+        kind: ReplayAuthorityBasisKind,
+        commit_id: CommitId,
+        digest_mode: ReplayLineageDigestMode,
+        lineage_event_count: usize,
+        lineage_decision_count: usize,
+        event_batch_digest_basis: CertifiedLineageSurfaceComparisonBasis,
+        decision_log_digest_basis: CertifiedLineageSurfaceComparisonBasis,
+    ) -> Self {
+        Self {
+            kind,
+            commit_id,
+            digest_mode,
+            lineage_event_count,
+            lineage_decision_count,
+            event_batch_digest_basis,
+            decision_log_digest_basis,
+        }
+    }
+
+    pub fn kind(&self) -> ReplayAuthorityBasisKind {
+        self.kind
+    }
+
+    pub fn commit_id(&self) -> CommitId {
+        self.commit_id
+    }
+
+    pub fn digest_mode(&self) -> ReplayLineageDigestMode {
+        self.digest_mode
+    }
+
+    pub fn lineage_event_count(&self) -> usize {
+        self.lineage_event_count
+    }
+
+    pub fn lineage_decision_count(&self) -> usize {
+        self.lineage_decision_count
+    }
+
+    pub fn event_batch_digest_basis(&self) -> &CertifiedLineageSurfaceComparisonBasis {
+        &self.event_batch_digest_basis
+    }
+
+    pub fn decision_log_digest_basis(&self) -> &CertifiedLineageSurfaceComparisonBasis {
+        &self.decision_log_digest_basis
+    }
+}
+
+struct DigestWriter<'a> {
+    hasher: &'a mut Sha256,
+}
+
+impl Write for DigestWriter<'_> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.hasher.update(buf);
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
 pub(crate) fn stable_digest<T: Serialize + ?Sized>(value: &T) -> [u8; 32] {
-    let bytes = serde_json::to_vec(value).expect("serializable replay authority input");
     let mut hasher = Sha256::new();
-    hasher.update(bytes);
+    if let Err(error) = serde_json::to_writer(DigestWriter { hasher: &mut hasher }, value) {
+        hasher.update(b"stable-digest-serialization-error:");
+        hasher.update(std::any::type_name::<T>().as_bytes());
+        hasher.update(b":");
+        hasher.update(error.to_string().as_bytes());
+    }
     let digest = hasher.finalize();
     let mut out = [0_u8; 32];
     out.copy_from_slice(&digest);

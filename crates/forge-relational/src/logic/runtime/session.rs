@@ -8,11 +8,25 @@ use crate::logic::runtime::{
     AspectSemanticsSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
     LineageSubsystem, PublicationSubsystem, RuntimeServices, RuntimeSubsystem, VisibilitySubsystem,
 };
+use crate::validation::data::CustomInvariantRegistration;
+use crate::validation::logic::FrozenCustomInvariantRegistry;
 
 impl RelationalRuntime {
     pub fn new(config: super::RelationalRuntimeConfig) -> Self {
+        Self::new_with_custom_invariants(config, Vec::new())
+    }
+
+    pub fn new_with_custom_invariants(
+        config: super::RelationalRuntimeConfig,
+        custom_invariants: Vec<CustomInvariantRegistration>,
+    ) -> Self {
+        let mut aspect_semantics = <AspectSemanticsSubsystem as RuntimeSubsystem>::new(&config);
+        aspect_semantics.custom_invariant_registries =
+            FrozenCustomInvariantRegistry::from_registrations(custom_invariants).expect(
+                "custom invariant registrations must have unique semantic identities at runtime construction",
+            );
         Self {
-            aspect_semantics: <AspectSemanticsSubsystem as RuntimeSubsystem>::new(&config),
+            aspect_semantics,
             history: <HistorySubsystem as RuntimeSubsystem>::new(&config.history.main_branch),
             indexes: <IndexingSubsystem as RuntimeSubsystem>::new(&()),
             lineage: <LineageSubsystem as RuntimeSubsystem>::new(&()),

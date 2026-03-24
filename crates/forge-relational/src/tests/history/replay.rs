@@ -706,7 +706,7 @@ fn replay_contract_reports_lineage_event_drift_at_digest_layer_when_artifacts_ar
         .promote_correspondence(candidate.candidate_id, second.commit.clone())
         .unwrap();
     let promoted_commit_id = promotion
-        .promoted_commit_id
+        .promoted_commit_id()
         .expect("promotion should publish a metadata-only commit");
 
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
@@ -769,7 +769,7 @@ fn replay_contract_reports_lineage_decision_log_drift_at_digest_layer_when_artif
         .promote_correspondence(candidate.candidate_id, second.commit.clone())
         .unwrap();
     let promoted_commit_id = promotion
-        .promoted_commit_id
+        .promoted_commit_id()
         .expect("promotion should publish a metadata-only commit");
 
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
@@ -840,7 +840,7 @@ fn replay_contract_uses_history_envelope_fallback_basis_only_in_normal_mode() {
         replay
             .lineage_authority_basis
             .as_ref()
-            .map(|basis| basis.kind),
+            .map(|basis| basis.kind()),
         Some(crate::facade::replay::ReplayAuthorityBasisKind::HistoryEnvelopeFallback)
     );
 }
@@ -921,7 +921,7 @@ fn replay_contract_uses_checkpoint_canonical_basis_in_audit_mode_when_durable_lo
         replay
             .lineage_authority_basis
             .as_ref()
-            .map(|basis| basis.kind),
+            .map(|basis| basis.kind()),
         Some(crate::facade::replay::ReplayAuthorityBasisKind::DurableLogCanonical)
     );
 }
@@ -951,7 +951,9 @@ fn replay_contract_preserves_metadata_only_promotion_commit_truth_and_recovery()
         .lineage_authority()
         .promote_correspondence(candidate.candidate_id, second.commit.clone())
         .unwrap();
-    let promoted_commit_id = promoted.promoted_commit_id.expect("promotion commit id");
+    let promoted_commit_id = promoted
+        .promoted_commit_id()
+        .expect("promotion commit id");
     let promoted_commit = runtime
         .history_access()
         .branch_head(&BranchId("main".to_string()))
@@ -1204,7 +1206,7 @@ fn hostile_commit_replay_equivalence_test() {
     ));
     let patch_digest = certification_digest(&original_envelope.patch);
     let lineage_digest = certification_digest(&(
-        original_envelope.lineage_events(),
+        original_envelope.lineage_digest_basis(),
         &original_envelope.index_generations,
         &original_bundle.lineage_history_digests,
     ));
@@ -1298,7 +1300,7 @@ fn hostile_commit_replay_equivalence_test() {
     assert_eq!(
         lineage_digest,
         certification_digest(&(
-        recovered_envelope.lineage_events(),
+            recovered_envelope.lineage_digest_basis(),
             &recovered_envelope.index_generations,
             &recovered_bundle.lineage_history_digests,
         ))

@@ -116,6 +116,14 @@ fn workflow_certification_runner_proves_relational_fintech_intraday_risk() {
         .session_data
         .named_replays
         .contains_key("analysis_intraday_replay"));
+    assert!(report.session.artifacts.iter().any(|artifact| {
+        artifact.surface == ArtifactSurface::ReplayRecoveryTruthState
+            && artifact
+                .payload
+                .get("analysis_intraday_replay")
+                .and_then(|payload| payload.get("lineage_authority_digest_mode"))
+                .is_some()
+    }));
 }
 
 #[test]
@@ -136,4 +144,12 @@ fn workflow_certification_runner_proves_relational_fintech_settlement_repair() {
         .session_data
         .named_replays
         .contains_key("analysis_repair_replay"));
+    assert!(report.session.artifacts.iter().any(|artifact| {
+        artifact.surface == ArtifactSurface::ReplayRecoveryTruthState
+            && artifact
+                .payload
+                .get("analysis_repair_replay")
+                .and_then(|payload| payload.get("lineage_authority_basis_kind"))
+                .is_some()
+    }));
 }

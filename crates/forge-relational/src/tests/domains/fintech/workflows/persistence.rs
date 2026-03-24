@@ -229,7 +229,9 @@ fn fintech_metadata_survives_hostile_workflow_recovery() {
     let graph = recovered
         .lineage_access()
         .graph(crate::facade::lineage::LineageGraphRequest {
-            branch_id: BranchId("main".to_string()),
+            branch_id: BranchId("analysis".to_string()),
+            traversal_basis:
+                crate::facade::lineage::LineageGraphTraversalBasis::FullBranchGraphMaterialization,
         });
     let index_access = recovered.index_access();
     let generation = index_access

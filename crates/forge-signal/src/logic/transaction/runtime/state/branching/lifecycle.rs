@@ -1,11 +1,11 @@
 use crate::data::error::SignalError;
 use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
 
-use super::branches::BranchAncestryState;
 use super::super::merge::BranchMutationLedger;
 use super::super::runtime_state::{
     AuthorityTransferPacket, BranchLifecycleTransfer, ExplicitBranchForkPacket, SignalRuntime,
 };
+use super::branches::BranchAncestryState;
 
 impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
 where
@@ -69,10 +69,7 @@ where
             return Err(SignalError::unknown_branch(Some(branch.id), branch.name));
         };
         let current_state = self.take_heavy_active_branch_state();
-        self.branches.store_branch_state(
-            current.id,
-            current_state,
-        );
+        self.branches.store_branch_state(current.id, current_state);
         self.apply_branch_lifecycle_transfer(BranchLifecycleTransfer::Move(
             AuthorityTransferPacket {
                 branch_id: branch.id,
@@ -84,7 +81,9 @@ where
             &mut self.telemetry.transaction,
         );
         self.telemetry.transaction.move_transfer_count += 2;
-        self.graph.diagnostics_state_mut().set_active_branch(branch.id);
+        self.graph
+            .diagnostics_state_mut()
+            .set_active_branch(branch.id);
         let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
         self.synchronize_branch_catalogs(branch_catalog);
         crate::diagnostics::recorder::record_snapshot_event(
@@ -156,9 +155,12 @@ where
             self.branches.store_branch_state(branch_id, state);
             return Ok(());
         }
-        let Some(()) = self.branches.with_stored_branch_state_mut(branch_id, |state| {
-            state.mutation_ledger = crate::logic::transaction::BranchMutationLedger::default();
-        }) else {
+        let Some(()) = self
+            .branches
+            .with_stored_branch_state_mut(branch_id, |state| {
+                state.mutation_ledger = crate::logic::transaction::BranchMutationLedger::default();
+            })
+        else {
             return Err(SignalError::unknown_branch(Some(branch_id), "test-branch"));
         };
         Ok(())

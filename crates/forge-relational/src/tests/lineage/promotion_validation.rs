@@ -155,7 +155,7 @@ fn lineage_promotion_validation_resolves_anchor_truth_from_history_not_caller_sh
         .cloned()
         .expect("promoted commit");
 
-    assert_eq!(promoted.promoted_commit_id, Some(promoted_commit.commit_id));
+    assert_eq!(promoted.promoted_commit_id(), Some(promoted_commit.commit_id));
     assert_eq!(promoted_commit.version_id, second.commit.version_id);
     assert_eq!(promoted_commit.parents, vec![second.commit.commit_id]);
 }

@@ -10,6 +10,6 @@ pub(crate) use resolver::explain_reconstructing_with_policy_resolver;
 pub use resolver::{explain, explain_with_policy_resolver};
 pub use types::{
     CausalDisposition, CausalLink, CausalLinkKind, ConditionDecision, MeaningfulChangeReason,
-    NodeExplanation, RewiringDependency, RewiringSummary, ScopeProvenance,
-    ScopeProvenanceKind, UpstreamCause,
+    NodeExplanation, RewiringDependency, RewiringSummary, ScopeProvenance, ScopeProvenanceKind,
+    UpstreamCause,
 };

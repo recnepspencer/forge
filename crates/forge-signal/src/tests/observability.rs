@@ -149,12 +149,9 @@ fn explicit_omit_policy_surfaces_unavailable_artifacts() {
     evaluate(&mut graph, source, &mut compute).unwrap();
     evaluate(&mut graph, dependent, &mut compute).unwrap();
 
-    let (explanation, explanation_mode) = graph
-        .materialize_explanation_artifact(dependent)
-        .unwrap();
-    let (provenance, provenance_mode) = graph
-        .materialize_provenance_artifact(dependent)
-        .unwrap();
+    let (explanation, explanation_mode) =
+        graph.materialize_explanation_artifact(dependent).unwrap();
+    let (provenance, provenance_mode) = graph.materialize_provenance_artifact(dependent).unwrap();
 
     assert!(explanation.is_none());
     assert!(provenance.is_none());
@@ -186,21 +183,29 @@ fn explicit_retained_and_reconstructed_artifact_apis_match_policy() {
         })
         .unwrap();
     assert!(graph
-        .observe().materialize().retained_explanation_artifact(dependent)
+        .observe()
+        .materialize()
+        .retained_explanation_artifact(dependent)
         .is_some());
     assert!(graph
-        .observe().materialize().retained_provenance_artifact(dependent)
+        .observe()
+        .materialize()
+        .retained_provenance_artifact(dependent)
         .is_some());
     assert_eq!(
         graph
-            .observe().materialize().retained_explanation_artifact(dependent)
+            .observe()
+            .materialize()
+            .retained_explanation_artifact(dependent)
             .unwrap()
             .materialization_mode,
         DiagnosticsAvailability::RetainedAvailable
     );
     assert_eq!(
         graph
-            .observe().materialize().retained_provenance_artifact(dependent)
+            .observe()
+            .materialize()
+            .retained_provenance_artifact(dependent)
             .unwrap()
             .materialization_mode,
         DiagnosticsAvailability::RetainedAvailable
@@ -208,16 +213,24 @@ fn explicit_retained_and_reconstructed_artifact_apis_match_policy() {
 
     graph.set_runtime_policy(SignalRuntimePolicy::operational());
     assert!(graph
-        .observe().materialize().retained_explanation_artifact(dependent)
+        .observe()
+        .materialize()
+        .retained_explanation_artifact(dependent)
         .is_none());
     assert!(graph
-        .observe().materialize().retained_provenance_artifact(dependent)
+        .observe()
+        .materialize()
+        .retained_provenance_artifact(dependent)
         .is_none());
     let reconstructed_explanation = graph
-        .observe().materialize().reconstruct_explanation_artifact(dependent)
+        .observe()
+        .materialize()
+        .reconstruct_explanation_artifact(dependent)
         .unwrap();
     let reconstructed_provenance = graph
-        .observe().materialize().reconstruct_provenance_artifact(dependent)
+        .observe()
+        .materialize()
+        .reconstruct_provenance_artifact(dependent)
         .unwrap();
     assert_eq!(
         reconstructed_explanation.materialization_mode,
@@ -237,7 +250,12 @@ fn explicit_retained_and_reconstructed_artifact_apis_match_policy() {
         reconstructed_explanation.causal_links
     );
     assert!(
-        graph.observe().metrics().storage.hot_path_artifact_reconstruction_count >= 2
+        graph
+            .observe()
+            .metrics()
+            .storage
+            .hot_path_artifact_reconstruction_count
+            >= 2
     );
 }
 
@@ -289,15 +307,24 @@ fn artifact_access_counters_attribute_lane_api_and_denial_reason() {
         })
         .unwrap();
     assert!(retained_graph
-        .observe().materialize().retained_explanation_artifact(retained_dependent)
+        .observe()
+        .materialize()
+        .retained_explanation_artifact(retained_dependent)
         .is_some());
     assert!(retained_graph
-        .observe().materialize().retained_provenance_artifact(retained_dependent)
+        .observe()
+        .materialize()
+        .retained_provenance_artifact(retained_dependent)
         .is_some());
     let retained_metrics = retained_graph.observe().metrics();
     assert_eq!(retained_metrics.storage.retained_forensic_read_count, 2);
     assert_eq!(retained_metrics.storage.retained_artifact_read_count, 2);
-    assert_eq!(retained_metrics.storage.explicit_cold_materialization_request_count, 0);
+    assert_eq!(
+        retained_metrics
+            .storage
+            .explicit_cold_materialization_request_count,
+        0
+    );
 
     let mut reconstructed_graph = SignalGraph::new();
     let reconstructed_source = reconstructed_graph.node().build();
@@ -333,14 +360,23 @@ fn artifact_access_counters_attribute_lane_api_and_denial_reason() {
         2
     );
     assert_eq!(
-        reconstructed_metrics.storage.cold_explanation_reconstruction_count,
+        reconstructed_metrics
+            .storage
+            .cold_explanation_reconstruction_count,
         1
     );
     assert_eq!(
-        reconstructed_metrics.storage.cold_provenance_reconstruction_count,
+        reconstructed_metrics
+            .storage
+            .cold_provenance_reconstruction_count,
         1
     );
-    assert_eq!(reconstructed_metrics.storage.reconstructed_artifact_read_count, 2);
+    assert_eq!(
+        reconstructed_metrics
+            .storage
+            .reconstructed_artifact_read_count,
+        2
+    );
 
     let mut omitted_graph = SignalGraph::new();
     let omitted_source = omitted_graph.node().build();
@@ -371,13 +407,20 @@ fn artifact_access_counters_attribute_lane_api_and_denial_reason() {
         DiagnosticsAvailability::OmittedByTier
     );
     let omitted_metrics = omitted_graph.observe().metrics();
-    assert_eq!(omitted_metrics.storage.denied_reconstruction_by_tier_count, 2);
     assert_eq!(
-        omitted_metrics.storage.denied_reconstruction_explanation_api_count,
+        omitted_metrics.storage.denied_reconstruction_by_tier_count,
+        2
+    );
+    assert_eq!(
+        omitted_metrics
+            .storage
+            .denied_reconstruction_explanation_api_count,
         1
     );
     assert_eq!(
-        omitted_metrics.storage.denied_reconstruction_provenance_api_count,
+        omitted_metrics
+            .storage
+            .denied_reconstruction_provenance_api_count,
         1
     );
 
@@ -388,8 +431,12 @@ fn artifact_access_counters_attribute_lane_api_and_denial_reason() {
         .append_dependency(denied_dependent, denied_source, ASPECT_A)
         .unwrap();
     let mut denied_policy = SignalRuntimePolicy::operational();
-    denied_policy.reconstruction_budget.allow_explanation_reconstruction = false;
-    denied_policy.reconstruction_budget.allow_provenance_reconstruction = false;
+    denied_policy
+        .reconstruction_budget
+        .allow_explanation_reconstruction = false;
+    denied_policy
+        .reconstruction_budget
+        .allow_provenance_reconstruction = false;
     denied_graph.set_runtime_policy(denied_policy);
     let mut denied_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut denied_graph, denied_source, &mut denied_compute).unwrap();
@@ -409,7 +456,10 @@ fn artifact_access_counters_attribute_lane_api_and_denial_reason() {
         DiagnosticsAvailability::DeniedByBudget
     );
     let denied_metrics = denied_graph.observe().metrics();
-    assert_eq!(denied_metrics.storage.denied_reconstruction_by_budget_count, 2);
+    assert_eq!(
+        denied_metrics.storage.denied_reconstruction_by_budget_count,
+        2
+    );
     assert_eq!(
         denied_metrics
             .storage
@@ -496,7 +546,9 @@ fn artifact_materialization_availability_states_are_explicit_and_non_ambiguous()
         .append_dependency(denied_dependent, denied_source, ASPECT_A)
         .unwrap();
     let mut denied_policy = SignalRuntimePolicy::operational();
-    denied_policy.reconstruction_budget.allow_explanation_reconstruction = false;
+    denied_policy
+        .reconstruction_budget
+        .allow_explanation_reconstruction = false;
     denied_graph.set_runtime_policy(denied_policy);
     let mut denied_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut denied_graph, denied_source, &mut denied_compute).unwrap();
@@ -579,7 +631,10 @@ fn explain_reports_missing_snapshot_and_dependency_removed() {
         .any(|cause| matches!(cause, UpstreamCause::MissingSnapshot { source: missing, aspect, current_version: Some(1), .. } if *missing == source && *aspect == ASPECT_A)));
     assert!(missing_snapshot.causal_links.iter().any(|link| {
         matches!(link.disposition, CausalDisposition::Conservative)
-            && matches!(link.kind, crate::logic::explain::CausalLinkKind::MissingSnapshot)
+            && matches!(
+                link.kind,
+                crate::logic::explain::CausalLinkKind::MissingSnapshot
+            )
     }));
 
     let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(10, 0));
@@ -785,7 +840,11 @@ fn ordinary_summary_surfaces_do_not_trigger_artifact_reconstruction() {
     evaluate(runtime.graph_mut(), source, &mut compute).unwrap();
     evaluate(runtime.graph_mut(), dependent, &mut compute).unwrap();
 
-    let before = runtime.observe().metrics().storage.hot_path_artifact_reconstruction_count;
+    let before = runtime
+        .observe()
+        .metrics()
+        .storage
+        .hot_path_artifact_reconstruction_count;
 
     let diagnostics = runtime.observe().diagnostics();
     let _graph_summary = diagnostics.summary(DiagnosticsTier::Operational);
@@ -794,7 +853,11 @@ fn ordinary_summary_surfaces_do_not_trigger_artifact_reconstruction() {
     let _replay = runtime.graph().replay_events();
     let rendered = render_execution_history_summary(&history);
 
-    let after = runtime.observe().metrics().storage.hot_path_artifact_reconstruction_count;
+    let after = runtime
+        .observe()
+        .metrics()
+        .storage
+        .hot_path_artifact_reconstruction_count;
     assert_eq!(
         before, after,
         "ordinary diagnostics/history/replay reads must not trigger artifact reconstruction"
@@ -822,19 +885,17 @@ fn tier_matrix_public_observer_surfaces_preserve_truth_while_availability_change
         graph.set_runtime_policy(policy);
         let source = graph.node().output_identity().build();
         let dependent = graph.node().build();
-        graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+        graph
+            .append_dependency(dependent, source, ASPECT_A)
+            .unwrap();
 
         let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| {
-            Ok(
-                NodeEvaluationResult::from_version(version_ab(1, 0))
-                    .with_output_identity("artifact-v1"),
-            )
+            Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+                .with_output_identity("artifact-v1"))
         };
         let mut source_v2 = |_id: NodeId, _graph: &SignalGraph| {
-            Ok(
-                NodeEvaluationResult::from_version(version_ab(2, 0))
-                    .with_output_identity("artifact-v2"),
-            )
+            Ok(NodeEvaluationResult::from_version(version_ab(2, 0))
+                .with_output_identity("artifact-v2"))
         };
         let mut dependent_compute = |_id: NodeId, graph: &SignalGraph| {
             Ok(NodeEvaluationResult::from_version(
@@ -849,11 +910,12 @@ fn tier_matrix_public_observer_surfaces_preserve_truth_while_availability_change
         mark_dirty(&mut graph, source, ASPECT_A).unwrap();
         evaluate(&mut graph, source, &mut source_v2).unwrap();
         evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
-        graph.restore_snapshot_with_intent(
-            &snapshot,
-            SnapshotRestoreIntent::restore_runtime_truth_with_active_policy(),
-        )
-        .unwrap();
+        graph
+            .restore_snapshot_with_intent(
+                &snapshot,
+                SnapshotRestoreIntent::restore_runtime_truth_with_active_policy(),
+            )
+            .unwrap();
 
         let before_ordinary = graph
             .observe()
@@ -902,10 +964,8 @@ fn tier_matrix_public_observer_surfaces_preserve_truth_while_availability_change
 
     let operational = run(SignalRuntimePolicy::operational());
     let development = run(SignalRuntimePolicy::development());
-    let forensic = run(
-        SignalRuntimePolicy::forensic()
-            .with_snapshot_restore_lineage_mode(SnapshotRestoreLineageMode::CompactGlobal),
-    );
+    let forensic = run(SignalRuntimePolicy::forensic()
+        .with_snapshot_restore_lineage_mode(SnapshotRestoreLineageMode::CompactGlobal));
 
     for (left, right) in [
         (&operational, &development),
@@ -925,7 +985,8 @@ fn tier_matrix_public_observer_surfaces_preserve_truth_while_availability_change
         assert!(
             left.history.traced_node_count == right.history.traced_node_count
                 && left.history.execution_record_count == right.history.execution_record_count
-                && left.history.latest_execution_record_id == right.history.latest_execution_record_id
+                && left.history.latest_execution_record_id
+                    == right.history.latest_execution_record_id
                 && left.history.reuse_origin_counts == right.history.reuse_origin_counts,
             "execution history should preserve the same conclusion set across tier changes"
         );
@@ -953,12 +1014,15 @@ fn tier_matrix_public_observer_surfaces_preserve_truth_while_availability_change
             left.explanation.node == right.explanation.node
                 && left.explanation.state == right.explanation.state
                 && left.explanation.upstream_count == right.explanation.upstream_count
-                && left.explanation.changed_upstream_count == right.explanation.changed_upstream_count
-                && left.explanation.skipped_upstream_count == right.explanation.skipped_upstream_count
+                && left.explanation.changed_upstream_count
+                    == right.explanation.changed_upstream_count
+                && left.explanation.skipped_upstream_count
+                    == right.explanation.skipped_upstream_count
                 && left.explanation.condition_deferred_count
                     == right.explanation.condition_deferred_count
                 && left.explanation.clean_upstream_count == right.explanation.clean_upstream_count
-                && left.explanation.missing_snapshot_count == right.explanation.missing_snapshot_count
+                && left.explanation.missing_snapshot_count
+                    == right.explanation.missing_snapshot_count
                 && left.explanation.dependency_removed_count
                     == right.explanation.dependency_removed_count
                 && left.explanation.propagation_suppressed
@@ -991,22 +1055,10 @@ fn tier_matrix_public_observer_surfaces_preserve_truth_while_availability_change
         operational.provenance_availability,
         DiagnosticsAvailability::ReconstructedAvailable
     );
-    assert_eq!(
-        development.explanation_availability.is_available(),
-        true
-    );
-    assert_eq!(
-        development.provenance_availability.is_available(),
-        true
-    );
-    assert_eq!(
-        forensic.explanation_availability.is_available(),
-        true
-    );
-    assert_eq!(
-        forensic.provenance_availability.is_available(),
-        true
-    );
+    assert_eq!(development.explanation_availability.is_available(), true);
+    assert_eq!(development.provenance_availability.is_available(), true);
+    assert_eq!(forensic.explanation_availability.is_available(), true);
+    assert_eq!(forensic.provenance_availability.is_available(), true);
 }
 
 #[test]
@@ -1143,10 +1195,7 @@ fn branch_and_snapshot_churn_respect_retention_budget_under_all_tiers() {
                 tx.read(source, &|view| {
                     Ok(view.finish(
                         NodeEvaluationResult::from_version(version_ab(2, 0))
-                            .with_output_identity(format!(
-                                "feature-seed-{}",
-                                policy.tier.label()
-                            )),
+                            .with_output_identity(format!("feature-seed-{}", policy.tier.label())),
                     ))
                 })?;
                 Ok(())
@@ -1556,7 +1605,11 @@ fn pending_invalidation_summary_is_retained_and_served_without_cold_work() {
         .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
 
-    let before = graph.observe().metrics().storage.explicit_cold_materialization_request_count;
+    let before = graph
+        .observe()
+        .metrics()
+        .storage
+        .explicit_cold_materialization_request_count;
     mark_dirty_with_regions(
         &mut graph,
         source,
@@ -1573,7 +1626,11 @@ fn pending_invalidation_summary_is_retained_and_served_without_cold_work() {
     let summary = graph
         .observe()
         .diagnostics_summary(DiagnosticsTier::Development);
-    let after = graph.observe().metrics().storage.explicit_cold_materialization_request_count;
+    let after = graph
+        .observe()
+        .metrics()
+        .storage
+        .explicit_cold_materialization_request_count;
 
     assert_eq!(summary, pending.with_profile(DiagnosticsTier::Development));
     assert!(summary.dirty_node_count >= 1);
@@ -1630,7 +1687,11 @@ fn observer_reads_do_not_mutate_frontier_truth_or_retain_extra_trace_records() {
         .cloned()
         .expect("frontier execution summary should exist");
     let traces_before = graph.observe().latest_invalidation_trace_records().to_vec();
-    let metrics_before = graph.observe().metrics().invalidation.frontier_trace_retained_count;
+    let metrics_before = graph
+        .observe()
+        .metrics()
+        .invalidation
+        .frontier_trace_retained_count;
 
     let diagnostics = graph.observe().diagnostics();
     let summary_after = diagnostics
@@ -1638,7 +1699,11 @@ fn observer_reads_do_not_mutate_frontier_truth_or_retain_extra_trace_records() {
         .cloned()
         .expect("frontier execution summary should remain available");
     let traces_after = diagnostics.latest_invalidation_trace_records().to_vec();
-    let metrics_after = graph.observe().metrics().invalidation.frontier_trace_retained_count;
+    let metrics_after = graph
+        .observe()
+        .metrics()
+        .invalidation
+        .frontier_trace_retained_count;
 
     assert_eq!(summary_before, summary_after);
     assert_eq!(traces_before, traces_after);
@@ -1847,6 +1912,3 @@ fn operational_flow_diagnostics_do_not_sample_explanations_by_default() {
         "operational flow diagnostics should not pay sampled explanation cost by default"
     );
 }
-
-
-

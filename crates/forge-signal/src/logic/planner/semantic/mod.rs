@@ -4,21 +4,31 @@ pub(crate) mod stage_recording;
 
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
+#[cfg(feature = "parallel")]
 use crate::data::handle::NodeId;
+#[cfg(feature = "parallel")]
 use crate::data::node::NodeState;
+#[cfg(feature = "parallel")]
 use crate::data::output::MemoizedResultOrigin;
+#[cfg(feature = "parallel")]
 use crate::data::reuse::ReuseBasis;
+#[cfg(feature = "parallel")]
 use crate::data::trace::RuntimeArtifactState;
 use crate::diagnostics::recorder::stamp_trace_summary_and_record_lineage_transition;
+#[cfg(feature = "parallel")]
 use crate::logic::evaluation::EvaluationVerdict;
+#[cfg(feature = "parallel")]
 use crate::logic::explain::RewiringSummary;
+
+use super::apply::serial_batch::{FinalizedSerialStageBatch, ReadySerialFinalizeBatch};
 
 use self::artifacts::record_semantic_artifacts;
 use self::reporting::record_semantic_update;
 use super::reporting::classify_task_execution_record;
+#[cfg(feature = "parallel")]
+use super::types::EligibleTask;
 use super::types::{
-    EligibleTask, ExecutionRecordId, ExecutionReport, SemanticSegmentId,
-    SemanticTaskRange, StageExecutionRecord,
+    ExecutionRecordId, ExecutionReport, SemanticSegmentId, SemanticTaskRange, StageExecutionRecord,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -27,6 +37,7 @@ pub(in crate::logic::planner) struct StageSemanticIdentity {
     pub segment_id: SemanticSegmentId,
 }
 
+#[cfg(feature = "parallel")]
 #[derive(Debug, Clone)]
 pub(super) struct SemanticTaskUpdate {
     pub task_index: usize,
@@ -44,6 +55,7 @@ pub(super) struct SemanticTaskUpdate {
     pub reuse_basis: ReuseBasis,
 }
 
+#[cfg(feature = "parallel")]
 #[derive(Debug, Clone)]
 pub(super) struct SemanticSegment {
     pub id: SemanticSegmentId,
@@ -51,12 +63,15 @@ pub(super) struct SemanticSegment {
     pub updates: Vec<SemanticTaskUpdate>,
 }
 
+#[cfg(feature = "parallel")]
 #[derive(Debug, Clone, Default)]
 pub(super) struct StageSemanticBatch {
     pub segments: Vec<SemanticSegment>,
 }
 
+#[cfg(feature = "parallel")]
 impl StageSemanticBatch {
+    #[cfg(feature = "parallel")]
     pub fn push_segment(&mut self, segment: SemanticSegment) {
         self.segments.push(segment);
     }
@@ -88,6 +103,7 @@ pub(super) fn reserve_stage_identities(
         .collect()
 }
 
+#[cfg(feature = "parallel")]
 pub(super) fn segment_for_single_update(update: SemanticTaskUpdate) -> SemanticSegment {
     SemanticSegment {
         id: update.identity.segment_id,
@@ -99,6 +115,7 @@ pub(super) fn segment_for_single_update(update: SemanticTaskUpdate) -> SemanticS
     }
 }
 
+#[cfg(feature = "parallel")]
 pub(super) fn finalize_stage_batch(
     graph: &mut SignalGraph,
     stage_tasks: &[EligibleTask],
@@ -114,15 +131,21 @@ pub(super) fn finalize_stage_batch(
     if !segments_are_sorted(segments.as_slice()) {
         segments.sort_by_key(|segment| (segment.task_range.start.0, segment.id.0));
     }
+    let Some(first_segment) = segments.first() else {
+        return Err(SignalError::internal(
+            "semantic finalize expected at least one segment after non-empty batch validation",
+        ));
+    };
+    let Some(last_segment) = segments.last() else {
+        return Err(SignalError::internal(
+            "semantic finalize expected a tail segment after non-empty batch validation",
+        ));
+    };
     stage_record.semantic_segment_count = segments.len() as u32;
     report.semantic_segment_count += segments.len() as u32;
     stage_record.semantic_task_range = Some(SemanticTaskRange {
-        start: segments
-            .first()
-            .expect("segments not empty")
-            .task_range
-            .start,
-        end: segments.last().expect("segments not empty").task_range.end,
+        start: first_segment.task_range.start,
+        end: last_segment.task_range.end,
     });
 
     let mut task_records = Vec::with_capacity(stage_tasks.len());
@@ -182,6 +205,89 @@ pub(super) fn finalize_stage_batch(
     Ok(())
 }
 
+pub(in crate::logic::planner) fn finalize_serial_stage_batch(
+    graph: &mut SignalGraph,
+    batch: ReadySerialFinalizeBatch,
+    report: &mut ExecutionReport,
+    stage_record: &mut StageExecutionRecord,
+) -> Result<FinalizedSerialStageBatch, SignalError> {
+    let _ = batch.stage_order_proof();
+    let stage_tasks = batch.stage_tasks();
+    let finalize_seeds = batch.finalize_seeds();
+    let applied_tasks = batch.applied_tasks();
+
+    if finalize_seeds.is_empty() {
+        let empty_range = SemanticTaskRange {
+            start: ExecutionRecordId(0),
+            end: ExecutionRecordId(0),
+        };
+        return Ok(FinalizedSerialStageBatch::new(empty_range, Vec::new(), 0));
+    }
+    let Some(first_seed) = finalize_seeds.first() else {
+        return Err(SignalError::internal(
+            "serial finalize expected a first seed after non-empty seed validation",
+        ));
+    };
+    let Some(last_seed) = finalize_seeds.last() else {
+        return Err(SignalError::internal(
+            "serial finalize expected a last seed after non-empty seed validation",
+        ));
+    };
+
+    let semantic_task_range = SemanticTaskRange {
+        start: first_seed.identity.record_id,
+        end: last_seed.identity.record_id,
+    };
+    let mut task_records = Vec::with_capacity(applied_tasks.len());
+
+    for (seed, applied) in finalize_seeds.iter().zip(applied_tasks.iter()) {
+        if seed.node != applied.node {
+            return Err(SignalError::internal(
+                "serial finalize proof was violated: stage-ordered seed and applied node diverged",
+            ));
+        }
+        stamp_trace_summary_and_record_lineage_transition(
+            graph,
+            applied.node,
+            seed.before_artifact_state.as_ref(),
+            seed.identity.record_id,
+            seed.identity.segment_id,
+        )?;
+        let task = &stage_tasks[seed.task_index];
+        let task_record = classify_task_execution_record(
+            seed.identity.record_id,
+            seed.identity.segment_id,
+            task,
+            seed.before_state,
+            applied.after_state,
+            seed.before_artifact_state.as_ref(),
+            graph.get_entry(applied.node)?.get_runtime_artifact_state(),
+            applied.verdict.clone(),
+            applied.memoized_origin,
+            applied.reuse_basis.clone(),
+        );
+        record_semantic_update(
+            graph,
+            report,
+            &task_record,
+            seed.dependency_updates,
+            seed.recomputed,
+            seed.partition_aware,
+        );
+        record_semantic_artifacts(graph, applied.node, seed.rewiring.as_ref())?;
+        task_records.push(task_record);
+    }
+
+    let semantic_segment_count = finalize_seeds.len() as u32;
+    stage_record.semantic_segment_count = semantic_segment_count;
+    Ok(FinalizedSerialStageBatch::new(
+        semantic_task_range,
+        task_records,
+        semantic_segment_count,
+    ))
+}
+
+#[cfg(feature = "parallel")]
 fn segments_are_sorted(segments: &[SemanticSegment]) -> bool {
     segments.windows(2).all(|pair| {
         pair[0].task_range.start.0 < pair[1].task_range.start.0
@@ -190,8 +296,7 @@ fn segments_are_sorted(segments: &[SemanticSegment]) -> bool {
     })
 }
 
+#[cfg(feature = "parallel")]
 fn task_records_are_sorted(records: &[super::types::TaskExecutionRecord]) -> bool {
-    records
-        .windows(2)
-        .all(|pair| pair[0].id.0 <= pair[1].id.0)
+    records.windows(2).all(|pair| pair[0].id.0 <= pair[1].id.0)
 }

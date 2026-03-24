@@ -376,4 +376,3 @@ impl ProvenanceEdge {
 
 pub type ExplanationFactTable = BTreeMap<NodeId, ExplanationFact>;
 pub type ProvenanceFactTable = BTreeMap<NodeId, ProvenanceFact>;
-

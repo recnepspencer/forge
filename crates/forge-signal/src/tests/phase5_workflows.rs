@@ -1138,7 +1138,10 @@ fn retained_vs_reconstructed_artifacts_match_after_long_churn() {
 
         (
             runtime.observe().replay_for_branch(feature.id),
-            runtime.observe().lineage_chain_for_node(dependent).to_owned_records(),
+            runtime
+                .observe()
+                .lineage_chain_for_node(dependent)
+                .to_owned_records(),
             runtime.observe().explain(dependent).unwrap(),
         )
     }
@@ -1803,7 +1806,10 @@ fn long_session_replay_and_lineage_stay_equivalent_between_serial_and_parallel_e
 
         (
             runtime.observe().replay_for_branch(feature.id),
-            runtime.observe().lineage_chain_for_node(sink).to_owned_records(),
+            runtime
+                .observe()
+                .lineage_chain_for_node(sink)
+                .to_owned_records(),
             runtime.observe().explain(sink).unwrap(),
         )
     }
@@ -2208,4 +2214,3 @@ fn dynamic_rewire_threshold_session_with_parallel_restore_preserves_subscriber_s
             .contains(&target));
     }
 }
-

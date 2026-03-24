@@ -7,9 +7,6 @@ mod plan;
 mod policy;
 mod result;
 
-pub(crate) use execute::{
-    adopt_source_node_into_target, merge_comparable, remap_dependency_snapshot,
-};
 #[allow(unused_imports)]
 pub use adoption::{
     AdoptedNodeContract, AdoptedNodeMaterialization, AdoptionDependencySnapshotRef,
@@ -27,6 +24,9 @@ pub use conflict::{
 pub use core::{
     BranchMergeBase, BranchMergeDivergence, BranchMergeFailureKind, BranchMergeKind,
     BranchMergeRequest, BranchMergeStrategy, MergeBoundaryWitness, MergeBoundaryWitnessKind,
+};
+pub(crate) use execute::{
+    adopt_source_node_into_target, merge_comparable, remap_dependency_snapshot,
 };
 #[allow(unused_imports)]
 pub use journal::{

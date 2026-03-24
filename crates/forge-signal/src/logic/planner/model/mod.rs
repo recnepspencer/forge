@@ -6,12 +6,12 @@ use std::thread::available_parallelism;
 
 use serde::{Deserialize, Serialize};
 
+use crate::data::aspect::AspectMask;
 #[cfg(feature = "parallel")]
 use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::dependency::CanonicalDependencies;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
-use crate::data::aspect::AspectMask;
 use crate::data::node::{AuthorityPolicy, PathClass};
 use crate::data::output::MemoizedResultOrigin;
 use crate::data::performance::{ResolvedExecutionStrategy, ResolvedMaintenanceStrategy};
@@ -185,9 +185,7 @@ impl ParallelAdmissionReason {
             Self::AdmittedOperational => "admitted-operational",
             Self::AdmittedDevelopment => "admitted-development",
             Self::AdmittedForensic => "admitted-forensic",
-            Self::AdmittedProofSafeGroupedConcurrent => {
-                "admitted-proof-safe-grouped-concurrent"
-            }
+            Self::AdmittedProofSafeGroupedConcurrent => "admitted-proof-safe-grouped-concurrent",
         }
     }
 

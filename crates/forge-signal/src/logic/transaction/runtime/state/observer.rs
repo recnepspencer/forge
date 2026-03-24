@@ -3,6 +3,7 @@ use crate::data::error::SignalError;
 use crate::data::graph::{EvaluationStrategy, GraphMaterializer, GraphObserver};
 use crate::data::handle::NodeId;
 use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
+use crate::data::telemetry::{EvaluationTelemetry, InvalidationTelemetry};
 use crate::diagnostics::access::RuntimeDiagnostics;
 use crate::diagnostics::facts::ProvenanceFact;
 use crate::diagnostics::history::ExecutionInspector;
@@ -15,7 +16,6 @@ use crate::diagnostics::{
 };
 use crate::logic::explain::{explain_with_policy_resolver, NodeExplanation};
 use crate::presentation::metrics::RuntimeMetrics;
-use crate::data::telemetry::{EvaluationTelemetry, InvalidationTelemetry};
 use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
 
 use super::runtime_state::SignalRuntime;
@@ -143,11 +143,7 @@ where
                 .snapshot_restore_coarse_reason_count,
             checkpoint_size: self.runtime.telemetry.checkpoint.checkpoint_size,
             journal_replay_span: self.runtime.telemetry.checkpoint.journal_replay_span,
-            restore_authority_breadth: self
-                .runtime
-                .telemetry
-                .checkpoint
-                .restore_authority_breadth,
+            restore_authority_breadth: self.runtime.telemetry.checkpoint.restore_authority_breadth,
             restore_required_derived_breadth: self
                 .runtime
                 .telemetry
@@ -174,7 +170,9 @@ where
     }
 
     pub fn replay_for_artifact(&self, artifact_id: LineageArtifactId) -> ReplaySlice {
-        self.graph().replay_for_artifact(artifact_id).to_owned_slice()
+        self.graph()
+            .replay_for_artifact(artifact_id)
+            .to_owned_slice()
     }
 
     pub fn replay_from_cursor(&self, start: crate::diagnostics::ReplayCursor) -> ReplaySlice {
@@ -190,7 +188,9 @@ where
     }
 
     pub fn replay_around_snapshot(&self, snapshot_id: SignalSnapshotId) -> ReplaySlice {
-        self.graph().replay_around_snapshot(snapshot_id).to_owned_slice()
+        self.graph()
+            .replay_around_snapshot(snapshot_id)
+            .to_owned_slice()
     }
 
     pub fn replay_for_branch(&self, branch_id: SignalBranchId) -> ReplaySlice {
@@ -201,7 +201,12 @@ where
                 self.runtime.graph.current_branch().id,
                 &self.runtime.graph,
             )
-            .map(|graph| graph.observe().replay_for_branch(branch_id).to_owned_slice())
+            .map(|graph| {
+                graph
+                    .observe()
+                    .replay_for_branch(branch_id)
+                    .to_owned_slice()
+            })
             .unwrap_or_default()
     }
 
@@ -227,10 +232,7 @@ where
         self.graph().lineage_chain_for_artifact(artifact_id)
     }
 
-    pub fn execution_history_summary(
-        &self,
-        profile: DiagnosticsTier,
-    ) -> ExecutionHistorySummary {
+    pub fn execution_history_summary(&self, profile: DiagnosticsTier) -> ExecutionHistorySummary {
         self.graph().execution_history_summary(profile)
     }
 
@@ -325,24 +327,25 @@ fn merge_evaluation_telemetry(
             + runtime.reuse_rejected_contract_strategy_count,
         reuse_rejected_boundary_mismatch_count: graph.reuse_rejected_boundary_mismatch_count
             + runtime.reuse_rejected_boundary_mismatch_count,
-        reuse_rejected_missing_prior_context_count: graph.reuse_rejected_missing_prior_context_count
+        reuse_rejected_missing_prior_context_count: graph
+            .reuse_rejected_missing_prior_context_count
             + runtime.reuse_rejected_missing_prior_context_count,
-        reuse_rejected_persistent_correspondence_missing_count:
-            graph.reuse_rejected_persistent_correspondence_missing_count
-                + runtime.reuse_rejected_persistent_correspondence_missing_count,
-        reuse_rejected_persistent_correspondence_invalid_count:
-            graph.reuse_rejected_persistent_correspondence_invalid_count
-                + runtime.reuse_rejected_persistent_correspondence_invalid_count,
+        reuse_rejected_persistent_correspondence_missing_count: graph
+            .reuse_rejected_persistent_correspondence_missing_count
+            + runtime.reuse_rejected_persistent_correspondence_missing_count,
+        reuse_rejected_persistent_correspondence_invalid_count: graph
+            .reuse_rejected_persistent_correspondence_invalid_count
+            + runtime.reuse_rejected_persistent_correspondence_invalid_count,
         reuse_rejected_composition_region_count: graph.reuse_rejected_composition_region_count
             + runtime.reuse_rejected_composition_region_count,
-        reuse_rejected_mixed_basis_insufficiency_count:
-            graph.reuse_rejected_mixed_basis_insufficiency_count
-                + runtime.reuse_rejected_mixed_basis_insufficiency_count,
+        reuse_rejected_mixed_basis_insufficiency_count: graph
+            .reuse_rejected_mixed_basis_insufficiency_count
+            + runtime.reuse_rejected_mixed_basis_insufficiency_count,
         reuse_dependency_comparison_breadth: graph.reuse_dependency_comparison_breadth
             + runtime.reuse_dependency_comparison_breadth,
-        reuse_cold_certification_materialization_count:
-            graph.reuse_cold_certification_materialization_count
-                + runtime.reuse_cold_certification_materialization_count,
+        reuse_cold_certification_materialization_count: graph
+            .reuse_cold_certification_materialization_count
+            + runtime.reuse_cold_certification_materialization_count,
         skipped_by_comparator: graph.skipped_by_comparator + runtime.skipped_by_comparator,
         suppressed_downstream_propagations: graph.suppressed_downstream_propagations
             + runtime.suppressed_downstream_propagations,
@@ -353,7 +356,9 @@ fn merge_evaluation_telemetry(
         condition_skip_count: graph.condition_skip_count + runtime.condition_skip_count,
         ondemand_deferred_count: graph.ondemand_deferred_count + runtime.ondemand_deferred_count,
         debounce_deferred_count: graph.debounce_deferred_count + runtime.debounce_deferred_count,
-        evaluation_stack_peak: graph.evaluation_stack_peak.max(runtime.evaluation_stack_peak),
+        evaluation_stack_peak: graph
+            .evaluation_stack_peak
+            .max(runtime.evaluation_stack_peak),
     }
 }
 
@@ -474,7 +479,7 @@ fn merge_invalidation_telemetry(
             + runtime.frontier_cycle_check_visited_count,
         frontier_trace_retained_count: graph.frontier_trace_retained_count
             + runtime.frontier_trace_retained_count,
-        subscriber_repair_breadth: graph.subscriber_repair_breadth + runtime.subscriber_repair_breadth,
+        subscriber_repair_breadth: graph.subscriber_repair_breadth
+            + runtime.subscriber_repair_breadth,
     }
 }
-

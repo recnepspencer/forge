@@ -255,7 +255,10 @@ fn full_parallel_splits_wide_stage_into_deterministic_apply_groups() {
 
     assert_eq!(report.stages.len(), 1);
     let stage = &report.stages[0];
-    assert!(matches!(stage.outcome, StageExecutionOutcome::CompletedParallel));
+    assert!(matches!(
+        stage.outcome,
+        StageExecutionOutcome::CompletedParallel
+    ));
     assert_eq!(
         stage.apply_mode,
         Some(ParallelApplyMode::GroupedConcurrentApply)
@@ -1103,4 +1106,3 @@ fn stress_repeated_parallel_parity_on_wide_branch_graph() {
         assert!(report.matched);
     }
 }
-

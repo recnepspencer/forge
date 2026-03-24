@@ -6,8 +6,8 @@ use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::failure::ExecutionFailurePhase;
 use crate::diagnostics::failure::FailureSummary;
 use crate::diagnostics::failure::RollbackDiagnostic;
-use crate::logic::planner::ExecutionReport;
 use crate::logic::planner::model::ParallelAdmissionReason;
+use crate::logic::planner::ExecutionReport;
 
 use super::transaction_types::{
     EvaluationSummary, TransactionOutcome, TransactionReplayEntry, TransactionResult,

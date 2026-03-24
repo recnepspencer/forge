@@ -7,7 +7,7 @@ mod resolution;
 use crate::logic::runtime::RelationalRuntime;
 
 pub struct LineageAccess<'runtime> {
-    pub(crate) runtime: &'runtime RelationalRuntime,
+    runtime: &'runtime RelationalRuntime,
 }
 
 impl RelationalRuntime {

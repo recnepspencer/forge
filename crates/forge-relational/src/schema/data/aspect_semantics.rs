@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
 use crate::identity::data::KindId;
+use crate::schema::data::PayloadSchemaDeclaration;
 use crate::publication::patch::data::AspectKey;
 use crate::symbols::data::InternedString;
 
@@ -14,6 +15,7 @@ pub struct AspectPlanRevision(pub u128);
 pub struct KindAspectDeclarations {
     pub plan_revision: AspectPlanRevision,
     pub aspects: Vec<DeclaredAspect>,
+    pub payload_schema: Option<PayloadSchemaDeclaration>,
 }
 
 impl KindAspectDeclarations {
@@ -21,7 +23,13 @@ impl KindAspectDeclarations {
         Self {
             plan_revision: AspectPlanRevision(0),
             aspects,
+            payload_schema: None,
         }
+    }
+
+    pub fn with_payload_schema(mut self, payload_schema: PayloadSchemaDeclaration) -> Self {
+        self.payload_schema = Some(payload_schema);
+        self
     }
 }
 

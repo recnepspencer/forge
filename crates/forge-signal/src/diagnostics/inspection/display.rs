@@ -151,5 +151,3 @@ pub fn render_failure_summary(summary: &FailureSummary) -> String {
         summary.profile, summary.phase, summary.node, summary.rolled_back, summary.message
     )
 }
-
-

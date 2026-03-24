@@ -4,18 +4,35 @@ use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
 use crate::lineage::data::{
-    CorrespondenceResolution, LineageDecisionKind, LineageFinalizationArtifact,
-    LineageEventKind, LineageResolutionStatus,
+    CorrespondencePromotionExecutionFailureClass, CorrespondenceResolution, LineageDecisionKind,
+    LineageFinalizationArtifact, LineageEventKind,
 };
-use crate::lineage::logic::authority::phase_types::LoweredPromotionPlan;
+use crate::lineage::logic::authority::phase_types::{
+    ExecutionAuthorizedPromotionPlan, LoweredPromotionPlan,
+};
 use crate::lineage::logic::authority::LineageAuthority;
 
 impl<'runtime> LineageAuthority<'runtime> {
     pub(super) fn execute_promotion_plan(
         &mut self,
         plan: LoweredPromotionPlan,
-    ) -> Result<CorrespondenceResolution, crate::lineage::data::CorrespondencePromotionRejectionClass>
-    {
+    ) -> CorrespondenceResolution {
+        let candidate_id = plan.candidate_id();
+        let plan = match self.authorize_promotion_execution(plan) {
+            Ok(plan) => plan,
+            Err(failure_class) => {
+                self.record_execution_failure_diagnostic(
+                    None,
+                    0,
+                    failure_class,
+                );
+                return CorrespondenceResolution::execution_failed(
+                    candidate_id,
+                    0,
+                    failure_class,
+                );
+            }
+        };
         let event = self.prepare_authoritative_lineage_event(
             plan.commit(),
             LineageEventKind::Correspond,
@@ -30,25 +47,43 @@ impl<'runtime> LineageAuthority<'runtime> {
         );
         let artifact =
             LineageFinalizationArtifact::single_event(plan.branch_id().clone(), event, decision);
-        let promotion_commit =
-            self.publish_promotion_commit(plan.commit(), plan.candidate_id(), &artifact)?;
-        let resolution = CorrespondenceResolution {
-            candidate_id: plan.candidate_id(),
-            status: LineageResolutionStatus::Promoted,
-            promoted_event_id: Some(event_id),
-            promoted_commit_id: Some(promotion_commit.commit_id),
-            rejection_class: None,
+        self.runtime.performance_access().count_lineage_finalization(
+            artifact.event_batch().events().len(),
+            artifact.decision_log().decisions().len(),
+        );
+        let promotion_commit = match self.publish_promotion_commit(&plan, &artifact) {
+            Ok(commit) => commit,
+            Err(failure_class) => {
+                self.record_execution_failure_diagnostic(
+                    Some(&plan),
+                    event_id,
+                    failure_class,
+                );
+                return CorrespondenceResolution::execution_failed(
+                    plan.candidate_id(),
+                    event_id,
+                    failure_class,
+                );
+            }
         };
+        self.runtime
+            .performance_access()
+            .count_lineage_promotion_accepted();
+        let resolution = CorrespondenceResolution::promoted(
+            plan.candidate_id(),
+            event_id,
+            promotion_commit.commit_id,
+        );
         self.runtime
             .publication_authority()
             .push_bounded_diagnostic(
                 DiagnosticsScope::Lineage,
                 DiagnosticsArtifactKind::MinimalSummary,
                 vec![RelationalDiagnosticsEntry {
-                    code: DiagnosticCode::CommitPublished,
+                    code: DiagnosticCode::LineagePromotionPublished,
                     message: "correspondence promoted into lineage".to_string(),
                     fields: json!({
-                        "candidate_id": resolution.candidate_id,
+                        "candidate_id": resolution.candidate_id(),
                         "event_id": event_id,
                         "commit_id": promotion_commit.commit_id.0,
                         "anchor_commit_id": plan.commit().commit_id.0,
@@ -56,6 +91,39 @@ impl<'runtime> LineageAuthority<'runtime> {
                     }),
                 }],
             );
-        Ok(resolution)
+        resolution
+    }
+
+    fn record_execution_failure_diagnostic(
+        &mut self,
+        plan: Option<&ExecutionAuthorizedPromotionPlan>,
+        event_id: u64,
+        failure_class: CorrespondencePromotionExecutionFailureClass,
+    ) {
+        let detail = match failure_class {
+            CorrespondencePromotionExecutionFailureClass::AnchorDriftedFromBranchHead => {
+                "correspondence promotion execution observed branch-head drift after planning"
+            }
+            CorrespondencePromotionExecutionFailureClass::AuthorityPublicationFailed => {
+                "correspondence promotion execution failed while publishing the finalized lineage artifact"
+            }
+        };
+        self.runtime
+            .publication_authority()
+            .push_bounded_diagnostic(
+                DiagnosticsScope::Lineage,
+                DiagnosticsArtifactKind::MinimalSummary,
+                vec![RelationalDiagnosticsEntry {
+                    code: DiagnosticCode::LineagePromotionExecutionFailed,
+                    message: detail.to_string(),
+                    fields: json!({
+                        "candidate_id": plan.map(|plan| plan.candidate_id()),
+                        "event_id": event_id,
+                        "anchor_commit_id": plan.map(|plan| plan.commit().commit_id.0),
+                        "branch_id": plan.map(|plan| plan.branch_id().0.clone()),
+                        "execution_failure_class": format!("{failure_class:?}"),
+                    }),
+                }],
+            );
     }
 }

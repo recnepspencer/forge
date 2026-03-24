@@ -3,18 +3,21 @@ use std::collections::BTreeSet;
 use smallvec::SmallVec;
 
 use crate::schema::data::{
+    AcyclicityContractDeclaration, AllowedCycleClass, ConnectivityMinimumContractDeclaration,
+    ConnectivityMinimumEnforcement, DirectedTraversalKind,
     AspectBinding, AspectComparator, AspectPlanCatalog, AspectPlanRevision, AspectPrecision,
     CardinalityContractDeclaration, DeclaredAspect, EndpointKindContractDeclaration,
     EntityKindRegistration, KindAspectDeclarations, ContractId,
     LoweredAspectBinding, LoweredExecutableAspectBindingKind, LoweredAspectPlan,
     LoweredCardinalityMaximumContract, LoweredCardinalityMinimumContract,
     LoweredEndpointDeletionIntegrityContract,
-    LoweredEndpointKindContract, LoweredRelationIntegrityPlan, LoweredSymmetryContract,
-    LoweredUniquenessContract, MinimumCardinalityEnforcement, PairMinimumSemantics,
-    RelationIntegrityDeclarations,
-    RelationIntegrityPlanCatalog,
-    RelationKindRegistration, RelationPayloadClass, RelationalSchemaRegistry,
-    SchemaRegistryError, derive_relation_integrity_plan_revision,
+    LoweredEndpointKindContract, LoweredPartitionIsolationContract,
+    LoweredRelationIntegrityPlan, LoweredSymmetryContract, LoweredUniquenessContract,
+    MinimumCardinalityEnforcement, PairMinimumSemantics, PartitionIsolationContractDeclaration,
+    PartitionIsolationMode, PayloadFieldConstraintDeclaration, PayloadSchemaDeclaration,
+    RelationIntegrityDeclarations, RelationIntegrityPlanCatalog, RelationKindRegistration,
+    RelationPayloadClass, RelationalSchemaRegistry, SchemaRegistryError,
+    derive_relation_integrity_plan_revision,
 };
 use crate::symbols::data::InternedString;
 
@@ -103,6 +106,9 @@ fn canonicalize_declarations(
 ) -> Result<KindAspectDeclarations, SchemaRegistryError> {
     let mut seen = BTreeSet::new();
     let mut aspects = declarations.aspects;
+    let payload_schema = declarations
+        .payload_schema
+        .map(|payload_schema| canonicalize_payload_schema(kind_id, payload_schema))?;
     aspects.sort_by(|left, right| left.key.cmp(&right.key));
     for aspect in &aspects {
         if !seen.insert(aspect.key.clone()) {
@@ -117,6 +123,7 @@ fn canonicalize_declarations(
     Ok(KindAspectDeclarations {
         plan_revision,
         aspects,
+        payload_schema,
     })
 }
 
@@ -236,6 +243,34 @@ fn validate_raw_interned_string(
     }
 }
 
+fn canonicalize_payload_schema(
+    kind_id: crate::identity::data::KindId,
+    mut payload_schema: PayloadSchemaDeclaration,
+) -> Result<PayloadSchemaDeclaration, SchemaRegistryError> {
+    if payload_schema.contract_id.trim().is_empty() {
+        return Err(SchemaRegistryError::invalid_aspect_declaration(
+            kind_id,
+            "payload schema contract id must not be empty",
+        ));
+    }
+    payload_schema
+        .field_constraints
+        .sort_by(|left, right| left.field().cmp(right.field()).then(left.cmp(right)));
+    for constraint in &payload_schema.field_constraints {
+        if constraint.field().trim().is_empty() {
+            return Err(SchemaRegistryError::invalid_aspect_declaration(
+                kind_id,
+                "payload schema field names must not be empty",
+            ));
+        }
+        match constraint {
+            PayloadFieldConstraintDeclaration::Required { .. }
+            | PayloadFieldConstraintDeclaration::Type { .. } => {}
+        }
+    }
+    Ok(payload_schema)
+}
+
 fn lower_kind_plan(
     kind_id: crate::identity::data::KindId,
     declarations: &KindAspectDeclarations,
@@ -263,12 +298,19 @@ fn canonicalize_relation_integrity(
     let mut symmetry_contracts = declarations.symmetry_contracts;
     let mut endpoint_deletion_integrity_contracts =
         declarations.endpoint_deletion_integrity_contracts;
+    let mut acyclicity_contracts = declarations.acyclicity_contracts;
+    let mut partition_isolation_contracts = declarations.partition_isolation_contracts;
+    let mut connectivity_minimum_contracts = declarations.connectivity_minimum_contracts;
 
     endpoint_kind_contracts.sort_by(|left, right| left.contract_id.cmp(&right.contract_id));
     cardinality_contracts.sort_by(|left, right| left.contract_id.cmp(&right.contract_id));
     uniqueness_contracts.sort_by(|left, right| left.contract_id.cmp(&right.contract_id));
     symmetry_contracts.sort_by(|left, right| left.contract_id.cmp(&right.contract_id));
     endpoint_deletion_integrity_contracts
+        .sort_by(|left, right| left.contract_id.cmp(&right.contract_id));
+    acyclicity_contracts.sort_by(|left, right| left.contract_id.cmp(&right.contract_id));
+    partition_isolation_contracts.sort_by(|left, right| left.contract_id.cmp(&right.contract_id));
+    connectivity_minimum_contracts
         .sort_by(|left, right| left.contract_id.cmp(&right.contract_id));
     for declaration in &mut endpoint_kind_contracts {
         declaration.allowed_source_kinds.sort();
@@ -294,6 +336,49 @@ fn canonicalize_relation_integrity(
     for declaration in &endpoint_deletion_integrity_contracts {
         validate_contract_id(kind_id, &declaration.contract_id, &mut seen_contract_ids)?;
     }
+    for declaration in &acyclicity_contracts {
+        validate_contract_id(kind_id, &declaration.contract_id, &mut seen_contract_ids)?;
+        match declaration.traversal_direction {
+            DirectedTraversalKind::SourceToTarget => {}
+        }
+        match declaration.allowed_cycle_class {
+            AllowedCycleClass::NoCycles => {}
+        }
+    }
+    for declaration in &partition_isolation_contracts {
+        validate_contract_id(kind_id, &declaration.contract_id, &mut seen_contract_ids)?;
+        match declaration.isolation_mode {
+            PartitionIsolationMode::SamePartitionEndpoints => {}
+        }
+    }
+    for declaration in &mut connectivity_minimum_contracts {
+        validate_contract_id(kind_id, &declaration.contract_id, &mut seen_contract_ids)?;
+        declaration.source_kind_ids.sort();
+        declaration.source_kind_ids.dedup();
+        declaration.target_kind_ids.sort();
+        declaration.target_kind_ids.dedup();
+        if declaration.source_kind_ids.is_empty() || declaration.target_kind_ids.is_empty() {
+            return Err(SchemaRegistryError::invalid_relation_integrity_declaration(
+                kind_id,
+                format!(
+                    "connectivity minimum contract '{}' must declare source and target kind domains",
+                    declaration.contract_id
+                ),
+            ));
+        }
+        if declaration.minimum_reachable_targets == 0 {
+            return Err(SchemaRegistryError::invalid_relation_integrity_declaration(
+                kind_id,
+                format!(
+                    "connectivity minimum contract '{}' must require at least one reachable target",
+                    declaration.contract_id
+                ),
+            ));
+        }
+        match declaration.enforcement_boundary {
+            ConnectivityMinimumEnforcement::SnapshotPublication => {}
+        }
+    }
 
     Ok(RelationIntegrityDeclarations {
         plan_revision: derive_relation_integrity_plan_revision(
@@ -302,12 +387,18 @@ fn canonicalize_relation_integrity(
             &uniqueness_contracts,
             &symmetry_contracts,
             &endpoint_deletion_integrity_contracts,
+            &acyclicity_contracts,
+            &partition_isolation_contracts,
+            &connectivity_minimum_contracts,
         ),
         endpoint_kind_contracts,
         cardinality_contracts,
         uniqueness_contracts,
         symmetry_contracts,
         endpoint_deletion_integrity_contracts,
+        acyclicity_contracts,
+        partition_isolation_contracts,
+        connectivity_minimum_contracts,
     })
 }
 
@@ -538,6 +629,40 @@ fn lower_relation_integrity_plan(
                 relation_kind_id: kind_id,
                 mode: declaration.mode,
                 cascade_delete_policy,
+                plan_revision: declarations.plan_revision,
+            })
+            .collect(),
+        acyclicity_contracts: declarations
+            .acyclicity_contracts
+            .iter()
+            .map(|declaration| crate::schema::data::LoweredAcyclicityContract {
+                contract_id: declaration.contract_id.clone(),
+                relation_kind_id: kind_id,
+                traversal_direction: declaration.traversal_direction,
+                allowed_cycle_class: declaration.allowed_cycle_class,
+                plan_revision: declarations.plan_revision,
+            })
+            .collect(),
+        partition_isolation_contracts: declarations
+            .partition_isolation_contracts
+            .iter()
+            .map(|declaration| LoweredPartitionIsolationContract {
+                contract_id: declaration.contract_id.clone(),
+                relation_kind_id: kind_id,
+                isolation_mode: declaration.isolation_mode,
+                plan_revision: declarations.plan_revision,
+            })
+            .collect(),
+        connectivity_minimum_contracts: declarations
+            .connectivity_minimum_contracts
+            .iter()
+            .map(|declaration| crate::schema::data::LoweredConnectivityMinimumContract {
+                contract_id: declaration.contract_id.clone(),
+                source_kind_ids: declaration.source_kind_ids.clone(),
+                relation_kind_id: kind_id,
+                target_kind_ids: declaration.target_kind_ids.clone(),
+                minimum_reachable_targets: declaration.minimum_reachable_targets,
+                enforcement_boundary: declaration.enforcement_boundary,
                 plan_revision: declarations.plan_revision,
             })
             .collect(),

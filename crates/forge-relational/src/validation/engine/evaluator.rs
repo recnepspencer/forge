@@ -2,10 +2,13 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use crate::diagnostics::data::DiagnosticCode;
 use crate::schema::data::{
+    LoweredAcyclicityContract, LoweredConnectivityMinimumContract,
     EndpointDeletionIntegrityMode, LoweredCardinalityMaximumContract,
     LoweredCardinalityMinimumContract, PairMinimumSemantics,
     LoweredEndpointDeletionIntegrityContract, LoweredEndpointKindContract,
-    LoweredSymmetryContract, LoweredUniquenessContract, SymmetryMode, UniquenessScope,
+    LoweredPartitionIsolationContract, LoweredPayloadSchemaContract,
+    LoweredSymmetryContract, LoweredUniquenessContract, PayloadContractRecordKind,
+    PayloadFieldConstraint, PayloadSchemaValueType, SymmetryMode, UniquenessScope,
 };
 use crate::storage::data::RecordLifecycleState;
 use crate::storage::logic::state::HistoricalMetadata;
@@ -74,6 +77,14 @@ pub(crate) fn evaluate_rule(
         InvariantRule::EndpointDeletionIntegrityContract(contract) => {
             evaluate_endpoint_deletion_integrity_contract(context, class, contract)
         }
+        InvariantRule::PayloadSchemaContract(contract) => {
+            evaluate_payload_schema_contract(context, class, contract)
+        }
+        InvariantRule::PartitionIsolationContract(contract) => {
+            evaluate_partition_isolation_contract(context, class, contract)
+        }
+        InvariantRule::AcyclicityContract(_contract) => None,
+        InvariantRule::ConnectivityMinimumContract(_contract) => None,
     }
 }
 

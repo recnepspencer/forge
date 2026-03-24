@@ -123,6 +123,8 @@ pub struct ExecutionTelemetry {
     pub stage_apply_nanos: u128,
     pub dependency_reconcile_nanos: u128,
     pub dependency_input_build_nanos: u128,
+    pub dependency_input_reuse_count: u64,
+    pub dependency_input_rebuild_count: u64,
     pub deferred_snapshot_packet_nanos: u128,
 }
 
@@ -136,6 +138,12 @@ pub struct StorageTelemetry {
     pub graph_storage_snapshot_rewrites: u64,
     pub shared_snapshot_replacement_count: u64,
     pub version_only_snapshot_update_count: u64,
+    pub stable_shape_snapshot_proof_count: u64,
+    pub stable_shape_snapshot_proof_failure_count: u64,
+    pub stable_shape_batch_commit_count: u64,
+    pub structural_replace_batch_commit_count: u64,
+    pub snapshot_shape_reuse_count: u64,
+    pub snapshot_between_fallback_count: u64,
     pub snapshot_batch_size: u64,
     pub snapshot_batch_commit_nanos: u128,
     pub rolled_back_created_node_count: u64,

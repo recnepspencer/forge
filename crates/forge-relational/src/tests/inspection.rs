@@ -628,6 +628,11 @@ fn commit_inspection_is_canonical_and_not_story_shaped() {
     );
     assert_eq!(inspection.lineage_event_ids, envelope.lineage_event_ids());
     assert_eq!(inspection.lineage_events, envelope.lineage_events());
+    assert_eq!(inspection.lineage_digest_basis, *envelope.lineage_digest_basis());
+    assert_eq!(
+        inspection.lineage_artifact_counters,
+        envelope.lineage_artifact_counters()
+    );
     assert_eq!(inspection.index_generation_ids, envelope.index_generation_ids);
     assert_eq!(inspection.index_generations, envelope.index_generations);
     assert_eq!(
@@ -695,6 +700,11 @@ fn merge_commit_inspection_stays_envelope_projected() {
     );
     assert_eq!(inspection.lineage_event_ids, envelope.lineage_event_ids());
     assert_eq!(inspection.lineage_events, envelope.lineage_events());
+    assert_eq!(inspection.lineage_digest_basis, *envelope.lineage_digest_basis());
+    assert_eq!(
+        inspection.lineage_artifact_counters,
+        envelope.lineage_artifact_counters()
+    );
     assert_eq!(inspection.index_generation_ids, envelope.index_generation_ids);
     assert_eq!(inspection.index_generations, envelope.index_generations);
     assert_eq!(

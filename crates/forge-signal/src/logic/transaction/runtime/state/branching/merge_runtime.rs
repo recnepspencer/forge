@@ -1,29 +1,28 @@
 use crate::data::dependency::DependencyEdge;
 use crate::data::error::SignalError;
-use std::collections::{BTreeMap, BTreeSet};
 use crate::state::{SignalBranchHandle, SnapshotArtifactRetentionPolicy};
+use std::collections::{BTreeMap, BTreeSet};
 
-use super::branches::LatestMergeReference;
 use super::super::merge::{
-    adopt_source_node_into_target, merge_comparable, remap_dependency_snapshot, ArtifactMergeAction, BranchMergeBase,
-    BranchConflictResolutionPlan, BranchMergeConflictEvidence, BranchMergeConflictRecord, BranchMergeCounters,
-    BranchMergeConflictKind, BranchMergeConflictSummary, BranchMergeDivergence,
-    BranchMergeExecutionSummary, BranchMergeKind, BranchMergePlan,
-    ConservativeOverlapExpansion, LoweredMergePlan, MergeBoundaryWitness,
-    MergeBoundaryWitnessKind, PlannedMergeCandidateSet, ProofMinimalOverlapBasis,
-    BranchMergeReconciliationPolicy, BranchMergeRequest, BranchMergeResult,
-    BranchMergeResolutionRequirement, BranchMergeStrategy, BranchMergeFailureKind, ConflictMergePolicy,
-    ConflictResolutionRecord, ConflictResolutionStrategy,
-    CausalityCarryPolicy, MergeDecisionBasis,
-    ExistingTargetMergePolicy, MergeNodeMap, MergeTouchedNodeSet, MergedArtifactRecord,
-    NodeMergeInputState, NodeMergePlan, NodeReconciliationDecision,
-    NodeReconciliationShape, SourceOnlyMergePolicy, StructuralMergeCandidateRecord,
-    StructuralMergeJournalSlice,
-    RetainedArtifactCarryPolicy, RuntimeArtifactCarryPolicy, SourceNodeAdoptionCarryPolicy,
-    SourceNodeAdoptionPlanCore, TargetNodeIdentityIntent, TopologyRepairSummary,
+    adopt_source_node_into_target, merge_comparable, remap_dependency_snapshot,
     AdoptedNodeContract, AdoptionDependencySnapshotRef, AdoptionDependencyTopology,
+    ArtifactMergeAction, BranchConflictResolutionPlan, BranchMergeBase,
+    BranchMergeConflictEvidence, BranchMergeConflictKind, BranchMergeConflictRecord,
+    BranchMergeConflictSummary, BranchMergeCounters, BranchMergeDivergence,
+    BranchMergeExecutionSummary, BranchMergeFailureKind, BranchMergeKind, BranchMergePlan,
+    BranchMergeReconciliationPolicy, BranchMergeRequest, BranchMergeResolutionRequirement,
+    BranchMergeResult, BranchMergeStrategy, CausalityCarryPolicy, ConflictMergePolicy,
+    ConflictResolutionRecord, ConflictResolutionStrategy, ConservativeOverlapExpansion,
+    ExistingTargetMergePolicy, LoweredMergePlan, MergeBoundaryWitness, MergeBoundaryWitnessKind,
+    MergeDecisionBasis, MergeNodeMap, MergeTouchedNodeSet, MergedArtifactRecord,
+    NodeMergeInputState, NodeMergePlan, NodeReconciliationDecision, NodeReconciliationShape,
+    PlannedMergeCandidateSet, ProofMinimalOverlapBasis, RetainedArtifactCarryPolicy,
+    RuntimeArtifactCarryPolicy, SourceNodeAdoptionCarryPolicy, SourceNodeAdoptionPlanCore,
+    SourceOnlyMergePolicy, StructuralMergeCandidateRecord, StructuralMergeJournalSlice,
+    TargetNodeIdentityIntent, TopologyRepairSummary,
 };
 use super::super::runtime_state::SignalRuntime;
+use super::branches::LatestMergeReference;
 
 impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
 where
@@ -124,15 +123,13 @@ where
                 })?
         };
         let target_state_owned = if request.target_branch.id == self.graph.current_branch().id {
-            Some({
-                self.capture_heavy_branch_state()
-            })
+            Some(self.capture_heavy_branch_state())
         } else {
             None
         };
-        let target_state = target_state_owned.as_ref().or_else(|| {
-            self.branches.branch_state(request.target_branch.id)
-        });
+        let target_state = target_state_owned
+            .as_ref()
+            .or_else(|| self.branches.branch_state(request.target_branch.id));
         let target_state = target_state.ok_or_else(|| {
             SignalError::unknown_branch(
                 Some(request.target_branch.id),
@@ -141,7 +138,8 @@ where
         })?;
         let source_state = &source_state_owned;
         let target_graph = &target_state.authority.graph;
-        let target_snapshot_id_before = target_graph.branch_head_snapshot_id(request.target_branch.id);
+        let target_snapshot_id_before =
+            target_graph.branch_head_snapshot_id(request.target_branch.id);
         let source_snapshot_id = source_state
             .authority
             .graph
@@ -171,8 +169,11 @@ where
             nodes: source_nodes.clone(),
         };
         let mut proof_minimal_overlap_nodes = Vec::new();
-        let mut conservative_overlap_nodes =
-            planned_candidates.nodes.iter().copied().collect::<BTreeSet<_>>();
+        let mut conservative_overlap_nodes = planned_candidates
+            .nodes
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>();
         let mut conservative_support_nodes = BTreeSet::new();
         for source_node in &source_nodes {
             if target_graph.is_alive(*source_node) {
@@ -356,7 +357,8 @@ where
                         target_node: source_node,
                     },
                     source_state: NodeMergeInputState {
-                        current_artifact_id: source_runtime.and_then(|runtime| runtime.lineage_artifact_id),
+                        current_artifact_id: source_runtime
+                            .and_then(|runtime| runtime.lineage_artifact_id),
                         comparable: source_cmp,
                         authority: source_authority.clone(),
                         exists_in_branch: true,
@@ -388,7 +390,8 @@ where
                     source_node,
                     shape: NodeReconciliationShape::SourceOnlyIntroduction,
                     source_state: NodeMergeInputState {
-                        current_artifact_id: source_runtime.and_then(|runtime| runtime.lineage_artifact_id),
+                        current_artifact_id: source_runtime
+                            .and_then(|runtime| runtime.lineage_artifact_id),
                         comparable: merge_comparable(source_runtime),
                         authority: Some(authority.clone()),
                         exists_in_branch: true,
@@ -411,10 +414,18 @@ where
                             eval_config: source_entry.get_eval_config().clone(),
                         },
                         dependency_topology: AdoptionDependencyTopology {
-                            dependencies: source_state.authority.graph.dependencies_of(source_node)?.to_vec(),
+                            dependencies: source_state
+                                .authority
+                                .graph
+                                .dependencies_of(source_node)?
+                                .to_vec(),
                         },
                         dependency_snapshot_ref: AdoptionDependencySnapshotRef {
-                            snapshot: source_state.authority.graph.get_dep_snapshot(source_node)?.clone(),
+                            snapshot: source_state
+                                .authority
+                                .graph
+                                .get_dep_snapshot(source_node)?
+                                .clone(),
                         },
                     });
                     adoption_policy.push(SourceNodeAdoptionCarryPolicy {
@@ -528,19 +539,37 @@ where
         for node_plan in &plan.node_plan {
             match node_plan.shape {
                 NodeReconciliationShape::ExistingTargetNode { target_node } => {
-                    let source_entry = source_state.authority.graph.get_entry(node_plan.source_node)?.clone();
+                    let source_entry = source_state
+                        .authority
+                        .graph
+                        .get_entry(node_plan.source_node)?
+                        .clone();
                     let mut replacement = source_entry.clone();
                     replacement.set_dependencies_id(
-                        target_state.authority.graph.get_entry(target_node)?.get_dependencies_id(),
+                        target_state
+                            .authority
+                            .graph
+                            .get_entry(target_node)?
+                            .get_dependencies_id(),
                     );
                     replacement.set_subscribers_id(
-                        target_state.authority.graph.get_entry(target_node)?.get_subscribers_id(),
+                        target_state
+                            .authority
+                            .graph
+                            .get_entry(target_node)?
+                            .get_subscribers_id(),
                     );
                     replacement.set_dep_snapshot_id(
-                        target_state.authority.graph.get_entry(target_node)?.get_dep_snapshot_id(),
+                        target_state
+                            .authority
+                            .graph
+                            .get_entry(target_node)?
+                            .get_dep_snapshot_id(),
                     );
-                    if matches!(node_plan.decision, NodeReconciliationDecision::AdoptSourceAuthority)
-                    {
+                    if matches!(
+                        node_plan.decision,
+                        NodeReconciliationDecision::AdoptSourceAuthority
+                    ) {
                         repaired_sources.extend(
                             target_state
                                 .authority
@@ -563,9 +592,11 @@ where
                                     ))
                                 })?;
                                 Ok(match edge.scope_ref().cloned() {
-                                    Some(scope) => {
-                                        DependencyEdge::with_partition_scope(mapped, edge.aspect(), scope)
-                                    }
+                                    Some(scope) => DependencyEdge::with_partition_scope(
+                                        mapped,
+                                        edge.aspect(),
+                                        scope,
+                                    ),
                                     None => DependencyEdge::new(mapped, edge.aspect()),
                                 })
                             })
@@ -573,11 +604,20 @@ where
                         repaired_sources.extend(mapped_edges.iter().map(|edge| edge.source()));
                         let remapped_snapshot = remap_dependency_snapshot(
                             node_plan.source_node,
-                            source_state.authority.graph.get_dep_snapshot(node_plan.source_node)?,
+                            source_state
+                                .authority
+                                .graph
+                                .get_dep_snapshot(node_plan.source_node)?,
                             &node_map,
                         )?;
-                        target_state.authority.graph.replace_entry(target_node, replacement)?;
-                        target_state.authority.graph.set_dependencies(target_node, mapped_edges)?;
+                        target_state
+                            .authority
+                            .graph
+                            .replace_entry(target_node, replacement)?;
+                        target_state
+                            .authority
+                            .graph
+                            .set_dependencies(target_node, mapped_edges)?;
                         target_state
                             .authority
                             .graph
@@ -586,16 +626,15 @@ where
                     } else if matches!(
                         node_plan.decision,
                         NodeReconciliationDecision::MarkEquivalentUnchanged
-                    ) && node_plan
-                        .resolved_conflict_kinds
-                        .iter()
-                        .any(|kind| {
-                            matches!(kind, BranchMergeConflictKind::DependencySnapshotMismatch)
-                        })
-                    {
+                    ) && node_plan.resolved_conflict_kinds.iter().any(|kind| {
+                        matches!(kind, BranchMergeConflictKind::DependencySnapshotMismatch)
+                    }) {
                         let remapped_snapshot = remap_dependency_snapshot(
                             node_plan.source_node,
-                            source_state.authority.graph.get_dep_snapshot(node_plan.source_node)?,
+                            source_state
+                                .authority
+                                .graph
+                                .get_dep_snapshot(node_plan.source_node)?,
                             &node_map,
                         )?;
                         target_state
@@ -638,19 +677,26 @@ where
             merge_kind: plan.merge_kind,
             merge_strategy: plan.merge_strategy,
         });
-        target_state.mutation_ledger.clear_all(target_snapshot_after);
+        target_state
+            .mutation_ledger
+            .clear_all(target_snapshot_after);
         target_state.authority.graph.clear_branch_mutation_nodes();
 
         for node_plan in &plan.node_plan {
             let target_node = match node_plan.shape {
                 NodeReconciliationShape::ExistingTargetNode { target_node } => Some(target_node),
-                NodeReconciliationShape::SourceOnlyIntroduction => node_map.resolve(node_plan.source_node),
+                NodeReconciliationShape::SourceOnlyIntroduction => {
+                    node_map.resolve(node_plan.source_node)
+                }
             };
-            let target_entry = target_node.and_then(|node| target_state.authority.graph.get_entry(node).ok());
+            let target_entry =
+                target_node.and_then(|node| target_state.authority.graph.get_entry(node).ok());
             let action = match node_plan.shape {
                 NodeReconciliationShape::SourceOnlyIntroduction => {
-                    if matches!(node_plan.decision, NodeReconciliationDecision::SkipNonAdoptableSource)
-                    {
+                    if matches!(
+                        node_plan.decision,
+                        NodeReconciliationDecision::SkipNonAdoptableSource
+                    ) {
                         ArtifactMergeAction::SkippedNonAdoptable
                     } else {
                         ArtifactMergeAction::IntroducedIntoTarget
@@ -660,9 +706,15 @@ where
                     NodeReconciliationDecision::MarkEquivalentUnchanged => {
                         ArtifactMergeAction::EquivalentUnchanged
                     }
-                    NodeReconciliationDecision::PreserveTarget => ArtifactMergeAction::PreservedTarget,
-                    NodeReconciliationDecision::AdoptSourceAuthority => ArtifactMergeAction::Adopted,
-                    NodeReconciliationDecision::ReplaceTargetAuthority => ArtifactMergeAction::Replaced,
+                    NodeReconciliationDecision::PreserveTarget => {
+                        ArtifactMergeAction::PreservedTarget
+                    }
+                    NodeReconciliationDecision::AdoptSourceAuthority => {
+                        ArtifactMergeAction::Adopted
+                    }
+                    NodeReconciliationDecision::ReplaceTargetAuthority => {
+                        ArtifactMergeAction::Replaced
+                    }
                     NodeReconciliationDecision::SkipNonAdoptableSource => {
                         ArtifactMergeAction::SkippedNonAdoptable
                     }
@@ -694,9 +746,8 @@ where
                 action,
                 basis,
                 source_comparable: node_plan.source_state.comparable.clone(),
-                target_comparable: target_entry.and_then(|entry| {
-                    merge_comparable(entry.get_runtime_artifact_state())
-                }),
+                target_comparable: target_entry
+                    .and_then(|entry| merge_comparable(entry.get_runtime_artifact_state())),
                 resolved_conflict_kinds: node_plan.resolved_conflict_kinds.clone(),
             });
         }
@@ -741,7 +792,9 @@ where
             source_only_count: plan
                 .node_plan
                 .iter()
-                .filter(|node| matches!(node.shape, NodeReconciliationShape::SourceOnlyIntroduction))
+                .filter(|node| {
+                    matches!(node.shape, NodeReconciliationShape::SourceOnlyIntroduction)
+                })
                 .count() as u64,
             target_only_count: 0,
             dependency_remap_count: dependency_remaps.len() as u64,
@@ -799,7 +852,10 @@ where
             updated_source_state
                 .mutation_ledger
                 .clear_merged_nodes(merged_source_nodes.iter().copied(), plan.source_snapshot_id);
-            updated_source_state.authority.graph.clear_branch_mutation_nodes();
+            updated_source_state
+                .authority
+                .graph
+                .clear_branch_mutation_nodes();
             self.apply_branch_lifecycle_transfer(
                 crate::logic::transaction::runtime::state::runtime_state::BranchLifecycleTransfer::Move(
                     crate::logic::transaction::runtime::state::runtime_state::AuthorityTransferPacket {
@@ -808,15 +864,15 @@ where
                     },
                 ),
             )?;
-        } else if let Some(()) = self
-            .branches
-            .with_stored_branch_state_mut(request.source_branch.id, |source_state| {
-                source_state.mutation_ledger.clear_merged_nodes(
-                    merged_source_nodes.iter().copied(),
-                    plan.source_snapshot_id,
-                );
-                source_state.authority.graph.clear_branch_mutation_nodes();
-            })
+        } else if let Some(()) =
+            self.branches
+                .with_stored_branch_state_mut(request.source_branch.id, |source_state| {
+                    source_state.mutation_ledger.clear_merged_nodes(
+                        merged_source_nodes.iter().copied(),
+                        plan.source_snapshot_id,
+                    );
+                    source_state.authority.graph.clear_branch_mutation_nodes();
+                })
         {
         }
         self.branches.insert_snapshot(
@@ -828,7 +884,14 @@ where
         } else {
             self.branches
                 .branch_state(request.target_branch.id)
-                .map(|state| state.authority.graph.diagnostics_state().branch_catalog().clone())
+                .map(|state| {
+                    state
+                        .authority
+                        .graph
+                        .diagnostics_state()
+                        .branch_catalog()
+                        .clone()
+                })
                 .unwrap_or_default()
         };
         self.synchronize_branch_catalogs(branch_catalog);
@@ -920,9 +983,7 @@ fn structural_deltas_for_facet(
         .unwrap_or_default()
 }
 
-fn summarize_conflict_records(
-    records: &[BranchMergeConflictRecord],
-) -> BranchMergeConflictSummary {
+fn summarize_conflict_records(records: &[BranchMergeConflictRecord]) -> BranchMergeConflictSummary {
     let mut summary = BranchMergeConflictSummary {
         total_conflict_count: records.len() as u64,
         ..BranchMergeConflictSummary::default()
@@ -1045,10 +1106,8 @@ fn can_auto_resolve_conflicts(
 ) -> bool {
     match reconciliation_policy.conflict {
         ConflictMergePolicy::RejectSharedStateConflict => false,
-        ConflictMergePolicy::ResolveSourceStateWhenStructureMatches => resolution_plan
-            .records
-            .iter()
-            .all(|record| {
+        ConflictMergePolicy::ResolveSourceStateWhenStructureMatches => {
+            resolution_plan.records.iter().all(|record| {
                 let requirements = record.required_resolution.as_slice();
                 !requirements.is_empty()
                     && requirements.iter().all(|requirement| {
@@ -1059,22 +1118,26 @@ fn can_auto_resolve_conflicts(
                                 | BranchMergeResolutionRequirement::ReconcileRuntimeArtifactState
                         )
                     })
-                    && (!record.required_resolution.contains(
-                        &BranchMergeResolutionRequirement::ReconcileComparableState,
-                    ) || record.supported_strategies.contains(
-                        &ConflictResolutionStrategy::AdoptSourceComparableState,
-                    ))
-                    && (!record.required_resolution.contains(
-                        &BranchMergeResolutionRequirement::ReconcileRuntimeArtifactState,
-                    ) || record.supported_strategies.contains(
-                        &ConflictResolutionStrategy::AdoptSourceRuntimeArtifactState,
-                    ))
-                    && (!record.required_resolution.contains(
-                        &BranchMergeResolutionRequirement::ReconcileDependencySnapshot,
-                    ) || record.supported_strategies.contains(
-                        &ConflictResolutionStrategy::ReplaySourceDependencySnapshot,
-                    ))
-            }),
+                    && (!record
+                        .required_resolution
+                        .contains(&BranchMergeResolutionRequirement::ReconcileComparableState)
+                        || record
+                            .supported_strategies
+                            .contains(&ConflictResolutionStrategy::AdoptSourceComparableState))
+                    && (!record
+                        .required_resolution
+                        .contains(&BranchMergeResolutionRequirement::ReconcileRuntimeArtifactState)
+                        || record
+                            .supported_strategies
+                            .contains(&ConflictResolutionStrategy::AdoptSourceRuntimeArtifactState))
+                    && (!record
+                        .required_resolution
+                        .contains(&BranchMergeResolutionRequirement::ReconcileDependencySnapshot)
+                        || record
+                            .supported_strategies
+                            .contains(&ConflictResolutionStrategy::ReplaySourceDependencySnapshot))
+            })
+        }
     }
 }
 

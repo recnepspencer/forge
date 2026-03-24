@@ -120,7 +120,10 @@ impl<'a> NodeBuilder<'a> {
 
     /// Explicitly admit cross-identity persistent matching for this node.
     pub fn cross_identity_persistent_matching(mut self) -> Self {
-        self.config.contract = self.config.contract.with_cross_identity_persistent_matching();
+        self.config.contract = self
+            .config
+            .contract
+            .with_cross_identity_persistent_matching();
         self
     }
 

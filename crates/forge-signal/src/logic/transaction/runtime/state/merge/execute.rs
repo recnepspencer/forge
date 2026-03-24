@@ -8,9 +8,9 @@ use crate::data::trace::{
 
 use super::{
     AdoptedNodeMaterialization, ArtifactMergeComparable, CausalityCarryPolicy,
-    DependencyFingerprint, DependencyRemapRecord, MergeNodeMap,
-    RetainedArtifactCarryPolicy, RuntimeArtifactCarryPolicy, SourceNodeAdoptionCarryPolicy,
-    SourceNodeAdoptionPlanCore, TargetNodeIdentityIntent,
+    DependencyFingerprint, DependencyRemapRecord, MergeNodeMap, RetainedArtifactCarryPolicy,
+    RuntimeArtifactCarryPolicy, SourceNodeAdoptionCarryPolicy, SourceNodeAdoptionPlanCore,
+    TargetNodeIdentityIntent,
 };
 
 pub(crate) fn merge_comparable(
@@ -39,9 +39,7 @@ pub(crate) fn adopt_source_node_into_target(
 ) -> Result<(AdoptedNodeMaterialization, Vec<DependencyRemapRecord>), SignalError> {
     let source_entry = source_graph.get_entry(core.source_node)?.clone();
     let target_node = match core.target_identity {
-        TargetNodeIdentityIntent::ExistingMapping { mapped_target_node } => {
-            mapped_target_node
-        }
+        TargetNodeIdentityIntent::ExistingMapping { mapped_target_node } => mapped_target_node,
         TargetNodeIdentityIntent::AllocateTargetNode => {
             let mut entry = source_entry.clone();
             entry.set_dependencies_id(crate::data::graph::DependencySetId::EMPTY);
@@ -78,10 +76,15 @@ pub(crate) fn adopt_source_node_into_target(
         &core.dependency_snapshot_ref.snapshot,
         node_map,
     )?;
-    target_graph.get_entry_mut(target_node)?.set_eval_config(core.entry_contract.eval_config.clone());
+    target_graph
+        .get_entry_mut(target_node)?
+        .set_eval_config(core.entry_contract.eval_config.clone());
     target_graph.set_dependencies(target_node, remapped_edges.clone())?;
     target_graph.set_dep_snapshot(target_node, remapped_snapshot)?;
-    if matches!(core.target_identity, TargetNodeIdentityIntent::ExistingMapping { .. }) {
+    if matches!(
+        core.target_identity,
+        TargetNodeIdentityIntent::ExistingMapping { .. }
+    ) {
         let mut entry = target_graph.get_entry(target_node)?.clone();
         apply_carry_policy(&mut entry, &source_entry, carry_policy, &core.authority);
         target_graph.replace_entry(target_node, entry)?;
@@ -93,7 +96,11 @@ pub(crate) fn adopt_source_node_into_target(
             target_node,
             dependency_count: core.dependency_topology.dependencies.len(),
         },
-        build_remap_records(core.source_node, &core.dependency_topology.dependencies, node_map)?,
+        build_remap_records(
+            core.source_node,
+            &core.dependency_topology.dependencies,
+            node_map,
+        )?,
     ))
 }
 
@@ -111,17 +118,16 @@ fn apply_carry_policy(
         }
         RuntimeArtifactCarryPolicy::CarryMergeAdoptable
         | RuntimeArtifactCarryPolicy::RebuildAfterAdoption
-        | RuntimeArtifactCarryPolicy::DoNotCarry => {
-            None
-        }
+        | RuntimeArtifactCarryPolicy::DoNotCarry => None,
     };
 
     let retained = match carry_policy.retained_artifact {
         RetainedArtifactCarryPolicy::CarryIfPolicyAllows => {
             source_entry.retained_diagnostic_artifact().cloned()
         }
-        RetainedArtifactCarryPolicy::ReconstructIfNeeded
-        | RetainedArtifactCarryPolicy::Drop => None,
+        RetainedArtifactCarryPolicy::ReconstructIfNeeded | RetainedArtifactCarryPolicy::Drop => {
+            None
+        }
     };
 
     entry.apply_artifact_write_delta(ArtifactWriteDelta { runtime, retained });
@@ -145,7 +151,8 @@ fn remap_dependency_edges(
         let mapped = node_map.resolve(edge.source()).ok_or_else(|| {
             SignalError::invalid_input(format!(
                 "merge adoption for node {} has unresolved dependency remap {}",
-                source_node, edge.source()
+                source_node,
+                edge.source()
             ))
         })?;
         let rebuilt = match edge.scope_ref().cloned() {
@@ -190,7 +197,8 @@ fn build_remap_records(
         let target_dependency = node_map.resolve(dependency.source()).ok_or_else(|| {
             SignalError::invalid_input(format!(
                 "merge adoption for node {} has unresolved dependency remap {}",
-                source_node, dependency.source()
+                source_node,
+                dependency.source()
             ))
         })?;
         records.push(DependencyRemapRecord {

@@ -3,8 +3,8 @@ use std::collections::{BTreeMap, VecDeque};
 use serde::{Deserialize, Serialize};
 
 use crate::data::core_profile::CORE_STORAGE_PROFILE_ID;
-use crate::data::graph::{DependencyEdgeStore, SubscriberEdgeStore};
 use crate::data::graph::SignalGraph;
+use crate::data::graph::{DependencyEdgeStore, SubscriberEdgeStore};
 use crate::data::node::NodeEntry;
 use crate::data::proof::SnapshotBatchCommit;
 use crate::data::telemetry::RuntimeTelemetry;
@@ -296,7 +296,9 @@ impl SignalSnapshotV1 {
         SignalGraph::restore_from_checkpoint_authority(&self.checkpoint_image.authority)
     }
 
-    pub fn reconstructability_proof(&self) -> Result<ReconstructabilityProof, crate::data::error::SignalError> {
+    pub fn reconstructability_proof(
+        &self,
+    ) -> Result<ReconstructabilityProof, crate::data::error::SignalError> {
         let record = self.reconstructability.as_ref().ok_or_else(|| {
             crate::data::error::SignalError::incompatible_snapshot(format!(
                 "snapshot `{}` is missing reconstructability record",
@@ -306,4 +308,3 @@ impl SignalSnapshotV1 {
         Ok(record.proof())
     }
 }
-

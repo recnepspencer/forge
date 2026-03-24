@@ -32,7 +32,7 @@ pub(super) fn record_replay_diagnostic(
     let lineage_authority_basis = outcome
         .lineage_authority_basis
         .as_ref()
-        .map(|basis| format!("{:?}", basis.kind));
+        .map(|basis| format!("{:?}", basis.kind()));
     let code = match outcome.failure.as_ref() {
         Some(ReplayFailureClass::SchemaMismatch | ReplayFailureClass::UnsupportedReplaySchema) => {
             DiagnosticCode::ReplaySchemaVersionMismatch
@@ -56,9 +56,9 @@ pub(super) fn record_replay_diagnostic(
             "branch_id": request.branch_id.0,
             "verification_mode": format!("{:?}", request.verification_mode),
             "lineage_authority_basis": lineage_authority_basis,
-            "lineage_authority_commit_id": outcome.lineage_authority_basis.as_ref().map(|basis| basis.commit_id.0),
-            "lineage_authority_event_count": outcome.lineage_authority_basis.as_ref().map(|basis| basis.lineage_event_count),
-            "lineage_authority_decision_count": outcome.lineage_authority_basis.as_ref().map(|basis| basis.lineage_decision_count),
+            "lineage_authority_commit_id": outcome.lineage_authority_basis.as_ref().map(|basis| basis.commit_id().0),
+            "lineage_authority_event_count": outcome.lineage_authority_basis.as_ref().map(|basis| basis.lineage_event_count()),
+            "lineage_authority_decision_count": outcome.lineage_authority_basis.as_ref().map(|basis| basis.lineage_decision_count()),
             "compared_surfaces": compared_surfaces,
             "mismatch_count": outcome.mismatches.len(),
             "mismatch_classes": mismatch_classes,

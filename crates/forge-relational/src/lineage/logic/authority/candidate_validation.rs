@@ -65,7 +65,11 @@ impl<'runtime> LineageAuthority<'runtime> {
         recorded: RecordedCorrespondenceCandidate,
     ) -> Result<ValidatedCorrespondenceCandidate, CorrespondencePromotionRejectionClass> {
         let candidate = recorded.candidate();
+        let recorded_width = candidate.sources.len() + candidate.targets.len();
         if candidate.sources.is_empty() || candidate.targets.is_empty() {
+            self.runtime
+                .performance_access()
+                .count_lineage_candidate_validation(recorded_width, 0);
             self.record_rejected_promotion_for_candidate(
                 Some(candidate),
                 &candidate.branch_id,
@@ -78,6 +82,9 @@ impl<'runtime> LineageAuthority<'runtime> {
         let source_set = candidate.sources.iter().copied().collect::<BTreeSet<_>>();
         let target_set = candidate.targets.iter().copied().collect::<BTreeSet<_>>();
         if source_set.len() != candidate.sources.len() || target_set.len() != candidate.targets.len() {
+            self.runtime
+                .performance_access()
+                .count_lineage_candidate_validation(recorded_width, 0);
             self.record_rejected_promotion_for_candidate(
                 Some(candidate),
                 &candidate.branch_id,
@@ -88,6 +95,9 @@ impl<'runtime> LineageAuthority<'runtime> {
             return Err(CorrespondencePromotionRejectionClass::DuplicateEndpointReference);
         }
         if source_set.intersection(&target_set).next().is_some() {
+            self.runtime
+                .performance_access()
+                .count_lineage_candidate_validation(recorded_width, 0);
             self.record_rejected_promotion_for_candidate(
                 Some(candidate),
                 &candidate.branch_id,
@@ -103,6 +113,9 @@ impl<'runtime> LineageAuthority<'runtime> {
             .chain(candidate.targets.iter())
             .any(|lineage_id| !self.runtime.lineage.nodes.contains_key(lineage_id))
         {
+            self.runtime
+                .performance_access()
+                .count_lineage_candidate_validation(recorded_width, 0);
             self.record_rejected_promotion_for_candidate(
                 Some(candidate),
                 &candidate.branch_id,
@@ -124,6 +137,9 @@ impl<'runtime> LineageAuthority<'runtime> {
             .copied()
             .map(|lineage_id| BranchScopedLineageRef::new(candidate.branch_id.clone(), lineage_id))
             .collect();
+        self.runtime
+            .performance_access()
+            .count_lineage_candidate_validation(recorded_width, recorded_width);
         Ok(ValidatedCorrespondenceCandidate::new(
             candidate.clone(),
             branch_scoped_sources,
@@ -177,6 +193,9 @@ impl<'runtime> LineageAuthority<'runtime> {
         targets: Vec<LineageId>,
         class: CorrespondencePromotionRejectionClass,
     ) {
+        self.runtime
+            .performance_access()
+            .count_lineage_promotion_rejection();
         let artifact = LineageRejectionArtifact::single_rejected_promotion(LineageDecisionRecord {
             branch_id,
             kind: LineageDecisionKind::CorrespondencePromotionRejected,

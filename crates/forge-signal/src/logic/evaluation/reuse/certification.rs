@@ -42,10 +42,9 @@ pub(crate) fn certify_reuse_decision(
 mod tests {
     use crate::data::reuse::{
         ArtifactEquivalenceContract, ArtifactSemanticBoundary, NodeReuseContract,
-        PersistentCorrespondenceEvidence, ReuseBasis, ReuseBoundaryContext,
-        ReuseBoundaryEvidence, ReuseBoundaryFailure, ReuseCrossing, ReuseOrigin,
-        ReuseSemanticRegionIdentity, ReuseSource, ReuseStrategy,
-        ReuseStrategyBoundaryContext,
+        PersistentCorrespondenceEvidence, ReuseBasis, ReuseBoundaryContext, ReuseBoundaryEvidence,
+        ReuseBoundaryFailure, ReuseCrossing, ReuseOrigin, ReuseSemanticRegionIdentity, ReuseSource,
+        ReuseStrategy, ReuseStrategyBoundaryContext,
     };
     use crate::data::{
         comparator::VersionComparatorPolicy, node::ContextRequirement, performance::AuthorityPolicy,
@@ -67,8 +66,7 @@ mod tests {
                 ),
                 authority_policy: AuthorityPolicy::SpeculativeThenReconcile,
                 artifact_family: None,
-                structural_dependency_basis:
-                    crate::data::dependency::DependencySnapshotId::EMPTY,
+                structural_dependency_basis: crate::data::dependency::DependencySnapshotId::EMPTY,
                 partition_region_basis: Default::default(),
                 strategy_detail: ReuseStrategyBoundaryContext::None,
             },
@@ -83,8 +81,7 @@ mod tests {
                 ),
                 authority_policy: AuthorityPolicy::SpeculativeThenReconcile,
                 artifact_family: None,
-                structural_dependency_basis:
-                    crate::data::dependency::DependencySnapshotId::EMPTY,
+                structural_dependency_basis: crate::data::dependency::DependencySnapshotId::EMPTY,
                 partition_region_basis: Default::default(),
                 strategy_detail: ReuseStrategyBoundaryContext::None,
             }),
@@ -305,10 +302,13 @@ mod tests {
         evidence.current.strategy_detail = ReuseStrategyBoundaryContext::CrossIdentity {
             persistent_correspondence: correspondence.clone(),
         };
-        evidence.previous.as_mut().expect("previous context").strategy_detail =
-            ReuseStrategyBoundaryContext::CrossIdentity {
-                persistent_correspondence: correspondence,
-            };
+        evidence
+            .previous
+            .as_mut()
+            .expect("previous context")
+            .strategy_detail = ReuseStrategyBoundaryContext::CrossIdentity {
+            persistent_correspondence: correspondence,
+        };
 
         let certification = certify_reuse_decision(&contract, &decision, &evidence).unwrap();
         assert!(certification.is_some());

@@ -8,10 +8,10 @@ pub use envelope::{
 };
 pub(in crate::logic::transaction::runtime) use transaction_types::TransactionExecutionState;
 pub(in crate::logic::transaction::runtime) use transaction_types::TransactionScratch;
-pub(in crate::logic::transaction::runtime) use transaction_types::{
-    TransactionRollbackPacket, TransactionRollbackPacketSet,
-};
 pub use transaction_types::{
     EvaluationSummary, TransactionReplayEntry, TransactionResult, TransactionTiming,
 };
 pub use transaction_types::{SignalTransaction, TransactionOutcome};
+pub(in crate::logic::transaction::runtime) use transaction_types::{
+    TransactionRollbackPacket, TransactionRollbackPacketSet,
+};

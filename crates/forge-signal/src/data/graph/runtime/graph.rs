@@ -1,17 +1,17 @@
 //! Arena-based signal graph with dependency storage.
 
 use std::collections::BTreeMap;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
 use crate::data::bitset::DenseBitset;
 use crate::data::core_profile::StableHashValue;
+use crate::data::dependency::{DependencySnapshotShapeStore, DependencySnapshotStore};
 use crate::data::dependency::{
-    DependencyEdge, DependencySnapshot, DependencySnapshotUpdate, SnapshotDeltaRecord,
+    CommittedSnapshotUpdate, DependencyEdge, DependencySnapshot, SnapshotDeltaRecord,
 };
-use crate::data::dependency::DependencySnapshotStore;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeEntry;
@@ -48,6 +48,8 @@ pub(crate) struct NodeArena {
 pub(crate) struct EdgeTopology {
     #[serde(default)]
     pub(in crate::data::graph) dependency_snapshots: DependencySnapshotStore,
+    #[serde(default)]
+    pub(in crate::data::graph) dependency_snapshot_shapes: DependencySnapshotShapeStore,
     #[serde(default)]
     pub(in crate::data::graph) dependency_edges: DependencyEdgeStore,
     #[serde(default)]
@@ -179,7 +181,11 @@ fn merge_dependency_topology_delta(
     delta: DependencyTopologyDelta,
 ) {
     for added in delta.added_edges {
-        if let Some(index) = existing.removed_edges.iter().position(|edge| edge == &added) {
+        if let Some(index) = existing
+            .removed_edges
+            .iter()
+            .position(|edge| edge == &added)
+        {
             existing.removed_edges.remove(index);
         } else if !existing.added_edges.iter().any(|edge| edge == &added) {
             existing.added_edges.push(added);
@@ -187,7 +193,11 @@ fn merge_dependency_topology_delta(
     }
 
     for removed in delta.removed_edges {
-        if let Some(index) = existing.added_edges.iter().position(|edge| edge == &removed) {
+        if let Some(index) = existing
+            .added_edges
+            .iter()
+            .position(|edge| edge == &removed)
+        {
             existing.added_edges.remove(index);
         } else if !existing.removed_edges.iter().any(|edge| edge == &removed) {
             existing.removed_edges.push(removed);
@@ -292,7 +302,8 @@ impl ReconstructionCounters {
     }
 
     pub(crate) fn reconstructed_artifact_read_count(&self) -> u64 {
-        self.reconstructed_artifact_read_count.load(Ordering::Relaxed)
+        self.reconstructed_artifact_read_count
+            .load(Ordering::Relaxed)
     }
 
     pub(crate) fn record_retained_artifact_read(&self) {
@@ -450,6 +461,7 @@ impl SignalGraph {
         graph.observation.reconstruction_counters = ReconstructionCounters::default();
         graph.observation.branch_mutation_records.clear();
         graph.topology.dependency_snapshots = DependencySnapshotStore::default();
+        graph.topology.dependency_snapshot_shapes = DependencySnapshotShapeStore::default();
         graph.observation.diagnostics = self.observation.diagnostics.authority_carrier_clone();
         SignalCheckpointAuthority {
             arena: SignalCheckpointArena {
@@ -474,9 +486,7 @@ impl SignalGraph {
         }
     }
 
-    pub(crate) fn restore_from_checkpoint_authority(
-        authority: &SignalCheckpointAuthority,
-    ) -> Self {
+    pub(crate) fn restore_from_checkpoint_authority(authority: &SignalCheckpointAuthority) -> Self {
         let mut free_slots = DenseBitset::default();
         for index in &authority.arena.free_list {
             free_slots.mark(*index as usize);
@@ -501,6 +511,7 @@ impl SignalGraph {
             },
             topology: EdgeTopology {
                 dependency_snapshots: DependencySnapshotStore::default(),
+                dependency_snapshot_shapes: DependencySnapshotShapeStore::default(),
                 dependency_edges: authority.topology.dependency_edges.clone(),
                 subscriber_edges: authority.topology.subscriber_edges.clone(),
             },
@@ -578,9 +589,23 @@ impl SignalGraph {
                 .get(&node)
                 .cloned()
                 .unwrap_or_else(DependencySnapshot::empty);
-            let (update, delta) = DependencySnapshotUpdate::between(node, &previous, next);
+            let previous_snapshot_id = self.get_entry(node)?.get_dep_snapshot_id();
+            let mut shape_store = self.topology.dependency_snapshot_shapes.clone();
+            let previous_shape_handle = previous.shape().intern(&mut shape_store);
+            let (update, delta) = CommittedSnapshotUpdate::between(
+                node,
+                previous_snapshot_id,
+                previous_shape_handle,
+                &previous,
+                next,
+                &mut shape_store,
+            );
             if delta.changed() {
-                entries.push(PendingSnapshotCommit { node, update, delta });
+                entries.push(PendingSnapshotCommit {
+                    node,
+                    update,
+                    delta,
+                });
             }
         }
         Ok(SnapshotBatchCommit::new(PendingSnapshotBatch::new(entries)))
@@ -645,9 +670,7 @@ impl SignalGraph {
         node: NodeId,
         delta: RuntimeArtifactStructuralDelta,
     ) {
-        self.record_branch_mutation(node, |record| {
-            record.mark_runtime_artifact_changed(delta)
-        });
+        self.record_branch_mutation(node, |record| record.mark_runtime_artifact_changed(delta));
     }
 
     pub(crate) fn record_branch_mutation_retained_artifact(&mut self, node: NodeId) {
@@ -658,10 +681,7 @@ impl SignalGraph {
         self.record_branch_mutation(node, BranchMutationRecord::mark_causality_changed);
     }
 
-    pub(crate) fn record_branch_mutation_nodes(
-        &mut self,
-        nodes: impl IntoIterator<Item = NodeId>,
-    ) {
+    pub(crate) fn record_branch_mutation_nodes(&mut self, nodes: impl IntoIterator<Item = NodeId>) {
         for node in nodes {
             self.record_branch_mutation_state(node);
         }
@@ -896,9 +916,7 @@ impl SignalGraph {
     fn observation_level_for_profile(profile: DiagnosticsTier) -> ObservationLevel {
         match profile {
             DiagnosticsTier::Operational => ObservationLevel::Minimal,
-            DiagnosticsTier::Development | DiagnosticsTier::Forensic => {
-                ObservationLevel::Full
-            }
+            DiagnosticsTier::Development | DiagnosticsTier::Forensic => ObservationLevel::Full,
         }
     }
 
@@ -1057,5 +1075,3 @@ impl RuntimeObservation {
 pub(in crate::data::graph) fn stale_error(id: NodeId, expected_generation: u32) -> SignalError {
     SignalError::stale_handle(id, expected_generation)
 }
-
-

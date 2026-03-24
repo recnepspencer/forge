@@ -68,6 +68,34 @@ impl<'runtime> PerformanceAccess<'runtime> {
             .count(|counters| counters.invariant_relation_slot_scans += slots);
     }
 
+    pub(crate) fn count_custom_invariant_preparation(&self) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.custom_invariant_preparation_count += 1);
+    }
+
+    pub(crate) fn count_custom_invariant_execution(&self) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.custom_invariant_execution_count += 1);
+    }
+
+    pub(crate) fn count_custom_invariant_panic(&self) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.custom_invariant_panic_count += 1);
+    }
+
+    pub(crate) fn count_custom_invariant_traversal(&self, frontier: usize, steps: usize) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.custom_invariant_traversal_frontier_count += frontier;
+            counters.custom_invariant_traversal_step_count += steps;
+        });
+    }
+
     pub(crate) fn count_relation_integrity_contracts_evaluated(&self, count: usize) {
         self.runtime
             .services
@@ -211,10 +239,71 @@ impl<'runtime> PerformanceAccess<'runtime> {
             .count(|counters| counters.post_commit_parallel_strategy_count += 1);
     }
 
-    pub(crate) fn count_lineage_graph_snapshot_request(&self, node_count: usize) {
+    pub(crate) fn count_lineage_graph_snapshot_request(
+        &self,
+        node_count: usize,
+        event_count: usize,
+        candidate_count: usize,
+    ) {
         self.runtime.services.instrumentation.count(|counters| {
             counters.lineage_graph_snapshot_requests += 1;
             counters.lineage_graph_snapshot_nodes_materialized += node_count;
+            counters.lineage_graph_snapshot_events_materialized += event_count;
+            counters.lineage_graph_snapshot_candidates_materialized += candidate_count;
+        });
+    }
+
+    pub(crate) fn count_lineage_candidate_validation(
+        &self,
+        recorded_width: usize,
+        validated_width: usize,
+    ) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.lineage_recorded_candidate_width += recorded_width;
+            counters.lineage_validated_candidate_width += validated_width;
+        });
+    }
+
+    pub(crate) fn count_lineage_promotion_rejection(&self) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.lineage_promotion_rejection_count += 1;
+        });
+    }
+
+    pub(crate) fn count_lineage_promotion_plan_lowering(
+        &self,
+        promotion_eligible_width: usize,
+    ) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.lineage_promotion_eligible_candidate_width += promotion_eligible_width;
+        });
+    }
+
+    pub(crate) fn count_lineage_finalization(
+        &self,
+        event_batch_width: usize,
+        decision_log_width: usize,
+    ) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.lineage_finalization_event_batch_width += event_batch_width;
+            counters.lineage_finalization_decision_log_width += decision_log_width;
+        });
+    }
+
+    pub(crate) fn count_lineage_publication_artifact(
+        &self,
+        event_width: usize,
+        decision_width: usize,
+    ) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.lineage_publication_event_width += event_width;
+            counters.lineage_publication_decision_width += decision_width;
+        });
+    }
+
+    pub(crate) fn count_lineage_promotion_accepted(&self) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.lineage_promotion_accepted_count += 1;
         });
     }
 

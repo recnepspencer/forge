@@ -1,7 +1,5 @@
 use crate::data::output::MemoizedResultOrigin;
-use crate::data::reuse::{
-    ReuseBasis, ReuseCrossing, ReuseOrigin, ReuseSource, ReuseStrategy,
-};
+use crate::data::reuse::{ReuseBasis, ReuseCrossing, ReuseOrigin, ReuseSource, ReuseStrategy};
 use crate::logic::evaluation::EvaluationExecutionMetadata;
 use crate::logic::prepared::PreparedEvaluationOrigin;
 
@@ -78,13 +76,15 @@ pub(crate) fn resolve_prepared_reuse_decision(
                 ReuseCrossing::None,
                 MemoizedResultOrigin::MemoizedFromCache,
             ),
-            PreparedEvaluationOrigin::CrossIdentityPersistentReuse => ResolvedReuseDecision::reused(
-                ReuseStrategy::CrossIdentityPersistentMatch,
-                ReuseOrigin::CrossIdentityPersistentReuse,
-                ReuseSource::PersistentCorrespondence,
-                ReuseCrossing::PersistentIdentityBoundary,
-                MemoizedResultOrigin::MemoizedFromCache,
-            ),
+            PreparedEvaluationOrigin::CrossIdentityPersistentReuse => {
+                ResolvedReuseDecision::reused(
+                    ReuseStrategy::CrossIdentityPersistentMatch,
+                    ReuseOrigin::CrossIdentityPersistentReuse,
+                    ReuseSource::PersistentCorrespondence,
+                    ReuseCrossing::PersistentIdentityBoundary,
+                    MemoizedResultOrigin::MemoizedFromCache,
+                )
+            }
             PreparedEvaluationOrigin::PartialArtifactSplice => ResolvedReuseDecision::reused(
                 ReuseStrategy::PartialArtifactSplicing,
                 ReuseOrigin::PartialArtifactSplice,

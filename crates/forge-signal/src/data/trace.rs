@@ -11,9 +11,7 @@ use crate::data::output::{
     OutputChange, OutputIdentity,
 };
 use crate::data::proof::PartitionScopeSet;
-use crate::data::reuse::{
-    ReuseBasis, ReuseBoundaryContext, ReuseCertificationRecord, ReuseOrigin,
-};
+use crate::data::reuse::{ReuseBasis, ReuseBoundaryContext, ReuseCertificationRecord, ReuseOrigin};
 use crate::diagnostics::lineage::LineageArtifactId;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]

@@ -10,7 +10,7 @@ use crate::{
     config::data::RelationIntegrityScopeBudget,
     identity::data::{EntityId, KindId, RelationId},
     storage::overlay::PartitionAccess,
-    validation::data::InvariantRule,
+    validation::data::{CustomInvariantRegistration, InvariantRule},
 };
 
 use super::observation::InvariantObservation;
@@ -261,7 +261,7 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
     }
 
     pub(crate) fn includes_registration(&self, registration: &InvariantRegistration) -> bool {
-        let rule_groups = registration.rule.groups();
+        let rule_groups = registration.groups();
         self.runtime_policy.should_run(rule_groups, self.checkpoint)
             && (self.applicable_groups.is_empty() || self.applicable_groups.intersects(rule_groups))
             && self
@@ -272,6 +272,17 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
                 self.runtime_policy.max_cost_at(self.checkpoint),
                 registration.cost(),
             )
+    }
+
+    pub(crate) fn includes_custom_registration(
+        &self,
+        registration: &CustomInvariantRegistration,
+    ) -> bool {
+        let rule_groups = registration.groups();
+        registration.execution_point() == self.checkpoint
+            && self.runtime_policy.should_run(rule_groups, self.checkpoint)
+            && (self.applicable_groups.is_empty() || self.applicable_groups.intersects(rule_groups))
+            && cost_allowed(self.runtime_policy.max_cost_at(self.checkpoint), registration.cost_class())
     }
 
     fn rule_matches_plan_scope(&self, rule: &InvariantRule) -> bool {

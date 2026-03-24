@@ -192,8 +192,7 @@ where
         if packet.source_branch != expected_parent {
             return Err(crate::data::error::SignalError::internal(format!(
                 "fork packet ancestry mismatch: source branch {} does not match stored parent {}",
-                packet.source_branch.0,
-                expected_parent.0
+                packet.source_branch.0, expected_parent.0
             )));
         }
         self.store_branch_state(packet.branch_id, packet.state);
@@ -216,7 +215,9 @@ where
             .map(|state| AuthorityTransferPacket { branch_id, state })
     }
 
-    pub(in crate::logic::transaction::runtime::state::branching) fn with_stored_branch_state_mut<R>(
+    pub(in crate::logic::transaction::runtime::state::branching) fn with_stored_branch_state_mut<
+        R,
+    >(
         &mut self,
         branch_id: SignalBranchId,
         f: impl FnOnce(&mut BranchState<D, I, T>) -> R,
@@ -268,7 +269,9 @@ where
         if branch_id == active_branch {
             Some(active_graph)
         } else {
-            self.branches.get(&branch_id).map(|state| &state.authority.graph)
+            self.branches
+                .get(&branch_id)
+                .map(|state| &state.authority.graph)
         }
     }
 
@@ -291,10 +294,7 @@ where
             .unwrap_or_default()
     }
 
-    pub fn branch_ancestry_state(
-        &self,
-        branch_id: SignalBranchId,
-    ) -> Option<&BranchAncestryState> {
+    pub fn branch_ancestry_state(&self, branch_id: SignalBranchId) -> Option<&BranchAncestryState> {
         self.branches.get(&branch_id).map(|state| &state.ancestry)
     }
 

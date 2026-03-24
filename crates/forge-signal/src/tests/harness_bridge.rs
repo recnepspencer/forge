@@ -240,15 +240,18 @@ fn operational_profile_reconstructs_rich_artifacts_without_retaining_facts() {
         .graph
         .materialize_explanation_artifact(node)
         .unwrap();
-    let (prov, provenance_mode) = runtime
-        .graph
-        .materialize_provenance_artifact(node)
-        .unwrap();
+    let (prov, provenance_mode) = runtime.graph.materialize_provenance_artifact(node).unwrap();
 
     assert!(explanation.is_some());
     assert!(prov.is_some());
-    assert_eq!(explanation_mode, DiagnosticsAvailability::ReconstructedAvailable);
-    assert_eq!(provenance_mode, DiagnosticsAvailability::ReconstructedAvailable);
+    assert_eq!(
+        explanation_mode,
+        DiagnosticsAvailability::ReconstructedAvailable
+    );
+    assert_eq!(
+        provenance_mode,
+        DiagnosticsAvailability::ReconstructedAvailable
+    );
     assert_eq!(
         explanations[0].extensions["artifact_materialization"],
         "reconstructed"
@@ -258,5 +261,3 @@ fn operational_profile_reconstructs_rich_artifacts_without_retaining_facts() {
         "reconstructed"
     );
 }
-
-

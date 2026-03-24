@@ -3,6 +3,7 @@ use crate::transactions::data::{CommitConflict, ConflictClass};
 use crate::validation::data::{
     InvariantCheckResult, InvariantCostClass, InvariantExecutionPoint, InvariantFailureEffect,
     InvariantGroupSet, InvariantPlanContract, InvariantVerdict, InvariantViolation,
+    InvariantViolationFields,
 };
 use crate::{
     authority::commit::preparation::diagnostics::failures::PreparationFailureClass,
@@ -279,6 +280,8 @@ pub struct InvariantExecutionSummary {
     result_count: usize,
     advisory_count: usize,
     violation_count: usize,
+    custom_failure_count: usize,
+    custom_panic_count: usize,
     blocking_failure: Option<InvariantFailure>,
     publication_failure: Option<InvariantFailure>,
 }
@@ -287,6 +290,8 @@ impl InvariantExecutionSummary {
     fn from_results(results: &[InvariantCheckResult]) -> Self {
         let mut advisory_count = 0;
         let mut violation_count = 0;
+        let mut custom_failure_count = 0;
+        let mut custom_panic_count = 0;
         let mut blocking_failure = None;
         let mut publication_failure = None;
 
@@ -298,6 +303,14 @@ impl InvariantExecutionSummary {
                 }
                 InvariantVerdict::Violation(violation) => {
                     violation_count += 1;
+                    if let InvariantViolationFields::CustomInvariantFailure { failure_kind, .. } =
+                        &violation.fields
+                    {
+                        custom_failure_count += 1;
+                        if failure_kind == "panic" {
+                            custom_panic_count += 1;
+                        }
+                    }
                     let failure = InvariantFailure {
                         execution_point: result.execution_point,
                         effect: result.failure_effect,
@@ -324,6 +337,8 @@ impl InvariantExecutionSummary {
             result_count: results.len(),
             advisory_count,
             violation_count,
+            custom_failure_count,
+            custom_panic_count,
             blocking_failure,
             publication_failure,
         }
@@ -339,6 +354,14 @@ impl InvariantExecutionSummary {
 
     pub fn violation_count(&self) -> usize {
         self.violation_count
+    }
+
+    pub fn custom_failure_count(&self) -> usize {
+        self.custom_failure_count
+    }
+
+    pub fn custom_panic_count(&self) -> usize {
+        self.custom_panic_count
     }
 
     pub fn blocking_failure(&self) -> Option<&InvariantFailure> {

@@ -1,6 +1,9 @@
 use crate::facade::history::BranchId;
 use crate::facade::identity::{KindId, PartitionId};
-use crate::facade::lineage::{LineageDecisionKind, LineageEventKind, LineageGraphRequest};
+use crate::facade::lineage::{
+    LineageDecisionKind, LineageEventKind, LineageGraphDigestMode, LineageGraphRequest,
+    LineageGraphTraversalBasis,
+};
 use crate::facade::transactions::{
     EntityMutationIntent, MutationIntent, ReplaceEntityIntent, TransactionOptions,
     WorkerIntentBatch,
@@ -20,8 +23,13 @@ fn lineage_graph_delete_emits_retire_event() {
         .lineage_access()
         .graph(LineageGraphRequest {
             branch_id: BranchId("main".to_string()),
+            traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
         });
 
+    assert_eq!(
+        graph.traversal_basis,
+        LineageGraphTraversalBasis::FullBranchGraphMaterialization
+    );
     assert!(graph
         .events
         .iter()
@@ -58,8 +66,13 @@ fn lineage_graph_replace_emits_replace_edge() {
         .lineage_access()
         .graph(LineageGraphRequest {
             branch_id: BranchId("main".to_string()),
+            traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
         });
 
+    assert_eq!(
+        graph.traversal_basis,
+        LineageGraphTraversalBasis::FullBranchGraphMaterialization
+    );
     assert!(graph.events.iter().any(|event| {
         event.commit.commit_id == outcome.commit.commit_id
             && event.kind == LineageEventKind::Replace
@@ -115,6 +128,7 @@ fn lineage_graph_same_shape_replacements_do_not_cross_wire_targets() {
         .lineage_access()
         .graph(LineageGraphRequest {
             branch_id: BranchId("main".to_string()),
+            traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
         });
     let replace_events = graph
         .events
@@ -126,6 +140,24 @@ fn lineage_graph_same_shape_replacements_do_not_cross_wire_targets() {
         .collect::<Vec<_>>();
 
     assert_eq!(replace_events.len(), 2);
+    assert_eq!(graph.metrics.event_count, graph.events.len());
+    assert_eq!(graph.metrics.node_count, graph.nodes.len());
+    assert_eq!(
+        graph.metrics.candidate_count,
+        graph.correspondence_candidates.len()
+    );
+    assert_eq!(
+        graph.digest_basis().digest_mode(),
+        LineageGraphDigestMode::ExactDigestCanonicalOrder
+    );
+    assert_eq!(
+        graph.digest_basis().canonical_event_ids(),
+        graph.events.iter().map(|event| event.event_id).collect::<Vec<_>>()
+    );
+    assert_eq!(
+        graph.digest_basis().canonical_lineage_ids(),
+        graph.nodes.iter().map(|node| node.lineage_id).collect::<Vec<_>>()
+    );
     assert_ne!(replace_events[0].targets, replace_events[1].targets);
 }
 

@@ -18,7 +18,10 @@ fn fintech_intraday_world_setup_builds_seeded_branchable_graph() {
     assert!(baseline_nodes > 0);
     assert!(baseline_audit.desk.get(super::aspects::RISK) > 0);
     assert!(baseline_audit.scenario.get(super::aspects::RISK) > 0);
-    assert_eq!(snapshot.diagnostic_graph.live_node_ids().len(), baseline_nodes);
+    assert_eq!(
+        snapshot.diagnostic_graph.live_node_ids().len(),
+        baseline_nodes
+    );
     assert_eq!(fixture.instruments.len(), FintechScale::smoke().instruments);
     assert_eq!(analysis.name, "analysis");
     assert_eq!(fixture.current_branch().name, "analysis");

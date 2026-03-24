@@ -1173,7 +1173,46 @@ fn durability_contract_checkpoint_recovers_lineage_metadata() {
         rejected_resolution,
         Err(CorrespondencePromotionRejectionClass::MissingLineageReference)
     );
-    runtime.durability_authority().checkpoint().unwrap();
+    let checkpoint = runtime.durability_authority().checkpoint().unwrap();
+    assert_eq!(
+        checkpoint.lineage.digest_basis().published_lineage_commit_count,
+        runtime
+            .history_access()
+            .commit_envelopes_snapshot()
+            .iter()
+            .filter(|envelope| envelope.has_lineage_authority())
+            .count()
+    );
+    assert_eq!(
+        checkpoint.lineage.digest_basis().published_lineage_event_count,
+        runtime
+            .history_access()
+            .commit_envelopes_snapshot()
+            .iter()
+            .map(|envelope| envelope.lineage_digest_basis().lineage_event_count())
+            .sum::<usize>()
+    );
+    assert_eq!(
+        checkpoint.lineage.digest_basis().published_lineage_decision_count,
+        runtime
+            .history_access()
+            .commit_envelopes_snapshot()
+            .iter()
+            .map(|envelope| envelope.lineage_digest_basis().lineage_decision_count())
+            .sum::<usize>()
+    );
+    assert_eq!(
+        checkpoint.lineage.counters().node_count,
+        checkpoint.lineage.nodes().len()
+    );
+    assert_eq!(
+        checkpoint.lineage.counters().correspondence_candidate_count,
+        checkpoint.lineage.correspondence_candidates().len()
+    );
+    assert_eq!(
+        checkpoint.lineage.counters().rejected_decision_count,
+        checkpoint.lineage.rejected_decisions().len()
+    );
     let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
     let mut recovered = persisted_runtime_with_test_schema();
     recovered.durability_authority().recover(plan).unwrap();
@@ -1181,6 +1220,8 @@ fn durability_contract_checkpoint_recovers_lineage_metadata() {
         .lineage_access()
         .graph(crate::facade::lineage::LineageGraphRequest {
             branch_id: BranchId("main".to_string()),
+            traversal_basis:
+                crate::facade::lineage::LineageGraphTraversalBasis::FullBranchGraphMaterialization,
         });
 
     assert_eq!(graph.nodes.len(), 2);

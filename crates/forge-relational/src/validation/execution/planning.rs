@@ -1,5 +1,6 @@
 use crate::authority::commit::preparation::diagnostics::counters::ValidationPreparationCounters;
 use crate::authority::commit::preparation::facade::PreparedInvariantExecution;
+use crate::authority::commit::preparation::packets::invariant::InvariantPacketRegistration;
 use crate::authority::commit::preparation::planning::context::PreparationPlanningContext;
 use crate::authority::commit::preparation::planning::strategy::{
     packet_width_is_profitable, ParallelLegality, ParallelProfitability, PreparationFallbackReason,
@@ -15,7 +16,7 @@ use crate::authority::commit::preparation::reduction::keys::ValidationReductionK
 use crate::logic::planning::RelationalExecutionModel;
 use crate::logic::runtime::RelationalRuntime;
 use crate::transactions::data::MergedCommitPlan;
-use crate::validation::data::InvariantRegistration;
+use crate::validation::data::CustomInvariantScopePlanner;
 use crate::validation::engine::{
     InvariantPlanScopeClass, InvariantProofBoundarySummary, InvariantScopeWideningCause,
 };
@@ -114,7 +115,7 @@ pub(crate) fn plan_invariant_execution<'runtime>(
         .into_iter()
         .enumerate()
         .map(|(packet_index, registration)| {
-            let invariant_group_scope = registration.rule.groups();
+            let invariant_group_scope = registration.groups();
             let record_domain = if request.merged_plan().is_some() {
                 PreparationRecordDomain::Mixed
             } else {
@@ -212,7 +213,8 @@ fn planning_context(
         schema_registry_entry_count: runtime.config.schema.registry.entity_kinds.len()
             + runtime.config.schema.registry.relation_kinds.len(),
         invariant_registration_count: runtime.config.schema.invariant_catalog.registrations.len()
-            + runtime.aspect_semantics.relation_integrity_registrations.len(),
+            + runtime.aspect_semantics.relation_integrity_registrations.len()
+            + runtime.aspect_semantics.custom_invariant_registries.len(),
         planning_contract: runtime.config.execution.planning.clone(),
     }
 }
@@ -269,8 +271,8 @@ pub(crate) fn planned_proof_boundary_summary(
 fn eligible_registrations(
     runtime: &RelationalRuntime,
     request: &InvariantExecutionRequest<'_>,
-) -> Vec<InvariantRegistration> {
-    runtime
+) -> Vec<InvariantPacketRegistration> {
+    let native = runtime
         .config
         .schema
         .invariant_catalog
@@ -284,7 +286,31 @@ fn eligible_registrations(
         )
         .filter(|registration| request.includes_registration(registration))
         .cloned()
-        .collect()
+        .map(InvariantPacketRegistration::Native);
+
+    let custom = runtime
+        .aspect_semantics
+        .custom_invariant_registries
+        .iter()
+        .filter(|registration| request.includes_custom_registration(registration))
+        .map(|registration| {
+            let mut planner = CustomInvariantScopePlanner::new(
+                runtime,
+                request.observation(),
+                request.version_id(),
+                request.merged_plan(),
+            );
+            let prepared_execution =
+                registration
+                    .executable()
+                    .prepare_for_execution(runtime, &mut planner);
+            InvariantPacketRegistration::Custom {
+                registration: registration.clone(),
+                prepared_execution,
+            }
+        });
+
+    native.chain(custom).collect()
 }
 
 fn packet_partition_scope(
@@ -458,26 +484,29 @@ mod tests {
         let packet_relation_kinds = prepared
             .packets
             .iter()
-            .filter_map(|packet| match &packet.registration.rule {
-                crate::validation::data::InvariantRule::EndpointKindContract(contract) => {
-                    Some(contract.relation_kind_id)
-                }
-                crate::validation::data::InvariantRule::CardinalityMaximumContract(contract) => {
-                    Some(contract.relation_kind_id)
-                }
-                crate::validation::data::InvariantRule::CardinalityMinimumContract(contract) => {
-                    Some(contract.relation_kind_id)
-                }
-                crate::validation::data::InvariantRule::UniquenessContract(contract) => {
-                    Some(contract.relation_kind_id)
-                }
-                crate::validation::data::InvariantRule::SymmetryContract(contract) => {
-                    Some(contract.relation_kind_id)
-                }
-                crate::validation::data::InvariantRule::EndpointDeletionIntegrityContract(contract) => {
-                    Some(contract.relation_kind_id)
-                }
-                _ => None,
+            .filter_map(|packet| match &packet.registration {
+                crate::authority::commit::preparation::packets::invariant::InvariantPacketRegistration::Native(registration) => match &registration.rule {
+                    crate::validation::data::InvariantRule::EndpointKindContract(contract) => {
+                        Some(contract.relation_kind_id)
+                    }
+                    crate::validation::data::InvariantRule::CardinalityMaximumContract(contract) => {
+                        Some(contract.relation_kind_id)
+                    }
+                    crate::validation::data::InvariantRule::CardinalityMinimumContract(contract) => {
+                        Some(contract.relation_kind_id)
+                    }
+                    crate::validation::data::InvariantRule::UniquenessContract(contract) => {
+                        Some(contract.relation_kind_id)
+                    }
+                    crate::validation::data::InvariantRule::SymmetryContract(contract) => {
+                        Some(contract.relation_kind_id)
+                    }
+                    crate::validation::data::InvariantRule::EndpointDeletionIntegrityContract(contract) => {
+                        Some(contract.relation_kind_id)
+                    }
+                    _ => None,
+                },
+                crate::authority::commit::preparation::packets::invariant::InvariantPacketRegistration::Custom { .. } => None,
             })
             .collect::<Vec<_>>();
 

@@ -106,6 +106,8 @@ impl<'runtime> InspectionAccess<'runtime> {
                 crate::facade::lineage::RecordHistoryRequest {
                     branch_id: branch_id.clone(),
                     entity_id,
+                    boundedness_basis:
+                        crate::facade::lineage::HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
                 },
             ),
             RecordRef::Relation(_) => None,

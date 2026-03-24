@@ -6,11 +6,11 @@ use crate::data::core_profile::HOT_VEC_INLINE_CAPACITY;
 use crate::data::dependency::DependencySnapshotId;
 use crate::data::graph::{DependencySetId, SubscriberSetId};
 use crate::data::output::{ChangedRegion, PartitionSubscription};
+#[cfg(test)]
+use crate::data::trace::{ArtifactMergeAuthority, TraceSummary};
 use crate::data::trace::{
     ArtifactWriteDelta, CausalityMetadata, RetainedDiagnosticArtifact, RuntimeArtifactState,
 };
-#[cfg(test)]
-use crate::data::trace::{ArtifactMergeAuthority, TraceSummary};
 
 use super::condition::NodeEvaluationConfig;
 
@@ -420,4 +420,3 @@ impl NodeEntry {
         }
     }
 }
-

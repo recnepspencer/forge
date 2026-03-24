@@ -238,7 +238,10 @@ impl NodeContract {
     }
 
     pub fn with_cross_identity_persistent_matching(mut self) -> Self {
-        self.reuse.equivalence = self.reuse.equivalence.with_cross_identity_persistent_matching();
+        self.reuse.equivalence = self
+            .reuse
+            .equivalence
+            .with_cross_identity_persistent_matching();
         self
     }
 

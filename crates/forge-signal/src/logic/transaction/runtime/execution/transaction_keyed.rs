@@ -3,8 +3,8 @@ use std::time::Instant;
 
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
-use crate::data::output::KeyedComputation;
 use crate::data::output::ComputationKey;
+use crate::data::output::KeyedComputation;
 use crate::data::proof::PartitionScopeSet;
 use crate::data::reuse::PersistentCorrespondenceEvidence;
 use crate::diagnostics::ExecutionFailurePhase;
@@ -100,7 +100,9 @@ where
             computation,
             evaluator,
             EvaluationRequestMode::Default,
-            KeyedReuseRequest::PartialSplice { composition_regions },
+            KeyedReuseRequest::PartialSplice {
+                composition_regions,
+            },
         )
     }
 
@@ -128,9 +130,7 @@ where
             .map(|memo_key| self.config.key_registry.intern_memo_key(memo_key));
         let resolve_memo_key_id = || {
             memo_key_id.ok_or_else(|| {
-                SignalError::internal(
-                    "memoized keyed execution is missing an interned memo key id",
-                )
+                SignalError::internal("memoized keyed execution is missing an interned memo key id")
             })
         };
         let base_keyed_context = PreparedKeyedContext {
@@ -139,17 +139,16 @@ where
             memo_key: computation.memo_key.clone(),
             memoized_origin: crate::data::output::MemoizedResultOrigin::DirectCompute,
             persistent_correspondence: reuse_request.persistent_correspondence().cloned(),
-            composition_regions: reuse_request.composition_regions().cloned().unwrap_or_default(),
+            composition_regions: reuse_request
+                .composition_regions()
+                .cloned()
+                .unwrap_or_default(),
         };
         if let Some(memo_key) = computation.memo_key.as_ref() {
             let cached = self
                 .scratch
                 .staged_memo_writes
-                .get(&(
-                    family_id,
-                    key_id,
-                    resolve_memo_key_id()?,
-                ))
+                .get(&(family_id, key_id, resolve_memo_key_id()?))
                 .cloned()
                 .or_else(|| {
                     self.config.lookup_memoized_result(
@@ -170,11 +169,7 @@ where
                 self.telemetry.evaluation.memoization_hits += 1;
                 let cached_result = cached;
                 self.scratch.staged_memo_writes.insert(
-                    (
-                        family_id,
-                        key_id,
-                        resolve_memo_key_id()?,
-                    ),
+                    (family_id, key_id, resolve_memo_key_id()?),
                     cached_result.clone(),
                 );
                 let execution_start = Instant::now();
@@ -264,14 +259,9 @@ where
         if result.is_ok() {
             if let Ok(mut guard) = last_result.lock() {
                 if let Some(last_result) = guard.take() {
-                    self.scratch.staged_memo_writes.insert(
-                        (
-                            family_id,
-                            key_id,
-                            resolve_memo_key_id()?,
-                        ),
-                        last_result,
-                    );
+                    self.scratch
+                        .staged_memo_writes
+                        .insert((family_id, key_id, resolve_memo_key_id()?), last_result);
                 }
             }
         }
@@ -302,9 +292,9 @@ impl KeyedReuseRequest {
 
     fn compute_origin(&self) -> PreparedEvaluationOrigin {
         match self {
-            Self::PartialSplice { composition_regions } if !composition_regions.is_empty() => {
-                PreparedEvaluationOrigin::PartialArtifactSplice
-            }
+            Self::PartialSplice {
+                composition_regions,
+            } if !composition_regions.is_empty() => PreparedEvaluationOrigin::PartialArtifactSplice,
             _ => PreparedEvaluationOrigin::DirectPrecompute,
         }
     }
@@ -318,7 +308,9 @@ impl KeyedReuseRequest {
 
     fn composition_regions(&self) -> Option<&PartitionScopeSet> {
         match self {
-            Self::PartialSplice { composition_regions } => Some(composition_regions),
+            Self::PartialSplice {
+                composition_regions,
+            } => Some(composition_regions),
             _ => None,
         }
     }

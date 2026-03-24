@@ -4,7 +4,10 @@ use crate::data::handle::NodeId;
 use crate::diagnostics::lineage::LineageArtifactId;
 
 use super::conflict::{BranchConflictResolutionPlan, BranchMergeConflictKind};
-use super::core::{BranchMergeBase, BranchMergeDivergence, BranchMergeKind, BranchMergeStrategy, MergeBoundaryWitnessKind, MergeBoundaryWitness};
+use super::core::{
+    BranchMergeBase, BranchMergeDivergence, BranchMergeKind, BranchMergeStrategy,
+    MergeBoundaryWitness, MergeBoundaryWitnessKind,
+};
 use super::journal::MergeNodeMap;
 use super::plan::{
     ArtifactMergeComparable, ConservativeOverlapExpansion, PlannedMergeCandidateSet,

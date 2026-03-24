@@ -535,7 +535,9 @@ fn repeated_failure_capture_stays_current_and_bounded() {
     assert!(failure.message.contains("cycle 99"));
     assert!(
         diagnostics.recent_history().len()
-            <= SignalRuntimePolicy::for_tier(DiagnosticsTier::Development).retention_budget.history_limit
+            <= SignalRuntimePolicy::for_tier(DiagnosticsTier::Development)
+                .retention_budget
+                .history_limit
     );
 }
 
@@ -570,7 +572,9 @@ fn repeated_rollbacks_keep_latest_rollback_current_and_bounded() {
         .contains("explicit rollback"));
     assert!(
         diagnostics.recent_history().len()
-            <= SignalRuntimePolicy::for_tier(DiagnosticsTier::Development).retention_budget.history_limit
+            <= SignalRuntimePolicy::for_tier(DiagnosticsTier::Development)
+                .retention_budget
+                .history_limit
     );
 }
 
@@ -731,7 +735,9 @@ fn diagnostics_history_and_replay_preserve_typed_advanced_reuse_origins() {
     let mut runtime_ctx = ();
 
     runtime
-        .transaction(&mut runtime_ctx, |tx| source.evaluate_memoized(tx, "shape-v1"))
+        .transaction(&mut runtime_ctx, |tx| {
+            source.evaluate_memoized(tx, "shape-v1")
+        })
         .unwrap();
     runtime
         .transaction(&mut runtime_ctx, |tx| {
@@ -739,7 +745,9 @@ fn diagnostics_history_and_replay_preserve_typed_advanced_reuse_origins() {
         })
         .unwrap();
     runtime
-        .transaction(&mut runtime_ctx, |tx| wing.evaluate_memoized(tx, "shape-v1"))
+        .transaction(&mut runtime_ctx, |tx| {
+            wing.evaluate_memoized(tx, "shape-v1")
+        })
         .unwrap();
     mark_dirty(runtime.graph_mut(), wing_node, ASPECT_A).unwrap();
     runtime
@@ -814,7 +822,9 @@ fn rendered_execution_report_summary_names_advanced_reuse_families() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     let mut source_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(10, 0));
@@ -842,8 +852,14 @@ fn rendered_execution_report_summary_names_advanced_reuse_families() {
         dependency_capture_updates: 0,
         semantic_segment_count: 4,
         task_outcome_counts: [
-            (crate::logic::planner::TaskExecutionOutcome::MemoizedReuse, 1),
-            (crate::logic::planner::TaskExecutionOutcome::SnapshotRestoreReuse, 1),
+            (
+                crate::logic::planner::TaskExecutionOutcome::MemoizedReuse,
+                1,
+            ),
+            (
+                crate::logic::planner::TaskExecutionOutcome::SnapshotRestoreReuse,
+                1,
+            ),
             (
                 crate::logic::planner::TaskExecutionOutcome::CrossIdentityPersistentReuse,
                 1,
@@ -855,9 +871,10 @@ fn rendered_execution_report_summary_names_advanced_reuse_families() {
         ]
         .into_iter()
         .collect(),
-        stage_outcome_counts: [
-            (crate::logic::planner::StageExecutionOutcome::CompletedSerial, 1),
-        ]
+        stage_outcome_counts: [(
+            crate::logic::planner::StageExecutionOutcome::CompletedSerial,
+            1,
+        )]
         .into_iter()
         .collect(),
     };
@@ -1141,7 +1158,9 @@ fn repeated_memoized_execution_retains_bounded_diagnostics() {
     let diagnostics = runtime.observe().diagnostics();
     assert!(
         diagnostics.recent_history().len()
-            <= SignalRuntimePolicy::for_tier(DiagnosticsTier::Operational).retention_budget.history_limit
+            <= SignalRuntimePolicy::for_tier(DiagnosticsTier::Operational)
+                .retention_budget
+                .history_limit
     );
     assert!(diagnostics
         .recent_history()
@@ -1215,7 +1234,9 @@ fn repeated_partition_heavy_invalidation_retains_bounded_diagnostics() {
     );
     assert!(
         diagnostics.recent_history().len()
-            <= SignalRuntimePolicy::for_tier(DiagnosticsTier::Development).retention_budget.history_limit
+            <= SignalRuntimePolicy::for_tier(DiagnosticsTier::Development)
+                .retention_budget
+                .history_limit
     );
 }
 
@@ -1234,8 +1255,12 @@ fn mixed_direct_and_transitive_frontier_counters_stay_aligned_with_flow_diagnost
     graph
         .append_partition_detail_dependency(maybe_stale, source, ASPECT_A, "wing", "rib-13")
         .unwrap();
-    graph.append_dependency(transitive, direct, ASPECT_A).unwrap();
-    graph.append_dependency(transitive, maybe_stale, ASPECT_A).unwrap();
+    graph
+        .append_dependency(transitive, direct, ASPECT_A)
+        .unwrap();
+    graph
+        .append_dependency(transitive, maybe_stale, ASPECT_A)
+        .unwrap();
 
     let evaluator = |ctx: &mut EvaluationContext<'_, ()>| {
         let result = if ctx.node() == source {
@@ -1256,7 +1281,9 @@ fn mixed_direct_and_transitive_frontier_counters_stay_aligned_with_flow_diagnost
             EvaluationRequestMode::ForceOnDemand,
         )
         .unwrap();
-    graph.execute_prepared_plan(&bootstrap, &(), &evaluator).unwrap();
+    graph
+        .execute_prepared_plan(&bootstrap, &(), &evaluator)
+        .unwrap();
 
     mark_dirty_with_regions(
         &mut graph,
@@ -1308,7 +1335,10 @@ fn mixed_direct_and_transitive_frontier_counters_stay_aligned_with_flow_diagnost
             .direct_waves
             .iter()
             .flat_map(|wave| wave.entries.iter())
-            .filter(|entry| matches!(entry.classification, FrontierEntryClassification::DirectDirty))
+            .filter(|entry| matches!(
+                entry.classification,
+                FrontierEntryClassification::DirectDirty
+            ))
             .count() as u32
     );
     assert_eq!(
@@ -1317,7 +1347,10 @@ fn mixed_direct_and_transitive_frontier_counters_stay_aligned_with_flow_diagnost
             .direct_waves
             .iter()
             .flat_map(|wave| wave.entries.iter())
-            .filter(|entry| matches!(entry.classification, FrontierEntryClassification::MaybeStale))
+            .filter(|entry| matches!(
+                entry.classification,
+                FrontierEntryClassification::MaybeStale
+            ))
             .count() as u32
     );
 }
@@ -1349,7 +1382,9 @@ fn flow_diagnostics_report_zero_realized_transitive_waves_when_frontier_has_none
     let bootstrap = graph
         .build_evaluation_plan(&[source, direct], EvaluationRequestMode::ForceOnDemand)
         .unwrap();
-    graph.execute_prepared_plan(&bootstrap, &(), &evaluator).unwrap();
+    graph
+        .execute_prepared_plan(&bootstrap, &(), &evaluator)
+        .unwrap();
 
     mark_dirty_with_regions(
         &mut graph,
@@ -1372,7 +1407,10 @@ fn flow_diagnostics_report_zero_realized_transitive_waves_when_frontier_has_none
         .latest_frontier_execution()
         .expect("frontier execution summary should be retained");
 
-    assert!(frontier.transitive_waves.iter().all(|wave| wave.entries.is_empty()));
+    assert!(frontier
+        .transitive_waves
+        .iter()
+        .all(|wave| wave.entries.is_empty()));
     assert_eq!(frontier.counters.frontier_transitive_wave_count, 0);
     assert_eq!(flow.invalidation.frontier_transitive_wave_count, 0);
 }
@@ -1409,5 +1447,3 @@ fn runtime_policy_history_budget_overrides_are_enforced() {
         "detail limit override should trim retained node detail"
     );
 }
-
-

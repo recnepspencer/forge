@@ -1,11 +1,9 @@
 use crate::data::dependency::DependencySnapshot;
 use crate::data::error::SignalError;
-use crate::facade::*;
-use crate::logic::transaction::{
-    BranchMergeResolutionRequirement, ConflictResolutionStrategy,
-};
-use crate::tests::support::*;
 use crate::data::graph::BranchStructuralDelta;
+use crate::facade::*;
+use crate::logic::transaction::{BranchMergeResolutionRequirement, ConflictResolutionStrategy};
+use crate::tests::support::*;
 
 #[test]
 fn merge_branch_introduces_source_only_node_with_new_target_id_and_merge_traces() {
@@ -113,17 +111,21 @@ fn merge_branch_introduces_source_only_node_with_new_target_id_and_merge_traces(
         "merge should emit a branch-level replay boundary"
     );
     assert!(
-        runtime.graph().observe().lineage_records().iter().any(|record| matches!(
-            record.kind,
-            LineageRecordKind::BranchMerge { .. }
-        )),
+        runtime
+            .graph()
+            .observe()
+            .lineage_records()
+            .iter()
+            .any(|record| matches!(record.kind, LineageRecordKind::BranchMerge { .. })),
         "merge should emit branch merge lineage"
     );
     assert!(
-        runtime.graph().observe().lineage_records().iter().any(|record| matches!(
-            record.kind,
-            LineageRecordKind::ArtifactMerge { .. }
-        )),
+        runtime
+            .graph()
+            .observe()
+            .lineage_records()
+            .iter()
+            .any(|record| matches!(record.kind, LineageRecordKind::ArtifactMerge { .. })),
         "merge should emit artifact merge lineage"
     );
 }
@@ -229,10 +231,10 @@ fn branch_mutation_journal_slice_preserves_structural_records_for_overlap_filter
     assert_eq!(slice.candidate_nodes().len(), 2);
     assert!(filtered.contains_node(source));
     assert!(!filtered.contains_node(other));
-    assert!(filtered.records[0].structural_deltas.iter().any(|delta| matches!(
-        delta,
-        BranchStructuralDelta::RuntimeArtifactChanged(_)
-    )));
+    assert!(filtered.records[0]
+        .structural_deltas
+        .iter()
+        .any(|delta| matches!(delta, BranchStructuralDelta::RuntimeArtifactChanged(_))));
 }
 
 #[test]
@@ -387,7 +389,9 @@ fn merge_branch_counters_and_summary_surface_match_introduced_work() {
         .unwrap();
 
     runtime.switch_branch(main).unwrap();
-    let result = runtime.merge_branch(feature, runtime.observe().current_branch()).unwrap();
+    let result = runtime
+        .merge_branch(feature, runtime.observe().current_branch())
+        .unwrap();
 
     assert_eq!(
         result.counters.introduced_node_count, 1,
@@ -588,23 +592,19 @@ fn merge_candidate_construction_is_identical_with_and_without_convenience_branch
         .unwrap();
 
     assert_eq!(
-        initial.planned_candidates,
-        rebuilt.planned_candidates,
+        initial.planned_candidates, rebuilt.planned_candidates,
         "convenience index rebuilds must not change planned merge candidates"
     );
     assert_eq!(
-        initial.proof_minimal_overlap,
-        rebuilt.proof_minimal_overlap,
+        initial.proof_minimal_overlap, rebuilt.proof_minimal_overlap,
         "convenience index rebuilds must not widen proof-minimal overlap"
     );
     assert_eq!(
-        initial.conservative_overlap,
-        rebuilt.conservative_overlap,
+        initial.conservative_overlap, rebuilt.conservative_overlap,
         "convenience index rebuilds must not change bounded conservative expansion"
     );
     assert_eq!(
-        initial.target_overlap_journal,
-        rebuilt.target_overlap_journal,
+        initial.target_overlap_journal, rebuilt.target_overlap_journal,
         "convenience index rebuilds must not perturb target overlap classification"
     );
 }
@@ -655,18 +655,27 @@ fn repeated_merge_advances_source_branch_ledger_boundary() {
         .unwrap();
 
     runtime.switch_branch(main).unwrap();
-    let second_merge = runtime.merge_branch(feature, runtime.observe().current_branch()).unwrap();
+    let second_merge = runtime
+        .merge_branch(feature, runtime.observe().current_branch())
+        .unwrap();
 
     assert!(
-        second_merge.counters.source_slice_breadth == second_merge.planned_candidates.nodes.len() as u64,
+        second_merge.counters.source_slice_breadth
+            == second_merge.planned_candidates.nodes.len() as u64,
         "repeated merge should continue using the source ledger candidate set"
     );
     assert!(
-        second_merge.records.iter().all(|record| record.source_node != first),
+        second_merge
+            .records
+            .iter()
+            .all(|record| record.source_node != first),
         "source ledger should advance past already-merged nodes"
     );
     assert!(
-        second_merge.records.iter().any(|record| record.source_node == second),
+        second_merge
+            .records
+            .iter()
+            .any(|record| record.source_node == second),
         "new source mutations should remain merge-visible"
     );
 }
@@ -712,7 +721,9 @@ fn retained_only_branch_churn_does_not_force_merge_replanning() {
     }
 
     runtime.switch_branch(main).unwrap();
-    let result = runtime.merge_branch(feature, runtime.observe().current_branch()).unwrap();
+    let result = runtime
+        .merge_branch(feature, runtime.observe().current_branch())
+        .unwrap();
 
     assert!(
         result.planned_candidates.nodes.is_empty(),
@@ -791,7 +802,9 @@ fn merge_branch_equivalent_runtime_state_ignores_retained_artifact_richness() {
     }
 
     runtime.switch_branch(main).unwrap();
-    let result = runtime.merge_branch(feature, runtime.observe().current_branch()).unwrap();
+    let result = runtime
+        .merge_branch(feature, runtime.observe().current_branch())
+        .unwrap();
     let shared_record = result
         .records
         .iter()
@@ -799,7 +812,10 @@ fn merge_branch_equivalent_runtime_state_ignores_retained_artifact_richness() {
         .expect("shared node should still be part of the merge summary");
 
     assert!(
-        matches!(shared_record.action, ArtifactMergeAction::EquivalentUnchanged),
+        matches!(
+            shared_record.action,
+            ArtifactMergeAction::EquivalentUnchanged
+        ),
         "merge comparability should be driven by runtime state, not retained richness"
     );
 }
@@ -899,7 +915,10 @@ fn merge_branch_divergent_shared_node_requires_typed_conflict_surface() {
                 BranchMergeFailureKind::DivergenceRequiresConflictResolution
             );
             let evidence = evidence.expect("conflict evidence should be present");
-            assert_eq!(evidence.divergence, BranchMergeDivergence::SharedStateConflict);
+            assert_eq!(
+                evidence.divergence,
+                BranchMergeDivergence::SharedStateConflict
+            );
             assert_eq!(
                 evidence.reconciliation_policy.conflict,
                 ConflictMergePolicy::ResolveSourceStateWhenStructureMatches
@@ -910,53 +929,41 @@ fn merge_branch_divergent_shared_node_requires_typed_conflict_surface() {
                 evidence.summary.primary_conflict_kind,
                 Some(BranchMergeConflictKind::MergeAuthorityMismatch)
             );
-            assert!(
-                evidence
-                    .summary
-                    .required_resolution
-                    .contains(&BranchMergeResolutionRequirement::ReconcileComparableState)
-            );
-            assert!(
-                evidence
-                    .summary
-                    .required_resolution
-                    .contains(&BranchMergeResolutionRequirement::ReconcileMergeAuthority)
-            );
-            assert!(
-                evidence
-                    .summary
-                    .required_resolution
-                    .contains(&BranchMergeResolutionRequirement::ReconcileRuntimeArtifactState)
-            );
+            assert!(evidence
+                .summary
+                .required_resolution
+                .contains(&BranchMergeResolutionRequirement::ReconcileComparableState));
+            assert!(evidence
+                .summary
+                .required_resolution
+                .contains(&BranchMergeResolutionRequirement::ReconcileMergeAuthority));
+            assert!(evidence
+                .summary
+                .required_resolution
+                .contains(&BranchMergeResolutionRequirement::ReconcileRuntimeArtifactState));
             assert_eq!(evidence.resolution_plan.records.len(), 1);
             assert_eq!(evidence.resolution_plan.records[0].source_node, shared);
-            assert!(
-                evidence.resolution_plan.records[0]
-                    .required_resolution
-                    .contains(&BranchMergeResolutionRequirement::ReconcileRuntimeArtifactState)
-            );
-            assert!(
-                evidence.resolution_plan.records[0]
-                    .supported_strategies
-                    .contains(&ConflictResolutionStrategy::AdoptSourceRuntimeArtifactState)
-            );
-            assert!(
-                evidence.resolution_plan.records[0]
-                    .supported_strategies
-                    .contains(&ConflictResolutionStrategy::PreserveTargetRuntimeArtifactState)
-            );
+            assert!(evidence.resolution_plan.records[0]
+                .required_resolution
+                .contains(&BranchMergeResolutionRequirement::ReconcileRuntimeArtifactState));
+            assert!(evidence.resolution_plan.records[0]
+                .supported_strategies
+                .contains(&ConflictResolutionStrategy::AdoptSourceRuntimeArtifactState));
+            assert!(evidence.resolution_plan.records[0]
+                .supported_strategies
+                .contains(&ConflictResolutionStrategy::PreserveTargetRuntimeArtifactState));
             let failure = runtime
                 .observe()
                 .latest_failure_diagnostics()
                 .expect("failed merge should record failure diagnostics");
             assert!(
-                failure.message.contains("primary=Some(MergeAuthorityMismatch)"),
+                failure
+                    .message
+                    .contains("primary=Some(MergeAuthorityMismatch)"),
                 "failure diagnostics should surface the primary conflict class"
             );
             assert!(
-                failure
-                    .message
-                    .contains("ReconcileRuntimeArtifactState"),
+                failure.message.contains("ReconcileRuntimeArtifactState"),
                 "failure diagnostics should surface required merge resolution"
             );
             assert!(
@@ -972,23 +979,21 @@ fn merge_branch_divergent_shared_node_requires_typed_conflict_surface() {
                 "failed merge should emit a failure replay detail with required resolution"
             );
             assert!(
-                !runtime.graph().replay_events().iter().any(|event| {
-                    event.kind == ReplayEventKind::BranchMerged
-                }),
+                !runtime
+                    .graph()
+                    .replay_events()
+                    .iter()
+                    .any(|event| { event.kind == ReplayEventKind::BranchMerged }),
                 "failed merge must not emit a false branch-merged replay boundary"
             );
             assert_eq!(evidence.records.len(), 1);
             assert_eq!(evidence.records[0].source_node, shared);
-            assert!(
-                evidence.records[0]
-                    .conflict_kinds
-                    .contains(&BranchMergeConflictKind::ComparableMismatch)
-            );
-            assert!(
-                evidence.records[0]
-                    .conflict_kinds
-                    .contains(&BranchMergeConflictKind::RuntimeArtifactMismatch)
-            );
+            assert!(evidence.records[0]
+                .conflict_kinds
+                .contains(&BranchMergeConflictKind::ComparableMismatch));
+            assert!(evidence.records[0]
+                .conflict_kinds
+                .contains(&BranchMergeConflictKind::RuntimeArtifactMismatch));
             assert_eq!(
                 evidence.records[0]
                     .source_comparable
@@ -1031,7 +1036,9 @@ fn merge_branch_runtime_artifact_conflict_can_resolve_by_adopting_source() {
         .unwrap();
 
     let main = runtime.observe().current_branch();
-    let feature = runtime.create_branch("feature-runtime-conflict-resolve").unwrap();
+    let feature = runtime
+        .create_branch("feature-runtime-conflict-resolve")
+        .unwrap();
 
     runtime.switch_branch(feature.clone()).unwrap();
     runtime
@@ -1067,7 +1074,10 @@ fn merge_branch_runtime_artifact_conflict_can_resolve_by_adopting_source() {
         matches!(result.merge_kind, BranchMergeKind::Applied | BranchMergeKind::ConflictResolved),
         "stable-shape snapshot reconciliation may classify as applied or resolved conflict, but it should still use the narrow snapshot delta path"
     );
-    assert_eq!(result.divergence, BranchMergeDivergence::SharedStateConflict);
+    assert_eq!(
+        result.divergence,
+        BranchMergeDivergence::SharedStateConflict
+    );
     assert_eq!(
         result.reconciliation_policy.conflict,
         ConflictMergePolicy::ResolveSourceStateWhenStructureMatches
@@ -1095,14 +1105,19 @@ fn merge_branch_runtime_artifact_conflict_can_resolve_by_adopting_source() {
         "resolved runtime-artifact conflict should adopt source runtime state"
     );
     assert!(
-        runtime.graph().observe().lineage_records().iter().any(|record| matches!(
-            record.kind,
-            LineageRecordKind::BranchMerge {
-                merge_kind: BranchMergeKind::ConflictResolved,
-                resolution_plan: Some(_),
-                ..
-            }
-        )),
+        runtime
+            .graph()
+            .observe()
+            .lineage_records()
+            .iter()
+            .any(|record| matches!(
+                record.kind,
+                LineageRecordKind::BranchMerge {
+                    merge_kind: BranchMergeKind::ConflictResolved,
+                    resolution_plan: Some(_),
+                    ..
+                }
+            )),
         "resolved conflicts should emit real conflict-resolved lineage"
     );
 }
@@ -1173,23 +1188,22 @@ fn merge_branch_dependency_topology_conflict_surfaces_structural_requirement() {
                 BranchMergeFailureKind::DivergenceRequiresConflictResolution
             );
             let evidence = evidence.expect("topology conflict evidence should be present");
-            assert_eq!(evidence.divergence, BranchMergeDivergence::SharedStateConflict);
+            assert_eq!(
+                evidence.divergence,
+                BranchMergeDivergence::SharedStateConflict
+            );
             assert_eq!(
                 evidence.summary.primary_conflict_kind,
                 Some(BranchMergeConflictKind::DependencyTopologyMismatch)
             );
-            assert!(
-                evidence
-                    .summary
-                    .required_resolution
-                    .contains(&BranchMergeResolutionRequirement::ReconcileDependencyTopology)
-            );
+            assert!(evidence
+                .summary
+                .required_resolution
+                .contains(&BranchMergeResolutionRequirement::ReconcileDependencyTopology));
             assert_eq!(evidence.records.len(), 1);
-            assert!(
-                evidence.records[0]
-                    .conflict_kinds
-                    .contains(&BranchMergeConflictKind::DependencyTopologyMismatch)
-            );
+            assert!(evidence.records[0]
+                .conflict_kinds
+                .contains(&BranchMergeConflictKind::DependencyTopologyMismatch));
         }
         other => panic!("expected topology conflict failure, got {other:?}"),
     }
@@ -1259,7 +1273,10 @@ fn merge_branch_dependency_snapshot_conflict_can_resolve_by_adopting_source_snap
         matches!(result.merge_kind, BranchMergeKind::Applied | BranchMergeKind::ConflictResolved),
         "stable-shape snapshot reconciliation may classify as applied or resolved conflict, but it should still use the narrow snapshot delta path"
     );
-    assert_eq!(result.divergence, BranchMergeDivergence::SharedStateConflict);
+    assert_eq!(
+        result.divergence,
+        BranchMergeDivergence::SharedStateConflict
+    );
     assert_eq!(
         result.reconciliation_policy.conflict,
         ConflictMergePolicy::ResolveSourceStateWhenStructureMatches
@@ -1406,9 +1423,9 @@ fn merge_branch_conflict_resolved_emits_resolution_traceability() {
             resolved_conflict_kinds,
             ..
         } => {
-            assert!(resolved_conflict_kinds.contains(
-                &BranchMergeConflictKind::RuntimeArtifactMismatch
-            ));
+            assert!(
+                resolved_conflict_kinds.contains(&BranchMergeConflictKind::RuntimeArtifactMismatch)
+            );
         }
         other => panic!("expected conflict-resolved artifact merge lineage, got {other:?}"),
     }
@@ -1483,12 +1500,10 @@ fn merge_branch_target_advanced_without_shared_conflict_surfaces_applied_diverge
     assert_eq!(result.merge_kind, BranchMergeKind::Applied);
     assert_eq!(result.divergence, BranchMergeDivergence::TargetAdvanced);
     assert!(result.counters.final_candidate_breadth > 0);
-    assert!(
-        result
-            .records
-            .iter()
-            .any(|record| record.action == ArtifactMergeAction::IntroducedIntoTarget)
-    );
+    assert!(result
+        .records
+        .iter()
+        .any(|record| record.action == ArtifactMergeAction::IntroducedIntoTarget));
 }
 
 #[test]
@@ -1545,12 +1560,10 @@ fn merge_branch_unrelated_target_only_pending_work_does_not_degrade_fast_forward
     let result = runtime.merge_branch(feature, main).unwrap();
     assert_eq!(result.merge_kind, BranchMergeKind::FastForward);
     assert_eq!(result.divergence, BranchMergeDivergence::None);
-    assert!(
-        result
-            .records
-            .iter()
-            .any(|record| record.action == ArtifactMergeAction::IntroducedIntoTarget)
-    );
+    assert!(result
+        .records
+        .iter()
+        .any(|record| record.action == ArtifactMergeAction::IntroducedIntoTarget));
 }
 
 #[test]
@@ -1777,7 +1790,9 @@ fn active_restore_reinstates_branch_merge_ledger_boundary_for_later_fast_forward
 
     let base_snapshot = runtime.capture_snapshot();
     let main = runtime.observe().current_branch();
-    let feature = runtime.create_branch("feature-active-restore-fast-forward").unwrap();
+    let feature = runtime
+        .create_branch("feature-active-restore-fast-forward")
+        .unwrap();
 
     runtime.switch_branch(feature.clone()).unwrap();
     runtime
@@ -1830,7 +1845,9 @@ fn merge_branch_without_established_journal_boundary_fails_explicitly() {
     let mut runtime_ctx = ();
     let main = runtime.observe().current_branch();
     let shared = runtime.graph_mut().node().output_identity().build();
-    let feature = runtime.create_branch("feature-missing-merge-boundary").unwrap();
+    let feature = runtime
+        .create_branch("feature-missing-merge-boundary")
+        .unwrap();
 
     runtime.switch_branch(feature.clone()).unwrap();
     runtime
@@ -1874,7 +1891,9 @@ fn repeated_merge_after_target_restore_stays_bounded_and_history_honest() {
         .with_kernel_defaults()
         .build();
     let main = runtime.observe().current_branch();
-    let feature = runtime.create_branch("feature-repeated-restore-merge").unwrap();
+    let feature = runtime
+        .create_branch("feature-repeated-restore-merge")
+        .unwrap();
     let mut runtime_ctx = ();
 
     runtime.switch_branch(feature.clone()).unwrap();
@@ -1894,7 +1913,10 @@ fn repeated_merge_after_target_restore_stays_bounded_and_history_honest() {
     runtime.switch_branch(main.clone()).unwrap();
     let first_merge = runtime.merge_branch(feature.clone(), main.clone()).unwrap();
     assert!(
-        first_merge.records.iter().any(|record| record.source_node == first),
+        first_merge
+            .records
+            .iter()
+            .any(|record| record.source_node == first),
         "first merge should include the initial source-only node"
     );
     let merged_snapshot = runtime.capture_branch_snapshot(main.clone()).unwrap();
@@ -1969,7 +1991,8 @@ fn repeated_merge_after_target_restore_stays_bounded_and_history_honest() {
 
     let second_merge = runtime.merge_branch(feature, main).unwrap();
     assert!(
-        second_merge.counters.final_candidate_breadth == second_merge.planned_candidates.nodes.len() as u64,
+        second_merge.counters.final_candidate_breadth
+            == second_merge.planned_candidates.nodes.len() as u64,
         "repeated merge after restore should remain bounded to the branch mutation candidate set"
     );
     assert!(
@@ -1980,11 +2003,17 @@ fn repeated_merge_after_target_restore_stays_bounded_and_history_honest() {
         "repeated merge after restore must remain anchored to the mutation-journal witness"
     );
     assert!(
-        second_merge.records.iter().all(|record| record.source_node != first),
+        second_merge
+            .records
+            .iter()
+            .all(|record| record.source_node != first),
         "already-merged source nodes must stay retired after target restore"
     );
     assert!(
-        second_merge.records.iter().any(|record| record.source_node == second),
+        second_merge
+            .records
+            .iter()
+            .any(|record| record.source_node == second),
         "new source-side work should remain merge-visible after target restore"
     );
 }

@@ -1,5 +1,8 @@
 use crate::facade::history::BranchId;
-use crate::facade::lineage::{HistoricalResolutionRequest, LineageDivergenceRequest};
+use crate::facade::lineage::{
+    HistoricalResolutionBoundednessBasis, HistoricalResolutionRequest,
+    LineageDivergenceRequest, LineageDivergenceTraversalBasis,
+};
 use crate::tests::support::*;
 
 // CONTRACT: lineage_branch_locality
@@ -23,8 +26,13 @@ fn lineage_branch_divergence_is_queryable() {
         .divergence_between_branches(LineageDivergenceRequest {
             left_branch: BranchId("main".to_string()),
             right_branch: BranchId("feature".to_string()),
+            traversal_basis: LineageDivergenceTraversalBasis::FullBranchGraphComparison,
         });
 
+    assert_eq!(
+        divergence.traversal_basis,
+        LineageDivergenceTraversalBasis::FullBranchGraphComparison
+    );
     assert!(!divergence.right_only_event_ids.is_empty());
     assert!(!divergence.shared_lineage_ids.is_empty());
     assert_eq!(divergence.metrics.right_event_count, 1);
@@ -91,14 +99,24 @@ fn historical_lineage_resolution_is_branch_local_under_divergent_replacements() 
         .resolve_historical_lineage(HistoricalResolutionRequest {
             branch_id: BranchId("main".to_string()),
             lineage_id: start_lineage,
+            boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
         });
     let feature_resolution = runtime
         .lineage_access()
         .resolve_historical_lineage(HistoricalResolutionRequest {
             branch_id: BranchId("feature".to_string()),
             lineage_id: start_lineage,
+            boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
         });
 
+    assert_eq!(
+        main_resolution.boundedness_basis,
+        HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed
+    );
+    assert_eq!(
+        feature_resolution.boundedness_basis,
+        HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed
+    );
     assert_ne!(main_resolution.resolved, feature_resolution.resolved);
     assert!(main_resolution.metrics.branch_event_scan_count >= 1);
     assert_eq!(

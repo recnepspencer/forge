@@ -7,6 +7,7 @@ use crate::identity::data::{
     EntityId, KindId, LineageId, PartitionId, RelationId, StructuralFingerprint, VersionId,
 };
 use crate::indexes::data::DerivedIndexGeneration;
+use crate::lineage::data::{LineageArtifactCounters, LineageDigestBasis};
 use crate::lineage::data::{HistoricalLineageResolution, LineageEventRecord};
 use crate::publication::patch::data::CanonicalAspectSet;
 use crate::snapshots::data::{SnapshotHandle, SnapshotInspectionSummary};
@@ -387,6 +388,8 @@ pub struct CommitInspection {
     pub changed_records: Vec<RecordRef>,
     pub lineage_event_ids: Vec<u64>,
     pub lineage_events: Vec<LineageEventRecord>,
+    pub lineage_digest_basis: LineageDigestBasis,
+    pub lineage_artifact_counters: LineageArtifactCounters,
     pub index_generation_ids: Vec<u64>,
     pub index_generations: Vec<DerivedIndexGeneration>,
     pub changed_aspects: CanonicalAspectSet,

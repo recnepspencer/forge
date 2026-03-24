@@ -336,4 +336,3 @@ fn canonicalize_changed_aspects(mut changed_aspects: Vec<Aspect>) -> Vec<Aspect>
     }
     changed_aspects
 }
-

@@ -389,7 +389,8 @@ impl DiagnosticsState {
                 .push_back(event.clone());
         }
         if let Some(snapshot_id) = event.snapshot_id {
-            self.snapshot_replay_cursors.insert(snapshot_id, event.cursor);
+            self.snapshot_replay_cursors
+                .insert(snapshot_id, event.cursor);
         }
         self.replay_events.push_back(event);
         let absolute_index = self.replay_cursor_offset_base + self.replay_events.len() - 1;
@@ -743,7 +744,8 @@ impl DiagnosticsState {
                     .push_back(event.clone());
             }
             if let Some(snapshot_id) = event.snapshot_id {
-                self.snapshot_replay_cursors.insert(snapshot_id, event.cursor);
+                self.snapshot_replay_cursors
+                    .insert(snapshot_id, event.cursor);
             }
         }
         self.rebuild_replay_cursor_offsets();
@@ -786,7 +788,8 @@ impl DiagnosticsState {
                 if let Some(front) = events.front() {
                     if front == event {
                         events.pop_front();
-                    } else if let Some(index) = events.iter().position(|candidate| candidate == event)
+                    } else if let Some(index) =
+                        events.iter().position(|candidate| candidate == event)
                     {
                         events.remove(index);
                     }
@@ -803,7 +806,8 @@ impl DiagnosticsState {
                 if let Some(front) = events.front() {
                     if front == event {
                         events.pop_front();
-                    } else if let Some(index) = events.iter().position(|candidate| candidate == event)
+                    } else if let Some(index) =
+                        events.iter().position(|candidate| candidate == event)
                     {
                         events.remove(index);
                     }
@@ -816,7 +820,8 @@ impl DiagnosticsState {
         }
         self.replay_cursor_offsets.remove(&event.cursor);
         if event.snapshot_id.is_some() {
-            self.snapshot_replay_cursors.retain(|_, cursor| *cursor != event.cursor);
+            self.snapshot_replay_cursors
+                .retain(|_, cursor| *cursor != event.cursor);
         }
     }
 
@@ -905,6 +910,3 @@ impl Default for DiagnosticsState {
         state
     }
 }
-
-
-

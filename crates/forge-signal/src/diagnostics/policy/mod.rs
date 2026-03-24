@@ -79,9 +79,7 @@ impl DiagnosticsAvailability {
             Self::ReconstructedAvailable => {
                 "artifact detail was reconstructed through explicit cold materialization"
             }
-            Self::OmittedByTier => {
-                "artifact detail is omitted by the active diagnostics tier"
-            }
+            Self::OmittedByTier => "artifact detail is omitted by the active diagnostics tier",
             Self::DeniedByBudget => {
                 "artifact detail was denied by the active reconstruction budget"
             }

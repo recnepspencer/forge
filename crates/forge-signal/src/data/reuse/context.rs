@@ -5,8 +5,8 @@ use crate::data::dependency::DependencySnapshotId;
 use crate::data::handle::NodeId;
 use crate::data::node::ContextRequirement;
 use crate::data::output::PartitionSubscription;
-use crate::data::proof::PartitionScopeSet;
 use crate::data::performance::AuthorityPolicy;
+use crate::data::proof::PartitionScopeSet;
 
 /// Compact runtime evidence needed to certify artifact reuse across semantic boundaries.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -202,8 +202,9 @@ mod tests {
             structural_dependency_basis: crate::data::dependency::DependencySnapshotId::EMPTY,
             partition_region_basis: PartitionScopeSet::default(),
             strategy_detail: ReuseStrategyBoundaryContext::CrossIdentity {
-                persistent_correspondence:
-                    PersistentCorrespondenceEvidence::host_supplied_key("mesh-001"),
+                persistent_correspondence: PersistentCorrespondenceEvidence::host_supplied_key(
+                    "mesh-001",
+                ),
             },
         };
         assert!(cross_identity.persistent_correspondence().is_some());

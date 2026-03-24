@@ -257,4 +257,3 @@ fn double_unregister_is_rejected_without_free_list_corruption() {
     assert_eq!(graph.arena_capacity(), capacity_before);
     assert_ne!(reused.generation(), node.generation());
 }
-

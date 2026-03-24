@@ -327,7 +327,9 @@ fn defined_computation_evaluate_cross_identity_reuses_cached_result_via_public_a
     let mut runtime_ctx = ();
 
     runtime
-        .transaction(&mut runtime_ctx, |tx| source.evaluate_memoized(tx, "shape-v1"))
+        .transaction(&mut runtime_ctx, |tx| {
+            source.evaluate_memoized(tx, "shape-v1")
+        })
         .unwrap();
 
     runtime
@@ -344,7 +346,10 @@ fn defined_computation_evaluate_cross_identity_reuses_cached_result_via_public_a
         Some(crate::data::reuse::ReuseStrategy::CrossIdentityPersistentMatch)
     );
     assert_eq!(reuse_basis.source, ReuseSource::PersistentCorrespondence);
-    assert_eq!(reuse_basis.crossing, ReuseCrossing::PersistentIdentityBoundary);
+    assert_eq!(
+        reuse_basis.crossing,
+        ReuseCrossing::PersistentIdentityBoundary
+    );
     assert_eq!(
         explanation.reuse_origin,
         Some(crate::data::reuse::ReuseOrigin::CrossIdentityPersistentReuse)
@@ -354,9 +359,7 @@ fn defined_computation_evaluate_cross_identity_reuses_cached_result_via_public_a
         .replay_events()
         .iter()
         .rev()
-        .find(|event| {
-            event.kind == ReplayEventKind::TaskApplied && event.node == Some(alias_node)
-        })
+        .find(|event| event.kind == ReplayEventKind::TaskApplied && event.node == Some(alias_node))
         .expect("cross-identity replay event");
     assert_eq!(
         replay_event.reuse_origin,
@@ -377,7 +380,14 @@ fn defined_computation_evaluate_cross_identity_reuses_cached_result_via_public_a
             && node.reuse_origin
                 == Some(crate::data::reuse::ReuseOrigin::CrossIdentityPersistentReuse)
     }));
-    assert_eq!(runtime.observe().metrics().evaluation.cross_identity_reuse_count, 1);
+    assert_eq!(
+        runtime
+            .observe()
+            .metrics()
+            .evaluation
+            .cross_identity_reuse_count,
+        1
+    );
 }
 
 #[test]
@@ -408,7 +418,9 @@ fn cross_identity_contract_declared_basis_is_retained_in_runtime_truth() {
     let mut runtime_ctx = ();
 
     runtime
-        .transaction(&mut runtime_ctx, |tx| source.evaluate_memoized(tx, "shape-v1"))
+        .transaction(&mut runtime_ctx, |tx| {
+            source.evaluate_memoized(tx, "shape-v1")
+        })
         .unwrap();
     runtime
         .transaction(&mut runtime_ctx, |tx| {
@@ -437,9 +449,11 @@ fn cross_identity_contract_declared_basis_is_retained_in_runtime_truth() {
             .reuse_boundary_context
             .as_ref()
             .and_then(|ctx| ctx.persistent_correspondence()),
-        Some(&crate::data::reuse::PersistentCorrespondenceEvidence::ContractDeclaredBasis(
-            "contract:mesh-family:v2".to_string()
-        ))
+        Some(
+            &crate::data::reuse::PersistentCorrespondenceEvidence::ContractDeclaredBasis(
+                "contract:mesh-family:v2".to_string()
+            )
+        )
     );
 }
 
@@ -471,7 +485,9 @@ fn cross_identity_lineage_mapping_is_retained_in_runtime_truth() {
     let mut runtime_ctx = ();
 
     runtime
-        .transaction(&mut runtime_ctx, |tx| source.evaluate_memoized(tx, "shape-v1"))
+        .transaction(&mut runtime_ctx, |tx| {
+            source.evaluate_memoized(tx, "shape-v1")
+        })
         .unwrap();
     runtime
         .transaction(&mut runtime_ctx, |tx| {
@@ -496,9 +512,11 @@ fn cross_identity_lineage_mapping_is_retained_in_runtime_truth() {
             .reuse_boundary_context
             .as_ref()
             .and_then(|ctx| ctx.persistent_correspondence()),
-        Some(&crate::data::reuse::PersistentCorrespondenceEvidence::LineageBackedMapping(
-            "lineage-map:mesh-42->mesh-77".to_string()
-        ))
+        Some(
+            &crate::data::reuse::PersistentCorrespondenceEvidence::LineageBackedMapping(
+                "lineage-map:mesh-42->mesh-77".to_string()
+            )
+        )
     );
 }
 
@@ -532,7 +550,9 @@ fn cross_identity_region_identity_basis_is_retained_in_runtime_truth() {
     let mut runtime_ctx = ();
 
     runtime
-        .transaction(&mut runtime_ctx, |tx| source.evaluate_memoized(tx, "shape-v1"))
+        .transaction(&mut runtime_ctx, |tx| {
+            source.evaluate_memoized(tx, "shape-v1")
+        })
         .unwrap();
     runtime
         .transaction(&mut runtime_ctx, |tx| {
@@ -557,9 +577,11 @@ fn cross_identity_region_identity_basis_is_retained_in_runtime_truth() {
             .reuse_boundary_context
             .as_ref()
             .and_then(|ctx| ctx.persistent_correspondence()),
-        Some(&crate::data::reuse::PersistentCorrespondenceEvidence::RegionIdentityBasis(
-            "region:wing".to_string()
-        ))
+        Some(
+            &crate::data::reuse::PersistentCorrespondenceEvidence::RegionIdentityBasis(
+                "region:wing".to_string()
+            )
+        )
     );
 }
 
@@ -593,7 +615,9 @@ fn cross_identity_changed_contract_basis_is_rejected_and_preserves_previous_corr
     let mut runtime_ctx = ();
 
     runtime
-        .transaction(&mut runtime_ctx, |tx| source.evaluate_memoized(tx, "shape-v1"))
+        .transaction(&mut runtime_ctx, |tx| {
+            source.evaluate_memoized(tx, "shape-v1")
+        })
         .unwrap();
     runtime
         .transaction(&mut runtime_ctx, |tx| {
@@ -637,13 +661,19 @@ fn cross_identity_changed_contract_basis_is_rejected_and_preserves_previous_corr
             .reuse_boundary_context
             .as_ref()
             .and_then(|ctx| ctx.persistent_correspondence()),
-        Some(&crate::data::reuse::PersistentCorrespondenceEvidence::ContractDeclaredBasis(
-            "contract:mesh-family:v2".to_string()
-        )),
+        Some(
+            &crate::data::reuse::PersistentCorrespondenceEvidence::ContractDeclaredBasis(
+                "contract:mesh-family:v2".to_string()
+            )
+        ),
         "failed reuse admission must not overwrite prior certified correspondence"
     );
     assert_eq!(
-        runtime.observe().metrics().evaluation.reuse_rejected_persistent_correspondence_invalid_count,
+        runtime
+            .observe()
+            .metrics()
+            .evaluation
+            .reuse_rejected_persistent_correspondence_invalid_count,
         1
     );
 }
@@ -678,7 +708,9 @@ fn cross_identity_evidence_family_change_is_rejected_and_not_treated_as_equivale
     let mut runtime_ctx = ();
 
     runtime
-        .transaction(&mut runtime_ctx, |tx| source.evaluate_memoized(tx, "shape-v1"))
+        .transaction(&mut runtime_ctx, |tx| {
+            source.evaluate_memoized(tx, "shape-v1")
+        })
         .unwrap();
     runtime
         .transaction(&mut runtime_ctx, |tx| {
@@ -690,12 +722,7 @@ fn cross_identity_evidence_family_change_is_rejected_and_not_treated_as_equivale
 
     let err = runtime
         .transaction(&mut runtime_ctx, |tx| {
-            alias.evaluate_cross_identity_with_lineage_mapping(
-                tx,
-                "source",
-                "shape-v1",
-                "mesh-001",
-            )
+            alias.evaluate_cross_identity_with_lineage_mapping(tx, "source", "shape-v1", "mesh-001")
         })
         .expect_err("changing correspondence evidence family should be rejected");
     assert!(err.to_string().contains("reuse certification failed"));
@@ -717,13 +744,19 @@ fn cross_identity_evidence_family_change_is_rejected_and_not_treated_as_equivale
             .reuse_boundary_context
             .as_ref()
             .and_then(|ctx| ctx.persistent_correspondence()),
-        Some(&crate::data::reuse::PersistentCorrespondenceEvidence::HostSuppliedKey(
-            "mesh-001".to_string()
-        )),
+        Some(
+            &crate::data::reuse::PersistentCorrespondenceEvidence::HostSuppliedKey(
+                "mesh-001".to_string()
+            )
+        ),
         "distinct correspondence families must remain semantically distinct after rejection"
     );
     assert_eq!(
-        runtime.observe().metrics().evaluation.reuse_rejected_persistent_correspondence_invalid_count,
+        runtime
+            .observe()
+            .metrics()
+            .evaluation
+            .reuse_rejected_persistent_correspondence_invalid_count,
         1
     );
 }
@@ -756,7 +789,9 @@ fn ambiguous_lineage_mapping_is_rejected_before_cross_identity_reuse_commits() {
     let mut runtime_ctx = ();
 
     runtime
-        .transaction(&mut runtime_ctx, |tx| source.evaluate_memoized(tx, "shape-v1"))
+        .transaction(&mut runtime_ctx, |tx| {
+            source.evaluate_memoized(tx, "shape-v1")
+        })
         .unwrap();
 
     let err = runtime
@@ -771,7 +806,11 @@ fn ambiguous_lineage_mapping_is_rejected_before_cross_identity_reuse_commits() {
         .expect_err("ambiguous lineage mapping should be rejected");
     assert!(err.to_string().contains("reuse certification failed"));
     assert_eq!(
-        runtime.observe().metrics().evaluation.reuse_rejected_persistent_correspondence_invalid_count,
+        runtime
+            .observe()
+            .metrics()
+            .evaluation
+            .reuse_rejected_persistent_correspondence_invalid_count,
         1
     );
     assert!(
@@ -813,7 +852,9 @@ fn cross_identity_lineage_and_history_preserve_correspondence_family() {
     let mut runtime_ctx = ();
 
     runtime
-        .transaction(&mut runtime_ctx, |tx| source.evaluate_memoized(tx, "shape-v1"))
+        .transaction(&mut runtime_ctx, |tx| {
+            source.evaluate_memoized(tx, "shape-v1")
+        })
         .unwrap();
     runtime
         .transaction(&mut runtime_ctx, |tx| {
@@ -831,9 +872,7 @@ fn cross_identity_lineage_and_history_preserve_correspondence_family() {
         .replay_events()
         .iter()
         .rev()
-        .find(|event| {
-            event.kind == ReplayEventKind::TaskApplied && event.node == Some(alias_node)
-        })
+        .find(|event| event.kind == ReplayEventKind::TaskApplied && event.node == Some(alias_node))
         .expect("cross-identity replay event");
     assert_eq!(
         replay_event.persistent_correspondence_kind,
@@ -857,11 +896,10 @@ fn cross_identity_lineage_and_history_preserve_correspondence_family() {
     assert!(lineage.iter().any(|record| matches!(
         &record.kind,
         LineageRecordKind::ArtifactTransition {
-            transition:
-                ArtifactTransitionKind::CrossIdentityPersistentReuse {
-                    correspondence_kind:
-                        crate::data::reuse::PersistentCorrespondenceKind::LineageBackedMapping
-                },
+            transition: ArtifactTransitionKind::CrossIdentityPersistentReuse {
+                correspondence_kind:
+                    crate::data::reuse::PersistentCorrespondenceKind::LineageBackedMapping
+            },
             ..
         }
     )));
@@ -895,7 +933,9 @@ fn branch_local_cross_identity_rejection_preserves_main_correspondence_and_linea
     let mut runtime_ctx = ();
 
     runtime
-        .transaction(&mut runtime_ctx, |tx| source.evaluate_memoized(tx, "shape-v1"))
+        .transaction(&mut runtime_ctx, |tx| {
+            source.evaluate_memoized(tx, "shape-v1")
+        })
         .unwrap();
     runtime
         .transaction(&mut runtime_ctx, |tx| {
@@ -994,9 +1034,11 @@ fn branch_local_cross_identity_rejection_preserves_main_correspondence_and_linea
             .unwrap()
             .and_then(|state| state.reuse_boundary_context.as_ref())
             .and_then(|ctx| ctx.persistent_correspondence()),
-        Some(&crate::data::reuse::PersistentCorrespondenceEvidence::HostSuppliedKey(
-            "mesh-branch-001".to_string()
-        )),
+        Some(
+            &crate::data::reuse::PersistentCorrespondenceEvidence::HostSuppliedKey(
+                "mesh-branch-001".to_string()
+            )
+        ),
         "main branch should retain its original certified correspondence"
     );
 }
@@ -1029,7 +1071,9 @@ fn branch_local_cross_identity_history_retains_committed_family_after_rejected_e
     let mut runtime_ctx = ();
 
     runtime
-        .transaction(&mut runtime_ctx, |tx| source.evaluate_memoized(tx, "shape-v1"))
+        .transaction(&mut runtime_ctx, |tx| {
+            source.evaluate_memoized(tx, "shape-v1")
+        })
         .unwrap();
     runtime
         .transaction(&mut runtime_ctx, |tx| {
@@ -1043,17 +1087,14 @@ fn branch_local_cross_identity_history_retains_committed_family_after_rejected_e
         .unwrap();
 
     let main = runtime.observe().current_branch();
-    let feature = runtime.create_branch("feature-cross-identity-history").unwrap();
+    let feature = runtime
+        .create_branch("feature-cross-identity-history")
+        .unwrap();
 
     runtime.switch_branch(feature.clone()).unwrap();
     mark_dirty(runtime.graph_mut(), alias_node, ASPECT_A).unwrap();
     let _ = runtime.transaction(&mut runtime_ctx, |tx| {
-        alias.evaluate_cross_identity_with_region_identity(
-            tx,
-            "source",
-            "shape-v1",
-            "region:wing",
-        )
+        alias.evaluate_cross_identity_with_region_identity(tx, "source", "shape-v1", "region:wing")
     });
 
     let feature_history = runtime
@@ -1122,7 +1163,9 @@ fn defined_computation_evaluate_partial_splice_uses_public_api() {
     let mut runtime_ctx = ();
 
     runtime
-        .transaction(&mut runtime_ctx, |tx| wing.evaluate_memoized(tx, "shape-v1"))
+        .transaction(&mut runtime_ctx, |tx| {
+            wing.evaluate_memoized(tx, "shape-v1")
+        })
         .unwrap();
 
     mark_dirty(runtime.graph_mut(), node, ASPECT_A).unwrap();
@@ -1187,16 +1230,19 @@ fn defined_computation_evaluate_partial_splice_uses_public_api() {
     assert!(lineage.iter().any(|record| matches!(
         &record.kind,
         LineageRecordKind::ArtifactTransition {
-            transition:
-                ArtifactTransitionKind::PartialArtifactSplice {
-                    composition_region_count: 1,
-                    recomputed_region_count: 1
-                },
+            transition: ArtifactTransitionKind::PartialArtifactSplice {
+                composition_region_count: 1,
+                recomputed_region_count: 1
+            },
             ..
         }
     )));
     assert_eq!(
-        runtime.observe().metrics().evaluation.partial_artifact_splice_count,
+        runtime
+            .observe()
+            .metrics()
+            .evaluation
+            .partial_artifact_splice_count,
         1
     );
 }
@@ -1230,7 +1276,9 @@ fn branch_local_partial_splice_rejection_preserves_main_mixed_provenance() {
     let mut runtime_ctx = ();
 
     runtime
-        .transaction(&mut runtime_ctx, |tx| wing.evaluate_memoized(tx, "shape-v1"))
+        .transaction(&mut runtime_ctx, |tx| {
+            wing.evaluate_memoized(tx, "shape-v1")
+        })
         .unwrap();
     mark_dirty(runtime.graph_mut(), node, ASPECT_A).unwrap();
     runtime
@@ -1262,7 +1310,11 @@ fn branch_local_partial_splice_rejection_preserves_main_mixed_provenance() {
         .expect_err("feature branch should reject changed composition regions");
     assert!(err.to_string().contains("reuse certification failed"));
     assert_eq!(
-        runtime.observe().metrics().evaluation.reuse_rejected_boundary_mismatch_count,
+        runtime
+            .observe()
+            .metrics()
+            .evaluation
+            .reuse_rejected_boundary_mismatch_count,
         1
     );
     assert_eq!(
@@ -1351,7 +1403,9 @@ fn branch_local_partial_splice_history_retains_committed_region_accounting_after
     let mut runtime_ctx = ();
 
     runtime
-        .transaction(&mut runtime_ctx, |tx| wing.evaluate_memoized(tx, "shape-v1"))
+        .transaction(&mut runtime_ctx, |tx| {
+            wing.evaluate_memoized(tx, "shape-v1")
+        })
         .unwrap();
     mark_dirty(runtime.graph_mut(), node, ASPECT_A).unwrap();
     runtime
@@ -1365,7 +1419,9 @@ fn branch_local_partial_splice_history_retains_committed_region_accounting_after
         .unwrap();
 
     let main = runtime.observe().current_branch();
-    let feature = runtime.create_branch("feature-partial-splice-history").unwrap();
+    let feature = runtime
+        .create_branch("feature-partial-splice-history")
+        .unwrap();
 
     runtime.switch_branch(feature.clone()).unwrap();
     mark_dirty(runtime.graph_mut(), node, ASPECT_A).unwrap();
@@ -1409,11 +1465,10 @@ fn branch_local_partial_splice_history_retains_committed_region_accounting_after
     assert!(lineage.iter().any(|record| matches!(
         &record.kind,
         LineageRecordKind::ArtifactTransition {
-            transition:
-                ArtifactTransitionKind::PartialArtifactSplice {
-                    composition_region_count: 1,
-                    recomputed_region_count: 1
-                },
+            transition: ArtifactTransitionKind::PartialArtifactSplice {
+                composition_region_count: 1,
+                recomputed_region_count: 1
+            },
             ..
         }
     )));
@@ -2162,4 +2217,3 @@ fn sparse_partition_fanout_keeps_most_subscribers_out_of_dirty_state() {
         1
     );
 }
-

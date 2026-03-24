@@ -94,15 +94,21 @@ pub mod indexes {
 
 pub mod lineage {
     pub use crate::lineage::data::{
-        CorrespondenceCandidate, CorrespondenceCandidateId, CorrespondencePromotionOutcome,
-        CorrespondencePromotionRejectionClass, CorrespondenceResolution,
-        HistoricalLineageResolution, HistoricalLineageResolutionMetrics,
-        HistoricalResolutionRequest, HistoricalResolutionTrace, LineageDecisionKind,
-        LineageDivergenceMetrics, LineageDivergenceRequest, LineageDivergenceSummary,
-        LineageEventKind, LineageEventRecord, LineageGraphRequest, LineageGraphSnapshot,
-        LineageInvariant, LineageNode, LineageResolutionStatus, RecordHistoryRequest,
-    };
-}
+          CorrespondenceCandidate, CorrespondenceCandidateId, CorrespondencePromotionExecutionFailureClass,
+          CorrespondencePromotionOutcome, CorrespondencePromotionRejectionClass, CorrespondenceResolution,
+          HistoricalLineageResolution, HistoricalLineageResolutionMetrics,
+          HistoricalLineageResolutionDigestBasis, HistoricalResolutionBoundednessBasis,
+          HistoricalResolutionDigestMode, HistoricalResolutionRequest,
+          HistoricalResolutionTrace, LineageArtifactCounters, LineageCheckpointArtifact,
+          LineageCheckpointCounters, LineageCheckpointDigestBasis, LineageDecisionKind,
+          LineageDecisionLogDigestBasis, LineageDigestBasis, LineageDivergenceMetrics,
+          LineageDivergenceRequest, LineageDivergenceSummary, LineageDivergenceTraversalBasis,
+          LineageEventBatchDigestBasis, LineageEventKind, LineageEventRecord,
+          LineageGraphDigestBasis, LineageGraphDigestMode, LineageGraphMetrics,
+          LineageGraphRequest, LineageGraphSnapshot, LineageGraphTraversalBasis,
+          LineageInvariant, LineageNode, LineageResolutionStatus, RecordHistoryRequest,
+      };
+  }
 
 pub mod runtime {
     pub use crate::logic::builder::RelationalRuntimeBuilder;
@@ -162,10 +168,11 @@ pub mod query {
 
 pub mod replay {
     pub use crate::replay::data::{
-        CanonicalCommitAuthorityKind, CanonicalCommitEnvelope, RelationalReplayOutcome,
+        CanonicalCommitAuthorityKind, CanonicalCommitEnvelope, CertifiedLineageSurfaceComparisonBasis,
+        CertifiedLineageSurfaceDigest, LineageCertifiedSurfaceKind, RelationalReplayOutcome,
         RelationalReplayRequest,
         ReplayAuthorityBasisKind, ReplayError, ReplayExecutionMode, ReplayFailureClass,
-        ReplayLineageAuthorityBasis, ReplayMismatch, ReplayMismatchClass,
+        ReplayLineageAuthorityBasis, ReplayLineageDigestMode, ReplayMismatch, ReplayMismatchClass,
         ReplayObservableSurface, ReplaySnapshotSurface, ReplayVerificationLayer,
         ReplayVerificationMode, ReplayVerificationPlan,
     };

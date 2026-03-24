@@ -194,6 +194,90 @@ pub struct DependencySortKey {
     scope: Option<PartitionSubscription>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+pub struct DependencySnapshotShape {
+    keys: Arc<Vec<DependencySortKey>>,
+}
+
+impl DependencySnapshotShape {
+    pub fn from_ordered_unique(keys: impl IntoIterator<Item = DependencySortKey>) -> Self {
+        let keys = keys.into_iter().collect::<Vec<_>>();
+        debug_assert!(is_strict_snapshot_shape_order(keys.as_slice()));
+        Self {
+            keys: Arc::new(keys),
+        }
+    }
+
+    pub fn as_slice(&self) -> &[DependencySortKey] {
+        self.keys.as_slice()
+    }
+
+    pub(crate) fn intern(
+        &self,
+        store: &mut DependencySnapshotShapeStore,
+    ) -> SnapshotShapeHandle {
+        store.intern(self.clone())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+pub struct SnapshotShapeHandle(Option<NonZeroU32>);
+
+impl SnapshotShapeHandle {
+    pub const EMPTY: Self = Self(None);
+
+    fn from_index(index: usize) -> Self {
+        debug_assert!(index > 0);
+        Self(NonZeroU32::new(index as u32))
+    }
+
+    fn index(self) -> Option<usize> {
+        self.0.map(|index| index.get() as usize)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct DependencySnapshotShapeStore {
+    shapes: Vec<DependencySnapshotShape>,
+    #[serde(skip, default)]
+    interner: HashMap<DependencySnapshotShape, SnapshotShapeHandle>,
+}
+
+impl DependencySnapshotShapeStore {
+    fn rebuild_interner_if_needed(&mut self) {
+        if !self.interner.is_empty() || self.shapes.is_empty() {
+            return;
+        }
+        self.interner.reserve(self.shapes.len());
+        for (index, shape) in self.shapes.iter().cloned().enumerate() {
+            self.interner
+                .insert(shape, SnapshotShapeHandle::from_index(index + 1));
+        }
+    }
+
+    pub fn intern(&mut self, shape: DependencySnapshotShape) -> SnapshotShapeHandle {
+        if shape.as_slice().is_empty() {
+            return SnapshotShapeHandle::EMPTY;
+        }
+        self.rebuild_interner_if_needed();
+        if let Some(handle) = self.interner.get(&shape).copied() {
+            return handle;
+        }
+        self.shapes.push(shape);
+        let handle = SnapshotShapeHandle::from_index(self.shapes.len());
+        let shape = self.shapes[handle.index().expect("shape handle should index") - 1].clone();
+        self.interner.insert(shape, handle);
+        handle
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SnapshotChangeKind {
+    Unchanged,
+    StableShapeVersionOnly,
+    StructuralReplace,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DependencySnapshotEntry {
     pub source: NodeId,
@@ -291,6 +375,12 @@ impl DependencySnapshot {
         Arc::clone(&self.entries)
     }
 
+    pub fn shape(&self) -> DependencySnapshotShape {
+        DependencySnapshotShape::from_ordered_unique(
+            self.entries().iter().map(DependencySnapshotEntry::sort_key),
+        )
+    }
+
     /// Whether two snapshots currently share the same backing storage.
     ///
     /// This is a storage fact only. Snapshot identity, restore semantics, and
@@ -345,25 +435,169 @@ impl SharedDependencySnapshot {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SnapshotStorageStrategy {
-    SharedReplacement,
-    VersionOnlyDelta,
-}
+impl CommittedSnapshotUpdate {
+    pub fn between(
+        node: NodeId,
+        previous_snapshot_id: DependencySnapshotId,
+        previous_shape_handle: SnapshotShapeHandle,
+        previous: &DependencySnapshot,
+        next: DependencySnapshot,
+        shape_store: &mut DependencySnapshotShapeStore,
+    ) -> (Self, SnapshotDeltaRecord) {
+        let next = next.canonicalize_unordered();
+        if snapshot_shape_matches(previous, &next) {
+            let cached_versions = next
+                .entries()
+                .iter()
+                .map(|entry| entry.cached_version)
+                .collect::<Vec<_>>();
+            let basis = StableShapeSnapshotBasis {
+                node,
+                previous_snapshot_id,
+                shape_handle: previous_shape_handle,
+                entry_count: cached_versions.len(),
+            };
+            let delta = SnapshotDeltaRecord::for_version_update(node, previous, &cached_versions);
+            return (
+                Self::VersionOnly(VersionOnlySnapshotUpdate::from_basis_and_versions(
+                    basis,
+                    VersionVector {
+                        cached_versions: Arc::new(cached_versions),
+                    },
+                )),
+                delta,
+            );
+        }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DependencySnapshotVersionDelta {
-    cached_versions: Arc<Vec<u64>>,
-}
+        let replacement = ReplacementSnapshotUpdate::from_snapshot(next, shape_store);
+        let delta = SnapshotDeltaRecord::between(node, previous, replacement.snapshot());
+        (Self::Replace(replacement), delta)
+    }
 
-impl DependencySnapshotVersionDelta {
-    pub fn new(cached_versions: impl Into<Vec<u64>>) -> Self {
-        Self {
-            cached_versions: Arc::new(cached_versions.into()),
+    pub fn storage_strategy(&self) -> SnapshotStorageStrategy {
+        match self {
+            Self::VersionOnly(_) => SnapshotStorageStrategy::VersionOnlyDelta,
+            Self::Replace(_) => SnapshotStorageStrategy::SharedReplacement,
         }
     }
 
-    pub fn cached_versions(&self) -> &[u64] {
+    pub fn entry_count(&self) -> usize {
+        match self {
+            Self::VersionOnly(update) => update.versions().len(),
+            Self::Replace(update) => update.snapshot().entries().len(),
+        }
+    }
+
+    pub fn apply_to(self, previous: &DependencySnapshot) -> SharedDependencySnapshot {
+        match self {
+            Self::VersionOnly(update) => {
+                SharedDependencySnapshot::new(previous.with_updated_versions(update.versions().as_slice()))
+            }
+            Self::Replace(update) => update.snapshot,
+        }
+    }
+
+    pub fn change_kind(&self) -> SnapshotChangeKind {
+        match self {
+            Self::VersionOnly(_) => SnapshotChangeKind::StableShapeVersionOnly,
+            Self::Replace(_) => SnapshotChangeKind::StructuralReplace,
+        }
+    }
+
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DependencyInputScan {
+    node: NodeId,
+    previous_snapshot_id: DependencySnapshotId,
+    previous_entry_count: usize,
+    ordered_dependency_count: usize,
+    shape_stable: bool,
+    stable_shape_versions: Arc<Vec<u64>>,
+}
+
+impl DependencyInputScan {
+    pub(crate) fn stable_shape(
+        node: NodeId,
+        previous_snapshot_id: DependencySnapshotId,
+        previous_entry_count: usize,
+        ordered_dependency_count: usize,
+        stable_shape_versions: Vec<u64>,
+    ) -> Self {
+        Self {
+            node,
+            previous_snapshot_id,
+            previous_entry_count,
+            ordered_dependency_count,
+            shape_stable: true,
+            stable_shape_versions: Arc::new(stable_shape_versions),
+        }
+    }
+
+    pub(crate) fn stable_shape_versions(&self) -> &[u64] {
+        self.stable_shape_versions.as_slice()
+    }
+
+    pub(crate) fn stable_shape_versions_arc(&self) -> Arc<Vec<u64>> {
+        Arc::clone(&self.stable_shape_versions)
+    }
+
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StableShapeSnapshotBasis {
+    node: NodeId,
+    previous_snapshot_id: DependencySnapshotId,
+    shape_handle: SnapshotShapeHandle,
+    entry_count: usize,
+}
+
+impl StableShapeSnapshotBasis {
+    pub(crate) fn prove(
+        scan: &DependencyInputScan,
+        previous_shape_handle: SnapshotShapeHandle,
+    ) -> Option<Self> {
+        if !scan.shape_stable {
+            return None;
+        }
+        if scan.previous_entry_count != scan.ordered_dependency_count {
+            return None;
+        }
+        Some(Self {
+            node: scan.node,
+            previous_snapshot_id: scan.previous_snapshot_id,
+            shape_handle: previous_shape_handle,
+            entry_count: scan.ordered_dependency_count,
+        })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn shape_handle(&self) -> SnapshotShapeHandle {
+        self.shape_handle
+    }
+
+    pub(crate) fn entry_count(&self) -> usize {
+        self.entry_count
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VersionVector {
+    cached_versions: Arc<Vec<u64>>,
+}
+
+impl VersionVector {
+    pub(crate) fn from_scan(
+        basis: &StableShapeSnapshotBasis,
+        scan: &DependencyInputScan,
+    ) -> Self {
+        debug_assert_eq!(basis.entry_count(), scan.stable_shape_versions().len());
+        Self {
+            cached_versions: scan.stable_shape_versions_arc(),
+        }
+    }
+
+    pub fn as_slice(&self) -> &[u64] {
         self.cached_versions.as_slice()
     }
 
@@ -373,17 +607,103 @@ impl DependencySnapshotVersionDelta {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VersionOnlySnapshotUpdate {
+    basis: StableShapeSnapshotBasis,
+    versions: VersionVector,
+}
+
+impl VersionOnlySnapshotUpdate {
+    pub(crate) fn from_basis_and_versions(
+        basis: StableShapeSnapshotBasis,
+        versions: VersionVector,
+    ) -> Self {
+        Self { basis, versions }
+    }
+
+    pub fn basis(&self) -> &StableShapeSnapshotBasis {
+        &self.basis
+    }
+
+    pub fn versions(&self) -> &VersionVector {
+        &self.versions
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReplacementSnapshotUpdate {
+    snapshot: SharedDependencySnapshot,
+    shape_handle: SnapshotShapeHandle,
+}
+
+impl ReplacementSnapshotUpdate {
+    pub(crate) fn from_snapshot(
+        snapshot: DependencySnapshot,
+        shape_store: &mut DependencySnapshotShapeStore,
+    ) -> Self {
+        let snapshot = snapshot.canonicalize_unordered();
+        let shape_handle = snapshot.shape().intern(shape_store);
+        Self {
+            snapshot: SharedDependencySnapshot::new(snapshot),
+            shape_handle,
+        }
+    }
+
+    pub fn snapshot(&self) -> &SharedDependencySnapshot {
+        &self.snapshot
+    }
+
+    pub fn shape_handle(&self) -> SnapshotShapeHandle {
+        self.shape_handle
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CommittedSnapshotUpdate {
+    VersionOnly(VersionOnlySnapshotUpdate),
+    Replace(ReplacementSnapshotUpdate),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SnapshotStorageStrategy {
+    SharedReplacement,
+    VersionOnlyDelta,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DependencySnapshotVersionDelta {
+    cached_versions: Arc<Vec<u64>>,
+}
+
+#[allow(dead_code)]
+impl DependencySnapshotVersionDelta {
+    pub fn new(cached_versions: impl Into<Vec<u64>>) -> Self {
+        Self {
+            cached_versions: Arc::new(cached_versions.into()),
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.cached_versions.len()
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DependencySnapshotUpdate {
     Replace(SharedDependencySnapshot),
     VersionOnly(DependencySnapshotVersionDelta),
 }
 
+#[allow(dead_code)]
 impl DependencySnapshotUpdate {
     pub fn between(
         node: NodeId,
         previous: &DependencySnapshot,
         next: DependencySnapshot,
     ) -> (Self, SnapshotDeltaRecord) {
+        // Compatibility-only bridge for legacy callers. The proof-bearing
+        // runtime path uses `CommittedSnapshotUpdate::between(...)` instead.
         let next = next.canonicalize_unordered();
         if snapshot_shape_matches(previous, &next) {
             let cached_versions = next
@@ -403,26 +723,37 @@ impl DependencySnapshotUpdate {
         (Self::Replace(next), delta)
     }
 
-    pub fn storage_strategy(&self) -> SnapshotStorageStrategy {
+    pub fn into_committed(
+        self,
+        node: NodeId,
+        previous_snapshot_id: DependencySnapshotId,
+        previous_snapshot: &DependencySnapshot,
+        shape_store: &mut DependencySnapshotShapeStore,
+    ) -> CommittedSnapshotUpdate {
         match self {
-            Self::Replace(_) => SnapshotStorageStrategy::SharedReplacement,
-            Self::VersionOnly(_) => SnapshotStorageStrategy::VersionOnlyDelta,
-        }
-    }
-
-    pub fn entry_count(&self) -> usize {
-        match self {
-            Self::Replace(snapshot) => snapshot.entries().len(),
-            Self::VersionOnly(delta) => delta.len(),
-        }
-    }
-
-    pub fn apply_to(self, previous: &DependencySnapshot) -> SharedDependencySnapshot {
-        match self {
-            Self::Replace(snapshot) => snapshot,
-            Self::VersionOnly(delta) => SharedDependencySnapshot::new(
-                previous.with_updated_versions(delta.cached_versions()),
-            ),
+            Self::Replace(shared) => {
+                CommittedSnapshotUpdate::Replace(ReplacementSnapshotUpdate::from_snapshot(
+                    shared.into_snapshot(),
+                    shape_store,
+                ))
+            }
+            Self::VersionOnly(delta) => {
+                let shape_handle = previous_snapshot.shape().intern(shape_store);
+                let basis = StableShapeSnapshotBasis {
+                    node,
+                    previous_snapshot_id,
+                    shape_handle,
+                    entry_count: delta.len(),
+                };
+                CommittedSnapshotUpdate::VersionOnly(
+                    VersionOnlySnapshotUpdate::from_basis_and_versions(
+                        basis,
+                        VersionVector {
+                            cached_versions: delta.cached_versions,
+                        },
+                    ),
+                )
+            }
         }
     }
 }
@@ -430,6 +761,7 @@ impl DependencySnapshotUpdate {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SnapshotDeltaRecord {
     pub node: NodeId,
+    pub change_kind: SnapshotChangeKind,
     pub previous_entry_count: u32,
     pub next_entry_count: u32,
     pub changed_entry_count: u32,
@@ -474,6 +806,12 @@ impl SnapshotDeltaRecord {
 
         Self {
             node,
+            change_kind: if changed_entry_count == 0 && previous_entries.len() == next_entries.len()
+            {
+                SnapshotChangeKind::Unchanged
+            } else {
+                SnapshotChangeKind::StructuralReplace
+            },
             previous_entry_count: previous_entries.len() as u32,
             next_entry_count: next_entries.len() as u32,
             changed_entry_count,
@@ -492,6 +830,16 @@ impl SnapshotDeltaRecord {
         debug_assert_eq!(previous.entries().len(), cached_versions.len());
         Self {
             node,
+            change_kind: if previous
+                .entries()
+                .iter()
+                .zip(cached_versions.iter().copied())
+                .all(|(entry, cached_version)| entry.cached_version == cached_version)
+            {
+                SnapshotChangeKind::Unchanged
+            } else {
+                SnapshotChangeKind::StableShapeVersionOnly
+            },
             previous_entry_count: previous.entries().len() as u32,
             next_entry_count: cached_versions.len() as u32,
             changed_entry_count: previous
@@ -535,6 +883,8 @@ pub struct DependencySnapshotStore {
     snapshots: Vec<DependencySnapshot>,
     #[serde(skip, default)]
     interner: HashMap<DependencySnapshot, DependencySnapshotId>,
+    #[serde(skip, default)]
+    shape_handles: Vec<SnapshotShapeHandle>,
 }
 
 impl DependencySnapshotStore {
@@ -574,6 +924,63 @@ impl DependencySnapshotStore {
         id
     }
 
+    fn rebuild_shape_handles_if_needed(
+        &mut self,
+        shape_store: &mut DependencySnapshotShapeStore,
+    ) {
+        if self.shape_handles.len() == self.snapshots.len() {
+            return;
+        }
+        self.shape_handles.clear();
+        self.shape_handles.reserve(self.snapshots.len());
+        for snapshot in &self.snapshots {
+            self.shape_handles.push(snapshot.shape().intern(shape_store));
+        }
+    }
+
+    pub fn shape_handle_for(
+        &mut self,
+        id: DependencySnapshotId,
+        shape_store: &mut DependencySnapshotShapeStore,
+    ) -> SnapshotShapeHandle {
+        let Some(index) = id.index() else {
+            return SnapshotShapeHandle::EMPTY;
+        };
+        self.rebuild_shape_handles_if_needed(shape_store);
+        self.shape_handles
+            .get(index - 1)
+            .copied()
+            .unwrap_or(SnapshotShapeHandle::EMPTY)
+    }
+
+    pub fn insert_with_shape_handle(
+        &mut self,
+        snapshot: DependencySnapshot,
+        shape_store: &mut DependencySnapshotShapeStore,
+    ) -> (DependencySnapshotId, SnapshotShapeHandle) {
+        let snapshot = snapshot.canonicalize_unordered();
+        if snapshot.entries().is_empty() {
+            return (DependencySnapshotId::EMPTY, SnapshotShapeHandle::EMPTY);
+        }
+        self.rebuild_interner_if_needed();
+        self.rebuild_shape_handles_if_needed(shape_store);
+        if let Some(id) = self.interner.get(&snapshot).copied() {
+            let handle = self
+                .shape_handles
+                .get(id.index().expect("snapshot id should index") - 1)
+                .copied()
+                .unwrap_or_else(|| snapshot.shape().intern(shape_store));
+            return (id, handle);
+        }
+        let shape_handle = snapshot.shape().intern(shape_store);
+        self.snapshots.push(snapshot);
+        self.shape_handles.push(shape_handle);
+        let id = DependencySnapshotId::from_index(self.snapshots.len());
+        let snapshot = self.snapshots[id.index().expect("snapshot id should index") - 1].clone();
+        self.interner.insert(snapshot, id);
+        (id, shape_handle)
+    }
+
     #[cfg(test)]
     pub(crate) fn snapshot_count(&self) -> usize {
         self.snapshots.len()
@@ -605,6 +1012,10 @@ fn is_strict_snapshot_entry_order(entries: &[DependencySnapshotEntry]) -> bool {
     })
 }
 
+fn is_strict_snapshot_shape_order(keys: &[DependencySortKey]) -> bool {
+    keys.windows(2).all(|pair| pair[0] < pair[1])
+}
+
 fn snapshot_shape_matches(previous: &DependencySnapshot, next: &DependencySnapshot) -> bool {
     let previous_entries = previous.entries();
     let next_entries = next.entries();
@@ -613,4 +1024,42 @@ fn snapshot_shape_matches(previous: &DependencySnapshot, next: &DependencySnapsh
             .iter()
             .zip(next_entries.iter())
             .all(|(left, right)| left.sort_key() == right.sort_key())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::data::aspect::Aspect;
+
+    #[test]
+    fn version_update_delta_marks_stable_shape_change_kind() {
+        let source = NodeId::new(1, 0);
+        let mut snapshot = DependencySnapshot::empty();
+        snapshot.record(source, Aspect::new(0), 5, None);
+        snapshot.record(source, Aspect::new(1), 9, None);
+
+        let delta = SnapshotDeltaRecord::for_version_update(NodeId::new(0, 0), &snapshot, &[7, 9]);
+        assert_eq!(delta.change_kind, SnapshotChangeKind::StableShapeVersionOnly);
+        assert!(delta.changed());
+    }
+
+    #[test]
+    fn stable_shape_basis_proves_against_previous_snapshot_shape() {
+        let source = NodeId::new(2, 0);
+        let mut snapshot = DependencySnapshot::empty();
+        snapshot.record(source, Aspect::new(0), 5, None);
+        let scan = DependencyInputScan::stable_shape(
+            NodeId::new(0, 0),
+            DependencySnapshotId::EMPTY,
+            1,
+            1,
+            vec![8],
+        );
+        let mut store = DependencySnapshotShapeStore::default();
+        let proof = StableShapeSnapshotBasis::prove(&scan, snapshot.shape().intern(&mut store))
+            .expect("stable-shape scan should produce a proof");
+
+        assert_eq!(proof.entry_count(), 1);
+        assert_ne!(proof.shape_handle(), SnapshotShapeHandle::EMPTY);
+    }
 }

@@ -47,7 +47,7 @@ fn lineage_correspondence_hardening_tracks_advisory_promotion_and_rejection_arti
         .lineage_authority()
         .promote_correspondence(invalid.candidate_id, second.commit.clone());
 
-    assert_eq!(promoted.status, LineageResolutionStatus::Promoted);
+    assert_eq!(promoted.status(), LineageResolutionStatus::Promoted);
     assert_eq!(
         rejected,
         Err(CorrespondencePromotionRejectionClass::MissingLineageReference)
@@ -57,7 +57,9 @@ fn lineage_correspondence_hardening_tracks_advisory_promotion_and_rejection_arti
         decision.kind == LineageDecisionKind::CorrespondencePromotionRejected
             && decision.candidate_id == Some(invalid.candidate_id)
     }));
-    let promotion_commit_id = promoted.promoted_commit_id.expect("promotion commit id");
+    let promotion_commit_id = promoted
+        .promoted_commit_id()
+        .expect("promotion commit id");
     let replay = runtime.replay_access();
     let envelope = replay
         .canonical_commit_envelope(promotion_commit_id)
@@ -66,4 +68,42 @@ fn lineage_correspondence_hardening_tracks_advisory_promotion_and_rejection_arti
         decision.kind == LineageDecisionKind::CorrespondencePromotionAccepted
             && decision.candidate_id == Some(advisory.candidate_id)
     }));
+    assert_eq!(
+        envelope
+            .lineage_decisions_for_candidate(advisory.candidate_id)
+            .len(),
+        1
+    );
+    assert_eq!(
+        envelope.lineage_digest_basis().branch_id(),
+        &BranchId("main".to_string())
+    );
+    assert_eq!(
+        envelope.lineage_digest_basis().lineage_event_count(),
+        envelope.lineage_events().len()
+    );
+    assert_eq!(
+        envelope.lineage_digest_basis().lineage_decision_count(),
+        envelope.lineage_decision_log().len()
+    );
+    assert_eq!(
+        envelope.lineage_artifact_counters().finalization.event_batch_width,
+        envelope.lineage_events().len()
+    );
+    assert_eq!(
+        envelope.lineage_artifact_counters().decision_log_width,
+        envelope.lineage_decision_log().len()
+    );
+    assert_eq!(
+        envelope.event_batch_digest_basis().canonical_event_ids(),
+        envelope.lineage_event_ids()
+    );
+    assert_eq!(
+        envelope.decision_log_digest_basis().canonical_candidate_ids(),
+        envelope
+            .lineage_decision_log()
+            .iter()
+            .map(|decision| decision.candidate_id)
+            .collect::<Vec<_>>()
+    );
 }

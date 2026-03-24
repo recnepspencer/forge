@@ -1,7 +1,10 @@
 use crate::facade::diagnostics::{DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope};
 use crate::facade::history::{AspectHistoryLineageEventSpan, BranchId, HistoryAspectQueryTarget};
 use crate::facade::identity::{KindId, PartitionId};
-use crate::facade::lineage::{HistoricalResolutionRequest, LineageGraphRequest};
+use crate::facade::lineage::{
+    HistoricalResolutionBoundednessBasis, HistoricalResolutionDigestMode,
+    HistoricalResolutionRequest, LineageGraphRequest, LineageGraphTraversalBasis,
+};
 use crate::facade::transactions::{
     EntityMutationIntent, MutationIntent, ReplaceEntityIntent, TransactionOptions,
     WorkerIntentBatch,
@@ -42,9 +45,14 @@ fn historical_lineage_resolution_follows_replace_events() {
         .resolve_historical_lineage(HistoricalResolutionRequest {
             branch_id: BranchId("main".to_string()),
             lineage_id: start_lineage,
+            boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
         });
 
     assert_eq!(resolution.start, start_lineage);
+    assert_eq!(
+        resolution.boundedness_basis,
+        HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed
+    );
     assert_eq!(resolution.traversed_event_ids.len(), 1);
     assert_eq!(resolution.resolved.len(), 1);
     assert_ne!(resolution.resolved[0], start_lineage);
@@ -52,10 +60,21 @@ fn historical_lineage_resolution_follows_replace_events() {
     assert!(resolution.metrics.branch_event_scan_count >= 1);
     assert_eq!(resolution.metrics.resolved_lineage_count, 1);
     assert_eq!(
+        resolution.digest_basis().digest_mode(),
+        HistoricalResolutionDigestMode::ExactDigestCanonicalOrder
+    );
+    assert_eq!(resolution.digest_basis().requested_start(), start_lineage);
+    assert_eq!(
+        resolution.digest_basis().canonical_traversed_event_ids(),
+        resolution.traversed_event_ids
+    );
+    assert_eq!(resolution.trace.digest_basis(), resolution.digest_basis());
+    assert_eq!(
         runtime
             .lineage_access()
             .graph(LineageGraphRequest {
                 branch_id: BranchId("main".to_string()),
+                traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
             })
             .events
             .iter()
@@ -63,6 +82,60 @@ fn historical_lineage_resolution_follows_replace_events() {
             .count(),
         2
     );
+}
+
+#[test]
+fn historical_lineage_resolution_does_not_scan_unrelated_branch_events() {
+    let mut runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&mut runtime, "source");
+    let entity = changed_entities(&created)[0];
+    let start_lineage = runtime
+        .lineage_access()
+        .for_record(entity)
+        .unwrap()
+        .lineage_id;
+
+    for index in 0..6 {
+        let label = format!("unrelated-{index}");
+        let _ = create_entity_outcome(&mut runtime, &label);
+    }
+
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
+            EntityMutationIntent::Replace(ReplaceEntityIntent {
+                entity_id: entity,
+                replacement: crate::transactions::data::EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: InternedString::Raw("replacement".to_string()),
+                    payload: RecordPayload::StructuredJson(json!({"name":"replacement"})),
+                },
+            }),
+        )),
+    );
+    let _ = txn.commit().unwrap();
+
+    let total_branch_events = runtime
+        .lineage_access()
+        .graph(LineageGraphRequest {
+            branch_id: BranchId("main".to_string()),
+            traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
+        })
+        .metrics
+        .event_count;
+
+    let resolution = runtime
+        .lineage_access()
+        .resolve_historical_lineage(HistoricalResolutionRequest {
+            branch_id: BranchId("main".to_string()),
+            lineage_id: start_lineage,
+            boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
+        });
+
+    assert_eq!(resolution.metrics.traversed_event_count, 1);
+    assert_eq!(resolution.metrics.branch_event_scan_count, 1);
+    assert!(total_branch_events > resolution.metrics.branch_event_scan_count);
 }
 
 #[test]
@@ -98,6 +171,7 @@ fn lineage_aspect_history_keeps_origin_events_and_marks_resolution_context() {
             HistoricalResolutionRequest {
                 branch_id: BranchId("main".to_string()),
                 lineage_id: start_lineage,
+                boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
             },
             None,
         )
@@ -106,6 +180,7 @@ fn lineage_aspect_history_keeps_origin_events_and_marks_resolution_context() {
         HistoricalResolutionRequest {
             branch_id: BranchId("main".to_string()),
             lineage_id: start_lineage,
+            boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
         },
         None,
     );

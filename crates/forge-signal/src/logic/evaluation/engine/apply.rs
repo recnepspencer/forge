@@ -1,7 +1,8 @@
 use crate::data::comparator::ComparatorPolicyResolver;
 use crate::data::dependency::{
-    DependencySnapshot, DependencySnapshotUpdate, DependencySnapshotVersionDelta,
-    SharedDependencySnapshot, SnapshotDeltaRecord,
+    CommittedSnapshotUpdate, DependencyEdge, DependencyInputScan, DependencySnapshot,
+    ReplacementSnapshotUpdate, SnapshotDeltaRecord,
+    StableShapeSnapshotBasis, VersionOnlySnapshotUpdate, VersionVector,
 };
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
@@ -64,8 +65,18 @@ fn resolve_effect_dependency_inputs(
     dependency_inputs: Option<EffectDependencyInputs>,
 ) -> Result<EffectDependencyInputs, SignalError> {
     match dependency_inputs {
-        Some(inputs) if dependency_inputs_match_graph(graph, node, &inputs)? => Ok(inputs),
-        _ => build_effect_dependency_inputs(graph, node),
+        Some(inputs) if dependency_inputs_match_graph(graph, node, &inputs)? => {
+            graph.telemetry_mut().execution.dependency_input_reuse_count += 1;
+            Ok(inputs)
+        }
+        Some(_) => {
+            graph
+                .telemetry_mut()
+                .execution
+                .dependency_input_rebuild_count += 1;
+            build_effect_dependency_inputs(graph, node)
+        }
+        None => build_effect_dependency_inputs(graph, node),
     }
 }
 
@@ -157,7 +168,7 @@ pub(crate) fn verdict_for_evaluated_result(
     graph: &SignalGraph,
     node: NodeId,
     result: &NodeEvaluationResult,
-    recomputed: bool,
+    meaningful_output_change: bool,
 ) -> Result<EvaluationVerdict, SignalError> {
     let previous_trace = graph.get_entry(node)?.get_runtime_artifact_state();
     let previous_output_identity = previous_trace.and_then(|trace| trace.output_identity.as_ref());
@@ -178,7 +189,7 @@ pub(crate) fn verdict_for_evaluated_result(
     // 2. explicit continuity token continuity
     // 3. comparator-match suppression when no recompute occurred
     // 4. otherwise the result is authoritative recomputation
-    let verdict = if recomputed {
+    let verdict = if meaningful_output_change {
         EvaluationVerdict::Recomputed
     } else if output_identity_unchanged {
         EvaluationVerdict::Suppressed {
@@ -210,109 +221,136 @@ fn build_effect_dependency_inputs(
         dependency_snapshot_id: entry.get_dep_snapshot_id(),
     };
     graph.refresh_runtime_dependencies_of(node)?;
-    let previous_snapshot = graph.get_dep_snapshot(node)?;
-    let previous_entries = previous_snapshot.entries();
-    let dependencies = graph.current_runtime_dependencies_of(node)?;
-    let mut previous_index = 0usize;
-    let mut shape_stable = dependencies.len() == previous_entries.len();
-    let mut changes = 0_u32;
-    let mut stable_shape_versions = Vec::with_capacity(dependencies.len());
+    let dependencies = graph.current_runtime_dependencies_of(node)?.to_vec();
+    build_effect_dependency_inputs_for_dependencies(graph, node, context, dependencies.as_slice())
+}
 
-    for dep in dependencies {
-        let source = dep.source();
-        let aspect = dep.aspect();
-        let Some(previous_entry) = previous_entries.get(previous_index) else {
-            shape_stable = false;
-            break;
-        };
-        if !graph.is_alive(source) {
-            shape_stable = false;
-            break;
+pub(crate) fn build_effect_dependency_inputs_for_dependencies(
+    graph: &mut SignalGraph,
+    node: NodeId,
+    context: crate::logic::evaluation::DependencyInputContext,
+    dependencies: &[DependencyEdge],
+) -> Result<EffectDependencyInputs, SignalError> {
+    let previous_shape_handle = graph.dependency_snapshot_shape_handle(context.dependency_snapshot_id);
+    let (stable_shape_proved, inputs) = {
+        let previous_snapshot = graph.get_dep_snapshot(node)?;
+        let previous_entries = previous_snapshot.entries();
+        let mut previous_index = 0usize;
+        let mut shape_stable = dependencies.len() == previous_entries.len();
+        let mut changes = 0_u32;
+        let mut stable_shape_versions = Vec::with_capacity(dependencies.len());
+        for dep in dependencies {
+            let source = dep.source();
+            let aspect = dep.aspect();
+            let Some(previous_entry) = previous_entries.get(previous_index) else {
+                shape_stable = false;
+                break;
+            };
+            if !graph.is_alive(source) {
+                shape_stable = false;
+                break;
+            }
+
+            let entry = graph.get_entry(source)?;
+            let version = entry.version_for_scope(aspect, dep.scope_ref());
+            stable_shape_versions.push(version);
+            if previous_entry.sort_key() != dep.sort_key() {
+                shape_stable = false;
+                break;
+            }
+            if previous_entry.cached_version != version {
+                changes += 1;
+            }
+            previous_index += 1;
         }
 
-        let entry = graph.get_entry(source)?;
-        let version = entry.version_for_scope(aspect, dep.scope_ref());
-        stable_shape_versions.push(version);
-        if previous_entry.sort_key() != dep.sort_key() {
-            shape_stable = false;
-            break;
-        }
-        if previous_entry.cached_version != version {
-            changes += 1;
-        }
-        previous_index += 1;
-    }
-
-    if shape_stable && previous_index == previous_entries.len() {
-        let (snapshot_delta, dependency_snapshot_update) = if changes == 0 {
-            let shared_snapshot = SharedDependencySnapshot::new(previous_snapshot.clone());
+        if shape_stable && previous_index == previous_entries.len() {
+            let scan = DependencyInputScan::stable_shape(
+                node,
+                context.dependency_snapshot_id,
+                previous_entries.len(),
+                stable_shape_versions.len(),
+                stable_shape_versions,
+            );
+            let basis = StableShapeSnapshotBasis::prove(&scan, previous_shape_handle)
+                .ok_or_else(|| {
+                    SignalError::internal("stable-shape dependency scan failed to produce a proof")
+                })?;
+            let versions = VersionVector::from_scan(&basis, &scan);
+            let snapshot_delta = SnapshotDeltaRecord::for_version_update(
+                node,
+                previous_snapshot,
+                scan.stable_shape_versions(),
+            );
+            let dependency_snapshot_update = CommittedSnapshotUpdate::VersionOnly(
+                VersionOnlySnapshotUpdate::from_basis_and_versions(basis, versions),
+            );
             (
-                SnapshotDeltaRecord::between(node, previous_snapshot, &shared_snapshot),
-                DependencySnapshotUpdate::Replace(shared_snapshot),
+                true,
+                EffectDependencyInputs {
+                    context,
+                    snapshot_delta,
+                    dependency_snapshot_update,
+                    meaningful_input_changes: changes,
+                },
             )
         } else {
-            (
-                SnapshotDeltaRecord::for_version_update(
-                    node,
-                    previous_snapshot,
-                    &stable_shape_versions,
-                ),
-                DependencySnapshotUpdate::VersionOnly(DependencySnapshotVersionDelta::new(
-                    stable_shape_versions,
-                )),
-            )
-        };
-        return Ok(EffectDependencyInputs {
-            context,
-            snapshot_delta,
-            dependency_snapshot_update,
-            meaningful_input_changes: changes,
-        });
-    }
+            // `runtime_dependencies_of(node)` must preserve canonical dependency order
+            // by `DependencyEdge::sort_key()`. Snapshot reuse and delta detection rely
+            // on stable ordering between the current dependency view and the prior
+            // snapshot entries.
+            let mut snapshot = DependencySnapshot::empty();
+            let snapshot_entries = previous_entries;
+            let mut snapshot_index = 0usize;
+            changes = 0_u32;
 
-    // `runtime_dependencies_of(node)` must preserve canonical dependency order
-    // by `DependencyEdge::sort_key()`. Snapshot reuse and delta detection rely
-    // on stable ordering between the current dependency view and the prior
-    // snapshot entries.
-    let mut snapshot = DependencySnapshot::empty();
-    let snapshot_entries = previous_entries;
-    let mut snapshot_index = 0usize;
-    changes = 0_u32;
-
-    for dep in dependencies {
-        let source = dep.source();
-        let aspect = dep.aspect();
-        if graph.is_alive(source) {
-            let entry = graph.get_entry(source)?;
-            let ver = entry.version_for_scope(aspect, dep.scope_ref());
-            snapshot.record(source, aspect, ver, dep.scope_ref().cloned());
-            while snapshot_index < snapshot_entries.len()
-                && snapshot_entries[snapshot_index].sort_key() < dep.sort_key()
-            {
-                snapshot_index += 1;
-            }
-            if snapshot_index < snapshot_entries.len()
-                && snapshot_entries[snapshot_index].sort_key() == dep.sort_key()
-            {
-                if snapshot_entries[snapshot_index].cached_version != ver {
+            for dep in dependencies {
+                let source = dep.source();
+                let aspect = dep.aspect();
+                if graph.is_alive(source) {
+                    let entry = graph.get_entry(source)?;
+                    let ver = entry.version_for_scope(aspect, dep.scope_ref());
+                    snapshot.record(source, aspect, ver, dep.scope_ref().cloned());
+                    while snapshot_index < snapshot_entries.len()
+                        && snapshot_entries[snapshot_index].sort_key() < dep.sort_key()
+                    {
+                        snapshot_index += 1;
+                    }
+                    if snapshot_index < snapshot_entries.len()
+                        && snapshot_entries[snapshot_index].sort_key() == dep.sort_key()
+                    {
+                        if snapshot_entries[snapshot_index].cached_version != ver {
+                            changes += 1;
+                        }
+                        snapshot_index += 1;
+                    }
+                } else {
                     changes += 1;
                 }
-                snapshot_index += 1;
             }
-        } else {
-            changes += 1;
-        }
-    }
 
-    let dependency_snapshot = SharedDependencySnapshot::new(snapshot);
-    Ok(EffectDependencyInputs {
-        context,
-        snapshot_delta: SnapshotDeltaRecord::between(
-            node,
-            previous_snapshot,
-            &dependency_snapshot,
-        ),
-        dependency_snapshot_update: DependencySnapshotUpdate::Replace(dependency_snapshot),
-        meaningful_input_changes: changes,
-    })
+            let replacement_snapshot =
+                crate::data::dependency::SharedDependencySnapshot::new(snapshot.clone());
+            let snapshot_delta =
+                SnapshotDeltaRecord::between(node, previous_snapshot, &replacement_snapshot);
+            let dependency_snapshot_update = CommittedSnapshotUpdate::Replace(
+                ReplacementSnapshotUpdate::from_snapshot(snapshot, graph.dependency_snapshot_shapes_mut()),
+            );
+            (
+                false,
+                EffectDependencyInputs {
+                    context,
+                    snapshot_delta,
+                    dependency_snapshot_update,
+                    meaningful_input_changes: changes,
+                },
+            )
+        }
+    };
+    if stable_shape_proved {
+        graph.telemetry_mut().storage.stable_shape_snapshot_proof_count += 1;
+    } else {
+        graph.telemetry_mut().storage.stable_shape_snapshot_proof_failure_count += 1;
+    }
+    Ok(inputs)
 }

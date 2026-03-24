@@ -171,7 +171,10 @@ fn visit_node(
                 }
 
                 let entry = graph.get_entry(node)?;
-                verify_required_context(node, graph.get_contract(node)?.semantics.required_context)?;
+                verify_required_context(
+                    node,
+                    graph.get_contract(node)?.semantics.required_context,
+                )?;
                 let state = *entry.get_state();
                 let dirty_partition_scopes = entry.get_dirty_partition_scopes();
                 let contract_reads_dirty = graph
@@ -180,10 +183,7 @@ fn visit_node(
                 let should_include = matches!(state, NodeState::MaybeStale)
                     || (matches!(state, NodeState::Dirty) && contract_reads_dirty)
                     || (candidate.direct_request
-                        && matches!(
-                            candidate.request_mode,
-                            EvaluationRequestMode::ForceOnDemand
-                        ));
+                        && matches!(candidate.request_mode, EvaluationRequestMode::ForceOnDemand));
                 if !should_include {
                     stats.contract_pruned_count += 1;
                     continue;
@@ -216,14 +216,13 @@ fn visit_node(
                                 unchanged_at_admission: preview.unchanged,
                             });
                         }
-                        let upstream_reason = if matches!(
-                            candidate.trigger_reason,
-                            TaskReason::MaybeStaleValidation
-                        ) {
-                            TaskReason::MaybeStaleValidation
-                        } else {
-                            TaskReason::DependencyRequired
-                        };
+                        let upstream_reason =
+                            if matches!(candidate.trigger_reason, TaskReason::MaybeStaleValidation)
+                            {
+                                TaskReason::MaybeStaleValidation
+                            } else {
+                                TaskReason::DependencyRequired
+                            };
                         for source in preview.requires_upstream_evaluation.into_iter().rev() {
                             stack.push(VisitFrame::Enter(CandidateTask {
                                 node: source,

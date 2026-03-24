@@ -1,12 +1,12 @@
 use crate::validation::data::{
-    InvariantExecutionPoint, InvariantFailureEffect, InvariantRule, InvariantVerdict,
+    InvariantExecutionPoint, InvariantFailureEffect, InvariantReportedRule, InvariantVerdict,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct ValidationResultIdentity {
     pub(crate) execution_point: InvariantExecutionPoint,
     pub(crate) failure_effect: InvariantFailureEffect,
-    pub(crate) rule: InvariantRule,
+    pub(crate) rule: InvariantReportedRule,
     pub(crate) target_scope_identity: String,
 }
 
@@ -14,7 +14,7 @@ impl ValidationResultIdentity {
     pub(crate) fn from_parts(
         execution_point: InvariantExecutionPoint,
         failure_effect: InvariantFailureEffect,
-        rule: InvariantRule,
+        rule: InvariantReportedRule,
         verdict: &InvariantVerdict,
     ) -> Self {
         let target_scope_identity = match verdict {

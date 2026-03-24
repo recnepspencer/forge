@@ -25,10 +25,10 @@ pub(super) fn subscriber_invalidation_evidence(
     let changed_mask = AspectMask::from_aspect(changed_aspect);
     let dependencies = graph.runtime_dependencies_of(downstream)?;
     let source_key = (source.index(), source.generation());
-    let start =
-        dependencies.partition_point(|dep| (dep.source().index(), dep.source().generation()) < source_key);
-    let end =
-        dependencies.partition_point(|dep| (dep.source().index(), dep.source().generation()) <= source_key);
+    let start = dependencies
+        .partition_point(|dep| (dep.source().index(), dep.source().generation()) < source_key);
+    let end = dependencies
+        .partition_point(|dep| (dep.source().index(), dep.source().generation()) <= source_key);
 
     let mut partition_checks = 0_u64;
     let mut saw_matching_aspect_dependency = false;
@@ -105,7 +105,12 @@ pub(super) fn subscriber_invalidation_evidence(
         }));
     }
 
-    if saw_same_source_dependency && !graph.get_entry(source)?.get_eval_config().partitioned_output {
+    if saw_same_source_dependency
+        && !graph
+            .get_entry(source)?
+            .get_eval_config()
+            .partitioned_output
+    {
         return Ok(Some(SubscriptionInvalidationEvidence {
             classification: FrontierEntryClassification::MaybeStale,
             inclusion_basis: FrontierInclusionBasis::DirectSubscriptionMatch,

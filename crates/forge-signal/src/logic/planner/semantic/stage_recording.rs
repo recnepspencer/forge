@@ -1,6 +1,6 @@
-use super::super::types::{StageExecutionOutcome, StageExecutionRecord};
 #[cfg(not(feature = "parallel"))]
 use super::super::types::ParallelAdmissionReason;
+use super::super::types::{StageExecutionOutcome, StageExecutionRecord};
 
 #[cfg(feature = "parallel")]
 use super::super::precompute::admission::StageParallelAdmission;

@@ -445,6 +445,21 @@ fn complexity_delta(
         invariant_relation_records_materialized: after
             .invariant_relation_records_materialized
             .saturating_sub(before.invariant_relation_records_materialized),
+        custom_invariant_preparation_count: after
+            .custom_invariant_preparation_count
+            .saturating_sub(before.custom_invariant_preparation_count),
+        custom_invariant_execution_count: after
+            .custom_invariant_execution_count
+            .saturating_sub(before.custom_invariant_execution_count),
+        custom_invariant_panic_count: after
+            .custom_invariant_panic_count
+            .saturating_sub(before.custom_invariant_panic_count),
+        custom_invariant_traversal_frontier_count: after
+            .custom_invariant_traversal_frontier_count
+            .saturating_sub(before.custom_invariant_traversal_frontier_count),
+        custom_invariant_traversal_step_count: after
+            .custom_invariant_traversal_step_count
+            .saturating_sub(before.custom_invariant_traversal_step_count),
         relation_integrity_contracts_evaluated: after
             .relation_integrity_contracts_evaluated
             .saturating_sub(before.relation_integrity_contracts_evaluated),

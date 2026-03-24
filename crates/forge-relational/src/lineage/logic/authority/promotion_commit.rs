@@ -12,9 +12,13 @@ use crate::diagnostics::data::{
 };
 use crate::history::data::{BranchId, CommitReference};
 use crate::lineage::data::{
-    CorrespondenceCandidateId, CorrespondencePromotionRejectionClass, LineageFinalizationArtifact,
+    CorrespondenceCandidateId, CorrespondencePromotionExecutionFailureClass,
+    LineageFinalizationArtifact,
 };
 use crate::lineage::logic::authority::LineageAuthority;
+use crate::lineage::logic::authority::phase_types::{
+    ExecutionAuthorizedPromotionPlan, LoweredPromotionPlan,
+};
 use crate::publication::data::diff::RelationalPatchRecord;
 use crate::publication::patch::data::{
     PatchCompatibilityClass, PatchOrdering, PatchPublicationMode, PatchStreamPosition,
@@ -23,12 +27,11 @@ use crate::replay::data::CanonicalCommitAuthorityKind;
 use crate::transactions::data::{MergedCommitPlan, TransactionId};
 
 impl<'runtime> LineageAuthority<'runtime> {
-    pub(super) fn publish_promotion_commit(
-        &mut self,
-        anchor_commit: &CommitReference,
-        candidate_id: CorrespondenceCandidateId,
-        artifact: &LineageFinalizationArtifact,
-    ) -> Result<CommitReference, CorrespondencePromotionRejectionClass> {
+    pub(super) fn authorize_promotion_execution(
+        &self,
+        plan: LoweredPromotionPlan,
+    ) -> Result<ExecutionAuthorizedPromotionPlan, CorrespondencePromotionExecutionFailureClass> {
+        let anchor_commit = plan.commit();
         let authoritative_anchor = self
             .runtime
             .history_access()
@@ -39,17 +42,28 @@ impl<'runtime> LineageAuthority<'runtime> {
             .map(|head| head.commit_id)
             != Some(anchor_commit.commit_id)
         {
-            self.record_rejected_promotion_for_candidate(
-                None,
-                &anchor_commit.branch_id,
-                candidate_id,
-                CorrespondencePromotionRejectionClass::CommitNotBranchHead,
-                "correspondence promotion must publish from the current branch head",
+            return Err(
+                CorrespondencePromotionExecutionFailureClass::AnchorDriftedFromBranchHead,
             );
-            return Err(CorrespondencePromotionRejectionClass::CommitNotBranchHead);
         }
-        let authoritative_anchor = authoritative_anchor
-            .expect("validated branch head anchor must resolve to an authoritative commit reference");
+        let Some(authoritative_anchor) = authoritative_anchor else {
+            return Err(
+                CorrespondencePromotionExecutionFailureClass::AnchorDriftedFromBranchHead,
+            );
+        };
+        Ok(ExecutionAuthorizedPromotionPlan {
+            lowered: plan,
+            authoritative_anchor,
+        })
+    }
+
+    pub(super) fn publish_promotion_commit(
+        &mut self,
+        plan: &ExecutionAuthorizedPromotionPlan,
+        artifact: &LineageFinalizationArtifact,
+    ) -> Result<CommitReference, CorrespondencePromotionExecutionFailureClass> {
+        let candidate_id = plan.candidate_id();
+        let authoritative_anchor = plan.authoritative_anchor();
 
         let promotion_commit = CommitReference {
             commit_id: self.runtime.history_access().next_commit_id(),
@@ -84,14 +98,7 @@ impl<'runtime> LineageAuthority<'runtime> {
             ),
         )
         .map_err(|_| {
-            self.record_rejected_promotion_for_candidate(
-                None,
-                &authoritative_anchor.branch_id,
-                candidate_id,
-                CorrespondencePromotionRejectionClass::AuthorityPublicationFailed,
-                "correspondence promotion could not assemble a canonical promotion commit envelope",
-            );
-            CorrespondencePromotionRejectionClass::AuthorityPublicationFailed
+            CorrespondencePromotionExecutionFailureClass::AuthorityPublicationFailed
         })?;
 
         append_durable_commit(
@@ -101,14 +108,7 @@ impl<'runtime> LineageAuthority<'runtime> {
             &promotion_commit.branch_id,
         )
         .map_err(|_| {
-            self.record_rejected_promotion_for_candidate(
-                None,
-                &authoritative_anchor.branch_id,
-                candidate_id,
-                CorrespondencePromotionRejectionClass::AuthorityPublicationFailed,
-                "correspondence promotion could not append its canonical envelope durably",
-            );
-            CorrespondencePromotionRejectionClass::AuthorityPublicationFailed
+            CorrespondencePromotionExecutionFailureClass::AuthorityPublicationFailed
         })?;
 
         let published_lineage = envelope.published_lineage().clone();
@@ -160,7 +160,7 @@ fn promotion_diagnostics_summary(
         kind: DiagnosticsArtifactKind::MinimalSummary,
         determinism: DeterminismExpectation::Required,
         entries: vec![RelationalDiagnosticsEntry {
-            code: DiagnosticCode::CommitPublished,
+            code: DiagnosticCode::LineagePromotionPublished,
             message: "lineage correspondence promotion published as a metadata-only commit"
                 .to_string(),
             fields: json!({

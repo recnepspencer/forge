@@ -4,7 +4,8 @@ use serde_json::{json, Value};
 use crate::config::data::CascadeDeletePolicy;
 use crate::identity::data::{EntityId, KindId, PartitionId, VersionId};
 use crate::schema::data::{
-    ContractId, EndpointDeletionIntegrityMode, SymmetryMode, UniquenessScope,
+    ContractId, EndpointDeletionIntegrityMode, PayloadContractRecordKind, PayloadSchemaValueType,
+    SymmetryMode, UniquenessScope,
 };
 
 use super::execution::InvariantClass;
@@ -109,6 +110,42 @@ pub enum InvariantViolationFields {
         deleted_entity_count: usize,
         scanned_relation_count: usize,
         planned_edge_count: usize,
+    },
+    CustomInvariantFailure {
+        rule_id: String,
+        semantic_version_major: u16,
+        semantic_version_minor: u16,
+        phase: String,
+        failure_kind: String,
+        detail: String,
+    },
+    PayloadSchema {
+        contract_id: ContractId,
+        record_kind: PayloadContractRecordKind,
+        kind_id: KindId,
+        field: String,
+        failure_kind: String,
+        expected_type: Option<PayloadSchemaValueType>,
+    },
+    PartitionIsolation {
+        contract_id: ContractId,
+        relation_kind_id: KindId,
+        relation_id: Option<crate::identity::data::RelationId>,
+        source_partition_id: PartitionId,
+        target_partition_id: PartitionId,
+    },
+    Acyclicity {
+        contract_id: ContractId,
+        relation_kind_id: KindId,
+        source: EntityId,
+        target: EntityId,
+    },
+    ConnectivityMinimum {
+        contract_id: ContractId,
+        relation_kind_id: KindId,
+        source: EntityId,
+        reachable_target_count: usize,
+        minimum_reachable_targets: u32,
     },
 }
 
@@ -345,6 +382,83 @@ impl InvariantViolationFields {
                 "deleted_entity_count": deleted_entity_count,
                 "scanned_relation_count": scanned_relation_count,
                 "planned_edge_count": planned_edge_count,
+            }),
+            Self::CustomInvariantFailure {
+                rule_id,
+                semantic_version_major,
+                semantic_version_minor,
+                phase,
+                failure_kind,
+                detail,
+            } => json!({
+                "rule_id": rule_id,
+                "semantic_version_major": semantic_version_major,
+                "semantic_version_minor": semantic_version_minor,
+                "phase": phase,
+                "failure_kind": failure_kind,
+                "detail": detail,
+            }),
+            Self::PayloadSchema {
+                contract_id,
+                record_kind,
+                kind_id,
+                field,
+                failure_kind,
+                expected_type,
+            } => json!({
+                "contract_id": contract_id,
+                "record_kind": match record_kind {
+                    PayloadContractRecordKind::Entity => "entity",
+                    PayloadContractRecordKind::Relation => "relation",
+                },
+                "kind_id": kind_id.0,
+                "field": field,
+                "failure_kind": failure_kind,
+                "expected_type": expected_type.map(|expected_type| match expected_type {
+                    PayloadSchemaValueType::Null => "null",
+                    PayloadSchemaValueType::Boolean => "boolean",
+                    PayloadSchemaValueType::Number => "number",
+                    PayloadSchemaValueType::String => "string",
+                    PayloadSchemaValueType::Array => "array",
+                    PayloadSchemaValueType::Object => "object",
+                }),
+            }),
+            Self::PartitionIsolation {
+                contract_id,
+                relation_kind_id,
+                relation_id,
+                source_partition_id,
+                target_partition_id,
+            } => json!({
+                "contract_id": contract_id,
+                "relation_kind_id": relation_kind_id.0,
+                "relation_id": relation_id,
+                "source_partition_id": source_partition_id.0,
+                "target_partition_id": target_partition_id.0,
+            }),
+            Self::Acyclicity {
+                contract_id,
+                relation_kind_id,
+                source,
+                target,
+            } => json!({
+                "contract_id": contract_id,
+                "relation_kind_id": relation_kind_id.0,
+                "source": source,
+                "target": target,
+            }),
+            Self::ConnectivityMinimum {
+                contract_id,
+                relation_kind_id,
+                source,
+                reachable_target_count,
+                minimum_reachable_targets,
+            } => json!({
+                "contract_id": contract_id,
+                "relation_kind_id": relation_kind_id.0,
+                "source": source,
+                "reachable_target_count": reachable_target_count,
+                "minimum_reachable_targets": minimum_reachable_targets,
             }),
         }
     }

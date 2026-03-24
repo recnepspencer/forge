@@ -8,8 +8,8 @@ use crate::data::reuse::PersistentCorrespondenceKind;
 use crate::logic::planner::{ExecutionRecordId, SemanticSegmentId};
 use crate::logic::transaction::{
     ArtifactMergeAction, BranchConflictResolutionPlan, BranchMergeConflictKind,
-    BranchMergeDivergence, BranchMergeKind, BranchMergeReconciliationPolicy,
-    BranchMergeStrategy, MergeDecisionBasis,
+    BranchMergeDivergence, BranchMergeKind, BranchMergeReconciliationPolicy, BranchMergeStrategy,
+    MergeDecisionBasis,
 };
 use crate::state::{SignalBranchId, SignalSnapshotId};
 
@@ -21,7 +21,9 @@ pub struct LineageArtifactId(pub u64);
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ArtifactTransitionKind {
     Replaced,
-    Refreshed { output_change: OutputChange },
+    Refreshed {
+        output_change: OutputChange,
+    },
     MemoizedReuse,
     SnapshotRestoreReuse,
     ReconciliationAdoption,

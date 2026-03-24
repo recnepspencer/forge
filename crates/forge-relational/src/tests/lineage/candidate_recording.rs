@@ -23,10 +23,10 @@ fn lineage_candidate_recording_try_promote_returns_rejected_resolution() {
         .lineage_authority()
         .try_promote_correspondence(candidate.candidate_id, commit.commit.clone());
 
-    assert_eq!(resolution.status, LineageResolutionStatus::Rejected);
+    assert_eq!(resolution.status(), LineageResolutionStatus::Rejected);
     assert_eq!(
-        resolution.rejection_class,
+        resolution.rejection_class(),
         Some(CorrespondencePromotionRejectionClass::MissingLineageReference)
     );
-    assert!(resolution.promoted_event_id.is_none());
+    assert!(resolution.promoted_event_id().is_none());
 }

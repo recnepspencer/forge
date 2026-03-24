@@ -33,4 +33,3 @@ pub(crate) fn record_successful_execution(
 ) {
     record_semantic_execution(graph, plan_summary, first_target, report);
 }
-

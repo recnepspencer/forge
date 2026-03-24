@@ -87,9 +87,14 @@ fn mixed_partition_heavy_invalidation_keeps_frontier_counters_and_flow_in_sync()
     };
 
     let bootstrap = graph
-        .build_evaluation_plan(&[source, whole, detail_a, detail_b], EvaluationRequestMode::ForceOnDemand)
+        .build_evaluation_plan(
+            &[source, whole, detail_a, detail_b],
+            EvaluationRequestMode::ForceOnDemand,
+        )
         .unwrap();
-    graph.execute_prepared_plan(&bootstrap, &(), &evaluator).unwrap();
+    graph
+        .execute_prepared_plan(&bootstrap, &(), &evaluator)
+        .unwrap();
 
     mark_dirty_with_regions(
         &mut graph,
@@ -105,7 +110,9 @@ fn mixed_partition_heavy_invalidation_keeps_frontier_counters_and_flow_in_sync()
     graph.execute_prepared_plan(&plan, &(), &evaluator).unwrap();
 
     let diagnostics = graph.observe().diagnostics();
-    let flow = diagnostics.latest_flow().expect("flow diagnostics should be available");
+    let flow = diagnostics
+        .latest_flow()
+        .expect("flow diagnostics should be available");
     let frontier = diagnostics
         .latest_frontier_execution()
         .expect("frontier execution summary should be available");
@@ -270,8 +277,10 @@ fn repeated_mixed_aspect_churn_keeps_frontier_grouping_bounded() {
         assert!(wave_b.entries.iter().any(|entry| entry.node == dep_b));
         assert!(wave_b.entries.iter().any(|entry| entry.node == dep_both));
 
-        evaluate(&mut graph, source, &mut |_id, _graph| Ok(version_ab(wave as u64 + 1, wave as u64 + 1)))
-            .unwrap();
+        evaluate(&mut graph, source, &mut |_id, _graph| {
+            Ok(version_ab(wave as u64 + 1, wave as u64 + 1))
+        })
+        .unwrap();
         for node in [dep_a, dep_b, dep_both] {
             evaluate(&mut graph, node, &mut |_id, graph| {
                 Ok(NodeEvaluationResult::from_version(
@@ -382,5 +391,3 @@ fn execution_history_prefers_most_recent_records_over_low_arena_indices() {
         "history detail should not be dominated by stale low-index nodes when detail_limit is exceeded: {history:?}"
     );
 }
-
-

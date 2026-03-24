@@ -181,25 +181,25 @@ impl SignalGraph {
         updated.clear();
         updated.extend_from_slice(self.raw_dependencies_of(node)?);
 
-        let changed = match updated.binary_search_by(|edge| compare_dependency_edges(edge, &dependency))
-        {
-            Ok(_) => false,
-            Err(index) => {
-                updated.insert(index, dependency.clone());
-                self.set_dependency_edges_sorted_with_delta(
-                    node,
-                    &updated,
-                    DependencyTopologyDelta {
-                        added_edges: vec![dependency],
-                        removed_edges: Vec::new(),
-                    },
-                )?;
-                if self.is_alive(upstream) {
-                    self.add_subscriber_edge(upstream, node)?;
+        let changed =
+            match updated.binary_search_by(|edge| compare_dependency_edges(edge, &dependency)) {
+                Ok(_) => false,
+                Err(index) => {
+                    updated.insert(index, dependency.clone());
+                    self.set_dependency_edges_sorted_with_delta(
+                        node,
+                        &updated,
+                        DependencyTopologyDelta {
+                            added_edges: vec![dependency],
+                            removed_edges: Vec::new(),
+                        },
+                    )?;
+                    if self.is_alive(upstream) {
+                        self.add_subscriber_edge(upstream, node)?;
+                    }
+                    true
                 }
-                true
-            }
-        };
+            };
 
         self.debug_assert_bidirectional_consistency();
         updated.clear();
@@ -296,7 +296,8 @@ impl SignalGraph {
             for edge in *desired {
                 self.validate_handle(edge.source())?;
             }
-            let analysis = analyze_dependency_reconciliation(self.raw_dependencies_of(*node)?, desired);
+            let analysis =
+                analyze_dependency_reconciliation(self.raw_dependencies_of(*node)?, desired);
             reports[index] = analysis.report;
             if !analysis.changed() {
                 continue;

@@ -2,6 +2,7 @@ mod aspect_semantics;
 mod aspect_traces;
 mod continuity;
 mod relation_integrity;
+mod structural_invariants;
 mod registry_errors;
 
 use std::collections::BTreeMap;
@@ -15,6 +16,7 @@ pub use aspect_semantics::*;
 pub use aspect_traces::*;
 pub use continuity::*;
 pub use relation_integrity::*;
+pub use structural_invariants::*;
 pub use registry_errors::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]

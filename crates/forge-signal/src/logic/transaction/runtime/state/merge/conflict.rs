@@ -3,9 +3,9 @@ use serde::{Deserialize, Serialize};
 use crate::data::handle::NodeId;
 
 use super::core::BranchMergeDivergence;
+use super::journal::StructuralMergeCandidateRecord;
 use super::plan::ArtifactMergeComparable;
 use super::policy::BranchMergeReconciliationPolicy;
-use super::journal::StructuralMergeCandidateRecord;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BranchMergeConflictRecord {

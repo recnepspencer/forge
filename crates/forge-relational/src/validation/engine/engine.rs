@@ -123,6 +123,8 @@ impl InvariantEngine<'_> {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use super::super::{InvariantExecutionRequest, InvariantObservation, InvariantRequestProfile};
     use super::InvariantEngine;
     use crate::facade::identity::{PartitionId, RelationId};
@@ -130,16 +132,191 @@ mod tests {
     use crate::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
     use crate::facade::schema::RelationalSchemaRegistry;
     use crate::facade::transactions::{
-        DeleteRelationIntent, MergedCommitPlan, MutationIntent, RelationMutationIntent,
-        TransactionId,
+        CreateIntent, DeleteRelationIntent, MergedCommitPlan, MutationIntent,
+        RelationMutationIntent, TransactionId,
     };
-    use crate::validation::data::{InvariantGroup, InvariantGroupSet};
+    use crate::transactions::data::{EntitySpec, RelationSpec};
+    use crate::validation::data::{
+        CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
+        CustomInvariantOperationalMetadata, CustomInvariantPreparationError,
+        CustomInvariantRegistration, CustomInvariantRule, CustomInvariantRuleId,
+        CustomInvariantScopePlanner, CustomInvariantSemanticIdentity,
+        CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantGroup,
+        InvariantGroupSet, InvariantReportedRule,
+    };
 
     fn runtime_with_invariants(invariant_catalog: InvariantCatalog) -> RelationalRuntime {
         RelationalRuntimeApi::builder()
             .schema_registry(RelationalSchemaRegistry::new())
             .invariant_catalog(invariant_catalog)
             .build()
+    }
+
+    struct AlwaysViolatesCustomRule;
+    struct StructuralSurfaceRule;
+    struct PanicDuringPrepareRule;
+    struct PanicDuringEvaluateRule;
+
+    impl CustomInvariantRule for AlwaysViolatesCustomRule {
+        type Scope = ();
+
+        fn descriptor(&self) -> CustomInvariantDescriptor {
+            CustomInvariantDescriptor {
+                identity: CustomInvariantSemanticIdentity {
+                    rule_id: CustomInvariantRuleId::new("test.custom.violation"),
+                    semantic_version: CustomInvariantSemanticVersion::new(1, 0),
+                },
+                display_name: Arc::from("Test Custom Violation"),
+                operational: CustomInvariantOperationalMetadata {
+                    execution_point: crate::validation::data::InvariantExecutionPoint::CommitBoundary,
+                    groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance),
+                    cost_class: crate::validation::data::InvariantCostClass::Touched,
+                    failure_effect: crate::validation::data::InvariantFailureEffect::BlockCommit,
+                },
+            }
+        }
+
+        fn prepare_scope(
+            &self,
+            _planner: &mut CustomInvariantScopePlanner<'_>,
+        ) -> Result<Self::Scope, CustomInvariantPreparationError> {
+            Ok(())
+        }
+
+        fn evaluate(
+            &self,
+            _context: &CustomInvariantExecutionContext<'_>,
+            _scope: &Self::Scope,
+        ) -> Result<CustomInvariantVerdict, CustomInvariantExecutionError> {
+            Ok(CustomInvariantVerdict::Violation)
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct StructuralScope {
+        visible_entities: usize,
+        planned_relations: usize,
+        touched_partitions: usize,
+    }
+
+    impl CustomInvariantRule for StructuralSurfaceRule {
+        type Scope = StructuralScope;
+
+        fn descriptor(&self) -> CustomInvariantDescriptor {
+            CustomInvariantDescriptor {
+                identity: CustomInvariantSemanticIdentity {
+                    rule_id: CustomInvariantRuleId::new("test.custom.structural-surface"),
+                    semantic_version: CustomInvariantSemanticVersion::new(1, 0),
+                },
+                display_name: Arc::from("Structural Surface Rule"),
+                operational: CustomInvariantOperationalMetadata {
+                    execution_point: crate::validation::data::InvariantExecutionPoint::CommitBoundary,
+                    groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance),
+                    cost_class: crate::validation::data::InvariantCostClass::Touched,
+                    failure_effect: crate::validation::data::InvariantFailureEffect::BlockCommit,
+                },
+            }
+        }
+
+        fn prepare_scope(
+            &self,
+            planner: &mut CustomInvariantScopePlanner<'_>,
+        ) -> Result<Self::Scope, CustomInvariantPreparationError> {
+            let source_entities = planner.touched().visible_entity_ids();
+            let traversal = planner.traversal().walk_outgoing_from(source_entities, 1)?;
+            assert!(traversal.frontier_exhausted());
+            Ok(StructuralScope {
+                visible_entities: source_entities.len(),
+                planned_relations: planner.touched().planned_relation_creates().len(),
+                touched_partitions: planner.touched().touched_partitions().len(),
+            })
+        }
+
+        fn evaluate(
+            &self,
+            context: &CustomInvariantExecutionContext<'_>,
+            scope: &Self::Scope,
+        ) -> Result<CustomInvariantVerdict, CustomInvariantExecutionError> {
+            let counts = context.counts();
+            if counts.visible_entity_count() == scope.visible_entities
+                && counts.planned_relation_create_count() == scope.planned_relations
+                && counts.touched_partition_count() == scope.touched_partitions
+            {
+                Ok(CustomInvariantVerdict::Pass)
+            } else {
+                Ok(CustomInvariantVerdict::Violation)
+            }
+        }
+    }
+
+    impl CustomInvariantRule for PanicDuringPrepareRule {
+        type Scope = ();
+
+        fn descriptor(&self) -> CustomInvariantDescriptor {
+            CustomInvariantDescriptor {
+                identity: CustomInvariantSemanticIdentity {
+                    rule_id: CustomInvariantRuleId::new("test.custom.panic-prepare"),
+                    semantic_version: CustomInvariantSemanticVersion::new(1, 0),
+                },
+                display_name: Arc::from("Panic During Prepare"),
+                operational: CustomInvariantOperationalMetadata {
+                    execution_point: crate::validation::data::InvariantExecutionPoint::CommitBoundary,
+                    groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance),
+                    cost_class: crate::validation::data::InvariantCostClass::Touched,
+                    failure_effect: crate::validation::data::InvariantFailureEffect::BlockCommit,
+                },
+            }
+        }
+
+        fn prepare_scope(
+            &self,
+            _planner: &mut CustomInvariantScopePlanner<'_>,
+        ) -> Result<Self::Scope, CustomInvariantPreparationError> {
+            panic!("prepare panic");
+        }
+
+        fn evaluate(
+            &self,
+            _context: &CustomInvariantExecutionContext<'_>,
+            _scope: &Self::Scope,
+        ) -> Result<CustomInvariantVerdict, CustomInvariantExecutionError> {
+            Ok(CustomInvariantVerdict::Pass)
+        }
+    }
+
+    impl CustomInvariantRule for PanicDuringEvaluateRule {
+        type Scope = ();
+
+        fn descriptor(&self) -> CustomInvariantDescriptor {
+            CustomInvariantDescriptor {
+                identity: CustomInvariantSemanticIdentity {
+                    rule_id: CustomInvariantRuleId::new("test.custom.panic-evaluate"),
+                    semantic_version: CustomInvariantSemanticVersion::new(1, 0),
+                },
+                display_name: Arc::from("Panic During Evaluate"),
+                operational: CustomInvariantOperationalMetadata {
+                    execution_point: crate::validation::data::InvariantExecutionPoint::CommitBoundary,
+                    groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance),
+                    cost_class: crate::validation::data::InvariantCostClass::Touched,
+                    failure_effect: crate::validation::data::InvariantFailureEffect::BlockCommit,
+                },
+            }
+        }
+
+        fn prepare_scope(
+            &self,
+            _planner: &mut CustomInvariantScopePlanner<'_>,
+        ) -> Result<Self::Scope, CustomInvariantPreparationError> {
+            Ok(())
+        }
+
+        fn evaluate(
+            &self,
+            _context: &CustomInvariantExecutionContext<'_>,
+            _scope: &Self::Scope,
+        ) -> Result<CustomInvariantVerdict, CustomInvariantExecutionError> {
+            panic!("evaluate panic");
+        }
     }
 
     #[test]
@@ -194,5 +371,181 @@ mod tests {
         let results = runtime.invariant_access().commit_boundary(&plan);
 
         assert!(results.results().is_empty());
+    }
+
+    #[test]
+    fn engine_executes_custom_invariant_packets() {
+        let runtime = RelationalRuntimeApi::builder()
+            .schema_registry(RelationalSchemaRegistry::new())
+            .custom_invariant(CustomInvariantRegistration::new(AlwaysViolatesCustomRule).unwrap())
+            .build();
+
+        let results = InvariantEngine::new(&runtime).execute(
+            InvariantExecutionRequest::from_profile_with_contract(
+                InvariantRequestProfile::CommitBoundary,
+                &runtime,
+                InvariantObservation::committed(runtime.storage_access().current_state()),
+                runtime.current_version_id(),
+                None,
+                None,
+            ),
+        );
+
+        assert_eq!(results.results().len(), 1);
+        match &results.results()[0].rule {
+            InvariantReportedRule::Custom(identity) => {
+                assert_eq!(identity.rule_id.as_str(), "test.custom.violation");
+            }
+            other => panic!("expected custom invariant result, got {other:?}"),
+        }
+        assert!(matches!(
+            results.results()[0].verdict,
+            crate::validation::data::InvariantVerdict::Violation(_)
+        ));
+    }
+
+    #[test]
+    fn engine_executes_custom_packets_against_real_structural_surfaces() {
+        let runtime = RelationalRuntimeApi::builder()
+            .schema_registry(RelationalSchemaRegistry::new())
+            .custom_invariant(CustomInvariantRegistration::new(StructuralSurfaceRule).unwrap())
+            .build();
+        runtime.performance_access().reset_counters();
+        let plan = MergedCommitPlan {
+            transaction_id: TransactionId(3),
+            merged_intents: vec![
+                MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: crate::facade::identity::KindId(1),
+                    client_key: crate::symbols::data::InternedString::Raw("source".to_string()),
+                    payload: crate::payloads::data::RecordPayload::StructuredJson(
+                        serde_json::json!({"name": "source"}),
+                    ),
+                })),
+                MutationIntent::Create(CreateIntent::Relation(RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: crate::facade::identity::KindId(2),
+                    client_key: crate::symbols::data::InternedString::Raw("edge".to_string()),
+                    source: crate::facade::identity::EntityId::new(PartitionId::main(), 10, 1),
+                    target: crate::facade::identity::EntityId::new(PartitionId::main(), 11, 1),
+                    payload: Some(crate::payloads::data::RecordPayload::StructuredJson(
+                        serde_json::json!({"kind": "edge"}),
+                    )),
+                })),
+            ],
+        };
+
+        let results = InvariantEngine::new(&runtime).execute(
+            InvariantExecutionRequest::from_profile_with_contract(
+                InvariantRequestProfile::CommitBoundary,
+                &runtime,
+                InvariantObservation::committed(runtime.storage_access().current_state()),
+                runtime.current_version_id(),
+                Some(&plan),
+                None,
+            ),
+        );
+
+        assert_eq!(results.results().len(), 1);
+        assert!(matches!(
+            results.results()[0].verdict,
+            crate::validation::data::InvariantVerdict::Pass
+        ));
+        let counters = runtime.performance_access().counters();
+        assert_eq!(counters.custom_invariant_preparation_count, 1);
+        assert_eq!(counters.custom_invariant_execution_count, 1);
+        assert!(counters.custom_invariant_traversal_frontier_count >= 2);
+    }
+
+    #[test]
+    fn engine_captures_custom_prepare_panics_as_typed_failures() {
+        let runtime = RelationalRuntimeApi::builder()
+            .schema_registry(RelationalSchemaRegistry::new())
+            .custom_invariant(CustomInvariantRegistration::new(PanicDuringPrepareRule).unwrap())
+            .build();
+        runtime.performance_access().reset_counters();
+
+        let results = InvariantEngine::new(&runtime).execute(
+            InvariantExecutionRequest::from_profile_with_contract(
+                InvariantRequestProfile::CommitBoundary,
+                &runtime,
+                InvariantObservation::committed(runtime.storage_access().current_state()),
+                runtime.current_version_id(),
+                None,
+                None,
+            ),
+        );
+
+        assert_eq!(results.results().len(), 1);
+        let crate::validation::data::InvariantVerdict::Violation(violation) =
+            &results.results()[0].verdict
+        else {
+            panic!("expected captured prepare panic to produce a violation");
+        };
+        match &violation.fields {
+            crate::validation::data::InvariantViolationFields::CustomInvariantFailure {
+                rule_id,
+                phase,
+                failure_kind,
+                ..
+            } => {
+                assert_eq!(rule_id, "test.custom.panic-prepare");
+                assert_eq!(phase, "preparation");
+                assert_eq!(failure_kind, "panic");
+            }
+            other => panic!("expected custom invariant failure fields, got {other:?}"),
+        }
+        assert_eq!(results.summary().custom_failure_count(), 1);
+        assert_eq!(results.summary().custom_panic_count(), 1);
+        let counters = runtime.performance_access().counters();
+        assert_eq!(counters.custom_invariant_preparation_count, 1);
+        assert_eq!(counters.custom_invariant_execution_count, 0);
+        assert_eq!(counters.custom_invariant_panic_count, 1);
+    }
+
+    #[test]
+    fn engine_captures_custom_evaluate_panics_as_typed_failures() {
+        let runtime = RelationalRuntimeApi::builder()
+            .schema_registry(RelationalSchemaRegistry::new())
+            .custom_invariant(CustomInvariantRegistration::new(PanicDuringEvaluateRule).unwrap())
+            .build();
+        runtime.performance_access().reset_counters();
+
+        let results = InvariantEngine::new(&runtime).execute(
+            InvariantExecutionRequest::from_profile_with_contract(
+                InvariantRequestProfile::CommitBoundary,
+                &runtime,
+                InvariantObservation::committed(runtime.storage_access().current_state()),
+                runtime.current_version_id(),
+                None,
+                None,
+            ),
+        );
+
+        assert_eq!(results.results().len(), 1);
+        let crate::validation::data::InvariantVerdict::Violation(violation) =
+            &results.results()[0].verdict
+        else {
+            panic!("expected captured evaluate panic to produce a violation");
+        };
+        match &violation.fields {
+            crate::validation::data::InvariantViolationFields::CustomInvariantFailure {
+                rule_id,
+                phase,
+                failure_kind,
+                ..
+            } => {
+                assert_eq!(rule_id, "test.custom.panic-evaluate");
+                assert_eq!(phase, "execution");
+                assert_eq!(failure_kind, "panic");
+            }
+            other => panic!("expected custom invariant failure fields, got {other:?}"),
+        }
+        assert_eq!(results.summary().custom_failure_count(), 1);
+        assert_eq!(results.summary().custom_panic_count(), 1);
+        let counters = runtime.performance_access().counters();
+        assert_eq!(counters.custom_invariant_preparation_count, 1);
+        assert_eq!(counters.custom_invariant_execution_count, 1);
+        assert_eq!(counters.custom_invariant_panic_count, 1);
     }
 }

@@ -16,7 +16,9 @@ use crate::data::node::EvaluationCondition;
 #[cfg(feature = "parallel")]
 use crate::data::proof::{LocallyOrderedShard, MergeableOrderedStream, OrderedStreamMergeError};
 use crate::data::proof::{OrderedStreamItem, SingleConsumer};
-use crate::logic::evaluation::{ConditionEvaluationContext, ConditionResolver, DefaultConditionResolver};
+use crate::logic::evaluation::{
+    ConditionEvaluationContext, ConditionResolver, DefaultConditionResolver,
+};
 use crate::logic::prepared::{ExecutionSnapshot, PreparedEvaluation};
 
 #[cfg(feature = "parallel")]

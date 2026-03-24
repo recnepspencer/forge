@@ -19,6 +19,7 @@ use crate::durability::log::local_store::{
     read_json, segment_file_path, write_json, DurableCheckpointFile, DurableSegmentFile,
 };
 use crate::history::data::VersionNode;
+use crate::lineage::data::{LineageCheckpointArtifact, LineageCheckpointDigestBasis};
 use crate::logic::runtime::{RecoveryOutcome as RuntimeRecoveryOutcome, RelationalRuntime};
 use crate::replay::data::CanonicalCommitEnvelope;
 use crate::schema::logic::{validate_schema_continuity_bundle, SchemaContinuityBundleIssue};
@@ -402,6 +403,29 @@ impl<'runtime> DurabilityAuthority<'runtime> {
     }
 
     fn build_checkpoint_image(&self) -> DurableCheckpoint {
+        let envelopes = self.runtime.history_access().commit_envelopes_snapshot();
+        let published_lineage_commit_count = envelopes
+            .iter()
+            .filter(|envelope| envelope.has_lineage_authority())
+            .count();
+        let canonical_published_event_ids = envelopes
+            .iter()
+            .flat_map(|envelope| {
+                envelope
+                    .lineage_digest_basis()
+                    .canonical_event_ids()
+                    .iter()
+                    .copied()
+            })
+            .collect();
+        let published_lineage_event_count = envelopes
+            .iter()
+            .map(|envelope| envelope.lineage_digest_basis().lineage_event_count())
+            .sum();
+        let published_lineage_decision_count = envelopes
+            .iter()
+            .map(|envelope| envelope.lineage_digest_basis().lineage_decision_count())
+            .sum();
         DurableCheckpoint {
             coverage: CheckpointCoverage {
                 up_to_commit: self.runtime.history_access().latest_commit().cloned(),
@@ -412,7 +436,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                     .map(|commit| commit.version_id),
             },
             branches: self.runtime.history_access().branches(),
-            envelopes: self.runtime.history_access().commit_envelopes_snapshot(),
+            envelopes,
             partition_images: self
                 .runtime
                 .partitions
@@ -420,13 +444,19 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                 .cloned()
                 .map(partition_to_image)
                 .collect(),
-            lineage_nodes: self.runtime.lineage_access().nodes_snapshot(),
-            lineage_events: self.runtime.lineage_access().events_snapshot(),
-            correspondence_candidates: self
-                .runtime
-                .lineage_access()
-                .correspondence_candidates_snapshot(),
-            rejected_lineage_decisions: self.runtime.lineage_access().rejected_decisions_snapshot(),
+            lineage: LineageCheckpointArtifact::new(
+                LineageCheckpointDigestBasis::new(
+                    published_lineage_commit_count,
+                    canonical_published_event_ids,
+                    published_lineage_event_count,
+                    published_lineage_decision_count,
+                ),
+                self.runtime.lineage_access().nodes_snapshot(),
+                self.runtime
+                    .lineage_access()
+                    .correspondence_candidates_snapshot(),
+                self.runtime.lineage_access().rejected_decisions_snapshot(),
+            ),
             index_definitions: self.runtime.index_access().definitions_snapshot(),
             index_generations: self.runtime.index_access().generations_snapshot(),
             symbol_table: self.runtime.services.symbols.snapshot(),
@@ -493,6 +523,7 @@ fn rebuild_runtime_from_plan(plan: RecoveryPlan) -> Result<RelationalRuntime, Du
     }
 
     if let Some(checkpoint) = &plan.checkpoint {
+        validate_checkpoint_lineage_artifact(checkpoint)?;
         restored.partitions = checkpoint
             .partition_images
             .iter()
@@ -540,15 +571,25 @@ fn rebuild_runtime_from_plan(plan: RecoveryPlan) -> Result<RelationalRuntime, Du
             })
             .collect();
         restored.lineage.nodes = checkpoint
-            .lineage_nodes
+            .lineage
+            .nodes()
             .iter()
             .cloned()
             .map(|node| (node.lineage_id, node))
             .collect();
-        restored.lineage.events = checkpoint.lineage_events.clone();
+        restored.lineage.events = checkpoint
+            .envelopes
+            .iter()
+            .flat_map(|envelope| envelope.lineage_events().iter().cloned())
+            .collect();
+        restored
+            .lineage
+            .events
+            .sort_by_key(|event| event.event_id);
         restored.lineage.rebuild_branch_event_positions();
-        restored.lineage.correspondence_candidates = checkpoint.correspondence_candidates.clone();
-        restored.lineage.rejected_decisions = checkpoint.rejected_lineage_decisions.clone();
+        restored.lineage.correspondence_candidates =
+            checkpoint.lineage.correspondence_candidates().to_vec();
+        restored.lineage.rejected_decisions = checkpoint.lineage.rejected_decisions().to_vec();
         restored.indexes.definitions = checkpoint
             .index_definitions
             .iter()
@@ -780,6 +821,50 @@ fn validate_recovery_compatibility(
         }));
     }
     validate_schema_continuity_compatibility(runtime, plan)?;
+    Ok(())
+}
+
+fn validate_checkpoint_lineage_artifact(
+    checkpoint: &DurableCheckpoint,
+) -> Result<(), DurabilityError> {
+    let published_lineage_commit_count = checkpoint
+        .envelopes
+        .iter()
+        .filter(|envelope| envelope.has_lineage_authority())
+        .count();
+    let canonical_published_event_ids = checkpoint
+        .envelopes
+        .iter()
+        .flat_map(|envelope| {
+            envelope
+                .lineage_digest_basis()
+                .canonical_event_ids()
+                .iter()
+                .copied()
+        })
+        .collect();
+    let published_lineage_event_count = checkpoint
+        .envelopes
+        .iter()
+        .map(|envelope| envelope.lineage_digest_basis().lineage_event_count())
+        .sum();
+    let published_lineage_decision_count = checkpoint
+        .envelopes
+        .iter()
+        .map(|envelope| envelope.lineage_digest_basis().lineage_decision_count())
+        .sum();
+    let observed_basis = LineageCheckpointDigestBasis::new(
+        published_lineage_commit_count,
+        canonical_published_event_ids,
+        published_lineage_event_count,
+        published_lineage_decision_count,
+    );
+    if checkpoint.lineage.digest_basis() != &observed_basis {
+        return Err(DurabilityError::new(
+            RecoveryFailureClass::ReplayFailure,
+            "durable checkpoint lineage artifact basis drifted from canonical published lineage",
+        ));
+    }
     Ok(())
 }
 

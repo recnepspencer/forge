@@ -403,6 +403,8 @@ impl<'runtime> HistoryAccess<'runtime> {
             .resolve_historical_lineage(HistoricalResolutionRequest {
                 branch_id: branch_id.clone(),
                 lineage_id,
+                boundedness_basis:
+                    crate::facade::lineage::HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
             });
         let lineage_scope = self.lineage_scope(&resolution.start, &resolution.traversed_event_ids);
         let envelopes = self.branch_commit_envelopes(branch_id);

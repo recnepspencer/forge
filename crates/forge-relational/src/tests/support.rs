@@ -85,10 +85,6 @@ mod relation_integrity;
 mod savepoint;
 #[path = "support/lineage.rs"]
 mod lineage;
-#[path = "support/domains/cad.rs"]
-mod cad_domain;
-#[path = "support/domains/chip.rs"]
-mod chip_domain;
 
 pub(super) use durability::*;
 pub(super) use history::*;
@@ -99,8 +95,6 @@ pub(super) use runtime::*;
 pub(super) use savepoint::*;
 pub(super) use schema::*;
 pub(super) use lineage::*;
-pub(super) use cad_domain::*;
-pub(super) use chip_domain::*;
 
 pub(super) fn certification_digest<T: Serialize>(value: &T) -> String {
     let bytes = serde_json::to_vec(value).expect("certification serialization");

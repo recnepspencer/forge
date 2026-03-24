@@ -4,11 +4,11 @@ use crate::diagnostics::flow::{
     ApplySummary, ChangeInputSummary, FlowCauseSample, FlowSummary, InvalidationSummary,
     PlanningSummary, PrecomputeSummary,
 };
+use crate::diagnostics::policy::OrdinaryAccessLane;
 use crate::diagnostics::replay::{ReplayEvent, ReplayEventDetail, ReplayEventKind};
 use crate::diagnostics::summary::{
     EvaluationPlanSummary, ExecutionHistorySummary, ExplanationSummary, GraphSummary,
 };
-use crate::diagnostics::policy::OrdinaryAccessLane;
 use crate::logic::explain::CausalLinkKind;
 use crate::logic::planner::{ExecutionReport, TaskExecutionOutcome};
 
@@ -239,6 +239,3 @@ fn execution_history_unchanged(report: &ExecutionReport) -> bool {
             )
         })
 }
-
-
-

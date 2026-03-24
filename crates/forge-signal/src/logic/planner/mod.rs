@@ -30,16 +30,16 @@ pub use model::{
     ApplyFootprint, CandidateTask, ConcurrentApplyPlan, ConcurrentApplyReductionPlan,
     DisjointApplyGroup, DisjointApplyProof, EligibleTask, EligibleTaskAdmission, EvaluationPlan,
     ExecutedTask, ExecutionPruneReason, ExecutionRecordId, ExecutionReport, ExecutionStage,
-    LoweredApplyPlan, LoweredStagePlan, LoweredTask, MutationDomain, PlanSummary,
-    MaybeStaleAdmission, ReductionOrderingContract, ReductionWorkClass, SemanticSegmentId,
+    LoweredApplyPlan, LoweredStagePlan, LoweredTask, MaybeStaleAdmission, MutationDomain,
+    PlanSummary, ReductionOrderingContract, ReductionWorkClass, SemanticSegmentId,
     SemanticTaskRange, SerialApplyPlan, SharedSurfacePolicy, StageBarrier, StageExecutionOutcome,
     StageExecutionRecord, StageExecutor, TaskExecutionOutcome, TaskExecutionRecord, TaskReason,
 };
 #[cfg(feature = "parallel")]
 #[allow(unused_imports)]
 pub use model::{ParallelApplyMode, ParallelExecutionKind, ParallelExecutionPolicy};
-pub(crate) use plan_builder::build_evaluation_session_with_policy_resolver;
 pub(crate) use plan_builder::admit_direct_task_with_policy_resolver;
+pub(crate) use plan_builder::build_evaluation_session_with_policy_resolver;
 pub use plan_builder::{build_evaluation_plan, build_evaluation_plan_with_policy_resolver};
 #[cfg(test)]
 pub(crate) use tests::{

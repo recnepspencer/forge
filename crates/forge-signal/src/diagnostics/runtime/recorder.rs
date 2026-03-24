@@ -384,15 +384,17 @@ pub fn record_lineage_transition(
                             .unwrap_or(crate::data::reuse::PersistentCorrespondenceKind::Unknown),
                     }
                 }
-                ReuseOrigin::PartialArtifactSplice => ArtifactTransitionKind::PartialArtifactSplice {
-                    composition_region_count: after_trace
-                        .reuse_boundary_context
-                        .as_ref()
-                        .and_then(|ctx| ctx.composition_regions())
-                        .map(|regions| regions.as_slice().len() as u32)
-                        .unwrap_or(0),
-                    recomputed_region_count: after_trace.changed_partition_count,
-                },
+                ReuseOrigin::PartialArtifactSplice => {
+                    ArtifactTransitionKind::PartialArtifactSplice {
+                        composition_region_count: after_trace
+                            .reuse_boundary_context
+                            .as_ref()
+                            .and_then(|ctx| ctx.composition_regions())
+                            .map(|regions| regions.as_slice().len() as u32)
+                            .unwrap_or(0),
+                        recomputed_region_count: after_trace.changed_partition_count,
+                    }
+                }
                 ReuseOrigin::FreshCompute | ReuseOrigin::OutputSuppressed => {
                     unreachable!("guarded by matches!")
                 }
@@ -476,15 +478,17 @@ pub fn stamp_trace_summary_and_record_lineage_transition(
                             .unwrap_or(crate::data::reuse::PersistentCorrespondenceKind::Unknown),
                     }
                 }
-                ReuseOrigin::PartialArtifactSplice => ArtifactTransitionKind::PartialArtifactSplice {
-                    composition_region_count: after_trace
-                        .reuse_boundary_context
-                        .as_ref()
-                        .and_then(|ctx| ctx.composition_regions())
-                        .map(|regions| regions.as_slice().len() as u32)
-                        .unwrap_or(0),
-                    recomputed_region_count: after_trace.changed_partition_count,
-                },
+                ReuseOrigin::PartialArtifactSplice => {
+                    ArtifactTransitionKind::PartialArtifactSplice {
+                        composition_region_count: after_trace
+                            .reuse_boundary_context
+                            .as_ref()
+                            .and_then(|ctx| ctx.composition_regions())
+                            .map(|regions| regions.as_slice().len() as u32)
+                            .unwrap_or(0),
+                        recomputed_region_count: after_trace.changed_partition_count,
+                    }
+                }
                 ReuseOrigin::FreshCompute | ReuseOrigin::OutputSuppressed => {
                     unreachable!("guarded by matches!")
                 }
@@ -556,5 +560,3 @@ pub fn record_invalidation_lineage(
             cause,
         ));
 }
-
-

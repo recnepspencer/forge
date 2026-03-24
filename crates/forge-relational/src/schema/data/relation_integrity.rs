@@ -8,6 +8,11 @@ use serde::{Deserialize, Serialize};
 use crate::config::data::CrossContextPolicy;
 use crate::config::data::CascadeDeletePolicy;
 use crate::identity::data::KindId;
+use crate::schema::data::{
+    AcyclicityContractDeclaration, ConnectivityMinimumContractDeclaration,
+    LoweredAcyclicityContract, LoweredConnectivityMinimumContract,
+    LoweredPartitionIsolationContract, PartitionIsolationContractDeclaration,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
 pub struct RelationIntegrityPlanRevision(pub u128);
@@ -84,6 +89,9 @@ pub(crate) fn derive_relation_integrity_plan_revision(
     uniqueness_contracts: &[UniquenessContractDeclaration],
     symmetry_contracts: &[SymmetryContractDeclaration],
     endpoint_deletion_integrity_contracts: &[EndpointDeletionIntegrityDeclaration],
+    acyclicity_contracts: &[AcyclicityContractDeclaration],
+    partition_isolation_contracts: &[PartitionIsolationContractDeclaration],
+    connectivity_minimum_contracts: &[ConnectivityMinimumContractDeclaration],
 ) -> RelationIntegrityPlanRevision {
     const FNV_OFFSET: u128 = 0x6c62272e07bb014262b821756295c58d;
     const FNV_PRIME: u128 = 0x0000000001000000000000000000013B;
@@ -190,6 +198,52 @@ pub(crate) fn derive_relation_integrity_plan_revision(
             },
         );
     }
+    for declaration in acyclicity_contracts {
+        mix_bytes(&mut hash, b"acyclicity");
+        mix_string(&mut hash, declaration.contract_id.as_str());
+        mix_bytes(
+            &mut hash,
+            match declaration.traversal_direction {
+                crate::schema::data::DirectedTraversalKind::SourceToTarget => b"source_to_target",
+            },
+        );
+        mix_bytes(
+            &mut hash,
+            match declaration.allowed_cycle_class {
+                crate::schema::data::AllowedCycleClass::NoCycles => b"no_cycles",
+            },
+        );
+    }
+    for declaration in partition_isolation_contracts {
+        mix_bytes(&mut hash, b"partition_isolation");
+        mix_string(&mut hash, declaration.contract_id.as_str());
+        mix_bytes(
+            &mut hash,
+            match declaration.isolation_mode {
+                crate::schema::data::PartitionIsolationMode::SamePartitionEndpoints => {
+                    b"same_partition_endpoints"
+                }
+            },
+        );
+    }
+    for declaration in connectivity_minimum_contracts {
+        mix_bytes(&mut hash, b"connectivity_minimum");
+        mix_string(&mut hash, declaration.contract_id.as_str());
+        mix_kind_ids(&mut hash, &declaration.source_kind_ids);
+        mix_kind_ids(&mut hash, &declaration.target_kind_ids);
+        mix_bytes(
+            &mut hash,
+            &u64::from(declaration.minimum_reachable_targets).to_le_bytes(),
+        );
+        mix_bytes(
+            &mut hash,
+            match declaration.enforcement_boundary {
+                crate::schema::data::ConnectivityMinimumEnforcement::SnapshotPublication => {
+                    b"snapshot_publication"
+                }
+            },
+        );
+    }
     RelationIntegrityPlanRevision(hash)
 }
 
@@ -201,6 +255,9 @@ pub struct RelationIntegrityDeclarations {
     pub uniqueness_contracts: Vec<UniquenessContractDeclaration>,
     pub symmetry_contracts: Vec<SymmetryContractDeclaration>,
     pub endpoint_deletion_integrity_contracts: Vec<EndpointDeletionIntegrityDeclaration>,
+    pub acyclicity_contracts: Vec<AcyclicityContractDeclaration>,
+    pub partition_isolation_contracts: Vec<PartitionIsolationContractDeclaration>,
+    pub connectivity_minimum_contracts: Vec<ConnectivityMinimumContractDeclaration>,
 }
 
 impl RelationIntegrityDeclarations {
@@ -218,12 +275,18 @@ impl RelationIntegrityDeclarations {
                 &uniqueness_contracts,
                 &symmetry_contracts,
                 &endpoint_deletion_integrity_contracts,
+                &[],
+                &[],
+                &[],
             ),
             endpoint_kind_contracts,
             cardinality_contracts,
             uniqueness_contracts,
             symmetry_contracts,
             endpoint_deletion_integrity_contracts,
+            acyclicity_contracts: Vec::new(),
+            partition_isolation_contracts: Vec::new(),
+            connectivity_minimum_contracts: Vec::new(),
         }
     }
 
@@ -233,6 +296,49 @@ impl RelationIntegrityDeclarations {
             + self.uniqueness_contracts.len()
             + self.symmetry_contracts.len()
             + self.endpoint_deletion_integrity_contracts.len()
+            + self.acyclicity_contracts.len()
+            + self.partition_isolation_contracts.len()
+            + self.connectivity_minimum_contracts.len()
+    }
+
+    pub fn with_acyclicity_contracts(
+        mut self,
+        acyclicity_contracts: Vec<AcyclicityContractDeclaration>,
+    ) -> Self {
+        self.acyclicity_contracts = acyclicity_contracts;
+        self.recompute_plan_revision();
+        self
+    }
+
+    pub fn with_partition_isolation_contracts(
+        mut self,
+        partition_isolation_contracts: Vec<PartitionIsolationContractDeclaration>,
+    ) -> Self {
+        self.partition_isolation_contracts = partition_isolation_contracts;
+        self.recompute_plan_revision();
+        self
+    }
+
+    pub fn with_connectivity_minimum_contracts(
+        mut self,
+        connectivity_minimum_contracts: Vec<ConnectivityMinimumContractDeclaration>,
+    ) -> Self {
+        self.connectivity_minimum_contracts = connectivity_minimum_contracts;
+        self.recompute_plan_revision();
+        self
+    }
+
+    fn recompute_plan_revision(&mut self) {
+        self.plan_revision = derive_relation_integrity_plan_revision(
+            &self.endpoint_kind_contracts,
+            &self.cardinality_contracts,
+            &self.uniqueness_contracts,
+            &self.symmetry_contracts,
+            &self.endpoint_deletion_integrity_contracts,
+            &self.acyclicity_contracts,
+            &self.partition_isolation_contracts,
+            &self.connectivity_minimum_contracts,
+        );
     }
 }
 
@@ -328,6 +434,9 @@ pub struct LoweredRelationIntegrityPlan {
     pub uniqueness_contracts: Vec<LoweredUniquenessContract>,
     pub symmetry_contracts: Vec<LoweredSymmetryContract>,
     pub endpoint_deletion_integrity_contracts: Vec<LoweredEndpointDeletionIntegrityContract>,
+    pub acyclicity_contracts: Vec<LoweredAcyclicityContract>,
+    pub partition_isolation_contracts: Vec<LoweredPartitionIsolationContract>,
+    pub connectivity_minimum_contracts: Vec<LoweredConnectivityMinimumContract>,
 }
 
 impl LoweredRelationIntegrityPlan {
@@ -338,6 +447,9 @@ impl LoweredRelationIntegrityPlan {
             + self.uniqueness_contracts.len()
             + self.symmetry_contracts.len()
             + self.endpoint_deletion_integrity_contracts.len()
+            + self.acyclicity_contracts.len()
+            + self.partition_isolation_contracts.len()
+            + self.connectivity_minimum_contracts.len()
     }
 }
 

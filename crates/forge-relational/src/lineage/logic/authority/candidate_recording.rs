@@ -33,7 +33,7 @@ impl<'runtime> LineageAuthority<'runtime> {
                 DiagnosticsScope::Lineage,
                 DiagnosticsArtifactKind::MinimalSummary,
                 vec![RelationalDiagnosticsEntry {
-                    code: DiagnosticCode::CommitPublished,
+                    code: DiagnosticCode::LineageCandidateRecorded,
                     message: "correspondence candidate recorded".to_string(),
                     fields: json!({
                         "candidate_id": candidate.candidate_id,

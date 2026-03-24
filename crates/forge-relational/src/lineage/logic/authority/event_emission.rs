@@ -52,14 +52,15 @@ impl<'runtime> LineageAuthority<'runtime> {
         &mut self,
         artifact: &PublishedLineageArtifact,
     ) {
+        let existing_event_ids = self
+            .runtime
+            .lineage
+            .events
+            .iter()
+            .map(|candidate| candidate.event_id())
+            .collect::<std::collections::BTreeSet<u64>>();
         for event in artifact.lineage_events() {
-            if self
-                .runtime
-                .lineage
-                .events
-                .iter()
-                .any(|candidate| candidate.event_id == event.event_id)
-            {
+            if existing_event_ids.contains(&event.event_id()) {
                 continue;
             }
             self.runtime.lineage.record_event(event.clone());
@@ -73,12 +74,12 @@ impl<'runtime> LineageAuthority<'runtime> {
         candidate_id: Option<CorrespondenceCandidateId>,
     ) -> LineageDecisionRecord {
         LineageDecisionRecord {
-            branch_id: event.branch_id.clone(),
+            branch_id: event.branch_id().clone(),
             kind,
-            event_id: Some(event.event_id),
+            event_id: Some(event.event_id()),
             candidate_id,
-            sources: event.sources.clone(),
-            targets: event.targets.clone(),
+            sources: event.sources().to_vec(),
+            targets: event.targets().to_vec(),
             rejection_class: None,
         }
     }

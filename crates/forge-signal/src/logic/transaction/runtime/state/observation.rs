@@ -40,4 +40,3 @@ where
         self.config.set_fallback_comparator(policy);
     }
 }
-

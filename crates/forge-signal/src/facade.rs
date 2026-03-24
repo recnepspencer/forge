@@ -16,7 +16,10 @@ pub mod types {
         CORE_STORAGE_PROFILE_ID, HOT_VEC_INLINE_CAPACITY, STABLE_HASH_WIDTH_BITS,
     };
     pub use crate::data::dependency::{
-        CanonicalDependencies, DependencyEdge, SharedDependencySnapshot, SnapshotDeltaRecord,
+        CanonicalDependencies, CommittedSnapshotUpdate, DependencyEdge, DependencySnapshotShape,
+        ReplacementSnapshotUpdate, SharedDependencySnapshot, SnapshotChangeKind,
+        SnapshotDeltaRecord, SnapshotShapeHandle, StableShapeSnapshotBasis,
+        VersionOnlySnapshotUpdate, VersionVector,
     };
     pub use crate::data::dirty_set::{BatchedDirtySet, DomainImpact};
     pub use crate::data::error::SignalError;
@@ -37,16 +40,16 @@ pub mod types {
     pub use crate::data::proof::{
         CanonicalForm, DedupedNodeBatch, DeltaForm, DependencyBatchEdit, DependencySetEdit,
         DesiredState, DirtyBatch, DirtyBatchEntry, DirtyDelta, FrontierEntryClassification,
-        FrontierExecutionCounters, FrontierExecutionSummary, FrontierInclusionBasis,
-        FrontierPlan, FrontierPredictedCounters, FrontierSeedCause, FrontierValidationDecision,
-        FrontierWave, FrontierWaveEntryPlan, FrontierWaveEntrySummary, FrontierWavePlan,
-        FrontierWaveSummary, InvalidationFrontier, InvalidationSeed, InvalidationSeedBatch,
-        InvalidationTraceRecord, LocalityFootprint, LocallyOrderedShard, LoweredForm,
-        MergeableOrderedStream, NarrowedPropagationSet, OrderedStreamItem,
+        FrontierExecutionCounters, FrontierExecutionSummary, FrontierInclusionBasis, FrontierPlan,
+        FrontierPredictedCounters, FrontierSeedCause, FrontierValidationDecision, FrontierWave,
+        FrontierWaveEntryPlan, FrontierWaveEntrySummary, FrontierWavePlan, FrontierWaveSummary,
+        InvalidationFrontier, InvalidationSeed, InvalidationSeedBatch, InvalidationTraceRecord,
+        LocalityFootprint, LocallyOrderedShard, LoweredForm, MergeableOrderedStream,
+        MixedSnapshotBatchCommit, NarrowedPropagationSet, OrderedStreamItem,
         OrderedStreamMergeError, PartitionScopeSet, PatchPlan, PendingSnapshotBatch,
         ResolvedForm, SemanticBatchCommit, SingleConsumer, SnapshotBatchCommit,
-        SortedSourceBatch, StructuralDelta, SubscriberRepair, SubscriberRepairBatch, SummaryForm,
-        TouchedScopeSummary, TransitiveFrontierRoot,
+        SortedSourceBatch, StableShapeSnapshotBatchCommit, StructuralDelta, SubscriberRepair,
+        SubscriberRepairBatch, SummaryForm, TouchedScopeSummary, TransitiveFrontierRoot,
     };
     pub use crate::data::reuse::{
         ArtifactEquivalenceContract, ArtifactSemanticBoundary, PersistentCorrespondenceEvidence,
@@ -108,8 +111,8 @@ pub mod planning {
         build_evaluation_plan, execute_prepared_plan, CandidateTask, EligibleTask, EvaluationPlan,
         ExecutedTask, ExecutionPruneReason, ExecutionRecordId, ExecutionReport, ExecutionStage,
         PlanSummary, ResolvedExecutionStrategy, ResolvedMaintenanceStrategy, SemanticSegmentId,
-        SemanticTaskRange, StageBarrier, StageExecutionOutcome, StageExecutionRecord, StageExecutor,
-        TaskExecutionOutcome, TaskExecutionRecord, TaskReason,
+        SemanticTaskRange, StageBarrier, StageExecutionOutcome, StageExecutionRecord,
+        StageExecutor, TaskExecutionOutcome, TaskExecutionRecord, TaskReason,
     };
 }
 
@@ -127,16 +130,16 @@ pub mod proof {
     pub use crate::data::proof::{
         CanonicalForm, DedupedNodeBatch, DeltaForm, DependencyBatchEdit, DependencySetEdit,
         DesiredState, DirtyBatch, DirtyBatchEntry, DirtyDelta, FrontierEntryClassification,
-        FrontierExecutionCounters, FrontierExecutionSummary, FrontierInclusionBasis,
-        FrontierPlan, FrontierPredictedCounters, FrontierSeedCause, FrontierValidationDecision,
-        FrontierWave, FrontierWaveEntryPlan, FrontierWaveEntrySummary, FrontierWavePlan,
-        FrontierWaveSummary, InvalidationFrontier, InvalidationSeed, InvalidationSeedBatch,
-        InvalidationTraceRecord, LocalityFootprint, LocallyOrderedShard, LoweredForm,
-        MergeableOrderedStream, NarrowedPropagationSet, OrderedStreamItem,
+        FrontierExecutionCounters, FrontierExecutionSummary, FrontierInclusionBasis, FrontierPlan,
+        FrontierPredictedCounters, FrontierSeedCause, FrontierValidationDecision, FrontierWave,
+        FrontierWaveEntryPlan, FrontierWaveEntrySummary, FrontierWavePlan, FrontierWaveSummary,
+        InvalidationFrontier, InvalidationSeed, InvalidationSeedBatch, InvalidationTraceRecord,
+        LocalityFootprint, LocallyOrderedShard, LoweredForm, MergeableOrderedStream,
+        MixedSnapshotBatchCommit, NarrowedPropagationSet, OrderedStreamItem,
         OrderedStreamMergeError, PartitionScopeSet, PatchPlan, PendingSnapshotBatch,
         ResolvedForm, SemanticBatchCommit, SingleConsumer, SnapshotBatchCommit,
-        SortedSourceBatch, StructuralDelta, SubscriberRepair, SubscriberRepairBatch, SummaryForm,
-        TouchedScopeSummary, TransitiveFrontierRoot,
+        SortedSourceBatch, StableShapeSnapshotBatchCommit, StructuralDelta, SubscriberRepair,
+        SubscriberRepairBatch, SummaryForm, TouchedScopeSummary, TransitiveFrontierRoot,
     };
 }
 
@@ -146,24 +149,23 @@ pub mod transaction {
     pub use crate::logic::invalidation::mark_dirty_batch;
     pub use crate::logic::transaction::RuntimeObserver;
     pub use crate::logic::transaction::{
-        emit_event_in_txn, flush_checkpoint_in_txn, AdvisoryRecord, ComputationSpec,
+        emit_event_in_txn, flush_checkpoint_in_txn, AdvisoryRecord, ArtifactMergeAction,
+        ArtifactMergeComparable, BranchMergeBase, BranchMergeConflictEvidence,
+        BranchMergeConflictKind, BranchMergeConflictRecord, BranchMergeConflictSummary,
+        BranchMergeCounters, BranchMergeDivergence, BranchMergeExecutionSummary,
+        BranchMergeFailureKind, BranchMergeKind, BranchMergePlan, BranchMergeReconciliationPolicy,
+        BranchMergeRequest, BranchMergeResult, BranchMergeStrategy, BranchMutationJournalSlice,
+        BranchMutationLedger, ComputationSpec, ConflictMergePolicy, ConservativeOverlapExpansion,
         DecisionDetail, DecisionLog, DecisionRecord, DecisionSummary, DefinedComputation,
-        DefinedKeyedComputation, EvaluationSummary, IntegrityMarkers, RuntimeMaterializer,
-        SignalRuntime, SignalRuntimeBuilder, SignalRuntimeConfig, SignalTransaction,
-        TransactionOutcome, TransactionReplayEntry, TransactionResult, TransactionTiming, ArtifactMergeAction,
-        ArtifactMergeComparable, BranchMergeBase, BranchMergeCounters,
-        BranchMergeConflictEvidence, BranchMergeConflictKind, BranchMergeConflictRecord,
-        BranchMergeConflictSummary, BranchMergeDivergence, BranchMergeExecutionSummary,
-        BranchMergeKind, BranchMergePlan, BranchMergeReconciliationPolicy,
-        BranchMergeRequest, BranchMergeResult, BranchMergeStrategy,
-        BranchMergeFailureKind, BranchMutationJournalSlice, BranchMutationLedger,
-        ConflictMergePolicy, ConservativeOverlapExpansion, DependencyFingerprint,
-        DependencyRemapRecord, ExistingTargetMergePolicy, LoweredMergePlan,
-        MergeBoundaryWitness, MergeBoundaryWitnessKind, MergeDecisionBasis, MergeNodeMap,
-        MergeTouchedNodeSet, MergedArtifactRecord, NodeMergeInputState, NodeMergePlan,
-        NodeReconciliationDecision, NodeReconciliationShape, PlannedMergeCandidateSet,
-        ProofMinimalOverlapBasis, SourceNodeAdoptionPlanCore, SourceOnlyMergePolicy,
-        StructuralMergeCandidateRecord, StructuralMergeJournalSlice,
+        DefinedKeyedComputation, DependencyFingerprint, DependencyRemapRecord, EvaluationSummary,
+        ExistingTargetMergePolicy, IntegrityMarkers, LoweredMergePlan, MergeBoundaryWitness,
+        MergeBoundaryWitnessKind, MergeDecisionBasis, MergeNodeMap, MergeTouchedNodeSet,
+        MergedArtifactRecord, NodeMergeInputState, NodeMergePlan, NodeReconciliationDecision,
+        NodeReconciliationShape, PlannedMergeCandidateSet, ProofMinimalOverlapBasis,
+        RuntimeMaterializer, SignalRuntime, SignalRuntimeBuilder, SignalRuntimeConfig,
+        SignalTransaction, SourceNodeAdoptionPlanCore, SourceOnlyMergePolicy,
+        StructuralMergeCandidateRecord, StructuralMergeJournalSlice, TransactionOutcome,
+        TransactionReplayEntry, TransactionResult, TransactionTiming,
     };
 }
 
@@ -178,9 +180,9 @@ pub mod diagnostics {
         render_execution_report_summary, render_explanation_summary, render_failure_summary,
         render_flow_summary, render_graph_summary, render_plan_summary, repeat_run_summaries_equal,
         replay_slices_equivalent, reports_semantically_equivalent,
-        serial_parallel_reports_equivalent, ApplySummary, DiagnosticsAvailability,
-        ArtifactRetentionPolicy, ArtifactTransitionKind, ChangeInputSummary, DiagnosticMismatch,
-        DiagnosticMismatchCategory, DiagnosticsTier, EvaluationPlanSummary, EventEpochOutcome,
+        serial_parallel_reports_equivalent, ApplySummary, ArtifactRetentionPolicy,
+        ArtifactTransitionKind, ChangeInputSummary, DiagnosticMismatch, DiagnosticMismatchCategory,
+        DiagnosticsAvailability, DiagnosticsTier, EvaluationPlanSummary, EventEpochOutcome,
         EventEpochSummary, EventSubscriberOutcome, EventSubscriberOutcomeKind,
         ExecutionFailureContext, ExecutionFailurePhase, ExecutionHistoryNodeSummary,
         ExecutionHistorySummary, ExecutionInspector, ExecutionReportDiff, ExecutionReportSummary,
@@ -189,11 +191,10 @@ pub mod diagnostics {
         FrontierTracingPolicy, GraphDiagnostics, GraphDiff, GraphInspector, GraphSummary,
         HistoryDiff, InvalidationCause, InvalidationSummary, LineageArtifactId, LineageDiff,
         LineageRecord, LineageRecordKind, ParallelAdmissionPolicy, PlanDiff, PlanInspector,
-        PlanningSummary, PrecomputeSummary, ReconstructionBudget, ReplayCursor,
-        ReplayDetailPolicy, ReplayDiff, ReplayEventKind, ReplayFrame, ReplaySlice,
-        ReportInspector, RetentionBudget, RollbackDiagnostic, RollbackSummary,
-        RuntimeDiagnostics, SemanticRetentionPolicy, SignalRuntimePolicy, SnapshotRestoreKind,
-        SnapshotRestoreLineageMode,
+        PlanningSummary, PrecomputeSummary, ReconstructionBudget, ReplayCursor, ReplayDetailPolicy,
+        ReplayDiff, ReplayEventKind, ReplayFrame, ReplaySlice, ReportInspector, RetentionBudget,
+        RollbackDiagnostic, RollbackSummary, RuntimeDiagnostics, SemanticRetentionPolicy,
+        SignalRuntimePolicy, SnapshotRestoreKind, SnapshotRestoreLineageMode,
     };
 }
 
@@ -222,4 +223,3 @@ pub(crate) use self::{
 pub(crate) use crate::logic::invalidation::{mark_dirty, mark_dirty_with_regions};
 #[cfg(test)]
 pub use crate::tests::support::GraphDependencyBatchExt;
-

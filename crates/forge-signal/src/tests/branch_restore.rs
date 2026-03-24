@@ -40,7 +40,10 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
         feature_record.authority_snapshot_id,
         Some(feature_snapshot.meta.snapshot_id)
     );
-    assert_eq!(feature_record.replay_head, feature_snapshot.meta.replay_head);
+    assert_eq!(
+        feature_record.replay_head,
+        feature_snapshot.meta.replay_head
+    );
     assert_eq!(
         feature_record.checkpoint.checkpoint_size,
         feature_snapshot
@@ -49,8 +52,7 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
             .map(|telemetry| telemetry.checkpoint.checkpoint_size)
             .unwrap_or(0)
     );
-    let feature_journal = feature_record
-        .journal;
+    let feature_journal = feature_record.journal;
     assert_eq!(
         feature_record.checkpoint.journal_replay_span,
         feature_journal.replay_event_count as u64
@@ -63,10 +65,10 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
         feature_proof.required_rebuild[0],
         RequiredDerivedRebuildSet::DependencyIndexes(_)
     ));
-    assert!(feature_proof.required_rebuild.iter().any(|proof| matches!(
-        proof,
-        RequiredDerivedRebuildSet::ReplaySuffix(_)
-    )));
+    assert!(feature_proof
+        .required_rebuild
+        .iter()
+        .any(|proof| matches!(proof, RequiredDerivedRebuildSet::ReplaySuffix(_))));
 
     runtime.switch_branch(main).unwrap();
     let main_node = keyed.node(&mut runtime);
@@ -101,11 +103,9 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
     assert_eq!(main_compute_calls.load(Ordering::Relaxed), 1);
     let explanation = runtime.observe().explain(feature_node).unwrap();
     assert_eq!(
-        explanation.reuse_basis.map(|basis| (
-            basis.strategy,
-            basis.source,
-            basis.crossing,
-        )),
+        explanation
+            .reuse_basis
+            .map(|basis| (basis.strategy, basis.source, basis.crossing,)),
         Some((
             Some(crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse),
             ReuseSource::MemoizedArtifact,
@@ -246,9 +246,7 @@ fn inactive_branch_restore_does_not_count_as_active_restore_transfer() {
     runtime.switch_branch(main).unwrap();
 
     let restore_before = runtime.telemetry().transaction.restore_transfer_count;
-    runtime
-        .restore_branch_snapshot(feature, &snapshot)
-        .unwrap();
+    runtime.restore_branch_snapshot(feature, &snapshot).unwrap();
 
     assert_eq!(
         runtime.telemetry().transaction.restore_transfer_count,

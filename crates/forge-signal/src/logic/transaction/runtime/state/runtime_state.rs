@@ -8,8 +8,8 @@ use crate::state::{SignalBranchHandle, SignalBranchId};
 
 use super::super::config::SignalRuntimeConfig;
 use super::branching::{BranchAncestryState, BranchManager, BranchState};
-use super::merge::BranchMutationLedger;
 use super::builder::SignalRuntimeBuilder;
+use super::merge::BranchMutationLedger;
 use super::observer::RuntimeObserver;
 use super::reconstructability::{AuthorityState, DerivedState};
 
@@ -175,15 +175,18 @@ where
         restored.rollback_packet_subscriber_repair_count = restored
             .rollback_packet_subscriber_repair_count
             .max(current.rollback_packet_subscriber_repair_count);
-        restored.move_transfer_count =
-            restored.move_transfer_count.max(current.move_transfer_count);
-        restored.explicit_fork_count =
-            restored.explicit_fork_count.max(current.explicit_fork_count);
+        restored.move_transfer_count = restored
+            .move_transfer_count
+            .max(current.move_transfer_count);
+        restored.explicit_fork_count = restored
+            .explicit_fork_count
+            .max(current.explicit_fork_count);
         restored.restore_transfer_count = restored
             .restore_transfer_count
             .max(current.restore_transfer_count);
-        restored.heavy_capture_count =
-            restored.heavy_capture_count.max(current.heavy_capture_count);
+        restored.heavy_capture_count = restored
+            .heavy_capture_count
+            .max(current.heavy_capture_count);
         restored.decision_log_event_count = restored
             .decision_log_event_count
             .max(current.decision_log_event_count);

@@ -284,9 +284,7 @@ impl EvaluationPlanSummary {
         let mut direct_request_count = 0_u32;
         let mut stage_widths = stage_widths_iter.collect::<Vec<_>>();
         for task in tasks_iter {
-            *task_reason_counts
-                .entry(task.reason)
-                .or_insert(0) += 1;
+            *task_reason_counts.entry(task.reason).or_insert(0) += 1;
             if task.direct_request {
                 direct_request_count += 1;
             }
@@ -315,13 +313,9 @@ impl ExecutionReportSummary {
         let mut task_outcome_counts = TaskOutcomeCounts::new();
         let mut stage_outcome_counts = StageOutcomeCounts::new();
         for stage in &report.stages {
-            *stage_outcome_counts
-                .entry(stage.outcome)
-                .or_insert(0) += 1;
+            *stage_outcome_counts.entry(stage.outcome).or_insert(0) += 1;
             for task in &stage.task_records {
-                *task_outcome_counts
-                    .entry(task.outcome)
-                    .or_insert(0) += 1;
+                *task_outcome_counts.entry(task.outcome).or_insert(0) += 1;
             }
         }
 
@@ -499,9 +493,7 @@ impl ExecutionHistorySummary {
                 continue;
             };
             traced_node_count += 1;
-            *reuse_origin_counts
-                .entry(trace.reuse_origin)
-                .or_insert(0) += 1;
+            *reuse_origin_counts.entry(trace.reuse_origin).or_insert(0) += 1;
             if let Some(id) = trace.execution_record_id {
                 execution_record_count += 1;
                 latest_execution_record_id =
@@ -654,6 +646,3 @@ fn _task_reason_key(reason: TaskReason) -> &'static str {
         TaskReason::OutputDiffDependent => "OutputDiffDependent",
     }
 }
-
-
-

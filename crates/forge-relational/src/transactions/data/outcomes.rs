@@ -510,6 +510,8 @@ pub struct CommitValidationSummary {
     pub result_count: usize,
     pub advisory_count: usize,
     pub violation_count: usize,
+    pub custom_failure_count: usize,
+    pub custom_panic_count: usize,
     pub blocking_violation: bool,
     pub publication_violation: bool,
 }
@@ -897,6 +899,8 @@ impl CommitValidation {
             summary.result_count += execution_summary.result_count();
             summary.advisory_count += execution_summary.advisory_count();
             summary.violation_count += execution_summary.violation_count();
+            summary.custom_failure_count += execution_summary.custom_failure_count();
+            summary.custom_panic_count += execution_summary.custom_panic_count();
             summary.blocking_violation |= execution_summary.has_blocking_violation();
             summary.publication_violation |= execution_summary.has_publication_violation();
         }

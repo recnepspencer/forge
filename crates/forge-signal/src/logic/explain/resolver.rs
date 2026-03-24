@@ -43,12 +43,12 @@ fn explain_with_policy_resolver_mode(
     let entry = graph.get_entry(node)?;
     if allow_retained_fast_path {
         if let Some(fact) = graph.explanation_fact(node) {
-        let current_record = assemble_historical_artifact_record(
-            node,
-            entry.get_runtime_artifact_state(),
-            entry.retained_diagnostic_artifact(),
-            entry.get_causality(),
-        );
+            let current_record = assemble_historical_artifact_record(
+                node,
+                entry.get_runtime_artifact_state(),
+                entry.retained_diagnostic_artifact(),
+                entry.get_causality(),
+            );
             if (!fact.compact_projection || fact.explanation.rewiring.is_some())
                 && fact.explanation.state == *entry.get_state()
                 && fact.explanation.historical_artifact_record == current_record
@@ -67,8 +67,10 @@ fn explain_with_policy_resolver_mode(
         entry.retained_diagnostic_artifact(),
         entry.get_causality(),
     );
-    let trace_summary =
-        assemble_trace_summary(entry.get_runtime_artifact_state(), entry.retained_diagnostic_artifact());
+    let trace_summary = assemble_trace_summary(
+        entry.get_runtime_artifact_state(),
+        entry.retained_diagnostic_artifact(),
+    );
     let output_identity = trace_summary
         .as_ref()
         .and_then(|trace| trace.output_identity.clone());
@@ -88,7 +90,9 @@ fn explain_with_policy_resolver_mode(
         .map(|trace| trace.propagation_suppressed)
         .unwrap_or(false);
     let memoized_origin = trace_summary.as_ref().map(|trace| trace.memoized_origin);
-    let reuse_basis = trace_summary.as_ref().map(|trace| trace.reuse_basis.clone());
+    let reuse_basis = trace_summary
+        .as_ref()
+        .map(|trace| trace.reuse_basis.clone());
     let reuse_origin = trace_summary.as_ref().map(|trace| trace.reuse_origin);
     let reuse_certification = historical_artifact_record
         .as_ref()
@@ -681,5 +685,3 @@ pub fn explain(graph: &SignalGraph, node: NodeId) -> Result<NodeExplanation, Sig
     };
     explain_with_policy_resolver(graph, node, &resolver)
 }
-
-

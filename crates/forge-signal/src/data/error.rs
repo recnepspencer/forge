@@ -111,10 +111,7 @@ impl SignalError {
         }
     }
 
-    pub fn branch_merge_failed(
-        kind: BranchMergeFailureKind,
-        message: impl Into<String>,
-    ) -> Self {
+    pub fn branch_merge_failed(kind: BranchMergeFailureKind, message: impl Into<String>) -> Self {
         Self::BranchMergeFailed {
             kind,
             message: message.into(),

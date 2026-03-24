@@ -77,16 +77,18 @@ where
     pub(super) fn stage_graph_rollback_packets(&mut self) -> Result<(), SignalError> {
         let graph_patches = std::mem::take(&mut self.scratch.graph_patches);
         let created_nodes = std::mem::take(&mut self.scratch.created_nodes);
-        let mut rewired_sources = graph_patches.collect_dependency_sources_for_rollback(self.graph)?;
+        let mut rewired_sources =
+            graph_patches.collect_dependency_sources_for_rollback(self.graph)?;
         for &node in &created_nodes {
             if self.graph.is_alive(node) {
                 rewired_sources.extend(self.graph.dependency_sources_of(node)?);
             }
         }
         if !graph_patches.is_empty() {
-            self.rollback_packets.stage_graph_patches(GraphPatchRollbackDelta {
-                patches: graph_patches,
-            })?;
+            self.rollback_packets
+                .stage_graph_patches(GraphPatchRollbackDelta {
+                    patches: graph_patches,
+                })?;
         }
         if !created_nodes.is_empty() {
             self.rollback_packets

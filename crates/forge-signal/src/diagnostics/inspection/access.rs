@@ -8,8 +8,8 @@ use crate::diagnostics::compare::{
     plans_semantically_equivalent, repeat_run_summaries_equal, reports_semantically_equivalent,
     serial_parallel_reports_equivalent,
 };
-use crate::diagnostics::failure::{FailureSummary, RollbackDiagnostic};
 use crate::diagnostics::facts::ProvenanceFact;
+use crate::diagnostics::failure::{FailureSummary, RollbackDiagnostic};
 use crate::diagnostics::flow::FlowSummary;
 use crate::diagnostics::history::{
     inspect_execution, inspect_flow, inspect_graph, inspect_plan, inspect_report,
@@ -18,9 +18,9 @@ use crate::diagnostics::history::{
 use crate::diagnostics::policy::DiagnosticsAvailability;
 use crate::diagnostics::profile::DiagnosticsTier;
 use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
+use crate::logic::explain::NodeExplanation;
 use crate::logic::planner::{EvaluationPlan, ExecutionReport};
 use crate::logic::transaction::SignalRuntime;
-use crate::logic::explain::NodeExplanation;
 
 /// Public diagnostics facade over one committed signal graph.
 pub struct GraphDiagnostics<'a> {
@@ -142,7 +142,10 @@ impl<'a> GraphDiagnostics<'a> {
 
 impl<'a> GraphForensicDiagnostics<'a> {
     pub fn retained_explanation_artifact(&self, node: NodeId) -> Option<NodeExplanation> {
-        self.graph.observe().materialize().retained_explanation_artifact(node)
+        self.graph
+            .observe()
+            .materialize()
+            .retained_explanation_artifact(node)
     }
 
     pub fn reconstruct_explanation_artifact(
@@ -167,7 +170,10 @@ impl<'a> GraphForensicDiagnostics<'a> {
     }
 
     pub fn retained_provenance_artifact(&self, node: NodeId) -> Option<ProvenanceFact> {
-        self.graph.observe().materialize().retained_provenance_artifact(node)
+        self.graph
+            .observe()
+            .materialize()
+            .retained_provenance_artifact(node)
     }
 
     pub fn reconstruct_provenance_artifact(
@@ -208,4 +214,3 @@ where
 {
     GraphDiagnostics::new(runtime.graph())
 }
-

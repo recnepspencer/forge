@@ -28,6 +28,15 @@ pub(super) fn relational_fintech_settlement_repair_plan() -> WorkflowPlan<Fintec
         },
     ))
     .step(certified_step(
+        "promote-settlement-lineage",
+        FintechWorkflowStep::PromoteCaseCorrespondence {
+            branch_alias: "analysis",
+            left_case: FintechCaseRef::BaselinePortfolio,
+            right_case: FintechCaseRef::FailedSettlementRepair,
+            resolution_alias: "analysis_repair_lineage",
+        },
+    ))
+    .step(certified_step(
         "capture-analysis-replay",
         FintechWorkflowStep::CaptureReplay {
             branch_alias: "analysis",
@@ -50,6 +59,11 @@ pub(super) fn relational_fintech_settlement_repair_plan() -> WorkflowPlan<Fintec
         WorkflowState::Completed,
     ))
     .invariant(InvariantCheck::new(
+        "lineage_promotion_succeeded:analysis_repair_lineage",
+        "settlement repair workflow should publish lineage correspondence",
+        WorkflowState::Completed,
+    ))
+    .invariant(InvariantCheck::new(
         "branch_head_matches_latest:analysis",
         "analysis branch head should track the latest commit after the workflow",
         WorkflowState::Completed,
@@ -57,6 +71,16 @@ pub(super) fn relational_fintech_settlement_repair_plan() -> WorkflowPlan<Fintec
     .invariant(InvariantCheck::new(
         "replay_has_no_failure:analysis_repair_replay",
         "settlement repair replay should complete without failure",
+        WorkflowState::Completed,
+    ))
+    .invariant(InvariantCheck::new(
+        "replay_has_lineage_authority_basis:analysis_repair_replay",
+        "settlement repair replay should expose lineage authority basis",
+        WorkflowState::Completed,
+    ))
+    .invariant(InvariantCheck::new(
+        "replay_uses_exact_lineage_digest:analysis_repair_replay",
+        "settlement repair replay should certify against exact canonical lineage digests",
         WorkflowState::Completed,
     ))
     .invariant(InvariantCheck::new(

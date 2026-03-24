@@ -218,6 +218,20 @@ impl<'runtime> InvariantAuthority<'runtime> {
                         }],
                     );
             }
+            let custom_trace_entries = result
+                .results()
+                .iter()
+                .filter_map(custom_invariant_trace_entry)
+                .collect::<Vec<_>>();
+            if !custom_trace_entries.is_empty() {
+                self.runtime
+                    .publication_authority()
+                    .push_bounded_diagnostic(
+                        DiagnosticsScope::Invariant,
+                        DiagnosticsArtifactKind::DetailedTrace,
+                        custom_trace_entries,
+                    );
+            }
         }
         let fallback_reason = result
             .metadata()
@@ -277,6 +291,49 @@ fn invariant_failure_fields(
         "execution_point": failure.execution_point().diagnostic_label(),
         "proof_boundary": proof_boundary,
         "violation": failure.fields(),
+        "custom_provenance": matching_custom_provenance(result, failure),
+    })
+}
+
+fn matching_custom_provenance(
+    result: &InvariantExecutionResult,
+    failure: &crate::validation::engine::InvariantFailure,
+) -> Value {
+    result
+        .results()
+        .iter()
+        .find_map(|result| match &result.verdict {
+            crate::validation::data::InvariantVerdict::Violation(violation)
+                if *violation == *failure.violation() =>
+            {
+                result
+                    .custom_provenance()
+                    .and_then(|provenance| serde_json::to_value(provenance).ok())
+            }
+            _ => None,
+        })
+        .unwrap_or(Value::Null)
+}
+
+fn custom_invariant_trace_entry(
+    result: &crate::validation::data::InvariantCheckResult,
+) -> Option<RelationalDiagnosticsEntry> {
+    let provenance = result.custom_provenance()?;
+    let crate::validation::data::InvariantReportedRule::Custom(identity) = &result.rule else {
+        return None;
+    };
+    Some(RelationalDiagnosticsEntry {
+        code: DiagnosticCode::InvariantProofBoundaryObserved,
+        message: "custom invariant structural provenance captured for deterministic debugging"
+            .to_string(),
+        fields: json!({
+            "rule_id": identity.rule_id.as_str(),
+            "semantic_version_major": identity.semantic_version.major,
+            "semantic_version_minor": identity.semantic_version.minor,
+            "execution_point": result.execution_point.diagnostic_label(),
+            "verdict": format!("{:?}", result.verdict),
+            "provenance": provenance,
+        }),
     })
 }
 

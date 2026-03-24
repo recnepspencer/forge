@@ -165,13 +165,23 @@ impl<'runtime> InvariantAccess<'runtime> {
                 vec![crate::validation::data::InvariantCheckResult {
                     execution_point: profile.execution_point(),
                     failure_effect: crate::validation::data::InvariantFailureEffect::BlockCommit,
-                    rule: crate::validation::data::InvariantRule::RelationIntegrityScopeBudget(
-                        self.runtime
-                            .config
-                            .execution
-                            .relation_integrity_scope_budget
-                            .max_planned_edges,
+                    rule: crate::validation::data::InvariantReportedRule::Native(
+                        crate::validation::data::InvariantRule::RelationIntegrityScopeBudget(
+                            self.runtime
+                                .config
+                                .execution
+                                .relation_integrity_scope_budget
+                                .max_planned_edges,
+                        ),
                     ),
+                    groups: crate::validation::data::InvariantGroupSet::of(
+                        crate::validation::data::InvariantGroup::RelationIntegrity,
+                    )
+                    .union(crate::validation::data::InvariantGroupSet::of(
+                        crate::validation::data::InvariantGroup::PublicationCoherence,
+                    )),
+                    cost: crate::validation::data::InvariantCostClass::Touched,
+                    custom_provenance: None,
                     verdict: crate::validation::data::InvariantVerdict::Violation(
                         preparation_violation,
                     ),

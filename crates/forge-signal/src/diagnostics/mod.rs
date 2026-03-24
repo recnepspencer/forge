@@ -49,14 +49,14 @@ pub use history::{
     ExecutionInspector, FlowInspector, GraphInspector, PlanInspector, ReportInspector,
 };
 pub use lineage::{
-    ArtifactTransitionKind, InvalidationCause, LineageArtifactId, LineageRecord,
-    LineageRecordKind, RetainedLineageView, SnapshotRestoreKind, SynthesizedLineageChain,
+    ArtifactTransitionKind, InvalidationCause, LineageArtifactId, LineageRecord, LineageRecordKind,
+    RetainedLineageView, SnapshotRestoreKind, SynthesizedLineageChain,
 };
 pub use policy::{
-    ArtifactRetentionPolicy, DiagnosticsAvailability,
-    FrontierCyclePolicy, FrontierPropagationPolicy, FrontierTracingPolicy,
-    ParallelAdmissionPolicy, ReconstructionBudget, ReplayDetailPolicy, RetentionBudget,
-    SemanticRetentionPolicy, SignalRuntimePolicy, SnapshotRestoreLineageMode,
+    ArtifactRetentionPolicy, DiagnosticsAvailability, FrontierCyclePolicy,
+    FrontierPropagationPolicy, FrontierTracingPolicy, ParallelAdmissionPolicy,
+    ReconstructionBudget, ReplayDetailPolicy, RetentionBudget, SemanticRetentionPolicy,
+    SignalRuntimePolicy, SnapshotRestoreLineageMode,
 };
 pub use profile::DiagnosticsTier;
 pub use replay::{

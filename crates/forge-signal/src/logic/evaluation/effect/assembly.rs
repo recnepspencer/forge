@@ -73,7 +73,8 @@ impl EvaluationEffect {
 mod tests {
     use crate::data::aspect::AspectVersion;
     use crate::data::dependency::{
-        DependencySnapshot, DependencySnapshotUpdate, SharedDependencySnapshot, SnapshotDeltaRecord,
+        CommittedSnapshotUpdate, DependencySnapshot, ReplacementSnapshotUpdate,
+        SharedDependencySnapshot, SnapshotDeltaRecord,
     };
     use crate::data::handle::NodeId;
     use crate::data::output::MemoizedResultOrigin;
@@ -85,6 +86,7 @@ mod tests {
 
     #[test]
     fn memoized_origin_is_runtime_metadata_not_diagnostic_payload() {
+        let mut shape_store = crate::data::dependency::DependencySnapshotShapeStore::default();
         let effect = EvaluationEffect {
             operational: OperationalEffect {
                 node: NodeId::new(0, 0),
@@ -110,8 +112,11 @@ mod tests {
                     partition_region_basis: crate::data::proof::PartitionScopeSet::default(),
                     strategy_detail: crate::data::reuse::ReuseStrategyBoundaryContext::None,
                 },
-                dependency_snapshot_update: DependencySnapshotUpdate::Replace(
-                    SharedDependencySnapshot::empty(),
+                dependency_snapshot_update: CommittedSnapshotUpdate::Replace(
+                    ReplacementSnapshotUpdate::from_snapshot(
+                        DependencySnapshot::empty(),
+                        &mut shape_store,
+                    ),
                 ),
                 snapshot_delta: SnapshotDeltaRecord::between(
                     NodeId::new(0, 0),

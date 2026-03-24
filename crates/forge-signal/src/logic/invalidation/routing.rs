@@ -11,10 +11,10 @@ use crate::data::output::{ChangedRegion, InternedPartitionSubscription};
 use crate::data::proof::{
     DedupedNodeBatch, DirtyBatch, FrontierEntryClassification, FrontierExecutionCounters,
     FrontierExecutionSummary, FrontierInclusionBasis, FrontierPlan, FrontierPredictedCounters,
-    FrontierSeedCause, FrontierWaveEntryPlan,
-    FrontierWaveEntrySummary, FrontierWavePlan, FrontierWaveSummary, InvalidationSeed,
-    InvalidationSeedBatch, InvalidationTraceRecord, PartitionScopeSet, SemanticBatchCommit,
-    SortedSourceBatch, TouchedScopeSummary, TransitiveFrontierRoot,
+    FrontierSeedCause, FrontierWaveEntryPlan, FrontierWaveEntrySummary, FrontierWavePlan,
+    FrontierWaveSummary, InvalidationSeed, InvalidationSeedBatch, InvalidationTraceRecord,
+    PartitionScopeSet, SemanticBatchCommit, SortedSourceBatch, TouchedScopeSummary,
+    TransitiveFrontierRoot,
 };
 use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::diagnostics::lineage::InvalidationCause;
@@ -71,10 +71,14 @@ pub fn mark_dirty_batch(
         let mut summary = execute_invalidation_frontier(graph, scratch, &plan)?;
         let trace_records = retained_trace_records(graph, &plan)?;
         summary.counters.frontier_trace_retained_count = trace_records.len() as u64;
-        graph.telemetry_mut().invalidation.partition_scoped_invalidation_checks +=
-            plan.predicted.partition_scoped_checks;
-        graph.telemetry_mut().invalidation.frontier_trace_retained_count +=
-            summary.counters.frontier_trace_retained_count;
+        graph
+            .telemetry_mut()
+            .invalidation
+            .partition_scoped_invalidation_checks += plan.predicted.partition_scoped_checks;
+        graph
+            .telemetry_mut()
+            .invalidation
+            .frontier_trace_retained_count += summary.counters.frontier_trace_retained_count;
         graph.record_frontier_execution_diagnostics(summary, trace_records);
         Ok(())
     });
@@ -96,7 +100,8 @@ fn plan_invalidation_frontier(
     dirty: &DirtyBatch,
 ) -> Result<FrontierPlan, SignalError> {
     let mut seeds = Vec::with_capacity(dirty.as_slice().len());
-    let mut scoped_ids = Vec::<Vec<InternedPartitionSubscription>>::with_capacity(dirty.as_slice().len());
+    let mut scoped_ids =
+        Vec::<Vec<InternedPartitionSubscription>>::with_capacity(dirty.as_slice().len());
     for entry in dirty.as_slice() {
         let seed_scopes = PartitionScopeSet::from_changed_regions(&entry.changed_regions);
         let interned_scope_ids = intern_changed_regions(graph, entry.changed_regions.as_slice());
@@ -138,7 +143,12 @@ fn plan_invalidation_frontier(
             groups
                 .entry(seed.aspect.index() as u8)
                 .or_insert_with(|| AspectFrontierPlanBuilder::new(seed.aspect))
-                .record_direct_entry(subscriber, seed_index as u32, seed.changed_scopes.clone(), evidence);
+                .record_direct_entry(
+                    subscriber,
+                    seed_index as u32,
+                    seed.changed_scopes.clone(),
+                    evidence,
+                );
         }
     }
 
@@ -153,7 +163,8 @@ fn plan_invalidation_frontier(
         .iter()
         .map(|seed| seed.source_node)
         .collect::<Vec<_>>();
-    let touched_sources = SortedSourceBatch::new(seed_batch.as_slice().iter().map(|seed| seed.source_node));
+    let touched_sources =
+        SortedSourceBatch::new(seed_batch.as_slice().iter().map(|seed| seed.source_node));
     let mut predicted = FrontierPredictedCounters {
         seed_count: seed_batch.as_slice().len() as u64,
         ..FrontierPredictedCounters::default()
@@ -206,7 +217,13 @@ fn plan_invalidation_frontier(
         direct_waves.push(wave);
     }
 
-    transitive_roots.sort_unstable_by_key(|root| (root.aspect.index(), root.node.index(), root.node.generation()));
+    transitive_roots.sort_unstable_by_key(|root| {
+        (
+            root.aspect.index(),
+            root.node.index(),
+            root.node.generation(),
+        )
+    });
     predicted.partition_scoped_checks = partition_scoped_checks;
     predicted.cycle_check_candidate_count = transitive_roots.len() as u64;
     let touched_scope_summary = TouchedScopeSummary::new_invalidation(
@@ -242,8 +259,12 @@ fn execute_invalidation_frontier(
         .iter()
         .map(|seed| seed.source_node)
         .collect::<Vec<_>>();
-    let touched_sources =
-        SortedSourceBatch::new(plan.seed_batch.as_slice().iter().map(|seed| seed.source_node));
+    let touched_sources = SortedSourceBatch::new(
+        plan.seed_batch
+            .as_slice()
+            .iter()
+            .map(|seed| seed.source_node),
+    );
     let mut transitive_reached_scopes = Vec::new();
     let mut maybe_stale_scopes = plan
         .touched_scope_summary
@@ -292,7 +313,10 @@ fn execute_invalidation_frontier(
             ));
             scratch.visited.mark(entry.node.index() as usize);
             touched_nodes.push(entry.node);
-            graph.telemetry_mut().invalidation.invalidation_nodes_visited += 1;
+            graph
+                .telemetry_mut()
+                .invalidation
+                .invalidation_nodes_visited += 1;
         }
 
         let root_scope_union = PartitionScopeSet::new(
@@ -353,25 +377,44 @@ fn execute_invalidation_frontier(
 
     graph.telemetry_mut().invalidation.frontier_seed_count += counters.frontier_seed_count;
     graph.telemetry_mut().invalidation.frontier_group_count += counters.frontier_group_count;
-    graph.telemetry_mut().invalidation.frontier_direct_wave_count += counters.frontier_direct_wave_count;
-    graph.telemetry_mut().invalidation.frontier_transitive_wave_count +=
-        counters.frontier_transitive_wave_count;
-    graph.telemetry_mut().invalidation.frontier_direct_dirty_count +=
-        counters.frontier_direct_dirty_count;
-    graph.telemetry_mut().invalidation.frontier_maybe_stale_count +=
-        counters.frontier_maybe_stale_count;
-    graph.telemetry_mut().invalidation.frontier_partition_match_count +=
-        counters.frontier_partition_match_count;
-    graph.telemetry_mut().invalidation.frontier_detail_match_count +=
-        counters.frontier_detail_match_count;
-    graph.telemetry_mut().invalidation.partition_match_dirty_count +=
-        counters.frontier_partition_match_count;
+    graph
+        .telemetry_mut()
+        .invalidation
+        .frontier_direct_wave_count += counters.frontier_direct_wave_count;
+    graph
+        .telemetry_mut()
+        .invalidation
+        .frontier_transitive_wave_count += counters.frontier_transitive_wave_count;
+    graph
+        .telemetry_mut()
+        .invalidation
+        .frontier_direct_dirty_count += counters.frontier_direct_dirty_count;
+    graph
+        .telemetry_mut()
+        .invalidation
+        .frontier_maybe_stale_count += counters.frontier_maybe_stale_count;
+    graph
+        .telemetry_mut()
+        .invalidation
+        .frontier_partition_match_count += counters.frontier_partition_match_count;
+    graph
+        .telemetry_mut()
+        .invalidation
+        .frontier_detail_match_count += counters.frontier_detail_match_count;
+    graph
+        .telemetry_mut()
+        .invalidation
+        .partition_match_dirty_count += counters.frontier_partition_match_count;
     graph.telemetry_mut().invalidation.detail_match_dirty_count +=
         counters.frontier_detail_match_count;
-    graph.telemetry_mut().invalidation.frontier_cycle_check_candidate_count +=
-        counters.frontier_cycle_check_candidate_count;
-    graph.telemetry_mut().invalidation.frontier_cycle_check_visited_count +=
-        counters.frontier_cycle_check_visited_count;
+    graph
+        .telemetry_mut()
+        .invalidation
+        .frontier_cycle_check_candidate_count += counters.frontier_cycle_check_candidate_count;
+    graph
+        .telemetry_mut()
+        .invalidation
+        .frontier_cycle_check_visited_count += counters.frontier_cycle_check_visited_count;
 
     Ok(FrontierExecutionSummary::new(
         plan.seed_batch.as_slice().len() as u64,
@@ -425,9 +468,15 @@ fn execute_transitive_wave(
 
     while wave.has_current() {
         scratch.node_buffer_a.clear();
-        scratch.node_buffer_a.extend(wave.current_iter().filter_map(|idx| graph.live_node_id_at(idx)));
+        scratch.node_buffer_a.extend(
+            wave.current_iter()
+                .filter_map(|idx| graph.live_node_id_at(idx)),
+        );
         for &node in &scratch.node_buffer_a {
-            graph.telemetry_mut().invalidation.invalidation_nodes_visited += 1;
+            graph
+                .telemetry_mut()
+                .invalidation
+                .invalidation_nodes_visited += 1;
             if scratch.visited.is_marked(node.index() as usize) {
                 continue;
             }

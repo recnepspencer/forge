@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::bitset::DenseBitset;
 use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::dirty_set::BatchedDirtySet;
+use crate::data::handle::NodeId;
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::failure::FailureSummary;
@@ -14,7 +15,6 @@ use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::evaluation::EvaluationVerdict;
 use crate::logic::events::EventBus;
 use crate::logic::planner::{ExecutionRecordId, ExecutionReport, SemanticSegmentId};
-use crate::data::handle::NodeId;
 
 use super::super::super::key_registry::RuntimeStringId;
 use super::super::super::patch_buffer::SparsePatchBuffer;

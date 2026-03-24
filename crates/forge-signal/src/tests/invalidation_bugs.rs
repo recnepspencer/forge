@@ -319,13 +319,25 @@ fn frontier_execution_summary_exposes_direct_dirty_and_maybe_stale_entries() {
 
     assert!(wave.entries.iter().any(|entry| {
         entry.node == direct_dirty
-            && matches!(entry.classification, FrontierEntryClassification::DirectDirty)
-            && matches!(entry.inclusion_basis, FrontierInclusionBasis::DetailScopeOverlap)
+            && matches!(
+                entry.classification,
+                FrontierEntryClassification::DirectDirty
+            )
+            && matches!(
+                entry.inclusion_basis,
+                FrontierInclusionBasis::DetailScopeOverlap
+            )
     }));
     assert!(wave.entries.iter().any(|entry| {
         entry.node == maybe_stale
-            && matches!(entry.classification, FrontierEntryClassification::MaybeStale)
-            && matches!(entry.inclusion_basis, FrontierInclusionBasis::DirectSubscriptionMatch)
+            && matches!(
+                entry.classification,
+                FrontierEntryClassification::MaybeStale
+            )
+            && matches!(
+                entry.inclusion_basis,
+                FrontierInclusionBasis::DirectSubscriptionMatch
+            )
     }));
 }
 
@@ -344,13 +356,7 @@ fn frontier_runtime_counters_are_derived_from_execution_summary() {
         .append_partition_detail_dependency(detail, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
 
-    mark_dirty_with_regions(
-        &mut graph,
-        source,
-        ASPECT_A,
-        &[ChangedRegion::new("wing")],
-    )
-    .unwrap();
+    mark_dirty_with_regions(&mut graph, source, ASPECT_A, &[ChangedRegion::new("wing")]).unwrap();
 
     let summary = graph
         .observe()
@@ -402,7 +408,10 @@ fn frontier_transitive_wave_count_stays_zero_when_no_transitive_entries_realize(
         .expect("frontier execution summary should be retained");
     let metrics = graph.observe().metrics();
 
-    assert!(summary.transitive_waves.iter().all(|wave| wave.entries.is_empty()));
+    assert!(summary
+        .transitive_waves
+        .iter()
+        .all(|wave| wave.entries.is_empty()));
     assert_eq!(summary.counters.frontier_transitive_wave_count, 0);
     assert_eq!(metrics.invalidation.frontier_transitive_wave_count, 0);
 }
@@ -435,8 +444,14 @@ fn frontier_tracing_policy_changes_retained_richness_not_invalidation_truth() {
         .cloned()
         .expect("development summary should exist");
 
-    assert_eq!(operational_summary.seed_count, development_summary.seed_count);
-    assert_eq!(operational_summary.direct_waves, development_summary.direct_waves);
+    assert_eq!(
+        operational_summary.seed_count,
+        development_summary.seed_count
+    );
+    assert_eq!(
+        operational_summary.direct_waves,
+        development_summary.direct_waves
+    );
     assert_eq!(
         operational_summary.transitive_waves,
         development_summary.transitive_waves
@@ -445,23 +460,22 @@ fn frontier_tracing_policy_changes_retained_richness_not_invalidation_truth() {
         operational_summary.touched_scope_summary,
         development_summary.touched_scope_summary
     );
-    assert_eq!(operational_summary.counters.frontier_trace_retained_count, 0);
+    assert_eq!(
+        operational_summary.counters.frontier_trace_retained_count,
+        0
+    );
     assert!(
         development_summary.counters.frontier_trace_retained_count
             > operational_summary.counters.frontier_trace_retained_count
     );
-    assert!(
-        operational
-            .observe()
-            .latest_invalidation_trace_records()
-            .is_empty()
-    );
-    assert!(
-        !development
-            .observe()
-            .latest_invalidation_trace_records()
-            .is_empty()
-    );
+    assert!(operational
+        .observe()
+        .latest_invalidation_trace_records()
+        .is_empty());
+    assert!(!development
+        .observe()
+        .latest_invalidation_trace_records()
+        .is_empty());
 }
 
 #[test]
@@ -470,7 +484,9 @@ fn duplicate_dirty_entries_canonicalize_into_one_frontier_seed() {
     graph.set_runtime_policy(SignalRuntimePolicy::development());
     let source = graph.node().partitioned_output().build();
     let dependent = graph.node().build();
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     mark_dirty_batch(
         &mut graph,
@@ -529,8 +545,22 @@ fn disjoint_aspect_batches_produce_disjoint_frontier_waves() {
         .iter()
         .find(|wave| wave.aspect == ASPECT_B)
         .expect("aspect B wave should exist");
-    assert_eq!(wave_a.entries.iter().map(|entry| entry.node).collect::<Vec<_>>(), vec![dep_a]);
-    assert_eq!(wave_b.entries.iter().map(|entry| entry.node).collect::<Vec<_>>(), vec![dep_b]);
+    assert_eq!(
+        wave_a
+            .entries
+            .iter()
+            .map(|entry| entry.node)
+            .collect::<Vec<_>>(),
+        vec![dep_a]
+    );
+    assert_eq!(
+        wave_b
+            .entries
+            .iter()
+            .map(|entry| entry.node)
+            .collect::<Vec<_>>(),
+        vec![dep_b]
+    );
 }
 
 #[test]
@@ -558,7 +588,10 @@ fn reachable_cycle_detection_fails_before_false_frontier_commit() {
     assert_eq!(graph.get_state(a).unwrap(), a_state_before);
     assert_eq!(graph.get_state(b).unwrap(), b_state_before);
     assert!(
-        graph.observe().latest_frontier_execution_summary().is_none(),
+        graph
+            .observe()
+            .latest_frontier_execution_summary()
+            .is_none(),
         "failed frontier preflight must not leave behind a committed frontier summary"
     );
 }
@@ -570,7 +603,9 @@ fn one_node_with_multiple_justifications_collapses_to_stable_canonical_entry() {
     let source = graph.node().partitioned_output().build();
     let dependent = graph.node().build();
 
-    graph.append_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .append_dependency(dependent, source, ASPECT_A)
+        .unwrap();
     graph
         .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
@@ -630,16 +665,16 @@ fn repeated_identical_inputs_produce_deterministic_frontier_summary() {
     for _ in 0..2 {
         mark_dirty_with_regions(&mut graph, source, ASPECT_A, &changed).unwrap();
         summaries.push(
-            graph.observe()
+            graph
+                .observe()
                 .latest_frontier_execution_summary()
                 .cloned()
                 .expect("frontier execution summary should be retained"),
         );
 
         evaluate(&mut graph, source, &mut |_id, _graph| {
-            Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_changed_region(
-                ChangedRegion::new("wing").with_detail("rib-12"),
-            ))
+            Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+                .with_changed_region(ChangedRegion::new("wing").with_detail("rib-12")))
         })
         .unwrap();
         for node in [whole, detail, leaf] {

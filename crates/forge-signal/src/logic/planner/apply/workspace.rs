@@ -2,14 +2,20 @@ use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::graph::SuppressionFreeApplyCommitPacket;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
+#[cfg(feature = "parallel")]
 use crate::data::proof::SingleConsumer;
+use crate::data::proof::SnapshotBatchCommit;
 use crate::data::trace::RuntimeArtifactState;
 use crate::logic::evaluation::EffectDependencyInputs;
-use crate::logic::evaluation::PendingDependencySnapshot;
 use crate::logic::explain::RewiringSummary;
-use crate::logic::prepared::PreparedEvaluation;
+#[cfg(not(feature = "parallel"))]
+use crate::logic::planner::semantic::StageSemanticIdentity;
+#[cfg(feature = "parallel")]
 use crate::logic::planner::semantic::{StageSemanticBatch, StageSemanticIdentity};
 use crate::logic::planner::ExecutionRecordId;
+use crate::logic::prepared::PreparedEvaluation;
+
+use super::serial_batch::AppliedSerialStageBatch;
 
 #[cfg_attr(not(feature = "parallel"), allow(dead_code))]
 #[derive(Debug)]
@@ -76,7 +82,14 @@ impl GroupLocalApplyPacket {
 
 /// Stage-lifetime workspace for lowered apply, snapshot deferral, and semantic finalize.
 #[derive(Debug)]
-pub(crate) struct StageScratch {
-    pub(in crate::logic::planner) semantic_batch: SingleConsumer<StageSemanticBatch>,
-    pub(in crate::logic::planner) pending_snapshots: Vec<PendingDependencySnapshot>,
+pub(in crate::logic::planner) struct StageScratch {
+    pub(in crate::logic::planner) finalize_work: StageFinalizeWork,
+    pub(in crate::logic::planner) pending_snapshots: SnapshotBatchCommit,
+}
+
+#[derive(Debug)]
+pub(in crate::logic::planner) enum StageFinalizeWork {
+    Serial(AppliedSerialStageBatch),
+    #[cfg(feature = "parallel")]
+    Parallel(SingleConsumer<StageSemanticBatch>),
 }

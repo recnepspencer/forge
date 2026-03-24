@@ -1,5 +1,5 @@
-use crate::facade::*;
 use crate::data::trace::assemble_trace_summary;
+use crate::facade::*;
 #[cfg(feature = "parallel")]
 use crate::logic::planner::model::{
     ParallelAdmissionReason, ParallelApplyMode, ParallelExecutionKind,
@@ -252,7 +252,10 @@ fn public_evaluate_routes_through_planner_and_records_execution_metadata() {
 
     let trace = assemble_trace_summary(
         graph.get_entry(node).unwrap().get_runtime_artifact_state(),
-        graph.get_entry(node).unwrap().retained_diagnostic_artifact(),
+        graph
+            .get_entry(node)
+            .unwrap()
+            .retained_diagnostic_artifact(),
     )
     .unwrap();
     assert!(trace.execution_record_id.is_some());
@@ -372,9 +375,11 @@ fn maybe_stale_requested_target_validates_clean_without_running_compute() {
         plan.stages[0].tasks[0].admission.node_state_at_admission,
         Some(NodeState::MaybeStale)
     );
-    assert!(!plan.stages[0].tasks[0]
-        .admission
-        .dirty_partition_scopes_present);
+    assert!(
+        !plan.stages[0].tasks[0]
+            .admission
+            .dirty_partition_scopes_present
+    );
     assert_eq!(
         plan.stages[0].tasks[0].admission.maybe_stale,
         Some(MaybeStaleAdmission {
@@ -541,8 +546,14 @@ fn prepared_parallel_precompute_matches_serial_results() {
     );
     assert_eq!(
         assemble_trace_summary(
-            serial_graph.get_entry(a).unwrap().get_runtime_artifact_state(),
-            serial_graph.get_entry(a).unwrap().retained_diagnostic_artifact(),
+            serial_graph
+                .get_entry(a)
+                .unwrap()
+                .get_runtime_artifact_state(),
+            serial_graph
+                .get_entry(a)
+                .unwrap()
+                .retained_diagnostic_artifact(),
         )
         .unwrap()
         .output_hash,
@@ -647,15 +658,18 @@ fn full_parallel_executor_falls_back_honestly_when_mutable_apply_is_unavailable(
     }
     assert_eq!(serial_report.task_count, parallel_report.task_count);
     assert_eq!(serial_report.tasks_executed, parallel_report.tasks_executed);
-    assert!(parallel_report.stages.iter().all(|stage| match stage.parallel_admission_reason {
-        Some(ParallelAdmissionReason::FullParallelUnsupportedByMutableEngine) => {
-            stage.parallel_kind.is_none()
-                && stage.apply_mode == Some(ParallelApplyMode::SerialApply)
-        }
-        Some(ParallelAdmissionReason::AdmittedProofSafeGroupedConcurrent) => {
-            stage.parallel_kind == Some(ParallelExecutionKind::FullParallel)
-                && stage.apply_mode == Some(ParallelApplyMode::GroupedConcurrentApply)
-        }
-        _ => false,
-    }));
+    assert!(parallel_report
+        .stages
+        .iter()
+        .all(|stage| match stage.parallel_admission_reason {
+            Some(ParallelAdmissionReason::FullParallelUnsupportedByMutableEngine) => {
+                stage.parallel_kind.is_none()
+                    && stage.apply_mode == Some(ParallelApplyMode::SerialApply)
+            }
+            Some(ParallelAdmissionReason::AdmittedProofSafeGroupedConcurrent) => {
+                stage.parallel_kind == Some(ParallelExecutionKind::FullParallel)
+                    && stage.apply_mode == Some(ParallelApplyMode::GroupedConcurrentApply)
+            }
+            _ => false,
+        }));
 }

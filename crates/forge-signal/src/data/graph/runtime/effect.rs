@@ -6,8 +6,7 @@ use crate::data::node::NodeState;
 use crate::data::output::{scope_touched_by_artifact_state, CanonicalChangedRegions, OutputChange};
 use crate::data::proof::PartitionScopeSet;
 use crate::data::trace::{
-    ArtifactMergeAuthority, ArtifactWriteDelta, RetainedDiagnosticArtifact,
-    RuntimeArtifactState,
+    ArtifactMergeAuthority, ArtifactWriteDelta, RetainedDiagnosticArtifact, RuntimeArtifactState,
 };
 use crate::logic::evaluation::{
     AppliedEffectReport, DeferralReason, EffectComparison, EvaluationEffect, EvaluationVerdict,
@@ -67,14 +66,18 @@ impl SignalGraph {
                 node: effect.operational.node,
                 update: std::mem::replace(
                     &mut effect.operational.dependency_snapshot_update,
-                    crate::data::dependency::DependencySnapshotUpdate::Replace(
-                        crate::data::dependency::SharedDependencySnapshot::empty(),
+                    crate::data::dependency::CommittedSnapshotUpdate::Replace(
+                        crate::data::dependency::ReplacementSnapshotUpdate::from_snapshot(
+                            crate::data::dependency::DependencySnapshot::empty(),
+                            &mut self.topology.dependency_snapshot_shapes,
+                        ),
                     ),
                 ),
                 delta: effect.operational.snapshot_delta,
             };
-            self.telemetry_mut().execution.deferred_snapshot_packet_nanos +=
-                snapshot_start.elapsed().as_nanos();
+            self.telemetry_mut()
+                .execution
+                .deferred_snapshot_packet_nanos += snapshot_start.elapsed().as_nanos();
             Some(pending)
         } else {
             None
@@ -212,82 +215,66 @@ impl SignalGraph {
         comparison: EffectComparison,
     ) -> Result<Option<(RuntimeArtifactState, Option<RetainedDiagnosticArtifact>)>, SignalError>
     {
+        if !verdict_retains_runtime_artifact(&effect.operational.verdict) {
+            return Ok(None);
+        }
         let previous_trace = self
             .get_entry(effect.operational.node)?
             .get_runtime_artifact_state();
-        let trace = match effect.operational.verdict {
-            EvaluationVerdict::Recomputed => Some((
-                RuntimeArtifactState {
-                    output_hash: effect
+        let trace = Some((
+            RuntimeArtifactState {
+                output_hash: if matches!(effect.operational.verdict, EvaluationVerdict::Recomputed)
+                {
+                    effect
                         .output_identity()
                         .map(trace_identity_hash)
-                        .unwrap_or_else(|| trace_output_hash(effect.operational.aspect_version)),
-                    output_identity: effect.output_identity().cloned(),
-                    continuity_token: effect.continuity_token().cloned(),
-                    output_change: comparison.output_change,
-                    recomputed: effect.recomputed(),
-                    dependency_count: effect.operational.dependency_snapshot_update.entry_count()
-                        as u32,
-                    meaningful_input_changes: effect.operational.meaningful_input_changes,
-                    changed_partition_count: comparison.changed_partition_count,
-                    propagation_suppressed: comparison.propagation_suppressed,
-                    changed_scopes: PartitionScopeSet::from_changed_regions(
-                        &CanonicalChangedRegions::from_slice(effect.changed_regions()),
-                    ),
-                    memoized_origin: effect.memoized_origin(),
-                    reuse_basis: effect.operational.reuse_basis.clone(),
-                    reuse_origin: effect.operational.reuse_origin,
-                    reuse_boundary_context: Some(effect.operational.reuse_boundary_context.clone()),
-                    execution_record_id: None,
-                    semantic_segment_id: None,
-                    lineage_artifact_id: None,
-                    merge_authority: ArtifactMergeAuthority::default(),
-                },
-                build_retained_diagnostic_artifact(effect),
-            )),
-            EvaluationVerdict::Suppressed {
-                reason:
-                    SuppressionReason::OutputIdentityUnchanged
-                    | SuppressionReason::ContinuityTokenUnchanged
-                    | SuppressionReason::ComparatorMatch,
-            } => Some((
-                RuntimeArtifactState {
-                    output_hash: previous_trace
+                        .unwrap_or_else(|| trace_output_hash(effect.operational.aspect_version))
+                } else {
+                    previous_trace
                         .map(|trace| trace.output_hash)
-                        .unwrap_or_else(|| trace_output_hash(effect.operational.aspect_version)),
-                    output_identity: previous_trace
-                        .and_then(|trace| trace.output_identity.clone())
-                        .or_else(|| effect.output_identity().cloned()),
-                    continuity_token: previous_trace
-                        .and_then(|trace| trace.continuity_token.clone())
-                        .or_else(|| effect.continuity_token().cloned()),
-                    output_change: comparison.output_change,
-                    recomputed: effect.recomputed(),
-                    dependency_count: effect.operational.dependency_snapshot_update.entry_count()
-                        as u32,
-                    meaningful_input_changes: effect.operational.meaningful_input_changes,
-                    changed_partition_count: comparison.changed_partition_count,
-                    propagation_suppressed: comparison.propagation_suppressed,
-                    changed_scopes: PartitionScopeSet::from_changed_regions(
-                        &CanonicalChangedRegions::from_slice(effect.changed_regions()),
-                    ),
-                    memoized_origin: effect.memoized_origin(),
-                    reuse_basis: effect.operational.reuse_basis.clone(),
-                    reuse_origin: effect.operational.reuse_origin,
-                    reuse_boundary_context: Some(effect.operational.reuse_boundary_context.clone()),
-                    execution_record_id: None,
-                    semantic_segment_id: None,
-                    lineage_artifact_id: None,
-                    merge_authority: ArtifactMergeAuthority::default(),
+                        .unwrap_or_else(|| trace_output_hash(effect.operational.aspect_version))
                 },
-                build_retained_diagnostic_artifact(effect),
-            )),
-            EvaluationVerdict::Suppressed {
-                reason:
-                    SuppressionReason::ValidatedClean | SuppressionReason::ConditionRevertedClean,
-            } => None,
-            EvaluationVerdict::Deferred { .. } => None,
-        };
+                output_identity: if matches!(
+                    effect.operational.verdict,
+                    EvaluationVerdict::Recomputed
+                ) {
+                    effect.output_identity().cloned()
+                } else {
+                    previous_trace
+                        .and_then(|trace| trace.output_identity.clone())
+                        .or_else(|| effect.output_identity().cloned())
+                },
+                continuity_token: if matches!(
+                    effect.operational.verdict,
+                    EvaluationVerdict::Recomputed
+                ) {
+                    effect.continuity_token().cloned()
+                } else {
+                    previous_trace
+                        .and_then(|trace| trace.continuity_token.clone())
+                        .or_else(|| effect.continuity_token().cloned())
+                },
+                output_change: comparison.output_change,
+                recomputed: effect.recomputed(),
+                dependency_count: effect.operational.dependency_snapshot_update.entry_count()
+                    as u32,
+                meaningful_input_changes: effect.operational.meaningful_input_changes,
+                changed_partition_count: comparison.changed_partition_count,
+                propagation_suppressed: comparison.propagation_suppressed,
+                changed_scopes: PartitionScopeSet::from_changed_regions(
+                    &CanonicalChangedRegions::from_slice(effect.changed_regions()),
+                ),
+                memoized_origin: effect.memoized_origin(),
+                reuse_basis: effect.operational.reuse_basis.clone(),
+                reuse_origin: effect.operational.reuse_origin,
+                reuse_boundary_context: Some(effect.operational.reuse_boundary_context.clone()),
+                execution_record_id: None,
+                semantic_segment_id: None,
+                lineage_artifact_id: None,
+                merge_authority: ArtifactMergeAuthority::default(),
+            },
+            build_retained_diagnostic_artifact(effect),
+        ));
         Ok(trace)
     }
 
@@ -316,69 +303,48 @@ impl SignalGraph {
                 entry.set_causality(Some(causality));
                 causality_changed = true;
             }
-            match effect.operational.verdict {
-                EvaluationVerdict::Recomputed => {
-                    entry.apply_aspect_version(
-                        effect.operational.aspect_version,
-                        effect.changed_regions(),
-                    );
-                    if let Some((runtime_artifact_state, retained_artifact)) = artifact {
-                        runtime_artifact_delta = Some(RuntimeArtifactStructuralDelta {
-                            previous_artifact_id,
-                            next_artifact_id: runtime_artifact_state.lineage_artifact_id,
-                            previous_output_hash,
-                            next_output_hash: Some(runtime_artifact_state.output_hash),
-                            previous_reuse_basis: previous_reuse_basis.clone(),
-                            next_reuse_basis: Some(runtime_artifact_state.reuse_basis.clone()),
-                        });
-                        entry.apply_artifact_write_delta(ArtifactWriteDelta {
-                            runtime: Some(runtime_artifact_state),
-                            retained: retained_artifact,
-                        });
-                        retained_artifact_changed = true;
-                    }
-                    entry.transition_clean();
-                    state_changed = true;
+            if matches!(effect.operational.verdict, EvaluationVerdict::Recomputed) {
+                entry.apply_aspect_version(
+                    effect.operational.aspect_version,
+                    effect.changed_regions(),
+                );
+            }
+            if verdict_retains_runtime_artifact(&effect.operational.verdict) {
+                if let Some((runtime_artifact_state, retained_artifact)) = artifact {
+                    runtime_artifact_delta = Some(RuntimeArtifactStructuralDelta {
+                        previous_artifact_id,
+                        next_artifact_id: runtime_artifact_state.lineage_artifact_id,
+                        previous_output_hash,
+                        next_output_hash: Some(runtime_artifact_state.output_hash),
+                        previous_reuse_basis: if matches!(
+                            effect.operational.verdict,
+                            EvaluationVerdict::Recomputed
+                        ) {
+                            previous_reuse_basis.clone()
+                        } else {
+                            previous_reuse_basis
+                        },
+                        next_reuse_basis: Some(runtime_artifact_state.reuse_basis.clone()),
+                    });
+                    entry.apply_artifact_write_delta(ArtifactWriteDelta {
+                        runtime: Some(runtime_artifact_state),
+                        retained: retained_artifact,
+                    });
+                    retained_artifact_changed = true;
                 }
-                EvaluationVerdict::Suppressed {
-                    reason:
-                        SuppressionReason::OutputIdentityUnchanged
-                        | SuppressionReason::ContinuityTokenUnchanged
-                        | SuppressionReason::ComparatorMatch,
-                } => {
-                    if let Some((runtime_artifact_state, retained_artifact)) = artifact {
-                        runtime_artifact_delta = Some(RuntimeArtifactStructuralDelta {
-                            previous_artifact_id,
-                            next_artifact_id: runtime_artifact_state.lineage_artifact_id,
-                            previous_output_hash,
-                            next_output_hash: Some(runtime_artifact_state.output_hash),
-                            previous_reuse_basis,
-                            next_reuse_basis: Some(runtime_artifact_state.reuse_basis.clone()),
-                        });
-                        entry.apply_artifact_write_delta(ArtifactWriteDelta {
-                            runtime: Some(runtime_artifact_state),
-                            retained: retained_artifact,
-                        });
-                        retained_artifact_changed = true;
-                    }
-                    entry.transition_clean();
-                    state_changed = true;
-                }
-                EvaluationVerdict::Suppressed {
-                    reason:
-                        SuppressionReason::ValidatedClean
-                        | SuppressionReason::ConditionRevertedClean,
-                } => {
-                    entry.transition_clean();
-                    state_changed = true;
-                }
-                EvaluationVerdict::Deferred {
-                    reason:
-                        DeferralReason::ConditionNotMet
-                        | DeferralReason::OnDemandNotRequested
-                        | DeferralReason::DebounceWindow,
-                } => {
-                    entry.set_state(NodeState::MaybeStale);
+            }
+            if verdict_transitions_clean(&effect.operational.verdict) {
+                entry.transition_clean();
+                state_changed = true;
+            } else {
+                match effect.operational.verdict {
+                    EvaluationVerdict::Deferred {
+                        reason:
+                            DeferralReason::ConditionNotMet
+                            | DeferralReason::OnDemandNotRequested
+                            | DeferralReason::DebounceWindow,
+                    } => entry.set_state(NodeState::MaybeStale),
+                    _ => {}
                 }
             }
         }
@@ -401,40 +367,24 @@ impl SignalGraph {
         if !effect.operational.snapshot_delta.changed() {
             return Ok(());
         }
-        match effect.operational.verdict {
-            EvaluationVerdict::Deferred { .. } => Ok(()),
-            EvaluationVerdict::Recomputed => self
-                .replace_dep_snapshot_shared(
-                    effect.operational.node,
-                    std::mem::replace(
-                        &mut effect.operational.dependency_snapshot_update,
-                        crate::data::dependency::DependencySnapshotUpdate::Replace(
-                            crate::data::dependency::SharedDependencySnapshot::empty(),
-                        ),
+        if verdict_commits_snapshot(&effect.operational.verdict) {
+                let placeholder_update = crate::data::dependency::CommittedSnapshotUpdate::Replace(
+                    crate::data::dependency::ReplacementSnapshotUpdate::from_snapshot(
+                        crate::data::dependency::DependencySnapshot::empty(),
+                        &mut self.topology.dependency_snapshot_shapes,
                     ),
-                )
-                .map(|_| ()),
-            EvaluationVerdict::Suppressed {
-                reason:
-                    SuppressionReason::OutputIdentityUnchanged
-                    | SuppressionReason::ContinuityTokenUnchanged
-                    | SuppressionReason::ComparatorMatch,
-            } => self
-                .replace_dep_snapshot_shared(
-                    effect.operational.node,
-                    std::mem::replace(
-                        &mut effect.operational.dependency_snapshot_update,
-                        crate::data::dependency::DependencySnapshotUpdate::Replace(
-                            crate::data::dependency::SharedDependencySnapshot::empty(),
+                );
+                return self
+                    .replace_dep_snapshot_committed(
+                        effect.operational.node,
+                        std::mem::replace(
+                            &mut effect.operational.dependency_snapshot_update,
+                            placeholder_update,
                         ),
-                    ),
-                )
-                .map(|_| ()),
-            EvaluationVerdict::Suppressed {
-                reason:
-                    SuppressionReason::ValidatedClean | SuppressionReason::ConditionRevertedClean,
-            } => Ok(()),
+                    )
+                    .map(|_| ());
         }
+        Ok(())
     }
 
     fn apply_effect_suppression(
@@ -570,7 +520,9 @@ impl SignalGraph {
                         .suppressed_downstream_propagations += suppressed_downstream;
                 }
                 record_reuse_telemetry(self.telemetry_mut(), effect);
-                self.telemetry_mut().storage.hot_path_artifact_retention_count += 1;
+                self.telemetry_mut()
+                    .storage
+                    .hot_path_artifact_retention_count += 1;
             }
             EvaluationVerdict::Suppressed { reason } => match reason {
                 SuppressionReason::ValidatedClean => {
@@ -578,12 +530,16 @@ impl SignalGraph {
                 }
                 SuppressionReason::ComparatorMatch => {
                     self.telemetry_mut().evaluation.skipped_by_comparator += 1;
-                    self.telemetry_mut().storage.hot_path_artifact_retention_count += 1;
+                    self.telemetry_mut()
+                        .storage
+                        .hot_path_artifact_retention_count += 1;
                     record_reuse_telemetry(self.telemetry_mut(), effect);
                 }
                 SuppressionReason::OutputIdentityUnchanged
                 | SuppressionReason::ContinuityTokenUnchanged => {
-                    self.telemetry_mut().storage.hot_path_artifact_retention_count += 1;
+                    self.telemetry_mut()
+                        .storage
+                        .hot_path_artifact_retention_count += 1;
                     self.telemetry_mut()
                         .evaluation
                         .output_identity_unchanged_count += 1;
@@ -619,6 +575,29 @@ fn count_changed_partitions(changed_regions: &[crate::data::output::ChangedRegio
         partitions.push(region.partition.clone());
     }
     partitions.len() as u32
+}
+
+fn verdict_retains_runtime_artifact(verdict: &EvaluationVerdict) -> bool {
+    matches!(
+        verdict,
+        EvaluationVerdict::Recomputed
+            | EvaluationVerdict::Suppressed {
+                reason: SuppressionReason::OutputIdentityUnchanged
+                    | SuppressionReason::ContinuityTokenUnchanged
+                    | SuppressionReason::ComparatorMatch,
+            }
+    )
+}
+
+fn verdict_transitions_clean(verdict: &EvaluationVerdict) -> bool {
+    matches!(
+        verdict,
+        EvaluationVerdict::Recomputed | EvaluationVerdict::Suppressed { .. }
+    )
+}
+
+fn verdict_commits_snapshot(verdict: &EvaluationVerdict) -> bool {
+    verdict_retains_runtime_artifact(verdict)
 }
 
 fn normalize_output_change(
@@ -706,7 +685,9 @@ fn record_reuse_telemetry(
     telemetry.evaluation.reuse_dependency_comparison_breadth +=
         u64::from(effect.operational.meaningful_input_changes);
     if effect.reuse_certification().is_some() {
-        telemetry.evaluation.reuse_cold_certification_materialization_count += 1;
+        telemetry
+            .evaluation
+            .reuse_cold_certification_materialization_count += 1;
     }
 }
 
@@ -715,7 +696,8 @@ mod tests {
     use super::record_reuse_telemetry;
     use crate::data::aspect::AspectVersion;
     use crate::data::dependency::{
-        DependencySnapshot, DependencySnapshotUpdate, SharedDependencySnapshot, SnapshotDeltaRecord,
+        CommittedSnapshotUpdate, DependencySnapshot, ReplacementSnapshotUpdate,
+        SharedDependencySnapshot, SnapshotDeltaRecord,
     };
     use crate::data::handle::NodeId;
     use crate::data::output::{MemoizedResultOrigin, OutputChange};
@@ -733,6 +715,7 @@ mod tests {
     fn retained_reuse_certification_increments_cold_materialization_counter() {
         let mut telemetry = RuntimeTelemetry::default();
         let node = NodeId::new(0, 0);
+        let mut shape_store = crate::data::dependency::DependencySnapshotShapeStore::default();
         let effect = EvaluationEffect {
             operational: OperationalEffect {
                 node,
@@ -764,8 +747,11 @@ mod tests {
                     partition_region_basis: Default::default(),
                     strategy_detail: crate::data::reuse::ReuseStrategyBoundaryContext::None,
                 },
-                dependency_snapshot_update: DependencySnapshotUpdate::Replace(
-                    SharedDependencySnapshot::empty(),
+                dependency_snapshot_update: CommittedSnapshotUpdate::Replace(
+                    ReplacementSnapshotUpdate::from_snapshot(
+                        DependencySnapshot::empty(),
+                        &mut shape_store,
+                    ),
                 ),
                 snapshot_delta: SnapshotDeltaRecord::between(
                     node,
@@ -797,7 +783,9 @@ mod tests {
 
         assert_eq!(telemetry.evaluation.memoized_reuse_count, 1);
         assert_eq!(
-            telemetry.evaluation.reuse_cold_certification_materialization_count,
+            telemetry
+                .evaluation
+                .reuse_cold_certification_materialization_count,
             1
         );
         assert_eq!(telemetry.evaluation.reuse_dependency_comparison_breadth, 2);

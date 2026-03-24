@@ -89,46 +89,38 @@ fn transaction_helper_commits_on_success() {
         outcome.reconstructability.authority_snapshot_id,
         runtime.observe().current_branch().head_snapshot_id
     );
-    assert!(
-        outcome
-            .reconstructability
-            .journal
-            .replay_event_count
-            >= 1
-    );
+    assert!(outcome.reconstructability.journal.replay_event_count >= 1);
     assert_eq!(
         outcome.reconstructability.checkpoint.journal_replay_span,
-        outcome
-            .reconstructability
-            .journal
-            .replay_event_count as u64
+        outcome.reconstructability.journal.replay_event_count as u64
     );
     let metrics = runtime.observe().metrics();
     let graph_metrics = runtime.observe().graph().metrics();
     assert!(metrics.transaction.decision_log_event_count >= 1);
     assert!(graph_metrics.invalidation.batch_width >= 1);
-    assert!(outcome.performance_accounting.transaction.decision_log_event_count >= 1);
     assert!(
-        metrics.checkpoint.journal_replay_span
-            >= outcome
-                .reconstructability
-                .journal
-                .replay_event_count as u64
+        outcome
+            .performance_accounting
+            .transaction
+            .decision_log_event_count
+            >= 1
     );
     assert!(
-        outcome.performance_accounting.checkpoint.journal_replay_span
-            >= outcome
-                .reconstructability
-                .journal
-                .replay_event_count as u64
+        metrics.checkpoint.journal_replay_span
+            >= outcome.reconstructability.journal.replay_event_count as u64
+    );
+    assert!(
+        outcome
+            .performance_accounting
+            .checkpoint
+            .journal_replay_span
+            >= outcome.reconstructability.journal.replay_event_count as u64
     );
     assert_eq!(
         outcome.reconstructability.checkpoint.checkpoint_size,
         outcome.performance_accounting.checkpoint.checkpoint_size
     );
-    let proof = outcome
-        .reconstructability
-        .proof();
+    let proof = outcome.reconstructability.proof();
     assert_eq!(
         proof.checkpoint.authority_branch_id,
         outcome.reconstructability.authority_branch_id
@@ -766,7 +758,10 @@ fn observer_exposes_runtime_and_retained_artifacts_separately() {
         .materialize_historical_artifact_record(node)
         .unwrap()
         .unwrap();
-    let trace = materializer.materialize_trace_summary(node).unwrap().unwrap();
+    let trace = materializer
+        .materialize_trace_summary(node)
+        .unwrap()
+        .unwrap();
 
     assert_eq!(
         runtime.output_identity.as_ref().map(|id| id.as_str()),
@@ -804,7 +799,10 @@ fn observer_exposes_runtime_and_retained_artifacts_separately() {
         Some("wing-surface")
     );
 
-    let runtime_only_state = observer.runtime_artifact_state(runtime_only).unwrap().unwrap();
+    let runtime_only_state = observer
+        .runtime_artifact_state(runtime_only)
+        .unwrap()
+        .unwrap();
     assert!(
         observer
             .retained_diagnostic_artifact(runtime_only)
@@ -859,12 +857,16 @@ fn replacing_dependency_snapshot_reports_delta() {
     let mut updated = crate::data::dependency::DependencySnapshot::empty();
     updated.record(source, ASPECT_A, 5, None);
     updated.record(source, ASPECT_B, 7, None);
+    let mut shape_store = crate::data::dependency::DependencySnapshotShapeStore::default();
 
     let delta = graph
-        .replace_dep_snapshot_shared(
+        .replace_dep_snapshot_committed(
             node,
-            crate::data::dependency::DependencySnapshotUpdate::Replace(
-                crate::data::dependency::SharedDependencySnapshot::new(updated),
+            crate::data::dependency::CommittedSnapshotUpdate::Replace(
+                crate::data::dependency::ReplacementSnapshotUpdate::from_snapshot(
+                    updated,
+                    &mut shape_store,
+                ),
             ),
         )
         .unwrap();
@@ -886,12 +888,16 @@ fn replacing_identical_dependency_snapshot_is_a_noop() {
     baseline.record(source, ASPECT_A, 3, None);
     graph.set_dep_snapshot(node, baseline.clone()).unwrap();
     let first_id = graph.get_entry(node).unwrap().get_dep_snapshot_id();
+    let mut shape_store = crate::data::dependency::DependencySnapshotShapeStore::default();
 
     let delta = graph
-        .replace_dep_snapshot_shared(
+        .replace_dep_snapshot_committed(
             node,
-            crate::data::dependency::DependencySnapshotUpdate::Replace(
-                crate::data::dependency::SharedDependencySnapshot::new(baseline),
+            crate::data::dependency::CommittedSnapshotUpdate::Replace(
+                crate::data::dependency::ReplacementSnapshotUpdate::from_snapshot(
+                    baseline,
+                    &mut shape_store,
+                ),
             ),
         )
         .unwrap();
@@ -954,9 +960,38 @@ fn shared_dependency_snapshot_reports_storage_sharing_without_implying_semantics
         "cloned snapshots should report shared backing explicitly"
     );
 
-    let replace = crate::data::dependency::DependencySnapshotUpdate::Replace(shared_left);
-    let version_only = crate::data::dependency::DependencySnapshotUpdate::VersionOnly(
-        crate::data::dependency::DependencySnapshotVersionDelta::new([5]),
+    let mut shape_store = crate::data::dependency::DependencySnapshotShapeStore::default();
+    let replace = crate::data::dependency::CommittedSnapshotUpdate::Replace(
+        crate::data::dependency::ReplacementSnapshotUpdate::from_snapshot(
+            shared_left.into_snapshot(),
+            &mut shape_store,
+        ),
+    );
+    let basis = crate::data::dependency::StableShapeSnapshotBasis::prove(
+        &crate::data::dependency::DependencyInputScan::stable_shape(
+            NodeId::new(0, 0),
+            crate::data::dependency::DependencySnapshotId::EMPTY,
+            1,
+            1,
+            vec![5],
+        ),
+        baseline.shape().intern(&mut shape_store),
+    )
+    .expect("stable shape proof should exist");
+    let version_only = crate::data::dependency::CommittedSnapshotUpdate::VersionOnly(
+        crate::data::dependency::VersionOnlySnapshotUpdate::from_basis_and_versions(
+            basis.clone(),
+            crate::data::dependency::VersionVector::from_scan(
+                &basis,
+                &crate::data::dependency::DependencyInputScan::stable_shape(
+                    NodeId::new(0, 0),
+                    crate::data::dependency::DependencySnapshotId::EMPTY,
+                    1,
+                    1,
+                    vec![5],
+                ),
+            ),
+        ),
     );
 
     assert_eq!(
@@ -982,21 +1017,51 @@ fn snapshot_storage_telemetry_distinguishes_replacement_from_version_only_delta(
     let mut replaced = crate::data::dependency::DependencySnapshot::empty();
     replaced.record(source, ASPECT_A, 5, None);
     replaced.record(source, ASPECT_B, 7, None);
-    graph.replace_dep_snapshot_shared(
-        node,
-        crate::data::dependency::DependencySnapshotUpdate::Replace(
-            crate::data::dependency::SharedDependencySnapshot::new(replaced),
-        ),
-    )
-    .unwrap();
+    graph
+        .replace_dep_snapshot_committed(
+            node,
+            crate::data::dependency::CommittedSnapshotUpdate::Replace(
+                crate::data::dependency::ReplacementSnapshotUpdate::from_snapshot(
+                    replaced,
+                    &mut crate::data::dependency::DependencySnapshotShapeStore::default(),
+                ),
+            ),
+        )
+        .unwrap();
 
-    graph.replace_dep_snapshot_shared(
-        node,
-        crate::data::dependency::DependencySnapshotUpdate::VersionOnly(
-            crate::data::dependency::DependencySnapshotVersionDelta::new([11, 13]),
+    let mut proof_shape_store = crate::data::dependency::DependencySnapshotShapeStore::default();
+    let current_snapshot = graph.get_dep_snapshot(node).unwrap().clone();
+    let basis = crate::data::dependency::StableShapeSnapshotBasis::prove(
+        &crate::data::dependency::DependencyInputScan::stable_shape(
+            node,
+            graph.get_entry(node).unwrap().get_dep_snapshot_id(),
+            current_snapshot.entries().len(),
+            current_snapshot.entries().len(),
+            vec![11, 13],
         ),
+        current_snapshot.shape().intern(&mut proof_shape_store),
     )
-    .unwrap();
+    .expect("stable shape proof should exist for version-only update");
+    graph
+        .replace_dep_snapshot_committed(
+            node,
+            crate::data::dependency::CommittedSnapshotUpdate::VersionOnly(
+                crate::data::dependency::VersionOnlySnapshotUpdate::from_basis_and_versions(
+                    basis.clone(),
+                    crate::data::dependency::VersionVector::from_scan(
+                        &basis,
+                        &crate::data::dependency::DependencyInputScan::stable_shape(
+                            node,
+                            graph.get_entry(node).unwrap().get_dep_snapshot_id(),
+                            current_snapshot.entries().len(),
+                            current_snapshot.entries().len(),
+                            vec![11, 13],
+                        ),
+                    ),
+                ),
+            ),
+        )
+        .unwrap();
 
     let storage = graph.observe().metrics().storage;
     assert!(
@@ -1006,6 +1071,59 @@ fn snapshot_storage_telemetry_distinguishes_replacement_from_version_only_delta(
     assert!(
         storage.version_only_snapshot_update_count >= 1,
         "snapshot telemetry should count version-only delta boundaries separately"
+    );
+}
+
+#[test]
+fn version_only_commit_preserves_stable_shape_change_kind() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let source = graph.node().build();
+
+    let mut baseline = crate::data::dependency::DependencySnapshot::empty();
+    baseline.record(source, ASPECT_A, 3, None);
+    baseline.record(source, ASPECT_B, 7, None);
+    graph.set_dep_snapshot(node, baseline.clone()).unwrap();
+
+    let mut proof_shape_store = crate::data::dependency::DependencySnapshotShapeStore::default();
+    let current_snapshot = graph.get_dep_snapshot(node).unwrap().clone();
+    let next_versions = vec![11, 13];
+    let basis = crate::data::dependency::StableShapeSnapshotBasis::prove(
+        &crate::data::dependency::DependencyInputScan::stable_shape(
+            node,
+            graph.get_entry(node).unwrap().get_dep_snapshot_id(),
+            current_snapshot.entries().len(),
+            current_snapshot.entries().len(),
+            next_versions.clone(),
+        ),
+        current_snapshot.shape().intern(&mut proof_shape_store),
+    )
+    .expect("stable shape proof should exist for version-only update");
+
+    let delta = graph
+        .replace_dep_snapshot_committed(
+            node,
+            crate::data::dependency::CommittedSnapshotUpdate::VersionOnly(
+                crate::data::dependency::VersionOnlySnapshotUpdate::from_basis_and_versions(
+                    basis.clone(),
+                    crate::data::dependency::VersionVector::from_scan(
+                        &basis,
+                        &crate::data::dependency::DependencyInputScan::stable_shape(
+                            node,
+                            graph.get_entry(node).unwrap().get_dep_snapshot_id(),
+                            current_snapshot.entries().len(),
+                            current_snapshot.entries().len(),
+                            next_versions,
+                        ),
+                    ),
+                ),
+            ),
+        )
+        .unwrap();
+
+    assert_eq!(
+        delta.change_kind,
+        crate::data::dependency::SnapshotChangeKind::StableShapeVersionOnly
     );
 }
 

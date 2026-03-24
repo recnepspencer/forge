@@ -20,7 +20,9 @@ use super::signal::{ComputedSignal, InputSignal, Signal, DEFAULT_ASPECT};
 /// It is not the canonical kernel-grade runtime interface.
 #[cfg_attr(
     doc,
-    deprecated(note = "ReactiveGraph is convenience-only and intentionally not the production runtime surface")
+    deprecated(
+        note = "ReactiveGraph is convenience-only and intentionally not the production runtime surface"
+    )
 )]
 pub struct ReactiveGraph {
     graph: SignalGraph,

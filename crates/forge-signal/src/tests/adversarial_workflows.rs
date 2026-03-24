@@ -681,7 +681,9 @@ fn assert_runtime_invariants(
             current_branch.name,
         ));
     }
-    if graph.observe().recent_execution_history_diagnostics().len() > policy.retention_budget.history_limit {
+    if graph.observe().recent_execution_history_diagnostics().len()
+        > policy.retention_budget.history_limit
+    {
         errors.push(format!(
             "history retention exceeded policy: {} > {}",
             graph.observe().recent_execution_history_diagnostics().len(),
@@ -1704,4 +1706,3 @@ fn long_fintech_parallel_churn_seed_matrix_stays_hard_to_surprise() {
         );
     }
 }
-

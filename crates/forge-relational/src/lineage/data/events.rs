@@ -15,10 +15,36 @@ pub enum LineageEventKind {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LineageEventRecord {
-    pub event_id: u64,
-    pub commit: CommitReference,
-    pub branch_id: BranchId,
-    pub kind: LineageEventKind,
-    pub sources: Vec<LineageId>,
-    pub targets: Vec<LineageId>,
+    pub(crate) event_id: u64,
+    pub(crate) commit: CommitReference,
+    pub(crate) branch_id: BranchId,
+    pub(crate) kind: LineageEventKind,
+    pub(crate) sources: Vec<LineageId>,
+    pub(crate) targets: Vec<LineageId>,
+}
+
+impl LineageEventRecord {
+    pub fn event_id(&self) -> u64 {
+        self.event_id
+    }
+
+    pub fn commit(&self) -> &CommitReference {
+        &self.commit
+    }
+
+    pub fn branch_id(&self) -> &BranchId {
+        &self.branch_id
+    }
+
+    pub fn kind(&self) -> LineageEventKind {
+        self.kind
+    }
+
+    pub fn sources(&self) -> &[LineageId] {
+        &self.sources
+    }
+
+    pub fn targets(&self) -> &[LineageId] {
+        &self.targets
+    }
 }

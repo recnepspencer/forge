@@ -128,3 +128,35 @@ impl LoweredPromotionPlan {
         &self.targets
     }
 }
+
+#[derive(Debug, Clone)]
+pub(in crate::lineage::logic::authority) struct ExecutionAuthorizedPromotionPlan {
+    pub(super) lowered: LoweredPromotionPlan,
+    pub(super) authoritative_anchor: CommitReference,
+}
+
+impl ExecutionAuthorizedPromotionPlan {
+    pub(in crate::lineage::logic::authority) fn candidate_id(&self) -> CorrespondenceCandidateId {
+        self.lowered.candidate_id()
+    }
+
+    pub(in crate::lineage::logic::authority) fn branch_id(&self) -> &BranchId {
+        self.lowered.branch_id()
+    }
+
+    pub(in crate::lineage::logic::authority) fn commit(&self) -> &CommitReference {
+        self.lowered.commit()
+    }
+
+    pub(in crate::lineage::logic::authority) fn sources(&self) -> &[BranchScopedLineageRef] {
+        self.lowered.sources()
+    }
+
+    pub(in crate::lineage::logic::authority) fn targets(&self) -> &[BranchScopedLineageRef] {
+        self.lowered.targets()
+    }
+
+    pub(in crate::lineage::logic::authority) fn authoritative_anchor(&self) -> &CommitReference {
+        &self.authoritative_anchor
+    }
+}

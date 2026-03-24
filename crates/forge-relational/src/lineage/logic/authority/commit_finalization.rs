@@ -29,21 +29,29 @@ impl<'runtime> LineageAuthority<'runtime> {
             if partition.entity_arena.created_at.get(slot).copied() != Some(commit.version_id) {
                 continue;
             }
-            let lineage_id = partition.entity_arena.extra[slot]
-                .lineage_id
-                .unwrap_or_else(|| {
-                    let lineage_id = LineageId(self.runtime.lineage.next_lineage_id);
-                    self.runtime.lineage.next_lineage_id += 1;
-                    partition.entity_arena.extra[slot].lineage_id = Some(lineage_id);
-                    if let Some(metadata) = partition
-                        .entity_arena
-                        .metadata_history_at_mut(slot)
-                        .and_then(|history| history.last_mut())
-                    {
-                        metadata.lineage_id = Some(lineage_id);
-                    }
-                    lineage_id
-                });
+            let Some(existing_lineage_id) = partition
+                .entity_arena
+                .extra
+                .get(slot)
+                .map(|extra| extra.lineage_id)
+            else {
+                continue;
+            };
+            let lineage_id = existing_lineage_id.unwrap_or_else(|| {
+                let lineage_id = LineageId(self.runtime.lineage.next_lineage_id);
+                self.runtime.lineage.next_lineage_id += 1;
+                if let Some(extra) = partition.entity_arena.extra.get_mut(slot) {
+                    extra.lineage_id = Some(lineage_id);
+                }
+                if let Some(metadata) = partition
+                    .entity_arena
+                    .metadata_history_at_mut(slot)
+                    .and_then(|history| history.last_mut())
+                {
+                    metadata.lineage_id = Some(lineage_id);
+                }
+                lineage_id
+            });
             self.runtime
                 .lineage
                 .nodes
@@ -136,11 +144,16 @@ impl<'runtime> LineageAuthority<'runtime> {
                 | MutationIntent::Entity(EntityMutationIntent::Update(_)) => {}
             }
         }
-        LineageFinalizationArtifact::new(
+        let artifact = LineageFinalizationArtifact::new(
             commit.branch_id.clone(),
             FinalizedLineageEventBatch::new(events),
             LineageDecisionLog::new(decisions),
-        )
+        );
+        self.runtime.performance_access().count_lineage_finalization(
+            artifact.event_batch().events().len(),
+            artifact.decision_log().decisions().len(),
+        );
+        artifact
     }
 }
 

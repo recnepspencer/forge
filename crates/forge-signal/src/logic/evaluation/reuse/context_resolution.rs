@@ -23,7 +23,10 @@ pub(crate) fn resolve_reuse_boundary_context(
     resolve_reuse_boundary_context_with_policy(
         graph,
         node,
-        comparator_resolver.policy_for_node(node, graph.get_entry(node)?.get_eval_config().comparator.as_ref()),
+        comparator_resolver.policy_for_node(
+            node,
+            graph.get_entry(node)?.get_eval_config().comparator.as_ref(),
+        ),
         result,
         keyed,
     )
@@ -39,16 +42,12 @@ pub(crate) fn resolve_reuse_boundary_context_with_policy(
     let entry = graph.get_entry(node)?;
     let eval = entry.get_eval_config();
     let contract = &eval.contract;
-    let partition_region_basis = PartitionScopeSet::from(
-        contract
-            .semantics
-            .partition_scope
-            .as_deref()
-            .unwrap_or(&[]),
-    );
+    let partition_region_basis =
+        PartitionScopeSet::from(contract.semantics.partition_scope.as_deref().unwrap_or(&[]));
     let composition_regions = keyed
         .and_then(|prepared| {
-            (!prepared.composition_regions.is_empty()).then_some(prepared.composition_regions.clone())
+            (!prepared.composition_regions.is_empty())
+                .then_some(prepared.composition_regions.clone())
         })
         .or_else(|| {
             result
@@ -64,18 +63,18 @@ pub(crate) fn resolve_reuse_boundary_context_with_policy(
             prepared
                 .persistent_correspondence
                 .clone()
-                .map(|persistent_correspondence| {
-                    ReuseStrategyBoundaryContext::CrossIdentity {
+                .map(
+                    |persistent_correspondence| ReuseStrategyBoundaryContext::CrossIdentity {
                         persistent_correspondence,
-                    }
-                })
+                    },
+                )
         })
         .or_else(|| {
-            composition_regions
-                .clone()
-                .map(|composition_regions| ReuseStrategyBoundaryContext::PartialArtifactSplice {
+            composition_regions.clone().map(|composition_regions| {
+                ReuseStrategyBoundaryContext::PartialArtifactSplice {
                     composition_regions,
-                })
+                }
+            })
         })
         .unwrap_or_default();
     let dependencies = graph.dependencies_of(node)?;
@@ -98,7 +97,9 @@ pub(crate) fn resolve_reuse_boundary_context_with_policy(
         artifact_family: keyed
             .and_then(|prepared| prepared.family.as_ref())
             .map(|family| ArtifactFamilyId::new(family.as_str())),
-        structural_dependency_basis: stable_dependency_snapshot_basis(dependency_snapshot.entries()),
+        structural_dependency_basis: stable_dependency_snapshot_basis(
+            dependency_snapshot.entries(),
+        ),
         partition_region_basis: partition_region_basis.clone(),
         strategy_detail,
     })
@@ -141,7 +142,10 @@ fn snapshot_seed() -> StableHashValue {
 }
 
 fn hash_node_id(hash: StableHashValue, node: NodeId) -> StableHashValue {
-    hash_u64(hash_u64(hash, node.index() as u64), node.generation() as u64)
+    hash_u64(
+        hash_u64(hash, node.index() as u64),
+        node.generation() as u64,
+    )
 }
 
 fn hash_string(mut hash: StableHashValue, value: &str) -> StableHashValue {
@@ -162,5 +166,9 @@ fn hash_u64(mut hash: StableHashValue, value: u64) -> StableHashValue {
 
 fn stable_hash_to_u32(hash: StableHashValue) -> u32 {
     let folded = (hash ^ (hash >> 32)) as u32;
-    if folded == 0 { 1 } else { folded }
+    if folded == 0 {
+        1
+    } else {
+        folded
+    }
 }

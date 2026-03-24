@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use crate::schema::data::LoweredRelationIntegrityPlan;
+use crate::schema::data::{
+    LoweredPayloadSchemaContract, LoweredRelationIntegrityPlan, PayloadContractRecordKind,
+};
 
+use super::descriptor::InvariantRuleDescriptor;
 use super::execution::{InvariantExecutionPoint, InvariantFailureEffect};
 use super::groups::InvariantCostClass;
 use super::results::{InvariantAdvisory, InvariantViolation};
@@ -15,6 +18,7 @@ pub struct InvariantCatalog {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InvariantRegistration {
+    pub descriptor: InvariantRuleDescriptor,
     pub rule: InvariantRule,
     pub execution_point: InvariantExecutionPoint,
     pub failure_effect: InvariantFailureEffect,
@@ -32,7 +36,9 @@ impl InvariantRegistration {
             rule,
             execution_point
         );
+        let descriptor = rule.descriptor_for(failure_effect);
         Self {
+            descriptor,
             rule,
             execution_point,
             failure_effect,
@@ -85,7 +91,11 @@ impl InvariantRegistration {
     }
 
     pub(crate) fn cost(&self) -> InvariantCostClass {
-        self.rule.cost_class()
+        self.descriptor.cost_class
+    }
+
+    pub(crate) fn groups(&self) -> super::groups::InvariantGroupSet {
+        self.descriptor.groups
     }
 
     pub(crate) fn verdict_for_violation(&self, violation: InvariantViolation) -> InvariantVerdict {
@@ -190,7 +200,40 @@ pub(crate) fn relation_integrity_registrations_for_plan(
                 )
             }),
     );
+    registrations.extend(plan.acyclicity_contracts.iter().cloned().map(|contract| {
+        InvariantRegistration::commit_boundary_blocking(InvariantRule::AcyclicityContract(
+            contract,
+        ))
+    }));
+    registrations.extend(
+        plan.partition_isolation_contracts
+            .iter()
+            .cloned()
+            .map(|contract| {
+                InvariantRegistration::commit_boundary_blocking(
+                    InvariantRule::PartitionIsolationContract(contract),
+                )
+            }),
+    );
+    registrations.extend(
+        plan.connectivity_minimum_contracts
+            .iter()
+            .cloned()
+            .map(|contract| {
+                InvariantRegistration::snapshot_publication_blocking(
+                    InvariantRule::ConnectivityMinimumContract(contract),
+                )
+            }),
+    );
     registrations
+}
+
+pub(crate) fn payload_schema_registration(
+    contract: LoweredPayloadSchemaContract,
+) -> InvariantRegistration {
+    InvariantRegistration::commit_boundary_blocking(InvariantRule::PayloadSchemaContract(
+        contract,
+    ))
 }
 
 #[cfg(test)]
@@ -202,7 +245,7 @@ pub(crate) enum InvariantRegistrationContract {
 
 #[cfg(test)]
 impl InvariantRule {
-    pub(crate) const REGISTRATION_EXAMPLE_COUNT: usize = 11;
+    pub(crate) const REGISTRATION_EXAMPLE_COUNT: usize = 16;
 
     pub(crate) fn registration_examples() -> Vec<Self> {
         vec![
@@ -262,6 +305,43 @@ impl InvariantRule {
                     plan_revision: crate::schema::data::RelationIntegrityPlanRevision(1),
                 },
             ),
+            Self::AcyclicityContract(crate::schema::data::LoweredAcyclicityContract {
+                contract_id: "__registration_probe__".into(),
+                relation_kind_id: crate::identity::data::KindId(999),
+                traversal_direction: crate::schema::data::DirectedTraversalKind::SourceToTarget,
+                allowed_cycle_class: crate::schema::data::AllowedCycleClass::NoCycles,
+                plan_revision: crate::schema::data::RelationIntegrityPlanRevision(1),
+            }),
+            Self::PayloadSchemaContract(LoweredPayloadSchemaContract {
+                contract_id: "__registration_probe__".into(),
+                record_kind: PayloadContractRecordKind::Entity,
+                kind_id: crate::identity::data::KindId(999),
+                allowed_payload_class: crate::payloads::data::PayloadClass::StructuredJson,
+                field_constraints: vec![
+                    crate::schema::data::PayloadFieldConstraint::Required {
+                        field: "name".to_string(),
+                    },
+                ],
+            }),
+            Self::PartitionIsolationContract(
+                crate::schema::data::LoweredPartitionIsolationContract {
+                    contract_id: "__registration_probe__".into(),
+                    relation_kind_id: crate::identity::data::KindId(999),
+                    isolation_mode: crate::schema::data::PartitionIsolationMode::SamePartitionEndpoints,
+                    plan_revision: crate::schema::data::RelationIntegrityPlanRevision(1),
+                },
+            ),
+            Self::ConnectivityMinimumContract(
+                crate::schema::data::LoweredConnectivityMinimumContract {
+                    contract_id: "__registration_probe__".into(),
+                    source_kind_ids: vec![crate::identity::data::KindId(1)],
+                    relation_kind_id: crate::identity::data::KindId(999),
+                    target_kind_ids: vec![crate::identity::data::KindId(2)],
+                    minimum_reachable_targets: 1,
+                    enforcement_boundary: crate::schema::data::ConnectivityMinimumEnforcement::SnapshotPublication,
+                    plan_revision: crate::schema::data::RelationIntegrityPlanRevision(1),
+                },
+            ),
         ]
     }
 
@@ -279,7 +359,11 @@ impl InvariantRule {
             | Self::CardinalityMinimumContract(_)
             | Self::UniquenessContract(_)
             | Self::SymmetryContract(_)
-            | Self::EndpointDeletionIntegrityContract(_) => {
+            | Self::EndpointDeletionIntegrityContract(_)
+            | Self::AcyclicityContract(_)
+            | Self::PayloadSchemaContract(_)
+            | Self::PartitionIsolationContract(_)
+            | Self::ConnectivityMinimumContract(_) => {
                 InvariantRegistrationContract::OptInUserCatalog
             }
         }

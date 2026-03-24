@@ -58,7 +58,9 @@ fn same_stage_dependency_rewiring_updates_dependency_edges_and_subscriber_sets_t
             )
         })
         .unwrap();
-    let rewiring_apply_count_before = graph.observe().metrics().execution.rewiring_apply_count;
+    let metrics_before = graph.observe().metrics();
+    let rewiring_apply_count_before = metrics_before.execution.rewiring_apply_count;
+    let snapshot_batch_size_before = metrics_before.storage.snapshot_batch_size;
 
     mark_dirty(&mut graph, left, ASPECT_A).unwrap();
     mark_dirty(&mut graph, right, ASPECT_A).unwrap();
@@ -96,6 +98,42 @@ fn same_stage_dependency_rewiring_updates_dependency_edges_and_subscriber_sets_t
     assert!(b_subs.is_empty());
     assert_eq!(c_subs, vec![left]);
     assert_eq!(report.dependency_capture_updates, 4);
+    assert!(!report.stages.is_empty());
+    assert!(report
+        .stages
+        .iter()
+        .filter(|stage| stage.task_records.len() > 1)
+        .flat_map(|stage| stage.task_records.windows(2))
+        .all(|pair| pair[0].id.0 < pair[1].id.0));
+    assert!(report
+        .stages
+        .iter()
+        .filter(|stage| matches!(
+            stage.outcome,
+            crate::logic::planner::StageExecutionOutcome::CompletedSerial
+        ))
+        .all(|stage| stage.semantic_segment_count == stage.task_records.len() as u32));
+    assert!(report
+        .stages
+        .iter()
+        .filter(|stage| matches!(
+            stage.outcome,
+            crate::logic::planner::StageExecutionOutcome::CompletedSerial
+        ))
+        .all(|stage| {
+            let mut ids = stage
+                .task_records
+                .iter()
+                .map(|record| record.semantic_segment_id.0)
+                .collect::<Vec<_>>();
+            ids.sort_unstable();
+            ids.dedup();
+            ids.len() == stage.semantic_segment_count as usize
+        }));
+    assert_eq!(
+        graph.observe().metrics().storage.snapshot_batch_size - snapshot_batch_size_before,
+        u64::from(report.prepared_evaluations_applied)
+    );
     assert_eq!(
         graph.observe().metrics().execution.rewiring_apply_count - rewiring_apply_count_before,
         2
@@ -103,7 +141,9 @@ fn same_stage_dependency_rewiring_updates_dependency_edges_and_subscriber_sets_t
     let left_explanation = graph.observe().explain(left).unwrap();
     assert!(left_explanation.rewiring.is_some());
     let left_provenance = graph
-        .observe().materialize().reconstruct_provenance_artifact(left)
+        .observe()
+        .materialize()
+        .reconstruct_provenance_artifact(left)
         .unwrap();
     assert!(left_provenance.rewiring.is_some());
     assert!(left_provenance
@@ -112,4 +152,3 @@ fn same_stage_dependency_rewiring_updates_dependency_edges_and_subscriber_sets_t
         .any(|link| matches!(link.disposition, CausalDisposition::Topology)));
     graph.assert_bidirectional_consistency().unwrap();
 }
-

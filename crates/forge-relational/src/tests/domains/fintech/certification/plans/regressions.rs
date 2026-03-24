@@ -39,6 +39,15 @@ pub(super) fn relational_fintech_replay_regression_plan() -> WorkflowPlan<Fintec
         },
     ))
     .step(certified_step(
+        "promote-analysis-lineage",
+        FintechWorkflowStep::PromoteCaseCorrespondence {
+            branch_alias: "analysis",
+            left_case: FintechCaseRef::BaselinePortfolio,
+            right_case: FintechCaseRef::LateTradeCorrection,
+            resolution_alias: "analysis_lineage",
+        },
+    ))
+    .step(certified_step(
         "refresh-analysis-risk",
         FintechWorkflowStep::RefreshRisk {
             branch_alias: "analysis",
@@ -59,6 +68,21 @@ pub(super) fn relational_fintech_replay_regression_plan() -> WorkflowPlan<Fintec
     .invariant(InvariantCheck::new(
         "replay_targets_branch:analysis_replay:analysis",
         "analysis replay should remain local to the analysis branch",
+        WorkflowState::Completed,
+    ))
+    .invariant(InvariantCheck::new(
+        "lineage_promotion_succeeded:analysis_lineage",
+        "analysis regression workflow should still publish lineage correspondence",
+        WorkflowState::Completed,
+    ))
+    .invariant(InvariantCheck::new(
+        "replay_has_lineage_authority_basis:analysis_replay",
+        "analysis replay should expose lineage authority basis even in regression mode",
+        WorkflowState::Completed,
+    ))
+    .invariant(InvariantCheck::new(
+        "replay_uses_exact_lineage_digest:analysis_replay",
+        "analysis replay should certify exact canonical lineage digests even in regression mode",
         WorkflowState::Completed,
     ))
 }

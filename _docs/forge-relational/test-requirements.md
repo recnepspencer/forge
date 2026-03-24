@@ -593,6 +593,86 @@ Pass condition
 
 Recovery is exact when valid, and loudly rejected when invalid.
 
+13. Invariant extensibility and structural legality certification test
+Purpose
+
+Prove that the completed invariant subsystem enforces structural legality as a
+truth-runtime authority surface, and that custom structural invariants
+participate in the same planning, execution, artifact, and replay contract as
+native invariants without opening a semantic type-erasure escape hatch.
+
+Scenario
+
+Run deterministic workloads containing:
+
+native invariant registration and execution
+
+custom invariant registration with stable semantic identity
+
+custom invariant preparation and execution over structural scope
+
+hostile cycle-inducing relation creation
+
+payload schema violations
+
+cross-partition relation attempts
+
+publication-boundary connectivity and minimum-cardinality failures
+
+savepoint rollback of invariant-affecting work
+
+custom invariant panic injection during scope preparation and execution
+
+replay and durable recovery over invariant-bearing histories
+
+Must verify
+
+native and custom invariants share one authority pipeline for registration,
+selection, lowering, execution, and artifact shaping
+
+custom invariants cannot access signal or other derived state
+
+custom invariant scope and executable pairing is packet-owned and exact; no
+framework-level route-and-downcast mismatch contract is representable
+
+acyclicity rejection is exact and cost-visible under hostile cycle formation
+
+payload schema rejection diagnostics localize exact field/type/constraint
+failures
+
+partition isolation rejects forbidden cross-partition relations exactly
+
+publication-boundary failures produce explicit committed-but-unpublished
+semantics and do not leak to published CDC surfaces
+
+savepoint rollback leaves zero native or custom invariant residue
+
+custom invariant panics are captured as typed failures and never crash the
+runtime
+
+replay and durable recovery preserve invariant artifacts and publication-blocked
+outcomes exactly
+
+Required verification output
+
+invariant_artifact_digest
+
+custom_invariant_registry_digest
+
+invariant_decision_log_digest
+
+structural_legality_counter_snapshot
+
+custom_panic_capture_report
+
+publication_boundary_rejection_matrix
+
+Pass condition
+
+Structural legality is enforced canonically, custom invariants remain inside
+the same authority contract as native invariants, and invariant-bearing
+histories replay and recover without semantic drift.
+
 11. Schema evolution CDC contract test
 Purpose
 
@@ -1045,3 +1125,11 @@ Milestone 5 named certification suites
   - recovery_schema_bundle_digest
   - recovery_compatibility_diagnostic_digest
   - mismatch_failure_digest
+- Invariant extensibility and structural legality certification test
+  Required machine-checkable outputs:
+  - invariant_artifact_digest
+  - custom_invariant_registry_digest
+  - invariant_decision_log_digest
+  - structural_legality_counter_snapshot
+  - custom_panic_capture_report
+  - publication_boundary_rejection_matrix

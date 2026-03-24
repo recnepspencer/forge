@@ -111,10 +111,7 @@ impl<'a> GraphObserver<'a> {
         GraphDiagnostics::new(self.graph)
     }
 
-    pub fn execution_history_summary(
-        &self,
-        profile: DiagnosticsTier,
-    ) -> ExecutionHistorySummary {
+    pub fn execution_history_summary(&self, profile: DiagnosticsTier) -> ExecutionHistorySummary {
         let retention_budget = SignalRuntimePolicy::for_tier(profile).retention_budget;
         if let Some(summary) = self.graph.diagnostics_state().recent_history().back() {
             if !retention_budget.retain_history_details || !summary.nodes.is_empty() {
@@ -147,7 +144,10 @@ impl<'a> GraphObserver<'a> {
     }
 
     pub fn latest_frontier_execution_summary(&self) -> Option<&'a FrontierExecutionSummary> {
-        self.graph.observation.diagnostics.latest_frontier_execution()
+        self.graph
+            .observation
+            .diagnostics
+            .latest_frontier_execution()
     }
 
     pub fn latest_invalidation_trace_records(&self) -> &'a [InvalidationTraceRecord] {
@@ -234,7 +234,8 @@ impl<'a> GraphObserver<'a> {
         start: Option<ReplayCursor>,
         end: Option<ReplayCursor>,
     ) -> RetainedReplayView<'a> {
-        let start_index = start.and_then(|cursor| self.graph.diagnostics_state().replay_cursor_offset(cursor));
+        let start_index =
+            start.and_then(|cursor| self.graph.diagnostics_state().replay_cursor_offset(cursor));
         let end_index = end
             .and_then(|cursor| self.graph.diagnostics_state().replay_cursor_offset(cursor))
             .map(|index| index + 1);
@@ -249,7 +250,13 @@ impl<'a> GraphObserver<'a> {
                 end_index.saturating_sub(start_index),
             );
         }
-        RetainedReplayView::new(start, end, self.replay_events(), 0, self.replay_events().len())
+        RetainedReplayView::new(
+            start,
+            end,
+            self.replay_events(),
+            0,
+            self.replay_events().len(),
+        )
     }
 
     pub fn replay_for_branch(
@@ -283,11 +290,7 @@ impl<'a> GraphObserver<'a> {
         self.replay_slice(Some(start), None)
     }
 
-    pub fn replay_between(
-        &self,
-        start: ReplayCursor,
-        end: ReplayCursor,
-    ) -> RetainedReplayView<'a> {
+    pub fn replay_between(&self, start: ReplayCursor, end: ReplayCursor) -> RetainedReplayView<'a> {
         self.replay_slice(Some(start), Some(end))
     }
 
@@ -295,7 +298,11 @@ impl<'a> GraphObserver<'a> {
         &self,
         snapshot_id: crate::state::SignalSnapshotId,
     ) -> RetainedReplayView<'a> {
-        let Some(cursor) = self.graph.diagnostics_state().snapshot_replay_cursor(snapshot_id) else {
+        let Some(cursor) = self
+            .graph
+            .diagnostics_state()
+            .snapshot_replay_cursor(snapshot_id)
+        else {
             return RetainedReplayView::empty();
         };
         let Some(index) = self.graph.diagnostics_state().replay_cursor_offset(cursor) else {
@@ -305,8 +312,7 @@ impl<'a> GraphObserver<'a> {
         let end = (index + 5).min(self.replay_events().len());
         RetainedReplayView::new(
             self.replay_events().get(start).map(|event| event.cursor),
-            self
-                .replay_events()
+            self.replay_events()
                 .get(end.saturating_sub(1))
                 .map(|event| event.cursor),
             self.replay_events(),
@@ -536,5 +542,3 @@ impl<'a> GraphMaterializer<'a> {
         self.graph.materialize_provenance_artifact(node)
     }
 }
-
-

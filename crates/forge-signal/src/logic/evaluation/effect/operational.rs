@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::aspect::AspectVersion;
 use crate::data::dependency::{
-    DependencySnapshotId, DependencySnapshotUpdate, SnapshotDeltaRecord,
+    CommittedSnapshotUpdate, DependencySnapshotId, SnapshotDeltaRecord,
 };
 use crate::data::graph::DependencySetId;
 use crate::data::handle::NodeId;
@@ -47,7 +47,7 @@ pub struct OperationalEffect {
     pub reuse_basis: ReuseBasis,
     pub reuse_origin: ReuseOrigin,
     pub reuse_boundary_context: ReuseBoundaryContext,
-    pub dependency_snapshot_update: DependencySnapshotUpdate,
+    pub dependency_snapshot_update: CommittedSnapshotUpdate,
     pub snapshot_delta: SnapshotDeltaRecord,
     pub meaningful_input_changes: u32,
 }
@@ -55,7 +55,7 @@ pub struct OperationalEffect {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct EffectDependencyInputs {
     pub context: DependencyInputContext,
-    pub dependency_snapshot_update: DependencySnapshotUpdate,
+    pub dependency_snapshot_update: CommittedSnapshotUpdate,
     pub snapshot_delta: SnapshotDeltaRecord,
     pub meaningful_input_changes: u32,
 }
@@ -63,6 +63,6 @@ pub(crate) struct EffectDependencyInputs {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct PendingDependencySnapshot {
     pub node: NodeId,
-    pub update: DependencySnapshotUpdate,
+    pub update: CommittedSnapshotUpdate,
     pub delta: SnapshotDeltaRecord,
 }

@@ -95,7 +95,9 @@ impl BranchMutationLedger {
             entry.runtime_artifact_changed |= record.runtime_artifact_changed;
             entry.retained_artifact_changed |= record.retained_artifact_changed;
             entry.causality_changed |= record.causality_changed;
-            entry.structural_deltas.extend(record.structural_deltas.into_iter());
+            entry
+                .structural_deltas
+                .extend(record.structural_deltas.into_iter());
         }
     }
 

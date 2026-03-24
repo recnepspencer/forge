@@ -10,10 +10,9 @@ use crate::logic::explain::{
     ScopeProvenanceKind,
 };
 use crate::state::{
-    SignalCheckpointImage, SignalSnapshotMeta, SignalSnapshotV1,
-    SnapshotArtifactRetentionPolicy, SnapshotArtifactRestoreMode,
-    SnapshotDependencyRestoreMode, SnapshotRestoreIntent, SnapshotRestoreCoarseReason,
-    SnapshotRestorePlan,
+    SignalCheckpointImage, SignalSnapshotMeta, SignalSnapshotV1, SnapshotArtifactRestoreMode,
+    SnapshotArtifactRetentionPolicy, SnapshotDependencyRestoreMode, SnapshotRestoreCoarseReason,
+    SnapshotRestoreIntent, SnapshotRestorePlan,
 };
 
 impl SignalGraph {
@@ -70,13 +69,14 @@ impl SignalGraph {
                     source_scope: dependency.subscription.clone(),
                     validation_scope: dependency.subscription.clone(),
                     kind: ScopeProvenanceKind::Direct,
-                    note: Some("dependency entered the active topology during rewiring".to_string()),
+                    note: Some(
+                        "dependency entered the active topology during rewiring".to_string(),
+                    ),
                 },
                 cached_version: None,
-                current_version: self
-                    .get_entry(dependency.source)
-                    .ok()
-                    .map(|entry| entry.version_for_scope(dependency.aspect, dependency.subscription.as_ref())),
+                current_version: self.get_entry(dependency.source).ok().map(|entry| {
+                    entry.version_for_scope(dependency.aspect, dependency.subscription.as_ref())
+                }),
                 comparator: None,
                 reason: None,
                 note: Some("rewiring added this dependency during apply".to_string()),
@@ -99,8 +99,10 @@ impl SignalGraph {
         }
         let mut restored =
             SignalGraph::restore_from_checkpoint_authority(&snapshot.checkpoint_image.authority);
-        restored.telemetry_mut().checkpoint.restore_authority_breadth +=
-            restored.active_node_count() as u64;
+        restored
+            .telemetry_mut()
+            .checkpoint
+            .restore_authority_breadth += restored.active_node_count() as u64;
         Ok(restored)
     }
 
@@ -125,7 +127,8 @@ impl SignalGraph {
                         .len() as u64;
                 }
                 crate::logic::transaction::RequiredDerivedRebuildSet::ReplaySuffix(replay) => {
-                    if snapshot.diagnostics.replay_frames.len() < replay.replay_event_count as usize {
+                    if snapshot.diagnostics.replay_frames.len() < replay.replay_event_count as usize
+                    {
                         return Err(SignalError::incompatible_snapshot(format!(
                             "snapshot `{}` replay payload is shorter than reconstructability proof",
                             snapshot.meta.snapshot_id.0
@@ -139,7 +142,10 @@ impl SignalGraph {
                 }
             }
         }
-        restored.telemetry_mut().checkpoint.restore_required_derived_breadth += rebuild_breadth;
+        restored
+            .telemetry_mut()
+            .checkpoint
+            .restore_required_derived_breadth += rebuild_breadth;
         Ok(())
     }
 
@@ -160,10 +166,7 @@ impl SignalGraph {
         match intent.artifacts {
             SnapshotArtifactRestoreMode::RestoreCapturedRetention => {}
             SnapshotArtifactRestoreMode::ApplyActiveRuntimePolicy => {
-                restored
-                    .observation
-                    .diagnostics
-                    .set_policy(current_policy);
+                restored.observation.diagnostics.set_policy(current_policy);
             }
         }
         let diagnostics_breadth = snapshot.diagnostics.recent_history.len() as u64
@@ -171,8 +174,10 @@ impl SignalGraph {
             + snapshot.diagnostics.explanation_facts.len() as u64
             + snapshot.diagnostics.provenance_facts.len() as u64
             + snapshot.diagnostics.lineage_records.len() as u64;
-        restored.telemetry_mut().checkpoint.restore_diagnostic_richness_breadth +=
-            diagnostics_breadth;
+        restored
+            .telemetry_mut()
+            .checkpoint
+            .restore_diagnostic_richness_breadth += diagnostics_breadth;
     }
 
     pub(crate) fn record_operational_diagnostic_facts(
@@ -434,8 +439,9 @@ impl SignalGraph {
             .checkpoint
             .snapshot_restore_shared_delta_node_count +=
             restore_plan.dependency_snapshot_delta_node_count;
-        self.telemetry_mut().checkpoint.snapshot_restore_coarse_reason_count +=
-            restore_plan.coarse_reasons.len() as u64;
+        self.telemetry_mut()
+            .checkpoint
+            .snapshot_restore_coarse_reason_count += restore_plan.coarse_reasons.len() as u64;
         crate::diagnostics::recorder::record_snapshot_restore_lineage(
             self,
             snapshot.meta.snapshot_id,
@@ -469,7 +475,10 @@ impl SignalGraph {
             let mut explanation = fact.explanation.clone();
             explanation.materialization_mode = DiagnosticsAvailability::RetainedAvailable;
             self.record_retained_artifact_read();
-            return Ok((Some(explanation), DiagnosticsAvailability::RetainedAvailable));
+            return Ok((
+                Some(explanation),
+                DiagnosticsAvailability::RetainedAvailable,
+            ));
         }
         if matches!(
             self.runtime_policy().retention_budget.explanation_retention,
@@ -536,10 +545,9 @@ impl SignalGraph {
             fallback: crate::data::comparator::VersionComparatorPolicy::Exact,
             custom: &mut comparator,
         };
-        let mut explanation =
-            crate::logic::explain::explain_reconstructing_with_policy_resolver(
-                self, node, &resolver,
-            )?;
+        let mut explanation = crate::logic::explain::explain_reconstructing_with_policy_resolver(
+            self, node, &resolver,
+        )?;
         explanation.materialization_mode = DiagnosticsAvailability::ReconstructedAvailable;
         self.record_hot_path_artifact_reconstruction();
         self.record_cold_explanation_reconstruction();
@@ -566,10 +574,9 @@ impl SignalGraph {
             fallback: crate::data::comparator::VersionComparatorPolicy::Exact,
             custom: &mut comparator,
         };
-        let mut explanation =
-            crate::logic::explain::explain_reconstructing_with_policy_resolver(
-                self, node, &resolver,
-            )?;
+        let mut explanation = crate::logic::explain::explain_reconstructing_with_policy_resolver(
+            self, node, &resolver,
+        )?;
         explanation.materialization_mode = DiagnosticsAvailability::ReconstructedAvailable;
         self.record_hot_path_artifact_reconstruction();
         self.record_cold_provenance_reconstruction();
@@ -585,5 +592,3 @@ impl SignalGraph {
         )
     }
 }
-
-

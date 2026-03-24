@@ -24,10 +24,6 @@ impl<'runtime> LineageAccess<'runtime> {
         self.runtime.lineage.nodes.values().cloned().collect()
     }
 
-    pub(crate) fn events_snapshot(&self) -> Vec<LineageEventRecord> {
-        self.runtime.lineage.events.clone()
-    }
-
     pub(crate) fn branch_events_snapshot(
         &self,
         branch_id: &crate::history::data::BranchId,

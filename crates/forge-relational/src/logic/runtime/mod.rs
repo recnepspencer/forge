@@ -22,8 +22,19 @@ pub use crate::storage::data::{
 };
 #[allow(unused_imports)]
 pub use crate::validation::data::{
-    InvariantCatalog, InvariantCheckResult, InvariantClass, InvariantExecutionPoint,
-    InvariantFailureEffect, InvariantRegistration, InvariantRule, InvariantViolation,
+    BoundedStructuralTraversal, CustomInvariantDescriptor, CustomInvariantExecutionContext,
+    CustomInvariantExecutionError, CustomInvariantOperationalMetadata,
+    CustomInvariantPreparationError, CustomInvariantRegistration,
+    CustomInvariantRegistrationError, CustomInvariantRule, CustomInvariantRuleId,
+    CustomInvariantScopePlanner, CustomInvariantSemanticIdentity,
+    CustomInvariantSemanticVersion, CustomInvariantTouchedSummary,
+    CustomInvariantTraversalError, CustomInvariantTraversalSummary, CustomInvariantVerdict,
+    CustomInvariantProvenance, InvariantCatalog, InvariantCheckResult, InvariantClass,
+    InvariantExecutionPoint, InvariantFailureEffect, InvariantRegistration, InvariantRule,
+    InvariantRuleDescriptor, InvariantRuleId, InvariantSemanticsClass, InvariantViolation,
+    NativeInvariantRuleId, PlannedEntityCreate, PlannedRelationCreate, StructuralCountView,
+    StructuralPayloadView, StructuralRelationRecord, StructuralRelationView,
+    StructuralTraversalResult, SupportedExecutionPoints, TouchedStructuralSet,
 };
 pub use crate::validation::engine::HarnessAuditMode;
 pub use crate::visibility::materialization::read_records::{

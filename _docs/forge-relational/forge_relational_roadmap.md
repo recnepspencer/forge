@@ -36,7 +36,7 @@ The current shipped baseline includes:
 - `forge-harness` parity and certification substrate
 
 The shipped closeout reference for the latest major runtime milestone is
-[phase-8.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/phase-8.md).
+[milestone-6-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-relational/milestone-6-closeout.md).
 
 ## Roadmap Rules
 
@@ -347,6 +347,9 @@ policy-driven resolution.
 
 ## Milestone 6: Lineage and Correspondence Completion
 
+Status: Closed on 2026-03-23. See
+[milestone-6-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-relational/milestone-6-closeout.md).
+
 ### Goal
 
 Finish identity-evolution semantics so lineage is authoritative truth, not just
@@ -408,9 +411,12 @@ downstream consumers.
   permitted during construction, but publication requires satisfaction of
   declared minimums
 - **acyclicity**: schema-declared cycle prohibition for directed relation kinds,
-  enforced at commit boundary; cycle detection scoped to the subgraph reachable
-  from touched endpoints using bounded DFS from the newly created relation's
-  target through outgoing edges
+  enforced at commit boundary; Milestone 6.5 uses commit-time reachability
+  search from the newly introduced relation target back toward the source over
+  the candidate relation-kind graph, with explicit counters and complexity
+  contracts. The roadmap must remain honest that worst-case breadth can equal
+  the full candidate relation-kind graph unless a future milestone introduces a
+  persistent incremental cycle-detection structure
 - **payload schema validation**: schema-declared JSON structure contracts per
   entity and relation kind, enforced at commit boundary; the runtime validates
   that committed payloads conform to declared field presence, type, and
@@ -429,25 +435,33 @@ downstream consumers.
   to participate in the existing invariant execution pipeline
 - custom invariants must declare their execution point (commit boundary or
   publication boundary), cost class, and invariant group membership
-- custom invariants receive the same `InvariantExecutionContext` and scoped
-  access to touched records, relation endpoints, kind counts, payload fields,
-  and bounded graph traversal as native invariants
+- custom invariants receive the same structural authority surfaces as native
+  invariants, but through a dedicated custom execution context and scope planner
+  that expose touched records, relation endpoints, kind counts, payload fields,
+  and session-budgeted bounded graph traversal
 - custom invariants must not receive access to the signal graph or computed
   values; the boundary between structural invariants and derived invariants is
   enforced by the API surface
 - custom invariant failures participate in the same typed
   `InvariantViolation` and diagnostics pipeline as native failures
-- custom invariants are registered at schema registration time alongside native
-  invariant declarations
-- the planner and evaluator must handle custom invariants without special-casing;
-  they flow through the same `InvariantRule` dispatch, planning, and packet
-  evaluation as native rules
+- custom invariants must be registered through a frozen runtime/schema registry
+  that separates semantic rule identity from operational metadata so historical
+  artifacts remain interpretable across binary versions
+- custom invariants must not become a type-erasure escape hatch; the framework
+  may erase executable storage at registration boundaries, but each lowered
+  packet must own the exact executable/scope pairing produced during planning so
+  no runtime route-and-downcast contract remains representable
+- the planner and evaluator must handle custom invariants without semantic
+  special-casing; they flow through the same planning, lowering, and packet
+  execution pipeline as native rules
 
 ### Must Preserve
 
 - serialized authority for invariant-affecting truth mutation
 - canonical failure reporting for all invariant types (native and custom)
 - no partial publication after invariant failure
+- explicit separation between committed authority, publication eligibility, and
+  published observability for publication-boundary invariant failures
 - replay and recovery consistency for commits validated against custom invariants
 - the existing native invariant performance characteristics must not degrade
   when custom invariants are registered
@@ -469,12 +483,15 @@ extensibility certification requirement covering:
 
 - custom invariant registration, evaluation, and failure reporting parity with
   native invariants
+- packet-owned custom scope/executable pairing with no `Any`-style semantic
+  escape hatch at the framework boundary
 - acyclicity enforcement under hostile cycle-inducing commit sequences
 - cardinality minimum enforcement at publication boundary with deferred
   construction semantics
 - payload schema validation with structured rejection diagnostics
 - partition isolation enforcement with cross-partition relation rejection
 - connectivity minimum enforcement at publication boundary
+- explicit committed-but-unpublished semantics for publication-boundary failures
 
 ## Milestone 7: Merge-Ready History and Merge Execution
 
@@ -567,6 +584,80 @@ Milestone 2 is only a prerequisite for this work. Milestone 7 is where the
 runtime must become explicit about these merge/reconciliation behaviors as real
 product requirements.
 
+#### Causal Commit Metadata
+
+Branches are structurally equivalent to partitioned nodes in a distributed
+system. To make merge semantically precise, the runtime must carry causal
+metadata on commits so the merge pipeline can formally distinguish between
+causally independent operations (safe to auto-merge under declared policy) and
+causally dependent operations (require ordered resolution).
+
+Required causal metadata capabilities:
+
+- each commit must carry a logical causal timestamp per branch, not wall-clock
+  time, so the runtime can determine happens-before relationships across
+  branches without relying on synchronized clocks
+- merge must be able to prove whether two branches' commits are causally
+  independent (concurrent, safe to reconcile under declared policy) or causally
+  dependent (one must be ordered after the other)
+- CDC subscribers must be able to request causally consistent snapshots, meaning
+  every commit they observe has also had all of that commit's causal
+  predecessors observed
+- merge commits must record the causal frontier of both source branches at merge
+  time as canonical artifacts for replay and diagnostics
+
+Causal metadata does not replace structural conflict detection. It adds a
+second axis: two commits may be structurally non-conflicting but causally
+dependent, or structurally conflicting but causally independent. The merge
+pipeline must reason about both axes when applying reconciliation policies.
+
+#### Schema-Declared Merge Policies (CRDT-Style)
+
+Policy-driven conflict resolution should not be implemented as arbitrary
+caller-supplied closures. Instead, the schema must declare per-aspect merge
+semantics from a classified set of conflict-free resolution strategies. These
+are the relational runtime's equivalent of CRDTs (Conflict-free Replicated Data
+Types), adapted for the branch-and-merge model rather than the eventual
+consistency model.
+
+Required schema-declared merge semantics:
+
+- **FailOnConflict**: default behavior; concurrent modifications to the same
+  aspect on different branches produce a structural conflict that must be
+  resolved manually or rejected
+- **LastWriterWins**: concurrent modifications resolve by causal timestamp;
+  requires causal metadata to be meaningful, otherwise falls back to
+  fail-on-conflict
+- **MonotonicCounter**: numeric aspect values merge by summation of per-branch
+  deltas from the common ancestor; each branch's contribution is independently
+  valid and merge produces the combined total
+- **AdditiveSet**: set-valued aspects merge by observed-remove semantics; adds
+  win over concurrent removes and the merged result contains any element added
+  by either branch unless both branches independently removed it
+- **PreferRicher**: when one branch carries richer declared aspect structure
+  than the other, the richer structure wins; this is the explicit formal
+  resolution for the "richer aspect into poorer target" behavior described
+  above
+- **Custom**: caller-supplied merge policy registered through the schema
+  registry with the same freeze-at-construction and deterministic-descriptor
+  rules as custom invariants
+
+Merge policy enforcement rules:
+
+- merge policies must be declared per-aspect at schema level, not supplied ad
+  hoc at merge time; the schema is the authority for how conflicts resolve
+- merge policies must compose with causal metadata; LastWriterWins is only valid
+  when causal timestamps are present, and the runtime must reject the
+  declaration if causal metadata is not enabled
+- merge policies must be recorded in canonical merge artifacts so replay can
+  verify that the same policy was applied
+- merge policies that are conflict-free by construction (MonotonicCounter,
+  AdditiveSet) must be auto-resolved without caller intervention; the merge
+  pipeline must not present these as conflicts
+- merge policies must not bypass the invariant pipeline; after auto-resolution,
+  the merged state must still satisfy all declared invariants at the merge
+  commit boundary
+
 #### Must Preserve
 
 - single serialized authority for final truth commit
@@ -625,6 +716,108 @@ named requirements from
 - `Index non-authority corruption test`
 - `Deterministic observability under hostile scheduling test`
 - `Snapshot-stable concurrent read vs hot rewrite test`
+
+## Milestone 8.5: Intent-Based Reconciliation
+
+### Goal
+
+Introduce intent-based reconciliation as a first-class commit semantic so
+callers can declare desired structural shape and the runtime plans and executes
+reconciliation toward that shape through the invariant and merge pipelines.
+
+This milestone exists because the mutation-only commit model ("here is what
+changed") does not capture higher-level semantic goals. Many real-world
+operations are intent-driven: a CAD assembly constraint says "these faces must
+be flush," a deployment manifest says "this service must have 3 replicas," a
+compliance rule says "this entity must satisfy GDPR." These are not mutations;
+they are declarations of desired structural state that the runtime must
+reconcile toward.
+
+The practical value is that intent-based reconciliation composes with branching:
+two branches can declare conflicting intents, and the merge pipeline can detect
+intent conflicts at a higher semantic level than record-level field conflicts.
+This is strictly more powerful than mutation-based merge because it preserves
+caller goals through divergence and reconciliation.
+
+### Prerequisites
+
+- Milestone 6.5 (invariant pipeline) for validating intent legality
+- Milestone 7B (merge execution) for merging branches with divergent intents
+- Causal commit metadata (from Milestone 7B) for determining intent ordering
+
+### Must Ship
+
+#### Intent Commit Type
+
+- a new commit type distinct from mutation commits that carries a structural
+  intent declaration rather than a set of explicit mutations
+- intent declarations must be typed and schema-validated, not freeform; the
+  runtime must reject intents that reference nonexistent kinds, invalid
+  cardinalities, or structurally impossible topologies
+- the runtime must plan a reconciliation path from current state to intended
+  state, producing a mutation plan that is then validated through the invariant
+  pipeline before execution
+- intent commits must produce canonical commit envelopes with the same replay
+  and durability guarantees as mutation commits
+
+#### Intent Conflict Detection
+
+- when two branches carry conflicting intents (e.g., one branch declares
+  "entity X must have at least 5 outgoing relations" and another declares
+  "entity X must have at most 3 outgoing relations"), merge must detect the
+  intent conflict at the semantic level, not merely the mutation level
+- intent conflicts must be classified as a distinct conflict category from
+  record-level merge conflicts, with their own structured diagnostics
+- structurally compatible intents from different branches must auto-reconcile;
+  structurally incompatible intents must fail-explicit with explanation
+
+#### Intent Reconciliation Pipeline
+
+- reconciliation planning must use the schema, current state, and declared
+  intent to determine what mutations are needed to reach the intended state
+- the planned mutations must pass through the full invariant pipeline at commit
+  boundary; if the mutations required to satisfy an intent would violate another
+  invariant, the intent commit must fail-explicit with a typed explanation of
+  the structural impossibility
+- reconciliation must be idempotent: applying the same intent to a state that
+  already satisfies it must produce no mutations and succeed
+- reconciliation must compose with CRDT-style merge policies: if an aspect has
+  a declared merge policy and an intent targets that aspect, the reconciliation
+  must respect the merge policy
+
+#### Intent Persistence and Replay
+
+- persisted intent artifacts must record the declared intent, the planned
+  reconciliation mutations, and the invariant validation results
+- replay must verify that the same intent applied to the same pre-state produces
+  the same mutations; divergence is a replay parity violation
+- intent declarations must be canonical artifacts with digest bases, not opaque
+  blobs
+
+### Must Preserve
+
+- serialized authority for truth mutation (intent reconciliation produces
+  mutations through the existing commit authority, not a parallel path)
+- canonical observability and replay
+- coherent publication
+- invariant enforcement at commit boundary (intents do not bypass invariants)
+- explicit failure rather than partial reconciliation
+
+### Acceptance Requirements
+
+This milestone is complete only when:
+
+- intent commits produce canonical commit envelopes verified by the existing
+  replay certification pipeline
+- intent conflict detection is demonstrated under hostile branching scenarios
+  with structurally incompatible intents
+- reconciliation idempotency is verified
+- `Hostile commit/replay equivalence test` is satisfied for intent-bearing
+  histories
+- the roadmap is paired with an explicit intent-reconciliation certification
+  test if
+  [test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md)
+  does not already contain one
 
 ## Milestone 9: Generic Certification Program
 

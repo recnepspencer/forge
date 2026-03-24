@@ -1,7 +1,7 @@
-use crate::facade::*;
-use crate::diagnostics::{ExplanationFact, ProvenanceFact};
 use crate::data::dependency::DependencySnapshot;
 use crate::data::trace::{CausalityMetadata, RetainedDiagnosticArtifact};
+use crate::diagnostics::{ExplanationFact, ProvenanceFact};
+use crate::facade::*;
 use crate::tests::support::*;
 
 #[test]
@@ -1424,12 +1424,16 @@ fn graph_restore_uses_checkpoint_image_not_raw_snapshot_graph_bundle() {
     let mut graph = SignalGraph::new();
     let source = graph.node().output_identity().build();
 
-    let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| {
-        Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("artifact-v1"))
-    };
-    let mut source_v2 = |_id: NodeId, _graph: &SignalGraph| {
-        Ok(NodeEvaluationResult::from_version(version_ab(9, 0)).with_output_identity("artifact-v9"))
-    };
+    let mut source_v1 =
+        |_id: NodeId, _graph: &SignalGraph| {
+            Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+                .with_output_identity("artifact-v1"))
+        };
+    let mut source_v2 =
+        |_id: NodeId, _graph: &SignalGraph| {
+            Ok(NodeEvaluationResult::from_version(version_ab(9, 0))
+                .with_output_identity("artifact-v9"))
+        };
 
     evaluate(&mut graph, source, &mut source_v1).unwrap();
     let mut snapshot = graph.capture_snapshot();
@@ -1444,7 +1448,11 @@ fn graph_restore_uses_checkpoint_image_not_raw_snapshot_graph_bundle() {
     mark_dirty(&mut graph, source, ASPECT_A).unwrap();
     evaluate(&mut graph, source, &mut source_v2).unwrap();
     assert_eq!(
-        graph.get_entry(source).unwrap().get_aspect_version().get(ASPECT_A),
+        graph
+            .get_entry(source)
+            .unwrap()
+            .get_aspect_version()
+            .get(ASPECT_A),
         9
     );
 
@@ -1462,15 +1470,21 @@ fn checkpoint_image_omits_diagnostic_richness_while_snapshot_bundle_retains_it()
     let mut graph = SignalGraph::new();
     let source = graph.node().output_identity().build();
 
-    let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| {
-        Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("artifact-v1"))
-    };
+    let mut source_v1 =
+        |_id: NodeId, _graph: &SignalGraph| {
+            Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+                .with_output_identity("artifact-v1"))
+        };
 
     evaluate(&mut graph, source, &mut source_v1).unwrap();
     let snapshot = graph.capture_snapshot();
 
     assert!(
-        snapshot.authority_graph().observe().replay_events().is_empty(),
+        snapshot
+            .authority_graph()
+            .observe()
+            .replay_events()
+            .is_empty(),
         "checkpoint image should not carry retained replay richness"
     );
     assert!(
@@ -1491,7 +1505,11 @@ fn checkpoint_image_omits_diagnostic_richness_while_snapshot_bundle_retains_it()
     );
     assert!(
         !snapshot.diagnostics.replay_frames.is_empty()
-            || !snapshot.diagnostic_graph.observe().replay_events().is_empty(),
+            || !snapshot
+                .diagnostic_graph
+                .observe()
+                .replay_events()
+                .is_empty(),
         "rich snapshot bundle should still carry explicit diagnostics/replay payloads"
     );
 }
@@ -1530,7 +1548,9 @@ fn snapshot_restore_preserves_advanced_reuse_history_truth() {
     let mut runtime_ctx = ();
 
     runtime
-        .transaction(&mut runtime_ctx, |tx| source.evaluate_memoized(tx, "shape-v1"))
+        .transaction(&mut runtime_ctx, |tx| {
+            source.evaluate_memoized(tx, "shape-v1")
+        })
         .unwrap();
     runtime
         .transaction(&mut runtime_ctx, |tx| {
@@ -1543,7 +1563,9 @@ fn snapshot_restore_preserves_advanced_reuse_history_truth() {
         })
         .unwrap();
     runtime
-        .transaction(&mut runtime_ctx, |tx| wing.evaluate_memoized(tx, "shape-v1"))
+        .transaction(&mut runtime_ctx, |tx| {
+            wing.evaluate_memoized(tx, "shape-v1")
+        })
         .unwrap();
     mark_dirty(runtime.graph_mut(), wing_node, ASPECT_A).unwrap();
     runtime
@@ -1560,11 +1582,15 @@ fn snapshot_restore_preserves_advanced_reuse_history_truth() {
 
     mark_dirty(runtime.graph_mut(), alias_node, ASPECT_A).unwrap();
     runtime
-        .transaction(&mut runtime_ctx, |tx| alias.evaluate_memoized(tx, "shape-v2"))
+        .transaction(&mut runtime_ctx, |tx| {
+            alias.evaluate_memoized(tx, "shape-v2")
+        })
         .unwrap();
     mark_dirty(runtime.graph_mut(), wing_node, ASPECT_A).unwrap();
     runtime
-        .transaction(&mut runtime_ctx, |tx| wing.evaluate_memoized(tx, "shape-v2"))
+        .transaction(&mut runtime_ctx, |tx| {
+            wing.evaluate_memoized(tx, "shape-v2")
+        })
         .unwrap();
 
     runtime.restore_snapshot(&snapshot).unwrap();
@@ -1591,7 +1617,10 @@ fn snapshot_restore_preserves_advanced_reuse_history_truth() {
         .iter()
         .find(|node| node.node == wing_node)
         .expect("wing history summary");
-    assert_eq!(wing_summary.reuse_origin, Some(ReuseOrigin::PartialArtifactSplice));
+    assert_eq!(
+        wing_summary.reuse_origin,
+        Some(ReuseOrigin::PartialArtifactSplice)
+    );
     assert_eq!(wing_summary.composition_region_count, 1);
 
     let alias_explain = runtime.observe().explain(alias_node).unwrap();
@@ -1600,7 +1629,10 @@ fn snapshot_restore_preserves_advanced_reuse_history_truth() {
         Some(ReuseOrigin::CrossIdentityPersistentReuse)
     );
     let wing_explain = runtime.observe().explain(wing_node).unwrap();
-    assert_eq!(wing_explain.reuse_origin, Some(ReuseOrigin::PartialArtifactSplice));
+    assert_eq!(
+        wing_explain.reuse_origin,
+        Some(ReuseOrigin::PartialArtifactSplice)
+    );
 
     assert!(runtime.graph().replay_events().iter().any(|event| {
         event.kind == ReplayEventKind::SnapshotRestored
@@ -1618,11 +1650,10 @@ fn snapshot_restore_preserves_advanced_reuse_history_truth() {
     assert!(alias_lineage.iter().any(|record| matches!(
         &record.kind,
         LineageRecordKind::ArtifactTransition {
-            transition:
-                ArtifactTransitionKind::CrossIdentityPersistentReuse {
-                    correspondence_kind:
-                        crate::data::reuse::PersistentCorrespondenceKind::LineageBackedMapping
-                },
+            transition: ArtifactTransitionKind::CrossIdentityPersistentReuse {
+                correspondence_kind:
+                    crate::data::reuse::PersistentCorrespondenceKind::LineageBackedMapping
+            },
             ..
         }
     )));
@@ -1630,11 +1661,10 @@ fn snapshot_restore_preserves_advanced_reuse_history_truth() {
     assert!(wing_lineage.iter().any(|record| matches!(
         &record.kind,
         LineageRecordKind::ArtifactTransition {
-            transition:
-                ArtifactTransitionKind::PartialArtifactSplice {
-                    composition_region_count: 1,
-                    recomputed_region_count: 1
-                },
+            transition: ArtifactTransitionKind::PartialArtifactSplice {
+                composition_region_count: 1,
+                recomputed_region_count: 1
+            },
             ..
         }
     )));
@@ -1653,7 +1683,9 @@ fn snapshot_artifact_retention_policy_changes_richness_not_restore_truth() {
     })
     .unwrap();
     let retained_explanation = graph
-        .observe().materialize().materialize_explanation_artifact(node)
+        .observe()
+        .materialize()
+        .materialize_explanation_artifact(node)
         .unwrap()
         .0
         .expect("development policy should materialize explanation artifacts");
@@ -1666,11 +1698,17 @@ fn snapshot_artifact_retention_policy_changes_richness_not_restore_truth() {
 
     let retained_snapshot = graph.capture_snapshot();
     assert_eq!(
-        retained_snapshot.meta.artifact_retention.explanation_retention,
+        retained_snapshot
+            .meta
+            .artifact_retention
+            .explanation_retention,
         ArtifactRetentionPolicy::Retain
     );
     assert_eq!(
-        retained_snapshot.meta.artifact_retention.provenance_retention,
+        retained_snapshot
+            .meta
+            .artifact_retention
+            .provenance_retention,
         ArtifactRetentionPolicy::Retain
     );
     assert!(
@@ -1695,11 +1733,17 @@ fn snapshot_artifact_retention_policy_changes_richness_not_restore_truth() {
     );
     let omitted_snapshot = graph.capture_snapshot();
     assert_eq!(
-        omitted_snapshot.meta.artifact_retention.explanation_retention,
+        omitted_snapshot
+            .meta
+            .artifact_retention
+            .explanation_retention,
         ArtifactRetentionPolicy::Omit
     );
     assert_eq!(
-        omitted_snapshot.meta.artifact_retention.provenance_retention,
+        omitted_snapshot
+            .meta
+            .artifact_retention
+            .provenance_retention,
         ArtifactRetentionPolicy::Omit
     );
     assert!(
@@ -1737,8 +1781,7 @@ fn snapshot_artifact_retention_policy_changes_richness_not_restore_truth() {
         1,
         "snapshot restore should rewind operational truth even when cold artifact richness was omitted"
     );
-    let (explanation, materialization_mode) =
-    graph
+    let (explanation, materialization_mode) = graph
         .observe()
         .materialize()
         .materialize_explanation_artifact(node)
@@ -1796,11 +1839,17 @@ fn branch_snapshot_records_explicit_artifact_retention_for_non_active_branches()
 
     let feature_snapshot = runtime.capture_branch_snapshot(feature).unwrap();
     assert_eq!(
-        feature_snapshot.meta.artifact_retention.explanation_retention,
+        feature_snapshot
+            .meta
+            .artifact_retention
+            .explanation_retention,
         ArtifactRetentionPolicy::Omit
     );
     assert_eq!(
-        feature_snapshot.meta.artifact_retention.provenance_retention,
+        feature_snapshot
+            .meta
+            .artifact_retention
+            .provenance_retention,
         ArtifactRetentionPolicy::Omit
     );
     assert!(
@@ -1950,9 +1999,7 @@ fn restore_uses_checkpoint_authority_even_when_rich_snapshot_node_cold_payloads_
         }));
         entry.set_causality(Some(CausalityMetadata {
             kind: "capture".to_string(),
-            fields: [("rev".to_string(), "1".to_string())]
-                .into_iter()
-                .collect(),
+            fields: [("rev".to_string(), "1".to_string())].into_iter().collect(),
         }));
     }
 
@@ -1980,7 +2027,11 @@ fn restore_uses_checkpoint_authority_even_when_rich_snapshot_node_cold_payloads_
     graph.restore_snapshot(&tampered).unwrap();
 
     assert_eq!(
-        graph.get_entry(node).unwrap().get_aspect_version().get(ASPECT_A),
+        graph
+            .get_entry(node)
+            .unwrap()
+            .get_aspect_version()
+            .get(ASPECT_A),
         1,
         "restore must still follow checkpoint authority for operational state"
     );
@@ -2021,7 +2072,9 @@ fn restore_snapshot_with_active_policy_prunes_cold_richness_without_changing_ope
         .unwrap();
 
     let explanation = runtime
-        .observe().materialize().materialize_explanation_artifact(node)
+        .observe()
+        .materialize()
+        .materialize_explanation_artifact(node)
         .unwrap()
         .0
         .expect("development policy should materialize explanation");
@@ -2083,12 +2136,19 @@ fn restore_snapshot_with_active_policy_prunes_cold_richness_without_changing_ope
         "active-policy restore should still rewind operational state"
     );
     let (artifact, materialization_mode) = runtime
-        .observe().materialize().materialize_explanation_artifact(node)
+        .observe()
+        .materialize()
+        .materialize_explanation_artifact(node)
         .unwrap();
     assert!(artifact.is_none());
     assert_eq!(materialization_mode, DiagnosticsAvailability::OmittedByTier);
     assert!(
-        runtime.observe().metrics().checkpoint.snapshot_restore_count >= 1,
+        runtime
+            .observe()
+            .metrics()
+            .checkpoint
+            .snapshot_restore_count
+            >= 1,
         "restore intent should be visible in checkpoint telemetry"
     );
     assert!(
@@ -2144,8 +2204,7 @@ fn restore_snapshot_rejects_seed_recomputation_intent_before_mutation() {
         .unwrap_err();
 
     assert!(
-        err.to_string()
-            .contains("SeedRecomputationFromSnapshot"),
+        err.to_string().contains("SeedRecomputationFromSnapshot"),
         "unsupported recomputation-seed restore intent should fail explicitly"
     );
     assert_eq!(
@@ -2163,7 +2222,10 @@ fn snapshot_restore_plan_reports_shared_delta_and_coarse_requirements() {
     graph.append_dependency(target, source, ASPECT_A).unwrap();
 
     evaluate(&mut graph, source, &mut |_id, _graph| {
-        Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("plan-source"))
+        Ok(
+            NodeEvaluationResult::from_version(version_ab(1, 0))
+                .with_output_identity("plan-source"),
+        )
     })
     .unwrap();
     evaluate(&mut graph, target, &mut |_id, graph| {
@@ -2347,7 +2409,8 @@ fn branch_churn_respects_history_and_replay_budgets_under_tight_policy() {
         "replay retention should stay within the policy-derived bound under branch churn"
     );
     assert!(
-        runtime.graph().observe().lineage_records().len() <= policy.retention_budget.history_limit.max(1) * 32,
+        runtime.graph().observe().lineage_records().len()
+            <= policy.retention_budget.history_limit.max(1) * 32,
         "lineage retention should stay within the policy-derived bound under branch churn"
     );
     assert_eq!(
@@ -2366,7 +2429,3 @@ fn branch_churn_respects_history_and_replay_budgets_under_tight_policy() {
         "feature head should remain pinned to its snapshot under churn"
     );
 }
-
-
-
-

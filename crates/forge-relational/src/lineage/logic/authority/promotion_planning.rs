@@ -74,7 +74,12 @@ impl<'runtime> LineageAuthority<'runtime> {
         commit: &CommitReference,
     ) -> Result<PromotionEligibleCorrespondenceCandidate, CorrespondencePromotionRejectionClass> {
         let candidate = validated.candidate();
+        let validated_width =
+            validated.branch_scoped_sources().len() + validated.branch_scoped_targets().len();
         if candidate.branch_id != commit.branch_id {
+            self.runtime
+                .performance_access()
+                .count_lineage_promotion_plan_lowering(0);
             self.record_rejected_promotion_for_candidate(
                 Some(candidate),
                 &commit.branch_id,
@@ -91,6 +96,9 @@ impl<'runtime> LineageAuthority<'runtime> {
             .map(|head| head.commit_id)
             != Some(commit.commit_id)
         {
+            self.runtime
+                .performance_access()
+                .count_lineage_promotion_plan_lowering(0);
             self.record_rejected_promotion_for_candidate(
                 Some(candidate),
                 &commit.branch_id,
@@ -100,6 +108,9 @@ impl<'runtime> LineageAuthority<'runtime> {
             );
             return Err(CorrespondencePromotionRejectionClass::CommitNotBranchHead);
         }
+        self.runtime
+            .performance_access()
+            .count_lineage_promotion_plan_lowering(validated_width);
         Ok(PromotionEligibleCorrespondenceCandidate::new(
             candidate.clone(),
             PromotionAuthority::new(candidate.branch_id.clone()),

@@ -98,9 +98,7 @@ pub(crate) fn classify_task_execution_record(
             _ if matches!(reuse_origin, ReuseOrigin::PartialArtifactSplice) => {
                 (TaskExecutionOutcome::PartialArtifactSplice, None)
             }
-            _ if recomputed && !propagation_suppressed => {
-                (TaskExecutionOutcome::Recomputed, None)
-            }
+            _ if recomputed && !propagation_suppressed => (TaskExecutionOutcome::Recomputed, None),
             _ if propagation_suppressed => (TaskExecutionOutcome::PropagationSuppressed, None),
             _ if !trace_changed
                 && matches!(

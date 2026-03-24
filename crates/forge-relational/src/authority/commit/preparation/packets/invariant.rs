@@ -6,13 +6,47 @@ use crate::authority::commit::preparation::proofs::locality::PreparationLocality
 use crate::authority::commit::preparation::proofs::validity::PreparationProofValidity;
 use crate::authority::commit::preparation::reduction::keys::ValidationReductionKey;
 use crate::transactions::data::MergedCommitPlan;
-use crate::validation::data::InvariantRegistration;
+use crate::validation::data::{
+    CustomInvariantRegistration, InvariantRegistration, PreparedCustomInvariantExecution,
+};
 use crate::validation::engine::{InvariantObservation, PreparedRelationIntegrityScopes};
+
+#[derive(Clone)]
+pub(crate) enum InvariantPacketRegistration {
+    Native(InvariantRegistration),
+    Custom {
+        registration: CustomInvariantRegistration,
+        prepared_execution: Arc<dyn PreparedCustomInvariantExecution>,
+    },
+}
+
+impl InvariantPacketRegistration {
+    pub(crate) fn execution_point(&self) -> crate::validation::data::InvariantExecutionPoint {
+        match self {
+            Self::Native(registration) => registration.execution_point,
+            Self::Custom { registration, .. } => registration.execution_point(),
+        }
+    }
+
+    pub(crate) fn failure_effect(&self) -> crate::validation::data::InvariantFailureEffect {
+        match self {
+            Self::Native(registration) => registration.failure_effect,
+            Self::Custom { registration, .. } => registration.failure_effect(),
+        }
+    }
+
+    pub(crate) fn groups(&self) -> crate::validation::data::InvariantGroupSet {
+        match self {
+            Self::Native(registration) => registration.groups(),
+            Self::Custom { registration, .. } => registration.groups(),
+        }
+    }
+}
 
 #[derive(Clone)]
 pub(crate) struct InvariantWorkPacket<'runtime> {
     pub(crate) packet_index: usize,
-    pub(crate) registration: InvariantRegistration,
+    pub(crate) registration: InvariantPacketRegistration,
     pub(crate) reduction_key: ValidationReductionKey,
     pub(crate) proof_kind: PreparationProofKind,
     pub(crate) locality: PreparationLocalityProof,

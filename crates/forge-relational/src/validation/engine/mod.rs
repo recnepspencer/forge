@@ -8,7 +8,7 @@ mod policy;
 mod profile;
 mod request;
 mod result;
-mod state_view;
+pub(crate) mod state_view;
 
 pub(crate) use engine::InvariantEngine;
 pub(crate) use observation::InvariantObservation;

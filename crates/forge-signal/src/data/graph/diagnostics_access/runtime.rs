@@ -2,8 +2,8 @@ use crate::data::aspect::Aspect;
 use crate::data::graph::signal_graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
-use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::diagnostics::policy::OrdinaryAccessLane;
+use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::diagnostics::profile::DiagnosticsTier;
 use crate::diagnostics::summary::GraphSummary;
 
@@ -102,17 +102,17 @@ impl SignalGraph {
                 .set_pending_graph_summary(summary.with_profile(self.diagnostics_profile()));
         } else {
             let retention_budget = self.runtime_policy().retention_budget;
-            self.observation.diagnostics.set_pending_graph_summary(GraphSummary::from_graph(
-                self,
-                self.diagnostics_profile(),
-                retention_budget.detail_limit,
-                OrdinaryAccessLane,
-            ));
+            self.observation
+                .diagnostics
+                .set_pending_graph_summary(GraphSummary::from_graph(
+                    self,
+                    self.diagnostics_profile(),
+                    retention_budget.detail_limit,
+                    OrdinaryAccessLane,
+                ));
         }
         self.observation
             .diagnostics
             .record_frontier_execution(summary, trace_records);
     }
 }
-
-

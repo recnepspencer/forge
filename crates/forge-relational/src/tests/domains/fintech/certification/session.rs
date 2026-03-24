@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use serde_json::Value;
 
 use crate::facade::history::BranchId;
+use crate::facade::lineage::LineageResolutionStatus;
 use crate::facade::replay::RelationalReplayOutcome;
 use crate::facade::snapshots::SnapshotHandle;
 
@@ -14,6 +15,7 @@ pub(super) struct CertifiedRelationalFintechSession {
     pub(super) named_branches: BTreeMap<String, BranchId>,
     pub(super) named_snapshots: BTreeMap<String, SnapshotHandle>,
     pub(super) named_reads: BTreeMap<String, Value>,
+    pub(super) named_lineage_resolutions: BTreeMap<String, LineageResolutionStatus>,
     pub(super) named_replays: BTreeMap<String, RelationalReplayOutcome>,
     pub(super) executed_steps: Vec<String>,
     pub(super) checkpoints: Vec<String>,

@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use super::custom_rule::CustomInvariantProvenance;
+use super::rule_id::CustomInvariantSemanticIdentity;
 use super::groups::{InvariantCostClass, InvariantGroupSet};
 use super::results::{InvariantAdvisory, InvariantViolation};
 use super::rules::InvariantRule;
@@ -66,11 +68,20 @@ pub enum InvariantVerdict {
     Violation(InvariantViolation),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum InvariantReportedRule {
+    Native(InvariantRule),
+    Custom(CustomInvariantSemanticIdentity),
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InvariantCheckResult {
     pub execution_point: InvariantExecutionPoint,
     pub failure_effect: InvariantFailureEffect,
-    pub rule: InvariantRule,
+    pub rule: InvariantReportedRule,
+    pub groups: InvariantGroupSet,
+    pub cost: InvariantCostClass,
+    pub custom_provenance: Option<CustomInvariantProvenance>,
     pub verdict: InvariantVerdict,
 }
 
@@ -80,10 +91,14 @@ impl InvariantCheckResult {
     }
 
     pub fn groups(&self) -> InvariantGroupSet {
-        self.rule.groups()
+        self.groups
     }
 
     pub fn cost(&self) -> InvariantCostClass {
-        self.rule.cost_class()
+        self.cost
+    }
+
+    pub fn custom_provenance(&self) -> Option<&CustomInvariantProvenance> {
+        self.custom_provenance.as_ref()
     }
 }

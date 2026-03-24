@@ -6,8 +6,8 @@ use crate::diagnostics::replay::{ReplayEvent, ReplayEventKind};
 use crate::diagnostics::ReplayCursor;
 use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::planner::{ExecutionRecordId, SemanticSegmentId};
-use crate::logic::transaction::TransactionReplayEntry;
 use crate::logic::transaction::runtime::config::SignalRuntimeConfig;
+use crate::logic::transaction::TransactionReplayEntry;
 use crate::state::{SignalBranchId, SignalSnapshotId};
 
 #[derive(Debug, Clone)]
@@ -96,12 +96,15 @@ impl JournalSegment {
             segment.first_execution_record_id = segment
                 .first_execution_record_id
                 .or(entry.execution_record_id);
-            segment.last_execution_record_id = entry.execution_record_id.or(segment.last_execution_record_id);
+            segment.last_execution_record_id = entry
+                .execution_record_id
+                .or(segment.last_execution_record_id);
             segment.first_semantic_segment_id = segment
                 .first_semantic_segment_id
                 .or(entry.semantic_segment_id);
-            segment.last_semantic_segment_id =
-                entry.semantic_segment_id.or(segment.last_semantic_segment_id);
+            segment.last_semantic_segment_id = entry
+                .semantic_segment_id
+                .or(segment.last_semantic_segment_id);
             segment.contains_rollback |=
                 matches!(entry.kind, ReplayEventKind::TransactionRolledBack);
             segment.contains_failure |= matches!(entry.kind, ReplayEventKind::FailureRecorded);
@@ -115,10 +118,12 @@ impl JournalSegment {
             ..Self::default()
         };
         for entry in entries {
-            let execution_record_id =
-                entry.execution_record_id.map(crate::logic::planner::ExecutionRecordId);
-            let semantic_segment_id =
-                entry.semantic_segment_id.map(crate::logic::planner::SemanticSegmentId);
+            let execution_record_id = entry
+                .execution_record_id
+                .map(crate::logic::planner::ExecutionRecordId);
+            let semantic_segment_id = entry
+                .semantic_segment_id
+                .map(crate::logic::planner::SemanticSegmentId);
             segment.first_execution_record_id =
                 segment.first_execution_record_id.or(execution_record_id);
             segment.last_execution_record_id =
