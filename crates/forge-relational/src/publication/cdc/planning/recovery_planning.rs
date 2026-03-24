@@ -54,12 +54,12 @@ pub(crate) fn plan_subscriber_recovery(
                 .checkpoint()
                 .is_some_and(|checkpoint| envelopes.iter().any(|envelope| envelope.patch.position == checkpoint.position()))
         });
-    let source_envelopes = if let Some(envelopes) = preloaded_durable_envelopes {
+    let available_envelopes = if let Some(envelopes) = preloaded_durable_envelopes {
         envelopes
     } else {
         runtime
             .history_access()
-            .envelopes_after(start_after_position, request.max_commits())
+            .envelopes_after(start_after_position, usize::MAX)
     };
     if let Some(checkpoint) = request.checkpoint() {
         if checkpoint.subscriber_contract_id() != request.subscriber_contract().contract_id {
@@ -80,7 +80,7 @@ pub(crate) fn plan_subscriber_recovery(
         }
     }
     let selected_envelopes = select_execution_envelopes(
-        &source_envelopes,
+        &available_envelopes,
         start_after_position,
         request.max_commits(),
     );
@@ -112,6 +112,27 @@ pub(crate) fn plan_subscriber_recovery(
             failure.diagnostics,
         )
     })?;
+    let latest_available_assessment = if selected_envelopes.len() == available_envelopes.len() {
+        None
+    } else {
+        Some(
+            assess_subscriber_continuity(
+                runtime,
+                &available_envelopes,
+                request.subscriber_contract(),
+                &prior_proof,
+                fallback_descriptor_semantics_version,
+            )
+            .map_err(|failure| {
+                SubscriberStreamFailure::new(
+                    failure.class,
+                    failure.detail,
+                    latest_available_checkpoint(runtime),
+                    failure.diagnostics,
+                )
+            })?,
+        )
+    };
     let decision = SubscriberRecoveryDecision {
         disposition: disposition_for_assessment(
             start_after_position,
@@ -124,17 +145,20 @@ pub(crate) fn plan_subscriber_recovery(
         },
         start_after_position,
     };
-    let latest_available_checkpoint = selected_envelopes
+    let latest_available_checkpoint = available_envelopes
         .last()
         .and_then(|envelope| checkpoint_basis_from_patch_position(runtime, envelope.patch.position))
         .map(|basis| {
-            let descriptor_semantics_version = continuation_assessment
+            let latest_assessment = latest_available_assessment
+                .as_ref()
+                .unwrap_or(&continuation_assessment);
+            let descriptor_semantics_version = latest_assessment
                 .normalized_continuation_proof
                 .descriptor_semantics_version();
             crate::publication::cdc::data::SubscriberCheckpoint::from_basis_with_assessment(
                 basis,
                 request.subscriber_contract().contract_id.clone(),
-                &continuation_assessment,
+                latest_assessment,
                 descriptor_semantics_version,
             )
         })

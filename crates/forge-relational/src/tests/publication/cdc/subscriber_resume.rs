@@ -82,7 +82,7 @@ fn subscriber_stream_resume_uses_checkpoint_type_and_batches_without_duplication
             .unwrap()
             .position()
             .0,
-        2
+        3
     );
     assert_eq!(resumed.patches.len(), 1);
     assert_eq!(resumed.resumed_from.unwrap().position().0, 2);

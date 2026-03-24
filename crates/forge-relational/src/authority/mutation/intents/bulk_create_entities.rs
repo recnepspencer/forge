@@ -29,7 +29,7 @@ pub(super) fn apply(
 ) -> Result<MutationOutcome, CommitConflict> {
     let version_id = workspace.version_id();
     let mut outcome = MutationOutcome::bulk_entities_created(intent.partition_id, intent.kind_id);
-    let staged_rows = stage_bulk_entity_rows(intent, workspace);
+    let staged_rows = stage_bulk_entity_rows(intent, workspace)?;
     workspace.with_context(|context| {
         reserve_bulk_entity_capacity(context.state, intent.partition_id, intent.payloads.len());
     });
@@ -60,7 +60,7 @@ pub(super) fn apply(
 fn stage_bulk_entity_rows(
     intent: &BulkEntityCreateIntent,
     workspace: &mut MutationWorkspace<'_>,
-) -> Vec<crate::payloads::data::RecordPayload> {
+) -> Result<Vec<crate::payloads::data::RecordPayload>, CommitConflict> {
     let packet_count =
         coarse_preparation_packet_count(intent.payloads.len(), TARGET_PREPARATION_ITEMS_PER_PACKET);
     let mut packets = Vec::with_capacity(packet_count);
@@ -103,10 +103,19 @@ fn stage_bulk_entity_rows(
     stage_import_packets(workspace, packets)
         .into_iter()
         .map(|row| match row {
-            ImportStagedRow::Entity { payload } => payload,
-            ImportStagedRow::Relation { .. } => {
-                unreachable!("entity staging only emits entity rows")
-            }
+            ImportStagedRow::Entity { payload } => Ok(payload),
+            ImportStagedRow::Relation { .. } => Err(CommitConflict::new(
+                crate::transactions::data::ConflictClass::MutationStateInconsistency {
+                    detail:
+                        "bulk entity staging produced a relation row in the entity import lane"
+                            .to_string(),
+                    fields: serde_json::json!({
+                        "expected_row_domain": "entity",
+                        "actual_row_domain": "relation",
+                        "phase": "bulk_entity_stage_import",
+                    }),
+                },
+            )),
         })
         .collect()
 }

@@ -20,7 +20,7 @@ pub(super) fn apply(
             context.schema,
             cascade_delete_policy,
             &mut outcome,
-        );
+        )?;
         let replacement_id = allocate_entity(
             context.state,
             version_id,

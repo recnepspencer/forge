@@ -120,6 +120,7 @@ impl SchemaBoundaryFingerprint {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum SchemaStratum {
     StructuralShape,
     ValueDomain,
@@ -131,17 +132,26 @@ pub enum SchemaStratum {
     SubscriberContract,
 }
 
+#[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum HistoricalInterpretationSensitivity {
-    NotSensitive,
-    SensitiveToValueMeaning,
-    SensitiveToLegalityMeaning,
-    SensitiveToIdentityMeaning,
-    SensitiveToPublicationMeaning,
-    SensitiveToDerivedMeaning,
+    NotSensitive = 0,
+    SensitiveToValueMeaning = 1,
+    SensitiveToLegalityMeaning = 2,
+    SensitiveToIdentityMeaning = 3,
+    SensitiveToPublicationMeaning = 4,
+    SensitiveToDerivedMeaning = 5,
+}
+
+impl HistoricalInterpretationSensitivity {
+    pub const fn sensitivity_rank(self) -> u8 {
+        self as u8
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum SchemaElementKind {
     Schema,
     EntityKind,
@@ -183,6 +193,7 @@ impl SchemaElementRef {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum SchemaPublicationImpact {
     None,
     ObservableSurfaceChanged,
@@ -191,6 +202,7 @@ pub enum SchemaPublicationImpact {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum SchemaSubscriberImpact {
     None,
     ConsumableSurfaceChanged,
@@ -199,13 +211,44 @@ pub enum SchemaSubscriberImpact {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum SubscriberBoundaryVisibility {
     NotVisible,
     VisibleSemanticallyIgnorable,
     VisibleRequiresContractUptake,
 }
 
+pub const fn default_boundary_visibility_for_subscriber_impact(
+    subscriber_impact: SchemaSubscriberImpact,
+) -> SubscriberBoundaryVisibility {
+    match subscriber_impact {
+        SchemaSubscriberImpact::ContractUpgradeRequired => {
+            SubscriberBoundaryVisibility::VisibleRequiresContractUptake
+        }
+        _ => SubscriberBoundaryVisibility::NotVisible,
+    }
+}
+
+pub const fn default_boundary_visibility_for_continuation(
+    continuation: SchemaContinuationClassification,
+) -> SubscriberBoundaryVisibility {
+    match continuation {
+        SchemaContinuationClassification::ContinueWithContractUpgrade => {
+            SubscriberBoundaryVisibility::VisibleRequiresContractUptake
+        }
+        _ => SubscriberBoundaryVisibility::NotVisible,
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum FreeFormSchemaDiffIntent {
+    Additive,
+    StructuralIncompatible,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum SchemaDiffDetail {
     AddedField {
         field_name: Arc<str>,
@@ -235,6 +278,7 @@ pub enum SchemaDiffDetail {
     },
     FreeText {
         detail: Arc<str>,
+        declared_intent: FreeFormSchemaDiffIntent,
     },
 }
 
@@ -263,12 +307,9 @@ impl SchemaDiffAtom {
             strata,
             publication_impact,
             subscriber_impact,
-            boundary_visibility: match subscriber_impact {
-                SchemaSubscriberImpact::ContractUpgradeRequired => {
-                    SubscriberBoundaryVisibility::VisibleRequiresContractUptake
-                }
-                _ => SubscriberBoundaryVisibility::NotVisible,
-            },
+            boundary_visibility: default_boundary_visibility_for_subscriber_impact(
+                subscriber_impact,
+            ),
             historical_interpretation,
             detail,
         }
@@ -284,6 +325,7 @@ impl SchemaDiffAtom {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum SchemaTransitionBarrier {
     ConstructionBarrier,
     ValidationBarrier,
@@ -292,6 +334,7 @@ pub enum SchemaTransitionBarrier {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum SchemaReconciliationClassification {
     Additive,
     Narrowing,
@@ -300,6 +343,7 @@ pub enum SchemaReconciliationClassification {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum SchemaBridgeabilityClassification {
     Transparent,
     SubscriberVisible,
@@ -309,6 +353,7 @@ pub enum SchemaBridgeabilityClassification {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum SchemaContinuationClassification {
     ContinueUnchanged,
     ContinueWithTransparentBridge,
@@ -319,12 +364,14 @@ pub enum SchemaContinuationClassification {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum CompatibilityObservation {
     RejectedInAllLayers,
     NonRejectedInAtLeastOneLayer,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum SchemaReconciliationPolicy {
     RejectLossyNarrowing,
     PreserveInformation,
@@ -335,12 +382,14 @@ pub enum SchemaReconciliationPolicy {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum SchemaReconciliationOrderingMode {
     CanonicalizedPair,
     ExplicitDirectional,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum SchemaLineageOrderingSemantics {
     SymmetricResult,
     DirectionSensitiveResult,
@@ -392,11 +441,7 @@ impl SchemaBridgeDescriptor {
             canonicalization_version,
             continuation,
             bridgeability,
-            if continuation == SchemaContinuationClassification::ContinueWithContractUpgrade {
-                SubscriberBoundaryVisibility::VisibleRequiresContractUptake
-            } else {
-                SubscriberBoundaryVisibility::NotVisible
-            },
+            default_boundary_visibility_for_continuation(continuation),
             historical_interpretation,
             changed_strata,
         )

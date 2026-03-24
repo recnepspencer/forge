@@ -4,7 +4,8 @@ use crate::facade::history::BranchId;
 use crate::facade::identity::KindId;
 use crate::facade::schema::{
     CompatibilityObservation, DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
-    HistoricalInterpretationSensitivity, LoweredSchemaTransitionPlan, SchemaBoundaryFingerprint,
+    FreeFormSchemaDiffIntent, HistoricalInterpretationSensitivity,
+    LoweredSchemaTransitionPlan, ProposedSchemaTransition, SchemaBoundaryFingerprint,
     SchemaBridgeDescriptor, SchemaBridgeabilityClassification, SchemaContinuationClassification,
     SchemaContinuationDescriptor, SchemaDiffAtom, SchemaDiffDetail, SchemaElementKind,
     SchemaElementRef, SchemaId, SchemaLineageArtifact, SchemaLineageOrderingSemantics,
@@ -12,7 +13,6 @@ use crate::facade::schema::{
     SchemaReconciliationDescriptor, SchemaReconciliationOrderingMode,
     SchemaReconciliationPolicy, SchemaStratum, SchemaSubscriberImpact,
     SchemaTransitionArtifact, SchemaTransitionSummary, SchemaVersionId, ValidatedSchemaTransition,
-    ProposedSchemaTransition,
 };
 use crate::diagnostics::data::DiagnosticsArtifactKind;
 use crate::authority::commit::phases::schema_continuity::{
@@ -174,6 +174,7 @@ fn schema_transition_summary_derives_changed_strata_without_duplicate_noise() {
                 HistoricalInterpretationSensitivity::SensitiveToValueMeaning,
                 SchemaDiffDetail::FreeText {
                     detail: Arc::<str>::from("unit semantics widened"),
+                    declared_intent: FreeFormSchemaDiffIntent::StructuralIncompatible,
                 },
             ),
             SchemaDiffAtom::new(
@@ -822,12 +823,15 @@ fn schema_certification_transition_is_explained_and_counted() {
             vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                HistoricalInterpretationSensitivity::NotSensitive,
+            HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
                 field_name: Arc::<str>::from("tag"),
                 required: false,
                 default_expression: Some(Arc::<str>::from("null")),
             },
+        )
+        .with_boundary_visibility_proof(
+            crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable,
         )],
     };
 
@@ -1044,6 +1048,7 @@ fn declared_schema_transition_requires_non_empty_runtime_basis() {
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::FreeText {
                 detail: Arc::<str>::from("bootstrap"),
+                declared_intent: FreeFormSchemaDiffIntent::Additive,
             },
         )],
     };

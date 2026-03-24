@@ -2,7 +2,7 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use crate::facade::schema::{
-    DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
+    DescriptorCanonicalizationVersion, DescriptorSemanticsVersion, FreeFormSchemaDiffIntent,
     HistoricalInterpretationSensitivity, ProposedSchemaTransition, SchemaDiffAtom,
     SchemaDiffDetail, SchemaElementKind, SchemaElementRef, SchemaId,
     SchemaPublicationImpact, SchemaReconciliationClassification, SchemaReconciliationPolicy,
@@ -279,6 +279,7 @@ fn schema_reconciliation_classification_test() {
                 HistoricalInterpretationSensitivity::SensitiveToPublicationMeaning,
                 SchemaDiffDetail::FreeText {
                     detail: "projection semantics became ambiguous".into(),
+                    declared_intent: FreeFormSchemaDiffIntent::StructuralIncompatible,
                 },
             )],
         },

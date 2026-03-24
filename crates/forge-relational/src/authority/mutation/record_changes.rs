@@ -10,7 +10,7 @@ use crate::storage::logic::state::{
     RelationRecordKind,
 };
 use crate::storage::overlay::WorkingState;
-use crate::transactions::data::RelationSpec;
+use crate::transactions::data::{CommitConflict, ConflictClass, RelationSpec};
 
 use super::outcomes::{MutationOutcome, RecordMutation};
 use super::{AdjacencyDelta, AdjacencyDeltaKind};
@@ -72,21 +72,51 @@ pub(super) fn delete_entity_with_cascade(
     schema_registry: &RelationalSchemaRegistry,
     default_cascade_delete_policy: CascadeDeletePolicy,
     outcome: &mut MutationOutcome,
-) {
+) -> Result<(), CommitConflict> {
     let slot = entity_id.local_slot.0 as usize;
     state.mark_entity_slot_touched(entity_id.partition_id, slot);
     let partition = state.get_partition_mut(entity_id.partition_id);
     let slot_view = partition
         .entity_arena
         .get_slot(slot)
-        .expect("current entity slot must exist before deletion");
+        .ok_or_else(|| {
+            mutation_state_inconsistency(
+                "entity delete requires an existing slot after stale-target validation",
+                serde_json::json!({
+                    "record_class": "entity",
+                    "entity_id": entity_id,
+                    "phase": "delete_with_cascade",
+                    "missing": "slot",
+                }),
+            )
+        })?;
     let kind_id = slot_view
         .kind_id()
-        .expect("current entity slot must retain its kind before deletion");
+        .ok_or_else(|| {
+            mutation_state_inconsistency(
+                "entity delete requires a retained kind id after stale-target validation",
+                serde_json::json!({
+                    "record_class": "entity",
+                    "entity_id": entity_id,
+                    "phase": "delete_with_cascade",
+                    "missing": "kind_id",
+                }),
+            )
+        })?;
     let payload = slot_view
         .payload()
         .cloned()
-        .expect("current entity slot must retain its payload before deletion");
+        .ok_or_else(|| {
+            mutation_state_inconsistency(
+                "entity delete requires a retained payload after stale-target validation",
+                serde_json::json!({
+                    "record_class": "entity",
+                    "entity_id": entity_id,
+                    "phase": "delete_with_cascade",
+                    "missing": "payload",
+                }),
+            )
+        })?;
     partition.entity_arena.retire(slot, version_id);
     outcome.record_change(RecordMutation::EntityDeleted {
         entity_id,
@@ -122,6 +152,7 @@ pub(super) fn delete_entity_with_cascade(
             }
         }
     }
+    Ok(())
 }
 
 pub(super) fn retain_relation_dangling_for_audit(
@@ -325,4 +356,14 @@ fn ensure_entity_adjacency_capacity(partition: &mut PartitionState, slot: usize)
             .reverse_adjacency
             .push(AdjacencySet::new(&partition.adjacency_policy));
     }
+}
+
+fn mutation_state_inconsistency(
+    detail: impl Into<String>,
+    fields: serde_json::Value,
+) -> CommitConflict {
+    CommitConflict::new(ConflictClass::MutationStateInconsistency {
+        detail: detail.into(),
+        fields,
+    })
 }

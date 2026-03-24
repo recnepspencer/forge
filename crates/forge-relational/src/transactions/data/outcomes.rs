@@ -108,6 +108,10 @@ pub enum ConflictClass {
     KindSchemaMismatch {
         detail: String,
     },
+    MutationStateInconsistency {
+        detail: String,
+        fields: Value,
+    },
     AspectDeltaFailure {
         detail: String,
         fields: Value,
@@ -180,6 +184,7 @@ impl ConflictClass {
             Self::DuplicateRelationIdentity { .. } => DiagnosticCode::DuplicateRelationIdentity,
             Self::InvariantViolation { code, .. } => *code,
             Self::KindSchemaMismatch { .. } => DiagnosticCode::InvariantViolation,
+            Self::MutationStateInconsistency { .. } => DiagnosticCode::StorageInconsistencyDetected,
             Self::AspectDeltaFailure { .. } => DiagnosticCode::AspectDeltaFailure,
             Self::ConflictingIntent { .. } => DiagnosticCode::ConflictingIntent,
             Self::InvalidSavepoint { .. } => DiagnosticCode::InvalidSavepoint,
@@ -217,6 +222,7 @@ impl ConflictClass {
             Self::InvalidRelationEndpoint { detail }
             | Self::DuplicateRelationIdentity { detail }
             | Self::KindSchemaMismatch { detail }
+            | Self::MutationStateInconsistency { detail, .. }
             | Self::AspectDeltaFailure { detail, .. }
             | Self::InvalidMergeParent { detail }
             | Self::MergeConflictOverlap { detail }
@@ -298,6 +304,7 @@ impl ConflictClass {
     pub fn fields(&self) -> Option<Value> {
         match self {
             Self::InvariantViolation { fields, .. } => Some(fields.clone()),
+            Self::MutationStateInconsistency { fields, .. } => Some(fields.clone()),
             Self::AspectDeltaFailure { fields, .. } => Some(fields.clone()),
             Self::UndeclaredSchemaTransition {
                 previous_schema_version,

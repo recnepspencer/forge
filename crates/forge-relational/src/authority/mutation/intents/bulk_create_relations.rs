@@ -33,19 +33,11 @@ pub(super) fn apply(
 ) -> Result<MutationOutcome, CommitConflict> {
     let version_id = workspace.version_id();
     let mut outcome = MutationOutcome::bulk_relations_created(intent.partition_id, intent.kind_id);
-    let staged_rows = stage_bulk_relation_rows(intent, workspace);
+    let staged_rows = stage_bulk_relation_rows(intent, workspace)?;
     workspace.with_context(|context| {
         reserve_bulk_relation_capacity(context.state, intent.partition_id, intent.endpoints.len());
     });
-    for row in staged_rows {
-        let ImportStagedRow::Relation {
-            source,
-            target,
-            payload,
-        } = row
-        else {
-            unreachable!("relation staging only emits relation rows");
-        };
+    for (source, target, payload) in staged_rows {
         let spec = RelationSpec {
             partition_id: intent.partition_id,
             kind_id: intent.kind_id,
@@ -77,7 +69,14 @@ pub(super) fn apply(
 fn stage_bulk_relation_rows(
     intent: &BulkRelationCreateIntent,
     workspace: &mut MutationWorkspace<'_>,
-) -> Vec<ImportStagedRow> {
+) -> Result<
+    Vec<(
+        crate::identity::data::EntityId,
+        crate::identity::data::EntityId,
+        Option<crate::payloads::data::RecordPayload>,
+    )>,
+    CommitConflict,
+> {
     let packet_count = coarse_preparation_packet_count(
         intent.endpoints.len(),
         TARGET_PREPARATION_ITEMS_PER_PACKET,
@@ -129,6 +128,27 @@ fn stage_bulk_relation_rows(
     }
 
     stage_import_packets(workspace, packets)
+        .into_iter()
+        .map(|row| match row {
+            ImportStagedRow::Relation {
+                source,
+                target,
+                payload,
+            } => Ok((source, target, payload)),
+            ImportStagedRow::Entity { .. } => Err(CommitConflict::new(
+                crate::transactions::data::ConflictClass::MutationStateInconsistency {
+                    detail:
+                        "bulk relation staging produced an entity row in the relation import lane"
+                            .to_string(),
+                    fields: serde_json::json!({
+                        "expected_row_domain": "relation",
+                        "actual_row_domain": "entity",
+                        "phase": "bulk_relation_stage_import",
+                    }),
+                },
+            )),
+        })
+        .collect()
 }
 
 fn stage_import_packets(

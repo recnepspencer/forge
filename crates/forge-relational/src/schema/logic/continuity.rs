@@ -6,7 +6,8 @@ use std::sync::Arc;
 use crate::schema::data::{
     CompatibilityObservation,
     DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
-    HistoricalInterpretationSensitivity, LoweredSchemaTransitionPlan, ProposedSchemaTransition,
+    FreeFormSchemaDiffIntent, HistoricalInterpretationSensitivity, LoweredSchemaTransitionPlan,
+    ProposedSchemaTransition,
     SchemaBoundaryFingerprint, SchemaBridgeDescriptor, SchemaBridgeabilityClassification,
     SchemaContinuationClassification, SchemaContinuationDescriptor, SchemaDiffAtom, SchemaDiffDetail,
     SchemaReconciliationClassification, SchemaReconciliationDescriptor,
@@ -149,6 +150,7 @@ struct NormalizedTransitionView<'a> {
 #[derive(Debug, Clone)]
 struct CanonicalSchemaDiffAtom<'a> {
     atom: &'a SchemaDiffAtom,
+    element_name_sort_key: u64,
     normalized_strata: Vec<SchemaStratum>,
     normalized_detail: CanonicalSchemaDiffDetail<'a>,
 }
@@ -183,6 +185,7 @@ enum CanonicalSchemaDiffDetail<'a> {
     },
     FreeText {
         detail: &'a str,
+        declared_intent: FreeFormSchemaDiffIntent,
     },
 }
 
@@ -210,7 +213,7 @@ pub fn validate_schema_transition(
     Ok(classify_schema_transition(proposed, policy))
 }
 
-pub fn classify_schema_transition(
+pub(crate) fn classify_schema_transition(
     proposed: ProposedSchemaTransition,
     policy: Option<SchemaReconciliationPolicy>,
 ) -> ValidatedSchemaTransition {
@@ -328,14 +331,12 @@ pub fn validate_schema_continuity_bundle(
             reconciliation: None,
         });
     };
-    let continuation = envelope
-        .schema_continuation_descriptor
-        .as_ref()
-        .expect("continuation descriptor must exist when transition does");
-    let reconciliation = envelope
-        .schema_reconciliation_descriptor
-        .as_ref()
-        .expect("reconciliation descriptor must exist when transition does");
+    let Some(continuation) = envelope.schema_continuation_descriptor.as_ref() else {
+        return Err(SchemaContinuityBundleIssue::IncompleteBundle);
+    };
+    let Some(reconciliation) = envelope.schema_reconciliation_descriptor.as_ref() else {
+        return Err(SchemaContinuityBundleIssue::IncompleteBundle);
+    };
 
     if transition.continuation_descriptor != *continuation {
         return Err(SchemaContinuityBundleIssue::ContinuationDescriptorDrift {
@@ -427,7 +428,8 @@ fn normalize_transition(diff_atoms: &[SchemaDiffAtom]) -> NormalizedTransitionVi
         for stratum in &atom.strata {
             changed_strata.insert(*stratum);
         }
-        historical_interpretation = historical_interpretation.max(atom.historical_interpretation);
+        historical_interpretation =
+            strongest_historical_interpretation(historical_interpretation, atom.historical_interpretation);
         canonical_atoms.push(CanonicalSchemaDiffAtom::new(atom));
     }
 
@@ -447,6 +449,7 @@ impl<'a> CanonicalSchemaDiffAtom<'a> {
         normalized_strata.dedup();
         Self {
             atom,
+            element_name_sort_key: non_authority_sort_key(atom.element.element_name.as_bytes()),
             normalized_detail: CanonicalSchemaDiffDetail::new(&atom.detail),
             normalized_strata,
         }
@@ -505,8 +508,12 @@ impl<'a> CanonicalSchemaDiffDetail<'a> {
                     contract_name: contract_name.as_ref(),
                 }
             }
-            SchemaDiffDetail::FreeText { detail } => Self::FreeText {
+            SchemaDiffDetail::FreeText {
+                detail,
+                declared_intent,
+            } => Self::FreeText {
                 detail: detail.as_ref(),
+                declared_intent: *declared_intent,
             },
         }
     }
@@ -529,6 +536,7 @@ fn compare_atoms_canonically(
         })
         .then_with(|| left.atom.element.kind.cmp(&right.atom.element.kind))
         .then_with(|| left.atom.element.kind_id.cmp(&right.atom.element.kind_id))
+        .then_with(|| left.element_name_sort_key.cmp(&right.element_name_sort_key))
         .then_with(|| left.atom.element.element_name.cmp(&right.atom.element.element_name))
         .then_with(|| left.normalized_strata.cmp(&right.normalized_strata))
         .then_with(|| left.atom.publication_impact.cmp(&right.atom.publication_impact))
@@ -623,11 +631,15 @@ fn detail_cmp_payload(
             CanonicalSchemaDiffDetail::SubscriberContractChanged { contract_name: rf },
         ) => lf.cmp(rf),
         (
-            CanonicalSchemaDiffDetail::FreeText { detail: lf },
-            CanonicalSchemaDiffDetail::FreeText { detail: rf },
-        ) => {
-            lf.cmp(rf)
-        }
+            CanonicalSchemaDiffDetail::FreeText {
+                detail: lf,
+                declared_intent: li,
+            },
+            CanonicalSchemaDiffDetail::FreeText {
+                detail: rf,
+                declared_intent: ri,
+            },
+        ) => lf.cmp(rf).then_with(|| li.cmp(ri)),
         _ => Ordering::Equal,
     }
 }
@@ -701,8 +713,12 @@ fn write_detail_to_hasher(hasher: &mut Sha256, detail: &CanonicalSchemaDiffDetai
         CanonicalSchemaDiffDetail::ProjectionContractChanged { projection_name } => {
             update_tagged_bytes(hasher, projection_name.as_bytes());
         }
-        CanonicalSchemaDiffDetail::FreeText { detail } => {
+        CanonicalSchemaDiffDetail::FreeText {
+            detail,
+            declared_intent,
+        } => {
             update_tagged_bytes(hasher, detail.as_bytes());
+            hasher.update([*declared_intent as u8]);
         }
     }
 }
@@ -710,6 +726,18 @@ fn write_detail_to_hasher(hasher: &mut Sha256, detail: &CanonicalSchemaDiffDetai
 fn update_tagged_bytes(hasher: &mut Sha256, bytes: &[u8]) {
     hasher.update((bytes.len() as u64).to_le_bytes());
     hasher.update(bytes);
+}
+
+fn non_authority_sort_key(bytes: &[u8]) -> u64 {
+    const FNV_OFFSET_BASIS: u64 = 0xcbf29ce484222325;
+    const FNV_PRIME: u64 = 0x100000001b3;
+
+    let mut hash = FNV_OFFSET_BASIS;
+    for byte in bytes {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(FNV_PRIME);
+    }
+    hash
 }
 
 fn classify_reconciliation(atom: &SchemaDiffAtom) -> SchemaReconciliationClassification {
@@ -724,7 +752,7 @@ fn classify_reconciliation(atom: &SchemaDiffAtom) -> SchemaReconciliationClassif
         SchemaDiffDetail::TypeChanged { .. } => {
             SchemaReconciliationClassification::TypeIncompatible
         }
-        SchemaDiffDetail::InvariantContractChanged { .. } | SchemaDiffDetail::FreeText { .. } => {
+        SchemaDiffDetail::InvariantContractChanged { .. } => {
             if atom
                 .strata
                 .contains(&SchemaStratum::BehavioralSemantics)
@@ -740,6 +768,14 @@ fn classify_reconciliation(atom: &SchemaDiffAtom) -> SchemaReconciliationClassif
                 SchemaReconciliationClassification::Additive
             }
         }
+        SchemaDiffDetail::FreeText { declared_intent, .. } => match declared_intent {
+            FreeFormSchemaDiffIntent::Additive => {
+                SchemaReconciliationClassification::Additive
+            }
+            FreeFormSchemaDiffIntent::StructuralIncompatible => {
+                SchemaReconciliationClassification::StructuralIncompatible
+            }
+        },
     }
 }
 
@@ -771,6 +807,17 @@ fn strongest_boundary_visibility(diff_atoms: &[SchemaDiffAtom]) -> SubscriberBou
         .map(|atom| atom.boundary_visibility)
         .max()
         .unwrap_or(SubscriberBoundaryVisibility::NotVisible)
+}
+
+fn strongest_historical_interpretation(
+    current: HistoricalInterpretationSensitivity,
+    candidate: HistoricalInterpretationSensitivity,
+) -> HistoricalInterpretationSensitivity {
+    if candidate.sensitivity_rank() > current.sensitivity_rank() {
+        candidate
+    } else {
+        current
+    }
 }
 
 fn classify_bridgeability(atom: &SchemaDiffAtom) -> SchemaBridgeabilityClassification {
