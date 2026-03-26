@@ -1,13 +1,13 @@
 use crate::tests::support::*;
 use crate::{
-    publication::cdc::execution::collect_crossed_boundaries,
     publication::cdc::data::{
-        SubscriberContractDeclaration, SubscriberContinuationClassSet, SubscriberStrataSet,
+        SubscriberContinuationClassSet, SubscriberContractDeclaration, SubscriberStrataSet,
     },
+    publication::cdc::execution::collect_crossed_boundaries,
     schema::data::{
         DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
-        HistoricalInterpretationSensitivity, ProposedSchemaTransition,
-        SchemaBoundaryFingerprint, SchemaBridgeDescriptor, SchemaBridgeabilityClassification,
+        HistoricalInterpretationSensitivity, ProposedSchemaTransition, SchemaBoundaryFingerprint,
+        SchemaBridgeDescriptor, SchemaBridgeabilityClassification,
         SchemaContinuationClassification, SchemaContinuationDescriptor, SchemaDiffAtom,
         SchemaDiffDetail, SchemaElementKind, SchemaElementRef, SchemaId, SchemaPublicationImpact,
         SchemaReconciliationPolicy, SchemaStratum, SchemaSubscriberImpact, SchemaVersionId,
@@ -31,7 +31,10 @@ fn schema_transition_for_subscriber_impact(
                 Some(KindId(1)),
                 "tag",
             ),
-            vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
+            vec![
+                SchemaStratum::StructuralShape,
+                SchemaStratum::PublicationContract,
+            ],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             subscriber_impact,
             HistoricalInterpretationSensitivity::NotSensitive,
@@ -41,17 +44,15 @@ fn schema_transition_for_subscriber_impact(
                 default_expression: Some("null".into()),
             },
         )
-        .with_boundary_visibility_proof(
-            match subscriber_impact {
-                SchemaSubscriberImpact::ConsumableSurfaceChanged => {
-                    crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable
-                }
-                SchemaSubscriberImpact::ContractUpgradeRequired => {
-                    crate::schema::data::SubscriberBoundaryVisibility::VisibleRequiresContractUptake
-                }
-                _ => crate::schema::data::SubscriberBoundaryVisibility::NotVisible,
-            },
-        )],
+        .with_boundary_visibility_proof(match subscriber_impact {
+            SchemaSubscriberImpact::ConsumableSurfaceChanged => {
+                crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable
+            }
+            SchemaSubscriberImpact::ContractUpgradeRequired => {
+                crate::schema::data::SubscriberBoundaryVisibility::VisibleRequiresContractUptake
+            }
+            _ => crate::schema::data::SubscriberBoundaryVisibility::NotVisible,
+        })],
     }
 }
 
@@ -154,12 +155,10 @@ fn subscriber_stream_without_schema_boundaries_reports_unchanged_continuity() {
             .normalized_boundary_count(),
         0
     );
-    assert!(
-        next_checkpoint
-            .normalized_continuation_proof()
-            .boundary_fingerprints()
-            .is_empty()
-    );
+    assert!(next_checkpoint
+        .normalized_continuation_proof()
+        .boundary_fingerprints()
+        .is_empty());
 }
 
 #[test]
@@ -178,12 +177,10 @@ fn subscriber_stream_reports_crossed_schema_boundary_from_in_memory_history() {
         SchemaSubscriberImpact::ConsumableSurfaceChanged,
     );
 
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            proposed_transition,
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        proposed_transition,
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("b"));
     txn.commit().unwrap();
 
@@ -203,7 +200,8 @@ fn subscriber_stream_reports_crossed_schema_boundary_from_in_memory_history() {
     );
     assert_eq!(batch.continuation_summary.crossed_boundary_count, 1);
     assert_eq!(
-        batch.next_checkpoint
+        batch
+            .next_checkpoint
             .unwrap()
             .normalized_continuation_proof()
             .normalized_boundary_count(),
@@ -227,12 +225,10 @@ fn subscriber_stream_treats_unconsumed_boundary_as_unchanged() {
         SchemaSubscriberImpact::ConsumableSurfaceChanged,
     );
 
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            proposed_transition,
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        proposed_transition,
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("b"));
     txn.commit().unwrap();
 
@@ -275,12 +271,10 @@ fn subscriber_stream_rejects_unsupported_contract_upgrade_boundary() {
         SchemaSubscriberImpact::ContractUpgradeRequired,
     );
 
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            proposed_transition,
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        proposed_transition,
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("b"));
     txn.commit().unwrap();
 
@@ -332,12 +326,10 @@ fn subscriber_stream_applies_contract_upgrade_when_declared_supported() {
         SchemaSubscriberImpact::ContractUpgradeRequired,
     );
 
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            proposed_transition,
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        proposed_transition,
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("b"));
     txn.commit().unwrap();
 
@@ -369,12 +361,14 @@ fn subscriber_stream_applies_contract_upgrade_when_declared_supported() {
         batch.recovery_decision.disposition,
         crate::publication::cdc::data::SubscriberRecoveryDisposition::ContinueWithContractUpgrade
     );
-    assert!(batch.diagnostics.iter().any(|artifact| artifact.entries.iter().any(|entry| {
-        entry.code == DiagnosticCode::SubscriberContractEvaluated
-    })));
-    assert!(batch.diagnostics.iter().any(|artifact| artifact.entries.iter().any(|entry| {
-        entry.code == DiagnosticCode::SubscriberContractUpgradeDecision
-    })));
+    assert!(batch.diagnostics.iter().any(|artifact| artifact
+        .entries
+        .iter()
+        .any(|entry| { entry.code == DiagnosticCode::SubscriberContractEvaluated })));
+    assert!(batch.diagnostics.iter().any(|artifact| artifact
+        .entries
+        .iter()
+        .any(|entry| { entry.code == DiagnosticCode::SubscriberContractUpgradeDecision })));
 }
 
 #[test]
@@ -388,15 +382,13 @@ fn subscriber_stream_composes_prior_and_new_boundaries_into_normalized_proof() {
     }
     .build_registry();
 
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            schema_transition_for_subscriber_impact(
-                SchemaVersionId(2),
-                SchemaSubscriberImpact::ConsumableSurfaceChanged,
-            ),
-            Some(SchemaReconciliationPolicy::PreserveInformation),
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        schema_transition_for_subscriber_impact(
+            SchemaVersionId(2),
+            SchemaSubscriberImpact::ConsumableSurfaceChanged,
         ),
-    );
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("b"));
     txn.commit().unwrap();
 
@@ -418,15 +410,14 @@ fn subscriber_stream_composes_prior_and_new_boundaries_into_normalized_proof() {
     }
     .build_registry();
 
-    let mut second_txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
+    let mut second_txn =
+        runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
             schema_transition_for_subscriber_impact(
                 SchemaVersionId(3),
                 SchemaSubscriberImpact::ConsumableSurfaceChanged,
             ),
             Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+        ));
     second_txn.push_batch(batch_create("c"));
     second_txn.commit().unwrap();
 
@@ -443,7 +434,9 @@ fn subscriber_stream_composes_prior_and_new_boundaries_into_normalized_proof() {
         2
     );
     assert_eq!(
-        next_checkpoint.continuation_summary().normalized_boundary_count,
+        next_checkpoint
+            .continuation_summary()
+            .normalized_boundary_count,
         2
     );
     assert_eq!(
@@ -471,12 +464,10 @@ fn subscriber_stream_rejects_renegotiation_required_boundary() {
         SchemaSubscriberImpact::RenegotiationRequired,
     );
 
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            proposed_transition,
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        proposed_transition,
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("b"));
     txn.commit().unwrap();
 
@@ -511,15 +502,14 @@ fn subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome_and_tra
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut visible_txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
+    let mut visible_txn =
+        runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
             schema_transition_for_subscriber_impact(
                 SchemaVersionId(2),
                 SchemaSubscriberImpact::ConsumableSurfaceChanged,
             ),
             Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+        ));
     visible_txn.push_batch(batch_create("b"));
     visible_txn.commit().unwrap();
 
@@ -528,15 +518,14 @@ fn subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome_and_tra
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut upgrade_txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
+    let mut upgrade_txn =
+        runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
             schema_transition_for_subscriber_impact(
                 SchemaVersionId(3),
                 SchemaSubscriberImpact::ContractUpgradeRequired,
             ),
             Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+        ));
     upgrade_txn.push_batch(batch_create("c"));
     upgrade_txn.commit().unwrap();
 
@@ -593,15 +582,14 @@ fn resumed_subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut visible_txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
+    let mut visible_txn =
+        runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
             schema_transition_for_subscriber_impact(
                 SchemaVersionId(2),
                 SchemaSubscriberImpact::ConsumableSurfaceChanged,
             ),
             Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+        ));
     visible_txn.push_batch(batch_create("b"));
     visible_txn.commit().unwrap();
 
@@ -610,15 +598,14 @@ fn resumed_subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut upgrade_txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
+    let mut upgrade_txn =
+        runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
             schema_transition_for_subscriber_impact(
                 SchemaVersionId(3),
                 SchemaSubscriberImpact::ContractUpgradeRequired,
             ),
             Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+        ));
     upgrade_txn.push_batch(batch_create("c"));
     upgrade_txn.commit().unwrap();
 
@@ -669,15 +656,14 @@ fn resumed_subscriber_stream_preserves_prior_boundary_and_adds_new_boundary_trac
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut first_transition = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
+    let mut first_transition =
+        runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
             schema_transition_for_subscriber_impact(
                 SchemaVersionId(2),
                 SchemaSubscriberImpact::ConsumableSurfaceChanged,
             ),
             Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+        ));
     first_transition.push_batch(batch_create("b"));
     first_transition.commit().unwrap();
 
@@ -698,15 +684,14 @@ fn resumed_subscriber_stream_preserves_prior_boundary_and_adds_new_boundary_trac
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut second_transition = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
+    let mut second_transition =
+        runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
             schema_transition_for_subscriber_impact(
                 SchemaVersionId(3),
                 SchemaSubscriberImpact::ConsumableSurfaceChanged,
             ),
             Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+        ));
     second_transition.push_batch(batch_create("c"));
     second_transition.commit().unwrap();
 
@@ -764,15 +749,14 @@ fn latest_available_checkpoint_reflects_head_continuation_state_for_subscriber_c
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut visible_txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
+    let mut visible_txn =
+        runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
             schema_transition_for_subscriber_impact(
                 SchemaVersionId(2),
                 SchemaSubscriberImpact::ConsumableSurfaceChanged,
             ),
             Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+        ));
     visible_txn.push_batch(batch_create("b"));
     visible_txn.commit().unwrap();
 
@@ -781,23 +765,21 @@ fn latest_available_checkpoint_reflects_head_continuation_state_for_subscriber_c
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut upgrade_txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
+    let mut upgrade_txn =
+        runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
             schema_transition_for_subscriber_impact(
                 SchemaVersionId(3),
                 SchemaSubscriberImpact::ContractUpgradeRequired,
             ),
             Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+        ));
     upgrade_txn.push_batch(batch_create("c"));
     upgrade_txn.commit().unwrap();
 
     let resumed = runtime
         .publication_access()
         .read_subscriber_stream(
-            SubscriberResumeRequest::resume_after(checkpoint, 1)
-                .with_subscriber_contract(contract),
+            SubscriberResumeRequest::resume_after(checkpoint, 1).with_subscriber_contract(contract),
         )
         .unwrap();
 

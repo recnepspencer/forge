@@ -2,11 +2,13 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::inspection::data::{
     GraphInspectionRequest, GraphInspectionSummary, InspectionAccessPath, InspectionAvailability,
-    InspectionDegradation, InspectionOrigin, InspectionRecordClass, KindInspectionRequest,
-    KindInspectionSummary, InspectionScope,
+    InspectionDegradation, InspectionOrigin, InspectionRecordClass, InspectionScope,
+    KindInspectionRequest, KindInspectionSummary,
 };
 
-use super::access::{InspectionAccess, KindScopeFilter, PartitionScopeFilter, summary_degradations};
+use super::access::{
+    summary_degradations, InspectionAccess, KindScopeFilter, PartitionScopeFilter,
+};
 
 impl<'runtime> InspectionAccess<'runtime> {
     pub fn graph_summary(&self, request: &GraphInspectionRequest) -> GraphInspectionSummary {
@@ -36,7 +38,9 @@ impl<'runtime> InspectionAccess<'runtime> {
         {
             work_units += 1;
             if work_units > request.budget.max_work_units {
-                self.runtime.performance_access().count_inspection_budget_refusal();
+                self.runtime
+                    .performance_access()
+                    .count_inspection_budget_refusal();
                 return self.budget_exceeded_graph_summary(
                     request,
                     version_id,
@@ -45,7 +49,9 @@ impl<'runtime> InspectionAccess<'runtime> {
             }
             entity_count += 1;
             if entity_count > request.budget.max_entities {
-                self.runtime.performance_access().count_inspection_budget_refusal();
+                self.runtime
+                    .performance_access()
+                    .count_inspection_budget_refusal();
                 return self.budget_exceeded_graph_summary(
                     request,
                     version_id,
@@ -63,7 +69,9 @@ impl<'runtime> InspectionAccess<'runtime> {
         {
             work_units += 1;
             if work_units > request.budget.max_work_units {
-                self.runtime.performance_access().count_inspection_budget_refusal();
+                self.runtime
+                    .performance_access()
+                    .count_inspection_budget_refusal();
                 return self.budget_exceeded_graph_summary(
                     request,
                     version_id,
@@ -72,7 +80,9 @@ impl<'runtime> InspectionAccess<'runtime> {
             }
             relation_count += 1;
             if relation_count > request.budget.max_relations {
-                self.runtime.performance_access().count_inspection_budget_refusal();
+                self.runtime
+                    .performance_access()
+                    .count_inspection_budget_refusal();
                 return self.budget_exceeded_graph_summary(
                     request,
                     version_id,
@@ -168,7 +178,8 @@ impl<'runtime> InspectionAccess<'runtime> {
             if !partition_scope.allows(partition_id) {
                 continue;
             }
-            let Some(partition) = self.runtime.storage_access().partition_state(partition_id) else {
+            let Some(partition) = self.runtime.storage_access().partition_state(partition_id)
+            else {
                 continue;
             };
             for slot in partition.entity_arena.live_bitset.iter_set_slots() {
@@ -180,7 +191,9 @@ impl<'runtime> InspectionAccess<'runtime> {
                 };
                 work_units += 1;
                 if work_units > request.budget.max_work_units {
-                    self.runtime.performance_access().count_inspection_budget_refusal();
+                    self.runtime
+                        .performance_access()
+                        .count_inspection_budget_refusal();
                     return self.budget_exceeded_graph_summary(
                         request,
                         self.runtime.current_version_id(),
@@ -189,7 +202,9 @@ impl<'runtime> InspectionAccess<'runtime> {
                 }
                 entity_count += 1;
                 if entity_count > request.budget.max_entities {
-                    self.runtime.performance_access().count_inspection_budget_refusal();
+                    self.runtime
+                        .performance_access()
+                        .count_inspection_budget_refusal();
                     return self.budget_exceeded_graph_summary(
                         request,
                         self.runtime.current_version_id(),
@@ -211,7 +226,9 @@ impl<'runtime> InspectionAccess<'runtime> {
                 }
                 work_units += 1;
                 if work_units > request.budget.max_work_units {
-                    self.runtime.performance_access().count_inspection_budget_refusal();
+                    self.runtime
+                        .performance_access()
+                        .count_inspection_budget_refusal();
                     return self.budget_exceeded_graph_summary(
                         request,
                         self.runtime.current_version_id(),
@@ -220,7 +237,9 @@ impl<'runtime> InspectionAccess<'runtime> {
                 }
                 relation_count += 1;
                 if relation_count > request.budget.max_relations {
-                    self.runtime.performance_access().count_inspection_budget_refusal();
+                    self.runtime
+                        .performance_access()
+                        .count_inspection_budget_refusal();
                     return self.budget_exceeded_graph_summary(
                         request,
                         self.runtime.current_version_id(),

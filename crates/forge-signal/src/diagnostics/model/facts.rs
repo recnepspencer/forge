@@ -7,8 +7,8 @@ use crate::data::handle::NodeId;
 use crate::data::node::{ContextRequirement, EvaluationCondition, NodeState};
 use crate::data::output::PartitionSubscription;
 use crate::data::trace::{
-    assemble_historical_artifact_record, CausalityMetadata, RetainedDiagnosticArtifact,
-    RuntimeArtifactState,
+    assemble_historical_artifact_record, CausalityMetadata, ColdArtifactRecord,
+    ExecutionTraceStamp, RuntimeArtifactState,
 };
 use crate::diagnostics::policy::DiagnosticsAvailability;
 use crate::logic::explain::{CausalLink, RewiringSummary};
@@ -108,7 +108,8 @@ impl ExplanationFact {
         required_context: ContextRequirement,
         condition: EvaluationCondition,
         runtime: &RuntimeArtifactState,
-        retained: Option<&RetainedDiagnosticArtifact>,
+        retained: Option<&ColdArtifactRecord>,
+        execution: Option<ExecutionTraceStamp>,
         causality: Option<&CausalityMetadata>,
         rewiring: Option<RewiringSummary>,
     ) -> Self {
@@ -122,6 +123,7 @@ impl ExplanationFact {
             condition,
             runtime,
             retained,
+            execution,
             causality,
             rewiring,
         ));
@@ -198,7 +200,8 @@ impl ProvenanceFact {
         required_context: ContextRequirement,
         condition: EvaluationCondition,
         runtime: &RuntimeArtifactState,
-        retained: Option<&RetainedDiagnosticArtifact>,
+        retained: Option<&ColdArtifactRecord>,
+        execution: Option<ExecutionTraceStamp>,
         causality: Option<&CausalityMetadata>,
         rewiring: Option<RewiringSummary>,
     ) -> Self {
@@ -212,6 +215,7 @@ impl ProvenanceFact {
             condition,
             runtime,
             retained,
+            execution,
             causality,
             rewiring,
         ))
@@ -228,7 +232,8 @@ fn compact_retained_explanation(
     required_context: ContextRequirement,
     condition: EvaluationCondition,
     runtime: &RuntimeArtifactState,
-    retained: Option<&RetainedDiagnosticArtifact>,
+    retained: Option<&ColdArtifactRecord>,
+    execution: Option<ExecutionTraceStamp>,
     causality: Option<&CausalityMetadata>,
     rewiring: Option<RewiringSummary>,
 ) -> NodeExplanation {
@@ -248,8 +253,8 @@ fn compact_retained_explanation(
             retained,
             causality,
         ),
-        execution_record_id: runtime.execution_record_id,
-        semantic_segment_id: runtime.semantic_segment_id,
+        execution_record_id: execution.and_then(|stamp| stamp.execution_record_id),
+        semantic_segment_id: execution.and_then(|stamp| stamp.semantic_segment_id),
         output_identity: runtime.output_identity.clone(),
         output_change: Some(runtime.output_change),
         changed_regions: retained
@@ -257,7 +262,7 @@ fn compact_retained_explanation(
             .unwrap_or_default(),
         propagation_suppressed: runtime.propagation_suppressed,
         memoized_origin: Some(runtime.memoized_origin),
-        reuse_basis: Some(runtime.reuse_basis.clone()),
+        reuse_basis: Some(runtime.reuse_basis.clone_inner()),
         reuse_origin: Some(runtime.reuse_origin),
         reuse_certification: retained.and_then(|artifact| artifact.reuse_certification.clone()),
         upstream: Vec::new(),

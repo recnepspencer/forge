@@ -1,9 +1,9 @@
 use serde_json::json;
 
+use crate::authority::commit::phases::schema_continuity::validate_schema_continuity_publication;
 use crate::capabilities::{
     DiagnosticsSink, DurabilityWrite, PublicationPolicySource, SchemaSource, SchemaVersionSource,
 };
-use crate::authority::commit::phases::schema_continuity::validate_schema_continuity_publication;
 use crate::diagnostics::data::{DiagnosticCode, DiagnosticsScope};
 use crate::history::data::{BranchId, CommitId, CommitReference};
 use crate::indexes::data::DerivedIndexGeneration;
@@ -52,10 +52,12 @@ pub(crate) fn canonical_commit_envelope(
     schema_continuity: &crate::authority::commit::phases::schema_continuity::SchemaContinuityPlan,
 ) -> Result<CanonicalCommitEnvelope, TransactionCommitError> {
     let published_lineage = lineage_artifact.publish();
-    runtime.performance_access().count_lineage_publication_artifact(
-        published_lineage.lineage_events().len(),
-        published_lineage.lineage_decision_log().len(),
-    );
+    runtime
+        .performance_access()
+        .count_lineage_publication_artifact(
+            published_lineage.lineage_events().len(),
+            published_lineage.lineage_decision_log().len(),
+        );
     if published_lineage.branch_id() != branch_id || lineage_artifact.branch_id() != branch_id {
         runtime.emit_diagnostic_entry(
             DiagnosticsScope::Lineage,

@@ -1,6 +1,6 @@
 use crate::data::reuse::{
     ArtifactSemanticBoundary, NodeReuseContract, ReuseBoundaryEvidence, ReuseBoundaryFailure,
-    ReuseBoundaryProof,
+    ReuseBoundaryProof, ReuseStrategyBoundaryAuthority,
 };
 
 use super::basis_resolution::ResolvedReuseDecision;
@@ -73,8 +73,8 @@ pub(crate) fn prove_reuse_boundaries(
                 evidence
                     .previous
                     .as_ref()
-                    .map(|context| context.semantic_region.clone()),
-                evidence.current.semantic_region.clone(),
+                    .map(|context| context.semantic_region_digest),
+                evidence.current.semantic_region_digest,
             )?,
             ArtifactSemanticBoundary::SnapshotLineage
                 if !contract.equivalence.allows_snapshot_restore_reuse
@@ -124,8 +124,16 @@ pub(crate) fn prove_reuse_boundaries(
                 evidence
                     .previous
                     .as_ref()
-                    .map(|context| context.partition_region_basis.clone()),
-                evidence.current.partition_region_basis.clone(),
+                    .map(|context| {
+                        (
+                            context.partition_region_basis_digest,
+                            context.partition_region_basis_count,
+                        )
+                    }),
+                (
+                    evidence.current.partition_region_basis_digest,
+                    evidence.current.partition_region_basis_count,
+                ),
             )?,
             ArtifactSemanticBoundary::PersistentCorrespondence => {
                 if !matches!(
@@ -134,20 +142,39 @@ pub(crate) fn prove_reuse_boundaries(
                 ) {
                     continue;
                 }
-                let Some(previous) = evidence
-                    .previous
-                    .as_ref()
-                    .and_then(|context| context.persistent_correspondence().cloned())
-                else {
+                let Some(previous) = evidence.previous.as_ref().and_then(|context| {
+                    match context.strategy_detail {
+                        ReuseStrategyBoundaryAuthority::CrossIdentity {
+                            persistent_correspondence_kind,
+                            persistent_correspondence_digest,
+                            persistent_correspondence_valid,
+                        } => Some((
+                            persistent_correspondence_kind,
+                            persistent_correspondence_digest,
+                            persistent_correspondence_valid,
+                        )),
+                        ReuseStrategyBoundaryAuthority::None
+                        | ReuseStrategyBoundaryAuthority::PartialArtifactSplice { .. } => None,
+                    }
+                }) else {
                     return Err(ReuseBoundaryFailure::PersistentCorrespondenceEvidenceMissing);
                 };
-                let Some(current) = evidence.current.persistent_correspondence().cloned() else {
+                let Some(current) = (match evidence.current.strategy_detail {
+                    ReuseStrategyBoundaryAuthority::CrossIdentity {
+                        persistent_correspondence_kind,
+                        persistent_correspondence_digest,
+                        persistent_correspondence_valid,
+                    } => Some((
+                        persistent_correspondence_kind,
+                        persistent_correspondence_digest,
+                        persistent_correspondence_valid,
+                    )),
+                    ReuseStrategyBoundaryAuthority::None
+                    | ReuseStrategyBoundaryAuthority::PartialArtifactSplice { .. } => None,
+                }) else {
                     return Err(ReuseBoundaryFailure::PersistentCorrespondenceEvidenceMissing);
                 };
-                if !previous.is_structurally_valid() || !current.is_structurally_valid() {
-                    return Err(ReuseBoundaryFailure::PersistentCorrespondenceEvidenceInvalid);
-                }
-                if previous != current {
+                if !previous.2 || !current.2 || previous != current {
                     return Err(ReuseBoundaryFailure::PersistentCorrespondenceEvidenceInvalid);
                 }
                 ReuseBoundaryProof {
@@ -162,10 +189,17 @@ pub(crate) fn prove_reuse_boundaries(
                 ) {
                     continue;
                 }
-                let Some(current_regions) = evidence.current.composition_regions().cloned() else {
+                let Some(current_regions) = (match evidence.current.strategy_detail {
+                    ReuseStrategyBoundaryAuthority::PartialArtifactSplice {
+                        composition_region_digest,
+                        composition_region_count,
+                    } => Some((composition_region_digest, composition_region_count)),
+                    ReuseStrategyBoundaryAuthority::None
+                    | ReuseStrategyBoundaryAuthority::CrossIdentity { .. } => None,
+                }) else {
                     return Err(ReuseBoundaryFailure::CompositionRegionLegalityFailure);
                 };
-                if current_regions.is_empty() {
+                if current_regions.1 == 0 {
                     return Err(ReuseBoundaryFailure::CompositionRegionLegalityFailure);
                 }
                 prove_boundary(
@@ -173,7 +207,14 @@ pub(crate) fn prove_reuse_boundaries(
                     evidence
                         .previous
                         .as_ref()
-                        .and_then(|context| context.composition_regions().cloned()),
+                        .and_then(|context| match context.strategy_detail {
+                            ReuseStrategyBoundaryAuthority::PartialArtifactSplice {
+                                composition_region_digest,
+                                composition_region_count,
+                            } => Some((composition_region_digest, composition_region_count)),
+                            ReuseStrategyBoundaryAuthority::None
+                            | ReuseStrategyBoundaryAuthority::CrossIdentity { .. } => None,
+                        }),
                     current_regions,
                 )?
             }

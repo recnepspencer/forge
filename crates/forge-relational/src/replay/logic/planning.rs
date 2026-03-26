@@ -1,11 +1,11 @@
 use std::collections::BTreeSet;
 
 use crate::capabilities::{CommitEnvelopeSource, DurabilityRead};
+use crate::logic::runtime::RelationalRuntime;
 use crate::durability::data::RecoveryPlan;
 use crate::history::data::CommitId;
 use crate::replay::data::{
-    CanonicalCommitEnvelope, ReplayFailureClass, ReplayObservableSurface,
-    ReplayVerificationLayer,
+    CanonicalCommitEnvelope, ReplayFailureClass, ReplayObservableSurface, ReplayVerificationLayer,
 };
 use crate::schema::data::DescriptorSemanticsVersion;
 
@@ -35,14 +35,27 @@ pub(super) fn promised_replay_surfaces(
     surfaces
 }
 
-pub(super) fn replay_chain(
+pub(super) fn replay_commit_closure_by_commit_id_order(
+    runtime: &RelationalRuntime,
     history: &impl CommitEnvelopeSource,
     commit_id: CommitId,
 ) -> Result<Vec<CommitId>, ReplayFailureClass> {
     let mut ordered = Vec::new();
     let mut visiting = BTreeSet::new();
-    visit_replay_chain(history, commit_id, &mut visiting, &mut ordered)?;
-    Ok(ordered)
+    let mut nodes_visited = 0usize;
+    let mut parent_checks = 0usize;
+    let result = visit_replay_commit_closure(
+        history,
+        commit_id,
+        &mut visiting,
+        &mut ordered,
+        &mut nodes_visited,
+        &mut parent_checks,
+    );
+    runtime
+        .performance_access()
+        .count_merge_history_replay_planning(nodes_visited, parent_checks);
+    result.map(|_| ordered)
 }
 
 pub(super) fn replay_recovery_plan_for_chain(
@@ -118,23 +131,37 @@ fn replay_verification_mode_to_recovery_mode(
     }
 }
 
-fn visit_replay_chain(
+fn visit_replay_commit_closure(
     history: &impl CommitEnvelopeSource,
     commit_id: CommitId,
     visiting: &mut BTreeSet<CommitId>,
     ordered: &mut Vec<CommitId>,
+    nodes_visited: &mut usize,
+    parent_checks: &mut usize,
 ) -> Result<(), ReplayFailureClass> {
     if ordered.contains(&commit_id) {
         return Ok(());
     }
     let Some(envelope) = history.commit_envelope(commit_id) else {
-        return Err(ReplayFailureClass::MissingParentChain);
+        return Err(ReplayFailureClass::MissingAuthoritativeParentClosure);
     };
     if !visiting.insert(commit_id) {
-        return Err(ReplayFailureClass::MissingParentChain);
+        return Err(ReplayFailureClass::MissingAuthoritativeParentClosure);
     }
-    for parent in &envelope.commit.parents {
-        visit_replay_chain(history, *parent, visiting, ordered)?;
+    *nodes_visited += 1;
+    // Replay walks parents in authoritative published order. This traversal
+    // must not normalize, sort, or reinterpret the post-publication parent
+    // list.
+    for parent in envelope.commit.ordered_parents().as_slice() {
+        *parent_checks += 1;
+        visit_replay_commit_closure(
+            history,
+            *parent,
+            visiting,
+            ordered,
+            nodes_visited,
+            parent_checks,
+        )?;
     }
     visiting.remove(&commit_id);
     ordered.push(commit_id);

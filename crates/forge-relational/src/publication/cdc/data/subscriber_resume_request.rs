@@ -27,7 +27,10 @@ impl SubscriberResumeRequest {
         }
     }
 
-    pub fn with_subscriber_contract(mut self, subscriber_contract: SubscriberContractDeclaration) -> Self {
+    pub fn with_subscriber_contract(
+        mut self,
+        subscriber_contract: SubscriberContractDeclaration,
+    ) -> Self {
         self.subscriber_contract = subscriber_contract;
         self
     }

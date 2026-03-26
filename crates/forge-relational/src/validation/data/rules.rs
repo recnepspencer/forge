@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 
 use crate::schema::data::{
-    LoweredAcyclicityContract, LoweredConnectivityMinimumContract,
-    LoweredCardinalityMaximumContract, LoweredCardinalityMinimumContract,
+    LoweredAcyclicityContract, LoweredCardinalityMaximumContract,
+    LoweredCardinalityMinimumContract, LoweredConnectivityMinimumContract,
     LoweredEndpointDeletionIntegrityContract, LoweredEndpointKindContract,
-    LoweredPartitionIsolationContract, LoweredPayloadSchemaContract,
-    MinimumCardinalityEnforcement, LoweredSymmetryContract, LoweredUniquenessContract,
+    LoweredPartitionIsolationContract, LoweredPayloadSchemaContract, LoweredSymmetryContract,
+    LoweredUniquenessContract, MinimumCardinalityEnforcement,
 };
 
 use super::descriptor::{
@@ -56,12 +56,18 @@ impl InvariantRule {
                 NativeInvariantRuleId::LiveRecordRequiresSidecarRelation
             }
             Self::MaxMergedIntents(_) => NativeInvariantRuleId::MaxMergedIntents,
-            Self::RelationIntegrityScopeBudget(_) => NativeInvariantRuleId::RelationIntegrityScopeBudget,
+            Self::RelationIntegrityScopeBudget(_) => {
+                NativeInvariantRuleId::RelationIntegrityScopeBudget
+            }
             Self::MaxSnapshotEntities(_) => NativeInvariantRuleId::MaxSnapshotEntities,
             Self::UniqueEntityPayloadField(_) => NativeInvariantRuleId::UniqueEntityPayloadField,
             Self::EndpointKindContract(_) => NativeInvariantRuleId::EndpointKindContract,
-            Self::CardinalityMaximumContract(_) => NativeInvariantRuleId::CardinalityMaximumContract,
-            Self::CardinalityMinimumContract(_) => NativeInvariantRuleId::CardinalityMinimumContract,
+            Self::CardinalityMaximumContract(_) => {
+                NativeInvariantRuleId::CardinalityMaximumContract
+            }
+            Self::CardinalityMinimumContract(_) => {
+                NativeInvariantRuleId::CardinalityMinimumContract
+            }
             Self::UniquenessContract(_) => NativeInvariantRuleId::UniquenessContract,
             Self::SymmetryContract(_) => NativeInvariantRuleId::SymmetryContract,
             Self::EndpointDeletionIntegrityContract(_) => {
@@ -69,8 +75,12 @@ impl InvariantRule {
             }
             Self::AcyclicityContract(_) => NativeInvariantRuleId::AcyclicityContract,
             Self::PayloadSchemaContract(_) => NativeInvariantRuleId::PayloadSchemaContract,
-            Self::PartitionIsolationContract(_) => NativeInvariantRuleId::PartitionIsolationContract,
-            Self::ConnectivityMinimumContract(_) => NativeInvariantRuleId::ConnectivityMinimumContract,
+            Self::PartitionIsolationContract(_) => {
+                NativeInvariantRuleId::PartitionIsolationContract
+            }
+            Self::ConnectivityMinimumContract(_) => {
+                NativeInvariantRuleId::ConnectivityMinimumContract
+            }
         })
     }
 
@@ -266,40 +276,49 @@ impl InvariantRule {
             | (Self::MaxSnapshotEntities(_), Self::MaxSnapshotEntities(_))
             | (Self::UniqueEntityPayloadField(_), Self::UniqueEntityPayloadField(_)) => true,
             (Self::EndpointKindContract(left), Self::EndpointKindContract(right)) => {
-                left.contract_id == right.contract_id && left.relation_kind_id == right.relation_kind_id
+                left.contract_id == right.contract_id
+                    && left.relation_kind_id == right.relation_kind_id
             }
             (Self::CardinalityMaximumContract(left), Self::CardinalityMaximumContract(right)) => {
-                left.contract_id == right.contract_id && left.relation_kind_id == right.relation_kind_id
+                left.contract_id == right.contract_id
+                    && left.relation_kind_id == right.relation_kind_id
             }
             (Self::CardinalityMinimumContract(left), Self::CardinalityMinimumContract(right)) => {
-                left.contract_id == right.contract_id && left.relation_kind_id == right.relation_kind_id
+                left.contract_id == right.contract_id
+                    && left.relation_kind_id == right.relation_kind_id
             }
             (Self::UniquenessContract(left), Self::UniquenessContract(right)) => {
-                left.contract_id == right.contract_id && left.relation_kind_id == right.relation_kind_id
+                left.contract_id == right.contract_id
+                    && left.relation_kind_id == right.relation_kind_id
             }
             (Self::SymmetryContract(left), Self::SymmetryContract(right)) => {
-                left.contract_id == right.contract_id && left.relation_kind_id == right.relation_kind_id
+                left.contract_id == right.contract_id
+                    && left.relation_kind_id == right.relation_kind_id
             }
             (
                 Self::EndpointDeletionIntegrityContract(left),
                 Self::EndpointDeletionIntegrityContract(right),
-            ) => left.contract_id == right.contract_id && left.relation_kind_id == right.relation_kind_id,
+            ) => {
+                left.contract_id == right.contract_id
+                    && left.relation_kind_id == right.relation_kind_id
+            }
             (Self::AcyclicityContract(left), Self::AcyclicityContract(right)) => {
-                left.contract_id == right.contract_id && left.relation_kind_id == right.relation_kind_id
+                left.contract_id == right.contract_id
+                    && left.relation_kind_id == right.relation_kind_id
             }
             (Self::PayloadSchemaContract(left), Self::PayloadSchemaContract(right)) => {
                 left.contract_id == right.contract_id
                     && left.kind_id == right.kind_id
                     && left.record_kind == right.record_kind
             }
-            (
-                Self::PartitionIsolationContract(left),
-                Self::PartitionIsolationContract(right),
-            ) => left.contract_id == right.contract_id && left.relation_kind_id == right.relation_kind_id,
-            (
-                Self::ConnectivityMinimumContract(left),
-                Self::ConnectivityMinimumContract(right),
-            ) => left.contract_id == right.contract_id && left.relation_kind_id == right.relation_kind_id,
+            (Self::PartitionIsolationContract(left), Self::PartitionIsolationContract(right)) => {
+                left.contract_id == right.contract_id
+                    && left.relation_kind_id == right.relation_kind_id
+            }
+            (Self::ConnectivityMinimumContract(left), Self::ConnectivityMinimumContract(right)) => {
+                left.contract_id == right.contract_id
+                    && left.relation_kind_id == right.relation_kind_id
+            }
             _ => false,
         }
     }
@@ -325,8 +344,15 @@ mod tests {
             descriptor.id,
             InvariantRuleId::Native(NativeInvariantRuleId::LiveRecordRequiresSidecarEntity)
         );
-        assert_eq!(descriptor.semantics, InvariantSemanticsClass::NativeAlwaysOn);
-        assert!(descriptor.execution_points.supports(InvariantExecutionPoint::MutationSensitive));
-        assert!(!descriptor.execution_points.supports(InvariantExecutionPoint::SnapshotPublication));
+        assert_eq!(
+            descriptor.semantics,
+            InvariantSemanticsClass::NativeAlwaysOn
+        );
+        assert!(descriptor
+            .execution_points
+            .supports(InvariantExecutionPoint::MutationSensitive));
+        assert!(!descriptor
+            .execution_points
+            .supports(InvariantExecutionPoint::SnapshotPublication));
     }
 }

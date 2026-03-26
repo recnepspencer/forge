@@ -176,16 +176,17 @@ where
                 comparator_resolver,
                 None,
             )?;
-            if let Some(mut updated) = graph
+            if graph
                 .get_entry(task.node)?
                 .get_runtime_artifact_state()
-                .cloned()
+                .is_some()
             {
-                updated.execution_record_id = Some(record_id.0);
-                updated.semantic_segment_id = Some(record_id.0);
                 graph
                     .get_entry_mut(task.node)?
-                    .set_runtime_artifact_state(Some(updated));
+                    .set_execution_trace_stamp(Some(crate::data::trace::ExecutionTraceStamp {
+                        execution_record_id: Some(record_id.0),
+                        semantic_segment_id: Some(record_id.0),
+                    }));
             }
             record_lineage_transition(
                 graph,
@@ -214,7 +215,7 @@ where
                     .unwrap_or(crate::data::output::MemoizedResultOrigin::DirectCompute),
                 after_trace
                     .as_ref()
-                    .map(|trace| trace.reuse_basis.clone())
+                    .map(|trace| trace.reuse_basis.clone_inner())
                     .unwrap_or(crate::data::reuse::ReuseBasis::fresh_compute()),
             );
             accumulate_report_counters(&mut report, &task_record.record);
@@ -398,16 +399,17 @@ where
                 comparator_resolver,
                 execution_metadata.filter(|_| task.direct_request),
             )?;
-            if let Some(mut updated) = graph
+            if graph
                 .get_entry(task.node)?
                 .get_runtime_artifact_state()
-                .cloned()
+                .is_some()
             {
-                updated.execution_record_id = Some(record_id.0);
-                updated.semantic_segment_id = Some(record_id.0);
                 graph
                     .get_entry_mut(task.node)?
-                    .set_runtime_artifact_state(Some(updated));
+                    .set_execution_trace_stamp(Some(crate::data::trace::ExecutionTraceStamp {
+                        execution_record_id: Some(record_id.0),
+                        semantic_segment_id: Some(record_id.0),
+                    }));
             }
             record_lineage_transition(
                 graph,
@@ -436,7 +438,7 @@ where
                     .unwrap_or(crate::data::output::MemoizedResultOrigin::DirectCompute),
                 after_trace
                     .as_ref()
-                    .map(|trace| trace.reuse_basis.clone())
+                    .map(|trace| trace.reuse_basis.clone_inner())
                     .unwrap_or(crate::data::reuse::ReuseBasis::fresh_compute()),
             );
             accumulate_report_counters(&mut report, &task_record.record);

@@ -1,6 +1,7 @@
 use crate::data::graph::SignalGraph;
 use crate::data::output::OutputChange;
 use crate::data::reuse::ReuseOrigin;
+use crate::data::trace::ExecutionTraceStamp;
 use crate::diagnostics::failure::{ExecutionFailureContext, FailureSummary};
 use crate::diagnostics::lineage::{
     ArtifactTransitionKind, InvalidationCause, LineageRecord, SnapshotRestoreKind,
@@ -316,6 +317,7 @@ pub fn record_snapshot_restore_lineage(graph: &mut SignalGraph, snapshot_id: Sig
                         entry.get_runtime_artifact_state().and_then(|state| {
                             state
                                 .lineage_artifact_id
+                                .get()
                                 .map(|artifact_id| (node, artifact_id))
                         })
                     })
@@ -344,18 +346,16 @@ pub fn record_snapshot_restore_lineage(graph: &mut SignalGraph, snapshot_id: Sig
     );
 }
 
-#[allow(dead_code)]
-pub fn record_lineage_transition(
+fn derive_lineage_transition(
     graph: &mut SignalGraph,
-    node: crate::data::handle::NodeId,
     before_trace: Option<&crate::data::trace::RuntimeArtifactState>,
-    execution_record_id: ExecutionRecordId,
-    semantic_segment_id: SemanticSegmentId,
-) -> Result<(), crate::data::error::SignalError> {
-    let Some(mut after_trace) = graph.get_entry(node)?.get_runtime_artifact_state().cloned() else {
-        return Ok(());
-    };
-    let previous_artifact_id = before_trace.and_then(|summary| summary.lineage_artifact_id);
+    after_trace: &crate::data::trace::RuntimeArtifactState,
+) -> (
+    crate::diagnostics::lineage::LineageArtifactId,
+    Option<crate::diagnostics::lineage::LineageArtifactId>,
+    ArtifactTransitionKind,
+) {
+    let previous_artifact_id = before_trace.and_then(|summary| summary.lineage_artifact_id.get());
     let (artifact_id, transition) = if matches!(
         after_trace.reuse_origin,
         ReuseOrigin::MemoizedArtifactReuse
@@ -377,20 +377,18 @@ pub fn record_lineage_transition(
                 ReuseOrigin::CrossIdentityPersistentReuse => {
                     ArtifactTransitionKind::CrossIdentityPersistentReuse {
                         correspondence_kind: after_trace
-                            .reuse_boundary_context
+                            .reuse_boundary_authority
                             .as_ref()
-                            .and_then(|ctx| ctx.persistent_correspondence())
-                            .map(|evidence| evidence.kind())
+                            .and_then(|authority| authority.persistent_correspondence_kind())
                             .unwrap_or(crate::data::reuse::PersistentCorrespondenceKind::Unknown),
                     }
                 }
                 ReuseOrigin::PartialArtifactSplice => {
                     ArtifactTransitionKind::PartialArtifactSplice {
                         composition_region_count: after_trace
-                            .reuse_boundary_context
+                            .reuse_boundary_authority
                             .as_ref()
-                            .and_then(|ctx| ctx.composition_regions())
-                            .map(|regions| regions.as_slice().len() as u32)
+                            .map(|authority| authority.composition_region_count())
                             .unwrap_or(0),
                         recomputed_region_count: after_trace.changed_partition_count,
                     }
@@ -418,10 +416,31 @@ pub fn record_lineage_transition(
             ArtifactTransitionKind::Replaced,
         )
     };
-    after_trace.lineage_artifact_id = Some(artifact_id);
-    graph
-        .get_entry_mut(node)?
-        .set_runtime_artifact_state(Some(after_trace));
+    (artifact_id, previous_artifact_id, transition)
+}
+
+#[allow(dead_code)]
+pub fn record_lineage_transition(
+    graph: &mut SignalGraph,
+    node: crate::data::handle::NodeId,
+    before_trace: Option<&crate::data::trace::RuntimeArtifactState>,
+    execution_record_id: ExecutionRecordId,
+    semantic_segment_id: SemanticSegmentId,
+) -> Result<(), crate::data::error::SignalError> {
+    let Some(mut after_trace) = graph.get_entry(node)?.get_runtime_artifact_state().cloned() else {
+        return Ok(());
+    };
+    let (artifact_id, previous_artifact_id, transition) =
+        derive_lineage_transition(graph, before_trace, &after_trace);
+    after_trace.lineage_artifact_id = crate::data::trace::ArtifactTransitionKey::new(Some(
+        artifact_id,
+    ));
+    let entry = graph.get_entry_mut(node)?;
+    entry.set_runtime_artifact_state(Some(after_trace));
+    entry.set_execution_trace_stamp(Some(ExecutionTraceStamp {
+        execution_record_id: Some(execution_record_id.0),
+        semantic_segment_id: Some(semantic_segment_id.0),
+    }));
     let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();
     let emitted_on_branch_id = graph.observe().current_branch().id;
     graph
@@ -449,75 +468,17 @@ pub fn stamp_trace_summary_and_record_lineage_transition(
     let Some(mut after_trace) = graph.get_entry(node)?.get_runtime_artifact_state().cloned() else {
         return Ok(());
     };
-    let previous_artifact_id = before_trace.and_then(|summary| summary.lineage_artifact_id);
-    let (artifact_id, transition) = if matches!(
-        after_trace.reuse_origin,
-        ReuseOrigin::MemoizedArtifactReuse
-            | ReuseOrigin::SnapshotRestore
-            | ReuseOrigin::ReconciliationAdoption
-            | ReuseOrigin::CrossIdentityPersistentReuse
-            | ReuseOrigin::PartialArtifactSplice
-    ) {
-        let artifact_id = previous_artifact_id
-            .unwrap_or_else(|| graph.diagnostics_state_mut().allocate_lineage_artifact_id());
-        (
-            artifact_id,
-            match after_trace.reuse_origin {
-                ReuseOrigin::MemoizedArtifactReuse => ArtifactTransitionKind::MemoizedReuse,
-                ReuseOrigin::SnapshotRestore => ArtifactTransitionKind::SnapshotRestoreReuse,
-                ReuseOrigin::ReconciliationAdoption => {
-                    ArtifactTransitionKind::ReconciliationAdoption
-                }
-                ReuseOrigin::CrossIdentityPersistentReuse => {
-                    ArtifactTransitionKind::CrossIdentityPersistentReuse {
-                        correspondence_kind: after_trace
-                            .reuse_boundary_context
-                            .as_ref()
-                            .and_then(|ctx| ctx.persistent_correspondence())
-                            .map(|evidence| evidence.kind())
-                            .unwrap_or(crate::data::reuse::PersistentCorrespondenceKind::Unknown),
-                    }
-                }
-                ReuseOrigin::PartialArtifactSplice => {
-                    ArtifactTransitionKind::PartialArtifactSplice {
-                        composition_region_count: after_trace
-                            .reuse_boundary_context
-                            .as_ref()
-                            .and_then(|ctx| ctx.composition_regions())
-                            .map(|regions| regions.as_slice().len() as u32)
-                            .unwrap_or(0),
-                        recomputed_region_count: after_trace.changed_partition_count,
-                    }
-                }
-                ReuseOrigin::FreshCompute | ReuseOrigin::OutputSuppressed => {
-                    unreachable!("guarded by matches!")
-                }
-            },
-        )
-    } else if previous_artifact_id.is_some()
-        && matches!(
-            after_trace.output_change,
-            OutputChange::Refreshed | OutputChange::Unchanged
-        )
-    {
-        (
-            previous_artifact_id.expect("checked above"),
-            ArtifactTransitionKind::Refreshed {
-                output_change: after_trace.output_change,
-            },
-        )
-    } else {
-        (
-            graph.diagnostics_state_mut().allocate_lineage_artifact_id(),
-            ArtifactTransitionKind::Replaced,
-        )
-    };
-    after_trace.execution_record_id = Some(execution_record_id.0);
-    after_trace.semantic_segment_id = Some(semantic_segment_id.0);
-    after_trace.lineage_artifact_id = Some(artifact_id);
-    graph
-        .get_entry_mut(node)?
-        .set_runtime_artifact_state(Some(after_trace));
+    let (artifact_id, previous_artifact_id, transition) =
+        derive_lineage_transition(graph, before_trace, &after_trace);
+    after_trace.lineage_artifact_id = crate::data::trace::ArtifactTransitionKey::new(Some(
+        artifact_id,
+    ));
+    let entry = graph.get_entry_mut(node)?;
+    entry.set_runtime_artifact_state(Some(after_trace));
+    entry.set_execution_trace_stamp(Some(ExecutionTraceStamp {
+        execution_record_id: Some(execution_record_id.0),
+        semantic_segment_id: Some(semantic_segment_id.0),
+    }));
     let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();
     let emitted_on_branch_id = graph.observe().current_branch().id;
     graph
@@ -544,7 +505,7 @@ pub fn record_invalidation_lineage(
         .get_entry(node)
         .ok()
         .and_then(|entry| entry.get_runtime_artifact_state())
-        .and_then(|state| state.lineage_artifact_id)
+        .and_then(|state| state.lineage_artifact_id.get())
     else {
         return;
     };

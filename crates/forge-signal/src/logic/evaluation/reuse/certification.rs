@@ -43,8 +43,9 @@ mod tests {
     use crate::data::reuse::{
         ArtifactEquivalenceContract, ArtifactSemanticBoundary, NodeReuseContract,
         PersistentCorrespondenceEvidence, ReuseBasis, ReuseBoundaryContext, ReuseBoundaryEvidence,
-        ReuseBoundaryFailure, ReuseCrossing, ReuseOrigin, ReuseSemanticRegionIdentity, ReuseSource,
-        ReuseStrategy, ReuseStrategyBoundaryContext,
+        ReuseBoundaryFailure, ReuseCrossing, ReuseOrigin, ReuseSemanticRegionIdentity,
+        ReuseSource, ReuseStrategy, ReuseStrategyBoundaryAuthority,
+        ReuseStrategyBoundaryContext,
     };
     use crate::data::{
         comparator::VersionComparatorPolicy, node::ContextRequirement, performance::AuthorityPolicy,
@@ -54,37 +55,24 @@ mod tests {
     use crate::logic::evaluation::reuse::basis_resolution::ResolvedReuseDecision;
 
     fn evidence() -> ReuseBoundaryEvidence {
+        let current = ReuseBoundaryContext {
+            topology_regime: 7,
+            tolerance_regime: VersionComparatorPolicy::Tolerance { epsilon: 2 },
+            semantic_region: ReuseSemanticRegionIdentity::new(
+                crate::data::handle::NodeId::new(0, 0),
+                true,
+                Vec::new(),
+                ContextRequirement::None,
+            ),
+            authority_policy: AuthorityPolicy::SpeculativeThenReconcile,
+            artifact_family: None,
+            structural_dependency_basis: crate::data::dependency::DependencySnapshotId::EMPTY,
+            partition_region_basis: Default::default(),
+            strategy_detail: ReuseStrategyBoundaryContext::None,
+        };
         ReuseBoundaryEvidence {
-            current: ReuseBoundaryContext {
-                topology_regime: 7,
-                tolerance_regime: VersionComparatorPolicy::Tolerance { epsilon: 2 },
-                semantic_region: ReuseSemanticRegionIdentity::new(
-                    crate::data::handle::NodeId::new(0, 0),
-                    true,
-                    Vec::new(),
-                    ContextRequirement::None,
-                ),
-                authority_policy: AuthorityPolicy::SpeculativeThenReconcile,
-                artifact_family: None,
-                structural_dependency_basis: crate::data::dependency::DependencySnapshotId::EMPTY,
-                partition_region_basis: Default::default(),
-                strategy_detail: ReuseStrategyBoundaryContext::None,
-            },
-            previous: Some(ReuseBoundaryContext {
-                topology_regime: 7,
-                tolerance_regime: VersionComparatorPolicy::Tolerance { epsilon: 2 },
-                semantic_region: ReuseSemanticRegionIdentity::new(
-                    crate::data::handle::NodeId::new(0, 0),
-                    true,
-                    Vec::new(),
-                    ContextRequirement::None,
-                ),
-                authority_policy: AuthorityPolicy::SpeculativeThenReconcile,
-                artifact_family: None,
-                structural_dependency_basis: crate::data::dependency::DependencySnapshotId::EMPTY,
-                partition_region_basis: Default::default(),
-                strategy_detail: ReuseStrategyBoundaryContext::None,
-            }),
+            current: current.authority(),
+            previous: Some(current.authority()),
         }
     }
 
@@ -263,7 +251,7 @@ mod tests {
             recomputed: false,
         };
         let mut evidence = evidence();
-        evidence.current.strategy_detail = ReuseStrategyBoundaryContext::None;
+        evidence.current.strategy_detail = ReuseStrategyBoundaryAuthority::None;
 
         let failure = certify_reuse_decision(&contract, &decision, &evidence).unwrap_err();
         assert_eq!(
@@ -299,16 +287,48 @@ mod tests {
         let mut evidence = evidence();
         let correspondence =
             PersistentCorrespondenceEvidence::HostSuppliedKey("mesh-001".to_string());
-        evidence.current.strategy_detail = ReuseStrategyBoundaryContext::CrossIdentity {
-            persistent_correspondence: correspondence.clone(),
-        };
+        evidence.current.strategy_detail = ReuseBoundaryContext {
+            topology_regime: 7,
+            tolerance_regime: VersionComparatorPolicy::Tolerance { epsilon: 2 },
+            semantic_region: ReuseSemanticRegionIdentity::new(
+                crate::data::handle::NodeId::new(0, 0),
+                true,
+                Vec::new(),
+                ContextRequirement::None,
+            ),
+            authority_policy: AuthorityPolicy::SpeculativeThenReconcile,
+            artifact_family: None,
+            structural_dependency_basis: crate::data::dependency::DependencySnapshotId::EMPTY,
+            partition_region_basis: Default::default(),
+            strategy_detail: ReuseStrategyBoundaryContext::CrossIdentity {
+                persistent_correspondence: correspondence.clone(),
+            },
+        }
+        .authority()
+        .strategy_detail;
         evidence
             .previous
             .as_mut()
             .expect("previous context")
-            .strategy_detail = ReuseStrategyBoundaryContext::CrossIdentity {
-            persistent_correspondence: correspondence,
-        };
+            .strategy_detail = ReuseBoundaryContext {
+            topology_regime: 7,
+            tolerance_regime: VersionComparatorPolicy::Tolerance { epsilon: 2 },
+            semantic_region: ReuseSemanticRegionIdentity::new(
+                crate::data::handle::NodeId::new(0, 0),
+                true,
+                Vec::new(),
+                ContextRequirement::None,
+            ),
+            authority_policy: AuthorityPolicy::SpeculativeThenReconcile,
+            artifact_family: None,
+            structural_dependency_basis: crate::data::dependency::DependencySnapshotId::EMPTY,
+            partition_region_basis: Default::default(),
+            strategy_detail: ReuseStrategyBoundaryContext::CrossIdentity {
+                persistent_correspondence: correspondence,
+            },
+        }
+        .authority()
+        .strategy_detail;
 
         let certification = certify_reuse_decision(&contract, &decision, &evidence).unwrap();
         assert!(certification.is_some());

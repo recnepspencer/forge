@@ -28,7 +28,11 @@ impl<'runtime> LineageAccess<'runtime> {
         &self,
         branch_id: &crate::history::data::BranchId,
     ) -> Vec<LineageEventRecord> {
-        self.runtime.lineage.branch_events(branch_id).cloned().collect()
+        self.runtime
+            .lineage
+            .branch_events(branch_id)
+            .cloned()
+            .collect()
     }
 
     pub(crate) fn branch_nodes_snapshot(&self, branch_id: &BranchId) -> Vec<LineageNode> {
@@ -37,7 +41,10 @@ impl<'runtime> LineageAccess<'runtime> {
             return Vec::new();
         };
         let cache_hit = cached_state_for_version(self.runtime, head.version_id).is_some();
-        let read_view = self.runtime.visibility_reads().read_version(head.version_id);
+        let read_view = self
+            .runtime
+            .visibility_reads()
+            .read_version(head.version_id);
         self.runtime
             .performance_access()
             .count_lineage_graph_snapshot_visibility_cache(cache_hit);

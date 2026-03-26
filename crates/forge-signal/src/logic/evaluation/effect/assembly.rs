@@ -1,5 +1,5 @@
 use crate::data::output::{ChangedRegion, MemoizedResultOrigin, OutputIdentity};
-use crate::data::reuse::ReuseCertificationRecord;
+use crate::data::reuse::{ReuseBoundaryContext, ReuseCertificationRecord};
 use crate::data::trace::CausalityMetadata;
 use crate::logic::prepared::PreparedKeyedContext;
 
@@ -19,6 +19,7 @@ pub(crate) struct EffectRuntimeMetadata {
     pub keyed_context: Option<PreparedKeyedContext>,
     pub causality: Option<CausalityMetadata>,
     pub reuse_certification: Option<ReuseCertificationRecord>,
+    pub reuse_boundary_detail: Option<ReuseBoundaryContext>,
 }
 
 impl EvaluationEffect {
@@ -67,6 +68,10 @@ impl EvaluationEffect {
     pub(crate) fn reuse_certification(&self) -> Option<&ReuseCertificationRecord> {
         self.runtime_metadata.reuse_certification.as_ref()
     }
+
+    pub(crate) fn reuse_boundary_detail(&self) -> Option<&ReuseBoundaryContext> {
+        self.runtime_metadata.reuse_boundary_detail.as_ref()
+    }
 }
 
 #[cfg(test)]
@@ -95,7 +100,7 @@ mod tests {
                 output_change: OutputChange::Replaced,
                 reuse_basis: ReuseBasis::fresh_compute(),
                 reuse_origin: ReuseOrigin::FreshCompute,
-                reuse_boundary_context: ReuseBoundaryContext {
+                reuse_boundary_authority: ReuseBoundaryContext {
                     topology_regime: 0,
                     tolerance_regime: crate::data::comparator::VersionComparatorPolicy::Exact,
                     semantic_region: ReuseSemanticRegionIdentity::new(
@@ -111,7 +116,8 @@ mod tests {
                         crate::data::dependency::DependencySnapshotId::EMPTY,
                     partition_region_basis: crate::data::proof::PartitionScopeSet::default(),
                     strategy_detail: crate::data::reuse::ReuseStrategyBoundaryContext::None,
-                },
+                }
+                .authority(),
                 dependency_snapshot_update: CommittedSnapshotUpdate::Replace(
                     ReplacementSnapshotUpdate::from_snapshot(
                         DependencySnapshot::empty(),

@@ -11,9 +11,7 @@ use crate::performance::data::RuntimeComplexityCounters;
 use crate::publication::data::diff::PatchRecord;
 use crate::publication::data::{PublicationError, PublicationStatus};
 use crate::replay::data::CanonicalCommitEnvelope;
-use crate::schema::data::{
-    DescriptorSemanticsVersion, SchemaTransitionSummary, SchemaVersionId,
-};
+use crate::schema::data::{DescriptorSemanticsVersion, SchemaTransitionSummary, SchemaVersionId};
 use crate::snapshots::data::SnapshotHandle;
 use crate::validation::data::{InvariantExecutionPoint, InvariantGroupSet};
 use crate::validation::engine::{
@@ -370,10 +368,12 @@ impl ConflictClass {
                 "detail": detail,
                 "class": "structural_incompatible_schema_transition",
             })),
-            Self::DirectionalityMismatchUnderCanonicalReconciliation { detail } => Some(serde_json::json!({
-                "detail": detail,
-                "class": "directionality_mismatch_under_canonical_reconciliation",
-            })),
+            Self::DirectionalityMismatchUnderCanonicalReconciliation { detail } => {
+                Some(serde_json::json!({
+                    "detail": detail,
+                    "class": "directionality_mismatch_under_canonical_reconciliation",
+                }))
+            }
             _ => None,
         }
     }

@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
 use crate::identity::data::KindId;
-use crate::schema::data::PayloadSchemaDeclaration;
 use crate::publication::patch::data::AspectKey;
+use crate::schema::data::PayloadSchemaDeclaration;
 use crate::symbols::data::InternedString;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]

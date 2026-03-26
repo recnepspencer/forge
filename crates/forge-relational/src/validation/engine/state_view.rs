@@ -198,11 +198,9 @@ impl<'state> InvariantStateView<'state> {
             };
             saw_any = true;
             for slot in slots {
-                let Some(metadata) = self.relation_metadata_at(
-                    &partition.relation_arena,
-                    partition_id,
-                    slot,
-                ) else {
+                let Some(metadata) =
+                    self.relation_metadata_at(&partition.relation_arena, partition_id, slot)
+                else {
                     continue;
                 };
                 ids.push(metadata.relation_id);

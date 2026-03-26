@@ -1,9 +1,9 @@
 mod aspect_semantics;
 mod aspect_traces;
 mod continuity;
+mod registry_errors;
 mod relation_integrity;
 mod structural_invariants;
-mod registry_errors;
 
 use std::collections::BTreeMap;
 
@@ -15,9 +15,9 @@ use crate::identity::data::KindId;
 pub use aspect_semantics::*;
 pub use aspect_traces::*;
 pub use continuity::*;
+pub use registry_errors::*;
 pub use relation_integrity::*;
 pub use structural_invariants::*;
-pub use registry_errors::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct SchemaId(pub String);
@@ -175,10 +175,7 @@ impl RelationalSchemaRegistry {
             if next_schema_id != schema_id || next_schema_version_id != schema_version_id {
                 return Err(SchemaRegistryError::inconsistent_schema_basis(format!(
                     "found mixed schema basis {:?}/{:?} and {:?}/{:?}",
-                    schema_id,
-                    schema_version_id,
-                    next_schema_id,
-                    next_schema_version_id
+                    schema_id, schema_version_id, next_schema_id, next_schema_version_id
                 )));
             }
         }

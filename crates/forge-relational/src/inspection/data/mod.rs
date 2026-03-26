@@ -1,14 +1,12 @@
 use serde::{Deserialize, Serialize};
 
-use crate::history::data::{
-    AspectHistoryQueryResult, BranchId, CommitReference,
-};
+use crate::history::data::{AspectHistoryQueryResult, BranchId, CommitReference};
 use crate::identity::data::{
     EntityId, KindId, LineageId, PartitionId, RelationId, StructuralFingerprint, VersionId,
 };
 use crate::indexes::data::DerivedIndexGeneration;
-use crate::lineage::data::{LineageArtifactCounters, LineageDigestBasis};
 use crate::lineage::data::{HistoricalLineageResolution, LineageEventRecord};
+use crate::lineage::data::{LineageArtifactCounters, LineageDigestBasis};
 use crate::publication::patch::data::CanonicalAspectSet;
 use crate::snapshots::data::{SnapshotHandle, SnapshotInspectionSummary};
 use crate::storage::data::{

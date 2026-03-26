@@ -81,10 +81,7 @@ struct PreparedRelationIntegrityScopeBudgetExceeded {
 }
 
 impl PreparedRelationIntegrityScopeBudgetExceeded {
-    fn into_violation(
-        self,
-        execution_point: InvariantExecutionPoint,
-    ) -> InvariantViolation {
+    fn into_violation(self, execution_point: InvariantExecutionPoint) -> InvariantViolation {
         InvariantViolation {
             class: execution_point.class(),
             code: crate::diagnostics::data::DiagnosticCode::PreparationFailure,
@@ -189,13 +186,16 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
             .unwrap_or(consumed_groups);
         let (relation_integrity_scopes, preparation_violation) =
             match prepare_relation_integrity_scopes(
-            merged_plan,
-            observation.partition_access(),
-            runtime.performance_access(),
-            &runtime.config.execution.relation_integrity_scope_budget,
-        ) {
+                merged_plan,
+                observation.partition_access(),
+                runtime.performance_access(),
+                &runtime.config.execution.relation_integrity_scope_budget,
+            ) {
                 Ok(scopes) => (scopes, None),
-                Err(exceeded) => (None, Some(exceeded.into_violation(profile.execution_point()))),
+                Err(exceeded) => (
+                    None,
+                    Some(exceeded.into_violation(profile.execution_point())),
+                ),
             };
         Self {
             observation,
@@ -282,7 +282,10 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
         registration.execution_point() == self.checkpoint
             && self.runtime_policy.should_run(rule_groups, self.checkpoint)
             && (self.applicable_groups.is_empty() || self.applicable_groups.intersects(rule_groups))
-            && cost_allowed(self.runtime_policy.max_cost_at(self.checkpoint), registration.cost_class())
+            && cost_allowed(
+                self.runtime_policy.max_cost_at(self.checkpoint),
+                registration.cost_class(),
+            )
     }
 
     fn rule_matches_plan_scope(&self, rule: &InvariantRule) -> bool {
@@ -311,7 +314,9 @@ fn relation_kind_scope(rule: &InvariantRule) -> Option<KindId> {
         InvariantRule::CardinalityMinimumContract(contract) => Some(contract.relation_kind_id),
         InvariantRule::UniquenessContract(contract) => Some(contract.relation_kind_id),
         InvariantRule::SymmetryContract(contract) => Some(contract.relation_kind_id),
-        InvariantRule::EndpointDeletionIntegrityContract(contract) => Some(contract.relation_kind_id),
+        InvariantRule::EndpointDeletionIntegrityContract(contract) => {
+            Some(contract.relation_kind_id)
+        }
         _ => None,
     }
 }
@@ -363,10 +368,12 @@ fn prepare_relation_integrity_scopes(
                 crate::transactions::data::CreateIntent::BulkRelations(spec),
             ) => {
                 for (source, target) in &spec.endpoints {
-                    scopes.entry(spec.kind_id).or_default().planned_edges.push(PlannedRelationEdge {
-                        source: *source,
-                        target: *target,
-                    });
+                    scopes.entry(spec.kind_id).or_default().planned_edges.push(
+                        PlannedRelationEdge {
+                            source: *source,
+                            target: *target,
+                        },
+                    );
                     planned_edge_count += 1;
                     touched_entities.insert(*source);
                     touched_entities.insert(*target);
@@ -458,7 +465,8 @@ fn prepare_relation_integrity_scopes(
                     planned_edge_count,
                 ),
             )?;
-            let Some(relation_partition) = partitions.get_partition(relation_id.partition_id) else {
+            let Some(relation_partition) = partitions.get_partition(relation_id.partition_id)
+            else {
                 continue;
             };
             let Some(slot) = relation_partition.relation_arena.get(&relation_id) else {
@@ -470,9 +478,7 @@ fn prepare_relation_integrity_scopes(
             let Some(endpoints) = slot.extra().as_ref() else {
                 continue;
             };
-            if slot.lifecycle()
-                != crate::storage::data::RecordLifecycleState::Live
-            {
+            if slot.lifecycle() != crate::storage::data::RecordLifecycleState::Live {
                 continue;
             }
             let scope = scopes.entry(kind_id).or_default();
@@ -588,11 +594,11 @@ mod tests {
         },
     };
     use crate::identity::data::KindId;
+    use crate::identity::data::PartitionId;
+    use crate::payloads::data::RecordPayload;
     use crate::schema::data::{
         EndpointKindContractDeclaration, RelationIntegrityDeclarations, RelationPayloadClass,
     };
-    use crate::identity::data::PartitionId;
-    use crate::payloads::data::RecordPayload;
     use crate::transactions::data::{
         CreateIntent, DeleteEntityIntent, EntityMutationIntent, EntitySpec, MergedCommitPlan,
         MutationIntent, RelationSpec, ReplaceEntityIntent, TransactionId, TransactionOptions,
@@ -695,16 +701,14 @@ mod tests {
         name: &str,
     ) -> crate::identity::data::EntityId {
         let mut txn = runtime.begin_transaction(TransactionOptions::default());
-        txn.push_batch(
-            WorkerIntentBatch::new(format!("entity-{name}")).push(MutationIntent::Create(
-                CreateIntent::Entity(EntitySpec {
-                    partition_id: PartitionId::main(),
-                    kind_id: KindId(1),
-                    client_key: crate::symbols::data::InternedString::Raw(name.to_string()),
-                    payload: RecordPayload::StructuredJson(json!({"name": name})),
-                }),
-            )),
-        );
+        txn.push_batch(WorkerIntentBatch::new(format!("entity-{name}")).push(
+            MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: crate::symbols::data::InternedString::Raw(name.to_string()),
+                payload: RecordPayload::StructuredJson(json!({"name": name})),
+            })),
+        ));
         let outcome = txn.commit().unwrap();
         outcome
             .changed_records
@@ -761,14 +765,16 @@ mod tests {
         let target = create_entity(&mut runtime, "target");
         let plan = MergedCommitPlan {
             transaction_id: TransactionId(11),
-            merged_intents: vec![MutationIntent::Create(CreateIntent::Relation(RelationSpec {
-                partition_id: PartitionId::main(),
-                kind_id: KindId(2),
-                client_key: crate::symbols::data::InternedString::Raw("planned".to_string()),
-                source,
-                target,
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"planned"}))),
-            }))],
+            merged_intents: vec![MutationIntent::Create(CreateIntent::Relation(
+                RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(2),
+                    client_key: crate::symbols::data::InternedString::Raw("planned".to_string()),
+                    source,
+                    target,
+                    payload: Some(RecordPayload::StructuredJson(json!({"label":"planned"}))),
+                },
+            ))],
         };
 
         let request = request_for_plan(&runtime, &plan);
@@ -791,7 +797,13 @@ mod tests {
         let isolated_a = create_entity(&mut runtime, "isolated-a");
         let isolated_b = create_entity(&mut runtime, "isolated-b");
         create_relation_of_kind(&mut runtime, KindId(2), anchor, target, "adjacent-kind2");
-        create_relation_of_kind(&mut runtime, KindId(3), isolated_a, isolated_b, "remote-kind3");
+        create_relation_of_kind(
+            &mut runtime,
+            KindId(3),
+            isolated_a,
+            isolated_b,
+            "remote-kind3",
+        );
 
         let plan = MergedCommitPlan {
             transaction_id: TransactionId(12),
@@ -820,7 +832,13 @@ mod tests {
         let isolated_a = create_entity(&mut runtime, "isolated-a");
         let isolated_b = create_entity(&mut runtime, "isolated-b");
         create_relation_of_kind(&mut runtime, KindId(2), anchor, target, "adjacent-kind2");
-        create_relation_of_kind(&mut runtime, KindId(3), isolated_a, isolated_b, "remote-kind3");
+        create_relation_of_kind(
+            &mut runtime,
+            KindId(3),
+            isolated_a,
+            isolated_b,
+            "remote-kind3",
+        );
 
         let plan = MergedCommitPlan {
             transaction_id: TransactionId(13),

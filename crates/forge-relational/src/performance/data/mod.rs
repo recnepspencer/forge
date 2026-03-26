@@ -151,6 +151,13 @@ pub struct RuntimeComplexityCounters {
     pub replay_lineage_authoritative_basis_rejections: usize,
     pub replay_lineage_digest_event_width: usize,
     pub replay_lineage_digest_decision_width: usize,
+    pub merge_history_ancestry_traversals: usize,
+    pub merge_history_ancestry_nodes_visited: usize,
+    pub merge_history_parent_comparisons: usize,
+    pub merge_history_replay_parent_checks: usize,
+    pub merge_history_replay_planning_nodes_visited: usize,
+    pub merge_history_durability_parent_checks: usize,
+    pub merge_history_durability_validation_nodes_visited: usize,
     pub descriptor_version_mismatches_encountered: usize,
 }
 

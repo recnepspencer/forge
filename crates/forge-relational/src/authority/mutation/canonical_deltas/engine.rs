@@ -3,9 +3,7 @@ use smallvec::SmallVec;
 use crate::identity::data::EntityId;
 use crate::payloads::data::RecordPayload;
 use crate::publication::patch::data::{AspectKey, CanonicalAspectSet, RecordStructuralChange};
-use crate::schema::data::{
-    AspectPrecision, LoweredAspectPlan, LoweredExecutableAspectBindingKind,
-};
+use crate::schema::data::{AspectPrecision, LoweredAspectPlan, LoweredExecutableAspectBindingKind};
 use crate::transactions::data::RecordRef;
 
 use super::data::{
@@ -314,7 +312,10 @@ fn evaluate_bindings(
                 let evidence = BindingEvidence::Lifecycle {
                     transition: lifecycle_transition,
                 };
-                (evidence.clone(), lifecycle_transition != super::data::LifecycleTransitionClass::NoTransition)
+                (
+                    evidence.clone(),
+                    lifecycle_transition != super::data::LifecycleTransitionClass::NoTransition,
+                )
             }
             LoweredExecutableAspectBindingKind::OpaqueWholePayloadBytes => {
                 evaluate_opaque_payload(context.old_payload(), context.new_payload())?
@@ -441,14 +442,7 @@ mod tests {
         config: &'a crate::config::data::MutationConfig,
         schema: &'a RelationalSchemaRegistry,
     ) -> MutationWorkspace<'a> {
-        MutationWorkspace::new(
-            state,
-            symbols,
-            config,
-            schema,
-            aspect_plans,
-            VersionId(1),
-        )
+        MutationWorkspace::new(state, symbols, config, schema, aspect_plans, VersionId(1))
     }
 
     #[test]

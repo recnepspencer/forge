@@ -25,7 +25,10 @@ impl<'runtime> InspectionAccess<'runtime> {
         Self { runtime }
     }
 
-    pub(super) fn read_view_for_scope(&self, scope: &InspectionScope) -> Option<RelationalReadView> {
+    pub(super) fn read_view_for_scope(
+        &self,
+        scope: &InspectionScope,
+    ) -> Option<RelationalReadView> {
         match scope {
             InspectionScope::Current => Some(
                 self.runtime
@@ -35,7 +38,9 @@ impl<'runtime> InspectionAccess<'runtime> {
             InspectionScope::Version(version_id) => {
                 Some(self.runtime.visibility_reads().read_version(*version_id))
             }
-            InspectionScope::Snapshot(handle) => self.runtime.visibility_reads().read_snapshot(handle),
+            InspectionScope::Snapshot(handle) => {
+                self.runtime.visibility_reads().read_snapshot(handle)
+            }
         }
     }
 
@@ -139,7 +144,8 @@ impl<'runtime> InspectionAccess<'runtime> {
             components: Vec::new(),
             origin: InspectionOrigin::VisibilitySnapshot,
             access_path: self.scope_access_path(&request.scope, version_id),
-            resolution_context: crate::inspection::data::InspectionResolutionContext::ConnectivityTraversal,
+            resolution_context:
+                crate::inspection::data::InspectionResolutionContext::ConnectivityTraversal,
             availability: unavailable_scope_availability(&request.scope),
             degradations: summary_degradations(request.include_members, None),
         }
@@ -163,7 +169,8 @@ impl<'runtime> InspectionAccess<'runtime> {
                 _ => InspectionOrigin::VisibilitySnapshot,
             },
             access_path: self.scope_access_path(&request.scope, version_id),
-            resolution_context: crate::inspection::data::InspectionResolutionContext::ConnectivityTraversal,
+            resolution_context:
+                crate::inspection::data::InspectionResolutionContext::ConnectivityTraversal,
             availability: InspectionAvailability::UnavailableByBudget,
             degradations: summary_degradations(request.include_members, Some(degradation)),
         }

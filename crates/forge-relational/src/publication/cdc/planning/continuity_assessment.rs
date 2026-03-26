@@ -3,8 +3,7 @@ use std::collections::BTreeSet;
 use crate::publication::cdc::data::{
     NormalizedContinuationProof, SubscriberBoundaryAssessment, SubscriberContinuationAssessment,
     SubscriberContinuationSummary, SubscriberContractDeclaration, SubscriberRecoveryDisposition,
-    SubscriberStreamFailure, SubscriberStreamFailureClass,
-    MAX_NORMALIZED_CONTINUATION_BOUNDARIES,
+    SubscriberStreamFailure, SubscriberStreamFailureClass, MAX_NORMALIZED_CONTINUATION_BOUNDARIES,
 };
 use crate::publication::cdc::diagnostics::continuation_rejection_artifact;
 use crate::publication::patch::data::PatchStreamPosition;
@@ -75,7 +74,10 @@ pub(crate) fn assess_subscriber_continuity(
                         subscriber_contract,
                         &boundary_assessments,
                         prior_proof.normalized_boundary_count(),
-                        descriptor_semantics_version(selected_envelopes, fallback_descriptor_semantics_version),
+                        descriptor_semantics_version(
+                            selected_envelopes,
+                            fallback_descriptor_semantics_version,
+                        ),
                     ));
                 }
             }
@@ -91,7 +93,10 @@ pub(crate) fn assess_subscriber_continuity(
                         subscriber_contract,
                         &boundary_assessments,
                         prior_proof.normalized_boundary_count(),
-                        descriptor_semantics_version(selected_envelopes, fallback_descriptor_semantics_version),
+                        descriptor_semantics_version(
+                            selected_envelopes,
+                            fallback_descriptor_semantics_version,
+                        ),
                     ));
                 }
             }
@@ -103,7 +108,10 @@ pub(crate) fn assess_subscriber_continuity(
                         subscriber_contract,
                         &boundary_assessments,
                         prior_proof.normalized_boundary_count(),
-                        descriptor_semantics_version(selected_envelopes, fallback_descriptor_semantics_version),
+                        descriptor_semantics_version(
+                            selected_envelopes,
+                            fallback_descriptor_semantics_version,
+                        ),
                     ));
                 }
                 contract_upgrade_applied = true;
@@ -115,7 +123,10 @@ pub(crate) fn assess_subscriber_continuity(
                     subscriber_contract,
                     &boundary_assessments,
                     prior_proof.normalized_boundary_count(),
-                    descriptor_semantics_version(selected_envelopes, fallback_descriptor_semantics_version),
+                    descriptor_semantics_version(
+                        selected_envelopes,
+                        fallback_descriptor_semantics_version,
+                    ),
                 ));
             }
             SchemaContinuationClassification::Rejected => {
@@ -125,7 +136,10 @@ pub(crate) fn assess_subscriber_continuity(
                     subscriber_contract,
                     &boundary_assessments,
                     prior_proof.normalized_boundary_count(),
-                    descriptor_semantics_version(selected_envelopes, fallback_descriptor_semantics_version),
+                    descriptor_semantics_version(
+                        selected_envelopes,
+                        fallback_descriptor_semantics_version,
+                    ),
                 ));
             }
         }
@@ -205,9 +219,8 @@ fn compose_normalized_proof(
     subscriber_contract: &SubscriberContractDeclaration,
     boundary_assessments: &[SubscriberBoundaryAssessment],
 ) -> Result<NormalizedContinuationProof, SubscriberStreamFailure> {
-    let mut boundary_fingerprints = Vec::with_capacity(
-        prior_proof.boundary_fingerprints().len() + crossed_boundaries.len(),
-    );
+    let mut boundary_fingerprints =
+        Vec::with_capacity(prior_proof.boundary_fingerprints().len() + crossed_boundaries.len());
     let mut seen = BTreeSet::new();
 
     for fingerprint in prior_proof

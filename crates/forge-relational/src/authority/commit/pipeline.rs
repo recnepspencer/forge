@@ -123,9 +123,9 @@ impl<'a> RelationalTransaction<'a> {
         phase_timing.history_resolution_micros = elapsed_micros(phase_started);
 
         let schema_continuity =
-            resolve_schema_continuity(&mut *self.runtime, &branch_id, &self.options).map_err(|error| {
-                attach_rejection(&mut commit_log, CommitPhase::ArtifactAssembly, error)
-            })?;
+            resolve_schema_continuity(&mut *self.runtime, &branch_id, &self.options).map_err(
+                |error| attach_rejection(&mut commit_log, CommitPhase::ArtifactAssembly, error),
+            )?;
         emit_schema_continuity_diagnostic(self.runtime, &branch_id, &schema_continuity);
 
         {

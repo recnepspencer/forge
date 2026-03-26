@@ -5,9 +5,8 @@ use crate::diagnostics::data::{
 use crate::replay::data::CanonicalCommitEnvelope;
 use crate::schema::data::{
     DescriptorSemanticsVersion, FreeFormSchemaDiffIntent, LoweredSchemaTransitionPlan,
-    SchemaContinuationDescriptor, SchemaDiffDetail, SchemaReconciliationDescriptor,
-    SchemaStratum, SchemaTransitionArtifact,
-    SchemaTransitionSummary,
+    SchemaContinuationDescriptor, SchemaDiffDetail, SchemaReconciliationDescriptor, SchemaStratum,
+    SchemaTransitionArtifact, SchemaTransitionSummary,
 };
 use crate::schema::logic::{
     lower_schema_transition, validate_schema_continuity_bundle, validate_schema_transition,
@@ -242,15 +241,17 @@ pub(crate) fn resolve_schema_continuity(
     };
 
     if !descriptor_policy.supports(previous_envelope.descriptor_semantics_version) {
-        runtime.performance_access().count_descriptor_version_mismatch();
+        runtime
+            .performance_access()
+            .count_descriptor_version_mismatch();
         return Err(schema_continuity_conflict(
             runtime,
             branch_id,
             options.proposed_schema_transition.as_ref(),
             Some(previous_envelope),
             ConflictClass::DescriptorVersionIncompatibility {
-                previous_descriptor_semantics_version:
-                    previous_envelope.descriptor_semantics_version,
+                previous_descriptor_semantics_version: previous_envelope
+                    .descriptor_semantics_version,
                 current_descriptor_semantics_version,
             },
         ));
@@ -278,8 +279,8 @@ pub(crate) fn resolve_schema_continuity(
             ConflictClass::UndeclaredSchemaTransition {
                 previous_schema_version: previous_envelope.schema_version,
                 current_schema_version,
-                previous_descriptor_semantics_version:
-                    previous_envelope.descriptor_semantics_version,
+                previous_descriptor_semantics_version: previous_envelope
+                    .descriptor_semantics_version,
                 current_descriptor_semantics_version,
             },
         )),
@@ -297,7 +298,10 @@ fn materialize_declared_transition(
     descriptor_canonicalization_version: crate::schema::data::DescriptorCanonicalizationVersion,
     branch_id: &crate::history::data::BranchId,
     previous_envelope: Option<&crate::replay::data::CanonicalCommitEnvelope>,
-    current_schema_basis: Option<(crate::schema::data::SchemaId, crate::schema::data::SchemaVersionId)>,
+    current_schema_basis: Option<(
+        crate::schema::data::SchemaId,
+        crate::schema::data::SchemaVersionId,
+    )>,
     current_schema_version: crate::schema::data::SchemaVersionId,
 ) -> Result<SchemaContinuityPlan, TransactionCommitError> {
     if let Some(previous_envelope) = previous_envelope {
@@ -373,17 +377,18 @@ fn materialize_declared_transition(
         ));
     }
 
-    let validated = validate_schema_transition(proposed_transition.clone(), policy).map_err(|error| {
-        schema_continuity_conflict(
-            runtime,
-            branch_id,
-            Some(&proposed_transition),
-            previous_envelope,
-            ConflictClass::InvalidSchemaTransitionShape {
-                detail: error.detail(),
-            },
-        )
-    })?;
+    let validated =
+        validate_schema_transition(proposed_transition.clone(), policy).map_err(|error| {
+            schema_continuity_conflict(
+                runtime,
+                branch_id,
+                Some(&proposed_transition),
+                previous_envelope,
+                ConflictClass::InvalidSchemaTransitionShape {
+                    detail: error.detail(),
+                },
+            )
+        })?;
     match validated.reconciliation {
         crate::schema::data::SchemaReconciliationClassification::TypeIncompatible => {
             return Err(schema_continuity_conflict(
@@ -422,14 +427,19 @@ fn materialize_declared_transition(
     // diff atom is currently both the inspected atom and the inspected change unit.
     let changed_subtrees_inspected = proposed_transition.diff_atoms.len();
     let unchanged_subtrees_reused_by_fingerprint = 0;
-    runtime.performance_access().count_schema_transition_classification(
-        atoms_inspected,
-        changed_subtrees_inspected,
-        unchanged_subtrees_reused_by_fingerprint,
-    );
+    runtime
+        .performance_access()
+        .count_schema_transition_classification(
+            atoms_inspected,
+            changed_subtrees_inspected,
+            unchanged_subtrees_reused_by_fingerprint,
+        );
     runtime.performance_access().count_schema_bridge_descriptor(
         lowered.continuation_descriptor.bridge.continuation,
-        lowered.continuation_descriptor.bridge.historical_interpretation,
+        lowered
+            .continuation_descriptor
+            .bridge
+            .historical_interpretation,
         lowered.reconciliation_descriptor.policy,
     );
     Ok(schema_continuity_plan_from_lowered(
@@ -509,7 +519,10 @@ pub(crate) fn emit_schema_continuity_diagnostic(
                 target_schema_version_id: transition.target_schema_version_id.0,
                 changed_atom_count: transition_summary.changed_atom_count,
                 changed_strata: format_strata(&transition_summary.changed_strata),
-                historical_interpretation: format!("{:?}", transition_summary.historical_interpretation),
+                historical_interpretation: format!(
+                    "{:?}",
+                    transition_summary.historical_interpretation
+                ),
                 continuation: format!("{:?}", transition_summary.continuation),
                 bridgeability: format!("{:?}", transition_summary.bridgeability),
                 reconciliation: format!("{:?}", transition_summary.reconciliation),
@@ -569,7 +582,9 @@ fn schema_continuity_conflict_from_issue(
         SchemaContinuityBundleIssue::DescriptorSemanticsVersionMismatch { .. }
             | SchemaContinuityBundleIssue::DescriptorCanonicalizationVersionMismatch { .. }
     ) {
-        runtime.performance_access().count_descriptor_version_mismatch();
+        runtime
+            .performance_access()
+            .count_descriptor_version_mismatch();
     }
     let class = match issue {
         SchemaContinuityBundleIssue::IncompleteBundle
@@ -682,16 +697,13 @@ fn emit_schema_continuity_failure_diagnostic(
                 changed_atom_count: diff_atoms.len(),
             }),
         });
-        entries.extend(
-            diff_atoms
-                .iter()
-                .enumerate()
-                .map(|(index, atom)| RelationalDiagnosticsEntry {
-                    code: DiagnosticCode::SchemaTransitionClassified,
-                    message: format!("rejected schema diff atom {index} traced for diagnosis"),
-                    fields: diagnostics_fields(&schema_diff_atom_trace_fields(index, atom)),
-                }),
-        );
+        entries.extend(diff_atoms.iter().enumerate().map(|(index, atom)| {
+            RelationalDiagnosticsEntry {
+                code: DiagnosticCode::SchemaTransitionClassified,
+                message: format!("rejected schema diff atom {index} traced for diagnosis"),
+                fields: diagnostics_fields(&schema_diff_atom_trace_fields(index, atom)),
+            }
+        }));
     }
 
     runtime.publication_authority().push_bounded_diagnostic(
@@ -722,7 +734,9 @@ fn schema_transition_trace_entries(
                     "{:?}",
                     transition.continuation_descriptor.bridge.bridgeability
                 ),
-                normalized_boundary_count: transition.continuation_descriptor.normalized_boundary_count,
+                normalized_boundary_count: transition
+                    .continuation_descriptor
+                    .normalized_boundary_count,
                 descriptor_canonicalization_version: transition
                     .continuation_descriptor
                     .bridge
@@ -740,7 +754,10 @@ fn schema_transition_trace_entries(
                 ),
                 historical_interpretation: format!(
                     "{:?}",
-                    transition.continuation_descriptor.bridge.historical_interpretation
+                    transition
+                        .continuation_descriptor
+                        .bridge
+                        .historical_interpretation
                 ),
                 changed_strata: format_strata(
                     &transition.continuation_descriptor.bridge.changed_strata,
@@ -751,7 +768,10 @@ fn schema_transition_trace_entries(
             code: DiagnosticCode::SchemaReconciliationResolved,
             message: "schema reconciliation result resolved for continuity boundary".to_string(),
             fields: diagnostics_fields(&SchemaReconciliationFields {
-                classification: format!("{:?}", transition.reconciliation_descriptor.classification),
+                classification: format!(
+                    "{:?}",
+                    transition.reconciliation_descriptor.classification
+                ),
                 policy: format!("{:?}", transition.reconciliation_descriptor.policy),
                 resulting_schema_id: transition
                     .reconciliation_descriptor
@@ -768,7 +788,8 @@ fn schema_transition_trace_entries(
         },
         RelationalDiagnosticsEntry {
             code: DiagnosticCode::SchemaDescriptorVersionSelected,
-            message: "schema descriptor semantics version selected for continuity boundary".to_string(),
+            message: "schema descriptor semantics version selected for continuity boundary"
+                .to_string(),
             fields: diagnostics_fields(&SchemaDescriptorVersionFields {
                 descriptor_semantics_version: transition
                     .continuation_descriptor
@@ -806,12 +827,18 @@ fn schema_transition_trace_entries(
                 ),
                 historical_interpretation: format!(
                     "{:?}",
-                    transition.continuation_descriptor.bridge.historical_interpretation
+                    transition
+                        .continuation_descriptor
+                        .bridge
+                        .historical_interpretation
                 ),
                 changed_strata: format_strata(
                     &transition.continuation_descriptor.bridge.changed_strata,
                 ),
-                reconciliation: format!("{:?}", transition.reconciliation_descriptor.classification),
+                reconciliation: format!(
+                    "{:?}",
+                    transition.reconciliation_descriptor.classification
+                ),
                 policy: format!("{:?}", transition.reconciliation_descriptor.policy),
             }),
         },
@@ -846,11 +873,17 @@ fn schema_transition_trace_entries(
                     .collect(),
                 ordering_mode: format!(
                     "{:?}",
-                    transition.reconciliation_descriptor.resulting_lineage.ordering_mode
+                    transition
+                        .reconciliation_descriptor
+                        .resulting_lineage
+                        .ordering_mode
                 ),
                 ordering_semantics: format!(
                     "{:?}",
-                    transition.reconciliation_descriptor.resulting_lineage.ordering_semantics
+                    transition
+                        .reconciliation_descriptor
+                        .resulting_lineage
+                        .ordering_semantics
                 ),
                 branch_context: transition
                     .reconciliation_descriptor
@@ -905,7 +938,10 @@ fn schema_diff_detail_fields(detail: &SchemaDiffDetail) -> SchemaDiffDetailField
             added_variants,
         } => SchemaDiffDetailFields::EnumDomainExpanded {
             field_name: field_name.to_string(),
-            added_variants: added_variants.iter().map(|variant| variant.to_string()).collect(),
+            added_variants: added_variants
+                .iter()
+                .map(|variant| variant.to_string())
+                .collect(),
         },
         SchemaDiffDetail::InvariantContractChanged { contract_name } => {
             SchemaDiffDetailFields::InvariantContractChanged {
@@ -957,7 +993,10 @@ fn schema_diff_atom_trace_fields(
 }
 
 fn format_strata(strata: &[SchemaStratum]) -> Vec<String> {
-    strata.iter().map(|stratum| format!("{stratum:?}")).collect()
+    strata
+        .iter()
+        .map(|stratum| format!("{stratum:?}"))
+        .collect()
 }
 
 fn diagnostics_fields<T: Serialize>(fields: &T) -> Value {

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::data::reuse::basis::{ReuseCrossing, ReuseOrigin, ReuseSource, ReuseStrategy};
-use crate::data::reuse::context::ReuseBoundaryContext;
+use crate::data::reuse::context::ReuseBoundaryAuthority;
 use crate::data::reuse::contract::ArtifactSemanticBoundary;
 
 /// Cold-path proof that a reuse decision respected the node's reuse contract.
@@ -50,7 +50,7 @@ pub enum ReuseBoundaryFailure {
 /// Current and prior evidence used to certify a reuse decision.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReuseBoundaryEvidence {
-    pub current: ReuseBoundaryContext,
+    pub current: ReuseBoundaryAuthority,
     #[serde(default)]
-    pub previous: Option<ReuseBoundaryContext>,
+    pub previous: Option<ReuseBoundaryAuthority>,
 }

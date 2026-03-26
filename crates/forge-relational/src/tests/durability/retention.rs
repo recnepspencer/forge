@@ -1,6 +1,6 @@
-use crate::tests::support::*;
 use crate::facade::inspection::InspectionAvailability;
 use crate::facade::storage::RecordLifecycleState;
+use crate::tests::support::*;
 
 // CONTRACT: retention_plan
 // LANES: success, adversarial, recovery
@@ -163,7 +163,10 @@ fn retention_inspection_reports_exact_branch_pin_counts_for_lagging_deleted_reco
     assert_eq!(entity_retention.pins.snapshot_pins, 0);
     assert_eq!(entity_retention.pins.replay_pins, 0);
     assert_eq!(entity_retention.pins.branch_pins, 1);
-    assert_eq!(entity_retention.state.lifecycle, RecordLifecycleState::PinnedByBranch);
+    assert_eq!(
+        entity_retention.state.lifecycle,
+        RecordLifecycleState::PinnedByBranch
+    );
     assert_eq!(
         entity_retention.historical_availability.availability,
         InspectionAvailability::Direct

@@ -8,7 +8,9 @@ use crate::data::output::CanonicalChangedRegions;
 use crate::data::output::NodeEvaluationResult;
 use crate::data::proof::PartitionScopeSet;
 use crate::data::reuse::{
-    ArtifactFamilyId, ReuseBoundaryContext, ReuseSemanticRegionIdentity,
+    stable_partition_scope_digest_from_slice, stable_persistent_correspondence_digest,
+    stable_semantic_region_digest_from_parts, ArtifactFamilyId, ReuseBoundaryAuthority,
+    ReuseBoundaryContext, ReuseSemanticRegionIdentity, ReuseStrategyBoundaryAuthority,
     ReuseStrategyBoundaryContext,
 };
 use crate::logic::prepared::PreparedKeyedContext;
@@ -30,6 +32,104 @@ pub(crate) fn resolve_reuse_boundary_context(
         result,
         keyed,
     )
+}
+
+pub(crate) fn resolve_reuse_boundary_authority(
+    graph: &SignalGraph,
+    node: NodeId,
+    comparator_resolver: &impl ComparatorPolicyResolver,
+    result: Option<&NodeEvaluationResult>,
+    keyed: Option<&PreparedKeyedContext>,
+) -> Result<ReuseBoundaryAuthority, SignalError> {
+    resolve_reuse_boundary_authority_with_policy(
+        graph,
+        node,
+        comparator_resolver.policy_for_node(
+            node,
+            graph.get_entry(node)?.get_eval_config().comparator.as_ref(),
+        ),
+        result,
+        keyed,
+    )
+}
+
+pub(crate) fn resolve_reuse_boundary_authority_with_policy(
+    graph: &SignalGraph,
+    node: NodeId,
+    comparator_policy: crate::data::comparator::VersionComparatorPolicy,
+    result: Option<&NodeEvaluationResult>,
+    keyed: Option<&PreparedKeyedContext>,
+) -> Result<ReuseBoundaryAuthority, SignalError> {
+    let entry = graph.get_entry(node)?;
+    let eval = entry.get_eval_config();
+    let contract = &eval.contract;
+    let partition_scope = contract.semantics.partition_scope.as_deref().unwrap_or(&[]);
+    let strategy_detail = keyed
+        .and_then(|prepared| {
+            prepared
+                .persistent_correspondence
+                .as_ref()
+                .map(
+                    |persistent_correspondence| ReuseStrategyBoundaryAuthority::CrossIdentity {
+                        persistent_correspondence_kind: persistent_correspondence.kind(),
+                        persistent_correspondence_digest:
+                            stable_persistent_correspondence_digest(persistent_correspondence),
+                        persistent_correspondence_valid: persistent_correspondence
+                            .is_structurally_valid(),
+                    },
+                )
+        })
+        .or_else(|| {
+            keyed.and_then(|prepared| {
+                (!prepared.composition_regions.is_empty()).then_some(
+                    ReuseStrategyBoundaryAuthority::PartialArtifactSplice {
+                        composition_region_digest: stable_partition_scope_digest_from_slice(
+                            prepared.composition_regions.as_slice(),
+                        ),
+                        composition_region_count: prepared.composition_regions.len() as u32,
+                    },
+                )
+            })
+        })
+        .or_else(|| {
+            result
+                .map(|output| {
+                    PartitionScopeSet::from_changed_regions(&CanonicalChangedRegions::from(
+                        output.changed_regions.as_slice(),
+                    ))
+                })
+                .filter(|regions| !regions.is_empty())
+                .map(|regions| ReuseStrategyBoundaryAuthority::PartialArtifactSplice {
+                    composition_region_digest: stable_partition_scope_digest_from_slice(
+                        regions.as_slice(),
+                    ),
+                    composition_region_count: regions.len() as u32,
+                })
+        })
+        .unwrap_or_default();
+    let dependencies = graph.dependencies_of(node)?;
+    let dependency_snapshot = graph.get_dep_snapshot(node)?;
+
+    Ok(ReuseBoundaryAuthority {
+        topology_regime: stable_topology_regime(dependencies),
+        tolerance_regime: comparator_policy,
+        semantic_region_digest: stable_semantic_region_digest_from_parts(
+            node,
+            eval.partitioned_output,
+            partition_scope,
+            contract.semantics.required_context,
+        ),
+        authority_policy: contract.authority.policy,
+        artifact_family: keyed
+            .and_then(|prepared| prepared.family.as_ref())
+            .map(|family| ArtifactFamilyId::new(family.as_str())),
+        structural_dependency_basis: stable_dependency_snapshot_basis(
+            dependency_snapshot.entries(),
+        ),
+        partition_region_basis_digest: stable_partition_scope_digest_from_slice(partition_scope),
+        partition_region_basis_count: partition_scope.len() as u32,
+        strategy_detail,
+    })
 }
 
 pub(crate) fn resolve_reuse_boundary_context_with_policy(

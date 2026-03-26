@@ -65,7 +65,9 @@ impl InvariantRequestProfile {
             Self::CommitBoundary | Self::HarnessAudit => {
                 matches!(observation, InvariantObservationKind::Committed)
             }
-            Self::MutationSensitive | Self::SnapshotPublication | Self::CertificationBoundary => true,
+            Self::MutationSensitive | Self::SnapshotPublication | Self::CertificationBoundary => {
+                true
+            }
         }
     }
 }

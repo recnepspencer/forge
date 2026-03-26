@@ -35,6 +35,85 @@ pub struct CommitReference {
     pub parents: Vec<CommitId>,
 }
 
+/// Consumer-side semantic wrapper for authoritative parent order.
+///
+/// `CommitReference.parents` remains the sole authoritative storage and
+/// publication surface. This wrapper exists only to make order-sensitive
+/// consumption explicit in parity, certification, and diagnostics paths.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OrderedParentList {
+    parents: Vec<CommitId>,
+}
+
+/// Intentionally coarse history-shape classification for 7A assumption
+/// removal, diagnostics wording, and certification branching.
+///
+/// This is not a merge semantic policy model. Future merge execution work may
+/// need finer distinctions than this enum provides.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum HistoryShapeClassification {
+    Root,
+    Linear,
+    MergeReady,
+}
+
+/// Typed 7A history drift taxonomy for authoritative ordered-parent parity.
+///
+/// These variants classify how canonical history truth diverged; they do not
+/// replace replay or durability failure classes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum HistoryDriftClass {
+    CanonicalHistoryDrift,
+    ReplayAuthorityDrift,
+    DurabilityParityDrift,
+}
+
+impl CommitReference {
+    pub fn ordered_parents(&self) -> OrderedParentList {
+        OrderedParentList::from_authoritative(self.parents.clone())
+    }
+
+    pub fn history_shape_classification(&self) -> HistoryShapeClassification {
+        HistoryShapeClassification::from_parent_count(self.parents.len())
+    }
+}
+
+impl OrderedParentList {
+    pub fn from_authoritative(parents: Vec<CommitId>) -> Self {
+        Self { parents }
+    }
+
+    pub fn as_slice(&self) -> &[CommitId] {
+        &self.parents
+    }
+
+    pub fn len(&self) -> usize {
+        self.parents.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.parents.is_empty()
+    }
+
+    pub fn clone_inner(&self) -> Vec<CommitId> {
+        self.parents.clone()
+    }
+
+    pub fn history_shape_classification(&self) -> HistoryShapeClassification {
+        HistoryShapeClassification::from_parent_count(self.parents.len())
+    }
+}
+
+impl HistoryShapeClassification {
+    pub fn from_parent_count(parent_count: usize) -> Self {
+        match parent_count {
+            0 => Self::Root,
+            1 => Self::Linear,
+            _ => Self::MergeReady,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VersionNode {
     pub commit: CommitReference,
@@ -64,8 +143,14 @@ pub struct MergeInspection {
     pub target_branch: BranchId,
     pub source_head: Option<CommitReference>,
     pub target_head: Option<CommitReference>,
+    /// Current merge-base result under the runtime's common-ancestor selection
+    /// rule.
     pub merge_base: Option<CommitId>,
+    /// Branch-local ancestor closure for the source head after removing the
+    /// merge-base ancestor closure, ordered by ascending `CommitId`.
     pub source_only_commits: Vec<CommitId>,
+    /// Branch-local ancestor closure for the target head after removing the
+    /// merge-base ancestor closure, ordered by ascending `CommitId`.
     pub target_only_commits: Vec<CommitId>,
     pub conflicting_records: Vec<MergeConflictRecord>,
     pub can_merge: bool,

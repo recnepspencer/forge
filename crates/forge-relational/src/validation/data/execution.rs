@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use super::custom_rule::CustomInvariantProvenance;
-use super::rule_id::CustomInvariantSemanticIdentity;
 use super::groups::{InvariantCostClass, InvariantGroupSet};
 use super::results::{InvariantAdvisory, InvariantViolation};
+use super::rule_id::CustomInvariantSemanticIdentity;
 use super::rules::InvariantRule;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -74,11 +74,29 @@ pub enum InvariantReportedRule {
     Custom(CustomInvariantSemanticIdentity),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct InvariantWitnessKey(String);
+
+impl InvariantWitnessKey {
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    pub fn pass() -> Self {
+        Self("pass".to_string())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InvariantCheckResult {
     pub execution_point: InvariantExecutionPoint,
     pub failure_effect: InvariantFailureEffect,
     pub rule: InvariantReportedRule,
+    pub witness: InvariantWitnessKey,
     pub groups: InvariantGroupSet,
     pub cost: InvariantCostClass,
     pub custom_provenance: Option<CustomInvariantProvenance>,
@@ -97,6 +115,7 @@ pub struct InvariantDecisionRecord {
     pub execution_point: InvariantExecutionPoint,
     pub failure_effect: InvariantFailureEffect,
     pub rule: InvariantReportedRule,
+    pub witness: InvariantWitnessKey,
     pub decision: InvariantDecisionKind,
     pub groups: InvariantGroupSet,
     pub cost: InvariantCostClass,
@@ -120,11 +139,16 @@ impl InvariantCheckResult {
         self.custom_provenance.as_ref()
     }
 
+    pub fn witness(&self) -> &InvariantWitnessKey {
+        &self.witness
+    }
+
     pub fn decision_record(&self) -> InvariantDecisionRecord {
         InvariantDecisionRecord {
             execution_point: self.execution_point,
             failure_effect: self.failure_effect,
             rule: self.rule.clone(),
+            witness: self.witness.clone(),
             decision: match self.verdict {
                 InvariantVerdict::Pass => InvariantDecisionKind::Passed,
                 InvariantVerdict::Advisory { .. } => InvariantDecisionKind::Advisory,

@@ -4,8 +4,8 @@ use crate::schema::data::{
     EndpointKindContractDeclaration, RelationIntegrityDeclarations, SymmetryContractDeclaration,
     SymmetryMode,
 };
-use serde_json::json;
 use crate::tests::support::*;
+use serde_json::json;
 
 #[derive(Clone)]
 struct InvariantHarnessAdapter {
@@ -181,11 +181,17 @@ fn invariant_failure_artifact_preserves_specific_code_localization_and_proof_bou
         other => panic!("expected conflict, got {:?}", other),
     }
     assert_eq!(entry.fields["execution_point"], json!("commit_boundary"));
-    assert_eq!(entry.fields["violation"]["contract_id"], json!("paired_twin"));
+    assert_eq!(
+        entry.fields["violation"]["contract_id"],
+        json!("paired_twin")
+    );
     assert_eq!(entry.fields["violation"]["relation_kind_id"], json!(2));
     assert_eq!(entry.fields["violation"]["source"], json!(source));
     assert_eq!(entry.fields["violation"]["target"], json!(target));
-    assert_eq!(entry.fields["proof_boundary"]["scope_class"], json!("PartitionScope"));
+    assert_eq!(
+        entry.fields["proof_boundary"]["scope_class"],
+        json!("PartitionScope")
+    );
     assert_eq!(entry.fields["proof_boundary"]["packet_count"], json!(1));
 }
 
@@ -901,7 +907,9 @@ fn harness_phase8_fault_injection_soak_does_not_corrupt_following_certification_
             "PreparationFailure"
         )
         .iter()
-        .any(|entry| entry["fields"]["failure_class"] == json!("fragment_canonicalization_failure")));
+        .any(
+            |entry| entry["fields"]["failure_class"] == json!("fragment_canonicalization_failure")
+        ));
 
         let (fixture, batch, request) = harness_phase8_fixture_batch_request();
         let overlap = crate::authority::commit::with_test_diff_preparation_fault(

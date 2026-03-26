@@ -3,8 +3,8 @@ use std::collections::BTreeSet;
 use crate::history::data::BranchId;
 use crate::identity::data::LineageId;
 use crate::lineage::data::{
-    HistoricalLineageResolution, HistoricalLineageResolutionMetrics,
-    HistoricalLineageResolutionDigestBasis, HistoricalResolutionBoundednessBasis,
+    HistoricalLineageResolution, HistoricalLineageResolutionDigestBasis,
+    HistoricalLineageResolutionMetrics, HistoricalResolutionBoundednessBasis,
     HistoricalResolutionDigestMode, HistoricalResolutionRequest, HistoricalResolutionTrace,
     LineageEventKind, RecordHistoryRequest,
 };
@@ -57,7 +57,11 @@ impl<'runtime> LineageAccess<'runtime> {
             }
             branch_event_scan_count += 1;
             let event = &self.runtime.lineage.events[position];
-            if !event.sources().iter().any(|source| current.contains(source)) {
+            if !event
+                .sources()
+                .iter()
+                .any(|source| current.contains(source))
+            {
                 continue;
             }
             match event.kind() {
@@ -81,10 +85,9 @@ impl<'runtime> LineageAccess<'runtime> {
             }
         }
         let traversed_event_count = traversed_event_ids.len();
-        self.runtime.performance_access().count_lineage_historical_resolution(
-            branch_event_scan_count,
-            traversed_event_count,
-        );
+        self.runtime
+            .performance_access()
+            .count_lineage_historical_resolution(branch_event_scan_count, traversed_event_count);
 
         let metrics = HistoricalLineageResolutionMetrics {
             traversed_event_count,
@@ -122,10 +125,12 @@ impl<'runtime> LineageAccess<'runtime> {
         request: RecordHistoryRequest,
     ) -> Option<HistoricalLineageResolution> {
         let lineage = self.for_record(request.entity_id)?;
-        Some(self.resolve_historical_lineage(HistoricalResolutionRequest {
-            branch_id: request.branch_id,
-            lineage_id: lineage.lineage_id,
-            boundedness_basis: request.boundedness_basis,
-        }))
+        Some(
+            self.resolve_historical_lineage(HistoricalResolutionRequest {
+                branch_id: request.branch_id,
+                lineage_id: lineage.lineage_id,
+                boundedness_basis: request.boundedness_basis,
+            }),
+        )
     }
 }

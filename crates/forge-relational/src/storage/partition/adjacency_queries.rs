@@ -47,7 +47,10 @@ pub(crate) fn all_relations_for_entity(
     let slot = entity_id.local_slot.0 as usize;
     let reader = runtime.visibility_reads();
     let mut relation_ids = BTreeSet::new();
-    if let Some(partition) = runtime.storage_access().partition_state(entity_id.partition_id) {
+    if let Some(partition) = runtime
+        .storage_access()
+        .partition_state(entity_id.partition_id)
+    {
         if let Some(relations) = partition.adjacency.get(slot) {
             relation_ids.extend(relations.as_slice().iter().copied());
         }

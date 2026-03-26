@@ -149,10 +149,12 @@ impl<'runtime> LineageAuthority<'runtime> {
             FinalizedLineageEventBatch::new(events),
             LineageDecisionLog::new(decisions),
         );
-        self.runtime.performance_access().count_lineage_finalization(
-            artifact.event_batch().events().len(),
-            artifact.decision_log().decisions().len(),
-        );
+        self.runtime
+            .performance_access()
+            .count_lineage_finalization(
+                artifact.event_batch().events().len(),
+                artifact.decision_log().decisions().len(),
+            );
         artifact
     }
 }

@@ -7,7 +7,7 @@ use crate::authority::commit::preparation::reduction::merge::{
 use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
-use crate::history::data::{BranchId, CommitId};
+use crate::history::data::{BranchId, CommitId, HistoryShapeClassification, OrderedParentList};
 use crate::logic::planning::RelationalExecutionModel;
 use crate::logic::runtime::{RelationalReplayRecord, RelationalRuntime, ReplaySchemaVersion};
 use crate::publication::data::{PublicationBundle, PublicationStatus};
@@ -320,29 +320,38 @@ fn post_commit_observation(
     prune_ids: &[SnapshotId],
 ) -> crate::authority::commit::preparation::packets::post_commit::PostCommitConsumerObservation {
     use crate::authority::commit::preparation::packets::post_commit::PostCommitConsumerObservation;
+    let authoritative_parent_list = OrderedParentList::from_authoritative(parents.to_vec());
+    let history_shape = authoritative_parent_list.history_shape_classification();
 
     match kind {
         crate::authority::commit::preparation::packets::post_commit::PostCommitConsumerKind::PublicationDiagnostic => {
-            let publication_code = if parents.len() > 1 {
+            let publication_code = if history_shape == HistoryShapeClassification::MergeReady {
                 DiagnosticCode::MergeCommitPublished
             } else {
                 DiagnosticCode::CommitPublished
             };
             let mut entries = Vec::new();
-            if parents.len() > 1 {
+            if history_shape == HistoryShapeClassification::MergeReady {
                 entries.push(RelationalDiagnosticsEntry {
                     code: DiagnosticCode::MergeBaseResolved,
-                    message: "merge bases resolved deterministically".to_string(),
+                    message: "ancestry-derived merge-base result resolved deterministically"
+                        .to_string(),
                     fields: json!({
                         "commit_id": commit_id.0,
+                        "history_shape": format!("{:?}", history_shape),
+                        "authoritative_parent_list": authoritative_parent_list
+                            .as_slice()
+                            .iter()
+                            .map(|parent| parent.0)
+                            .collect::<Vec<_>>(),
                         "merge_base_commit_ids": merge_base_commits.iter().map(|base| base.0).collect::<Vec<_>>(),
                     }),
                 });
             }
             entries.push(RelationalDiagnosticsEntry {
                 code: publication_code,
-                message: if parents.len() > 1 {
-                    "merge commit published coherently".to_string()
+                message: if history_shape == HistoryShapeClassification::MergeReady {
+                    "merge-ready history commit published coherently".to_string()
                 } else {
                     "commit published coherently".to_string()
                 },
@@ -350,7 +359,13 @@ fn post_commit_observation(
                     "commit_id": commit_id.0,
                     "snapshot_id": snapshot_id.0,
                     "branch_id": branch_id.0,
-                    "parent_commit_ids": parents.iter().map(|parent| parent.0).collect::<Vec<_>>(),
+                    "history_shape": format!("{:?}", history_shape),
+                    "parent_count": authoritative_parent_list.len(),
+                    "authoritative_parent_list": authoritative_parent_list
+                        .as_slice()
+                        .iter()
+                        .map(|parent| parent.0)
+                        .collect::<Vec<_>>(),
                     "merge_parent_branches": merge_parent_branches.iter().map(|branch| branch.0.clone()).collect::<Vec<_>>(),
                     "merge_base_commit_ids": merge_base_commits.iter().map(|base| base.0).collect::<Vec<_>>(),
                 }),

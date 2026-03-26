@@ -8,16 +8,17 @@ use crate::authority::commit::preparation::proofs::locality::{
 };
 use crate::authority::commit::preparation::reduction::identity::ValidationResultIdentity;
 use crate::logic::runtime::RelationalRuntime;
+#[cfg(test)]
+use crate::validation::data::InvariantRule;
 use crate::validation::data::{
     CustomInvariantExecutionContext, CustomInvariantFailure, CustomInvariantFailureKind,
     CustomInvariantRuntimePhase, InvariantCheckResult, InvariantReportedRule, InvariantVerdict,
+    InvariantWitnessKey,
 };
-#[cfg(test)]
-use crate::validation::data::InvariantRule;
 use crate::validation::engine::context::InvariantExecutionContext;
 use crate::validation::engine::evaluator::evaluate_rule;
 
-use super::envelope::InvariantWorkerEnvelope;
+use super::envelope::{InvariantWorkerEnvelope, InvariantWorkerResult};
 use super::packets::InvariantWorkPacket;
 
 pub(crate) fn evaluate_invariant_packet(
@@ -41,8 +42,7 @@ pub(crate) fn evaluate_invariant_packet(
     );
     #[cfg(test)]
     debug_assert!(
-        preparation_failures.is_empty()
-            || packet.injected_test_fault.is_some(),
+        preparation_failures.is_empty() || packet.injected_test_fault.is_some(),
         "planned invariant packet violated preparation proof contract: {:?}",
         preparation_failures
     );
@@ -53,25 +53,29 @@ pub(crate) fn evaluate_invariant_packet(
         packet.merged_plan,
         packet.relation_integrity_scopes.clone(),
     );
-    let (reported_rule, groups, cost, custom_provenance, verdict) = match &packet.registration {
+    let (reported_rule, groups, cost, custom_provenance, verdicts) = match &packet.registration {
         crate::authority::commit::preparation::packets::invariant::InvariantPacketRegistration::Native(
             registration,
         ) => {
-            let verdict = if let Some(violation) = evaluate_rule(
+            let violations = evaluate_rule(
                 &context,
                 registration.execution_point.class(),
                 &registration.rule,
-            ) {
-                registration.verdict_for_violation(violation)
+            );
+            let verdicts = if violations.is_empty() {
+                vec![InvariantVerdict::Pass]
             } else {
-                InvariantVerdict::Pass
+                violations
+                    .into_iter()
+                    .map(|violation| registration.verdict_for_violation(violation))
+                    .collect()
             };
             (
                 InvariantReportedRule::Native(registration.rule.clone()),
                 registration.groups(),
                 registration.cost(),
                 None,
-                verdict,
+                verdicts,
             )
         }
         crate::authority::commit::preparation::packets::invariant::InvariantPacketRegistration::Custom {
@@ -84,13 +88,13 @@ pub(crate) fn evaluate_invariant_packet(
                 packet.version_id,
                 packet.merged_plan,
             );
-            let verdict = match prepared_execution.evaluate(&custom_context) {
+            let verdicts = match prepared_execution.evaluate(&custom_context) {
                 crate::validation::data::PreparedCustomInvariantExecutionOutcome::Verdict(
                     crate::validation::data::CustomInvariantVerdict::Pass,
-                ) => InvariantVerdict::Pass,
+                ) => vec![InvariantVerdict::Pass],
                 crate::validation::data::PreparedCustomInvariantExecutionOutcome::Verdict(
                     crate::validation::data::CustomInvariantVerdict::Violation,
-                ) => InvariantVerdict::Violation(crate::validation::data::InvariantViolation {
+                ) => vec![InvariantVerdict::Violation(crate::validation::data::InvariantViolation {
                     class: registration.execution_point().class(),
                     code: crate::diagnostics::data::DiagnosticCode::InvariantViolation,
                     detail: format!(
@@ -98,7 +102,7 @@ pub(crate) fn evaluate_invariant_packet(
                         registration.rule_id().as_str()
                     ),
                     fields: crate::validation::data::InvariantViolationFields::None,
-                }),
+                })],
                 crate::validation::data::PreparedCustomInvariantExecutionOutcome::Failure(
                     failure,
                 ) => {
@@ -107,10 +111,10 @@ pub(crate) fn evaluate_invariant_packet(
                     {
                         runtime.performance_access().count_custom_invariant_panic();
                     }
-                    InvariantVerdict::Violation(custom_invariant_failure_violation(
+                    vec![InvariantVerdict::Violation(custom_invariant_failure_violation(
                         registration.execution_point().class(),
                         &failure,
-                    ))
+                    ))]
                 }
             };
             (
@@ -118,57 +122,72 @@ pub(crate) fn evaluate_invariant_packet(
                 registration.groups(),
                 registration.cost_class(),
                 Some(custom_context.provenance()),
-                verdict,
+                verdicts,
             )
         }
     };
-    let result = InvariantCheckResult {
-        execution_point: packet.registration.execution_point(),
-        failure_effect: packet.registration.failure_effect(),
-        rule: reported_rule.clone(),
-        groups,
-        cost,
-        custom_provenance,
-        verdict,
-    };
-    #[allow(unused_mut)]
-    let mut result_identity = ValidationResultIdentity::from_parts(
-        result.execution_point,
-        result.failure_effect,
-        reported_rule,
-        &result.verdict,
-    );
-    #[cfg(test)]
-    if matches!(
-        packet.injected_test_fault,
-        Some(crate::validation::execution::TestPreparationFault::ReductionIdentityConflict)
-    ) {
-        result_identity = ValidationResultIdentity {
-            execution_point: result.execution_point,
-            failure_effect: result.failure_effect,
-            rule: InvariantReportedRule::Native(InvariantRule::MaxMergedIntents(16)),
-            target_scope_identity: "reduction-conflict".to_string(),
+    let mut results = Vec::with_capacity(verdicts.len());
+    let mut diagnostic_observations = Vec::new();
+    for (_index, verdict) in verdicts.into_iter().enumerate() {
+        let witness = match &verdict {
+            InvariantVerdict::Pass => InvariantWitnessKey::pass(),
+            InvariantVerdict::Advisory { violation, .. } | InvariantVerdict::Violation(violation) => {
+                violation.witness_key()
+            }
         };
+        let result = InvariantCheckResult {
+            execution_point: packet.registration.execution_point(),
+            failure_effect: packet.registration.failure_effect(),
+            rule: reported_rule.clone(),
+            witness: witness.clone(),
+            groups,
+            cost,
+            custom_provenance: custom_provenance.clone(),
+            verdict,
+        };
+        #[allow(unused_mut)]
+        let mut result_identity = ValidationResultIdentity::from_parts(
+            result.execution_point,
+            result.failure_effect,
+            reported_rule.clone(),
+            witness,
+        );
+        #[cfg(test)]
+        if _index == 0
+            && matches!(
+                packet.injected_test_fault,
+                Some(crate::validation::execution::TestPreparationFault::ReductionIdentityConflict)
+            )
+        {
+            result_identity = ValidationResultIdentity {
+                execution_point: result.execution_point,
+                failure_effect: result.failure_effect,
+                rule: InvariantReportedRule::Native(InvariantRule::MaxMergedIntents(16)),
+                witness: InvariantWitnessKey::new("reduction-conflict"),
+            };
+        }
+        if !matches!(result.verdict, InvariantVerdict::Pass) {
+            diagnostic_observations.push(ValidationDiagnosticObservation {
+                packet_index: packet.packet_index,
+                result_identity: result_identity.clone(),
+            });
+        }
+        results.push(InvariantWorkerResult {
+            result_identity,
+            result,
+        });
     }
-    let diagnostic_observations = if matches!(result.verdict, InvariantVerdict::Pass) {
-        Vec::new()
-    } else {
-        vec![ValidationDiagnosticObservation {
-            packet_index: packet.packet_index,
-            result_identity: result_identity.clone(),
-        }]
-    };
 
+    let worker_result_count = results.len();
     InvariantWorkerEnvelope {
         packet_index: packet.packet_index,
         reduction_key: packet.reduction_key.clone(),
-        result_identity,
-        result,
+        results,
         diagnostic_observations,
         preparation_failures: preparation_failures.clone(),
         counters: ValidationPreparationCounters {
             packet_count: 1,
-            worker_result_count: 1,
+            worker_result_count,
             reducer_input_count: 0,
             reducer_conflict_count: 0,
             failure_count: preparation_failures.len(),

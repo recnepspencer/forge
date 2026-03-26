@@ -202,9 +202,13 @@ impl GraphSummary {
             if dependencies.iter().any(|edge| edge.scope_ref().is_some()) {
                 nodes_with_partition_scopes += 1;
             }
-            if let Some(trace) = entry.get_runtime_artifact_state() {
+            if entry.get_runtime_artifact_state().is_some() {
                 nodes_with_trace_summary += 1;
-                if trace.execution_record_id.is_some() {
+                if entry
+                    .execution_trace_stamp()
+                    .and_then(|stamp| stamp.execution_record_id)
+                    .is_some()
+                {
                     nodes_with_execution_record += 1;
                     if sample_nodes_with_execution_record.len() < detail_limit.get() {
                         sample_nodes_with_execution_record.push(node);
@@ -492,9 +496,10 @@ impl ExecutionHistorySummary {
             let Some(trace) = entry.get_runtime_artifact_state() else {
                 continue;
             };
+            let execution_trace = entry.execution_trace_stamp();
             traced_node_count += 1;
             *reuse_origin_counts.entry(trace.reuse_origin).or_insert(0) += 1;
-            if let Some(id) = trace.execution_record_id {
+            if let Some(id) = execution_trace.and_then(|stamp| stamp.execution_record_id) {
                 execution_record_count += 1;
                 latest_execution_record_id =
                     Some(latest_execution_record_id.map_or(id, |current: u64| current.max(id)));
@@ -502,25 +507,23 @@ impl ExecutionHistorySummary {
             if retain_nodes {
                 nodes.push(ExecutionHistoryNodeSummary {
                     node,
-                    execution_record_id: trace.execution_record_id,
-                    semantic_segment_id: trace.semantic_segment_id,
+                    execution_record_id: execution_trace.and_then(|stamp| stamp.execution_record_id),
+                    semantic_segment_id: execution_trace.and_then(|stamp| stamp.semantic_segment_id),
                     output_change: Some(trace.output_change),
                     memoized_origin: Some(trace.memoized_origin),
-                    reuse_basis: Some(trace.reuse_basis.clone()),
+                    reuse_basis: Some(trace.reuse_basis.clone_inner()),
                     reuse_origin: Some(trace.reuse_origin),
                     persistent_correspondence_kind: trace
-                        .reuse_boundary_context
+                        .reuse_boundary_authority
                         .as_ref()
-                        .and_then(|context| context.persistent_correspondence())
-                        .map(|evidence| evidence.kind()),
+                        .and_then(|authority| authority.persistent_correspondence_kind()),
                     composition_region_count: trace
-                        .reuse_boundary_context
+                        .reuse_boundary_authority
                         .as_ref()
-                        .and_then(|context| context.composition_regions())
-                        .map(|regions| regions.as_slice().len() as u32)
+                        .map(|authority| authority.composition_region_count())
                         .unwrap_or(0),
                     reuse_certification_proof_count: entry
-                        .retained_diagnostic_artifact()
+                        .cold_artifact_record()
                         .and_then(|retained| retained.reuse_certification.as_ref())
                         .map(|record| record.proofs.len() as u32)
                         .unwrap_or(0),

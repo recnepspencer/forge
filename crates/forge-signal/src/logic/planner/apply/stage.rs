@@ -629,7 +629,7 @@ fn publish_group_local_task_commit(
         .map(|trace| trace.memoized_origin)
         .unwrap_or(crate::data::output::MemoizedResultOrigin::DirectCompute);
     let reuse_basis = after_trace
-        .map(|trace| trace.reuse_basis.clone())
+        .map(|trace| trace.reuse_basis.clone_inner())
         .unwrap_or(crate::data::reuse::ReuseBasis::fresh_compute());
     Ok(SemanticTaskUpdate {
         task_index,

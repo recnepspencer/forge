@@ -5,8 +5,8 @@ use std::ops::Deref;
 
 use serde::{Deserialize, Serialize};
 
-use crate::config::data::CrossContextPolicy;
 use crate::config::data::CascadeDeletePolicy;
+use crate::config::data::CrossContextPolicy;
 use crate::identity::data::KindId;
 use crate::schema::data::{
     AcyclicityContractDeclaration, ConnectivityMinimumContractDeclaration,
@@ -14,12 +14,12 @@ use crate::schema::data::{
     LoweredPartitionIsolationContract, PartitionIsolationContractDeclaration,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
+)]
 pub struct RelationIntegrityPlanRevision(pub u128);
 
-#[derive(
-    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
-)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
 #[serde(transparent)]
 pub struct ContractId(String);
 
@@ -134,11 +134,26 @@ pub(crate) fn derive_relation_integrity_plan_revision(
     for declaration in cardinality_contracts {
         mix_bytes(&mut hash, b"cardinality");
         mix_string(&mut hash, declaration.contract_id.as_str());
-        mix_bytes(&mut hash, &declaration.source_max.unwrap_or(u64::MAX).to_le_bytes());
-        mix_bytes(&mut hash, &declaration.target_max.unwrap_or(u64::MAX).to_le_bytes());
-        mix_bytes(&mut hash, &declaration.pair_max.unwrap_or(u64::MAX).to_le_bytes());
-        mix_bytes(&mut hash, &declaration.source_min.unwrap_or(0).to_le_bytes());
-        mix_bytes(&mut hash, &declaration.target_min.unwrap_or(0).to_le_bytes());
+        mix_bytes(
+            &mut hash,
+            &declaration.source_max.unwrap_or(u64::MAX).to_le_bytes(),
+        );
+        mix_bytes(
+            &mut hash,
+            &declaration.target_max.unwrap_or(u64::MAX).to_le_bytes(),
+        );
+        mix_bytes(
+            &mut hash,
+            &declaration.pair_max.unwrap_or(u64::MAX).to_le_bytes(),
+        );
+        mix_bytes(
+            &mut hash,
+            &declaration.source_min.unwrap_or(0).to_le_bytes(),
+        );
+        mix_bytes(
+            &mut hash,
+            &declaration.target_min.unwrap_or(0).to_le_bytes(),
+        );
         mix_bytes(&mut hash, &declaration.pair_min.unwrap_or(0).to_le_bytes());
         mix_bytes(
             &mut hash,

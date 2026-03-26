@@ -10,8 +10,8 @@ use crate::symbols::data::InternedString;
 use crate::transactions::data::{
     CreateIntent, EntityMutationIntent, MergedCommitPlan, MutationIntent, RelationMutationIntent,
 };
-use crate::validation::engine::{InvariantObservation, InvariantObservationKind};
 use crate::validation::engine::state_view::{InvariantStateView, VisibleRelationMetadata};
+use crate::validation::engine::{InvariantObservation, InvariantObservationKind};
 
 use super::descriptor::CustomInvariantDescriptor;
 use super::rule_id::{CustomInvariantRuleId, CustomInvariantSemanticIdentity};
@@ -304,7 +304,10 @@ impl TraversalBudgetSession {
         Ok(())
     }
 
-    fn checked_depth(&self, requested_depth: usize) -> Result<usize, CustomInvariantTraversalError> {
+    fn checked_depth(
+        &self,
+        requested_depth: usize,
+    ) -> Result<usize, CustomInvariantTraversalError> {
         if requested_depth > self.max_depth {
             return Err(CustomInvariantTraversalError::new(format!(
                 "custom invariant traversal requested depth {} beyond session maximum {}",
@@ -380,7 +383,9 @@ pub struct StructuralRelationView<'runtime> {
 
 impl<'runtime> StructuralRelationView<'runtime> {
     pub fn entity_kind(&self, entity_id: EntityId) -> Option<KindId> {
-        self.state_view.entity_metadata(entity_id).map(|metadata| metadata.kind_id)
+        self.state_view
+            .entity_metadata(entity_id)
+            .map(|metadata| metadata.kind_id)
     }
 
     pub fn relation(&self, relation_id: RelationId) -> Option<StructuralRelationRecord> {
@@ -553,7 +558,10 @@ impl<'runtime> CustomInvariantScopePlanner<'runtime> {
             touched_partition_count: touched.touched_partitions.len(),
         };
         let payloads = StructuralPayloadView { state_view };
-        let relations = StructuralRelationView { runtime, state_view };
+        let relations = StructuralRelationView {
+            runtime,
+            state_view,
+        };
         let traversal = BoundedStructuralTraversal::new(runtime, relations, &touched);
         Self {
             observation_kind: observation.kind(),
@@ -639,7 +647,10 @@ impl<'runtime> CustomInvariantExecutionContext<'runtime> {
             touched_partition_count: touched.touched_partitions.len(),
         };
         let payloads = StructuralPayloadView { state_view };
-        let relations = StructuralRelationView { runtime, state_view };
+        let relations = StructuralRelationView {
+            runtime,
+            state_view,
+        };
         let traversal = BoundedStructuralTraversal::new(runtime, relations, &touched);
         Self {
             runtime,
@@ -749,7 +760,9 @@ struct FailedPreparedCustomInvariantExecution {
     failure: CustomInvariantFailure,
 }
 
-impl<R: CustomInvariantRule> PreparedCustomInvariantExecution for PreparedCustomInvariantAdapter<R> {
+impl<R: CustomInvariantRule> PreparedCustomInvariantExecution
+    for PreparedCustomInvariantAdapter<R>
+{
     fn evaluate(
         &self,
         context: &CustomInvariantExecutionContext<'_>,
@@ -758,9 +771,11 @@ impl<R: CustomInvariantRule> PreparedCustomInvariantExecution for PreparedCustom
             .runtime()
             .performance_access()
             .count_custom_invariant_execution();
-        match run_custom_rule_safely(self.identity.clone(), CustomInvariantRuntimePhase::Execution, || {
-            self.rule.evaluate(context, &self.scope)
-        }) {
+        match run_custom_rule_safely(
+            self.identity.clone(),
+            CustomInvariantRuntimePhase::Execution,
+            || self.rule.evaluate(context, &self.scope),
+        ) {
             Ok(Ok(verdict)) => PreparedCustomInvariantExecutionOutcome::Verdict(verdict),
             Ok(Err(error)) => PreparedCustomInvariantExecutionOutcome::Failure(
                 CustomInvariantFailure::execution_error(&self.identity, error),
@@ -786,10 +801,14 @@ impl<R: CustomInvariantRule> ErasedCustomInvariantRule for CustomInvariantAdapte
         planner: &mut CustomInvariantScopePlanner<'_>,
     ) -> Arc<dyn PreparedCustomInvariantExecution> {
         let identity = self.identity.clone();
-        runtime.performance_access().count_custom_invariant_preparation();
-        match run_custom_rule_safely(identity.clone(), CustomInvariantRuntimePhase::Preparation, || {
-            self.rule.prepare_scope(planner)
-        }) {
+        runtime
+            .performance_access()
+            .count_custom_invariant_preparation();
+        match run_custom_rule_safely(
+            identity.clone(),
+            CustomInvariantRuntimePhase::Preparation,
+            || self.rule.prepare_scope(planner),
+        ) {
             Ok(Ok(scope)) => Arc::new(PreparedCustomInvariantAdapter {
                 rule: Arc::clone(&self.rule),
                 identity,
@@ -814,11 +833,7 @@ fn run_custom_rule_safely<T>(
     run: impl FnOnce() -> T,
 ) -> Result<T, CustomInvariantFailure> {
     catch_unwind(AssertUnwindSafe(run)).map_err(|panic_payload| {
-        CustomInvariantFailure::panic(
-            &identity,
-            phase,
-            panic_payload_message(panic_payload),
-        )
+        CustomInvariantFailure::panic(&identity, phase, panic_payload_message(panic_payload))
     })
 }
 
@@ -1011,11 +1026,7 @@ fn collect_touched_structural_set(
         {
             visible_relations.insert(relation_id);
             if let Some(metadata) = state_view.relation_metadata(relation_id) {
-                include_relation_metadata(
-                    &mut visible_entities,
-                    &mut touched_partitions,
-                    metadata,
-                );
+                include_relation_metadata(&mut visible_entities, &mut touched_partitions, metadata);
             }
         }
     }

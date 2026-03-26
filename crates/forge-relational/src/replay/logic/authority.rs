@@ -1,23 +1,26 @@
 use crate::capabilities::{HistorySource, ReplayRead, RuntimeConfigSource, SchemaSource};
-use crate::performance::logic::ReplayLineageAuthorityIndexedSource;
-use crate::history::data::{BranchId, CommitId};
-use crate::lineage::data::{CorrespondenceCandidateId, CorrespondencePromotionRejectionClass, PublishedLineageArtifact};
+use crate::history::data::{BranchId, CommitId, HistoryDriftClass, OrderedParentList};
+use crate::lineage::data::{
+    CorrespondenceCandidateId, CorrespondencePromotionRejectionClass, PublishedLineageArtifact,
+};
 use crate::logic::runtime::RelationalRuntime;
+use crate::performance::logic::ReplayLineageAuthorityIndexedSource;
 use crate::replay::data::{
-    CanonicalCommitEnvelope, CertifiedLineageSurfaceComparisonBasis,
-    CertifiedLineageSurfaceDigest, DescriptorAuthorityKind, DescriptorComparisonBasis,
-    DescriptorParityCheck, LineageCertifiedSurfaceKind, RelationalReplayOutcome,
-    RelationalReplayRequest, ReplayAuthorityBasisKind, ReplayExecutionMode, ReplayFailureClass,
-    ReplayLineageAuthorityBasis, ReplayLineageDigestMode, ReplayMismatch, ReplayMismatchClass,
-    ReplayObservableSurface, ReplaySurfaceAuthorityKind, ReplaySurfaceComparisonBasis,
-    ReplaySurfaceParityCheck, ReplayVerificationLayer, ReplayVerificationMode,
-    ReplayVerificationPlan, VerifiedDescriptorDigest, VerifiedReplaySurfaceDigest,
+    CanonicalCommitEnvelope, CertifiedLineageSurfaceComparisonBasis, CertifiedLineageSurfaceDigest,
+    DescriptorAuthorityKind, DescriptorComparisonBasis, DescriptorParityCheck,
+    LineageCertifiedSurfaceKind, RelationalReplayOutcome, RelationalReplayRequest,
+    ReplayAuthorityBasisKind, ReplayExecutionMode, ReplayFailureClass, ReplayLineageAuthorityBasis,
+    ReplayLineageDigestMode, ReplayMismatch, ReplayMismatchClass, ReplayObservableSurface,
+    ReplaySurfaceAuthorityKind, ReplaySurfaceComparisonBasis, ReplaySurfaceParityCheck,
+    ReplayVerificationLayer, ReplayVerificationMode, ReplayVerificationPlan,
+    VerifiedDescriptorDigest, VerifiedReplaySurfaceDigest,
 };
 use crate::schema::logic::{validate_schema_continuity_bundle, ValidatedSchemaContinuityBundle};
 
 use super::diagnostics::record_replay_diagnostic;
 use super::planning::{
-    load_replay_envelope, promised_replay_surfaces, replay_chain, replay_recovery_plan_for_chain,
+    load_replay_envelope, promised_replay_surfaces, replay_commit_closure_by_commit_id_order,
+    replay_recovery_plan_for_chain,
 };
 
 pub struct ReplayAuthority<'runtime> {
@@ -52,9 +55,8 @@ impl<'runtime> ReplayAuthority<'runtime> {
         mismatch: Option<ReplayMismatch>,
     ) -> RelationalReplayOutcome {
         let outcome = match mismatch {
-            Some(mismatch) => {
-                RelationalReplayOutcome::fail(request, envelope, chain, failure).with_mismatch(mismatch)
-            }
+            Some(mismatch) => RelationalReplayOutcome::fail(request, envelope, chain, failure)
+                .with_mismatch(mismatch),
             None => RelationalReplayOutcome::fail(request, envelope, chain, failure),
         };
         record_replay_diagnostic(self.runtime, &outcome.requested, &outcome);
@@ -90,7 +92,11 @@ impl<'runtime> ReplayAuthority<'runtime> {
             );
         }
 
-        let chain = match replay_chain(self.runtime, request.commit_id) {
+        let commit_closure = match replay_commit_closure_by_commit_id_order(
+            self.runtime,
+            self.runtime,
+            request.commit_id,
+        ) {
             Ok(chain) => chain,
             Err(failure) => {
                 return self.fail_and_record(request, Some(&envelope), None, failure, None);
@@ -100,7 +106,7 @@ impl<'runtime> ReplayAuthority<'runtime> {
         let replay_plan = replay_recovery_plan_for_chain(
             self.runtime,
             self.runtime.runtime_config(),
-            &chain,
+            &commit_closure,
             request.verification_mode,
         );
         let replay_runtime = match RelationalRuntime::rebuild_runtime_from_plan(replay_plan) {
@@ -109,7 +115,7 @@ impl<'runtime> ReplayAuthority<'runtime> {
                 return self.fail_and_record(
                     request,
                     Some(&envelope),
-                    Some(&chain),
+                    Some(&commit_closure),
                     ReplayFailureClass::ObservableMismatch,
                     None,
                 );
@@ -124,10 +130,11 @@ impl<'runtime> ReplayAuthority<'runtime> {
             return self.fail_and_record(
                 request,
                 Some(&envelope),
-                Some(&chain),
+                Some(&commit_closure),
                 ReplayFailureClass::ObservableMismatch,
                 Some(ReplayMismatch {
                     class: ReplayMismatchClass::HistoryDrift,
+                    history_drift_class: Some(HistoryDriftClass::ReplayAuthorityDrift),
                     surface: ReplayObservableSurface::History,
                     verification_layer: ReplayVerificationLayer::DeepArtifactParity,
                     detail: "replayed target envelope was not reconstructed".to_string(),
@@ -138,33 +145,8 @@ impl<'runtime> ReplayAuthority<'runtime> {
         };
         let verification_plan = ReplayVerificationPlan::from_mode(request.verification_mode);
         let validated_envelope =
-            match validated_replay_continuity_envelope(self.runtime, &envelope, &verification_plan) {
-            Ok(validated) => validated,
-            Err(mismatch) => {
-                if mismatch.class == ReplayMismatchClass::DescriptorVersionDrift {
-                    self.runtime
-                        .performance_access()
-                        .count_descriptor_version_mismatch();
-                }
-                self.runtime
-                    .performance_access()
-                    .count_replay_verification_layer(mismatch.verification_layer);
-                return self.fail_and_record(
-                    request,
-                    Some(&envelope),
-                    Some(&chain),
-                    ReplayFailureClass::ObservableMismatch,
-                    Some(mismatch),
-                )
-                ;
-            }
-        };
-        let validated_replayed_envelope =
-            match validated_replay_continuity_envelope(
-                self.runtime,
-                &replayed_envelope,
-                &verification_plan,
-            ) {
+            match validated_replay_continuity_envelope(self.runtime, &envelope, &verification_plan)
+            {
                 Ok(validated) => validated,
                 Err(mismatch) => {
                     if mismatch.class == ReplayMismatchClass::DescriptorVersionDrift {
@@ -178,45 +160,78 @@ impl<'runtime> ReplayAuthority<'runtime> {
                     return self.fail_and_record(
                         request,
                         Some(&envelope),
-                        Some(&chain),
+                        Some(&commit_closure),
                         ReplayFailureClass::ObservableMismatch,
                         Some(mismatch),
-                    )
-                    ;
+                    );
                 }
             };
-        let compared_surfaces = promised_replay_surfaces(&envelope);
-        let mut mismatches = Vec::new();
-        let selected_lineage_authority =
-            if compared_surfaces.contains(&ReplayObservableSurface::Lineage) {
-                let selected = select_published_lineage_authority(self.runtime, &envelope);
-                self.runtime
-                    .performance_access()
-                    .count_replay_lineage_authority_basis(
-                        selected.indexed_source,
-                        selected.kind,
-                        selected.artifact.digest_basis().lineage_event_count(),
-                        selected.artifact.digest_basis().lineage_decision_count(),
-                    );
-                if selected.kind == ReplayAuthorityBasisKind::HistoryEnvelopeFallback
-                    && request.verification_mode != ReplayVerificationMode::NormalRecoveryVerification
-                {
+        let validated_replayed_envelope = match validated_replay_continuity_envelope(
+            self.runtime,
+            &replayed_envelope,
+            &verification_plan,
+        ) {
+            Ok(validated) => validated,
+            Err(mismatch) => {
+                if mismatch.class == ReplayMismatchClass::DescriptorVersionDrift {
                     self.runtime
                         .performance_access()
-                        .count_replay_lineage_authoritative_basis_rejection();
-                    return self.fail_and_record(
-                        request,
-                        Some(&envelope),
-                        Some(&chain),
-                        ReplayFailureClass::AuthoritativeBasisUnavailable,
-                        None,
-                    );
+                        .count_descriptor_version_mismatch();
                 }
-                Some(selected)
-            } else {
-                None
-            };
+                self.runtime
+                    .performance_access()
+                    .count_replay_verification_layer(mismatch.verification_layer);
+                return self.fail_and_record(
+                    request,
+                    Some(&envelope),
+                    Some(&commit_closure),
+                    ReplayFailureClass::ObservableMismatch,
+                    Some(mismatch),
+                );
+            }
+        };
+        let compared_surfaces = promised_replay_surfaces(&envelope);
+        let mut mismatches = Vec::new();
+        let selected_lineage_authority = if compared_surfaces
+            .contains(&ReplayObservableSurface::Lineage)
+        {
+            let selected = select_published_lineage_authority(self.runtime, &envelope);
+            self.runtime
+                .performance_access()
+                .count_replay_lineage_authority_basis(
+                    selected.indexed_source,
+                    selected.kind,
+                    selected.artifact.digest_basis().lineage_event_count(),
+                    selected.artifact.digest_basis().lineage_decision_count(),
+                );
+            if selected.kind == ReplayAuthorityBasisKind::HistoryEnvelopeFallback
+                && request.verification_mode != ReplayVerificationMode::NormalRecoveryVerification
+            {
+                self.runtime
+                    .performance_access()
+                    .count_replay_lineage_authoritative_basis_rejection();
+                return self.fail_and_record(
+                    request,
+                    Some(&envelope),
+                    Some(&commit_closure),
+                    ReplayFailureClass::AuthoritativeBasisUnavailable,
+                    None,
+                );
+            }
+            Some(selected)
+        } else {
+            None
+        };
 
+        self.runtime
+            .performance_access()
+            .count_merge_history_parent_comparisons(
+                envelope
+                    .commit
+                    .ordered_parents()
+                    .len()
+                    .max(replayed_envelope.commit.ordered_parents().len()),
+            );
         compare_replay_surface(
             self.runtime,
             &verification_plan,
@@ -251,16 +266,16 @@ impl<'runtime> ReplayAuthority<'runtime> {
             ReplayMismatchClass::HistoryDrift,
             surface_basis_for_history(&envelope),
             surface_basis_for_history(&replayed_envelope),
-            "history parent ordering differed",
+            "authoritative ordered parent history differed",
             || {
-                envelope.commit.parents == replayed_envelope.commit.parents
+                envelope.commit.ordered_parents() == replayed_envelope.commit.ordered_parents()
                     && envelope.merge_parent_branches == replayed_envelope.merge_parent_branches
                     && envelope.merge_base_commits == replayed_envelope.merge_base_commits
             },
             || {
                 format!(
                     "{:?}|{:?}|{:?}",
-                    envelope.commit.parents,
+                    envelope.commit.ordered_parents().as_slice(),
                     envelope.merge_parent_branches,
                     envelope.merge_base_commits
                 )
@@ -268,7 +283,7 @@ impl<'runtime> ReplayAuthority<'runtime> {
             || {
                 format!(
                     "{:?}|{:?}|{:?}",
-                    replayed_envelope.commit.parents,
+                    replayed_envelope.commit.ordered_parents().as_slice(),
                     replayed_envelope.merge_parent_branches,
                     replayed_envelope.merge_base_commits
                 )
@@ -283,11 +298,17 @@ impl<'runtime> ReplayAuthority<'runtime> {
                 .count_replay_verification_layer(ReplayVerificationLayer::DigestParity);
             mismatches.push(ReplayMismatch {
                 class: ReplayMismatchClass::DescriptorVersionDrift,
+                history_drift_class: replay_history_drift_class(
+                    ReplayMismatchClass::DescriptorVersionDrift,
+                ),
                 surface: ReplayObservableSurface::History,
                 verification_layer: ReplayVerificationLayer::DigestParity,
                 detail: "descriptor semantics version differed".to_string(),
                 expected: Some(format!("{:?}", envelope.descriptor_semantics_version)),
-                observed: Some(format!("{:?}", replayed_envelope.descriptor_semantics_version)),
+                observed: Some(format!(
+                    "{:?}",
+                    replayed_envelope.descriptor_semantics_version
+                )),
             });
         }
         compare_descriptor_surface(
@@ -409,10 +430,13 @@ impl<'runtime> ReplayAuthority<'runtime> {
                 return self.fail_and_record(
                     request,
                     Some(&envelope),
-                    Some(&chain),
+                    Some(&commit_closure),
                     ReplayFailureClass::ObservableMismatch,
                     Some(ReplayMismatch {
                         class: ReplayMismatchClass::LineageDrift,
+                        history_drift_class: replay_history_drift_class(
+                            ReplayMismatchClass::LineageDrift,
+                        ),
                         surface: ReplayObservableSurface::Lineage,
                         verification_layer: ReplayVerificationLayer::DeepArtifactParity,
                         detail: "lineage replay parity promised a lineage surface without an authoritative lineage basis".to_string(),
@@ -460,7 +484,7 @@ impl<'runtime> ReplayAuthority<'runtime> {
         let outcome = RelationalReplayOutcome {
             requested: request,
             commit: Some(envelope.commit.clone()),
-            reconstructed_parent_chain: chain.clone(),
+            reconstructed_commit_closure: commit_closure.clone(),
             snapshot_version: Some(envelope.commit.version_id),
             lineage_authority_basis: selected_lineage_authority.as_ref().map(|selected| {
                 ReplayLineageAuthorityBasis::new(
@@ -533,14 +557,18 @@ fn compare_replay_surface(
             detail,
             ..
         } => {
-            runtime.performance_access().count_replay_verification_layer(layer);
+            runtime
+                .performance_access()
+                .count_replay_verification_layer(layer);
             if layer != ReplayVerificationLayer::DeepArtifactParity
                 && verification_plan.allows_deep_artifact_parity()
             {
                 if deep_matches() {
                     runtime
                         .performance_access()
-                        .count_replay_verification_layer(ReplayVerificationLayer::DeepArtifactParity);
+                        .count_replay_verification_layer(
+                            ReplayVerificationLayer::DeepArtifactParity,
+                        );
                     return;
                 }
                 runtime
@@ -550,6 +578,7 @@ fn compare_replay_surface(
                 let observed = render_observed();
                 mismatches.push(ReplayMismatch {
                     class: mismatch_class,
+                    history_drift_class: replay_history_drift_class(mismatch_class),
                     surface,
                     verification_layer: ReplayVerificationLayer::DeepArtifactParity,
                     detail: format!("{} (confirmed by audit/deep artifact parity)", detail),
@@ -562,6 +591,7 @@ fn compare_replay_surface(
             let observed = render_observed();
             mismatches.push(ReplayMismatch {
                 class: mismatch_class,
+                history_drift_class: replay_history_drift_class(mismatch_class),
                 surface,
                 verification_layer: layer,
                 detail,
@@ -647,6 +677,7 @@ fn replay_mismatch_for_continuity_issue(
     };
     ReplayMismatch {
         class,
+        history_drift_class: replay_history_drift_class(class),
         surface: ReplayObservableSurface::History,
         verification_layer: layer,
         detail: issue.detail(),
@@ -663,6 +694,15 @@ fn replay_issue_layer(
         ReplayVerificationLayer::DeepArtifactParity
     } else {
         default_layer
+    }
+}
+
+fn replay_history_drift_class(
+    mismatch_class: ReplayMismatchClass,
+) -> Option<HistoryDriftClass> {
+    match mismatch_class {
+        ReplayMismatchClass::HistoryDrift => Some(HistoryDriftClass::ReplayAuthorityDrift),
+        _ => None,
     }
 }
 
@@ -699,29 +739,33 @@ fn compare_descriptor_surface(
                     detail,
                     ..
                 } => {
-                    runtime.performance_access().count_replay_verification_layer(layer);
+                    runtime
+                        .performance_access()
+                        .count_replay_verification_layer(layer);
                     if layer == ReplayVerificationLayer::DigestParity
                         && verification_plan.allows_deep_artifact_parity()
                     {
                         if deep_matches() {
-                            runtime.performance_access().count_replay_verification_layer(
-                                ReplayVerificationLayer::DeepArtifactParity,
-                            );
+                            runtime
+                                .performance_access()
+                                .count_replay_verification_layer(
+                                    ReplayVerificationLayer::DeepArtifactParity,
+                                );
                             return;
                         }
-                        runtime.performance_access().count_replay_verification_layer(
-                            ReplayVerificationLayer::DeepArtifactParity,
-                        );
+                        runtime
+                            .performance_access()
+                            .count_replay_verification_layer(
+                                ReplayVerificationLayer::DeepArtifactParity,
+                            );
                         let expected_debug = render_expected();
                         let observed_debug = render_observed();
                         mismatches.push(ReplayMismatch {
                             class: mismatch_class,
+                            history_drift_class: replay_history_drift_class(mismatch_class),
                             surface: ReplayObservableSurface::History,
                             verification_layer: ReplayVerificationLayer::DeepArtifactParity,
-                            detail: format!(
-                                "{} (confirmed by audit/deep artifact parity)",
-                                detail
-                            ),
+                            detail: format!("{} (confirmed by audit/deep artifact parity)", detail),
                             expected: Some(expected_debug),
                             observed: Some(observed_debug),
                         });
@@ -731,6 +775,7 @@ fn compare_descriptor_surface(
                     let observed_debug = render_observed();
                     mismatches.push(ReplayMismatch {
                         class: mismatch_class,
+                        history_drift_class: replay_history_drift_class(mismatch_class),
                         surface: ReplayObservableSurface::History,
                         verification_layer: layer,
                         detail,
@@ -743,15 +788,18 @@ fn compare_descriptor_surface(
         _ => {
             runtime
                 .performance_access()
-                .count_replay_verification_layer(if verification_plan.allows_deep_artifact_parity() {
-                    ReplayVerificationLayer::DeepArtifactParity
-                } else {
-                    ReplayVerificationLayer::DigestParity
-                });
+                .count_replay_verification_layer(
+                    if verification_plan.allows_deep_artifact_parity() {
+                        ReplayVerificationLayer::DeepArtifactParity
+                    } else {
+                        ReplayVerificationLayer::DigestParity
+                    },
+                );
             let expected_debug = render_expected();
             let observed_debug = render_observed();
             mismatches.push(ReplayMismatch {
                 class: mismatch_class,
+                history_drift_class: replay_history_drift_class(mismatch_class),
                 surface: ReplayObservableSurface::History,
                 verification_layer: if verification_plan.allows_deep_artifact_parity() {
                     ReplayVerificationLayer::DeepArtifactParity
@@ -812,20 +860,20 @@ fn descriptor_basis_for_reconciliation(
     envelope: &crate::replay::data::CanonicalCommitEnvelope,
 ) -> Option<DescriptorComparisonBasis> {
     let descriptor = envelope.schema_reconciliation_descriptor.as_ref()?;
-        Some(DescriptorComparisonBasis::new(
+    Some(DescriptorComparisonBasis::new(
+        DescriptorAuthorityKind::SchemaReconciliationDescriptor,
+        Some(VerifiedDescriptorDigest::new(
             DescriptorAuthorityKind::SchemaReconciliationDescriptor,
-            Some(VerifiedDescriptorDigest::new(
-                DescriptorAuthorityKind::SchemaReconciliationDescriptor,
-                envelope.descriptor_semantics_version,
-                Some(descriptor.canonicalization_version),
-                descriptor,
-            )),
-            Some(crate::replay::data::stable_digest(&(
-                descriptor.classification,
-                descriptor.resulting_lineage.resulting_schema_version_id,
-                descriptor.resulting_lineage.ordering_mode.clone(),
-            ))),
-        ))
+            envelope.descriptor_semantics_version,
+            Some(descriptor.canonicalization_version),
+            descriptor,
+        )),
+        Some(crate::replay::data::stable_digest(&(
+            descriptor.classification,
+            descriptor.resulting_lineage.resulting_schema_version_id,
+            descriptor.resulting_lineage.ordering_mode.clone(),
+        ))),
+    ))
 }
 
 fn descriptor_basis_for_lineage(
@@ -835,14 +883,14 @@ fn descriptor_basis_for_lineage(
         .schema_reconciliation_descriptor
         .as_ref()
         .map(|descriptor| &descriptor.resulting_lineage)?;
-        Some(DescriptorComparisonBasis::new(
-            DescriptorAuthorityKind::SchemaLineageArtifact,
-            None,
-            Some(crate::replay::data::stable_digest(&(
-                lineage.resulting_schema_id.clone(),
-                lineage.resulting_schema_version_id,
-                lineage.parent_schema_version_ids.clone(),
-            ))),
+    Some(DescriptorComparisonBasis::new(
+        DescriptorAuthorityKind::SchemaLineageArtifact,
+        None,
+        Some(crate::replay::data::stable_digest(&(
+            lineage.resulting_schema_id.clone(),
+            lineage.resulting_schema_version_id,
+            lineage.parent_schema_version_ids.clone(),
+        ))),
     ))
 }
 
@@ -870,7 +918,10 @@ fn surface_basis_for_diagnostics(
             ReplaySurfaceAuthorityKind::Diagnostics,
             summary,
         )),
-        Some(crate::replay::data::stable_digest(&(summary.entries.len(), &summary.kind))),
+        Some(crate::replay::data::stable_digest(&(
+            summary.entries.len(),
+            &summary.kind,
+        ))),
     )
 }
 
@@ -878,7 +929,7 @@ fn surface_basis_for_history(
     envelope: &crate::replay::data::CanonicalCommitEnvelope,
 ) -> ReplaySurfaceComparisonBasis {
     let history = (
-        envelope.commit.parents.clone(),
+        OrderedParentList::from_authoritative(envelope.commit.parents.clone()),
         envelope.merge_parent_branches.clone(),
         envelope.merge_base_commits.clone(),
     );
@@ -920,7 +971,9 @@ fn surface_basis_for_branch_head(
             &basis,
         )),
         Some(crate::replay::data::stable_digest(
-            &basis.as_ref().map(|commit| (commit.commit_id, commit.version_id)),
+            &basis
+                .as_ref()
+                .map(|commit| (commit.commit_id, commit.version_id)),
         )),
     )
 }
@@ -956,8 +1009,10 @@ fn published_lineage_artifacts_match(
         || expected.lineage_event_ids() != observed.lineage_event_ids()
         || expected.lineage_events() != observed.lineage_events()
         || expected.digest_basis() != observed.digest_basis()
-        || expected.observed_event_batch_digest_basis() != observed.observed_event_batch_digest_basis()
-        || expected.observed_decision_log_digest_basis() != observed.observed_decision_log_digest_basis()
+        || expected.observed_event_batch_digest_basis()
+            != observed.observed_event_batch_digest_basis()
+        || expected.observed_decision_log_digest_basis()
+            != observed.observed_decision_log_digest_basis()
         || expected.counters() != observed.counters()
         || expected.lineage_decision_log() != observed.lineage_decision_log()
     {
@@ -995,8 +1050,12 @@ fn published_lineage_artifacts_match(
         )
         .collect::<std::collections::BTreeSet<u64>>();
     for event_id in event_ids {
-        if expected.decisions_for_event_id(event_id).collect::<Vec<_>>()
-            != observed.decisions_for_event_id(event_id).collect::<Vec<_>>()
+        if expected
+            .decisions_for_event_id(event_id)
+            .collect::<Vec<_>>()
+            != observed
+                .decisions_for_event_id(event_id)
+                .collect::<Vec<_>>()
         {
             return false;
         }

@@ -78,7 +78,7 @@ impl<'a> RelationalTransaction<'a> {
             let history = self.runtime.history_access();
             let Some(head) = history.branch_head(&merge_branch) else {
                 return Err(CommitConflict::new(ConflictClass::InvalidMergeParent {
-                    detail: format!("merge parent branch {:?} has no head", merge_branch),
+                    detail: format!("requested additional branch {:?} has no head", merge_branch),
                 }));
             };
             if !parents.contains(&head.commit_id) {
@@ -95,11 +95,11 @@ impl<'a> RelationalTransaction<'a> {
                     let Some(merge_base) = self
                         .runtime
                         .history_access()
-                        .latest_common_ancestor(target_head, head.commit_id)
+                        .max_commit_id_common_ancestor(target_head, head.commit_id)
                     else {
                         return Err(CommitConflict::new(ConflictClass::MissingMergeBase {
                                 detail: format!(
-                                "merge parent branch {:?} has no common ancestor with target branch {:?}",
+                                "requested additional branch {:?} has no common ancestor with target branch {:?}",
                                 merge_branch, target_branch
                             ),
                             }));

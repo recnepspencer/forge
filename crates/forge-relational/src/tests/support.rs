@@ -67,34 +67,34 @@ use crate::tests::harness::model::truth_model::VisibleTruthSummary;
 // - `lineage`: generic lineage-specific helpers and candidate builders
 //
 // Prefer reusing these helpers before introducing new ad hoc setup in test files.
-#[path = "support/schema.rs"]
-mod schema;
-#[path = "support/runtime.rs"]
-mod runtime;
-#[path = "support/records.rs"]
-mod records;
+#[path = "support/durability.rs"]
+mod durability;
 #[path = "support/history.rs"]
 mod history;
 #[path = "support/inspection.rs"]
 mod inspection;
-#[path = "support/durability.rs"]
-mod durability;
-#[path = "support/relation_integrity.rs"]
-mod relation_integrity;
-#[path = "support/savepoint.rs"]
-mod savepoint;
 #[path = "support/lineage.rs"]
 mod lineage;
+#[path = "support/records.rs"]
+mod records;
+#[path = "support/relation_integrity.rs"]
+mod relation_integrity;
+#[path = "support/runtime.rs"]
+mod runtime;
+#[path = "support/savepoint.rs"]
+mod savepoint;
+#[path = "support/schema.rs"]
+mod schema;
 
 pub(super) use durability::*;
 pub(super) use history::*;
 pub(super) use inspection::*;
+pub(super) use lineage::*;
 pub(super) use records::*;
 pub(super) use relation_integrity::*;
 pub(super) use runtime::*;
 pub(super) use savepoint::*;
 pub(super) use schema::*;
-pub(super) use lineage::*;
 
 pub(super) fn certification_digest<T: Serialize>(value: &T) -> String {
     let bytes = serde_json::to_vec(value).expect("certification serialization");
@@ -108,12 +108,15 @@ pub(super) struct AspectTruthBundle {
     pub latest_patch: Option<crate::facade::publication::RelationalPatchRecord>,
     pub latest_replay: Option<crate::facade::runtime::RelationalReplayRecord>,
     pub diagnostics: crate::facade::diagnostics::RelationalDiagnosticsFacade,
-    pub entity_history_digests:
-        Vec<(crate::facade::identity::EntityId, crate::facade::history::AspectHistoryDigest)>,
-    pub relation_history_digests:
-        Vec<(RelationId, crate::facade::history::AspectHistoryDigest)>,
-    pub lineage_history_digests:
-        Vec<(LineageId, crate::facade::history::LineageAspectResolutionDigest)>,
+    pub entity_history_digests: Vec<(
+        crate::facade::identity::EntityId,
+        crate::facade::history::AspectHistoryDigest,
+    )>,
+    pub relation_history_digests: Vec<(RelationId, crate::facade::history::AspectHistoryDigest)>,
+    pub lineage_history_digests: Vec<(
+        LineageId,
+        crate::facade::history::LineageAspectResolutionDigest,
+    )>,
 }
 
 pub(super) fn capture_aspect_truth_bundle(
@@ -129,17 +132,30 @@ pub(super) fn capture_aspect_truth_bundle(
         diagnostics: runtime.publication_access().diagnostics().clone(),
         entity_history_digests: entity_ids
             .iter()
-            .map(|entity_id| (*entity_id, entity_aspect_history_digest(runtime, *entity_id, None)))
+            .map(|entity_id| {
+                (
+                    *entity_id,
+                    entity_aspect_history_digest(runtime, *entity_id, None),
+                )
+            })
             .collect(),
         relation_history_digests: relation_ids
             .iter()
             .map(|relation_id| {
-                (*relation_id, relation_aspect_history_digest(runtime, *relation_id, None))
+                (
+                    *relation_id,
+                    relation_aspect_history_digest(runtime, *relation_id, None),
+                )
             })
             .collect(),
         lineage_history_digests: lineage_ids
             .iter()
-            .map(|lineage_id| (*lineage_id, lineage_aspect_history_digest(runtime, *lineage_id, None)))
+            .map(|lineage_id| {
+                (
+                    *lineage_id,
+                    lineage_aspect_history_digest(runtime, *lineage_id, None),
+                )
+            })
             .collect(),
     }
 }
@@ -149,9 +165,18 @@ pub(super) fn assert_stable_aspect_truth_bundle_eq(
     actual: &AspectTruthBundle,
 ) {
     assert_eq!(expected.visible_truth, actual.visible_truth);
-    assert_eq!(expected.entity_history_digests, actual.entity_history_digests);
-    assert_eq!(expected.relation_history_digests, actual.relation_history_digests);
-    assert_eq!(expected.lineage_history_digests, actual.lineage_history_digests);
+    assert_eq!(
+        expected.entity_history_digests,
+        actual.entity_history_digests
+    );
+    assert_eq!(
+        expected.relation_history_digests,
+        actual.relation_history_digests
+    );
+    assert_eq!(
+        expected.lineage_history_digests,
+        actual.lineage_history_digests
+    );
 }
 
 pub(super) fn assert_recovered_commit_truth_matches(
@@ -207,13 +232,15 @@ pub(super) fn capture_inspection_truth_bundle(
         .map(|commit| commit.commit_id)
         .expect("latest commit");
     InspectionTruthBundle {
-        graph_summary: inspection.graph_summary(&crate::facade::inspection::GraphInspectionRequest {
-            scope: crate::facade::inspection::InspectionScope::Current,
-            partition_scope: None,
-            relation_kind_scope: None,
-            summary_only: true,
-            budget: crate::tests::support::inspection::default_graph_budget(),
-        }),
+        graph_summary: inspection.graph_summary(
+            &crate::facade::inspection::GraphInspectionRequest {
+                scope: crate::facade::inspection::InspectionScope::Current,
+                partition_scope: None,
+                relation_kind_scope: None,
+                summary_only: true,
+                budget: crate::tests::support::inspection::default_graph_budget(),
+            },
+        ),
         kind_summary: inspection.kind_summary(&crate::facade::inspection::KindInspectionRequest {
             scope: crate::facade::inspection::InspectionScope::Current,
             partition_scope: None,
@@ -264,7 +291,10 @@ pub(super) fn assert_patch_truth_invariants(result: &CommitResult) -> PatchVsTru
     );
     assert_eq!(patch_vs_truth.records_checked, result.patch().len() as u64);
     assert_eq!(tag_accuracy.records_checked, result.patch().len() as u64);
-    assert_eq!(tag_accuracy.correctly_tagged_records, result.patch().len() as u64);
+    assert_eq!(
+        tag_accuracy.correctly_tagged_records,
+        result.patch().len() as u64
+    );
 
     patch_vs_truth
 }

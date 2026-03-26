@@ -1,11 +1,11 @@
-use crate::tests::support::*;
-use crate::publication::cdc::data::{SubscriberContractDeclaration, SubscriberContinuationSummary};
+use crate::publication::cdc::data::{SubscriberContinuationSummary, SubscriberContractDeclaration};
 use crate::schema::data::{
     DescriptorSemanticsVersion, HistoricalInterpretationSensitivity, ProposedSchemaTransition,
-    SchemaBoundaryFingerprint, SchemaContinuationClassification, SchemaDiffAtom,
-    SchemaDiffDetail, SchemaElementKind, SchemaElementRef, SchemaPublicationImpact,
-    SchemaReconciliationPolicy, SchemaStratum, SchemaSubscriberImpact,
+    SchemaBoundaryFingerprint, SchemaContinuationClassification, SchemaDiffAtom, SchemaDiffDetail,
+    SchemaElementKind, SchemaElementRef, SchemaPublicationImpact, SchemaReconciliationPolicy,
+    SchemaStratum, SchemaSubscriberImpact,
 };
+use crate::tests::support::*;
 
 #[test]
 fn subscriber_stream_rejects_zero_batch_size() {
@@ -103,8 +103,8 @@ fn subscriber_stream_rejects_when_normalized_continuation_proof_exceeds_complexi
             "default.subscriber.contract".to_string(),
             crate::publication::cdc::data::NormalizedContinuationProof::from_raw_parts_for_test(
                 (0_u8..64)
-                .map(|value| SchemaBoundaryFingerprint::new([value; 32]))
-                .collect(),
+                    .map(|value| SchemaBoundaryFingerprint::new([value; 32]))
+                    .collect(),
                 DescriptorSemanticsVersion::default(),
                 64,
             ),
@@ -124,38 +124,36 @@ fn subscriber_stream_rejects_when_normalized_continuation_proof_exceeds_complexi
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            ProposedSchemaTransition {
-                source_schema_id: SchemaId("test".to_string()),
-                source_schema_version_id: SchemaVersionId(1),
-                target_schema_id: SchemaId("test".to_string()),
-                target_schema_version_id: SchemaVersionId(2),
-                diff_atoms: vec![SchemaDiffAtom::new(
-                    SchemaElementRef::new(
-                        SchemaElementKind::Field,
-                        SchemaId("test".to_string()),
-                        SchemaVersionId(2),
-                        Some(KindId(1)),
-                        "tag",
-                    ),
-                    vec![
-                        SchemaStratum::StructuralShape,
-                        SchemaStratum::PublicationContract,
-                    ],
-                    SchemaPublicationImpact::ObservableSurfaceChanged,
-                    SchemaSubscriberImpact::ConsumableSurfaceChanged,
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        ProposedSchemaTransition {
+            source_schema_id: SchemaId("test".to_string()),
+            source_schema_version_id: SchemaVersionId(1),
+            target_schema_id: SchemaId("test".to_string()),
+            target_schema_version_id: SchemaVersionId(2),
+            diff_atoms: vec![SchemaDiffAtom::new(
+                SchemaElementRef::new(
+                    SchemaElementKind::Field,
+                    SchemaId("test".to_string()),
+                    SchemaVersionId(2),
+                    Some(KindId(1)),
+                    "tag",
+                ),
+                vec![
+                    SchemaStratum::StructuralShape,
+                    SchemaStratum::PublicationContract,
+                ],
+                SchemaPublicationImpact::ObservableSurfaceChanged,
+                SchemaSubscriberImpact::ConsumableSurfaceChanged,
                 HistoricalInterpretationSensitivity::NotSensitive,
-                    SchemaDiffDetail::AddedField {
-                        field_name: "tag".into(),
-                        required: false,
-                        default_expression: Some("null".into()),
-                    },
-                )],
-            },
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+                SchemaDiffDetail::AddedField {
+                    field_name: "tag".into(),
+                    required: false,
+                    default_expression: Some("null".into()),
+                },
+            )],
+        },
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("b"));
     txn.commit().unwrap();
 
@@ -194,23 +192,26 @@ fn subscriber_stream_rejects_checkpoint_with_inconsistent_continuation_summary()
         .publication_access()
         .read_subscriber_stream(SubscriberResumeRequest::from_head(1))
         .unwrap();
-    let checkpoint = batch.next_checkpoint.unwrap().with_incoherent_continuation_for_test(
-        "default.subscriber.contract".to_string(),
-        batch
-            .latest_available_checkpoint
-            .as_ref()
-            .map(|checkpoint| checkpoint.normalized_continuation_proof().clone())
-            .unwrap_or_default(),
-        SubscriberContinuationSummary::new(
+    let checkpoint = batch
+        .next_checkpoint
+        .unwrap()
+        .with_incoherent_continuation_for_test(
             "default.subscriber.contract".to_string(),
-            SchemaContinuationClassification::ContinueWithVisibleBridge,
-            1,
-            99,
+            batch
+                .latest_available_checkpoint
+                .as_ref()
+                .map(|checkpoint| checkpoint.normalized_continuation_proof().clone())
+                .unwrap_or_default(),
+            SubscriberContinuationSummary::new(
+                "default.subscriber.contract".to_string(),
+                SchemaContinuationClassification::ContinueWithVisibleBridge,
+                1,
+                99,
+                DescriptorSemanticsVersion::default(),
+                false,
+            ),
             DescriptorSemanticsVersion::default(),
-            false,
-        ),
-        DescriptorSemanticsVersion::default(),
-    );
+        );
 
     let error = runtime
         .publication_access()
@@ -273,14 +274,13 @@ fn subscriber_stream_rejects_checkpoint_with_mismatched_authoritative_boundary_b
     }
     .build_registry();
 
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            ProposedSchemaTransition {
-                source_schema_id: SchemaId("test".to_string()),
-                source_schema_version_id: SchemaVersionId(1),
-                target_schema_id: SchemaId("test".to_string()),
-                target_schema_version_id: SchemaVersionId(2),
-                diff_atoms: vec![SchemaDiffAtom::new(
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        ProposedSchemaTransition {
+            source_schema_id: SchemaId("test".to_string()),
+            source_schema_version_id: SchemaVersionId(1),
+            target_schema_id: SchemaId("test".to_string()),
+            target_schema_version_id: SchemaVersionId(2),
+            diff_atoms: vec![SchemaDiffAtom::new(
                     SchemaElementRef::new(
                         SchemaElementKind::Field,
                         SchemaId("test".to_string()),
@@ -301,10 +301,9 @@ fn subscriber_stream_rejects_checkpoint_with_mismatched_authoritative_boundary_b
                 .with_boundary_visibility_proof(
                     crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable,
                 )],
-            },
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+        },
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("b"));
     let _ = txn.commit().unwrap();
 
@@ -332,6 +331,3 @@ fn subscriber_stream_rejects_checkpoint_with_mismatched_authoritative_boundary_b
         SubscriberStreamFailureClass::CheckpointContinuitySummaryMismatch
     );
 }
-
-
-

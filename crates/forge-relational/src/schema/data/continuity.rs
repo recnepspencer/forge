@@ -28,8 +28,9 @@ impl DescriptorSemanticsCompatibilityPolicy {
         current_write_version: DescriptorSemanticsVersion,
         supported_historical_versions: impl IntoIterator<Item = DescriptorSemanticsVersion>,
     ) -> Self {
-        let mut supported_historical_versions =
-            supported_historical_versions.into_iter().collect::<BTreeSet<_>>();
+        let mut supported_historical_versions = supported_historical_versions
+            .into_iter()
+            .collect::<BTreeSet<_>>();
         supported_historical_versions.insert(current_write_version);
         Self {
             current_write_version,
@@ -48,7 +49,10 @@ impl DescriptorSemanticsCompatibilityPolicy {
 
 impl Default for DescriptorSemanticsCompatibilityPolicy {
     fn default() -> Self {
-        Self::new(DescriptorSemanticsVersion::default(), [DescriptorSemanticsVersion::default()])
+        Self::new(
+            DescriptorSemanticsVersion::default(),
+            [DescriptorSemanticsVersion::default()],
+        )
     }
 }
 
@@ -76,8 +80,9 @@ impl DescriptorCanonicalizationCompatibilityPolicy {
         current_write_version: DescriptorCanonicalizationVersion,
         supported_historical_versions: impl IntoIterator<Item = DescriptorCanonicalizationVersion>,
     ) -> Self {
-        let mut supported_historical_versions =
-            supported_historical_versions.into_iter().collect::<BTreeSet<_>>();
+        let mut supported_historical_versions = supported_historical_versions
+            .into_iter()
+            .collect::<BTreeSet<_>>();
         supported_historical_versions.insert(current_write_version);
         Self {
             current_write_version,
@@ -103,8 +108,8 @@ impl Default for DescriptorCanonicalizationCompatibilityPolicy {
     }
 }
 
-pub fn runtime_descriptor_canonicalization_policy(
-) -> DescriptorCanonicalizationCompatibilityPolicy {
+pub fn runtime_descriptor_canonicalization_policy() -> DescriptorCanonicalizationCompatibilityPolicy
+{
     DescriptorCanonicalizationCompatibilityPolicy::default()
 }
 

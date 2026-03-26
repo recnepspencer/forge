@@ -22,7 +22,9 @@ impl<'a> RelationalTransaction<'a> {
             InspectionAccessPath, InspectionAvailability, InspectionOrigin,
             SavepointInspectionSurface, TransactionInspectionSurface, TransactionIntentCounts,
         };
-        use crate::transactions::data::{CreateIntent, EntityMutationIntent, MutationIntent, RecordRef};
+        use crate::transactions::data::{
+            CreateIntent, EntityMutationIntent, MutationIntent, RecordRef,
+        };
 
         let mut touched_records = BTreeSet::new();
         let mut intent_counts = TransactionIntentCounts::default();
@@ -80,10 +82,12 @@ impl<'a> RelationalTransaction<'a> {
             savepoints: self
                 .savepoints
                 .iter()
-                .map(|(savepoint_id, retained_batch_count)| SavepointInspectionSurface {
-                    savepoint_id: *savepoint_id,
-                    retained_batch_count: *retained_batch_count as u64,
-                })
+                .map(
+                    |(savepoint_id, retained_batch_count)| SavepointInspectionSurface {
+                        savepoint_id: *savepoint_id,
+                        retained_batch_count: *retained_batch_count as u64,
+                    },
+                )
                 .collect(),
             touched_records: touched_records.into_iter().collect(),
             intent_counts,

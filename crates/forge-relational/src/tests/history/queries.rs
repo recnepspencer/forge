@@ -1,6 +1,46 @@
-use crate::facade::history::{BranchCreateErrorClass, MergeConflictRecord};
+use crate::facade::history::{
+    BranchCreateErrorClass, CommitId, CommitReference, HistoryShapeClassification,
+    MergeConflictRecord,
+};
+use crate::facade::identity::VersionId;
 use crate::facade::transactions::CommitPhase;
 use crate::tests::support::*;
+
+#[test]
+fn ordered_parent_guardrail_classifies_root_linear_and_merge_ready_shapes() {
+    let root = CommitReference {
+        commit_id: CommitId(1),
+        version_id: VersionId(1),
+        branch_id: BranchId("main".to_string()),
+        parents: Vec::new(),
+    };
+    let linear = CommitReference {
+        commit_id: CommitId(2),
+        version_id: VersionId(2),
+        branch_id: BranchId("main".to_string()),
+        parents: vec![CommitId(1)],
+    };
+    let merge_ready = CommitReference {
+        commit_id: CommitId(3),
+        version_id: VersionId(3),
+        branch_id: BranchId("main".to_string()),
+        parents: vec![CommitId(1), CommitId(2)],
+    };
+
+    assert_eq!(
+        root.history_shape_classification(),
+        HistoryShapeClassification::Root
+    );
+    assert_eq!(
+        linear.history_shape_classification(),
+        HistoryShapeClassification::Linear
+    );
+    assert_eq!(
+        merge_ready.history_shape_classification(),
+        HistoryShapeClassification::MergeReady
+    );
+    assert_eq!(merge_ready.ordered_parents().as_slice(), merge_ready.parents);
+}
 
 #[test]
 fn branch_creation_and_branch_targeted_commits_build_a_version_graph() {
@@ -109,6 +149,25 @@ fn merge_commit_uses_deterministic_parent_order_and_advances_target_branch() {
         .iter()
         .flat_map(|artifact| artifact.entries.iter())
         .any(|entry| entry.code == DiagnosticCode::MergeBaseResolved));
+    let publication_diagnostics = runtime.publication_access().diagnostics();
+    let merge_diagnostic = publication_diagnostics
+        .by_scope(DiagnosticsScope::PatchPublication)
+        .into_iter()
+        .flat_map(|artifact| artifact.entries.iter())
+        .find(|entry| entry.code == DiagnosticCode::MergeCommitPublished)
+        .expect("merge publication diagnostic");
+    assert_eq!(
+        merge_diagnostic.fields["history_shape"],
+        serde_json::json!("MergeReady")
+    );
+    assert_eq!(merge_diagnostic.fields["parent_count"], serde_json::json!(2));
+    assert_eq!(
+        merge_diagnostic.fields["authoritative_parent_list"],
+        serde_json::json!([
+            main_outcome.commit.commit_id.0,
+            feature_outcome.commit.commit_id.0
+        ])
+    );
 }
 
 #[test]
@@ -142,7 +201,7 @@ fn branch_history_helpers_expose_ancestor_and_merge_base_reasoning() {
         create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
     let chain = runtime
         .history_access()
-        .ancestor_chain(feature.commit.commit_id);
+        .ancestor_closure_by_commit_id_order(feature.commit.commit_id);
     let merge_base = runtime
         .history_access()
         .latest_common_ancestor_between_branches(
@@ -445,19 +504,28 @@ fn bulk_like_aspect_history_filters_and_query_packets_stay_stable_after_recovery
         .collect::<Vec<_>>();
     let expected_relation_digests = relations
         .iter()
-        .map(|relation| relation_aspect_history_digest(&runtime, *relation, Some(&endpoints_filter)))
+        .map(|relation| {
+            relation_aspect_history_digest(&runtime, *relation, Some(&endpoints_filter))
+        })
         .collect::<Vec<_>>();
     let lifecycle_filter = any_aspect_filter(["lifecycle"]);
     let expected_lifecycle_relation_digests = relations
         .iter()
-        .map(|relation| relation_aspect_history_digest(&runtime, *relation, Some(&lifecycle_filter)))
+        .map(|relation| {
+            relation_aspect_history_digest(&runtime, *relation, Some(&lifecycle_filter))
+        })
         .collect::<Vec<_>>();
     runtime.durability_authority().checkpoint().unwrap();
-    let recovery_plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
+    let recovery_plan = runtime.durability_access().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
 
     let mut recovered =
         persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit);
-    let recovery = recovered.durability_authority().recover(recovery_plan).unwrap();
+    let recovery = recovered
+        .durability_authority()
+        .recover(recovery_plan)
+        .unwrap();
     let recovered_snapshot = recovered.visibility_authority().snapshot();
     let recovered_reads = recovered
         .visibility_reads()
@@ -469,11 +537,15 @@ fn bulk_like_aspect_history_filters_and_query_packets_stay_stable_after_recovery
         .collect::<Vec<_>>();
     let recovered_relation_digests = relations
         .iter()
-        .map(|relation| relation_aspect_history_digest(&recovered, *relation, Some(&endpoints_filter)))
+        .map(|relation| {
+            relation_aspect_history_digest(&recovered, *relation, Some(&endpoints_filter))
+        })
         .collect::<Vec<_>>();
     let recovered_lifecycle_relation_digests = relations
         .iter()
-        .map(|relation| relation_aspect_history_digest(&recovered, *relation, Some(&lifecycle_filter)))
+        .map(|relation| {
+            relation_aspect_history_digest(&recovered, *relation, Some(&lifecycle_filter))
+        })
         .collect::<Vec<_>>();
 
     assert_eq!(recovery.latest_commit, Some(delete_outcome.commit.clone()));
@@ -486,10 +558,13 @@ fn bulk_like_aspect_history_filters_and_query_packets_stay_stable_after_recovery
         expected_lifecycle_relation_digests,
         recovered_lifecycle_relation_digests
     );
-    assert!(expected_entity_digests.iter().all(|digest| digest.entry_count == 2));
-    assert!(expected_relation_digests.iter().all(|digest| digest.entry_count == 1));
+    assert!(expected_entity_digests
+        .iter()
+        .all(|digest| digest.entry_count == 2));
+    assert!(expected_relation_digests
+        .iter()
+        .all(|digest| digest.entry_count == 1));
     assert!(expected_lifecycle_relation_digests
         .iter()
         .all(|digest| digest.entry_count == 2));
 }
-

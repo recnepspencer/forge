@@ -1,5 +1,5 @@
 use crate::validation::data::{
-    InvariantExecutionPoint, InvariantFailureEffect, InvariantReportedRule, InvariantVerdict,
+    InvariantExecutionPoint, InvariantFailureEffect, InvariantReportedRule, InvariantWitnessKey,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -7,7 +7,7 @@ pub(crate) struct ValidationResultIdentity {
     pub(crate) execution_point: InvariantExecutionPoint,
     pub(crate) failure_effect: InvariantFailureEffect,
     pub(crate) rule: InvariantReportedRule,
-    pub(crate) target_scope_identity: String,
+    pub(crate) witness: InvariantWitnessKey,
 }
 
 impl ValidationResultIdentity {
@@ -15,20 +15,13 @@ impl ValidationResultIdentity {
         execution_point: InvariantExecutionPoint,
         failure_effect: InvariantFailureEffect,
         rule: InvariantReportedRule,
-        verdict: &InvariantVerdict,
+        witness: InvariantWitnessKey,
     ) -> Self {
-        let target_scope_identity = match verdict {
-            InvariantVerdict::Pass => "pass".to_string(),
-            InvariantVerdict::Advisory { violation, .. }
-            | InvariantVerdict::Violation(violation) => {
-                format!("{:?}:{}", violation.code, violation.detail)
-            }
-        };
         Self {
             execution_point,
             failure_effect,
             rule,
-            target_scope_identity,
+            witness,
         }
     }
 }

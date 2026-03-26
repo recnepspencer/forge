@@ -1,22 +1,22 @@
 use std::sync::Arc;
 
+use crate::authority::commit::phases::schema_continuity::{
+    validate_schema_continuity_publication, SchemaContinuityPlan,
+};
+use crate::diagnostics::data::DiagnosticsArtifactKind;
 use crate::facade::history::BranchId;
 use crate::facade::identity::KindId;
 use crate::facade::schema::{
     CompatibilityObservation, DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
-    FreeFormSchemaDiffIntent, HistoricalInterpretationSensitivity,
-    LoweredSchemaTransitionPlan, ProposedSchemaTransition, SchemaBoundaryFingerprint,
-    SchemaBridgeDescriptor, SchemaBridgeabilityClassification, SchemaContinuationClassification,
+    FreeFormSchemaDiffIntent, HistoricalInterpretationSensitivity, LoweredSchemaTransitionPlan,
+    ProposedSchemaTransition, SchemaBoundaryFingerprint, SchemaBridgeDescriptor,
+    SchemaBridgeabilityClassification, SchemaContinuationClassification,
     SchemaContinuationDescriptor, SchemaDiffAtom, SchemaDiffDetail, SchemaElementKind,
     SchemaElementRef, SchemaId, SchemaLineageArtifact, SchemaLineageOrderingSemantics,
-    SchemaPublicationImpact, SchemaReconciliationClassification,
-    SchemaReconciliationDescriptor, SchemaReconciliationOrderingMode,
-    SchemaReconciliationPolicy, SchemaStratum, SchemaSubscriberImpact,
-    SchemaTransitionArtifact, SchemaTransitionSummary, SchemaVersionId, ValidatedSchemaTransition,
-};
-use crate::diagnostics::data::DiagnosticsArtifactKind;
-use crate::authority::commit::phases::schema_continuity::{
-    validate_schema_continuity_publication, SchemaContinuityPlan,
+    SchemaPublicationImpact, SchemaReconciliationClassification, SchemaReconciliationDescriptor,
+    SchemaReconciliationOrderingMode, SchemaReconciliationPolicy, SchemaStratum,
+    SchemaSubscriberImpact, SchemaTransitionArtifact, SchemaTransitionSummary, SchemaVersionId,
+    ValidatedSchemaTransition,
 };
 use crate::schema::logic::{
     classify_schema_transition, lower_schema_transition, validate_schema_continuity_bundle,
@@ -46,7 +46,10 @@ fn schema_diff_atom_requires_structured_detail_and_strata() {
     );
     let atom = SchemaDiffAtom::new(
         element.clone(),
-        vec![SchemaStratum::StructuralShape, SchemaStratum::SubscriberContract],
+        vec![
+            SchemaStratum::StructuralShape,
+            SchemaStratum::SubscriberContract,
+        ],
         SchemaPublicationImpact::ProjectionContractChanged,
         SchemaSubscriberImpact::ContractUpgradeRequired,
         HistoricalInterpretationSensitivity::SensitiveToPublicationMeaning,
@@ -60,12 +63,12 @@ fn schema_diff_atom_requires_structured_detail_and_strata() {
     assert_eq!(atom.element, element);
     assert_eq!(
         atom.strata,
-        vec![SchemaStratum::StructuralShape, SchemaStratum::SubscriberContract]
+        vec![
+            SchemaStratum::StructuralShape,
+            SchemaStratum::SubscriberContract
+        ]
     );
-    assert!(matches!(
-        atom.detail,
-        SchemaDiffDetail::TypeChanged { .. }
-    ));
+    assert!(matches!(atom.detail, SchemaDiffDetail::TypeChanged { .. }));
 }
 
 #[test]
@@ -111,7 +114,10 @@ fn schema_descriptor_constructors_preserve_semantics_version_and_ordering_truth(
     let lineage = SchemaLineageArtifact::new(
         SchemaId("forge".to_string()),
         SchemaVersionId(7),
-        vec![SchemaId("forge".to_string()), SchemaId("forge-feature".to_string())],
+        vec![
+            SchemaId("forge".to_string()),
+            SchemaId("forge-feature".to_string()),
+        ],
         vec![SchemaVersionId(6), SchemaVersionId(6)],
         Some(BranchId("main".to_string())),
         SchemaReconciliationOrderingMode::CanonicalizedPair,
@@ -168,7 +174,10 @@ fn schema_transition_summary_derives_changed_strata_without_duplicate_noise() {
                     None,
                     Arc::<str>::from("length_units"),
                 ),
-                vec![SchemaStratum::ValueDomain, SchemaStratum::PublicationContract],
+                vec![
+                    SchemaStratum::ValueDomain,
+                    SchemaStratum::PublicationContract,
+                ],
                 SchemaPublicationImpact::ObservableSurfaceChanged,
                 SchemaSubscriberImpact::RenegotiationRequired,
                 HistoricalInterpretationSensitivity::SensitiveToValueMeaning,
@@ -203,7 +212,10 @@ fn schema_transition_summary_derives_changed_strata_without_duplicate_noise() {
                 SchemaContinuationClassification::RequireRenegotiation,
                 SchemaBridgeabilityClassification::RenegotiationOnly,
                 HistoricalInterpretationSensitivity::SensitiveToPublicationMeaning,
-                vec![SchemaStratum::ValueDomain, SchemaStratum::PublicationContract],
+                vec![
+                    SchemaStratum::ValueDomain,
+                    SchemaStratum::PublicationContract,
+                ],
             ),
             1,
         ),
@@ -229,7 +241,10 @@ fn schema_transition_summary_derives_changed_strata_without_duplicate_noise() {
     assert_eq!(summary.changed_atom_count, 2);
     assert_eq!(
         summary.changed_strata,
-        vec![SchemaStratum::ValueDomain, SchemaStratum::PublicationContract]
+        vec![
+            SchemaStratum::ValueDomain,
+            SchemaStratum::PublicationContract
+        ]
     );
     assert_eq!(
         summary.continuation,
@@ -296,7 +311,9 @@ fn schema_transition_validation_requires_explicit_policy_for_narrowing() {
     };
 
     let error = validate_schema_transition(proposed, None).unwrap_err();
-    assert!(error.detail().contains("requires an explicit preservation policy"));
+    assert!(error
+        .detail()
+        .contains("requires an explicit preservation policy"));
 }
 
 #[test]
@@ -315,7 +332,10 @@ fn schema_transition_classification_and_lowering_are_deterministic_for_visible_b
                     None,
                     Arc::<str>::from("optional_tag"),
                 ),
-                vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
+                vec![
+                    SchemaStratum::StructuralShape,
+                    SchemaStratum::PublicationContract,
+                ],
                 SchemaPublicationImpact::ObservableSurfaceChanged,
                 SchemaSubscriberImpact::ConsumableSurfaceChanged,
                 HistoricalInterpretationSensitivity::NotSensitive,
@@ -336,7 +356,10 @@ fn schema_transition_classification_and_lowering_are_deterministic_for_visible_b
                     None,
                     Arc::<str>::from("orders.list"),
                 ),
-                vec![SchemaStratum::PublicationContract, SchemaStratum::SubscriberContract],
+                vec![
+                    SchemaStratum::PublicationContract,
+                    SchemaStratum::SubscriberContract,
+                ],
                 SchemaPublicationImpact::ProjectionContractChanged,
                 SchemaSubscriberImpact::ConsumableSurfaceChanged,
                 HistoricalInterpretationSensitivity::NotSensitive,
@@ -413,7 +436,10 @@ fn consumable_surface_change_requires_explicit_visible_bridge_proof() {
                 None,
                 Arc::<str>::from("optional_tag"),
             ),
-            vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
+            vec![
+                SchemaStratum::StructuralShape,
+                SchemaStratum::PublicationContract,
+            ],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
             HistoricalInterpretationSensitivity::NotSensitive,
@@ -428,8 +454,10 @@ fn consumable_surface_change_requires_explicit_visible_bridge_proof() {
         )],
     };
 
-    let classified =
-        classify_schema_transition(proposed, Some(SchemaReconciliationPolicy::PreserveInformation));
+    let classified = classify_schema_transition(
+        proposed,
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    );
 
     assert_eq!(
         classified.continuation,
@@ -444,7 +472,10 @@ fn descriptor_semantics_policy_supports_explicit_historical_versions() {
         [DescriptorSemanticsVersion(1), DescriptorSemanticsVersion(2)],
     );
 
-    assert_eq!(policy.current_write_version(), DescriptorSemanticsVersion(3));
+    assert_eq!(
+        policy.current_write_version(),
+        DescriptorSemanticsVersion(3)
+    );
     assert!(policy.supports(DescriptorSemanticsVersion(1)));
     assert!(policy.supports(DescriptorSemanticsVersion(2)));
     assert!(policy.supports(DescriptorSemanticsVersion(3)));
@@ -461,10 +492,13 @@ fn schema_boundary_fingerprint_is_canonical_across_diff_atom_orderings() {
             None,
             Arc::<str>::from("optional_tag"),
         ),
-        vec![SchemaStratum::PublicationContract, SchemaStratum::StructuralShape],
+        vec![
+            SchemaStratum::PublicationContract,
+            SchemaStratum::StructuralShape,
+        ],
         SchemaPublicationImpact::ObservableSurfaceChanged,
         SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                HistoricalInterpretationSensitivity::NotSensitive,
+        HistoricalInterpretationSensitivity::NotSensitive,
         SchemaDiffDetail::AddedField {
             field_name: Arc::<str>::from("optional_tag"),
             required: false,
@@ -482,10 +516,13 @@ fn schema_boundary_fingerprint_is_canonical_across_diff_atom_orderings() {
             None,
             Arc::<str>::from("orders.list"),
         ),
-        vec![SchemaStratum::SubscriberContract, SchemaStratum::PublicationContract],
+        vec![
+            SchemaStratum::SubscriberContract,
+            SchemaStratum::PublicationContract,
+        ],
         SchemaPublicationImpact::ProjectionContractChanged,
         SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                HistoricalInterpretationSensitivity::NotSensitive,
+        HistoricalInterpretationSensitivity::NotSensitive,
         SchemaDiffDetail::ProjectionContractChanged {
             projection_name: Arc::<str>::from("orders.list"),
         },
@@ -548,10 +585,13 @@ fn type_incompatible_schema_transition_is_rejected_not_continued() {
                 None,
                 Arc::<str>::from("timing_domain"),
             ),
-            vec![SchemaStratum::ValueDomain, SchemaStratum::PublicationContract],
+            vec![
+                SchemaStratum::ValueDomain,
+                SchemaStratum::PublicationContract,
+            ],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                HistoricalInterpretationSensitivity::SensitiveToValueMeaning,
+            HistoricalInterpretationSensitivity::SensitiveToValueMeaning,
             SchemaDiffDetail::TypeChanged {
                 field_name: Arc::<str>::from("timing_domain"),
                 from_type: Arc::<str>::from("enum<legacy>"),
@@ -570,7 +610,10 @@ fn type_incompatible_schema_transition_is_rejected_not_continued() {
         validated.reconciliation,
         SchemaReconciliationClassification::TypeIncompatible
     );
-    assert_eq!(validated.continuation, SchemaContinuationClassification::Rejected);
+    assert_eq!(
+        validated.continuation,
+        SchemaContinuationClassification::Rejected
+    );
     assert_eq!(
         validated.bridgeability,
         SchemaBridgeabilityClassification::Rejected
@@ -623,14 +666,14 @@ fn commit_rejects_undeclared_schema_drift_against_branch_head() {
 
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
-        WorkerIntentBatch::new("schema-drift").push(MutationIntent::Create(
-            CreateIntent::Entity(crate::transactions::data::EntitySpec {
+        WorkerIntentBatch::new("schema-drift").push(MutationIntent::Create(CreateIntent::Entity(
+            crate::transactions::data::EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: InternedString::Raw("b".to_string()),
                 payload: RecordPayload::StructuredJson(serde_json::json!({ "name": "b" })),
-            }),
-        )),
+            },
+        ))),
     );
     let error = txn.commit().unwrap_err();
 
@@ -644,7 +687,10 @@ fn commit_rejects_undeclared_schema_drift_against_branch_head() {
                     ..
                 }
             ));
-            assert_eq!(error.code(), crate::diagnostics::data::DiagnosticCode::SchemaContinuityViolation);
+            assert_eq!(
+                error.code(),
+                crate::diagnostics::data::DiagnosticCode::SchemaContinuityViolation
+            );
         }
         other => panic!("expected schema continuity conflict, got {other:?}"),
     }
@@ -706,10 +752,13 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
                 Some(KindId(1)),
                 Arc::<str>::from("tag"),
             ),
-            vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
+            vec![
+                SchemaStratum::StructuralShape,
+                SchemaStratum::PublicationContract,
+            ],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                HistoricalInterpretationSensitivity::NotSensitive,
+            HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
                 field_name: Arc::<str>::from("tag"),
                 required: false,
@@ -721,12 +770,10 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
         )],
     };
 
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            proposed_transition,
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        proposed_transition,
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(
         WorkerIntentBatch::new("schema-transition").push(MutationIntent::Create(
             CreateIntent::Entity(crate::transactions::data::EntitySpec {
@@ -747,14 +794,16 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
     );
     assert!(outcome.envelope().schema_transition.is_some());
     assert!(outcome.envelope().schema_continuation_descriptor.is_some());
-    assert!(outcome.envelope().schema_reconciliation_descriptor.is_some());
     assert!(outcome
-        .diagnostics()
-        .iter()
-        .any(|artifact| artifact.scope == DiagnosticsScope::Schema
-            && artifact.entries.iter().any(|entry| {
-                entry.code == DiagnosticCode::SchemaTransitionTraced
-            })));
+        .envelope()
+        .schema_reconciliation_descriptor
+        .is_some());
+    assert!(outcome.diagnostics().iter().any(|artifact| artifact.scope
+        == DiagnosticsScope::Schema
+        && artifact
+            .entries
+            .iter()
+            .any(|entry| { entry.code == DiagnosticCode::SchemaTransitionTraced })));
     let detailed_trace = outcome
         .diagnostics()
         .iter()
@@ -763,21 +812,26 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
                 && artifact.kind == DiagnosticsArtifactKind::DetailedTrace
         })
         .expect("schema detailed trace artifact");
-    assert!(detailed_trace.entries.iter().any(|entry| {
-        entry.code == DiagnosticCode::SchemaLineageTraced
-    }));
-    assert!(detailed_trace.entries.iter().any(|entry| {
-        entry.code == DiagnosticCode::SchemaBridgeDescriptorConstructed
-    }));
-    assert!(detailed_trace.entries.iter().any(|entry| {
-        entry.code == DiagnosticCode::SchemaReconciliationResolved
-    }));
-    assert!(detailed_trace.entries.iter().any(|entry| {
-        entry.code == DiagnosticCode::SchemaInterpretationSensitivityClassified
-    }));
-    assert!(detailed_trace.entries.iter().any(|entry| {
-        entry.code == DiagnosticCode::SchemaDescriptorVersionSelected
-    }));
+    assert!(detailed_trace
+        .entries
+        .iter()
+        .any(|entry| { entry.code == DiagnosticCode::SchemaLineageTraced }));
+    assert!(detailed_trace
+        .entries
+        .iter()
+        .any(|entry| { entry.code == DiagnosticCode::SchemaBridgeDescriptorConstructed }));
+    assert!(detailed_trace
+        .entries
+        .iter()
+        .any(|entry| { entry.code == DiagnosticCode::SchemaReconciliationResolved }));
+    assert!(detailed_trace
+        .entries
+        .iter()
+        .any(|entry| { entry.code == DiagnosticCode::SchemaInterpretationSensitivityClassified }));
+    assert!(detailed_trace
+        .entries
+        .iter()
+        .any(|entry| { entry.code == DiagnosticCode::SchemaDescriptorVersionSelected }));
     let diff_entry = detailed_trace
         .entries
         .iter()
@@ -820,7 +874,10 @@ fn schema_certification_transition_is_explained_and_counted() {
                 Some(KindId(1)),
                 Arc::<str>::from("tag"),
             ),
-            vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
+            vec![
+                SchemaStratum::StructuralShape,
+                SchemaStratum::PublicationContract,
+            ],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
             HistoricalInterpretationSensitivity::NotSensitive,
@@ -836,22 +893,20 @@ fn schema_certification_transition_is_explained_and_counted() {
     };
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            proposed_transition,
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
-    txn.push_batch(
-        WorkerIntentBatch::new("schema-transition-certified").push(MutationIntent::Create(
-            CreateIntent::Entity(crate::transactions::data::EntitySpec {
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        proposed_transition,
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
+    txn.push_batch(WorkerIntentBatch::new("schema-transition-certified").push(
+        MutationIntent::Create(CreateIntent::Entity(
+            crate::transactions::data::EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: InternedString::Raw("b".to_string()),
                 payload: RecordPayload::StructuredJson(serde_json::json!({ "name": "b" })),
-            }),
+            },
         )),
-    );
+    ));
     let outcome = txn.commit().unwrap();
 
     let diagnostics = outcome.diagnostics();
@@ -874,9 +929,10 @@ fn schema_certification_transition_is_explained_and_counted() {
         .entries
         .iter()
         .any(|entry| entry.code == DiagnosticCode::SchemaReconciliationResolved));
-    assert!(detailed_trace.entries.iter().any(|entry| {
-        entry.code == DiagnosticCode::SchemaInterpretationSensitivityClassified
-    }));
+    assert!(detailed_trace
+        .entries
+        .iter()
+        .any(|entry| { entry.code == DiagnosticCode::SchemaInterpretationSensitivityClassified }));
     assert!(detailed_trace
         .entries
         .iter()
@@ -888,7 +944,10 @@ fn schema_certification_transition_is_explained_and_counted() {
     assert_eq!(counters.schema_bridge_descriptors_built, 1);
     assert_eq!(counters.schema_transition_continue_visible_bridge_count, 1);
     assert_eq!(counters.schema_reconciliation_preserve_information_count, 1);
-    assert_eq!(counters.schema_historical_interpretation_sensitive_boundaries, 0);
+    assert_eq!(
+        counters.schema_historical_interpretation_sensitive_boundaries,
+        0
+    );
 }
 
 #[test]
@@ -927,12 +986,10 @@ fn declared_schema_transition_rejects_wrong_source_basis() {
         )],
     };
 
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            proposed_transition,
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        proposed_transition,
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("b"));
     let error = txn.commit().unwrap_err();
 
@@ -987,12 +1044,10 @@ fn declared_schema_transition_rejects_wrong_target_basis() {
         )],
     };
 
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            proposed_transition,
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        proposed_transition,
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("b"));
     let error = txn.commit().unwrap_err();
 
@@ -1053,12 +1108,10 @@ fn declared_schema_transition_requires_non_empty_runtime_basis() {
         )],
     };
 
-    let txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            proposed_transition,
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+    let txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        proposed_transition,
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
     let error = txn.commit().unwrap_err();
 
     match error {
@@ -1097,10 +1150,13 @@ fn declared_type_incompatible_schema_transition_reports_specific_conflict_class(
                 Some(KindId(1)),
                 Arc::<str>::from("tag"),
             ),
-            vec![SchemaStratum::ValueDomain, SchemaStratum::PublicationContract],
+            vec![
+                SchemaStratum::ValueDomain,
+                SchemaStratum::PublicationContract,
+            ],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                HistoricalInterpretationSensitivity::SensitiveToValueMeaning,
+            HistoricalInterpretationSensitivity::SensitiveToValueMeaning,
             SchemaDiffDetail::TypeChanged {
                 field_name: Arc::<str>::from("tag"),
                 from_type: Arc::<str>::from("string"),
@@ -1109,12 +1165,10 @@ fn declared_type_incompatible_schema_transition_reports_specific_conflict_class(
         )],
     };
 
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            proposed_transition,
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        proposed_transition,
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("b"));
     let error = txn.commit().unwrap_err();
 
@@ -1207,7 +1261,10 @@ fn schema_continuity_publication_rejects_incomplete_canonical_bundle() {
 
     match error {
         crate::transactions::data::TransactionCommitError::Conflict { error, .. } => {
-            assert!(matches!(error.class, ConflictClass::UnsupportedBridgeDescriptor { .. }));
+            assert!(matches!(
+                error.class,
+                ConflictClass::UnsupportedBridgeDescriptor { .. }
+            ));
             assert!(error.detail().contains("must appear together"));
         }
         other => panic!("expected continuity publication conflict, got {other:?}"),
@@ -1235,7 +1292,7 @@ fn schema_continuity_publication_rejects_descriptor_semantics_mismatch() {
             vec![SchemaStratum::PublicationContract],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                HistoricalInterpretationSensitivity::NotSensitive,
+            HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
                 field_name: Arc::<str>::from("tag"),
                 required: false,
@@ -1293,7 +1350,10 @@ fn schema_continuity_publication_rejects_descriptor_semantics_mismatch() {
 
     match error {
         crate::transactions::data::TransactionCommitError::Conflict { error, .. } => {
-            assert!(matches!(error.class, ConflictClass::UnsupportedBridgeDescriptor { .. }));
+            assert!(matches!(
+                error.class,
+                ConflictClass::UnsupportedBridgeDescriptor { .. }
+            ));
             assert!(error.detail().contains("descriptor semantics version"));
         }
         other => panic!("expected continuity publication conflict, got {other:?}"),
@@ -1322,7 +1382,7 @@ fn shared_continuity_bundle_validator_reports_boundary_fingerprint_mismatch() {
             vec![SchemaStratum::PublicationContract],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                HistoricalInterpretationSensitivity::NotSensitive,
+            HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
                 field_name: Arc::<str>::from("tag"),
                 required: false,
@@ -1372,6 +1432,3 @@ fn shared_continuity_bundle_validator_reports_boundary_fingerprint_mismatch() {
         } if boundary_fingerprint == fingerprint
     ));
 }
-
-
-

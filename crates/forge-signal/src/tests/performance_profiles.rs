@@ -459,15 +459,13 @@ fn perf_dependency_reconciliation_stable_shape_staged_serial() {
                                         None,
                                     );
                                 }
-                                Ok(
-                                    PreparedEvaluation::from_result(
-                                        NodeEvaluationResult::from_version(version_ab(
-                                            (round + 2) as u64,
-                                            leaf_index as u64,
-                                        )),
-                                    )
-                                    .with_dependencies(capture),
+                                Ok(PreparedEvaluation::from_result(
+                                    NodeEvaluationResult::from_version(version_ab(
+                                        (round + 2) as u64,
+                                        leaf_index as u64,
+                                    )),
                                 )
+                                .with_dependencies(capture))
                             })
                             .unwrap();
                     report_precompute_nanos += report.stage_precompute_nanos;

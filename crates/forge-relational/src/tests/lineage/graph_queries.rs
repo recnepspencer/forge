@@ -19,12 +19,10 @@ fn lineage_graph_delete_emits_retire_event() {
     let created = create_entity_outcome(&mut runtime, "retired");
     let entity = changed_entities(&created)[0];
     let deleted = delete_entity(&mut runtime, entity);
-    let graph = runtime
-        .lineage_access()
-        .graph(LineageGraphRequest {
-            branch_id: BranchId("main".to_string()),
-            traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
-        });
+    let graph = runtime.lineage_access().graph(LineageGraphRequest {
+        branch_id: BranchId("main".to_string()),
+        traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
+    });
 
     assert_eq!(
         graph.traversal_basis,
@@ -62,12 +60,10 @@ fn lineage_graph_replace_emits_replace_edge() {
         )),
     );
     let outcome = txn.commit().unwrap();
-    let graph = runtime
-        .lineage_access()
-        .graph(LineageGraphRequest {
-            branch_id: BranchId("main".to_string()),
-            traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
-        });
+    let graph = runtime.lineage_access().graph(LineageGraphRequest {
+        branch_id: BranchId("main".to_string()),
+        traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
+    });
 
     assert_eq!(
         graph.traversal_basis,
@@ -124,12 +120,10 @@ fn lineage_graph_same_shape_replacements_do_not_cross_wire_targets() {
             ))),
     );
     let outcome = txn.commit().unwrap();
-    let graph = runtime
-        .lineage_access()
-        .graph(LineageGraphRequest {
-            branch_id: BranchId("main".to_string()),
-            traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
-        });
+    let graph = runtime.lineage_access().graph(LineageGraphRequest {
+        branch_id: BranchId("main".to_string()),
+        traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
+    });
     let replace_events = graph
         .events
         .iter()
@@ -152,11 +146,19 @@ fn lineage_graph_same_shape_replacements_do_not_cross_wire_targets() {
     );
     assert_eq!(
         graph.digest_basis().canonical_event_ids(),
-        graph.events.iter().map(|event| event.event_id).collect::<Vec<_>>()
+        graph
+            .events
+            .iter()
+            .map(|event| event.event_id)
+            .collect::<Vec<_>>()
     );
     assert_eq!(
         graph.digest_basis().canonical_lineage_ids(),
-        graph.nodes.iter().map(|node| node.lineage_id).collect::<Vec<_>>()
+        graph
+            .nodes
+            .iter()
+            .map(|node| node.lineage_id)
+            .collect::<Vec<_>>()
     );
     assert_ne!(replace_events[0].targets, replace_events[1].targets);
 }

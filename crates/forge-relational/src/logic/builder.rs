@@ -1,8 +1,7 @@
 use crate::config::data::{
     AdjacencyPolicy, CascadeDeletePolicy, CompiledLanePolicy, CrossContextPolicy, DurabilityPolicy,
     DurableLogPolicy, MvccConfig, PublicationConfig, RelationIntegrityScopeBudget,
-    RelationalConfigOverride, RelationalRuntimeProfile, StorageLayoutConfig,
-    VisibilityCachePolicy,
+    RelationalConfigOverride, RelationalRuntimeProfile, StorageLayoutConfig, VisibilityCachePolicy,
 };
 use crate::diagnostics::data::RelationalDiagnosticsProfile;
 use crate::durability::data::{DurabilityMode, DurableStoreLayout};
@@ -243,8 +242,14 @@ mod tests {
             .custom_invariant(registration)
             .build();
 
-        assert_eq!(runtime.config.schema.invariant_catalog.registrations.len(), 2);
-        assert_eq!(runtime.aspect_semantics.custom_invariant_registries.len(), 1);
+        assert_eq!(
+            runtime.config.schema.invariant_catalog.registrations.len(),
+            2
+        );
+        assert_eq!(
+            runtime.aspect_semantics.custom_invariant_registries.len(),
+            1
+        );
         assert_eq!(
             runtime
                 .aspect_semantics

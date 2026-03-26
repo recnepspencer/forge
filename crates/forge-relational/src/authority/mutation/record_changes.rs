@@ -76,47 +76,39 @@ pub(super) fn delete_entity_with_cascade(
     let slot = entity_id.local_slot.0 as usize;
     state.mark_entity_slot_touched(entity_id.partition_id, slot);
     let partition = state.get_partition_mut(entity_id.partition_id);
-    let slot_view = partition
-        .entity_arena
-        .get_slot(slot)
-        .ok_or_else(|| {
-            mutation_state_inconsistency(
-                "entity delete requires an existing slot after stale-target validation",
-                serde_json::json!({
-                    "record_class": "entity",
-                    "entity_id": entity_id,
-                    "phase": "delete_with_cascade",
-                    "missing": "slot",
-                }),
-            )
-        })?;
-    let kind_id = slot_view
-        .kind_id()
-        .ok_or_else(|| {
-            mutation_state_inconsistency(
-                "entity delete requires a retained kind id after stale-target validation",
-                serde_json::json!({
-                    "record_class": "entity",
-                    "entity_id": entity_id,
-                    "phase": "delete_with_cascade",
-                    "missing": "kind_id",
-                }),
-            )
-        })?;
-    let payload = slot_view
-        .payload()
-        .cloned()
-        .ok_or_else(|| {
-            mutation_state_inconsistency(
-                "entity delete requires a retained payload after stale-target validation",
-                serde_json::json!({
-                    "record_class": "entity",
-                    "entity_id": entity_id,
-                    "phase": "delete_with_cascade",
-                    "missing": "payload",
-                }),
-            )
-        })?;
+    let slot_view = partition.entity_arena.get_slot(slot).ok_or_else(|| {
+        mutation_state_inconsistency(
+            "entity delete requires an existing slot after stale-target validation",
+            serde_json::json!({
+                "record_class": "entity",
+                "entity_id": entity_id,
+                "phase": "delete_with_cascade",
+                "missing": "slot",
+            }),
+        )
+    })?;
+    let kind_id = slot_view.kind_id().ok_or_else(|| {
+        mutation_state_inconsistency(
+            "entity delete requires a retained kind id after stale-target validation",
+            serde_json::json!({
+                "record_class": "entity",
+                "entity_id": entity_id,
+                "phase": "delete_with_cascade",
+                "missing": "kind_id",
+            }),
+        )
+    })?;
+    let payload = slot_view.payload().cloned().ok_or_else(|| {
+        mutation_state_inconsistency(
+            "entity delete requires a retained payload after stale-target validation",
+            serde_json::json!({
+                "record_class": "entity",
+                "entity_id": entity_id,
+                "phase": "delete_with_cascade",
+                "missing": "payload",
+            }),
+        )
+    })?;
     partition.entity_arena.retire(slot, version_id);
     outcome.record_change(RecordMutation::EntityDeleted {
         entity_id,

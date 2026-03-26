@@ -98,21 +98,19 @@ pub(crate) fn record_semantic_execution(
             .get_entry(task.node)
             .ok()
             .and_then(|entry| entry.get_runtime_artifact_state())
-            .and_then(|state| state.lineage_artifact_id);
+            .and_then(|state| state.lineage_artifact_id.get());
         let persistent_correspondence_kind = graph
             .get_entry(task.node)
             .ok()
             .and_then(|entry| entry.get_runtime_artifact_state())
-            .and_then(|state| state.reuse_boundary_context.as_ref())
-            .and_then(|context| context.persistent_correspondence())
-            .map(|evidence| evidence.kind());
+            .and_then(|state| state.reuse_boundary_authority.as_ref())
+            .and_then(|authority| authority.persistent_correspondence_kind());
         let composition_region_count = graph
             .get_entry(task.node)
             .ok()
             .and_then(|entry| entry.get_runtime_artifact_state())
-            .and_then(|state| state.reuse_boundary_context.as_ref())
-            .and_then(|context| context.composition_regions())
-            .map(|regions| regions.as_slice().len() as u32)
+            .and_then(|state| state.reuse_boundary_authority.as_ref())
+            .map(|authority| authority.composition_region_count())
             .filter(|count| *count > 0);
         graph
             .diagnostics_state_mut()

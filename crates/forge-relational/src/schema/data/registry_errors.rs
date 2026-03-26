@@ -144,10 +144,12 @@ impl SchemaRegistryError {
         kind_id: KindId,
         detail: impl Into<String>,
     ) -> Self {
-        Self::new(SchemaRegistryErrorClass::InvalidRelationIntegrityDeclaration {
-            kind_id,
-            detail: detail.into(),
-        })
+        Self::new(
+            SchemaRegistryErrorClass::InvalidRelationIntegrityDeclaration {
+                kind_id,
+                detail: detail.into(),
+            },
+        )
     }
 
     pub fn inconsistent_schema_basis(detail: impl Into<String>) -> Self {

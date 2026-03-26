@@ -212,10 +212,7 @@ impl DependencySnapshotShape {
         self.keys.as_slice()
     }
 
-    pub(crate) fn intern(
-        &self,
-        store: &mut DependencySnapshotShapeStore,
-    ) -> SnapshotShapeHandle {
+    pub(crate) fn intern(&self, store: &mut DependencySnapshotShapeStore) -> SnapshotShapeHandle {
         store.intern(self.clone())
     }
 }
@@ -490,9 +487,9 @@ impl CommittedSnapshotUpdate {
 
     pub fn apply_to(self, previous: &DependencySnapshot) -> SharedDependencySnapshot {
         match self {
-            Self::VersionOnly(update) => {
-                SharedDependencySnapshot::new(previous.with_updated_versions(update.versions().as_slice()))
-            }
+            Self::VersionOnly(update) => SharedDependencySnapshot::new(
+                previous.with_updated_versions(update.versions().as_slice()),
+            ),
             Self::Replace(update) => update.snapshot,
         }
     }
@@ -503,7 +500,6 @@ impl CommittedSnapshotUpdate {
             Self::Replace(_) => SnapshotChangeKind::StructuralReplace,
         }
     }
-
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -541,7 +537,6 @@ impl DependencyInputScan {
     pub(crate) fn stable_shape_versions_arc(&self) -> Arc<Vec<u64>> {
         Arc::clone(&self.stable_shape_versions)
     }
-
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -587,10 +582,7 @@ pub struct VersionVector {
 }
 
 impl VersionVector {
-    pub(crate) fn from_scan(
-        basis: &StableShapeSnapshotBasis,
-        scan: &DependencyInputScan,
-    ) -> Self {
+    pub(crate) fn from_scan(basis: &StableShapeSnapshotBasis, scan: &DependencyInputScan) -> Self {
         debug_assert_eq!(basis.entry_count(), scan.stable_shape_versions().len());
         Self {
             cached_versions: scan.stable_shape_versions_arc(),
@@ -731,12 +723,9 @@ impl DependencySnapshotUpdate {
         shape_store: &mut DependencySnapshotShapeStore,
     ) -> CommittedSnapshotUpdate {
         match self {
-            Self::Replace(shared) => {
-                CommittedSnapshotUpdate::Replace(ReplacementSnapshotUpdate::from_snapshot(
-                    shared.into_snapshot(),
-                    shape_store,
-                ))
-            }
+            Self::Replace(shared) => CommittedSnapshotUpdate::Replace(
+                ReplacementSnapshotUpdate::from_snapshot(shared.into_snapshot(), shape_store),
+            ),
             Self::VersionOnly(delta) => {
                 let shape_handle = previous_snapshot.shape().intern(shape_store);
                 let basis = StableShapeSnapshotBasis {
@@ -924,17 +913,15 @@ impl DependencySnapshotStore {
         id
     }
 
-    fn rebuild_shape_handles_if_needed(
-        &mut self,
-        shape_store: &mut DependencySnapshotShapeStore,
-    ) {
+    fn rebuild_shape_handles_if_needed(&mut self, shape_store: &mut DependencySnapshotShapeStore) {
         if self.shape_handles.len() == self.snapshots.len() {
             return;
         }
         self.shape_handles.clear();
         self.shape_handles.reserve(self.snapshots.len());
         for snapshot in &self.snapshots {
-            self.shape_handles.push(snapshot.shape().intern(shape_store));
+            self.shape_handles
+                .push(snapshot.shape().intern(shape_store));
         }
     }
 
@@ -1039,7 +1026,10 @@ mod tests {
         snapshot.record(source, Aspect::new(1), 9, None);
 
         let delta = SnapshotDeltaRecord::for_version_update(NodeId::new(0, 0), &snapshot, &[7, 9]);
-        assert_eq!(delta.change_kind, SnapshotChangeKind::StableShapeVersionOnly);
+        assert_eq!(
+            delta.change_kind,
+            SnapshotChangeKind::StableShapeVersionOnly
+        );
         assert!(delta.changed());
     }
 

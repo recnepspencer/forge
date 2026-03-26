@@ -81,7 +81,9 @@ impl<'runtime> LineageAuthority<'runtime> {
         }
         let source_set = candidate.sources.iter().copied().collect::<BTreeSet<_>>();
         let target_set = candidate.targets.iter().copied().collect::<BTreeSet<_>>();
-        if source_set.len() != candidate.sources.len() || target_set.len() != candidate.targets.len() {
+        if source_set.len() != candidate.sources.len()
+            || target_set.len() != candidate.targets.len()
+        {
             self.runtime
                 .performance_access()
                 .count_lineage_candidate_validation(recorded_width, 0);
@@ -206,7 +208,9 @@ impl<'runtime> LineageAuthority<'runtime> {
             rejection_class: Some(class),
         });
         for decision in artifact.decision_log().decisions() {
-            self.runtime.lineage.record_rejected_decision(decision.clone());
+            self.runtime
+                .lineage
+                .record_rejected_decision(decision.clone());
         }
     }
 

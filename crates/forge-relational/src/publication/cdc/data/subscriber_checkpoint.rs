@@ -138,9 +138,7 @@ impl SubscriberCheckpoint {
         self.authoritative_descriptor_continuation
     }
 
-    pub fn authoritative_subscriber_outcome(
-        &self,
-    ) -> Option<SchemaContinuationClassification> {
+    pub fn authoritative_subscriber_outcome(&self) -> Option<SchemaContinuationClassification> {
         self.authoritative_subscriber_outcome
     }
 

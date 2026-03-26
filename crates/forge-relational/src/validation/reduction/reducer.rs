@@ -22,14 +22,20 @@ pub(crate) fn reduce_invariant_execution(
     ValidationPreparationCounters,
     Vec<ValidationReducerConflict>,
 ) {
+    let packet_count = envelopes.len();
     let envelopes = canonical_merge_streams(
         envelopes
             .into_iter()
             .map(|envelope| {
+                let first_identity = envelope
+                    .results
+                    .first()
+                    .map(|result| result.result_identity.clone())
+                    .expect("worker envelopes must contain at least one result");
                 OrderedReductionStream::singleton(
                     (
                         envelope.reduction_key.clone(),
-                        envelope.result_identity.clone(),
+                        first_identity,
                     ),
                     envelope,
                 )
@@ -55,19 +61,21 @@ pub(crate) fn reduce_invariant_execution(
         preparation_failures.push(PreparationFailureClass::FallbackToSerial);
     }
 
-    let mut results = Vec::with_capacity(envelopes.len());
+    let mut results = Vec::new();
     let mut last_identity = None;
     for envelope in envelopes {
-        if let Some(previous_identity) = &last_identity {
-            if previous_identity == &envelope.result_identity {
-                reducer_conflicts.push(ValidationReducerConflict {
-                    identity: envelope.result_identity.clone(),
-                });
-                preparation_failures.push(PreparationFailureClass::ReductionIdentityConflict);
+        for worker_result in envelope.results {
+            if let Some(previous_identity) = &last_identity {
+                if previous_identity == &worker_result.result_identity {
+                    reducer_conflicts.push(ValidationReducerConflict {
+                        identity: worker_result.result_identity.clone(),
+                    });
+                    preparation_failures.push(PreparationFailureClass::ReductionIdentityConflict);
+                }
             }
+            last_identity = Some(worker_result.result_identity.clone());
+            results.push(worker_result.result);
         }
-        last_identity = Some(envelope.result_identity.clone());
-        results.push(envelope.result);
     }
 
     let metadata = InvariantExecutionMetadata::executed_with_strategy(
@@ -86,7 +94,7 @@ pub(crate) fn reduce_invariant_execution(
     );
     let result = InvariantExecutionResult::executed(metadata, results.clone());
     let counters = ValidationPreparationCounters {
-        packet_count: results.len(),
+        packet_count,
         worker_result_count: results.len(),
         reducer_input_count: results.len(),
         reducer_conflict_count: reducer_conflicts.len(),

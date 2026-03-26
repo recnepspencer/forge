@@ -14,10 +14,7 @@ pub(crate) use prepared_apply::{
 pub(crate) fn collect_effect_dependency_inputs_iter<I>(
     graph: &mut crate::data::graph::SignalGraph,
     nodes: I,
-) -> Result<
-    Vec<crate::logic::evaluation::EffectDependencyInputs>,
-    crate::data::error::SignalError,
->
+) -> Result<Vec<crate::logic::evaluation::EffectDependencyInputs>, crate::data::error::SignalError>
 where
     I: IntoIterator<Item = crate::data::handle::NodeId>,
 {

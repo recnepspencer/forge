@@ -81,13 +81,15 @@ mod tests {
         );
         {
             let partition = state.get_partition_mut(PartitionId(1));
-            partition.entity_arena.push_slot(SlotInit::<EntityRecordKind> {
-                partition_id: PartitionId(1),
-                kind_id: KindId(1),
-                payload: None,
-                version_id: VersionId(1),
-                extra: Default::default(),
-            });
+            partition
+                .entity_arena
+                .push_slot(SlotInit::<EntityRecordKind> {
+                    partition_id: PartitionId(1),
+                    kind_id: KindId(1),
+                    payload: None,
+                    version_id: VersionId(1),
+                    extra: Default::default(),
+                });
         }
         let mut symbols = StringInterner::default();
         let delta = CanonicalRecordAspectDelta {
@@ -95,9 +97,9 @@ mod tests {
             kind_id: KindId(1),
             plan_revision: AspectPlanRevision(1),
             structural_change: RecordStructuralChange::Created,
-            changed_aspects: CanonicalAspectSet::new([AspectKey(InternedString::Symbol(
-                Symbol(9),
-            ))]),
+            changed_aspects: CanonicalAspectSet::new([AspectKey(InternedString::Symbol(Symbol(
+                9,
+            )))]),
             evaluated_bindings: smallvec::SmallVec::new(),
             contains_degraded_precision: false,
         };

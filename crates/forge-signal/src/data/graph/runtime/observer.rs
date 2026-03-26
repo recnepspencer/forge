@@ -3,8 +3,8 @@ use crate::data::graph::{signal_graph::SignalGraph, EvaluationStrategy};
 use crate::data::handle::NodeId;
 use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
 use crate::data::trace::{
-    assemble_historical_artifact_record, assemble_trace_summary, HistoricalArtifactRecord,
-    RetainedDiagnosticArtifact, RuntimeArtifactState, TraceSummary,
+    ColdArtifactRecord, HistoricalArtifactRecord, RetainedDiagnosticArtifact,
+    RuntimeArtifactState, TraceSummary,
 };
 use crate::diagnostics::access::GraphDiagnostics;
 use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
@@ -76,6 +76,10 @@ impl<'a> GraphObserver<'a> {
             self.graph.denied_reconstruction_explanation_api_count();
         metrics.storage.denied_reconstruction_provenance_api_count =
             self.graph.denied_reconstruction_provenance_api_count();
+        metrics.storage.hot_runtime_artifact_inline_size_bytes =
+            std::mem::size_of::<RuntimeArtifactState>() as u64;
+        metrics.storage.cold_artifact_record_inline_size_bytes =
+            std::mem::size_of::<ColdArtifactRecord>() as u64;
         metrics
     }
 
@@ -179,6 +183,13 @@ impl<'a> GraphObserver<'a> {
         node: NodeId,
     ) -> Result<Option<&'a RetainedDiagnosticArtifact>, SignalError> {
         Ok(self.graph.get_entry(node)?.retained_diagnostic_artifact())
+    }
+
+    pub fn cold_artifact_record(
+        &self,
+        node: NodeId,
+    ) -> Result<Option<&'a ColdArtifactRecord>, SignalError> {
+        Ok(self.graph.get_entry(node)?.cold_artifact_record())
     }
 
     pub fn dependency_chain_to(
@@ -346,7 +357,7 @@ impl<'a> GraphObserver<'a> {
             .get_entry(node)
             .ok()
             .and_then(|entry| entry.get_runtime_artifact_state())
-            .and_then(|summary| summary.lineage_artifact_id)
+            .and_then(|summary| summary.lineage_artifact_id.get())
     }
 
     pub fn lineage_chain_for_artifact(
@@ -444,12 +455,7 @@ impl<'a> GraphMaterializer<'a> {
         node: NodeId,
     ) -> Result<Option<HistoricalArtifactRecord>, SignalError> {
         let entry = self.graph.get_entry(node)?;
-        Ok(assemble_historical_artifact_record(
-            node,
-            entry.get_runtime_artifact_state(),
-            entry.retained_diagnostic_artifact(),
-            entry.get_causality(),
-        ))
+        Ok(entry.historical_artifact_record(node))
     }
 
     /// Cold artifact access that assembles a trace summary from runtime and
@@ -459,10 +465,7 @@ impl<'a> GraphMaterializer<'a> {
         node: NodeId,
     ) -> Result<Option<TraceSummary>, SignalError> {
         let entry = self.graph.get_entry(node)?;
-        Ok(assemble_trace_summary(
-            entry.get_runtime_artifact_state(),
-            entry.retained_diagnostic_artifact(),
-        ))
+        Ok(entry.trace_summary())
     }
 
     pub fn retained_explanation_artifact(&self, node: NodeId) -> Option<NodeExplanation> {

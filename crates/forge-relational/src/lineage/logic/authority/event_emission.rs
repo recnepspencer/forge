@@ -48,10 +48,7 @@ impl<'runtime> LineageAuthority<'runtime> {
         }
     }
 
-    pub(super) fn record_published_lineage_events(
-        &mut self,
-        artifact: &PublishedLineageArtifact,
-    ) {
+    pub(super) fn record_published_lineage_events(&mut self, artifact: &PublishedLineageArtifact) {
         let existing_event_ids = self
             .runtime
             .lineage

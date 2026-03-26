@@ -177,8 +177,8 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
             .into_iter()
             .min()
             .unwrap_or(published_version);
-        let oldest_pinned_version = oldest_visibility_retained_version
-            .min(oldest_branch_head_version);
+        let oldest_pinned_version =
+            oldest_visibility_retained_version.min(oldest_branch_head_version);
 
         let mut entity_slots = std::collections::BTreeMap::new();
         let mut relation_slots = std::collections::BTreeMap::new();

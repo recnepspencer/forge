@@ -716,6 +716,7 @@ fn retained_only_branch_churn_does_not_force_merge_replanning() {
             keyed_family: None,
             keyed_key: None,
             reuse_certification: None,
+            reuse_boundary_context: None,
         }));
         graph.record_branch_mutation_retained_artifact(source_only);
     }
@@ -768,6 +769,7 @@ fn merge_branch_equivalent_runtime_state_ignores_retained_artifact_richness() {
             keyed_family: None,
             keyed_key: None,
             reuse_certification: None,
+            reuse_boundary_context: None,
         }));
     }
 
@@ -797,6 +799,7 @@ fn merge_branch_equivalent_runtime_state_ignores_retained_artifact_richness() {
             keyed_family: Some("family".to_string()),
             keyed_key: Some("key".to_string()),
             reuse_certification: None,
+            reuse_boundary_context: None,
         }));
         graph.record_branch_mutation_retained_artifact(shared);
     }

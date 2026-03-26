@@ -14,7 +14,8 @@ fn relation_integrity_cardinality_runtime() -> RelationalRuntime {
                 target_min: None,
                 pair_max: None,
                 pair_min: None,
-                pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                pair_min_semantics:
+                    crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
                 minimum_enforcement:
                     crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
             }],
@@ -79,7 +80,8 @@ fn relation_integrity_multi_contract_runtime() -> RelationalRuntime {
                 target_min: None,
                 pair_max: None,
                 pair_min: None,
-                pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                pair_min_semantics:
+                    crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
                 minimum_enforcement:
                     crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
             }],
@@ -120,7 +122,8 @@ fn relation_integrity_minimum_certification_runtime() -> RelationalRuntime {
                 target_min: None,
                 pair_max: None,
                 pair_min: Some(2),
-                pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                pair_min_semantics:
+                    crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
                 minimum_enforcement:
                     crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
             }],
@@ -163,17 +166,15 @@ fn schema_transition_for_subscriber_impact(
                 default_expression: Some("null".into()),
             },
         )
-        .with_boundary_visibility_proof(
-            match subscriber_impact {
-                crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged => {
-                    crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable
-                }
-                crate::schema::data::SchemaSubscriberImpact::ContractUpgradeRequired => {
-                    crate::schema::data::SubscriberBoundaryVisibility::VisibleRequiresContractUptake
-                }
-                _ => crate::schema::data::SubscriberBoundaryVisibility::NotVisible,
-            },
-        )],
+        .with_boundary_visibility_proof(match subscriber_impact {
+            crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged => {
+                crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable
+            }
+            crate::schema::data::SchemaSubscriberImpact::ContractUpgradeRequired => {
+                crate::schema::data::SubscriberBoundaryVisibility::VisibleRequiresContractUptake
+            }
+            _ => crate::schema::data::SubscriberBoundaryVisibility::NotVisible,
+        })],
     }
 }
 
@@ -528,18 +529,18 @@ fn complexity_budget_relation_integrity_uniqueness_uses_adjacency_local_candidat
 
     runtime.performance_access().reset_counters();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
-    txn.push_batch(
-        WorkerIntentBatch::new("duplicate-unique-relation").push(MutationIntent::Create(
-            CreateIntent::Relation(crate::transactions::data::RelationSpec {
+    txn.push_batch(WorkerIntentBatch::new("duplicate-unique-relation").push(
+        MutationIntent::Create(CreateIntent::Relation(
+            crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("duplicate".to_string()),
                 source: target,
                 target: source,
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"duplicate"}))),
-            }),
+            },
         )),
-    );
+    ));
     let error = txn.commit().unwrap_err();
     let counters = runtime.performance_access().counters();
 
@@ -569,7 +570,9 @@ fn complexity_budget_relation_integrity_symmetry_checks_only_touched_pairs() {
                 client_key: InternedString::Raw("missing-twin".to_string()),
                 source,
                 target,
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"missing-twin"}))),
+                payload: Some(RecordPayload::StructuredJson(
+                    json!({"label":"missing-twin"}),
+                )),
             }),
         )),
     );
@@ -621,18 +624,18 @@ fn complexity_budget_relation_integrity_reuses_touched_scope_across_multiple_con
 
     runtime.performance_access().reset_counters();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
-    txn.push_batch(
-        WorkerIntentBatch::new("duplicate-and-missing-twin").push(MutationIntent::Create(
-            CreateIntent::Relation(crate::transactions::data::RelationSpec {
+    txn.push_batch(WorkerIntentBatch::new("duplicate-and-missing-twin").push(
+        MutationIntent::Create(CreateIntent::Relation(
+            crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("duplicate".to_string()),
                 source: target,
                 target: source,
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"duplicate"}))),
-            }),
+            },
         )),
-    );
+    ));
     let _error = txn.commit().unwrap_err();
     let counters = runtime.performance_access().counters();
 
@@ -685,15 +688,13 @@ fn complexity_budget_schema_transition_classification_is_changed_atom_bounded() 
     .build_registry();
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            schema_transition_for_subscriber_impact(
-                SchemaVersionId(2),
-                crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
-            ),
-            Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        schema_transition_for_subscriber_impact(
+            SchemaVersionId(2),
+            crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
         ),
-    );
+        Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("b"));
     txn.commit().unwrap();
     let counters = runtime.performance_access().counters();
@@ -716,15 +717,13 @@ fn complexity_budget_subscriber_resume_continuity_is_boundary_local() {
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            schema_transition_for_subscriber_impact(
-                SchemaVersionId(2),
-                crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
-            ),
-            Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        schema_transition_for_subscriber_impact(
+            SchemaVersionId(2),
+            crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
         ),
-    );
+        Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("b"));
     txn.commit().unwrap();
 
@@ -746,14 +745,16 @@ fn complexity_budget_replay_verification_tracks_digest_and_deep_layers_separatel
     let created = create_entity_outcome(&mut runtime, "replayable");
 
     runtime.performance_access().reset_counters();
-    let normal = runtime.replay_authority().replay_commit(
-        crate::replay::data::RelationalReplayRequest {
-            commit_id: created.commit.commit_id,
-            branch_id: BranchId("main".to_string()),
-            execution_mode: crate::replay::data::ReplayExecutionMode::SerialDeterministic,
-            verification_mode: crate::replay::data::ReplayVerificationMode::NormalRecoveryVerification,
-        },
-    );
+    let normal =
+        runtime
+            .replay_authority()
+            .replay_commit(crate::replay::data::RelationalReplayRequest {
+                commit_id: created.commit.commit_id,
+                branch_id: BranchId("main".to_string()),
+                execution_mode: crate::replay::data::ReplayExecutionMode::SerialDeterministic,
+                verification_mode:
+                    crate::replay::data::ReplayVerificationMode::NormalRecoveryVerification,
+            });
     assert!(runtime.replay_access().compare_outcome(&normal));
     let normal_counters = runtime.performance_access().counters();
     assert!(normal_counters.replay_digest_parity_checks > 0);
@@ -766,14 +767,16 @@ fn complexity_budget_replay_verification_tracks_digest_and_deep_layers_separatel
         });
 
     runtime.performance_access().reset_counters();
-    let audited = runtime.replay_authority().replay_commit(
-        crate::replay::data::RelationalReplayRequest {
-            commit_id: created.commit.commit_id,
-            branch_id: BranchId("main".to_string()),
-            execution_mode: crate::replay::data::ReplayExecutionMode::SerialDeterministic,
-            verification_mode: crate::replay::data::ReplayVerificationMode::AuditRecoveryVerification,
-        },
-    );
+    let audited =
+        runtime
+            .replay_authority()
+            .replay_commit(crate::replay::data::RelationalReplayRequest {
+                commit_id: created.commit.commit_id,
+                branch_id: BranchId("main".to_string()),
+                execution_mode: crate::replay::data::ReplayExecutionMode::SerialDeterministic,
+                verification_mode:
+                    crate::replay::data::ReplayVerificationMode::AuditRecoveryVerification,
+            });
     assert_eq!(
         audited.failure,
         Some(crate::replay::data::ReplayFailureClass::ObservableMismatch)
@@ -797,15 +800,13 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
     .build_registry();
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            schema_transition_for_subscriber_impact(
-                SchemaVersionId(2),
-                crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
-            ),
-            Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        schema_transition_for_subscriber_impact(
+            SchemaVersionId(2),
+            crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
         ),
-    );
+        Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("after-boundary"));
     let transitioned = txn.commit().unwrap();
     let schema_counters = runtime.performance_access().counters();
@@ -813,7 +814,10 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
     assert_eq!(schema_counters.schema_transition_atoms_inspected, 1);
     assert_eq!(schema_counters.schema_changed_subtrees_inspected, 1);
     assert_eq!(schema_counters.schema_bridge_descriptors_built, 1);
-    assert_eq!(schema_counters.schema_transition_continue_visible_bridge_count, 1);
+    assert_eq!(
+        schema_counters.schema_transition_continue_visible_bridge_count,
+        1
+    );
     assert_eq!(schema_counters.replay_digest_parity_checks, 0);
     assert_eq!(schema_counters.replay_deep_artifact_parity_checks, 0);
 
@@ -835,12 +839,15 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
     assert_eq!(cdc_counters.replay_deep_artifact_parity_checks, 0);
 
     runtime.performance_access().reset_counters();
-    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
+    let plan = runtime.durability_access().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
     let plan_counters = runtime.performance_access().counters();
 
     assert!(plan_counters.replay_digest_parity_checks >= 1);
     assert_eq!(plan_counters.replay_deep_artifact_parity_checks, 0);
-    assert_eq!(plan.compatibility.verification_outcome,
+    assert_eq!(
+        plan.compatibility.verification_outcome,
         crate::durability::data::RecoveryVerificationOutcome::VerifiedAtLayer(
             crate::replay::data::ReplayVerificationLayer::DigestParity
         )
@@ -866,11 +873,8 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
 
     assert!(recovered_counters.replay_digest_parity_checks >= 1);
     assert_eq!(recovered_counters.replay_deep_artifact_parity_checks, 0);
-    assert!(
-        recovered
-            .replay_access()
-            .canonical_commit_envelope(transitioned.commit.commit_id)
-            .is_some()
-    );
+    assert!(recovered
+        .replay_access()
+        .canonical_commit_envelope(transitioned.commit.commit_id)
+        .is_some());
 }
-

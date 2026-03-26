@@ -1,14 +1,16 @@
 use crate::data::comparator::ComparatorPolicyResolver;
 use crate::data::dependency::{
     CommittedSnapshotUpdate, DependencyEdge, DependencyInputScan, DependencySnapshot,
-    ReplacementSnapshotUpdate, SnapshotDeltaRecord,
-    StableShapeSnapshotBasis, VersionOnlySnapshotUpdate, VersionVector,
+    ReplacementSnapshotUpdate, SnapshotDeltaRecord, StableShapeSnapshotBasis,
+    VersionOnlySnapshotUpdate, VersionVector,
 };
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::output::{MemoizedResultOrigin, NodeEvaluationResult};
-use crate::data::reuse::{ReuseBoundaryContext, ReuseCertificationRecord, ReuseOrigin};
+use crate::data::reuse::{
+    ReuseBoundaryAuthority, ReuseBoundaryContext, ReuseCertificationRecord, ReuseOrigin,
+};
 use crate::logic::evaluation::{
     DiagnosticEnvelope, EffectDependencyInputs, EffectRuntimeMetadata, EvaluationEffect,
     EvaluationVerdict, OperationalEffect, PreparedApplyResult, SuppressionReason,
@@ -25,7 +27,8 @@ pub(crate) fn apply_effect_with_policy_and_condition(
     execution_metadata: Option<&EvaluationExecutionMetadata>,
     verdict: EvaluationVerdict,
     recomputed: bool,
-    reuse_boundary_context: ReuseBoundaryContext,
+    reuse_boundary_authority: ReuseBoundaryAuthority,
+    reuse_boundary_detail: Option<ReuseBoundaryContext>,
     keyed_context: Option<PreparedKeyedContext>,
     causality: Option<crate::data::trace::CausalityMetadata>,
     reuse_certification: Option<ReuseCertificationRecord>,
@@ -39,7 +42,8 @@ pub(crate) fn apply_effect_with_policy_and_condition(
         execution_metadata,
         verdict,
         recomputed,
-        reuse_boundary_context,
+        reuse_boundary_authority,
+        reuse_boundary_detail,
         keyed_context,
         causality,
         reuse_certification,
@@ -98,7 +102,8 @@ pub(crate) fn build_evaluation_effect(
     execution_metadata: Option<&EvaluationExecutionMetadata>,
     verdict: EvaluationVerdict,
     recomputed: bool,
-    reuse_boundary_context: ReuseBoundaryContext,
+    reuse_boundary_authority: ReuseBoundaryAuthority,
+    reuse_boundary_detail: Option<ReuseBoundaryContext>,
     keyed_context: Option<PreparedKeyedContext>,
     causality: Option<crate::data::trace::CausalityMetadata>,
     reuse_certification: Option<ReuseCertificationRecord>,
@@ -121,7 +126,7 @@ pub(crate) fn build_evaluation_effect(
             output_change: result.output_change,
             reuse_basis,
             reuse_origin,
-            reuse_boundary_context,
+            reuse_boundary_authority,
             dependency_snapshot_update: dependency_inputs.dependency_snapshot_update,
             snapshot_delta: dependency_inputs.snapshot_delta,
             meaningful_input_changes: dependency_inputs.meaningful_input_changes,
@@ -138,6 +143,7 @@ pub(crate) fn build_evaluation_effect(
             keyed_context,
             causality,
             reuse_certification,
+            reuse_boundary_detail,
         },
     }
 }
@@ -232,7 +238,8 @@ pub(crate) fn build_effect_dependency_inputs_for_dependencies(
     dependencies: &[DependencyEdge],
 ) -> Result<EffectDependencyInputs, SignalError> {
     let shape_handle_lookup_start = std::time::Instant::now();
-    let previous_shape_handle = graph.dependency_snapshot_shape_handle(context.dependency_snapshot_id);
+    let previous_shape_handle =
+        graph.dependency_snapshot_shape_handle(context.dependency_snapshot_id);
     let shape_handle_lookup_nanos = shape_handle_lookup_start.elapsed().as_nanos();
     let previous_snapshot_fetch_start = std::time::Instant::now();
     let previous_snapshot = graph.get_dep_snapshot(node)?;
@@ -279,8 +286,8 @@ pub(crate) fn build_effect_dependency_inputs_for_dependencies(
                 stable_shape_versions.len(),
                 stable_shape_versions,
             );
-            let basis = StableShapeSnapshotBasis::prove(&scan, previous_shape_handle)
-                .ok_or_else(|| {
+            let basis =
+                StableShapeSnapshotBasis::prove(&scan, previous_shape_handle).ok_or_else(|| {
                     SignalError::internal("stable-shape dependency scan failed to produce a proof")
                 })?;
             let versions = VersionVector::from_scan(&basis, &scan);
@@ -354,9 +361,11 @@ pub(crate) fn build_effect_dependency_inputs_for_dependencies(
                 crate::data::dependency::SharedDependencySnapshot::new(snapshot.clone());
             let snapshot_delta =
                 SnapshotDeltaRecord::between(node, previous_snapshot, &replacement_snapshot);
-            let dependency_snapshot_update = CommittedSnapshotUpdate::Replace(
-                ReplacementSnapshotUpdate::from_snapshot(snapshot, graph.dependency_snapshot_shapes_mut()),
-            );
+            let dependency_snapshot_update =
+                CommittedSnapshotUpdate::Replace(ReplacementSnapshotUpdate::from_snapshot(
+                    snapshot,
+                    graph.dependency_snapshot_shapes_mut(),
+                ));
             let replacement_build_nanos = replacement_build_start.elapsed().as_nanos();
             {
                 let execution = &mut graph.telemetry_mut().execution;
@@ -379,9 +388,15 @@ pub(crate) fn build_effect_dependency_inputs_for_dependencies(
         }
     };
     if stable_shape_proved {
-        graph.telemetry_mut().storage.stable_shape_snapshot_proof_count += 1;
+        graph
+            .telemetry_mut()
+            .storage
+            .stable_shape_snapshot_proof_count += 1;
     } else {
-        graph.telemetry_mut().storage.stable_shape_snapshot_proof_failure_count += 1;
+        graph
+            .telemetry_mut()
+            .storage
+            .stable_shape_snapshot_proof_failure_count += 1;
     }
     Ok(inputs)
 }

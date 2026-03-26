@@ -100,8 +100,8 @@ mod tests {
     use crate::payloads::data::RecordPayload;
     use crate::symbols::data::InternedString;
     use crate::transactions::data::{
-        BulkEntityCreateIntent, CreateIntent, DeleteEntityIntent, EntityMutationIntent,
-        EntitySpec, MergedCommitPlan, MutationIntent, ReplaceEntityIntent, TransactionId,
+        BulkEntityCreateIntent, CreateIntent, DeleteEntityIntent, EntityMutationIntent, EntitySpec,
+        MergedCommitPlan, MutationIntent, ReplaceEntityIntent, TransactionId,
     };
 
     #[test]

@@ -7,7 +7,7 @@ use crate::authority::commit::phases::publication::{
 };
 use crate::authority::commit::phases::schema_continuity::SchemaContinuityPlan;
 use crate::diagnostics::data::{
-    DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, DeterminismExpectation,
+    DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
     RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
 };
 use crate::history::data::{BranchId, CommitReference};
@@ -15,10 +15,10 @@ use crate::lineage::data::{
     CorrespondenceCandidateId, CorrespondencePromotionExecutionFailureClass,
     LineageFinalizationArtifact,
 };
-use crate::lineage::logic::authority::LineageAuthority;
 use crate::lineage::logic::authority::phase_types::{
     ExecutionAuthorizedPromotionPlan, LoweredPromotionPlan,
 };
+use crate::lineage::logic::authority::LineageAuthority;
 use crate::publication::data::diff::RelationalPatchRecord;
 use crate::publication::patch::data::{
     PatchCompatibilityClass, PatchOrdering, PatchPublicationMode, PatchStreamPosition,
@@ -30,26 +30,20 @@ impl<'runtime> LineageAuthority<'runtime> {
     pub(super) fn authorize_promotion_execution(
         &self,
         plan: LoweredPromotionPlan,
-    ) -> Result<ExecutionAuthorizedPromotionPlan, CorrespondencePromotionExecutionFailureClass> {
+    ) -> Result<ExecutionAuthorizedPromotionPlan, CorrespondencePromotionExecutionFailureClass>
+    {
         let anchor_commit = plan.commit();
         let authoritative_anchor = self
             .runtime
             .history_access()
             .branch_head(&anchor_commit.branch_id)
             .cloned();
-        if authoritative_anchor
-            .as_ref()
-            .map(|head| head.commit_id)
-            != Some(anchor_commit.commit_id)
+        if authoritative_anchor.as_ref().map(|head| head.commit_id) != Some(anchor_commit.commit_id)
         {
-            return Err(
-                CorrespondencePromotionExecutionFailureClass::AnchorDriftedFromBranchHead,
-            );
+            return Err(CorrespondencePromotionExecutionFailureClass::AnchorDriftedFromBranchHead);
         }
         let Some(authoritative_anchor) = authoritative_anchor else {
-            return Err(
-                CorrespondencePromotionExecutionFailureClass::AnchorDriftedFromBranchHead,
-            );
+            return Err(CorrespondencePromotionExecutionFailureClass::AnchorDriftedFromBranchHead);
         };
         Ok(ExecutionAuthorizedPromotionPlan {
             lowered: plan,
@@ -71,8 +65,11 @@ impl<'runtime> LineageAuthority<'runtime> {
             branch_id: authoritative_anchor.branch_id.clone(),
             parents: vec![authoritative_anchor.commit_id],
         };
-        let diagnostics_summary =
-            promotion_diagnostics_summary(&promotion_commit.branch_id, promotion_commit.commit_id, candidate_id);
+        let diagnostics_summary = promotion_diagnostics_summary(
+            &promotion_commit.branch_id,
+            promotion_commit.commit_id,
+            candidate_id,
+        );
         let envelope = canonical_commit_envelope(
             self.runtime,
             &promotion_commit,
@@ -97,9 +94,7 @@ impl<'runtime> LineageAuthority<'runtime> {
                     .current_write_version(),
             ),
         )
-        .map_err(|_| {
-            CorrespondencePromotionExecutionFailureClass::AuthorityPublicationFailed
-        })?;
+        .map_err(|_| CorrespondencePromotionExecutionFailureClass::AuthorityPublicationFailed)?;
 
         append_durable_commit(
             self.runtime,
@@ -107,19 +102,19 @@ impl<'runtime> LineageAuthority<'runtime> {
             promotion_commit.commit_id,
             &promotion_commit.branch_id,
         )
-        .map_err(|_| {
-            CorrespondencePromotionExecutionFailureClass::AuthorityPublicationFailed
-        })?;
+        .map_err(|_| CorrespondencePromotionExecutionFailureClass::AuthorityPublicationFailed)?;
 
         let published_lineage = envelope.published_lineage().clone();
         let patch_position = envelope.patch.position;
-        self.runtime.history_authority().publish_metadata_only_commit(
-            promotion_commit.commit_id,
-            promotion_commit.clone(),
-            promotion_commit.branch_id.clone(),
-            patch_position,
-            Arc::new(envelope),
-        );
+        self.runtime
+            .history_authority()
+            .publish_metadata_only_commit(
+                promotion_commit.commit_id,
+                promotion_commit.clone(),
+                promotion_commit.branch_id.clone(),
+                patch_position,
+                Arc::new(envelope),
+            );
         self.record_published_lineage_events(&published_lineage);
         self.runtime
             .publication_authority()

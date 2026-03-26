@@ -89,7 +89,7 @@ pub(super) fn case_read_summary(
 fn replay_summary(replay: &RelationalReplayOutcome) -> Value {
     json!({
         "commit_id": replay.commit.as_ref().map(|commit| commit.commit_id.0),
-        "parent_chain_len": replay.reconstructed_parent_chain.len(),
+        "commit_closure_len": replay.reconstructed_commit_closure.len(),
         "compared_surfaces": replay.compared_surfaces.iter().map(|surface| format!("{surface:?}")).collect::<Vec<_>>(),
         "mismatch_count": replay.mismatches.len(),
         "failure": replay.failure.as_ref().map(|failure| format!("{failure:?}")),
@@ -127,7 +127,9 @@ fn branch_summary(session: &CertifiedRelationalFintechSession) -> Value {
 }
 
 fn diagnostics_summary(session: &CertifiedRelationalFintechSession) -> Value {
-    let recovery = session.world.runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
+    let recovery = session.world.runtime.durability_access().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
     json!({
         "latest_patch_present": session.world.runtime.publication_access().latest_patch().is_some(),
         "latest_replay_present": session.world.runtime.publication_access().latest_replay().is_some(),
@@ -298,4 +300,3 @@ pub(super) fn capture_artifacts(
     }
     artifacts
 }
-

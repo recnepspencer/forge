@@ -1145,7 +1145,11 @@ impl PendingSnapshotBatch {
     }
 
     pub fn is_stable_shape_only(&self) -> bool {
-        !self.entries.is_empty() && self.entries.iter().all(PendingSnapshotCommit::is_stable_shape)
+        !self.entries.is_empty()
+            && self
+                .entries
+                .iter()
+                .all(PendingSnapshotCommit::is_stable_shape)
     }
 }
 

@@ -25,11 +25,15 @@ impl ValidatedCorrespondenceCandidate {
         &self.candidate
     }
 
-    pub(in crate::lineage::logic::authority) fn branch_scoped_sources(&self) -> &[BranchScopedLineageRef] {
+    pub(in crate::lineage::logic::authority) fn branch_scoped_sources(
+        &self,
+    ) -> &[BranchScopedLineageRef] {
         &self.branch_scoped_sources
     }
 
-    pub(in crate::lineage::logic::authority) fn branch_scoped_targets(&self) -> &[BranchScopedLineageRef] {
+    pub(in crate::lineage::logic::authority) fn branch_scoped_targets(
+        &self,
+    ) -> &[BranchScopedLineageRef] {
         &self.branch_scoped_targets
     }
 }
@@ -51,11 +55,15 @@ impl PromotionEligibleCorrespondenceCandidate {
         &self.authority
     }
 
-    pub(in crate::lineage::logic::authority) fn branch_scoped_sources(&self) -> &[BranchScopedLineageRef] {
+    pub(in crate::lineage::logic::authority) fn branch_scoped_sources(
+        &self,
+    ) -> &[BranchScopedLineageRef] {
         &self.branch_scoped_sources
     }
 
-    pub(in crate::lineage::logic::authority) fn branch_scoped_targets(&self) -> &[BranchScopedLineageRef] {
+    pub(in crate::lineage::logic::authority) fn branch_scoped_targets(
+        &self,
+    ) -> &[BranchScopedLineageRef] {
         &self.branch_scoped_targets
     }
 }

@@ -123,11 +123,14 @@ impl<'runtime> InspectionAccess<'runtime> {
                 availability: InspectionAvailability::Direct,
             }),
             RecordRef::Relation(relation_id) => Some(HistoricalAspectObservation {
-                query_result: self.runtime.history_access().relation_aspect_history_with_trace(
-                    branch_id,
-                    relation_id,
-                    None::<&AspectFilter>,
-                ),
+                query_result: self
+                    .runtime
+                    .history_access()
+                    .relation_aspect_history_with_trace(
+                        branch_id,
+                        relation_id,
+                        None::<&AspectFilter>,
+                    ),
                 origin: InspectionOrigin::CanonicalCommitStorage,
                 access_path: InspectionAccessPath::CommitIndexRead,
                 availability: InspectionAvailability::Direct,

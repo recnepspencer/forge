@@ -18,8 +18,9 @@ pub(super) fn apply(
             .get_partition(intent.entity_id.partition_id)
             .ok_or_else(|| {
                 CommitConflict::new(ConflictClass::MutationStateInconsistency {
-                    detail: "entity update requires an existing partition after stale-target validation"
-                        .to_string(),
+                    detail:
+                        "entity update requires an existing partition after stale-target validation"
+                            .to_string(),
                     fields: serde_json::json!({
                         "record_class": "entity",
                         "entity_id": intent.entity_id,
@@ -28,50 +29,42 @@ pub(super) fn apply(
                     }),
                 })
             })?;
-        let slot_view = partition
-            .entity_arena
-            .get_slot(slot)
-            .ok_or_else(|| {
-                CommitConflict::new(ConflictClass::MutationStateInconsistency {
-                    detail: "entity update requires an existing slot after stale-target validation"
-                        .to_string(),
-                    fields: serde_json::json!({
-                        "record_class": "entity",
-                        "entity_id": intent.entity_id,
-                        "phase": "update_entity",
-                        "missing": "slot",
-                    }),
-                })
-            })?;
-        let kind_id = slot_view
-            .kind_id()
-            .ok_or_else(|| {
-                CommitConflict::new(ConflictClass::MutationStateInconsistency {
-                    detail: "entity update requires a retained kind id after stale-target validation"
-                        .to_string(),
-                    fields: serde_json::json!({
-                        "record_class": "entity",
-                        "entity_id": intent.entity_id,
-                        "phase": "update_entity",
-                        "missing": "kind_id",
-                    }),
-                })
-            })?;
-        let old_payload = slot_view
-            .payload()
-            .cloned()
-            .ok_or_else(|| {
-                CommitConflict::new(ConflictClass::MutationStateInconsistency {
-                    detail: "entity update requires a retained payload after stale-target validation"
-                        .to_string(),
-                    fields: serde_json::json!({
-                        "record_class": "entity",
-                        "entity_id": intent.entity_id,
-                        "phase": "update_entity",
-                        "missing": "payload",
-                    }),
-                })
-            })?;
+        let slot_view = partition.entity_arena.get_slot(slot).ok_or_else(|| {
+            CommitConflict::new(ConflictClass::MutationStateInconsistency {
+                detail: "entity update requires an existing slot after stale-target validation"
+                    .to_string(),
+                fields: serde_json::json!({
+                    "record_class": "entity",
+                    "entity_id": intent.entity_id,
+                    "phase": "update_entity",
+                    "missing": "slot",
+                }),
+            })
+        })?;
+        let kind_id = slot_view.kind_id().ok_or_else(|| {
+            CommitConflict::new(ConflictClass::MutationStateInconsistency {
+                detail: "entity update requires a retained kind id after stale-target validation"
+                    .to_string(),
+                fields: serde_json::json!({
+                    "record_class": "entity",
+                    "entity_id": intent.entity_id,
+                    "phase": "update_entity",
+                    "missing": "kind_id",
+                }),
+            })
+        })?;
+        let old_payload = slot_view.payload().cloned().ok_or_else(|| {
+            CommitConflict::new(ConflictClass::MutationStateInconsistency {
+                detail: "entity update requires a retained payload after stale-target validation"
+                    .to_string(),
+                fields: serde_json::json!({
+                    "record_class": "entity",
+                    "entity_id": intent.entity_id,
+                    "phase": "update_entity",
+                    "missing": "payload",
+                }),
+            })
+        })?;
         context
             .state
             .mark_entity_slot_touched(intent.entity_id.partition_id, slot);

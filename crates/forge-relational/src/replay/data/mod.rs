@@ -1,11 +1,11 @@
 mod replay_errors;
 
-use sha2::{Digest, Sha256};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::io::{self, Write};
 
 use crate::diagnostics::data::RelationalDiagnosticArtifact;
-use crate::history::data::{BranchId, CommitId, CommitReference};
+use crate::history::data::{BranchId, CommitId, CommitReference, HistoryDriftClass};
 use crate::indexes::data::DerivedIndexGeneration;
 use crate::lineage::data::{
     LineageArtifactCounters, LineageDecisionLogDigestBasis, LineageDecisionRecord,
@@ -168,9 +168,8 @@ impl CanonicalCommitEnvelope {
                 self.index_generations.push(generation.clone());
             }
         }
-        self.index_generations.sort_by_key(|generation| {
-            (generation.index_id.0, generation.generation_id.0)
-        });
+        self.index_generations
+            .sort_by_key(|generation| (generation.index_id.0, generation.generation_id.0));
         self.index_generation_ids = self
             .index_generations
             .iter()
@@ -367,6 +366,7 @@ pub enum ReplayMismatchClass {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReplayMismatch {
     pub class: ReplayMismatchClass,
+    pub history_drift_class: Option<HistoryDriftClass>,
     pub surface: ReplayObservableSurface,
     pub verification_layer: ReplayVerificationLayer,
     pub detail: String,
@@ -386,7 +386,11 @@ pub struct RelationalReplayRequest {
 pub struct RelationalReplayOutcome {
     pub requested: RelationalReplayRequest,
     pub commit: Option<CommitReference>,
-    pub reconstructed_parent_chain: Vec<CommitId>,
+    /// Replay-time commit closure required to reconstruct the requested commit,
+    /// ordered by ascending `CommitId`.
+    ///
+    /// This is not a linear parent chain on DAG-shaped history.
+    pub reconstructed_commit_closure: Vec<CommitId>,
     pub snapshot_version: Option<crate::identity::data::VersionId>,
     pub lineage_authority_basis: Option<ReplayLineageAuthorityBasis>,
     pub compared_surfaces: Vec<ReplayObservableSurface>,
@@ -409,15 +413,15 @@ impl RelationalReplayOutcome {
         failure: ReplayFailureClass,
     ) -> Self {
         let commit = envelope.map(|candidate| candidate.commit.clone());
-        let reconstructed_parent_chain = chain
+        let reconstructed_commit_closure = chain
             .map(|resolved| resolved.to_vec())
-            .or_else(|| envelope.map(|candidate| candidate.commit.parents.clone()))
+            .or_else(|| envelope.map(|candidate| candidate.commit.ordered_parents().clone_inner()))
             .unwrap_or_default();
         let snapshot_version = envelope.map(|candidate| candidate.commit.version_id);
         Self {
             requested,
             commit,
-            reconstructed_parent_chain,
+            reconstructed_commit_closure,
             snapshot_version,
             lineage_authority_basis: None,
             compared_surfaces: Vec::new(),
@@ -701,7 +705,12 @@ impl Write for DigestWriter<'_> {
 
 pub(crate) fn stable_digest<T: Serialize + ?Sized>(value: &T) -> [u8; 32] {
     let mut hasher = Sha256::new();
-    if let Err(error) = serde_json::to_writer(DigestWriter { hasher: &mut hasher }, value) {
+    if let Err(error) = serde_json::to_writer(
+        DigestWriter {
+            hasher: &mut hasher,
+        },
+        value,
+    ) {
         hasher.update(b"stable-digest-serialization-error:");
         hasher.update(std::any::type_name::<T>().as_bytes());
         hasher.update(b":");
@@ -712,7 +721,6 @@ pub(crate) fn stable_digest<T: Serialize + ?Sized>(value: &T) -> [u8; 32] {
     out.copy_from_slice(&digest);
     out
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReplaySchemaVersion(pub u32);

@@ -177,9 +177,10 @@ impl<'runtime> InvariantAccess<'runtime> {
                     groups: crate::validation::data::InvariantGroupSet::of(
                         crate::validation::data::InvariantGroup::RelationIntegrity,
                     )
-                    .union(crate::validation::data::InvariantGroupSet::of(
+                            .union(crate::validation::data::InvariantGroupSet::of(
                         crate::validation::data::InvariantGroup::PublicationCoherence,
                     )),
+                    witness: preparation_violation.witness_key(),
                     cost: crate::validation::data::InvariantCostClass::Touched,
                     custom_provenance: None,
                     verdict: crate::validation::data::InvariantVerdict::Violation(
@@ -236,8 +237,8 @@ impl<'runtime> InvariantAccess<'runtime> {
 #[cfg(test)]
 mod tests {
     use super::InvariantAccess;
-    use crate::capabilities::SchemaSource;
     use crate::authority::commit::preparation::planning::strategy::PreparationStrategySelection;
+    use crate::capabilities::SchemaSource;
     use crate::config::data::{
         CascadeDeletePolicy, CrossContextPolicy, RelationIntegrityScopeBudget,
     };
@@ -251,12 +252,12 @@ mod tests {
         RelationalSchemaRegistry, SchemaId, SchemaVersionId,
     };
     use crate::identity::data::KindId;
+    use crate::payloads::data::RecordPayload;
     use crate::schema::data::{
         CardinalityContractDeclaration, EndpointKindContractDeclaration,
         RelationIntegrityDeclarations, RelationPayloadClass, SymmetryContractDeclaration,
         SymmetryMode,
     };
-    use crate::payloads::data::RecordPayload;
     use crate::symbols::data::InternedString;
     use crate::transactions::data::{
         BulkRelationCreateIntent, CreateIntent, DeleteRelationIntent, EntitySpec, MergedCommitPlan,
@@ -416,14 +417,16 @@ mod tests {
     ) -> crate::identity::data::EntityId {
         let mut txn =
             runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
-        txn.push_batch(crate::facade::transactions::WorkerIntentBatch::new(name).push(
-            MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-                partition_id: PartitionId::main(),
-                kind_id: KindId(1),
-                client_key: InternedString::Raw(name.to_string()),
-                payload: RecordPayload::StructuredJson(json!({"name": name})),
-            })),
-        ));
+        txn.push_batch(
+            crate::facade::transactions::WorkerIntentBatch::new(name).push(MutationIntent::Create(
+                CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: InternedString::Raw(name.to_string()),
+                    payload: RecordPayload::StructuredJson(json!({"name": name})),
+                }),
+            )),
+        );
         let outcome = txn.commit().unwrap();
         match outcome.changed_records[0] {
             crate::facade::transactions::RecordRef::Entity(entity_id) => entity_id,
@@ -510,15 +513,18 @@ mod tests {
     fn commit_boundary_metadata_exposes_proof_boundary_summary_for_packet_backed_execution() {
         let mut runtime = relation_integrity_runtime();
         let source = {
-            let mut txn = runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
-            txn.push_batch(crate::facade::transactions::WorkerIntentBatch::new("source").push(
-                MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-                    partition_id: PartitionId::main(),
-                    kind_id: KindId(1),
-                    client_key: InternedString::Raw("source".to_string()),
-                    payload: RecordPayload::StructuredJson(json!({"name":"source"})),
-                })),
-            ));
+            let mut txn = runtime
+                .begin_transaction(crate::facade::transactions::TransactionOptions::default());
+            txn.push_batch(
+                crate::facade::transactions::WorkerIntentBatch::new("source").push(
+                    MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                        partition_id: PartitionId::main(),
+                        kind_id: KindId(1),
+                        client_key: InternedString::Raw("source".to_string()),
+                        payload: RecordPayload::StructuredJson(json!({"name":"source"})),
+                    })),
+                ),
+            );
             let outcome = txn.commit().unwrap();
             match outcome.changed_records[0] {
                 crate::facade::transactions::RecordRef::Entity(entity_id) => entity_id,
@@ -526,15 +532,18 @@ mod tests {
             }
         };
         let target = {
-            let mut txn = runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
-            txn.push_batch(crate::facade::transactions::WorkerIntentBatch::new("target").push(
-                MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-                    partition_id: PartitionId::main(),
-                    kind_id: KindId(1),
-                    client_key: InternedString::Raw("target".to_string()),
-                    payload: RecordPayload::StructuredJson(json!({"name":"target"})),
-                })),
-            ));
+            let mut txn = runtime
+                .begin_transaction(crate::facade::transactions::TransactionOptions::default());
+            txn.push_batch(
+                crate::facade::transactions::WorkerIntentBatch::new("target").push(
+                    MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                        partition_id: PartitionId::main(),
+                        kind_id: KindId(1),
+                        client_key: InternedString::Raw("target".to_string()),
+                        payload: RecordPayload::StructuredJson(json!({"name":"target"})),
+                    })),
+                ),
+            );
             let outcome = txn.commit().unwrap();
             match outcome.changed_records[0] {
                 crate::facade::transactions::RecordRef::Entity(entity_id) => entity_id,
@@ -561,7 +570,10 @@ mod tests {
             .proof_boundary()
             .expect("proof boundary summary");
 
-        assert_eq!(summary.scope_class(), InvariantPlanScopeClass::PartitionScope);
+        assert_eq!(
+            summary.scope_class(),
+            InvariantPlanScopeClass::PartitionScope
+        );
         assert!(summary.widened_causes().is_empty());
         assert_eq!(summary.packet_count(), 1);
         assert_eq!(summary.touched_partition_count(), 1);
@@ -571,16 +583,18 @@ mod tests {
     fn commit_boundary_symmetry_failure_fields_localize_missing_twin_endpoints() {
         let mut runtime = relation_symmetry_runtime(SymmetryMode::PairedTwinRequired);
         let source = {
-            let mut txn =
-                runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
-            txn.push_batch(crate::facade::transactions::WorkerIntentBatch::new("source").push(
-                MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-                    partition_id: PartitionId::main(),
-                    kind_id: KindId(1),
-                    client_key: InternedString::Raw("source".to_string()),
-                    payload: RecordPayload::StructuredJson(json!({"name":"source"})),
-                })),
-            ));
+            let mut txn = runtime
+                .begin_transaction(crate::facade::transactions::TransactionOptions::default());
+            txn.push_batch(
+                crate::facade::transactions::WorkerIntentBatch::new("source").push(
+                    MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                        partition_id: PartitionId::main(),
+                        kind_id: KindId(1),
+                        client_key: InternedString::Raw("source".to_string()),
+                        payload: RecordPayload::StructuredJson(json!({"name":"source"})),
+                    })),
+                ),
+            );
             let outcome = txn.commit().unwrap();
             match outcome.changed_records[0] {
                 crate::facade::transactions::RecordRef::Entity(entity_id) => entity_id,
@@ -588,16 +602,18 @@ mod tests {
             }
         };
         let target = {
-            let mut txn =
-                runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
-            txn.push_batch(crate::facade::transactions::WorkerIntentBatch::new("target").push(
-                MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-                    partition_id: PartitionId::main(),
-                    kind_id: KindId(1),
-                    client_key: InternedString::Raw("target".to_string()),
-                    payload: RecordPayload::StructuredJson(json!({"name":"target"})),
-                })),
-            ));
+            let mut txn = runtime
+                .begin_transaction(crate::facade::transactions::TransactionOptions::default());
+            txn.push_batch(
+                crate::facade::transactions::WorkerIntentBatch::new("target").push(
+                    MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                        partition_id: PartitionId::main(),
+                        kind_id: KindId(1),
+                        client_key: InternedString::Raw("target".to_string()),
+                        payload: RecordPayload::StructuredJson(json!({"name":"target"})),
+                    })),
+                ),
+            );
             let outcome = txn.commit().unwrap();
             match outcome.changed_records[0] {
                 crate::facade::transactions::RecordRef::Entity(entity_id) => entity_id,
@@ -613,7 +629,9 @@ mod tests {
                     client_key: InternedString::Raw("missing-twin".to_string()),
                     source,
                     target,
-                    payload: Some(RecordPayload::StructuredJson(json!({"label":"missing-twin"}))),
+                    payload: Some(RecordPayload::StructuredJson(
+                        json!({"label":"missing-twin"}),
+                    )),
                 },
             ))],
         };
@@ -625,7 +643,10 @@ mod tests {
             .expect("blocking symmetry failure");
         let fields = failure.fields();
 
-        assert_eq!(failure.violation().code, crate::diagnostics::data::DiagnosticCode::RelationSymmetryViolation);
+        assert_eq!(
+            failure.violation().code,
+            crate::diagnostics::data::DiagnosticCode::RelationSymmetryViolation
+        );
         assert_eq!(fields["contract_id"], json!("paired_twin"));
         assert_eq!(fields["relation_kind_id"], json!(2));
         assert_eq!(fields["source"], json!(source));
@@ -637,16 +658,18 @@ mod tests {
     fn commit_boundary_cardinality_failure_fields_localize_nonmanifold_like_overflow() {
         let mut runtime = relation_cardinality_runtime();
         let source = {
-            let mut txn =
-                runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
-            txn.push_batch(crate::facade::transactions::WorkerIntentBatch::new("source").push(
-                MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-                    partition_id: PartitionId::main(),
-                    kind_id: KindId(1),
-                    client_key: InternedString::Raw("source".to_string()),
-                    payload: RecordPayload::StructuredJson(json!({"name":"source"})),
-                })),
-            ));
+            let mut txn = runtime
+                .begin_transaction(crate::facade::transactions::TransactionOptions::default());
+            txn.push_batch(
+                crate::facade::transactions::WorkerIntentBatch::new("source").push(
+                    MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                        partition_id: PartitionId::main(),
+                        kind_id: KindId(1),
+                        client_key: InternedString::Raw("source".to_string()),
+                        payload: RecordPayload::StructuredJson(json!({"name":"source"})),
+                    })),
+                ),
+            );
             let outcome = txn.commit().unwrap();
             match outcome.changed_records[0] {
                 crate::facade::transactions::RecordRef::Entity(entity_id) => entity_id,
@@ -654,16 +677,18 @@ mod tests {
             }
         };
         let target_a = {
-            let mut txn =
-                runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
-            txn.push_batch(crate::facade::transactions::WorkerIntentBatch::new("target-a").push(
-                MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-                    partition_id: PartitionId::main(),
-                    kind_id: KindId(1),
-                    client_key: InternedString::Raw("target-a".to_string()),
-                    payload: RecordPayload::StructuredJson(json!({"name":"target-a"})),
-                })),
-            ));
+            let mut txn = runtime
+                .begin_transaction(crate::facade::transactions::TransactionOptions::default());
+            txn.push_batch(
+                crate::facade::transactions::WorkerIntentBatch::new("target-a").push(
+                    MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                        partition_id: PartitionId::main(),
+                        kind_id: KindId(1),
+                        client_key: InternedString::Raw("target-a".to_string()),
+                        payload: RecordPayload::StructuredJson(json!({"name":"target-a"})),
+                    })),
+                ),
+            );
             let outcome = txn.commit().unwrap();
             match outcome.changed_records[0] {
                 crate::facade::transactions::RecordRef::Entity(entity_id) => entity_id,
@@ -671,16 +696,18 @@ mod tests {
             }
         };
         let target_b = {
-            let mut txn =
-                runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
-            txn.push_batch(crate::facade::transactions::WorkerIntentBatch::new("target-b").push(
-                MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-                    partition_id: PartitionId::main(),
-                    kind_id: KindId(1),
-                    client_key: InternedString::Raw("target-b".to_string()),
-                    payload: RecordPayload::StructuredJson(json!({"name":"target-b"})),
-                })),
-            ));
+            let mut txn = runtime
+                .begin_transaction(crate::facade::transactions::TransactionOptions::default());
+            txn.push_batch(
+                crate::facade::transactions::WorkerIntentBatch::new("target-b").push(
+                    MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                        partition_id: PartitionId::main(),
+                        kind_id: KindId(1),
+                        client_key: InternedString::Raw("target-b".to_string()),
+                        payload: RecordPayload::StructuredJson(json!({"name":"target-b"})),
+                    })),
+                ),
+            );
             let outcome = txn.commit().unwrap();
             match outcome.changed_records[0] {
                 crate::facade::transactions::RecordRef::Entity(entity_id) => entity_id,
@@ -688,8 +715,8 @@ mod tests {
             }
         };
         let _accepted = {
-            let mut txn =
-                runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
+            let mut txn = runtime
+                .begin_transaction(crate::facade::transactions::TransactionOptions::default());
             txn.push_batch(
                 crate::facade::transactions::WorkerIntentBatch::new("accepted").push(
                     MutationIntent::Create(CreateIntent::Relation(
@@ -699,7 +726,9 @@ mod tests {
                             client_key: InternedString::Raw("accepted".to_string()),
                             source,
                             target: target_a,
-                            payload: Some(RecordPayload::StructuredJson(json!({"label":"accepted"}))),
+                            payload: Some(RecordPayload::StructuredJson(
+                                json!({"label":"accepted"}),
+                            )),
                         },
                     )),
                 ),
@@ -727,7 +756,10 @@ mod tests {
             .expect("blocking cardinality failure");
         let fields = failure.fields();
 
-        assert_eq!(failure.violation().code, crate::diagnostics::data::DiagnosticCode::RelationCardinalityViolation);
+        assert_eq!(
+            failure.violation().code,
+            crate::diagnostics::data::DiagnosticCode::RelationCardinalityViolation
+        );
         assert_eq!(fields["contract_id"], json!("source_max_one"));
         assert_eq!(fields["relation_kind_id"], json!(2));
         assert_eq!(fields["entity_id"], json!(source));
@@ -738,13 +770,14 @@ mod tests {
 
     #[test]
     fn commit_boundary_reports_relation_integrity_scope_budget_violation_as_blocking_failure() {
-        let mut runtime = relation_integrity_runtime_with_scope_budget(RelationIntegrityScopeBudget {
-            max_relation_kinds: 8,
-            max_touched_entities: 16,
-            max_deleted_entities: 8,
-            max_scanned_relations: 16,
-            max_planned_edges: 1,
-        });
+        let mut runtime =
+            relation_integrity_runtime_with_scope_budget(RelationIntegrityScopeBudget {
+                max_relation_kinds: 8,
+                max_touched_entities: 16,
+                max_deleted_entities: 8,
+                max_scanned_relations: 16,
+                max_planned_edges: 1,
+            });
         let source_a = create_entity(&mut runtime, "source-a");
         let target_a = create_entity(&mut runtime, "target-a");
         let source_b = create_entity(&mut runtime, "source-b");
@@ -779,10 +812,7 @@ mod tests {
             failure.code(),
             crate::diagnostics::data::DiagnosticCode::PreparationFailure
         );
-        assert_eq!(
-            fields["limit_name"],
-            json!("max_planned_edges")
-        );
+        assert_eq!(fields["limit_name"], json!("max_planned_edges"));
         assert_eq!(fields["limit"], json!(1));
         assert_eq!(fields["observed"], json!(2));
         assert_eq!(fields["planned_edge_count"], json!(2));

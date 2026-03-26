@@ -1,7 +1,7 @@
 use crate::inspection::data::{
     InspectionDegradation, InspectionOrigin, InspectionRecordClass, InspectionScope,
-    StructuralIdentityComparison, StructuralIdentityComparisonVerdict,
-    StructuralIdentityEvidence, StructuralIdentityQueryRequest,
+    StructuralIdentityComparison, StructuralIdentityComparisonVerdict, StructuralIdentityEvidence,
+    StructuralIdentityQueryRequest,
 };
 use crate::transactions::data::RecordRef;
 
@@ -20,11 +20,14 @@ impl<'runtime> InspectionAccess<'runtime> {
         let version_id = self.scope_version_id(&scope);
         match target {
             RecordRef::Entity(entity_id) => {
-                let read = self.runtime.visibility_reads().entity_record_for_id_at_version(
-                    &self.runtime.storage_access().current_state(),
-                    entity_id,
-                    version_id,
-                )?;
+                let read = self
+                    .runtime
+                    .visibility_reads()
+                    .entity_record_for_id_at_version(
+                        &self.runtime.storage_access().current_state(),
+                        entity_id,
+                        version_id,
+                    )?;
                 let extra = self
                     .runtime
                     .storage_access()
@@ -55,11 +58,14 @@ impl<'runtime> InspectionAccess<'runtime> {
                 })
             }
             RecordRef::Relation(relation_id) => {
-                let read = self.runtime.visibility_reads().relation_record_for_id_at_version(
-                    &self.runtime.storage_access().current_state(),
-                    relation_id,
-                    version_id,
-                )?;
+                let read = self
+                    .runtime
+                    .visibility_reads()
+                    .relation_record_for_id_at_version(
+                        &self.runtime.storage_access().current_state(),
+                        relation_id,
+                        version_id,
+                    )?;
                 Some(StructuralIdentityEvidence {
                     target,
                     record_class: InspectionRecordClass::Relation,
@@ -90,18 +96,22 @@ impl<'runtime> InspectionAccess<'runtime> {
         let left_evidence = self.structural_identity(scope.clone(), left);
         let right_evidence = self.structural_identity(scope, right);
         let verdict = match (&left_evidence, &right_evidence) {
-            (Some(left), Some(right)) => match (left.structural_fingerprint, right.structural_fingerprint) {
-                (Some(left), Some(right)) if left.family == right.family && left.value == right.value => {
-                    StructuralIdentityComparisonVerdict::EqualByFingerprint
+            (Some(left), Some(right)) => {
+                match (left.structural_fingerprint, right.structural_fingerprint) {
+                    (Some(left), Some(right))
+                        if left.family == right.family && left.value == right.value =>
+                    {
+                        StructuralIdentityComparisonVerdict::EqualByFingerprint
+                    }
+                    (Some(left), Some(right)) if left.family == right.family => {
+                        StructuralIdentityComparisonVerdict::NotEqualByFingerprint
+                    }
+                    (Some(_), Some(_)) => {
+                        StructuralIdentityComparisonVerdict::IncomparableFingerprintFamilyMismatch
+                    }
+                    _ => StructuralIdentityComparisonVerdict::IncomparableMissingFingerprint,
                 }
-                (Some(left), Some(right)) if left.family == right.family => {
-                    StructuralIdentityComparisonVerdict::NotEqualByFingerprint
-                }
-                (Some(_), Some(_)) => {
-                    StructuralIdentityComparisonVerdict::IncomparableFingerprintFamilyMismatch
-                }
-                _ => StructuralIdentityComparisonVerdict::IncomparableMissingFingerprint,
-            },
+            }
             _ => StructuralIdentityComparisonVerdict::IncomparableMissingFingerprint,
         };
         StructuralIdentityComparison {

@@ -1,6 +1,6 @@
 use crate::data::dependency::{
-    CommittedSnapshotUpdate, DependencySnapshot, DependencySnapshotShapeStore,
-    SnapshotDeltaRecord, SnapshotStorageStrategy,
+    CommittedSnapshotUpdate, DependencySnapshot, DependencySnapshotShapeStore, SnapshotDeltaRecord,
+    SnapshotStorageStrategy,
 };
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
@@ -71,9 +71,7 @@ impl SignalGraph {
             .get(entry.get_dep_snapshot_id()))
     }
 
-    pub(crate) fn dependency_snapshot_shapes_mut(
-        &mut self,
-    ) -> &mut DependencySnapshotShapeStore {
+    pub(crate) fn dependency_snapshot_shapes_mut(&mut self) -> &mut DependencySnapshotShapeStore {
         &mut self.topology.dependency_snapshot_shapes
     }
 
@@ -120,7 +118,9 @@ impl SignalGraph {
                 self.telemetry_mut()
                     .storage
                     .shared_snapshot_replacement_count += 1;
-                self.telemetry_mut().storage.structural_replace_batch_commit_count += 1;
+                self.telemetry_mut()
+                    .storage
+                    .structural_replace_batch_commit_count += 1;
             }
             SnapshotStorageStrategy::VersionOnlyDelta => {
                 self.telemetry_mut()
@@ -130,7 +130,8 @@ impl SignalGraph {
                 self.telemetry_mut().storage.snapshot_shape_reuse_count += 1;
             }
         }
-        let snapshot_id = self.insert_dependency_snapshot(update.apply_to(&previous).into_snapshot());
+        let snapshot_id =
+            self.insert_dependency_snapshot(update.apply_to(&previous).into_snapshot());
         self.get_entry_mut(id)?.set_dep_snapshot_id(snapshot_id);
         self.record_branch_mutation_snapshot(
             id,
@@ -147,11 +148,13 @@ impl SignalGraph {
     ) -> Result<SnapshotDeltaRecord, SignalError> {
         let previous = self.get_dep_snapshot(id)?.clone();
         let delta = match &update {
-            CommittedSnapshotUpdate::VersionOnly(version_only) => SnapshotDeltaRecord::for_version_update(
-                id,
-                &previous,
-                version_only.versions().as_slice(),
-            ),
+            CommittedSnapshotUpdate::VersionOnly(version_only) => {
+                SnapshotDeltaRecord::for_version_update(
+                    id,
+                    &previous,
+                    version_only.versions().as_slice(),
+                )
+            }
             CommittedSnapshotUpdate::Replace(replacement) => {
                 SnapshotDeltaRecord::between(id, &previous, replacement.snapshot())
             }
@@ -161,7 +164,9 @@ impl SignalGraph {
                 self.telemetry_mut()
                     .storage
                     .shared_snapshot_replacement_count += 1;
-                self.telemetry_mut().storage.structural_replace_batch_commit_count += 1;
+                self.telemetry_mut()
+                    .storage
+                    .structural_replace_batch_commit_count += 1;
             }
             SnapshotStorageStrategy::VersionOnlyDelta => {
                 self.telemetry_mut()
@@ -204,7 +209,9 @@ impl SignalGraph {
                 continue;
             }
             self.telemetry_mut().storage.patch_application_breadth += 1;
-            self.telemetry_mut().storage.version_only_snapshot_update_count += 1;
+            self.telemetry_mut()
+                .storage
+                .version_only_snapshot_update_count += 1;
             self.telemetry_mut().storage.snapshot_shape_reuse_count += 1;
             let previous = self.get_dep_snapshot(snapshot.node)?.clone();
             let next_snapshot = CommittedSnapshotUpdate::VersionOnly(snapshot.update.clone())
@@ -232,7 +239,9 @@ impl SignalGraph {
         }
         self.telemetry_mut().storage.snapshot_batch_size +=
             (commit.stable_shape().len() + commit.replacements().len()) as u64;
-        self.telemetry_mut().storage.structural_replace_batch_commit_count += 1;
+        self.telemetry_mut()
+            .storage
+            .structural_replace_batch_commit_count += 1;
 
         for snapshot in commit.stable_shape() {
             self.validate_handle(snapshot.node)?;
@@ -246,7 +255,9 @@ impl SignalGraph {
                 continue;
             }
             self.telemetry_mut().storage.patch_application_breadth += 1;
-            self.telemetry_mut().storage.version_only_snapshot_update_count += 1;
+            self.telemetry_mut()
+                .storage
+                .version_only_snapshot_update_count += 1;
             self.telemetry_mut().storage.snapshot_shape_reuse_count += 1;
             let previous = self.get_dep_snapshot(snapshot.node)?.clone();
             let next_snapshot = CommittedSnapshotUpdate::VersionOnly(snapshot.update.clone())
@@ -266,7 +277,9 @@ impl SignalGraph {
                 continue;
             }
             self.telemetry_mut().storage.patch_application_breadth += 1;
-            self.telemetry_mut().storage.shared_snapshot_replacement_count += 1;
+            self.telemetry_mut()
+                .storage
+                .shared_snapshot_replacement_count += 1;
             let next_snapshot = CommittedSnapshotUpdate::Replace(snapshot.update.clone())
                 .apply_to(self.get_dep_snapshot(snapshot.node)?)
                 .into_snapshot();

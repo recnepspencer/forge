@@ -754,7 +754,7 @@ The main replay types are:
 
 - requested replay request
 - optional resolved commit
-- reconstructed parent chain
+- reconstructed commit closure
 - optional snapshot version
 - compared surfaces
 - mismatch list

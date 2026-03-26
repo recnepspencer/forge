@@ -153,8 +153,7 @@ impl CorrespondenceResolution {
     pub fn promoted_commit_id(&self) -> Option<CommitId> {
         match self.outcome {
             CorrespondenceResolutionOutcome::Promoted {
-                promoted_commit_id,
-                ..
+                promoted_commit_id, ..
             } => Some(promoted_commit_id),
             CorrespondenceResolutionOutcome::Rejected { .. }
             | CorrespondenceResolutionOutcome::ExecutionFailed { .. } => None,
@@ -169,9 +168,7 @@ impl CorrespondenceResolution {
         }
     }
 
-    pub fn execution_failure_class(
-        &self,
-    ) -> Option<CorrespondencePromotionExecutionFailureClass> {
+    pub fn execution_failure_class(&self) -> Option<CorrespondencePromotionExecutionFailureClass> {
         match self.outcome {
             CorrespondenceResolutionOutcome::ExecutionFailed {
                 execution_failure_class,
@@ -191,7 +188,10 @@ impl CorrespondencePromotionOutcome {
         candidate_id: CorrespondenceCandidateId,
         rejection_class: CorrespondencePromotionRejectionClass,
     ) -> Self {
-        Self(CorrespondenceResolution::rejected(candidate_id, rejection_class))
+        Self(CorrespondenceResolution::rejected(
+            candidate_id,
+            rejection_class,
+        ))
     }
 
     pub fn as_resolution(&self) -> &CorrespondenceResolution {
@@ -218,9 +218,7 @@ impl CorrespondencePromotionOutcome {
         self.0.rejection_class()
     }
 
-    pub fn execution_failure_class(
-        &self,
-    ) -> Option<CorrespondencePromotionExecutionFailureClass> {
+    pub fn execution_failure_class(&self) -> Option<CorrespondencePromotionExecutionFailureClass> {
         self.0.execution_failure_class()
     }
 }

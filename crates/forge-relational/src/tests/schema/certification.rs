@@ -4,9 +4,9 @@ use sha2::{Digest, Sha256};
 use crate::facade::schema::{
     DescriptorCanonicalizationVersion, DescriptorSemanticsVersion, FreeFormSchemaDiffIntent,
     HistoricalInterpretationSensitivity, ProposedSchemaTransition, SchemaDiffAtom,
-    SchemaDiffDetail, SchemaElementKind, SchemaElementRef, SchemaId,
-    SchemaPublicationImpact, SchemaReconciliationClassification, SchemaReconciliationPolicy,
-    SchemaStratum, SchemaSubscriberImpact, SchemaVersionId,
+    SchemaDiffDetail, SchemaElementKind, SchemaElementRef, SchemaId, SchemaPublicationImpact,
+    SchemaReconciliationClassification, SchemaReconciliationPolicy, SchemaStratum,
+    SchemaSubscriberImpact, SchemaVersionId,
 };
 use crate::schema::logic::{
     classify_schema_transition, lower_schema_transition, validate_schema_transition,
@@ -36,7 +36,10 @@ fn schema_transition_for_subscriber_impact(
                 Some(KindId(1)),
                 "tag",
             ),
-            vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
+            vec![
+                SchemaStratum::StructuralShape,
+                SchemaStratum::PublicationContract,
+            ],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             subscriber_impact,
             HistoricalInterpretationSensitivity::NotSensitive,
@@ -46,17 +49,15 @@ fn schema_transition_for_subscriber_impact(
                 default_expression: Some("null".into()),
             },
         )
-        .with_boundary_visibility_proof(
-            match subscriber_impact {
-                SchemaSubscriberImpact::ConsumableSurfaceChanged => {
-                    crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable
-                }
-                SchemaSubscriberImpact::ContractUpgradeRequired => {
-                    crate::schema::data::SubscriberBoundaryVisibility::VisibleRequiresContractUptake
-                }
-                _ => crate::schema::data::SubscriberBoundaryVisibility::NotVisible,
-            },
-        )],
+        .with_boundary_visibility_proof(match subscriber_impact {
+            SchemaSubscriberImpact::ConsumableSurfaceChanged => {
+                crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable
+            }
+            SchemaSubscriberImpact::ContractUpgradeRequired => {
+                crate::schema::data::SubscriberBoundaryVisibility::VisibleRequiresContractUptake
+            }
+            _ => crate::schema::data::SubscriberBoundaryVisibility::NotVisible,
+        })],
     }
 }
 
@@ -73,15 +74,13 @@ fn schema_evolution_cdc_contract_test() {
     }
     .build_registry();
 
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            schema_transition_for_subscriber_impact(
-                SchemaVersionId(2),
-                SchemaSubscriberImpact::ConsumableSurfaceChanged,
-            ),
-            Some(SchemaReconciliationPolicy::PreserveInformation),
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        schema_transition_for_subscriber_impact(
+            SchemaVersionId(2),
+            SchemaSubscriberImpact::ConsumableSurfaceChanged,
         ),
-    );
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("boundary"));
     let committed = txn.commit().unwrap();
 
@@ -103,7 +102,11 @@ fn schema_evolution_cdc_contract_test() {
     ));
     let subscriber_contract_matrix = certification_digest(&live_batch.continuation_summary);
     let transition_decision_digest = certification_digest(&(
-        committed.envelope().schema_continuation_descriptor.as_ref().unwrap(),
+        committed
+            .envelope()
+            .schema_continuation_descriptor
+            .as_ref()
+            .unwrap(),
         committed
             .envelope()
             .schema_reconciliation_descriptor
@@ -209,7 +212,10 @@ fn schema_reconciliation_classification_test() {
                 Some(KindId(1)),
                 "obsolete_field",
             ),
-            vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
+            vec![
+                SchemaStratum::StructuralShape,
+                SchemaStratum::PublicationContract,
+            ],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             SchemaSubscriberImpact::RenegotiationRequired,
             HistoricalInterpretationSensitivity::SensitiveToPublicationMeaning,
@@ -245,7 +251,10 @@ fn schema_reconciliation_classification_test() {
                     Some(KindId(1)),
                     "timing_domain",
                 ),
-                vec![SchemaStratum::ValueDomain, SchemaStratum::PublicationContract],
+                vec![
+                    SchemaStratum::ValueDomain,
+                    SchemaStratum::PublicationContract,
+                ],
                 SchemaPublicationImpact::ObservableSurfaceChanged,
                 SchemaSubscriberImpact::RenegotiationRequired,
                 HistoricalInterpretationSensitivity::SensitiveToValueMeaning,
@@ -273,7 +282,10 @@ fn schema_reconciliation_classification_test() {
                     None,
                     "mass-properties",
                 ),
-                vec![SchemaStratum::BehavioralSemantics, SchemaStratum::PublicationContract],
+                vec![
+                    SchemaStratum::BehavioralSemantics,
+                    SchemaStratum::PublicationContract,
+                ],
                 SchemaPublicationImpact::ProjectionContractChanged,
                 SchemaSubscriberImpact::RenegotiationRequired,
                 HistoricalInterpretationSensitivity::SensitiveToPublicationMeaning,
@@ -301,10 +313,7 @@ fn schema_reconciliation_classification_test() {
         SchemaReconciliationPolicy::RejectLossyNarrowing,
     ]);
     let schema_conflict_localization_report = certification_digest(&[
-        additive_plan
-            .validated
-            .proposed
-            .diff_atoms[0]
+        additive_plan.validated.proposed.diff_atoms[0]
             .element
             .element_name
             .to_string(),
@@ -332,15 +341,19 @@ fn schema_reconciliation_classification_test() {
         .reconciliation_descriptor,
     ));
     let descriptor_version_digest = certification_digest(&(
-        additive_plan.continuation_descriptor.bridge.semantics_version,
-        narrowing_plan.continuation_descriptor.bridge.semantics_version,
+        additive_plan
+            .continuation_descriptor
+            .bridge
+            .semantics_version,
+        narrowing_plan
+            .continuation_descriptor
+            .bridge
+            .semantics_version,
     ));
 
-    assert!(
-        narrowing_error
-            .detail()
-            .contains("requires an explicit preservation policy")
-    );
+    assert!(narrowing_error
+        .detail()
+        .contains("requires an explicit preservation policy"));
     assert_eq!(
         additive_plan.reconciliation_descriptor.classification,
         SchemaReconciliationClassification::Additive

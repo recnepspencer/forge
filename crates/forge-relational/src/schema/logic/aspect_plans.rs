@@ -3,20 +3,18 @@ use std::collections::BTreeSet;
 use smallvec::SmallVec;
 
 use crate::schema::data::{
-    AllowedCycleClass, ConnectivityMinimumEnforcement, DirectedTraversalKind,
-    AspectBinding, AspectComparator, AspectPlanCatalog, AspectPlanRevision, AspectPrecision,
-    CardinalityContractDeclaration, DeclaredAspect, EndpointKindContractDeclaration,
-    EntityKindRegistration, KindAspectDeclarations, ContractId,
-    LoweredAspectBinding, LoweredExecutableAspectBindingKind, LoweredAspectPlan,
-    LoweredCardinalityMaximumContract, LoweredCardinalityMinimumContract,
-    LoweredEndpointDeletionIntegrityContract,
-    LoweredEndpointKindContract, LoweredPartitionIsolationContract,
-    LoweredRelationIntegrityPlan, LoweredSymmetryContract, LoweredUniquenessContract,
-    MinimumCardinalityEnforcement, PairMinimumSemantics, PartitionIsolationMode,
-    PayloadFieldConstraintDeclaration, PayloadSchemaDeclaration,
+    derive_relation_integrity_plan_revision, AllowedCycleClass, AspectBinding, AspectComparator,
+    AspectPlanCatalog, AspectPlanRevision, AspectPrecision, CardinalityContractDeclaration,
+    ConnectivityMinimumEnforcement, ContractId, DeclaredAspect, DirectedTraversalKind,
+    EndpointKindContractDeclaration, EntityKindRegistration, KindAspectDeclarations,
+    LoweredAspectBinding, LoweredAspectPlan, LoweredCardinalityMaximumContract,
+    LoweredCardinalityMinimumContract, LoweredEndpointDeletionIntegrityContract,
+    LoweredEndpointKindContract, LoweredExecutableAspectBindingKind,
+    LoweredPartitionIsolationContract, LoweredRelationIntegrityPlan, LoweredSymmetryContract,
+    LoweredUniquenessContract, MinimumCardinalityEnforcement, PairMinimumSemantics,
+    PartitionIsolationMode, PayloadFieldConstraintDeclaration, PayloadSchemaDeclaration,
     RelationIntegrityDeclarations, RelationIntegrityPlanCatalog, RelationKindRegistration,
     RelationPayloadClass, RelationalSchemaRegistry, SchemaRegistryError,
-    derive_relation_integrity_plan_revision,
 };
 use crate::symbols::data::InternedString;
 
@@ -310,8 +308,7 @@ fn canonicalize_relation_integrity(
         .sort_by(|left, right| left.contract_id.cmp(&right.contract_id));
     acyclicity_contracts.sort_by(|left, right| left.contract_id.cmp(&right.contract_id));
     partition_isolation_contracts.sort_by(|left, right| left.contract_id.cmp(&right.contract_id));
-    connectivity_minimum_contracts
-        .sort_by(|left, right| left.contract_id.cmp(&right.contract_id));
+    connectivity_minimum_contracts.sort_by(|left, right| left.contract_id.cmp(&right.contract_id));
     for declaration in &mut endpoint_kind_contracts {
         declaration.allowed_source_kinds.sort();
         declaration.allowed_source_kinds.dedup();
@@ -635,13 +632,15 @@ fn lower_relation_integrity_plan(
         acyclicity_contracts: declarations
             .acyclicity_contracts
             .iter()
-            .map(|declaration| crate::schema::data::LoweredAcyclicityContract {
-                contract_id: declaration.contract_id.clone(),
-                relation_kind_id: kind_id,
-                traversal_direction: declaration.traversal_direction,
-                allowed_cycle_class: declaration.allowed_cycle_class,
-                plan_revision: declarations.plan_revision,
-            })
+            .map(
+                |declaration| crate::schema::data::LoweredAcyclicityContract {
+                    contract_id: declaration.contract_id.clone(),
+                    relation_kind_id: kind_id,
+                    traversal_direction: declaration.traversal_direction,
+                    allowed_cycle_class: declaration.allowed_cycle_class,
+                    plan_revision: declarations.plan_revision,
+                },
+            )
             .collect(),
         partition_isolation_contracts: declarations
             .partition_isolation_contracts
@@ -656,15 +655,17 @@ fn lower_relation_integrity_plan(
         connectivity_minimum_contracts: declarations
             .connectivity_minimum_contracts
             .iter()
-            .map(|declaration| crate::schema::data::LoweredConnectivityMinimumContract {
-                contract_id: declaration.contract_id.clone(),
-                source_kind_ids: declaration.source_kind_ids.clone(),
-                relation_kind_id: kind_id,
-                target_kind_ids: declaration.target_kind_ids.clone(),
-                minimum_reachable_targets: declaration.minimum_reachable_targets,
-                enforcement_boundary: declaration.enforcement_boundary,
-                plan_revision: declarations.plan_revision,
-            })
+            .map(
+                |declaration| crate::schema::data::LoweredConnectivityMinimumContract {
+                    contract_id: declaration.contract_id.clone(),
+                    source_kind_ids: declaration.source_kind_ids.clone(),
+                    relation_kind_id: kind_id,
+                    target_kind_ids: declaration.target_kind_ids.clone(),
+                    minimum_reachable_targets: declaration.minimum_reachable_targets,
+                    enforcement_boundary: declaration.enforcement_boundary,
+                    plan_revision: declarations.plan_revision,
+                },
+            )
             .collect(),
     }
 }
@@ -684,22 +685,18 @@ fn lower_binding(aspect: &DeclaredAspect) -> LoweredAspectBinding {
             ) => LoweredExecutableAspectBindingKind::RelationJsonScalarField {
                 field: field.clone(),
             },
-            (
-                AspectBinding::RelationSourceEndpoint,
-                AspectComparator::EndpointIdentityEquality,
-            ) => LoweredExecutableAspectBindingKind::RelationSourceEndpointIdentity,
-            (
-                AspectBinding::RelationTargetEndpoint,
-                AspectComparator::EndpointIdentityEquality,
-            ) => LoweredExecutableAspectBindingKind::RelationTargetEndpointIdentity,
-            (
-                AspectBinding::LifecycleTransition,
-                AspectComparator::LifecycleTransitionEquality,
-            ) => LoweredExecutableAspectBindingKind::LifecycleTransitionEquality,
-            (
-                AspectBinding::OpaqueWholePayload,
-                AspectComparator::OpaquePayloadByteEquality,
-            ) => LoweredExecutableAspectBindingKind::OpaqueWholePayloadBytes,
+            (AspectBinding::RelationSourceEndpoint, AspectComparator::EndpointIdentityEquality) => {
+                LoweredExecutableAspectBindingKind::RelationSourceEndpointIdentity
+            }
+            (AspectBinding::RelationTargetEndpoint, AspectComparator::EndpointIdentityEquality) => {
+                LoweredExecutableAspectBindingKind::RelationTargetEndpointIdentity
+            }
+            (AspectBinding::LifecycleTransition, AspectComparator::LifecycleTransitionEquality) => {
+                LoweredExecutableAspectBindingKind::LifecycleTransitionEquality
+            }
+            (AspectBinding::OpaqueWholePayload, AspectComparator::OpaquePayloadByteEquality) => {
+                LoweredExecutableAspectBindingKind::OpaqueWholePayloadBytes
+            }
             _ => unreachable!("aspect declarations are canonicalized before lowering"),
         },
         precision: aspect.precision,

@@ -56,8 +56,7 @@ impl RelationalRuntime {
         structural_fingerprint: Option<crate::identity::data::StructuralFingerprint>,
         lineage_id: Option<crate::identity::data::LineageId>,
     ) -> Option<crate::identity::data::EntityId> {
-        let replacement_version =
-            crate::identity::data::VersionId(self.current_version_id().0 + 1);
+        let replacement_version = crate::identity::data::VersionId(self.current_version_id().0 + 1);
         let partition = self.partitions.get_mut(&entity_id.partition_id)?;
         let arena = &mut partition.entity_arena;
         arena.get(&entity_id)?;

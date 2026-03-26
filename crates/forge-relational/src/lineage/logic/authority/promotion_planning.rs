@@ -16,8 +16,12 @@ impl PromotionEligibleCorrespondenceCandidate {
     fn new(
         candidate: crate::lineage::data::CorrespondenceCandidate,
         authority: PromotionAuthority,
-        branch_scoped_sources: Vec<crate::lineage::logic::authority::phase_types::BranchScopedLineageRef>,
-        branch_scoped_targets: Vec<crate::lineage::logic::authority::phase_types::BranchScopedLineageRef>,
+        branch_scoped_sources: Vec<
+            crate::lineage::logic::authority::phase_types::BranchScopedLineageRef,
+        >,
+        branch_scoped_targets: Vec<
+            crate::lineage::logic::authority::phase_types::BranchScopedLineageRef,
+        >,
     ) -> Self {
         Self {
             candidate,
@@ -72,7 +76,8 @@ impl<'runtime> LineageAuthority<'runtime> {
         &mut self,
         validated: ValidatedCorrespondenceCandidate,
         commit: &CommitReference,
-    ) -> Result<PromotionEligibleCorrespondenceCandidate, CorrespondencePromotionRejectionClass> {
+    ) -> Result<PromotionEligibleCorrespondenceCandidate, CorrespondencePromotionRejectionClass>
+    {
         let candidate = validated.candidate();
         let validated_width =
             validated.branch_scoped_sources().len() + validated.branch_scoped_targets().len();

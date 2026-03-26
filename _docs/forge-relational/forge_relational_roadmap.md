@@ -296,7 +296,7 @@ Required reconciliation behaviors:
   branches carry divergent declared schemas
 - reconciliation decisions must be emitted as canonical artifacts for replay,
   diagnostics, and audit
-- reconciliation must compose with Milestone 7 merge execution so that
+- reconciliation must compose with Milestone 7C merge execution so that
   data-level merge and schema-level reconciliation are resolved in the same
   transactional commit
 - reconciliation must support caller-supplied policies rather than hardcoded
@@ -493,7 +493,7 @@ extensibility certification requirement covering:
 - connectivity minimum enforcement at publication boundary
 - explicit committed-but-unpublished semantics for publication-boundary failures
 
-## Milestone 7: Merge-Ready History and Merge Execution
+## Milestone 7: Merge-Ready History, Merge Ontology, and Merge Execution
 
 This milestone is intentionally split so the roadmap stays honest about what is
 already structurally supported versus what may still be missing as product
@@ -522,23 +522,35 @@ following named requirement from
 
 - `Merge-ready history shape test`
 
-### Milestone 7B: Authoritative Merge Execution
+### Milestone 7B: Merge Artifact Ontology and Reconciliation Semantics
 
 #### Goal
 
-If authoritative multi-parent merge commit creation is not yet complete,
-finish it as a first-class runtime feature.
+Define the canonical merge authority model before execution exists so merge
+semantics are explicit, replayable, durable, policy-governed, and diagnostics-
+rich rather than being rediscovered procedurally inside execution code.
 
 #### Must Ship
 
-- authoritative multi-parent commit execution
-- deterministic parent ordering at merge commit creation time
 - merge conflict classification and structured diagnostics
-- replay semantics for merge commits
-- durable publication semantics for merge commits
-- branch-head advancement semantics for successful merges
+- canonical merge artifact ontology for:
+  - identity matching and reconciliation candidates
+  - typed conflict classification
+  - typed reconciliation decisions
+  - causal frontier / causal dependency evidence
+  - schema-policy resolution evidence
+  - lowered merge plans
+  - merge explanation and diagnostics surfaces
+- causal commit metadata as a real authority/path artifact, not helper metadata
+- schema-declared merge policy declarations and canonical policy-resolution
+  artifacts
+- replay/durability/publication-facing merge artifact shapes sufficient for
+  later execution and certification
+- fixture-driven and harness-driven certification scaffolding that proves the
+  runtime can carry merge semantics canonically before authoritative execution
+  is enabled
 
-#### Explicit Future Merge/Reconciliation Requirements
+#### Explicit Merge/Reconciliation Requirements
 
 Milestone 7 must be treated as more than "make merge commits exist."
 
@@ -580,9 +592,10 @@ otherwise be one of:
 - overloading lifecycle or lineage continuity with merge identity meaning
 - bolting on later heuristic matching without a first-class identity contract
 
-Milestone 2 is only a prerequisite for this work. Milestone 7 is where the
+Milestone 2 is only a prerequisite for this work. Milestone 7B is where the
 runtime must become explicit about these merge/reconciliation behaviors as real
-product requirements.
+product requirements, with canonical artifacts and lowered plans that later
+execution must consume rather than reinterpret.
 
 #### Causal Commit Metadata
 
@@ -608,8 +621,9 @@ Required causal metadata capabilities:
 
 Causal metadata does not replace structural conflict detection. It adds a
 second axis: two commits may be structurally non-conflicting but causally
-dependent, or structurally conflicting but causally independent. The merge
-pipeline must reason about both axes when applying reconciliation policies.
+dependent, or structurally conflicting but causally independent. Milestone 7B
+must define and persist this causal reasoning canonically so Milestone 7C can
+consume it rather than recompute it ad hoc during execution.
 
 #### Schema-Declared Merge Policies (CRDT-Style)
 
@@ -657,6 +671,53 @@ Merge policy enforcement rules:
 - merge policies must not bypass the invariant pipeline; after auto-resolution,
   the merged state must still satisfy all declared invariants at the merge
   commit boundary
+
+#### Must Preserve
+
+- single serialized authority for final truth commit
+- canonical observability and replay
+- coherent publication semantics for merge-bearing artifacts
+- explicit separation between merge ontology/planning and merge execution
+- no host-side heuristic merge identity or policy logic becoming accidental
+  authority
+- explicit failure rather than silent semantic drift
+
+#### Acceptance Requirements
+
+This sub-milestone is complete only when:
+
+- the roadmap is paired with an explicit merge-ontology certification test or suite if
+  [test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md)
+  does not already contain one
+- merge-bearing histories can persist, replay, and recover the canonical merge
+  artifact surfaces without authoritative merge execution enabled
+- `Hostile commit/replay equivalence test` remains satisfied for histories
+  carrying merge ontology artifacts and causal metadata
+- `Durable recovery and schema mismatch test` remains satisfied for histories
+  carrying merge ontology artifacts and causal metadata
+- `Merge-ready history shape test` remains satisfied with the new merge
+  ontology artifacts present
+
+### Milestone 7C: Authoritative Merge Execution
+
+#### Goal
+
+Finish authoritative multi-parent merge commit creation as a first-class
+runtime feature by executing only against the canonical merge ontology,
+conflict taxonomy, causal metadata, and lowered merge plans established in
+Milestone 7B.
+
+#### Must Ship
+
+- authoritative multi-parent merge commit execution
+- deterministic parent ordering at merge commit creation time
+- execution that consumes lowered merge plans rather than rediscovering merge
+  semantics during the hot path
+- replay semantics for merge commits
+- durable publication semantics for merge commits
+- branch-head advancement semantics for successful merges
+- invariant-boundary enforcement over merged results
+- explicit typed failure for unmergeable or policy-rejected merge requests
 
 #### Must Preserve
 
@@ -742,7 +803,7 @@ caller goals through divergence and reconciliation.
 ### Prerequisites
 
 - Milestone 6.5 (invariant pipeline) for validating intent legality
-- Milestone 7B (merge execution) for merging branches with divergent intents
+- Milestone 7C (merge execution) for merging branches with divergent intents
 - Causal commit metadata (from Milestone 7B) for determining intent ordering
 
 ### Must Ship

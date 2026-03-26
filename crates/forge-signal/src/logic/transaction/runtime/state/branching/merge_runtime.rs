@@ -358,7 +358,7 @@ where
                     },
                     source_state: NodeMergeInputState {
                         current_artifact_id: source_runtime
-                            .and_then(|runtime| runtime.lineage_artifact_id),
+                            .and_then(|runtime| runtime.lineage_artifact_id.get()),
                         comparable: source_cmp,
                         authority: source_authority.clone(),
                         exists_in_branch: true,
@@ -366,7 +366,7 @@ where
                     target_state: NodeMergeInputState {
                         current_artifact_id: target_entry
                             .get_runtime_artifact_state()
-                            .and_then(|runtime| runtime.lineage_artifact_id),
+                            .and_then(|runtime| runtime.lineage_artifact_id.get()),
                         comparable: target_cmp,
                         authority: target_entry
                             .get_runtime_artifact_state()
@@ -391,7 +391,7 @@ where
                     shape: NodeReconciliationShape::SourceOnlyIntroduction,
                     source_state: NodeMergeInputState {
                         current_artifact_id: source_runtime
-                            .and_then(|runtime| runtime.lineage_artifact_id),
+                            .and_then(|runtime| runtime.lineage_artifact_id.get()),
                         comparable: merge_comparable(source_runtime),
                         authority: Some(authority.clone()),
                         exists_in_branch: true,
@@ -742,7 +742,7 @@ where
                 target_artifact_id_before: node_plan.target_state.current_artifact_id,
                 target_artifact_id_after: target_entry
                     .and_then(|entry| entry.get_runtime_artifact_state())
-                    .and_then(|runtime| runtime.lineage_artifact_id),
+                    .and_then(|runtime| runtime.lineage_artifact_id.get()),
                 action,
                 basis,
                 source_comparable: node_plan.source_state.comparable.clone(),

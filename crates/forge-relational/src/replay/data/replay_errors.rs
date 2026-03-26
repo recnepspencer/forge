@@ -5,7 +5,7 @@ use crate::errors::data::{ErrorContext, ErrorOperation, RelationalSubsystem, Sug
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ReplayFailureClass {
     MissingCommit,
-    MissingParentChain,
+    MissingAuthoritativeParentClosure,
     BranchMismatch,
     SchemaMismatch,
     UnsupportedReplaySchema,

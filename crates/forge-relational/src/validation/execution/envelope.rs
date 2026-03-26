@@ -6,11 +6,16 @@ use crate::authority::commit::preparation::reduction::keys::ValidationReductionK
 use crate::validation::data::InvariantCheckResult;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct InvariantWorkerResult {
+    pub(crate) result_identity: ValidationResultIdentity,
+    pub(crate) result: InvariantCheckResult,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct InvariantWorkerEnvelope {
     pub(crate) packet_index: usize,
     pub(crate) reduction_key: ValidationReductionKey,
-    pub(crate) result_identity: ValidationResultIdentity,
-    pub(crate) result: InvariantCheckResult,
+    pub(crate) results: Vec<InvariantWorkerResult>,
     pub(crate) diagnostic_observations: Vec<ValidationDiagnosticObservation>,
     pub(crate) preparation_failures: Vec<PreparationFailureClass>,
     pub(crate) counters: ValidationPreparationCounters,

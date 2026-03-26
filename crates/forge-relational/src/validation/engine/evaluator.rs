@@ -2,12 +2,11 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use crate::diagnostics::data::DiagnosticCode;
 use crate::schema::data::{
-    LoweredAcyclicityContract, LoweredConnectivityMinimumContract,
-    EndpointDeletionIntegrityMode, LoweredCardinalityMaximumContract,
-    LoweredCardinalityMinimumContract, PairMinimumSemantics,
+    EndpointDeletionIntegrityMode, LoweredAcyclicityContract, LoweredCardinalityMaximumContract,
+    LoweredCardinalityMinimumContract, LoweredConnectivityMinimumContract,
     LoweredEndpointDeletionIntegrityContract, LoweredEndpointKindContract,
-    LoweredPartitionIsolationContract, LoweredPayloadSchemaContract,
-    LoweredSymmetryContract, LoweredUniquenessContract, PayloadContractRecordKind,
+    LoweredPartitionIsolationContract, LoweredPayloadSchemaContract, LoweredSymmetryContract,
+    LoweredUniquenessContract, PairMinimumSemantics, PayloadContractRecordKind,
     PayloadFieldConstraint, PayloadSchemaValueType, SymmetryMode, UniquenessScope,
 };
 use crate::storage::data::RecordLifecycleState;
@@ -15,8 +14,8 @@ use crate::storage::logic::state::HistoricalMetadata;
 use crate::storage::logic::state::{EntityRecordKind, RecordKind, RelationRecordKind, SlotView};
 use crate::transactions::data::MergedCommitPlan;
 use crate::validation::data::{
-    InvariantClass, InvariantRule, InvariantViolation, InvariantViolationFields,
-    RecordKindTag, RelationCardinalityBoundary, RelationEndpointBoundary,
+    InvariantClass, InvariantRule, InvariantViolation, InvariantViolationFields, RecordKindTag,
+    RelationCardinalityBoundary, RelationEndpointBoundary,
 };
 use serde_json::json;
 
@@ -27,10 +26,10 @@ pub(crate) fn evaluate_rule(
     context: &InvariantExecutionContext<'_>,
     class: InvariantClass,
     rule: &InvariantRule,
-) -> Option<InvariantViolation> {
+) -> Vec<InvariantViolation> {
     match rule {
         InvariantRule::LiveRecordRequiresSidecar(kind) => {
-            evaluate_live_record_sidecar_rule(context, class, kind)
+            single_violation(evaluate_live_record_sidecar_rule(context, class, kind))
         }
         InvariantRule::MaxMergedIntents(limit) => {
             let merged_len = context
@@ -38,7 +37,7 @@ pub(crate) fn evaluate_rule(
                 .map(|plan| plan.merged_intents.len())
                 .unwrap_or(0);
             if merged_len > *limit {
-                Some(InvariantViolation {
+                vec![InvariantViolation {
                     class,
                     code: DiagnosticCode::InvariantViolation,
                     detail: format!(
@@ -49,17 +48,17 @@ pub(crate) fn evaluate_rule(
                         merged_intent_count: merged_len,
                         limit: *limit,
                     },
-                })
+                }]
             } else {
-                None
+                Vec::new()
             }
         }
-        InvariantRule::RelationIntegrityScopeBudget(_) => None,
+        InvariantRule::RelationIntegrityScopeBudget(_) => Vec::new(),
         InvariantRule::MaxSnapshotEntities(limit) => {
-            evaluate_max_snapshot_entities(context, class, *limit)
+            single_violation(evaluate_max_snapshot_entities(context, class, *limit))
         }
         InvariantRule::UniqueEntityPayloadField(field) => {
-            evaluate_unique_entity_payload_field(context, class, field)
+            single_violation(evaluate_unique_entity_payload_field(context, class, field))
         }
         InvariantRule::EndpointKindContract(contract) => {
             evaluate_endpoint_kind_contract(context, class, contract)
@@ -73,7 +72,9 @@ pub(crate) fn evaluate_rule(
         InvariantRule::UniquenessContract(contract) => {
             evaluate_uniqueness_contract(context, class, contract)
         }
-        InvariantRule::SymmetryContract(contract) => evaluate_symmetry_contract(context, class, contract),
+        InvariantRule::SymmetryContract(contract) => {
+            evaluate_symmetry_contract(context, class, contract)
+        }
         InvariantRule::EndpointDeletionIntegrityContract(contract) => {
             evaluate_endpoint_deletion_integrity_contract(context, class, contract)
         }
@@ -84,12 +85,21 @@ pub(crate) fn evaluate_rule(
             evaluate_partition_isolation_contract(context, class, contract)
         }
         InvariantRule::AcyclicityContract(contract) => {
-            evaluate_acyclicity_contract(context, class, contract)
+            single_violation(evaluate_acyclicity_contract(context, class, contract))
         }
         InvariantRule::ConnectivityMinimumContract(contract) => {
-            evaluate_connectivity_minimum_contract(context, class, contract)
+            single_violation(evaluate_connectivity_minimum_contract(context, class, contract))
         }
     }
+}
+
+fn single_violation(violation: Option<InvariantViolation>) -> Vec<InvariantViolation> {
+    violation.into_iter().collect()
+}
+
+fn canonicalize_violations(mut violations: Vec<InvariantViolation>) -> Vec<InvariantViolation> {
+    violations.sort_by(|left, right| left.witness_key().cmp(&right.witness_key()));
+    violations
 }
 
 fn evaluate_live_record_sidecar_rule(
@@ -136,7 +146,10 @@ fn evaluate_live_record_sidecar<K: RecordKind>(
         let Some(partition) = context.partition_access().get_partition(partition_id) else {
             return Some(storage_inconsistency_violation(
                 class,
-                format!("partition {:?} missing during invariant sidecar scan", partition_id),
+                format!(
+                    "partition {:?} missing during invariant sidecar scan",
+                    partition_id
+                ),
                 json!({
                     "partition_id": partition_id.0,
                     "scan": "live_record_sidecar",
@@ -213,7 +226,10 @@ fn evaluate_max_snapshot_entities(
             let Some(partition) = state_view.state().get_partition(partition_id) else {
                 return Some(storage_inconsistency_violation(
                     class,
-                    format!("partition {:?} missing during snapshot entity count", partition_id),
+                    format!(
+                        "partition {:?} missing during snapshot entity count",
+                        partition_id
+                    ),
                     json!({
                         "partition_id": partition_id.0,
                         "scan": "max_snapshot_entities",
@@ -227,7 +243,10 @@ fn evaluate_max_snapshot_entities(
             let Some(partition) = state_view.state().get_partition(partition_id) else {
                 return Some(storage_inconsistency_violation(
                     class,
-                    format!("partition {:?} missing during historical entity scan", partition_id),
+                    format!(
+                        "partition {:?} missing during historical entity scan",
+                        partition_id
+                    ),
                     json!({
                         "partition_id": partition_id.0,
                         "scan": "historical_max_snapshot_entities",
@@ -308,7 +327,10 @@ fn evaluate_unique_entity_payload_field(
             let Some(partition) = state_view.state().get_partition(partition_id) else {
                 return Some(storage_inconsistency_violation(
                     class,
-                    format!("partition {:?} missing during historical uniqueness scan", partition_id),
+                    format!(
+                        "partition {:?} missing during historical uniqueness scan",
+                        partition_id
+                    ),
                     json!({
                         "partition_id": partition_id.0,
                         "scan": "historical_unique_entity_payload_field",
@@ -447,8 +469,9 @@ fn evaluate_payload_schema_contract(
     context: &InvariantExecutionContext<'_>,
     class: InvariantClass,
     contract: &LoweredPayloadSchemaContract,
-) -> Option<InvariantViolation> {
+) -> Vec<InvariantViolation> {
     context.metrics().count_relation_contracts_evaluated(1);
+    let mut violations = Vec::new();
     match contract.record_kind {
         PayloadContractRecordKind::Entity => {
             if let Some(plan) = context.merged_plan() {
@@ -457,12 +480,10 @@ fn evaluate_payload_schema_contract(
                         crate::transactions::data::MutationIntent::Create(
                             crate::transactions::data::CreateIntent::Entity(spec),
                         ) if spec.kind_id == contract.kind_id => {
-                            if let Some(violation) = payload_schema_violation_for_payload(
-                                class,
-                                contract,
-                                &spec.payload,
-                            ) {
-                                return Some(violation);
+                            if let Some(violation) =
+                                payload_schema_violation_for_payload(class, contract, &spec.payload)
+                            {
+                                violations.push(violation);
                             }
                         }
                         crate::transactions::data::MutationIntent::Create(
@@ -472,14 +493,15 @@ fn evaluate_payload_schema_contract(
                                 if let Some(violation) =
                                     payload_schema_violation_for_payload(class, contract, payload)
                                 {
-                                    return Some(violation);
+                                    violations.push(violation);
                                 }
                             }
                         }
                         crate::transactions::data::MutationIntent::Entity(
                             crate::transactions::data::EntityMutationIntent::Update(update),
                         ) => {
-                            let Ok(Some(kind_id)) = entity_kind_in_state(context, class, update.entity_id)
+                            let Ok(Some(kind_id)) =
+                                entity_kind_in_state(context, class, update.entity_id)
                             else {
                                 continue;
                             };
@@ -489,7 +511,7 @@ fn evaluate_payload_schema_contract(
                                     contract,
                                     &update.payload,
                                 ) {
-                                    return Some(violation);
+                                    violations.push(violation);
                                 }
                             }
                         }
@@ -501,7 +523,7 @@ fn evaluate_payload_schema_contract(
                                 contract,
                                 &replace.replacement.payload,
                             ) {
-                                return Some(violation);
+                                violations.push(violation);
                             }
                         }
                         _ => {}
@@ -523,7 +545,7 @@ fn evaluate_payload_schema_contract(
                     if let Some(violation) =
                         payload_schema_violation_for_payload(class, contract, payload)
                     {
-                        return Some(violation);
+                        violations.push(violation);
                     }
                 }
             }
@@ -536,17 +558,15 @@ fn evaluate_payload_schema_contract(
                             crate::transactions::data::CreateIntent::Relation(spec),
                         ) if spec.kind_id == contract.kind_id => {
                             if let Some(payload) = &spec.payload {
-                                if let Some(violation) = payload_schema_violation_for_payload(
-                                    class,
-                                    contract,
-                                    payload,
-                                ) {
-                                    return Some(violation);
+                                if let Some(violation) =
+                                    payload_schema_violation_for_payload(class, contract, payload)
+                                {
+                                    violations.push(violation);
                                 }
                             } else if let Some(violation) =
                                 payload_schema_violation_for_missing_payload(class, contract)
                             {
-                                return Some(violation);
+                                violations.push(violation);
                             }
                         }
                         crate::transactions::data::MutationIntent::Create(
@@ -555,22 +575,21 @@ fn evaluate_payload_schema_contract(
                             for payload in &spec.payloads {
                                 match payload {
                                     Some(payload) => {
-                                        if let Some(violation) = payload_schema_violation_for_payload(
-                                            class,
-                                            contract,
-                                            payload,
-                                        ) {
-                                            return Some(violation);
+                                        if let Some(violation) =
+                                            payload_schema_violation_for_payload(
+                                                class, contract, payload,
+                                            )
+                                        {
+                                            violations.push(violation);
                                         }
                                     }
                                     None => {
                                         if let Some(violation) =
                                             payload_schema_violation_for_missing_payload(
-                                                class,
-                                                contract,
+                                                class, contract,
                                             )
                                         {
-                                            return Some(violation);
+                                            violations.push(violation);
                                         }
                                     }
                                 }
@@ -595,21 +614,22 @@ fn evaluate_payload_schema_contract(
                     if let Some(violation) =
                         payload_schema_violation_for_payload(class, contract, payload)
                     {
-                        return Some(violation);
+                        violations.push(violation);
                     }
                 }
             }
         }
     }
-    None
+    canonicalize_violations(violations)
 }
 
 fn evaluate_partition_isolation_contract(
     context: &InvariantExecutionContext<'_>,
     class: InvariantClass,
     contract: &LoweredPartitionIsolationContract,
-) -> Option<InvariantViolation> {
+) -> Vec<InvariantViolation> {
     context.metrics().count_relation_contracts_evaluated(1);
+    let mut violations = Vec::new();
     if let Some(plan) = context.merged_plan() {
         for intent in &plan.merged_intents {
             match intent {
@@ -618,7 +638,7 @@ fn evaluate_partition_isolation_contract(
                 ) if spec.kind_id == contract.relation_kind_id => {
                     context.metrics().count_relation_slot_scans(1);
                     if spec.source.partition_id != spec.target.partition_id {
-                        return Some(InvariantViolation {
+                        violations.push(InvariantViolation {
                             class,
                             code: DiagnosticCode::InvariantViolation,
                             detail: format!(
@@ -641,7 +661,7 @@ fn evaluate_partition_isolation_contract(
                     for (source, target) in &spec.endpoints {
                         context.metrics().count_relation_slot_scans(1);
                         if source.partition_id != target.partition_id {
-                            return Some(InvariantViolation {
+                            violations.push(InvariantViolation {
                                 class,
                                 code: DiagnosticCode::InvariantViolation,
                                 detail: format!(
@@ -674,7 +694,7 @@ fn evaluate_partition_isolation_contract(
                 continue;
             }
             if metadata.source.partition_id != metadata.target.partition_id {
-                return Some(InvariantViolation {
+                violations.push(InvariantViolation {
                     class,
                     code: DiagnosticCode::InvariantViolation,
                     detail: format!(
@@ -692,7 +712,7 @@ fn evaluate_partition_isolation_contract(
             }
         }
     }
-    None
+    canonicalize_violations(violations)
 }
 
 fn payload_schema_violation_for_missing_payload(
@@ -845,31 +865,41 @@ fn evaluate_acyclicity_contract(
     }
 
     context.metrics().count_relation_contracts_evaluated(1);
+    let planned_successors = planned_successor_map(&scope.planned_edges);
     for edge in &scope.planned_edges {
         context.metrics().count_relation_slot_scans(1);
-        if edge.source == edge.target
-            || relation_kind_reaches(
+        let reaches_cycle = if edge.source == edge.target {
+            Ok(true)
+        } else {
+            relation_kind_reaches(
                 context,
+                class,
+                &contract.contract_id,
                 contract.relation_kind_id,
                 edge.target,
                 edge.source,
-                Some(&scope.planned_edges),
+                &planned_successors,
             )
-        {
-            return Some(InvariantViolation {
-                class,
-                code: DiagnosticCode::InvariantViolation,
-                detail: format!(
-                    "acyclicity contract '{}' detected a cycle for relation kind {:?}",
-                    contract.contract_id, contract.relation_kind_id
-                ),
-                fields: InvariantViolationFields::Acyclicity {
-                    contract_id: contract.contract_id.clone(),
-                    relation_kind_id: contract.relation_kind_id,
-                    source: edge.source,
-                    target: edge.target,
-                },
-            });
+        };
+        match reaches_cycle {
+            Ok(true) => {
+                return Some(InvariantViolation {
+                    class,
+                    code: DiagnosticCode::InvariantViolation,
+                    detail: format!(
+                        "acyclicity contract '{}' detected a cycle for relation kind {:?}",
+                        contract.contract_id, contract.relation_kind_id
+                    ),
+                    fields: InvariantViolationFields::Acyclicity {
+                        contract_id: contract.contract_id.clone(),
+                        relation_kind_id: contract.relation_kind_id,
+                        source: edge.source,
+                        target: edge.target,
+                    },
+                });
+            }
+            Ok(false) => {}
+            Err(violation) => return Some(violation),
         }
     }
     None
@@ -886,17 +916,23 @@ fn evaluate_connectivity_minimum_contract(
         return None;
     }
 
-    let planned_edges = context
+    let planned_successors = context
         .relation_integrity_scope(contract.relation_kind_id)
-        .map(|scope| scope.planned_edges.as_slice());
+        .map(|scope| planned_successor_map(&scope.planned_edges))
+        .unwrap_or_default();
     for source in source_entities {
-        let reachable_target_count = reachable_target_count_for_connectivity(
+        let reachable_target_count = match reachable_target_count_for_connectivity(
             context,
+            class,
+            &contract.contract_id,
             contract.relation_kind_id,
             source,
             &contract.target_kind_ids,
-            planned_edges,
-        );
+            &planned_successors,
+        ) {
+            Ok(count) => count,
+            Err(violation) => return Some(violation),
+        };
         if reachable_target_count < contract.minimum_reachable_targets as usize {
             return Some(InvariantViolation {
                 class,
@@ -930,14 +966,34 @@ fn visible_entities_of_kinds(
         let Some(partition) = state_view.state().get_partition(partition_id) else {
             continue;
         };
-        for slot in 0..partition.entity_arena.slot_count() {
-            let Some(metadata) = state_view.entity_metadata_at(&partition.entity_arena, partition_id, slot)
-            else {
-                continue;
-            };
-            context.metrics().count_entity_slot_scans(1);
-            if contract_candidate_kind_matches(metadata.kind_id, kind_ids) {
-                entities.push(metadata.entity_id);
+        if state_view.version_id() == context.current_version_id() {
+            for slot in partition.entity_arena.live_bitset.iter_set_slots() {
+                context.metrics().count_entity_slot_scans(1);
+                let Some(slot_view) = partition.entity_arena.get_slot(slot) else {
+                    continue;
+                };
+                let Some(kind_id) = slot_view.kind_id() else {
+                    continue;
+                };
+                if contract_candidate_kind_matches(kind_id, kind_ids) {
+                    entities.push(crate::identity::data::EntityId::new(
+                        partition_id,
+                        slot as u64,
+                        slot_view.generation(),
+                    ));
+                }
+            }
+        } else {
+            for slot in 0..partition.entity_arena.slot_count() {
+                let Some(metadata) =
+                    state_view.entity_metadata_at(&partition.entity_arena, partition_id, slot)
+                else {
+                    continue;
+                };
+                context.metrics().count_entity_slot_scans(1);
+                if contract_candidate_kind_matches(metadata.kind_id, kind_ids) {
+                    entities.push(metadata.entity_id);
+                }
             }
         }
     }
@@ -946,22 +1002,62 @@ fn visible_entities_of_kinds(
 
 fn reachable_target_count_for_connectivity(
     context: &InvariantExecutionContext<'_>,
+    class: InvariantClass,
+    contract_id: &crate::schema::data::ContractId,
     relation_kind_id: crate::identity::data::KindId,
     source: crate::identity::data::EntityId,
     target_kind_ids: &[crate::identity::data::KindId],
-    planned_edges: Option<&[super::request::PlannedRelationEdge]>,
-) -> usize {
+    planned_successors: &BTreeMap<
+        crate::identity::data::EntityId,
+        Vec<crate::identity::data::EntityId>,
+    >,
+) -> Result<usize, InvariantViolation> {
     let mut visited = BTreeSet::new();
     let mut frontier = vec![source];
     let mut reachable_targets = BTreeSet::new();
+    let planned_edge_count = planned_successor_count(planned_successors);
+    let mut traversal_budget = RelationTraversalBudget::new(
+        context.relation_integrity_scope_budget(),
+        planned_edge_count,
+    );
     visited.insert(source);
+    if traversal_budget.record_entity_visit().is_err() {
+        return Err(traversal_budget_exceeded_violation(
+            class,
+            contract_id,
+            relation_kind_id,
+            traversal_budget,
+            planned_edge_count,
+        ));
+    }
 
     while let Some(entity_id) = frontier.pop() {
-        for next in relation_kind_successors(context, relation_kind_id, entity_id, planned_edges) {
+        for next in relation_kind_successors(
+            context,
+            class,
+            contract_id,
+            relation_kind_id,
+            entity_id,
+            planned_successors,
+            &mut traversal_budget,
+        )? {
             if !visited.insert(next) {
                 continue;
             }
-            if let Some(kind_id) = context.state_view().entity_metadata(next).map(|metadata| metadata.kind_id) {
+            if traversal_budget.record_entity_visit().is_err() {
+                return Err(traversal_budget_exceeded_violation(
+                    class,
+                    contract_id,
+                    relation_kind_id,
+                    traversal_budget,
+                    planned_edge_count,
+                ));
+            }
+            if let Some(kind_id) = context
+                .state_view()
+                .entity_metadata(next)
+                .map(|metadata| metadata.kind_id)
+            {
                 if contract_candidate_kind_matches(kind_id, target_kind_ids) {
                     reachable_targets.insert(next);
                 }
@@ -970,50 +1066,103 @@ fn reachable_target_count_for_connectivity(
         }
     }
 
-    reachable_targets.len()
+    Ok(reachable_targets.len())
 }
 
 fn relation_kind_reaches(
     context: &InvariantExecutionContext<'_>,
+    class: InvariantClass,
+    contract_id: &crate::schema::data::ContractId,
     relation_kind_id: crate::identity::data::KindId,
     start: crate::identity::data::EntityId,
     target: crate::identity::data::EntityId,
-    planned_edges: Option<&[super::request::PlannedRelationEdge]>,
-) -> bool {
+    planned_successors: &BTreeMap<
+        crate::identity::data::EntityId,
+        Vec<crate::identity::data::EntityId>,
+    >,
+) -> Result<bool, InvariantViolation> {
     let mut visited = BTreeSet::new();
     let mut frontier = vec![start];
+    let planned_edge_count = planned_successor_count(planned_successors);
+    let mut traversal_budget = RelationTraversalBudget::new(
+        context.relation_integrity_scope_budget(),
+        planned_edge_count,
+    );
     visited.insert(start);
+    if traversal_budget.record_entity_visit().is_err() {
+        return Err(traversal_budget_exceeded_violation(
+            class,
+            contract_id,
+            relation_kind_id,
+            traversal_budget,
+            planned_edge_count,
+        ));
+    }
 
     while let Some(entity_id) = frontier.pop() {
-        for next in relation_kind_successors(context, relation_kind_id, entity_id, planned_edges) {
+        for next in relation_kind_successors(
+            context,
+            class,
+            contract_id,
+            relation_kind_id,
+            entity_id,
+            planned_successors,
+            &mut traversal_budget,
+        )? {
             if next == target {
-                return true;
+                return Ok(true);
             }
             if visited.insert(next) {
+                if traversal_budget.record_entity_visit().is_err() {
+                    return Err(traversal_budget_exceeded_violation(
+                        class,
+                        contract_id,
+                        relation_kind_id,
+                        traversal_budget,
+                        planned_edge_count,
+                    ));
+                }
                 frontier.push(next);
             }
         }
     }
 
-    false
+    Ok(false)
 }
 
 fn relation_kind_successors(
     context: &InvariantExecutionContext<'_>,
+    class: InvariantClass,
+    contract_id: &crate::schema::data::ContractId,
     relation_kind_id: crate::identity::data::KindId,
     entity_id: crate::identity::data::EntityId,
-    planned_edges: Option<&[super::request::PlannedRelationEdge]>,
-) -> Vec<crate::identity::data::EntityId> {
+    planned_successors: &BTreeMap<
+        crate::identity::data::EntityId,
+        Vec<crate::identity::data::EntityId>,
+    >,
+    traversal_budget: &mut RelationTraversalBudget,
+) -> Result<Vec<crate::identity::data::EntityId>, InvariantViolation> {
     let mut successors = BTreeSet::new();
-    if let Some(edges) = planned_edges {
-        for edge in edges {
-            if edge.source == entity_id {
-                successors.insert(edge.target);
+    let planned_edge_count = planned_successor_count(planned_successors);
+    if let Some(edges) = planned_successors.get(&entity_id) {
+        for &target in edges {
+            if traversal_budget.record_relation_scan().is_err() {
+                return Err(traversal_budget_exceeded_violation(
+                    class,
+                    contract_id,
+                    relation_kind_id,
+                    *traversal_budget,
+                    planned_edge_count,
+                ));
             }
+            successors.insert(target);
         }
     }
-    let Some(partition) = context.partition_access().get_partition(entity_id.partition_id) else {
-        return successors.into_iter().collect();
+    let Some(partition) = context
+        .partition_access()
+        .get_partition(entity_id.partition_id)
+    else {
+        return Ok(successors.into_iter().collect());
     };
     let slot = entity_id.local_slot.0 as usize;
     let outgoing = partition
@@ -1024,6 +1173,15 @@ fn relation_kind_successors(
         .flatten();
     for relation_id in outgoing.copied() {
         context.metrics().count_relation_slot_scans(1);
+        if traversal_budget.record_relation_scan().is_err() {
+            return Err(traversal_budget_exceeded_violation(
+                class,
+                contract_id,
+                relation_kind_id,
+                *traversal_budget,
+                planned_edge_count,
+            ));
+        }
         let Some(metadata) = context.state_view().relation_metadata(relation_id) else {
             continue;
         };
@@ -1031,36 +1189,135 @@ fn relation_kind_successors(
             successors.insert(metadata.target);
         }
     }
-    successors.into_iter().collect()
+    Ok(successors.into_iter().collect())
+}
+
+#[derive(Debug, Clone, Copy)]
+struct RelationTraversalBudget {
+    max_relation_scans: usize,
+    max_visited_entities: usize,
+    relation_scans: usize,
+    visited_entities: usize,
+}
+
+impl RelationTraversalBudget {
+    fn new(
+        budget: &crate::config::data::RelationIntegrityScopeBudget,
+        planned_edge_count: usize,
+    ) -> Self {
+        Self {
+            max_relation_scans: budget
+                .max_scanned_relations
+                .saturating_add(planned_edge_count),
+            max_visited_entities: budget
+                .max_scanned_relations
+                .saturating_add(planned_edge_count)
+                .saturating_add(1),
+            relation_scans: 0,
+            visited_entities: 0,
+        }
+    }
+
+    fn record_relation_scan(&mut self) -> Result<(), ()> {
+        self.relation_scans = self.relation_scans.saturating_add(1);
+        if self.relation_scans > self.max_relation_scans {
+            return Err(());
+        }
+        Ok(())
+    }
+
+    fn record_entity_visit(&mut self) -> Result<(), ()> {
+        self.visited_entities = self.visited_entities.saturating_add(1);
+        if self.visited_entities > self.max_visited_entities {
+            return Err(());
+        }
+        Ok(())
+    }
+}
+
+fn planned_successor_map(
+    planned_edges: &[super::request::PlannedRelationEdge],
+) -> BTreeMap<crate::identity::data::EntityId, Vec<crate::identity::data::EntityId>> {
+    let mut successors = BTreeMap::new();
+    for edge in planned_edges {
+        successors
+            .entry(edge.source)
+            .or_insert_with(Vec::new)
+            .push(edge.target);
+    }
+    successors
+}
+
+fn planned_successor_count(
+    planned_successors: &BTreeMap<
+        crate::identity::data::EntityId,
+        Vec<crate::identity::data::EntityId>,
+    >,
+) -> usize {
+    planned_successors.values().map(Vec::len).sum()
+}
+
+fn traversal_budget_exceeded_violation(
+    class: InvariantClass,
+    contract_id: &crate::schema::data::ContractId,
+    relation_kind_id: crate::identity::data::KindId,
+    traversal_budget: RelationTraversalBudget,
+    planned_edge_count: usize,
+) -> InvariantViolation {
+    InvariantViolation {
+        class,
+        code: DiagnosticCode::InvariantViolation,
+        detail: format!(
+            "relation contract '{}' exceeded evaluator traversal budget for relation kind {:?}",
+            contract_id, relation_kind_id
+        ),
+        fields: InvariantViolationFields::RelationIntegrityScopeBudgetExceeded {
+            limit_name: "max_scanned_relations".to_string(),
+            limit: traversal_budget.max_relation_scans,
+            observed: traversal_budget.relation_scans,
+            relation_kind_count: 1,
+            touched_entity_count: traversal_budget.visited_entities,
+            deleted_entity_count: 0,
+            scanned_relation_count: traversal_budget.relation_scans,
+            planned_edge_count,
+        },
+    }
 }
 
 fn evaluate_endpoint_kind_contract(
     context: &InvariantExecutionContext<'_>,
     class: InvariantClass,
     contract: &LoweredEndpointKindContract,
-) -> Option<InvariantViolation> {
+) -> Vec<InvariantViolation> {
     let Some(scope) = context.relation_integrity_scope(contract.relation_kind_id) else {
-        return None;
+        return Vec::new();
     };
     if scope.planned_edges.is_empty() {
-        return None;
+        return Vec::new();
     }
 
     context.metrics().count_relation_contracts_evaluated(1);
+    let mut violations = Vec::new();
     for edge in &scope.planned_edges {
         context.metrics().count_relation_endpoint_kind_checks(1);
         let source_kind = match entity_kind_in_state(context, class, edge.source) {
             Ok(Some(kind_id)) => kind_id,
             Ok(None) => continue,
-            Err(violation) => return Some(violation),
+            Err(violation) => {
+                violations.push(violation);
+                continue;
+            }
         };
         let target_kind = match entity_kind_in_state(context, class, edge.target) {
             Ok(Some(kind_id)) => kind_id,
             Ok(None) => continue,
-            Err(violation) => return Some(violation),
+            Err(violation) => {
+                violations.push(violation);
+                continue;
+            }
         };
         if !contract.allows_source_kind(source_kind) {
-            return Some(relation_violation(
+            violations.push(relation_violation(
                 class,
                 DiagnosticCode::RelationEndpointKindViolation,
                 format!(
@@ -1079,7 +1336,7 @@ fn evaluate_endpoint_kind_contract(
             ));
         }
         if !contract.allows_target_kind(target_kind) {
-            return Some(relation_violation(
+            violations.push(relation_violation(
                 class,
                 DiagnosticCode::RelationEndpointKindViolation,
                 format!(
@@ -1098,7 +1355,7 @@ fn evaluate_endpoint_kind_contract(
             ));
         }
         if !contract.self_edges_allowed && edge.source == edge.target {
-            return Some(relation_violation(
+            violations.push(relation_violation(
                 class,
                 DiagnosticCode::RelationEndpointKindViolation,
                 format!(
@@ -1115,9 +1372,10 @@ fn evaluate_endpoint_kind_contract(
             ));
         }
         if edge.source.partition_id != edge.target.partition_id
-            && contract.cross_context_policy != crate::config::data::CrossContextPolicy::AllowExplicit
+            && contract.cross_context_policy
+                != crate::config::data::CrossContextPolicy::AllowExplicit
         {
-            return Some(relation_violation(
+            violations.push(relation_violation(
                 class,
                 DiagnosticCode::InvalidRelationEndpoint,
                 format!(
@@ -1133,26 +1391,27 @@ fn evaluate_endpoint_kind_contract(
             ));
         }
     }
-    None
+    canonicalize_violations(violations)
 }
 
 fn evaluate_cardinality_maximum_contract(
     context: &InvariantExecutionContext<'_>,
     class: InvariantClass,
     contract: &LoweredCardinalityMaximumContract,
-) -> Option<InvariantViolation> {
+) -> Vec<InvariantViolation> {
     let Some(scope) = context.relation_integrity_scope(contract.relation_kind_id) else {
-        return None;
+        return Vec::new();
     };
     if scope.is_empty() {
-        return None;
+        return Vec::new();
     }
     context.metrics().count_relation_contracts_evaluated(1);
+    let mut violations = Vec::new();
     for (key, count) in &scope.source_counts {
         if let Some(limit) = contract.source_max {
             context.metrics().count_relation_cardinality_checks(1);
             if (*count as u64) > limit {
-                return Some(relation_violation(
+                violations.push(relation_violation(
                     class,
                     DiagnosticCode::RelationCardinalityViolation,
                     format!(
@@ -1175,7 +1434,7 @@ fn evaluate_cardinality_maximum_contract(
         if let Some(limit) = contract.target_max {
             context.metrics().count_relation_cardinality_checks(1);
             if (*count as u64) > limit {
-                return Some(relation_violation(
+                violations.push(relation_violation(
                     class,
                     DiagnosticCode::RelationCardinalityViolation,
                     format!(
@@ -1198,7 +1457,7 @@ fn evaluate_cardinality_maximum_contract(
         if let Some(limit) = contract.pair_max {
             context.metrics().count_relation_cardinality_checks(1);
             if (*count as u64) > limit {
-                return Some(relation_violation(
+                violations.push(relation_violation(
                     class,
                     DiagnosticCode::RelationCardinalityViolation,
                     format!(
@@ -1217,14 +1476,14 @@ fn evaluate_cardinality_maximum_contract(
             }
         }
     }
-    None
+    canonicalize_violations(violations)
 }
 
 fn evaluate_cardinality_minimum_contract(
     context: &InvariantExecutionContext<'_>,
     class: InvariantClass,
     contract: &LoweredCardinalityMinimumContract,
-) -> Option<InvariantViolation> {
+) -> Vec<InvariantViolation> {
     let snapshot = visible_relation_counts(context, contract);
     context.metrics().count_relation_contracts_evaluated(1);
     context
@@ -1234,6 +1493,7 @@ fn evaluate_cardinality_minimum_contract(
             snapshot.entity_slot_scans,
             snapshot.relation_slot_scans,
         );
+    let mut violations = Vec::new();
 
     if let Some(minimum) = contract.source_min {
         for entity_id in snapshot
@@ -1242,10 +1502,14 @@ fn evaluate_cardinality_minimum_contract(
             .copied()
             .collect::<Vec<_>>()
         {
-            let count = snapshot.source_counts.get(&entity_id).copied().unwrap_or_default();
+            let count = snapshot
+                .source_counts
+                .get(&entity_id)
+                .copied()
+                .unwrap_or_default();
             context.metrics().count_relation_cardinality_checks(1);
             if (count as u64) < minimum {
-                return Some(relation_violation(
+                violations.push(relation_violation(
                     class,
                     DiagnosticCode::RelationCardinalityViolation,
                     format!(
@@ -1272,10 +1536,14 @@ fn evaluate_cardinality_minimum_contract(
             .copied()
             .collect::<Vec<_>>()
         {
-            let count = snapshot.target_counts.get(&entity_id).copied().unwrap_or_default();
+            let count = snapshot
+                .target_counts
+                .get(&entity_id)
+                .copied()
+                .unwrap_or_default();
             context.metrics().count_relation_cardinality_checks(1);
             if (count as u64) < minimum {
-                return Some(relation_violation(
+                violations.push(relation_violation(
                     class,
                     DiagnosticCode::RelationCardinalityViolation,
                     format!(
@@ -1301,7 +1569,7 @@ fn evaluate_cardinality_minimum_contract(
                 for ((source, target), count) in snapshot.directed_pair_counts {
                     context.metrics().count_relation_cardinality_checks(1);
                     if (count as u64) < minimum {
-                        return Some(relation_violation(
+                        violations.push(relation_violation(
                             class,
                             DiagnosticCode::RelationCardinalityViolation,
                             format!(
@@ -1323,15 +1591,20 @@ fn evaluate_cardinality_minimum_contract(
         }
     }
 
-    None
+    canonicalize_violations(violations)
 }
 
 #[derive(Default)]
 struct VisibleRelationCountSnapshot {
     source_counts: BTreeMap<crate::identity::data::EntityId, usize>,
     target_counts: BTreeMap<crate::identity::data::EntityId, usize>,
-    directed_pair_counts:
-        BTreeMap<(crate::identity::data::EntityId, crate::identity::data::EntityId), usize>,
+    directed_pair_counts: BTreeMap<
+        (
+            crate::identity::data::EntityId,
+            crate::identity::data::EntityId,
+        ),
+        usize,
+    >,
     candidate_source_entities: BTreeSet<crate::identity::data::EntityId>,
     candidate_target_entities: BTreeSet<crate::identity::data::EntityId>,
     relation_slot_scans: usize,
@@ -1349,44 +1622,101 @@ fn visible_relation_counts(
         let Some(partition) = state_view.state().get_partition(partition_id) else {
             continue;
         };
-        for slot in 0..partition.relation_arena.slot_count() {
-            context.metrics().count_relation_slot_scans(1);
-            snapshot.relation_slot_scans += 1;
-            let Some(metadata) =
-                visible_relation_metadata(&state_view, &partition.relation_arena, slot)
-            else {
-                continue;
-            };
-            if metadata.kind_id != contract.relation_kind_id {
-                continue;
+        if state_view.version_id() == context.current_version_id() {
+            for slot in partition.relation_arena.live_bitset.iter_set_slots() {
+                context.metrics().count_relation_slot_scans(1);
+                snapshot.relation_slot_scans += 1;
+                let Some(slot_view) = partition.relation_arena.get_slot(slot) else {
+                    continue;
+                };
+                let Some(kind_id) = slot_view.kind_id() else {
+                    continue;
+                };
+                if kind_id != contract.relation_kind_id {
+                    continue;
+                }
+                let Some(endpoints) = slot_view.extra().as_ref() else {
+                    continue;
+                };
+                *snapshot.source_counts.entry(endpoints.source).or_insert(0) += 1;
+                *snapshot.target_counts.entry(endpoints.target).or_insert(0) += 1;
+                *snapshot
+                    .directed_pair_counts
+                    .entry((endpoints.source, endpoints.target))
+                    .or_insert(0) += 1;
             }
-            *snapshot
-                .source_counts
-                .entry(metadata.endpoints.source)
-                .or_insert(0) += 1;
-            *snapshot
-                .target_counts
-                .entry(metadata.endpoints.target)
-                .or_insert(0) += 1;
-            *snapshot
-                .directed_pair_counts
-                .entry((metadata.endpoints.source, metadata.endpoints.target))
-                .or_insert(0) += 1;
-        }
 
-        for slot in 0..partition.entity_arena.slot_count() {
-            context.metrics().count_entity_slot_scans(1);
-            snapshot.entity_slot_scans += 1;
-            let Some(metadata) = state_view
-                .entity_metadata_at(&partition.entity_arena, partition_id, slot)
-            else {
-                continue;
-            };
-            if contract_candidate_kind_matches(metadata.kind_id, &contract.candidate_source_kinds) {
-                snapshot.candidate_source_entities.insert(metadata.entity_id);
+            for slot in partition.entity_arena.live_bitset.iter_set_slots() {
+                context.metrics().count_entity_slot_scans(1);
+                snapshot.entity_slot_scans += 1;
+                let Some(slot_view) = partition.entity_arena.get_slot(slot) else {
+                    continue;
+                };
+                let Some(kind_id) = slot_view.kind_id() else {
+                    continue;
+                };
+                let entity_id = crate::identity::data::EntityId::new(
+                    partition_id,
+                    slot as u64,
+                    slot_view.generation(),
+                );
+                if contract_candidate_kind_matches(kind_id, &contract.candidate_source_kinds) {
+                    snapshot.candidate_source_entities.insert(entity_id);
+                }
+                if contract_candidate_kind_matches(kind_id, &contract.candidate_target_kinds) {
+                    snapshot.candidate_target_entities.insert(entity_id);
+                }
             }
-            if contract_candidate_kind_matches(metadata.kind_id, &contract.candidate_target_kinds) {
-                snapshot.candidate_target_entities.insert(metadata.entity_id);
+        } else {
+            for slot in 0..partition.relation_arena.slot_count() {
+                context.metrics().count_relation_slot_scans(1);
+                snapshot.relation_slot_scans += 1;
+                let Some(metadata) =
+                    visible_relation_metadata(&state_view, &partition.relation_arena, slot)
+                else {
+                    continue;
+                };
+                if metadata.kind_id != contract.relation_kind_id {
+                    continue;
+                }
+                *snapshot
+                    .source_counts
+                    .entry(metadata.endpoints.source)
+                    .or_insert(0) += 1;
+                *snapshot
+                    .target_counts
+                    .entry(metadata.endpoints.target)
+                    .or_insert(0) += 1;
+                *snapshot
+                    .directed_pair_counts
+                    .entry((metadata.endpoints.source, metadata.endpoints.target))
+                    .or_insert(0) += 1;
+            }
+
+            for slot in 0..partition.entity_arena.slot_count() {
+                context.metrics().count_entity_slot_scans(1);
+                snapshot.entity_slot_scans += 1;
+                let Some(metadata) =
+                    state_view.entity_metadata_at(&partition.entity_arena, partition_id, slot)
+                else {
+                    continue;
+                };
+                if contract_candidate_kind_matches(
+                    metadata.kind_id,
+                    &contract.candidate_source_kinds,
+                ) {
+                    snapshot
+                        .candidate_source_entities
+                        .insert(metadata.entity_id);
+                }
+                if contract_candidate_kind_matches(
+                    metadata.kind_id,
+                    &contract.candidate_target_kinds,
+                ) {
+                    snapshot
+                        .candidate_target_entities
+                        .insert(metadata.entity_id);
+                }
             }
         }
     }
@@ -1420,20 +1750,21 @@ fn evaluate_uniqueness_contract(
     context: &InvariantExecutionContext<'_>,
     class: InvariantClass,
     contract: &LoweredUniquenessContract,
-) -> Option<InvariantViolation> {
+) -> Vec<InvariantViolation> {
     let Some(scope) = context.relation_integrity_scope(contract.relation_kind_id) else {
-        return None;
+        return Vec::new();
     };
     if scope.is_empty() {
-        return None;
+        return Vec::new();
     }
     context.metrics().count_relation_contracts_evaluated(1);
+    let mut violations = Vec::new();
     match contract.scope {
         UniquenessScope::DirectedSemanticEdge => {
             for (key, count) in &scope.directed_pair_counts {
                 context.metrics().count_relation_uniqueness_checks(1);
                 if *count > 1 {
-                    return Some(relation_violation(
+                    violations.push(relation_violation(
                         class,
                         DiagnosticCode::RelationUniquenessViolation,
                         format!(
@@ -1456,7 +1787,7 @@ fn evaluate_uniqueness_contract(
             for (key, count) in &scope.normalized_pair_counts {
                 context.metrics().count_relation_uniqueness_checks(1);
                 if *count > 1 {
-                    return Some(relation_violation(
+                    violations.push(relation_violation(
                         class,
                         DiagnosticCode::RelationUniquenessViolation,
                         format!(
@@ -1476,27 +1807,28 @@ fn evaluate_uniqueness_contract(
             }
         }
     }
-    None
+    canonicalize_violations(violations)
 }
 
 fn evaluate_symmetry_contract(
     context: &InvariantExecutionContext<'_>,
     class: InvariantClass,
     contract: &LoweredSymmetryContract,
-) -> Option<InvariantViolation> {
+) -> Vec<InvariantViolation> {
     let Some(scope) = context.relation_integrity_scope(contract.relation_kind_id) else {
-        return None;
+        return Vec::new();
     };
     if scope.planned_edges.is_empty() {
-        return None;
+        return Vec::new();
     }
     context.metrics().count_relation_contracts_evaluated(1);
+    let mut violations = Vec::new();
     for edge in &scope.planned_edges {
         context.metrics().count_relation_symmetry_checks(1);
         match contract.mode {
             SymmetryMode::CanonicalUndirected => {
                 if edge.target < edge.source {
-                    return Some(relation_violation(
+                    violations.push(relation_violation(
                         class,
                         DiagnosticCode::RelationSymmetryViolation,
                         format!(
@@ -1525,7 +1857,7 @@ fn evaluate_symmetry_contract(
                     .unwrap_or_default()
                     == 0
                 {
-                    return Some(relation_violation(
+                    violations.push(relation_violation(
                         class,
                         DiagnosticCode::RelationSymmetryViolation,
                         format!(
@@ -1554,7 +1886,7 @@ fn evaluate_symmetry_contract(
                     .unwrap_or_default()
                     > 0
                 {
-                    return Some(relation_violation(
+                    violations.push(relation_violation(
                         class,
                         DiagnosticCode::RelationSymmetryViolation,
                         format!(
@@ -1573,32 +1905,41 @@ fn evaluate_symmetry_contract(
             }
         }
     }
-    None
+    canonicalize_violations(violations)
 }
 
 fn evaluate_endpoint_deletion_integrity_contract(
     context: &InvariantExecutionContext<'_>,
     class: InvariantClass,
     contract: &LoweredEndpointDeletionIntegrityContract,
-) -> Option<InvariantViolation> {
+) -> Vec<InvariantViolation> {
     let Some(scope) = context.relation_integrity_scope(contract.relation_kind_id) else {
-        return None;
+        return Vec::new();
     };
     if scope.deleted_entities.is_empty() {
-        return None;
+        return Vec::new();
     }
     context.metrics().count_relation_contracts_evaluated(1);
+    let mut violations = Vec::new();
     for entity_id in &scope.deleted_entities {
         let endpoint_key = super::request::PreparedRelationEndpointKey {
             entity_id: *entity_id,
         };
-        let live_relations = scope.source_counts.get(&endpoint_key).copied().unwrap_or_default()
-            + scope.target_counts.get(&endpoint_key).copied().unwrap_or_default();
+        let live_relations = scope
+            .source_counts
+            .get(&endpoint_key)
+            .copied()
+            .unwrap_or_default()
+            + scope
+                .target_counts
+                .get(&endpoint_key)
+                .copied()
+                .unwrap_or_default();
         context.metrics().count_relation_endpoint_deletion_checks(1);
         if live_relations > 0 {
             match contract.mode {
                 EndpointDeletionIntegrityMode::RejectDeleteWithLiveRelations => {
-                    return Some(relation_violation(
+                    violations.push(relation_violation(
                         class,
                         DiagnosticCode::RelationEndpointDeletionIntegrityViolation,
                         format!(
@@ -1619,7 +1960,7 @@ fn evaluate_endpoint_deletion_integrity_contract(
                     if contract.cascade_delete_policy
                         != crate::config::data::CascadeDeletePolicy::CascadeDeleteRelations
                     {
-                        return Some(relation_violation(
+                        violations.push(relation_violation(
                             class,
                             DiagnosticCode::RelationEndpointDeletionIntegrityViolation,
                             format!(
@@ -1641,7 +1982,7 @@ fn evaluate_endpoint_deletion_integrity_contract(
                     if contract.cascade_delete_policy
                         != crate::config::data::CascadeDeletePolicy::RetainDanglingForAudit
                     {
-                        return Some(relation_violation(
+                        violations.push(relation_violation(
                             class,
                             DiagnosticCode::RelationEndpointDeletionIntegrityViolation,
                             format!(
@@ -1662,7 +2003,7 @@ fn evaluate_endpoint_deletion_integrity_contract(
             }
         }
     }
-    None
+    canonicalize_violations(violations)
 }
 
 fn entity_kind_in_state(
@@ -1670,7 +2011,10 @@ fn entity_kind_in_state(
     class: InvariantClass,
     entity_id: crate::identity::data::EntityId,
 ) -> Result<Option<crate::identity::data::KindId>, InvariantViolation> {
-    let Some(partition) = context.partition_access().get_partition(entity_id.partition_id) else {
+    let Some(partition) = context
+        .partition_access()
+        .get_partition(entity_id.partition_id)
+    else {
         return Err(storage_inconsistency_violation(
             class,
             format!(
@@ -1687,7 +2031,10 @@ fn entity_kind_in_state(
     let Some(slot) = partition.entity_arena.get(&entity_id) else {
         return Err(storage_inconsistency_violation(
             class,
-            format!("entity endpoint {:?} references missing entity slot", entity_id),
+            format!(
+                "entity endpoint {:?} references missing entity slot",
+                entity_id
+            ),
             json!({
                 "entity_id": entity_id,
                 "partition_id": entity_id.partition_id.0,
@@ -1699,18 +2046,23 @@ fn entity_kind_in_state(
     if slot.lifecycle() != RecordLifecycleState::Live {
         return Ok(None);
     }
-    slot.kind_id().ok_or_else(|| {
-        storage_inconsistency_violation(
-            class,
-            format!("entity endpoint {:?} is live but missing kind id", entity_id),
-            json!({
-                "entity_id": entity_id,
-                "partition_id": entity_id.partition_id.0,
-                "lookup": "entity_kind_in_state",
-                "failure": "missing_kind_id",
-            }),
-        )
-    }).map(Some)
+    slot.kind_id()
+        .ok_or_else(|| {
+            storage_inconsistency_violation(
+                class,
+                format!(
+                    "entity endpoint {:?} is live but missing kind id",
+                    entity_id
+                ),
+                json!({
+                    "entity_id": entity_id,
+                    "partition_id": entity_id.partition_id.0,
+                    "lookup": "entity_kind_in_state",
+                    "failure": "missing_kind_id",
+                }),
+            )
+        })
+        .map(Some)
 }
 
 fn relation_violation(

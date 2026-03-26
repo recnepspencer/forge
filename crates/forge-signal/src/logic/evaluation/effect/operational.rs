@@ -1,13 +1,11 @@
 use serde::{Deserialize, Serialize};
 
 use crate::data::aspect::AspectVersion;
-use crate::data::dependency::{
-    CommittedSnapshotUpdate, DependencySnapshotId, SnapshotDeltaRecord,
-};
+use crate::data::dependency::{CommittedSnapshotUpdate, DependencySnapshotId, SnapshotDeltaRecord};
 use crate::data::graph::DependencySetId;
 use crate::data::handle::NodeId;
 use crate::data::output::OutputChange;
-use crate::data::reuse::{ReuseBasis, ReuseBoundaryContext, ReuseOrigin};
+use crate::data::reuse::{ReuseBasis, ReuseBoundaryAuthority, ReuseOrigin};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SuppressionReason {
@@ -46,7 +44,7 @@ pub struct OperationalEffect {
     pub output_change: OutputChange,
     pub reuse_basis: ReuseBasis,
     pub reuse_origin: ReuseOrigin,
-    pub reuse_boundary_context: ReuseBoundaryContext,
+    pub reuse_boundary_authority: ReuseBoundaryAuthority,
     pub dependency_snapshot_update: CommittedSnapshotUpdate,
     pub snapshot_delta: SnapshotDeltaRecord,
     pub meaningful_input_changes: u32,

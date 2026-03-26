@@ -3,7 +3,8 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::trace::{
-    ArtifactMergeAuthority, ArtifactWriteDelta, MergeAdoptability, RuntimeArtifactState,
+    ArtifactMergeAuthority, ArtifactTransitionKey, ArtifactWriteDelta, MergeAdoptability,
+    RuntimeArtifactState,
 };
 
 use super::{
@@ -19,8 +20,8 @@ pub(crate) fn merge_comparable(
     let runtime = runtime?;
     Some(ArtifactMergeComparable {
         output_identity: runtime.output_identity.clone(),
-        continuity_token: runtime.continuity_token.clone(),
-        reuse_basis: runtime.reuse_basis.clone(),
+        continuity_token: runtime.continuity_token.clone_inner(),
+        reuse_basis: runtime.reuse_basis.clone_inner(),
         dependency_fingerprint: DependencyFingerprint {
             dependency_count: runtime.dependency_count,
             meaningful_input_changes: runtime.meaningful_input_changes,
@@ -52,11 +53,11 @@ pub(crate) fn adopt_source_node_into_target(
                 .get_runtime_artifact_state()
                 .cloned()
             {
-                runtime.lineage_artifact_id = Some(
+                runtime.lineage_artifact_id = ArtifactTransitionKey::new(Some(
                     target_graph
                         .diagnostics_state_mut()
                         .allocate_lineage_artifact_id(),
-                );
+                ));
                 target_graph
                     .get_entry_mut(target_node)?
                     .set_runtime_artifact_state(Some(runtime));
@@ -123,7 +124,7 @@ fn apply_carry_policy(
 
     let retained = match carry_policy.retained_artifact {
         RetainedArtifactCarryPolicy::CarryIfPolicyAllows => {
-            source_entry.retained_diagnostic_artifact().cloned()
+            source_entry.cold_artifact_record().cloned()
         }
         RetainedArtifactCarryPolicy::ReconstructIfNeeded | RetainedArtifactCarryPolicy::Drop => {
             None

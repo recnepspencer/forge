@@ -1,6 +1,6 @@
+use crate::identity::data::KindId;
 use crate::logic::runtime::RelationalRuntime;
 use crate::transactions::data::MergedCommitPlan;
-use crate::identity::data::KindId;
 
 use super::index_view::InvariantIndexView;
 use super::metrics::InvariantMetrics;
@@ -66,5 +66,15 @@ impl<'runtime> InvariantExecutionContext<'runtime> {
 
     pub fn metrics(&self) -> InvariantMetrics<'runtime> {
         InvariantMetrics::new(self.runtime.performance_access())
+    }
+
+    pub fn relation_integrity_scope_budget(
+        &self,
+    ) -> &crate::config::data::RelationIntegrityScopeBudget {
+        &self
+            .runtime
+            .config
+            .execution
+            .relation_integrity_scope_budget
     }
 }

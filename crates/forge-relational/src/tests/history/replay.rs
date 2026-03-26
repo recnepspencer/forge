@@ -9,9 +9,8 @@ use crate::facade::replay::{
 };
 use crate::facade::schema::{
     HistoricalInterpretationSensitivity, ProposedSchemaTransition, SchemaDiffAtom,
-    SchemaDiffDetail, SchemaElementKind, SchemaElementRef, SchemaId,
-    SchemaPublicationImpact, SchemaReconciliationPolicy, SchemaStratum,
-    SchemaSubscriberImpact, SchemaVersionId,
+    SchemaDiffDetail, SchemaElementKind, SchemaElementRef, SchemaId, SchemaPublicationImpact,
+    SchemaReconciliationPolicy, SchemaStratum, SchemaSubscriberImpact, SchemaVersionId,
 };
 use crate::tests::support::*;
 
@@ -30,7 +29,8 @@ fn source_max_one_relation_integrity_runtime() -> RelationalRuntime {
                 target_min: None,
                 pair_max: None,
                 pair_min: None,
-                pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                pair_min_semantics:
+                    crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
                 minimum_enforcement:
                     crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
             }],
@@ -60,7 +60,10 @@ fn schema_transition_for_subscriber_impact(
                 Some(KindId(1)),
                 "tag",
             ),
-            vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
+            vec![
+                SchemaStratum::StructuralShape,
+                SchemaStratum::PublicationContract,
+            ],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             subscriber_impact,
             HistoricalInterpretationSensitivity::NotSensitive,
@@ -70,17 +73,15 @@ fn schema_transition_for_subscriber_impact(
                 default_expression: Some("null".into()),
             },
         )
-        .with_boundary_visibility_proof(
-            match subscriber_impact {
-                SchemaSubscriberImpact::ConsumableSurfaceChanged => {
-                    crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable
-                }
-                SchemaSubscriberImpact::ContractUpgradeRequired => {
-                    crate::schema::data::SubscriberBoundaryVisibility::VisibleRequiresContractUptake
-                }
-                _ => crate::schema::data::SubscriberBoundaryVisibility::NotVisible,
-            },
-        )],
+        .with_boundary_visibility_proof(match subscriber_impact {
+            SchemaSubscriberImpact::ConsumableSurfaceChanged => {
+                crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable
+            }
+            SchemaSubscriberImpact::ContractUpgradeRequired => {
+                crate::schema::data::SubscriberBoundaryVisibility::VisibleRequiresContractUptake
+            }
+            _ => crate::schema::data::SubscriberBoundaryVisibility::NotVisible,
+        })],
     }
 }
 
@@ -99,7 +100,7 @@ fn replay_contract_success_reproduces_canonical_surfaces() {
 
     assert!(runtime.replay_access().compare_outcome(&replay));
     assert_eq!(
-        replay.reconstructed_parent_chain,
+        replay.reconstructed_commit_closure,
         vec![outcome.commit.commit_id]
     );
     assert!(runtime
@@ -127,7 +128,7 @@ fn replay_contract_failure_wrong_branch_is_explicit() {
 }
 
 #[test]
-fn replay_contract_failure_missing_parent_chain_is_explicit() {
+fn replay_contract_failure_missing_authoritative_parent_closure_is_explicit() {
     let mut runtime = runtime_with_test_schema();
     let parent = create_entity_outcome(&mut runtime, "parent");
     let child = create_entity_outcome(&mut runtime, "child");
@@ -145,7 +146,10 @@ fn replay_contract_failure_missing_parent_chain_is_explicit() {
             verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
         });
 
-    assert_eq!(replay.failure, Some(ReplayFailureClass::MissingParentChain));
+    assert_eq!(
+        replay.failure,
+        Some(ReplayFailureClass::MissingAuthoritativeParentClosure)
+    );
 }
 
 #[test]
@@ -196,51 +200,6 @@ fn replay_contract_success_preserves_merge_parent_order() {
     assert!(replay
         .compared_surfaces
         .contains(&ReplayObservableSurface::History));
-}
-
-#[test]
-fn replay_contract_reports_branch_head_drift_at_digest_layer_when_merge_commit_reference_is_tampered(
-) {
-    let mut runtime = runtime_with_test_schema();
-    let _main = create_entity_outcome(&mut runtime, "main");
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("feature".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .unwrap();
-    let _feature =
-        create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
-    let merge = merge_commit_from_branches(
-        &mut runtime,
-        BranchId("main".to_string()),
-        vec![BranchId("feature".to_string())],
-    );
-
-    assert!(runtime.history_authority().tamper_commit_envelope_for_test(
-        merge.commit.commit_id,
-        |envelope| {
-            envelope.commit.parents.reverse();
-        }
-    ));
-
-    let replay = runtime
-        .replay_authority()
-        .replay_commit(RelationalReplayRequest {
-            commit_id: merge.commit.commit_id,
-            branch_id: BranchId("main".to_string()),
-            execution_mode: ReplayExecutionMode::SerialDeterministic,
-            verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
-        });
-
-    assert_eq!(replay.failure, Some(ReplayFailureClass::ObservableMismatch));
-    assert!(replay.mismatches.iter().any(|mismatch| {
-        mismatch.class == ReplayMismatchClass::BranchHeadDrift
-            && mismatch.surface == ReplayObservableSurface::BranchHead
-            && mismatch.verification_layer
-                == crate::facade::replay::ReplayVerificationLayer::DigestParity
-    }), "{:?}", replay.mismatches);
 }
 
 #[test]
@@ -297,12 +256,16 @@ fn replay_contract_reports_diagnostics_drift_at_digest_layer_when_envelope_is_ta
         });
 
     assert_eq!(replay.failure, Some(ReplayFailureClass::ObservableMismatch));
-    assert!(replay.mismatches.iter().any(|mismatch| {
-        mismatch.class == ReplayMismatchClass::DiagnosticsDrift
-            && mismatch.surface == ReplayObservableSurface::Diagnostics
-            && mismatch.verification_layer
-                == crate::facade::replay::ReplayVerificationLayer::DigestParity
-    }), "{:?}", replay.mismatches);
+    assert!(
+        replay.mismatches.iter().any(|mismatch| {
+            mismatch.class == ReplayMismatchClass::DiagnosticsDrift
+                && mismatch.surface == ReplayObservableSurface::Diagnostics
+                && mismatch.verification_layer
+                    == crate::facade::replay::ReplayVerificationLayer::DigestParity
+        }),
+        "{:?}",
+        replay.mismatches
+    );
 }
 
 #[test]
@@ -329,10 +292,13 @@ fn replay_contract_reports_schema_continuation_descriptor_drift_when_envelope_is
                 Some(KindId(1)),
                 "tag",
             ),
-            vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
+            vec![
+                SchemaStratum::StructuralShape,
+                SchemaStratum::PublicationContract,
+            ],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                HistoricalInterpretationSensitivity::NotSensitive,
+            HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
                 field_name: "tag".into(),
                 required: false,
@@ -340,12 +306,10 @@ fn replay_contract_reports_schema_continuation_descriptor_drift_when_envelope_is
             },
         )],
     };
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            proposed_transition,
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        proposed_transition,
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("b"));
     let outcome = txn.commit().unwrap();
 
@@ -368,11 +332,16 @@ fn replay_contract_reports_schema_continuation_descriptor_drift_when_envelope_is
         });
 
     assert_eq!(replay.failure, Some(ReplayFailureClass::ObservableMismatch));
-    assert!(replay.mismatches.iter().any(|mismatch| {
-        mismatch.class == ReplayMismatchClass::SchemaContinuationDescriptorDrift
-            && mismatch.surface == ReplayObservableSurface::History
-            && mismatch.verification_layer == crate::facade::replay::ReplayVerificationLayer::DigestParity
-    }), "{:?}", replay.mismatches);
+    assert!(
+        replay.mismatches.iter().any(|mismatch| {
+            mismatch.class == ReplayMismatchClass::SchemaContinuationDescriptorDrift
+                && mismatch.surface == ReplayObservableSurface::History
+                && mismatch.verification_layer
+                    == crate::facade::replay::ReplayVerificationLayer::DigestParity
+        }),
+        "{:?}",
+        replay.mismatches
+    );
 }
 
 #[test]
@@ -399,10 +368,13 @@ fn replay_contract_audit_mode_confirms_schema_continuation_descriptor_drift_at_d
                 Some(KindId(1)),
                 "tag",
             ),
-            vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
+            vec![
+                SchemaStratum::StructuralShape,
+                SchemaStratum::PublicationContract,
+            ],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                HistoricalInterpretationSensitivity::NotSensitive,
+            HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
                 field_name: "tag".into(),
                 required: false,
@@ -410,12 +382,10 @@ fn replay_contract_audit_mode_confirms_schema_continuation_descriptor_drift_at_d
             },
         )],
     };
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            proposed_transition,
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        proposed_transition,
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("b"));
     let outcome = txn.commit().unwrap();
 
@@ -438,12 +408,16 @@ fn replay_contract_audit_mode_confirms_schema_continuation_descriptor_drift_at_d
         });
 
     assert_eq!(replay.failure, Some(ReplayFailureClass::ObservableMismatch));
-    assert!(replay.mismatches.iter().any(|mismatch| {
-        mismatch.class == ReplayMismatchClass::SchemaContinuationDescriptorDrift
-            && mismatch.surface == ReplayObservableSurface::History
-            && mismatch.verification_layer
-                == crate::facade::replay::ReplayVerificationLayer::DeepArtifactParity
-    }), "{:?}", replay.mismatches);
+    assert!(
+        replay.mismatches.iter().any(|mismatch| {
+            mismatch.class == ReplayMismatchClass::SchemaContinuationDescriptorDrift
+                && mismatch.surface == ReplayObservableSurface::History
+                && mismatch.verification_layer
+                    == crate::facade::replay::ReplayVerificationLayer::DeepArtifactParity
+        }),
+        "{:?}",
+        replay.mismatches
+    );
 }
 
 #[test]
@@ -470,10 +444,13 @@ fn replay_certification_audit_drift_is_explained_and_counted() {
                 Some(KindId(1)),
                 "tag",
             ),
-            vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
+            vec![
+                SchemaStratum::StructuralShape,
+                SchemaStratum::PublicationContract,
+            ],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                HistoricalInterpretationSensitivity::NotSensitive,
+            HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
                 field_name: "tag".into(),
                 required: false,
@@ -481,12 +458,10 @@ fn replay_certification_audit_drift_is_explained_and_counted() {
             },
         )],
     };
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            proposed_transition,
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        proposed_transition,
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("b"));
     let outcome = txn.commit().unwrap();
 
@@ -524,20 +499,16 @@ fn replay_certification_audit_drift_is_explained_and_counted() {
         compatibility_entry.fields["verification_mode"],
         serde_json::json!("AuditRecoveryVerification")
     );
-    assert!(
-        compatibility_entry.fields["mismatch_verification_layers"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|value| value == "DeepArtifactParity")
-    );
-    assert!(
-        compatibility_entry.fields["mismatch_classes"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|value| value == "SchemaContinuationDescriptorDrift")
-    );
+    assert!(compatibility_entry.fields["mismatch_verification_layers"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|value| value == "DeepArtifactParity"));
+    assert!(compatibility_entry.fields["mismatch_classes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|value| value == "SchemaContinuationDescriptorDrift"));
     let counters = runtime.performance_access().counters();
     assert!(counters.replay_deep_artifact_parity_checks >= 1);
     assert_eq!(counters.replay_summary_parity_checks, 0);
@@ -567,10 +538,13 @@ fn replay_contract_reports_schema_lineage_drift_at_summary_layer_when_digest_is_
                 Some(KindId(1)),
                 "tag",
             ),
-            vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
+            vec![
+                SchemaStratum::StructuralShape,
+                SchemaStratum::PublicationContract,
+            ],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                HistoricalInterpretationSensitivity::NotSensitive,
+            HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
                 field_name: "tag".into(),
                 required: false,
@@ -578,12 +552,10 @@ fn replay_contract_reports_schema_lineage_drift_at_summary_layer_when_digest_is_
             },
         )],
     };
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            proposed_transition,
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        proposed_transition,
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("b"));
     let outcome = txn.commit().unwrap();
 
@@ -616,12 +588,16 @@ fn replay_contract_reports_schema_lineage_drift_at_summary_layer_when_digest_is_
         });
 
     assert_eq!(replay.failure, Some(ReplayFailureClass::ObservableMismatch));
-    assert!(replay.mismatches.iter().any(|mismatch| {
-        mismatch.class == ReplayMismatchClass::SchemaLineageDrift
-            && mismatch.surface == ReplayObservableSurface::History
-            && mismatch.verification_layer
-                == crate::facade::replay::ReplayVerificationLayer::SummaryParity
-    }), "{:?}", replay.mismatches);
+    assert!(
+        replay.mismatches.iter().any(|mismatch| {
+            mismatch.class == ReplayMismatchClass::SchemaLineageDrift
+                && mismatch.surface == ReplayObservableSurface::History
+                && mismatch.verification_layer
+                    == crate::facade::replay::ReplayVerificationLayer::SummaryParity
+        }),
+        "{:?}",
+        replay.mismatches
+    );
 }
 
 #[test]
@@ -732,12 +708,16 @@ fn replay_contract_reports_lineage_event_drift_at_digest_layer_when_artifacts_ar
         });
 
     assert_eq!(replay.failure, Some(ReplayFailureClass::ObservableMismatch));
-    assert!(replay.mismatches.iter().any(|mismatch| {
-        mismatch.class == ReplayMismatchClass::LineageDrift
-            && mismatch.surface == ReplayObservableSurface::Lineage
-            && mismatch.verification_layer
-                == crate::facade::replay::ReplayVerificationLayer::DigestParity
-    }), "{:?}", replay.mismatches);
+    assert!(
+        replay.mismatches.iter().any(|mismatch| {
+            mismatch.class == ReplayMismatchClass::LineageDrift
+                && mismatch.surface == ReplayObservableSurface::Lineage
+                && mismatch.verification_layer
+                    == crate::facade::replay::ReplayVerificationLayer::DigestParity
+        }),
+        "{:?}",
+        replay.mismatches
+    );
 }
 
 #[test]
@@ -795,12 +775,16 @@ fn replay_contract_reports_lineage_decision_log_drift_at_digest_layer_when_artif
         });
 
     assert_eq!(replay.failure, Some(ReplayFailureClass::ObservableMismatch));
-    assert!(replay.mismatches.iter().any(|mismatch| {
-        mismatch.class == ReplayMismatchClass::LineageDrift
-            && mismatch.surface == ReplayObservableSurface::Lineage
-            && mismatch.verification_layer
-                == crate::facade::replay::ReplayVerificationLayer::DigestParity
-    }), "{:?}", replay.mismatches);
+    assert!(
+        replay.mismatches.iter().any(|mismatch| {
+            mismatch.class == ReplayMismatchClass::LineageDrift
+                && mismatch.surface == ReplayObservableSurface::Lineage
+                && mismatch.verification_layer
+                    == crate::facade::replay::ReplayVerificationLayer::DigestParity
+        }),
+        "{:?}",
+        replay.mismatches
+    );
 }
 
 #[test]
@@ -810,8 +794,16 @@ fn replay_contract_uses_history_envelope_fallback_basis_only_in_normal_mode() {
     let second = create_entity_outcome(&mut runtime, "target");
     let first_entity = changed_entities(&first)[0];
     let second_entity = changed_entities(&second)[0];
-    let first_lineage = runtime.lineage_access().for_record(first_entity).unwrap().lineage_id;
-    let second_lineage = runtime.lineage_access().for_record(second_entity).unwrap().lineage_id;
+    let first_lineage = runtime
+        .lineage_access()
+        .for_record(first_entity)
+        .unwrap()
+        .lineage_id;
+    let second_lineage = runtime
+        .lineage_access()
+        .for_record(second_entity)
+        .unwrap()
+        .lineage_id;
     let candidate = runtime.lineage_authority().record_correspondence_candidate(
         BranchId("main".to_string()),
         vec![first_lineage],
@@ -852,8 +844,16 @@ fn replay_contract_rejects_history_envelope_fallback_basis_in_audit_mode() {
     let second = create_entity_outcome(&mut runtime, "target");
     let first_entity = changed_entities(&first)[0];
     let second_entity = changed_entities(&second)[0];
-    let first_lineage = runtime.lineage_access().for_record(first_entity).unwrap().lineage_id;
-    let second_lineage = runtime.lineage_access().for_record(second_entity).unwrap().lineage_id;
+    let first_lineage = runtime
+        .lineage_access()
+        .for_record(first_entity)
+        .unwrap()
+        .lineage_id;
+    let second_lineage = runtime
+        .lineage_access()
+        .for_record(second_entity)
+        .unwrap()
+        .lineage_id;
     let candidate = runtime.lineage_authority().record_correspondence_candidate(
         BranchId("main".to_string()),
         vec![first_lineage],
@@ -890,8 +890,16 @@ fn replay_contract_uses_checkpoint_canonical_basis_in_audit_mode_when_durable_lo
     let second = create_entity_outcome(&mut runtime, "target");
     let first_entity = changed_entities(&first)[0];
     let second_entity = changed_entities(&second)[0];
-    let first_lineage = runtime.lineage_access().for_record(first_entity).unwrap().lineage_id;
-    let second_lineage = runtime.lineage_access().for_record(second_entity).unwrap().lineage_id;
+    let first_lineage = runtime
+        .lineage_access()
+        .for_record(first_entity)
+        .unwrap()
+        .lineage_id;
+    let second_lineage = runtime
+        .lineage_access()
+        .for_record(second_entity)
+        .unwrap()
+        .lineage_id;
     let candidate = runtime.lineage_authority().record_correspondence_candidate(
         BranchId("main".to_string()),
         vec![first_lineage],
@@ -951,9 +959,7 @@ fn replay_contract_preserves_metadata_only_promotion_commit_truth_and_recovery()
         .lineage_authority()
         .promote_correspondence(candidate.candidate_id, second.commit.clone())
         .unwrap();
-    let promoted_commit_id = promoted
-        .promoted_commit_id()
-        .expect("promotion commit id");
+    let promoted_commit_id = promoted.promoted_commit_id().expect("promotion commit id");
     let promoted_commit = runtime
         .history_access()
         .branch_head(&BranchId("main".to_string()))
@@ -974,7 +980,9 @@ fn replay_contract_preserves_metadata_only_promotion_commit_truth_and_recovery()
 
     assert!(runtime.replay_access().compare_outcome(&replay));
 
-    let recovery_plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
+    let recovery_plan = runtime.durability_access().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
     let mut recovered = persisted_runtime_with_test_schema();
     recovered
         .durability_authority()
@@ -1023,7 +1031,8 @@ fn replay_contract_reports_derived_index_drift_at_digest_layer_when_artifacts_ar
         commit.commit.commit_id,
         |envelope| {
             if let Some(generation) = envelope.index_generations.first_mut() {
-                generation.status = crate::facade::indexes::DerivedIndexPublicationStatus::BuildFailed;
+                generation.status =
+                    crate::facade::indexes::DerivedIndexPublicationStatus::BuildFailed;
             }
         }
     ));
@@ -1038,12 +1047,16 @@ fn replay_contract_reports_derived_index_drift_at_digest_layer_when_artifacts_ar
         });
 
     assert_eq!(replay.failure, Some(ReplayFailureClass::ObservableMismatch));
-    assert!(replay.mismatches.iter().any(|mismatch| {
-        mismatch.class == ReplayMismatchClass::DerivedIndexDrift
-            && mismatch.surface == ReplayObservableSurface::DerivedIndexes
-            && mismatch.verification_layer
-                == crate::facade::replay::ReplayVerificationLayer::DigestParity
-    }), "{:?}", replay.mismatches);
+    assert!(
+        replay.mismatches.iter().any(|mismatch| {
+            mismatch.class == ReplayMismatchClass::DerivedIndexDrift
+                && mismatch.surface == ReplayObservableSurface::DerivedIndexes
+                && mismatch.verification_layer
+                    == crate::facade::replay::ReplayVerificationLayer::DigestParity
+        }),
+        "{:?}",
+        replay.mismatches
+    );
 }
 
 #[test]
@@ -1077,7 +1090,11 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
     };
     runtime.durability_authority().checkpoint().unwrap();
 
-    let start_lineage = runtime.lineage_access().for_record(anchor).unwrap().lineage_id;
+    let start_lineage = runtime
+        .lineage_access()
+        .for_record(anchor)
+        .unwrap()
+        .lineage_id;
 
     let replay = runtime
         .replay_authority()
@@ -1101,21 +1118,24 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
     let replay_counters = runtime.performance_access().counters();
     assert!(replay_counters.replay_digest_parity_checks > 0);
 
-    let recovery_plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
+    let recovery_plan = runtime.durability_access().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
     let mut recovered =
         persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit);
     recovered
         .durability_authority()
         .recover(recovery_plan)
         .unwrap();
-    let recovered_replay_check = recovered
-        .replay_authority()
-        .replay_commit(RelationalReplayRequest {
-            commit_id: replace_outcome.commit.commit_id,
-            branch_id: BranchId("main".to_string()),
-            execution_mode: ReplayExecutionMode::SerialDeterministic,
-            verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
-        });
+    let recovered_replay_check =
+        recovered
+            .replay_authority()
+            .replay_commit(RelationalReplayRequest {
+                commit_id: replace_outcome.commit.commit_id,
+                branch_id: BranchId("main".to_string()),
+                execution_mode: ReplayExecutionMode::SerialDeterministic,
+                verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
+            });
 
     assert_recovered_commit_truth_matches(
         &mut runtime,
@@ -1125,7 +1145,9 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
         &[relation],
         &[start_lineage],
     );
-    assert!(recovered.replay_access().compare_outcome(&recovered_replay_check));
+    assert!(recovered
+        .replay_access()
+        .compare_outcome(&recovered_replay_check));
     let recovered_bundle =
         capture_aspect_truth_bundle(&mut recovered, &[anchor], &[relation], &[start_lineage]);
     assert_eq!(
@@ -1147,23 +1169,26 @@ fn hostile_commit_replay_equivalence_test() {
     let relation_outcome = create_relation_outcome(&mut runtime, source, target, "net-edge");
     let relation = changed_relations(&relation_outcome)[0];
     create_branch_from_main(&mut runtime, "feature");
-    let _feature_update =
-        update_entity_on_branch(&mut runtime, anchor, "feature-anchor", BranchId("feature".to_string()));
+    let _feature_update = update_entity_on_branch(
+        &mut runtime,
+        anchor,
+        "feature-anchor",
+        BranchId("feature".to_string()),
+    );
 
     runtime.config.schema.registry = AspectSchemaFixture {
         schema_version_id: SchemaVersionId(2),
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut transition_txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
+    let mut transition_txn =
+        runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
             schema_transition_for_subscriber_impact(
                 SchemaVersionId(2),
                 SchemaSubscriberImpact::ConsumableSurfaceChanged,
             ),
             Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+        ));
     transition_txn.push_batch(batch_create("after-boundary"));
     let _transition_outcome = transition_txn.commit().unwrap();
 
@@ -1174,7 +1199,11 @@ fn hostile_commit_replay_equivalence_test() {
     );
     runtime.durability_authority().checkpoint().unwrap();
 
-    let anchor_lineage = runtime.lineage_access().for_record(anchor).unwrap().lineage_id;
+    let anchor_lineage = runtime
+        .lineage_access()
+        .for_record(anchor)
+        .unwrap()
+        .lineage_id;
     let original_bundle =
         capture_aspect_truth_bundle(&mut runtime, &[anchor], &[relation], &[anchor_lineage]);
     let original_inspection = capture_inspection_truth_bundle(
@@ -1235,7 +1264,9 @@ fn hostile_commit_replay_equivalence_test() {
         format!("{:?}", &original_inspection.record_retention),
     ));
 
-    let recovery_plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
+    let recovery_plan = runtime.durability_access().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
     let mut recovered = RelationalRuntimeApi::builder()
         .profile(RelationalRuntimeProfile::CertificationCore)
         .schema_registry(
@@ -1296,7 +1327,10 @@ fn hostile_commit_replay_equivalence_test() {
             &recovered_bundle.lineage_history_digests,
         ))
     );
-    assert_eq!(patch_digest, certification_digest(&recovered_envelope.patch));
+    assert_eq!(
+        patch_digest,
+        certification_digest(&recovered_envelope.patch)
+    );
     assert_eq!(
         lineage_digest,
         certification_digest(&(
@@ -1433,7 +1467,8 @@ fn replay_contract_preserves_relation_integrity_declared_schema() {
 }
 
 #[test]
-fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejected_feature_attempt() {
+fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejected_feature_attempt()
+{
     let mut runtime = source_max_one_relation_integrity_runtime();
     let source = create_entity(&mut runtime, "source");
     let target_a = create_entity(&mut runtime, "target-a");
@@ -1451,9 +1486,9 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
             target_branch: Some(BranchId("feature".to_string())),
             ..TransactionOptions::default()
         });
-        txn.push_batch(
-            WorkerIntentBatch::new("accepted-feature-relation").push(MutationIntent::Create(
-                CreateIntent::Relation(crate::transactions::data::RelationSpec {
+        txn.push_batch(WorkerIntentBatch::new("accepted-feature-relation").push(
+            MutationIntent::Create(CreateIntent::Relation(
+                crate::transactions::data::RelationSpec {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(2),
                     client_key: InternedString::Raw("feature-accepted".to_string()),
@@ -1462,9 +1497,9 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
                     payload: Some(RecordPayload::StructuredJson(
                         json!({"label":"feature-accepted"}),
                     )),
-                }),
+                },
             )),
-        );
+        ));
         txn.commit().unwrap()
     };
     let feature_head_before_reject = runtime
@@ -1476,9 +1511,9 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
         target_branch: Some(BranchId("feature".to_string())),
         ..TransactionOptions::default()
     });
-    rejected_txn.push_batch(
-        WorkerIntentBatch::new("rejected-feature-relation").push(MutationIntent::Create(
-            CreateIntent::Relation(crate::transactions::data::RelationSpec {
+    rejected_txn.push_batch(WorkerIntentBatch::new("rejected-feature-relation").push(
+        MutationIntent::Create(CreateIntent::Relation(
+            crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("feature-rejected".to_string()),
@@ -1487,9 +1522,9 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
                 payload: Some(RecordPayload::StructuredJson(
                     json!({"label":"feature-rejected"}),
                 )),
-            }),
+            },
         )),
-    );
+    ));
     let rejected = rejected_txn.commit().unwrap_err();
 
     match rejected {
@@ -1499,7 +1534,9 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
         other => panic!("expected conflict, got {:?}", other),
     }
     assert_eq!(
-        runtime.history_access().branch_head(&BranchId("feature".to_string())),
+        runtime
+            .history_access()
+            .branch_head(&BranchId("feature".to_string())),
         feature_head_before_reject.as_ref()
     );
 
@@ -1525,7 +1562,3 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
         accepted_feature.commit.commit_id
     );
 }
-
-
-
-

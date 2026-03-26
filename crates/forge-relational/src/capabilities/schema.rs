@@ -84,7 +84,10 @@ impl AspectPlanSource for RelationalRuntime {
         &self,
         kind_id: crate::identity::data::KindId,
     ) -> Option<&LoweredRelationIntegrityPlan> {
-        self.aspect_semantics.relation_integrity_plans.relation_plans.get(&kind_id)
+        self.aspect_semantics
+            .relation_integrity_plans
+            .relation_plans
+            .get(&kind_id)
     }
 }
 

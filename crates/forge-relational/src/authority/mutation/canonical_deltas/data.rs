@@ -5,9 +5,9 @@ use crate::identity::data::EntityId;
 use crate::payloads::data::RecordPayload;
 use crate::publication::patch::data::{AspectKey, CanonicalAspectSet, RecordStructuralChange};
 use crate::schema::data::{AspectPlanRevision, AspectPrecision};
-use crate::transactions::data::RecordRef;
 use crate::transactions::data::CommitConflict;
 use crate::transactions::data::ConflictClass;
+use crate::transactions::data::RecordRef;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct CanonicalRecordAspectDelta {
@@ -81,9 +81,12 @@ pub(crate) enum BindingEvaluationContext<'a> {
 impl<'a> BindingEvaluationContext<'a> {
     pub(crate) fn structural_change(self) -> RecordStructuralChange {
         match self {
-            Self::Entity { structural_change, .. } | Self::Relation { structural_change, .. } => {
-                structural_change
+            Self::Entity {
+                structural_change, ..
             }
+            | Self::Relation {
+                structural_change, ..
+            } => structural_change,
         }
     }
 
@@ -101,7 +104,12 @@ impl<'a> BindingEvaluationContext<'a> {
 
     pub(crate) fn relation_endpoints(
         self,
-    ) -> Option<(Option<EntityId>, Option<EntityId>, Option<EntityId>, Option<EntityId>)> {
+    ) -> Option<(
+        Option<EntityId>,
+        Option<EntityId>,
+        Option<EntityId>,
+        Option<EntityId>,
+    )> {
         match self {
             Self::Entity { .. } => None,
             Self::Relation {

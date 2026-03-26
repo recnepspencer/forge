@@ -5,7 +5,7 @@ use crate::diagnostics::data::{
 };
 use crate::lineage::data::{
     CorrespondencePromotionExecutionFailureClass, CorrespondenceResolution, LineageDecisionKind,
-    LineageFinalizationArtifact, LineageEventKind,
+    LineageEventKind, LineageFinalizationArtifact,
 };
 use crate::lineage::logic::authority::phase_types::{
     ExecutionAuthorizedPromotionPlan, LoweredPromotionPlan,
@@ -21,23 +21,21 @@ impl<'runtime> LineageAuthority<'runtime> {
         let plan = match self.authorize_promotion_execution(plan) {
             Ok(plan) => plan,
             Err(failure_class) => {
-                self.record_execution_failure_diagnostic(
-                    None,
-                    0,
-                    failure_class,
-                );
-                return CorrespondenceResolution::execution_failed(
-                    candidate_id,
-                    0,
-                    failure_class,
-                );
+                self.record_execution_failure_diagnostic(None, 0, failure_class);
+                return CorrespondenceResolution::execution_failed(candidate_id, 0, failure_class);
             }
         };
         let event = self.prepare_authoritative_lineage_event(
             plan.commit(),
             LineageEventKind::Correspond,
-            plan.sources().iter().map(|entry| entry.lineage_id()).collect(),
-            plan.targets().iter().map(|entry| entry.lineage_id()).collect(),
+            plan.sources()
+                .iter()
+                .map(|entry| entry.lineage_id())
+                .collect(),
+            plan.targets()
+                .iter()
+                .map(|entry| entry.lineage_id())
+                .collect(),
         );
         let event_id = event.event_id;
         let decision = self.accepted_decision_record(
@@ -47,18 +45,16 @@ impl<'runtime> LineageAuthority<'runtime> {
         );
         let artifact =
             LineageFinalizationArtifact::single_event(plan.branch_id().clone(), event, decision);
-        self.runtime.performance_access().count_lineage_finalization(
-            artifact.event_batch().events().len(),
-            artifact.decision_log().decisions().len(),
-        );
+        self.runtime
+            .performance_access()
+            .count_lineage_finalization(
+                artifact.event_batch().events().len(),
+                artifact.decision_log().decisions().len(),
+            );
         let promotion_commit = match self.publish_promotion_commit(&plan, &artifact) {
             Ok(commit) => commit,
             Err(failure_class) => {
-                self.record_execution_failure_diagnostic(
-                    Some(&plan),
-                    event_id,
-                    failure_class,
-                );
+                self.record_execution_failure_diagnostic(Some(&plan), event_id, failure_class);
                 return CorrespondenceResolution::execution_failed(
                     plan.candidate_id(),
                     event_id,

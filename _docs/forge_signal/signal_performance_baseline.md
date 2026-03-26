@@ -476,3 +476,108 @@ Final QA rerun note:
   - `dependency_input_replacement_count = 12288`
   - `dependency_input_stable_shape_count = 64`
 - treat those branch counts as the stable truth; treat the elapsed spread as ordinary local perf noise unless repeated medians move together.
+
+### March 24, 2026 Most Recent Validated Reference
+
+Captured after the Milestone 2 hot/cold and compact reuse-authority pass with the acceptance set run serially and explicitly:
+
+```bash
+cargo test -p forge-signal
+FORGE_SIGNAL_PERF_SAMPLES=3 cargo test -p forge-signal tests::performance_profiles::perf_dependency_reconciliation_stable_shape_staged_serial -- --ignored --nocapture --test-threads=1
+FORGE_SIGNAL_PERF_SAMPLES=3 cargo test -p forge-signal tests::performance_profiles::perf_dependency_reconciliation_rotating_window_staged_serial -- --ignored --nocapture --test-threads=1
+FORGE_SIGNAL_PERF_SAMPLES=3 cargo test -p forge-signal tests::performance_profiles::perf_dependency_reconciliation_rotating_window_serial -- --ignored --nocapture --test-threads=1
+FORGE_SIGNAL_PERF_SAMPLES=3 cargo test -p forge-signal tests::performance_profiles::perf_topology_rewiring_rotating_window_serial -- --ignored --nocapture --test-threads=1
+FORGE_SIGNAL_PERF_SAMPLES=3 cargo test -p forge-signal tests::performance_profiles::perf_fintech_mixed_fanout_profile_matrix -- --ignored --nocapture --test-threads=1
+```
+
+This section supersedes earlier March 24 notes when the goal is to answer "what is the most recent validated reference on this machine/code state?"
+
+#### Acceptance Summary
+
+| Workload | Current Median (us) | Primary Prior Reference (us) | Interpretation |
+| --- | ---: | ---: | --- |
+| dependency reconciliation stable-shape / staged | 131100 | 134347 | Slightly better than the Milestone 3 acceptance reference; stable-shape lane remains healthy. |
+| dependency reconciliation rotating window / staged | 124496 | 195517 | Large improvement versus the later QA replacement-heavy band; effectively back to the earlier March 23 best-seen band (`124814 us`). |
+| dependency reconciliation rotating window / serial | 19462 | 18718 | Same general performance band; not the primary acceptance lane. |
+| topology rewiring rotating window / serial | 81685 | 78455 | Slightly slower than the March 23 hardened baseline; still a likely Milestone 4 locality/control-plane target. |
+| fintech mixed fanout / operational | 10237 | 11142 | Slightly better than the March 23 hardened baseline. |
+| fintech mixed fanout / development | 15606 | 17213 | Better than the March 23 hardened baseline, but rich-profile overhead remains visible. |
+| fintech mixed fanout / forensic | 15330 | 17111 | Better than the March 23 hardened baseline, but still materially above operational cost. |
+
+#### Stable-Shape Acceptance Lane
+
+`perf_dependency_reconciliation_stable_shape_staged_serial`
+
+| Metric | Current Median |
+| --- | ---: |
+| elapsed | 131100 us |
+| dependency_input_replacement_count | 0 |
+| dependency_input_stable_shape_count | 13824 |
+| dependency_input_build_nanos | 5553600 ns |
+| dependency_reconcile_nanos | 2426600 ns |
+| snapshot_batch_commit_nanos | 9518000 ns |
+
+Interpretation:
+
+- this remains the correct Milestone 3 acceptance lane
+- the stable-shape classification stayed intact after Milestone 2 work
+- current elapsed is still in the accepted band and slightly better than the `134347 us` acceptance reference
+- snapshot batch commit is now the fattest named subphase in the representative sample
+
+#### Structural-Replacement Staged Lane
+
+`perf_dependency_reconciliation_rotating_window_staged_serial`
+
+| Metric | Current Median |
+| --- | ---: |
+| elapsed | 124496 us |
+| dependency_input_replacement_count | 12288 |
+| dependency_input_stable_shape_count | 64 |
+| dependency_input_build_nanos | 11336600 ns |
+| dependency_input_replacement_build_nanos | 7498800 ns |
+| dependency_reconcile_nanos | 8093200 ns |
+| snapshot_batch_commit_nanos | 7589200 ns |
+| rewiring_apply_count | 12288 |
+| dependency_capture_updates | 24576 |
+
+Interpretation:
+
+- this remains a structural-replacement-heavy staged lane, not a stable-shape acceptance lane
+- Milestone 2 materially improved the lane that actually belongs to its problem space
+- the biggest named costs remain replacement-input build and dependency reconciliation
+- snapshot batch commit is still meaningful, but no longer dominates the way the replacement lane used to
+
+#### Other Current References
+
+`perf_dependency_reconciliation_rotating_window_serial`
+
+| Metric | Current Median |
+| --- | ---: |
+| elapsed | 19462 us |
+
+`perf_topology_rewiring_rotating_window_serial`
+
+| Metric | Current Median |
+| --- | ---: |
+| elapsed | 81685 us |
+
+Interpretation:
+
+- the serial rotating-window reconciliation lane remains healthy enough, but it is not the main certification story
+- the topology rewiring rotating-window lane is still the clearest remaining locality/control-plane pressure case heading into Milestone 4
+
+#### Fintech Fanout Matrix
+
+`perf_fintech_mixed_fanout_profile_matrix`
+
+| Profile | Current Median (us) | Notes |
+| --- | ---: | --- |
+| operational | 10237 | Better than the March 23 hardened baseline (`11142 us`). |
+| development | 15606 | Better than the March 23 hardened baseline (`17213 us`), but still materially above operational. |
+| forensic | 15330 | Better than the March 23 hardened baseline (`17111 us`), but still materially above operational. |
+
+Interpretation:
+
+- the workload remains operationally sane after Milestone 2
+- rich-profile cost is still visible and is not yet in the "free" regime we would want for aerospace-grade confidence
+- this matrix, together with topology rewiring rotating-window, is a good Milestone 4 scorecard because both punish poor locality and mixed hot/cold traversal cost

@@ -40,13 +40,14 @@ fn historical_lineage_resolution_follows_replace_events() {
         )),
     );
     let outcome = txn.commit().unwrap();
-    let resolution = runtime
-        .lineage_access()
-        .resolve_historical_lineage(HistoricalResolutionRequest {
-            branch_id: BranchId("main".to_string()),
-            lineage_id: start_lineage,
-            boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
-        });
+    let resolution =
+        runtime
+            .lineage_access()
+            .resolve_historical_lineage(HistoricalResolutionRequest {
+                branch_id: BranchId("main".to_string()),
+                lineage_id: start_lineage,
+                boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
+            });
 
     assert_eq!(resolution.start, start_lineage);
     assert_eq!(
@@ -125,13 +126,14 @@ fn historical_lineage_resolution_does_not_scan_unrelated_branch_events() {
         .metrics
         .event_count;
 
-    let resolution = runtime
-        .lineage_access()
-        .resolve_historical_lineage(HistoricalResolutionRequest {
-            branch_id: BranchId("main".to_string()),
-            lineage_id: start_lineage,
-            boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
-        });
+    let resolution =
+        runtime
+            .lineage_access()
+            .resolve_historical_lineage(HistoricalResolutionRequest {
+                branch_id: BranchId("main".to_string()),
+                lineage_id: start_lineage,
+                boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
+            });
 
     assert_eq!(resolution.metrics.traversed_event_count, 1);
     assert_eq!(resolution.metrics.branch_event_scan_count, 1);

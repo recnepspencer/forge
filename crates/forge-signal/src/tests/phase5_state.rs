@@ -1882,6 +1882,7 @@ fn checkpoint_image_strips_node_local_cold_payloads_while_snapshot_bundle_retain
             keyed_family: Some("airframe".to_string()),
             keyed_key: Some("wing".to_string()),
             reuse_certification: None,
+            reuse_boundary_context: None,
         }));
         entry.set_causality(Some(CausalityMetadata {
             kind: "bridge".to_string(),
@@ -1996,6 +1997,7 @@ fn restore_uses_checkpoint_authority_even_when_rich_snapshot_node_cold_payloads_
             keyed_family: Some("airframe".to_string()),
             keyed_key: Some("fuselage".to_string()),
             reuse_certification: None,
+            reuse_boundary_context: None,
         }));
         entry.set_causality(Some(CausalityMetadata {
             kind: "capture".to_string(),

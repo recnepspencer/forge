@@ -107,8 +107,8 @@ impl<'a> GraphInspector<'a> {
                 .graph
                 .get_entry(node)
                 .ok()
-                .and_then(|entry| entry.get_runtime_artifact_state())
-                .and_then(|state| state.execution_record_id)
+                .and_then(|entry| entry.execution_trace_stamp())
+                .and_then(|stamp| stamp.execution_record_id)
                 .is_some()
             {
                 nodes.push(node);
@@ -238,8 +238,8 @@ impl<'a> ExecutionInspector<'a> {
                 .graph
                 .get_entry(node)
                 .ok()
-                .and_then(|entry| entry.get_runtime_artifact_state())
-                .and_then(|state| state.execution_record_id);
+                .and_then(|entry| entry.execution_trace_stamp())
+                .and_then(|stamp| stamp.execution_record_id);
             if let Some(current) = current {
                 latest = Some(latest.map_or(current, |seen: u64| seen.max(current)));
             }

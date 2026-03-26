@@ -260,6 +260,315 @@ fn explicit_retained_and_reconstructed_artifact_apis_match_policy() {
 }
 
 #[test]
+fn retained_and_reconstructed_artifacts_preserve_semantic_parity() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().partitioned_output().build();
+    let dependent = graph.node().build();
+    graph
+        .append_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
+        .unwrap();
+    graph.set_runtime_policy(SignalRuntimePolicy::development());
+
+    let bootstrap = graph
+        .build_evaluation_plan(&[source, dependent], EvaluationRequestMode::ForceOnDemand)
+        .unwrap();
+    graph
+        .execute_prepared_plan_with_precompute(&bootstrap, &|node, view| {
+            let result = if node == source {
+                view.finish(
+                    NodeEvaluationResult::from_version(version_ab(5, 0))
+                        .with_changed_region(ChangedRegion::new("wing").with_detail("rib-12"))
+                        .with_label("source-region"),
+                )
+            } else {
+                let version = view.read_partitioned_aspect_version(
+                    source,
+                    ASPECT_A,
+                    PartitionSubscription::partition_and_detail("wing", "rib-12"),
+                )?;
+                view.finish(
+                    NodeEvaluationResult::from_version(version)
+                        .with_output_identity("dependent-rib")
+                        .with_label("dependent-label"),
+                )
+            };
+            Ok(result)
+        })
+        .unwrap();
+
+    let retained_explanation = graph
+        .observe()
+        .materialize()
+        .retained_explanation_artifact(dependent)
+        .expect("development mode should retain explanation artifacts");
+    let reconstructed_explanation = graph
+        .reconstruct_explanation_artifact_without_retained_fast_path(dependent)
+        .unwrap();
+    assert_eq!(retained_explanation.upstream, reconstructed_explanation.upstream);
+    assert_eq!(
+        retained_explanation.historical_artifact_record,
+        reconstructed_explanation.historical_artifact_record
+    );
+    assert_eq!(
+        retained_explanation.causal_links,
+        reconstructed_explanation.causal_links
+    );
+    assert_eq!(
+        retained_explanation.changed_regions,
+        reconstructed_explanation.changed_regions
+    );
+    assert_eq!(
+        retained_explanation.reuse_certification,
+        reconstructed_explanation.reuse_certification
+    );
+    let retained_historical = graph
+        .observe()
+        .materialize()
+        .materialize_historical_artifact_record(dependent)
+        .unwrap()
+        .unwrap();
+    let retained_trace = graph
+        .observe()
+        .materialize()
+        .materialize_trace_summary(dependent)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        crate::data::trace::SemanticArtifactParity::from_historical_artifact_record(
+            &retained_historical
+        ),
+        crate::data::trace::SemanticArtifactParity::from_trace_summary(&retained_trace)
+    );
+
+    let retained_provenance = graph
+        .observe()
+        .materialize()
+        .retained_provenance_artifact(dependent)
+        .expect("development mode should retain provenance artifacts");
+    let reconstructed_provenance = graph
+        .reconstruct_provenance_artifact_without_retained_fast_path(dependent)
+        .unwrap();
+    assert_eq!(retained_provenance.vertices, reconstructed_provenance.vertices);
+    assert_eq!(retained_provenance.edges, reconstructed_provenance.edges);
+    assert_eq!(
+        retained_provenance.causal_links,
+        reconstructed_provenance.causal_links
+    );
+    assert_eq!(retained_provenance.rewiring, reconstructed_provenance.rewiring);
+    let reconstructed_historical = reconstructed_explanation
+        .historical_artifact_record
+        .clone()
+        .expect("reconstructed explanation should carry historical artifact record");
+    assert_eq!(
+        crate::data::trace::SemanticArtifactParity::from_historical_artifact_record(
+            &retained_historical
+        ),
+        crate::data::trace::SemanticArtifactParity::from_historical_artifact_record(
+            &reconstructed_historical
+        )
+    );
+}
+
+#[test]
+fn hot_effect_path_only_retains_cold_artifact_records_when_policy_requires_it() {
+    let mut development = SignalGraph::new();
+    let dev_source = development.node().build();
+    let dev_dependent = development.node().build();
+    development
+        .append_dependency(dev_dependent, dev_source, ASPECT_A)
+        .unwrap();
+    development.set_runtime_policy(SignalRuntimePolicy::development());
+
+    let dev_bootstrap = development
+        .build_evaluation_plan(
+            &[dev_source, dev_dependent],
+            EvaluationRequestMode::ForceOnDemand,
+        )
+        .unwrap();
+    development
+        .execute_prepared_plan_with_precompute(&dev_bootstrap, &|node, view| {
+            let result = if node == dev_source {
+                view.finish(version_ab(7, 0))
+            } else {
+                let version = view.read_aspect_version(dev_source, ASPECT_A)?;
+                view.finish(
+                    NodeEvaluationResult::from_version(version)
+                        .with_output_identity("retained-development")
+                        .with_label("development-retained"),
+                )
+            };
+            Ok(result)
+        })
+        .unwrap();
+
+    assert!(
+        development
+            .get_entry(dev_dependent)
+            .unwrap()
+            .retained_diagnostic_artifact()
+            .is_some(),
+        "development retention should keep cold artifact richness on-node"
+    );
+    assert!(
+        development
+            .observe()
+            .metrics()
+            .storage
+            .hot_path_artifact_retention_count
+            > 0
+    );
+    assert!(
+        development
+            .observe()
+            .metrics()
+            .storage
+            .hot_write_runtime_artifact_count
+            > 0
+    );
+    assert!(
+        development
+            .observe()
+            .metrics()
+            .storage
+            .hot_write_cold_record_materialization_count
+            > 0
+    );
+    assert_eq!(
+        development
+            .observe()
+            .metrics()
+            .storage
+            .hot_write_cold_bypass_count,
+        0
+    );
+    assert!(
+        development
+            .observe()
+            .metrics()
+            .storage
+            .eager_cold_artifact_materialization_count
+            > 0
+    );
+    assert_eq!(
+        development
+            .observe()
+            .metrics()
+            .storage
+            .deferred_cold_artifact_bypass_count,
+        0
+    );
+
+    let mut omitted = SignalGraph::new();
+    let op_source = omitted.node().build();
+    let op_dependent = omitted.node().build();
+    omitted
+        .append_dependency(op_dependent, op_source, ASPECT_A)
+        .unwrap();
+    omitted.set_runtime_policy(
+        SignalRuntimePolicy::operational()
+            .with_explanation_retention(ArtifactRetentionPolicy::Omit)
+            .with_provenance_retention(ArtifactRetentionPolicy::Omit),
+    );
+
+    let op_bootstrap = omitted
+        .build_evaluation_plan(
+            &[op_source, op_dependent],
+            EvaluationRequestMode::ForceOnDemand,
+        )
+        .unwrap();
+    omitted
+        .execute_prepared_plan_with_precompute(&op_bootstrap, &|node, view| {
+            let result = if node == op_source {
+                view.finish(version_ab(7, 0))
+            } else {
+                let version = view.read_aspect_version(op_source, ASPECT_A)?;
+                view.finish(
+                    NodeEvaluationResult::from_version(version)
+                        .with_output_identity("retained-operational")
+                        .with_label("operational-cold-seed"),
+                )
+            };
+            Ok(result)
+        })
+        .unwrap();
+
+    assert!(
+        omitted
+            .get_entry(op_dependent)
+            .unwrap()
+            .retained_diagnostic_artifact()
+            .is_none(),
+        "omit retention should keep cold artifact richness off the hot node lane"
+    );
+    assert_eq!(
+        omitted
+            .observe()
+            .metrics()
+            .storage
+            .hot_path_artifact_retention_count,
+        0,
+        "omit mode should not report eager cold artifact retention"
+    );
+    assert_eq!(
+        omitted
+            .observe()
+            .metrics()
+            .storage
+            .hot_write_cold_record_materialization_count,
+        0
+    );
+    assert!(
+        omitted
+            .observe()
+            .metrics()
+            .storage
+            .hot_write_runtime_artifact_count
+            > 0
+    );
+    assert!(
+        omitted
+            .observe()
+            .metrics()
+            .storage
+            .hot_write_cold_bypass_count
+            > 0
+    );
+    assert_eq!(
+        omitted
+            .observe()
+            .metrics()
+            .storage
+            .eager_cold_artifact_materialization_count,
+        0
+    );
+    assert!(
+        omitted
+            .observe()
+            .metrics()
+            .storage
+            .deferred_cold_artifact_bypass_count
+            > 0,
+        "omit mode should prove that cold artifact assembly was bypassed by policy"
+    );
+    assert!(
+        omitted
+            .observe()
+            .metrics()
+            .storage
+            .hot_runtime_artifact_inline_size_bytes
+            > 0
+    );
+    assert!(
+        omitted
+            .observe()
+            .metrics()
+            .storage
+            .cold_artifact_record_inline_size_bytes
+            > 0
+    );
+}
+
+#[test]
 fn market_runtime_policy_presets_expose_distinct_operational_shapes() {
     let kernel = SignalRuntimePolicy::kernel();
     let fintech = SignalRuntimePolicy::fintech();
@@ -678,30 +987,31 @@ fn explanation_surfaces_retained_reuse_certification() {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
     let entry = graph.get_entry_mut(node).unwrap();
+    let reuse_boundary_context = ReuseBoundaryContext {
+        topology_regime: 1,
+        tolerance_regime: VersionComparatorPolicy::Exact,
+        semantic_region: ReuseSemanticRegionIdentity::new(
+            node,
+            false,
+            Vec::new(),
+            ContextRequirement::None,
+        ),
+        authority_policy: AuthorityPolicy::SpeculativeThenReconcile,
+        artifact_family: None,
+        structural_dependency_basis: crate::data::dependency::DependencySnapshotId::EMPTY,
+        partition_region_basis: PartitionScopeSet::default(),
+        strategy_detail: crate::data::reuse::ReuseStrategyBoundaryContext::None,
+    };
     entry.set_runtime_artifact_state(Some(RuntimeArtifactState {
         recomputed: false,
         memoized_origin: MemoizedResultOrigin::MemoizedFromCache,
         reuse_origin: crate::data::reuse::ReuseOrigin::MemoizedArtifactReuse,
-        reuse_basis: ReuseBasis::strategy(
+        reuse_basis: crate::data::trace::ReuseOperationalBasis::new(ReuseBasis::strategy(
             crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse,
             ReuseSource::MemoizedArtifact,
             ReuseCrossing::None,
-        ),
-        reuse_boundary_context: Some(ReuseBoundaryContext {
-            topology_regime: 1,
-            tolerance_regime: VersionComparatorPolicy::Exact,
-            semantic_region: ReuseSemanticRegionIdentity::new(
-                node,
-                false,
-                Vec::new(),
-                ContextRequirement::None,
-            ),
-            authority_policy: AuthorityPolicy::SpeculativeThenReconcile,
-            artifact_family: None,
-            structural_dependency_basis: crate::data::dependency::DependencySnapshotId::EMPTY,
-            partition_region_basis: PartitionScopeSet::default(),
-            strategy_detail: crate::data::reuse::ReuseStrategyBoundaryContext::None,
-        }),
+        )),
+        reuse_boundary_authority: Some(reuse_boundary_context.authority()),
         ..RuntimeArtifactState::default()
     }));
     entry.set_retained_diagnostic_artifact(Some(RetainedDiagnosticArtifact {
@@ -719,6 +1029,7 @@ fn explanation_surfaces_retained_reuse_certification() {
                 satisfied: true,
             }],
         }),
+        reuse_boundary_context: Some(reuse_boundary_context),
     }));
 
     let explanation = graph.observe().explain(node).unwrap();
@@ -738,6 +1049,83 @@ fn explanation_surfaces_retained_reuse_certification() {
         Some(1)
     );
     assert!(format!("{explanation}").contains("Reuse certification proofs: 1"));
+}
+
+#[test]
+fn reuse_boundary_detail_lives_in_cold_retained_lane_while_hot_runtime_keeps_compact_authority() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let reuse_boundary_context = ReuseBoundaryContext {
+        topology_regime: 7,
+        tolerance_regime: VersionComparatorPolicy::Exact,
+        semantic_region: ReuseSemanticRegionIdentity::new(
+            node,
+            true,
+            vec![PartitionSubscription::whole_partition("wing")],
+            ContextRequirement::RelationalSnapshot,
+        ),
+        authority_policy: AuthorityPolicy::SpeculativeThenReconcile,
+        artifact_family: Some(crate::data::reuse::ArtifactFamilyId::new("projection")),
+        structural_dependency_basis: crate::data::dependency::DependencySnapshotId::EMPTY,
+        partition_region_basis: PartitionScopeSet::new([PartitionSubscription::whole_partition(
+            "wing",
+        )]),
+        strategy_detail: crate::data::reuse::ReuseStrategyBoundaryContext::CrossIdentity {
+            persistent_correspondence:
+                crate::data::reuse::PersistentCorrespondenceEvidence::LineageBackedMapping(
+                    "lineage-map:wing-a->wing-b".to_string(),
+                ),
+        },
+    };
+    let entry = graph.get_entry_mut(node).unwrap();
+    entry.set_runtime_artifact_state(Some(RuntimeArtifactState {
+        reuse_origin: crate::data::reuse::ReuseOrigin::CrossIdentityPersistentReuse,
+        reuse_basis: crate::data::trace::ReuseOperationalBasis::new(ReuseBasis::strategy(
+            crate::data::reuse::ReuseStrategy::CrossIdentityPersistentMatch,
+            ReuseSource::PersistentCorrespondence,
+            ReuseCrossing::PersistentIdentityBoundary,
+        )),
+        reuse_boundary_authority: Some(reuse_boundary_context.authority()),
+        ..RuntimeArtifactState::default()
+    }));
+    entry.set_retained_diagnostic_artifact(Some(RetainedDiagnosticArtifact {
+        changed_regions: CanonicalChangedRegions::default(),
+        labels: Vec::new(),
+        keyed_family: None,
+        keyed_key: None,
+        reuse_certification: None,
+        reuse_boundary_context: Some(reuse_boundary_context.clone()),
+    }));
+
+    let runtime = graph
+        .observe()
+        .runtime_artifact_state(node)
+        .unwrap()
+        .cloned()
+        .expect("runtime artifact");
+    assert_eq!(
+        runtime
+            .reuse_boundary_authority
+            .as_ref()
+            .and_then(|authority| authority.persistent_correspondence_kind()),
+        Some(crate::data::reuse::PersistentCorrespondenceKind::LineageBackedMapping)
+    );
+    assert!(
+        std::mem::size_of::<crate::data::reuse::ReuseBoundaryAuthority>()
+            < std::mem::size_of::<ReuseBoundaryContext>(),
+        "hot reuse authority should stay smaller than the rich cold context"
+    );
+
+    let trace_summary = graph
+        .observe()
+        .materialize()
+        .materialize_trace_summary(node)
+        .unwrap()
+        .expect("trace summary");
+    assert_eq!(
+        trace_summary.reuse_boundary_context,
+        Some(reuse_boundary_context)
+    );
 }
 
 #[test]

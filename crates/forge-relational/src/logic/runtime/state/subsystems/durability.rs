@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::history::data::CommitId;
 use crate::durability::data::{DurableCheckpoint, DurableStore};
+use crate::history::data::CommitId;
 use crate::logic::runtime::state::subsystems::RuntimeSubsystem;
 use crate::logic::runtime::RelationalRuntimeConfig;
 use crate::replay::data::CanonicalCommitEnvelope;
@@ -69,7 +69,8 @@ impl DurabilitySubsystem {
     pub(crate) fn rebuild_log_commit_index(&mut self) {
         self.log_commit_index.clear();
         for (index, envelope) in self.log.iter().enumerate() {
-            self.log_commit_index.insert(envelope.commit.commit_id, index);
+            self.log_commit_index
+                .insert(envelope.commit.commit_id, index);
         }
     }
 

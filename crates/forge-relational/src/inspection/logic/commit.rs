@@ -22,7 +22,10 @@ impl<'runtime> InspectionAccess<'runtime> {
                 .iter()
                 .map(|record| record.target.clone())
                 .collect(),
-            lineage_event_ids: envelope.lineage_digest_basis().canonical_event_ids().to_vec(),
+            lineage_event_ids: envelope
+                .lineage_digest_basis()
+                .canonical_event_ids()
+                .to_vec(),
             lineage_events: envelope.lineage_events().to_vec(),
             lineage_digest_basis: envelope.lineage_digest_basis().clone(),
             lineage_artifact_counters: envelope.lineage_artifact_counters(),

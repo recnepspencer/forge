@@ -57,9 +57,7 @@ fn lineage_correspondence_hardening_tracks_advisory_promotion_and_rejection_arti
         decision.kind == LineageDecisionKind::CorrespondencePromotionRejected
             && decision.candidate_id == Some(invalid.candidate_id)
     }));
-    let promotion_commit_id = promoted
-        .promoted_commit_id()
-        .expect("promotion commit id");
+    let promotion_commit_id = promoted.promoted_commit_id().expect("promotion commit id");
     let replay = runtime.replay_access();
     let envelope = replay
         .canonical_commit_envelope(promotion_commit_id)
@@ -87,7 +85,10 @@ fn lineage_correspondence_hardening_tracks_advisory_promotion_and_rejection_arti
         envelope.lineage_decision_log().len()
     );
     assert_eq!(
-        envelope.lineage_artifact_counters().finalization.event_batch_width,
+        envelope
+            .lineage_artifact_counters()
+            .finalization
+            .event_batch_width,
         envelope.lineage_events().len()
     );
     assert_eq!(
@@ -99,7 +100,9 @@ fn lineage_correspondence_hardening_tracks_advisory_promotion_and_rejection_arti
         envelope.lineage_event_ids()
     );
     assert_eq!(
-        envelope.decision_log_digest_basis().canonical_candidate_ids(),
+        envelope
+            .decision_log_digest_basis()
+            .canonical_candidate_ids(),
         envelope
             .lineage_decision_log()
             .iter()

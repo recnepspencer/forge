@@ -7,9 +7,11 @@ use crate::data::dependency::DependencySnapshotId;
 use crate::data::graph::{DependencySetId, SubscriberSetId};
 use crate::data::output::{ChangedRegion, PartitionSubscription};
 #[cfg(test)]
-use crate::data::trace::{ArtifactMergeAuthority, TraceSummary};
+use crate::data::trace::ArtifactMergeAuthority;
 use crate::data::trace::{
-    ArtifactWriteDelta, CausalityMetadata, RetainedDiagnosticArtifact, RuntimeArtifactState,
+    assemble_historical_artifact_record, assemble_trace_summary_with_execution,
+    ArtifactWriteDelta, CausalityMetadata, ExecutionTraceStamp, HistoricalArtifactRecord,
+    RetainedDiagnosticArtifact, RuntimeArtifactState, TraceSummary,
 };
 
 use super::condition::NodeEvaluationConfig;
@@ -37,6 +39,8 @@ struct NodeColdData {
     retained_artifact: Option<RetainedDiagnosticArtifact>,
     #[serde(default)]
     causality: Option<CausalityMetadata>,
+    #[serde(default)]
+    execution_trace: Option<ExecutionTraceStamp>,
 }
 
 /// Internal storage for a single signal node.
@@ -270,12 +274,54 @@ impl NodeEntry {
         self.cold.as_ref()?.retained_artifact.as_ref()
     }
 
+    /// Cold retained artifact record, if any.
+    pub fn cold_artifact_record(&self) -> Option<&RetainedDiagnosticArtifact> {
+        self.retained_diagnostic_artifact()
+    }
+
+    /// Assemble a cold historical artifact record from the published hot/cold
+    /// facades for this node entry.
+    pub fn historical_artifact_record(&self, node: crate::data::handle::NodeId) -> Option<HistoricalArtifactRecord> {
+        assemble_historical_artifact_record(
+            node,
+            self.get_runtime_artifact_state(),
+            self.cold_artifact_record(),
+            self.get_causality(),
+        )
+    }
+
+    /// Assemble a trace summary from the published hot/cold facades for this
+    /// node entry.
+    pub fn trace_summary(&self) -> Option<TraceSummary> {
+        assemble_trace_summary_with_execution(
+            self.get_runtime_artifact_state(),
+            self.cold_artifact_record(),
+            self.execution_trace_stamp(),
+        )
+    }
+
     /// Set or clear the retained diagnostic artifact payload.
     pub fn set_retained_diagnostic_artifact(
         &mut self,
         artifact: Option<RetainedDiagnosticArtifact>,
     ) {
         self.cold_mut().retained_artifact = artifact;
+        self.trim_cold_if_empty();
+    }
+
+    /// Set or clear the cold retained artifact record.
+    pub fn set_cold_artifact_record(&mut self, artifact: Option<RetainedDiagnosticArtifact>) {
+        self.set_retained_diagnostic_artifact(artifact);
+    }
+
+    /// Cold execution/segment stamp, if any.
+    pub fn execution_trace_stamp(&self) -> Option<ExecutionTraceStamp> {
+        self.cold.as_ref()?.execution_trace
+    }
+
+    /// Set or clear the cold execution/segment stamp.
+    pub fn set_execution_trace_stamp(&mut self, stamp: Option<ExecutionTraceStamp>) {
+        self.cold_mut().execution_trace = stamp;
         self.trim_cold_if_empty();
     }
 
@@ -298,37 +344,52 @@ impl NodeEntry {
                 self.runtime_artifact_state = Some(RuntimeArtifactState {
                     output_hash: summary.output_hash,
                     output_identity: summary.output_identity,
-                    continuity_token: summary.continuity_token,
+                    continuity_token: crate::data::trace::ContinuityAuthorityToken::new(
+                        summary.continuity_token,
+                    ),
                     output_change: summary.output_change,
                     recomputed: summary.recomputed,
                     dependency_count: summary.dependency_count,
                     meaningful_input_changes: summary.meaningful_input_changes,
                     changed_partition_count: summary.changed_partition_count,
                     propagation_suppressed: summary.propagation_suppressed,
-                    changed_scopes: crate::data::proof::PartitionScopeSet::from_changed_regions(
-                        &retained_changed_regions,
+                    changed_scopes: crate::data::trace::CompactChangedScopeProof::new(
+                        crate::data::proof::PartitionScopeSet::from_changed_regions(
+                            &retained_changed_regions,
+                        ),
                     ),
                     memoized_origin: summary.memoized_origin,
-                    reuse_basis: summary.reuse_basis,
+                    reuse_basis: crate::data::trace::ReuseOperationalBasis::new(
+                        summary.reuse_basis,
+                    ),
                     reuse_origin: summary.reuse_origin,
-                    reuse_boundary_context: summary.reuse_boundary_context,
-                    execution_record_id: summary.execution_record_id,
-                    semantic_segment_id: summary.semantic_segment_id,
-                    lineage_artifact_id: summary.lineage_artifact_id,
+                    reuse_boundary_authority: summary
+                        .reuse_boundary_context
+                        .as_ref()
+                        .map(|context| context.authority()),
+                    lineage_artifact_id: crate::data::trace::ArtifactTransitionKey::new(
+                        summary.lineage_artifact_id,
+                    ),
                     merge_authority: ArtifactMergeAuthority::default(),
                 });
+                self.set_execution_trace_stamp(Some(ExecutionTraceStamp {
+                    execution_record_id: summary.execution_record_id,
+                    semantic_segment_id: summary.semantic_segment_id,
+                }));
                 let retained = RetainedDiagnosticArtifact {
                     changed_regions: retained_changed_regions,
                     labels: summary.labels,
                     keyed_family: summary.keyed_family,
                     keyed_key: summary.keyed_key,
                     reuse_certification: None,
+                    reuse_boundary_context: summary.reuse_boundary_context,
                 };
                 if retained.changed_regions.is_empty()
                     && retained.labels.is_empty()
                     && retained.keyed_family.is_none()
                     && retained.keyed_key.is_none()
                     && retained.reuse_certification.is_none()
+                    && retained.reuse_boundary_context.is_none()
                 {
                     self.set_retained_diagnostic_artifact(None);
                 } else {
@@ -338,6 +399,7 @@ impl NodeEntry {
             None => {
                 self.runtime_artifact_state = None;
                 self.set_retained_diagnostic_artifact(None);
+                self.set_execution_trace_stamp(None);
             }
         }
     }
@@ -387,7 +449,11 @@ impl NodeEntry {
         if self
             .cold
             .as_ref()
-            .is_some_and(|cold| cold.retained_artifact.is_none() && cold.causality.is_none())
+            .is_some_and(|cold| {
+                cold.retained_artifact.is_none()
+                    && cold.causality.is_none()
+                    && cold.execution_trace.is_none()
+            })
         {
             self.cold = None;
         }

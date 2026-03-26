@@ -31,22 +31,18 @@ fn lineage_promotion_execution_stays_advisory_until_promoted() {
         vec![right_lineage],
         "candidate",
     );
-    let graph_before = runtime
-        .lineage_access()
-        .graph(LineageGraphRequest {
-            branch_id: BranchId("main".to_string()),
-            traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
-        });
+    let graph_before = runtime.lineage_access().graph(LineageGraphRequest {
+        branch_id: BranchId("main".to_string()),
+        traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
+    });
     let resolution = runtime
         .lineage_authority()
         .promote_correspondence(candidate.candidate_id, second.commit.clone())
         .unwrap();
-    let graph_after = runtime
-        .lineage_access()
-        .graph(LineageGraphRequest {
-            branch_id: BranchId("main".to_string()),
-            traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
-        });
+    let graph_after = runtime.lineage_access().graph(LineageGraphRequest {
+        branch_id: BranchId("main".to_string()),
+        traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
+    });
 
     assert_eq!(graph_before.events.len(), 2);
     assert_eq!(graph_before.correspondence_candidates.len(), 1);
@@ -108,7 +104,10 @@ fn lineage_promotion_execution_reports_operational_anchor_drift_after_plan_lower
         )
         .unwrap();
 
-    assert_eq!(resolution.status(), LineageResolutionStatus::ExecutionFailed);
+    assert_eq!(
+        resolution.status(),
+        LineageResolutionStatus::ExecutionFailed
+    );
     assert_eq!(
         resolution.execution_failure_class(),
         Some(CorrespondencePromotionExecutionFailureClass::AnchorDriftedFromBranchHead)

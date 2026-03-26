@@ -395,6 +395,9 @@ fn cross_identity_contract_declared_basis_is_retained_in_runtime_truth() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new())
         .with_kernel_defaults()
         .build();
+    runtime
+        .graph_mut()
+        .set_runtime_policy(SignalRuntimePolicy::development());
     let projection = runtime
         .define_computation(ComputationSpec {
             family: "projection".into(),
@@ -433,19 +436,19 @@ fn cross_identity_contract_declared_basis_is_retained_in_runtime_truth() {
         })
         .unwrap();
 
-    let runtime_state = runtime
+    let trace_summary = runtime
         .graph()
         .observe()
-        .runtime_artifact_state(alias_node)
+        .materialize()
+        .materialize_trace_summary(alias_node)
         .unwrap()
-        .cloned()
-        .expect("runtime artifact state");
+        .expect("trace summary");
     assert_eq!(
-        runtime_state.reuse_origin,
+        trace_summary.reuse_origin,
         crate::data::reuse::ReuseOrigin::CrossIdentityPersistentReuse
     );
     assert_eq!(
-        runtime_state
+        trace_summary
             .reuse_boundary_context
             .as_ref()
             .and_then(|ctx| ctx.persistent_correspondence()),
@@ -462,6 +465,9 @@ fn cross_identity_lineage_mapping_is_retained_in_runtime_truth() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new())
         .with_kernel_defaults()
         .build();
+    runtime
+        .graph_mut()
+        .set_runtime_policy(SignalRuntimePolicy::development());
     let projection = runtime
         .define_computation(ComputationSpec {
             family: "projection".into(),
@@ -500,15 +506,15 @@ fn cross_identity_lineage_mapping_is_retained_in_runtime_truth() {
         })
         .unwrap();
 
-    let runtime_state = runtime
+    let trace_summary = runtime
         .graph()
         .observe()
-        .runtime_artifact_state(alias_node)
+        .materialize()
+        .materialize_trace_summary(alias_node)
         .unwrap()
-        .cloned()
-        .expect("runtime artifact state");
+        .expect("trace summary");
     assert_eq!(
-        runtime_state
+        trace_summary
             .reuse_boundary_context
             .as_ref()
             .and_then(|ctx| ctx.persistent_correspondence()),
@@ -525,6 +531,9 @@ fn cross_identity_region_identity_basis_is_retained_in_runtime_truth() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new())
         .with_kernel_defaults()
         .build();
+    runtime
+        .graph_mut()
+        .set_runtime_policy(SignalRuntimePolicy::development());
     let projection = runtime
         .define_computation(ComputationSpec {
             family: "projection".into(),
@@ -565,15 +574,15 @@ fn cross_identity_region_identity_basis_is_retained_in_runtime_truth() {
         })
         .unwrap();
 
-    let runtime_state = runtime
+    let trace_summary = runtime
         .graph()
         .observe()
-        .runtime_artifact_state(alias_node)
+        .materialize()
+        .materialize_trace_summary(alias_node)
         .unwrap()
-        .cloned()
-        .expect("runtime artifact state");
+        .expect("trace summary");
     assert_eq!(
-        runtime_state
+        trace_summary
             .reuse_boundary_context
             .as_ref()
             .and_then(|ctx| ctx.persistent_correspondence()),
@@ -590,6 +599,9 @@ fn cross_identity_changed_contract_basis_is_rejected_and_preserves_previous_corr
     let mut runtime = SignalRuntime::builder(SignalGraph::new())
         .with_kernel_defaults()
         .build();
+    runtime
+        .graph_mut()
+        .set_runtime_policy(SignalRuntimePolicy::development());
     let compute_calls = AtomicU32::new(0);
     let projection = runtime
         .define_computation(ComputationSpec {
@@ -649,15 +661,15 @@ fn cross_identity_changed_contract_basis_is_rejected_and_preserves_previous_corr
         "rejected cross-identity mismatch should fail before fallback recompute"
     );
 
-    let runtime_state = runtime
+    let trace_summary = runtime
         .graph()
         .observe()
-        .runtime_artifact_state(alias_node)
+        .materialize()
+        .materialize_trace_summary(alias_node)
         .unwrap()
-        .cloned()
-        .expect("runtime artifact state");
+        .expect("trace summary");
     assert_eq!(
-        runtime_state
+        trace_summary
             .reuse_boundary_context
             .as_ref()
             .and_then(|ctx| ctx.persistent_correspondence()),
@@ -683,6 +695,9 @@ fn cross_identity_evidence_family_change_is_rejected_and_not_treated_as_equivale
     let mut runtime = SignalRuntime::builder(SignalGraph::new())
         .with_kernel_defaults()
         .build();
+    runtime
+        .graph_mut()
+        .set_runtime_policy(SignalRuntimePolicy::development());
     let compute_calls = AtomicU32::new(0);
     let projection = runtime
         .define_computation(ComputationSpec {
@@ -732,15 +747,15 @@ fn cross_identity_evidence_family_change_is_rejected_and_not_treated_as_equivale
         "family mismatch should not silently degrade into recompute"
     );
 
-    let runtime_state = runtime
+    let trace_summary = runtime
         .graph()
         .observe()
-        .runtime_artifact_state(alias_node)
+        .materialize()
+        .materialize_trace_summary(alias_node)
         .unwrap()
-        .cloned()
-        .expect("runtime artifact state");
+        .expect("trace summary");
     assert_eq!(
-        runtime_state
+        trace_summary
             .reuse_boundary_context
             .as_ref()
             .and_then(|ctx| ctx.persistent_correspondence()),
@@ -766,6 +781,9 @@ fn ambiguous_lineage_mapping_is_rejected_before_cross_identity_reuse_commits() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new())
         .with_kernel_defaults()
         .build();
+    runtime
+        .graph_mut()
+        .set_runtime_policy(SignalRuntimePolicy::development());
     let projection = runtime
         .define_computation(ComputationSpec {
             family: "projection".into(),
@@ -910,6 +928,9 @@ fn branch_local_cross_identity_rejection_preserves_main_correspondence_and_linea
     let mut runtime = SignalRuntime::builder(SignalGraph::new())
         .with_kernel_defaults()
         .build();
+    runtime
+        .graph_mut()
+        .set_runtime_policy(SignalRuntimePolicy::development());
     let projection = runtime
         .define_computation(ComputationSpec {
             family: "projection".into(),
@@ -975,9 +996,11 @@ fn branch_local_cross_identity_rejection_preserves_main_correspondence_and_linea
         runtime
             .graph()
             .observe()
-            .runtime_artifact_state(alias_node)
+            .materialize()
+            .materialize_trace_summary(alias_node)
             .unwrap()
-            .and_then(|state| state.reuse_boundary_context.as_ref())
+            .and_then(|summary| summary.reuse_boundary_context)
+            .as_ref()
             .and_then(|ctx| ctx.persistent_correspondence()),
         Some(&crate::data::reuse::PersistentCorrespondenceEvidence::HostSuppliedKey(
             "mesh-branch-001".to_string()
@@ -1030,9 +1053,11 @@ fn branch_local_cross_identity_rejection_preserves_main_correspondence_and_linea
         runtime
             .graph()
             .observe()
-            .runtime_artifact_state(alias_node)
+            .materialize()
+            .materialize_trace_summary(alias_node)
             .unwrap()
-            .and_then(|state| state.reuse_boundary_context.as_ref())
+            .and_then(|summary| summary.reuse_boundary_context)
+            .as_ref()
             .and_then(|ctx| ctx.persistent_correspondence()),
         Some(
             &crate::data::reuse::PersistentCorrespondenceEvidence::HostSuppliedKey(
@@ -1252,6 +1277,9 @@ fn branch_local_partial_splice_rejection_preserves_main_mixed_provenance() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new())
         .with_kernel_defaults()
         .build();
+    runtime
+        .graph_mut()
+        .set_runtime_policy(SignalRuntimePolicy::development());
     let projection = runtime
         .define_computation(ComputationSpec {
             family: "projection".into(),
@@ -1321,10 +1349,11 @@ fn branch_local_partial_splice_rejection_preserves_main_mixed_provenance() {
         runtime
             .graph()
             .observe()
-            .runtime_artifact_state(node)
+            .materialize()
+            .materialize_trace_summary(node)
             .unwrap()
-            .and_then(|state| state.reuse_boundary_context.as_ref())
-            .and_then(|ctx| ctx.composition_regions())
+            .and_then(|summary| summary.reuse_boundary_context)
+            .and_then(|ctx| ctx.composition_regions().cloned())
             .map(|regions| regions.as_slice().len()),
         Some(1),
         "failed branch-local splice admission must preserve the last committed composition basis"

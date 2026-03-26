@@ -15,8 +15,8 @@ use crate::data::reuse::ReuseBasis;
 use crate::data::trace::RuntimeArtifactState;
 use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::logic::evaluation::{
-    apply_prepared_evaluation_after_dependencies_with_policy,
-    EffectDependencyInputs, EvaluationVerdict, PendingDependencySnapshot,
+    apply_prepared_evaluation_after_dependencies_with_policy, EffectDependencyInputs,
+    EvaluationVerdict, PendingDependencySnapshot,
 };
 use crate::logic::explain::RewiringSummary;
 use crate::logic::planner::semantic::StageSemanticIdentity;
@@ -154,7 +154,7 @@ impl AppliedSerialTask {
                 .map(|trace| trace.memoized_origin)
                 .unwrap_or(crate::data::output::MemoizedResultOrigin::DirectCompute),
             reuse_basis: after_trace
-                .map(|trace| trace.reuse_basis.clone())
+                .map(|trace| trace.reuse_basis.clone_inner())
                 .unwrap_or_else(crate::data::reuse::ReuseBasis::fresh_compute),
         })
     }
@@ -488,11 +488,10 @@ impl PreparedSerialStageBatch {
             reconcile_start.elapsed().as_nanos();
 
         let dependency_input_start = std::time::Instant::now();
-        let dependency_inputs =
-            crate::logic::evaluation::collect_effect_dependency_inputs_iter(
-                graph,
-                lowered.lowered_tasks.iter().map(|task| task.node),
-            )?;
+        let dependency_inputs = crate::logic::evaluation::collect_effect_dependency_inputs_iter(
+            graph,
+            lowered.lowered_tasks.iter().map(|task| task.node),
+        )?;
         graph.telemetry_mut().execution.dependency_input_build_nanos +=
             dependency_input_start.elapsed().as_nanos();
 
@@ -635,9 +634,7 @@ pub(in crate::logic::planner) struct AppliedSerialStageBatch {
 }
 
 impl AppliedSerialStageBatch {
-    pub(in crate::logic::planner) fn split_pending_snapshots(
-        self,
-    ) -> (Self, SnapshotBatchCommit) {
+    pub(in crate::logic::planner) fn split_pending_snapshots(self) -> (Self, SnapshotBatchCommit) {
         let AppliedSerialStageBatch {
             stage_index,
             exact_width,

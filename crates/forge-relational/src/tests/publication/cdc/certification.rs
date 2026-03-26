@@ -46,7 +46,10 @@ fn schema_transition_for_subscriber_impact(
                 Some(KindId(1)),
                 "tag",
             ),
-            vec![SchemaStratum::StructuralShape, SchemaStratum::PublicationContract],
+            vec![
+                SchemaStratum::StructuralShape,
+                SchemaStratum::PublicationContract,
+            ],
             SchemaPublicationImpact::ObservableSurfaceChanged,
             subscriber_impact,
             HistoricalInterpretationSensitivity::NotSensitive,
@@ -56,17 +59,15 @@ fn schema_transition_for_subscriber_impact(
                 default_expression: Some("null".into()),
             },
         )
-        .with_boundary_visibility_proof(
-            match subscriber_impact {
-                SchemaSubscriberImpact::ConsumableSurfaceChanged => {
-                    crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable
-                }
-                SchemaSubscriberImpact::ContractUpgradeRequired => {
-                    crate::schema::data::SubscriberBoundaryVisibility::VisibleRequiresContractUptake
-                }
-                _ => crate::schema::data::SubscriberBoundaryVisibility::NotVisible,
-            },
-        )],
+        .with_boundary_visibility_proof(match subscriber_impact {
+            SchemaSubscriberImpact::ConsumableSurfaceChanged => {
+                crate::schema::data::SubscriberBoundaryVisibility::VisibleSemanticallyIgnorable
+            }
+            SchemaSubscriberImpact::ContractUpgradeRequired => {
+                crate::schema::data::SubscriberBoundaryVisibility::VisibleRequiresContractUptake
+            }
+            _ => crate::schema::data::SubscriberBoundaryVisibility::NotVisible,
+        })],
     }
 }
 
@@ -361,7 +362,9 @@ fn cdc_certification_durable_recovery_matches_head_and_midstream_consumers() {
     );
     assert_eq!(durable_mid_stitched, expected_mid);
 
-    let recovery_plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
+    let recovery_plan = runtime.durability_access().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
     let mut recovered = persisted_runtime_with_test_schema();
     recovered
         .durability_authority()
@@ -387,15 +390,13 @@ fn cdc_certification_schema_boundary_continuation_is_explained_and_counted() {
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut txn = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
-            schema_transition_for_subscriber_impact(
-                SchemaVersionId(2),
-                SchemaSubscriberImpact::ConsumableSurfaceChanged,
-            ),
-            Some(SchemaReconciliationPolicy::PreserveInformation),
+    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
+        schema_transition_for_subscriber_impact(
+            SchemaVersionId(2),
+            SchemaSubscriberImpact::ConsumableSurfaceChanged,
         ),
-    );
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+    ));
     txn.push_batch(batch_create("after-boundary"));
     txn.commit().unwrap();
 
@@ -437,15 +438,14 @@ fn diff_cdc_truth_parity_test() {
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut txn_v2 = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
+    let mut txn_v2 =
+        runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
             schema_transition_for_subscriber_impact(
                 SchemaVersionId(2),
                 SchemaSubscriberImpact::ConsumableSurfaceChanged,
             ),
             Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+        ));
     txn_v2.push_batch(batch_create("after-v2"));
     txn_v2.commit().unwrap();
 
@@ -454,15 +454,14 @@ fn diff_cdc_truth_parity_test() {
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut txn_v3 = runtime.begin_transaction(
-        TransactionOptions::default().with_schema_transition(
+    let mut txn_v3 =
+        runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
             schema_transition_for_subscriber_impact(
                 SchemaVersionId(3),
                 SchemaSubscriberImpact::ConsumableSurfaceChanged,
             ),
             Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+        ));
     txn_v3.push_batch(batch_create("after-v3"));
     txn_v3.commit().unwrap();
 
@@ -529,7 +528,10 @@ fn diff_cdc_truth_parity_test() {
         .unwrap();
     let recovered_counters = recovered.performance_access().counters();
 
-    assert_eq!(diff_digest, certification_digest(&recovered_patch_batch.patches));
+    assert_eq!(
+        diff_digest,
+        certification_digest(&recovered_patch_batch.patches)
+    );
     assert_eq!(
         cdc_digest,
         certification_digest(&(
@@ -648,7 +650,9 @@ fn cdc_certification_persisted_seeded_matrix_survives_checkpoint_compaction_and_
             &full_from_head,
         );
 
-        let recovery_plan = world.runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
+        let recovery_plan = world.runtime.durability_access().recovery_plan(
+            crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+        );
         let mut recovered = build_property_runtime(RuntimeHarnessMode::Persisted);
         recovered
             .durability_authority()
@@ -979,4 +983,3 @@ fn patch_detail_contains(record: &crate::facade::publication::PatchRecord, needl
         PatchDetail::DenseBitset(_) => false,
     }
 }
-

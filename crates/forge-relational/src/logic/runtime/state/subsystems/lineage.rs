@@ -54,7 +54,10 @@ impl LineageSubsystem {
         self.events.push(event);
     }
 
-    pub(crate) fn branch_events(&self, branch_id: &BranchId) -> impl Iterator<Item = &LineageEventRecord> {
+    pub(crate) fn branch_events(
+        &self,
+        branch_id: &BranchId,
+    ) -> impl Iterator<Item = &LineageEventRecord> {
         self.branch_event_positions
             .get(branch_id)
             .into_iter()
@@ -70,7 +73,11 @@ impl LineageSubsystem {
         self.branch_source_event_positions
             .get(branch_id)
             .into_iter()
-            .flat_map(|source_positions| lineage_ids.iter().filter_map(|lineage_id| source_positions.get(lineage_id)))
+            .flat_map(|source_positions| {
+                lineage_ids
+                    .iter()
+                    .filter_map(|lineage_id| source_positions.get(lineage_id))
+            })
             .flat_map(|positions| positions.iter().copied())
             .collect()
     }

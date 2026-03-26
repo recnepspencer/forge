@@ -1,6 +1,6 @@
-use crate::tests::support::*;
-use crate::facade::storage::RecordLifecycleState;
 use crate::facade::lineage::LineageDecisionKind;
+use crate::facade::storage::RecordLifecycleState;
+use crate::tests::support::*;
 
 #[test]
 fn savepoint_abandoned_work_never_appears_in_subscriber_cdc() {
@@ -262,7 +262,11 @@ fn rolled_back_illegal_relation_work_leaves_zero_cdc_and_diagnostic_residue() {
     let source = create_entity(&mut runtime, "source");
     let target = create_entity(&mut runtime, "target");
     let checkpoint = checkpoint_for_schema_version(
-        runtime.publication_access().latest_patch().unwrap().position,
+        runtime
+            .publication_access()
+            .latest_patch()
+            .unwrap()
+            .position,
         SchemaVersionId(1),
     );
 
@@ -350,17 +354,21 @@ fn rolled_back_endpoint_deletion_work_leaves_zero_cdc_and_diagnostic_residue() {
     let relation_outcome = create_relation_outcome(&mut runtime, source, target, "live");
     let relation = changed_relations(&relation_outcome)[0];
     let checkpoint = checkpoint_for_schema_version(
-        runtime.publication_access().latest_patch().unwrap().position,
+        runtime
+            .publication_access()
+            .latest_patch()
+            .unwrap()
+            .position,
         SchemaVersionId(1),
     );
 
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     let savepoint = txn.create_savepoint();
-    txn.push_batch(
-        WorkerIntentBatch::new("rolled-back-delete-source").push(MutationIntent::Entity(
-            EntityMutationIntent::Delete(DeleteEntityIntent { entity_id: source }),
-        )),
-    );
+    txn.push_batch(WorkerIntentBatch::new("rolled-back-delete-source").push(
+        MutationIntent::Entity(EntityMutationIntent::Delete(DeleteEntityIntent {
+            entity_id: source,
+        })),
+    ));
     let rollback = txn.rollback_to_savepoint(savepoint).unwrap();
     txn.push_batch(
         WorkerIntentBatch::new("surviving-update").push(MutationIntent::Entity(

@@ -270,10 +270,7 @@ impl<'runtime> PerformanceAccess<'runtime> {
         });
     }
 
-    pub(crate) fn count_lineage_promotion_plan_lowering(
-        &self,
-        promotion_eligible_width: usize,
-    ) {
+    pub(crate) fn count_lineage_promotion_plan_lowering(&self, promotion_eligible_width: usize) {
         self.runtime.services.instrumentation.count(|counters| {
             counters.lineage_promotion_eligible_candidate_width += promotion_eligible_width;
         });
@@ -402,8 +399,8 @@ impl<'runtime> PerformanceAccess<'runtime> {
                     counters.schema_reconciliation_preserve_source_contract_count += 1;
                 }
                 SchemaReconciliationPolicy::PermitLossyNarrowingWithAnnotation => {
-                    counters
-                        .schema_reconciliation_permit_lossy_narrowing_with_annotation_count += 1;
+                    counters.schema_reconciliation_permit_lossy_narrowing_with_annotation_count +=
+                        1;
                 }
                 SchemaReconciliationPolicy::RequireExplicitProjection => {
                     counters.schema_reconciliation_require_explicit_projection_count += 1;
@@ -448,13 +445,18 @@ impl<'runtime> PerformanceAccess<'runtime> {
     }
 
     pub(crate) fn count_replay_verification_layer(&self, layer: ReplayVerificationLayer) {
-        self.runtime.services.instrumentation.count(|counters| match layer {
-            ReplayVerificationLayer::DigestParity => counters.replay_digest_parity_checks += 1,
-            ReplayVerificationLayer::SummaryParity => counters.replay_summary_parity_checks += 1,
-            ReplayVerificationLayer::DeepArtifactParity => {
-                counters.replay_deep_artifact_parity_checks += 1
-            }
-        });
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| match layer {
+                ReplayVerificationLayer::DigestParity => counters.replay_digest_parity_checks += 1,
+                ReplayVerificationLayer::SummaryParity => {
+                    counters.replay_summary_parity_checks += 1
+                }
+                ReplayVerificationLayer::DeepArtifactParity => {
+                    counters.replay_deep_artifact_parity_checks += 1
+                }
+            });
     }
 
     pub(crate) fn count_replay_lineage_authority_basis(
@@ -491,6 +493,41 @@ impl<'runtime> PerformanceAccess<'runtime> {
     pub(crate) fn count_replay_lineage_authoritative_basis_rejection(&self) {
         self.runtime.services.instrumentation.count(|counters| {
             counters.replay_lineage_authoritative_basis_rejections += 1;
+        });
+    }
+
+    pub(crate) fn count_merge_history_ancestry_traversal(&self, nodes_visited: usize) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.merge_history_ancestry_traversals += 1;
+            counters.merge_history_ancestry_nodes_visited += nodes_visited;
+        });
+    }
+
+    pub(crate) fn count_merge_history_parent_comparisons(&self, comparisons: usize) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.merge_history_parent_comparisons += comparisons;
+        });
+    }
+
+    pub(crate) fn count_merge_history_replay_planning(
+        &self,
+        nodes_visited: usize,
+        parent_checks: usize,
+    ) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.merge_history_replay_planning_nodes_visited += nodes_visited;
+            counters.merge_history_replay_parent_checks += parent_checks;
+        });
+    }
+
+    pub(crate) fn count_merge_history_durability_validation(
+        &self,
+        nodes_visited: usize,
+        parent_checks: usize,
+    ) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.merge_history_durability_validation_nodes_visited += nodes_visited;
+            counters.merge_history_durability_parent_checks += parent_checks;
         });
     }
 

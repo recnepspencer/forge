@@ -149,9 +149,7 @@ impl LineageGraphDigestBasis {
         &self.canonical_event_ids
     }
 
-    pub fn canonical_candidate_ids(
-        &self,
-    ) -> &[crate::lineage::data::CorrespondenceCandidateId] {
+    pub fn canonical_candidate_ids(&self) -> &[crate::lineage::data::CorrespondenceCandidateId] {
         &self.canonical_candidate_ids
     }
 

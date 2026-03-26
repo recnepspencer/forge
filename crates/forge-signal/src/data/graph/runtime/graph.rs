@@ -8,10 +8,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::bitset::DenseBitset;
 use crate::data::core_profile::StableHashValue;
-use crate::data::dependency::{DependencySnapshotShapeStore, DependencySnapshotStore};
 use crate::data::dependency::{
     CommittedSnapshotUpdate, DependencyEdge, DependencySnapshot, SnapshotDeltaRecord,
 };
+use crate::data::dependency::{DependencySnapshotShapeStore, DependencySnapshotStore};
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeEntry;

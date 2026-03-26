@@ -18,7 +18,8 @@ impl<'runtime> InvariantMetrics<'runtime> {
     }
 
     pub(crate) fn count_relation_contracts_evaluated(&self, count: usize) {
-        self.access.count_relation_integrity_contracts_evaluated(count);
+        self.access
+            .count_relation_integrity_contracts_evaluated(count);
     }
 
     pub(crate) fn count_relation_endpoint_kind_checks(&self, count: usize) {
@@ -35,11 +36,12 @@ impl<'runtime> InvariantMetrics<'runtime> {
         entity_slot_scans: usize,
         relation_slot_scans: usize,
     ) {
-        self.access.count_relation_cardinality_minimum_certification(
-            contracts,
-            entity_slot_scans,
-            relation_slot_scans,
-        );
+        self.access
+            .count_relation_cardinality_minimum_certification(
+                contracts,
+                entity_slot_scans,
+                relation_slot_scans,
+            );
     }
 
     pub(crate) fn count_relation_uniqueness_checks(&self, count: usize) {

@@ -23,13 +23,14 @@ fn topology_identity_survival_preserves_reidentification_truth_across_recovery()
         .for_record(replaced_entity)
         .unwrap()
         .lineage_id;
-    let resolution = runtime
-        .lineage_access()
-        .resolve_historical_lineage(HistoricalResolutionRequest {
-            branch_id: BranchId("main".to_string()),
-            lineage_id: start_lineage,
-            boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
-        });
+    let resolution =
+        runtime
+            .lineage_access()
+            .resolve_historical_lineage(HistoricalResolutionRequest {
+                branch_id: BranchId("main".to_string()),
+                lineage_id: start_lineage,
+                boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
+            });
 
     assert_eq!(
         resolution.digest_basis().digest_mode(),
@@ -51,20 +52,24 @@ fn topology_identity_survival_preserves_reidentification_truth_across_recovery()
     assert_lineage_history_origin_invariants(&history.entries, start_lineage);
 
     runtime.durability_authority().checkpoint().unwrap();
-    let plan = runtime
-        .durability_access()
-        .recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
+    let plan = runtime.durability_access().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
     let mut recovered = persisted_runtime_with_test_schema();
     recovered.durability_authority().recover(plan).unwrap();
 
-    let recovered_resolution = recovered
-        .lineage_access()
-        .resolve_historical_lineage(HistoricalResolutionRequest {
-            branch_id: BranchId("main".to_string()),
-            lineage_id: start_lineage,
-            boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
-        });
-    assert_eq!(recovered_resolution.digest_basis(), resolution.digest_basis());
+    let recovered_resolution =
+        recovered
+            .lineage_access()
+            .resolve_historical_lineage(HistoricalResolutionRequest {
+                branch_id: BranchId("main".to_string()),
+                lineage_id: start_lineage,
+                boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
+            });
+    assert_eq!(
+        recovered_resolution.digest_basis(),
+        resolution.digest_basis()
+    );
     assert_eq!(recovered_resolution.resolved, resolution.resolved);
     assert_eq!(
         recovered_resolution.traversed_event_ids,

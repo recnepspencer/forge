@@ -129,7 +129,15 @@ fn chip_profile_declared_aspect_fanout_preserves_endpoint_history_for_netlist_li
     let live_commit_id = runtime.history_access().latest_commit().unwrap().commit_id;
     let compiled = runtime
         .simulation_authority()
-        .compile_execution_artifact(live_commit_id, vec![PartitionId(7), PartitionId(11), PartitionId(12), PartitionId(13)])
+        .compile_execution_artifact(
+            live_commit_id,
+            vec![
+                PartitionId(7),
+                PartitionId(11),
+                PartitionId(12),
+                PartitionId(13),
+            ],
+        )
         .unwrap();
     let deleted = delete_entity(&mut runtime, source);
 
@@ -178,11 +186,15 @@ fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolat
     );
     let source = create_entity_in_partition(&mut runtime, "topo-src", PartitionId(7));
     let target = create_entity_in_partition(&mut runtime, "topo-target", PartitionId(11));
-    let relation = create_relation_in_partition(&mut runtime, source, target, "topo-edge", PartitionId(21));
+    let relation =
+        create_relation_in_partition(&mut runtime, source, target, "topo-edge", PartitionId(21));
     let main_commit = runtime.history_access().latest_commit().unwrap().clone();
     let main_artifact = runtime
         .simulation_authority()
-        .compile_execution_artifact(main_commit.commit_id, vec![PartitionId(7), PartitionId(11), PartitionId(21)])
+        .compile_execution_artifact(
+            main_commit.commit_id,
+            vec![PartitionId(7), PartitionId(11), PartitionId(21)],
+        )
         .unwrap();
     runtime
         .history_authority()
@@ -218,7 +230,13 @@ fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolat
         .simulation_authority()
         .compile_execution_artifact(
             feature_commit.commit_id,
-            vec![PartitionId(7), PartitionId(11), PartitionId(13), PartitionId(21), PartitionId(22)],
+            vec![
+                PartitionId(7),
+                PartitionId(11),
+                PartitionId(13),
+                PartitionId(21),
+                PartitionId(22),
+            ],
         )
         .unwrap();
     let main_history = runtime.history_access().relation_aspect_history(
@@ -245,7 +263,10 @@ fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolat
     );
 
     assert_eq!(main_artifact.source_branch_id, BranchId("main".to_string()));
-    assert_eq!(feature_artifact.source_branch_id, BranchId("feature".to_string()));
+    assert_eq!(
+        feature_artifact.source_branch_id,
+        BranchId("feature".to_string())
+    );
     assert_eq!(main_artifact.source_commit_id, main_commit.commit_id);
     assert_eq!(feature_artifact.source_commit_id, feature_commit.commit_id);
     assert_eq!(

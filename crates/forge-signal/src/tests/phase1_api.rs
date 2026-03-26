@@ -724,6 +724,7 @@ fn proof_bearing_batches_and_summaries_canonicalize_their_inputs() {
 #[test]
 fn observer_exposes_runtime_and_retained_artifacts_separately() {
     let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(SignalRuntimePolicy::development());
     let node = graph.node().output_identity().build();
     let runtime_only = graph.node().build();
 
@@ -775,16 +776,19 @@ fn observer_exposes_runtime_and_retained_artifacts_separately() {
         Some("wing-lineage")
     );
     assert_eq!(runtime.memoized_origin, MemoizedResultOrigin::DirectCompute);
-    assert_eq!(runtime.reuse_basis, ReuseBasis::fresh_compute());
+    assert_eq!(runtime.reuse_basis.clone_inner(), ReuseBasis::fresh_compute());
     assert_eq!(retained.labels, vec!["forensic".to_owned()]);
     assert_eq!(historical.node, node);
     assert_eq!(historical.runtime.output_identity, runtime.output_identity);
-    assert_eq!(historical.runtime.reuse_basis, runtime.reuse_basis);
+    assert_eq!(
+        historical.runtime.reuse_basis.clone_inner(),
+        runtime.reuse_basis.clone_inner()
+    );
     assert_eq!(
         historical.retained.as_ref().unwrap().labels,
         retained.labels
     );
-    assert_eq!(trace.reuse_basis, runtime.reuse_basis);
+    assert_eq!(trace.reuse_basis, runtime.reuse_basis.clone_inner());
     assert_eq!(
         historical
             .causality

@@ -2,9 +2,7 @@ mod checkpoint_resolution;
 mod continuity_assessment;
 mod recovery_planning;
 
-pub(crate) use checkpoint_resolution::{
-    checkpoint_basis_from_patch_position,
-};
+pub(crate) use checkpoint_resolution::checkpoint_basis_from_patch_position;
 #[cfg(test)]
 pub(crate) use checkpoint_resolution::checkpoint_for_schema_version;
 pub(crate) use continuity_assessment::{

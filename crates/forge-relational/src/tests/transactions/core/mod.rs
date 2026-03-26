@@ -315,7 +315,9 @@ fn visibility_aspect_versions_follow_canonical_delta_truth_and_ignore_undeclared
             AspectKey(InternedString::Raw("name".to_string())),
         ]
     );
-    assert!(versions.iter().all(|(_, version)| *version == updated.version_id.0));
+    assert!(versions
+        .iter()
+        .all(|(_, version)| *version == updated.version_id.0));
 
     let relation = create_relation(&mut runtime, entity, entity, "edge");
     let relation_versions = runtime
@@ -341,20 +343,20 @@ fn visibility_aspect_versions_reject_stale_generation_ids() {
     let mut runtime =
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let entity = create_entity(&mut runtime, "before");
-    let stale = EntityId::new(entity.partition_id, entity.local_slot.0, entity.generation.0 + 1);
+    let stale = EntityId::new(
+        entity.partition_id,
+        entity.local_slot.0,
+        entity.generation.0 + 1,
+    );
 
-    assert!(
-        runtime
-            .visibility_reads()
-            .entity_aspect_versions(stale)
-            .is_none()
-    );
-    assert!(
-        runtime
-            .visibility_reads()
-            .entity_aspect_versions(entity)
-            .is_some()
-    );
+    assert!(runtime
+        .visibility_reads()
+        .entity_aspect_versions(stale)
+        .is_none());
+    assert!(runtime
+        .visibility_reads()
+        .entity_aspect_versions(entity)
+        .is_some());
 }
 
 #[test]
@@ -486,7 +488,10 @@ fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
 
     assert_eq!(trace.binding_rows.len(), 3);
     assert!(!status_row.changed);
-    assert!(!trace.changed_aspects.iter().any(|aspect| aspect == &status_key));
+    assert!(!trace
+        .changed_aspects
+        .iter()
+        .any(|aspect| aspect == &status_key));
 }
 
 #[test]

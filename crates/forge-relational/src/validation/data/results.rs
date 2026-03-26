@@ -9,6 +9,7 @@ use crate::schema::data::{
 };
 
 use super::execution::InvariantClass;
+use super::execution::InvariantWitnessKey;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum InvariantViolationFields {
@@ -475,6 +476,183 @@ pub struct InvariantViolation {
 impl InvariantViolation {
     pub fn fields_json(&self) -> Value {
         self.fields.to_json_value()
+    }
+
+    pub fn witness_key(&self) -> InvariantWitnessKey {
+        let key = match &self.fields {
+            InvariantViolationFields::None => format!("none:{:?}", self.code),
+            InvariantViolationFields::MergedIntentLimit {
+                merged_intent_count,
+                limit,
+            } => format!("merged_intents:{merged_intent_count}:{limit}"),
+            InvariantViolationFields::SnapshotEntityLimit { version_id, limit, .. } => {
+                format!("snapshot_entity_limit:{}:{limit}", version_id.0)
+            }
+            InvariantViolationFields::UniqueEntityPayloadField { field, value } => {
+                format!("unique_entity_payload_field:{field}:{value}")
+            }
+            InvariantViolationFields::SidecarConsistency {
+                partition_id,
+                slot,
+                missing_label,
+            } => format!("sidecar_consistency:{}:{slot}:{missing_label}", partition_id.0),
+            InvariantViolationFields::RelationEndpointKindMismatch {
+                relation_kind_id,
+                source,
+                target,
+                boundary,
+                ..
+            } => format!(
+                "endpoint_kind_mismatch:{}:{source:?}:{target:?}:{}",
+                relation_kind_id.0,
+                match boundary {
+                    RelationEndpointBoundary::Source => "source",
+                    RelationEndpointBoundary::Target => "target",
+                }
+            ),
+            InvariantViolationFields::RelationEndpointKindSelfEdge {
+                relation_kind_id,
+                source,
+                target,
+                ..
+            } => format!(
+                "endpoint_kind_self_edge:{}:{source:?}:{target:?}",
+                relation_kind_id.0
+            ),
+            InvariantViolationFields::RelationEndpointKindCrossContext {
+                relation_kind_id,
+                source_partition_id,
+                target_partition_id,
+                ..
+            } => format!(
+                "endpoint_kind_cross_context:{}:{}:{}",
+                relation_kind_id.0, source_partition_id.0, target_partition_id.0
+            ),
+            InvariantViolationFields::RelationCardinalityEndpoint {
+                relation_kind_id,
+                entity_id,
+                boundary,
+                ..
+            } => format!(
+                "cardinality_endpoint:{}:{entity_id:?}:{}",
+                relation_kind_id.0,
+                match boundary {
+                    RelationCardinalityBoundary::Source => "source",
+                    RelationCardinalityBoundary::Target => "target",
+                    RelationCardinalityBoundary::Pair => "pair",
+                }
+            ),
+            InvariantViolationFields::RelationCardinalityPair {
+                relation_kind_id,
+                source,
+                target,
+                ..
+            } => format!("cardinality_pair:{}:{source:?}:{target:?}", relation_kind_id.0),
+            InvariantViolationFields::RelationUniqueness {
+                relation_kind_id,
+                scope,
+                source,
+                target,
+                ..
+            } => format!(
+                "uniqueness:{}:{source:?}:{target:?}:{}",
+                relation_kind_id.0,
+                match scope {
+                    UniquenessScope::DirectedSemanticEdge => "directed",
+                    UniquenessScope::NormalizedSymmetricEdge => "normalized",
+                }
+            ),
+            InvariantViolationFields::RelationSymmetry {
+                relation_kind_id,
+                source,
+                target,
+                mode,
+                ..
+            } => format!(
+                "symmetry:{}:{source:?}:{target:?}:{}",
+                relation_kind_id.0,
+                match mode {
+                    SymmetryMode::CanonicalUndirected => "canonical_undirected",
+                    SymmetryMode::PairedInverseRequired => "paired_inverse_required",
+                    SymmetryMode::PairedTwinRequired => "paired_twin_required",
+                    SymmetryMode::InverseProhibited => "inverse_prohibited",
+                }
+            ),
+            InvariantViolationFields::RelationEndpointDeletionIntegrity {
+                relation_kind_id,
+                entity_id,
+                mode,
+                ..
+            } => format!(
+                "endpoint_deletion:{}:{entity_id:?}:{}",
+                relation_kind_id.0,
+                match mode {
+                    EndpointDeletionIntegrityMode::RejectDeleteWithLiveRelations => {
+                        "reject_delete_with_live_relations"
+                    }
+                    EndpointDeletionIntegrityMode::RequireRelationDeletionInSameCommit => {
+                        "require_relation_deletion_in_same_commit"
+                    }
+                    EndpointDeletionIntegrityMode::RequireRelationRetirement => {
+                        "require_relation_retirement"
+                    }
+                }
+            ),
+            InvariantViolationFields::StorageInconsistency {
+                entity_id,
+                partition_id,
+                slot,
+                scan,
+                lookup,
+                failure,
+                ..
+            } => format!(
+                "storage_inconsistency:{entity_id:?}:{partition_id:?}:{slot:?}:{scan:?}:{lookup:?}:{failure:?}"
+            ),
+            InvariantViolationFields::RelationIntegrityScopeBudgetExceeded {
+                limit_name,
+                observed,
+                ..
+            } => format!("scope_budget:{limit_name}:{observed}"),
+            InvariantViolationFields::CustomInvariantFailure {
+                rule_id,
+                semantic_version_major,
+                semantic_version_minor,
+                phase,
+                failure_kind,
+                ..
+            } => format!(
+                "custom_failure:{rule_id}:{semantic_version_major}.{semantic_version_minor}:{phase}:{failure_kind}"
+            ),
+            InvariantViolationFields::PayloadSchema {
+                kind_id,
+                field,
+                failure_kind,
+                ..
+            } => format!("payload_schema:{}:{field}:{failure_kind}", kind_id.0),
+            InvariantViolationFields::PartitionIsolation {
+                relation_kind_id,
+                relation_id,
+                source_partition_id,
+                target_partition_id,
+                ..
+            } => format!(
+                "partition_isolation:{}:{relation_id:?}:{}:{}",
+                relation_kind_id.0, source_partition_id.0, target_partition_id.0
+            ),
+            InvariantViolationFields::Acyclicity {
+                relation_kind_id,
+                source,
+                target,
+                ..
+            } => format!("acyclicity:{}:{source:?}:{target:?}", relation_kind_id.0),
+            InvariantViolationFields::ConnectivityMinimum {
+                relation_kind_id,
+                source,
+                ..
+            } => format!("connectivity_minimum:{}:{source:?}", relation_kind_id.0),
+        };
+        InvariantWitnessKey::new(key)
     }
 }
 

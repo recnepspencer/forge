@@ -205,7 +205,8 @@ impl SignalGraph {
             contract.semantics.required_context,
             condition,
             runtime,
-            entry.retained_diagnostic_artifact(),
+            entry.cold_artifact_record(),
+            entry.execution_trace_stamp(),
             entry.get_causality(),
             rewiring.clone(),
         )

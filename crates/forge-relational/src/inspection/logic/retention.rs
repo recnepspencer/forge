@@ -1,16 +1,19 @@
 use crate::inspection::data::{
     InspectionAccessPath, InspectionAvailability, InspectionDegradation, InspectionOrigin,
-    PinStateObservation, RecordRetentionInspection, ReclaimEligibility,
+    PinStateObservation, ReclaimEligibility, RecordRetentionInspection,
     RetentionExecutionInspection, RetentionInspectionRequest, RetentionInspectionSummary,
     RetentionStateObservation, SnapshotPinInspection,
 };
 use crate::storage::data::{RecordLifecycleState, RetentionPassOutcome};
 use crate::transactions::data::RecordRef;
 
-use super::access::{InspectionAccess, empty_retention_plan};
+use super::access::{empty_retention_plan, InspectionAccess};
 
 impl<'runtime> InspectionAccess<'runtime> {
-    pub fn retention_summary(&self, request: &RetentionInspectionRequest) -> RetentionInspectionSummary {
+    pub fn retention_summary(
+        &self,
+        request: &RetentionInspectionRequest,
+    ) -> RetentionInspectionSummary {
         let (plan, availability, degradations) = self.inspect_retention_plan(request);
         RetentionInspectionSummary {
             current_version_id: self.runtime.current_version_id(),
@@ -38,9 +41,9 @@ impl<'runtime> InspectionAccess<'runtime> {
                     .runtime
                     .storage_access()
                     .record_slot_surface::<crate::storage::logic::state::EntityRecordKind>(
-                        entity_id.partition_id,
-                        entity_id.local_slot.0 as usize,
-                    )?;
+                    entity_id.partition_id,
+                    entity_id.local_slot.0 as usize,
+                )?;
                 Some(self.record_retention_inspection(
                     RecordRef::Entity(entity_id),
                     surface.lifecycle,
@@ -55,9 +58,9 @@ impl<'runtime> InspectionAccess<'runtime> {
                     .runtime
                     .storage_access()
                     .record_slot_surface::<crate::storage::logic::state::RelationRecordKind>(
-                        relation_id.partition_id,
-                        relation_id.local_slot.0 as usize,
-                    )?;
+                    relation_id.partition_id,
+                    relation_id.local_slot.0 as usize,
+                )?;
                 Some(self.record_retention_inspection(
                     RecordRef::Relation(relation_id),
                     surface.lifecycle,
@@ -82,7 +85,10 @@ impl<'runtime> InspectionAccess<'runtime> {
         })
     }
 
-    pub fn inspect_retention_execution(&self, outcome: RetentionPassOutcome) -> RetentionExecutionInspection {
+    pub fn inspect_retention_execution(
+        &self,
+        outcome: RetentionPassOutcome,
+    ) -> RetentionExecutionInspection {
         RetentionExecutionInspection {
             outcome,
             origin: InspectionOrigin::RetentionState,
@@ -99,7 +105,13 @@ impl<'runtime> InspectionAccess<'runtime> {
         replay_pins: u32,
         version_id: crate::identity::data::VersionId,
     ) -> RecordRetentionInspection {
-        let reclaim_eligibility = if !self.runtime.config.storage.mvcc.auto_reclaim_deleted_records {
+        let reclaim_eligibility = if !self
+            .runtime
+            .config
+            .storage
+            .mvcc
+            .auto_reclaim_deleted_records
+        {
             ReclaimEligibility::BlockedByPolicy
         } else if snapshot_pins > 0 {
             ReclaimEligibility::BlockedBySnapshotPins
@@ -139,7 +151,11 @@ impl<'runtime> InspectionAccess<'runtime> {
     fn inspect_retention_plan(
         &self,
         request: &RetentionInspectionRequest,
-    ) -> (crate::storage::data::RetentionPlan, InspectionAvailability, Vec<InspectionDegradation>) {
+    ) -> (
+        crate::storage::data::RetentionPlan,
+        InspectionAvailability,
+        Vec<InspectionDegradation>,
+    ) {
         let retention_fence = self
             .runtime
             .visibility
@@ -159,16 +175,18 @@ impl<'runtime> InspectionAccess<'runtime> {
             for slot in 0..self
                 .runtime
                 .storage_access()
-                .record_slot_count::<crate::storage::logic::state::EntityRecordKind>(partition_id)
-            {
+                .record_slot_count::<crate::storage::logic::state::EntityRecordKind>(
+                partition_id,
+            ) {
                 entity_slot_scans += 1;
                 work_units += 1;
                 if work_units > request.max_work_units {
-                    self.runtime.performance_access().count_inspection_retention_work(
-                        entity_slot_scans,
-                        relation_slot_scans,
-                    );
-                    self.runtime.performance_access().count_inspection_budget_refusal();
+                    self.runtime
+                        .performance_access()
+                        .count_inspection_retention_work(entity_slot_scans, relation_slot_scans);
+                    self.runtime
+                        .performance_access()
+                        .count_inspection_budget_refusal();
                     return (
                         empty_retention_plan(retention_fence),
                         InspectionAvailability::UnavailableByBudget,
@@ -176,11 +194,12 @@ impl<'runtime> InspectionAccess<'runtime> {
                     );
                 }
                 if entity_slot_scans > request.max_entity_slots_scanned {
-                    self.runtime.performance_access().count_inspection_retention_work(
-                        entity_slot_scans,
-                        relation_slot_scans,
-                    );
-                    self.runtime.performance_access().count_inspection_budget_refusal();
+                    self.runtime
+                        .performance_access()
+                        .count_inspection_retention_work(entity_slot_scans, relation_slot_scans);
+                    self.runtime
+                        .performance_access()
+                        .count_inspection_budget_refusal();
                     return (
                         empty_retention_plan(retention_fence),
                         InspectionAvailability::UnavailableByBudget,
@@ -191,9 +210,9 @@ impl<'runtime> InspectionAccess<'runtime> {
                     .runtime
                     .storage_access()
                     .record_slot_surface::<crate::storage::logic::state::EntityRecordKind>(
-                        partition_id, slot,
-                    )
-                {
+                    partition_id,
+                    slot,
+                ) {
                     if surface.branch_pins > 0 {
                         branch_pinned_entities += 1;
                     }
@@ -211,16 +230,18 @@ impl<'runtime> InspectionAccess<'runtime> {
             for slot in 0..self
                 .runtime
                 .storage_access()
-                .record_slot_count::<crate::storage::logic::state::RelationRecordKind>(partition_id)
-            {
+                .record_slot_count::<crate::storage::logic::state::RelationRecordKind>(
+                partition_id,
+            ) {
                 relation_slot_scans += 1;
                 work_units += 1;
                 if work_units > request.max_work_units {
-                    self.runtime.performance_access().count_inspection_retention_work(
-                        entity_slot_scans,
-                        relation_slot_scans,
-                    );
-                    self.runtime.performance_access().count_inspection_budget_refusal();
+                    self.runtime
+                        .performance_access()
+                        .count_inspection_retention_work(entity_slot_scans, relation_slot_scans);
+                    self.runtime
+                        .performance_access()
+                        .count_inspection_budget_refusal();
                     return (
                         empty_retention_plan(retention_fence),
                         InspectionAvailability::UnavailableByBudget,
@@ -228,11 +249,12 @@ impl<'runtime> InspectionAccess<'runtime> {
                     );
                 }
                 if relation_slot_scans > request.max_relation_slots_scanned {
-                    self.runtime.performance_access().count_inspection_retention_work(
-                        entity_slot_scans,
-                        relation_slot_scans,
-                    );
-                    self.runtime.performance_access().count_inspection_budget_refusal();
+                    self.runtime
+                        .performance_access()
+                        .count_inspection_retention_work(entity_slot_scans, relation_slot_scans);
+                    self.runtime
+                        .performance_access()
+                        .count_inspection_budget_refusal();
                     return (
                         empty_retention_plan(retention_fence),
                         InspectionAvailability::UnavailableByBudget,
@@ -243,9 +265,9 @@ impl<'runtime> InspectionAccess<'runtime> {
                     .runtime
                     .storage_access()
                     .record_slot_surface::<crate::storage::logic::state::RelationRecordKind>(
-                        partition_id, slot,
-                    )
-                {
+                    partition_id,
+                    slot,
+                ) {
                     if surface.branch_pins > 0 {
                         branch_pinned_relations += 1;
                     }
@@ -261,10 +283,9 @@ impl<'runtime> InspectionAccess<'runtime> {
                 }
             }
         }
-        self.runtime.performance_access().count_inspection_retention_work(
-            entity_slot_scans,
-            relation_slot_scans,
-        );
+        self.runtime
+            .performance_access()
+            .count_inspection_retention_work(entity_slot_scans, relation_slot_scans);
         (
             crate::storage::data::RetentionPlan {
                 retention_fence_version: retention_fence,

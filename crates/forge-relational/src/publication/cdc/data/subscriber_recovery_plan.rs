@@ -1,3 +1,8 @@
+use super::{SubscriberContractDeclaration, SubscriberStreamFailureClass};
+use crate::diagnostics::data::{
+    DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
+    RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
+};
 use crate::publication::cdc::data::{
     NormalizedContinuationProof, SubscriberCheckpoint, SubscriberContinuationSummary,
     SubscriberRecoveryDecision, SubscriberResumeRequest,
@@ -7,12 +12,7 @@ use crate::replay::data::CanonicalCommitEnvelope;
 use crate::schema::data::{
     DescriptorSemanticsVersion, SchemaBoundaryFingerprint, SchemaContinuationClassification,
 };
-use crate::diagnostics::data::{
-    DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
-    RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
-};
 use serde_json::json;
-use super::{SubscriberContractDeclaration, SubscriberStreamFailureClass};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SubscriberRecoveryPlan {
@@ -82,10 +82,7 @@ impl SubscriberContinuationAssessment {
         )
     }
 
-    pub(crate) fn to_summary_artifact(
-        &self,
-        contract_id: &str,
-    ) -> RelationalDiagnosticArtifact {
+    pub(crate) fn to_summary_artifact(&self, contract_id: &str) -> RelationalDiagnosticArtifact {
         let mut entries = vec![RelationalDiagnosticsEntry {
             code: DiagnosticCode::SubscriberContractEvaluated,
             message: "subscriber continuation assessment completed".to_string(),
@@ -113,9 +110,7 @@ impl SubscriberContinuationAssessment {
                 }),
             });
         }
-        if self.continuation_outcome
-            == SchemaContinuationClassification::RequireRenegotiation
-        {
+        if self.continuation_outcome == SchemaContinuationClassification::RequireRenegotiation {
             entries.push(RelationalDiagnosticsEntry {
                 code: DiagnosticCode::SubscriberRenegotiationDecision,
                 message: "subscriber continuation requires explicit renegotiation".to_string(),
@@ -127,9 +122,11 @@ impl SubscriberContinuationAssessment {
                 }),
             });
         }
-        entries.extend(self.boundary_assessments.iter().map(|assessment| {
-            assessment.to_diagnostic_entry()
-        }));
+        entries.extend(
+            self.boundary_assessments
+                .iter()
+                .map(|assessment| assessment.to_diagnostic_entry()),
+        );
         RelationalDiagnosticArtifact {
             scope: DiagnosticsScope::Replay,
             kind: DiagnosticsArtifactKind::MinimalSummary,
@@ -192,9 +189,11 @@ impl SubscriberContinuationAssessment {
                 }),
             });
         }
-        entries.extend(self.boundary_assessments.iter().map(|assessment| {
-            assessment.to_rejection_diagnostic_entry(subscriber_contract)
-        }));
+        entries.extend(
+            self.boundary_assessments
+                .iter()
+                .map(|assessment| assessment.to_rejection_diagnostic_entry(subscriber_contract)),
+        );
         RelationalDiagnosticArtifact {
             scope: DiagnosticsScope::Replay,
             kind: DiagnosticsArtifactKind::Failure,

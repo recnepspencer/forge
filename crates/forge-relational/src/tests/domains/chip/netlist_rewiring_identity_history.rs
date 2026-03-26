@@ -53,12 +53,14 @@ fn netlist_rewiring_identity_history_preserves_exact_lineage_truth() {
         envelope.lineage_event_ids()
     );
 
-    let replay = runtime.replay_authority().replay_commit(RelationalReplayRequest {
-        commit_id: promotion_commit_id,
-        branch_id: BranchId("main".to_string()),
-        execution_mode: ReplayExecutionMode::SerialDeterministic,
-        verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
-    });
+    let replay = runtime
+        .replay_authority()
+        .replay_commit(RelationalReplayRequest {
+            commit_id: promotion_commit_id,
+            branch_id: BranchId("main".to_string()),
+            execution_mode: ReplayExecutionMode::SerialDeterministic,
+            verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
+        });
     assert!(replay.failure.is_none());
     assert_eq!(
         replay
@@ -76,9 +78,9 @@ fn netlist_rewiring_identity_history_preserves_exact_lineage_truth() {
     );
 
     runtime.durability_authority().checkpoint().unwrap();
-    let plan = runtime
-        .durability_access()
-        .recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
+    let plan = runtime.durability_access().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
     let mut recovered = persisted_runtime_with_test_schema();
     recovered.durability_authority().recover(plan).unwrap();
     let recovered_envelope = recovered

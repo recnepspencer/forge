@@ -50,9 +50,11 @@ pub(crate) fn plan_subscriber_recovery(
     let use_durable_source = preloaded_durable_envelopes
         .as_ref()
         .is_some_and(|envelopes| {
-            request
-                .checkpoint()
-                .is_some_and(|checkpoint| envelopes.iter().any(|envelope| envelope.patch.position == checkpoint.position()))
+            request.checkpoint().is_some_and(|checkpoint| {
+                envelopes
+                    .iter()
+                    .any(|envelope| envelope.patch.position == checkpoint.position())
+            })
         });
     let available_envelopes = if let Some(envelopes) = preloaded_durable_envelopes {
         envelopes
@@ -141,7 +143,7 @@ pub(crate) fn plan_subscriber_recovery(
         source: if use_durable_source {
             SubscriberRecoverySource::DurableCanonicalRecovery
         } else {
-        SubscriberRecoverySource::InMemoryHistory
+            SubscriberRecoverySource::InMemoryHistory
         },
         start_after_position,
     };

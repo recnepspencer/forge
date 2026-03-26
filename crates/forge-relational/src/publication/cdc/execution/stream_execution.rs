@@ -1,5 +1,7 @@
 use crate::logic::runtime::RelationalRuntime;
-use crate::publication::cdc::data::{SubscriberCheckpoint, SubscriberStreamBatch, SubscriberStreamFailure};
+use crate::publication::cdc::data::{
+    SubscriberCheckpoint, SubscriberStreamBatch, SubscriberStreamFailure,
+};
 use crate::publication::cdc::planning::checkpoint_basis_from_patch_position;
 #[cfg(test)]
 use crate::schema::data::SchemaBoundaryFingerprint;
@@ -21,10 +23,9 @@ pub(crate) fn execute_subscriber_stream(
         .last()
         .and_then(|patch| checkpoint_basis_from_patch_position(runtime, patch.position));
     let next_checkpoint = next_checkpoint.map(|basis| {
-        let descriptor_semantics_version =
-            continuation_assessment
-                .normalized_continuation_proof
-                .descriptor_semantics_version();
+        let descriptor_semantics_version = continuation_assessment
+            .normalized_continuation_proof
+            .descriptor_semantics_version();
         SubscriberCheckpoint::from_basis_with_assessment(
             basis,
             plan.request.subscriber_contract().contract_id.clone(),

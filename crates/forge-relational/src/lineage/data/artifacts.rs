@@ -137,10 +137,8 @@ impl LineageFinalizationArtifact {
             event_batch_basis,
             decision_log_basis,
         );
-        let counters = LineageArtifactCounters::new(
-            *event_batch.counters(),
-            decision_log.decisions().len(),
-        );
+        let counters =
+            LineageArtifactCounters::new(*event_batch.counters(), decision_log.decisions().len());
         Self {
             branch_id,
             event_batch,
@@ -428,9 +426,7 @@ impl LineageDecisionLogDigestBasis {
         &self.canonical_candidate_ids
     }
 
-    pub fn canonical_rejection_classes(
-        &self,
-    ) -> &[Option<CorrespondencePromotionRejectionClass>] {
+    pub fn canonical_rejection_classes(&self) -> &[Option<CorrespondencePromotionRejectionClass>] {
         &self.canonical_rejection_classes
     }
 
@@ -586,10 +582,7 @@ fn event_batch_digest_basis_from_parts(
     LineageEventBatchDigestBasis {
         branch_id: branch_id.clone(),
         canonical_event_ids: event_ids.to_vec(),
-        canonical_commit_ids: events
-            .iter()
-            .map(|event| event.commit.commit_id)
-            .collect(),
+        canonical_commit_ids: events.iter().map(|event| event.commit.commit_id).collect(),
         canonical_event_kinds: events.iter().map(|event| event.kind).collect(),
         canonical_source_orderings: events.iter().map(|event| event.sources.clone()).collect(),
         canonical_target_orderings: events.iter().map(|event| event.targets.clone()).collect(),
@@ -609,15 +602,27 @@ fn decision_log_digest_basis_from_parts(
 ) -> LineageDecisionLogDigestBasis {
     LineageDecisionLogDigestBasis {
         branch_id: branch_id.clone(),
-        canonical_decision_kinds: decisions.iter().map(|decision| decision.kind.clone()).collect(),
+        canonical_decision_kinds: decisions
+            .iter()
+            .map(|decision| decision.kind.clone())
+            .collect(),
         canonical_event_ids: decisions.iter().map(|decision| decision.event_id).collect(),
-        canonical_candidate_ids: decisions.iter().map(|decision| decision.candidate_id).collect(),
+        canonical_candidate_ids: decisions
+            .iter()
+            .map(|decision| decision.candidate_id)
+            .collect(),
         canonical_rejection_classes: decisions
             .iter()
             .map(|decision| decision.rejection_class)
             .collect(),
-        canonical_source_orderings: decisions.iter().map(|decision| decision.sources.clone()).collect(),
-        canonical_target_orderings: decisions.iter().map(|decision| decision.targets.clone()).collect(),
+        canonical_source_orderings: decisions
+            .iter()
+            .map(|decision| decision.sources.clone())
+            .collect(),
+        canonical_target_orderings: decisions
+            .iter()
+            .map(|decision| decision.targets.clone())
+            .collect(),
     }
 }
 
@@ -627,22 +632,31 @@ fn canonical_decision_cmp(
 ) -> std::cmp::Ordering {
     left.branch_id
         .cmp(&right.branch_id)
-        .then_with(|| left.event_id.unwrap_or(u64::MAX).cmp(&right.event_id.unwrap_or(u64::MAX)))
+        .then_with(|| {
+            left.event_id
+                .unwrap_or(u64::MAX)
+                .cmp(&right.event_id.unwrap_or(u64::MAX))
+        })
         .then_with(|| {
             left.candidate_id
                 .map(|id| id.0)
                 .unwrap_or(u64::MAX)
                 .cmp(&right.candidate_id.map(|id| id.0).unwrap_or(u64::MAX))
         })
-        .then_with(|| canonical_decision_kind_rank(left.kind.clone()).cmp(&canonical_decision_kind_rank(right.kind.clone())))
+        .then_with(|| {
+            canonical_decision_kind_rank(left.kind.clone())
+                .cmp(&canonical_decision_kind_rank(right.kind.clone()))
+        })
         .then_with(|| {
             left.rejection_class
                 .map(canonical_rejection_class_rank)
                 .unwrap_or(u8::MAX)
-                .cmp(&right
-                    .rejection_class
-                    .map(canonical_rejection_class_rank)
-                    .unwrap_or(u8::MAX))
+                .cmp(
+                    &right
+                        .rejection_class
+                        .map(canonical_rejection_class_rank)
+                        .unwrap_or(u8::MAX),
+                )
         })
         .then_with(|| left.sources.cmp(&right.sources))
         .then_with(|| left.targets.cmp(&right.targets))

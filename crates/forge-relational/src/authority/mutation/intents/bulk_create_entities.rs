@@ -106,9 +106,8 @@ fn stage_bulk_entity_rows(
             ImportStagedRow::Entity { payload } => Ok(payload),
             ImportStagedRow::Relation { .. } => Err(CommitConflict::new(
                 crate::transactions::data::ConflictClass::MutationStateInconsistency {
-                    detail:
-                        "bulk entity staging produced a relation row in the entity import lane"
-                            .to_string(),
+                    detail: "bulk entity staging produced a relation row in the entity import lane"
+                        .to_string(),
                     fields: serde_json::json!({
                         "expected_row_domain": "entity",
                         "actual_row_domain": "relation",

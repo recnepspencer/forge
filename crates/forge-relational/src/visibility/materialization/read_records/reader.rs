@@ -254,7 +254,10 @@ impl<'runtime> VisibilityReadContext<'runtime> {
     ) -> Option<Vec<AspectKey>> {
         let state = self.runtime.storage_access().current_state();
         let record = self.entity_record_for_id_at_version(&state, entity_id, version_id)?;
-        Some(declared_aspects_for_entity_kind(self.runtime, record.kind.kind_id))
+        Some(declared_aspects_for_entity_kind(
+            self.runtime,
+            record.kind.kind_id,
+        ))
     }
 
     pub fn relation_aspects_at_version(

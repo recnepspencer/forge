@@ -1,8 +1,7 @@
 use crate::facade::history::BranchId;
 use crate::facade::lineage::{
-    HistoricalResolutionBoundednessBasis, HistoricalResolutionRequest,
-    LineageDivergenceRequest, LineageDivergenceTraversalBasis, LineageGraphRequest,
-    LineageGraphTraversalBasis,
+    HistoricalResolutionBoundednessBasis, HistoricalResolutionRequest, LineageDivergenceRequest,
+    LineageDivergenceTraversalBasis, LineageGraphRequest, LineageGraphTraversalBasis,
 };
 use crate::facade::replay::{
     RelationalReplayRequest, ReplayAuthorityBasisKind, ReplayExecutionMode,
@@ -27,13 +26,14 @@ fn complexity_budget_lineage_historical_resolution_reports_branch_scoped_work() 
     }
 
     runtime.performance_access().reset_counters();
-    let resolution = runtime
-        .lineage_access()
-        .resolve_historical_lineage(HistoricalResolutionRequest {
-            branch_id: BranchId("main".to_string()),
-            lineage_id: start_lineage,
-            boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
-        });
+    let resolution =
+        runtime
+            .lineage_access()
+            .resolve_historical_lineage(HistoricalResolutionRequest {
+                branch_id: BranchId("main".to_string()),
+                lineage_id: start_lineage,
+                boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
+            });
     let counters = runtime.performance_access().counters();
 
     assert_eq!(counters.lineage_historical_resolution_requests, 1);
@@ -63,13 +63,14 @@ fn complexity_budget_lineage_branch_divergence_reports_breadth() {
         create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
 
     runtime.performance_access().reset_counters();
-    let divergence = runtime
-        .lineage_access()
-        .divergence_between_branches(LineageDivergenceRequest {
-            left_branch: BranchId("main".to_string()),
-            right_branch: BranchId("feature".to_string()),
-            traversal_basis: LineageDivergenceTraversalBasis::FullBranchGraphComparison,
-        });
+    let divergence =
+        runtime
+            .lineage_access()
+            .divergence_between_branches(LineageDivergenceRequest {
+                left_branch: BranchId("main".to_string()),
+                right_branch: BranchId("feature".to_string()),
+                traversal_basis: LineageDivergenceTraversalBasis::FullBranchGraphComparison,
+            });
     let counters = runtime.performance_access().counters();
 
     assert_eq!(counters.lineage_branch_divergence_requests, 1);
@@ -90,9 +91,7 @@ fn complexity_budget_lineage_branch_divergence_reports_breadth() {
         counters.visible_entity_records_materialized
             >= counters.lineage_graph_snapshot_nodes_materialized
     );
-    assert!(
-        counters.visibility_cache_hits + counters.visibility_cache_miss_reconstructions >= 2
-    );
+    assert!(counters.visibility_cache_hits + counters.visibility_cache_miss_reconstructions >= 2);
     assert_eq!(
         counters.lineage_graph_snapshot_visibility_cache_hits
             + counters.lineage_graph_snapshot_visibility_cache_miss_reconstructions,
@@ -112,8 +111,16 @@ fn complexity_budget_lineage_graph_snapshot_reports_full_breadth() {
     let right = create_entity_outcome(&mut runtime, "right");
     let left_entity = changed_entities(&left)[0];
     let right_entity = changed_entities(&right)[0];
-    let left_lineage = runtime.lineage_access().for_record(left_entity).unwrap().lineage_id;
-    let right_lineage = runtime.lineage_access().for_record(right_entity).unwrap().lineage_id;
+    let left_lineage = runtime
+        .lineage_access()
+        .for_record(left_entity)
+        .unwrap()
+        .lineage_id;
+    let right_lineage = runtime
+        .lineage_access()
+        .for_record(right_entity)
+        .unwrap()
+        .lineage_id;
     let candidate = runtime.lineage_authority().record_correspondence_candidate(
         BranchId("main".to_string()),
         vec![left_lineage],
@@ -133,8 +140,14 @@ fn complexity_budget_lineage_graph_snapshot_reports_full_breadth() {
     let counters = runtime.performance_access().counters();
 
     assert_eq!(counters.lineage_graph_snapshot_requests, 1);
-    assert_eq!(counters.lineage_graph_snapshot_nodes_materialized, graph.metrics.node_count);
-    assert_eq!(counters.lineage_graph_snapshot_events_materialized, graph.metrics.event_count);
+    assert_eq!(
+        counters.lineage_graph_snapshot_nodes_materialized,
+        graph.metrics.node_count
+    );
+    assert_eq!(
+        counters.lineage_graph_snapshot_events_materialized,
+        graph.metrics.event_count
+    );
     assert_eq!(
         counters.lineage_graph_snapshot_candidates_materialized,
         graph.metrics.candidate_count
@@ -148,8 +161,16 @@ fn complexity_budget_lineage_candidate_validation_reports_candidate_widths() {
     let right = create_entity_outcome(&mut runtime, "right");
     let left_entity = changed_entities(&left)[0];
     let right_entity = changed_entities(&right)[0];
-    let left_lineage = runtime.lineage_access().for_record(left_entity).unwrap().lineage_id;
-    let right_lineage = runtime.lineage_access().for_record(right_entity).unwrap().lineage_id;
+    let left_lineage = runtime
+        .lineage_access()
+        .for_record(left_entity)
+        .unwrap()
+        .lineage_id;
+    let right_lineage = runtime
+        .lineage_access()
+        .for_record(right_entity)
+        .unwrap()
+        .lineage_id;
     let candidate = runtime.lineage_authority().record_correspondence_candidate(
         BranchId("main".to_string()),
         vec![left_lineage],
@@ -176,8 +197,16 @@ fn complexity_budget_lineage_promotion_planning_reports_candidate_widths() {
     let right = create_entity_outcome(&mut runtime, "right");
     let left_entity = changed_entities(&left)[0];
     let right_entity = changed_entities(&right)[0];
-    let left_lineage = runtime.lineage_access().for_record(left_entity).unwrap().lineage_id;
-    let right_lineage = runtime.lineage_access().for_record(right_entity).unwrap().lineage_id;
+    let left_lineage = runtime
+        .lineage_access()
+        .for_record(left_entity)
+        .unwrap()
+        .lineage_id;
+    let right_lineage = runtime
+        .lineage_access()
+        .for_record(right_entity)
+        .unwrap()
+        .lineage_id;
     let candidate = runtime.lineage_authority().record_correspondence_candidate(
         BranchId("main".to_string()),
         vec![left_lineage],
@@ -202,7 +231,11 @@ fn complexity_budget_lineage_finalization_and_publication_report_artifact_width(
     let target = create_entity_outcome(&mut runtime, "target");
     let entity = changed_entities(&created)[0];
     let target_entity = changed_entities(&target)[0];
-    let source_lineage = runtime.lineage_access().for_record(entity).unwrap().lineage_id;
+    let source_lineage = runtime
+        .lineage_access()
+        .for_record(entity)
+        .unwrap()
+        .lineage_id;
     let target_lineage = runtime
         .lineage_access()
         .for_record(target_entity)
@@ -250,8 +283,16 @@ fn complexity_budget_replay_lineage_parity_reports_authority_basis_and_digest_wi
     let second = create_entity_outcome(&mut runtime, "target");
     let first_entity = changed_entities(&first)[0];
     let second_entity = changed_entities(&second)[0];
-    let first_lineage = runtime.lineage_access().for_record(first_entity).unwrap().lineage_id;
-    let second_lineage = runtime.lineage_access().for_record(second_entity).unwrap().lineage_id;
+    let first_lineage = runtime
+        .lineage_access()
+        .for_record(first_entity)
+        .unwrap()
+        .lineage_id;
+    let second_lineage = runtime
+        .lineage_access()
+        .for_record(second_entity)
+        .unwrap()
+        .lineage_id;
     let candidate = runtime.lineage_authority().record_correspondence_candidate(
         BranchId("main".to_string()),
         vec![first_lineage],
@@ -267,12 +308,14 @@ fn complexity_budget_replay_lineage_parity_reports_authority_basis_and_digest_wi
         .expect("promotion should publish a metadata-only commit");
 
     runtime.performance_access().reset_counters();
-    let durable_replay = runtime.replay_authority().replay_commit(RelationalReplayRequest {
-        commit_id: promoted_commit_id,
-        branch_id: BranchId("main".to_string()),
-        execution_mode: ReplayExecutionMode::SerialDeterministic,
-        verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
-    });
+    let durable_replay = runtime
+        .replay_authority()
+        .replay_commit(RelationalReplayRequest {
+            commit_id: promoted_commit_id,
+            branch_id: BranchId("main".to_string()),
+            execution_mode: ReplayExecutionMode::SerialDeterministic,
+            verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
+        });
     let counters = runtime.performance_access().counters();
 
     assert_eq!(
@@ -316,12 +359,14 @@ fn complexity_budget_replay_lineage_parity_reports_authority_basis_and_digest_wi
         .durability_authority()
         .remove_durable_envelope_for_test(promoted_commit_id));
     runtime.performance_access().reset_counters();
-    let fallback_replay = runtime.replay_authority().replay_commit(RelationalReplayRequest {
-        commit_id: promoted_commit_id,
-        branch_id: BranchId("main".to_string()),
-        execution_mode: ReplayExecutionMode::SerialDeterministic,
-        verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
-    });
+    let fallback_replay = runtime
+        .replay_authority()
+        .replay_commit(RelationalReplayRequest {
+            commit_id: promoted_commit_id,
+            branch_id: BranchId("main".to_string()),
+            execution_mode: ReplayExecutionMode::SerialDeterministic,
+            verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
+        });
     let counters = runtime.performance_access().counters();
     assert_eq!(
         fallback_replay

@@ -29,7 +29,9 @@ pub enum PayloadValueConstraintKind {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum PayloadFieldConstraintDeclaration {
-    Required { field: String },
+    Required {
+        field: String,
+    },
     Type {
         field: String,
         expected: PayloadSchemaValueType,
@@ -53,7 +55,9 @@ pub struct PayloadSchemaDeclaration {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum PayloadFieldConstraint {
-    Required { field: String },
+    Required {
+        field: String,
+    },
     Type {
         field: String,
         expected: PayloadSchemaValueType,

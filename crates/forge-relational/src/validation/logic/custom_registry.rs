@@ -113,7 +113,8 @@ mod tests {
         let left = CustomInvariantRegistration::new(RegistryRule("dup.rule")).unwrap();
         let right = CustomInvariantRegistration::new(RegistryRule("dup.rule")).unwrap();
 
-        let error = FrozenCustomInvariantRegistry::from_registrations(vec![left, right]).unwrap_err();
+        let error =
+            FrozenCustomInvariantRegistry::from_registrations(vec![left, right]).unwrap_err();
         assert_eq!(error.identity.rule_id.as_str(), "dup.rule");
     }
 
@@ -121,7 +122,8 @@ mod tests {
     fn frozen_registry_supports_stable_lookup() {
         let registration = CustomInvariantRegistration::new(RegistryRule("lookup.rule")).unwrap();
         let identity = registration.descriptor().identity.clone();
-        let registry = FrozenCustomInvariantRegistry::from_registrations(vec![registration]).unwrap();
+        let registry =
+            FrozenCustomInvariantRegistry::from_registrations(vec![registration]).unwrap();
 
         assert_eq!(registry.len(), 1);
         assert!(registry.get(&identity).is_some());

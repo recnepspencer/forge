@@ -15,9 +15,7 @@ pub(crate) use observation::InvariantObservation;
 pub use observation::InvariantObservationKind;
 pub use profile::HarnessAuditMode;
 pub(crate) use profile::InvariantRequestProfile;
-pub(crate) use request::{
-    InvariantExecutionRequest, PreparedRelationIntegrityScopes,
-};
+pub(crate) use request::{InvariantExecutionRequest, PreparedRelationIntegrityScopes};
 pub use result::{
     InvariantExecutionDisposition, InvariantExecutionMetadata, InvariantExecutionResult,
     InvariantFailure, InvariantPlanScopeClass, InvariantProofBoundarySummary,

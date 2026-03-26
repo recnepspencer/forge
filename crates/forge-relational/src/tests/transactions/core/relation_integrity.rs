@@ -1,5 +1,5 @@
-use crate::tests::support::*;
 use crate::facade::storage::RecordLifecycleState;
+use crate::tests::support::*;
 
 fn source_max_one_runtime() -> RelationalRuntime {
     RelationIntegritySchemaFixture {
@@ -13,7 +13,8 @@ fn source_max_one_runtime() -> RelationalRuntime {
                 target_min: None,
                 pair_max: None,
                 pair_min: None,
-                pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                pair_min_semantics:
+                    crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
                 minimum_enforcement:
                     crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
             }],
@@ -44,7 +45,8 @@ fn publication_source_min_one_runtime() -> RelationalRuntime {
                 target_min: None,
                 pair_max: None,
                 pair_min: None,
-                pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                pair_min_semantics:
+                    crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
                 minimum_enforcement:
                     crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
             }],
@@ -75,7 +77,8 @@ fn publication_pair_min_two_runtime() -> RelationalRuntime {
                 target_min: None,
                 pair_max: None,
                 pair_min: Some(2),
-                pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                pair_min_semantics:
+                    crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
                 minimum_enforcement:
                     crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
             }],
@@ -282,24 +285,30 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
         changed_relations(&accepted)[0],
         None,
     );
-    let latest_patch_before = runtime.publication_access().latest_patch().unwrap().position;
+    let latest_patch_before = runtime
+        .publication_access()
+        .latest_patch()
+        .unwrap()
+        .position;
 
     let mut txn = runtime.begin_transaction(TransactionOptions {
         target_branch: Some(BranchId("feature".to_string())),
         ..TransactionOptions::default()
     });
-    txn.push_batch(
-        WorkerIntentBatch::new("illegal-feature-relation").push(MutationIntent::Create(
-            CreateIntent::Relation(crate::transactions::data::RelationSpec {
+    txn.push_batch(WorkerIntentBatch::new("illegal-feature-relation").push(
+        MutationIntent::Create(CreateIntent::Relation(
+            crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("illegal-feature".to_string()),
                 source,
                 target: target_b,
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"illegal-feature"}))),
-            }),
+                payload: Some(RecordPayload::StructuredJson(
+                    json!({"label":"illegal-feature"}),
+                )),
+            },
         )),
-    );
+    ));
 
     let error = txn.commit().unwrap_err();
     match error {
@@ -310,11 +319,15 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
     }
 
     assert_eq!(
-        runtime.history_access().branch_head(&BranchId("main".to_string())),
+        runtime
+            .history_access()
+            .branch_head(&BranchId("main".to_string())),
         main_head_before.as_ref()
     );
     assert_eq!(
-        runtime.history_access().branch_head(&BranchId("feature".to_string())),
+        runtime
+            .history_access()
+            .branch_head(&BranchId("feature".to_string())),
         feature_head_before.as_ref()
     );
     assert_eq!(
@@ -336,15 +349,15 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
         feature_digest_before
     );
     assert_eq!(
-        runtime.publication_access().latest_patch().unwrap().position,
+        runtime
+            .publication_access()
+            .latest_patch()
+            .unwrap()
+            .position,
         latest_patch_before
     );
     assert_eq!(
-        runtime
-            .publication_access()
-            .latest_bundle()
-            .unwrap()
-            .commit,
+        runtime.publication_access().latest_bundle().unwrap().commit,
         accepted.commit
     );
 }
@@ -657,7 +670,9 @@ fn relation_integrity_commit_boundary_requires_paired_twin_edge() {
                 client_key: InternedString::Raw("missing-twin".to_string()),
                 source,
                 target,
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"missing-twin"}))),
+                payload: Some(RecordPayload::StructuredJson(
+                    json!({"label":"missing-twin"}),
+                )),
             }),
         )),
     );
@@ -764,14 +779,20 @@ fn relation_integrity_commit_reports_contract_counters_on_success() {
 
     let result = create_relation_outcome(&mut runtime, source, target, "guarded");
 
-    assert!(result.complexity_delta().relation_integrity_contracts_evaluated >= 3);
+    assert!(
+        result
+            .complexity_delta()
+            .relation_integrity_contracts_evaluated
+            >= 3
+    );
     assert!(result.complexity_delta().relation_endpoint_kind_checks >= 1);
     assert!(result.complexity_delta().relation_cardinality_checks >= 1);
     assert!(result.complexity_delta().relation_uniqueness_checks >= 1);
 }
 
 #[test]
-fn relation_integrity_commit_boundary_rejects_replace_when_retained_relation_keeps_live_endpoint_dependency() {
+fn relation_integrity_commit_boundary_rejects_replace_when_retained_relation_keeps_live_endpoint_dependency(
+) {
     let mut runtime = endpoint_deletion_runtime(
         crate::schema::data::EndpointDeletionIntegrityMode::RejectDeleteWithLiveRelations,
         CascadeDeletePolicy::RetainDanglingForAudit,
@@ -807,7 +828,8 @@ fn relation_integrity_commit_boundary_rejects_replace_when_retained_relation_kee
 }
 
 #[test]
-fn relation_integrity_commit_boundary_requires_relation_deletion_in_same_commit_under_retain_policy() {
+fn relation_integrity_commit_boundary_requires_relation_deletion_in_same_commit_under_retain_policy(
+) {
     let mut runtime = endpoint_deletion_runtime(
         crate::schema::data::EndpointDeletionIntegrityMode::RequireRelationDeletionInSameCommit,
         CascadeDeletePolicy::RetainDanglingForAudit,
@@ -838,7 +860,8 @@ fn relation_integrity_commit_boundary_requires_relation_deletion_in_same_commit_
 }
 
 #[test]
-fn relation_integrity_commit_boundary_allows_relation_deletion_in_same_commit_under_cascade_policy() {
+fn relation_integrity_commit_boundary_allows_relation_deletion_in_same_commit_under_cascade_policy()
+{
     let mut runtime = endpoint_deletion_runtime(
         crate::schema::data::EndpointDeletionIntegrityMode::RequireRelationDeletionInSameCommit,
         CascadeDeletePolicy::CascadeDeleteRelations,

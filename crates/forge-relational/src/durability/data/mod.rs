@@ -9,9 +9,7 @@ use crate::identity::data::{
     EntityId, KindId, LineageId, PartitionId, RelationId, StructuralFingerprint, VersionId,
 };
 use crate::indexes::data::{DerivedIndexDefinition, DerivedIndexGeneration};
-use crate::lineage::data::{
-    LineageCheckpointArtifact,
-};
+use crate::lineage::data::LineageCheckpointArtifact;
 use crate::payloads::data::RecordPayload;
 use crate::replay::data::CanonicalCommitEnvelope;
 use crate::replay::data::ReplayVerificationLayer;

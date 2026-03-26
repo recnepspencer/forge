@@ -4,28 +4,21 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use crate::schema::data::{
-    CompatibilityObservation,
-    DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
+    CompatibilityObservation, DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
     FreeFormSchemaDiffIntent, HistoricalInterpretationSensitivity, LoweredSchemaTransitionPlan,
-    ProposedSchemaTransition,
-    SchemaBoundaryFingerprint, SchemaBridgeDescriptor, SchemaBridgeabilityClassification,
-    SchemaContinuationClassification, SchemaContinuationDescriptor, SchemaDiffAtom, SchemaDiffDetail,
-    SchemaReconciliationClassification, SchemaReconciliationDescriptor,
-    SchemaReconciliationOrderingMode, SchemaReconciliationPolicy, SchemaStratum,
-    SchemaSubscriberImpact, SchemaLineageArtifact, SchemaLineageOrderingSemantics,
-    SubscriberBoundaryVisibility,
-    ValidatedSchemaTransition,
+    ProposedSchemaTransition, SchemaBoundaryFingerprint, SchemaBridgeDescriptor,
+    SchemaBridgeabilityClassification, SchemaContinuationClassification,
+    SchemaContinuationDescriptor, SchemaDiffAtom, SchemaDiffDetail, SchemaLineageArtifact,
+    SchemaLineageOrderingSemantics, SchemaReconciliationClassification,
+    SchemaReconciliationDescriptor, SchemaReconciliationOrderingMode, SchemaReconciliationPolicy,
+    SchemaStratum, SchemaSubscriberImpact, SubscriberBoundaryVisibility, ValidatedSchemaTransition,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SchemaTransitionValidationError {
     EmptyDiff,
-    UnstratifiedChange {
-        element_name: Arc<str>,
-    },
-    NarrowingWithoutPolicy {
-        element_name: Arc<str>,
-    },
+    UnstratifiedChange { element_name: Arc<str> },
+    NarrowingWithoutPolicy { element_name: Arc<str> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -69,9 +62,7 @@ impl<'a> ValidatedSchemaContinuityBundle<'a> {
         self.transition
     }
 
-    pub fn continuation(
-        &self,
-    ) -> Option<&'a crate::schema::data::SchemaContinuationDescriptor> {
+    pub fn continuation(&self) -> Option<&'a crate::schema::data::SchemaContinuationDescriptor> {
         self.continuation
     }
 
@@ -127,7 +118,9 @@ impl SchemaContinuityBundleIssue {
 impl SchemaTransitionValidationError {
     pub fn detail(&self) -> String {
         match self {
-            Self::EmptyDiff => "schema transition must carry at least one classified diff atom".to_string(),
+            Self::EmptyDiff => {
+                "schema transition must carry at least one classified diff atom".to_string()
+            }
             Self::UnstratifiedChange { element_name } => {
                 format!("schema change for '{element_name}' does not declare any schema strata")
             }
@@ -222,9 +215,11 @@ pub(crate) fn classify_schema_transition(
     let mut bridgeability = SchemaBridgeabilityClassification::Transparent;
 
     for atom in &proposed.diff_atoms {
-        reconciliation = max_reconciliation_classification(reconciliation, classify_reconciliation(atom));
+        reconciliation =
+            max_reconciliation_classification(reconciliation, classify_reconciliation(atom));
         continuation = max_continuation_classification(continuation, classify_continuation(atom));
-        bridgeability = max_bridgeability_classification(bridgeability, classify_bridgeability(atom));
+        bridgeability =
+            max_bridgeability_classification(bridgeability, classify_bridgeability(atom));
     }
 
     if matches!(
@@ -254,14 +249,14 @@ pub(crate) fn classify_schema_transition(
                 SchemaReconciliationClassification::TypeIncompatible
                     | SchemaReconciliationClassification::StructuralIncompatible
             ) {
-                CompatibilityObservation::RejectedInAllLayers
-            } else {
-                CompatibilityObservation::NonRejectedInAtLeastOneLayer
-            },
+            CompatibilityObservation::RejectedInAllLayers
+        } else {
+            CompatibilityObservation::NonRejectedInAtLeastOneLayer
+        },
         reconciliation,
         continuation,
-        bridgeability: if is_contract_upgrade_policy(policy) && continuation
-            == SchemaContinuationClassification::ContinueWithContractUpgrade
+        bridgeability: if is_contract_upgrade_policy(policy)
+            && continuation == SchemaContinuationClassification::ContinueWithContractUpgrade
         {
             SchemaBridgeabilityClassification::ContractUpgradeOnly
         } else {
@@ -354,20 +349,22 @@ pub fn validate_schema_continuity_bundle(
         );
     }
     if continuation.bridge.semantics_version != envelope.descriptor_semantics_version {
-        return Err(SchemaContinuityBundleIssue::DescriptorSemanticsVersionMismatch {
-            expected: envelope.descriptor_semantics_version,
-            found: continuation.bridge.semantics_version,
-        });
+        return Err(
+            SchemaContinuityBundleIssue::DescriptorSemanticsVersionMismatch {
+                expected: envelope.descriptor_semantics_version,
+                found: continuation.bridge.semantics_version,
+            },
+        );
     }
     if reconciliation.semantics_version != envelope.descriptor_semantics_version {
-        return Err(SchemaContinuityBundleIssue::DescriptorSemanticsVersionMismatch {
-            expected: envelope.descriptor_semantics_version,
-            found: reconciliation.semantics_version,
-        });
+        return Err(
+            SchemaContinuityBundleIssue::DescriptorSemanticsVersionMismatch {
+                expected: envelope.descriptor_semantics_version,
+                found: reconciliation.semantics_version,
+            },
+        );
     }
-    if continuation.bridge.canonicalization_version
-        != reconciliation.canonicalization_version
-    {
+    if continuation.bridge.canonicalization_version != reconciliation.canonicalization_version {
         return Err(
             SchemaContinuityBundleIssue::DescriptorCanonicalizationVersionMismatch {
                 expected: continuation.bridge.canonicalization_version,
@@ -428,8 +425,10 @@ fn normalize_transition(diff_atoms: &[SchemaDiffAtom]) -> NormalizedTransitionVi
         for stratum in &atom.strata {
             changed_strata.insert(*stratum);
         }
-        historical_interpretation =
-            strongest_historical_interpretation(historical_interpretation, atom.historical_interpretation);
+        historical_interpretation = strongest_historical_interpretation(
+            historical_interpretation,
+            atom.historical_interpretation,
+        );
         canonical_atoms.push(CanonicalSchemaDiffAtom::new(atom));
     }
 
@@ -484,8 +483,10 @@ impl<'a> CanonicalSchemaDiffDetail<'a> {
                 field_name,
                 added_variants,
             } => {
-                let mut normalized_variants =
-                    added_variants.iter().map(|variant| variant.as_ref()).collect::<Vec<_>>();
+                let mut normalized_variants = added_variants
+                    .iter()
+                    .map(|variant| variant.as_ref())
+                    .collect::<Vec<_>>();
                 normalized_variants.sort_unstable();
                 normalized_variants.dedup();
                 Self::EnumDomainExpanded {
@@ -537,10 +538,23 @@ fn compare_atoms_canonically(
         .then_with(|| left.atom.element.kind.cmp(&right.atom.element.kind))
         .then_with(|| left.atom.element.kind_id.cmp(&right.atom.element.kind_id))
         .then_with(|| left.element_name_sort_key.cmp(&right.element_name_sort_key))
-        .then_with(|| left.atom.element.element_name.cmp(&right.atom.element.element_name))
+        .then_with(|| {
+            left.atom
+                .element
+                .element_name
+                .cmp(&right.atom.element.element_name)
+        })
         .then_with(|| left.normalized_strata.cmp(&right.normalized_strata))
-        .then_with(|| left.atom.publication_impact.cmp(&right.atom.publication_impact))
-        .then_with(|| left.atom.subscriber_impact.cmp(&right.atom.subscriber_impact))
+        .then_with(|| {
+            left.atom
+                .publication_impact
+                .cmp(&right.atom.publication_impact)
+        })
+        .then_with(|| {
+            left.atom
+                .subscriber_impact
+                .cmp(&right.atom.subscriber_impact)
+        })
         .then_with(|| {
             left.atom
                 .historical_interpretation
@@ -603,7 +617,10 @@ fn detail_cmp_payload(
                 from_type: rfrom,
                 to_type: rto,
             },
-        ) => lf.cmp(rf).then_with(|| lfrom.cmp(rfrom)).then_with(|| lto.cmp(rto)),
+        ) => lf
+            .cmp(rf)
+            .then_with(|| lfrom.cmp(rfrom))
+            .then_with(|| lto.cmp(rto)),
         (
             CanonicalSchemaDiffDetail::EnumDomainExpanded {
                 field_name: lf,
@@ -753,25 +770,21 @@ fn classify_reconciliation(atom: &SchemaDiffAtom) -> SchemaReconciliationClassif
             SchemaReconciliationClassification::TypeIncompatible
         }
         SchemaDiffDetail::InvariantContractChanged { .. } => {
-            if atom
-                .strata
-                .contains(&SchemaStratum::BehavioralSemantics)
+            if atom.strata.contains(&SchemaStratum::BehavioralSemantics)
                 || atom
                     .strata
                     .contains(&SchemaStratum::EntityIdentitySemantics)
-                || atom
-                    .strata
-                    .contains(&SchemaStratum::LineageSemantics)
+                || atom.strata.contains(&SchemaStratum::LineageSemantics)
             {
                 SchemaReconciliationClassification::StructuralIncompatible
             } else {
                 SchemaReconciliationClassification::Additive
             }
         }
-        SchemaDiffDetail::FreeText { declared_intent, .. } => match declared_intent {
-            FreeFormSchemaDiffIntent::Additive => {
-                SchemaReconciliationClassification::Additive
-            }
+        SchemaDiffDetail::FreeText {
+            declared_intent, ..
+        } => match declared_intent {
+            FreeFormSchemaDiffIntent::Additive => SchemaReconciliationClassification::Additive,
             FreeFormSchemaDiffIntent::StructuralIncompatible => {
                 SchemaReconciliationClassification::StructuralIncompatible
             }

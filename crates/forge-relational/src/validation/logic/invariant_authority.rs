@@ -108,11 +108,9 @@ impl<'runtime> InvariantAuthority<'runtime> {
             if !collect_all {
                 self.emit_publication_failure(&result, failure);
             }
-            return Err(
-                failure
-                    .clone()
-                    .into_publication_error(PublicationStage::InvariantCheck),
-            );
+            return Err(failure
+                .clone()
+                .into_publication_error(PublicationStage::InvariantCheck));
         }
         Ok(result)
     }

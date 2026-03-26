@@ -1,8 +1,6 @@
 use crate::facade::history::BranchId;
 use crate::facade::identity::LineageId;
-use crate::facade::lineage::{
-    CorrespondencePromotionRejectionClass, LineageResolutionStatus,
-};
+use crate::facade::lineage::{CorrespondencePromotionRejectionClass, LineageResolutionStatus};
 use crate::tests::support::*;
 
 // CONTRACT: lineage_candidate_recording

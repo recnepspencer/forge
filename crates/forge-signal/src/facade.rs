@@ -46,22 +46,23 @@ pub mod types {
         InvalidationFrontier, InvalidationSeed, InvalidationSeedBatch, InvalidationTraceRecord,
         LocalityFootprint, LocallyOrderedShard, LoweredForm, MergeableOrderedStream,
         MixedSnapshotBatchCommit, NarrowedPropagationSet, OrderedStreamItem,
-        OrderedStreamMergeError, PartitionScopeSet, PatchPlan, PendingSnapshotBatch,
-        ResolvedForm, SemanticBatchCommit, SingleConsumer, SnapshotBatchCommit,
-        SortedSourceBatch, StableShapeSnapshotBatchCommit, StructuralDelta, SubscriberRepair,
-        SubscriberRepairBatch, SummaryForm, TouchedScopeSummary, TransitiveFrontierRoot,
+        OrderedStreamMergeError, PartitionScopeSet, PatchPlan, PendingSnapshotBatch, ResolvedForm,
+        SemanticBatchCommit, SingleConsumer, SnapshotBatchCommit, SortedSourceBatch,
+        StableShapeSnapshotBatchCommit, StructuralDelta, SubscriberRepair, SubscriberRepairBatch,
+        SummaryForm, TouchedScopeSummary, TransitiveFrontierRoot,
     };
     pub use crate::data::reuse::{
         ArtifactEquivalenceContract, ArtifactSemanticBoundary, PersistentCorrespondenceEvidence,
-        ReuseBasis, ReuseBoundaryContext, ReuseBoundaryEvidence, ReuseBoundaryFailure,
-        ReuseBoundaryProof, ReuseCertificationFailure, ReuseCertificationRecord, ReuseCrossing,
-        ReuseOrigin, ReuseSemanticRegionIdentity, ReuseSource, ReuseStrategy,
+        ReuseBasis, ReuseBoundaryAuthority, ReuseBoundaryContext, ReuseBoundaryEvidence,
+        ReuseBoundaryFailure, ReuseBoundaryProof, ReuseCertificationFailure,
+        ReuseCertificationRecord, ReuseCrossing, ReuseOrigin, ReuseSemanticRegionIdentity,
+        ReuseSource, ReuseStrategy, ReuseStrategyBoundaryAuthority,
     };
     pub use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger, TierPolicy};
     pub use crate::data::trace::{
-        ArtifactAuthorityClass, ArtifactMergeAuthority, CausalityMetadata,
-        HistoricalArtifactRecord, MergeAdoptability, RetainedDiagnosticArtifact,
-        RuntimeArtifactState, TraceSummary,
+        ArtifactAuthorityClass, ArtifactMergeAuthority, CausalityMetadata, ColdArtifactIntent,
+        ColdArtifactRecord, HistoricalArtifactRecord, HotArtifactWrite, MergeAdoptability,
+        RetainedDiagnosticArtifact, RuntimeArtifactState, TraceSummary,
     };
     pub use crate::state::{
         SignalBranchHandle, SignalBranchId, SignalSnapshotDiagnostics, SignalSnapshotId,
@@ -136,10 +137,10 @@ pub mod proof {
         InvalidationFrontier, InvalidationSeed, InvalidationSeedBatch, InvalidationTraceRecord,
         LocalityFootprint, LocallyOrderedShard, LoweredForm, MergeableOrderedStream,
         MixedSnapshotBatchCommit, NarrowedPropagationSet, OrderedStreamItem,
-        OrderedStreamMergeError, PartitionScopeSet, PatchPlan, PendingSnapshotBatch,
-        ResolvedForm, SemanticBatchCommit, SingleConsumer, SnapshotBatchCommit,
-        SortedSourceBatch, StableShapeSnapshotBatchCommit, StructuralDelta, SubscriberRepair,
-        SubscriberRepairBatch, SummaryForm, TouchedScopeSummary, TransitiveFrontierRoot,
+        OrderedStreamMergeError, PartitionScopeSet, PatchPlan, PendingSnapshotBatch, ResolvedForm,
+        SemanticBatchCommit, SingleConsumer, SnapshotBatchCommit, SortedSourceBatch,
+        StableShapeSnapshotBatchCommit, StructuralDelta, SubscriberRepair, SubscriberRepairBatch,
+        SummaryForm, TouchedScopeSummary, TransitiveFrontierRoot,
     };
 }
 

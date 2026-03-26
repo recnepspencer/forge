@@ -17,12 +17,12 @@ use crate::logic::planning::RelationalExecutionModel;
 use crate::logic::runtime::RelationalRuntime;
 use crate::transactions::data::MergedCommitPlan;
 use crate::validation::data::CustomInvariantScopePlanner;
+use crate::validation::engine::InvariantExecutionRequest;
 use crate::validation::engine::{
     InvariantPlanScopeClass, InvariantProofBoundarySummary, InvariantScopeWideningCause,
 };
-use crate::validation::engine::InvariantExecutionRequest;
-use std::sync::Arc;
 use std::collections::BTreeSet;
+use std::sync::Arc;
 
 pub(crate) type PlannedInvariantExecution<'runtime> = PreparedInvariantExecution<'runtime>;
 
@@ -213,7 +213,10 @@ fn planning_context(
         schema_registry_entry_count: runtime.config.schema.registry.entity_kinds.len()
             + runtime.config.schema.registry.relation_kinds.len(),
         invariant_registration_count: runtime.config.schema.invariant_catalog.registrations.len()
-            + runtime.aspect_semantics.relation_integrity_registrations.len()
+            + runtime
+                .aspect_semantics
+                .relation_integrity_registrations
+                .len()
             + runtime.aspect_semantics.custom_invariant_registries.len(),
         planning_contract: runtime.config.execution.planning.clone(),
     }
@@ -231,8 +234,7 @@ pub(crate) fn planned_proof_boundary_summary(
             PreparationPartitionScope::AllObserved => {
                 if !widened_causes.contains(&InvariantScopeWideningCause::AllObservedPartitionScope)
                 {
-                    widened_causes
-                        .push(InvariantScopeWideningCause::AllObservedPartitionScope);
+                    widened_causes.push(InvariantScopeWideningCause::AllObservedPartitionScope);
                 }
             }
             PreparationPartitionScope::TouchedPartitions(partitions) => {
@@ -282,7 +284,9 @@ fn eligible_registrations(
                 .aspect_semantics
                 .relation_integrity_registrations
                 .iter()
-                .filter(move |registration| registration.execution_point == request.execution_point()),
+                .filter(move |registration| {
+                    registration.execution_point == request.execution_point()
+                }),
         )
         .filter(|registration| request.includes_registration(registration))
         .cloned()
@@ -300,10 +304,9 @@ fn eligible_registrations(
                 request.version_id(),
                 request.merged_plan(),
             );
-            let prepared_execution =
-                registration
-                    .executable()
-                    .prepare_for_execution(runtime, &mut planner);
+            let prepared_execution = registration
+                .executable()
+                .prepare_for_execution(runtime, &mut planner);
             InvariantPacketRegistration::Custom {
                 registration: registration.clone(),
                 prepared_execution,
@@ -322,10 +325,7 @@ fn packet_partition_scope(
             intent.seed_touched_partitions(&mut touched);
         }
     }
-    touched
-        .into_iter()
-        .collect::<Vec<_>>()
-        .into()
+    touched.into_iter().collect::<Vec<_>>().into()
 }
 
 #[cfg(test)]
@@ -340,17 +340,19 @@ mod tests {
         },
     };
     use crate::identity::data::KindId;
+    use crate::identity::data::PartitionId;
+    use crate::payloads::data::RecordPayload;
     use crate::schema::data::{
         EndpointKindContractDeclaration, RelationIntegrityDeclarations, RelationPayloadClass,
     };
-    use crate::identity::data::PartitionId;
-    use crate::payloads::data::RecordPayload;
     use crate::transactions::data::{
         CreateIntent, EntitySpec, MergedCommitPlan, MutationIntent, RelationSpec,
         TransactionOptions, WorkerIntentBatch,
     };
     use crate::validation::data::InvariantPlanContract;
-    use crate::validation::engine::{InvariantExecutionRequest, InvariantObservation, InvariantRequestProfile};
+    use crate::validation::engine::{
+        InvariantExecutionRequest, InvariantObservation, InvariantRequestProfile,
+    };
     use crate::validation::engine::{InvariantPlanScopeClass, InvariantScopeWideningCause};
     use serde_json::json;
 
@@ -438,16 +440,14 @@ mod tests {
         name: &str,
     ) -> crate::identity::data::EntityId {
         let mut txn = runtime.begin_transaction(TransactionOptions::default());
-        txn.push_batch(
-            WorkerIntentBatch::new(format!("entity-{name}")).push(MutationIntent::Create(
-                CreateIntent::Entity(EntitySpec {
-                    partition_id: PartitionId::main(),
-                    kind_id: KindId(1),
-                    client_key: crate::symbols::data::InternedString::Raw(name.to_string()),
-                    payload: RecordPayload::StructuredJson(json!({"name": name})),
-                }),
-            )),
-        );
+        txn.push_batch(WorkerIntentBatch::new(format!("entity-{name}")).push(
+            MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: crate::symbols::data::InternedString::Raw(name.to_string()),
+                payload: RecordPayload::StructuredJson(json!({"name": name})),
+            })),
+        ));
         let outcome = txn.commit().unwrap();
         outcome
             .changed_records
@@ -538,7 +538,10 @@ mod tests {
         let prepared = plan_invariant_execution(&runtime, &request);
         let summary = planned_proof_boundary_summary(&prepared);
 
-        assert_eq!(summary.scope_class(), InvariantPlanScopeClass::PartitionScope);
+        assert_eq!(
+            summary.scope_class(),
+            InvariantPlanScopeClass::PartitionScope
+        );
         assert!(summary.widened_causes().is_empty());
         assert_eq!(summary.packet_count(), 1);
         assert_eq!(summary.touched_partition_count(), 1);

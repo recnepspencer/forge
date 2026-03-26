@@ -1,7 +1,7 @@
 use crate::facade::history::BranchId;
 use crate::facade::lineage::{
-    HistoricalResolutionBoundednessBasis, HistoricalResolutionRequest,
-    LineageDivergenceRequest, LineageDivergenceTraversalBasis,
+    HistoricalResolutionBoundednessBasis, HistoricalResolutionRequest, LineageDivergenceRequest,
+    LineageDivergenceTraversalBasis,
 };
 use crate::tests::support::*;
 
@@ -21,13 +21,14 @@ fn lineage_branch_divergence_is_queryable() {
         .unwrap();
     let _feature =
         create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
-    let divergence = runtime
-        .lineage_access()
-        .divergence_between_branches(LineageDivergenceRequest {
-            left_branch: BranchId("main".to_string()),
-            right_branch: BranchId("feature".to_string()),
-            traversal_basis: LineageDivergenceTraversalBasis::FullBranchGraphComparison,
-        });
+    let divergence =
+        runtime
+            .lineage_access()
+            .divergence_between_branches(LineageDivergenceRequest {
+                left_branch: BranchId("main".to_string()),
+                right_branch: BranchId("feature".to_string()),
+                traversal_basis: LineageDivergenceTraversalBasis::FullBranchGraphComparison,
+            });
 
     assert_eq!(
         divergence.traversal_basis,
@@ -62,8 +63,11 @@ fn historical_lineage_resolution_is_branch_local_under_divergent_replacements() 
             &BranchId("main".to_string()),
         )
         .unwrap();
-    let feature_target =
-        create_entity_outcome_on_branch(&mut runtime, "feature-target", BranchId("feature".to_string()));
+    let feature_target = create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-target",
+        BranchId("feature".to_string()),
+    );
     let feature_target_lineage = runtime
         .lineage_access()
         .for_record(changed_entities(&feature_target)[0])
@@ -94,20 +98,22 @@ fn historical_lineage_resolution_is_branch_local_under_divergent_replacements() 
         )
         .unwrap();
 
-    let main_resolution = runtime
-        .lineage_access()
-        .resolve_historical_lineage(HistoricalResolutionRequest {
-            branch_id: BranchId("main".to_string()),
-            lineage_id: start_lineage,
-            boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
-        });
-    let feature_resolution = runtime
-        .lineage_access()
-        .resolve_historical_lineage(HistoricalResolutionRequest {
-            branch_id: BranchId("feature".to_string()),
-            lineage_id: start_lineage,
-            boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
-        });
+    let main_resolution =
+        runtime
+            .lineage_access()
+            .resolve_historical_lineage(HistoricalResolutionRequest {
+                branch_id: BranchId("main".to_string()),
+                lineage_id: start_lineage,
+                boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
+            });
+    let feature_resolution =
+        runtime
+            .lineage_access()
+            .resolve_historical_lineage(HistoricalResolutionRequest {
+                branch_id: BranchId("feature".to_string()),
+                lineage_id: start_lineage,
+                boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
+            });
 
     assert_eq!(
         main_resolution.boundedness_basis,

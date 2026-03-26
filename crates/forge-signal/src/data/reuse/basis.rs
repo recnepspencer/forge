@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::dependency::DependencySnapshotId;
 
-use super::context::{ArtifactFamilyId, ReuseBoundaryContext};
+use super::context::{ArtifactFamilyId, ReuseBoundaryAuthority, ReuseBoundaryContext};
 
 /// The operational shortcut admitted by prepared/runtime reuse planning.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -118,15 +118,24 @@ impl ReuseBasis {
         crossing: ReuseCrossing,
         context: &ReuseBoundaryContext,
     ) -> Self {
+        Self::from_boundary_authority(strategy, source, crossing, &context.authority())
+    }
+
+    pub fn from_boundary_authority(
+        strategy: ReuseStrategy,
+        source: ReuseSource,
+        crossing: ReuseCrossing,
+        authority: &ReuseBoundaryAuthority,
+    ) -> Self {
         Self {
             strategy: Some(strategy),
             source,
             crossing,
-            dependency_snapshot_basis: Some(context.structural_dependency_basis),
-            topology_regime_basis: Some(context.topology_regime),
-            structural_dependency_basis: Some(context.structural_dependency_basis),
-            artifact_family_basis: context.artifact_family.clone(),
-            partition_region_basis_count: context.partition_region_basis.len() as u32,
+            dependency_snapshot_basis: Some(authority.structural_dependency_basis),
+            topology_regime_basis: Some(authority.topology_regime),
+            structural_dependency_basis: Some(authority.structural_dependency_basis),
+            artifact_family_basis: authority.artifact_family.clone(),
+            partition_region_basis_count: authority.partition_region_basis_count,
         }
     }
 

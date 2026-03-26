@@ -1,6 +1,4 @@
-use crate::history::data::{
-    AspectFilter, LineageAspectHistory, LineageAspectHistoryQueryResult,
-};
+use crate::history::data::{AspectFilter, LineageAspectHistory, LineageAspectHistoryQueryResult};
 use crate::lineage::data::HistoricalResolutionRequest;
 use crate::lineage::logic::access::LineageAccess;
 

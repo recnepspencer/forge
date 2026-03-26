@@ -1,13 +1,15 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
+use crate::identity::data::{EntityId, RelationId, VersionId};
 use crate::inspection::data::{
     ConnectivityComponentSummary, ConnectivityInspectionRequest, ConnectivityInspectionSummary,
     InspectionAccessPath, InspectionAvailability, InspectionDegradation, InspectionOrigin,
     InspectionResolutionContext, InspectionScope, NeighborInspectionResult,
 };
-use crate::identity::data::{EntityId, RelationId, VersionId};
 
-use super::access::{InspectionAccess, KindScopeFilter, PartitionScopeFilter, summary_degradations};
+use super::access::{
+    summary_degradations, InspectionAccess, KindScopeFilter, PartitionScopeFilter,
+};
 
 #[derive(Default)]
 struct ConnectivityWork {
@@ -93,7 +95,9 @@ impl<'runtime> InspectionAccess<'runtime> {
         for relation in read_view
             .relations()
             .iter()
-            .filter(|record| entity_set.contains(&record.source) && entity_set.contains(&record.target))
+            .filter(|record| {
+                entity_set.contains(&record.source) && entity_set.contains(&record.target)
+            })
             .filter(|record| relation_kind_scope.allows(record.kind.kind_id))
         {
             work.record_relation_scan();
@@ -113,17 +117,18 @@ impl<'runtime> InspectionAccess<'runtime> {
                     InspectionDegradation::RelationBudgetExceeded,
                 );
             }
-            adjacency.entry(relation.source).or_default().insert(relation.target);
-            adjacency.entry(relation.target).or_default().insert(relation.source);
+            adjacency
+                .entry(relation.source)
+                .or_default()
+                .insert(relation.target);
+            adjacency
+                .entry(relation.target)
+                .or_default()
+                .insert(relation.source);
         }
 
-        let components = self.connectivity_components(
-            request,
-            version_id,
-            &entities,
-            &adjacency,
-            work,
-        );
+        let components =
+            self.connectivity_components(request, version_id, &entities, &adjacency, work);
         match components {
             Ok((components, work)) => {
                 let summary = ConnectivityInspectionSummary {
@@ -152,7 +157,11 @@ impl<'runtime> InspectionAccess<'runtime> {
         }
     }
 
-    pub fn neighbors(&self, scope: InspectionScope, entity_id: EntityId) -> NeighborInspectionResult {
+    pub fn neighbors(
+        &self,
+        scope: InspectionScope,
+        entity_id: EntityId,
+    ) -> NeighborInspectionResult {
         self.runtime.services.instrumentation.count(|counters| {
             counters.inspection_neighbor_requests += 1;
         });
@@ -161,9 +170,8 @@ impl<'runtime> InspectionAccess<'runtime> {
             .runtime
             .storage_access()
             .all_relations_for_entity(entity_id, version_id);
-        let (outgoing_relation_ids, incoming_relation_ids): (Vec<_>, Vec<_>) = relation_ids
-            .into_iter()
-            .partition(|relation_id| {
+        let (outgoing_relation_ids, incoming_relation_ids): (Vec<_>, Vec<_>) =
+            relation_ids.into_iter().partition(|relation_id| {
                 self.runtime
                     .storage_access()
                     .partition_state(relation_id.partition_id)
@@ -196,7 +204,8 @@ impl<'runtime> InspectionAccess<'runtime> {
             if !partition_scope.allows(partition_id) {
                 continue;
             }
-            let Some(partition) = self.runtime.storage_access().partition_state(partition_id) else {
+            let Some(partition) = self.runtime.storage_access().partition_state(partition_id)
+            else {
                 continue;
             };
             for slot in partition.entity_arena.live_bitset.iter_set_slots() {
@@ -220,7 +229,11 @@ impl<'runtime> InspectionAccess<'runtime> {
                         InspectionDegradation::EntityBudgetExceeded,
                     );
                 }
-                entities.push(EntityId::new(partition_id, slot as u64, slot_view.generation()));
+                entities.push(EntityId::new(
+                    partition_id,
+                    slot as u64,
+                    slot_view.generation(),
+                ));
             }
         }
         entities.sort();
@@ -274,7 +287,8 @@ impl<'runtime> InspectionAccess<'runtime> {
                 let Some(endpoints) = slot_view.extra().clone() else {
                     continue;
                 };
-                if entity_set.contains(&endpoints.source) && entity_set.contains(&endpoints.target) {
+                if entity_set.contains(&endpoints.source) && entity_set.contains(&endpoints.target)
+                {
                     adjacency
                         .entry(endpoints.source)
                         .or_default()
@@ -332,7 +346,10 @@ impl<'runtime> InspectionAccess<'runtime> {
         entities: &[EntityId],
         adjacency: &BTreeMap<EntityId, BTreeSet<EntityId>>,
         mut work: ConnectivityWork,
-    ) -> Result<(Vec<ConnectivityComponentSummary>, ConnectivityWork), (ConnectivityWork, InspectionDegradation)> {
+    ) -> Result<
+        (Vec<ConnectivityComponentSummary>, ConnectivityWork),
+        (ConnectivityWork, InspectionDegradation),
+    > {
         let mut visited = BTreeSet::new();
         let mut components = Vec::new();
         for entity in entities {
@@ -380,16 +397,20 @@ impl<'runtime> InspectionAccess<'runtime> {
         degradation: InspectionDegradation,
     ) -> ConnectivityInspectionSummary {
         self.count_connectivity_work(&work);
-        self.runtime.performance_access().count_inspection_budget_refusal();
+        self.runtime
+            .performance_access()
+            .count_inspection_budget_refusal();
         self.budget_exceeded_connectivity_summary(request, version_id, degradation)
     }
 
     fn count_connectivity_work(&self, work: &ConnectivityWork) {
-        self.runtime.performance_access().count_inspection_connectivity_work(
-            work.entity_scans,
-            work.relation_scans,
-            work.frontier_expansions,
-            work.components_evaluated,
-        );
+        self.runtime
+            .performance_access()
+            .count_inspection_connectivity_work(
+                work.entity_scans,
+                work.relation_scans,
+                work.frontier_expansions,
+                work.components_evaluated,
+            );
     }
 }

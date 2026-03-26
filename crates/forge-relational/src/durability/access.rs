@@ -2,18 +2,18 @@ use crate::capabilities::{
     DurabilityRead, RuntimeConfigSource, RuntimeIdentitySource, SchemaVersionSource,
 };
 use crate::durability::data::{
-    DurabilityMode, RecoveryAuthorityParity, RecoveryCompatibilityCheck, RecoveryCursor,
-    RecoveryIntegrityReport, RecoveryCompatibilityMismatch, RecoveryPlan,
+    DurabilityMode, RecoveryAuthorityParity, RecoveryCompatibilityCheck,
+    RecoveryCompatibilityMismatch, RecoveryCursor, RecoveryIntegrityReport, RecoveryPlan,
     RecoveryVerificationOutcome,
+};
+use crate::durability::log::local_store::{
+    load_store_from_disk, read_json, DurableCheckpointFile, DurableSegmentFile,
 };
 use crate::history::data::BranchHead;
 use crate::logic::runtime::RelationalRuntime;
 use crate::replay::data::ReplayVerificationLayer;
 use crate::schema::logic::{
     validate_schema_continuity_bundle, SchemaContinuityBundleIssue, ValidatedSchemaContinuityBundle,
-};
-use crate::durability::log::local_store::{
-    load_store_from_disk, read_json, DurableCheckpointFile, DurableSegmentFile,
 };
 
 pub struct DurabilityAccess<'runtime> {
@@ -25,10 +25,17 @@ impl<'runtime> DurabilityAccess<'runtime> {
         Self { runtime }
     }
 
-    pub fn recovery_plan(&self, verification_mode: crate::durability::data::RecoveryVerificationMode) -> RecoveryPlan {
+    pub fn recovery_plan(
+        &self,
+        verification_mode: crate::durability::data::RecoveryVerificationMode,
+    ) -> RecoveryPlan {
         match self.runtime.runtime_config().durability.policy.mode {
-            DurabilityMode::InMemoryCanonical => in_memory_recovery_plan(self.runtime, verification_mode),
-            DurabilityMode::PersistedSegmentedLocalFs => self.persisted_recovery_plan(verification_mode),
+            DurabilityMode::InMemoryCanonical => {
+                in_memory_recovery_plan(self.runtime, verification_mode)
+            }
+            DurabilityMode::PersistedSegmentedLocalFs => {
+                self.persisted_recovery_plan(verification_mode)
+            }
         }
     }
 
@@ -40,7 +47,10 @@ impl<'runtime> DurabilityAccess<'runtime> {
         self.runtime.history_access().branches()
     }
 
-    fn persisted_recovery_plan(&self, verification_mode: crate::durability::data::RecoveryVerificationMode) -> RecoveryPlan {
+    fn persisted_recovery_plan(
+        &self,
+        verification_mode: crate::durability::data::RecoveryVerificationMode,
+    ) -> RecoveryPlan {
         let Ok(store) = load_store_from_disk(self.runtime) else {
             return RecoveryPlan::new(
                 self.runtime.runtime_config().clone(),
@@ -298,7 +308,8 @@ fn continuity_compatibility_for_envelopes(
             continue;
         }
 
-        if let Some(found) = unsupported_canonicalization_version(envelope, &canonicalization_policy)
+        if let Some(found) =
+            unsupported_canonicalization_version(envelope, &canonicalization_policy)
         {
             runtime
                 .performance_access()
@@ -415,14 +426,21 @@ fn apply_continuity_issue(
             );
         }
         SchemaContinuityBundleIssue::DescriptorSemanticsVersionMismatch { expected, found } => {
-            runtime.performance_access().count_descriptor_version_mismatch();
+            runtime
+                .performance_access()
+                .count_descriptor_version_mismatch();
             compatibility.descriptor_version_parity = RecoveryAuthorityParity::drift();
             compatibility.first_mismatch.get_or_insert(
                 RecoveryCompatibilityMismatch::DescriptorSemanticsVersion { expected, found },
             );
         }
-        SchemaContinuityBundleIssue::DescriptorCanonicalizationVersionMismatch { expected, found } => {
-            runtime.performance_access().count_descriptor_version_mismatch();
+        SchemaContinuityBundleIssue::DescriptorCanonicalizationVersionMismatch {
+            expected,
+            found,
+        } => {
+            runtime
+                .performance_access()
+                .count_descriptor_version_mismatch();
             compatibility.descriptor_version_parity = RecoveryAuthorityParity::drift();
             compatibility.first_mismatch.get_or_insert(
                 RecoveryCompatibilityMismatch::DescriptorCanonicalizationVersion {

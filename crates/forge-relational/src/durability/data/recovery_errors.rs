@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::errors::data::{ErrorContext, ErrorOperation, RelationalSubsystem, SuggestedFix};
+use crate::history::data::HistoryDriftClass;
 use crate::identity::data::KindId;
 use crate::schema::data::{
     ContractId, DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
@@ -14,7 +15,7 @@ pub enum RecoveryFailureClass {
     RuntimeNameMismatch,
     CorruptCheckpoint,
     CorruptSegment,
-    MissingParentChain,
+    MissingAuthoritativeParentClosure,
     ReplayFailure,
     DurableIoFailure,
 }
@@ -189,6 +190,7 @@ impl RecoveryCompatibilityMismatch {
 pub struct DurabilityError {
     pub class: RecoveryFailureClass,
     pub detail: String,
+    pub history_drift_class: Option<HistoryDriftClass>,
     pub compatibility_mismatch: Option<RecoveryCompatibilityMismatch>,
     pub context: ErrorContext,
 }
@@ -199,7 +201,7 @@ impl DurabilityError {
             RecoveryFailureClass::DurableIoFailure => ErrorOperation::ReadDurableStore,
             RecoveryFailureClass::CorruptCheckpoint
             | RecoveryFailureClass::CorruptSegment
-            | RecoveryFailureClass::MissingParentChain
+            | RecoveryFailureClass::MissingAuthoritativeParentClosure
             | RecoveryFailureClass::ReplayFailure
             | RecoveryFailureClass::SchemaMismatch
             | RecoveryFailureClass::ProfileMismatch
@@ -208,16 +210,19 @@ impl DurabilityError {
         Self {
             class,
             detail: detail.into(),
+            history_drift_class: None,
             compatibility_mismatch: None,
             context: ErrorContext::new(RelationalSubsystem::Durability, operation)
                 .with_fix(SuggestedFix::RepairDurableStore),
         }
     }
 
-    pub fn with_compatibility_mismatch(
-        mut self,
-        mismatch: RecoveryCompatibilityMismatch,
-    ) -> Self {
+    pub fn with_history_drift_class(mut self, drift_class: HistoryDriftClass) -> Self {
+        self.history_drift_class = Some(drift_class);
+        self
+    }
+
+    pub fn with_compatibility_mismatch(mut self, mismatch: RecoveryCompatibilityMismatch) -> Self {
         self.detail = format!("{}: {}", self.detail, mismatch.summary());
         self.compatibility_mismatch = Some(mismatch);
         self

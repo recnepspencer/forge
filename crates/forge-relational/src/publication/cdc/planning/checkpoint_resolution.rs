@@ -1,5 +1,6 @@
 use crate::capabilities::RuntimeConfigSource;
 use crate::logic::runtime::RelationalRuntime;
+use crate::publication::cdc::data::SubscriberStreamFailure;
 use crate::publication::cdc::data::{
     SubscriberCheckpoint, SubscriberCheckpointBasis, SubscriberContinuationAssessment,
     SubscriberStreamFailureClass,
@@ -7,9 +8,6 @@ use crate::publication::cdc::data::{
 use crate::publication::cdc::diagnostics::{checkpoint_resolution_artifact, rejection_artifact};
 use crate::publication::patch::data::PatchStreamPosition;
 use crate::replay::data::ReplaySchemaVersion;
-use crate::{
-    publication::cdc::data::SubscriberStreamFailure,
-};
 #[cfg(test)]
 use crate::schema::data::SchemaVersionId;
 
@@ -162,9 +160,9 @@ pub(crate) fn durable_checkpoint_envelope(
 pub(crate) fn durable_envelopes(
     runtime: &RelationalRuntime,
 ) -> Vec<crate::replay::data::CanonicalCommitEnvelope> {
-    let recovery_plan = runtime
-        .durability_access()
-        .recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
+    let recovery_plan = runtime.durability_access().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
     let mut envelopes = recovery_plan
         .checkpoint
         .map(|checkpoint| checkpoint.envelopes)
@@ -237,7 +235,9 @@ fn validate_checkpoint_against_envelope(
         );
     }
 
-    if checkpoint.normalized_continuation_proof().descriptor_semantics_version()
+    if checkpoint
+        .normalized_continuation_proof()
+        .descriptor_semantics_version()
         != checkpoint.descriptor_semantics_version()
     {
         return checkpoint_validation_error(
@@ -268,7 +268,9 @@ fn validate_checkpoint_against_envelope(
         );
     }
 
-    if checkpoint.continuation_summary().descriptor_semantics_version
+    if checkpoint
+        .continuation_summary()
+        .descriptor_semantics_version
         != checkpoint.descriptor_semantics_version()
     {
         return checkpoint_validation_error(
@@ -348,10 +350,13 @@ fn validate_checkpoint_against_envelope(
                     diagnostics,
                 );
             }
-            if checkpoint.authoritative_subscriber_outcome().is_some_and(|outcome| {
-                continuation_priority(checkpoint.continuation_summary().continuation_outcome)
-                    < continuation_priority(outcome)
-            }) {
+            if checkpoint
+                .authoritative_subscriber_outcome()
+                .is_some_and(|outcome| {
+                    continuation_priority(checkpoint.continuation_summary().continuation_outcome)
+                        < continuation_priority(outcome)
+                })
+            {
                 return checkpoint_validation_error(
                     SubscriberStreamFailureClass::CheckpointContinuitySummaryMismatch,
                     format!(

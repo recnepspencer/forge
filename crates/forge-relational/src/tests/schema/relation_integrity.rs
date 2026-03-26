@@ -29,39 +29,41 @@ fn relation_integrity_registry(
 
 #[test]
 fn relation_integrity_declaration_lowering_is_stable() {
-    let registry = relation_integrity_registry(crate::schema::data::RelationIntegrityDeclarations::new(
-        vec![crate::schema::data::EndpointKindContractDeclaration {
-            contract_id: "endpoint".into(),
-            allowed_source_kinds: vec![KindId(1)],
-            allowed_target_kinds: vec![KindId(1)],
-            self_edges_allowed: false,
-            cross_context_policy: CrossContextPolicy::AllowExplicit,
-        }],
-        vec![crate::schema::data::CardinalityContractDeclaration {
-            contract_id: "source_cardinality".into(),
-            source_max: Some(1),
-            source_min: None,
-            target_max: None,
-            target_min: None,
-            pair_max: None,
-            pair_min: None,
-            pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
-            minimum_enforcement:
-                crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
-        }],
-        vec![crate::schema::data::UniquenessContractDeclaration {
-            contract_id: "uniq".into(),
-            scope: crate::schema::data::UniquenessScope::DirectedSemanticEdge,
-        }],
-        vec![crate::schema::data::SymmetryContractDeclaration {
-            contract_id: "symmetry".into(),
-            mode: crate::schema::data::SymmetryMode::InverseProhibited,
-        }],
-        vec![crate::schema::data::EndpointDeletionIntegrityDeclaration {
+    let registry =
+        relation_integrity_registry(crate::schema::data::RelationIntegrityDeclarations::new(
+            vec![crate::schema::data::EndpointKindContractDeclaration {
+                contract_id: "endpoint".into(),
+                allowed_source_kinds: vec![KindId(1)],
+                allowed_target_kinds: vec![KindId(1)],
+                self_edges_allowed: false,
+                cross_context_policy: CrossContextPolicy::AllowExplicit,
+            }],
+            vec![crate::schema::data::CardinalityContractDeclaration {
+                contract_id: "source_cardinality".into(),
+                source_max: Some(1),
+                source_min: None,
+                target_max: None,
+                target_min: None,
+                pair_max: None,
+                pair_min: None,
+                pair_min_semantics:
+                    crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                minimum_enforcement:
+                    crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
+            }],
+            vec![crate::schema::data::UniquenessContractDeclaration {
+                contract_id: "uniq".into(),
+                scope: crate::schema::data::UniquenessScope::DirectedSemanticEdge,
+            }],
+            vec![crate::schema::data::SymmetryContractDeclaration {
+                contract_id: "symmetry".into(),
+                mode: crate::schema::data::SymmetryMode::InverseProhibited,
+            }],
+            vec![crate::schema::data::EndpointDeletionIntegrityDeclaration {
             contract_id: "delete_guard".into(),
             mode: crate::schema::data::EndpointDeletionIntegrityMode::RejectDeleteWithLiveRelations,
         }],
-    ));
+        ));
 
     let runtime = RelationalRuntimeApi::builder()
         .schema_registry(registry)
@@ -78,30 +80,32 @@ fn relation_integrity_declaration_lowering_is_stable() {
 
 #[test]
 fn relation_integrity_minimum_cardinality_lowering_is_publication_explicit() {
-    let registry = relation_integrity_registry(crate::schema::data::RelationIntegrityDeclarations::new(
-        vec![crate::schema::data::EndpointKindContractDeclaration {
-            contract_id: "endpoint".into(),
-            allowed_source_kinds: vec![KindId(1)],
-            allowed_target_kinds: vec![KindId(1)],
-            self_edges_allowed: false,
-            cross_context_policy: CrossContextPolicy::AllowExplicit,
-        }],
-        vec![crate::schema::data::CardinalityContractDeclaration {
-            contract_id: "source_minimum".into(),
-            source_max: None,
-            source_min: Some(1),
-            target_max: None,
-            target_min: None,
-            pair_max: None,
-            pair_min: None,
-            pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
-            minimum_enforcement:
-                crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
-        }],
-        vec![],
-        vec![],
-        vec![],
-    ));
+    let registry =
+        relation_integrity_registry(crate::schema::data::RelationIntegrityDeclarations::new(
+            vec![crate::schema::data::EndpointKindContractDeclaration {
+                contract_id: "endpoint".into(),
+                allowed_source_kinds: vec![KindId(1)],
+                allowed_target_kinds: vec![KindId(1)],
+                self_edges_allowed: false,
+                cross_context_policy: CrossContextPolicy::AllowExplicit,
+            }],
+            vec![crate::schema::data::CardinalityContractDeclaration {
+                contract_id: "source_minimum".into(),
+                source_max: None,
+                source_min: Some(1),
+                target_max: None,
+                target_min: None,
+                pair_max: None,
+                pair_min: None,
+                pair_min_semantics:
+                    crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                minimum_enforcement:
+                    crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
+            }],
+            vec![],
+            vec![],
+            vec![],
+        ));
 
     let runtime = RelationalRuntimeApi::builder()
         .schema_registry(registry)
@@ -152,7 +156,8 @@ fn duplicate_relation_contract_ids_are_rejected() {
                     target_min: None,
                     pair_max: None,
                     pair_min: None,
-                    pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                    pair_min_semantics:
+                        crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
                     minimum_enforcement:
                         crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
                 }],

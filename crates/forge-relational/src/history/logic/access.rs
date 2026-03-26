@@ -200,10 +200,19 @@ impl<'runtime> HistoryAccess<'runtime> {
         }
     }
 
-    pub fn ancestor_chain(&self, commit_id: CommitId) -> Vec<CommitId> {
+    /// Returns the ancestor closure for `commit_id`, ordered by ascending
+    /// `CommitId`.
+    ///
+    /// This is not a linear parent chain on DAG-shaped history.
+    pub fn ancestor_closure_by_commit_id_order(&self, commit_id: CommitId) -> Vec<CommitId> {
         self.ancestor_set(commit_id).into_iter().collect()
     }
 
+    /// Convenience wrapper over the runtime's current common-ancestor
+    /// selection rule for two branch heads.
+    ///
+    /// The underlying selection rule is `max_commit_id_common_ancestor`, which
+    /// intersects both ancestor sets and chooses the maximum `CommitId`.
     pub fn latest_common_ancestor_between_branches(
         &self,
         left_branch: &BranchId,
@@ -211,7 +220,7 @@ impl<'runtime> HistoryAccess<'runtime> {
     ) -> Option<CommitId> {
         let left = self.branch_head(left_branch)?.commit_id;
         let right = self.branch_head(right_branch)?.commit_id;
-        self.latest_common_ancestor(left, right)
+        self.max_commit_id_common_ancestor(left, right)
     }
 
     pub fn can_merge_branch_into(
@@ -225,7 +234,7 @@ impl<'runtime> HistoryAccess<'runtime> {
         let Some(target_head) = self.branch_head(target_branch) else {
             return false;
         };
-        self.latest_common_ancestor(target_head.commit_id, source_head.commit_id)
+        self.max_commit_id_common_ancestor(target_head.commit_id, source_head.commit_id)
             .is_some()
     }
 
@@ -241,16 +250,16 @@ impl<'runtime> HistoryAccess<'runtime> {
                 .as_ref()
                 .zip(target_head.as_ref())
                 .and_then(|(source, target)| {
-                    self.latest_common_ancestor(source.commit_id, target.commit_id)
+                    self.max_commit_id_common_ancestor(source.commit_id, target.commit_id)
                 });
 
         let source_only_commits = source_head
             .as_ref()
-            .map(|head| self.branch_unique_commits(head.commit_id, merge_base))
+            .map(|head| self.branch_unique_commit_closure_by_commit_id_order(head.commit_id, merge_base))
             .unwrap_or_default();
         let target_only_commits = target_head
             .as_ref()
-            .map(|head| self.branch_unique_commits(head.commit_id, merge_base))
+            .map(|head| self.branch_unique_commit_closure_by_commit_id_order(head.commit_id, merge_base))
             .unwrap_or_default();
         let conflicting_records = self.merge_conflicts_between(
             source_only_commits.as_slice(),
@@ -270,7 +279,12 @@ impl<'runtime> HistoryAccess<'runtime> {
         }
     }
 
-    pub(crate) fn latest_common_ancestor(
+    /// Returns the common ancestor selected by the runtime's current history
+    /// rule: intersect both ancestor sets, then choose the maximum `CommitId`.
+    ///
+    /// This is the actual 7A-certified behavior. Callers should not read richer
+    /// merge semantics into this helper than the implementation proves.
+    pub(crate) fn max_commit_id_common_ancestor(
         &self,
         left: CommitId,
         right: CommitId,
@@ -294,10 +308,19 @@ impl<'runtime> HistoryAccess<'runtime> {
                 stack.extend(node.commit.parents.iter().copied());
             }
         }
+        self.runtime
+            .performance_access()
+            .count_merge_history_ancestry_traversal(seen.len());
         seen
     }
 
-    fn branch_unique_commits(&self, head: CommitId, merge_base: Option<CommitId>) -> Vec<CommitId> {
+    /// Returns the branch-local ancestor closure for `head` after removing the
+    /// merge-base ancestor closure, ordered by ascending `CommitId`.
+    fn branch_unique_commit_closure_by_commit_id_order(
+        &self,
+        head: CommitId,
+        merge_base: Option<CommitId>,
+    ) -> Vec<CommitId> {
         let mut commits = self.ancestor_set(head).into_iter().collect::<Vec<_>>();
         if let Some(merge_base) = merge_base {
             let base_ancestors = self.ancestor_set(merge_base);

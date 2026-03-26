@@ -6,8 +6,11 @@ use crate::data::node::NodeState;
 use crate::data::output::{scope_touched_by_artifact_state, CanonicalChangedRegions, OutputChange};
 use crate::data::proof::PartitionScopeSet;
 use crate::data::trace::{
-    ArtifactMergeAuthority, ArtifactWriteDelta, RetainedDiagnosticArtifact, RuntimeArtifactState,
+    ArtifactMergeAuthority, ArtifactWriteDelta, ColdArtifactIntent, HotArtifactWrite,
+    RuntimeArtifactState, ArtifactTransitionKey, CompactChangedScopeProof,
+    ContinuityAuthorityToken, ReuseOperationalBasis, COLD_ARTIFACT_INTENT_LABEL_LIMIT,
 };
+use crate::diagnostics::policy::ArtifactRetentionPolicy;
 use crate::logic::evaluation::{
     AppliedEffectReport, DeferralReason, EffectComparison, EvaluationEffect, EvaluationVerdict,
     SuppressionReason,
@@ -22,7 +25,7 @@ use super::graph::{RuntimeArtifactStructuralDelta, SignalGraph};
 pub(crate) struct ApplyCommitPacket {
     pub(crate) effect: EvaluationEffect,
     pub(crate) comparison: EffectComparison,
-    pub(crate) artifact: Option<(RuntimeArtifactState, Option<RetainedDiagnosticArtifact>)>,
+    pub(crate) artifact_write: Option<HotArtifactWrite>,
     pub(crate) pending_snapshot: Option<crate::logic::evaluation::PendingDependencySnapshot>,
     pub(crate) defer_snapshot_commit: bool,
 }
@@ -59,7 +62,7 @@ impl SignalGraph {
         SignalError,
     > {
         let comparison = self.compare_effect(&effect, comparator)?;
-        let trace = self.build_effect_trace(&effect, comparison)?;
+        let artifact_write = self.build_effect_artifact_write(&effect, comparison)?;
         let pending_snapshot = if defer_snapshot_commit {
             let snapshot_start = Instant::now();
             let pending = crate::logic::evaluation::PendingDependencySnapshot {
@@ -82,7 +85,7 @@ impl SignalGraph {
         } else {
             None
         };
-        self.transition_effect_state(&mut effect, trace)?;
+        self.transition_effect_state(&mut effect, artifact_write)?;
         if !defer_snapshot_commit {
             self.commit_effect_snapshot(&mut effect)?;
         }
@@ -111,7 +114,7 @@ impl SignalGraph {
         defer_snapshot_commit: bool,
     ) -> Result<ApplyCommitPacket, SignalError> {
         let comparison = self.compare_effect(&effect, comparator)?;
-        let artifact = self.build_effect_trace(&effect, comparison)?;
+        let artifact_write = self.build_effect_artifact_write(&effect, comparison)?;
         let pending_snapshot = if defer_snapshot_commit {
             Some(crate::logic::evaluation::PendingDependencySnapshot {
                 node: effect.operational.node,
@@ -124,7 +127,7 @@ impl SignalGraph {
         Ok(ApplyCommitPacket {
             effect,
             comparison,
-            artifact,
+            artifact_write,
             pending_snapshot,
             defer_snapshot_commit,
         })
@@ -144,11 +147,11 @@ impl SignalGraph {
         let ApplyCommitPacket {
             mut effect,
             comparison,
-            artifact,
+            artifact_write,
             pending_snapshot,
             defer_snapshot_commit,
         } = packet.0;
-        self.transition_effect_state(&mut effect, artifact)?;
+        self.transition_effect_state(&mut effect, artifact_write)?;
         if !defer_snapshot_commit {
             self.commit_effect_snapshot(&mut effect)?;
         }
@@ -209,20 +212,21 @@ impl SignalGraph {
         })
     }
 
-    fn build_effect_trace(
+    fn build_effect_artifact_write(
         &self,
         effect: &EvaluationEffect,
         comparison: EffectComparison,
-    ) -> Result<Option<(RuntimeArtifactState, Option<RetainedDiagnosticArtifact>)>, SignalError>
-    {
+    ) -> Result<Option<HotArtifactWrite>, SignalError> {
         if !verdict_retains_runtime_artifact(&effect.operational.verdict) {
             return Ok(None);
         }
         let previous_trace = self
             .get_entry(effect.operational.node)?
             .get_runtime_artifact_state();
-        let trace = Some((
-            RuntimeArtifactState {
+        let cold_intent =
+            build_cold_artifact_intent(effect, &self.runtime_policy().retention_budget);
+        let write = Some(HotArtifactWrite {
+            runtime: Some(RuntimeArtifactState {
                 output_hash: if matches!(effect.operational.verdict, EvaluationVerdict::Recomputed)
                 {
                     effect
@@ -244,16 +248,16 @@ impl SignalGraph {
                         .and_then(|trace| trace.output_identity.clone())
                         .or_else(|| effect.output_identity().cloned())
                 },
-                continuity_token: if matches!(
+                continuity_token: ContinuityAuthorityToken::new(if matches!(
                     effect.operational.verdict,
                     EvaluationVerdict::Recomputed
                 ) {
                     effect.continuity_token().cloned()
                 } else {
                     previous_trace
-                        .and_then(|trace| trace.continuity_token.clone())
+                        .and_then(|trace| trace.continuity_token.clone_inner())
                         .or_else(|| effect.continuity_token().cloned())
-                },
+                }),
                 output_change: comparison.output_change,
                 recomputed: effect.recomputed(),
                 dependency_count: effect.operational.dependency_snapshot_update.entry_count()
@@ -261,44 +265,57 @@ impl SignalGraph {
                 meaningful_input_changes: effect.operational.meaningful_input_changes,
                 changed_partition_count: comparison.changed_partition_count,
                 propagation_suppressed: comparison.propagation_suppressed,
-                changed_scopes: PartitionScopeSet::from_changed_regions(
+                changed_scopes: CompactChangedScopeProof::new(PartitionScopeSet::from_changed_regions(
                     &CanonicalChangedRegions::from_slice(effect.changed_regions()),
-                ),
+                )),
                 memoized_origin: effect.memoized_origin(),
-                reuse_basis: effect.operational.reuse_basis.clone(),
+                reuse_basis: ReuseOperationalBasis::new(effect.operational.reuse_basis.clone()),
                 reuse_origin: effect.operational.reuse_origin,
-                reuse_boundary_context: Some(effect.operational.reuse_boundary_context.clone()),
-                execution_record_id: None,
-                semantic_segment_id: None,
-                lineage_artifact_id: None,
+                reuse_boundary_authority: Some(effect.operational.reuse_boundary_authority.clone()),
+                lineage_artifact_id: ArtifactTransitionKey::default(),
                 merge_authority: ArtifactMergeAuthority::default(),
-            },
-            build_retained_diagnostic_artifact(effect),
-        ));
-        Ok(trace)
+            }),
+            cold_intent,
+        });
+        Ok(write)
     }
 
     fn transition_effect_state(
         &mut self,
         effect: &mut EvaluationEffect,
-        artifact: Option<(RuntimeArtifactState, Option<RetainedDiagnosticArtifact>)>,
+        artifact_write: Option<HotArtifactWrite>,
     ) -> Result<(), SignalError> {
         let node = effect.operational.node;
         let mut causality_changed = false;
         let mut runtime_artifact_delta = None;
         let mut retained_artifact_changed = false;
         let mut state_changed = false;
+        let mut retained_artifact = None;
+        let mut runtime_artifact_state = None;
+        if let Some(write) = artifact_write {
+            self.telemetry_mut().storage.hot_write_runtime_artifact_count +=
+                u64::from(write.runtime.is_some());
+            runtime_artifact_state = write.runtime;
+            if write.cold_intent.is_none() && runtime_policy_omits_cold_artifacts(self) {
+                self.telemetry_mut().storage.hot_write_cold_bypass_count += 1;
+                self.telemetry_mut()
+                    .storage
+                    .deferred_cold_artifact_bypass_count += 1;
+            } else {
+                retained_artifact = self.materialize_retained_artifact(write.cold_intent);
+            }
+        }
         {
             let entry = self.get_entry_mut(node)?;
             let previous_artifact_id = entry
                 .get_runtime_artifact_state()
-                .and_then(|runtime| runtime.lineage_artifact_id);
+                .and_then(|runtime| runtime.lineage_artifact_id.get());
             let previous_output_hash = entry
                 .get_runtime_artifact_state()
                 .map(|runtime| runtime.output_hash);
             let previous_reuse_basis = entry
                 .get_runtime_artifact_state()
-                .map(|runtime| runtime.reuse_basis.clone());
+                .map(|runtime| runtime.reuse_basis.clone_inner());
             if let Some(causality) = effect.take_causality() {
                 entry.set_causality(Some(causality));
                 causality_changed = true;
@@ -310,10 +327,10 @@ impl SignalGraph {
                 );
             }
             if verdict_retains_runtime_artifact(&effect.operational.verdict) {
-                if let Some((runtime_artifact_state, retained_artifact)) = artifact {
+                if let Some(runtime_artifact_state) = runtime_artifact_state {
                     runtime_artifact_delta = Some(RuntimeArtifactStructuralDelta {
                         previous_artifact_id,
-                        next_artifact_id: runtime_artifact_state.lineage_artifact_id,
+                        next_artifact_id: runtime_artifact_state.lineage_artifact_id.get(),
                         previous_output_hash,
                         next_output_hash: Some(runtime_artifact_state.output_hash),
                         previous_reuse_basis: if matches!(
@@ -324,13 +341,13 @@ impl SignalGraph {
                         } else {
                             previous_reuse_basis
                         },
-                        next_reuse_basis: Some(runtime_artifact_state.reuse_basis.clone()),
+                        next_reuse_basis: Some(runtime_artifact_state.reuse_basis.clone_inner()),
                     });
                     entry.apply_artifact_write_delta(ArtifactWriteDelta {
                         runtime: Some(runtime_artifact_state),
                         retained: retained_artifact,
                     });
-                    retained_artifact_changed = true;
+                    retained_artifact_changed = entry.cold_artifact_record().is_some();
                 }
             }
             if verdict_transitions_clean(&effect.operational.verdict) {
@@ -363,26 +380,60 @@ impl SignalGraph {
         Ok(())
     }
 
+    fn materialize_retained_artifact(
+        &mut self,
+        cold_intent: Option<ColdArtifactIntent>,
+    ) -> Option<crate::data::trace::ColdArtifactRecord> {
+        let Some(cold_intent) = cold_intent else {
+            return None;
+        };
+        let policy = self.runtime_policy().retention_budget;
+        if matches!(
+            policy.explanation_retention,
+            ArtifactRetentionPolicy::Retain
+        ) || matches!(policy.provenance_retention, ArtifactRetentionPolicy::Retain)
+        {
+            let retained = cold_intent.materialize_record();
+            if retained.is_some() {
+                self.telemetry_mut()
+                    .storage
+                    .hot_write_cold_record_materialization_count += 1;
+                self.telemetry_mut()
+                    .storage
+                    .eager_cold_artifact_materialization_count += 1;
+            }
+            retained
+        } else {
+            self.telemetry_mut()
+                .storage
+                .hot_write_cold_bypass_count += 1;
+            self.telemetry_mut()
+                .storage
+                .deferred_cold_artifact_bypass_count += 1;
+            None
+        }
+    }
+
     fn commit_effect_snapshot(&mut self, effect: &mut EvaluationEffect) -> Result<(), SignalError> {
         if !effect.operational.snapshot_delta.changed() {
             return Ok(());
         }
         if verdict_commits_snapshot(&effect.operational.verdict) {
-                let placeholder_update = crate::data::dependency::CommittedSnapshotUpdate::Replace(
-                    crate::data::dependency::ReplacementSnapshotUpdate::from_snapshot(
-                        crate::data::dependency::DependencySnapshot::empty(),
-                        &mut self.topology.dependency_snapshot_shapes,
+            let placeholder_update = crate::data::dependency::CommittedSnapshotUpdate::Replace(
+                crate::data::dependency::ReplacementSnapshotUpdate::from_snapshot(
+                    crate::data::dependency::DependencySnapshot::empty(),
+                    &mut self.topology.dependency_snapshot_shapes,
+                ),
+            );
+            return self
+                .replace_dep_snapshot_committed(
+                    effect.operational.node,
+                    std::mem::replace(
+                        &mut effect.operational.dependency_snapshot_update,
+                        placeholder_update,
                     ),
-                );
-                return self
-                    .replace_dep_snapshot_committed(
-                        effect.operational.node,
-                        std::mem::replace(
-                            &mut effect.operational.dependency_snapshot_update,
-                            placeholder_update,
-                        ),
-                    )
-                    .map(|_| ());
+                )
+                .map(|_| ());
         }
         Ok(())
     }
@@ -506,6 +557,7 @@ impl SignalGraph {
         comparison: &EffectComparison,
         suppressed_downstream: u64,
     ) {
+        let retains_cold_artifacts = self.retains_runtime_cold_artifacts();
         match effect.operational.verdict {
             EvaluationVerdict::Recomputed => {
                 if effect.recomputed() {
@@ -520,9 +572,11 @@ impl SignalGraph {
                         .suppressed_downstream_propagations += suppressed_downstream;
                 }
                 record_reuse_telemetry(self.telemetry_mut(), effect);
-                self.telemetry_mut()
-                    .storage
-                    .hot_path_artifact_retention_count += 1;
+                if retains_cold_artifacts {
+                    self.telemetry_mut()
+                        .storage
+                        .hot_path_artifact_retention_count += 1;
+                }
             }
             EvaluationVerdict::Suppressed { reason } => match reason {
                 SuppressionReason::ValidatedClean => {
@@ -530,16 +584,20 @@ impl SignalGraph {
                 }
                 SuppressionReason::ComparatorMatch => {
                     self.telemetry_mut().evaluation.skipped_by_comparator += 1;
-                    self.telemetry_mut()
-                        .storage
-                        .hot_path_artifact_retention_count += 1;
+                    if retains_cold_artifacts {
+                        self.telemetry_mut()
+                            .storage
+                            .hot_path_artifact_retention_count += 1;
+                    }
                     record_reuse_telemetry(self.telemetry_mut(), effect);
                 }
                 SuppressionReason::OutputIdentityUnchanged
                 | SuppressionReason::ContinuityTokenUnchanged => {
-                    self.telemetry_mut()
-                        .storage
-                        .hot_path_artifact_retention_count += 1;
+                    if retains_cold_artifacts {
+                        self.telemetry_mut()
+                            .storage
+                            .hot_path_artifact_retention_count += 1;
+                    }
                     self.telemetry_mut()
                         .evaluation
                         .output_identity_unchanged_count += 1;
@@ -560,6 +618,17 @@ impl SignalGraph {
         }
 
         let _ = comparison;
+    }
+
+    fn retains_runtime_cold_artifacts(&self) -> bool {
+        let retention = self.runtime_policy().retention_budget;
+        matches!(
+            retention.explanation_retention,
+            ArtifactRetentionPolicy::Retain
+        ) || matches!(
+            retention.provenance_retention,
+            ArtifactRetentionPolicy::Retain
+        )
     }
 }
 
@@ -625,12 +694,35 @@ fn trace_output_hash(version: crate::data::aspect::AspectVersion) -> StableHashV
     hash as StableHashValue
 }
 
-fn build_retained_diagnostic_artifact(
+fn build_cold_artifact_intent(
     effect: &EvaluationEffect,
-) -> Option<RetainedDiagnosticArtifact> {
-    let retained = RetainedDiagnosticArtifact {
+    retention: &crate::diagnostics::policy::RetentionBudget,
+) -> Option<ColdArtifactIntent> {
+    if matches!(retention.explanation_retention, ArtifactRetentionPolicy::Omit)
+        && matches!(retention.provenance_retention, ArtifactRetentionPolicy::Omit)
+    {
+        return None;
+    }
+    let retain_reuse_boundary_detail = matches!(
+        effect.operational.reuse_basis.strategy,
+        Some(crate::data::reuse::ReuseStrategy::CrossIdentityPersistentMatch)
+            | Some(crate::data::reuse::ReuseStrategy::PartialArtifactSplicing)
+    );
+    let labels = if matches!(retention.explanation_retention, ArtifactRetentionPolicy::Retain)
+        || matches!(retention.provenance_retention, ArtifactRetentionPolicy::Retain)
+    {
+        effect
+            .labels()
+            .iter()
+            .take(COLD_ARTIFACT_INTENT_LABEL_LIMIT)
+            .cloned()
+            .collect()
+    } else {
+        SmallVec::new()
+    };
+    let intent = ColdArtifactIntent {
         changed_regions: CanonicalChangedRegions::from_slice(effect.changed_regions()),
-        labels: effect.labels().to_vec(),
+        labels,
         keyed_family: effect.keyed_context().and_then(|keyed| {
             keyed
                 .family
@@ -641,17 +733,17 @@ fn build_retained_diagnostic_artifact(
             .keyed_context()
             .and_then(|keyed| keyed.key.as_ref().map(|key| key.as_str().to_owned())),
         reuse_certification: effect.reuse_certification().cloned(),
+        reuse_boundary_context: retain_reuse_boundary_detail
+            .then(|| effect.reuse_boundary_detail().cloned())
+            .flatten(),
     };
-    if retained.changed_regions.is_empty()
-        && retained.labels.is_empty()
-        && retained.keyed_family.is_none()
-        && retained.keyed_key.is_none()
-        && retained.reuse_certification.is_none()
-    {
-        None
-    } else {
-        Some(retained)
-    }
+    (!intent.is_empty()).then_some(intent)
+}
+
+fn runtime_policy_omits_cold_artifacts(graph: &SignalGraph) -> bool {
+    let retention = graph.runtime_policy().retention_budget;
+    matches!(retention.explanation_retention, ArtifactRetentionPolicy::Omit)
+        && matches!(retention.provenance_retention, ArtifactRetentionPolicy::Omit)
 }
 
 fn record_reuse_telemetry(
@@ -693,12 +785,13 @@ fn record_reuse_telemetry(
 
 #[cfg(test)]
 mod tests {
-    use super::record_reuse_telemetry;
+    use super::{build_cold_artifact_intent, record_reuse_telemetry};
     use crate::data::aspect::AspectVersion;
     use crate::data::dependency::{
         CommittedSnapshotUpdate, DependencySnapshot, ReplacementSnapshotUpdate,
         SharedDependencySnapshot, SnapshotDeltaRecord,
     };
+    use crate::data::output::ChangedRegion;
     use crate::data::handle::NodeId;
     use crate::data::output::{MemoizedResultOrigin, OutputChange};
     use crate::data::reuse::{
@@ -707,9 +800,67 @@ mod tests {
         ReuseSource, ReuseStrategy,
     };
     use crate::data::telemetry::RuntimeTelemetry;
+    use crate::diagnostics::policy::{ArtifactRetentionPolicy, RetentionBudget};
     use crate::logic::evaluation::{
-        EffectRuntimeMetadata, EvaluationEffect, EvaluationVerdict, OperationalEffect,
+        DiagnosticEnvelope, EffectRuntimeMetadata, EvaluationEffect, EvaluationVerdict,
+        OperationalEffect,
     };
+
+    fn test_effect_with_labels(labels: Vec<String>) -> EvaluationEffect {
+        let node = NodeId::new(0, 0);
+        let mut shape_store = crate::data::dependency::DependencySnapshotShapeStore::default();
+        EvaluationEffect {
+            operational: OperationalEffect {
+                node,
+                verdict: EvaluationVerdict::Recomputed,
+                aspect_version: AspectVersion::zero(),
+                output_change: OutputChange::Replaced,
+                reuse_basis: ReuseBasis::strategy(
+                    ReuseStrategy::MemoizedArtifactReuse,
+                    ReuseSource::MemoizedArtifact,
+                    ReuseCrossing::None,
+                ),
+                reuse_origin: ReuseOrigin::MemoizedArtifactReuse,
+                reuse_boundary_authority: ReuseBoundaryContext {
+                    topology_regime: 1,
+                    tolerance_regime: crate::data::comparator::VersionComparatorPolicy::Exact,
+                    semantic_region: ReuseSemanticRegionIdentity::new(
+                        node,
+                        false,
+                        Vec::new(),
+                        crate::data::node::ContextRequirement::None,
+                    ),
+                    authority_policy:
+                        crate::data::performance::AuthorityPolicy::SpeculativeThenReconcile,
+                    artifact_family: None,
+                    structural_dependency_basis:
+                        crate::data::dependency::DependencySnapshotId::EMPTY,
+                    partition_region_basis: Default::default(),
+                    strategy_detail: crate::data::reuse::ReuseStrategyBoundaryContext::None,
+                }
+                .authority(),
+                dependency_snapshot_update: CommittedSnapshotUpdate::Replace(
+                    ReplacementSnapshotUpdate::from_snapshot(
+                        DependencySnapshot::empty(),
+                        &mut shape_store,
+                    ),
+                ),
+                snapshot_delta: SnapshotDeltaRecord::between(
+                    node,
+                    &DependencySnapshot::empty(),
+                    &SharedDependencySnapshot::empty(),
+                ),
+                meaningful_input_changes: 0,
+            },
+            diagnostics: DiagnosticEnvelope::from_parts(
+                Some("artifact".into()),
+                Some("continuity".into()),
+                vec![ChangedRegion::new("wing").with_detail("rib-12")],
+                labels,
+            ),
+            runtime_metadata: EffectRuntimeMetadata::default(),
+        }
+    }
 
     #[test]
     fn retained_reuse_certification_increments_cold_materialization_counter() {
@@ -730,7 +881,7 @@ mod tests {
                     ReuseCrossing::None,
                 ),
                 reuse_origin: ReuseOrigin::MemoizedArtifactReuse,
-                reuse_boundary_context: ReuseBoundaryContext {
+                reuse_boundary_authority: ReuseBoundaryContext {
                     topology_regime: 1,
                     tolerance_regime: crate::data::comparator::VersionComparatorPolicy::Exact,
                     semantic_region: ReuseSemanticRegionIdentity::new(
@@ -746,7 +897,8 @@ mod tests {
                         crate::data::dependency::DependencySnapshotId::EMPTY,
                     partition_region_basis: Default::default(),
                     strategy_detail: crate::data::reuse::ReuseStrategyBoundaryContext::None,
-                },
+                }
+                .authority(),
                 dependency_snapshot_update: CommittedSnapshotUpdate::Replace(
                     ReplacementSnapshotUpdate::from_snapshot(
                         DependencySnapshot::empty(),
@@ -776,6 +928,7 @@ mod tests {
                         satisfied: true,
                     }],
                 }),
+                reuse_boundary_detail: None,
             },
         };
 
@@ -789,5 +942,42 @@ mod tests {
             1
         );
         assert_eq!(telemetry.evaluation.reuse_dependency_comparison_breadth, 2);
+    }
+
+    #[test]
+    fn cold_artifact_intent_is_bypassed_under_omit_policy() {
+        let effect = test_effect_with_labels(vec![
+            "alpha".to_string(),
+            "beta".to_string(),
+            "gamma".to_string(),
+        ]);
+        let retention = RetentionBudget {
+            explanation_retention: ArtifactRetentionPolicy::Omit,
+            provenance_retention: ArtifactRetentionPolicy::Omit,
+            ..RetentionBudget::operational()
+        };
+
+        assert!(build_cold_artifact_intent(&effect, &retention).is_none());
+    }
+
+    #[test]
+    fn cold_artifact_intent_caps_label_count() {
+        let effect = test_effect_with_labels(vec![
+            "a".to_string(),
+            "b".to_string(),
+            "c".to_string(),
+            "d".to_string(),
+            "e".to_string(),
+            "f".to_string(),
+        ]);
+        let retention = RetentionBudget {
+            explanation_retention: ArtifactRetentionPolicy::Retain,
+            provenance_retention: ArtifactRetentionPolicy::Retain,
+            ..RetentionBudget::development()
+        };
+
+        let intent = build_cold_artifact_intent(&effect, &retention).expect("cold intent");
+        assert_eq!(intent.labels.len(), crate::data::trace::COLD_ARTIFACT_INTENT_LABEL_LIMIT);
+        assert_eq!(intent.labels.as_slice(), &["a", "b", "c", "d"]);
     }
 }

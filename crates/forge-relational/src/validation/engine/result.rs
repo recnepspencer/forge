@@ -2,8 +2,8 @@ use crate::publication::data::{PublicationError, PublicationStage};
 use crate::transactions::data::{CommitConflict, ConflictClass};
 use crate::validation::data::{
     InvariantCheckResult, InvariantCostClass, InvariantDecisionRecord, InvariantExecutionPoint,
-    InvariantFailureEffect, InvariantGroupSet, InvariantPlanContract, InvariantVerdict, InvariantViolation,
-    InvariantViolationFields,
+    InvariantFailureEffect, InvariantGroupSet, InvariantPlanContract, InvariantVerdict,
+    InvariantViolation, InvariantViolationFields,
 };
 use crate::{
     authority::commit::preparation::diagnostics::failures::PreparationFailureClass,
@@ -304,8 +304,9 @@ impl InvariantExecutionSummary {
                 }
                 InvariantVerdict::Violation(violation) => {
                     violation_count += 1;
-                    if let InvariantViolationFields::CustomInvariantFailure { failure_kind, .. } =
-                        &violation.fields
+                    if let InvariantViolationFields::CustomInvariantFailure {
+                        failure_kind, ..
+                    } = &violation.fields
                     {
                         custom_failure_count += 1;
                         if failure_kind == "panic" {
@@ -391,10 +392,7 @@ impl InvariantExecutionSummary {
         self.publication_failure.as_ref()
     }
 
-    pub fn publication_failures(
-        &self,
-        results: &[InvariantCheckResult],
-    ) -> Vec<InvariantFailure> {
+    pub fn publication_failures(&self, results: &[InvariantCheckResult]) -> Vec<InvariantFailure> {
         results
             .iter()
             .filter_map(|result| match &result.verdict {
@@ -586,6 +584,7 @@ mod tests {
                 execution_point: crate::validation::data::InvariantExecutionPoint::CommitBoundary,
                 failure_effect: InvariantFailureEffect::BlockCommit,
                 rule: InvariantReportedRule::Native(InvariantRule::MaxMergedIntents(1)),
+                witness: crate::validation::data::InvariantWitnessKey::pass(),
                 groups: InvariantGroupSet::empty(),
                 cost: InvariantCostClass::Touched,
                 custom_provenance: None,
@@ -594,6 +593,9 @@ mod tests {
         );
 
         assert_eq!(result.decision_log().len(), 1);
-        assert_eq!(result.decision_log()[0].decision, InvariantDecisionKind::Passed);
+        assert_eq!(
+            result.decision_log()[0].decision,
+            InvariantDecisionKind::Passed
+        );
     }
 }

@@ -11,9 +11,7 @@ use forge_harness::facade::{
 use serde_json::json;
 
 use crate::facade::history::BranchId;
-use crate::facade::replay::{
-    RelationalReplayRequest, ReplayExecutionMode, ReplayVerificationMode,
-};
+use crate::facade::replay::{RelationalReplayRequest, ReplayExecutionMode, ReplayVerificationMode};
 
 use super::super::actions::{
     correct_seeded_trade_candidate, open_analysis_branch, promote_case_correspondence,
@@ -250,12 +248,8 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
                     .branch_head(&branch)
                     .cloned()
                     .ok_or_else(|| format!("branch `{branch_alias}` has no head commit"))?;
-                let resolution = promote_case_correspondence(
-                    &mut session.world,
-                    left_role,
-                    right_role,
-                    commit,
-                );
+                let resolution =
+                    promote_case_correspondence(&mut session.world, left_role, right_role, commit);
                 session
                     .named_lineage_resolutions
                     .insert((*resolution_alias).to_string(), resolution);

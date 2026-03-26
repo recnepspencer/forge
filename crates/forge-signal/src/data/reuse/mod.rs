@@ -11,6 +11,11 @@ pub use certification::{
 #[allow(unused_imports)]
 pub use context::{
     ArtifactFamilyId, PersistentCorrespondenceEvidence, PersistentCorrespondenceKind,
-    ReuseBoundaryContext, ReuseSemanticRegionIdentity, ReuseStrategyBoundaryContext,
+    ReuseBoundaryAuthority, ReuseBoundaryContext, ReuseSemanticRegionIdentity,
+    ReuseStrategyBoundaryAuthority, ReuseStrategyBoundaryContext,
+};
+pub(crate) use context::{
+    stable_partition_scope_digest_from_slice, stable_persistent_correspondence_digest,
+    stable_semantic_region_digest_from_parts,
 };
 pub use contract::{ArtifactEquivalenceContract, ArtifactSemanticBoundary, NodeReuseContract};

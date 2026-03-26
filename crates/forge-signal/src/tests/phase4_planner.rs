@@ -1,3 +1,4 @@
+#[cfg(feature = "parallel")]
 use crate::data::trace::assemble_trace_summary;
 use crate::facade::*;
 #[cfg(feature = "parallel")]
@@ -165,37 +166,25 @@ fn execute_plan_returns_execution_report_and_updates_trace_record_id() {
     assert_eq!(report.stage_count, 2);
     assert_eq!(report.task_count, 2);
     assert!(report.tasks_executed >= 2);
-    assert!(assemble_trace_summary(
-        graph
-            .get_entry(dependent)
-            .unwrap()
-            .get_runtime_artifact_state(),
-        graph
-            .get_entry(dependent)
-            .unwrap()
-            .retained_diagnostic_artifact(),
-    )
-    .unwrap()
-    .execution_record_id
-    .is_some());
+    assert!(graph
+        .get_entry(dependent)
+        .unwrap()
+        .trace_summary()
+        .unwrap()
+        .execution_record_id
+        .is_some());
     assert_eq!(
         graph
             .observe()
             .explain(dependent)
             .unwrap()
             .execution_record_id,
-        assemble_trace_summary(
-            graph
-                .get_entry(dependent)
-                .unwrap()
-                .get_runtime_artifact_state(),
-            graph
-                .get_entry(dependent)
-                .unwrap()
-                .retained_diagnostic_artifact(),
-        )
-        .unwrap()
-        .execution_record_id
+        graph
+            .get_entry(dependent)
+            .unwrap()
+            .trace_summary()
+            .unwrap()
+            .execution_record_id
     );
 }
 
@@ -250,14 +239,7 @@ fn public_evaluate_routes_through_planner_and_records_execution_metadata() {
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(3, 0));
     evaluate(&mut graph, node, &mut compute).unwrap();
 
-    let trace = assemble_trace_summary(
-        graph.get_entry(node).unwrap().get_runtime_artifact_state(),
-        graph
-            .get_entry(node)
-            .unwrap()
-            .retained_diagnostic_artifact(),
-    )
-    .unwrap();
+    let trace = graph.get_entry(node).unwrap().trace_summary().unwrap();
     assert!(trace.execution_record_id.is_some());
 
     let metrics = graph.observe().metrics();

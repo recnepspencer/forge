@@ -10,6 +10,7 @@ use crate::data::graph::ApplyCommitPacket;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::output::NodeEvaluationResult;
+use crate::data::reuse::ReuseBoundaryAuthority;
 use crate::data::reuse::ReuseBoundaryEvidence;
 #[cfg(feature = "parallel")]
 use crate::data::reuse::ReuseBoundaryFailure;
@@ -61,7 +62,8 @@ impl From<SignalError> for ApplyCommitBuildError {
 struct PassivePreparedEffect {
     result: NodeEvaluationResult,
     verdict: crate::logic::evaluation::EvaluationVerdict,
-    reuse_boundary_context: crate::data::reuse::ReuseBoundaryContext,
+    reuse_boundary_authority: ReuseBoundaryAuthority,
+    reuse_boundary_detail: Option<crate::data::reuse::ReuseBoundaryContext>,
     keyed: Option<crate::logic::prepared::PreparedKeyedContext>,
     causality: Option<crate::data::trace::CausalityMetadata>,
 }
@@ -70,7 +72,7 @@ fn lower_passive_prepared_effect<R>(
     graph: &SignalGraph,
     node: NodeId,
     prepared: PreparedEvaluation,
-    resolve_reuse_boundary_context: R,
+    resolve_reuse_boundary_authority: R,
 ) -> Result<PassivePreparedEffect, SignalError>
 where
     R: FnOnce(
@@ -78,7 +80,7 @@ where
         NodeId,
         Option<&NodeEvaluationResult>,
         Option<&crate::logic::prepared::PreparedKeyedContext>,
-    ) -> Result<crate::data::reuse::ReuseBoundaryContext, SignalError>,
+    ) -> Result<ReuseBoundaryAuthority, SignalError>,
 {
     let PreparedEvaluation {
         outcome,
@@ -109,12 +111,12 @@ where
         }
     };
     let result = NodeEvaluationResult::from_version(graph.get_entry(node)?.get_aspect_version());
-    let reuse_boundary_context = resolve_reuse_boundary_context(graph, node, None, keyed.as_ref())?;
 
     Ok(PassivePreparedEffect {
         result,
         verdict,
-        reuse_boundary_context,
+        reuse_boundary_authority: resolve_reuse_boundary_authority(graph, node, None, keyed.as_ref())?,
+        reuse_boundary_detail: None,
         keyed,
         causality: trace_data.causality,
     })
@@ -154,7 +156,7 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
     if !matches!(prepared.outcome, PreparedEvaluationOutcome::Evaluate) {
         let passive =
             lower_passive_prepared_effect(graph, node, prepared, |graph, node, result, keyed| {
-                crate::logic::evaluation::resolve_reuse_boundary_context(
+                crate::logic::evaluation::resolve_reuse_boundary_authority(
                     graph,
                     node,
                     comparator_resolver,
@@ -170,7 +172,8 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
             execution_metadata,
             passive.verdict,
             false,
-            passive.reuse_boundary_context,
+            passive.reuse_boundary_authority,
+            passive.reuse_boundary_detail,
             passive.keyed,
             passive.causality,
             None,
@@ -195,34 +198,30 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
                 .contract
                 .reuse
                 .clone();
-            let current_reuse_boundary_context =
-                crate::logic::evaluation::resolve_reuse_boundary_context(
+            let previous_reuse_boundary_authority = graph
+                .get_entry(node)?
+                .get_runtime_artifact_state()
+                .and_then(|trace| trace.reuse_boundary_authority.clone());
+            let (current_reuse_boundary_authority, current_reuse_boundary_detail) =
+                resolve_effect_reuse_boundary(
                     graph,
                     node,
                     comparator_resolver,
                     Some(&result),
                     prepared.keyed.as_ref(),
+                    reuse_decision.strategy,
+                    previous_reuse_boundary_authority.as_ref(),
                 )?;
-            let previous_reuse_boundary_context = graph
-                .get_entry(node)?
-                .get_runtime_artifact_state()
-                .and_then(|trace| trace.reuse_boundary_context.clone());
-            let current_reuse_boundary_context = hydrate_reuse_topology_boundary_from_previous(
-                graph,
-                node,
-                current_reuse_boundary_context,
-                previous_reuse_boundary_context.as_ref(),
-            )?;
             let admission_boundary_evidence =
                 hydrate_reuse_boundary_evidence(crate::data::reuse::ReuseBoundaryEvidence {
-                    current: current_reuse_boundary_context.clone(),
-                    previous: previous_reuse_boundary_context.or_else(|| {
+                    current: current_reuse_boundary_authority.clone(),
+                    previous: previous_reuse_boundary_authority.or_else(|| {
                         matches!(
                             reuse_decision.strategy,
                             Some(crate::data::reuse::ReuseStrategy::CrossIdentityPersistentMatch)
                                 | Some(crate::data::reuse::ReuseStrategy::PartialArtifactSplicing)
                         )
-                        .then_some(current_reuse_boundary_context.clone())
+                        .then_some(current_reuse_boundary_authority.clone())
                     }),
                 });
             let reuse_certification = crate::logic::evaluation::certify_reuse_decision(
@@ -241,11 +240,11 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
             let lowered_reuse_basis = reuse_decision
                 .strategy
                 .map(|strategy| {
-                    crate::data::reuse::ReuseBasis::from_boundary_context(
+                    crate::data::reuse::ReuseBasis::from_boundary_authority(
                         strategy,
                         reuse_decision.source,
                         reuse_decision.crossing,
-                        &current_reuse_boundary_context,
+                        &current_reuse_boundary_authority,
                     )
                 })
                 .unwrap_or_else(crate::data::reuse::ReuseBasis::fresh_compute);
@@ -268,7 +267,8 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
                 Some(metadata),
                 verdict,
                 reuse_decision.recomputed,
-                current_reuse_boundary_context,
+                current_reuse_boundary_authority,
+                current_reuse_boundary_detail,
                 prepared.keyed,
                 prepared.trace_data.causality,
                 reuse_certification,
@@ -300,7 +300,7 @@ pub(crate) fn build_prepared_apply_commit_packet(
     if !matches!(prepared.outcome, PreparedEvaluationOutcome::Evaluate) {
         let passive =
             lower_passive_prepared_effect(graph, node, prepared, |graph, node, result, keyed| {
-                crate::logic::evaluation::resolve_reuse_boundary_context_with_policy(
+                crate::logic::evaluation::resolve_reuse_boundary_authority_with_policy(
                     graph,
                     node,
                     comparator_policy.clone(),
@@ -311,13 +311,14 @@ pub(crate) fn build_prepared_apply_commit_packet(
         let effect = build_evaluation_effect(
             node,
             passive.result,
-            execution_metadata,
-            passive.verdict,
-            false,
-            passive.reuse_boundary_context,
-            passive.keyed,
-            passive.causality,
-            None,
+                    execution_metadata,
+                    passive.verdict,
+                    false,
+                    passive.reuse_boundary_authority,
+                    Some(passive.reuse_boundary_detail),
+                    passive.keyed,
+                    passive.causality,
+                    None,
             dependency_inputs,
         );
         return graph
@@ -339,34 +340,30 @@ pub(crate) fn build_prepared_apply_commit_packet(
                 .contract
                 .reuse
                 .clone();
-            let current_reuse_boundary_context =
-                crate::logic::evaluation::resolve_reuse_boundary_context_with_policy(
+            let previous_reuse_boundary_authority = graph
+                .get_entry(node)?
+                .get_runtime_artifact_state()
+                .and_then(|trace| trace.reuse_boundary_authority.clone());
+            let (current_reuse_boundary_authority, current_reuse_boundary_detail) =
+                resolve_effect_reuse_boundary_with_policy(
                     graph,
                     node,
                     comparator_policy.clone(),
                     Some(&result),
                     prepared.keyed.as_ref(),
+                    reuse_decision.strategy,
+                    previous_reuse_boundary_authority.as_ref(),
                 )?;
-            let previous_reuse_boundary_context = graph
-                .get_entry(node)?
-                .get_runtime_artifact_state()
-                .and_then(|trace| trace.reuse_boundary_context.clone());
-            let current_reuse_boundary_context = hydrate_reuse_topology_boundary_from_previous(
-                graph,
-                node,
-                current_reuse_boundary_context,
-                previous_reuse_boundary_context.as_ref(),
-            )?;
             let admission_boundary_evidence =
                 hydrate_reuse_boundary_evidence(crate::data::reuse::ReuseBoundaryEvidence {
-                    current: current_reuse_boundary_context.clone(),
-                    previous: previous_reuse_boundary_context.or_else(|| {
+                    current: current_reuse_boundary_authority.clone(),
+                    previous: previous_reuse_boundary_authority.or_else(|| {
                         matches!(
                             reuse_decision.strategy,
                             Some(crate::data::reuse::ReuseStrategy::CrossIdentityPersistentMatch)
                                 | Some(crate::data::reuse::ReuseStrategy::PartialArtifactSplicing)
                         )
-                        .then_some(current_reuse_boundary_context.clone())
+                        .then_some(current_reuse_boundary_authority.clone())
                     }),
                 });
             let reuse_certification = crate::logic::evaluation::certify_reuse_decision(
@@ -385,11 +382,11 @@ pub(crate) fn build_prepared_apply_commit_packet(
             let lowered_reuse_basis = reuse_decision
                 .strategy
                 .map(|strategy| {
-                    crate::data::reuse::ReuseBasis::from_boundary_context(
+                    crate::data::reuse::ReuseBasis::from_boundary_authority(
                         strategy,
                         reuse_decision.source,
                         reuse_decision.crossing,
-                        &current_reuse_boundary_context,
+                        &current_reuse_boundary_authority,
                     )
                 })
                 .unwrap_or_else(crate::data::reuse::ReuseBasis::fresh_compute);
@@ -414,7 +411,8 @@ pub(crate) fn build_prepared_apply_commit_packet(
                 Some(metadata),
                 verdict,
                 reuse_decision.recomputed,
-                current_reuse_boundary_context,
+                current_reuse_boundary_authority,
+                current_reuse_boundary_detail,
                 prepared.keyed,
                 prepared.trace_data.causality,
                 reuse_certification,
@@ -528,7 +526,7 @@ fn format_reuse_boundary_evidence(evidence: &ReuseBoundaryEvidence) -> String {
                 context.topology_regime,
                 context.structural_dependency_basis,
                 context.artifact_family,
-                context.partition_region_basis.len()
+                context.partition_region_basis_count
             )
         })
         .unwrap_or_else(|| "prev[none]".to_string());
@@ -537,9 +535,96 @@ fn format_reuse_boundary_evidence(evidence: &ReuseBoundaryEvidence) -> String {
         evidence.current.topology_regime,
         evidence.current.structural_dependency_basis,
         evidence.current.artifact_family,
-        evidence.current.partition_region_basis.len()
+        evidence.current.partition_region_basis_count
     );
     format!("{previous}; {current}")
+}
+
+fn resolve_effect_reuse_boundary(
+    graph: &SignalGraph,
+    node: NodeId,
+    comparator_resolver: &impl ComparatorPolicyResolver,
+    result: Option<&NodeEvaluationResult>,
+    keyed: Option<&crate::logic::prepared::PreparedKeyedContext>,
+    strategy: Option<crate::data::reuse::ReuseStrategy>,
+    previous: Option<&crate::data::reuse::ReuseBoundaryAuthority>,
+) -> Result<
+    (
+        ReuseBoundaryAuthority,
+        Option<crate::data::reuse::ReuseBoundaryContext>,
+    ),
+    SignalError,
+> {
+    if retains_reuse_boundary_detail(graph, strategy) {
+        let detail = hydrate_reuse_topology_boundary_from_previous(
+            graph,
+            node,
+            crate::logic::evaluation::resolve_reuse_boundary_context(
+                graph, node, comparator_resolver, result, keyed,
+            )?,
+            previous,
+        )?;
+        let authority = detail.authority();
+        return Ok((authority, Some(detail)));
+    }
+
+    let authority = hydrate_reuse_topology_boundary_authority_from_previous(
+        graph,
+        node,
+        crate::logic::evaluation::resolve_reuse_boundary_authority(
+            graph, node, comparator_resolver, result, keyed,
+        )?,
+        previous,
+    )?;
+    Ok((authority, None))
+}
+
+#[cfg(feature = "parallel")]
+fn resolve_effect_reuse_boundary_with_policy(
+    graph: &SignalGraph,
+    node: NodeId,
+    comparator_policy: VersionComparatorPolicy,
+    result: Option<&NodeEvaluationResult>,
+    keyed: Option<&crate::logic::prepared::PreparedKeyedContext>,
+    strategy: Option<crate::data::reuse::ReuseStrategy>,
+    previous: Option<&crate::data::reuse::ReuseBoundaryAuthority>,
+) -> Result<
+    (
+        ReuseBoundaryAuthority,
+        Option<crate::data::reuse::ReuseBoundaryContext>,
+    ),
+    SignalError,
+> {
+    if retains_reuse_boundary_detail(graph, strategy) {
+        let detail = hydrate_reuse_topology_boundary_from_previous(
+            graph,
+            node,
+            crate::logic::evaluation::resolve_reuse_boundary_context_with_policy(
+                graph,
+                node,
+                comparator_policy,
+                result,
+                keyed,
+            )?,
+            previous,
+        )?;
+        let authority = detail.authority();
+        return Ok((authority, Some(detail)));
+    }
+
+    let authority = hydrate_reuse_topology_boundary_authority_from_previous(
+        graph,
+        node,
+        crate::logic::evaluation::resolve_reuse_boundary_authority_with_policy(
+            graph,
+            node,
+            comparator_policy,
+            result,
+            keyed,
+        )?,
+        previous,
+    )?;
+    Ok((authority, None))
 }
 
 fn hydrate_reuse_boundary_evidence(mut evidence: ReuseBoundaryEvidence) -> ReuseBoundaryEvidence {
@@ -562,7 +647,7 @@ fn hydrate_reuse_topology_boundary_from_previous(
     graph: &SignalGraph,
     node: NodeId,
     mut current: crate::data::reuse::ReuseBoundaryContext,
-    previous: Option<&crate::data::reuse::ReuseBoundaryContext>,
+    previous: Option<&crate::data::reuse::ReuseBoundaryAuthority>,
 ) -> Result<crate::data::reuse::ReuseBoundaryContext, SignalError> {
     let Some(previous) = previous else {
         return Ok(current);
@@ -578,6 +663,48 @@ fn hydrate_reuse_topology_boundary_from_previous(
     }
     current.topology_regime = previous.topology_regime;
     Ok(current)
+}
+
+fn hydrate_reuse_topology_boundary_authority_from_previous(
+    graph: &SignalGraph,
+    node: NodeId,
+    mut current: crate::data::reuse::ReuseBoundaryAuthority,
+    previous: Option<&crate::data::reuse::ReuseBoundaryAuthority>,
+) -> Result<crate::data::reuse::ReuseBoundaryAuthority, SignalError> {
+    let Some(previous) = previous else {
+        return Ok(current);
+    };
+    if current.topology_regime != 0 {
+        return Ok(current);
+    }
+    if !graph.dependencies_of(node)?.is_empty() {
+        return Ok(current);
+    }
+    if previous.topology_regime == 0 {
+        return Ok(current);
+    }
+    current.topology_regime = previous.topology_regime;
+    Ok(current)
+}
+
+fn retains_reuse_boundary_detail(
+    graph: &SignalGraph,
+    strategy: Option<crate::data::reuse::ReuseStrategy>,
+) -> bool {
+    let retention = graph.runtime_policy().retention_budget;
+    let cold_retention_active = matches!(
+        retention.explanation_retention,
+        crate::diagnostics::policy::ArtifactRetentionPolicy::Retain
+    ) || matches!(
+        retention.provenance_retention,
+        crate::diagnostics::policy::ArtifactRetentionPolicy::Retain
+    );
+    cold_retention_active
+        && matches!(
+            strategy,
+            Some(crate::data::reuse::ReuseStrategy::CrossIdentityPersistentMatch)
+                | Some(crate::data::reuse::ReuseStrategy::PartialArtifactSplicing)
+        )
 }
 
 pub(crate) fn record_reuse_rejection_telemetry(
@@ -617,9 +744,21 @@ pub(crate) fn record_reuse_rejection_telemetry(
 
 #[cfg(test)]
 mod tests {
-    use super::record_reuse_rejection_telemetry;
+    use super::{
+        record_reuse_rejection_telemetry, resolve_effect_reuse_boundary,
+        retains_reuse_boundary_detail,
+    };
+    use crate::data::comparator::DefaultComparatorPolicyResolver;
     use crate::data::graph::SignalGraph;
-    use crate::data::reuse::{ArtifactSemanticBoundary, ReuseBoundaryFailure};
+    use crate::data::output::NodeEvaluationResult;
+    use crate::data::proof::PartitionScopeSet;
+    use crate::data::reuse::{
+        ArtifactSemanticBoundary, PersistentCorrespondenceEvidence, ReuseBoundaryFailure,
+        ReuseStrategy,
+    };
+    use crate::diagnostics::policy::ArtifactRetentionPolicy;
+    use crate::logic::prepared::PreparedKeyedContext;
+    use crate::tests::support::version_ab;
 
     #[test]
     fn typed_reuse_rejection_telemetry_maps_to_canonical_counters() {
@@ -647,6 +786,88 @@ mod tests {
         );
         assert_eq!(evaluation.reuse_rejected_composition_region_count, 1);
         assert_eq!(evaluation.reuse_rejected_missing_prior_context_count, 1);
+    }
+
+    #[test]
+    fn memoized_reuse_resolves_authority_without_rich_detail() {
+        let mut graph = SignalGraph::new();
+        let node = graph.node().build();
+        graph.set_runtime_policy(
+            crate::facade::SignalRuntimePolicy::development()
+                .with_explanation_retention(ArtifactRetentionPolicy::Retain)
+                .with_provenance_retention(ArtifactRetentionPolicy::Retain),
+        );
+
+        let mut comparator_resolver = DefaultComparatorPolicyResolver::default();
+        let (authority, detail) = resolve_effect_reuse_boundary(
+            &graph,
+            node,
+            &mut comparator_resolver,
+            Some(&NodeEvaluationResult::from_version(version_ab(1, 0))),
+            None,
+            Some(ReuseStrategy::MemoizedArtifactReuse),
+            None,
+        )
+        .expect("authority-only resolution should succeed");
+
+        assert!(detail.is_none());
+        assert_eq!(authority.topology_regime, 0);
+    }
+
+    #[test]
+    fn cross_identity_reuse_retains_rich_boundary_detail_when_policy_requires_it() {
+        let mut graph = SignalGraph::new();
+        let node = graph.node().build();
+        graph.set_runtime_policy(crate::facade::SignalRuntimePolicy::development());
+        let mut comparator_resolver = DefaultComparatorPolicyResolver::default();
+        let keyed = PreparedKeyedContext {
+            persistent_correspondence: Some(
+                PersistentCorrespondenceEvidence::lineage_backed_mapping(
+                    "lineage-map:left->right",
+                ),
+            ),
+            composition_regions: PartitionScopeSet::default(),
+            ..PreparedKeyedContext::default()
+        };
+
+        let (authority, detail) = resolve_effect_reuse_boundary(
+            &graph,
+            node,
+            &mut comparator_resolver,
+            Some(&NodeEvaluationResult::from_version(version_ab(1, 0))),
+            Some(&keyed),
+            Some(ReuseStrategy::CrossIdentityPersistentMatch),
+            None,
+        )
+        .expect("cross-identity boundary resolution should succeed");
+
+        assert!(detail.is_some());
+        assert!(authority.persistent_correspondence_kind().is_some());
+    }
+
+    #[test]
+    fn reuse_boundary_detail_retention_is_strategy_and_policy_gated() {
+        let mut graph = SignalGraph::new();
+        graph.set_runtime_policy(
+            crate::facade::SignalRuntimePolicy::operational()
+                .with_explanation_retention(ArtifactRetentionPolicy::Omit)
+                .with_provenance_retention(ArtifactRetentionPolicy::Omit),
+        );
+
+        assert!(!retains_reuse_boundary_detail(
+            &graph,
+            Some(ReuseStrategy::CrossIdentityPersistentMatch)
+        ));
+
+        graph.set_runtime_policy(crate::facade::SignalRuntimePolicy::development());
+        assert!(retains_reuse_boundary_detail(
+            &graph,
+            Some(ReuseStrategy::PartialArtifactSplicing)
+        ));
+        assert!(!retains_reuse_boundary_detail(
+            &graph,
+            Some(ReuseStrategy::MemoizedArtifactReuse)
+        ));
     }
 }
 

@@ -8,7 +8,8 @@ pub(crate) fn default_graph_budget() -> crate::facade::inspection::GraphInspecti
     }
 }
 
-pub(crate) fn default_connectivity_budget() -> crate::facade::inspection::ConnectivityInspectionBudget {
+pub(crate) fn default_connectivity_budget(
+) -> crate::facade::inspection::ConnectivityInspectionBudget {
     crate::facade::inspection::ConnectivityInspectionBudget {
         max_entities: 1_024,
         max_relations: 1_024,
@@ -118,10 +119,10 @@ pub(crate) fn recent_commit_window(
     branch_id: &BranchId,
     limit: usize,
 ) -> crate::facade::inspection::RecentCommitInspectionWindow {
-    runtime
-        .inspection_access()
-        .inspect_recent_commits(&crate::facade::inspection::RecentCommitInspectionRequest {
+    runtime.inspection_access().inspect_recent_commits(
+        &crate::facade::inspection::RecentCommitInspectionRequest {
             branch_id: Some(branch_id.clone()),
             limit: limit as u64,
-        })
+        },
+    )
 }

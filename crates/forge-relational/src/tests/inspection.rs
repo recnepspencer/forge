@@ -1,20 +1,20 @@
 use super::support::{
-    batch_create, changed_entities, create_entity, create_entity_outcome,
-    capture_inspection_truth_bundle, connectivity_request, current_graph_request,
-    create_relation, create_relation_outcome, merge_commit_from_branches,
-    persisted_runtime_with_test_schema, read_entity_name, runtime_with_test_schema,
-    recent_commit_window, reconstructed_record_inspection, retained_record_inspection,
-    snapshot_graph_request, test_schema_registry, version_graph_request,
-    EntityMutationIntent, MutationIntent, RecordPayload, RelationalRuntimeApi,
-    TransactionOptions, UpdateEntityIntent, VisibilityCachePolicy, WorkerIntentBatch,
+    batch_create, capture_inspection_truth_bundle, changed_entities, connectivity_request,
+    create_entity, create_entity_outcome, create_relation, create_relation_outcome,
+    current_graph_request, merge_commit_from_branches, persisted_runtime_with_test_schema,
+    read_entity_name, recent_commit_window, reconstructed_record_inspection,
+    retained_record_inspection, runtime_with_test_schema, snapshot_graph_request,
+    test_schema_registry, version_graph_request, EntityMutationIntent, MutationIntent,
+    RecordPayload, RelationalRuntimeApi, TransactionOptions, UpdateEntityIntent,
+    VisibilityCachePolicy, WorkerIntentBatch,
 };
 use crate::facade::history::{BranchId, CommitId};
 use crate::facade::identity::{LineageId, StructuralFingerprint};
 use crate::facade::inspection::{
     HistoricalInspectionMode, InspectionAccessPath, InspectionAvailability, InspectionOrigin,
-    InspectionResolutionContext, InspectionScope, KindInspectionRequest,
-    NeighborInspectionResult, RecentCommitInspectionRequest, StructuralIdentityQueryRequest,
-    StructuralIdentityComparisonVerdict,
+    InspectionResolutionContext, InspectionScope, KindInspectionRequest, NeighborInspectionResult,
+    RecentCommitInspectionRequest, StructuralIdentityComparisonVerdict,
+    StructuralIdentityQueryRequest,
 };
 use crate::facade::symbols::Symbol;
 
@@ -28,12 +28,14 @@ fn graph_summary_is_scope_explicit_and_canonical() {
     let summary = runtime
         .inspection_access()
         .graph_summary(&current_graph_request(None, None, true));
-    let kind_summary = runtime.inspection_access().kind_summary(&KindInspectionRequest {
-        scope: InspectionScope::Current,
-        partition_scope: None,
-        kind_id: crate::facade::identity::KindId(1),
-        record_class: crate::facade::inspection::InspectionRecordClass::Entity,
-    });
+    let kind_summary = runtime
+        .inspection_access()
+        .kind_summary(&KindInspectionRequest {
+            scope: InspectionScope::Current,
+            partition_scope: None,
+            kind_id: crate::facade::identity::KindId(1),
+            record_class: crate::facade::inspection::InspectionRecordClass::Entity,
+        });
 
     assert_eq!(summary.entity_count, 2);
     assert_eq!(summary.relation_count, 1);
@@ -43,9 +45,21 @@ fn graph_summary_is_scope_explicit_and_canonical() {
 #[test]
 fn current_graph_surfaces_match_version_and_snapshot_scopes_for_same_truth() {
     let mut runtime = runtime_with_test_schema();
-    let left_a = crate::tests::support::create_entity_in_partition(&mut runtime, "left-a", crate::facade::identity::PartitionId(7));
-    let left_b = crate::tests::support::create_entity_in_partition(&mut runtime, "left-b", crate::facade::identity::PartitionId(7));
-    let right = crate::tests::support::create_entity_in_partition(&mut runtime, "right", crate::facade::identity::PartitionId(11));
+    let left_a = crate::tests::support::create_entity_in_partition(
+        &mut runtime,
+        "left-a",
+        crate::facade::identity::PartitionId(7),
+    );
+    let left_b = crate::tests::support::create_entity_in_partition(
+        &mut runtime,
+        "left-b",
+        crate::facade::identity::PartitionId(7),
+    );
+    let right = crate::tests::support::create_entity_in_partition(
+        &mut runtime,
+        "right",
+        crate::facade::identity::PartitionId(11),
+    );
     let left_relation = crate::tests::support::create_relation_in_partition(
         &mut runtime,
         left_a,
@@ -57,47 +71,56 @@ fn current_graph_surfaces_match_version_and_snapshot_scopes_for_same_truth() {
     let snapshot = runtime.visibility_authority().snapshot();
     let version_id = runtime.current_version_id();
 
-    let current_graph = runtime.inspection_access().graph_summary(&current_graph_request(
-        Some(vec![crate::facade::identity::PartitionId(7)]),
-        Some(vec![crate::facade::identity::KindId(2)]),
-        true,
-    ));
-    let version_graph = runtime.inspection_access().graph_summary(&version_graph_request(
-        version_id,
-        Some(vec![crate::facade::identity::PartitionId(7)]),
-        Some(vec![crate::facade::identity::KindId(2)]),
-        true,
-    ));
-    let snapshot_graph = runtime.inspection_access().graph_summary(&snapshot_graph_request(
-        InspectionScope::Snapshot(snapshot.clone()),
-        Some(vec![crate::facade::identity::PartitionId(7)]),
-        Some(vec![crate::facade::identity::KindId(2)]),
-        true,
-    ));
-    let current_connectivity = runtime
+    let current_graph = runtime
         .inspection_access()
-        .connectivity_summary(&connectivity_request(
-            InspectionScope::Current,
+        .graph_summary(&current_graph_request(
             Some(vec![crate::facade::identity::PartitionId(7)]),
             Some(vec![crate::facade::identity::KindId(2)]),
             true,
         ));
-    let version_connectivity = runtime
+    let version_graph = runtime
         .inspection_access()
-        .connectivity_summary(&connectivity_request(
-            InspectionScope::Version(version_id),
+        .graph_summary(&version_graph_request(
+            version_id,
             Some(vec![crate::facade::identity::PartitionId(7)]),
             Some(vec![crate::facade::identity::KindId(2)]),
             true,
         ));
-    let snapshot_connectivity = runtime
+    let snapshot_graph = runtime
         .inspection_access()
-        .connectivity_summary(&connectivity_request(
-            InspectionScope::Snapshot(snapshot),
+        .graph_summary(&snapshot_graph_request(
+            InspectionScope::Snapshot(snapshot.clone()),
             Some(vec![crate::facade::identity::PartitionId(7)]),
             Some(vec![crate::facade::identity::KindId(2)]),
             true,
         ));
+    let current_connectivity =
+        runtime
+            .inspection_access()
+            .connectivity_summary(&connectivity_request(
+                InspectionScope::Current,
+                Some(vec![crate::facade::identity::PartitionId(7)]),
+                Some(vec![crate::facade::identity::KindId(2)]),
+                true,
+            ));
+    let version_connectivity =
+        runtime
+            .inspection_access()
+            .connectivity_summary(&connectivity_request(
+                InspectionScope::Version(version_id),
+                Some(vec![crate::facade::identity::PartitionId(7)]),
+                Some(vec![crate::facade::identity::KindId(2)]),
+                true,
+            ));
+    let snapshot_connectivity =
+        runtime
+            .inspection_access()
+            .connectivity_summary(&connectivity_request(
+                InspectionScope::Snapshot(snapshot),
+                Some(vec![crate::facade::identity::PartitionId(7)]),
+                Some(vec![crate::facade::identity::KindId(2)]),
+                true,
+            ));
     let neighbors_current = runtime
         .inspection_access()
         .neighbors(InspectionScope::Current, left_a);
@@ -113,8 +136,14 @@ fn current_graph_surfaces_match_version_and_snapshot_scopes_for_same_truth() {
     assert_eq!(current_graph.entity_kinds, snapshot_graph.entity_kinds);
     assert_eq!(current_graph.relation_kinds, version_graph.relation_kinds);
     assert_eq!(current_graph.relation_kinds, snapshot_graph.relation_kinds);
-    assert_eq!(current_connectivity.component_count, version_connectivity.component_count);
-    assert_eq!(current_connectivity.component_count, snapshot_connectivity.component_count);
+    assert_eq!(
+        current_connectivity.component_count,
+        version_connectivity.component_count
+    );
+    assert_eq!(
+        current_connectivity.component_count,
+        snapshot_connectivity.component_count
+    );
     assert_eq!(
         current_connectivity.largest_component_size,
         version_connectivity.largest_component_size
@@ -123,10 +152,19 @@ fn current_graph_surfaces_match_version_and_snapshot_scopes_for_same_truth() {
         current_connectivity.largest_component_size,
         snapshot_connectivity.largest_component_size
     );
-    assert_eq!(current_connectivity.components, version_connectivity.components);
-    assert_eq!(current_connectivity.components, snapshot_connectivity.components);
+    assert_eq!(
+        current_connectivity.components,
+        version_connectivity.components
+    );
+    assert_eq!(
+        current_connectivity.components,
+        snapshot_connectivity.components
+    );
     assert_eq!(neighbors_current.outgoing_relation_ids, vec![left_relation]);
-    assert_eq!(neighbors_current.outgoing_relation_ids, neighbors_version.outgoing_relation_ids);
+    assert_eq!(
+        neighbors_current.outgoing_relation_ids,
+        neighbors_version.outgoing_relation_ids
+    );
 }
 
 #[test]
@@ -137,18 +175,26 @@ fn snapshot_graph_summary_fails_closed_when_snapshot_handle_is_unavailable() {
         .visibility_authority()
         .release_snapshot(&created.snapshot));
 
-    let summary = runtime.inspection_access().graph_summary(&snapshot_graph_request(
-        InspectionScope::Snapshot(created.snapshot.clone()),
-        None,
-        None,
-        true,
-    ));
+    let summary = runtime
+        .inspection_access()
+        .graph_summary(&snapshot_graph_request(
+            InspectionScope::Snapshot(created.snapshot.clone()),
+            None,
+            None,
+            true,
+        ));
 
-    assert_eq!(summary.scope, InspectionScope::Snapshot(created.snapshot.clone()));
+    assert_eq!(
+        summary.scope,
+        InspectionScope::Snapshot(created.snapshot.clone())
+    );
     assert_eq!(summary.version_id, created.version_id);
     assert_eq!(summary.entity_count, 0);
     assert_eq!(summary.relation_count, 0);
-    assert_eq!(summary.availability, InspectionAvailability::UnavailableByRetention);
+    assert_eq!(
+        summary.availability,
+        InspectionAvailability::UnavailableByRetention
+    );
 }
 
 #[test]
@@ -158,9 +204,8 @@ fn connectivity_summary_refuses_oversized_budget_with_explicit_degradation() {
     let right = create_entity(&mut runtime, "right");
     let _relation = create_relation(&mut runtime, left, right, "rel");
 
-    let summary = runtime
-        .inspection_access()
-        .connectivity_summary(&crate::facade::inspection::ConnectivityInspectionRequest {
+    let summary = runtime.inspection_access().connectivity_summary(
+        &crate::facade::inspection::ConnectivityInspectionRequest {
             scope: InspectionScope::Current,
             partition_scope: None,
             relation_kind_scope: None,
@@ -172,9 +217,13 @@ fn connectivity_summary_refuses_oversized_budget_with_explicit_degradation() {
                 max_components: 1,
                 max_work_units: 1,
             },
-        });
+        },
+    );
 
-    assert_eq!(summary.availability, InspectionAvailability::UnavailableByBudget);
+    assert_eq!(
+        summary.availability,
+        InspectionAvailability::UnavailableByBudget
+    );
     assert!(summary
         .degradations
         .contains(&crate::facade::inspection::InspectionDegradation::WorkBudgetExceeded));
@@ -186,15 +235,18 @@ fn retention_summary_refuses_work_budget_with_explicit_degradation() {
     let entity = create_entity(&mut runtime, "retained");
     let _relation = create_relation(&mut runtime, entity, entity, "loop");
 
-    let summary = runtime
-        .inspection_access()
-        .retention_summary(&crate::facade::inspection::RetentionInspectionRequest {
+    let summary = runtime.inspection_access().retention_summary(
+        &crate::facade::inspection::RetentionInspectionRequest {
             max_entity_slots_scanned: 32,
             max_relation_slots_scanned: 32,
             max_work_units: 1,
-        });
+        },
+    );
 
-    assert_eq!(summary.availability, InspectionAvailability::UnavailableByBudget);
+    assert_eq!(
+        summary.availability,
+        InspectionAvailability::UnavailableByBudget
+    );
     assert!(summary
         .degradations
         .contains(&crate::facade::inspection::InspectionDegradation::WorkBudgetExceeded));
@@ -374,18 +426,18 @@ fn structural_identity_query_is_family_scoped_and_entity_only() {
         Some(LineageId(12)),
     ));
 
-    let queried = runtime
-        .inspection_access()
-        .query_structural_identity(&StructuralIdentityQueryRequest {
-            scope: InspectionScope::Current,
-            partition_scope: None,
-            fingerprint_family: Symbol(31),
-        });
+    let queried =
+        runtime
+            .inspection_access()
+            .query_structural_identity(&StructuralIdentityQueryRequest {
+                scope: InspectionScope::Current,
+                partition_scope: None,
+                fingerprint_family: Symbol(31),
+            });
 
     assert_eq!(queried.len(), 2);
-    assert!(queried
-        .iter()
-        .all(|evidence| evidence.record_class == crate::facade::inspection::InspectionRecordClass::Entity));
+    assert!(queried.iter().all(|evidence| evidence.record_class
+        == crate::facade::inspection::InspectionRecordClass::Entity));
     assert!(queried.iter().all(|evidence| {
         evidence
             .structural_fingerprint
@@ -466,15 +518,18 @@ fn structural_identity_recovery_preserves_current_evidence_and_queries() {
             crate::facade::transactions::RecordRef::Entity(left),
         )
         .expect("expected left evidence");
-    let expected_query = runtime
-        .inspection_access()
-        .query_structural_identity(&StructuralIdentityQueryRequest {
-            scope: InspectionScope::Current,
-            partition_scope: None,
-            fingerprint_family: Symbol(51),
-        });
+    let expected_query =
+        runtime
+            .inspection_access()
+            .query_structural_identity(&StructuralIdentityQueryRequest {
+                scope: InspectionScope::Current,
+                partition_scope: None,
+                fingerprint_family: Symbol(51),
+            });
 
-    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
+    let plan = runtime.durability_access().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
     let mut recovered = persisted_runtime_with_test_schema();
     recovered.durability_authority().recover(plan).unwrap();
 
@@ -485,13 +540,14 @@ fn structural_identity_recovery_preserves_current_evidence_and_queries() {
             crate::facade::transactions::RecordRef::Entity(left),
         )
         .expect("actual left evidence");
-    let actual_query = recovered
-        .inspection_access()
-        .query_structural_identity(&StructuralIdentityQueryRequest {
-            scope: InspectionScope::Current,
-            partition_scope: None,
-            fingerprint_family: Symbol(51),
-        });
+    let actual_query =
+        recovered
+            .inspection_access()
+            .query_structural_identity(&StructuralIdentityQueryRequest {
+                scope: InspectionScope::Current,
+                partition_scope: None,
+                fingerprint_family: Symbol(51),
+            });
 
     assert_eq!(expected_left, actual_left);
     assert_eq!(expected_query, actual_query);
@@ -511,7 +567,9 @@ fn inspection_truth_bundle_recovery_parity_holds_for_current_and_historical_surf
         entity,
         created.version_id,
     );
-    let plan = runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
+    let plan = runtime.durability_access().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
     let mut recovered = persisted_runtime_with_test_schema();
     recovered.durability_authority().recover(plan).unwrap();
     let actual = capture_inspection_truth_bundle(
@@ -549,9 +607,9 @@ fn historical_record_inspection_and_transaction_staging_are_read_only() {
         .inspection_access()
         .inspect_commit(commit_id)
         .expect("commit inspection");
-    assert!(commit.changed_records.contains(&crate::facade::transactions::RecordRef::Entity(
-        created
-    )));
+    assert!(commit
+        .changed_records
+        .contains(&crate::facade::transactions::RecordRef::Entity(created)));
 
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(batch_create("pending"));
@@ -559,10 +617,9 @@ fn historical_record_inspection_and_transaction_staging_are_read_only() {
     assert_eq!(staging.batch_count, 1);
     assert!(staging.touched_records.is_empty());
 
-    let neighbors: NeighborInspectionResult = runtime.inspection_access().neighbors(
-        InspectionScope::Current,
-        created,
-    );
+    let neighbors: NeighborInspectionResult = runtime
+        .inspection_access()
+        .neighbors(InspectionScope::Current, created);
     assert!(neighbors.outgoing_relation_ids.is_empty());
     assert!(neighbors.incoming_relation_ids.is_empty());
 }
@@ -573,7 +630,10 @@ fn historical_record_inspection_preserves_requested_branch_context() {
     let created = create_entity(&mut runtime, "branch-base");
     runtime
         .history_authority()
-        .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
         .expect("feature branch");
 
     let inspection = runtime.inspection_access().inspect_historical_record(
@@ -615,12 +675,13 @@ fn commit_inspection_is_canonical_and_not_story_shaped() {
         .inspect_commit(commit_id)
         .expect("commit inspection");
     let history = runtime.history_access();
-    let envelope = history
-        .commit_envelope(commit_id)
-        .expect("commit envelope");
+    let envelope = history.commit_envelope(commit_id).expect("commit envelope");
 
     assert_eq!(inspection.origin, InspectionOrigin::CanonicalCommitStorage);
-    assert_eq!(inspection.access_path, InspectionAccessPath::CommitIndexRead);
+    assert_eq!(
+        inspection.access_path,
+        InspectionAccessPath::CommitIndexRead
+    );
     assert_eq!(inspection.commit.commit_id, commit_id);
     assert_eq!(
         inspection.changed_records,
@@ -628,12 +689,18 @@ fn commit_inspection_is_canonical_and_not_story_shaped() {
     );
     assert_eq!(inspection.lineage_event_ids, envelope.lineage_event_ids());
     assert_eq!(inspection.lineage_events, envelope.lineage_events());
-    assert_eq!(inspection.lineage_digest_basis, *envelope.lineage_digest_basis());
+    assert_eq!(
+        inspection.lineage_digest_basis,
+        *envelope.lineage_digest_basis()
+    );
     assert_eq!(
         inspection.lineage_artifact_counters,
         envelope.lineage_artifact_counters()
     );
-    assert_eq!(inspection.index_generation_ids, envelope.index_generation_ids);
+    assert_eq!(
+        inspection.index_generation_ids,
+        envelope.index_generation_ids
+    );
     assert_eq!(inspection.index_generations, envelope.index_generations);
     assert_eq!(
         inspection.changed_aspects,
@@ -654,7 +721,10 @@ fn merge_commit_inspection_stays_envelope_projected() {
     let entity = changed_entities(&created)[0];
     runtime
         .history_authority()
-        .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
         .expect("feature branch");
 
     let mut feature_txn = runtime.begin_transaction(TransactionOptions {
@@ -681,7 +751,10 @@ fn merge_commit_inspection_stays_envelope_projected() {
     let envelope = history
         .commit_envelope(merge_commit_id)
         .expect("merge commit envelope");
-    assert_eq!(envelope.merge_parent_branches, vec![BranchId("feature".to_string())]);
+    assert_eq!(
+        envelope.merge_parent_branches,
+        vec![BranchId("feature".to_string())]
+    );
 
     let inspection = runtime
         .inspection_access()
@@ -700,12 +773,18 @@ fn merge_commit_inspection_stays_envelope_projected() {
     );
     assert_eq!(inspection.lineage_event_ids, envelope.lineage_event_ids());
     assert_eq!(inspection.lineage_events, envelope.lineage_events());
-    assert_eq!(inspection.lineage_digest_basis, *envelope.lineage_digest_basis());
+    assert_eq!(
+        inspection.lineage_digest_basis,
+        *envelope.lineage_digest_basis()
+    );
     assert_eq!(
         inspection.lineage_artifact_counters,
         envelope.lineage_artifact_counters()
     );
-    assert_eq!(inspection.index_generation_ids, envelope.index_generation_ids);
+    assert_eq!(
+        inspection.index_generation_ids,
+        envelope.index_generation_ids
+    );
     assert_eq!(inspection.index_generations, envelope.index_generations);
     assert_eq!(
         inspection.changed_aspects,
@@ -900,11 +979,14 @@ fn historical_inspection_matrix_keeps_entity_and_relation_subresults_honest_acro
         InspectionAvailability::Reconstructed
     );
     assert!(relation_reconstructed.lineage_resolution_context.is_none());
-    assert!(relation_reconstructed.structural_identity_evidence.is_some());
+    assert!(relation_reconstructed
+        .structural_identity_evidence
+        .is_some());
 }
 
 #[test]
-fn historical_relation_inspection_keeps_direct_commit_history_when_retained_only_blocks_record_truth() {
+fn historical_relation_inspection_keeps_direct_commit_history_when_retained_only_blocks_record_truth(
+) {
     let mut runtime = runtime_with_test_schema();
     let source = create_entity(&mut runtime, "source");
     let target = create_entity(&mut runtime, "target");
@@ -959,7 +1041,8 @@ fn historical_relation_inspection_reconstructs_record_truth_without_inventing_li
         .build();
     let source = create_entity(&mut runtime, "source");
     let target = create_entity(&mut runtime, "target");
-    let relation_outcome = create_relation_outcome(&mut runtime, source, target, "reconstructed-rel");
+    let relation_outcome =
+        create_relation_outcome(&mut runtime, source, target, "reconstructed-rel");
     let relation = crate::tests::support::changed_relations(&relation_outcome)[0];
     let _later = create_entity_outcome(&mut runtime, "later");
     assert!(runtime
@@ -990,7 +1073,10 @@ fn historical_relation_inspection_reconstructs_record_truth_without_inventing_li
         .structural_identity_evidence
         .as_ref()
         .expect("relation structural evidence");
-    assert_eq!(structural.availability, InspectionAvailability::Reconstructed);
+    assert_eq!(
+        structural.availability,
+        InspectionAvailability::Reconstructed
+    );
     assert!(structural.structural_fingerprint.is_none());
     assert!(structural.lineage_id.is_none());
     assert!(structural
@@ -1066,7 +1152,9 @@ fn transaction_inspection_savepoint_rollback_scrubs_abandoned_work_and_commit_tr
 
     assert_eq!(
         commit_inspection.changed_records,
-        vec![crate::facade::transactions::RecordRef::Entity(committed_entity)]
+        vec![crate::facade::transactions::RecordRef::Entity(
+            committed_entity
+        )]
     );
     assert!(!commit_inspection
         .changed_records
@@ -1081,31 +1169,31 @@ fn transaction_inspection_marks_lineage_affecting_intents_without_previewing_com
         .history_access()
         .latest_commit()
         .map(|commit| commit.commit_id);
-    let baseline_window = runtime
-        .inspection_access()
-        .inspect_recent_commits(&RecentCommitInspectionRequest {
-            branch_id: Some(BranchId("main".to_string())),
-            limit: 8,
-        });
+    let baseline_window =
+        runtime
+            .inspection_access()
+            .inspect_recent_commits(&RecentCommitInspectionRequest {
+                branch_id: Some(BranchId("main".to_string())),
+                limit: 8,
+            });
 
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
-        WorkerIntentBatch::new("replace")
-            .push(MutationIntent::Entity(EntityMutationIntent::Replace(
-                crate::transactions::data::ReplaceEntityIntent {
-                    entity_id: entity,
-                    replacement: crate::transactions::data::EntitySpec {
-                        partition_id: crate::facade::identity::PartitionId::main(),
-                        kind_id: crate::facade::identity::KindId(1),
-                        client_key: crate::symbols::data::InternedString::Raw(
-                            "replacement".to_string(),
-                        ),
-                        payload: RecordPayload::StructuredJson(
-                            serde_json::json!({"name":"replacement"}),
-                        ),
-                    },
+        WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
+            EntityMutationIntent::Replace(crate::transactions::data::ReplaceEntityIntent {
+                entity_id: entity,
+                replacement: crate::transactions::data::EntitySpec {
+                    partition_id: crate::facade::identity::PartitionId::main(),
+                    kind_id: crate::facade::identity::KindId(1),
+                    client_key: crate::symbols::data::InternedString::Raw(
+                        "replacement".to_string(),
+                    ),
+                    payload: RecordPayload::StructuredJson(
+                        serde_json::json!({"name":"replacement"}),
+                    ),
                 },
-            ))),
+            }),
+        )),
     );
 
     let staging = txn.inspect_staging();
@@ -1120,12 +1208,13 @@ fn transaction_inspection_marks_lineage_affecting_intents_without_previewing_com
         .history_access()
         .latest_commit()
         .map(|commit| commit.commit_id);
-    let window_during_staging = runtime
-        .inspection_access()
-        .inspect_recent_commits(&RecentCommitInspectionRequest {
-            branch_id: Some(BranchId("main".to_string())),
-            limit: 8,
-        });
+    let window_during_staging =
+        runtime
+            .inspection_access()
+            .inspect_recent_commits(&RecentCommitInspectionRequest {
+                branch_id: Some(BranchId("main".to_string())),
+                limit: 8,
+            });
     let current = retained_record_inspection(
         &runtime,
         &BranchId("main".to_string()),
@@ -1160,17 +1249,22 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
     let entity = changed_entities(&created)[0];
     runtime
         .history_authority()
-        .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
         .expect("feature branch");
 
     let main_update = {
         let mut txn = runtime.begin_transaction(TransactionOptions::default());
-        txn.push_batch(WorkerIntentBatch::new("main-update").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
-                entity_id: entity,
-                payload: RecordPayload::StructuredJson(serde_json::json!({"name":"main"})),
-            }),
-        )));
+        txn.push_batch(
+            WorkerIntentBatch::new("main-update").push(MutationIntent::Entity(
+                EntityMutationIntent::Update(UpdateEntityIntent {
+                    entity_id: entity,
+                    payload: RecordPayload::StructuredJson(serde_json::json!({"name":"main"})),
+                }),
+            )),
+        );
         txn.commit().expect("main update")
     };
     let feature_update = {
@@ -1178,12 +1272,14 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
             target_branch: Some(BranchId("feature".to_string())),
             ..TransactionOptions::default()
         });
-        txn.push_batch(WorkerIntentBatch::new("feature-update").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
-                entity_id: entity,
-                payload: RecordPayload::StructuredJson(serde_json::json!({"name":"feature"})),
-            }),
-        )));
+        txn.push_batch(
+            WorkerIntentBatch::new("feature-update").push(MutationIntent::Entity(
+                EntityMutationIntent::Update(UpdateEntityIntent {
+                    entity_id: entity,
+                    payload: RecordPayload::StructuredJson(serde_json::json!({"name":"feature"})),
+                }),
+            )),
+        );
         txn.commit().expect("feature update")
     };
 
@@ -1258,17 +1354,22 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
     let entity = changed_entities(&base)[0];
     runtime
         .history_authority()
-        .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
         .expect("feature branch");
 
     let main_update = {
         let mut txn = runtime.begin_transaction(TransactionOptions::default());
-        txn.push_batch(WorkerIntentBatch::new("main-update").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
-                entity_id: entity,
-                payload: RecordPayload::StructuredJson(serde_json::json!({"name":"main"})),
-            }),
-        )));
+        txn.push_batch(
+            WorkerIntentBatch::new("main-update").push(MutationIntent::Entity(
+                EntityMutationIntent::Update(UpdateEntityIntent {
+                    entity_id: entity,
+                    payload: RecordPayload::StructuredJson(serde_json::json!({"name":"main"})),
+                }),
+            )),
+        );
         txn.commit().expect("main update")
     };
     let feature_update = {
@@ -1276,12 +1377,14 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
             target_branch: Some(BranchId("feature".to_string())),
             ..TransactionOptions::default()
         });
-        txn.push_batch(WorkerIntentBatch::new("feature-update").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
-                entity_id: entity,
-                payload: RecordPayload::StructuredJson(serde_json::json!({"name":"feature"})),
-            }),
-        )));
+        txn.push_batch(
+            WorkerIntentBatch::new("feature-update").push(MutationIntent::Entity(
+                EntityMutationIntent::Update(UpdateEntityIntent {
+                    entity_id: entity,
+                    payload: RecordPayload::StructuredJson(serde_json::json!({"name":"feature"})),
+                }),
+            )),
+        );
         txn.commit().expect("feature update")
     };
 
@@ -1292,10 +1395,19 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
     let feature_window = recent_commit_window(&runtime, &BranchId("feature".to_string()), 8);
     let main_window = recent_commit_window(&runtime, &BranchId("main".to_string()), 8);
 
-    assert_eq!(feature_head.commit.branch_id, BranchId("feature".to_string()));
-    assert_eq!(feature_head.commit.commit_id, feature_update.commit.commit_id);
     assert_eq!(
-        feature_window.branch_head.as_ref().map(|head| head.commit_id),
+        feature_head.commit.branch_id,
+        BranchId("feature".to_string())
+    );
+    assert_eq!(
+        feature_head.commit.commit_id,
+        feature_update.commit.commit_id
+    );
+    assert_eq!(
+        feature_window
+            .branch_head
+            .as_ref()
+            .map(|head| head.commit_id),
         Some(feature_update.commit.commit_id)
     );
     assert!(feature_window
@@ -1315,4 +1427,3 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
         .iter()
         .any(|inspection| inspection.commit.commit_id == main_update.commit.commit_id));
 }
-

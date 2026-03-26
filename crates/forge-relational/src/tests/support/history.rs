@@ -27,7 +27,12 @@ pub(crate) fn entity_aspect_history_digest(
     entity_id: crate::facade::identity::EntityId,
     filter: Option<&AspectFilter>,
 ) -> crate::facade::history::AspectHistoryDigest {
-    entity_aspect_history_digest_on_branch(runtime, &BranchId("main".to_string()), entity_id, filter)
+    entity_aspect_history_digest_on_branch(
+        runtime,
+        &BranchId("main".to_string()),
+        entity_id,
+        filter,
+    )
 }
 
 pub(crate) fn entity_aspect_history_digest_on_branch(

@@ -63,4 +63,3 @@ pub struct CustomInvariantDescriptor {
     pub display_name: Arc<str>,
     pub operational: CustomInvariantOperationalMetadata,
 }
-

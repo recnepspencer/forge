@@ -15,7 +15,9 @@ pub(crate) fn checkpoint_world(
 pub(crate) fn recover_persisted_world(
     world: &FintechWorld,
 ) -> Result<(RelationalRuntime, RecoveryOutcome), String> {
-    recover_runtime_from_plan(world.runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification))
+    recover_runtime_from_plan(world.runtime.durability_access().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    ))
 }
 
 pub(crate) fn recover_runtime_from_plan(
@@ -34,4 +36,3 @@ pub(crate) fn compact_world_store(
 ) -> Result<CompactionOutcome, DurabilityError> {
     world.runtime.durability_authority().compact_store()
 }
-

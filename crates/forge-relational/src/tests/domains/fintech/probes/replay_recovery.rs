@@ -2,8 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::facade::history::BranchId;
 use crate::facade::replay::{
-    RelationalReplayOutcome, RelationalReplayRequest, ReplayExecutionMode,
-    ReplayVerificationMode,
+    RelationalReplayOutcome, RelationalReplayRequest, ReplayExecutionMode, ReplayVerificationMode,
 };
 use crate::facade::runtime::RelationalRuntime;
 use crate::logic::runtime::RecoveryOutcome;

@@ -24,15 +24,16 @@ pub(crate) fn assemble_effect(
     for change in outcome.changes {
         let canonical_delta = canonical_delta_for_mutation(&change, workspace)
             .map_err(|error| error.to_commit_conflict())?;
-        workspace.with_context(|context| {
-            write_aspect_versions_for_delta(
-                context.state,
-                &canonical_delta,
-                version_id,
-                context.symbols,
-            )
-        })
-        .map_err(|error| error.to_commit_conflict())?;
+        workspace
+            .with_context(|context| {
+                write_aspect_versions_for_delta(
+                    context.state,
+                    &canonical_delta,
+                    version_id,
+                    context.symbols,
+                )
+            })
+            .map_err(|error| error.to_commit_conflict())?;
         let patch_aspects = canonical_delta.changed_aspects.clone();
         let contains_degraded_precision = canonical_delta.contains_degraded_precision;
         match change {

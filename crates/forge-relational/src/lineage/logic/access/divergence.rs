@@ -13,18 +13,22 @@ impl<'runtime> LineageAccess<'runtime> {
     ) -> LineageDivergenceSummary {
         let left_graph = self.graph(LineageGraphRequest {
             branch_id: request.left_branch.clone(),
-            traversal_basis: crate::lineage::data::LineageGraphTraversalBasis::FullBranchGraphMaterialization,
+            traversal_basis:
+                crate::lineage::data::LineageGraphTraversalBasis::FullBranchGraphMaterialization,
         });
         let right_graph = self.graph(LineageGraphRequest {
             branch_id: request.right_branch.clone(),
-            traversal_basis: crate::lineage::data::LineageGraphTraversalBasis::FullBranchGraphMaterialization,
+            traversal_basis:
+                crate::lineage::data::LineageGraphTraversalBasis::FullBranchGraphMaterialization,
         });
-        self.runtime.performance_access().count_lineage_branch_divergence(
-            left_graph.metrics.event_count,
-            right_graph.metrics.event_count,
-            left_graph.metrics.node_count,
-            right_graph.metrics.node_count,
-        );
+        self.runtime
+            .performance_access()
+            .count_lineage_branch_divergence(
+                left_graph.metrics.event_count,
+                right_graph.metrics.event_count,
+                left_graph.metrics.node_count,
+                right_graph.metrics.node_count,
+            );
         let left_event_ids = left_graph
             .events
             .iter()

@@ -30,16 +30,11 @@ impl SubscriberStrataSet {
 pub struct SubscriberContinuationClassSet(BTreeSet<SchemaContinuationClassification>);
 
 impl SubscriberContinuationClassSet {
-    pub fn new(
-        classes: impl IntoIterator<Item = SchemaContinuationClassification>,
-    ) -> Self {
+    pub fn new(classes: impl IntoIterator<Item = SchemaContinuationClassification>) -> Self {
         Self(classes.into_iter().collect())
     }
 
-    pub fn contains(
-        &self,
-        classification: &SchemaContinuationClassification,
-    ) -> bool {
+    pub fn contains(&self, classification: &SchemaContinuationClassification) -> bool {
         self.0.contains(classification)
     }
 
@@ -78,26 +73,17 @@ impl Default for SubscriberContractDeclaration {
 }
 
 impl SubscriberContractDeclaration {
-    pub fn consumes_any_strata(
-        &self,
-        changed_strata: &[SchemaStratum],
-    ) -> bool {
+    pub fn consumes_any_strata(&self, changed_strata: &[SchemaStratum]) -> bool {
         changed_strata
             .iter()
             .any(|stratum| self.consumable_strata.contains(stratum))
     }
 
-    pub fn accepts_continuation(
-        &self,
-        classification: SchemaContinuationClassification,
-    ) -> bool {
+    pub fn accepts_continuation(&self, classification: SchemaContinuationClassification) -> bool {
         self.accepted_continuation_classes.contains(&classification)
     }
 
-    pub fn accepts_upgrade(
-        &self,
-        classification: SchemaContinuationClassification,
-    ) -> bool {
+    pub fn accepts_upgrade(&self, classification: SchemaContinuationClassification) -> bool {
         self.accepted_upgrade_classes.contains(&classification)
     }
 }

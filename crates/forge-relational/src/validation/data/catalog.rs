@@ -148,11 +148,16 @@ pub(crate) fn relation_integrity_registrations_for_plan(
     plan: &LoweredRelationIntegrityPlan,
 ) -> Vec<InvariantRegistration> {
     let mut registrations = Vec::with_capacity(plan.contract_count());
-    registrations.extend(plan.endpoint_kind_contracts.iter().cloned().map(|contract| {
-        InvariantRegistration::commit_boundary_blocking(InvariantRule::EndpointKindContract(
-            contract,
-        ))
-    }));
+    registrations.extend(
+        plan.endpoint_kind_contracts
+            .iter()
+            .cloned()
+            .map(|contract| {
+                InvariantRegistration::commit_boundary_blocking(
+                    InvariantRule::EndpointKindContract(contract),
+                )
+            }),
+    );
     registrations.extend(
         plan.cardinality_maximum_contracts
             .iter()
@@ -181,14 +186,10 @@ pub(crate) fn relation_integrity_registrations_for_plan(
             }),
     );
     registrations.extend(plan.uniqueness_contracts.iter().cloned().map(|contract| {
-        InvariantRegistration::commit_boundary_blocking(InvariantRule::UniquenessContract(
-            contract,
-        ))
+        InvariantRegistration::commit_boundary_blocking(InvariantRule::UniquenessContract(contract))
     }));
     registrations.extend(plan.symmetry_contracts.iter().cloned().map(|contract| {
-        InvariantRegistration::commit_boundary_blocking(InvariantRule::SymmetryContract(
-            contract,
-        ))
+        InvariantRegistration::commit_boundary_blocking(InvariantRule::SymmetryContract(contract))
     }));
     registrations.extend(
         plan.endpoint_deletion_integrity_contracts
@@ -201,9 +202,7 @@ pub(crate) fn relation_integrity_registrations_for_plan(
             }),
     );
     registrations.extend(plan.acyclicity_contracts.iter().cloned().map(|contract| {
-        InvariantRegistration::commit_boundary_blocking(InvariantRule::AcyclicityContract(
-            contract,
-        ))
+        InvariantRegistration::commit_boundary_blocking(InvariantRule::AcyclicityContract(contract))
     }));
     registrations.extend(
         plan.partition_isolation_contracts
@@ -231,9 +230,7 @@ pub(crate) fn relation_integrity_registrations_for_plan(
 pub(crate) fn payload_schema_registration(
     contract: LoweredPayloadSchemaContract,
 ) -> InvariantRegistration {
-    InvariantRegistration::commit_boundary_blocking(InvariantRule::PayloadSchemaContract(
-        contract,
-    ))
+    InvariantRegistration::commit_boundary_blocking(InvariantRule::PayloadSchemaContract(contract))
 }
 
 #[cfg(test)]
@@ -424,12 +421,11 @@ mod tests {
                 rule
             );
             for point in supported_points {
-                let registration =
-                    InvariantRegistration::for_rule(
-                        rule.clone(),
-                        point,
-                        crate::validation::data::InvariantFailureEffect::BlockCommit,
-                    );
+                let registration = InvariantRegistration::for_rule(
+                    rule.clone(),
+                    point,
+                    crate::validation::data::InvariantFailureEffect::BlockCommit,
+                );
                 assert_eq!(registration.execution_point, point);
                 assert_eq!(registration.rule, rule);
             }
