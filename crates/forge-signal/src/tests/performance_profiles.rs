@@ -535,7 +535,7 @@ fn perf_suppression_wide_fanout_serial() {
             move |ctx: &mut EvaluationContext<'_, ()>| -> Result<EvaluationOutput, SignalError> {
                 let node = ctx.node();
                 let result = if node == source {
-                    let current = ctx.graph().get_entry(source)?.get_aspect_version().get(ASPECT_A);
+                    let current = ctx.graph().node_aspect_version(source)?.get(ASPECT_A);
                     let next = if current == 0 { 10 } else { 12 };
                     version_ab(next, 0)
                 } else if node == middle {
@@ -637,19 +637,45 @@ fn perf_harness_observability_profile_delta() {
                     "forensic" => SignalProfileCatalog::forensic("forensic"),
                     other => panic!("unexpected profile for perf test: {other}"),
                 };
+                let iterations = 8_u64;
 
                 let start = Instant::now();
-                let bundle = signal_bench(fixture.clone(), request.clone())
-                    .observe(&profile)
-                    .unwrap();
+                let mut explanations = 0_u64;
+                let mut provenance = 0_u64;
+                let mut tasks_executed = 0_u64;
+                let mut tasks_pruned = 0_u64;
+                let mut diagnostics_seen = false;
+                for _ in 0..iterations {
+                    let bundle = signal_bench(fixture.clone(), request.clone())
+                        .observe(&profile)
+                        .unwrap();
+                    explanations += bundle.explanations.len() as u64;
+                    provenance += bundle.provenance.len() as u64;
+                    diagnostics_seen |= bundle.diagnostics.is_some();
+                    tasks_executed += bundle
+                        .core
+                        .run
+                        .summary
+                        .get("tasks_executed")
+                        .and_then(|value| value.as_u64())
+                        .unwrap_or(0);
+                    tasks_pruned += bundle
+                        .core
+                        .run
+                        .summary
+                        .get("tasks_pruned")
+                        .and_then(|value| value.as_u64())
+                        .unwrap_or(0);
+                }
                 let elapsed = start.elapsed();
 
                 let metrics = json!({
-                    "explanations": bundle.explanations.len(),
-                    "provenance": bundle.provenance.len(),
-                    "has_diagnostics": bundle.diagnostics.is_some(),
-                    "tasks_executed": bundle.core.run.summary.get("tasks_executed").and_then(|value| value.as_u64()).unwrap_or(0),
-                    "tasks_pruned": bundle.core.run.summary.get("tasks_pruned").and_then(|value| value.as_u64()).unwrap_or(0),
+                    "iterations": iterations,
+                    "explanations": explanations,
+                    "provenance": provenance,
+                    "has_diagnostics": diagnostics_seen,
+                    "tasks_executed": tasks_executed,
+                    "tasks_pruned": tasks_pruned,
                 });
 
                 PerfMeasurement::new(elapsed.as_micros(), metrics)
