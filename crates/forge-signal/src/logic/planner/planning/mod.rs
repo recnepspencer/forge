@@ -170,16 +170,15 @@ fn visit_node(
                     continue;
                 }
 
-                let entry = graph.get_entry(node)?;
                 verify_required_context(
                     node,
                     graph.get_contract(node)?.semantics.required_context,
                 )?;
-                let state = *entry.get_state();
-                let dirty_partition_scopes = entry.get_dirty_partition_scopes();
+                let state = graph.get_state(node)?;
+                let dirty_partition_scopes = graph.node_dirty_partition_scopes(node)?;
                 let contract_reads_dirty = graph
                     .get_contract(node)?
-                    .cares_about_change(entry.get_dirty_aspects(), &dirty_partition_scopes);
+                    .cares_about_change(graph.node_dirty_aspects(node)?, &dirty_partition_scopes);
                 let should_include = matches!(state, NodeState::MaybeStale)
                     || (matches!(state, NodeState::Dirty) && contract_reads_dirty)
                     || (candidate.direct_request
@@ -295,9 +294,8 @@ fn admit_planned_node(
     request_mode: EvaluationRequestMode,
     maybe_stale_admission: Option<MaybeStaleAdmission>,
 ) -> Result<EligibleTask, SignalError> {
-    let entry = graph.get_entry(node)?;
-    let dirty_partition_scopes_present = !entry.get_dirty_partition_scopes().is_empty();
-    let node_state_at_admission = Some(*entry.get_state());
+    let dirty_partition_scopes_present = graph.node_dirty_partition_scopes_present(node)?;
+    let node_state_at_admission = Some(graph.get_state(node)?);
     let reason = classify_reason(graph, node, direct_request, request_mode)?;
     Ok(EligibleTask {
         node,
@@ -318,8 +316,7 @@ pub(crate) fn admit_direct_task_with_policy_resolver(
     request_mode: EvaluationRequestMode,
     resolver: &mut impl ComparatorPolicyResolver,
 ) -> Result<EligibleTask, SignalError> {
-    let entry = graph.get_entry(node)?;
-    let state = *entry.get_state();
+    let state = graph.get_state(node)?;
     let maybe_stale_admission = if matches!(state, NodeState::MaybeStale) {
         let preview = preview_maybe_stale(graph, node, resolver)?;
         Some(MaybeStaleAdmission {
@@ -353,7 +350,7 @@ fn populate_plan_buffers(
         .extend(DedupedNodeBatch::canonicalize_unordered(targets.iter().copied()).into_vec());
 
     for &target in out_targets.iter() {
-        graph.get_entry(target)?;
+        graph.get_state(target)?;
         visit_node(
             graph,
             CandidateTask {
@@ -516,19 +513,19 @@ fn classify_reason(
         return Ok(TaskReason::MaybeStaleValidation);
     }
 
-    let entry = graph.get_entry(node)?;
-    if !entry.get_dirty_partition_scopes().is_empty() {
+    if graph.node_dirty_partition_scopes_present(node)? {
         return Ok(TaskReason::PartitionScopedDependency);
     }
 
-    let trace = entry.get_runtime_artifact_state();
-    if trace.is_some_and(|summary| {
+    let hot_trace = graph.node_runtime_artifact_hot(node)?;
+    if hot_trace.is_some_and(|summary| {
         summary.output_change == crate::data::output::OutputChange::Unchanged
     }) {
         return Ok(TaskReason::OutputDiffDependent);
     }
 
-    if trace.is_some_and(|summary| {
+    let warm_trace = graph.node_runtime_artifact_warm(node)?;
+    if warm_trace.is_some_and(|summary| {
         summary.reuse_basis.source == crate::data::reuse::ReuseSource::MemoizedArtifact
     }) {
         return Ok(TaskReason::MemoValidation);
@@ -539,8 +536,8 @@ fn classify_reason(
 
 #[cfg(test)]
 pub(crate) fn partition_scope_untouched(
-    trace_summary: Option<&crate::data::trace::RuntimeArtifactState>,
+    trace_summary: Option<&crate::data::trace::RuntimeArtifactHot>,
     scope: &crate::data::output::PartitionSubscription,
 ) -> bool {
-    !crate::data::output::scope_touched_by_artifact_state(trace_summary, scope)
+    !crate::data::output::scope_touched_by_hot_artifact(trace_summary, scope)
 }

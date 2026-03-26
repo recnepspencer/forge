@@ -1,13 +1,13 @@
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
-use crate::data::node::NodeEntry;
+use crate::data::node::CheckpointNodeImage;
 use crate::data::proof::DedupedNodeBatch;
 use std::collections::{BTreeSet, HashMap};
 
 #[derive(Debug, Clone)]
 struct NodePatch {
-    original: NodeEntry,
+    original: CheckpointNodeImage,
     original_dependency_sources: Vec<NodeId>,
 }
 
@@ -33,7 +33,7 @@ impl SparsePatchBuffer {
     ) -> Result<(), SignalError> {
         let index = node.index() as usize;
         if !self.index_by_node.contains_key(&index) {
-            let original = graph.get_entry(node)?.clone();
+            let original = graph.node_checkpoint_image(node)?;
             let original_dependency_sources = graph.dependency_sources_of(node)?;
             self.index_by_node.insert(index, self.patches.len());
             self.patches.push((
@@ -81,7 +81,7 @@ impl SparsePatchBuffer {
             let node = graph
                 .live_node_id_at(index)
                 .ok_or_else(|| SignalError::internal("rollback encountered stale patch node"))?;
-            graph.replace_entry(node, patch.original)?;
+            graph.replace_entry_from_checkpoint_image(node, patch.original)?;
         }
         self.index_by_node.clear();
 
@@ -118,7 +118,7 @@ impl SparsePatchBuffer {
             let node = graph
                 .live_node_id_at(index)
                 .ok_or_else(|| SignalError::internal("rollback encountered stale patch node"))?;
-            graph.replace_entry(node, patch.original)?;
+            graph.replace_entry_from_checkpoint_image(node, patch.original)?;
         }
 
         Ok(())

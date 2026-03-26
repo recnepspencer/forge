@@ -1,7 +1,6 @@
 use crate::data::error::SignalError;
 use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
 
-use super::super::merge::BranchMutationLedger;
 use super::super::runtime_state::{
     AuthorityTransferPacket, BranchLifecycleTransfer, ExplicitBranchForkPacket, SignalRuntime,
 };
@@ -21,26 +20,23 @@ where
         let parent_branch_id = self.graph.current_branch().id;
         let handle = self.graph.diagnostics_state_mut().create_branch(name);
         let mut branch_state = self.capture_heavy_branch_state();
-        branch_state.ancestry = BranchAncestryState {
-            branch_id: handle.id,
-            parent_branch_id: Some(parent_branch_id),
-            forked_from_snapshot_id: self.graph.current_branch().head_snapshot_id,
-            latest_merge_reference: None,
-        };
-        branch_state.mutation_ledger =
-            BranchMutationLedger::default().with_baseline_snapshot(handle.head_snapshot_id);
-        branch_state.authority.graph.clear_branch_mutation_nodes();
+        *branch_state.ancestry_mut() = BranchAncestryState::new(
+            handle.id,
+            Some(parent_branch_id),
+            self.graph.current_branch().head_snapshot_id,
+        );
+        branch_state.reset_mutation_ledger(handle.head_snapshot_id);
+        branch_state.clear_branch_mutation_nodes();
         branch_state
-            .authority
-            .graph
+            .graph_mut()
             .diagnostics_state_mut()
             .set_active_branch(handle.id);
         self.telemetry.transaction.explicit_fork_count += 1;
-        self.branches.store_fork_packet(ExplicitBranchForkPacket {
-            source_branch: parent_branch_id,
-            branch_id: handle.id,
-            state: branch_state,
-        })?;
+        self.branches.store_fork_packet(ExplicitBranchForkPacket::new(
+            parent_branch_id,
+            handle.id,
+            branch_state,
+        ))?;
         let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
         self.synchronize_branch_catalogs(branch_catalog);
         crate::diagnostics::recorder::record_snapshot_event(
@@ -69,12 +65,9 @@ where
             return Err(SignalError::unknown_branch(Some(branch.id), branch.name));
         };
         let current_state = self.take_heavy_active_branch_state();
-        self.branches.store_branch_state(current.id, current_state);
+        self.branches.store_branch_state(current_state);
         self.apply_branch_lifecycle_transfer(BranchLifecycleTransfer::Move(
-            AuthorityTransferPacket {
-                branch_id: branch.id,
-                state: state.state,
-            },
+            AuthorityTransferPacket::new(branch.id, state.into_state()),
         ))?;
         Self::merge_global_transaction_telemetry(
             preserved_transaction,
@@ -151,14 +144,14 @@ where
     ) -> Result<(), SignalError> {
         if self.graph.current_branch().id == branch_id {
             let mut state = self.capture_heavy_branch_state();
-            state.mutation_ledger = crate::logic::transaction::BranchMutationLedger::default();
-            self.branches.store_branch_state(branch_id, state);
+            state.clear_merge_boundary_proof();
+            self.branches.store_branch_state(state);
             return Ok(());
         }
         let Some(()) = self
             .branches
             .with_stored_branch_state_mut(branch_id, |state| {
-                state.mutation_ledger = crate::logic::transaction::BranchMutationLedger::default();
+                state.clear_merge_boundary_proof();
             })
         else {
             return Err(SignalError::unknown_branch(Some(branch_id), "test-branch"));

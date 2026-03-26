@@ -1,0 +1,238 @@
+use std::sync::Arc;
+
+use serde::{Deserialize, Serialize};
+
+use crate::publication::patch::data::AspectKey;
+use crate::transactions::data::RecordRef;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CustomMergePolicyIdentity {
+    pub name: Arc<str>,
+    pub semantic_version: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AspectMergePolicyKind {
+    FailOnConflict,
+    LastWriterWins,
+    MonotonicCounter,
+    AdditiveSet,
+    PreferRicher,
+    Custom(CustomMergePolicyIdentity),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AspectMergePolicyDeclaration {
+    pub aspect_key: AspectKey,
+    pub policy: AspectMergePolicyKind,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MergePolicyResolution {
+    AutoResolved,
+    RequiresManualResolution,
+    Reject,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MergeExecutionReadiness {
+    Admitted,
+    Blocked,
+    Rejected,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AspectComparisonState {
+    Equal,
+    SourceOnly,
+    TargetOnly,
+    Divergent,
+    Unavailable,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LoweredMergeAction {
+    KeepSourceAddition,
+    KeepExactSharedTruth,
+    ReconcileSchemaCorrespondence,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LoweredRecordExecutionIntentKind {
+    AdoptSourceRecord,
+    PreserveSharedRecord,
+    ReconcileRecord,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LoweredAspectAction {
+    AdoptSourceAspect,
+    KeepSharedAspect,
+    ReconcileCorrespondedAspect,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AuthorizedAspectValueUsage {
+    NotAuthorized,
+    ConsumeVisibleValue,
+    ConsumeBaseValue,
+    EqualityWitnessOnly,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AuthorizedAspectValueSurface {
+    pub source: AuthorizedAspectValueUsage,
+    pub target: AuthorizedAspectValueUsage,
+    pub base: AuthorizedAspectValueUsage,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LoweredAspectExecutionIntent {
+    AdoptSourceValue {
+        authorized_values: AuthorizedAspectValueSurface,
+    },
+    PreserveSharedValue {
+        authorized_values: AuthorizedAspectValueSurface,
+    },
+    ReconcileVisibleValues {
+        authorized_values: AuthorizedAspectValueSurface,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LoweredMergeBlockedReason {
+    ManualConflictResolutionRequired,
+    RelationEndpointDivergence,
+    DeletionSemanticsRequireExplicitResolution,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LoweredMergeRejectedReason {
+    FailOnConflictPolicy,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LoweredAspectDenialIntent {
+    BlockedDeletion,
+    BlockedRelationEndpointDivergence,
+    BlockedManualResolution,
+    RejectedPolicy,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LoweredAspectOutcome {
+    pub aspect_key: AspectKey,
+    pub applied_policy: Option<AspectMergePolicyKind>,
+    pub readiness: MergeExecutionReadiness,
+    pub lowered_action: Option<LoweredAspectAction>,
+    pub authorized_values: Option<AuthorizedAspectValueSurface>,
+    pub execution_intent: Option<LoweredAspectExecutionIntent>,
+    pub denial_intent: Option<LoweredAspectDenialIntent>,
+    pub blocked_reason: Option<LoweredMergeBlockedReason>,
+    pub rejected_reason: Option<LoweredMergeRejectedReason>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LoweredRecordExecutionAspectIntent {
+    pub aspect_key: AspectKey,
+    pub intent: LoweredAspectExecutionIntent,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LoweredRecordExecutionBundle {
+    pub kind: LoweredRecordExecutionIntentKind,
+    pub aspects: Arc<[LoweredRecordExecutionAspectIntent]>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LoweredRecordDecisionKind {
+    Execute,
+    Block,
+    Reject,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LoweredRecordDenialKind {
+    BlockedDeletion,
+    BlockedRelationEndpointDivergence,
+    BlockedManualResolution,
+    RejectedPolicy,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LoweredRecordDenialAspectIntent {
+    pub aspect_key: AspectKey,
+    pub intent: LoweredAspectDenialIntent,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LoweredRecordDenialBundle {
+    pub kind: LoweredRecordDenialKind,
+    pub aspects: Arc<[LoweredRecordDenialAspectIntent]>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LoweredRecordDecision {
+    Execute(LoweredRecordExecutionBundle),
+    Block(LoweredRecordDenialBundle),
+    Reject(LoweredRecordDenialBundle),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ResolvedAspectMergePolicy {
+    pub aspect_key: AspectKey,
+    pub policy: AspectMergePolicyKind,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MergePolicyResolutionRecord {
+    pub record: RecordRef,
+    pub target_record: Option<RecordRef>,
+    pub classification: crate::merge::data::MergeConflictClass,
+    pub aspect_resolutions: Arc<[AspectPolicyResolutionRecord]>,
+    pub applied_policies: Arc<[ResolvedAspectMergePolicy]>,
+    pub resolution: MergePolicyResolution,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AspectPolicyResolutionRecord {
+    pub aspect_key: AspectKey,
+    pub comparison: AspectComparisonState,
+    pub applied_policy: Option<AspectMergePolicyKind>,
+    pub resolution: MergePolicyResolution,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MergePolicyResolutionSummary {
+    pub resolved_record_count: usize,
+    pub auto_resolved_count: usize,
+    pub requires_manual_resolution_count: usize,
+    pub reject_count: usize,
+    pub records: Arc<[MergePolicyResolutionRecord]>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LoweredMergePlanRecord {
+    pub record: RecordRef,
+    pub target_record: Option<RecordRef>,
+    pub classification: crate::merge::data::MergeConflictClass,
+    pub causal_disposition: crate::merge::data::MergeRecordCausalDisposition,
+    pub applied_policies: Arc<[ResolvedAspectMergePolicy]>,
+    pub policy_resolution: MergePolicyResolution,
+    pub readiness: MergeExecutionReadiness,
+    pub record_decision: LoweredRecordDecision,
+    pub lowered_action: Option<LoweredMergeAction>,
+    pub blocked_reason: Option<LoweredMergeBlockedReason>,
+    pub rejected_reason: Option<LoweredMergeRejectedReason>,
+    pub aspect_outcomes: Arc<[LoweredAspectOutcome]>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LoweredMergePlanSummary {
+    pub record_count: usize,
+    pub admitted_count: usize,
+    pub blocked_count: usize,
+    pub rejected_count: usize,
+    pub fully_execution_ready: bool,
+    pub records: Arc<[LoweredMergePlanRecord]>,
+}

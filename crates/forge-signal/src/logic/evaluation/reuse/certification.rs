@@ -43,9 +43,8 @@ mod tests {
     use crate::data::reuse::{
         ArtifactEquivalenceContract, ArtifactSemanticBoundary, NodeReuseContract,
         PersistentCorrespondenceEvidence, ReuseBasis, ReuseBoundaryContext, ReuseBoundaryEvidence,
-        ReuseBoundaryFailure, ReuseCrossing, ReuseOrigin, ReuseSemanticRegionIdentity,
-        ReuseSource, ReuseStrategy, ReuseStrategyBoundaryAuthority,
-        ReuseStrategyBoundaryContext,
+        ReuseBoundaryFailure, ReuseCrossing, ReuseOrigin, ReuseSemanticRegionIdentity, ReuseSource,
+        ReuseStrategy, ReuseStrategyBoundaryAuthority, ReuseStrategyBoundaryContext,
     };
     use crate::data::{
         comparator::VersionComparatorPolicy, node::ContextRequirement, performance::AuthorityPolicy,

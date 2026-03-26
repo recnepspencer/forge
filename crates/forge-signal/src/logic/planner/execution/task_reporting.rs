@@ -2,7 +2,7 @@ use crate::data::graph::SignalGraph;
 use crate::data::node::NodeState;
 use crate::data::output::MemoizedResultOrigin;
 use crate::data::reuse::{ReuseBasis, ReuseOrigin, ReuseStrategy};
-use crate::data::trace::RuntimeArtifactState;
+use crate::data::trace::RuntimeArtifactFinalizeImage;
 use crate::diagnostics::failure::ExecutionFailureContext;
 use crate::diagnostics::recorder::DiagnosticsRecorder;
 use crate::logic::evaluation::{EvaluationVerdict, SuppressionReason};
@@ -19,8 +19,8 @@ pub(crate) fn classify_task_record(
     task: &EligibleTask,
     before_state: NodeState,
     after_state: NodeState,
-    before_trace: Option<&RuntimeArtifactState>,
-    after_trace: Option<&RuntimeArtifactState>,
+    before_trace: Option<&RuntimeArtifactFinalizeImage>,
+    after_trace: Option<&RuntimeArtifactFinalizeImage>,
     verdict: EvaluationVerdict,
     memoized_origin: MemoizedResultOrigin,
     reuse_basis: ReuseBasis,
@@ -48,21 +48,21 @@ pub(crate) fn classify_task_execution_record(
     task: &EligibleTask,
     before_state: NodeState,
     after_state: NodeState,
-    before_trace: Option<&RuntimeArtifactState>,
-    after_trace: Option<&RuntimeArtifactState>,
+    before_trace: Option<&RuntimeArtifactFinalizeImage>,
+    after_trace: Option<&RuntimeArtifactFinalizeImage>,
     verdict: EvaluationVerdict,
     memoized_origin: MemoizedResultOrigin,
     reuse_basis: ReuseBasis,
 ) -> TaskExecutionRecord {
     let trace_changed = before_trace != after_trace;
     let recomputed = after_trace
-        .map(|trace| trace.recomputed)
+        .map(|trace| trace.recomputed())
         .unwrap_or(matches!(verdict, EvaluationVerdict::Recomputed));
     let reuse_origin = after_trace
-        .map(|trace| trace.reuse_origin)
+        .map(|trace| trace.reuse_origin())
         .unwrap_or_else(|| classify_reuse_origin(&verdict, &reuse_basis));
     let propagation_suppressed = after_trace
-        .map(|trace| trace.propagation_suppressed)
+        .map(|trace| trace.propagation_suppressed())
         .unwrap_or(false);
     let suppression_reason = match verdict {
         EvaluationVerdict::Suppressed { reason } => Some(reason),

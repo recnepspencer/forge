@@ -177,7 +177,7 @@ impl<'runtime> InvariantAccess<'runtime> {
                     groups: crate::validation::data::InvariantGroupSet::of(
                         crate::validation::data::InvariantGroup::RelationIntegrity,
                     )
-                            .union(crate::validation::data::InvariantGroupSet::of(
+                    .union(crate::validation::data::InvariantGroupSet::of(
                         crate::validation::data::InvariantGroup::PublicationCoherence,
                     )),
                     witness: preparation_violation.witness_key(),

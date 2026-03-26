@@ -21,9 +21,10 @@ pub(crate) struct DependencyReconciliationReport {
 impl SignalGraph {
     pub(crate) fn assert_bidirectional_consistency(&self) -> Result<(), SignalError> {
         for (index, slot) in self.arena.nodes.iter().enumerate() {
-            let Some(entry) = slot.data.as_ref() else {
+            if !slot.is_occupied() {
                 continue;
-            };
+            }
+            let entry = self.get_entry(NodeId::new(index as u32, slot.generation))?;
             if entry.is_tombstoned() {
                 continue;
             }

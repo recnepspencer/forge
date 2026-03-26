@@ -21,5 +21,6 @@ rayon.workspace = true
 serde_json = { workspace = true }
 
 [dev-dependencies]
+stats_alloc = "0.1"
 [lints]
 workspace = true

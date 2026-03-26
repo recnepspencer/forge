@@ -74,9 +74,13 @@ impl SignalGraph {
                     ),
                 },
                 cached_version: None,
-                current_version: self.get_entry(dependency.source).ok().map(|entry| {
-                    entry.version_for_scope(dependency.aspect, dependency.subscription.as_ref())
-                }),
+                current_version: self
+                    .node_version_for_scope(
+                        dependency.source,
+                        dependency.aspect,
+                        dependency.subscription.as_ref(),
+                    )
+                    .ok(),
                 comparator: None,
                 reason: None,
                 note: Some("rewiring added this dependency during apply".to_string()),
@@ -116,15 +120,12 @@ impl SignalGraph {
         for requirement in &proof.required_rebuild {
             match requirement {
                 crate::logic::transaction::RequiredDerivedRebuildSet::DependencyIndexes(_) => {
-                    restored.apply_snapshot_batch_commit(
-                        snapshot.checkpoint_image.dependency_snapshot_batch.clone(),
-                    )?;
-                    rebuild_breadth += snapshot
-                        .checkpoint_image
-                        .dependency_snapshot_batch
-                        .target_nodes()
-                        .as_slice()
-                        .len() as u64;
+                    let classified_checkpoint_batch =
+                        restore_plan.checkpoint_restore_batch().clone_inner();
+                    rebuild_breadth += classified_checkpoint_batch.target_nodes().as_slice().len()
+                        as u64;
+                    restored
+                        .apply_classified_snapshot_batch_commit(classified_checkpoint_batch)?;
                 }
                 crate::logic::transaction::RequiredDerivedRebuildSet::ReplaySuffix(replay) => {
                     if snapshot.diagnostics.replay_frames.len() < replay.replay_event_count as usize
@@ -138,7 +139,7 @@ impl SignalGraph {
                 }
                 crate::logic::transaction::RequiredDerivedRebuildSet::MergeSupport(_) => {
                     restored.clear_branch_mutation_nodes();
-                    rebuild_breadth += restore_plan.coarse_reasons.len() as u64;
+                    rebuild_breadth += restore_plan.coarse_reasons().len() as u64;
                 }
             }
         }
@@ -365,13 +366,18 @@ impl SignalGraph {
             }
         }
 
-        let dependency_snapshot_batch = self
+        let dependency_snapshot_delta_batch = self
             .derive_dependency_snapshot_restore_batch_from_checkpoint_batch(
                 &snapshot.checkpoint_image.authority,
                 &snapshot.checkpoint_image.dependency_snapshot_batch,
             )?;
         let dependency_snapshot_delta_node_count =
-            dependency_snapshot_batch.target_nodes().as_slice().len() as u64;
+            dependency_snapshot_delta_batch.target_nodes().as_slice().len() as u64;
+        let dependency_snapshot_batch = snapshot
+            .checkpoint_image
+            .dependency_snapshot_batch
+            .clone()
+            .classify();
         let mut coarse_reasons = vec![
             SnapshotRestoreCoarseReason::EntryStateRewind,
             SnapshotRestoreCoarseReason::DiagnosticsHistoryRestore,
@@ -380,16 +386,16 @@ impl SignalGraph {
             coarse_reasons.push(SnapshotRestoreCoarseReason::NodeSetDifference);
         }
 
-        Ok(SnapshotRestorePlan {
+        Ok(SnapshotRestorePlan::new(
             intent,
             shared_node_count,
             current_only_node_count,
             snapshot_only_node_count,
-            dependency_snapshot_batch,
-            dependency_snapshot_delta_node_count,
-            coarse_replacement_required: true,
+            crate::state::CheckpointRestoreSnapshotBatch::new(dependency_snapshot_batch),
+            crate::state::RestoreDeltaAccounting::new(dependency_snapshot_delta_node_count),
+            true,
             coarse_reasons,
-        })
+        ))
     }
 
     pub fn restore_snapshot_with_intent(
@@ -439,10 +445,11 @@ impl SignalGraph {
         self.telemetry_mut()
             .checkpoint
             .snapshot_restore_shared_delta_node_count +=
-            restore_plan.dependency_snapshot_delta_node_count;
+            restore_plan.dependency_snapshot_delta_node_count();
         self.telemetry_mut()
             .checkpoint
-            .snapshot_restore_coarse_reason_count += restore_plan.coarse_reasons.len() as u64;
+            .snapshot_restore_coarse_reason_count +=
+            restore_plan.coarse_reasons().len() as u64;
         crate::diagnostics::recorder::record_snapshot_restore_lineage(
             self,
             snapshot.meta.snapshot_id,

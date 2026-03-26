@@ -13,7 +13,7 @@ use crate::data::output::MemoizedResultOrigin;
 #[cfg(feature = "parallel")]
 use crate::data::reuse::ReuseBasis;
 #[cfg(feature = "parallel")]
-use crate::data::trace::RuntimeArtifactState;
+use crate::data::trace::RuntimeArtifactFinalizeImage;
 use crate::diagnostics::recorder::stamp_trace_summary_and_record_lineage_transition;
 #[cfg(feature = "parallel")]
 use crate::logic::evaluation::EvaluationVerdict;
@@ -40,33 +40,33 @@ pub(in crate::logic::planner) struct StageSemanticIdentity {
 #[cfg(feature = "parallel")]
 #[derive(Debug, Clone)]
 pub(super) struct SemanticTaskUpdate {
-    pub task_index: usize,
-    pub node: NodeId,
-    pub identity: StageSemanticIdentity,
-    pub before_state: NodeState,
-    pub before_artifact_state: Option<RuntimeArtifactState>,
-    pub after_state: NodeState,
-    pub dependency_updates: u32,
-    pub recomputed: bool,
-    pub partition_aware: bool,
-    pub rewiring: Option<RewiringSummary>,
-    pub verdict: EvaluationVerdict,
-    pub memoized_origin: MemoizedResultOrigin,
-    pub reuse_basis: ReuseBasis,
+    task_index: usize,
+    node: NodeId,
+    identity: StageSemanticIdentity,
+    before_state: NodeState,
+    before_artifact_state: Option<RuntimeArtifactFinalizeImage>,
+    after_state: NodeState,
+    dependency_updates: u32,
+    recomputed: bool,
+    partition_aware: bool,
+    rewiring: Option<RewiringSummary>,
+    verdict: EvaluationVerdict,
+    memoized_origin: MemoizedResultOrigin,
+    reuse_basis: ReuseBasis,
 }
 
 #[cfg(feature = "parallel")]
 #[derive(Debug, Clone)]
 pub(super) struct SemanticSegment {
-    pub id: SemanticSegmentId,
-    pub task_range: SemanticTaskRange,
-    pub updates: Vec<SemanticTaskUpdate>,
+    id: SemanticSegmentId,
+    task_range: SemanticTaskRange,
+    updates: Vec<SemanticTaskUpdate>,
 }
 
 #[cfg(feature = "parallel")]
 #[derive(Debug, Clone, Default)]
 pub(super) struct StageSemanticBatch {
-    pub segments: Vec<SemanticSegment>,
+    segments: Vec<SemanticSegment>,
 }
 
 #[cfg(feature = "parallel")]
@@ -83,6 +83,97 @@ impl StageSemanticBatch {
 
     pub fn is_empty(&self) -> bool {
         self.segments.is_empty()
+    }
+
+    fn into_segments(self) -> Vec<SemanticSegment> {
+        self.segments
+    }
+}
+
+#[cfg(feature = "parallel")]
+impl SemanticTaskUpdate {
+    pub(super) fn new(
+        task_index: usize,
+        node: NodeId,
+        identity: StageSemanticIdentity,
+        before_state: NodeState,
+        before_artifact_state: Option<RuntimeArtifactFinalizeImage>,
+        after_state: NodeState,
+        dependency_updates: u32,
+        recomputed: bool,
+        partition_aware: bool,
+        rewiring: Option<RewiringSummary>,
+        verdict: EvaluationVerdict,
+        memoized_origin: MemoizedResultOrigin,
+        reuse_basis: ReuseBasis,
+    ) -> Self {
+        Self {
+            task_index,
+            node,
+            identity,
+            before_state,
+            before_artifact_state,
+            after_state,
+            dependency_updates,
+            recomputed,
+            partition_aware,
+            rewiring,
+            verdict,
+            memoized_origin,
+            reuse_basis,
+        }
+    }
+
+    fn into_parts(
+        self,
+    ) -> (
+        usize,
+        NodeId,
+        StageSemanticIdentity,
+        NodeState,
+        Option<RuntimeArtifactFinalizeImage>,
+        NodeState,
+        u32,
+        bool,
+        bool,
+        Option<RewiringSummary>,
+        EvaluationVerdict,
+        MemoizedResultOrigin,
+        ReuseBasis,
+    ) {
+        (
+            self.task_index,
+            self.node,
+            self.identity,
+            self.before_state,
+            self.before_artifact_state,
+            self.after_state,
+            self.dependency_updates,
+            self.recomputed,
+            self.partition_aware,
+            self.rewiring,
+            self.verdict,
+            self.memoized_origin,
+            self.reuse_basis,
+        )
+    }
+}
+
+#[cfg(feature = "parallel")]
+impl SemanticSegment {
+    fn single(update: SemanticTaskUpdate) -> Self {
+        Self {
+            id: update.identity.segment_id,
+            task_range: SemanticTaskRange {
+                start: update.identity.record_id,
+                end: update.identity.record_id,
+            },
+            updates: vec![update],
+        }
+    }
+
+    fn into_updates(self) -> Vec<SemanticTaskUpdate> {
+        self.updates
     }
 }
 
@@ -105,14 +196,7 @@ pub(super) fn reserve_stage_identities(
 
 #[cfg(feature = "parallel")]
 pub(super) fn segment_for_single_update(update: SemanticTaskUpdate) -> SemanticSegment {
-    SemanticSegment {
-        id: update.identity.segment_id,
-        task_range: SemanticTaskRange {
-            start: update.identity.record_id,
-            end: update.identity.record_id,
-        },
-        updates: vec![update],
-    }
+    SemanticSegment::single(update)
 }
 
 #[cfg(feature = "parallel")]
@@ -127,7 +211,7 @@ pub(super) fn finalize_stage_batch(
         return Ok(());
     }
 
-    let mut segments = batch.segments;
+    let mut segments = batch.into_segments();
     if !segments_are_sorted(segments.as_slice()) {
         segments.sort_by_key(|segment| (segment.task_range.start.0, segment.id.0));
     }
@@ -150,8 +234,8 @@ pub(super) fn finalize_stage_batch(
 
     let mut task_records = Vec::with_capacity(stage_tasks.len());
     for segment in segments {
-        for update in segment.updates {
-            let SemanticTaskUpdate {
+        for update in segment.into_updates() {
+            let (
                 task_index,
                 node,
                 identity,
@@ -165,7 +249,7 @@ pub(super) fn finalize_stage_batch(
                 verdict,
                 memoized_origin,
                 reuse_basis,
-            } = update;
+            ) = update.into_parts();
             stamp_trace_summary_and_record_lineage_transition(
                 graph,
                 node,
@@ -181,7 +265,7 @@ pub(super) fn finalize_stage_batch(
                 before_state,
                 after_state,
                 before_artifact_state.as_ref(),
-                graph.get_entry(node)?.get_runtime_artifact_state(),
+                graph.node_runtime_artifact_finalize_image(node)?.as_ref(),
                 verdict,
                 memoized_origin,
                 reuse_basis,
@@ -261,7 +345,9 @@ pub(in crate::logic::planner) fn finalize_serial_stage_batch(
             seed.before_state,
             applied.after_state,
             seed.before_artifact_state.as_ref(),
-            graph.get_entry(applied.node)?.get_runtime_artifact_state(),
+            graph
+                .node_runtime_artifact_finalize_image(applied.node)?
+                .as_ref(),
             applied.verdict.clone(),
             applied.memoized_origin,
             applied.reuse_basis.clone(),

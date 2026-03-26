@@ -1,6 +1,26 @@
+use std::collections::BTreeMap;
 use std::env;
+use std::fs;
+use std::path::PathBuf;
+use std::sync::Mutex;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use stats_alloc::{Region, StatsAlloc, INSTRUMENTED_SYSTEM};
+
+static PERF_ALLOC_LOCK: Mutex<()> = Mutex::new(());
+
+#[global_allocator]
+static GLOBAL_ALLOCATOR: &StatsAlloc<std::alloc::System> = &INSTRUMENTED_SYSTEM;
+
+#[derive(Debug, Clone, Copy)]
+struct AllocationStats {
+    allocation_calls: u64,
+    deallocation_calls: u64,
+    allocated_bytes: usize,
+    deallocated_bytes: usize,
+    live_bytes: usize,
+    peak_live_bytes: usize,
+}
 
 #[derive(Debug, Clone)]
 pub(crate) struct PerfMeasurement {
@@ -42,6 +62,48 @@ struct PerfSummaryRecord<'a> {
     max_elapsed_micros: u128,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct PerfCaseSummary {
+    suite: String,
+    profile: String,
+    executor: String,
+    sample_count: usize,
+    elapsed_micros: NumericSummary,
+    allocated_bytes: NumericSummary,
+    peak_live_bytes: NumericSummary,
+    access_counters: BTreeMap<String, NumericSummary>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+struct NumericSummary {
+    min: u128,
+    median: u128,
+    p95: u128,
+    p99: u128,
+    max: u128,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct PerfBaselineFile {
+    version: u32,
+    cases: BTreeMap<String, PerfCaseSummary>,
+}
+
+pub(crate) fn capture_and_certify_perf_samples<F>(
+    suite: &str,
+    profile: &str,
+    executor: &str,
+    measure: F,
+) -> Vec<PerfMeasurement>
+where
+    F: FnMut() -> PerfMeasurement,
+{
+    let samples = capture_perf_samples(suite, profile, executor, measure);
+    let summary = summarize_perf_samples(suite, profile, executor, &samples);
+    certify_against_baseline(&summary);
+    samples
+}
+
 pub(crate) fn capture_perf_samples<F>(
     suite: &str,
     profile: &str,
@@ -53,9 +115,20 @@ where
 {
     let sample_count = perf_sample_count();
     let mut samples = Vec::with_capacity(sample_count);
+    let _alloc_guard = PERF_ALLOC_LOCK
+        .lock()
+        .expect("perf allocation instrumentation lock should not be poisoned");
 
     for sample_index in 0..sample_count {
-        let measurement = measure();
+        let access_before = crate::data::access_counters::snapshot();
+        let region = Region::new(GLOBAL_ALLOCATOR);
+        let mut measurement = measure();
+        let access_after = crate::data::access_counters::snapshot();
+        attach_allocation_stats(&mut measurement.metrics, snapshot_allocation_stats(&region));
+        attach_access_counters(
+            &mut measurement.metrics,
+            access_after.delta_since(access_before),
+        );
         emit(&PerfSampleRecord {
             kind: "sample",
             suite,
@@ -89,12 +162,62 @@ where
     samples
 }
 
+fn summarize_perf_samples(
+    suite: &str,
+    profile: &str,
+    executor: &str,
+    samples: &[PerfMeasurement],
+) -> PerfCaseSummary {
+    let elapsed = samples
+        .iter()
+        .map(|sample| sample.elapsed_micros)
+        .collect::<Vec<_>>();
+    let allocated_bytes = samples
+        .iter()
+        .map(|sample| numeric_metric(&sample.metrics, &["allocation_metrics", "allocated_bytes"]))
+        .collect::<Vec<_>>();
+    let peak_live_bytes = samples
+        .iter()
+        .map(|sample| numeric_metric(&sample.metrics, &["allocation_metrics", "peak_live_bytes"]))
+        .collect::<Vec<_>>();
+
+    let mut access_counters = BTreeMap::new();
+    for key in [
+        "materialized_entry_reads",
+        "materialized_entry_writes",
+        "runtime_artifact_warm_reads",
+        "runtime_artifact_state_reads",
+        "retained_artifact_reads",
+        "reconstructed_artifact_reads",
+    ] {
+        let values = samples
+            .iter()
+            .map(|sample| numeric_metric(&sample.metrics, &["access_counters", key]))
+            .collect::<Vec<_>>();
+        access_counters.insert(key.to_string(), summarize_u128(&values));
+    }
+
+    let summary = PerfCaseSummary {
+        suite: suite.to_string(),
+        profile: profile.to_string(),
+        executor: executor.to_string(),
+        sample_count: samples.len(),
+        elapsed_micros: summarize_u128(&elapsed),
+        allocated_bytes: summarize_u128(&allocated_bytes),
+        peak_live_bytes: summarize_u128(&peak_live_bytes),
+        access_counters,
+    };
+
+    emit(&summary);
+    summary
+}
+
 fn perf_sample_count() -> usize {
     env::var("FORGE_SIGNAL_PERF_SAMPLES")
         .ok()
         .and_then(|raw| raw.parse::<usize>().ok())
         .filter(|count| *count > 0)
-        .unwrap_or(1)
+        .unwrap_or(3)
 }
 
 fn percentile(sorted: &[u128], percentile: usize) -> u128 {
@@ -110,4 +233,189 @@ fn emit(record: &impl Serialize) {
         "{}",
         serde_json::to_string(record).expect("perf record should serialize")
     );
+}
+
+fn numeric_metric(metrics: &serde_json::Value, path: &[&str]) -> u128 {
+    let mut current = metrics;
+    for segment in path {
+        current = current
+            .get(*segment)
+            .unwrap_or_else(|| panic!("missing perf metric path {}", path.join(".")));
+    }
+    current
+        .as_u64()
+        .map(u128::from)
+        .unwrap_or_else(|| panic!("non-numeric perf metric path {}", path.join(".")))
+}
+
+fn summarize_u128(values: &[u128]) -> NumericSummary {
+    debug_assert!(!values.is_empty());
+    let mut sorted = values.to_vec();
+    sorted.sort_unstable();
+    NumericSummary {
+        min: sorted[0],
+        median: percentile(&sorted, 50),
+        p95: percentile(&sorted, 95),
+        p99: percentile(&sorted, 99),
+        max: sorted[sorted.len() - 1],
+    }
+}
+
+fn snapshot_allocation_stats(region: &Region<'_, std::alloc::System>) -> AllocationStats {
+    let stats = region.change();
+    let live_bytes = stats.bytes_allocated.saturating_sub(stats.bytes_deallocated);
+    AllocationStats {
+        allocation_calls: stats.allocations as u64,
+        deallocation_calls: stats.deallocations as u64,
+        allocated_bytes: stats.bytes_allocated,
+        deallocated_bytes: stats.bytes_deallocated,
+        live_bytes,
+        peak_live_bytes: live_bytes,
+    }
+}
+
+fn attach_allocation_stats(metrics: &mut serde_json::Value, stats: AllocationStats) {
+    let allocation_metrics = serde_json::json!({
+        "allocation_calls": stats.allocation_calls,
+        "deallocation_calls": stats.deallocation_calls,
+        "allocated_bytes": stats.allocated_bytes,
+        "deallocated_bytes": stats.deallocated_bytes,
+        "live_bytes": stats.live_bytes,
+        "peak_live_bytes": stats.peak_live_bytes,
+    });
+
+    match metrics {
+        serde_json::Value::Object(map) => {
+            map.insert("allocation_metrics".into(), allocation_metrics);
+        }
+        _ => {
+            *metrics = serde_json::json!({
+                "reported_metrics": metrics.clone(),
+                "allocation_metrics": allocation_metrics,
+            });
+        }
+    }
+}
+
+fn attach_access_counters(
+    metrics: &mut serde_json::Value,
+    counters: crate::data::access_counters::AccessCounterSnapshot,
+) {
+    let access_metrics = serde_json::json!(counters);
+
+    match metrics {
+        serde_json::Value::Object(map) => {
+            map.insert("access_counters".into(), access_metrics);
+        }
+        _ => {
+            *metrics = serde_json::json!({
+                "reported_metrics": metrics.clone(),
+                "access_counters": access_metrics,
+            });
+        }
+    }
+}
+
+fn certify_against_baseline(summary: &PerfCaseSummary) {
+    let key = baseline_case_key(&summary.suite, &summary.profile, &summary.executor);
+    let mut baseline = load_baseline_file();
+    if update_perf_baseline() {
+        baseline.cases.insert(key, summary.clone());
+        write_baseline_file(&baseline);
+        return;
+    }
+
+    let expected = baseline
+        .cases
+        .get(&key)
+        .unwrap_or_else(|| panic!("missing perf baseline case for {key}"));
+    assert_perf_regression_budget("elapsed median", summary.elapsed_micros.median, expected.elapsed_micros.median, 1.20);
+    assert_perf_regression_budget("elapsed p95", summary.elapsed_micros.p95, expected.elapsed_micros.p95, 1.25);
+    assert_perf_regression_budget("elapsed max", summary.elapsed_micros.max, expected.elapsed_micros.max, 1.35);
+    assert_perf_regression_budget(
+        "allocated bytes median",
+        summary.allocated_bytes.median,
+        expected.allocated_bytes.median,
+        1.10,
+    );
+    assert_perf_regression_budget(
+        "allocated bytes max",
+        summary.allocated_bytes.max,
+        expected.allocated_bytes.max,
+        1.10,
+    );
+    assert_perf_regression_budget(
+        "peak live bytes median",
+        summary.peak_live_bytes.median,
+        expected.peak_live_bytes.median,
+        1.10,
+    );
+    assert_perf_regression_budget(
+        "peak live bytes max",
+        summary.peak_live_bytes.max,
+        expected.peak_live_bytes.max,
+        1.10,
+    );
+
+    for (counter, observed) in &summary.access_counters {
+        let expected = expected
+            .access_counters
+            .get(counter)
+            .unwrap_or_else(|| panic!("missing baseline access counter {counter} for {key}"));
+        assert!(
+            observed.max <= expected.max,
+            "access counter {counter} regressed for {key}: observed max {} > baseline max {}",
+            observed.max,
+            expected.max
+        );
+    }
+}
+
+fn assert_perf_regression_budget(label: &str, observed: u128, expected: u128, tolerance: f64) {
+    let allowed = ((expected as f64) * tolerance).ceil() as u128;
+    assert!(
+        observed <= allowed,
+        "{label} regressed: observed {observed} exceeds allowed {allowed} from baseline {expected}"
+    );
+}
+
+fn baseline_case_key(suite: &str, profile: &str, executor: &str) -> String {
+    format!("{suite}|{profile}|{executor}")
+}
+
+fn baseline_file_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("src")
+        .join("tests")
+        .join("performance_baseline.json")
+}
+
+fn load_baseline_file() -> PerfBaselineFile {
+    let path = baseline_file_path();
+    let raw = fs::read_to_string(&path)
+        .unwrap_or_else(|err| panic!("failed to read perf baseline file {}: {err}", path.display()));
+    serde_json::from_str(&raw).unwrap_or_else(|err| {
+        panic!(
+            "failed to deserialize perf baseline file {}: {err}",
+            path.display()
+        )
+    })
+}
+
+fn write_baseline_file(baseline: &PerfBaselineFile) {
+    let path = baseline_file_path();
+    let raw = serde_json::to_string_pretty(baseline)
+        .expect("perf baseline file should serialize");
+    fs::write(&path, raw)
+        .unwrap_or_else(|err| panic!("failed to write perf baseline file {}: {err}", path.display()));
+}
+
+fn update_perf_baseline() -> bool {
+    env::var("FORGE_SIGNAL_UPDATE_PERF_BASELINE")
+        .ok()
+        .map(|value| {
+            let value = value.trim().to_ascii_lowercase();
+            value == "1" || value == "true" || value == "yes"
+        })
+        .unwrap_or(false)
 }

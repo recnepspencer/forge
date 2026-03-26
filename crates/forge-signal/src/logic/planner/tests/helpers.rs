@@ -357,7 +357,8 @@ fn preview_upstream_state(
             if partition_scope_untouched(
                 graph
                     .get_entry(snapshot_entry.source)?
-                    .get_runtime_artifact_state(),
+                    .get_runtime_artifact_state()
+                    .map(|state| state.hot()),
                 scope,
             ) {
                 partition_scope_revert_clean_count += 1;

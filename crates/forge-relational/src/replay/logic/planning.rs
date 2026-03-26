@@ -1,9 +1,9 @@
 use std::collections::BTreeSet;
 
 use crate::capabilities::{CommitEnvelopeSource, DurabilityRead};
-use crate::logic::runtime::RelationalRuntime;
 use crate::durability::data::RecoveryPlan;
 use crate::history::data::CommitId;
+use crate::logic::runtime::RelationalRuntime;
 use crate::replay::data::{
     CanonicalCommitEnvelope, ReplayFailureClass, ReplayObservableSurface, ReplayVerificationLayer,
 };

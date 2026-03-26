@@ -20,7 +20,7 @@ use crate::data::proof::{
     StructuralDelta,
 };
 use crate::data::reuse::{ReuseBasis, ReuseOrigin};
-use crate::data::trace::RuntimeArtifactState;
+use crate::data::trace::RuntimeArtifactFinalizeImage;
 use crate::logic::evaluation::EvaluationRequestMode;
 use crate::logic::evaluation::{DeferralReason, EvaluationVerdict, SuppressionReason};
 use crate::logic::explain::RewiringSummary;
@@ -244,43 +244,145 @@ pub enum LoweredApplyPlan {
 
 #[derive(Debug, Clone)]
 pub(crate) struct LoweredTaskExecution {
-    pub prepared: PreparedEvaluation,
-    pub before_state: NodeState,
-    pub before_artifact_state: Option<RuntimeArtifactState>,
-    pub dependency_updates: u32,
-    pub recomputed: bool,
-    pub partition_aware: bool,
-    pub rewiring: Option<RewiringSummary>,
+    prepared: PreparedEvaluation,
+    before_state: NodeState,
+    before_artifact_state: Option<RuntimeArtifactFinalizeImage>,
+    dependency_updates: u32,
+    recomputed: bool,
+    partition_aware: bool,
+    rewiring: Option<RewiringSummary>,
+}
+
+impl LoweredTaskExecution {
+    pub(crate) fn new(
+        prepared: PreparedEvaluation,
+        before_state: NodeState,
+        before_artifact_state: Option<RuntimeArtifactFinalizeImage>,
+        dependency_updates: u32,
+        recomputed: bool,
+        partition_aware: bool,
+        rewiring: Option<RewiringSummary>,
+    ) -> Self {
+        Self {
+            prepared,
+            before_state,
+            before_artifact_state,
+            dependency_updates,
+            recomputed,
+            partition_aware,
+            rewiring,
+        }
+    }
+
+    pub(crate) fn prepared(&self) -> &PreparedEvaluation {
+        &self.prepared
+    }
+
+    #[cfg(feature = "parallel")]
+    pub(crate) fn dependency_updates(&self) -> u32 {
+        self.dependency_updates
+    }
+
+    pub(crate) fn recomputed(&self) -> bool {
+        self.recomputed
+    }
+
+    #[cfg(feature = "parallel")]
+    pub(crate) fn rewiring(&self) -> Option<&RewiringSummary> {
+        self.rewiring.as_ref()
+    }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        PreparedEvaluation,
+        NodeState,
+        Option<RuntimeArtifactFinalizeImage>,
+        u32,
+        bool,
+        bool,
+        Option<RewiringSummary>,
+    ) {
+        (
+            self.prepared,
+            self.before_state,
+            self.before_artifact_state,
+            self.dependency_updates,
+            self.recomputed,
+            self.partition_aware,
+            self.rewiring,
+        )
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct LoweredTask {
-    pub task_index: usize,
-    pub node: NodeId,
-    pub produced_aspects: AspectMask,
-    pub dependency_inputs: CanonicalDependencies,
+    task_index: usize,
+    node: NodeId,
+    produced_aspects: AspectMask,
+    dependency_inputs: CanonicalDependencies,
     #[cfg(feature = "parallel")]
-    pub comparator_policy: VersionComparatorPolicy,
-    pub path_class: PathClass,
-    pub authority_policy: AuthorityPolicy,
-    pub footprint: ApplyFootprint,
-    pub(crate) execution: LoweredTaskExecution,
+    comparator_policy: VersionComparatorPolicy,
+    path_class: PathClass,
+    authority_policy: AuthorityPolicy,
+    footprint: ApplyFootprint,
+    execution: LoweredTaskExecution,
 }
 
 #[derive(Debug, Clone)]
 pub struct LoweredStagePlan {
-    pub stage_index: u32,
-    pub tasks: Vec<LoweredTask>,
-    pub lowered_apply_plan: LoweredApplyPlan,
-    pub dirty_delta: StructuralDelta,
-    pub execution_strategy: ResolvedExecutionStrategy,
-    pub maintenance_strategy: ResolvedMaintenanceStrategy,
-    pub authority_policy: AuthorityPolicy,
+    stage_index: u32,
+    tasks: Vec<LoweredTask>,
+    lowered_apply_plan: LoweredApplyPlan,
+    dirty_delta: StructuralDelta,
+    execution_strategy: ResolvedExecutionStrategy,
+    maintenance_strategy: ResolvedMaintenanceStrategy,
+    authority_policy: AuthorityPolicy,
 }
 
 impl LoweredStagePlan {
+    pub(crate) fn new(
+        stage_index: u32,
+        tasks: Vec<LoweredTask>,
+        lowered_apply_plan: LoweredApplyPlan,
+        dirty_delta: StructuralDelta,
+        execution_strategy: ResolvedExecutionStrategy,
+        maintenance_strategy: ResolvedMaintenanceStrategy,
+        authority_policy: AuthorityPolicy,
+    ) -> Self {
+        Self {
+            stage_index,
+            tasks,
+            lowered_apply_plan,
+            dirty_delta,
+            execution_strategy,
+            maintenance_strategy,
+            authority_policy,
+        }
+    }
+
     pub fn task_count(&self) -> usize {
         self.tasks.len()
+    }
+
+    pub(crate) fn tasks(&self) -> &[LoweredTask] {
+        self.tasks.as_slice()
+    }
+
+    pub(crate) fn dirty_delta(&self) -> &StructuralDelta {
+        &self.dirty_delta
+    }
+
+    pub(crate) fn execution_strategy(&self) -> ResolvedExecutionStrategy {
+        self.execution_strategy
+    }
+
+    pub(crate) fn maintenance_strategy(&self) -> ResolvedMaintenanceStrategy {
+        self.maintenance_strategy
+    }
+
+    pub(crate) fn authority_policy(&self) -> AuthorityPolicy {
+        self.authority_policy
     }
 
     pub fn apply_groups(&self) -> &[DisjointApplyGroup] {
@@ -288,6 +390,120 @@ impl LoweredStagePlan {
             LoweredApplyPlan::Serial(plan) => plan.groups.as_slice(),
             LoweredApplyPlan::GroupedConcurrent(plan) => plan.groups.as_slice(),
         }
+    }
+
+    pub(crate) fn lowered_apply_plan(&self) -> &LoweredApplyPlan {
+        &self.lowered_apply_plan
+    }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        u32,
+        Vec<LoweredTask>,
+        LoweredApplyPlan,
+        StructuralDelta,
+        ResolvedExecutionStrategy,
+        ResolvedMaintenanceStrategy,
+        AuthorityPolicy,
+    ) {
+        (
+            self.stage_index,
+            self.tasks,
+            self.lowered_apply_plan,
+            self.dirty_delta,
+            self.execution_strategy,
+            self.maintenance_strategy,
+            self.authority_policy,
+        )
+    }
+}
+
+impl LoweredTask {
+    pub(crate) fn new(
+        task_index: usize,
+        node: NodeId,
+        produced_aspects: AspectMask,
+        dependency_inputs: CanonicalDependencies,
+        #[cfg(feature = "parallel")] comparator_policy: VersionComparatorPolicy,
+        path_class: PathClass,
+        authority_policy: AuthorityPolicy,
+        footprint: ApplyFootprint,
+        execution: LoweredTaskExecution,
+    ) -> Self {
+        Self {
+            task_index,
+            node,
+            produced_aspects,
+            dependency_inputs,
+            #[cfg(feature = "parallel")]
+            comparator_policy,
+            path_class,
+            authority_policy,
+            footprint,
+            execution,
+        }
+    }
+
+    pub(crate) fn task_index(&self) -> usize {
+        self.task_index
+    }
+
+    pub(crate) fn node(&self) -> NodeId {
+        self.node
+    }
+
+    pub(crate) fn produced_aspects(&self) -> AspectMask {
+        self.produced_aspects
+    }
+
+    pub(crate) fn dependency_inputs(&self) -> &CanonicalDependencies {
+        &self.dependency_inputs
+    }
+
+    #[cfg(feature = "parallel")]
+    pub(crate) fn comparator_policy(&self) -> VersionComparatorPolicy {
+        self.comparator_policy.clone()
+    }
+
+    pub(crate) fn path_class(&self) -> PathClass {
+        self.path_class
+    }
+
+    pub(crate) fn authority_policy(&self) -> AuthorityPolicy {
+        self.authority_policy
+    }
+
+    pub(crate) fn footprint(&self) -> &ApplyFootprint {
+        &self.footprint
+    }
+
+    pub(crate) fn execution(&self) -> &LoweredTaskExecution {
+        &self.execution
+    }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        usize,
+        NodeId,
+        AspectMask,
+        CanonicalDependencies,
+        PathClass,
+        AuthorityPolicy,
+        ApplyFootprint,
+        LoweredTaskExecution,
+    ) {
+        (
+            self.task_index,
+            self.node,
+            self.produced_aspects,
+            self.dependency_inputs,
+            self.path_class,
+            self.authority_policy,
+            self.footprint,
+            self.execution,
+        )
     }
 }
 

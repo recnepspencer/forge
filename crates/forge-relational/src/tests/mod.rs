@@ -10,5 +10,5 @@ mod public_api;
 mod publication;
 mod query;
 mod schema;
-mod support;
+pub(crate) mod support;
 mod transactions;

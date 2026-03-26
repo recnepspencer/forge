@@ -42,7 +42,7 @@ impl SignalHarnessBridge {
         plan: &crate::logic::planner::EvaluationPlan,
     ) -> Result<bool, SignalError> {
         for task in plan.stages.iter().flat_map(|stage| &stage.tasks) {
-            let config = graph.get_entry(task.node)?.get_eval_config();
+            let config = graph.node_eval_config(task.node)?;
             if !matches!(config.condition, EvaluationCondition::Always)
                 || config.comparator.is_some()
             {

@@ -14,8 +14,7 @@ use crate::data::output::{
 };
 use crate::data::proof::PartitionScopeSet;
 use crate::data::reuse::{
-    ReuseBasis, ReuseBoundaryAuthority, ReuseBoundaryContext, ReuseCertificationRecord,
-    ReuseOrigin,
+    ReuseBasis, ReuseBoundaryAuthority, ReuseBoundaryContext, ReuseCertificationRecord, ReuseOrigin,
 };
 use crate::diagnostics::lineage::LineageArtifactId;
 
@@ -55,9 +54,7 @@ pub struct ExecutionTraceStamp {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(transparent)]
-pub struct ContinuityAuthorityToken(
-    Option<ArtifactContinuityToken>,
-);
+pub struct ContinuityAuthorityToken(Option<ArtifactContinuityToken>);
 
 impl ContinuityAuthorityToken {
     pub fn new(token: Option<ArtifactContinuityToken>) -> Self {
@@ -79,9 +76,7 @@ impl ContinuityAuthorityToken {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(transparent)]
-pub struct CompactChangedScopeProof(
-    PartitionScopeSet,
-);
+pub struct CompactChangedScopeProof(PartitionScopeSet);
 
 impl CompactChangedScopeProof {
     pub fn new(scopes: PartitionScopeSet) -> Self {
@@ -117,9 +112,7 @@ impl DerefMut for CompactChangedScopeProof {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(transparent)]
-pub struct ReuseOperationalBasis(
-    ReuseBasis,
-);
+pub struct ReuseOperationalBasis(ReuseBasis);
 
 impl ReuseOperationalBasis {
     pub fn new(basis: ReuseBasis) -> Self {
@@ -147,9 +140,7 @@ impl DerefMut for ReuseOperationalBasis {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(transparent)]
-pub struct ArtifactTransitionKey(
-    Option<LineageArtifactId>,
-);
+pub struct ArtifactTransitionKey(Option<LineageArtifactId>);
 
 impl ArtifactTransitionKey {
     pub fn new(artifact_id: Option<LineageArtifactId>) -> Self {
@@ -167,17 +158,11 @@ impl ArtifactTransitionKey {
 
 pub(crate) const COLD_ARTIFACT_INTENT_LABEL_LIMIT: usize = 4;
 
-/// Hot operational artifact state retained directly on the node.
+/// Compact hot operational artifact truth retained directly on the node.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
-pub struct RuntimeArtifactState {
+pub struct RuntimeArtifactHot {
     /// Opaque deterministic hash for the evaluated output.
     pub output_hash: StableHashValue,
-    /// Optional stable identity for the evaluated output artifact.
-    #[serde(default)]
-    pub output_identity: Option<OutputIdentity>,
-    /// Optional host-defined continuity token for lineage preservation.
-    #[serde(default)]
-    pub continuity_token: ContinuityAuthorityToken,
     /// Runtime-normalized output change classification.
     #[serde(default)]
     pub output_change: OutputChange,
@@ -199,6 +184,18 @@ pub struct RuntimeArtifactState {
     /// Narrowed locality proof for partition-aware runtime behavior.
     #[serde(default)]
     pub changed_scopes: CompactChangedScopeProof,
+}
+
+/// Warm operational artifact metadata retained with the node, but not intended
+/// for the tightest hot loops.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct RuntimeArtifactWarm {
+    /// Optional stable identity for the evaluated output artifact.
+    #[serde(default)]
+    pub output_identity: Option<OutputIdentity>,
+    /// Optional host-defined continuity token for lineage preservation.
+    #[serde(default)]
+    pub continuity_token: ContinuityAuthorityToken,
     /// How the last result was produced.
     #[serde(default)]
     pub memoized_origin: MemoizedResultOrigin,
@@ -217,6 +214,164 @@ pub struct RuntimeArtifactState {
     /// Typed authority/adoptability truth used by branch merge semantics.
     #[serde(default)]
     pub merge_authority: ArtifactMergeAuthority,
+}
+
+/// Runtime artifact state split into hot operational truth and warm companion
+/// metadata while preserving a flat serialized schema boundary.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct RuntimeArtifactState {
+    #[serde(flatten)]
+    hot: RuntimeArtifactHot,
+    #[serde(flatten)]
+    warm: RuntimeArtifactWarm,
+}
+
+/// Compact planner/finalize-facing runtime artifact image.
+///
+/// This intentionally carries only the hot operational truth and the subset of
+/// warm metadata required for task classification and lineage transitions. It
+/// is materially narrower than `RuntimeArtifactState` and is the preferred
+/// before/after artifact carrier for apply/finalize paths.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RuntimeArtifactFinalizeImage {
+    hot: RuntimeArtifactHot,
+    reuse_origin: ReuseOrigin,
+    reuse_boundary_authority: Option<ReuseBoundaryAuthority>,
+    lineage_artifact_id: ArtifactTransitionKey,
+}
+
+impl RuntimeArtifactState {
+    pub fn new(hot: RuntimeArtifactHot, warm: RuntimeArtifactWarm) -> Self {
+        Self { hot, warm }
+    }
+
+    pub fn hot(&self) -> &RuntimeArtifactHot {
+        &self.hot
+    }
+
+    pub fn hot_mut(&mut self) -> &mut RuntimeArtifactHot {
+        &mut self.hot
+    }
+
+    pub fn warm(&self) -> &RuntimeArtifactWarm {
+        &self.warm
+    }
+
+    pub fn warm_mut(&mut self) -> &mut RuntimeArtifactWarm {
+        &mut self.warm
+    }
+
+    pub fn output_hash(&self) -> StableHashValue {
+        self.hot.output_hash
+    }
+
+    pub fn output_change(&self) -> OutputChange {
+        self.hot.output_change
+    }
+
+    pub fn recomputed(&self) -> bool {
+        self.hot.recomputed
+    }
+
+    pub fn dependency_count(&self) -> u32 {
+        self.hot.dependency_count
+    }
+
+    pub fn meaningful_input_changes(&self) -> u32 {
+        self.hot.meaningful_input_changes
+    }
+
+    pub fn changed_partition_count(&self) -> u32 {
+        self.hot.changed_partition_count
+    }
+
+    pub fn propagation_suppressed(&self) -> bool {
+        self.hot.propagation_suppressed
+    }
+
+    pub fn changed_scopes(&self) -> &CompactChangedScopeProof {
+        &self.hot.changed_scopes
+    }
+
+    pub fn output_identity(&self) -> Option<&OutputIdentity> {
+        self.warm.output_identity.as_ref()
+    }
+
+    pub fn continuity_token(&self) -> Option<&ArtifactContinuityToken> {
+        self.warm.continuity_token.as_ref()
+    }
+
+    pub fn continuity_token_authority(&self) -> &ContinuityAuthorityToken {
+        &self.warm.continuity_token
+    }
+
+    pub fn memoized_origin(&self) -> MemoizedResultOrigin {
+        self.warm.memoized_origin
+    }
+
+    pub fn reuse_basis(&self) -> &ReuseOperationalBasis {
+        &self.warm.reuse_basis
+    }
+
+    pub fn reuse_origin(&self) -> ReuseOrigin {
+        self.warm.reuse_origin
+    }
+
+    pub fn reuse_boundary_authority(&self) -> Option<&ReuseBoundaryAuthority> {
+        self.warm.reuse_boundary_authority.as_ref()
+    }
+
+    pub fn lineage_artifact_id(&self) -> ArtifactTransitionKey {
+        self.warm.lineage_artifact_id
+    }
+
+    pub fn merge_authority(&self) -> &ArtifactMergeAuthority {
+        &self.warm.merge_authority
+    }
+
+    pub fn set_lineage_artifact_id(&mut self, artifact_id: Option<LineageArtifactId>) {
+        self.warm.lineage_artifact_id = ArtifactTransitionKey::new(artifact_id);
+    }
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
+impl RuntimeArtifactFinalizeImage {
+    pub fn from_runtime_state(state: &RuntimeArtifactState) -> Self {
+        Self {
+            hot: state.hot().clone(),
+            reuse_origin: state.reuse_origin(),
+            reuse_boundary_authority: state.reuse_boundary_authority().cloned(),
+            lineage_artifact_id: state.lineage_artifact_id(),
+        }
+    }
+
+    pub fn output_change(&self) -> OutputChange {
+        self.hot.output_change
+    }
+
+    pub fn recomputed(&self) -> bool {
+        self.hot.recomputed
+    }
+
+    pub fn propagation_suppressed(&self) -> bool {
+        self.hot.propagation_suppressed
+    }
+
+    pub fn reuse_origin(&self) -> ReuseOrigin {
+        self.reuse_origin
+    }
+
+    pub fn reuse_boundary_authority(&self) -> Option<&ReuseBoundaryAuthority> {
+        self.reuse_boundary_authority.as_ref()
+    }
+
+    pub fn changed_partition_count(&self) -> u32 {
+        self.hot.changed_partition_count
+    }
+
+    pub fn lineage_artifact_id(&self) -> ArtifactTransitionKey {
+        self.lineage_artifact_id
+    }
 }
 
 /// Cold retained artifact richness kept off the operational hot path.
@@ -374,23 +529,25 @@ impl TraceSummary {
         execution: Option<ExecutionTraceStamp>,
     ) -> Self {
         Self {
-            output_hash: runtime.output_hash,
-            output_identity: runtime.output_identity.clone(),
-            continuity_token: runtime.continuity_token.clone_inner(),
-            output_change: runtime.output_change,
-            recomputed: runtime.recomputed,
-            dependency_count: runtime.dependency_count,
-            meaningful_input_changes: runtime.meaningful_input_changes,
-            changed_partition_count: runtime.changed_partition_count,
-            propagation_suppressed: runtime.propagation_suppressed,
+            output_hash: runtime.output_hash(),
+            output_identity: runtime.output_identity().cloned(),
+            continuity_token: runtime.continuity_token_authority().clone_inner(),
+            output_change: runtime.output_change(),
+            recomputed: runtime.recomputed(),
+            dependency_count: runtime.dependency_count(),
+            meaningful_input_changes: runtime.meaningful_input_changes(),
+            changed_partition_count: runtime.changed_partition_count(),
+            propagation_suppressed: runtime.propagation_suppressed(),
             changed_regions: retained
                 .map(|artifact| artifact.changed_regions.as_slice().to_vec())
-                .unwrap_or_else(|| scopes_to_regions_from_slice(runtime.changed_scopes.as_slice())),
+                .unwrap_or_else(|| {
+                    scopes_to_regions_from_slice(runtime.changed_scopes().as_slice())
+                }),
             keyed_family: retained.and_then(|artifact| artifact.keyed_family.clone()),
             keyed_key: retained.and_then(|artifact| artifact.keyed_key.clone()),
-            memoized_origin: runtime.memoized_origin,
-            reuse_basis: runtime.reuse_basis.clone_inner(),
-            reuse_origin: runtime.reuse_origin,
+            memoized_origin: runtime.memoized_origin(),
+            reuse_basis: runtime.reuse_basis().clone_inner(),
+            reuse_origin: runtime.reuse_origin(),
             reuse_boundary_context: retained
                 .and_then(|artifact| artifact.reuse_boundary_context.clone()),
             labels: retained
@@ -398,7 +555,7 @@ impl TraceSummary {
                 .unwrap_or_default(),
             execution_record_id: execution.and_then(|stamp| stamp.execution_record_id),
             semantic_segment_id: execution.and_then(|stamp| stamp.semantic_segment_id),
-            lineage_artifact_id: runtime.lineage_artifact_id.get(),
+            lineage_artifact_id: runtime.lineage_artifact_id().get(),
         }
     }
 
@@ -497,30 +654,30 @@ impl SemanticArtifactParity {
     ) -> Self {
         let mut changed_regions = retained
             .map(|artifact| artifact.changed_regions.as_slice().to_vec())
-            .unwrap_or_else(|| scopes_to_regions_from_slice(runtime.changed_scopes.as_slice()));
+            .unwrap_or_else(|| scopes_to_regions_from_slice(runtime.changed_scopes().as_slice()));
         changed_regions.sort();
         Self {
-            output_hash: runtime.output_hash,
-            output_identity: runtime.output_identity.clone(),
-            continuity_token: runtime.continuity_token.clone_inner(),
-            output_change: runtime.output_change,
-            recomputed: runtime.recomputed,
-            dependency_count: runtime.dependency_count,
-            meaningful_input_changes: runtime.meaningful_input_changes,
-            changed_partition_count: runtime.changed_partition_count,
-            propagation_suppressed: runtime.propagation_suppressed,
+            output_hash: runtime.output_hash(),
+            output_identity: runtime.output_identity().cloned(),
+            continuity_token: runtime.continuity_token_authority().clone_inner(),
+            output_change: runtime.output_change(),
+            recomputed: runtime.recomputed(),
+            dependency_count: runtime.dependency_count(),
+            meaningful_input_changes: runtime.meaningful_input_changes(),
+            changed_partition_count: runtime.changed_partition_count(),
+            propagation_suppressed: runtime.propagation_suppressed(),
             changed_regions,
             keyed_family: retained.and_then(|artifact| artifact.keyed_family.clone()),
             keyed_key: retained.and_then(|artifact| artifact.keyed_key.clone()),
-            memoized_origin: runtime.memoized_origin,
-            reuse_basis: runtime.reuse_basis.clone_inner(),
-            reuse_origin: runtime.reuse_origin,
+            memoized_origin: runtime.memoized_origin(),
+            reuse_basis: runtime.reuse_basis().clone_inner(),
+            reuse_origin: runtime.reuse_origin(),
             reuse_boundary_context: retained
                 .and_then(|artifact| artifact.reuse_boundary_context.clone()),
             labels: retained
                 .map(|artifact| artifact.labels.clone())
                 .unwrap_or_default(),
-            artifact_transition_key: runtime.lineage_artifact_id,
+            artifact_transition_key: runtime.lineage_artifact_id(),
         }
     }
 }

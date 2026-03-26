@@ -110,12 +110,17 @@ where
             ));
         }
     };
-    let result = NodeEvaluationResult::from_version(graph.get_entry(node)?.get_aspect_version());
+    let result = NodeEvaluationResult::from_version(graph.node_aspect_version(node)?);
 
     Ok(PassivePreparedEffect {
         result,
         verdict,
-        reuse_boundary_authority: resolve_reuse_boundary_authority(graph, node, None, keyed.as_ref())?,
+        reuse_boundary_authority: resolve_reuse_boundary_authority(
+            graph,
+            node,
+            None,
+            keyed.as_ref(),
+        )?,
         reuse_boundary_detail: None,
         keyed,
         causality: trace_data.causality,
@@ -192,15 +197,9 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
                 prepared.origin,
                 execution_metadata,
             );
-            let reuse_contract = graph
-                .get_entry(node)?
-                .get_eval_config()
-                .contract
-                .reuse
-                .clone();
+            let reuse_contract = graph.node_eval_config(node)?.contract.reuse.clone();
             let previous_reuse_boundary_authority = graph
-                .get_entry(node)?
-                .get_runtime_artifact_state()
+                .node_runtime_artifact_warm(node)?
                 .and_then(|trace| trace.reuse_boundary_authority.clone());
             let (current_reuse_boundary_authority, current_reuse_boundary_detail) =
                 resolve_effect_reuse_boundary(
@@ -311,14 +310,14 @@ pub(crate) fn build_prepared_apply_commit_packet(
         let effect = build_evaluation_effect(
             node,
             passive.result,
-                    execution_metadata,
-                    passive.verdict,
-                    false,
-                    passive.reuse_boundary_authority,
-                    Some(passive.reuse_boundary_detail),
-                    passive.keyed,
-                    passive.causality,
-                    None,
+            execution_metadata,
+            passive.verdict,
+            false,
+            passive.reuse_boundary_authority,
+            passive.reuse_boundary_detail,
+            passive.keyed,
+            passive.causality,
+            None,
             dependency_inputs,
         );
         return graph
@@ -334,15 +333,9 @@ pub(crate) fn build_prepared_apply_commit_packet(
                 prepared.origin,
                 execution_metadata,
             );
-            let reuse_contract = graph
-                .get_entry(node)?
-                .get_eval_config()
-                .contract
-                .reuse
-                .clone();
+            let reuse_contract = graph.node_eval_config(node)?.contract.reuse.clone();
             let previous_reuse_boundary_authority = graph
-                .get_entry(node)?
-                .get_runtime_artifact_state()
+                .node_runtime_artifact_warm(node)?
                 .and_then(|trace| trace.reuse_boundary_authority.clone());
             let (current_reuse_boundary_authority, current_reuse_boundary_detail) =
                 resolve_effect_reuse_boundary_with_policy(
@@ -440,10 +433,8 @@ fn node_output_change_is_meaningful(
     result: &NodeEvaluationResult,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
 ) -> Result<bool, SignalError> {
-    let comparator = comparator_resolver.policy_for_node(
-        node,
-        graph.get_entry(node)?.get_eval_config().comparator.as_ref(),
-    );
+    let comparator = comparator_resolver
+        .policy_for_node(node, graph.node_eval_config(node)?.comparator.as_ref());
     node_output_change_is_meaningful_with_policy(
         graph,
         node,
@@ -460,7 +451,7 @@ fn node_output_change_is_meaningful_with_policy(
     comparator_policy: &VersionComparatorPolicy,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
 ) -> Result<bool, SignalError> {
-    let previous = graph.get_entry(node)?.get_aspect_version();
+    let previous = graph.node_aspect_version(node)?;
     for (index, (&cached, &current)) in previous
         .slots()
         .iter()
@@ -489,7 +480,7 @@ fn node_output_change_is_meaningful_with_lowered_policy(
     result: &NodeEvaluationResult,
     comparator_policy: &VersionComparatorPolicy,
 ) -> Result<bool, SignalError> {
-    let previous = graph.get_entry(node)?.get_aspect_version();
+    let previous = graph.node_aspect_version(node)?;
     for (&cached, &current) in previous
         .slots()
         .iter()
@@ -560,7 +551,11 @@ fn resolve_effect_reuse_boundary(
             graph,
             node,
             crate::logic::evaluation::resolve_reuse_boundary_context(
-                graph, node, comparator_resolver, result, keyed,
+                graph,
+                node,
+                comparator_resolver,
+                result,
+                keyed,
             )?,
             previous,
         )?;
@@ -572,7 +567,11 @@ fn resolve_effect_reuse_boundary(
         graph,
         node,
         crate::logic::evaluation::resolve_reuse_boundary_authority(
-            graph, node, comparator_resolver, result, keyed,
+            graph,
+            node,
+            comparator_resolver,
+            result,
+            keyed,
         )?,
         previous,
     )?;
@@ -822,9 +821,7 @@ mod tests {
         let mut comparator_resolver = DefaultComparatorPolicyResolver::default();
         let keyed = PreparedKeyedContext {
             persistent_correspondence: Some(
-                PersistentCorrespondenceEvidence::lineage_backed_mapping(
-                    "lineage-map:left->right",
-                ),
+                PersistentCorrespondenceEvidence::lineage_backed_mapping("lineage-map:left->right"),
             ),
             composition_regions: PartitionScopeSet::default(),
             ..PreparedKeyedContext::default()

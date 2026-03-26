@@ -25,10 +25,7 @@ pub(crate) fn resolve_reuse_boundary_context(
     resolve_reuse_boundary_context_with_policy(
         graph,
         node,
-        comparator_resolver.policy_for_node(
-            node,
-            graph.get_entry(node)?.get_eval_config().comparator.as_ref(),
-        ),
+        comparator_resolver.policy_for_node(node, graph.node_eval_config(node)?.comparator.as_ref()),
         result,
         keyed,
     )
@@ -44,10 +41,7 @@ pub(crate) fn resolve_reuse_boundary_authority(
     resolve_reuse_boundary_authority_with_policy(
         graph,
         node,
-        comparator_resolver.policy_for_node(
-            node,
-            graph.get_entry(node)?.get_eval_config().comparator.as_ref(),
-        ),
+        comparator_resolver.policy_for_node(node, graph.node_eval_config(node)?.comparator.as_ref()),
         result,
         keyed,
     )
@@ -60,8 +54,7 @@ pub(crate) fn resolve_reuse_boundary_authority_with_policy(
     result: Option<&NodeEvaluationResult>,
     keyed: Option<&PreparedKeyedContext>,
 ) -> Result<ReuseBoundaryAuthority, SignalError> {
-    let entry = graph.get_entry(node)?;
-    let eval = entry.get_eval_config();
+    let eval = graph.node_eval_config(node)?;
     let contract = &eval.contract;
     let partition_scope = contract.semantics.partition_scope.as_deref().unwrap_or(&[]);
     let strategy_detail = keyed
@@ -72,8 +65,9 @@ pub(crate) fn resolve_reuse_boundary_authority_with_policy(
                 .map(
                     |persistent_correspondence| ReuseStrategyBoundaryAuthority::CrossIdentity {
                         persistent_correspondence_kind: persistent_correspondence.kind(),
-                        persistent_correspondence_digest:
-                            stable_persistent_correspondence_digest(persistent_correspondence),
+                        persistent_correspondence_digest: stable_persistent_correspondence_digest(
+                            persistent_correspondence,
+                        ),
                         persistent_correspondence_valid: persistent_correspondence
                             .is_structurally_valid(),
                     },
@@ -99,12 +93,14 @@ pub(crate) fn resolve_reuse_boundary_authority_with_policy(
                     ))
                 })
                 .filter(|regions| !regions.is_empty())
-                .map(|regions| ReuseStrategyBoundaryAuthority::PartialArtifactSplice {
-                    composition_region_digest: stable_partition_scope_digest_from_slice(
-                        regions.as_slice(),
-                    ),
-                    composition_region_count: regions.len() as u32,
-                })
+                .map(
+                    |regions| ReuseStrategyBoundaryAuthority::PartialArtifactSplice {
+                        composition_region_digest: stable_partition_scope_digest_from_slice(
+                            regions.as_slice(),
+                        ),
+                        composition_region_count: regions.len() as u32,
+                    },
+                )
         })
         .unwrap_or_default();
     let dependencies = graph.dependencies_of(node)?;
@@ -139,8 +135,7 @@ pub(crate) fn resolve_reuse_boundary_context_with_policy(
     result: Option<&NodeEvaluationResult>,
     keyed: Option<&PreparedKeyedContext>,
 ) -> Result<ReuseBoundaryContext, SignalError> {
-    let entry = graph.get_entry(node)?;
-    let eval = entry.get_eval_config();
+    let eval = graph.node_eval_config(node)?;
     let contract = &eval.contract;
     let partition_region_basis =
         PartitionScopeSet::from(contract.semantics.partition_scope.as_deref().unwrap_or(&[]));

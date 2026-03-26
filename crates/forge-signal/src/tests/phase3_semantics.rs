@@ -127,7 +127,7 @@ fn changed_regions_flow_into_trace_and_explanation() {
         explanation
             .historical_artifact_record
             .as_ref()
-            .map(|record| record.runtime.changed_partition_count)
+            .map(|record| record.runtime.changed_partition_count())
             .unwrap(),
         1
     );

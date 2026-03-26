@@ -165,10 +165,7 @@ where
             let record_id = ExecutionRecordId(next_record_id);
             next_record_id += 1;
             let before_state = graph.get_state(task.node)?;
-            let before_trace = graph
-                .get_entry(task.node)?
-                .get_runtime_artifact_state()
-                .cloned();
+            let before_trace = graph.node_runtime_artifact_finalize_image(task.node)?;
             let apply_result = crate::logic::evaluation::apply_prepared_evaluation_with_policy(
                 graph,
                 task.node,
@@ -196,10 +193,8 @@ where
                 super::types::SemanticSegmentId(record_id.0),
             )?;
             let after_state = graph.get_state(task.node)?;
-            let after_trace = graph
-                .get_entry(task.node)?
-                .get_runtime_artifact_state()
-                .cloned();
+            let after_trace = graph.node_runtime_artifact_finalize_image(task.node)?;
+            let after_warm = graph.node_runtime_artifact_warm(task.node)?;
             let task_record = classify_task_record(
                 record_id,
                 super::types::SemanticSegmentId(record_id.0),
@@ -209,11 +204,11 @@ where
                 before_trace.as_ref(),
                 after_trace.as_ref(),
                 apply_result.report.verdict.clone(),
-                after_trace
+                after_warm
                     .as_ref()
                     .map(|trace| trace.memoized_origin)
                     .unwrap_or(crate::data::output::MemoizedResultOrigin::DirectCompute),
-                after_trace
+                after_warm
                     .as_ref()
                     .map(|trace| trace.reuse_basis.clone_inner())
                     .unwrap_or(crate::data::reuse::ReuseBasis::fresh_compute()),
@@ -388,10 +383,7 @@ where
             let record_id = ExecutionRecordId(next_record_id);
             next_record_id += 1;
             let before_state = graph.get_state(task.node)?;
-            let before_trace = graph
-                .get_entry(task.node)?
-                .get_runtime_artifact_state()
-                .cloned();
+            let before_trace = graph.node_runtime_artifact_finalize_image(task.node)?;
             let apply_result = crate::logic::evaluation::apply_prepared_evaluation_with_policy(
                 graph,
                 task.node,
@@ -419,10 +411,8 @@ where
                 super::types::SemanticSegmentId(record_id.0),
             )?;
             let after_state = graph.get_state(task.node)?;
-            let after_trace = graph
-                .get_entry(task.node)?
-                .get_runtime_artifact_state()
-                .cloned();
+            let after_trace = graph.node_runtime_artifact_finalize_image(task.node)?;
+            let after_warm = graph.node_runtime_artifact_warm(task.node)?;
             let task_record = classify_task_record(
                 record_id,
                 super::types::SemanticSegmentId(record_id.0),
@@ -432,11 +422,11 @@ where
                 before_trace.as_ref(),
                 after_trace.as_ref(),
                 apply_result.report.verdict.clone(),
-                after_trace
+                after_warm
                     .as_ref()
                     .map(|trace| trace.memoized_origin)
                     .unwrap_or(crate::data::output::MemoizedResultOrigin::DirectCompute),
-                after_trace
+                after_warm
                     .as_ref()
                     .map(|trace| trace.reuse_basis.clone_inner())
                     .unwrap_or(crate::data::reuse::ReuseBasis::fresh_compute()),

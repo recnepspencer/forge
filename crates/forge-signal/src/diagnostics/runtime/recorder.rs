@@ -1,7 +1,7 @@
 use crate::data::graph::SignalGraph;
 use crate::data::output::OutputChange;
 use crate::data::reuse::ReuseOrigin;
-use crate::data::trace::ExecutionTraceStamp;
+use crate::data::trace::RuntimeArtifactFinalizeImage;
 use crate::diagnostics::failure::{ExecutionFailureContext, FailureSummary};
 use crate::diagnostics::lineage::{
     ArtifactTransitionKind, InvalidationCause, LineageRecord, SnapshotRestoreKind,
@@ -313,14 +313,10 @@ pub fn record_snapshot_restore_lineage(graph: &mut SignalGraph, snapshot_id: Sig
                 .live_node_ids()
                 .into_iter()
                 .filter_map(|node| {
-                    graph.get_entry(node).ok().and_then(|entry| {
-                        entry.get_runtime_artifact_state().and_then(|state| {
-                            state
-                                .lineage_artifact_id
-                                .get()
-                                .map(|artifact_id| (node, artifact_id))
-                        })
-                    })
+                    graph.node_lineage_artifact_id(node)
+                        .ok()
+                        .flatten()
+                        .map(|artifact_id| (node, artifact_id))
                 })
                 .collect::<Vec<_>>();
             for (node, artifact_id) in restored_nodes {
@@ -348,16 +344,16 @@ pub fn record_snapshot_restore_lineage(graph: &mut SignalGraph, snapshot_id: Sig
 
 fn derive_lineage_transition(
     graph: &mut SignalGraph,
-    before_trace: Option<&crate::data::trace::RuntimeArtifactState>,
-    after_trace: &crate::data::trace::RuntimeArtifactState,
+    before_trace: Option<&RuntimeArtifactFinalizeImage>,
+    after_trace: &RuntimeArtifactFinalizeImage,
 ) -> (
     crate::diagnostics::lineage::LineageArtifactId,
     Option<crate::diagnostics::lineage::LineageArtifactId>,
     ArtifactTransitionKind,
 ) {
-    let previous_artifact_id = before_trace.and_then(|summary| summary.lineage_artifact_id.get());
+    let previous_artifact_id = before_trace.and_then(|summary| summary.lineage_artifact_id().get());
     let (artifact_id, transition) = if matches!(
-        after_trace.reuse_origin,
+        after_trace.reuse_origin(),
         ReuseOrigin::MemoizedArtifactReuse
             | ReuseOrigin::SnapshotRestore
             | ReuseOrigin::ReconciliationAdoption
@@ -368,7 +364,7 @@ fn derive_lineage_transition(
             .unwrap_or_else(|| graph.diagnostics_state_mut().allocate_lineage_artifact_id());
         (
             artifact_id,
-            match after_trace.reuse_origin {
+            match after_trace.reuse_origin() {
                 ReuseOrigin::MemoizedArtifactReuse => ArtifactTransitionKind::MemoizedReuse,
                 ReuseOrigin::SnapshotRestore => ArtifactTransitionKind::SnapshotRestoreReuse,
                 ReuseOrigin::ReconciliationAdoption => {
@@ -377,8 +373,7 @@ fn derive_lineage_transition(
                 ReuseOrigin::CrossIdentityPersistentReuse => {
                     ArtifactTransitionKind::CrossIdentityPersistentReuse {
                         correspondence_kind: after_trace
-                            .reuse_boundary_authority
-                            .as_ref()
+                            .reuse_boundary_authority()
                             .and_then(|authority| authority.persistent_correspondence_kind())
                             .unwrap_or(crate::data::reuse::PersistentCorrespondenceKind::Unknown),
                     }
@@ -386,11 +381,10 @@ fn derive_lineage_transition(
                 ReuseOrigin::PartialArtifactSplice => {
                     ArtifactTransitionKind::PartialArtifactSplice {
                         composition_region_count: after_trace
-                            .reuse_boundary_authority
-                            .as_ref()
+                            .reuse_boundary_authority()
                             .map(|authority| authority.composition_region_count())
                             .unwrap_or(0),
-                        recomputed_region_count: after_trace.changed_partition_count,
+                        recomputed_region_count: after_trace.changed_partition_count(),
                     }
                 }
                 ReuseOrigin::FreshCompute | ReuseOrigin::OutputSuppressed => {
@@ -400,14 +394,14 @@ fn derive_lineage_transition(
         )
     } else if previous_artifact_id.is_some()
         && matches!(
-            after_trace.output_change,
+            after_trace.output_change(),
             OutputChange::Refreshed | OutputChange::Unchanged
         )
     {
         (
             previous_artifact_id.expect("checked above"),
             ArtifactTransitionKind::Refreshed {
-                output_change: after_trace.output_change,
+                output_change: after_trace.output_change(),
             },
         )
     } else {
@@ -423,24 +417,21 @@ fn derive_lineage_transition(
 pub fn record_lineage_transition(
     graph: &mut SignalGraph,
     node: crate::data::handle::NodeId,
-    before_trace: Option<&crate::data::trace::RuntimeArtifactState>,
+    before_trace: Option<&RuntimeArtifactFinalizeImage>,
     execution_record_id: ExecutionRecordId,
     semantic_segment_id: SemanticSegmentId,
 ) -> Result<(), crate::data::error::SignalError> {
-    let Some(mut after_trace) = graph.get_entry(node)?.get_runtime_artifact_state().cloned() else {
+    let Some(after_finalize_image) = graph.node_runtime_artifact_finalize_image(node)? else {
         return Ok(());
     };
     let (artifact_id, previous_artifact_id, transition) =
-        derive_lineage_transition(graph, before_trace, &after_trace);
-    after_trace.lineage_artifact_id = crate::data::trace::ArtifactTransitionKey::new(Some(
+        derive_lineage_transition(graph, before_trace, &after_finalize_image);
+    graph.stamp_runtime_artifact_lineage_and_execution(
+        node,
         artifact_id,
-    ));
-    let entry = graph.get_entry_mut(node)?;
-    entry.set_runtime_artifact_state(Some(after_trace));
-    entry.set_execution_trace_stamp(Some(ExecutionTraceStamp {
-        execution_record_id: Some(execution_record_id.0),
-        semantic_segment_id: Some(semantic_segment_id.0),
-    }));
+        execution_record_id,
+        semantic_segment_id,
+    )?;
     let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();
     let emitted_on_branch_id = graph.observe().current_branch().id;
     graph
@@ -461,24 +452,21 @@ pub fn record_lineage_transition(
 pub fn stamp_trace_summary_and_record_lineage_transition(
     graph: &mut SignalGraph,
     node: crate::data::handle::NodeId,
-    before_trace: Option<&crate::data::trace::RuntimeArtifactState>,
+    before_trace: Option<&RuntimeArtifactFinalizeImage>,
     execution_record_id: ExecutionRecordId,
     semantic_segment_id: SemanticSegmentId,
 ) -> Result<(), crate::data::error::SignalError> {
-    let Some(mut after_trace) = graph.get_entry(node)?.get_runtime_artifact_state().cloned() else {
+    let Some(after_finalize_image) = graph.node_runtime_artifact_finalize_image(node)? else {
         return Ok(());
     };
     let (artifact_id, previous_artifact_id, transition) =
-        derive_lineage_transition(graph, before_trace, &after_trace);
-    after_trace.lineage_artifact_id = crate::data::trace::ArtifactTransitionKey::new(Some(
+        derive_lineage_transition(graph, before_trace, &after_finalize_image);
+    graph.stamp_runtime_artifact_lineage_and_execution(
+        node,
         artifact_id,
-    ));
-    let entry = graph.get_entry_mut(node)?;
-    entry.set_runtime_artifact_state(Some(after_trace));
-    entry.set_execution_trace_stamp(Some(ExecutionTraceStamp {
-        execution_record_id: Some(execution_record_id.0),
-        semantic_segment_id: Some(semantic_segment_id.0),
-    }));
+        execution_record_id,
+        semantic_segment_id,
+    )?;
     let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();
     let emitted_on_branch_id = graph.observe().current_branch().id;
     graph
@@ -502,10 +490,9 @@ pub fn record_invalidation_lineage(
     cause: InvalidationCause,
 ) {
     let Some(artifact_id) = graph
-        .get_entry(node)
+        .node_lineage_artifact_id(node)
         .ok()
-        .and_then(|entry| entry.get_runtime_artifact_state())
-        .and_then(|state| state.lineage_artifact_id.get())
+        .flatten()
     else {
         return;
     };

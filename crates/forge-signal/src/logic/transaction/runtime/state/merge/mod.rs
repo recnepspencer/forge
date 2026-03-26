@@ -25,9 +25,7 @@ pub use core::{
     BranchMergeBase, BranchMergeDivergence, BranchMergeFailureKind, BranchMergeKind,
     BranchMergeRequest, BranchMergeStrategy, MergeBoundaryWitness, MergeBoundaryWitnessKind,
 };
-pub(crate) use execute::{
-    adopt_source_node_into_target, merge_comparable, remap_dependency_snapshot,
-};
+pub(crate) use execute::{adopt_source_node_into_target, remap_dependency_snapshot};
 #[allow(unused_imports)]
 pub use journal::{
     BranchMutationJournalSlice, BranchMutationLedger, MergeNodeMap, StructuralMergeCandidateRecord,

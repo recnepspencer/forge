@@ -2,10 +2,10 @@ use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::graph::SuppressionFreeApplyCommitPacket;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
+use crate::data::proof::ClassifiedSnapshotBatchCommit;
 #[cfg(feature = "parallel")]
 use crate::data::proof::SingleConsumer;
-use crate::data::proof::SnapshotBatchCommit;
-use crate::data::trace::RuntimeArtifactState;
+use crate::data::trace::RuntimeArtifactFinalizeImage;
 use crate::logic::evaluation::EffectDependencyInputs;
 use crate::logic::explain::RewiringSummary;
 #[cfg(not(feature = "parallel"))]
@@ -20,40 +20,40 @@ use super::serial_batch::AppliedSerialStageBatch;
 #[cfg_attr(not(feature = "parallel"), allow(dead_code))]
 #[derive(Debug)]
 pub(crate) struct ConcurrentWorkerInput {
-    pub(in crate::logic::planner) task_index: usize,
-    pub(in crate::logic::planner) node: NodeId,
-    pub(in crate::logic::planner) identity: StageSemanticIdentity,
-    pub(in crate::logic::planner) before_state: NodeState,
-    pub(in crate::logic::planner) before_artifact_state: Option<RuntimeArtifactState>,
-    pub(in crate::logic::planner) dependency_updates: u32,
-    pub(in crate::logic::planner) recomputed: bool,
-    pub(in crate::logic::planner) partition_aware: bool,
-    pub(in crate::logic::planner) rewiring: Option<RewiringSummary>,
-    pub(in crate::logic::planner) comparator_policy: VersionComparatorPolicy,
-    pub(in crate::logic::planner) prepared: PreparedEvaluation,
-    pub(in crate::logic::planner) dependency_inputs: EffectDependencyInputs,
+    task_index: usize,
+    node: NodeId,
+    identity: StageSemanticIdentity,
+    before_state: NodeState,
+    before_artifact_state: Option<RuntimeArtifactFinalizeImage>,
+    dependency_updates: u32,
+    recomputed: bool,
+    partition_aware: bool,
+    rewiring: Option<RewiringSummary>,
+    comparator_policy: VersionComparatorPolicy,
+    prepared: PreparedEvaluation,
+    dependency_inputs: EffectDependencyInputs,
 }
 
 #[cfg_attr(not(feature = "parallel"), allow(dead_code))]
 #[derive(Debug)]
 pub(crate) struct ConcurrentApplyGroupInput {
-    pub(in crate::logic::planner) group_index: usize,
-    pub(in crate::logic::planner) worker_inputs: Vec<ConcurrentWorkerInput>,
+    group_index: usize,
+    worker_inputs: Vec<ConcurrentWorkerInput>,
 }
 
 #[cfg_attr(not(feature = "parallel"), allow(dead_code))]
 #[derive(Debug)]
 pub(crate) struct GroupLocalTaskCommit {
-    pub(in crate::logic::planner) task_index: usize,
-    pub(in crate::logic::planner) node: NodeId,
-    pub(in crate::logic::planner) identity: StageSemanticIdentity,
-    pub(in crate::logic::planner) before_state: NodeState,
-    pub(in crate::logic::planner) before_artifact_state: Option<RuntimeArtifactState>,
-    pub(in crate::logic::planner) dependency_updates: u32,
-    pub(in crate::logic::planner) recomputed: bool,
-    pub(in crate::logic::planner) partition_aware: bool,
-    pub(in crate::logic::planner) rewiring: Option<RewiringSummary>,
-    pub(in crate::logic::planner) commit_packet: SuppressionFreeApplyCommitPacket,
+    task_index: usize,
+    node: NodeId,
+    identity: StageSemanticIdentity,
+    before_state: NodeState,
+    before_artifact_state: Option<RuntimeArtifactFinalizeImage>,
+    dependency_updates: u32,
+    recomputed: bool,
+    partition_aware: bool,
+    rewiring: Option<RewiringSummary>,
+    commit_packet: SuppressionFreeApplyCommitPacket,
 }
 
 #[cfg_attr(not(feature = "parallel"), allow(dead_code))]
@@ -68,23 +68,43 @@ pub(crate) struct GroupedApplyFailure {
 #[cfg_attr(not(feature = "parallel"), allow(dead_code))]
 #[derive(Debug)]
 pub(crate) struct GroupLocalApplyPacket {
-    pub(in crate::logic::planner) group_index: usize,
-    pub(in crate::logic::planner) task_count: usize,
-    pub(in crate::logic::planner) task_commits: Vec<GroupLocalTaskCommit>,
+    group_index: usize,
+    task_count: usize,
+    task_commits: Vec<GroupLocalTaskCommit>,
 }
 
 #[cfg(feature = "parallel")]
 impl GroupLocalApplyPacket {
+    pub(in crate::logic::planner) fn new(
+        group_index: usize,
+        task_commits: Vec<GroupLocalTaskCommit>,
+    ) -> Self {
+        let task_count = task_commits.len();
+        Self {
+            group_index,
+            task_count,
+            task_commits,
+        }
+    }
+
     pub(in crate::logic::planner) fn packet_breadth(&self) -> usize {
         self.task_count
+    }
+
+    pub(in crate::logic::planner) fn group_index(&self) -> usize {
+        self.group_index
+    }
+
+    pub(in crate::logic::planner) fn into_task_commits(self) -> Vec<GroupLocalTaskCommit> {
+        self.task_commits
     }
 }
 
 /// Stage-lifetime workspace for lowered apply, snapshot deferral, and semantic finalize.
 #[derive(Debug)]
 pub(in crate::logic::planner) struct StageScratch {
-    pub(in crate::logic::planner) finalize_work: StageFinalizeWork,
-    pub(in crate::logic::planner) pending_snapshots: SnapshotBatchCommit,
+    finalize_work: StageFinalizeWork,
+    pending_snapshots: ClassifiedSnapshotBatchCommit,
 }
 
 #[derive(Debug)]
@@ -92,4 +112,161 @@ pub(in crate::logic::planner) enum StageFinalizeWork {
     Serial(AppliedSerialStageBatch),
     #[cfg(feature = "parallel")]
     Parallel(SingleConsumer<StageSemanticBatch>),
+}
+
+#[cfg(feature = "parallel")]
+impl ConcurrentWorkerInput {
+    pub(in crate::logic::planner) fn new(
+        task_index: usize,
+        node: NodeId,
+        identity: StageSemanticIdentity,
+        before_state: NodeState,
+        before_artifact_state: Option<RuntimeArtifactFinalizeImage>,
+        dependency_updates: u32,
+        recomputed: bool,
+        partition_aware: bool,
+        rewiring: Option<RewiringSummary>,
+        comparator_policy: VersionComparatorPolicy,
+        prepared: PreparedEvaluation,
+        dependency_inputs: EffectDependencyInputs,
+    ) -> Self {
+        Self {
+            task_index,
+            node,
+            identity,
+            before_state,
+            before_artifact_state,
+            dependency_updates,
+            recomputed,
+            partition_aware,
+            rewiring,
+            comparator_policy,
+            prepared,
+            dependency_inputs,
+        }
+    }
+
+    pub(in crate::logic::planner) fn into_parts(
+        self,
+    ) -> (
+        usize,
+        NodeId,
+        StageSemanticIdentity,
+        NodeState,
+        Option<RuntimeArtifactFinalizeImage>,
+        u32,
+        bool,
+        bool,
+        Option<RewiringSummary>,
+        VersionComparatorPolicy,
+        PreparedEvaluation,
+        EffectDependencyInputs,
+    ) {
+        (
+            self.task_index,
+            self.node,
+            self.identity,
+            self.before_state,
+            self.before_artifact_state,
+            self.dependency_updates,
+            self.recomputed,
+            self.partition_aware,
+            self.rewiring,
+            self.comparator_policy,
+            self.prepared,
+            self.dependency_inputs,
+        )
+    }
+}
+
+#[cfg(feature = "parallel")]
+impl ConcurrentApplyGroupInput {
+    pub(in crate::logic::planner) fn new(
+        group_index: usize,
+        worker_inputs: Vec<ConcurrentWorkerInput>,
+    ) -> Self {
+        Self {
+            group_index,
+            worker_inputs,
+        }
+    }
+
+    pub(in crate::logic::planner) fn into_parts(self) -> (usize, Vec<ConcurrentWorkerInput>) {
+        (self.group_index, self.worker_inputs)
+    }
+}
+
+#[cfg(feature = "parallel")]
+impl GroupLocalTaskCommit {
+    pub(in crate::logic::planner) fn new(
+        task_index: usize,
+        node: NodeId,
+        identity: StageSemanticIdentity,
+        before_state: NodeState,
+        before_artifact_state: Option<RuntimeArtifactFinalizeImage>,
+        dependency_updates: u32,
+        recomputed: bool,
+        partition_aware: bool,
+        rewiring: Option<RewiringSummary>,
+        commit_packet: SuppressionFreeApplyCommitPacket,
+    ) -> Self {
+        Self {
+            task_index,
+            node,
+            identity,
+            before_state,
+            before_artifact_state,
+            dependency_updates,
+            recomputed,
+            partition_aware,
+            rewiring,
+            commit_packet,
+        }
+    }
+
+    pub(in crate::logic::planner) fn into_parts(
+        self,
+    ) -> (
+        usize,
+        NodeId,
+        StageSemanticIdentity,
+        NodeState,
+        Option<RuntimeArtifactFinalizeImage>,
+        u32,
+        bool,
+        bool,
+        Option<RewiringSummary>,
+        SuppressionFreeApplyCommitPacket,
+    ) {
+        (
+            self.task_index,
+            self.node,
+            self.identity,
+            self.before_state,
+            self.before_artifact_state,
+            self.dependency_updates,
+            self.recomputed,
+            self.partition_aware,
+            self.rewiring,
+            self.commit_packet,
+        )
+    }
+}
+
+impl StageScratch {
+    pub(in crate::logic::planner) fn new(
+        finalize_work: StageFinalizeWork,
+        pending_snapshots: ClassifiedSnapshotBatchCommit,
+    ) -> Self {
+        Self {
+            finalize_work,
+            pending_snapshots,
+        }
+    }
+
+    pub(in crate::logic::planner) fn into_parts(
+        self,
+    ) -> (StageFinalizeWork, ClassifiedSnapshotBatchCommit) {
+        (self.finalize_work, self.pending_snapshots)
+    }
 }

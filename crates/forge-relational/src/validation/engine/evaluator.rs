@@ -87,9 +87,9 @@ pub(crate) fn evaluate_rule(
         InvariantRule::AcyclicityContract(contract) => {
             single_violation(evaluate_acyclicity_contract(context, class, contract))
         }
-        InvariantRule::ConnectivityMinimumContract(contract) => {
-            single_violation(evaluate_connectivity_minimum_contract(context, class, contract))
-        }
+        InvariantRule::ConnectivityMinimumContract(contract) => single_violation(
+            evaluate_connectivity_minimum_contract(context, class, contract),
+        ),
     }
 }
 

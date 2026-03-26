@@ -33,10 +33,7 @@ pub(crate) fn reduce_invariant_execution(
                     .map(|result| result.result_identity.clone())
                     .expect("worker envelopes must contain at least one result");
                 OrderedReductionStream::singleton(
-                    (
-                        envelope.reduction_key.clone(),
-                        first_identity,
-                    ),
+                    (envelope.reduction_key.clone(), first_identity),
                     envelope,
                 )
             })

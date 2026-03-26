@@ -1,6 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::authority::merge::{canonical_intent_key, detect_conflicting_updates, validate_intent};
+use crate::authority::intent_merge::{
+    canonical_intent_key, detect_conflicting_updates, validate_intent,
+};
 use crate::capabilities::{InstrumentationSource, RuntimeConfigSource};
 use crate::history::data::{BranchId, CommitId};
 use crate::logic::runtime::PartitionAccess;

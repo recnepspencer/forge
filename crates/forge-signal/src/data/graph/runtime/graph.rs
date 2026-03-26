@@ -14,7 +14,7 @@ use crate::data::dependency::{
 use crate::data::dependency::{DependencySnapshotShapeStore, DependencySnapshotStore};
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
-use crate::data::node::NodeEntry;
+use crate::data::node::{NodeColdData, NodeEntry, NodeHotData, NodeWarmData};
 use crate::data::output::PartitionInterner;
 use crate::data::proof::{PendingSnapshotBatch, PendingSnapshotCommit, SnapshotBatchCommit};
 use crate::data::reuse::ReuseBasis;
@@ -36,6 +36,9 @@ use super::strategy::{EvaluationStrategy, GcPressure, ObservationLevel, Parallel
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct NodeArena {
     pub(in crate::data::graph) nodes: Vec<Slot>,
+    pub(in crate::data::graph) hot: Vec<Option<NodeHotData>>,
+    pub(in crate::data::graph) warm: Vec<NodeWarmData>,
+    pub(in crate::data::graph) cold: Vec<Option<Box<NodeColdData>>>,
     pub(in crate::data::graph) free_list: Vec<u32>,
     #[serde(skip, default)]
     pub(in crate::data::graph) free_slots: DenseBitset,
@@ -428,6 +431,9 @@ impl SignalGraph {
         Self {
             arena: NodeArena {
                 nodes: Vec::new(),
+                hot: Vec::new(),
+                warm: Vec::new(),
+                cold: Vec::new(),
                 free_list: Vec::new(),
                 free_slots: DenseBitset::default(),
                 active_nodes: 0,
@@ -451,11 +457,14 @@ impl SignalGraph {
 
     pub(crate) fn capture_checkpoint_authority(&self) -> SignalCheckpointAuthority {
         let mut graph = self.clone_stateful();
-        for slot in &mut graph.arena.nodes {
-            if let Some(entry) = &mut slot.data {
-                entry.strip_checkpoint_cold_lanes();
-                entry.strip_checkpoint_dependency_snapshot_lane();
+        for index in 0..graph.arena.nodes.len() {
+            if !graph.arena.nodes[index].is_occupied() {
+                continue;
             }
+            if let Some(hot) = graph.arena.hot[index].as_mut() {
+                hot.dep_snapshot_id = crate::data::dependency::DependencySnapshotId::EMPTY;
+            }
+            graph.arena.cold[index] = None;
         }
         graph.observation.telemetry = RuntimeTelemetry::default();
         graph.observation.reconstruction_counters = ReconstructionCounters::default();
@@ -468,9 +477,19 @@ impl SignalGraph {
                 slots: graph
                     .arena
                     .nodes
-                    .into_iter()
-                    .map(|slot| SignalCheckpointSlot {
-                        entry: slot.data,
+                    .iter()
+                    .enumerate()
+                    .map(|(index, slot)| SignalCheckpointSlot {
+                        node: slot.is_occupied().then(|| {
+                            NodeEntry::from_storage_parts(
+                                graph.arena.hot[index]
+                                    .clone()
+                                    .expect("occupied slot must retain hot lane"),
+                                graph.arena.warm[index].clone(),
+                                graph.arena.cold[index].clone(),
+                            )
+                            .to_checkpoint_image()
+                        }),
                         generation: slot.generation,
                         retired: slot.retired,
                     })
@@ -499,10 +518,51 @@ impl SignalGraph {
                     .iter()
                     .cloned()
                     .map(|slot| Slot {
-                        data: slot.entry,
                         generation: slot.generation,
                         retired: slot.retired,
+                        occupied: slot.node.is_some(),
                     })
+                    .collect(),
+                hot: authority
+                    .arena
+                    .slots
+                    .iter()
+                    .cloned()
+                    .map(|slot| {
+                        slot.node.map(|image| {
+                            let (hot, _, _) = NodeEntry::from_checkpoint_image(image).into_storage_parts();
+                            hot
+                        })
+                    })
+                    .collect(),
+                warm: authority
+                    .arena
+                    .slots
+                    .iter()
+                    .cloned()
+                    .map(|slot| {
+                        slot.node
+                            .map(|image| {
+                                let (_, warm, _) =
+                                    NodeEntry::from_checkpoint_image(image).into_storage_parts();
+                                warm
+                            })
+                            .unwrap_or_default()
+                    })
+                    .collect(),
+                cold: authority
+                    .arena
+                    .slots
+                    .iter()
+                    .cloned()
+                    .map(|slot| {
+                        slot.node.map(|image| {
+                            let (_, _, cold) =
+                                NodeEntry::from_checkpoint_image(image).into_storage_parts();
+                            cold
+                        })
+                    })
+                    .map(|cold| cold.unwrap_or(None))
                     .collect(),
                 free_list: authority.arena.free_list.clone(),
                 free_slots,
@@ -537,7 +597,7 @@ impl SignalGraph {
         index: usize,
     ) -> Option<NodeId> {
         let slot = authority.arena.slots.get(index)?;
-        if slot.entry.is_none() {
+        if slot.node.is_none() {
             return None;
         }
         Some(NodeId::new(index as u32, slot.generation))
@@ -623,6 +683,9 @@ impl SignalGraph {
         self.arena.nodes.reserve(missing);
         for _ in 0..missing {
             self.arena.nodes.push(Slot::retired_placeholder());
+            self.arena.hot.push(None);
+            self.arena.warm.push(NodeWarmData::default());
+            self.arena.cold.push(None);
         }
     }
 
@@ -921,6 +984,7 @@ impl SignalGraph {
     }
 
     pub(in crate::data::graph) fn allocate_node(&mut self, entry: NodeEntry) -> NodeId {
+        let (hot, warm, cold) = entry.into_storage_parts();
         while let Some(index) = self.arena.free_list.pop() {
             if index as usize >= self.arena.nodes.len() {
                 continue;
@@ -930,7 +994,10 @@ impl SignalGraph {
             if slot.is_retired() {
                 continue;
             }
-            let generation = slot.occupy(entry);
+            self.arena.hot[index as usize] = Some(hot.clone());
+            self.arena.warm[index as usize] = warm.clone();
+            self.arena.cold[index as usize] = cold.clone();
+            let generation = slot.occupy();
             self.arena.active_nodes += 1;
             let node = NodeId::new(index, generation);
             self.record_branch_mutation_introduced(node);
@@ -940,10 +1007,16 @@ impl SignalGraph {
         let index = self.arena.nodes.len() as u32;
         if self.arena.nodes.len() == self.arena.nodes.capacity() {
             self.arena.nodes.reserve(NODE_ARENA_RESERVE_CHUNK);
+            self.arena.hot.reserve(NODE_ARENA_RESERVE_CHUNK);
+            self.arena.warm.reserve(NODE_ARENA_RESERVE_CHUNK);
+            self.arena.cold.reserve(NODE_ARENA_RESERVE_CHUNK);
         }
         let mut slot = Slot::vacant();
-        let generation = slot.occupy(entry);
+        let generation = slot.occupy();
         self.arena.nodes.push(slot);
+        self.arena.hot.push(Some(hot));
+        self.arena.warm.push(warm);
+        self.arena.cold.push(cold);
         self.arena.active_nodes += 1;
         let node = NodeId::new(index, generation);
         self.record_branch_mutation_introduced(node);
@@ -968,6 +1041,9 @@ impl SignalGraph {
             };
             if slot.is_occupied() {
                 slot.vacate();
+                self.arena.hot[index] = None;
+                self.arena.warm[index] = NodeWarmData::default();
+                self.arena.cold[index] = None;
                 self.arena.active_nodes = self.arena.active_nodes.saturating_sub(1);
             }
             if !slot.is_retired() && !self.arena.free_slots.contains(index) {
@@ -984,6 +1060,9 @@ impl SignalGraph {
         {
             self.arena.free_slots.clear(self.arena.nodes.len() - 1);
             self.arena.nodes.pop();
+            self.arena.hot.pop();
+            self.arena.warm.pop();
+            self.arena.cold.pop();
         }
         self.arena
             .free_list
@@ -1007,11 +1086,7 @@ impl SignalGraph {
             .nodes
             .iter()
             .enumerate()
-            .filter_map(|(index, slot)| {
-                slot.data
-                    .as_ref()
-                    .map(|_| NodeId::new(index as u32, slot.generation))
-            })
+            .filter_map(|(index, slot)| slot.is_occupied().then_some(NodeId::new(index as u32, slot.generation)))
             .collect()
     }
 

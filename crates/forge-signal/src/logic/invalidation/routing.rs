@@ -482,16 +482,10 @@ fn execute_transitive_wave(
             }
             scratch.visited.mark(node.index() as usize);
 
-            let already_dirty = matches!(
-                graph.get_entry(node).map(|entry| *entry.get_state()),
-                Ok(NodeState::Dirty)
-            );
+            let already_dirty = matches!(graph.get_state(node), Ok(NodeState::Dirty));
             if !already_dirty {
                 let previous_state = graph.get_state(node)?;
-                {
-                    let entry = graph.get_entry_mut(node)?;
-                    entry.transition_maybe_stale(aspect);
-                }
+                graph.transition_node_maybe_stale(node, aspect)?;
                 if matches!(previous_state, NodeState::Clean) {
                     record_invalidation_lineage(
                         graph,
@@ -530,13 +524,12 @@ fn apply_direct_entry(
     seed_batch: &InvalidationSeedBatch,
 ) -> Result<(), SignalError> {
     let previous_state = graph.get_state(entry.node)?;
-    {
-        let target = graph.get_entry_mut(entry.node)?;
-        match entry.classification {
-            FrontierEntryClassification::DirectDirty => {
-                target.transition_dirty(aspect, entry.narrowed_scopes.as_slice())
-            }
-            FrontierEntryClassification::MaybeStale => target.transition_maybe_stale(aspect),
+    match entry.classification {
+        FrontierEntryClassification::DirectDirty => {
+            graph.transition_node_dirty(entry.node, aspect, entry.narrowed_scopes.as_slice())?
+        }
+        FrontierEntryClassification::MaybeStale => {
+            graph.transition_node_maybe_stale(entry.node, aspect)?
         }
     }
     if matches!(previous_state, NodeState::Clean) {
@@ -559,12 +552,8 @@ fn apply_direct_entry(
 }
 
 fn mark_source_seed(graph: &mut SignalGraph, seed: &InvalidationSeed) -> Result<(), SignalError> {
-    let source_was_clean = {
-        let source_entry = graph.get_entry_mut(seed.source_node)?;
-        let source_was_clean = matches!(*source_entry.get_state(), NodeState::Clean);
-        source_entry.transition_dirty(seed.aspect, seed.changed_scopes.as_slice());
-        source_was_clean
-    };
+    let source_was_clean = matches!(graph.get_state(seed.source_node)?, NodeState::Clean);
+    graph.transition_node_dirty(seed.source_node, seed.aspect, seed.changed_scopes.as_slice())?;
     if source_was_clean {
         record_invalidation_lineage(
             graph,

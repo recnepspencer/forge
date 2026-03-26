@@ -981,41 +981,39 @@ fn validate_recovered_history_parity(
     durable_envelope: &CanonicalCommitEnvelope,
 ) -> Result<(), DurabilityError> {
     let replay_access = runtime.replay_access();
-    let Some(recovered_envelope) = replay_access
-        .canonical_commit_envelope(durable_envelope.commit.commit_id)
+    let Some(recovered_envelope) =
+        replay_access.canonical_commit_envelope(durable_envelope.commit.commit_id)
     else {
-        return Err(
-            DurabilityError::new(
-                RecoveryFailureClass::ReplayFailure,
-                format!(
-                    "recovered commit envelope missing for durable commit {}",
-                    durable_envelope.commit.commit_id.0
-                ),
-            )
-            .with_history_drift_class(HistoryDriftClass::DurabilityParityDrift),
-        );
+        return Err(DurabilityError::new(
+            RecoveryFailureClass::ReplayFailure,
+            format!(
+                "recovered commit envelope missing for durable commit {}",
+                durable_envelope.commit.commit_id.0
+            ),
+        )
+        .with_history_drift_class(HistoryDriftClass::DurabilityParityDrift));
     };
-    runtime.performance_access().count_merge_history_parent_comparisons(
-        durable_envelope
-            .commit
-            .ordered_parents()
-            .len()
-            .max(recovered_envelope.commit.ordered_parents().len()),
-    );
+    runtime
+        .performance_access()
+        .count_merge_history_parent_comparisons(
+            durable_envelope
+                .commit
+                .ordered_parents()
+                .len()
+                .max(recovered_envelope.commit.ordered_parents().len()),
+        );
     if durable_envelope.commit.ordered_parents() != recovered_envelope.commit.ordered_parents()
         || durable_envelope.merge_parent_branches != recovered_envelope.merge_parent_branches
         || durable_envelope.merge_base_commits != recovered_envelope.merge_base_commits
     {
-        return Err(
-            DurabilityError::new(
-                RecoveryFailureClass::ReplayFailure,
-                format!(
-                    "recovered durable history parity drifted for commit {}",
-                    durable_envelope.commit.commit_id.0
-                ),
-            )
-            .with_history_drift_class(HistoryDriftClass::DurabilityParityDrift),
-        );
+        return Err(DurabilityError::new(
+            RecoveryFailureClass::ReplayFailure,
+            format!(
+                "recovered durable history parity drifted for commit {}",
+                durable_envelope.commit.commit_id.0
+            ),
+        )
+        .with_history_drift_class(HistoryDriftClass::DurabilityParityDrift));
     }
     Ok(())
 }

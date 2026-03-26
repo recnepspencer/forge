@@ -1,4 +1,4 @@
-﻿# forge-signal Architecture V2 â€” Structural Redesign
+# forge-signal Architecture V2 â€” Structural Redesign
 
 > **Status:** Pre-production. All changes are breaking-change-safe.
 >
@@ -2418,6 +2418,115 @@ Normative rule:
 - none of these may be implemented by heuristic name matching, string labels,
   or compatibility adapters that collapse semantic identity, artifact
   derivation, and branch reconciliation into one surface
+
+#### Domain-Agnostic Configurability Requirement
+
+`forge-signal` is a domain-agnostic runtime. Geometry kernels, web
+applications, financial engines, and chip simulators must all be first-class
+merge consumers. No S10 feature may hardcode a single domain's merge strategy
+into the runtime substrate.
+
+Governing design rule:
+
+- every S10 merge behavior that could reasonably differ across application
+  domains must be host-configurable through explicit contract or schema
+  registration, frozen at construction time, semantically versioned, and
+  lowered into executable runtime form before merge execution begins
+
+This is the same registration discipline already used for custom invariants,
+custom evaluation contracts, and artifact equivalence contracts. S10 extends
+that discipline to merge.
+
+#### Required configurability surfaces
+
+Identity matching strategy:
+
+- identity matching must not use a single hardcoded resolution algorithm
+- the host must declare an identity matching strategy per node contract or per
+  schema scope that specifies which identity bases apply (structural
+  fingerprint, persistent name, lineage identity, storage identity,
+  host-declared correspondence) and in what priority order
+- ambiguity policy (reject, prefer first match, require unanimous) must be
+  host-declared, not runtime-defaulted
+- the identity matching strategy must be frozen at construction and recorded in
+  merge planning artifacts for replay determinism
+
+Conflict resolution policy:
+
+- conflict resolution policies must be declared per contract or per aspect
+  through the schema registration surface, not supplied as ad hoc closures or
+  ambient runtime configuration at merge time
+- the runtime must ship a classified set of built-in resolution strategies
+  (fail-on-conflict, source-wins, target-wins, last-writer-wins with causal
+  evidence, additive-set, monotonic-counter, prefer-richer-structure) as the
+  standard policy vocabulary
+- host-registered custom conflict resolution policies must follow the same
+  semantic versioning and freeze-at-construction rules as custom invariants
+- resolution policy identity must be recorded in merge artifacts so replay and
+  certification can verify that the same policy was applied
+
+Merge-base selection:
+
+- merge-base selection must be a named, pluggable strategy rather than a single
+  hardcoded algorithm
+- the default `MaxCommitIdCommonAncestor` must be one variant of an explicit
+  strategy surface, not the only path
+- custom merge-base strategies must be host-registrable and frozen at
+  construction
+
+Per-aspect merge semantics:
+
+- aspect-level merge behavior must be declared per aspect through the schema or
+  node contract surface
+- the runtime must not assume all aspects on a node merge under the same policy
+- aspect merge declarations must lower into typed executable policy forms
+  before merge execution, not resolve dynamically at merge time
+
+Deletion and removal semantics:
+
+- deletion classification (tombstone, hard-delete, soft-retire, orphan-cascade)
+  must be host-declared per node contract or schema scope
+- the runtime must not assume a single deletion model across all domains
+- deletion policy must be recorded in merge artifacts
+
+Partial-conflict region isolation:
+
+- the granularity of conflict isolation (per-node, per-aspect, per-subgraph,
+  per-host-declared-region) must be configurable through the contract surface
+- the runtime must not hardcode a single conflict isolation boundary
+
+#### Required anti-patterns
+
+The following implementation patterns are explicitly prohibited in S10:
+
+- hardcoding identity matching to storage `NodeId` equality as the only
+  supported path, with "custom matching" as a future TODO
+- implementing conflict resolution as `match` arms inside the merge executor
+  with no host-extensibility surface
+- treating merge-base selection as an internal implementation detail rather than
+  a named, observable, replaceable strategy
+- implementing per-aspect merge by checking aspect names against a hardcoded
+  list of "known mergeable aspects"
+- implementing deletion semantics as a single boolean tombstone flag with no
+  host-declared policy
+- implementing partial-conflict acceptance with a hardcoded per-node isolation
+  boundary and no contract-level configurability
+
+#### Registration and lowering pattern
+
+All S10 configurable behaviors must follow this lifecycle:
+
+1. **declare** at schema or contract registration time through a typed
+   declaration surface
+2. **freeze** at runtime construction; no merge-time mutation of policy
+3. **lower** into executable form before merge planning begins
+4. **record** in canonical merge planning artifacts for replay determinism
+5. **version** semantically so durable recovery and replay can detect policy
+   drift
+
+This is not an optional extension surface. If a future implementer ships an S10
+feature without the corresponding host-configurable registration and lowering
+path, the feature is incomplete regardless of whether it works for one domain
 
 ### Files Modified
 

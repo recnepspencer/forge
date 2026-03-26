@@ -21,7 +21,7 @@ fn dirty_partition_scopes_are_classified_before_stale_output_diff_trace() {
     evaluate(&mut graph, target, &mut compute).unwrap();
 
     {
-        let entry = graph.get_entry_mut(branch).unwrap();
+        let mut entry = graph.get_entry_mut(branch).unwrap();
         entry.set_state(NodeState::Dirty);
         entry.set_dirty_aspects(AspectMask::from_aspect(ASPECT_A));
         entry.add_dirty_partition_scope(
@@ -35,7 +35,7 @@ fn dirty_partition_scopes_are_classified_before_stale_output_diff_trace() {
         entry.set_trace_summary(Some(trace));
     }
     {
-        let entry = graph.get_entry_mut(target).unwrap();
+        let mut entry = graph.get_entry_mut(target).unwrap();
         entry.set_state(NodeState::Dirty);
         entry.set_dirty_aspects(AspectMask::from_aspect(ASPECT_A));
     }
@@ -70,7 +70,7 @@ fn maybe_stale_nodes_with_dirty_partition_scopes_do_not_fast_validate_clean() {
     evaluate(&mut graph, dependent, &mut compute).unwrap();
 
     {
-        let entry = graph.get_entry_mut(dependent).unwrap();
+        let mut entry = graph.get_entry_mut(dependent).unwrap();
         entry.set_state(NodeState::MaybeStale);
         entry.set_dirty_aspects(AspectMask::from_aspect(ASPECT_A));
         entry.add_dirty_partition_scope(

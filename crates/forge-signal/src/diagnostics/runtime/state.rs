@@ -476,10 +476,10 @@ impl DiagnosticsState {
 
     pub fn synchronize_branch_catalog(
         &mut self,
-        branch_catalog: BTreeMap<SignalBranchId, SignalBranchHandle>,
+        branch_catalog: &BTreeMap<SignalBranchId, SignalBranchHandle>,
         active_branch: SignalBranchId,
     ) {
-        self.branch_catalog = branch_catalog;
+        self.branch_catalog.clone_from(branch_catalog);
         self.active_branch = active_branch;
     }
 

@@ -51,8 +51,8 @@ impl<'a> GraphInspector<'a> {
             };
             if self
                 .graph
-                .get_entry(node)
-                .map(|entry| entry.get_dirty_aspects().contains(aspect.into()))
+                .node_dirty_aspects(node)
+                .map(|dirty| dirty.contains(aspect.into()))
                 .unwrap_or(false)
             {
                 nodes.push(node);
@@ -87,8 +87,8 @@ impl<'a> GraphInspector<'a> {
             };
             if self
                 .graph
-                .get_entry(node)
-                .map(|entry| entry.get_eval_config().condition == *condition)
+                .node_condition(node)
+                .map(|stored| stored == *condition)
                 .unwrap_or(false)
             {
                 nodes.push(node);
@@ -105,9 +105,9 @@ impl<'a> GraphInspector<'a> {
             };
             if self
                 .graph
-                .get_entry(node)
+                .node_execution_trace_stamp(node)
                 .ok()
-                .and_then(|entry| entry.execution_trace_stamp())
+                .flatten()
                 .and_then(|stamp| stamp.execution_record_id)
                 .is_some()
             {
@@ -125,8 +125,8 @@ impl<'a> GraphInspector<'a> {
             };
             if self
                 .graph
-                .get_entry(node)
-                .map(|entry| entry.get_causality().is_some())
+                .causality_of(node)
+                .map(|causality| causality.is_some())
                 .unwrap_or(false)
             {
                 nodes.push(node);
@@ -218,8 +218,7 @@ impl<'a> ExecutionInspector<'a> {
             };
             if self
                 .graph
-                .get_entry(node)
-                .map(|entry| entry.get_runtime_artifact_state().is_some())
+                .node_runtime_artifact_state_present(node)
                 .unwrap_or(false)
             {
                 nodes.push(node);
@@ -236,9 +235,9 @@ impl<'a> ExecutionInspector<'a> {
             };
             let current = self
                 .graph
-                .get_entry(node)
+                .node_execution_trace_stamp(node)
                 .ok()
-                .and_then(|entry| entry.execution_trace_stamp())
+                .flatten()
                 .and_then(|stamp| stamp.execution_record_id);
             if let Some(current) = current {
                 latest = Some(latest.map_or(current, |seen: u64| seen.max(current)));

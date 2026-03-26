@@ -1875,7 +1875,7 @@ fn checkpoint_image_strips_node_local_cold_payloads_while_snapshot_bundle_retain
     .unwrap();
 
     {
-        let entry = graph.get_entry_mut(node).unwrap();
+        let mut entry = graph.get_entry_mut(node).unwrap();
         entry.set_retained_diagnostic_artifact(Some(RetainedDiagnosticArtifact {
             changed_regions: CanonicalChangedRegions::from(vec![ChangedRegion::new("wing")]),
             labels: vec!["retained".to_string()],
@@ -1990,7 +1990,7 @@ fn restore_uses_checkpoint_authority_even_when_rich_snapshot_node_cold_payloads_
     .unwrap();
 
     {
-        let entry = graph.get_entry_mut(node).unwrap();
+        let mut entry = graph.get_entry_mut(node).unwrap();
         entry.set_retained_diagnostic_artifact(Some(RetainedDiagnosticArtifact {
             changed_regions: CanonicalChangedRegions::from(vec![ChangedRegion::new("fuselage")]),
             labels: vec!["captured".to_string()],
@@ -2008,7 +2008,7 @@ fn restore_uses_checkpoint_authority_even_when_rich_snapshot_node_cold_payloads_
     let snapshot = graph.capture_snapshot();
 
     {
-        let entry = graph.get_entry_mut(node).unwrap();
+        let mut entry = graph.get_entry_mut(node).unwrap();
         entry.set_retained_diagnostic_artifact(None);
         entry.set_causality(None);
     }
@@ -2021,7 +2021,7 @@ fn restore_uses_checkpoint_authority_even_when_rich_snapshot_node_cold_payloads_
 
     let mut tampered = snapshot.clone();
     {
-        let entry = tampered.diagnostic_graph.get_entry_mut(node).unwrap();
+        let mut entry = tampered.diagnostic_graph.get_entry_mut(node).unwrap();
         entry.set_retained_diagnostic_artifact(None);
         entry.set_causality(None);
     }
@@ -2168,7 +2168,7 @@ fn restore_snapshot_with_active_policy_prunes_cold_richness_without_changing_ope
             .metrics()
             .checkpoint
             .snapshot_restore_shared_delta_node_count,
-        restore_plan.dependency_snapshot_delta_node_count,
+        restore_plan.dependency_snapshot_delta_node_count(),
         "runtime restore counters should report the same shared-node delta breadth as the canonical restore plan"
     );
     assert_eq!(
@@ -2177,7 +2177,7 @@ fn restore_snapshot_with_active_policy_prunes_cold_richness_without_changing_ope
             .metrics()
             .checkpoint
             .snapshot_restore_coarse_reason_count,
-        restore_plan.coarse_reasons.len() as u64,
+        restore_plan.coarse_reasons().len() as u64,
         "runtime restore counters should report the same coarse restore reason count as the canonical restore plan"
     );
 }
@@ -2247,21 +2247,28 @@ fn snapshot_restore_plan_reports_shared_delta_and_coarse_requirements() {
         .plan_snapshot_restore(&snapshot, SnapshotRestoreIntent::restore_runtime_truth())
         .unwrap();
 
-    assert_eq!(plan.shared_node_count, 2);
-    assert_eq!(plan.current_only_node_count, 0);
-    assert_eq!(plan.snapshot_only_node_count, 0);
-    assert_eq!(plan.dependency_snapshot_delta_node_count, 1);
-    assert_eq!(plan.dependency_snapshot_batch.pending().as_slice().len(), 1);
-    assert!(plan.coarse_replacement_required);
+    assert_eq!(plan.shared_node_count(), 2);
+    assert_eq!(plan.current_only_node_count(), 0);
+    assert_eq!(plan.snapshot_only_node_count(), 0);
+    assert_eq!(plan.dependency_snapshot_delta_node_count(), 1);
+    assert_eq!(
+        plan.checkpoint_restore_batch()
+            .classified()
+            .target_nodes()
+            .as_slice()
+            .len(),
+        1
+    );
+    assert!(plan.coarse_replacement_required());
     assert!(plan
-        .coarse_reasons
+        .coarse_reasons()
         .contains(&SnapshotRestoreCoarseReason::EntryStateRewind));
     assert!(plan
-        .coarse_reasons
+        .coarse_reasons()
         .contains(&SnapshotRestoreCoarseReason::DiagnosticsHistoryRestore));
     assert!(
         !plan
-            .coarse_reasons
+            .coarse_reasons()
             .contains(&SnapshotRestoreCoarseReason::NodeSetDifference),
         "shared-node-only restore planning should not claim node-set mismatch when node sets still align"
     );

@@ -8,7 +8,6 @@ use crate::state::{
 };
 
 use super::super::runtime_state::SignalRuntime;
-use super::branches::BranchState;
 use super::branches::SnapshotBranchState;
 
 impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
@@ -47,15 +46,11 @@ where
         for requirement in &proof.required_rebuild {
             match requirement {
                 crate::logic::transaction::RequiredDerivedRebuildSet::DependencyIndexes(_) => {
-                    graph.apply_snapshot_batch_commit(
-                        snapshot.checkpoint_image.dependency_snapshot_batch.clone(),
-                    )?;
-                    rebuild_breadth += snapshot
-                        .checkpoint_image
-                        .dependency_snapshot_batch
-                        .target_nodes()
-                        .as_slice()
-                        .len() as u64;
+                    let classified_checkpoint_batch =
+                        restore_plan.checkpoint_restore_batch().clone_inner();
+                    rebuild_breadth += classified_checkpoint_batch.target_nodes().as_slice().len()
+                        as u64;
+                    graph.apply_classified_snapshot_batch_commit(classified_checkpoint_batch)?;
                 }
                 crate::logic::transaction::RequiredDerivedRebuildSet::ReplaySuffix(replay) => {
                     if snapshot.diagnostics.replay_frames.len() < replay.replay_event_count as usize
@@ -69,7 +64,7 @@ where
                 }
                 crate::logic::transaction::RequiredDerivedRebuildSet::MergeSupport(_) => {
                     graph.clear_branch_mutation_nodes();
-                    rebuild_breadth += restore_plan.coarse_reasons.len() as u64;
+                    rebuild_breadth += restore_plan.coarse_reasons().len() as u64;
                 }
             }
         }
@@ -175,14 +170,12 @@ where
         );
         let mut branch_state = self.capture_heavy_branch_state();
         branch_state
-            .mutation_ledger
+            .mutation_ledger_mut()
             .clear_all(Some(snapshot.meta.snapshot_id));
         self.branches.insert_snapshot(
-            snapshot.meta.snapshot_id,
-            SnapshotBranchState::from_branch_state(&branch_state),
+            SnapshotBranchState::from_branch_state(&branch_state).packet(snapshot.meta.snapshot_id),
         );
-        self.branches
-            .store_branch_state(snapshot.meta.branch_id, branch_state);
+        self.branches.store_branch_state(branch_state);
         let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
         self.synchronize_branch_catalogs(branch_catalog);
         snapshot
@@ -249,58 +242,43 @@ where
             graph
                 .diagnostics_state_mut()
                 .set_branch_head_snapshot(snapshot.meta.branch_id, snapshot.meta.snapshot_id);
-            let mut state = BranchState {
-                authority: super::super::reconstructability::AuthorityState {
-                    graph,
-                    config: snapshot_state.config,
-                },
-                derived: super::super::reconstructability::DerivedState {
-                    checkpoint: snapshot_state.derived.checkpoint,
-                    telemetry: snapshot
-                        .runtime_telemetry
-                        .clone()
-                        .unwrap_or(snapshot_state.derived.telemetry),
-                },
-                ancestry: snapshot_state.ancestry,
-                mutation_ledger: snapshot_state.mutation_ledger,
-            };
+            let mut state =
+                snapshot_state.into_branch_state(graph, snapshot.runtime_telemetry.clone());
             crate::diagnostics::recorder::record_snapshot_restore_lineage(
-                &mut state.authority.graph,
+                state.graph_mut(),
                 snapshot.meta.snapshot_id,
             );
-            let retention_budget = state.authority.graph.runtime_policy().retention_budget;
-            let profile = state.authority.graph.diagnostics_profile();
+            let retention_budget = state.graph().runtime_policy().retention_budget;
+            let profile = state.graph().diagnostics_profile();
             let history = ExecutionHistorySummary::from_graph(
-                &state.authority.graph,
+                state.graph(),
                 profile,
                 retention_budget.detail_limit,
                 retention_budget.retain_history_details,
                 OrdinaryAccessLane,
             );
             let graph_summary = GraphSummary::from_graph(
-                &state.authority.graph,
+                state.graph(),
                 profile,
                 retention_budget.detail_limit,
                 OrdinaryAccessLane,
             );
             state
-                .authority
-                .graph
+                .graph_mut()
                 .diagnostics_state_mut()
                 .refresh_retained_views(history, graph_summary);
             let branch_catalog = state
-                .authority
-                .graph
+                .graph()
                 .diagnostics_state()
                 .branch_catalog()
                 .clone();
             let preserved_transaction = self.telemetry.transaction;
             self.apply_branch_lifecycle_transfer(
                 crate::logic::transaction::runtime::state::runtime_state::BranchLifecycleTransfer::Restore(
-                    crate::logic::transaction::runtime::state::runtime_state::RestoreTransferPacket {
-                    branch_id: snapshot.meta.branch_id,
-                    state: state.clone(),
-                    },
+                    crate::logic::transaction::runtime::state::runtime_state::RestoreTransferPacket::new(
+                        snapshot.meta.branch_id,
+                        state,
+                    ),
                 ),
             )?;
             Self::merge_global_transaction_telemetry(
@@ -319,12 +297,11 @@ where
             self.telemetry
                 .checkpoint
                 .snapshot_restore_shared_delta_node_count +=
-                restore_plan.dependency_snapshot_delta_node_count;
+                restore_plan.dependency_snapshot_delta_node_count();
             self.telemetry
                 .checkpoint
-                .snapshot_restore_coarse_reason_count += restore_plan.coarse_reasons.len() as u64;
-            self.branches
-                .store_branch_state(snapshot.meta.branch_id, state);
+                .snapshot_restore_coarse_reason_count +=
+                restore_plan.coarse_reasons().len() as u64;
             self.synchronize_branch_catalogs(branch_catalog);
             return Ok(());
         }
@@ -345,29 +322,25 @@ where
         if branch.id == self.graph.current_branch().id {
             return Ok(self.capture_snapshot());
         }
-        let Some((snapshot, branch_catalog, branch_state)) =
+        let Some((snapshot, branch_catalog, snapshot_state)) =
             self.branches.with_stored_branch_state_mut(branch.id, |state| {
-            let policy = state.authority.graph.runtime_policy();
+            let policy = state.graph().runtime_policy();
             let artifact_retention = SnapshotArtifactRetentionPolicy::from_runtime_policy(policy);
             let meta = state
-                .authority
-                .graph
+                .graph_mut()
                 .diagnostics_state_mut()
                 .allocate_snapshot_meta(policy, artifact_retention);
             state
-                .authority
-                .graph
+                .graph_mut()
                 .diagnostics_state_mut()
                 .set_branch_head_snapshot(branch.id, meta.snapshot_id);
             let diagnostics = state
-                .authority
-                .graph
+                .graph()
                 .diagnostics_state()
                 .snapshot_payload_with_retention(artifact_retention);
-            let graph_telemetry = state.authority.graph.telemetry().clone();
+            let graph_telemetry = state.graph().telemetry().clone();
             let retained_replay = state
-                .authority
-                .graph
+                .graph()
                 .observe()
                 .replay_events()
                 .iter()
@@ -378,21 +351,20 @@ where
             let snapshot = SignalSnapshotV1 {
                 meta,
                     checkpoint_image: SignalCheckpointImage {
-                        authority: state.authority.graph.capture_checkpoint_authority(),
+                        authority: state.graph().capture_checkpoint_authority(),
                         dependency_snapshot_batch: state
-                            .authority
-                            .graph
+                            .graph()
                             .capture_checkpoint_dependency_snapshot_batch(),
-                        graph_telemetry: state.authority.graph.telemetry().clone(),
+                        graph_telemetry: state.graph().telemetry().clone(),
                     },
                     diagnostic_graph: {
-                        let mut graph = state.authority.graph.clone_stateful();
+                        let mut graph = state.graph().clone_stateful();
                         graph.clear_branch_mutation_nodes();
                         graph
                     },
                     diagnostics,
                 graph_telemetry,
-                runtime_telemetry: Some(state.derived.telemetry.clone()),
+                runtime_telemetry: Some(state.runtime_telemetry().clone()),
                 reconstructability: Some(
                     super::super::reconstructability::ReconstructabilityRecord::from_snapshot_boundary(
                         branch.id,
@@ -403,57 +375,47 @@ where
                                 event_flushes: 0,
                                 event_flush_nanos: 0,
                                 checkpoint_flushes: state
-                                    .derived
-                                    .checkpoint
+                                    .checkpoint()
                                     .telemetry()
                                     .checkpoint
                                     .checkpoint_flushes,
                                 checkpoint_flush_nanos: state
-                                    .derived
-                                    .checkpoint
+                                    .checkpoint()
                                     .telemetry()
                                     .checkpoint
                                     .checkpoint_flush_nanos,
                                 rollback_count: 0,
                                 snapshot_restore_count: state
-                                    .derived
-                                    .telemetry
+                                    .runtime_telemetry()
                                     .checkpoint
                                     .snapshot_restore_count,
                                 snapshot_restore_apply_active_policy_count: state
-                                    .derived
-                                    .telemetry
+                                    .runtime_telemetry()
                                     .checkpoint
                                     .snapshot_restore_apply_active_policy_count,
                                 snapshot_restore_shared_delta_node_count: state
-                                    .derived
-                                    .telemetry
+                                    .runtime_telemetry()
                                     .checkpoint
                                     .snapshot_restore_shared_delta_node_count,
                                 snapshot_restore_coarse_reason_count: state
-                                    .derived
-                                    .telemetry
+                                    .runtime_telemetry()
                                     .checkpoint
                                     .snapshot_restore_coarse_reason_count,
-                                checkpoint_size: state.derived.telemetry.checkpoint.checkpoint_size,
+                                checkpoint_size: state.runtime_telemetry().checkpoint.checkpoint_size,
                                 journal_replay_span: state
-                                    .derived
-                                    .telemetry
+                                    .runtime_telemetry()
                                     .checkpoint
                                     .journal_replay_span,
                                 restore_authority_breadth: state
-                                    .derived
-                                    .telemetry
+                                    .runtime_telemetry()
                                     .checkpoint
                                     .restore_authority_breadth,
                                 restore_required_derived_breadth: state
-                                    .derived
-                                    .telemetry
+                                    .runtime_telemetry()
                                     .checkpoint
                                     .restore_required_derived_breadth,
                                 restore_diagnostic_richness_breadth: state
-                                    .derived
-                                    .telemetry
+                                    .runtime_telemetry()
                                     .checkpoint
                                     .restore_diagnostic_richness_breadth,
                             },
@@ -462,19 +424,20 @@ where
                     ),
                 ),
             };
-            let branch_catalog = state.authority.graph.diagnostics_state().branch_catalog().clone();
+            let branch_catalog = state.graph().diagnostics_state().branch_catalog().clone();
             state
-                .mutation_ledger
+                .mutation_ledger_mut()
                 .clear_all(Some(snapshot.meta.snapshot_id));
-            (snapshot, branch_catalog, state.clone())
+            (
+                snapshot,
+                branch_catalog,
+                SnapshotBranchState::from_branch_state(state),
+            )
         }) else {
             return Err(SignalError::unknown_branch(Some(branch.id), branch.name));
         };
-        self.branches.insert_snapshot(
-            snapshot.meta.snapshot_id,
-            SnapshotBranchState::from_branch_state(&branch_state),
-        );
-        self.branches.store_branch_state(branch.id, branch_state);
+        self.branches
+            .insert_snapshot(snapshot_state.packet(snapshot.meta.snapshot_id));
         self.synchronize_branch_catalogs(branch_catalog);
         Ok(snapshot)
     }
@@ -530,7 +493,7 @@ where
         let current_diagnostics = self
             .branches
             .branch_state(branch.id)
-            .map(|state| state.authority.graph.diagnostics_state().clone())
+            .map(|state| state.graph().diagnostics_state().clone())
             .ok_or_else(|| SignalError::unknown_branch(Some(branch.id), branch.name.clone()))?;
         let current_policy = current_diagnostics.policy();
         let mut graph = self
@@ -563,49 +526,33 @@ where
         graph
             .diagnostics_state_mut()
             .set_branch_head_snapshot(branch.id, snapshot.meta.snapshot_id);
-        let state = BranchState {
-            authority: super::super::reconstructability::AuthorityState {
-                graph,
-                config: snapshot_state.config,
-            },
-            derived: super::super::reconstructability::DerivedState {
-                checkpoint: snapshot_state.derived.checkpoint,
-                telemetry: snapshot
-                    .runtime_telemetry
-                    .clone()
-                    .unwrap_or(snapshot_state.derived.telemetry),
-            },
-            ancestry: snapshot_state.ancestry,
-            mutation_ledger: snapshot_state.mutation_ledger,
-        };
-        let mut state = state;
+        let mut state =
+            snapshot_state.into_branch_state(graph, snapshot.runtime_telemetry.clone());
         crate::diagnostics::recorder::record_snapshot_restore_lineage(
-            &mut state.authority.graph,
+            state.graph_mut(),
             snapshot.meta.snapshot_id,
         );
-        let retention_budget = state.authority.graph.runtime_policy().retention_budget;
-        let profile = state.authority.graph.diagnostics_profile();
+        let retention_budget = state.graph().runtime_policy().retention_budget;
+        let profile = state.graph().diagnostics_profile();
         let history = ExecutionHistorySummary::from_graph(
-            &state.authority.graph,
+            state.graph(),
             profile,
             retention_budget.detail_limit,
             retention_budget.retain_history_details,
             OrdinaryAccessLane,
         );
         let graph_summary = GraphSummary::from_graph(
-            &state.authority.graph,
+            state.graph(),
             profile,
             retention_budget.detail_limit,
             OrdinaryAccessLane,
         );
         state
-            .authority
-            .graph
+            .graph_mut()
             .diagnostics_state_mut()
             .refresh_retained_views(history, graph_summary);
         let branch_catalog = state
-            .authority
-            .graph
+            .graph()
             .diagnostics_state()
             .branch_catalog()
             .clone();
@@ -621,11 +568,12 @@ where
         self.telemetry
             .checkpoint
             .snapshot_restore_shared_delta_node_count +=
-            restore_plan.dependency_snapshot_delta_node_count;
+            restore_plan.dependency_snapshot_delta_node_count();
         self.telemetry
             .checkpoint
-            .snapshot_restore_coarse_reason_count += restore_plan.coarse_reasons.len() as u64;
-        self.branches.store_branch_state(branch.id, state);
+            .snapshot_restore_coarse_reason_count +=
+            restore_plan.coarse_reasons().len() as u64;
+        self.branches.store_branch_state(state);
         self.synchronize_branch_catalogs(branch_catalog);
         Ok(())
     }

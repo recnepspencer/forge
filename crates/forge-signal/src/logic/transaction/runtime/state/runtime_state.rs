@@ -23,8 +23,27 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub branch_id: SignalBranchId,
-    pub state: BranchState<D, I, T>,
+    branch_id: SignalBranchId,
+    state: BranchState<D, I, T>,
+}
+
+impl<D, I, T> AuthorityTransferPacket<D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub fn new(branch_id: SignalBranchId, state: BranchState<D, I, T>) -> Self {
+        Self { branch_id, state }
+    }
+
+    pub fn branch_id(&self) -> SignalBranchId {
+        self.branch_id
+    }
+
+    pub fn into_state(self) -> BranchState<D, I, T> {
+        self.state
+    }
 }
 
 #[derive(Debug)]
@@ -34,8 +53,27 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub branch_id: SignalBranchId,
-    pub state: BranchState<D, I, T>,
+    branch_id: SignalBranchId,
+    state: BranchState<D, I, T>,
+}
+
+impl<D, I, T> RestoreTransferPacket<D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub fn new(branch_id: SignalBranchId, state: BranchState<D, I, T>) -> Self {
+        Self { branch_id, state }
+    }
+
+    pub fn branch_id(&self) -> SignalBranchId {
+        self.branch_id
+    }
+
+    pub fn into_state(self) -> BranchState<D, I, T> {
+        self.state
+    }
 }
 
 #[derive(Debug)]
@@ -45,9 +83,44 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub source_branch: SignalBranchId,
-    pub branch_id: SignalBranchId,
-    pub state: BranchState<D, I, T>,
+    source_branch: SignalBranchId,
+    branch_id: SignalBranchId,
+    state: BranchState<D, I, T>,
+}
+
+impl<D, I, T> ExplicitBranchForkPacket<D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub fn new(
+        source_branch: SignalBranchId,
+        branch_id: SignalBranchId,
+        state: BranchState<D, I, T>,
+    ) -> Self {
+        Self {
+            source_branch,
+            branch_id,
+            state,
+        }
+    }
+
+    pub fn source_branch(&self) -> SignalBranchId {
+        self.source_branch
+    }
+
+    pub fn branch_id(&self) -> SignalBranchId {
+        self.branch_id
+    }
+
+    pub fn into_state(self) -> BranchState<D, I, T> {
+        self.state
+    }
+
+    pub fn state(&self) -> &BranchState<D, I, T> {
+        &self.state
+    }
 }
 
 #[derive(Debug)]
@@ -280,16 +353,15 @@ where
             .branches
             .branch_ancestry_state(handle.id)
             .cloned()
-            .unwrap_or(BranchAncestryState {
-                branch_id: handle.id,
-                parent_branch_id: handle.parent_branch_id,
-                forked_from_snapshot_id: handle.head_snapshot_id,
-                latest_merge_reference: None,
-            });
+            .unwrap_or(BranchAncestryState::new(
+                handle.id,
+                handle.parent_branch_id,
+                handle.head_snapshot_id,
+            ));
         let mut mutation_ledger = self
             .branches
-            .branch_state(handle.id)
-            .map(|state| state.mutation_ledger.clone())
+            .branch_mutation_ledger(handle.id)
+            .cloned()
             .unwrap_or_else(|| {
                 BranchMutationLedger::default().with_baseline_snapshot(handle.head_snapshot_id)
             });
@@ -310,16 +382,15 @@ where
             .branches
             .branch_ancestry_state(handle.id)
             .cloned()
-            .unwrap_or(BranchAncestryState {
-                branch_id: handle.id,
-                parent_branch_id: handle.parent_branch_id,
-                forked_from_snapshot_id: handle.head_snapshot_id,
-                latest_merge_reference: None,
-            });
+            .unwrap_or(BranchAncestryState::new(
+                handle.id,
+                handle.parent_branch_id,
+                handle.head_snapshot_id,
+            ));
         let mut mutation_ledger = self
             .branches
-            .branch_state(handle.id)
-            .map(|state| state.mutation_ledger.clone())
+            .branch_mutation_ledger(handle.id)
+            .cloned()
             .unwrap_or_else(|| {
                 BranchMutationLedger::default().with_baseline_snapshot(handle.head_snapshot_id)
             });
@@ -347,15 +418,17 @@ where
         packet: AuthorityTransferPacket<D, I, T>,
     ) -> Result<(), crate::data::error::SignalError> {
         let preserved_transaction = self.telemetry.transaction;
-        if packet.branch_id != packet.state.ancestry.branch_id {
+        let branch_id = packet.branch_id();
+        let state = packet.into_state();
+        if branch_id != state.ancestry().branch_id() {
             return Err(crate::data::error::SignalError::internal(format!(
                 "branch lifecycle transfer mismatch: packet branch {} does not match state branch {}",
-                packet.branch_id.0,
-                packet.state.ancestry.branch_id.0
+                branch_id.0,
+                state.ancestry().branch_id().0
             )));
         }
         self.branches.restore_active_state(
-            packet.state,
+            state,
             &mut self.graph,
             &mut self.config,
             &mut self.checkpoint,
@@ -373,10 +446,10 @@ where
         packet: RestoreTransferPacket<D, I, T>,
     ) -> Result<(), crate::data::error::SignalError> {
         self.telemetry.transaction.restore_transfer_count += 1;
-        self.load_branch_state(AuthorityTransferPacket {
-            branch_id: packet.branch_id,
-            state: packet.state,
-        })
+        self.load_branch_state(AuthorityTransferPacket::new(
+            packet.branch_id(),
+            packet.into_state(),
+        ))
     }
 
     pub(super) fn apply_branch_lifecycle_transfer(
@@ -395,6 +468,6 @@ where
     ) {
         let active_branch = self.graph.current_branch().id;
         self.branches
-            .synchronize_catalogs(branch_catalog, active_branch, &mut self.graph);
+            .synchronize_catalogs(&branch_catalog, active_branch, &mut self.graph);
     }
 }

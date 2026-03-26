@@ -108,12 +108,12 @@ fn remap_live_entry_handles<OldId, NewId>(
             continue;
         };
         let old_id = match graph.get_entry(node) {
-            Ok(entry) => read_id(entry),
+            Ok(entry) => read_id(&entry),
             Err(_) => continue,
         };
         let new_id = *id_map.entry(old_id).or_insert_with(|| remap_id(old_id));
-        if let Ok(live_entry) = graph.get_entry_mut(node) {
-            write_id(live_entry, new_id);
+        if let Ok(mut live_entry) = graph.get_entry_mut(node) {
+            write_id(&mut live_entry, new_id);
         }
     }
 }

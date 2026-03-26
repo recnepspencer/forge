@@ -18,12 +18,12 @@ fn maybe_stale_partition_nodes_recompute_when_changed_region_evidence_is_absent(
     evaluate(&mut graph, dependent, &mut compute).unwrap();
 
     {
-        let source_entry = graph.get_entry_mut(source).unwrap();
+        let mut source_entry = graph.get_entry_mut(source).unwrap();
         source_entry.set_aspect_version(version_ab(2, 0));
         source_entry.set_trace_summary(Some(TraceSummary::default()));
     }
     {
-        let entry = graph.get_entry_mut(dependent).unwrap();
+        let mut entry = graph.get_entry_mut(dependent).unwrap();
         entry.set_state(NodeState::MaybeStale);
         entry.set_dirty_aspects(AspectMask::from_aspect(ASPECT_A));
         entry.add_dirty_partition_scope(

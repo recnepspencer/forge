@@ -307,7 +307,7 @@ fn execution_report_marks_requested_maybe_stale_validation_as_validated_clean() 
     evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
 
     {
-        let entry = graph.get_entry_mut(dependent).unwrap();
+        let mut entry = graph.get_entry_mut(dependent).unwrap();
         entry.set_state(NodeState::MaybeStale);
         entry.set_dirty_aspects(AspectMask::from_aspect(ASPECT_A));
     }
@@ -406,7 +406,7 @@ fn maybe_stale_validation_prunes_retired_runtime_dependencies_before_recapture()
         .inject_retired_dependency_for_test(dependent, retired, ASPECT_A)
         .unwrap();
     {
-        let entry = graph.get_entry_mut(dependent).unwrap();
+        let mut entry = graph.get_entry_mut(dependent).unwrap();
         entry.set_state(NodeState::MaybeStale);
         entry.set_dirty_aspects(AspectMask::from_aspect(ASPECT_A));
     }

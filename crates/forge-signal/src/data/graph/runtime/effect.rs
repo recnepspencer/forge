@@ -3,12 +3,13 @@ use crate::data::core_profile::StableHashValue;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
-use crate::data::output::{scope_touched_by_artifact_state, CanonicalChangedRegions, OutputChange};
+use crate::data::output::{scope_touched_by_hot_artifact, CanonicalChangedRegions, OutputChange};
 use crate::data::proof::PartitionScopeSet;
 use crate::data::trace::{
-    ArtifactMergeAuthority, ArtifactWriteDelta, ColdArtifactIntent, HotArtifactWrite,
-    RuntimeArtifactState, ArtifactTransitionKey, CompactChangedScopeProof,
-    ContinuityAuthorityToken, ReuseOperationalBasis, COLD_ARTIFACT_INTENT_LABEL_LIMIT,
+    ArtifactMergeAuthority, ArtifactTransitionKey, ArtifactWriteDelta, ColdArtifactIntent,
+    CompactChangedScopeProof, ContinuityAuthorityToken, HotArtifactWrite, ReuseOperationalBasis,
+    RuntimeArtifactHot, RuntimeArtifactState, RuntimeArtifactWarm,
+    COLD_ARTIFACT_INTENT_LABEL_LIMIT,
 };
 use crate::diagnostics::policy::ArtifactRetentionPolicy;
 use crate::logic::evaluation::{
@@ -171,9 +172,7 @@ impl SignalGraph {
         effect: &EvaluationEffect,
         comparator: VersionComparatorPolicy,
     ) -> Result<EffectComparison, SignalError> {
-        let previous_trace = self
-            .get_entry(effect.operational.node)?
-            .get_runtime_artifact_state();
+        let previous_trace = self.node_runtime_artifact_warm(effect.operational.node)?;
         let output_identity_unchanged = matches!(
             (
                 previous_trace.and_then(|trace| trace.output_identity.as_ref()),
@@ -220,61 +219,69 @@ impl SignalGraph {
         if !verdict_retains_runtime_artifact(&effect.operational.verdict) {
             return Ok(None);
         }
-        let previous_trace = self
-            .get_entry(effect.operational.node)?
-            .get_runtime_artifact_state();
+        let previous_hot = self.node_runtime_artifact_hot(effect.operational.node)?;
+        let previous_warm = self.node_runtime_artifact_warm(effect.operational.node)?;
         let cold_intent =
             build_cold_artifact_intent(effect, &self.runtime_policy().retention_budget);
         let write = Some(HotArtifactWrite {
-            runtime: Some(RuntimeArtifactState {
-                output_hash: if matches!(effect.operational.verdict, EvaluationVerdict::Recomputed)
-                {
-                    effect
-                        .output_identity()
-                        .map(trace_identity_hash)
-                        .unwrap_or_else(|| trace_output_hash(effect.operational.aspect_version))
-                } else {
-                    previous_trace
-                        .map(|trace| trace.output_hash)
-                        .unwrap_or_else(|| trace_output_hash(effect.operational.aspect_version))
+            runtime: Some(RuntimeArtifactState::new(
+                RuntimeArtifactHot {
+                    output_hash: if matches!(
+                        effect.operational.verdict,
+                        EvaluationVerdict::Recomputed
+                    ) {
+                        effect
+                            .output_identity()
+                            .map(trace_identity_hash)
+                            .unwrap_or_else(|| trace_output_hash(effect.operational.aspect_version))
+                    } else {
+                        previous_hot
+                            .map(|trace| trace.output_hash)
+                            .unwrap_or_else(|| trace_output_hash(effect.operational.aspect_version))
+                    },
+                    output_change: comparison.output_change,
+                    recomputed: effect.recomputed(),
+                    dependency_count: effect.operational.dependency_snapshot_update.entry_count()
+                        as u32,
+                    meaningful_input_changes: effect.operational.meaningful_input_changes,
+                    changed_partition_count: comparison.changed_partition_count,
+                    propagation_suppressed: comparison.propagation_suppressed,
+                    changed_scopes: CompactChangedScopeProof::new(
+                        PartitionScopeSet::from_changed_regions(
+                            &CanonicalChangedRegions::from_slice(effect.changed_regions()),
+                        ),
+                    ),
                 },
-                output_identity: if matches!(
-                    effect.operational.verdict,
-                    EvaluationVerdict::Recomputed
-                ) {
-                    effect.output_identity().cloned()
-                } else {
-                    previous_trace
-                        .and_then(|trace| trace.output_identity.clone())
-                        .or_else(|| effect.output_identity().cloned())
+                RuntimeArtifactWarm {
+                    output_identity: if matches!(
+                        effect.operational.verdict,
+                        EvaluationVerdict::Recomputed
+                    ) {
+                        effect.output_identity().cloned()
+                    } else {
+                        previous_warm
+                            .and_then(|trace| trace.output_identity.clone())
+                            .or_else(|| effect.output_identity().cloned())
+                    },
+                    continuity_token: ContinuityAuthorityToken::new(
+                        if matches!(effect.operational.verdict, EvaluationVerdict::Recomputed) {
+                            effect.continuity_token().cloned()
+                        } else {
+                            previous_warm
+                                .and_then(|trace| trace.continuity_token.clone_inner())
+                                .or_else(|| effect.continuity_token().cloned())
+                        },
+                    ),
+                    memoized_origin: effect.memoized_origin(),
+                    reuse_basis: ReuseOperationalBasis::new(effect.operational.reuse_basis.clone()),
+                    reuse_origin: effect.operational.reuse_origin,
+                    reuse_boundary_authority: Some(
+                        effect.operational.reuse_boundary_authority.clone(),
+                    ),
+                    lineage_artifact_id: ArtifactTransitionKey::default(),
+                    merge_authority: ArtifactMergeAuthority::default(),
                 },
-                continuity_token: ContinuityAuthorityToken::new(if matches!(
-                    effect.operational.verdict,
-                    EvaluationVerdict::Recomputed
-                ) {
-                    effect.continuity_token().cloned()
-                } else {
-                    previous_trace
-                        .and_then(|trace| trace.continuity_token.clone_inner())
-                        .or_else(|| effect.continuity_token().cloned())
-                }),
-                output_change: comparison.output_change,
-                recomputed: effect.recomputed(),
-                dependency_count: effect.operational.dependency_snapshot_update.entry_count()
-                    as u32,
-                meaningful_input_changes: effect.operational.meaningful_input_changes,
-                changed_partition_count: comparison.changed_partition_count,
-                propagation_suppressed: comparison.propagation_suppressed,
-                changed_scopes: CompactChangedScopeProof::new(PartitionScopeSet::from_changed_regions(
-                    &CanonicalChangedRegions::from_slice(effect.changed_regions()),
-                )),
-                memoized_origin: effect.memoized_origin(),
-                reuse_basis: ReuseOperationalBasis::new(effect.operational.reuse_basis.clone()),
-                reuse_origin: effect.operational.reuse_origin,
-                reuse_boundary_authority: Some(effect.operational.reuse_boundary_authority.clone()),
-                lineage_artifact_id: ArtifactTransitionKey::default(),
-                merge_authority: ArtifactMergeAuthority::default(),
-            }),
+            )),
             cold_intent,
         });
         Ok(write)
@@ -286,15 +293,15 @@ impl SignalGraph {
         artifact_write: Option<HotArtifactWrite>,
     ) -> Result<(), SignalError> {
         let node = effect.operational.node;
-        let mut causality_changed = false;
         let mut runtime_artifact_delta = None;
         let mut retained_artifact_changed = false;
         let mut state_changed = false;
         let mut retained_artifact = None;
         let mut runtime_artifact_state = None;
         if let Some(write) = artifact_write {
-            self.telemetry_mut().storage.hot_write_runtime_artifact_count +=
-                u64::from(write.runtime.is_some());
+            self.telemetry_mut()
+                .storage
+                .hot_write_runtime_artifact_count += u64::from(write.runtime.is_some());
             runtime_artifact_state = write.runtime;
             if write.cold_intent.is_none() && runtime_policy_omits_cold_artifacts(self) {
                 self.telemetry_mut().storage.hot_write_cold_bypass_count += 1;
@@ -306,33 +313,25 @@ impl SignalGraph {
             }
         }
         {
-            let entry = self.get_entry_mut(node)?;
-            let previous_artifact_id = entry
-                .get_runtime_artifact_state()
-                .and_then(|runtime| runtime.lineage_artifact_id.get());
-            let previous_output_hash = entry
-                .get_runtime_artifact_state()
-                .map(|runtime| runtime.output_hash);
-            let previous_reuse_basis = entry
-                .get_runtime_artifact_state()
-                .map(|runtime| runtime.reuse_basis.clone_inner());
+            let (previous_artifact_id, previous_output_hash, previous_reuse_basis) =
+                self.node_runtime_artifact_structural_state(node)?;
             if let Some(causality) = effect.take_causality() {
-                entry.set_causality(Some(causality));
-                causality_changed = true;
+                self.set_causality(node, Some(causality))?;
             }
             if matches!(effect.operational.verdict, EvaluationVerdict::Recomputed) {
-                entry.apply_aspect_version(
+                self.apply_node_aspect_version(
+                    node,
                     effect.operational.aspect_version,
                     effect.changed_regions(),
-                );
+                )?;
             }
             if verdict_retains_runtime_artifact(&effect.operational.verdict) {
                 if let Some(runtime_artifact_state) = runtime_artifact_state {
                     runtime_artifact_delta = Some(RuntimeArtifactStructuralDelta {
                         previous_artifact_id,
-                        next_artifact_id: runtime_artifact_state.lineage_artifact_id.get(),
+                        next_artifact_id: runtime_artifact_state.lineage_artifact_id().get(),
                         previous_output_hash,
-                        next_output_hash: Some(runtime_artifact_state.output_hash),
+                        next_output_hash: Some(runtime_artifact_state.output_hash()),
                         previous_reuse_basis: if matches!(
                             effect.operational.verdict,
                             EvaluationVerdict::Recomputed
@@ -341,17 +340,19 @@ impl SignalGraph {
                         } else {
                             previous_reuse_basis
                         },
-                        next_reuse_basis: Some(runtime_artifact_state.reuse_basis.clone_inner()),
+                        next_reuse_basis: Some(runtime_artifact_state.reuse_basis().clone_inner()),
                     });
-                    entry.apply_artifact_write_delta(ArtifactWriteDelta {
-                        runtime: Some(runtime_artifact_state),
-                        retained: retained_artifact,
-                    });
-                    retained_artifact_changed = entry.cold_artifact_record().is_some();
+                    retained_artifact_changed = self.apply_node_artifact_write_delta(
+                        node,
+                        ArtifactWriteDelta {
+                            runtime: Some(runtime_artifact_state),
+                            retained: retained_artifact,
+                        },
+                    )?;
                 }
             }
             if verdict_transitions_clean(&effect.operational.verdict) {
-                entry.transition_clean();
+                self.transition_node_clean(node)?;
                 state_changed = true;
             } else {
                 match effect.operational.verdict {
@@ -360,13 +361,10 @@ impl SignalGraph {
                             DeferralReason::ConditionNotMet
                             | DeferralReason::OnDemandNotRequested
                             | DeferralReason::DebounceWindow,
-                    } => entry.set_state(NodeState::MaybeStale),
+                    } => self.set_node_state(node, NodeState::MaybeStale)?,
                     _ => {}
                 }
             }
-        }
-        if causality_changed {
-            self.record_branch_mutation_causality(node);
         }
         if let Some(delta) = runtime_artifact_delta {
             self.record_branch_mutation_runtime_artifact(node, delta);
@@ -404,9 +402,7 @@ impl SignalGraph {
             }
             retained
         } else {
-            self.telemetry_mut()
-                .storage
-                .hot_write_cold_bypass_count += 1;
+            self.telemetry_mut().storage.hot_write_cold_bypass_count += 1;
             self.telemetry_mut()
                 .storage
                 .deferred_cold_artifact_bypass_count += 1;
@@ -469,11 +465,11 @@ impl SignalGraph {
             {
                 continue;
             }
-            if matches!(self.get_entry(current)?.get_state(), NodeState::Clean) {
+            if matches!(self.get_state(current)?, NodeState::Clean) {
                 continue;
             }
             if self.check_upstream_unchanged_ignoring_source(current, node, comparator_resolver)? {
-                self.get_entry_mut(current)?.transition_clean();
+                self.transition_node_clean(current)?;
                 suppressed += 1;
                 self.refresh_runtime_subscribers_of(current)?;
                 stack.extend_from_slice(self.current_runtime_subscribers_of(current)?);
@@ -489,23 +485,18 @@ impl SignalGraph {
         ignored_source: NodeId,
         resolver: &mut impl ComparatorPolicyResolver,
     ) -> Result<bool, SignalError> {
-        let entry = self.get_entry(node)?;
         let snapshot = self.get_dep_snapshot(node)?;
-        let node_cfg = entry.get_eval_config();
+        let node_cfg = self.node_eval_config(node)?;
         let comparator = resolver.policy_for_node(node, node_cfg.comparator.as_ref());
 
         for snapshot_entry in snapshot.entries() {
             if snapshot_entry.source == ignored_source {
                 if let Some(scope) = &snapshot_entry.scope {
-                    if !matches!(
-                        self.get_entry(snapshot_entry.source)?.get_state(),
-                        NodeState::Clean
-                    ) {
+                    if !matches!(self.get_state(snapshot_entry.source)?, NodeState::Clean) {
                         return Ok(false);
                     }
-                    if scope_touched_by_artifact_state(
-                        self.get_entry(snapshot_entry.source)?
-                            .get_runtime_artifact_state(),
+                    if scope_touched_by_hot_artifact(
+                        self.node_runtime_artifact_hot(snapshot_entry.source)?,
                         scope,
                     ) {
                         return Ok(false);
@@ -516,22 +507,20 @@ impl SignalGraph {
             if !self.is_alive(snapshot_entry.source) {
                 return Ok(false);
             }
-            if !matches!(
-                self.get_entry(snapshot_entry.source)?.get_state(),
-                NodeState::Clean
-            ) {
+            if !matches!(self.get_state(snapshot_entry.source)?, NodeState::Clean) {
                 return Ok(false);
             }
-            let current_version = self
-                .get_entry(snapshot_entry.source)?
-                .version_for_scope(snapshot_entry.aspect, snapshot_entry.scope.as_ref());
+            let current_version = self.node_version_for_scope(
+                snapshot_entry.source,
+                snapshot_entry.aspect,
+                snapshot_entry.scope.as_ref(),
+            )?;
             if let Some(scope) = &snapshot_entry.scope {
                 if current_version == snapshot_entry.cached_version {
                     continue;
                 }
-                if !scope_touched_by_artifact_state(
-                    self.get_entry(snapshot_entry.source)?
-                        .get_runtime_artifact_state(),
+                if !scope_touched_by_hot_artifact(
+                    self.node_runtime_artifact_hot(snapshot_entry.source)?,
                     scope,
                 ) {
                     continue;
@@ -698,9 +687,13 @@ fn build_cold_artifact_intent(
     effect: &EvaluationEffect,
     retention: &crate::diagnostics::policy::RetentionBudget,
 ) -> Option<ColdArtifactIntent> {
-    if matches!(retention.explanation_retention, ArtifactRetentionPolicy::Omit)
-        && matches!(retention.provenance_retention, ArtifactRetentionPolicy::Omit)
-    {
+    if matches!(
+        retention.explanation_retention,
+        ArtifactRetentionPolicy::Omit
+    ) && matches!(
+        retention.provenance_retention,
+        ArtifactRetentionPolicy::Omit
+    ) {
         return None;
     }
     let retain_reuse_boundary_detail = matches!(
@@ -708,9 +701,13 @@ fn build_cold_artifact_intent(
         Some(crate::data::reuse::ReuseStrategy::CrossIdentityPersistentMatch)
             | Some(crate::data::reuse::ReuseStrategy::PartialArtifactSplicing)
     );
-    let labels = if matches!(retention.explanation_retention, ArtifactRetentionPolicy::Retain)
-        || matches!(retention.provenance_retention, ArtifactRetentionPolicy::Retain)
-    {
+    let labels = if matches!(
+        retention.explanation_retention,
+        ArtifactRetentionPolicy::Retain
+    ) || matches!(
+        retention.provenance_retention,
+        ArtifactRetentionPolicy::Retain
+    ) {
         effect
             .labels()
             .iter()
@@ -742,8 +739,13 @@ fn build_cold_artifact_intent(
 
 fn runtime_policy_omits_cold_artifacts(graph: &SignalGraph) -> bool {
     let retention = graph.runtime_policy().retention_budget;
-    matches!(retention.explanation_retention, ArtifactRetentionPolicy::Omit)
-        && matches!(retention.provenance_retention, ArtifactRetentionPolicy::Omit)
+    matches!(
+        retention.explanation_retention,
+        ArtifactRetentionPolicy::Omit
+    ) && matches!(
+        retention.provenance_retention,
+        ArtifactRetentionPolicy::Omit
+    )
 }
 
 fn record_reuse_telemetry(
@@ -791,8 +793,8 @@ mod tests {
         CommittedSnapshotUpdate, DependencySnapshot, ReplacementSnapshotUpdate,
         SharedDependencySnapshot, SnapshotDeltaRecord,
     };
-    use crate::data::output::ChangedRegion;
     use crate::data::handle::NodeId;
+    use crate::data::output::ChangedRegion;
     use crate::data::output::{MemoizedResultOrigin, OutputChange};
     use crate::data::reuse::{
         ArtifactSemanticBoundary, ReuseBasis, ReuseBoundaryContext, ReuseBoundaryProof,
@@ -977,7 +979,10 @@ mod tests {
         };
 
         let intent = build_cold_artifact_intent(&effect, &retention).expect("cold intent");
-        assert_eq!(intent.labels.len(), crate::data::trace::COLD_ARTIFACT_INTENT_LABEL_LIMIT);
+        assert_eq!(
+            intent.labels.len(),
+            crate::data::trace::COLD_ARTIFACT_INTENT_LABEL_LIMIT
+        );
         assert_eq!(intent.labels.as_slice(), &["a", "b", "c", "d"]);
     }
 }

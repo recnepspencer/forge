@@ -24,6 +24,8 @@ use crate::logic::evaluation::collect_effect_dependency_inputs_iter;
 use crate::logic::evaluation::{
     build_prepared_apply_commit_packet, record_reuse_rejection_telemetry, ApplyCommitBuildError,
 };
+#[cfg(feature = "parallel")]
+use crate::facade::SnapshotBatchCommit;
 use crate::logic::prepared::{PreparedEvaluationOrigin, PreparedEvaluationOutcome};
 
 #[cfg(feature = "parallel")]
@@ -107,11 +109,12 @@ where
         stage_identities,
         stage_record,
     )?;
-    if !stage_scratch.pending_snapshots.is_empty() {
-        graph.apply_snapshot_batch_commit(stage_scratch.pending_snapshots)?;
+    let (finalize_work, pending_snapshots) = stage_scratch.into_parts();
+    if !pending_snapshots.is_empty() {
+        graph.apply_classified_snapshot_batch_commit(pending_snapshots)?;
     }
     let semantic_finalize_start = Instant::now();
-    match stage_scratch.finalize_work {
+    match finalize_work {
         StageFinalizeWork::Serial(batch) => {
             let ready = batch.into_ready_for_finalize()?;
             finalize_serial_stage_batch(graph, ready, report, stage_record)?
@@ -169,31 +172,39 @@ fn build_stage_execution_form(
         .iter()
         .find(|task| {
             matches!(
-                task.authority_policy,
+                task.authority_policy(),
                 crate::data::node::AuthorityPolicy::AuthoritativeOnly
             )
         })
-        .map(|task| task.authority_policy)
+        .map(|task| task.authority_policy())
         .unwrap_or(resolved_policy.authority_policy);
 
-    let lowered_stage = LoweredStagePlan {
+    let lowered_stage = LoweredStagePlan::new(
         stage_index,
-        tasks: lowered_tasks,
+        lowered_tasks,
         lowered_apply_plan,
-        dirty_delta: StructuralDelta::new(Some(dirty_delta), Some(touched_scope)),
-        execution_strategy: resolved_policy.execution_strategy,
-        maintenance_strategy: resolved_policy.maintenance_strategy,
+        StructuralDelta::new(Some(dirty_delta), Some(touched_scope)),
+        resolved_policy.execution_strategy,
+        resolved_policy.maintenance_strategy,
         authority_policy,
-    };
+    );
 
-    if let LoweredApplyPlan::Serial(plan) = lowered_stage.lowered_apply_plan {
-        let LoweredStagePlan {
+    if matches!(
+        lowered_stage.lowered_apply_plan(),
+        LoweredApplyPlan::Serial(_)
+    ) {
+        let (
             stage_index,
             tasks,
+            lowered_apply_plan,
             dirty_delta,
+            _execution_strategy,
+            _maintenance_strategy,
             authority_policy,
-            ..
-        } = lowered_stage;
+        ) = lowered_stage.into_parts();
+        let LoweredApplyPlan::Serial(plan) = lowered_apply_plan else {
+            unreachable!("checked above")
+        };
         #[cfg(not(feature = "parallel"))]
         let _ = plan;
         return Ok(LoweredStageExecutionForm::Serial(
@@ -230,7 +241,7 @@ fn record_stage_lowering_metrics(graph: &mut SignalGraph, lowered: &LoweredStage
             (stage.dirty_delta(), stage.maintenance_strategy())
         }
         LoweredStageExecutionForm::Generic(stage) => {
-            (&stage.dirty_delta, stage.maintenance_strategy)
+            (stage.dirty_delta(), stage.maintenance_strategy())
         }
     };
     if let Some(dirty) = dirty_delta.dirty.as_ref() {
@@ -280,55 +291,57 @@ fn record_stage_lowering_metrics(graph: &mut SignalGraph, lowered: &LoweredStage
 
 fn validate_lowered_stage_plan(lowered: &LoweredStagePlan) {
     let rich_task_count = lowered
-        .tasks
+        .tasks()
         .iter()
-        .filter(|task| matches!(task.path_class, PathClass::Rich))
+        .filter(|task| matches!(task.path_class(), PathClass::Rich))
         .count();
     let authoritative_task_count = lowered
-        .tasks
+        .tasks()
         .iter()
-        .filter(|task| matches!(task.authority_policy, AuthorityPolicy::AuthoritativeOnly))
+        .filter(|task| matches!(task.authority_policy(), AuthorityPolicy::AuthoritativeOnly))
         .count();
     let recomputed_task_count = lowered
-        .tasks
+        .tasks()
         .iter()
-        .filter(|task| task.execution.recomputed)
+        .filter(|task| task.execution().recomputed())
         .count();
 
     debug_assert!(
-        lowered.task_count() == lowered.tasks.len(),
+        lowered.task_count() == lowered.tasks().len(),
         "lowered task count must match staged task collection"
     );
     debug_assert!(
-        lowered.dirty_delta.is_empty() || !lowered.tasks.is_empty(),
+        lowered.dirty_delta().is_empty() || !lowered.tasks().is_empty(),
         "structural delta should only be populated for non-empty lowered stages"
     );
     debug_assert!(
         !matches!(
-            lowered.execution_strategy,
+            lowered.execution_strategy(),
             ResolvedExecutionStrategy::FullGraphPass
-        ) || lowered.tasks.is_empty()
+        ) || lowered.tasks().is_empty()
             || !lowered.apply_groups().is_empty(),
         "full-graph execution stages must still lower into apply groups"
     );
     debug_assert!(
         !matches!(
-            lowered.maintenance_strategy,
+            lowered.maintenance_strategy(),
             ResolvedMaintenanceStrategy::Rebuild
-        ) || lowered.dirty_delta.dirty.is_some(),
+        ) || lowered.dirty_delta().dirty.is_some(),
         "rebuild-oriented stages must carry a narrowed dirty delta"
     );
     debug_assert!(
-        !matches!(lowered.authority_policy, AuthorityPolicy::AuthoritativeOnly)
-            || authoritative_task_count > 0,
+        !matches!(
+            lowered.authority_policy(),
+            AuthorityPolicy::AuthoritativeOnly
+        ) || authoritative_task_count > 0,
         "authoritative lowered stages must include authoritative tasks"
     );
     debug_assert!(
-        rich_task_count <= lowered.tasks.len(),
+        rich_task_count <= lowered.tasks().len(),
         "rich-path accounting must remain bounded by lowered tasks"
     );
     debug_assert!(
-        recomputed_task_count <= lowered.tasks.len(),
+        recomputed_task_count <= lowered.tasks().len(),
         "recomputed-task accounting must remain bounded by lowered tasks"
     );
 }
@@ -356,13 +369,8 @@ fn run_lowered_apply_pass(
         }
         LoweredStageExecutionForm::Generic(lowered) => {
             validate_lowered_stage_plan(&lowered);
-            stage_record.authority_policy = Some(lowered.authority_policy);
-            let LoweredStagePlan {
-                stage_index,
-                tasks,
-                lowered_apply_plan,
-                ..
-            } = lowered;
+            stage_record.authority_policy = Some(lowered.authority_policy());
+            let (stage_index, tasks, lowered_apply_plan, ..) = lowered.into_parts();
             let LoweredApplyPlan::GroupedConcurrent(plan) = lowered_apply_plan else {
                 return Err(SignalError::internal(
                     "generic stage dispatch received a serial apply plan after serial lowering",
@@ -396,10 +404,10 @@ fn run_serial_lowered_apply_pass(
     let applied = prepared.apply(graph, summary, comparator_resolver, executor)?;
     let (applied, pending_snapshots) = applied.split_pending_snapshots();
 
-    Ok(StageScratch {
-        finalize_work: StageFinalizeWork::Serial(applied),
+    Ok(StageScratch::new(
+        StageFinalizeWork::Serial(applied),
         pending_snapshots,
-    })
+    ))
 }
 
 #[cfg(feature = "parallel")]
@@ -439,7 +447,7 @@ fn run_grouped_concurrent_apply_pass(
 
     let dependency_input_start = Instant::now();
     let dependency_inputs =
-        collect_effect_dependency_inputs_iter(graph, tasks.iter().map(|task| task.node))?;
+        collect_effect_dependency_inputs_iter(graph, tasks.iter().map(|task| task.node()))?;
     graph.telemetry_mut().execution.dependency_input_build_nanos +=
         dependency_input_start.elapsed().as_nanos();
     let task_count = tasks.len();
@@ -456,50 +464,60 @@ fn run_grouped_concurrent_apply_pass(
         group_inputs
             .into_par_iter()
             .map(|group| {
-                let mut task_commits = Vec::with_capacity(group.worker_inputs.len());
-                for worker_input in group.worker_inputs {
+                let (group_index, worker_inputs) = group.into_parts();
+                let mut task_commits = Vec::with_capacity(worker_inputs.len());
+                for worker_input in worker_inputs {
+                    let (
+                        task_index,
+                        node,
+                        identity,
+                        before_state,
+                        before_artifact_state,
+                        dependency_updates,
+                        recomputed,
+                        partition_aware,
+                        rewiring,
+                        comparator_policy,
+                        prepared,
+                        dependency_inputs,
+                    ) = worker_input.into_parts();
                     let commit_packet = build_prepared_apply_commit_packet(
                         graph_ref,
-                        worker_input.node,
-                        worker_input.prepared,
-                        worker_input.comparator_policy,
+                        node,
+                        prepared,
+                        comparator_policy,
                         None,
-                        worker_input.dependency_updates,
-                        worker_input.dependency_inputs,
+                        dependency_updates,
+                        dependency_inputs,
                         true,
                     )
                     .map_err(|error| {
-                        grouped_apply_failure_from_build_error(
-                            worker_input.node,
-                            worker_input.identity.record_id,
-                            error,
-                        )
+                        grouped_apply_failure_from_build_error(node, identity.record_id, error)
                     })?;
-                    task_commits.push(GroupLocalTaskCommit {
-                        task_index: worker_input.task_index,
-                        node: worker_input.node,
-                        identity: worker_input.identity,
-                        before_state: worker_input.before_state,
-                        before_artifact_state: worker_input.before_artifact_state,
-                        dependency_updates: worker_input.dependency_updates,
-                        recomputed: worker_input.recomputed,
-                        partition_aware: worker_input.partition_aware,
-                        rewiring: worker_input.rewiring,
-                        commit_packet: commit_packet.try_into().map_err(|error| {
-                            GroupedApplyFailure {
-                                node: worker_input.node,
-                                record_id: worker_input.identity.record_id,
+                    task_commits.push(GroupLocalTaskCommit::new(
+                        task_index,
+                        node,
+                        identity,
+                        before_state,
+                        before_artifact_state,
+                        dependency_updates,
+                        recomputed,
+                        partition_aware,
+                        rewiring,
+                        commit_packet
+                            .try_into()
+                            .map_err(|error| GroupedApplyFailure {
+                                node,
+                                record_id: identity.record_id,
                                 error,
                                 reuse_failure: None,
-                            }
-                        })?,
-                    });
+                            })?,
+                    ));
                 }
-                Ok::<GroupLocalApplyPacket, GroupedApplyFailure>(GroupLocalApplyPacket {
-                    group_index: group.group_index,
-                    task_count: task_commits.len(),
+                Ok::<GroupLocalApplyPacket, GroupedApplyFailure>(GroupLocalApplyPacket::new(
+                    group_index,
                     task_commits,
-                })
+                ))
             })
             .collect::<Result<Vec<_>, GroupedApplyFailure>>()
     });
@@ -554,14 +572,14 @@ fn reduce_grouped_concurrent_packets(
     );
     match reduction.ordering_contract {
         ReductionOrderingContract::StageTaskIndexOrder => {
-            packets.sort_by_key(|packet| packet.group_index);
+            packets.sort_by_key(|packet| packet.group_index());
         }
     }
 
     let mut semantic_batch = StageSemanticBatch::default();
     let mut pending_snapshots = Vec::new();
     for packet in packets {
-        for commit in packet.task_commits {
+        for commit in packet.into_task_commits() {
             let update =
                 match publish_group_local_task_commit(graph, commit, &mut pending_snapshots) {
                     Ok(update) => update,
@@ -578,14 +596,11 @@ fn reduce_grouped_concurrent_packets(
         .execution
         .shared_surface_publication_breadth +=
         semantic_batch.segment_count() as u64 + pending_snapshots.len() as u64;
-    Ok(StageScratch {
-        finalize_work: StageFinalizeWork::Parallel(crate::data::proof::SingleConsumer::new(
-            semantic_batch,
-        )),
-        pending_snapshots: SnapshotBatchCommit::from_unique_pending_snapshots_in_stage_order(
-            pending_snapshots,
-        ),
-    })
+    Ok(StageScratch::new(
+        StageFinalizeWork::Parallel(crate::data::proof::SingleConsumer::new(semantic_batch)),
+        SnapshotBatchCommit::from_unique_pending_snapshots_in_stage_order(pending_snapshots)
+            .classify(),
+    ))
 }
 
 #[cfg(feature = "parallel")]
@@ -594,7 +609,7 @@ fn publish_group_local_task_commit(
     commit: GroupLocalTaskCommit,
     pending_snapshots: &mut Vec<crate::logic::evaluation::PendingDependencySnapshot>,
 ) -> Result<SemanticTaskUpdate, GroupedApplyFailure> {
-    let GroupLocalTaskCommit {
+    let (
         task_index,
         node,
         identity,
@@ -605,7 +620,7 @@ fn publish_group_local_task_commit(
         partition_aware,
         rewiring,
         commit_packet,
-    } = commit;
+    ) = commit.into_parts();
     let (report, pending_snapshot) = graph
         .publish_suppression_free_apply_commit_packet(commit_packet)
         .map_err(|error| GroupedApplyFailure {
@@ -617,21 +632,28 @@ fn publish_group_local_task_commit(
     if let Some(snapshot) = pending_snapshot {
         pending_snapshots.push(snapshot);
     }
-    let entry = graph.get_entry(node).map_err(|error| GroupedApplyFailure {
+    let after_state = graph.get_state(node).map_err(|error| GroupedApplyFailure {
         node,
         record_id: identity.record_id,
         error,
         reuse_failure: None,
     })?;
-    let after_state = *entry.get_state();
-    let after_trace = entry.get_runtime_artifact_state();
+    let after_trace =
+        graph
+            .node_runtime_artifact_warm(node)
+            .map_err(|error| GroupedApplyFailure {
+                node,
+                record_id: identity.record_id,
+                error,
+                reuse_failure: None,
+            })?;
     let memoized_origin = after_trace
         .map(|trace| trace.memoized_origin)
         .unwrap_or(crate::data::output::MemoizedResultOrigin::DirectCompute);
     let reuse_basis = after_trace
         .map(|trace| trace.reuse_basis.clone_inner())
         .unwrap_or(crate::data::reuse::ReuseBasis::fresh_compute());
-    Ok(SemanticTaskUpdate {
+    Ok(SemanticTaskUpdate::new(
         task_index,
         node,
         identity,
@@ -642,10 +664,10 @@ fn publish_group_local_task_commit(
         recomputed,
         partition_aware,
         rewiring,
-        verdict: report.verdict,
+        report.verdict,
         memoized_origin,
         reuse_basis,
-    })
+    ))
 }
 
 #[cfg(feature = "parallel")]
@@ -700,7 +722,7 @@ fn build_lowered_apply_plan(
             .enumerate()
             .map(|(task_index, task)| DisjointApplyGroup {
                 task_indices: vec![task_index],
-                footprint: task.footprint.clone(),
+                footprint: task.footprint().clone(),
             })
             .collect::<Vec<_>>()
     };
@@ -775,10 +797,7 @@ fn build_concurrent_apply_group_inputs(
                     .into_concurrent_worker_input(stage_identities[task_index], dependency_input),
             );
         }
-        group_inputs.push(ConcurrentApplyGroupInput {
-            group_index,
-            worker_inputs,
-        });
+        group_inputs.push(ConcurrentApplyGroupInput::new(group_index, worker_inputs));
     }
 
     Ok(group_inputs)
@@ -788,10 +807,10 @@ fn build_concurrent_apply_group_inputs(
 fn can_lower_true_grouped_concurrent(tasks: &[LoweredTask], groups: &[DisjointApplyGroup]) -> bool {
     !groups.is_empty()
         && tasks.iter().all(|task| {
-            task.execution.dependency_updates == 0
-                && task.execution.rewiring.is_none()
+            task.execution().dependency_updates() == 0
+                && task.execution().rewiring().is_none()
                 && !matches!(
-                    task.comparator_policy,
+                    task.comparator_policy(),
                     VersionComparatorPolicy::OutputIdentity
                 )
         })
@@ -811,18 +830,13 @@ fn lower_task_patch(
         graph,
         &patch.prepared.dependencies,
     )?);
-    let before_entry = graph.get_entry(patch.node)?;
-    let before_state = *before_entry.get_state();
-    let before_artifact_state = before_entry.get_runtime_artifact_state().cloned();
+    let before_state = graph.get_state(patch.node)?;
+    let before_artifact_state = graph.node_runtime_artifact_finalize_image(patch.node)?;
     let contract = graph.get_contract(patch.node)?;
     #[cfg(feature = "parallel")]
     let comparator_policy = comparator_resolver.policy_for_node(
         patch.node,
-        graph
-            .get_entry(patch.node)?
-            .get_eval_config()
-            .comparator
-            .as_ref(),
+        graph.node_eval_config(patch.node)?.comparator.as_ref(),
     );
     let recomputed = matches!(patch.prepared.outcome, PreparedEvaluationOutcome::Evaluate)
         && !matches!(
@@ -843,26 +857,26 @@ fn lower_task_patch(
         next_dependencies.as_slice(),
     );
 
-    Ok(LoweredTask {
-        task_index: patch.task_index,
-        node: patch.node,
+    Ok(LoweredTask::new(
+        patch.task_index,
+        patch.node,
         produced_aspects,
-        dependency_inputs: next_dependencies,
+        next_dependencies,
         #[cfg(feature = "parallel")]
         comparator_policy,
         path_class,
         authority_policy,
         footprint,
-        execution: LoweredTaskExecution {
-            prepared: patch.prepared,
+        LoweredTaskExecution::new(
+            patch.prepared,
             before_state,
             before_artifact_state,
             dependency_updates,
             recomputed,
             partition_aware,
             rewiring,
-        },
-    })
+        ),
+    ))
 }
 
 impl LoweredTask {
@@ -872,15 +886,18 @@ impl LoweredTask {
         identity: StageSemanticIdentity,
         dependency_inputs: crate::logic::evaluation::EffectDependencyInputs,
     ) -> ConcurrentWorkerInput {
-        let LoweredTask {
+        let comparator_policy = self.comparator_policy();
+        let (
             task_index,
             node,
-            #[cfg(feature = "parallel")]
-            comparator_policy,
+            _produced_aspects,
+            _dependency_inputs,
+            _path_class,
+            _authority_policy,
+            _footprint,
             execution,
-            ..
-        } = self;
-        let LoweredTaskExecution {
+        ) = self.into_parts();
+        let (
             prepared,
             before_state,
             before_artifact_state,
@@ -888,8 +905,8 @@ impl LoweredTask {
             recomputed,
             partition_aware,
             rewiring,
-        } = execution;
-        ConcurrentWorkerInput {
+        ) = execution.into_parts();
+        ConcurrentWorkerInput::new(
             task_index,
             node,
             identity,
@@ -902,7 +919,7 @@ impl LoweredTask {
             comparator_policy,
             prepared,
             dependency_inputs,
-        }
+        )
     }
 }
 
@@ -955,9 +972,9 @@ fn build_lowered_dirty_delta(tasks: &[LoweredTask]) -> DirtyDelta {
     let mut touched_nodes = Vec::new();
 
     for task in tasks {
-        changed_aspects = changed_aspects | task.produced_aspects;
-        changed_regions.extend_from_slice(&task.execution.prepared.result.changed_regions);
-        touched_nodes.push(task.node);
+        changed_aspects = changed_aspects | task.produced_aspects();
+        changed_regions.extend_from_slice(&task.execution().prepared().result.changed_regions);
+        touched_nodes.push(task.node());
     }
 
     DirtyDelta::new(
@@ -973,10 +990,10 @@ fn build_touched_scope_summary(tasks: &[LoweredTask]) -> TouchedScopeSummary {
     let mut touched_sources = Vec::new();
 
     for task in tasks {
-        touched_nodes.push(task.node);
-        touched_sources.extend_from_slice(task.footprint.touched_sources.as_slice());
+        touched_nodes.push(task.node());
+        touched_sources.extend_from_slice(task.footprint().touched_sources.as_slice());
         scopes.extend(
-            task.dependency_inputs
+            task.dependency_inputs()
                 .as_slice()
                 .iter()
                 .filter_map(|edge| edge.scope_ref().cloned()),

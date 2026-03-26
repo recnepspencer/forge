@@ -179,10 +179,10 @@ impl GraphSummary {
             let Some(node) = graph.live_node_id_at(index) else {
                 continue;
             };
-            let Ok(entry) = graph.get_entry(node) else {
+            let Ok(state) = graph.get_state(node) else {
                 continue;
             };
-            match entry.get_state() {
+            match state {
                 NodeState::Clean => clean_node_count += 1,
                 NodeState::MaybeStale => maybe_stale_node_count += 1,
                 NodeState::Dirty => {
@@ -202,10 +202,12 @@ impl GraphSummary {
             if dependencies.iter().any(|edge| edge.scope_ref().is_some()) {
                 nodes_with_partition_scopes += 1;
             }
-            if entry.get_runtime_artifact_state().is_some() {
+            if graph.node_runtime_artifact_state_present(node).unwrap_or(false) {
                 nodes_with_trace_summary += 1;
-                if entry
-                    .execution_trace_stamp()
+                if graph
+                    .node_execution_trace_stamp(node)
+                    .ok()
+                    .flatten()
                     .and_then(|stamp| stamp.execution_record_id)
                     .is_some()
                 {
@@ -215,7 +217,7 @@ impl GraphSummary {
                     }
                 }
             }
-            if entry.get_causality().is_some() {
+            if graph.causality_of(node).unwrap_or(None).is_some() {
                 nodes_with_causality += 1;
             }
         }
@@ -490,15 +492,12 @@ impl ExecutionHistorySummary {
             let Some(node) = graph.live_node_id_at(index) else {
                 continue;
             };
-            let Ok(entry) = graph.get_entry(node) else {
+            let Ok(Some(trace)) = graph.observe().runtime_artifact_state(node) else {
                 continue;
             };
-            let Some(trace) = entry.get_runtime_artifact_state() else {
-                continue;
-            };
-            let execution_trace = entry.execution_trace_stamp();
+            let execution_trace = graph.node_execution_trace_stamp(node).ok().flatten();
             traced_node_count += 1;
-            *reuse_origin_counts.entry(trace.reuse_origin).or_insert(0) += 1;
+            *reuse_origin_counts.entry(trace.reuse_origin()).or_insert(0) += 1;
             if let Some(id) = execution_trace.and_then(|stamp| stamp.execution_record_id) {
                 execution_record_count += 1;
                 latest_execution_record_id =
@@ -507,28 +506,32 @@ impl ExecutionHistorySummary {
             if retain_nodes {
                 nodes.push(ExecutionHistoryNodeSummary {
                     node,
-                    execution_record_id: execution_trace.and_then(|stamp| stamp.execution_record_id),
-                    semantic_segment_id: execution_trace.and_then(|stamp| stamp.semantic_segment_id),
-                    output_change: Some(trace.output_change),
-                    memoized_origin: Some(trace.memoized_origin),
-                    reuse_basis: Some(trace.reuse_basis.clone_inner()),
-                    reuse_origin: Some(trace.reuse_origin),
+                    execution_record_id: execution_trace
+                        .and_then(|stamp| stamp.execution_record_id),
+                    semantic_segment_id: execution_trace
+                        .and_then(|stamp| stamp.semantic_segment_id),
+                    output_change: Some(trace.output_change()),
+                    memoized_origin: Some(trace.memoized_origin()),
+                    reuse_basis: Some(trace.reuse_basis().clone_inner()),
+                    reuse_origin: Some(trace.reuse_origin()),
                     persistent_correspondence_kind: trace
-                        .reuse_boundary_authority
-                        .as_ref()
+                        .reuse_boundary_authority()
                         .and_then(|authority| authority.persistent_correspondence_kind()),
                     composition_region_count: trace
-                        .reuse_boundary_authority
-                        .as_ref()
+                        .reuse_boundary_authority()
                         .map(|authority| authority.composition_region_count())
                         .unwrap_or(0),
-                    reuse_certification_proof_count: entry
-                        .cold_artifact_record()
+                    reuse_certification_proof_count: graph
+                        .node_cold_artifact_record(node)
+                        .unwrap_or(None)
                         .and_then(|retained| retained.reuse_certification.as_ref())
                         .map(|record| record.proofs.len() as u32)
                         .unwrap_or(0),
-                    changed_partition_count: trace.changed_partition_count,
-                    causality_kind: entry.get_causality().map(|c| c.kind.clone()),
+                    changed_partition_count: trace.changed_partition_count(),
+                    causality_kind: graph
+                        .causality_of(node)
+                        .unwrap_or(None)
+                        .map(|c| c.kind.clone()),
                 });
             }
         }

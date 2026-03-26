@@ -1,10 +1,11 @@
 use crate::data::error::SignalError;
 use crate::data::graph::{signal_graph::SignalGraph, EvaluationStrategy};
 use crate::data::handle::NodeId;
+use crate::data::node::{node_hot_inline_size_bytes, node_warm_inline_size_bytes};
 use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
 use crate::data::trace::{
-    ColdArtifactRecord, HistoricalArtifactRecord, RetainedDiagnosticArtifact,
-    RuntimeArtifactState, TraceSummary,
+    ColdArtifactRecord, HistoricalArtifactRecord, RetainedDiagnosticArtifact, RuntimeArtifactHot,
+    RuntimeArtifactState, RuntimeArtifactWarm, TraceSummary,
 };
 use crate::diagnostics::access::GraphDiagnostics;
 use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
@@ -76,8 +77,12 @@ impl<'a> GraphObserver<'a> {
             self.graph.denied_reconstruction_explanation_api_count();
         metrics.storage.denied_reconstruction_provenance_api_count =
             self.graph.denied_reconstruction_provenance_api_count();
+        metrics.storage.hot_node_inline_size_bytes = node_hot_inline_size_bytes();
+        metrics.storage.warm_node_inline_size_bytes = node_warm_inline_size_bytes();
         metrics.storage.hot_runtime_artifact_inline_size_bytes =
-            std::mem::size_of::<RuntimeArtifactState>() as u64;
+            std::mem::size_of::<RuntimeArtifactHot>() as u64;
+        metrics.storage.warm_runtime_artifact_inline_size_bytes =
+            std::mem::size_of::<RuntimeArtifactWarm>() as u64;
         metrics.storage.cold_artifact_record_inline_size_bytes =
             std::mem::size_of::<ColdArtifactRecord>() as u64;
         metrics
@@ -171,25 +176,39 @@ impl<'a> GraphObserver<'a> {
         explain(self.graph, node)
     }
 
-    pub fn runtime_artifact_state(
+    pub(crate) fn runtime_artifact_state(
         &self,
         node: NodeId,
     ) -> Result<Option<&'a RuntimeArtifactState>, SignalError> {
-        Ok(self.graph.get_entry(node)?.get_runtime_artifact_state())
+        self.graph.node_runtime_artifact_state(node)
+    }
+
+    pub fn runtime_artifact_hot(
+        &self,
+        node: NodeId,
+    ) -> Result<Option<&'a RuntimeArtifactHot>, SignalError> {
+        self.graph.node_runtime_artifact_hot(node)
+    }
+
+    pub fn runtime_artifact_warm(
+        &self,
+        node: NodeId,
+    ) -> Result<Option<&'a RuntimeArtifactWarm>, SignalError> {
+        self.graph.node_runtime_artifact_warm(node)
     }
 
     pub fn retained_diagnostic_artifact(
         &self,
         node: NodeId,
     ) -> Result<Option<&'a RetainedDiagnosticArtifact>, SignalError> {
-        Ok(self.graph.get_entry(node)?.retained_diagnostic_artifact())
+        self.graph.node_retained_diagnostic_artifact(node)
     }
 
     pub fn cold_artifact_record(
         &self,
         node: NodeId,
     ) -> Result<Option<&'a ColdArtifactRecord>, SignalError> {
-        Ok(self.graph.get_entry(node)?.cold_artifact_record())
+        self.graph.node_cold_artifact_record(node)
     }
 
     pub fn dependency_chain_to(
@@ -353,11 +372,7 @@ impl<'a> GraphObserver<'a> {
     }
 
     pub fn current_lineage_artifact(&self, node: NodeId) -> Option<LineageArtifactId> {
-        self.graph
-            .get_entry(node)
-            .ok()
-            .and_then(|entry| entry.get_runtime_artifact_state())
-            .and_then(|summary| summary.lineage_artifact_id.get())
+        self.graph.node_lineage_artifact_id(node).ok().flatten()
     }
 
     pub fn lineage_chain_for_artifact(
@@ -454,6 +469,7 @@ impl<'a> GraphMaterializer<'a> {
         &self,
         node: NodeId,
     ) -> Result<Option<HistoricalArtifactRecord>, SignalError> {
+        crate::data::access_counters::note_reconstructed_artifact_read();
         let entry = self.graph.get_entry(node)?;
         Ok(entry.historical_artifact_record(node))
     }
@@ -464,6 +480,7 @@ impl<'a> GraphMaterializer<'a> {
         &self,
         node: NodeId,
     ) -> Result<Option<TraceSummary>, SignalError> {
+        crate::data::access_counters::note_reconstructed_artifact_read();
         let entry = self.graph.get_entry(node)?;
         Ok(entry.trace_summary())
     }

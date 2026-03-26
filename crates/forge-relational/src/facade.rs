@@ -47,10 +47,9 @@ pub mod history {
         AspectHistoryQueryResult, AspectHistoryResolutionTrace, AspectResolutionContext,
         BranchCreateError, BranchCreateErrorClass, BranchHead, BranchId, CommitId, CommitReference,
         HistoryAspectQueryTarget, HistoryDriftClass, HistoryRetentionClass,
-        HistoryShapeClassification,
-        LineageAspectHistory, LineageAspectHistoryQueryResult, LineageAspectResolutionDigest,
-        MergeConflictRecord, MergeInspection, OrderedParentList, RequestedAspectSet,
-        VersionGraphPolicy, VersionGraphSnapshot, VersionNode,
+        HistoryShapeClassification, LineageAspectHistory, LineageAspectHistoryQueryResult,
+        LineageAspectResolutionDigest, MergeConflictRecord, MergeInspection, OrderedParentList,
+        RequestedAspectSet, VersionGraphPolicy, VersionGraphSnapshot, VersionNode,
     };
 }
 
@@ -107,6 +106,31 @@ pub mod lineage {
         LineageGraphMetrics, LineageGraphRequest, LineageGraphSnapshot, LineageGraphTraversalBasis,
         LineageInvariant, LineageNode, LineageResolutionStatus, RecordHistoryRequest,
     };
+}
+
+pub mod merge {
+    pub use crate::merge::data::{
+        AspectMergePolicyDeclaration, AspectMergePolicyKind, BranchCausalDot, BranchDeltaSummary,
+        CausalAnnotationSummary, CausalFrontier, CommitCausalMetadata, CommitCausalRelation,
+        ConflictClassificationSummary,
+        CustomIdentityBasisIdentity, CustomMergePolicyIdentity, IdentityBasisDeclaration,
+        IdentityBasisKind, IdentityBasisScope, IdentityDiscoverySummary, IdentityMatchCandidate,
+        IdentityMatchClass, IdentityResolutionReason, LoweredMergePlanRecord,
+        LoweredMergePlanSummary, LoweredMergeAction, LoweredMergeBlockedReason,
+        LoweredMergeRejectedReason, LoweredAspectAction, LoweredAspectOutcome,
+        LoweredRecordDecision, LoweredRecordDecisionKind, MergeExecutionAuthorityContract,
+        MergeExecutionAuthorizationRule, MergeExecutionDecisionSurface,
+        MergeAncestrySummary, MergeArtifactDigestBasis, MergeSchemaKindClass,
+        MergeSchemaKindSemanticSnapshot, MergeSchemaSnapshotDigestBasis,
+        MergeCausalEvidenceModel, MergeRecordCausalAnnotation, MergeRecordCausalDisposition,
+        MergeConflictClass, MergeConflictClassification, MergeExecutionReadiness,
+        MergeBaseSelectionRule, MergeIntent, MergePlanningArtifactCore, MergePlanningError,
+        MergePlanningDecisionKind, MergePlanningDecisionLog,
+        MergePlanningDecisionLogDigestBasis, MergePlanningDecisionRecord,
+        MergePlanningRequest, MergePlanningSummary, MergePolicyResolution, MergeRecordIdentity,
+        ResolvedMergeBase, SchemaDeclaredCorrespondenceValidationSummary,
+    };
+    pub use crate::merge::logic::MergeAccess;
 }
 
 pub mod runtime {

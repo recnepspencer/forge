@@ -56,7 +56,7 @@ impl SignalGraph {
                     .filter(|edge| edge.source() == retired)
                     .map(|edge| (edge.aspect(), edge.scope_ref().cloned()))
                     .collect::<Vec<_>>();
-                let entry = self.get_entry_mut(subscriber)?;
+                let mut entry = self.get_entry_mut(subscriber)?;
                 for (aspect, scope) in dirty_dependencies {
                     let scopes = scope.into_iter().collect::<Vec<_>>();
                     entry.transition_dirty(aspect, &scopes);

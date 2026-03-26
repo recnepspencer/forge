@@ -69,6 +69,39 @@ The most important discipline is Principle 41 from the coding guidelines:
   lowered," but external code can synthesize that type directly, the type is a
   lie
 
+## Phase Split Retention Criteria
+
+`MENTALITY.md` requires future-proofing for foundations, but it does not
+justify decorative wrappers.
+
+For this milestone, a phase split is justified only if all three are true:
+
+- the later type carries a distinct new proof, not merely the same data in a
+  new wrapper
+- that proof is expected to remain load-bearing under future merge,
+  reconciliation, and policy work
+- later phases should be structurally unable to proceed without that proof
+
+If any adjacent pair cannot satisfy those conditions in the implementation, the
+phases should be collapsed.
+
+This rule exists to balance two failure modes:
+
+- under-structuring: future load-bearing distinctions are collapsed too early
+- over-structuring: wrappers exist on paper but do not correspond to durable
+  semantic boundaries
+
+Milestone 7B therefore keeps:
+
+- conflict classification separate from policy resolution
+- causal annotation separate from policy resolution
+- policy resolution separate from lowering
+
+Milestone 7B deliberately does **not** require a separate
+candidate-discovery wrapper before validated identity output unless the
+implementation can prove a distinct load-bearing boundary between candidate
+discovery and validated mapping.
+
 ## Architecture Goal
 
 At closeout, merge planning must have the same structural honesty standard as
@@ -149,6 +182,12 @@ This must happen before the new branch-merge ontology lands. Keeping both
 under the same term would create semantic collapse and almost guarantee wrong
 future design choices.
 
+Implementation note:
+
+- this rename is complete in production code as `src/authority/intent_merge/`
+- no path alias or compatibility shim should remain because the project has no
+  production backward-compatibility obligation
+
 ## Non-Goals
 
 This milestone does not do the following:
@@ -163,6 +202,30 @@ This milestone does not do the following:
 - infer merge policy from aspect names or payload shape
 - pretend the current `latest_common_ancestor_between_branches(...)` helper is
   already the final merge-base ontology
+- admit partially merged authoritative truth within one merge request scope
+- hardcode web/resource semantics, chip/net semantics, or geometry/topology
+  semantics into the generic merge core
+
+## Domain Neutrality Rules
+
+This library must remain generic enough for chip simulators, geometry kernels,
+web/data systems, and domains not yet anticipated.
+
+Milestone 7B must therefore preserve domain neutrality by enforcing:
+
+- identity bases are declared or runtime-provided as typed surfaces, not
+  hardcoded for one domain vocabulary
+- merge semantics are aspect-driven and relation-aware, not blob-diff-driven
+- policies are schema-governed, not host-closure-governed
+- record truth and relation truth are equal citizens in the ontology
+- canonical merge artifacts explain runtime decisions in typed terms, not
+  domain-specific prose
+- no merge rule assumes that storage identity, display name, payload field
+  label, or UI/resource semantics are the default identity model
+
+This means the runtime may offer multiple identity substrates and multiple
+policy families, but it may not silently privilege one domain's intuitions as
+the generic baseline.
 
 ## Required Production Structure
 
@@ -178,7 +241,6 @@ accumulate into `history`, `transactions`, or broad "merge helper" files.
 - `src/merge/data/`
 - `requests.rs`
   - `MergePlanningRequest`
-  - `MergeDirection`
   - `MergeIntent`
 - `ancestry.rs`
   - `MergeBaseSelectionRule`
@@ -210,7 +272,7 @@ accumulate into `history`, `transactions`, or broad "merge helper" files.
   - `LoweredMergeTargetRecordPlan`
   - `LoweredMergeRelationPlan`
 - `artifacts.rs`
-  - `MergePlanningArtifact`
+  - `MergePlanningArtifactCore`
   - `MergeDecisionLog`
   - `MergeArtifactDigestBasis`
 - `explanations.rs`
@@ -234,7 +296,8 @@ accumulate into `history`, `transactions`, or broad "merge helper" files.
 - `mod.rs`
 
 - `src/schema/data/merge_semantics.rs`
-- per-aspect merge policy declarations and custom merge policy descriptor types
+- per-aspect merge policy declarations, identity-basis declarations, and
+  custom merge policy descriptor types
 
 - `src/schema/logic/merge_policies.rs`
 - schema declaration lowering into executable merge-policy catalogs
@@ -290,22 +353,16 @@ runtime must not carry this as conversational meaning.
 Required type:
 
 ```rust
-pub enum MergeDirection {
-    IntoTarget,
-}
-```
-
-```rust
 pub struct MergePlanningRequest {
     target_branch: BranchId,
     source_branch: BranchId,
-    direction: MergeDirection,
     merge_intent: MergeIntent,
 }
 ```
 
 `MergePlanningRequest` must not be constructible from unordered branch pairs.
-The direction is part of the semantic request.
+The direction is encoded by the typed `source_branch` and `target_branch`
+fields themselves.
 
 ### 2. Merge base selection rule is explicit
 
@@ -350,6 +407,50 @@ pub enum MergeRecordIdentity {
 The merge system must never return a single untyped "record identity." The
 identity basis is itself part of the semantic claim.
 
+### 3.5 Schema-declared identity basis is explicit
+
+Merge identity cannot remain purely heuristic if the runtime is meant to be
+domain-agnostic.
+
+The schema must be able to declare which identity surfaces are legitimate for
+correspondence and reconciliation.
+
+Required types:
+
+```rust
+pub struct IdentityBasisDeclaration {
+    pub scope: IdentityBasisScope,
+    pub basis: IdentityBasisKind,
+}
+```
+
+```rust
+pub enum IdentityBasisScope {
+    EntityKind(KindId),
+    RelationKind(KindId),
+    AspectKey(AspectKey),
+}
+```
+
+```rust
+pub enum IdentityBasisKind {
+    StorageIdentity,
+    LineageIdentity,
+    StructuralFingerprint,
+    DeclaredKeySet(Arc<[AspectKey]>),
+    Custom(CustomIdentityBasisIdentity),
+}
+```
+
+Rules:
+
+- storage identity is never assumed sufficient just because it exists
+- display names, UI labels, or arbitrary payload fields are not identity
+  unless declared as such
+- custom identity bases must be semantically versioned and schema-declared
+- every accepted source/target correspondence must record which declared
+  identity basis justified it
+
 ### 4. Conflict classification and policy resolution are distinct
 
 A conflict is a semantic statement about divergence. Policy resolution is a
@@ -364,6 +465,8 @@ pub enum MergeConflictClass {
     AspectConflict,
     RelationTopologyConflict,
     DeletionConflict,
+    DeletionVsModificationConflict,
+    DeletionVsRewireConflict,
     IdentityAmbiguity,
     SchemaConflict,
     PolicyUnavailable,
@@ -380,6 +483,33 @@ pub enum MergePolicyResolution {
 ```
 
 No single enum may merge these two ontologies together.
+
+### 4.5 Deletion and removal semantics are explicit
+
+Deletion and removal are not just ordinary absence. They are merge-relevant
+semantic states.
+
+Required types:
+
+```rust
+pub enum DeletionMergeClass {
+    DeletedOnSourceOnly,
+    DeletedOnTargetOnly,
+    DeletedOnBoth,
+    DeletedVsModified,
+    DeletedVsRewired,
+    DeletedVsRicherStructure,
+}
+```
+
+Rules:
+
+- deletion must be compared three-way against the merge base
+- deletion must be classifiable before policy resolution
+- deletion may participate in policy resolution, but only after it has been
+  classified as a deletion-specific merge condition
+- a missing record must not be treated as generic "no corresponding target"
+  once the runtime has enough evidence to classify it as deletion-relative
 
 ### 5. Richer-aspect reconciliation is explicit
 
@@ -408,7 +538,33 @@ Milestone 7B must encode merge planning as a proof-widening chain.
 
 The exact names may vary, but the phase structure must not.
 
+Merge planning in this milestone is explicitly three-way.
+
+Every semantic decision must be grounded in:
+
+- base truth at the selected merge base
+- source branch truth
+- target branch truth
+
+This applies not only to record state, but also to:
+
+- aspect deltas
+- relation topology
+- deletion/removal semantics
+
+The implementation must not collapse into a two-way "source vs target" diff
+that merely consults the merge base opportunistically.
+
 ### Required phase chain
+
+The implementation currently uses:
+
+- one explicit request boundary
+- six internal proof-bearing plan types
+- one canonical artifact closure
+
+That is the current honest runtime shape for 7B. The milestone should be
+described as an eight-stage planning chain, not as a nine-phase chain.
 
 1. `RequestedMergePlan`
 - request is syntactically valid
@@ -421,41 +577,47 @@ The exact names may vary, but the phase structure must not.
 - branch-local commit deltas are explicit
 - still no identity matching or causal claims
 
-3. `IdentityMatchedMergePlan`
+3. `ValidatedIdentityMatchedMergePlan`
 - corresponding record candidates have been identified
 - each candidate carries explicit identity basis and reason
-- ambiguity may still exist
-
-4. `ValidatedIdentityMatchedMergePlan`
 - identity ambiguity rejected or partitioned into explicit conflict classes
 - source/target mapping is shape-valid
 - relation endpoint candidate mapping is coherent
 
-5. `CausallyAnnotatedMergePlan`
+4. `CausallyAnnotatedMergePlan`
 - branch commits and candidate record changes carry explicit causal evidence
 - concurrency vs ancestry is explicit
 - still no policy resolution
 
-6. `ConflictClassifiedMergePlan`
+5. `ConflictClassifiedMergePlan`
 - every candidate divergence is classified into a typed conflict taxonomy
 - no unresolved "other conflict" bucket is allowed
 
-7. `PolicyResolvedMergePlan`
+6. `PolicyResolvedMergePlan`
 - schema-declared merge policies have been applied to each resolvable conflict
 - non-resolvable conflicts remain typed and explicit
 - no execution lowering yet
 
-8. `LoweredMergePlan`
+7. `LoweredMergePlan`
 - monomorphic execution input
 - exact target record actions are fixed
 - exact relation endpoint rewires are fixed
 - exact deletion/adoption/reconciliation semantics are fixed
 - this is the strongest pre-execution form
 
-9. `MergePlanningArtifact`
+8. `MergePlanningArtifactCore`
 - canonical serializable artifact derived from `LoweredMergePlan`
-- carries decision log, explanation records, digest basis, and metrics
+- carries decision log, digest basis, and core metrics
 - this is the canonical merge-ontology artifact for 7B
+
+Implementation note:
+
+- the current internal phase types are `HistoryScopedMergePlan`,
+  `IdentityScopedMergePlan`, `ConflictClassifiedMergePlan`,
+  `CausallyAnnotatedMergePlan`, `PolicyResolvedMergePlan`, and
+  `LoweredMergePlan`
+- `RequestedMergePlan` is represented by the validated
+  `MergePlanningRequest` boundary rather than a dedicated wrapper type
 
 ### Constructors and visibility rules
 
@@ -463,9 +625,9 @@ The exact names may vary, but the phase structure must not.
   modules
 - no blanket `From` or `Into` conversions from raw collections into later
   phase types
-- no external caller may construct `IdentityMatchedMergePlan`,
+- no external caller may construct `ValidatedIdentityMatchedMergePlan`,
   `CausallyAnnotatedMergePlan`, `PolicyResolvedMergePlan`, `LoweredMergePlan`,
-  or `MergePlanningArtifact`
+  or `MergePlanningArtifactCore`
 - accessor methods expose read-only views only
 - fields on later-phase wrappers remain private
 
@@ -490,7 +652,6 @@ change, but the semantic ownership must remain.
 pub struct MergePlanningRequest {
     target_branch: BranchId,
     source_branch: BranchId,
-    direction: MergeDirection,
     merge_intent: MergeIntent,
 }
 ```
@@ -540,12 +701,14 @@ This phase makes explicit the current hidden assumptions in `inspect_merge()`:
 - which merge-base algorithm was used
 - which commit deltas are being compared
 
-### Phase 3: identity matched
+### Phase 3: validated identity match
 
 ```rust
-pub struct IdentityMatchedMergePlan {
+pub struct ValidatedIdentityMatchedMergePlan {
     history: HistoryScopedMergePlan,
-    candidates: Arc<[IdentityMatchCandidate]>,
+    discovered_candidates: Arc<[IdentityMatchCandidate]>,
+    validated_candidates: Arc<[ValidatedIdentityMatch]>,
+    rejected_candidates: Arc<[RejectedIdentityMatch]>,
 }
 ```
 
@@ -564,19 +727,6 @@ pub enum IdentityMatchClass {
     Reconciliable,
     Ambiguous,
     MissingTarget,
-}
-```
-
-This phase is where the runtime stops pretending that "same record" means
-"same storage id."
-
-### Phase 4: validated identity match
-
-```rust
-pub struct ValidatedIdentityMatchedMergePlan {
-    matched: IdentityMatchedMergePlan,
-    validated_candidates: Arc<[ValidatedIdentityMatch]>,
-    rejected_candidates: Arc<[RejectedIdentityMatch]>,
 }
 ```
 
@@ -610,7 +760,16 @@ This phase must reject:
 - one target claiming multiple incompatible sources
 - relation endpoint candidate sets that cannot be made coherent
 
-### Phase 5: causal annotation
+This phase is where the runtime stops pretending that "same record" means
+"same storage id."
+
+It is also where three-way identity interpretation begins:
+
+- what existed at base but diverged into distinct source/target continuations
+- what was introduced independently after base
+- what was deleted on one side and evolved on the other
+
+### Phase 4: causal annotation
 
 ```rust
 pub struct CausallyAnnotatedMergePlan {
@@ -652,7 +811,7 @@ This phase makes these currently implicit assumptions explicit:
 - whether a policy requiring causal order is even meaningful
 - which frontier the runtime is talking about when it explains "why this wins"
 
-### Phase 6: conflict classification
+### Phase 5: conflict classification
 
 ```rust
 pub struct ConflictClassifiedMergePlan {
@@ -683,7 +842,7 @@ pub enum ConflictLocality {
 
 No residual "unclassified merge item" bucket is allowed after this phase.
 
-### Phase 7: policy resolution
+### Phase 6: policy resolution
 
 ```rust
 pub struct PolicyResolvedMergePlan {
@@ -717,7 +876,7 @@ pub enum ResolvedMergeAction {
 This phase must never be implemented as "if/else over enum plus closure." The
 policy and the resolution must both be canonical typed values.
 
-### Phase 8: lowering
+### Phase 7: lowering
 
 ```rust
 pub struct LoweredMergePlan {
@@ -796,6 +955,14 @@ pub enum AspectMergePolicyKind {
 custom invariant identity is semantically versioned. Merge policy identity is
 semantic identity, not runtime closure identity.
 
+Implementation note:
+
+- the current 7B implementation admits only `FailOnConflict` and
+  `PreferRicher`
+- `LastWriterWins`, `MonotonicCounter`, `AdditiveSet`, and `Custom(_)` are not
+  yet supported in the planning runtime and must be rejected at schema
+  registration time rather than silently degrading to manual resolution
+
 ### Lowered policy surface
 
 Required lowered type:
@@ -830,10 +997,31 @@ for the request, the `LastWriterWins` lowered form must be unconstructible.
 - custom merge policy registration must be frozen at runtime construction
 - policy lowering must record declaration revision and semantic identity
 
+### Schema evolution and reconciliation rules
+
+Merge policy declarations are schema declarations and must participate in the
+same truth-grade schema transition machinery as other load-bearing schema
+surfaces.
+
+Required rules:
+
+- adding a merge policy to a previously policy-less aspect is a schema
+  transition and must appear in schema transition artifacts
+- changing a merge policy between schema revisions is a schema transition and
+  must be classified explicitly during schema reconciliation
+- replay and durable recovery must compare the effective merge-policy
+  declaration snapshot, not merely aspect presence
+- schema reconciliation descriptors must classify merge-policy divergence using
+  the same explicit compatibility/rejection rules as other schema semantics
+
 ## Causal Metadata
 
 Milestone 7B introduces causal metadata as a first-class merge-planning
 concept and as a history-adjacent artifact family.
+
+In the initial 7B implementation, causal evidence is branch-history-derived
+merge causality over the existing version DAG, not a general distributed
+causality model.
 
 ### Required causal types
 
@@ -911,6 +1099,91 @@ This explicitly separates:
   string field
 - richer-aspect reconciliation must not be encoded as fake storage continuity
 
+Implementation note:
+
+- the current 7B implementation admits `StorageIdentity`, `LineageIdentity`,
+  and `DeclaredKeySet(...)`
+- `StructuralFingerprint` and `Custom(...)` identity bases are not yet
+  supported in merge planning and must be rejected at schema registration time
+  rather than counted as live capability
+
+## Relation Semantics
+
+Relation merge semantics are load-bearing and must be modeled with the same
+seriousness as record merge semantics.
+
+### Required relation distinctions
+
+The ontology must explicitly distinguish:
+
+- endpoint identity continuity
+- relation continuity identity
+- rewired-but-continuous relation semantics
+- retired-and-reintroduced relation semantics
+- endpoint ambiguity as an input to relation classification
+- relation-local conflict vs cross-record structural conflict
+
+Required types:
+
+```rust
+pub enum RelationContinuityClass {
+    PreserveRelationIdentity,
+    RetireAndIntroduceSuccessor,
+}
+```
+
+```rust
+pub enum EndpointContinuityClass {
+    EndpointsStable,
+    SourceEndpointRewired,
+    TargetEndpointRewired,
+    BothEndpointsRewired,
+}
+```
+
+```rust
+pub struct RelationMergeCandidate {
+    relation_identity: MergeRecordIdentity,
+    endpoint_continuity: EndpointContinuityClass,
+    relation_continuity: RelationContinuityClass,
+}
+```
+
+```rust
+pub enum RelationIdentityBasis {
+    StorageRelationIdentity,
+    LineageRelationIdentity,
+    StructuralRelationFingerprint,
+    DeclaredRelationKeySet(Arc<[AspectKey]>),
+}
+```
+
+```rust
+pub enum RelationConflictPropagation {
+    RelationLocalOnly,
+    EscalatesToRecordConflict,
+    EscalatesToTopologyRegionConflict,
+}
+```
+
+### Required relation rules
+
+- rewiring endpoints does not automatically imply relation identity continuity
+- preserving relation identity across endpoint rewiring must be an explicit
+  typed decision
+- endpoint ambiguity must be able to poison relation reconciliation rather than
+  being silently ignored
+- relation-local topology conflicts and cross-record topology conflicts must be
+  classified separately even if both eventually block resolution
+- relation identity basis must be explicit for accepted relation mappings
+- relation conflicts must be able to propagate outward into record or topology
+  classification when the ontology requires it
+- three-way relation reconciliation must compare:
+  - base endpoints
+  - source endpoints
+  - target endpoints
+  - relation-local aspect deltas
+
 ## Canonical Merge Artifact Rule
 
 There must be exactly one canonical merge-planning artifact in this milestone:
@@ -922,14 +1195,26 @@ Everything else derives from it.
 ### Required contents
 
 ```rust
-pub struct MergePlanningArtifact {
+pub struct MergePlanningArtifactCore {
     pub request: MergePlanningRequest,
     pub merge_base: ResolvedMergeBase,
     pub lowered_plan: LoweredMergePlan,
     pub decision_log: MergeDecisionLog,
-    pub explanation_surface: MergeExplanationSurface,
     pub metrics: MergePlanningMetrics,
     pub digest_basis: MergeArtifactDigestBasis,
+}
+```
+
+```rust
+pub struct MergePlanningArtifact {
+    pub core: MergePlanningArtifactCore,
+    pub attached_views: MergePlanningAttachedViews,
+}
+```
+
+```rust
+pub struct MergePlanningAttachedViews {
+    pub explanation_surface: MergeExplanationSurface,
 }
 ```
 
@@ -961,9 +1246,36 @@ The decision log must be sufficient to answer:
 If a future consumer cannot answer those questions from the canonical artifact,
 the milestone is incomplete.
 
+The lowered plan remains the sole actionable semantic authority.
+
+The decision log is explanatory and evidentiary only. It may explain why the
+plan exists, but it must never become a parallel actionable representation of
+merge semantics.
+
+## Partial-Conflict Deferral and Locality Preservation
+
+Partial-conflict acceptance is not part of Milestone 7B.
+
+This milestone plans merge semantics over the full request scope. If the plan
+contains unresolved conflicts, the request is not execution-ready for 7C.
+
+However, the ontology must preserve enough locality information that a later
+milestone can introduce region-scoped or locality-scoped partial merge
+admission without redesigning the core taxonomy.
+
+Required preservation rules:
+
+- conflict records must carry locality classification
+- relation conflicts must be able to escalate to region/topology-local conflict
+  classes
+- lowered plans must distinguish resolved actions from unresolved conflicts
+  without erasing locality
+- no current type may imply that "full-request conflict" is the only possible
+  future admission model
+
 ### Derived surfaces
 
-The following must derive from `MergePlanningArtifact`:
+The following must derive from `MergePlanningArtifactCore`:
 
 - explanation reports
 - serialization roundtrip parity
@@ -1043,6 +1355,7 @@ At minimum:
 - `merge_unresolved_conflict_count`
 - `merge_relation_rewire_candidate_count`
 - `merge_richer_shape_resolution_count`
+- `merge_planning_elapsed_nanos`
 
 ### Required complexity contracts
 
@@ -1072,6 +1385,11 @@ Each contract must declare:
 - if structural fingerprint matching requires broad scan fallback, that fallback
   must be explicit and counted
 
+`merge_planning_elapsed_nanos` is a diagnostic boundary metric, not the proof
+basis for complexity claims. Structural counters remain the authoritative cost
+model; elapsed time exists to help distinguish where the measured cost is being
+paid.
+
 ## Phase-by-Phase Implementation Plan
 
 This milestone should be built in ordered phases. Each phase lands only after
@@ -1095,9 +1413,10 @@ Close condition:
 
 Goal:
 
-- land `MergePlanningRequest`, `MergeDirection`, `MergeBaseSelectionRule`,
+- land `MergePlanningRequest`, `MergeBaseSelectionRule`,
   `ResolvedMergeBase`, `BranchCausalDot`, `CausalFrontier`, and
   `CommitCausalMetadata`
+- land schema-declared identity-basis types
 
 Close condition:
 
@@ -1111,6 +1430,7 @@ Goal:
 - land `MergeRecordIdentity`, `IdentityMatchCandidate`,
   `IdentityResolutionReason`, `IdentityMatchClass`, and
   `ValidatedIdentityMatchedMergePlan`
+- land deletion-classification and three-way identity interpretation rules
 
 Close condition:
 
@@ -1124,6 +1444,7 @@ Goal:
 - add merge-policy declarations to schema
 - lower them into `LoweredAspectMergePolicy`
 - enforce causal-capability requirements mechanically
+- define schema-transition and reconciliation behavior for merge-policy changes
 
 Close condition:
 
@@ -1136,6 +1457,7 @@ Goal:
 
 - implement typed conflict taxonomy and explicit policy resolution
 - no residual "merge conflict unknown" escape hatch
+- make relation-local vs topology-region conflict propagation explicit
 
 Close condition:
 
@@ -1147,7 +1469,7 @@ Close condition:
 Goal:
 
 - lower the resolved plan into `LoweredMergePlan`
-- build `MergePlanningArtifact`
+- build `MergePlanningArtifactCore`
 - add digest basis and decision log
 
 Close condition:
@@ -1185,6 +1507,9 @@ It must verify:
 - policy resolution is deterministic
 - lowered merge plans are deterministic
 - richer-aspect reconciliation is expressed canonically, not heuristically
+- schema-declared identity basis participation is deterministic
+- deletion/removal classification is deterministic
+- relation three-way reconciliation classification is deterministic
 
 Required machine-checkable outputs:
 
@@ -1196,6 +1521,8 @@ Required machine-checkable outputs:
 - `merge_policy_digest`
 - `merge_lowered_plan_digest`
 - `merge_decision_log_digest`
+- `merge_identity_basis_digest`
+- `merge_deletion_semantics_digest`
 
 ### Required regression suites
 
@@ -1213,20 +1540,21 @@ Required machine-checkable outputs:
 ### New public types
 
 - `MergePlanningRequest`
-- `MergeDirection`
 - `MergeIntent`
 - `MergePlanningArtifact`
 - `MergeExplanationSurface`
 - `MergeConflictClass`
 - `AspectMergePolicyDeclaration`
 - `AspectMergePolicyKind`
+- `IdentityBasisDeclaration`
+- `IdentityBasisKind`
+- `DeletionMergeClass`
 - `CausalFrontier`
 - `CommitCausalMetadata`
 
 ### New internal proof-bearing types
 
 - `HistoryScopedMergePlan`
-- `IdentityMatchedMergePlan`
 - `ValidatedIdentityMatchedMergePlan`
 - `CausallyAnnotatedMergePlan`
 - `ConflictClassifiedMergePlan`
@@ -1268,7 +1596,7 @@ Milestone 7B is complete only when:
 - identity matching, causal annotation, conflict classification, and policy
   resolution are structurally distinct and mechanically enforced
 - schema-declared merge policies lower into sealed runtime policy types
-- one canonical `MergePlanningArtifact` exists and all merge explanation and
+- one canonical `MergePlanningArtifactCore` exists and all merge explanation and
   certification surfaces derive from it
 - cost claims are visible through named counters and complexity contracts
 - the current branch-merge semantics stop relying on conversational meaning and

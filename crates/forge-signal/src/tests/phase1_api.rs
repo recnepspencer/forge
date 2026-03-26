@@ -6,6 +6,57 @@ use crate::easy::ReactiveGraph;
 use crate::facade::*;
 use crate::tests::support::*;
 
+const HOT_APPLY_SOURCE: &str = include_str!("../logic/evaluation/engine/apply.rs");
+const HOT_PREPARED_APPLY_SOURCE: &str =
+    include_str!("../logic/evaluation/engine/prepared_apply.rs");
+const HOT_SEMANTIC_FINALIZE_SOURCE: &str = include_str!("../logic/planner/semantic/mod.rs");
+const HOT_EFFECT_SOURCE: &str = include_str!("../data/graph/runtime/effect.rs");
+const HOT_SERIAL_BATCH_SOURCE: &str = include_str!("../logic/planner/apply/serial_batch.rs");
+const HOT_STAGE_SOURCE: &str = include_str!("../logic/planner/apply/stage.rs");
+const HOT_PLANNING_SOURCE: &str = include_str!("../logic/planner/planning/mod.rs");
+const HOT_VALIDATION_SOURCE: &str = include_str!("../logic/planner/planning/validation.rs");
+const HOT_PRECOMPUTE_SOURCE: &str = include_str!("../logic/planner/precompute/mod.rs");
+const HOT_CONTEXT_SOURCE: &str = include_str!("../logic/context.rs");
+const HOT_REUSE_CONTEXT_SOURCE: &str =
+    include_str!("../logic/evaluation/reuse/context_resolution.rs");
+const HOT_INVALIDATION_ROUTING_SOURCE: &str = include_str!("../logic/invalidation/routing.rs");
+const HOT_INVALIDATION_SUBSCRIPTION_SOURCE: &str =
+    include_str!("../logic/invalidation/subscription.rs");
+const PROOF_SOURCE: &str = include_str!("../data/proof.rs");
+const PLANNER_MODEL_SOURCE: &str = include_str!("../logic/planner/model/mod.rs");
+const SEMANTIC_SOURCE: &str = include_str!("../logic/planner/semantic/mod.rs");
+const WORKSPACE_SOURCE: &str = include_str!("../logic/planner/apply/workspace.rs");
+const PATCH_BUFFER_SOURCE: &str = include_str!("../logic/transaction/patch_buffer.rs");
+const MERGE_EXECUTE_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/merge/execute.rs");
+const MERGE_PLAN_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/merge/plan.rs");
+const MERGE_RUNTIME_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/branching/merge_runtime.rs");
+const BRANCHES_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/branching/branches.rs");
+const RUNTIME_STATE_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/runtime_state.rs");
+const SNAPSHOT_RESTORE_SOURCE: &str =
+    include_str!("../data/graph/diagnostics_access/artifacts.rs");
+const RUNTIME_SNAPSHOTTING_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/branching/snapshotting.rs");
+const CHECKPOINT_IMAGE_SOURCE: &str = include_str!("../data/node/checkpoint_image.rs");
+const STATE_SOURCE: &str = include_str!("../state/mod.rs");
+const PERFORMANCE_SUPPORT_SOURCE: &str = include_str!("./performance_support.rs");
+const PERFORMANCE_BASELINE_SOURCE: &str = include_str!("./performance_baseline.json");
+const ENTRIES_SOURCE: &str = include_str!("../data/graph/storage/entries.rs");
+const GRAPH_RUNTIME_SOURCE: &str = include_str!("../data/graph/runtime/graph.rs");
+const SLOT_SOURCE: &str = include_str!("../data/graph/storage/slot.rs");
+const DOT_SOURCE: &str = include_str!("../presentation/outputs/dot.rs");
+const HARNESS_BRIDGE_SOURCE: &str = include_str!("../presentation/harness/bridge.rs");
+const EXECUTION_FLOW_SOURCE: &str = include_str!("../diagnostics/runtime/execution_flow.rs");
+const RECORDER_SOURCE: &str = include_str!("../diagnostics/runtime/recorder.rs");
+const HISTORY_SOURCE: &str = include_str!("../diagnostics/inspection/history.rs");
+const SUMMARY_SOURCE: &str = include_str!("../diagnostics/model/summary.rs");
+const OBSERVER_SOURCE: &str = include_str!("../data/graph/runtime/observer.rs");
+const FACADE_SOURCE: &str = include_str!("../facade.rs");
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Domain {
     Cache,
@@ -38,6 +89,555 @@ fn runtime_builder_uses_expected_defaults() {
     assert_eq!(
         *runtime.config().fallback_comparator(),
         VersionComparatorPolicy::Exact
+    );
+}
+
+#[test]
+fn hot_apply_modules_do_not_use_broad_entry_accessors_for_reads() {
+    for (name, source) in [
+        ("apply", HOT_APPLY_SOURCE),
+        ("prepared_apply", HOT_PREPARED_APPLY_SOURCE),
+        ("semantic_finalize", HOT_SEMANTIC_FINALIZE_SOURCE),
+        ("serial_batch", HOT_SERIAL_BATCH_SOURCE),
+        ("planning", HOT_PLANNING_SOURCE),
+        ("planning_validation", HOT_VALIDATION_SOURCE),
+        ("precompute", HOT_PRECOMPUTE_SOURCE),
+    ] {
+        assert!(
+            !source.contains("get_entry("),
+            "{name} should use narrowed graph accessors instead of broad get_entry reads"
+        );
+        assert!(
+            !source.contains("get_entry_mut("),
+            "{name} should not require broad mutable entry access on the read-path seam"
+        );
+    }
+}
+
+#[test]
+fn maybe_stale_validation_path_uses_narrowed_hot_accessors() {
+    assert!(
+        !HOT_VALIDATION_SOURCE.contains("get_entry("),
+        "maybe-stale validation should not reintroduce broad entry reads"
+    );
+    assert!(
+        !HOT_VALIDATION_SOURCE.contains("RuntimeArtifactState"),
+        "maybe-stale validation should rely on hot artifact truth rather than broad runtime artifact state"
+    );
+    assert!(
+        HOT_VALIDATION_SOURCE.contains("node_runtime_artifact_hot("),
+        "maybe-stale validation should inspect changed scopes through the hot artifact lane"
+    );
+}
+
+#[test]
+fn hot_effect_runtime_path_avoids_broad_entry_reads() {
+    assert!(
+        !HOT_EFFECT_SOURCE.contains("get_entry("),
+        "runtime effect hot path should not use broad get_entry reads"
+    );
+    assert!(
+        !HOT_EFFECT_SOURCE.contains("node_runtime_artifact_state("),
+        "runtime effect hot path should inspect partition scope changes through the hot artifact lane"
+    );
+    assert_eq!(
+        HOT_EFFECT_SOURCE.matches("get_entry_mut(").count(),
+        0,
+        "runtime effect hot path should mutate through named graph transitions instead of broad mutable entry access"
+    );
+    assert!(
+        HOT_EFFECT_SOURCE.contains("node_runtime_artifact_structural_state("),
+        "runtime effect should derive previous lineage/hash/reuse truth through a narrowed graph accessor"
+    );
+    assert!(
+        HOT_EFFECT_SOURCE.contains("apply_node_artifact_write_delta("),
+        "runtime effect should publish runtime and retained artifact writes through a named graph operation"
+    );
+    assert!(
+        HOT_EFFECT_SOURCE.contains("transition_node_clean("),
+        "runtime effect suppression should clean nodes through a named graph transition"
+    );
+}
+
+#[test]
+fn invalidation_subscription_path_uses_narrowed_config_access() {
+    assert!(
+        !HOT_INVALIDATION_SUBSCRIPTION_SOURCE.contains("get_entry("),
+        "subscription invalidation should not materialize broad node entries for partition policy checks"
+    );
+    assert!(
+        HOT_INVALIDATION_SUBSCRIPTION_SOURCE.contains("node_eval_config("),
+        "subscription invalidation should inspect partitioned-output policy through narrowed config access"
+    );
+}
+
+#[test]
+fn execution_context_and_reuse_paths_use_narrowed_graph_accessors() {
+    for (name, source) in [
+        ("context", HOT_CONTEXT_SOURCE),
+        ("reuse_context", HOT_REUSE_CONTEXT_SOURCE),
+    ] {
+        assert!(
+            !source.contains("get_entry("),
+            "{name} should not rely on broad entry reads for execution-time version or config access"
+        );
+    }
+    assert!(
+        HOT_CONTEXT_SOURCE.contains("node_aspect_version("),
+        "evaluation context should read aspect versions through the narrowed graph accessor"
+    );
+    assert!(
+        HOT_CONTEXT_SOURCE.contains("node_partitioned_aspect_version("),
+        "evaluation context should read partitioned versions through the narrowed graph accessor"
+    );
+    assert!(
+        HOT_REUSE_CONTEXT_SOURCE.contains("node_eval_config("),
+        "reuse boundary resolution should derive comparator/config truth through the named graph accessor"
+    );
+}
+
+#[test]
+fn invalidation_routing_uses_named_node_transitions() {
+    assert!(
+        !HOT_INVALIDATION_ROUTING_SOURCE.contains("get_entry("),
+        "invalidation routing should not use broad entry reads"
+    );
+    assert!(
+        !HOT_INVALIDATION_ROUTING_SOURCE.contains("get_entry_mut("),
+        "invalidation routing should mutate node state through named graph transitions"
+    );
+    assert!(
+        HOT_INVALIDATION_ROUTING_SOURCE.contains("transition_node_dirty("),
+        "invalidation routing should use the named dirty transition"
+    );
+    assert!(
+        HOT_INVALIDATION_ROUTING_SOURCE.contains("transition_node_maybe_stale("),
+        "invalidation routing should use the named maybe-stale transition"
+    );
+}
+
+#[test]
+fn hot_stage_path_avoids_broad_entry_reads() {
+    assert!(
+        !HOT_STAGE_SOURCE.contains("get_entry("),
+        "stage lowering should use narrowed graph accessors instead of broad get_entry reads"
+    );
+    assert!(
+        !HOT_STAGE_SOURCE.contains("get_entry_mut("),
+        "stage lowering should not require broad mutable entry access on the read-path seam"
+    );
+}
+
+#[test]
+fn gate3_finalize_paths_use_compact_artifact_images_instead_of_broad_runtime_state_snapshots() {
+    for (name, source) in [
+        ("semantic_finalize", HOT_SEMANTIC_FINALIZE_SOURCE),
+        ("serial_batch", HOT_SERIAL_BATCH_SOURCE),
+        ("stage", HOT_STAGE_SOURCE),
+    ] {
+        assert!(
+            !source.contains("RuntimeArtifactState"),
+            "{name} should not depend on broad RuntimeArtifactState in the finalize/apply carrier path"
+        );
+        assert!(
+            !source.contains("node_runtime_artifact_state("),
+            "{name} should not read broad runtime artifact state on the narrowed finalize/apply path"
+        );
+        assert!(
+            source.contains("RuntimeArtifactFinalizeImage")
+                || source.contains("node_runtime_artifact_finalize_image("),
+            "{name} should consume the compact finalize image explicitly"
+        );
+    }
+}
+
+#[test]
+fn gate4_stage_snapshot_commit_path_keeps_classified_snapshot_proofs() {
+    assert!(
+        HOT_STAGE_SOURCE.contains("apply_classified_snapshot_batch_commit("),
+        "stage-owned snapshot publication should commit the already-classified proof form instead of reclassifying a generic batch late"
+    );
+    assert!(
+        !HOT_STAGE_SOURCE.contains("apply_snapshot_batch_commit(stage_scratch.pending_snapshots)"),
+        "stage-owned snapshot publication should not collapse back to generic snapshot batches once classification has occurred"
+    );
+}
+
+#[test]
+fn snapshot_proof_entries_are_not_publicly_forgeable() {
+    assert!(
+        PROOF_SOURCE.contains("pub struct PendingStableShapeSnapshotCommit {\r\n    node: NodeId,\r\n    update: VersionOnlySnapshotUpdate,\r\n    delta: SnapshotDeltaRecord,")
+            || PROOF_SOURCE.contains("pub struct PendingStableShapeSnapshotCommit {\n    node: NodeId,\n    update: VersionOnlySnapshotUpdate,\n    delta: SnapshotDeltaRecord,"),
+        "stable-shape snapshot proof entries should keep their fields private"
+    );
+    assert!(
+        PROOF_SOURCE.contains("pub struct PendingReplacementSnapshotCommit {\r\n    node: NodeId,\r\n    update: ReplacementSnapshotUpdate,\r\n    delta: SnapshotDeltaRecord,")
+            || PROOF_SOURCE.contains("pub struct PendingReplacementSnapshotCommit {\n    node: NodeId,\n    update: ReplacementSnapshotUpdate,\n    delta: SnapshotDeltaRecord,"),
+        "replacement snapshot proof entries should keep their fields private"
+    );
+}
+
+#[test]
+fn lowered_execution_and_semantic_packets_use_constructors_instead_of_open_field_assembly() {
+    assert!(
+        PLANNER_MODEL_SOURCE.contains("impl LoweredTaskExecution"),
+        "lowered execution should be mediated through an implementation boundary instead of remaining a raw field bag"
+    );
+    assert!(
+        !HOT_STAGE_SOURCE.contains("LoweredTaskExecution {"),
+        "stage lowering should construct lowered execution through its constructor rather than open field assembly"
+    );
+    assert!(
+        HOT_STAGE_SOURCE.contains("LoweredTaskExecution::new("),
+        "stage lowering should explicitly establish the lowered execution carrier through its constructor"
+    );
+    assert!(
+        !HOT_STAGE_SOURCE.contains("SemanticTaskUpdate {"),
+        "grouped apply reduction should construct semantic updates through a constructor rather than open field assembly"
+    );
+    assert!(
+        SEMANTIC_SOURCE.contains("impl SemanticTaskUpdate"),
+        "semantic update packets should be mediated through an implementation boundary"
+    );
+    assert!(
+        HOT_SERIAL_BATCH_SOURCE.contains("ReadySerialFinalizeBatch::new("),
+        "serial finalize readiness should be established through a constructor after width and snapshot checks"
+    );
+    assert!(
+        !HOT_SERIAL_BATCH_SOURCE.contains("Ok(ReadySerialFinalizeBatch {"),
+        "serial finalize readiness should not fall back to open struct assembly after proof checks"
+    );
+    assert!(
+        WORKSPACE_SOURCE.contains("impl ConcurrentWorkerInput"),
+        "parallel worker packets should be mediated through a construction boundary"
+    );
+    assert!(
+        WORKSPACE_SOURCE.contains("impl ConcurrentApplyGroupInput"),
+        "parallel grouped-input packets should be mediated through a construction boundary"
+    );
+    assert!(
+        WORKSPACE_SOURCE.contains("impl GroupLocalTaskCommit"),
+        "group-local commit packets should be mediated through a construction boundary"
+    );
+    assert!(
+        WORKSPACE_SOURCE.contains("impl StageScratch"),
+        "stage scratch should be mediated through owned transitions rather than open field access"
+    );
+    assert!(
+        HOT_STAGE_SOURCE.contains("ConcurrentWorkerInput::new("),
+        "parallel stage lowering should construct worker packets through their constructor"
+    );
+    assert!(
+        HOT_STAGE_SOURCE.contains("ConcurrentApplyGroupInput::new("),
+        "parallel stage lowering should construct grouped-input packets through their constructor"
+    );
+    assert!(
+        HOT_STAGE_SOURCE.contains("GroupLocalTaskCommit::new("),
+        "group-local apply packets should construct task commits through their constructor"
+    );
+    assert!(
+        HOT_STAGE_SOURCE.contains("StageScratch::new("),
+        "stage scratch should be constructed through its constructor on the grouped-apply path"
+    );
+    assert!(
+        PLANNER_MODEL_SOURCE.contains("impl LoweredTask"),
+        "lowered task packets should be mediated through an implementation boundary"
+    );
+    assert!(
+        PLANNER_MODEL_SOURCE.contains("fn execution(&self) -> &LoweredTaskExecution"),
+        "lowered task execution should be accessed through an accessor rather than a crate-visible field"
+    );
+    assert!(
+        !PLANNER_MODEL_SOURCE.contains("pub(crate) execution: LoweredTaskExecution"),
+        "lowered task should not expose its execution carrier as a crate-visible field"
+    );
+    assert!(
+        HOT_STAGE_SOURCE.contains("LoweredTask::new("),
+        "stage lowering should construct lowered tasks through their constructor"
+    );
+    assert!(
+        !HOT_STAGE_SOURCE.contains("Ok(LoweredTask {"),
+        "stage lowering should not fall back to open lowered-task assembly"
+    );
+    assert!(
+        HOT_STAGE_SOURCE.contains("LoweredStagePlan::new("),
+        "lowered stage plans should be constructed through their constructor"
+    );
+    assert!(
+        !HOT_STAGE_SOURCE.contains("Ok(LoweredStagePlan {"),
+        "stage lowering should not fall back to open lowered-stage assembly"
+    );
+}
+
+#[test]
+fn gate5_rollback_and_merge_paths_use_checkpoint_node_images_as_authority_boundary() {
+    assert!(
+        PATCH_BUFFER_SOURCE.contains("original: CheckpointNodeImage"),
+        "transaction rollback patches should retain canonical checkpoint node images instead of raw NodeEntry clones"
+    );
+    assert!(
+        PATCH_BUFFER_SOURCE.contains("node_checkpoint_image("),
+        "transaction rollback should capture authority through the explicit checkpoint-image graph accessor"
+    );
+    assert!(
+        PATCH_BUFFER_SOURCE.contains("replace_entry_from_checkpoint_image("),
+        "transaction rollback should restore touched nodes through the checkpoint-image boundary"
+    );
+    assert!(
+        !PATCH_BUFFER_SOURCE.contains("original: NodeEntry"),
+        "transaction rollback should not keep raw NodeEntry snapshots as its authoritative rollback packet"
+    );
+    assert!(
+        MERGE_EXECUTE_SOURCE.contains("node_checkpoint_image("),
+        "merge adoption should request authority through the explicit checkpoint-image graph accessor"
+    );
+    assert!(
+        MERGE_EXECUTE_SOURCE.contains("create_node_from_checkpoint_image("),
+        "merge adoption should materialize introduced nodes through the checkpoint-image boundary"
+    );
+    assert!(
+        MERGE_EXECUTE_SOURCE.contains("replace_entry_from_checkpoint_image("),
+        "merge adoption should rewrite existing targets through the checkpoint-image boundary"
+    );
+    assert!(
+        !MERGE_EXECUTE_SOURCE.contains("NodeEntry::from_checkpoint_image("),
+        "merge adoption should not bounce checkpoint authority back through broad NodeEntry reconstruction"
+    );
+    assert!(
+        MERGE_EXECUTE_SOURCE.contains("entry_image.set_eval_config("),
+        "merge adoption should carry evaluation contract through the checkpoint image packet itself"
+    );
+    assert!(
+        !MERGE_EXECUTE_SOURCE.contains("get_entry_mut("),
+        "merge adoption should not fall back to broad mutable entry mutation after checkpoint-image materialization"
+    );
+    assert!(
+        MERGE_RUNTIME_SOURCE.contains("replace_entry_from_checkpoint_image("),
+        "branch merge reconciliation should rewrite existing targets through the checkpoint-image boundary"
+    );
+    assert!(
+        MERGE_RUNTIME_SOURCE.contains("node_checkpoint_image("),
+        "branch merge reconciliation should request checkpoint authority through the explicit graph checkpoint-image accessor"
+    );
+    assert!(
+        !MERGE_RUNTIME_SOURCE.contains(".replace_entry(target_node, replacement)"),
+        "branch merge reconciliation should not fall back to direct whole-entry replacement"
+    );
+    assert!(
+        !MERGE_RUNTIME_SOURCE.contains("get_runtime_artifact_state()"),
+        "branch merge planning should not read broad runtime artifact state when hot/warm lane projections are available"
+    );
+    assert!(
+        MERGE_RUNTIME_SOURCE.contains("node_runtime_artifact_hot(")
+            && MERGE_RUNTIME_SOURCE.contains("node_runtime_artifact_warm("),
+        "branch merge planning should derive merge comparability from explicit hot and warm artifact lanes"
+    );
+}
+
+#[test]
+fn gate5_snapshot_restore_uses_classified_snapshot_commit_boundary() {
+    assert!(
+        SNAPSHOT_RESTORE_SOURCE.contains("checkpoint_image")
+            && SNAPSHOT_RESTORE_SOURCE.contains("dependency_snapshot_batch")
+            && SNAPSHOT_RESTORE_SOURCE.contains(".classify()"),
+        "snapshot restore planning should retain the classified checkpoint-carried dependency snapshot rebuild batch rather than only a generic batch form"
+    );
+    assert!(
+        SNAPSHOT_RESTORE_SOURCE.contains("apply_classified_snapshot_batch_commit("),
+        "snapshot restore execution should rebuild dependency snapshot state through the classified snapshot commit boundary"
+    );
+    assert!(
+        SNAPSHOT_RESTORE_SOURCE.contains("restore_plan.checkpoint_restore_batch().clone_inner()"),
+        "snapshot restore rebuild should consume the already-classified restore-plan batch instead of reclassifying the checkpoint batch late"
+    );
+    assert!(
+        !SNAPSHOT_RESTORE_SOURCE.contains("dependency_snapshot_batch\n                        .clone()\n                        .classify()")
+            && !SNAPSHOT_RESTORE_SOURCE.contains("dependency_snapshot_batch\r\n                        .clone()\r\n                        .classify()"),
+        "snapshot restore rebuild should not reclassify dependency snapshot batches during execution"
+    );
+    assert!(
+        !SNAPSHOT_RESTORE_SOURCE.contains("apply_snapshot_batch_commit(\r\n                        snapshot.checkpoint_image.dependency_snapshot_batch.clone(),")
+            && !SNAPSHOT_RESTORE_SOURCE.contains("apply_snapshot_batch_commit(\n                        snapshot.checkpoint_image.dependency_snapshot_batch.clone(),"),
+        "snapshot restore execution should not fall back to the generic snapshot batch commit path"
+    );
+    assert!(
+        RUNTIME_SNAPSHOTTING_SOURCE.contains("apply_classified_snapshot_batch_commit("),
+        "runtime branch snapshot restore should rebuild dependency snapshot state through the classified snapshot commit boundary"
+    );
+    assert!(
+        RUNTIME_SNAPSHOTTING_SOURCE.contains("restore_plan.checkpoint_restore_batch().clone_inner()"),
+        "runtime branch snapshot restore should consume the already-classified restore-plan batch instead of reclassifying the checkpoint batch late"
+    );
+    assert!(
+        !RUNTIME_SNAPSHOTTING_SOURCE.contains("dependency_snapshot_batch\n                        .clone()\n                        .classify()")
+            && !RUNTIME_SNAPSHOTTING_SOURCE.contains("dependency_snapshot_batch\r\n                        .clone()\r\n                        .classify()"),
+        "runtime branch snapshot restore should not reclassify dependency snapshot batches during execution"
+    );
+    assert!(
+        !RUNTIME_SNAPSHOTTING_SOURCE.contains("apply_snapshot_batch_commit(\r\n                        snapshot.checkpoint_image.dependency_snapshot_batch.clone(),")
+            && !RUNTIME_SNAPSHOTTING_SOURCE.contains("apply_snapshot_batch_commit(\n                        snapshot.checkpoint_image.dependency_snapshot_batch.clone(),"),
+        "runtime branch snapshot restore should not fall back to the generic snapshot batch commit path"
+    );
+}
+
+#[test]
+fn checkpoint_authority_image_fields_are_sealed_behind_methods() {
+    assert!(
+        CHECKPOINT_IMAGE_SOURCE.contains("pub struct CheckpointNodeImage {\n    state: NodeState,")
+            || CHECKPOINT_IMAGE_SOURCE.contains("pub struct CheckpointNodeImage {\r\n    state: NodeState,"),
+        "checkpoint authority image should keep its storage fields private"
+    );
+    assert!(
+        !CHECKPOINT_IMAGE_SOURCE.contains("pub state:"),
+        "checkpoint authority image should not expose raw state fields"
+    );
+    assert!(
+        !CHECKPOINT_IMAGE_SOURCE.contains("pub dependencies_id:")
+            && !CHECKPOINT_IMAGE_SOURCE.contains("pub runtime_artifact_state:")
+            && !CHECKPOINT_IMAGE_SOURCE.contains("pub retained_artifact:")
+            && !CHECKPOINT_IMAGE_SOURCE.contains("pub causality:")
+            && !CHECKPOINT_IMAGE_SOURCE.contains("pub eval_config:"),
+        "checkpoint authority image should not expose forgeable public fields"
+    );
+    assert!(
+        CHECKPOINT_IMAGE_SOURCE.contains("pub(crate) fn set_eval_config(")
+            && CHECKPOINT_IMAGE_SOURCE.contains("pub(crate) fn set_runtime_artifact_state(")
+            && CHECKPOINT_IMAGE_SOURCE.contains("pub(crate) fn clear_dependency_handles_for_adoption("),
+        "checkpoint authority image mutation should be mediated through crate-scoped methods"
+    );
+}
+
+#[test]
+fn snapshot_restore_plan_separates_restore_proof_from_delta_accounting() {
+    assert!(
+        STATE_SOURCE.contains("pub struct CheckpointRestoreSnapshotBatch")
+            && STATE_SOURCE.contains("classified: ClassifiedSnapshotBatchCommit"),
+        "restore plan should name the classified checkpoint rebuild proof explicitly"
+    );
+    assert!(
+        STATE_SOURCE.contains("pub struct RestoreDeltaAccounting")
+            && STATE_SOURCE.contains("dependency_snapshot_delta_node_count: u64"),
+        "restore plan should name delta accounting separately from the rebuild proof"
+    );
+    assert!(
+        STATE_SOURCE.contains("checkpoint_restore_batch: CheckpointRestoreSnapshotBatch")
+            && STATE_SOURCE.contains("delta_accounting: RestoreDeltaAccounting"),
+        "snapshot restore plan should carry distinct proof and accounting fields"
+    );
+    assert!(
+        STATE_SOURCE.contains("intent: SnapshotRestoreIntent")
+            && STATE_SOURCE.contains("shared_node_count: u64")
+            && STATE_SOURCE.contains("current_only_node_count: u64")
+            && STATE_SOURCE.contains("snapshot_only_node_count: u64")
+            && STATE_SOURCE.contains("coarse_replacement_required: bool")
+            && STATE_SOURCE.contains("coarse_reasons: Vec<SnapshotRestoreCoarseReason>"),
+        "snapshot restore plan should keep its restore-structure fields private"
+    );
+    assert!(
+        STATE_SOURCE.contains("pub fn checkpoint_restore_batch(&self) -> &CheckpointRestoreSnapshotBatch")
+            && STATE_SOURCE.contains("pub fn dependency_snapshot_delta_node_count(&self) -> u64")
+            && STATE_SOURCE.contains("pub fn shared_node_count(&self) -> u64")
+            && STATE_SOURCE.contains("pub fn current_only_node_count(&self) -> u64")
+            && STATE_SOURCE.contains("pub fn snapshot_only_node_count(&self) -> u64")
+            && STATE_SOURCE.contains("pub fn coarse_replacement_required(&self) -> bool")
+            && STATE_SOURCE.contains("pub fn coarse_reasons(&self) -> &[SnapshotRestoreCoarseReason]"),
+        "snapshot restore plan should expose restore proof and accounting only through explicit accessors"
+    );
+}
+
+#[test]
+fn merge_runtime_uses_sealed_projection_accessors_instead_of_rederiving_lane_state() {
+    assert!(
+        MERGE_RUNTIME_SOURCE.contains("struct NodeMergeProjection"),
+        "merge runtime should define a single projection for merge-comparable state"
+    );
+    assert!(
+        MERGE_RUNTIME_SOURCE.contains("fn node_merge_projection("),
+        "merge runtime should centralize merge projection assembly behind one accessor"
+    );
+    assert!(
+        !MERGE_RUNTIME_SOURCE.contains("node_merge_comparable(")
+            && !MERGE_RUNTIME_SOURCE.contains("node_lineage_artifact_id(")
+            && !MERGE_RUNTIME_SOURCE.contains("node_merge_authority("),
+        "merge runtime should not fall back to separate comparable, lineage, and authority helpers"
+    );
+}
+
+#[test]
+fn merge_planning_packets_are_mediated_through_constructors_and_accessors() {
+    assert!(
+        MERGE_PLAN_SOURCE.contains("impl NodeMergeInputState")
+            && MERGE_PLAN_SOURCE.contains("impl NodeMergePlan")
+            && MERGE_PLAN_SOURCE.contains("impl LoweredMergePlan"),
+        "merge planning packet families should be mediated through implementation boundaries"
+    );
+    assert!(
+        !MERGE_RUNTIME_SOURCE.contains("NodeMergePlan {")
+            && !MERGE_RUNTIME_SOURCE.contains("NodeMergeInputState {")
+            && !MERGE_RUNTIME_SOURCE.contains("LoweredMergePlan {"),
+        "merge runtime should not assemble merge planning packets by open struct literal"
+    );
+    assert!(
+        MERGE_RUNTIME_SOURCE.contains("NodeMergePlan::new(")
+            && MERGE_RUNTIME_SOURCE.contains("NodeMergeInputState::new(")
+            && MERGE_RUNTIME_SOURCE.contains("LoweredMergePlan::new("),
+        "merge runtime should construct merge planning packets through their constructors"
+    );
+}
+
+#[test]
+fn branch_snapshot_restore_packets_are_mediated_through_transition_helpers() {
+    assert!(
+        BRANCHES_SOURCE.contains("SnapshotBranchState")
+            && BRANCHES_SOURCE.contains("into_branch_state("),
+        "snapshot branch state should expose an explicit rehydration transition"
+    );
+    assert!(
+        RUNTIME_SNAPSHOTTING_SOURCE.contains("snapshot_state.into_branch_state("),
+        "branch snapshot restore should rebuild stored branch state through the snapshot transition helper"
+    );
+    assert!(
+        !RUNTIME_SNAPSHOTTING_SOURCE.contains("let mut state = BranchState {")
+            && !RUNTIME_SNAPSHOTTING_SOURCE.contains("let state = BranchState {"),
+        "branch snapshot restore should not hand-assemble branch state by struct literal"
+    );
+    assert!(
+        !RUNTIME_SNAPSHOTTING_SOURCE.contains("(snapshot, branch_catalog, state.clone())")
+            && !RUNTIME_SNAPSHOTTING_SOURCE.contains("store_branch_state(branch.id, branch_state)")
+            && !RUNTIME_SNAPSHOTTING_SOURCE.contains("store_branch_state(snapshot.meta.branch_id,")
+            && !RUNTIME_SNAPSHOTTING_SOURCE.contains("insert_snapshot(snapshot.meta.snapshot_id,")
+            && !MERGE_RUNTIME_SOURCE.contains("store_branch_state(request.target_branch.id,")
+            && !MERGE_RUNTIME_SOURCE.contains("insert_snapshot(\n            merged_snapshot,")
+            && !MERGE_RUNTIME_SOURCE.contains("insert_snapshot(\r\n            merged_snapshot,")
+            && !RUNTIME_STATE_SOURCE.contains("store_branch_state(current.id,"),
+        "inactive branch snapshot capture should not clone and re-store a full BranchState after mutating it in place"
+    );
+    assert!(
+        RUNTIME_STATE_SOURCE.contains("AuthorityTransferPacket")
+            && RUNTIME_STATE_SOURCE.contains("RestoreTransferPacket")
+            && RUNTIME_STATE_SOURCE.contains("ExplicitBranchForkPacket")
+            && RUNTIME_STATE_SOURCE.contains("pub fn new(branch_id: SignalBranchId, state: BranchState")
+            && (RUNTIME_STATE_SOURCE.contains("pub fn new(\n        source_branch: SignalBranchId,")
+                || RUNTIME_STATE_SOURCE.contains("pub fn new(\r\n        source_branch: SignalBranchId,")),
+        "branch lifecycle transfer packets should be mediated through implementation boundaries"
+    );
+    assert!(
+        !RUNTIME_SNAPSHOTTING_SOURCE.contains("RestoreTransferPacket {")
+            && !MERGE_RUNTIME_SOURCE.contains("AuthorityTransferPacket {")
+            && !RUNTIME_SNAPSHOTTING_SOURCE.contains("AuthorityTransferPacket {")
+            && !RUNTIME_STATE_SOURCE.contains("AuthorityTransferPacket { branch_id")
+            && !RUNTIME_STATE_SOURCE.contains("RestoreTransferPacket { branch_id")
+            && !BRANCHES_SOURCE.contains("pub authority:")
+            && !BRANCHES_SOURCE.contains("pub derived:")
+            && !BRANCHES_SOURCE.contains("pub ancestry:")
+            && !BRANCHES_SOURCE.contains("pub mutation_ledger:")
+            && !BRANCHES_SOURCE.contains("pub branch_id:")
+            && !BRANCHES_SOURCE.contains("pub parent_branch_id:")
+            && !BRANCHES_SOURCE.contains("pub forked_from_snapshot_id:")
+            && !BRANCHES_SOURCE.contains("pub latest_merge_reference:")
+            && BRANCHES_SOURCE.contains("pub(in crate::logic::transaction::runtime) struct SnapshotStatePacket")
+            && BRANCHES_SOURCE.contains("pub fn packet(self, snapshot_id: SignalSnapshotId) -> SnapshotStatePacket"),
+        "branch lifecycle transfer packets should not be assembled by open struct literal on runtime paths"
     );
 }
 
@@ -483,6 +1083,100 @@ fn runtime_telemetry_exposes_performance_counter_surface() {
 }
 
 #[test]
+fn performance_harness_emits_allocation_and_footprint_metrics() {
+    assert!(
+        PERFORMANCE_SUPPORT_SOURCE.contains("#[global_allocator]")
+            && PERFORMANCE_SUPPORT_SOURCE.contains("StatsAlloc")
+            && PERFORMANCE_SUPPORT_SOURCE.contains("INSTRUMENTED_SYSTEM"),
+        "performance harness should provide a process-wide allocation instrumentation surface for certification runs"
+    );
+    assert!(
+        PERFORMANCE_SUPPORT_SOURCE.contains("\"allocation_metrics\"")
+            && PERFORMANCE_SUPPORT_SOURCE.contains("\"allocated_bytes\"")
+            && PERFORMANCE_SUPPORT_SOURCE.contains("\"peak_live_bytes\"")
+            && PERFORMANCE_SUPPORT_SOURCE.contains("\"access_counters\""),
+        "performance harness should emit allocation, heap-footprint, and compatibility-access counters with each perf sample"
+    );
+    assert!(
+        PERFORMANCE_SUPPORT_SOURCE.contains("PERF_ALLOC_LOCK")
+            && PERFORMANCE_SUPPORT_SOURCE.contains("Region::new(GLOBAL_ALLOCATOR)")
+            && PERFORMANCE_SUPPORT_SOURCE.contains("snapshot_allocation_stats(&region)")
+            && PERFORMANCE_SUPPORT_SOURCE.contains("FORGE_SIGNAL_UPDATE_PERF_BASELINE")
+            && PERFORMANCE_SUPPORT_SOURCE.contains("performance_baseline.json"),
+        "allocation instrumentation should serialize perf measurements and persist a checked baseline/delta certification surface"
+    );
+}
+
+#[test]
+fn node_storage_is_physically_split_into_index_addressed_lanes() {
+    assert!(
+        GRAPH_RUNTIME_SOURCE.contains("pub(in crate::data::graph) hot: Vec<Option<NodeHotData>>")
+            && GRAPH_RUNTIME_SOURCE.contains("pub(in crate::data::graph) warm: Vec<NodeWarmData>")
+            && GRAPH_RUNTIME_SOURCE.contains("pub(in crate::data::graph) cold: Vec<Option<Box<NodeColdData>>>"),
+        "node arena should store hot, warm, and cold node lanes explicitly"
+    );
+    assert!(
+        !SLOT_SOURCE.contains("Option<NodeEntry>"),
+        "slot metadata should no longer store whole NodeEntry payloads inline"
+    );
+    assert!(
+        ENTRIES_SOURCE.contains("NodeEntry::from_storage_parts(")
+            && ENTRIES_SOURCE.contains("entry.into_storage_parts()"),
+        "broad NodeEntry access should now be compatibility assembly over split node lanes"
+    );
+}
+
+#[test]
+fn performance_profiles_are_baseline_gated_not_report_only() {
+    assert!(
+        PERFORMANCE_SUPPORT_SOURCE.contains("capture_and_certify_perf_samples")
+            && PERFORMANCE_SUPPORT_SOURCE.contains("certify_against_baseline")
+            && PERFORMANCE_SUPPORT_SOURCE.contains("performance_baseline.json"),
+        "ignored performance profiles should certify against a committed baseline artifact"
+    );
+    assert!(
+        PERFORMANCE_BASELINE_SOURCE.contains("\"version\"")
+            && PERFORMANCE_BASELINE_SOURCE.contains("\"cases\""),
+        "performance baseline artifact should be present in-repo for certification runs"
+    );
+}
+
+#[test]
+fn gate6_broad_entry_access_is_visibility_restricted_and_boundary_reads_are_explicit() {
+    assert!(
+        ENTRIES_SOURCE.contains("pub(crate) fn get_entry(")
+            && ENTRIES_SOURCE.contains("pub(crate) fn get_entry_mut("),
+        "broad entry accessors should be crate-visible compatibility seams, not public API"
+    );
+    assert!(
+        !ENTRIES_SOURCE.contains("pub fn get_entry(")
+            && !ENTRIES_SOURCE.contains("pub fn get_entry_mut("),
+        "broad entry accessors should no longer be exported publicly"
+    );
+    assert!(
+        DOT_SOURCE.contains("node_condition(")
+            && HARNESS_BRIDGE_SOURCE.contains("node_eval_config(")
+            && EXECUTION_FLOW_SOURCE.contains("node_lineage_artifact_id(")
+            && RECORDER_SOURCE.contains("stamp_runtime_artifact_lineage_and_execution(")
+            && HISTORY_SOURCE.contains("node_execution_trace_stamp(")
+            && SUMMARY_SOURCE.contains("node_runtime_artifact_state_present("),
+        "boundary modules should move onto explicit graph accessors instead of relying on public broad entry assembly"
+    );
+    assert!(
+        !FACADE_SOURCE.contains("NodeEntry,"),
+        "public facade types should not re-export broad NodeEntry compatibility storage"
+    );
+    assert!(
+        !FACADE_SOURCE.contains("RuntimeArtifactState,"),
+        "public facade types should not re-export broad RuntimeArtifactState compatibility state"
+    );
+    assert!(
+        !OBSERVER_SOURCE.contains("pub fn runtime_artifact_state("),
+        "graph observer should not expose broad runtime artifact compatibility state on the public API"
+    );
+}
+
+#[test]
 fn proof_bearing_form_families_exist_as_real_types() {
     fn assert_canonical<T: CanonicalForm>() {}
     fn assert_resolved<T: ResolvedForm>() {}
@@ -765,30 +1459,36 @@ fn observer_exposes_runtime_and_retained_artifacts_separately() {
         .unwrap();
 
     assert_eq!(
-        runtime.output_identity.as_ref().map(|id| id.as_str()),
+        runtime.output_identity().map(|id| id.as_str()),
         Some("wing-surface")
     );
     assert_eq!(
-        runtime
-            .continuity_token
-            .as_ref()
-            .map(|token| token.as_str()),
+        runtime.continuity_token().map(|token| token.as_str()),
         Some("wing-lineage")
     );
-    assert_eq!(runtime.memoized_origin, MemoizedResultOrigin::DirectCompute);
-    assert_eq!(runtime.reuse_basis.clone_inner(), ReuseBasis::fresh_compute());
+    assert_eq!(
+        runtime.memoized_origin(),
+        MemoizedResultOrigin::DirectCompute
+    );
+    assert_eq!(
+        runtime.reuse_basis().clone_inner(),
+        ReuseBasis::fresh_compute()
+    );
     assert_eq!(retained.labels, vec!["forensic".to_owned()]);
     assert_eq!(historical.node, node);
-    assert_eq!(historical.runtime.output_identity, runtime.output_identity);
     assert_eq!(
-        historical.runtime.reuse_basis.clone_inner(),
-        runtime.reuse_basis.clone_inner()
+        historical.runtime.output_identity().cloned(),
+        runtime.output_identity().cloned()
+    );
+    assert_eq!(
+        historical.runtime.reuse_basis().clone_inner(),
+        runtime.reuse_basis().clone_inner()
     );
     assert_eq!(
         historical.retained.as_ref().unwrap().labels,
         retained.labels
     );
-    assert_eq!(trace.reuse_basis, runtime.reuse_basis.clone_inner());
+    assert_eq!(trace.reuse_basis, runtime.reuse_basis().clone_inner());
     assert_eq!(
         historical
             .causality
@@ -828,7 +1528,7 @@ fn observer_exposes_runtime_and_retained_artifacts_separately() {
         .unwrap();
     assert_eq!(
         runtime_only_trace.output_hash,
-        runtime_only_state.output_hash,
+        runtime_only_state.output_hash(),
         "cold trace assembly should derive from runtime truth even when retained richness is absent"
     );
 }

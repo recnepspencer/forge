@@ -1,3 +1,3 @@
 pub(crate) mod commit;
-pub(crate) mod merge;
+pub(crate) mod intent_merge;
 pub(crate) mod mutation;

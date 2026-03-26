@@ -697,9 +697,7 @@ fn replay_issue_layer(
     }
 }
 
-fn replay_history_drift_class(
-    mismatch_class: ReplayMismatchClass,
-) -> Option<HistoryDriftClass> {
+fn replay_history_drift_class(mismatch_class: ReplayMismatchClass) -> Option<HistoryDriftClass> {
     match mismatch_class {
         ReplayMismatchClass::HistoryDrift => Some(HistoryDriftClass::ReplayAuthorityDrift),
         _ => None,

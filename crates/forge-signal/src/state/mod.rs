@@ -1,12 +1,12 @@
 use std::collections::{BTreeMap, VecDeque};
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::data::core_profile::CORE_STORAGE_PROFILE_ID;
 use crate::data::graph::SignalGraph;
 use crate::data::graph::{DependencyEdgeStore, SubscriberEdgeStore};
-use crate::data::node::NodeEntry;
-use crate::data::proof::SnapshotBatchCommit;
+use crate::data::node::{CheckpointNodeImage, NodeEntry};
+use crate::data::proof::{ClassifiedSnapshotBatchCommit, SnapshotBatchCommit};
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
 use crate::diagnostics::flow::FlowSummary;
@@ -109,17 +109,111 @@ pub enum SnapshotRestoreCoarseReason {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct CheckpointRestoreSnapshotBatch {
+    classified: ClassifiedSnapshotBatchCommit,
+}
+
+impl CheckpointRestoreSnapshotBatch {
+    pub(crate) fn new(classified: ClassifiedSnapshotBatchCommit) -> Self {
+        Self { classified }
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) fn classified(&self) -> &ClassifiedSnapshotBatchCommit {
+        &self.classified
+    }
+
+    pub(crate) fn clone_inner(&self) -> ClassifiedSnapshotBatchCommit {
+        self.classified.clone()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RestoreDeltaAccounting {
+    dependency_snapshot_delta_node_count: u64,
+}
+
+impl RestoreDeltaAccounting {
+    pub(crate) fn new(dependency_snapshot_delta_node_count: u64) -> Self {
+        Self {
+            dependency_snapshot_delta_node_count,
+        }
+    }
+
+    pub(crate) fn dependency_snapshot_delta_node_count(self) -> u64 {
+        self.dependency_snapshot_delta_node_count
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 /// Proof-bearing restore plan describing how much of a restore can be lowered
 /// as shared-node delta work versus still requiring a coarse replacement boundary.
 pub struct SnapshotRestorePlan {
-    pub intent: SnapshotRestoreIntent,
-    pub shared_node_count: u64,
-    pub current_only_node_count: u64,
-    pub snapshot_only_node_count: u64,
-    pub dependency_snapshot_batch: SnapshotBatchCommit,
-    pub dependency_snapshot_delta_node_count: u64,
-    pub coarse_replacement_required: bool,
-    pub coarse_reasons: Vec<SnapshotRestoreCoarseReason>,
+    intent: SnapshotRestoreIntent,
+    shared_node_count: u64,
+    current_only_node_count: u64,
+    snapshot_only_node_count: u64,
+    checkpoint_restore_batch: CheckpointRestoreSnapshotBatch,
+    delta_accounting: RestoreDeltaAccounting,
+    coarse_replacement_required: bool,
+    coarse_reasons: Vec<SnapshotRestoreCoarseReason>,
+}
+
+impl SnapshotRestorePlan {
+    pub(crate) fn new(
+        intent: SnapshotRestoreIntent,
+        shared_node_count: u64,
+        current_only_node_count: u64,
+        snapshot_only_node_count: u64,
+        checkpoint_restore_batch: CheckpointRestoreSnapshotBatch,
+        delta_accounting: RestoreDeltaAccounting,
+        coarse_replacement_required: bool,
+        coarse_reasons: Vec<SnapshotRestoreCoarseReason>,
+    ) -> Self {
+        Self {
+            intent,
+            shared_node_count,
+            current_only_node_count,
+            snapshot_only_node_count,
+            checkpoint_restore_batch,
+            delta_accounting,
+            coarse_replacement_required,
+            coarse_reasons,
+        }
+    }
+
+    pub fn checkpoint_restore_batch(&self) -> &CheckpointRestoreSnapshotBatch {
+        &self.checkpoint_restore_batch
+    }
+
+    pub fn intent(&self) -> SnapshotRestoreIntent {
+        self.intent
+    }
+
+    pub fn shared_node_count(&self) -> u64 {
+        self.shared_node_count
+    }
+
+    pub fn current_only_node_count(&self) -> u64 {
+        self.current_only_node_count
+    }
+
+    pub fn snapshot_only_node_count(&self) -> u64 {
+        self.snapshot_only_node_count
+    }
+
+    pub fn dependency_snapshot_delta_node_count(&self) -> u64 {
+        self.delta_accounting.dependency_snapshot_delta_node_count()
+    }
+
+    pub fn coarse_replacement_required(&self) -> bool {
+        self.coarse_replacement_required
+    }
+
+    pub fn coarse_reasons(&self) -> &[SnapshotRestoreCoarseReason] {
+        &self.coarse_reasons
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -145,9 +239,34 @@ pub struct SignalSnapshotDiagnostics {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SignalCheckpointSlot {
-    pub entry: Option<NodeEntry>,
+    #[serde(
+        default,
+        alias = "entry",
+        deserialize_with = "deserialize_checkpoint_slot_node"
+    )]
+    pub node: Option<CheckpointNodeImage>,
     pub generation: u32,
     pub retired: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+enum CheckpointSlotNodeRepr {
+    Image(CheckpointNodeImage),
+    Legacy(NodeEntry),
+}
+
+fn deserialize_checkpoint_slot_node<'de, D>(
+    deserializer: D,
+) -> Result<Option<CheckpointNodeImage>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let repr = Option::<CheckpointSlotNodeRepr>::deserialize(deserializer)?;
+    Ok(repr.map(|repr| match repr {
+        CheckpointSlotNodeRepr::Image(image) => image,
+        CheckpointSlotNodeRepr::Legacy(entry) => entry.to_checkpoint_image(),
+    }))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -306,5 +425,108 @@ impl SignalSnapshotV1 {
             ))
         })?;
         Ok(record.proof())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{SignalCheckpointAuthority, SignalCheckpointSlot};
+    use crate::data::graph::{DependencyEdgeStore, SubscriberEdgeStore};
+    use crate::data::node::NodeEntry;
+    use crate::diagnostics::state::DiagnosticsState;
+
+    #[derive(serde::Serialize)]
+    struct LegacyCheckpointSlot {
+        entry: Option<NodeEntry>,
+        generation: u32,
+        retired: bool,
+    }
+
+    #[derive(serde::Serialize)]
+    struct LegacyCheckpointArena {
+        slots: Vec<LegacyCheckpointSlot>,
+        free_list: Vec<u32>,
+        active_nodes: u32,
+    }
+
+    #[derive(serde::Serialize)]
+    struct LegacyCheckpointTopology {
+        dependency_edges: DependencyEdgeStore,
+        subscriber_edges: SubscriberEdgeStore,
+    }
+
+    #[derive(serde::Serialize)]
+    struct LegacyCheckpointAuthority {
+        arena: LegacyCheckpointArena,
+        topology: LegacyCheckpointTopology,
+        diagnostics: DiagnosticsState,
+    }
+
+    #[test]
+    fn checkpoint_slot_deserializes_legacy_entry_payload() {
+        let legacy = LegacyCheckpointSlot {
+            entry: Some(NodeEntry::new()),
+            generation: 7,
+            retired: false,
+        };
+
+        let encoded = serde_json::to_vec(&legacy).expect("serialize legacy checkpoint slot");
+        let decoded: SignalCheckpointSlot =
+            serde_json::from_slice(&encoded).expect("deserialize legacy checkpoint slot");
+
+        assert!(
+            decoded.node.is_some(),
+            "legacy entry payload should be bridged"
+        );
+        assert_eq!(decoded.generation, 7);
+        assert!(!decoded.retired);
+    }
+
+    #[test]
+    fn checkpoint_authority_deserializes_legacy_entry_payloads() {
+        let legacy = LegacyCheckpointAuthority {
+            arena: LegacyCheckpointArena {
+                slots: vec![LegacyCheckpointSlot {
+                    entry: Some(NodeEntry::new()),
+                    generation: 3,
+                    retired: false,
+                }],
+                free_list: Vec::new(),
+                active_nodes: 1,
+            },
+            topology: LegacyCheckpointTopology {
+                dependency_edges: DependencyEdgeStore::default(),
+                subscriber_edges: SubscriberEdgeStore::default(),
+            },
+            diagnostics: DiagnosticsState::default(),
+        };
+
+        let encoded = serde_json::to_vec(&legacy).expect("serialize legacy checkpoint authority");
+        let decoded: SignalCheckpointAuthority =
+            serde_json::from_slice(&encoded).expect("deserialize legacy checkpoint authority");
+
+        assert_eq!(decoded.arena.active_nodes, 1);
+        assert_eq!(decoded.arena.slots.len(), 1);
+        assert!(decoded.arena.slots[0].node.is_some());
+    }
+
+    #[test]
+    fn checkpoint_slot_serializes_new_node_image_boundary() {
+        let slot = SignalCheckpointSlot {
+            node: Some(NodeEntry::new().to_checkpoint_image()),
+            generation: 11,
+            retired: false,
+        };
+
+        let encoded = serde_json::to_value(&slot).expect("serialize checkpoint slot");
+
+        assert!(
+            encoded.get("node").is_some(),
+            "current checkpoint schema must serialize the explicit node image boundary"
+        );
+        assert!(
+            encoded.get("entry").is_none(),
+            "current checkpoint schema must not emit the legacy in-memory entry field"
+        );
     }
 }

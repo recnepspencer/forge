@@ -531,6 +531,73 @@ impl<'runtime> PerformanceAccess<'runtime> {
         });
     }
 
+    pub(crate) fn count_merge_planning_request(
+        &self,
+        schema_kinds: usize,
+        target_commits: usize,
+        source_commits: usize,
+        target_records: usize,
+        source_records: usize,
+    ) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.merge_planning_requests += 1;
+            counters.merge_planning_schema_kinds_snapshotted += schema_kinds;
+            counters.merge_planning_target_commits_scoped += target_commits;
+            counters.merge_planning_source_commits_scoped += source_commits;
+            counters.merge_planning_target_records_scoped += target_records;
+            counters.merge_planning_source_records_scoped += source_records;
+        });
+    }
+
+    pub(crate) fn count_merge_identity_discovery(
+        &self,
+        candidates: usize,
+        declarations: usize,
+    ) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.merge_identity_candidates_discovered += candidates;
+            counters.merge_identity_effective_declarations += declarations;
+        });
+    }
+
+    pub(crate) fn count_merge_identity_target_indexing(&self, scanned: usize, indexed: usize) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.merge_identity_target_records_scanned += scanned;
+            counters.merge_identity_target_records_indexed += indexed;
+        });
+    }
+
+    pub(crate) fn count_merge_conflict_classification(&self, records: usize) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.merge_conflict_records_classified += records;
+        });
+    }
+
+    pub(crate) fn count_merge_causal_annotation(&self, records: usize) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.merge_causal_records_annotated += records;
+        });
+    }
+
+    pub(crate) fn count_merge_policy_resolution(&self, records: usize) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.merge_policy_records_resolved += records;
+        });
+    }
+
+    pub(crate) fn count_merge_lowering(&self, lowered_records: usize, decision_log_width: usize) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.merge_lowered_records_emitted += lowered_records;
+            counters.merge_decision_log_width += decision_log_width;
+        });
+    }
+
+    pub(crate) fn count_merge_planning_elapsed(&self, elapsed_nanos: u128) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.merge_planning_elapsed_nanos += elapsed_nanos;
+        });
+    }
+
     pub(crate) fn count_descriptor_version_mismatch(&self) {
         self.runtime.services.instrumentation.count(|counters| {
             counters.descriptor_version_mismatches_encountered += 1;

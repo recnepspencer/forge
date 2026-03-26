@@ -9,12 +9,14 @@ use crate::data::output::{ChangedRegion, PartitionSubscription};
 #[cfg(test)]
 use crate::data::trace::ArtifactMergeAuthority;
 use crate::data::trace::{
-    assemble_historical_artifact_record, assemble_trace_summary_with_execution,
-    ArtifactWriteDelta, CausalityMetadata, ExecutionTraceStamp, HistoricalArtifactRecord,
-    RetainedDiagnosticArtifact, RuntimeArtifactState, TraceSummary,
+    assemble_historical_artifact_record, assemble_trace_summary_with_execution, ArtifactWriteDelta,
+    CausalityMetadata, ExecutionTraceStamp, HistoricalArtifactRecord, RetainedDiagnosticArtifact,
+    RuntimeArtifactState, TraceSummary,
 };
 
 use super::condition::NodeEvaluationConfig;
+use super::checkpoint_image::CheckpointNodeImageParts;
+use super::CheckpointNodeImage;
 
 /// Three-state invalidation for a signal node.
 ///
@@ -34,41 +36,56 @@ pub enum NodeState {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-struct NodeColdData {
+pub(crate) struct NodeColdData {
     #[serde(default)]
-    retained_artifact: Option<RetainedDiagnosticArtifact>,
+    pub(crate) retained_artifact: Option<RetainedDiagnosticArtifact>,
     #[serde(default)]
-    causality: Option<CausalityMetadata>,
+    pub(crate) causality: Option<CausalityMetadata>,
     #[serde(default)]
-    execution_trace: Option<ExecutionTraceStamp>,
+    pub(crate) execution_trace: Option<ExecutionTraceStamp>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub(crate) struct NodeHotData {
+    pub(crate) state: NodeState,
+    pub(crate) dirty_aspects: AspectMask,
+    #[serde(default)]
+    pub(crate) dirty_partition_scopes:
+        SmallVec<[(crate::data::aspect::Aspect, PartitionSubscription); HOT_VEC_INLINE_CAPACITY]>,
+    pub(crate) aspect_versions: PartitionVersionMap,
+    pub(crate) dependencies_id: DependencySetId,
+    pub(crate) subscribers_id: SubscriberSetId,
+    pub(crate) dep_snapshot_id: DependencySnapshotId,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub(crate) struct NodeWarmData {
+    #[serde(default)]
+    pub(crate) tombstoned: bool,
+    #[serde(default)]
+    pub(crate) runtime_artifact_state: Option<RuntimeArtifactState>,
+    #[serde(default)]
+    pub(crate) eval_config: NodeEvaluationConfig,
+}
+
+pub(crate) fn node_hot_inline_size_bytes() -> u64 {
+    std::mem::size_of::<NodeHotData>() as u64
+}
+
+pub(crate) fn node_warm_inline_size_bytes() -> u64 {
+    std::mem::size_of::<NodeWarmData>() as u64
 }
 
 /// Internal storage for a single signal node.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NodeEntry {
-    state: NodeState,
-    dirty_aspects: AspectMask,
-    #[serde(default)]
-    dirty_partition_scopes:
-        SmallVec<[(crate::data::aspect::Aspect, PartitionSubscription); HOT_VEC_INLINE_CAPACITY]>,
-    aspect_versions: PartitionVersionMap,
-    /// Handle to graph-owned dependency edge storage.
-    dependencies_id: DependencySetId,
-    /// Handle to graph-owned subscriber storage.
-    subscribers_id: SubscriberSetId,
-    /// Handle to graph-owned dependency snapshot storage.
-    dep_snapshot_id: DependencySnapshotId,
-    /// Whether this node has been tombstoned (deleted but not yet GC'd).
-    tombstoned: bool,
-    /// Hot operational artifact state retained directly on the node.
-    #[serde(default)]
-    runtime_artifact_state: Option<RuntimeArtifactState>,
+    #[serde(flatten)]
+    hot: NodeHotData,
+    #[serde(flatten)]
+    warm: NodeWarmData,
     /// Cold diagnostics- and explanation-facing data kept off the hot path.
     #[serde(default)]
     cold: Option<Box<NodeColdData>>,
-    /// Evaluation condition/config descriptor for this node.
-    #[serde(default)]
-    eval_config: NodeEvaluationConfig,
 }
 
 impl Default for NodeEntry {
@@ -81,28 +98,28 @@ impl NodeEntry {
     /// Create a new node entry in the `Dirty` state.
     pub fn new() -> Self {
         Self {
-            state: NodeState::Dirty,
-            dirty_aspects: AspectMask::from_bits(((1u32 << MAX_ASPECTS) - 1) as _),
-            dirty_partition_scopes: SmallVec::new(),
-            aspect_versions: PartitionVersionMap::zero(),
-            dependencies_id: DependencySetId::EMPTY,
-            subscribers_id: SubscriberSetId::EMPTY,
-            dep_snapshot_id: DependencySnapshotId::EMPTY,
-            tombstoned: false,
-            runtime_artifact_state: None,
+            hot: NodeHotData {
+                state: NodeState::Dirty,
+                dirty_aspects: AspectMask::from_bits(((1u32 << MAX_ASPECTS) - 1) as _),
+                dirty_partition_scopes: SmallVec::new(),
+                aspect_versions: PartitionVersionMap::zero(),
+                dependencies_id: DependencySetId::EMPTY,
+                subscribers_id: SubscriberSetId::EMPTY,
+                dep_snapshot_id: DependencySnapshotId::EMPTY,
+            },
+            warm: NodeWarmData::default(),
             cold: None,
-            eval_config: NodeEvaluationConfig::default(),
         }
     }
 
     /// The current state of this node.
     pub fn get_state(&self) -> &NodeState {
-        &self.state
+        &self.hot.state
     }
 
     /// Set the node state.
     pub fn set_state(&mut self, state: NodeState) {
-        self.state = state;
+        self.hot.state = state;
     }
 
     /// Transition to `Clean` and clear all dirty tracking.
@@ -114,8 +131,11 @@ impl NodeEntry {
 
     /// Transition to `Dirty` for one aspect and merge any scoped dirty regions.
     pub fn transition_dirty(&mut self, aspect: Aspect, scopes: &[PartitionSubscription]) {
-        let was_clean = matches!(self.state, NodeState::Clean);
-        let already_dirty_for_aspect = self.dirty_aspects.contains(AspectMask::from_aspect(aspect));
+        let was_clean = matches!(self.hot.state, NodeState::Clean);
+        let already_dirty_for_aspect = self
+            .hot
+            .dirty_aspects
+            .contains(AspectMask::from_aspect(aspect));
         self.set_state(NodeState::Dirty);
         self.add_dirty_aspect(aspect);
         self.merge_dirty_partition_scopes(aspect, scopes, was_clean, already_dirty_for_aspect);
@@ -123,8 +143,11 @@ impl NodeEntry {
 
     /// Transition to `MaybeStale` for one aspect.
     pub fn transition_maybe_stale(&mut self, aspect: Aspect) {
-        let was_clean = matches!(self.state, NodeState::Clean);
-        let already_dirty_for_aspect = self.dirty_aspects.contains(AspectMask::from_aspect(aspect));
+        let was_clean = matches!(self.hot.state, NodeState::Clean);
+        let already_dirty_for_aspect = self
+            .hot
+            .dirty_aspects
+            .contains(AspectMask::from_aspect(aspect));
         self.set_state(NodeState::MaybeStale);
         self.add_dirty_aspect(aspect);
         if was_clean || !already_dirty_for_aspect {
@@ -134,40 +157,47 @@ impl NodeEntry {
 
     /// Dirty aspects currently pending recomputation for this node.
     pub fn get_dirty_aspects(&self) -> AspectMask {
-        self.dirty_aspects
+        self.hot.dirty_aspects
     }
 
     /// Replace the dirty aspect mask.
     pub fn set_dirty_aspects(&mut self, dirty_aspects: AspectMask) {
-        self.dirty_aspects = dirty_aspects;
+        self.hot.dirty_aspects = dirty_aspects;
     }
 
+    #[cfg(test)]
     pub fn get_dirty_partition_scopes(
         &self,
     ) -> SmallVec<[PartitionSubscription; HOT_VEC_INLINE_CAPACITY]> {
         self.dirty_partition_scopes().cloned().collect()
     }
 
+    #[cfg(test)]
     pub fn dirty_partition_scopes(&self) -> impl Iterator<Item = &PartitionSubscription> {
-        self.dirty_partition_scopes.iter().map(|(_, scope)| scope)
+        self.hot
+            .dirty_partition_scopes
+            .iter()
+            .map(|(_, scope)| scope)
     }
 
     pub fn clear_dirty_partition_scopes(&mut self) {
-        self.dirty_partition_scopes.clear();
+        self.hot.dirty_partition_scopes.clear();
     }
 
     pub fn get_dirty_partition_scopes_for(
         &self,
         aspect: crate::data::aspect::Aspect,
     ) -> impl Iterator<Item = &PartitionSubscription> {
-        self.dirty_partition_scopes
+        self.hot
+            .dirty_partition_scopes
             .iter()
             .filter(move |(candidate_aspect, _)| *candidate_aspect == aspect)
             .map(|(_, scope)| scope)
     }
 
     pub fn clear_dirty_partition_scopes_for(&mut self, aspect: crate::data::aspect::Aspect) {
-        self.dirty_partition_scopes
+        self.hot
+            .dirty_partition_scopes
             .retain(|(candidate_aspect, _)| *candidate_aspect != aspect);
     }
 
@@ -177,37 +207,39 @@ impl NodeEntry {
         scope: PartitionSubscription,
     ) {
         if !self
+            .hot
             .dirty_partition_scopes
             .iter()
             .any(|(candidate_aspect, candidate_scope)| {
                 *candidate_aspect == aspect && *candidate_scope == scope
             })
         {
-            self.dirty_partition_scopes.push((aspect, scope));
+            self.hot.dirty_partition_scopes.push((aspect, scope));
         }
     }
 
     /// Add one dirty aspect to the current mask.
     pub fn add_dirty_aspect(&mut self, aspect: crate::data::aspect::Aspect) {
-        self.dirty_aspects.insert(aspect);
+        self.hot.dirty_aspects.insert(aspect);
     }
 
     /// The current aspect versions.
     pub fn get_aspect_version(&self) -> AspectVersion {
-        self.aspect_versions.global()
+        self.hot.aspect_versions.global()
     }
 
+    #[cfg(test)]
     pub fn get_partitioned_aspect_version(&self, scope: &PartitionSubscription) -> AspectVersion {
-        self.aspect_versions.scoped(scope)
+        self.hot.aspect_versions.scoped(scope)
     }
 
     pub fn version_for_scope(&self, aspect: Aspect, scope: Option<&PartitionSubscription>) -> u64 {
-        self.aspect_versions.version_for_scope(aspect, scope)
+        self.hot.aspect_versions.version_for_scope(aspect, scope)
     }
 
     /// Set the aspect version after evaluation.
     pub fn set_aspect_version(&mut self, version: AspectVersion) {
-        self.aspect_versions.set_global(version);
+        self.hot.aspect_versions.set_global(version);
     }
 
     pub fn apply_aspect_version(
@@ -215,58 +247,66 @@ impl NodeEntry {
         version: AspectVersion,
         changed_regions: &[ChangedRegion],
     ) {
-        self.aspect_versions
+        self.hot
+            .aspect_versions
             .apply_evaluation(version, changed_regions);
     }
 
     /// Graph-owned dependency set handle.
     pub fn get_dependencies_id(&self) -> DependencySetId {
-        self.dependencies_id
+        self.hot.dependencies_id
     }
 
     /// Replace the dependency set handle.
     pub fn set_dependencies_id(&mut self, dependencies_id: DependencySetId) {
-        self.dependencies_id = dependencies_id;
+        self.hot.dependencies_id = dependencies_id;
     }
 
     /// Graph-owned subscriber set handle.
     pub fn get_subscribers_id(&self) -> SubscriberSetId {
-        self.subscribers_id
+        self.hot.subscribers_id
     }
 
     /// Replace the subscriber set handle.
     pub fn set_subscribers_id(&mut self, subscribers_id: SubscriberSetId) {
-        self.subscribers_id = subscribers_id;
+        self.hot.subscribers_id = subscribers_id;
     }
 
     /// The graph-owned dependency snapshot handle from the last clean evaluation.
     pub fn get_dep_snapshot_id(&self) -> DependencySnapshotId {
-        self.dep_snapshot_id
+        self.hot.dep_snapshot_id
     }
 
     /// Replace the dependency snapshot handle.
     pub fn set_dep_snapshot_id(&mut self, snapshot_id: DependencySnapshotId) {
-        self.dep_snapshot_id = snapshot_id;
+        self.hot.dep_snapshot_id = snapshot_id;
     }
 
     /// Whether this node is tombstoned.
     pub fn is_tombstoned(&self) -> bool {
-        self.tombstoned
+        self.warm.tombstoned
     }
 
     /// Mark this node as tombstoned.
+    #[cfg(test)]
     pub fn set_tombstoned(&mut self, tombstoned: bool) {
-        self.tombstoned = tombstoned;
+        self.warm.tombstoned = tombstoned;
     }
 
     /// The last operational artifact state.
     pub fn get_runtime_artifact_state(&self) -> Option<&RuntimeArtifactState> {
-        self.runtime_artifact_state.as_ref()
+        self.warm.runtime_artifact_state.as_ref()
     }
 
     /// Set or clear the runtime artifact state.
     pub fn set_runtime_artifact_state(&mut self, state: Option<RuntimeArtifactState>) {
-        self.runtime_artifact_state = state;
+        self.warm.runtime_artifact_state = state;
+    }
+
+    /// Mutably access the runtime artifact state when an operation needs to
+    /// update warm metadata in place without rebuilding the whole carrier.
+    pub fn runtime_artifact_state_mut(&mut self) -> Option<&mut RuntimeArtifactState> {
+        self.warm.runtime_artifact_state.as_mut()
     }
 
     /// Retained diagnostic artifact payload, if any.
@@ -281,7 +321,10 @@ impl NodeEntry {
 
     /// Assemble a cold historical artifact record from the published hot/cold
     /// facades for this node entry.
-    pub fn historical_artifact_record(&self, node: crate::data::handle::NodeId) -> Option<HistoricalArtifactRecord> {
+    pub fn historical_artifact_record(
+        &self,
+        node: crate::data::handle::NodeId,
+    ) -> Option<HistoricalArtifactRecord> {
         assemble_historical_artifact_record(
             node,
             self.get_runtime_artifact_state(),
@@ -307,11 +350,6 @@ impl NodeEntry {
     ) {
         self.cold_mut().retained_artifact = artifact;
         self.trim_cold_if_empty();
-    }
-
-    /// Set or clear the cold retained artifact record.
-    pub fn set_cold_artifact_record(&mut self, artifact: Option<RetainedDiagnosticArtifact>) {
-        self.set_retained_diagnostic_artifact(artifact);
     }
 
     /// Cold execution/segment stamp, if any.
@@ -341,37 +379,41 @@ impl NodeEntry {
                 let retained_changed_regions = crate::data::output::CanonicalChangedRegions::from(
                     summary.changed_regions.clone(),
                 );
-                self.runtime_artifact_state = Some(RuntimeArtifactState {
-                    output_hash: summary.output_hash,
-                    output_identity: summary.output_identity,
-                    continuity_token: crate::data::trace::ContinuityAuthorityToken::new(
-                        summary.continuity_token,
-                    ),
-                    output_change: summary.output_change,
-                    recomputed: summary.recomputed,
-                    dependency_count: summary.dependency_count,
-                    meaningful_input_changes: summary.meaningful_input_changes,
-                    changed_partition_count: summary.changed_partition_count,
-                    propagation_suppressed: summary.propagation_suppressed,
-                    changed_scopes: crate::data::trace::CompactChangedScopeProof::new(
-                        crate::data::proof::PartitionScopeSet::from_changed_regions(
-                            &retained_changed_regions,
+                self.warm.runtime_artifact_state = Some(RuntimeArtifactState::new(
+                    crate::data::trace::RuntimeArtifactHot {
+                        output_hash: summary.output_hash,
+                        output_change: summary.output_change,
+                        recomputed: summary.recomputed,
+                        dependency_count: summary.dependency_count,
+                        meaningful_input_changes: summary.meaningful_input_changes,
+                        changed_partition_count: summary.changed_partition_count,
+                        propagation_suppressed: summary.propagation_suppressed,
+                        changed_scopes: crate::data::trace::CompactChangedScopeProof::new(
+                            crate::data::proof::PartitionScopeSet::from_changed_regions(
+                                &retained_changed_regions,
+                            ),
                         ),
-                    ),
-                    memoized_origin: summary.memoized_origin,
-                    reuse_basis: crate::data::trace::ReuseOperationalBasis::new(
-                        summary.reuse_basis,
-                    ),
-                    reuse_origin: summary.reuse_origin,
-                    reuse_boundary_authority: summary
-                        .reuse_boundary_context
-                        .as_ref()
-                        .map(|context| context.authority()),
-                    lineage_artifact_id: crate::data::trace::ArtifactTransitionKey::new(
-                        summary.lineage_artifact_id,
-                    ),
-                    merge_authority: ArtifactMergeAuthority::default(),
-                });
+                    },
+                    crate::data::trace::RuntimeArtifactWarm {
+                        output_identity: summary.output_identity,
+                        continuity_token: crate::data::trace::ContinuityAuthorityToken::new(
+                            summary.continuity_token,
+                        ),
+                        memoized_origin: summary.memoized_origin,
+                        reuse_basis: crate::data::trace::ReuseOperationalBasis::new(
+                            summary.reuse_basis,
+                        ),
+                        reuse_origin: summary.reuse_origin,
+                        reuse_boundary_authority: summary
+                            .reuse_boundary_context
+                            .as_ref()
+                            .map(|context| context.authority()),
+                        lineage_artifact_id: crate::data::trace::ArtifactTransitionKey::new(
+                            summary.lineage_artifact_id,
+                        ),
+                        merge_authority: ArtifactMergeAuthority::default(),
+                    },
+                ));
                 self.set_execution_trace_stamp(Some(ExecutionTraceStamp {
                     execution_record_id: summary.execution_record_id,
                     semantic_segment_id: summary.semantic_segment_id,
@@ -397,7 +439,7 @@ impl NodeEntry {
                 }
             }
             None => {
-                self.runtime_artifact_state = None;
+                self.warm.runtime_artifact_state = None;
                 self.set_retained_diagnostic_artifact(None);
                 self.set_execution_trace_stamp(None);
             }
@@ -417,26 +459,69 @@ impl NodeEntry {
 
     /// Per-node evaluation policy descriptor.
     pub fn get_eval_config(&self) -> &NodeEvaluationConfig {
-        &self.eval_config
+        &self.warm.eval_config
     }
 
     /// Replace per-node evaluation policy descriptor.
     pub fn set_eval_config(&mut self, config: NodeEvaluationConfig) {
-        self.eval_config = config;
+        self.warm.eval_config = config;
     }
 
-    /// Strip cold retained artifact and causality payloads when capturing an
-    /// authority-only checkpoint image. These lanes remain available from the
-    /// rich snapshot diagnostics payload, but they are not semantic restore
-    /// truth.
-    pub(crate) fn strip_checkpoint_cold_lanes(&mut self) {
-        self.cold = None;
+    pub(crate) fn to_checkpoint_image(&self) -> CheckpointNodeImage {
+        CheckpointNodeImage::from_parts(CheckpointNodeImageParts {
+            state: self.hot.state,
+            dirty_aspects: self.hot.dirty_aspects,
+            dirty_partition_scopes: self.hot.dirty_partition_scopes.iter().cloned().collect(),
+            aspect_versions: self.hot.aspect_versions.clone(),
+            dependencies_id: self.hot.dependencies_id,
+            subscribers_id: self.hot.subscribers_id,
+            dep_snapshot_id: self.hot.dep_snapshot_id,
+            tombstoned: self.warm.tombstoned,
+            runtime_artifact_state: self.warm.runtime_artifact_state.clone(),
+            retained_artifact: self.cold_artifact_record().cloned(),
+            causality: self.get_causality().cloned(),
+            execution_trace: self.execution_trace_stamp(),
+            eval_config: self.warm.eval_config.clone(),
+        })
     }
 
-    /// Strip derived dependency snapshot state so restore must rebuild it from
-    /// the checkpoint proof lane instead of inheriting it from authority.
-    pub(crate) fn strip_checkpoint_dependency_snapshot_lane(&mut self) {
-        self.dep_snapshot_id = DependencySnapshotId::EMPTY;
+    pub(crate) fn from_checkpoint_image(image: CheckpointNodeImage) -> Self {
+        let image = image.into_parts();
+        let mut entry = Self {
+            hot: NodeHotData {
+                state: image.state,
+                dirty_aspects: image.dirty_aspects,
+                dirty_partition_scopes: image.dirty_partition_scopes.into_iter().collect(),
+                aspect_versions: image.aspect_versions,
+                dependencies_id: image.dependencies_id,
+                subscribers_id: image.subscribers_id,
+                dep_snapshot_id: image.dep_snapshot_id,
+            },
+            warm: NodeWarmData {
+                tombstoned: image.tombstoned,
+                runtime_artifact_state: image.runtime_artifact_state,
+                eval_config: image.eval_config,
+            },
+            cold: None,
+        };
+        entry.set_retained_diagnostic_artifact(image.retained_artifact);
+        entry.set_causality(image.causality);
+        entry.set_execution_trace_stamp(image.execution_trace);
+        entry
+    }
+
+    pub(crate) fn from_storage_parts(
+        hot: NodeHotData,
+        warm: NodeWarmData,
+        cold: Option<Box<NodeColdData>>,
+    ) -> Self {
+        Self { hot, warm, cold }
+    }
+
+    pub(crate) fn into_storage_parts(
+        self,
+    ) -> (NodeHotData, NodeWarmData, Option<Box<NodeColdData>>) {
+        (self.hot, self.warm, self.cold)
     }
 
     fn cold_mut(&mut self) -> &mut NodeColdData {
@@ -446,15 +531,11 @@ impl NodeEntry {
     }
 
     fn trim_cold_if_empty(&mut self) {
-        if self
-            .cold
-            .as_ref()
-            .is_some_and(|cold| {
-                cold.retained_artifact.is_none()
-                    && cold.causality.is_none()
-                    && cold.execution_trace.is_none()
-            })
-        {
+        if self.cold.as_ref().is_some_and(|cold| {
+            cold.retained_artifact.is_none()
+                && cold.causality.is_none()
+                && cold.execution_trace.is_none()
+        }) {
             self.cold = None;
         }
     }
@@ -484,5 +565,53 @@ impl NodeEntry {
         for scope in changed_scopes {
             self.add_dirty_partition_scope(changed_aspect, scope.clone());
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::NodeEntry;
+    use crate::data::aspect::{Aspect, AspectVersion};
+    use crate::data::output::{ChangedRegion, PartitionSubscription};
+    use crate::data::trace::{CausalityMetadata, RuntimeArtifactState};
+
+    #[test]
+    fn checkpoint_image_round_trips_node_entry() {
+        let mut entry = NodeEntry::new();
+        entry.transition_dirty(
+            Aspect::new(0),
+            &[PartitionSubscription::partition_and_detail(
+                "wing", "rib-12",
+            )],
+        );
+        entry.apply_aspect_version(
+            AspectVersion::from_updates([(Aspect::new(0), 7)]),
+            &[ChangedRegion::new("wing").with_detail("rib-12")],
+        );
+        entry.set_tombstoned(true);
+        let mut runtime = RuntimeArtifactState::default();
+        runtime.hot_mut().dependency_count = 3;
+        entry.set_runtime_artifact_state(Some(runtime));
+        entry.set_causality(Some(CausalityMetadata {
+            kind: "checkpoint-test".to_string(),
+            fields: Default::default(),
+        }));
+
+        let image = entry.to_checkpoint_image();
+        let restored = NodeEntry::from_checkpoint_image(image);
+
+        assert_eq!(restored.get_state(), entry.get_state());
+        assert_eq!(restored.get_dirty_aspects(), entry.get_dirty_aspects());
+        assert_eq!(
+            restored.get_dirty_partition_scopes(),
+            entry.get_dirty_partition_scopes()
+        );
+        assert_eq!(restored.get_aspect_version(), entry.get_aspect_version());
+        assert_eq!(restored.is_tombstoned(), entry.is_tombstoned());
+        assert_eq!(
+            restored.get_runtime_artifact_state(),
+            entry.get_runtime_artifact_state()
+        );
+        assert_eq!(restored.get_causality(), entry.get_causality());
     }
 }

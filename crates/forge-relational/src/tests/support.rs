@@ -86,15 +86,15 @@ mod savepoint;
 #[path = "support/schema.rs"]
 mod schema;
 
-pub(super) use durability::*;
-pub(super) use history::*;
-pub(super) use inspection::*;
-pub(super) use lineage::*;
-pub(super) use records::*;
-pub(super) use relation_integrity::*;
-pub(super) use runtime::*;
-pub(super) use savepoint::*;
-pub(super) use schema::*;
+pub(crate) use durability::*;
+pub(crate) use history::*;
+pub(crate) use inspection::*;
+pub(crate) use lineage::*;
+pub(crate) use records::*;
+pub(crate) use relation_integrity::*;
+pub(crate) use runtime::*;
+pub(crate) use savepoint::*;
+pub(crate) use schema::*;
 
 pub(super) fn certification_digest<T: Serialize>(value: &T) -> String {
     let bytes = serde_json::to_vec(value).expect("certification serialization");

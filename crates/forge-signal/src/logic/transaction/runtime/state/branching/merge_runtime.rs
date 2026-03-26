@@ -1,10 +1,13 @@
 use crate::data::dependency::DependencyEdge;
 use crate::data::error::SignalError;
+use crate::data::graph::SignalGraph;
+use crate::data::handle::NodeId;
+use crate::data::trace::{RuntimeArtifactHot, RuntimeArtifactWarm};
 use crate::state::{SignalBranchHandle, SnapshotArtifactRetentionPolicy};
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::super::merge::{
-    adopt_source_node_into_target, merge_comparable, remap_dependency_snapshot,
+    adopt_source_node_into_target, remap_dependency_snapshot,
     AdoptedNodeContract, AdoptionDependencySnapshotRef, AdoptionDependencyTopology,
     ArtifactMergeAction, BranchConflictResolutionPlan, BranchMergeBase,
     BranchMergeConflictEvidence, BranchMergeConflictKind, BranchMergeConflictRecord,
@@ -137,16 +140,13 @@ where
             )
         })?;
         let source_state = &source_state_owned;
-        let target_graph = &target_state.authority.graph;
+        let target_graph = target_state.graph();
         let target_snapshot_id_before =
             target_graph.branch_head_snapshot_id(request.target_branch.id);
-        let source_snapshot_id = source_state
-            .authority
-            .graph
-            .branch_head_snapshot_id(request.source_branch.id);
-        let merge_base_snapshot = source_state.ancestry.forked_from_snapshot_id;
+        let source_snapshot_id = source_state.graph().branch_head_snapshot_id(request.source_branch.id);
+        let merge_base_snapshot = source_state.ancestry().forked_from_snapshot_id();
         let mut node_map = MergeNodeMap::default();
-        if !source_state.mutation_ledger.boundary_established {
+        if !source_state.mutation_ledger().boundary_established {
             return Err(SignalError::branch_merge_failed(
                 BranchMergeFailureKind::UnsupportedMergeStrategy,
                 "branch merge requires an established mutation-journal boundary; whole-live branch scans are no longer admitted",
@@ -162,7 +162,7 @@ where
         };
         let source_journal = StructuralMergeJournalSlice::from_branch_journal(
             boundary_witness.clone(),
-            source_state.mutation_ledger.structural_merge_journal(),
+            source_state.mutation_ledger().structural_merge_journal(),
         );
         let source_nodes = source_journal.candidate_nodes();
         let planned_candidates = PlannedMergeCandidateSet {
@@ -181,7 +181,7 @@ where
                 conservative_overlap_nodes.insert(*source_node);
                 node_map.insert(*source_node, *source_node);
             }
-            for dependency in source_state.authority.graph.dependencies_of(*source_node)? {
+            for dependency in source_state.graph().dependencies_of(*source_node)? {
                 if target_graph.is_alive(dependency.source()) {
                     node_map.insert(dependency.source(), dependency.source());
                     if !planned_candidates.nodes.contains(&dependency.source()) {
@@ -191,8 +191,7 @@ where
                 }
             }
             for snapshot_entry in source_state
-                .authority
-                .graph
+                .graph()
                 .get_dep_snapshot(*source_node)?
                 .entries()
             {
@@ -212,7 +211,7 @@ where
         };
         let target_overlap_journal = crate::logic::transaction::BranchMutationJournalSlice {
             records: target_state
-                .mutation_ledger
+                .mutation_ledger()
                 .structural_merge_journal()
                 .records
                 .into_iter()
@@ -254,10 +253,10 @@ where
                 if !target_graph.is_alive(*source_node) {
                     continue;
                 }
-                let source_entry = source_state.authority.graph.get_entry(*source_node)?;
-                let target_entry = target_graph.get_entry(*source_node)?;
-                let source_cmp = merge_comparable(source_entry.get_runtime_artifact_state());
-                let target_cmp = merge_comparable(target_entry.get_runtime_artifact_state());
+                let source_cmp = node_merge_projection(source_state.graph(), *source_node)?
+                    .map(|projection| projection.comparable);
+                let target_cmp = node_merge_projection(target_graph, *source_node)?
+                    .map(|projection| projection.comparable);
                 let source_structural_record = source_journal
                     .records
                     .iter()
@@ -326,14 +325,29 @@ where
         let mut adoption_core = Vec::new();
         let mut adoption_policy = Vec::new();
         for source_node in source_nodes {
-            let source_entry = source_state.authority.graph.get_entry(source_node)?;
-            let source_runtime = source_entry.get_runtime_artifact_state();
-            let source_authority = source_runtime.map(|runtime| runtime.merge_authority.clone());
+            let source_projection =
+                node_merge_projection(source_state.graph(), source_node)?;
+            let source_cmp = source_projection
+                .as_ref()
+                .map(|projection| projection.comparable.clone());
+            let source_authority = source_projection
+                .as_ref()
+                .map(|projection| projection.authority.clone());
+            let source_artifact_id = source_projection
+                .as_ref()
+                .and_then(|projection| projection.current_artifact_id);
             if target_graph.is_alive(source_node) {
                 node_map.insert(source_node, source_node);
-                let target_entry = target_graph.get_entry(source_node)?;
-                let source_cmp = merge_comparable(source_runtime);
-                let target_cmp = merge_comparable(target_entry.get_runtime_artifact_state());
+                let target_projection = node_merge_projection(target_graph, source_node)?;
+                let target_cmp = target_projection
+                    .as_ref()
+                    .map(|projection| projection.comparable.clone());
+                let target_artifact_id = target_projection
+                    .as_ref()
+                    .and_then(|projection| projection.current_artifact_id);
+                let target_authority = target_projection
+                    .as_ref()
+                    .map(|projection| projection.authority.clone());
                 let resolved_conflict_kinds = resolved_conflict_kinds_by_node
                     .get(&source_node)
                     .cloned()
@@ -351,31 +365,26 @@ where
                 } else {
                     NodeReconciliationDecision::AdoptSourceAuthority
                 };
-                node_plan.push(NodeMergePlan {
+                node_plan.push(NodeMergePlan::new(
                     source_node,
-                    shape: NodeReconciliationShape::ExistingTargetNode {
+                    NodeReconciliationShape::ExistingTargetNode {
                         target_node: source_node,
                     },
-                    source_state: NodeMergeInputState {
-                        current_artifact_id: source_runtime
-                            .and_then(|runtime| runtime.lineage_artifact_id.get()),
-                        comparable: source_cmp,
-                        authority: source_authority.clone(),
-                        exists_in_branch: true,
-                    },
-                    target_state: NodeMergeInputState {
-                        current_artifact_id: target_entry
-                            .get_runtime_artifact_state()
-                            .and_then(|runtime| runtime.lineage_artifact_id.get()),
-                        comparable: target_cmp,
-                        authority: target_entry
-                            .get_runtime_artifact_state()
-                            .map(|runtime| runtime.merge_authority.clone()),
-                        exists_in_branch: true,
-                    },
+                    NodeMergeInputState::new(
+                        source_artifact_id,
+                        source_cmp.clone(),
+                        source_authority.clone(),
+                        true,
+                    ),
+                    NodeMergeInputState::new(
+                        target_artifact_id,
+                        target_cmp.clone(),
+                        target_authority,
+                        true,
+                    ),
                     decision,
                     resolved_conflict_kinds,
-                });
+                ));
             } else {
                 let authority = source_authority.unwrap_or_default();
                 let decision = if matches!(
@@ -386,44 +395,39 @@ where
                 } else {
                     NodeReconciliationDecision::SkipNonAdoptableSource
                 };
-                node_plan.push(NodeMergePlan {
+                node_plan.push(NodeMergePlan::new(
                     source_node,
-                    shape: NodeReconciliationShape::SourceOnlyIntroduction,
-                    source_state: NodeMergeInputState {
-                        current_artifact_id: source_runtime
-                            .and_then(|runtime| runtime.lineage_artifact_id.get()),
-                        comparable: merge_comparable(source_runtime),
-                        authority: Some(authority.clone()),
-                        exists_in_branch: true,
-                    },
-                    target_state: NodeMergeInputState {
-                        current_artifact_id: None,
-                        comparable: None,
-                        authority: None,
-                        exists_in_branch: false,
-                    },
+                    NodeReconciliationShape::SourceOnlyIntroduction,
+                    NodeMergeInputState::new(
+                        source_artifact_id,
+                        source_cmp.clone(),
+                        Some(authority.clone()),
+                        true,
+                    ),
+                    NodeMergeInputState::new(None, None, None, false),
                     decision,
-                    resolved_conflict_kinds: Vec::new(),
-                });
+                    Vec::new(),
+                ));
                 if matches!(decision, NodeReconciliationDecision::AdoptSourceAuthority) {
                     adoption_core.push(SourceNodeAdoptionPlanCore {
                         source_node,
                         target_identity: TargetNodeIdentityIntent::AllocateTargetNode,
                         authority,
                         entry_contract: AdoptedNodeContract {
-                            eval_config: source_entry.get_eval_config().clone(),
+                            eval_config: source_state
+                                .graph()
+                                .node_eval_config(source_node)?
+                                .clone(),
                         },
                         dependency_topology: AdoptionDependencyTopology {
                             dependencies: source_state
-                                .authority
-                                .graph
+                                .graph()
                                 .dependencies_of(source_node)?
                                 .to_vec(),
                         },
                         dependency_snapshot_ref: AdoptionDependencySnapshotRef {
                             snapshot: source_state
-                                .authority
-                                .graph
+                                .graph()
                                 .get_dep_snapshot(source_node)?
                                 .clone(),
                         },
@@ -437,9 +441,9 @@ where
             }
         }
 
-        Ok(LoweredMergePlan {
-            source_branch_id: request.source_branch.id,
-            target_branch_id: request.target_branch.id,
+        Ok(LoweredMergePlan::new(
+            request.source_branch.id,
+            request.target_branch.id,
             merge_kind,
             divergence,
             merge_strategy,
@@ -452,7 +456,7 @@ where
             planned_candidates,
             source_snapshot_id,
             target_snapshot_id_before,
-            merge_base: Some(BranchMergeBase {
+            Some(BranchMergeBase {
                 source_branch_id: request.source_branch.id,
                 target_branch_id: request.target_branch.id,
                 forked_from_snapshot_id: merge_base_snapshot,
@@ -464,7 +468,7 @@ where
             node_plan,
             adoption_core,
             adoption_policy,
-        })
+        ))
     }
 
     #[cfg(test)]
@@ -515,17 +519,17 @@ where
                 })?
         };
 
-        let mut node_map = plan.node_map.clone();
+        let mut node_map = plan.node_map().clone();
         let mut dependency_remaps = Vec::new();
         let mut records = Vec::new();
         let mut touched = BTreeSet::new();
         let mut repaired_sources = BTreeSet::new();
-        let target_snapshot_before = plan.target_snapshot_id_before;
+        let target_snapshot_before = plan.target_snapshot_id_before();
 
-        for (core, policy) in plan.adoption_core.iter().zip(plan.adoption_policy.iter()) {
+        for (core, policy) in plan.adoption_core().iter().zip(plan.adoption_policy().iter()) {
             let (materialized, remaps) = adopt_source_node_into_target(
-                &mut target_state.authority.graph,
-                &source_state.authority.graph,
+                target_state.graph_mut(),
+                source_state.graph(),
                 core,
                 policy,
                 &node_map,
@@ -536,59 +540,42 @@ where
             dependency_remaps.extend(remaps);
         }
 
-        for node_plan in &plan.node_plan {
-            match node_plan.shape {
+        for node_plan in plan.node_plan() {
+            match node_plan.shape() {
                 NodeReconciliationShape::ExistingTargetNode { target_node } => {
-                    let source_entry = source_state
-                        .authority
-                        .graph
-                        .get_entry(node_plan.source_node)?
-                        .clone();
-                    let mut replacement = source_entry.clone();
-                    replacement.set_dependencies_id(
-                        target_state
-                            .authority
-                            .graph
-                            .get_entry(target_node)?
-                            .get_dependencies_id(),
-                    );
+                    let source_image = source_state
+                        .graph()
+                        .node_checkpoint_image(node_plan.source_node())?;
+                    let mut replacement = source_image.clone();
+                    let (dependencies_id, dep_snapshot_id) = target_state
+                        .graph()
+                        .node_dependency_ids(target_node)?;
+                    replacement.set_dependencies_id(dependencies_id);
                     replacement.set_subscribers_id(
-                        target_state
-                            .authority
-                            .graph
-                            .get_entry(target_node)?
-                            .get_subscribers_id(),
+                        target_state.graph().node_subscribers_id(target_node)?,
                     );
-                    replacement.set_dep_snapshot_id(
-                        target_state
-                            .authority
-                            .graph
-                            .get_entry(target_node)?
-                            .get_dep_snapshot_id(),
-                    );
+                    replacement.set_dep_snapshot_id(dep_snapshot_id);
                     if matches!(
-                        node_plan.decision,
+                        node_plan.decision(),
                         NodeReconciliationDecision::AdoptSourceAuthority
                     ) {
                         repaired_sources.extend(
                             target_state
-                                .authority
-                                .graph
+                                .graph()
                                 .dependencies_of(target_node)?
                                 .iter()
                                 .map(|edge| edge.source()),
                         );
                         let mapped_edges = source_state
-                            .authority
-                            .graph
-                            .dependencies_of(node_plan.source_node)?
+                            .graph()
+                            .dependencies_of(node_plan.source_node())?
                             .iter()
                             .map(|edge| {
                                 let mapped = node_map.resolve(edge.source()).ok_or_else(|| {
                                     SignalError::invalid_input(format!(
                                         "merge plan has unresolved dependency remap {} for node {}",
                                         edge.source(),
-                                        node_plan.source_node
+                                        node_plan.source_node()
                                     ))
                                 })?;
                                 Ok(match edge.scope_ref().cloned() {
@@ -603,49 +590,43 @@ where
                             .collect::<Result<Vec<_>, SignalError>>()?;
                         repaired_sources.extend(mapped_edges.iter().map(|edge| edge.source()));
                         let remapped_snapshot = remap_dependency_snapshot(
-                            node_plan.source_node,
+                            node_plan.source_node(),
                             source_state
-                                .authority
-                                .graph
-                                .get_dep_snapshot(node_plan.source_node)?,
+                                .graph()
+                                .get_dep_snapshot(node_plan.source_node())?,
                             &node_map,
                         )?;
                         target_state
-                            .authority
-                            .graph
-                            .replace_entry(target_node, replacement)?;
+                            .graph_mut()
+                            .replace_entry_from_checkpoint_image(target_node, replacement)?;
                         target_state
-                            .authority
-                            .graph
+                            .graph_mut()
                             .set_dependencies(target_node, mapped_edges)?;
                         target_state
-                            .authority
-                            .graph
+                            .graph_mut()
                             .set_dep_snapshot(target_node, remapped_snapshot)?;
                         touched.insert(target_node);
                     } else if matches!(
-                        node_plan.decision,
+                        node_plan.decision(),
                         NodeReconciliationDecision::MarkEquivalentUnchanged
-                    ) && node_plan.resolved_conflict_kinds.iter().any(|kind| {
+                    ) && node_plan.resolved_conflict_kinds().iter().any(|kind| {
                         matches!(kind, BranchMergeConflictKind::DependencySnapshotMismatch)
                     }) {
                         let remapped_snapshot = remap_dependency_snapshot(
-                            node_plan.source_node,
+                            node_plan.source_node(),
                             source_state
-                                .authority
-                                .graph
-                                .get_dep_snapshot(node_plan.source_node)?,
+                                .graph()
+                                .get_dep_snapshot(node_plan.source_node())?,
                             &node_map,
                         )?;
                         target_state
-                            .authority
-                            .graph
+                            .graph_mut()
                             .set_dep_snapshot(target_node, remapped_snapshot)?;
                         touched.insert(target_node);
                     }
                 }
                 NodeReconciliationShape::SourceOnlyIntroduction => {
-                    if let Some(mapped) = node_map.resolve(node_plan.source_node) {
+                    if let Some(mapped) = node_map.resolve(node_plan.source_node()) {
                         touched.insert(mapped);
                     }
                 }
@@ -653,48 +634,50 @@ where
         }
 
         let merged_snapshot = {
-            let policy = target_state.authority.graph.runtime_policy();
+            let policy = target_state.graph().runtime_policy();
             let artifact_retention = SnapshotArtifactRetentionPolicy::from_runtime_policy(policy);
             let meta = target_state
-                .authority
-                .graph
+                .graph_mut()
                 .diagnostics_state_mut()
                 .allocate_snapshot_meta(policy, artifact_retention);
             target_state
-                .authority
-                .graph
+                .graph_mut()
                 .diagnostics_state_mut()
                 .set_branch_head_snapshot(request.target_branch.id, meta.snapshot_id);
             meta.snapshot_id
         };
 
         let target_snapshot_after = Some(merged_snapshot);
-        target_state.ancestry.latest_merge_reference = Some(LatestMergeReference {
-            source_branch_id: request.source_branch.id,
-            source_snapshot_id: plan.source_snapshot_id,
-            target_snapshot_id_before: target_snapshot_before,
-            target_snapshot_id_after: target_snapshot_after,
-            merge_kind: plan.merge_kind,
-            merge_strategy: plan.merge_strategy,
-        });
         target_state
-            .mutation_ledger
+            .ancestry_mut()
+            .set_latest_merge_reference(Some(LatestMergeReference::new(
+                request.source_branch.id,
+                plan.source_snapshot_id(),
+                target_snapshot_before,
+                target_snapshot_after,
+                plan.merge_kind(),
+                plan.merge_strategy(),
+            )));
+        target_state
+            .mutation_ledger_mut()
             .clear_all(target_snapshot_after);
-        target_state.authority.graph.clear_branch_mutation_nodes();
+        target_state.clear_branch_mutation_nodes();
 
-        for node_plan in &plan.node_plan {
-            let target_node = match node_plan.shape {
+        for node_plan in plan.node_plan() {
+            let target_node = match node_plan.shape() {
                 NodeReconciliationShape::ExistingTargetNode { target_node } => Some(target_node),
                 NodeReconciliationShape::SourceOnlyIntroduction => {
-                    node_map.resolve(node_plan.source_node)
+                    node_map.resolve(node_plan.source_node())
                 }
             };
-            let target_entry =
-                target_node.and_then(|node| target_state.authority.graph.get_entry(node).ok());
-            let action = match node_plan.shape {
+            let target_projection_after = target_node
+                .map(|node| node_merge_projection(target_state.graph(), node))
+                .transpose()?
+                .flatten();
+            let action = match node_plan.shape() {
                 NodeReconciliationShape::SourceOnlyIntroduction => {
                     if matches!(
-                        node_plan.decision,
+                        node_plan.decision(),
                         NodeReconciliationDecision::SkipNonAdoptableSource
                     ) {
                         ArtifactMergeAction::SkippedNonAdoptable
@@ -702,7 +685,7 @@ where
                         ArtifactMergeAction::IntroducedIntoTarget
                     }
                 }
-                NodeReconciliationShape::ExistingTargetNode { .. } => match node_plan.decision {
+                NodeReconciliationShape::ExistingTargetNode { .. } => match node_plan.decision() {
                     NodeReconciliationDecision::MarkEquivalentUnchanged => {
                         ArtifactMergeAction::EquivalentUnchanged
                     }
@@ -736,19 +719,20 @@ where
                 }
             };
             records.push(MergedArtifactRecord {
-                source_node: node_plan.source_node,
+                source_node: node_plan.source_node(),
                 target_node,
-                source_artifact_id: node_plan.source_state.current_artifact_id,
-                target_artifact_id_before: node_plan.target_state.current_artifact_id,
-                target_artifact_id_after: target_entry
-                    .and_then(|entry| entry.get_runtime_artifact_state())
-                    .and_then(|runtime| runtime.lineage_artifact_id.get()),
+                source_artifact_id: node_plan.source_state().current_artifact_id(),
+                target_artifact_id_before: node_plan.target_state().current_artifact_id(),
+                target_artifact_id_after: target_projection_after
+                    .as_ref()
+                    .and_then(|projection| projection.current_artifact_id),
                 action,
                 basis,
-                source_comparable: node_plan.source_state.comparable.clone(),
-                target_comparable: target_entry
-                    .and_then(|entry| merge_comparable(entry.get_runtime_artifact_state())),
-                resolved_conflict_kinds: node_plan.resolved_conflict_kinds.clone(),
+                source_comparable: node_plan.source_state().comparable().cloned(),
+                target_comparable: target_projection_after
+                    .as_ref()
+                    .map(|projection| projection.comparable.clone()),
+                resolved_conflict_kinds: node_plan.resolved_conflict_kinds().to_vec(),
             });
         }
 
@@ -757,14 +741,14 @@ where
             nodes: touched.into_iter().collect(),
         };
         let counters = BranchMergeCounters {
-            boundary_witness_kind: plan.boundary_witness.kind,
-            source_slice_breadth: plan.source_journal.breadth(),
-            proof_minimal_overlap_breadth: plan.proof_minimal_overlap.breadth(),
-            conservative_overlap_expansion_breadth: plan.conservative_overlap.breadth(),
-            final_candidate_breadth: plan.planned_candidates.breadth(),
-            reconciliation_breadth: plan.node_plan.len() as u64,
-            candidate_node_count: plan.node_plan.len() as u64,
-            examined_node_count: plan.node_plan.len() as u64,
+            boundary_witness_kind: plan.boundary_witness().kind,
+            source_slice_breadth: plan.source_journal().breadth(),
+            proof_minimal_overlap_breadth: plan.proof_minimal_overlap().breadth(),
+            conservative_overlap_expansion_breadth: plan.conservative_overlap().breadth(),
+            final_candidate_breadth: plan.planned_candidates().breadth(),
+            reconciliation_breadth: plan.node_plan().len() as u64,
+            candidate_node_count: plan.node_plan().len() as u64,
+            examined_node_count: plan.node_plan().len() as u64,
             adopted_count: records
                 .iter()
                 .filter(|record| matches!(record.action, ArtifactMergeAction::Adopted))
@@ -790,10 +774,10 @@ where
                 .filter(|record| matches!(record.action, ArtifactMergeAction::EquivalentUnchanged))
                 .count() as u64,
             source_only_count: plan
-                .node_plan
+                .node_plan()
                 .iter()
                 .filter(|node| {
-                    matches!(node.shape, NodeReconciliationShape::SourceOnlyIntroduction)
+                    matches!(node.shape(), NodeReconciliationShape::SourceOnlyIntroduction)
                 })
                 .count() as u64,
             target_only_count: 0,
@@ -803,21 +787,21 @@ where
             replay_event_count: 1,
         };
         let summary = BranchMergeExecutionSummary {
-            source_branch_id: plan.source_branch_id,
-            target_branch_id: plan.target_branch_id,
-            merge_kind: plan.merge_kind,
-            divergence: plan.divergence,
-            merge_strategy: plan.merge_strategy,
-            reconciliation_policy: plan.reconciliation_policy,
-            boundary_witness: plan.boundary_witness.clone(),
-            proof_minimal_overlap: plan.proof_minimal_overlap.clone(),
-            conservative_overlap: plan.conservative_overlap.clone(),
-            planned_candidates: plan.planned_candidates.clone(),
-            merge_base: plan.merge_base.clone(),
-            source_snapshot_id: plan.source_snapshot_id,
+            source_branch_id: plan.source_branch_id(),
+            target_branch_id: plan.target_branch_id(),
+            merge_kind: plan.merge_kind(),
+            divergence: plan.divergence(),
+            merge_strategy: plan.merge_strategy(),
+            reconciliation_policy: plan.reconciliation_policy().clone(),
+            boundary_witness: plan.boundary_witness().clone(),
+            proof_minimal_overlap: plan.proof_minimal_overlap().clone(),
+            conservative_overlap: plan.conservative_overlap().clone(),
+            planned_candidates: plan.planned_candidates().clone(),
+            merge_base: plan.merge_base().cloned(),
+            source_snapshot_id: plan.source_snapshot_id(),
             target_snapshot_id_before: target_snapshot_before,
             target_snapshot_id_after: target_snapshot_after,
-            resolution_plan: plan.resolution_plan.clone(),
+            resolution_plan: plan.resolution_plan().cloned(),
             node_map,
             records,
             dependency_remaps,
@@ -829,69 +813,63 @@ where
         };
 
         let merged_source_nodes = summary
-            .records
-            .iter()
-            .filter(|record| !matches!(record.action, ArtifactMergeAction::SkippedNonAdoptable))
-            .map(|record| record.source_node)
-            .collect::<Vec<_>>();
+                .records
+                .iter()
+                .filter(|record| !matches!(record.action, ArtifactMergeAction::SkippedNonAdoptable))
+                .map(|record| record.source_node)
+                .collect::<Vec<_>>();
+
+        let target_snapshot_packet =
+            crate::logic::transaction::runtime::state::branching::SnapshotBranchState::from_branch_state(&target_state)
+                .packet(merged_snapshot);
 
         if request.target_branch.id == self.graph.current_branch().id {
             self.apply_branch_lifecycle_transfer(
                 crate::logic::transaction::runtime::state::runtime_state::BranchLifecycleTransfer::Move(
-                    crate::logic::transaction::runtime::state::runtime_state::AuthorityTransferPacket {
-                    branch_id: request.target_branch.id,
-                    state: target_state.clone(),
-                    },
+                    crate::logic::transaction::runtime::state::runtime_state::AuthorityTransferPacket::new(
+                        request.target_branch.id,
+                        target_state,
+                    ),
                 ),
             )?;
+        } else {
+            self.branches.store_branch_state(target_state);
         }
-        self.branches
-            .store_branch_state(request.target_branch.id, target_state.clone());
         if request.source_branch.id == self.graph.current_branch().id {
             let mut updated_source_state = self.capture_heavy_branch_state();
             updated_source_state
-                .mutation_ledger
-                .clear_merged_nodes(merged_source_nodes.iter().copied(), plan.source_snapshot_id);
-            updated_source_state
-                .authority
-                .graph
-                .clear_branch_mutation_nodes();
+                .mutation_ledger_mut()
+                .clear_merged_nodes(
+                    merged_source_nodes.iter().copied(),
+                    plan.source_snapshot_id(),
+                );
+            updated_source_state.clear_branch_mutation_nodes();
             self.apply_branch_lifecycle_transfer(
                 crate::logic::transaction::runtime::state::runtime_state::BranchLifecycleTransfer::Move(
-                    crate::logic::transaction::runtime::state::runtime_state::AuthorityTransferPacket {
-                    branch_id: request.source_branch.id,
-                    state: updated_source_state,
-                    },
+                    crate::logic::transaction::runtime::state::runtime_state::AuthorityTransferPacket::new(
+                        request.source_branch.id,
+                        updated_source_state,
+                    ),
                 ),
             )?;
         } else if let Some(()) =
             self.branches
                 .with_stored_branch_state_mut(request.source_branch.id, |source_state| {
-                    source_state.mutation_ledger.clear_merged_nodes(
+                    source_state.mutation_ledger_mut().clear_merged_nodes(
                         merged_source_nodes.iter().copied(),
-                        plan.source_snapshot_id,
+                        plan.source_snapshot_id(),
                     );
-                    source_state.authority.graph.clear_branch_mutation_nodes();
+                    source_state.clear_branch_mutation_nodes();
                 })
         {
         }
-        self.branches.insert_snapshot(
-            merged_snapshot,
-            crate::logic::transaction::runtime::state::branching::SnapshotBranchState::from_branch_state(&target_state),
-        );
+        self.branches.insert_snapshot(target_snapshot_packet);
         let branch_catalog = if request.target_branch.id == self.graph.current_branch().id {
             self.graph.diagnostics_state().branch_catalog().clone()
         } else {
             self.branches
                 .branch_state(request.target_branch.id)
-                .map(|state| {
-                    state
-                        .authority
-                        .graph
-                        .diagnostics_state()
-                        .branch_catalog()
-                        .clone()
-                })
+                .map(|state| state.graph().diagnostics_state().branch_catalog().clone())
                 .unwrap_or_default()
         };
         self.synchronize_branch_catalogs(branch_catalog);
@@ -934,6 +912,50 @@ fn classify_conflict_kinds(
         kinds.push(BranchMergeConflictKind::RuntimeArtifactMismatch);
     }
     kinds
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct NodeMergeProjection {
+    comparable: crate::logic::transaction::ArtifactMergeComparable,
+    current_artifact_id: Option<crate::diagnostics::lineage::LineageArtifactId>,
+    authority: crate::data::trace::ArtifactMergeAuthority,
+}
+
+fn node_merge_projection(
+    graph: &SignalGraph,
+    node: NodeId,
+) -> Result<Option<NodeMergeProjection>, SignalError> {
+    let hot = graph.node_runtime_artifact_hot(node)?;
+    let warm = graph.node_runtime_artifact_warm(node)?;
+    match (hot, warm) {
+        (Some(hot), Some(warm)) => Ok(Some(NodeMergeProjection {
+            comparable: merge_comparable_from_lanes(hot, warm),
+            current_artifact_id: warm.lineage_artifact_id.get(),
+            authority: warm.merge_authority.clone(),
+        })),
+        (None, None) => Ok(None),
+        _ => Err(SignalError::internal(format!(
+            "runtime artifact hot/warm lane mismatch for merge-comparable node {}",
+            node
+        ))),
+    }
+}
+
+fn merge_comparable_from_lanes(
+    hot: &RuntimeArtifactHot,
+    warm: &RuntimeArtifactWarm,
+) -> crate::logic::transaction::ArtifactMergeComparable {
+    crate::logic::transaction::ArtifactMergeComparable {
+        output_identity: warm.output_identity.clone(),
+        continuity_token: warm.continuity_token.clone_inner(),
+        reuse_basis: warm.reuse_basis.clone_inner(),
+        dependency_fingerprint: crate::logic::transaction::DependencyFingerprint {
+            dependency_count: hot.dependency_count,
+            meaningful_input_changes: hot.meaningful_input_changes,
+            output_hash: hot.output_hash,
+        },
+        authority: warm.merge_authority.clone(),
+    }
 }
 
 #[derive(Clone, Copy)]

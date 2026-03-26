@@ -26,10 +26,10 @@ pub(crate) use engine::{
 };
 pub use output::{EvaluationOutput, IntoEvaluationOutput};
 #[cfg(feature = "parallel")]
+pub(crate) use reuse::resolve_reuse_boundary_authority_with_policy;
+#[cfg(feature = "parallel")]
 pub(crate) use reuse::resolve_reuse_boundary_context_with_policy;
 pub(crate) use reuse::{
     certify_reuse_decision, resolve_prepared_reuse_decision, resolve_reuse_boundary_authority,
     resolve_reuse_boundary_context,
 };
-#[cfg(feature = "parallel")]
-pub(crate) use reuse::resolve_reuse_boundary_authority_with_policy;

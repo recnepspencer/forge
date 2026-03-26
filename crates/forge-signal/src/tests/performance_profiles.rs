@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use serde_json::{json, Value};
 
-use super::performance_support::{capture_perf_samples, PerfMeasurement};
+use super::performance_support::{capture_and_certify_perf_samples, PerfMeasurement};
 use crate::data::dependency::DependencyEdge;
 use crate::facade::*;
 use crate::logic::prepared::{PreparedDependencyCapture, PreparedEvaluation};
@@ -67,7 +67,7 @@ fn with_perf_topology_asserts_disabled<T>(run: impl FnOnce() -> T) -> T {
 #[ignore = "performance baseline capture; run with -- --ignored --nocapture"]
 fn perf_fintech_mixed_fanout_profile_matrix() {
     for profile_name in ["operational", "development", "forensic"] {
-        let samples = capture_perf_samples("fintech_mixed_fanout", profile_name, "serial", || {
+        let samples = capture_and_certify_perf_samples("fintech_mixed_fanout", profile_name, "serial", || {
             let mut world = setup_seeded_world_with(FintechScale::fanout(), MarketRegime::Calm, 7);
             world.set_runtime_policy(policy_for(profile_name));
 
@@ -103,7 +103,7 @@ fn perf_fintech_mixed_fanout_profile_matrix() {
 #[ignore = "performance baseline capture; run with -- --ignored --nocapture"]
 fn perf_topology_rewiring_churn_serial() {
     let samples = with_perf_topology_asserts_disabled(|| {
-        capture_perf_samples("topology_rewiring_churn", "balanced", "serial", || {
+        capture_and_certify_perf_samples("topology_rewiring_churn", "balanced", "serial", || {
             let mut graph = SignalGraph::new();
             let sources = (0..32).map(|_| graph.node().build()).collect::<Vec<_>>();
             let leaves = (0..256).map(|_| graph.node().build()).collect::<Vec<_>>();
@@ -139,7 +139,7 @@ fn perf_topology_rewiring_churn_serial() {
 #[ignore = "performance baseline capture; run with -- --ignored --nocapture"]
 fn perf_topology_rewiring_rotating_window_serial() {
     let samples = with_perf_topology_asserts_disabled(|| {
-        capture_perf_samples(
+        capture_and_certify_perf_samples(
             "topology_rewiring_rotating_window",
             "balanced",
             "serial",
@@ -184,7 +184,7 @@ fn perf_topology_rewiring_rotating_window_serial() {
 #[ignore = "performance baseline capture; run with -- --ignored --nocapture"]
 fn perf_dependency_reconciliation_rotating_window_serial() {
     let samples = with_perf_topology_asserts_disabled(|| {
-        capture_perf_samples(
+        capture_and_certify_perf_samples(
             "dependency_reconciliation_rotating_window",
             "balanced",
             "serial",
@@ -236,7 +236,7 @@ fn perf_dependency_reconciliation_rotating_window_serial() {
 #[ignore = "performance baseline capture; run with -- --ignored --nocapture"]
 fn perf_dependency_reconciliation_rotating_window_staged_serial() {
     let samples = with_perf_topology_asserts_disabled(|| {
-        capture_perf_samples(
+        capture_and_certify_perf_samples(
             "dependency_reconciliation_rotating_window_staged",
             "balanced",
             "serial",
@@ -362,7 +362,7 @@ fn perf_dependency_reconciliation_rotating_window_staged_serial() {
 #[ignore = "performance baseline capture; run with -- --ignored --nocapture"]
 fn perf_dependency_reconciliation_stable_shape_staged_serial() {
     let samples = with_perf_topology_asserts_disabled(|| {
-        capture_perf_samples(
+        capture_and_certify_perf_samples(
             "dependency_reconciliation_stable_shape_staged",
             "balanced",
             "serial",
@@ -509,7 +509,7 @@ fn perf_dependency_reconciliation_stable_shape_staged_serial() {
 #[ignore = "performance baseline capture; run with -- --ignored --nocapture"]
 fn perf_suppression_wide_fanout_serial() {
     let samples =
-        capture_perf_samples("suppression_wide_fanout", "balanced", "serial", || {
+        capture_and_certify_perf_samples("suppression_wide_fanout", "balanced", "serial", || {
             let mut runtime = SignalRuntime::builder(SignalGraph::new())
                 .with_kernel_defaults()
                 .build();
@@ -605,7 +605,7 @@ fn perf_suppression_wide_fanout_serial() {
 #[ignore = "performance baseline capture; run with -- --ignored --nocapture"]
 fn perf_harness_observability_profile_delta() {
     for profile_name in ["development", "forensic"] {
-        let samples = capture_perf_samples(
+        let samples = capture_and_certify_perf_samples(
             "harness_observability_profile",
             profile_name,
             "serial",

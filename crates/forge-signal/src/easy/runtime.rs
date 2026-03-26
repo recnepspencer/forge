@@ -57,7 +57,7 @@ impl ReactiveGraph {
         let node = self.graph.node().build();
         self.values.insert(node, Box::new(value));
 
-        let entry = self
+        let mut entry = self
             .graph
             .get_entry_mut(node)
             .expect("newly created input node should be available");
@@ -118,7 +118,7 @@ impl ReactiveGraph {
         }
         self.values.insert(signal.node, Box::new(value));
         {
-            let entry = self.graph.get_entry_mut(signal.node)?;
+            let mut entry = self.graph.get_entry_mut(signal.node)?;
             let current = entry.get_aspect_version().get(DEFAULT_ASPECT);
             let next = entry.get_aspect_version().with(DEFAULT_ASPECT, current + 1);
             entry.set_aspect_version(next);
@@ -245,7 +245,7 @@ impl ReactiveGraph {
             dep_snapshot.record(dependency.source, dependency.aspect, current_version, None);
         }
         {
-            let entry = self.graph.get_entry_mut(node)?;
+            let mut entry = self.graph.get_entry_mut(node)?;
             entry.set_aspect_version(prepared.result.aspect_version);
             entry.set_state(NodeState::Clean);
             entry.set_dirty_aspects(AspectMask::EMPTY);
@@ -273,7 +273,7 @@ impl ReactiveGraph {
     fn restore_batch_undo(&mut self) {
         let entry_undo = std::mem::take(&mut self.batch_entry_undo);
         for (node, entry) in entry_undo {
-            if let Ok(slot) = self.graph.get_entry_mut(node) {
+            if let Ok(mut slot) = self.graph.get_entry_mut(node) {
                 *slot = entry;
             }
         }

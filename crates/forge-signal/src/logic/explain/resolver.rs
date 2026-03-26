@@ -1,5 +1,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use super::analysis::{classify_condition_decision, partition_scope_untouched};
+use super::types::{
+    reason_for_policy, CausalDisposition, CausalLink, CausalLinkKind, NodeExplanation,
+    RewiringDependency, RewiringSummary, ScopeProvenance, ScopeProvenanceKind, UpstreamCause,
+};
 use crate::data::comparator::{
     ComparatorPolicyResolver, DefaultComparatorPolicyResolver, DefaultComparatorResolver,
     VersionComparatorPolicy,
@@ -9,11 +14,6 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::output::PartitionSubscription;
-use super::analysis::{classify_condition_decision, partition_scope_untouched};
-use super::types::{
-    reason_for_policy, CausalDisposition, CausalLink, CausalLinkKind, NodeExplanation,
-    RewiringDependency, RewiringSummary, ScopeProvenance, ScopeProvenanceKind, UpstreamCause,
-};
 use crate::diagnostics::policy::DiagnosticsAvailability;
 
 pub fn explain_with_policy_resolver(
@@ -165,9 +165,7 @@ fn explain_with_policy_resolver_mode(
         }
 
         if let Some(scope) = subscription.as_ref() {
-            let source_trace = graph
-                .get_entry(dependency.source())?
-                .get_runtime_artifact_state();
+            let source_trace = graph.node_runtime_artifact_state(dependency.source())?;
             if partition_scope_untouched(source_trace, scope) {
                 upstream.push(UpstreamCause::Clean {
                     source: dependency.source(),
@@ -602,12 +600,10 @@ fn scope_provenance_for_cause(graph: &SignalGraph, cause: &UpstreamCause) -> Sco
     }
 
     let source_scope = graph
-        .get_entry(source)
+        .node_runtime_artifact_state(source)
         .ok()
-        .and_then(|entry| entry.get_runtime_artifact_state())
-        .and_then(|trace| {
-            translated_source_scope(trace.changed_scopes.as_slice(), &validation_scope)
-        });
+        .flatten()
+        .and_then(|trace| translated_source_scope(trace.changed_scopes().as_slice(), &validation_scope));
 
     let (kind, note) = match (source_scope.as_ref(), changed) {
         (Some(source_scope), true) if *source_scope != validation_scope => (

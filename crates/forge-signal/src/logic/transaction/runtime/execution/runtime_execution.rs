@@ -189,7 +189,7 @@ where
             EvaluationRequestMode::Default,
             executor,
         )?;
-        Ok(self.graph.get_entry(node)?.get_aspect_version())
+        Ok(self.graph.node_aspect_version(node)?)
     }
 
     pub fn evaluate_dirty<F, O>(

@@ -8,11 +8,11 @@ use crate::data::node::NodeState;
 use crate::data::output::PartitionSubscription;
 use crate::data::output::{CanonicalChangedRegions, ChangedRegion, MemoizedResultOrigin};
 use crate::data::proof::{
-    DedupedNodeBatch, DirtyDelta, PartitionScopeSet, SnapshotBatchCommit, SortedSourceBatch,
-    StructuralDelta, TouchedScopeSummary,
+    ClassifiedSnapshotBatchCommit, DedupedNodeBatch, DirtyDelta, PartitionScopeSet,
+    SnapshotBatchCommit, SortedSourceBatch, StructuralDelta, TouchedScopeSummary,
 };
 use crate::data::reuse::ReuseBasis;
-use crate::data::trace::RuntimeArtifactState;
+use crate::data::trace::RuntimeArtifactFinalizeImage;
 use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::logic::evaluation::{
     apply_prepared_evaluation_after_dependencies_with_policy, EffectDependencyInputs,
@@ -23,8 +23,7 @@ use crate::logic::planner::semantic::StageSemanticIdentity;
 #[cfg(feature = "parallel")]
 use crate::logic::planner::types::ApplyPlanSerialFallbackReason;
 use crate::logic::planner::types::{
-    EligibleTask, ExecutionRecordId, LoweredTask, LoweredTaskExecution, StageExecutionRecord,
-    StageExecutor,
+    EligibleTask, ExecutionRecordId, LoweredTask, StageExecutionRecord, StageExecutor,
 };
 use crate::logic::prepared::{
     PreparedEvaluation, PreparedEvaluationOrigin, PreparedEvaluationOutcome,
@@ -95,7 +94,7 @@ pub(in crate::logic::planner) struct SerialFinalizeSeed {
     pub(in crate::logic::planner) node: NodeId,
     pub(in crate::logic::planner) identity: StageSemanticIdentity,
     pub(in crate::logic::planner) before_state: NodeState,
-    pub(in crate::logic::planner) before_artifact_state: Option<RuntimeArtifactState>,
+    pub(in crate::logic::planner) before_artifact_state: Option<RuntimeArtifactFinalizeImage>,
     pub(in crate::logic::planner) dependency_updates: u32,
     pub(in crate::logic::planner) recomputed: bool,
     pub(in crate::logic::planner) partition_aware: bool,
@@ -108,7 +107,7 @@ impl SerialFinalizeSeed {
         node: NodeId,
         identity: StageSemanticIdentity,
         before_state: NodeState,
-        before_artifact_state: Option<RuntimeArtifactState>,
+        before_artifact_state: Option<RuntimeArtifactFinalizeImage>,
         dependency_updates: u32,
         recomputed: bool,
         partition_aware: bool,
@@ -143,9 +142,8 @@ impl AppliedSerialTask {
         node: NodeId,
         verdict: EvaluationVerdict,
     ) -> Result<Self, SignalError> {
-        let entry = graph.get_entry(node)?;
-        let after_state = *entry.get_state();
-        let after_trace = entry.get_runtime_artifact_state();
+        let after_state = graph.get_state(node)?;
+        let after_trace = graph.node_runtime_artifact_warm(node)?;
         Ok(Self {
             node,
             verdict,
@@ -180,8 +178,9 @@ impl DeferredSnapshotBatch {
         self.pending_snapshots.len()
     }
 
-    pub(in crate::logic::planner) fn into_snapshot_batch_commit(self) -> SnapshotBatchCommit {
+    pub(in crate::logic::planner) fn classify(self) -> ClassifiedSnapshotBatchCommit {
         SnapshotBatchCommit::from_unique_pending_snapshots_in_stage_order(self.pending_snapshots)
+            .classify()
     }
 }
 
@@ -235,15 +234,18 @@ impl LoweredSerialStage {
         let mut finalize_seeds = Vec::with_capacity(tasks.len());
 
         for task in tasks {
-            let identity = stage_identities[task.task_index];
-            let LoweredTask {
+            let identity = stage_identities[task.task_index()];
+            let (
                 task_index,
                 node,
+                _produced_aspects,
                 dependency_inputs,
+                _path_class,
+                _authority_policy,
+                _footprint,
                 execution,
-                ..
-            } = task;
-            let LoweredTaskExecution {
+            ) = task.into_parts();
+            let (
                 prepared,
                 before_state,
                 before_artifact_state,
@@ -251,7 +253,7 @@ impl LoweredSerialStage {
                 recomputed,
                 partition_aware,
                 rewiring,
-            } = execution;
+            ) = execution.into_parts();
             let finalize_seed = SerialFinalizeSeed::from_execution_parts(
                 task_index,
                 node,
@@ -390,9 +392,8 @@ fn lower_serial_task_patch(
         graph,
         &prepared.dependencies,
     )?);
-    let before_entry = graph.get_entry(node)?;
-    let before_state = *before_entry.get_state();
-    let before_artifact_state = before_entry.get_runtime_artifact_state().cloned();
+    let before_state = graph.get_state(node)?;
+    let before_artifact_state = graph.node_runtime_artifact_finalize_image(node)?;
     let contract = graph.get_contract(node)?;
     let recomputed = matches!(prepared.outcome, PreparedEvaluationOutcome::Evaluate)
         && !matches!(prepared.origin, PreparedEvaluationOrigin::MemoizedReuse);
@@ -634,7 +635,9 @@ pub(in crate::logic::planner) struct AppliedSerialStageBatch {
 }
 
 impl AppliedSerialStageBatch {
-    pub(in crate::logic::planner) fn split_pending_snapshots(self) -> (Self, SnapshotBatchCommit) {
+    pub(in crate::logic::planner) fn split_pending_snapshots(
+        self,
+    ) -> (Self, ClassifiedSnapshotBatchCommit) {
         let AppliedSerialStageBatch {
             stage_index,
             exact_width,
@@ -654,7 +657,7 @@ impl AppliedSerialStageBatch {
                 pending_snapshots: DeferredSnapshotBatch::default(),
                 stage_order,
             },
-            pending_snapshots.into_snapshot_batch_commit(),
+            pending_snapshots.classify(),
         )
     }
 
@@ -691,12 +694,12 @@ impl AppliedSerialStageBatch {
             ));
         }
 
-        Ok(ReadySerialFinalizeBatch {
+        Ok(ReadySerialFinalizeBatch::new(
             stage_tasks,
             finalize_seeds,
             applied_tasks,
             stage_order,
-        })
+        ))
     }
 }
 
@@ -709,6 +712,20 @@ pub(in crate::logic::planner) struct ReadySerialFinalizeBatch {
 }
 
 impl ReadySerialFinalizeBatch {
+    fn new(
+        stage_tasks: Vec<EligibleTask>,
+        finalize_seeds: Vec<SerialFinalizeSeed>,
+        applied_tasks: StageOrderedAppliedTasks,
+        stage_order: StageTaskOrderProof,
+    ) -> Self {
+        Self {
+            stage_tasks,
+            finalize_seeds,
+            applied_tasks,
+            stage_order,
+        }
+    }
+
     pub(in crate::logic::planner) fn stage_tasks(&self) -> &[EligibleTask] {
         &self.stage_tasks
     }

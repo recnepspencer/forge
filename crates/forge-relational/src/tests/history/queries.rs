@@ -39,7 +39,10 @@ fn ordered_parent_guardrail_classifies_root_linear_and_merge_ready_shapes() {
         merge_ready.history_shape_classification(),
         HistoryShapeClassification::MergeReady
     );
-    assert_eq!(merge_ready.ordered_parents().as_slice(), merge_ready.parents);
+    assert_eq!(
+        merge_ready.ordered_parents().as_slice(),
+        merge_ready.parents
+    );
 }
 
 #[test]
@@ -160,7 +163,10 @@ fn merge_commit_uses_deterministic_parent_order_and_advances_target_branch() {
         merge_diagnostic.fields["history_shape"],
         serde_json::json!("MergeReady")
     );
-    assert_eq!(merge_diagnostic.fields["parent_count"], serde_json::json!(2));
+    assert_eq!(
+        merge_diagnostic.fields["parent_count"],
+        serde_json::json!(2)
+    );
     assert_eq!(
         merge_diagnostic.fields["authoritative_parent_list"],
         serde_json::json!([

@@ -1,0 +1,798 @@
+use std::collections::BTreeMap;
+use std::sync::Arc;
+
+use crate::capabilities::AspectPlanSource;
+use crate::merge::data::{
+    AspectComparisonState, AuthorizedAspectValueSurface, AuthorizedAspectValueUsage,
+    LoweredAspectAction, LoweredAspectDenialIntent, LoweredAspectExecutionIntent,
+    LoweredAspectOutcome, LoweredMergeAction, LoweredMergeBlockedReason, LoweredMergePlan,
+    LoweredMergePlanRecord, LoweredMergePlanSummary, LoweredMergeRejectedReason,
+    LoweredRecordDecision, LoweredRecordDenialAspectIntent, LoweredRecordDenialBundle,
+    LoweredRecordDenialKind, LoweredRecordExecutionAspectIntent, LoweredRecordExecutionBundle,
+    LoweredRecordExecutionIntentKind, MergeExecutionReadiness, MergePlanningDecisionKind,
+    MergePlanningDecisionLog, MergePlanningDecisionLogDigestBasis, MergePlanningError,
+    MergePlanningRequest, PolicyResolvedMergePlan, VisibleMergeRecordKind,
+};
+use crate::merge::logic::MergeAccess;
+use crate::schema::data::LoweredAspectPlan;
+use crate::transactions::data::RecordRef;
+
+impl<'runtime> MergeAccess<'runtime> {
+    pub(crate) fn lower_planning_scope(
+        &self,
+        request: MergePlanningRequest,
+    ) -> Result<LoweredMergePlan, MergePlanningError> {
+        let policy_plan = self.plan_policy_scope(request)?;
+        self.lower_policy_plan(policy_plan)
+    }
+
+    fn lower_policy_plan(
+        &self,
+        policy_plan: PolicyResolvedMergePlan,
+    ) -> Result<LoweredMergePlan, MergePlanningError> {
+        let causal_by_record = policy_plan
+            .causal_annotations
+            .iter()
+            .map(|annotation| (annotation.record.clone(), annotation))
+            .collect::<BTreeMap<RecordRef, _>>();
+        let source_records_by_ref = policy_plan
+            .source_records
+            .iter()
+            .map(|record| (record.record_ref.clone(), record))
+            .collect::<BTreeMap<_, _>>();
+        let lowered_records = policy_plan
+            .policy_records
+            .iter()
+            .map(|policy_record| {
+                let causal = causal_by_record.get(&policy_record.record).ok_or_else(|| {
+                    MergePlanningError::MissingCausalAnnotation {
+                        record: policy_record.record.clone(),
+                    }
+                })?;
+                let source_record = source_records_by_ref.get(&policy_record.record).ok_or_else(|| {
+                    MergePlanningError::MissingLoweringSourceRecord {
+                        record: policy_record.record.clone(),
+                    }
+                })?;
+                let aspect_outcomes =
+                    lowered_aspect_outcomes_for_record(self.runtime, source_record, policy_record)?;
+                let readiness = if aspect_outcomes.is_empty() {
+                    readiness_for_resolution(policy_record.resolution)
+                } else {
+                    aggregate_record_readiness(aspect_outcomes.as_slice())
+                };
+                let lowered_action = lowered_action_for_record(
+                    policy_record.classification,
+                    aspect_outcomes.as_slice(),
+                    readiness,
+                );
+                let execution_bundle = execution_bundle_for_record(
+                    policy_record.classification,
+                    aspect_outcomes.as_slice(),
+                    readiness,
+                );
+                let denial_bundle = denial_bundle_for_record(
+                    policy_record.classification,
+                    aspect_outcomes.as_slice(),
+                    readiness,
+                );
+                let blocked_reason = blocked_reason_for_record(
+                    policy_record.classification,
+                    aspect_outcomes.as_slice(),
+                    readiness,
+                );
+                let rejected_reason =
+                    rejected_reason_for_record(aspect_outcomes.as_slice(), readiness);
+                let record_decision = record_decision_for_record(
+                    readiness,
+                    policy_record.classification,
+                    lowered_action,
+                    blocked_reason,
+                    rejected_reason,
+                    execution_bundle.clone(),
+                    denial_bundle.clone(),
+                )?;
+                Ok(LoweredMergePlanRecord {
+                    record: policy_record.record.clone(),
+                    target_record: policy_record.target_record.clone(),
+                    classification: policy_record.classification,
+                    causal_disposition: causal.disposition,
+                    applied_policies: policy_record.applied_policies.clone(),
+                    policy_resolution: policy_record.resolution,
+                    readiness,
+                    record_decision,
+                    lowered_action,
+                    blocked_reason,
+                    rejected_reason,
+                    aspect_outcomes: Arc::from(aspect_outcomes),
+                })
+            })
+            .collect::<Result<Vec<_>, MergePlanningError>>()?;
+        let lowered_summary = summarize_lowered_records(Arc::from(lowered_records.clone()));
+        let decision_log = build_decision_log(&lowered_records);
+        let decision_log_digest_basis = build_decision_log_digest_basis(&decision_log);
+
+        Ok(LoweredMergePlan {
+            request: policy_plan.request,
+            target_head: policy_plan.target_head,
+            source_head: policy_plan.source_head,
+            merge_base: policy_plan.merge_base,
+            ancestry: policy_plan.ancestry,
+            target_delta: policy_plan.target_delta,
+            source_delta: policy_plan.source_delta,
+            effective_identity_declarations: policy_plan.effective_identity_declarations,
+            source_records: policy_plan.source_records,
+            candidates: policy_plan.candidates,
+            validated_schema_correspondences: policy_plan.validated_schema_correspondences,
+            identity_summary: policy_plan.identity_summary,
+            classifications: policy_plan.classifications,
+            conflict_summary: policy_plan.conflict_summary,
+            causal_annotations: policy_plan.causal_annotations,
+            causal_summary: policy_plan.causal_summary,
+            policy_records: policy_plan.policy_records,
+            policy_summary: policy_plan.policy_summary,
+            lowered_records: Arc::from(lowered_records),
+            lowered_summary,
+            decision_log,
+            decision_log_digest_basis,
+        })
+    }
+}
+
+fn record_decision_for_record(
+    readiness: MergeExecutionReadiness,
+    classification: crate::merge::data::MergeConflictClass,
+    lowered_action: Option<LoweredMergeAction>,
+    blocked_reason: Option<LoweredMergeBlockedReason>,
+    rejected_reason: Option<LoweredMergeRejectedReason>,
+    execution_bundle: Option<LoweredRecordExecutionBundle>,
+    denial_bundle: Option<LoweredRecordDenialBundle>,
+) -> Result<LoweredRecordDecision, MergePlanningError> {
+    match readiness {
+        MergeExecutionReadiness::Admitted => {
+            if let Some(bundle) = execution_bundle {
+                Ok(LoweredRecordDecision::Execute(bundle))
+            } else {
+                synthesized_execution_bundle(classification, lowered_action)
+                    .map(LoweredRecordDecision::Execute)
+                    .ok_or(MergePlanningError::MissingLoweredRecordExecutionBundle {
+                        classification,
+                        readiness,
+                        lowered_action,
+                    })
+            }
+        }
+        MergeExecutionReadiness::Blocked => {
+            if let Some(bundle) = denial_bundle {
+                Ok(LoweredRecordDecision::Block(bundle))
+            } else {
+                synthesized_denial_bundle(classification, blocked_reason, readiness)
+                    .map(LoweredRecordDecision::Block)
+                    .ok_or(MergePlanningError::MissingLoweredRecordDenialBundle)
+            }
+        }
+        MergeExecutionReadiness::Rejected => {
+            if let Some(bundle) = denial_bundle {
+                Ok(LoweredRecordDecision::Reject(bundle))
+            } else {
+                let _ = rejected_reason;
+                synthesized_denial_bundle(classification, None, readiness)
+                    .map(LoweredRecordDecision::Reject)
+                    .ok_or(MergePlanningError::MissingLoweredRecordDenialBundle)
+            }
+        }
+    }
+}
+
+fn synthesized_execution_bundle(
+    classification: crate::merge::data::MergeConflictClass,
+    lowered_action: Option<LoweredMergeAction>,
+) -> Option<LoweredRecordExecutionBundle> {
+    let kind = match (classification, lowered_action) {
+        (
+            crate::merge::data::MergeConflictClass::SourceOnlyAddition,
+            Some(LoweredMergeAction::KeepSourceAddition),
+        ) => LoweredRecordExecutionIntentKind::AdoptSourceRecord,
+        (
+            crate::merge::data::MergeConflictClass::ExactSharedTruth,
+            Some(LoweredMergeAction::KeepExactSharedTruth),
+        ) => LoweredRecordExecutionIntentKind::PreserveSharedRecord,
+        (
+            crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence,
+            Some(LoweredMergeAction::ReconcileSchemaCorrespondence),
+        ) => LoweredRecordExecutionIntentKind::ReconcileRecord,
+        _ => return None,
+    };
+    Some(LoweredRecordExecutionBundle {
+        kind,
+        aspects: Arc::from(Vec::<LoweredRecordExecutionAspectIntent>::new()),
+    })
+}
+
+fn synthesized_denial_bundle(
+    classification: crate::merge::data::MergeConflictClass,
+    blocked_reason: Option<LoweredMergeBlockedReason>,
+    readiness: MergeExecutionReadiness,
+) -> Option<LoweredRecordDenialBundle> {
+    let kind = match readiness {
+        MergeExecutionReadiness::Admitted => return None,
+        MergeExecutionReadiness::Blocked => blocked_reason.map(blocked_denial_kind_from_reason).unwrap_or_else(|| {
+            blocked_denial_kind_for_record(classification, &[])
+        }),
+        MergeExecutionReadiness::Rejected => LoweredRecordDenialKind::RejectedPolicy,
+    };
+    Some(LoweredRecordDenialBundle {
+        kind,
+        aspects: Arc::from(Vec::<LoweredRecordDenialAspectIntent>::new()),
+    })
+}
+
+fn blocked_denial_kind_from_reason(
+    reason: LoweredMergeBlockedReason,
+) -> LoweredRecordDenialKind {
+    match reason {
+        LoweredMergeBlockedReason::DeletionSemanticsRequireExplicitResolution => {
+            LoweredRecordDenialKind::BlockedDeletion
+        }
+        LoweredMergeBlockedReason::RelationEndpointDivergence => {
+            LoweredRecordDenialKind::BlockedRelationEndpointDivergence
+        }
+        LoweredMergeBlockedReason::ManualConflictResolutionRequired => {
+            LoweredRecordDenialKind::BlockedManualResolution
+        }
+    }
+}
+
+fn summarize_lowered_records(records: Arc<[LoweredMergePlanRecord]>) -> LoweredMergePlanSummary {
+    let mut admitted_count = 0;
+    let mut blocked_count = 0;
+    let mut rejected_count = 0;
+
+    for record in records.iter() {
+        match record.readiness {
+            MergeExecutionReadiness::Admitted => admitted_count += 1,
+            MergeExecutionReadiness::Blocked => blocked_count += 1,
+            MergeExecutionReadiness::Rejected => rejected_count += 1,
+        }
+    }
+
+    LoweredMergePlanSummary {
+        record_count: records.len(),
+        admitted_count,
+        blocked_count,
+        rejected_count,
+        fully_execution_ready: blocked_count == 0 && rejected_count == 0,
+        records,
+    }
+}
+
+fn aggregate_record_readiness(aspects: &[LoweredAspectOutcome]) -> MergeExecutionReadiness {
+    if aspects
+        .iter()
+        .any(|aspect| aspect.readiness == MergeExecutionReadiness::Rejected)
+    {
+        MergeExecutionReadiness::Rejected
+    } else if aspects
+        .iter()
+        .any(|aspect| aspect.readiness == MergeExecutionReadiness::Blocked)
+    {
+        MergeExecutionReadiness::Blocked
+    } else {
+        MergeExecutionReadiness::Admitted
+    }
+}
+
+fn lowered_action_for_record(
+    classification: crate::merge::data::MergeConflictClass,
+    aspect_outcomes: &[LoweredAspectOutcome],
+    readiness: MergeExecutionReadiness,
+) -> Option<LoweredMergeAction> {
+    if readiness != MergeExecutionReadiness::Admitted
+        || (!aspect_outcomes.is_empty()
+            && aspect_outcomes
+            .iter()
+            .any(|aspect| aspect.lowered_action.is_none()))
+    {
+        return None;
+    }
+
+    match classification {
+        crate::merge::data::MergeConflictClass::SourceOnlyAddition => {
+            Some(LoweredMergeAction::KeepSourceAddition)
+        }
+        crate::merge::data::MergeConflictClass::ExactSharedTruth => {
+            Some(LoweredMergeAction::KeepExactSharedTruth)
+        }
+        crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence => {
+            Some(LoweredMergeAction::ReconcileSchemaCorrespondence)
+        }
+        crate::merge::data::MergeConflictClass::Deletion(_)
+        | crate::merge::data::MergeConflictClass::DivergentVisibleState
+        | crate::merge::data::MergeConflictClass::RelationEndpointDivergence => None,
+    }
+}
+
+fn blocked_reason_for_record(
+    classification: crate::merge::data::MergeConflictClass,
+    aspect_outcomes: &[LoweredAspectOutcome],
+    readiness: MergeExecutionReadiness,
+) -> Option<LoweredMergeBlockedReason> {
+    if readiness != MergeExecutionReadiness::Blocked {
+        return None;
+    }
+    if aspect_outcomes.is_empty() {
+        return match classification {
+            crate::merge::data::MergeConflictClass::Deletion(_) => {
+                Some(LoweredMergeBlockedReason::DeletionSemanticsRequireExplicitResolution)
+            }
+            crate::merge::data::MergeConflictClass::RelationEndpointDivergence => {
+                Some(LoweredMergeBlockedReason::RelationEndpointDivergence)
+            }
+            crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence
+            | crate::merge::data::MergeConflictClass::DivergentVisibleState
+            | crate::merge::data::MergeConflictClass::ExactSharedTruth
+            | crate::merge::data::MergeConflictClass::SourceOnlyAddition => {
+                Some(LoweredMergeBlockedReason::ManualConflictResolutionRequired)
+            }
+        };
+    }
+    if aspect_outcomes.iter().any(|aspect| {
+        aspect.blocked_reason == Some(LoweredMergeBlockedReason::DeletionSemanticsRequireExplicitResolution)
+    }) {
+        Some(LoweredMergeBlockedReason::DeletionSemanticsRequireExplicitResolution)
+    } else if aspect_outcomes
+        .iter()
+        .any(|aspect| aspect.blocked_reason == Some(LoweredMergeBlockedReason::RelationEndpointDivergence))
+    {
+        Some(LoweredMergeBlockedReason::RelationEndpointDivergence)
+    } else if aspect_outcomes.iter().any(|aspect| aspect.blocked_reason.is_some()) {
+        Some(LoweredMergeBlockedReason::ManualConflictResolutionRequired)
+    } else {
+        None
+    }
+}
+
+fn execution_bundle_for_record(
+    classification: crate::merge::data::MergeConflictClass,
+    aspect_outcomes: &[LoweredAspectOutcome],
+    readiness: MergeExecutionReadiness,
+) -> Option<LoweredRecordExecutionBundle> {
+    if readiness != MergeExecutionReadiness::Admitted {
+        return None;
+    }
+    let aspect_intents = aspect_outcomes
+        .iter()
+        .filter_map(|outcome| {
+            Some(LoweredRecordExecutionAspectIntent {
+                aspect_key: outcome.aspect_key.clone(),
+                intent: outcome.execution_intent?,
+            })
+        })
+        .collect::<Vec<_>>();
+    let kind = match classification {
+        crate::merge::data::MergeConflictClass::SourceOnlyAddition => {
+            LoweredRecordExecutionIntentKind::AdoptSourceRecord
+        }
+        crate::merge::data::MergeConflictClass::ExactSharedTruth => {
+            LoweredRecordExecutionIntentKind::PreserveSharedRecord
+        }
+        crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence => {
+            LoweredRecordExecutionIntentKind::ReconcileRecord
+        }
+        crate::merge::data::MergeConflictClass::Deletion(_)
+        | crate::merge::data::MergeConflictClass::DivergentVisibleState
+        | crate::merge::data::MergeConflictClass::RelationEndpointDivergence => {
+            return None;
+        }
+    };
+    Some(LoweredRecordExecutionBundle {
+        kind,
+        aspects: Arc::from(aspect_intents),
+    })
+}
+
+fn rejected_reason_for_record(
+    aspect_outcomes: &[LoweredAspectOutcome],
+    readiness: MergeExecutionReadiness,
+) -> Option<LoweredMergeRejectedReason> {
+    (readiness == MergeExecutionReadiness::Rejected
+        && aspect_outcomes
+            .iter()
+            .any(|aspect| aspect.rejected_reason == Some(LoweredMergeRejectedReason::FailOnConflictPolicy)))
+    .then_some(LoweredMergeRejectedReason::FailOnConflictPolicy)
+}
+
+fn denial_bundle_for_record(
+    classification: crate::merge::data::MergeConflictClass,
+    aspect_outcomes: &[LoweredAspectOutcome],
+    readiness: MergeExecutionReadiness,
+) -> Option<LoweredRecordDenialBundle> {
+    match readiness {
+        MergeExecutionReadiness::Admitted => None,
+        MergeExecutionReadiness::Blocked => {
+            let aspects = aspect_outcomes
+                .iter()
+                .filter_map(|outcome| {
+                    Some(LoweredRecordDenialAspectIntent {
+                        aspect_key: outcome.aspect_key.clone(),
+                        intent: outcome.denial_intent?,
+                    })
+                })
+                .collect::<Vec<_>>();
+            Some(LoweredRecordDenialBundle {
+                kind: blocked_denial_kind_for_record(classification, aspects.as_slice()),
+                aspects: Arc::from(aspects),
+            })
+        }
+        MergeExecutionReadiness::Rejected => {
+            let aspects = aspect_outcomes
+                .iter()
+                .filter_map(|outcome| {
+                    Some(LoweredRecordDenialAspectIntent {
+                        aspect_key: outcome.aspect_key.clone(),
+                        intent: outcome.denial_intent?,
+                    })
+                })
+                .collect::<Vec<_>>();
+            Some(LoweredRecordDenialBundle {
+                kind: LoweredRecordDenialKind::RejectedPolicy,
+                aspects: Arc::from(aspects),
+            })
+        }
+    }
+}
+
+fn blocked_denial_kind_for_record(
+    classification: crate::merge::data::MergeConflictClass,
+    aspects: &[LoweredRecordDenialAspectIntent],
+) -> LoweredRecordDenialKind {
+    if aspects.iter().any(|aspect| {
+        aspect.intent == LoweredAspectDenialIntent::BlockedDeletion
+    }) {
+        LoweredRecordDenialKind::BlockedDeletion
+    } else if aspects.iter().any(|aspect| {
+        aspect.intent == LoweredAspectDenialIntent::BlockedRelationEndpointDivergence
+    }) {
+        LoweredRecordDenialKind::BlockedRelationEndpointDivergence
+    } else {
+        match classification {
+            crate::merge::data::MergeConflictClass::Deletion(_) => {
+                LoweredRecordDenialKind::BlockedDeletion
+            }
+            crate::merge::data::MergeConflictClass::RelationEndpointDivergence => {
+                LoweredRecordDenialKind::BlockedRelationEndpointDivergence
+            }
+            crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence
+            | crate::merge::data::MergeConflictClass::DivergentVisibleState
+            | crate::merge::data::MergeConflictClass::ExactSharedTruth
+            | crate::merge::data::MergeConflictClass::SourceOnlyAddition => {
+                LoweredRecordDenialKind::BlockedManualResolution
+            }
+        }
+    }
+}
+
+fn lowered_aspect_outcomes_for_record(
+    runtime: &crate::logic::runtime::RelationalRuntime,
+    source_record: &crate::merge::data::VisibleMergeRecord,
+    policy_record: &crate::merge::data::MergePolicyResolutionRecord,
+) -> Result<Vec<LoweredAspectOutcome>, MergePlanningError> {
+    let Some(plan) = lowered_plan_for_source_record(runtime, source_record) else {
+        return Ok(Vec::new());
+    };
+    let policy_by_aspect = policy_record
+        .aspect_resolutions
+        .iter()
+        .map(|aspect| (aspect.aspect_key.clone(), aspect))
+        .collect::<BTreeMap<_, _>>();
+
+    Ok(plan
+        .executable_bindings
+        .iter()
+        .map(|binding| {
+            let aspect_resolution = policy_by_aspect.get(&binding.aspect_key).copied();
+            let readiness = aspect_resolution
+                .map(|aspect| readiness_for_resolution(aspect.resolution))
+                .unwrap_or(MergeExecutionReadiness::Blocked);
+            let applied_policy = aspect_resolution.and_then(|aspect| aspect.applied_policy.clone());
+            LoweredAspectOutcome {
+                aspect_key: binding.aspect_key.clone(),
+                applied_policy,
+                readiness,
+                lowered_action: aspect_resolution.and_then(|aspect| {
+                    lowered_aspect_action_for_resolution(
+                        policy_record.classification,
+                        aspect.comparison,
+                        readiness,
+                    )
+                }),
+                authorized_values: aspect_resolution.and_then(|aspect| {
+                    authorized_values_for_aspect(
+                        policy_record.classification,
+                        aspect.comparison,
+                        readiness,
+                    )
+                }),
+                execution_intent: aspect_resolution.and_then(|aspect| {
+                    lowered_aspect_execution_intent(
+                        policy_record.classification,
+                        aspect.comparison,
+                        readiness,
+                    )
+                }),
+                denial_intent: aspect_resolution.and_then(|aspect| {
+                    lowered_aspect_denial_intent(
+                        policy_record.classification,
+                        aspect.comparison,
+                        aspect.resolution,
+                        readiness,
+                    )
+                }),
+                blocked_reason: aspect_resolution.and_then(|aspect| {
+                    blocked_reason_for_aspect(
+                        policy_record.classification,
+                        aspect.comparison,
+                        readiness,
+                    )
+                }),
+                rejected_reason: aspect_resolution.and_then(|aspect| {
+                    rejected_reason_for_aspect(aspect.resolution, readiness)
+                }),
+            }
+        })
+        .collect())
+}
+
+fn lowered_plan_for_source_record<'a>(
+    runtime: &'a crate::logic::runtime::RelationalRuntime,
+    source_record: &crate::merge::data::VisibleMergeRecord,
+) -> Option<&'a LoweredAspectPlan> {
+    let kind_id = source_record.source_kind_id.or(source_record.kind_id)?;
+    match source_record.record_kind {
+        VisibleMergeRecordKind::Entity => runtime.entity_aspect_plan(kind_id),
+        VisibleMergeRecordKind::Relation => runtime.relation_aspect_plan(kind_id),
+    }
+}
+
+fn readiness_for_resolution(
+    resolution: crate::merge::data::MergePolicyResolution,
+) -> MergeExecutionReadiness {
+    match resolution {
+        crate::merge::data::MergePolicyResolution::AutoResolved => MergeExecutionReadiness::Admitted,
+        crate::merge::data::MergePolicyResolution::RequiresManualResolution => {
+            MergeExecutionReadiness::Blocked
+        }
+        crate::merge::data::MergePolicyResolution::Reject => MergeExecutionReadiness::Rejected,
+    }
+}
+
+fn lowered_aspect_action_for_resolution(
+    classification: crate::merge::data::MergeConflictClass,
+    comparison: AspectComparisonState,
+    readiness: MergeExecutionReadiness,
+) -> Option<LoweredAspectAction> {
+    if readiness != MergeExecutionReadiness::Admitted {
+        return None;
+    }
+    match (classification, comparison) {
+        (_, AspectComparisonState::Unavailable) => None,
+        (crate::merge::data::MergeConflictClass::SourceOnlyAddition, AspectComparisonState::SourceOnly) => {
+            Some(LoweredAspectAction::AdoptSourceAspect)
+        }
+        (crate::merge::data::MergeConflictClass::ExactSharedTruth, AspectComparisonState::Equal) => {
+            Some(LoweredAspectAction::KeepSharedAspect)
+        }
+        (
+            crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence,
+            AspectComparisonState::Equal
+            | AspectComparisonState::SourceOnly
+            | AspectComparisonState::Divergent,
+        ) => Some(LoweredAspectAction::ReconcileCorrespondedAspect),
+        _ => None,
+    }
+}
+
+fn lowered_aspect_denial_intent(
+    classification: crate::merge::data::MergeConflictClass,
+    comparison: AspectComparisonState,
+    resolution: crate::merge::data::MergePolicyResolution,
+    readiness: MergeExecutionReadiness,
+) -> Option<LoweredAspectDenialIntent> {
+    match readiness {
+        MergeExecutionReadiness::Admitted => None,
+        MergeExecutionReadiness::Blocked => match blocked_reason_for_aspect(
+            classification,
+            comparison,
+            readiness,
+        )? {
+            LoweredMergeBlockedReason::DeletionSemanticsRequireExplicitResolution => {
+                Some(LoweredAspectDenialIntent::BlockedDeletion)
+            }
+            LoweredMergeBlockedReason::RelationEndpointDivergence => {
+                Some(LoweredAspectDenialIntent::BlockedRelationEndpointDivergence)
+            }
+            LoweredMergeBlockedReason::ManualConflictResolutionRequired => {
+                Some(LoweredAspectDenialIntent::BlockedManualResolution)
+            }
+        },
+        MergeExecutionReadiness::Rejected => {
+            rejected_reason_for_aspect(resolution, readiness)?;
+            Some(LoweredAspectDenialIntent::RejectedPolicy)
+        }
+    }
+}
+
+fn authorized_values_for_aspect(
+    classification: crate::merge::data::MergeConflictClass,
+    comparison: AspectComparisonState,
+    readiness: MergeExecutionReadiness,
+) -> Option<AuthorizedAspectValueSurface> {
+    if readiness != MergeExecutionReadiness::Admitted {
+        return None;
+    }
+    match (classification, comparison) {
+        (
+            crate::merge::data::MergeConflictClass::SourceOnlyAddition,
+            AspectComparisonState::SourceOnly,
+        ) => Some(AuthorizedAspectValueSurface {
+            source: AuthorizedAspectValueUsage::ConsumeVisibleValue,
+            target: AuthorizedAspectValueUsage::NotAuthorized,
+            base: AuthorizedAspectValueUsage::NotAuthorized,
+        }),
+        (
+            crate::merge::data::MergeConflictClass::ExactSharedTruth,
+            AspectComparisonState::Equal,
+        ) => Some(AuthorizedAspectValueSurface {
+            source: AuthorizedAspectValueUsage::EqualityWitnessOnly,
+            target: AuthorizedAspectValueUsage::EqualityWitnessOnly,
+            base: AuthorizedAspectValueUsage::NotAuthorized,
+        }),
+        (
+            crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence,
+            AspectComparisonState::Equal
+            | AspectComparisonState::SourceOnly
+            | AspectComparisonState::Divergent,
+        ) => Some(AuthorizedAspectValueSurface {
+            source: AuthorizedAspectValueUsage::ConsumeVisibleValue,
+            target: AuthorizedAspectValueUsage::ConsumeVisibleValue,
+            base: AuthorizedAspectValueUsage::ConsumeBaseValue,
+        }),
+        _ => None,
+    }
+}
+
+fn lowered_aspect_execution_intent(
+    classification: crate::merge::data::MergeConflictClass,
+    comparison: AspectComparisonState,
+    readiness: MergeExecutionReadiness,
+) -> Option<LoweredAspectExecutionIntent> {
+    let authorized_values =
+        authorized_values_for_aspect(classification, comparison, readiness)?;
+    match (classification, comparison) {
+        (
+            crate::merge::data::MergeConflictClass::SourceOnlyAddition,
+            AspectComparisonState::SourceOnly,
+        ) => Some(LoweredAspectExecutionIntent::AdoptSourceValue { authorized_values }),
+        (
+            crate::merge::data::MergeConflictClass::ExactSharedTruth,
+            AspectComparisonState::Equal,
+        ) => Some(LoweredAspectExecutionIntent::PreserveSharedValue { authorized_values }),
+        (
+            crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence,
+            AspectComparisonState::Equal
+            | AspectComparisonState::SourceOnly
+            | AspectComparisonState::Divergent,
+        ) => Some(LoweredAspectExecutionIntent::ReconcileVisibleValues { authorized_values }),
+        _ => None,
+    }
+}
+
+fn blocked_reason_for_aspect(
+    classification: crate::merge::data::MergeConflictClass,
+    comparison: AspectComparisonState,
+    readiness: MergeExecutionReadiness,
+) -> Option<LoweredMergeBlockedReason> {
+    if readiness != MergeExecutionReadiness::Blocked {
+        return None;
+    }
+    match (classification, comparison) {
+        (crate::merge::data::MergeConflictClass::Deletion(_), _) => {
+            Some(LoweredMergeBlockedReason::DeletionSemanticsRequireExplicitResolution)
+        }
+        (
+            crate::merge::data::MergeConflictClass::RelationEndpointDivergence,
+            AspectComparisonState::Divergent
+            | AspectComparisonState::TargetOnly
+            | AspectComparisonState::SourceOnly,
+        ) => Some(LoweredMergeBlockedReason::RelationEndpointDivergence),
+        (_, AspectComparisonState::Unavailable) => {
+            Some(LoweredMergeBlockedReason::ManualConflictResolutionRequired)
+        }
+        _ => Some(LoweredMergeBlockedReason::ManualConflictResolutionRequired),
+    }
+}
+
+fn rejected_reason_for_aspect(
+    resolution: crate::merge::data::MergePolicyResolution,
+    readiness: MergeExecutionReadiness,
+) -> Option<LoweredMergeRejectedReason> {
+    (readiness == MergeExecutionReadiness::Rejected
+        && resolution == crate::merge::data::MergePolicyResolution::Reject)
+    .then_some(LoweredMergeRejectedReason::FailOnConflictPolicy)
+}
+
+fn build_decision_log(lowered_records: &[LoweredMergePlanRecord]) -> MergePlanningDecisionLog {
+    let mut decisions = lowered_records
+        .iter()
+        .map(|record| crate::merge::data::MergePlanningDecisionRecord {
+            record: record.record.clone(),
+            target_record: record.target_record.clone(),
+            decision: match record.readiness {
+                MergeExecutionReadiness::Admitted => MergePlanningDecisionKind::Admitted,
+                MergeExecutionReadiness::Blocked => MergePlanningDecisionKind::Blocked,
+                MergeExecutionReadiness::Rejected => MergePlanningDecisionKind::Rejected,
+            },
+            classification: record.classification,
+            causal_disposition: record.causal_disposition,
+            policy_resolution: record.policy_resolution,
+        })
+        .collect::<Vec<_>>();
+    decisions.sort_by(|left, right| {
+        left.decision
+            .cmp(&right.decision)
+            .then(left.record.cmp(&right.record))
+            .then(left.target_record.cmp(&right.target_record))
+    });
+    MergePlanningDecisionLog {
+        decisions: Arc::from(decisions),
+    }
+}
+
+fn build_decision_log_digest_basis(
+    decision_log: &MergePlanningDecisionLog,
+) -> MergePlanningDecisionLogDigestBasis {
+    MergePlanningDecisionLogDigestBasis {
+        canonical_decisions: Arc::from(
+            decision_log
+                .decisions
+                .iter()
+                .map(|decision| decision.decision)
+                .collect::<Vec<_>>(),
+        ),
+        canonical_records: Arc::from(
+            decision_log
+                .decisions
+                .iter()
+                .map(|decision| decision.record.clone())
+                .collect::<Vec<_>>(),
+        ),
+        canonical_target_records: Arc::from(
+            decision_log
+                .decisions
+                .iter()
+                .map(|decision| decision.target_record.clone())
+                .collect::<Vec<_>>(),
+        ),
+        canonical_classifications: Arc::from(
+            decision_log
+                .decisions
+                .iter()
+                .map(|decision| decision.classification)
+                .collect::<Vec<_>>(),
+        ),
+        canonical_causal_dispositions: Arc::from(
+            decision_log
+                .decisions
+                .iter()
+                .map(|decision| decision.causal_disposition)
+                .collect::<Vec<_>>(),
+        ),
+        canonical_policy_resolutions: Arc::from(
+            decision_log
+                .decisions
+                .iter()
+                .map(|decision| decision.policy_resolution)
+                .collect::<Vec<_>>(),
+        ),
+    }
+}

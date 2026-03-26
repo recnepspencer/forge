@@ -283,8 +283,7 @@ fn prepare_condition_outcome_if_blocked(
     graph: &mut SignalGraph,
     task: &super::types::EligibleTask,
 ) -> Result<Option<PreparedEvaluation>, SignalError> {
-    let entry = graph.get_entry(task.node)?;
-    let dirty_aspects = entry.get_dirty_aspects();
+    let dirty_aspects = graph.node_dirty_aspects(task.node)?;
     let required_context = graph.get_contract(task.node)?.semantics.required_context;
     let max_dependency_delta = max_dependency_delta(graph, task.node)?;
     let ctx = ConditionEvaluationContext {
@@ -297,7 +296,7 @@ fn prepare_condition_outcome_if_blocked(
     let has_dependency_snapshot = !graph.get_dep_snapshot(task.node)?.entries().is_empty();
     let mut default_resolver = DefaultConditionResolver;
 
-    match entry.get_eval_config().condition.clone() {
+    match graph.node_eval_config(task.node)?.condition.clone() {
         EvaluationCondition::Always => Ok(None),
         EvaluationCondition::AspectFilter(mask) => {
             if dirty_aspects.is_empty() || dirty_aspects.intersects(mask) {
@@ -403,8 +402,11 @@ fn max_dependency_delta(graph: &SignalGraph, node: NodeId) -> Result<u64, Signal
             continue;
         }
         let current_version = graph
-            .get_entry(snapshot_entry.source)?
-            .version_for_scope(snapshot_entry.aspect, snapshot_entry.scope.as_ref());
+            .node_version_for_scope(
+                snapshot_entry.source,
+                snapshot_entry.aspect,
+                snapshot_entry.scope.as_ref(),
+            )?;
         max_delta = max_delta.max(current_version.abs_diff(snapshot_entry.cached_version));
     }
     Ok(max_delta)

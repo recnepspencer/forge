@@ -329,12 +329,12 @@ fn merge_branch_skips_non_adoptable_source_only_nodes() {
 
     {
         let mut graph = runtime.graph_mut();
-        let entry = graph.get_entry_mut(source_only).unwrap();
+        let mut entry = graph.get_entry_mut(source_only).unwrap();
         let mut runtime_artifact = entry
             .get_runtime_artifact_state()
             .cloned()
             .expect("source-only node should have runtime artifact state");
-        runtime_artifact.merge_authority = ArtifactMergeAuthority {
+        runtime_artifact.warm_mut().merge_authority = ArtifactMergeAuthority {
             authority_class: ArtifactAuthorityClass::BranchLocalSpeculative,
             adoptability: MergeAdoptability::NonAdoptableBranchLocal,
         };
@@ -592,19 +592,23 @@ fn merge_candidate_construction_is_identical_with_and_without_convenience_branch
         .unwrap();
 
     assert_eq!(
-        initial.planned_candidates, rebuilt.planned_candidates,
+        initial.planned_candidates(),
+        rebuilt.planned_candidates(),
         "convenience index rebuilds must not change planned merge candidates"
     );
     assert_eq!(
-        initial.proof_minimal_overlap, rebuilt.proof_minimal_overlap,
+        initial.proof_minimal_overlap(),
+        rebuilt.proof_minimal_overlap(),
         "convenience index rebuilds must not widen proof-minimal overlap"
     );
     assert_eq!(
-        initial.conservative_overlap, rebuilt.conservative_overlap,
+        initial.conservative_overlap(),
+        rebuilt.conservative_overlap(),
         "convenience index rebuilds must not change bounded conservative expansion"
     );
     assert_eq!(
-        initial.target_overlap_journal, rebuilt.target_overlap_journal,
+        initial.target_overlap_journal(),
+        rebuilt.target_overlap_journal(),
         "convenience index rebuilds must not perturb target overlap classification"
     );
 }
@@ -709,7 +713,7 @@ fn retained_only_branch_churn_does_not_force_merge_replanning() {
     runtime.switch_branch(feature.clone()).unwrap();
     {
         let mut graph = runtime.graph_mut();
-        let entry = graph.get_entry_mut(source_only).unwrap();
+        let mut entry = graph.get_entry_mut(source_only).unwrap();
         entry.set_retained_diagnostic_artifact(Some(RetainedDiagnosticArtifact {
             changed_regions: CanonicalChangedRegions::new([]),
             labels: vec!["retained-only-label".to_string()],
@@ -718,6 +722,7 @@ fn retained_only_branch_churn_does_not_force_merge_replanning() {
             reuse_certification: None,
             reuse_boundary_context: None,
         }));
+        drop(entry);
         graph.record_branch_mutation_retained_artifact(source_only);
     }
 
@@ -762,7 +767,7 @@ fn merge_branch_equivalent_runtime_state_ignores_retained_artifact_richness() {
 
     {
         let mut graph = runtime.graph_mut();
-        let entry = graph.get_entry_mut(shared).unwrap();
+        let mut entry = graph.get_entry_mut(shared).unwrap();
         entry.set_retained_diagnostic_artifact(Some(RetainedDiagnosticArtifact {
             changed_regions: CanonicalChangedRegions::new([]),
             labels: vec!["main-label".to_string()],
@@ -792,7 +797,7 @@ fn merge_branch_equivalent_runtime_state_ignores_retained_artifact_richness() {
 
     {
         let mut graph = runtime.graph_mut();
-        let entry = graph.get_entry_mut(shared).unwrap();
+        let mut entry = graph.get_entry_mut(shared).unwrap();
         entry.set_retained_diagnostic_artifact(Some(RetainedDiagnosticArtifact {
             changed_regions: CanonicalChangedRegions::new([]),
             labels: vec!["feature-label".to_string()],
@@ -801,6 +806,7 @@ fn merge_branch_equivalent_runtime_state_ignores_retained_artifact_richness() {
             reuse_certification: None,
             reuse_boundary_context: None,
         }));
+        drop(entry);
         graph.record_branch_mutation_retained_artifact(shared);
     }
 
@@ -877,12 +883,12 @@ fn merge_branch_divergent_shared_node_requires_typed_conflict_surface() {
         .unwrap();
     {
         let mut graph = runtime.graph_mut();
-        let entry = graph.get_entry_mut(shared).unwrap();
+        let mut entry = graph.get_entry_mut(shared).unwrap();
         let mut runtime_artifact = entry
             .get_runtime_artifact_state()
             .cloned()
             .expect("feature shared node should have runtime artifact state");
-        runtime_artifact.merge_authority = ArtifactMergeAuthority {
+        runtime_artifact.warm_mut().merge_authority = ArtifactMergeAuthority {
             authority_class: ArtifactAuthorityClass::BranchLocalSpeculative,
             adoptability: MergeAdoptability::NonAdoptableBranchLocal,
         };

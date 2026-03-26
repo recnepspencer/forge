@@ -52,7 +52,10 @@ struct MergeReadyHistoryCertificationBundle {
     branch_reasoning_digest: String,
 }
 
-fn authoritative_parent_ids(runtime: &RelationalRuntime, commit_id: crate::facade::history::CommitId) -> Vec<u64> {
+fn authoritative_parent_ids(
+    runtime: &RelationalRuntime,
+    commit_id: crate::facade::history::CommitId,
+) -> Vec<u64> {
     runtime
         .replay_access()
         .canonical_commit_envelope(commit_id)
@@ -65,7 +68,10 @@ fn authoritative_parent_ids(runtime: &RelationalRuntime, commit_id: crate::facad
         .collect()
 }
 
-fn commit_closure_ids(runtime: &RelationalRuntime, commit_id: crate::facade::history::CommitId) -> Vec<u64> {
+fn commit_closure_ids(
+    runtime: &RelationalRuntime,
+    commit_id: crate::facade::history::CommitId,
+) -> Vec<u64> {
     runtime
         .history_access()
         .ancestor_closure_by_commit_id_order(commit_id)
@@ -97,18 +103,21 @@ fn run_merge_ready_history_shape_certification() -> MergeReadyHistoryCertificati
     );
     let post_merge_main = create_entity_outcome(&mut runtime, "main-post-merge");
 
-    let replay = runtime.replay_authority().replay_commit(RelationalReplayRequest {
-        commit_id: merge.commit.commit_id,
-        branch_id: BranchId("main".to_string()),
-        execution_mode: ReplayExecutionMode::SerialDeterministic,
-        verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
-    });
+    let replay = runtime
+        .replay_authority()
+        .replay_commit(RelationalReplayRequest {
+            commit_id: merge.commit.commit_id,
+            branch_id: BranchId("main".to_string()),
+            execution_mode: ReplayExecutionMode::SerialDeterministic,
+            verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
+        });
 
     let (_recovery, recovered) =
         checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
-    let post_merge_inspection = recovered
-        .history_access()
-        .inspect_merge(&BranchId("feature".to_string()), &BranchId("main".to_string()));
+    let post_merge_inspection = recovered.history_access().inspect_merge(
+        &BranchId("feature".to_string()),
+        &BranchId("main".to_string()),
+    );
 
     let parent_list_serialization = ParentListSerializationArtifact {
         root_commit_id: root.commit.commit_id.0,
@@ -122,7 +131,14 @@ fn run_merge_ready_history_shape_certification() -> MergeReadyHistoryCertificati
         replayed_merge_ready_parents: replay
             .commit
             .as_ref()
-            .map(|commit| commit.ordered_parents().as_slice().iter().map(|parent| parent.0).collect())
+            .map(|commit| {
+                commit
+                    .ordered_parents()
+                    .as_slice()
+                    .iter()
+                    .map(|parent| parent.0)
+                    .collect()
+            })
             .unwrap_or_default(),
         recovered_merge_ready_parents: authoritative_parent_ids(&recovered, merge.commit.commit_id),
     };
@@ -196,7 +212,9 @@ fn run_merge_ready_history_shape_certification() -> MergeReadyHistoryCertificati
         )),
         durability_parity_digest: certification_digest(&(
             parent_list_serialization.merge_ready_parents.clone(),
-            parent_list_serialization.recovered_merge_ready_parents.clone(),
+            parent_list_serialization
+                .recovered_merge_ready_parents
+                .clone(),
         )),
         diagnostics_digest: certification_digest(&publication_diagnostics),
         branch_reasoning_digest: certification_digest(&(
@@ -216,7 +234,10 @@ fn run_merge_ready_history_shape_certification() -> MergeReadyHistoryCertificati
 fn merge_ready_history_shape_test() {
     let certification = run_merge_ready_history_shape_certification();
 
-    assert_eq!(certification.parent_list_serialization.root_parents, Vec::<u64>::new());
+    assert_eq!(
+        certification.parent_list_serialization.root_parents,
+        Vec::<u64>::new()
+    );
     assert_eq!(
         certification.parent_list_serialization.linear_parents,
         vec![certification.parent_list_serialization.root_commit_id]
@@ -233,11 +254,15 @@ fn merge_ready_history_shape_test() {
         ]
     );
     assert_eq!(
-        certification.parent_list_serialization.replayed_merge_ready_parents,
+        certification
+            .parent_list_serialization
+            .replayed_merge_ready_parents,
         certification.parent_list_serialization.merge_ready_parents
     );
     assert_eq!(
-        certification.parent_list_serialization.recovered_merge_ready_parents,
+        certification
+            .parent_list_serialization
+            .recovered_merge_ready_parents,
         certification.parent_list_serialization.merge_ready_parents
     );
 
@@ -267,7 +292,9 @@ fn merge_ready_history_shape_test() {
             certification.parent_list_serialization.root_commit_id,
             certification.parent_list_serialization.linear_commit_id,
             certification.parent_list_serialization.feature_commit_id,
-            certification.parent_list_serialization.merge_ready_commit_id,
+            certification
+                .parent_list_serialization
+                .merge_ready_commit_id,
         ]
     );
     assert_eq!(
@@ -279,7 +306,9 @@ fn merge_ready_history_shape_test() {
             .unwrap()
     );
     assert_ne!(
-        certification.ancestry_query_matrix.main_head_ancestor_closure,
+        certification
+            .ancestry_query_matrix
+            .main_head_ancestor_closure,
         certification
             .ancestry_query_matrix
             .merge_ready_commit_ancestor_closure
@@ -311,12 +340,14 @@ fn merge_ready_history_shape_reports_counter_breadth_explicitly() {
     let _ = runtime
         .history_access()
         .ancestor_closure_by_commit_id_order(merge.commit.commit_id);
-    let replay = runtime.replay_authority().replay_commit(RelationalReplayRequest {
-        commit_id: merge.commit.commit_id,
-        branch_id: BranchId("main".to_string()),
-        execution_mode: ReplayExecutionMode::SerialDeterministic,
-        verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
-    });
+    let replay = runtime
+        .replay_authority()
+        .replay_commit(RelationalReplayRequest {
+            commit_id: merge.commit.commit_id,
+            branch_id: BranchId("main".to_string()),
+            execution_mode: ReplayExecutionMode::SerialDeterministic,
+            verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
+        });
     assert!(replay.failure.is_none(), "{:?}", replay);
 
     let runtime_counters = runtime.performance_access().counters();
@@ -330,7 +361,10 @@ fn merge_ready_history_shape_reports_counter_breadth_explicitly() {
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered.durability_authority().recover(recovery_plan).unwrap();
+    recovered
+        .durability_authority()
+        .recover(recovery_plan)
+        .unwrap();
     let recovered_counters = recovered.performance_access().counters();
     assert!(recovered_counters.merge_history_durability_validation_nodes_visited >= 4);
     assert!(recovered_counters.merge_history_durability_parent_checks >= 4);

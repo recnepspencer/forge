@@ -50,20 +50,96 @@ pub struct ArtifactMergeComparable {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NodeMergeInputState {
-    pub current_artifact_id: Option<LineageArtifactId>,
-    pub comparable: Option<ArtifactMergeComparable>,
-    pub authority: Option<ArtifactMergeAuthority>,
-    pub exists_in_branch: bool,
+    current_artifact_id: Option<LineageArtifactId>,
+    comparable: Option<ArtifactMergeComparable>,
+    authority: Option<ArtifactMergeAuthority>,
+    exists_in_branch: bool,
+}
+
+impl NodeMergeInputState {
+    pub fn new(
+        current_artifact_id: Option<LineageArtifactId>,
+        comparable: Option<ArtifactMergeComparable>,
+        authority: Option<ArtifactMergeAuthority>,
+        exists_in_branch: bool,
+    ) -> Self {
+        Self {
+            current_artifact_id,
+            comparable,
+            authority,
+            exists_in_branch,
+        }
+    }
+
+    pub fn current_artifact_id(&self) -> Option<LineageArtifactId> {
+        self.current_artifact_id
+    }
+
+    pub fn comparable(&self) -> Option<&ArtifactMergeComparable> {
+        self.comparable.as_ref()
+    }
+
+    pub fn authority(&self) -> Option<&ArtifactMergeAuthority> {
+        self.authority.as_ref()
+    }
+
+    pub fn exists_in_branch(&self) -> bool {
+        self.exists_in_branch
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NodeMergePlan {
-    pub source_node: NodeId,
-    pub shape: NodeReconciliationShape,
-    pub source_state: NodeMergeInputState,
-    pub target_state: NodeMergeInputState,
-    pub decision: NodeReconciliationDecision,
-    pub resolved_conflict_kinds: Vec<BranchMergeConflictKind>,
+    source_node: NodeId,
+    shape: NodeReconciliationShape,
+    source_state: NodeMergeInputState,
+    target_state: NodeMergeInputState,
+    decision: NodeReconciliationDecision,
+    resolved_conflict_kinds: Vec<BranchMergeConflictKind>,
+}
+
+impl NodeMergePlan {
+    pub fn new(
+        source_node: NodeId,
+        shape: NodeReconciliationShape,
+        source_state: NodeMergeInputState,
+        target_state: NodeMergeInputState,
+        decision: NodeReconciliationDecision,
+        resolved_conflict_kinds: Vec<BranchMergeConflictKind>,
+    ) -> Self {
+        Self {
+            source_node,
+            shape,
+            source_state,
+            target_state,
+            decision,
+            resolved_conflict_kinds,
+        }
+    }
+
+    pub fn source_node(&self) -> NodeId {
+        self.source_node
+    }
+
+    pub fn shape(&self) -> NodeReconciliationShape {
+        self.shape
+    }
+
+    pub fn source_state(&self) -> &NodeMergeInputState {
+        &self.source_state
+    }
+
+    pub fn target_state(&self) -> &NodeMergeInputState {
+        &self.target_state
+    }
+
+    pub fn decision(&self) -> NodeReconciliationDecision {
+        self.decision
+    }
+
+    pub fn resolved_conflict_kinds(&self) -> &[BranchMergeConflictKind] {
+        &self.resolved_conflict_kinds
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -102,26 +178,155 @@ impl PlannedMergeCandidateSet {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LoweredMergePlan {
-    pub source_branch_id: crate::state::SignalBranchId,
-    pub target_branch_id: crate::state::SignalBranchId,
-    pub merge_kind: BranchMergeKind,
-    pub divergence: BranchMergeDivergence,
-    pub merge_strategy: BranchMergeStrategy,
-    pub reconciliation_policy: BranchMergeReconciliationPolicy,
-    pub boundary_witness: MergeBoundaryWitness,
-    pub source_journal: StructuralMergeJournalSlice,
-    pub target_overlap_journal: BranchMutationJournalSlice,
-    pub proof_minimal_overlap: ProofMinimalOverlapBasis,
-    pub conservative_overlap: ConservativeOverlapExpansion,
-    pub planned_candidates: PlannedMergeCandidateSet,
-    pub source_snapshot_id: Option<crate::state::SignalSnapshotId>,
-    pub target_snapshot_id_before: Option<crate::state::SignalSnapshotId>,
-    pub merge_base: Option<BranchMergeBase>,
-    pub resolution_plan: Option<BranchConflictResolutionPlan>,
-    pub node_map: MergeNodeMap,
-    pub node_plan: Vec<NodeMergePlan>,
-    pub adoption_core: Vec<SourceNodeAdoptionPlanCore>,
-    pub adoption_policy: Vec<SourceNodeAdoptionCarryPolicy>,
+    source_branch_id: crate::state::SignalBranchId,
+    target_branch_id: crate::state::SignalBranchId,
+    merge_kind: BranchMergeKind,
+    divergence: BranchMergeDivergence,
+    merge_strategy: BranchMergeStrategy,
+    reconciliation_policy: BranchMergeReconciliationPolicy,
+    boundary_witness: MergeBoundaryWitness,
+    source_journal: StructuralMergeJournalSlice,
+    target_overlap_journal: BranchMutationJournalSlice,
+    proof_minimal_overlap: ProofMinimalOverlapBasis,
+    conservative_overlap: ConservativeOverlapExpansion,
+    planned_candidates: PlannedMergeCandidateSet,
+    source_snapshot_id: Option<crate::state::SignalSnapshotId>,
+    target_snapshot_id_before: Option<crate::state::SignalSnapshotId>,
+    merge_base: Option<BranchMergeBase>,
+    resolution_plan: Option<BranchConflictResolutionPlan>,
+    node_map: MergeNodeMap,
+    node_plan: Vec<NodeMergePlan>,
+    adoption_core: Vec<SourceNodeAdoptionPlanCore>,
+    adoption_policy: Vec<SourceNodeAdoptionCarryPolicy>,
+}
+
+impl LoweredMergePlan {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        source_branch_id: crate::state::SignalBranchId,
+        target_branch_id: crate::state::SignalBranchId,
+        merge_kind: BranchMergeKind,
+        divergence: BranchMergeDivergence,
+        merge_strategy: BranchMergeStrategy,
+        reconciliation_policy: BranchMergeReconciliationPolicy,
+        boundary_witness: MergeBoundaryWitness,
+        source_journal: StructuralMergeJournalSlice,
+        target_overlap_journal: BranchMutationJournalSlice,
+        proof_minimal_overlap: ProofMinimalOverlapBasis,
+        conservative_overlap: ConservativeOverlapExpansion,
+        planned_candidates: PlannedMergeCandidateSet,
+        source_snapshot_id: Option<crate::state::SignalSnapshotId>,
+        target_snapshot_id_before: Option<crate::state::SignalSnapshotId>,
+        merge_base: Option<BranchMergeBase>,
+        resolution_plan: Option<BranchConflictResolutionPlan>,
+        node_map: MergeNodeMap,
+        node_plan: Vec<NodeMergePlan>,
+        adoption_core: Vec<SourceNodeAdoptionPlanCore>,
+        adoption_policy: Vec<SourceNodeAdoptionCarryPolicy>,
+    ) -> Self {
+        Self {
+            source_branch_id,
+            target_branch_id,
+            merge_kind,
+            divergence,
+            merge_strategy,
+            reconciliation_policy,
+            boundary_witness,
+            source_journal,
+            target_overlap_journal,
+            proof_minimal_overlap,
+            conservative_overlap,
+            planned_candidates,
+            source_snapshot_id,
+            target_snapshot_id_before,
+            merge_base,
+            resolution_plan,
+            node_map,
+            node_plan,
+            adoption_core,
+            adoption_policy,
+        }
+    }
+
+    pub fn source_branch_id(&self) -> crate::state::SignalBranchId {
+        self.source_branch_id
+    }
+
+    pub fn target_branch_id(&self) -> crate::state::SignalBranchId {
+        self.target_branch_id
+    }
+
+    pub fn merge_kind(&self) -> BranchMergeKind {
+        self.merge_kind
+    }
+
+    pub fn divergence(&self) -> BranchMergeDivergence {
+        self.divergence
+    }
+
+    pub fn merge_strategy(&self) -> BranchMergeStrategy {
+        self.merge_strategy
+    }
+
+    pub fn reconciliation_policy(&self) -> &BranchMergeReconciliationPolicy {
+        &self.reconciliation_policy
+    }
+
+    pub fn boundary_witness(&self) -> &MergeBoundaryWitness {
+        &self.boundary_witness
+    }
+
+    pub fn source_journal(&self) -> &StructuralMergeJournalSlice {
+        &self.source_journal
+    }
+
+    pub fn target_overlap_journal(&self) -> &BranchMutationJournalSlice {
+        &self.target_overlap_journal
+    }
+
+    pub fn proof_minimal_overlap(&self) -> &ProofMinimalOverlapBasis {
+        &self.proof_minimal_overlap
+    }
+
+    pub fn conservative_overlap(&self) -> &ConservativeOverlapExpansion {
+        &self.conservative_overlap
+    }
+
+    pub fn planned_candidates(&self) -> &PlannedMergeCandidateSet {
+        &self.planned_candidates
+    }
+
+    pub fn source_snapshot_id(&self) -> Option<crate::state::SignalSnapshotId> {
+        self.source_snapshot_id
+    }
+
+    pub fn target_snapshot_id_before(&self) -> Option<crate::state::SignalSnapshotId> {
+        self.target_snapshot_id_before
+    }
+
+    pub fn merge_base(&self) -> Option<&BranchMergeBase> {
+        self.merge_base.as_ref()
+    }
+
+    pub fn resolution_plan(&self) -> Option<&BranchConflictResolutionPlan> {
+        self.resolution_plan.as_ref()
+    }
+
+    pub fn node_map(&self) -> &MergeNodeMap {
+        &self.node_map
+    }
+
+    pub fn node_plan(&self) -> &[NodeMergePlan] {
+        &self.node_plan
+    }
+
+    pub fn adoption_core(&self) -> &[SourceNodeAdoptionPlanCore] {
+        &self.adoption_core
+    }
+
+    pub fn adoption_policy(&self) -> &[SourceNodeAdoptionCarryPolicy] {
+        &self.adoption_policy
+    }
 }
 
 pub type BranchMergePlan = LoweredMergePlan;

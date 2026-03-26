@@ -131,9 +131,8 @@ pub(crate) fn evaluate_invariant_packet(
     for (_index, verdict) in verdicts.into_iter().enumerate() {
         let witness = match &verdict {
             InvariantVerdict::Pass => InvariantWitnessKey::pass(),
-            InvariantVerdict::Advisory { violation, .. } | InvariantVerdict::Violation(violation) => {
-                violation.witness_key()
-            }
+            InvariantVerdict::Advisory { violation, .. }
+            | InvariantVerdict::Violation(violation) => violation.witness_key(),
         };
         let result = InvariantCheckResult {
             execution_point: packet.registration.execution_point(),

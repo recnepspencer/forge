@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
 use crate::identity::data::KindId;
+use crate::merge::data::{AspectMergePolicyDeclaration, IdentityBasisDeclaration};
 
 pub use aspect_semantics::*;
 pub use aspect_traces::*;
@@ -134,6 +135,15 @@ impl RelationalSchemaRegistry {
             .ok_or_else(|| SchemaRegistryError::unknown_relation_kind(kind_id))
     }
 
+    pub fn entity_registration(
+        &self,
+        kind_id: KindId,
+    ) -> Result<&EntityKindRegistration, SchemaRegistryError> {
+        self.entity_kinds
+            .get(&kind_id)
+            .ok_or_else(|| SchemaRegistryError::unknown_entity_kind(kind_id))
+    }
+
     pub fn entity_aspect_declaration_trace(
         &self,
         kind_id: KindId,
@@ -154,6 +164,50 @@ impl RelationalSchemaRegistry {
             .get(&kind_id)
             .ok_or_else(|| SchemaRegistryError::unknown_relation_kind(kind_id))?;
         Ok(registration.aspect_declarations.declaration_trace(kind_id))
+    }
+
+    pub fn entity_identity_declarations(
+        &self,
+        kind_id: KindId,
+    ) -> Result<&[IdentityBasisDeclaration], SchemaRegistryError> {
+        let registration = self
+            .entity_kinds
+            .get(&kind_id)
+            .ok_or_else(|| SchemaRegistryError::unknown_entity_kind(kind_id))?;
+        Ok(&registration.aspect_declarations.identity_declarations)
+    }
+
+    pub fn relation_identity_declarations(
+        &self,
+        kind_id: KindId,
+    ) -> Result<&[IdentityBasisDeclaration], SchemaRegistryError> {
+        let registration = self
+            .relation_kinds
+            .get(&kind_id)
+            .ok_or_else(|| SchemaRegistryError::unknown_relation_kind(kind_id))?;
+        Ok(&registration.aspect_declarations.identity_declarations)
+    }
+
+    pub fn entity_merge_policy_declarations(
+        &self,
+        kind_id: KindId,
+    ) -> Result<&[AspectMergePolicyDeclaration], SchemaRegistryError> {
+        let registration = self
+            .entity_kinds
+            .get(&kind_id)
+            .ok_or_else(|| SchemaRegistryError::unknown_entity_kind(kind_id))?;
+        Ok(&registration.aspect_declarations.merge_policy_declarations)
+    }
+
+    pub fn relation_merge_policy_declarations(
+        &self,
+        kind_id: KindId,
+    ) -> Result<&[AspectMergePolicyDeclaration], SchemaRegistryError> {
+        let registration = self
+            .relation_kinds
+            .get(&kind_id)
+            .ok_or_else(|| SchemaRegistryError::unknown_relation_kind(kind_id))?;
+        Ok(&registration.aspect_declarations.merge_policy_declarations)
     }
 
     pub fn authoritative_schema_basis(

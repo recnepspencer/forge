@@ -94,22 +94,16 @@ pub(crate) fn record_semantic_execution(
     {
         let cursor = graph.diagnostics_state_mut().allocate_replay_cursor();
         let branch_id = graph.observe().current_branch().id;
-        let lineage_artifact_id = graph
-            .get_entry(task.node)
-            .ok()
-            .and_then(|entry| entry.get_runtime_artifact_state())
-            .and_then(|state| state.lineage_artifact_id.get());
+        let lineage_artifact_id = graph.node_lineage_artifact_id(task.node).ok().flatten();
         let persistent_correspondence_kind = graph
-            .get_entry(task.node)
+            .node_reuse_boundary_authority(task.node)
             .ok()
-            .and_then(|entry| entry.get_runtime_artifact_state())
-            .and_then(|state| state.reuse_boundary_authority.as_ref())
+            .flatten()
             .and_then(|authority| authority.persistent_correspondence_kind());
         let composition_region_count = graph
-            .get_entry(task.node)
+            .node_reuse_boundary_authority(task.node)
             .ok()
-            .and_then(|entry| entry.get_runtime_artifact_state())
-            .and_then(|state| state.reuse_boundary_authority.as_ref())
+            .flatten()
             .map(|authority| authority.composition_region_count())
             .filter(|count| *count > 0);
         graph

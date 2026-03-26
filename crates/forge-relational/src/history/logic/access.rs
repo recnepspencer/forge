@@ -243,6 +243,8 @@ impl<'runtime> HistoryAccess<'runtime> {
         source_branch: &BranchId,
         target_branch: &BranchId,
     ) -> MergeInspection {
+        // This remains a history substrate helper. New merge-semantic planning
+        // should land in `crate::merge`, not grow richer semantics here.
         let source_head = self.branch_head(source_branch).cloned();
         let target_head = self.branch_head(target_branch).cloned();
         let merge_base =
@@ -255,11 +257,15 @@ impl<'runtime> HistoryAccess<'runtime> {
 
         let source_only_commits = source_head
             .as_ref()
-            .map(|head| self.branch_unique_commit_closure_by_commit_id_order(head.commit_id, merge_base))
+            .map(|head| {
+                self.branch_unique_commit_closure_by_commit_id_order(head.commit_id, merge_base)
+            })
             .unwrap_or_default();
         let target_only_commits = target_head
             .as_ref()
-            .map(|head| self.branch_unique_commit_closure_by_commit_id_order(head.commit_id, merge_base))
+            .map(|head| {
+                self.branch_unique_commit_closure_by_commit_id_order(head.commit_id, merge_base)
+            })
             .unwrap_or_default();
         let conflicting_records = self.merge_conflicts_between(
             source_only_commits.as_slice(),

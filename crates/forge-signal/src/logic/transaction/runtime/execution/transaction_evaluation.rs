@@ -151,7 +151,7 @@ where
             EvaluationRequestMode::Default,
             executor,
         )?;
-        Ok(self.graph.get_entry(node)?.get_aspect_version())
+        Ok(self.graph.node_aspect_version(node)?)
     }
 
     pub fn evaluate_dirty<F, O>(&mut self, evaluator: &F) -> Result<ExecutionReport, SignalError>
@@ -186,10 +186,8 @@ where
                 .filter_map(|index| self.graph.live_node_id_at(index))
                 .filter(|node| {
                     self.graph
-                        .get_entry(*node)
-                        .map(|entry| {
-                            !matches!(entry.get_state(), crate::data::node::NodeState::Clean)
-                        })
+                        .get_state(*node)
+                        .map(|state| !matches!(state, crate::data::node::NodeState::Clean))
                         .unwrap_or(false)
                 }),
         )

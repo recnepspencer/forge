@@ -121,15 +121,12 @@ pub(crate) fn prove_reuse_boundaries(
             )?,
             ArtifactSemanticBoundary::PartitionRegionBasis => prove_boundary(
                 *boundary,
-                evidence
-                    .previous
-                    .as_ref()
-                    .map(|context| {
-                        (
-                            context.partition_region_basis_digest,
-                            context.partition_region_basis_count,
-                        )
-                    }),
+                evidence.previous.as_ref().map(|context| {
+                    (
+                        context.partition_region_basis_digest,
+                        context.partition_region_basis_count,
+                    )
+                }),
                 (
                     evidence.current.partition_region_basis_digest,
                     evidence.current.partition_region_basis_count,
@@ -142,21 +139,24 @@ pub(crate) fn prove_reuse_boundaries(
                 ) {
                     continue;
                 }
-                let Some(previous) = evidence.previous.as_ref().and_then(|context| {
-                    match context.strategy_detail {
-                        ReuseStrategyBoundaryAuthority::CrossIdentity {
-                            persistent_correspondence_kind,
-                            persistent_correspondence_digest,
-                            persistent_correspondence_valid,
-                        } => Some((
-                            persistent_correspondence_kind,
-                            persistent_correspondence_digest,
-                            persistent_correspondence_valid,
-                        )),
-                        ReuseStrategyBoundaryAuthority::None
-                        | ReuseStrategyBoundaryAuthority::PartialArtifactSplice { .. } => None,
-                    }
-                }) else {
+                let Some(previous) =
+                    evidence
+                        .previous
+                        .as_ref()
+                        .and_then(|context| match context.strategy_detail {
+                            ReuseStrategyBoundaryAuthority::CrossIdentity {
+                                persistent_correspondence_kind,
+                                persistent_correspondence_digest,
+                                persistent_correspondence_valid,
+                            } => Some((
+                                persistent_correspondence_kind,
+                                persistent_correspondence_digest,
+                                persistent_correspondence_valid,
+                            )),
+                            ReuseStrategyBoundaryAuthority::None
+                            | ReuseStrategyBoundaryAuthority::PartialArtifactSplice { .. } => None,
+                        })
+                else {
                     return Err(ReuseBoundaryFailure::PersistentCorrespondenceEvidenceMissing);
                 };
                 let Some(current) = (match evidence.current.strategy_detail {

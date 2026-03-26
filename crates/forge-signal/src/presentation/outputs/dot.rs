@@ -19,24 +19,30 @@ pub fn to_dot(graph: &SignalGraph) -> String {
         let Some(node) = graph.live_node_id_at(index) else {
             continue;
         };
-        let Ok(entry) = graph.get_entry(node) else {
+        let Ok(state) = graph.get_state(node) else {
+            continue;
+        };
+        let Ok(condition) = graph.node_condition(node) else {
             continue;
         };
         let mut label = format!(
             "{}\\nstate={:?}\\ncondition={:?}",
             node,
-            entry.get_state(),
-            entry.get_eval_config().condition
+            state,
+            condition
         );
-        if !entry.get_dirty_aspects().is_empty() {
-            label.push_str(&format!("\\ndirty={:?}", entry.get_dirty_aspects()));
+        let Ok(dirty_aspects) = graph.node_dirty_aspects(node) else {
+            continue;
+        };
+        if !dirty_aspects.is_empty() {
+            label.push_str(&format!("\\ndirty={:?}", dirty_aspects));
         }
         let _ = writeln!(
             dot,
             "  \"{}\" [label=\"{}\", style=filled, fillcolor={}];",
             node,
             label,
-            node_color(*entry.get_state())
+            node_color(state)
         );
     }
 

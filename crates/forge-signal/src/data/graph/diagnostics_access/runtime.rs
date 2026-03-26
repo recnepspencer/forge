@@ -75,9 +75,9 @@ impl SignalGraph {
         changed_regions: &[crate::data::output::ChangedRegion],
     ) {
         let causality_kind = self
-            .get_entry(node)
+            .causality_of(node)
             .ok()
-            .and_then(|entry| entry.get_causality())
+            .flatten()
             .map(|causality| causality.kind.clone());
         self.observation.diagnostics.note_change_input(
             node,

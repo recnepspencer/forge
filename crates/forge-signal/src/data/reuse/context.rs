@@ -191,7 +191,9 @@ impl ReuseBoundaryContext {
             authority_policy: self.authority_policy,
             artifact_family: self.artifact_family.clone(),
             structural_dependency_basis: self.structural_dependency_basis,
-            partition_region_basis_digest: stable_partition_scope_digest(&self.partition_region_basis),
+            partition_region_basis_digest: stable_partition_scope_digest(
+                &self.partition_region_basis,
+            ),
             partition_region_basis_count: self.partition_region_basis.len() as u32,
             strategy_detail: match &self.strategy_detail {
                 ReuseStrategyBoundaryContext::None => ReuseStrategyBoundaryAuthority::None,
@@ -199,8 +201,9 @@ impl ReuseBoundaryContext {
                     persistent_correspondence,
                 } => ReuseStrategyBoundaryAuthority::CrossIdentity {
                     persistent_correspondence_kind: persistent_correspondence.kind(),
-                    persistent_correspondence_digest:
-                        stable_persistent_correspondence_digest(persistent_correspondence),
+                    persistent_correspondence_digest: stable_persistent_correspondence_digest(
+                        persistent_correspondence,
+                    ),
                     persistent_correspondence_valid: persistent_correspondence
                         .is_structurally_valid(),
                 },
@@ -327,11 +330,9 @@ fn stable_partition_scope_digest(scopes: &PartitionScopeSet) -> StableHashValue 
 pub(crate) fn stable_partition_scope_digest_from_slice(
     scopes: &[PartitionSubscription],
 ) -> StableHashValue {
-    scopes
-        .iter()
-        .fold(stable_hash_seed(), |hash, scope| {
-            hash_partition_subscription(hash, scope)
-        })
+    scopes.iter().fold(stable_hash_seed(), |hash, scope| {
+        hash_partition_subscription(hash, scope)
+    })
 }
 
 pub(crate) fn stable_persistent_correspondence_digest(
@@ -355,7 +356,10 @@ fn hash_partition_subscription(
     hash_u64(hash, scope.match_mode as u64)
 }
 
-fn hash_context_requirement(hash: StableHashValue, requirement: ContextRequirement) -> StableHashValue {
+fn hash_context_requirement(
+    hash: StableHashValue,
+    requirement: ContextRequirement,
+) -> StableHashValue {
     let tag = match requirement {
         ContextRequirement::None => 0_u64,
         ContextRequirement::DomainContext => 1_u64,
@@ -363,7 +367,6 @@ fn hash_context_requirement(hash: StableHashValue, requirement: ContextRequireme
     };
     hash_u64(hash, tag)
 }
-
 
 #[cfg(test)]
 mod tests {

@@ -1,4 +1,5 @@
 use crate::facade::*;
+use crate::data::trace::RuntimeArtifactState;
 use crate::tests::support::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -304,7 +305,10 @@ fn retained_and_reconstructed_artifacts_preserve_semantic_parity() {
     let reconstructed_explanation = graph
         .reconstruct_explanation_artifact_without_retained_fast_path(dependent)
         .unwrap();
-    assert_eq!(retained_explanation.upstream, reconstructed_explanation.upstream);
+    assert_eq!(
+        retained_explanation.upstream,
+        reconstructed_explanation.upstream
+    );
     assert_eq!(
         retained_explanation.historical_artifact_record,
         reconstructed_explanation.historical_artifact_record
@@ -348,13 +352,19 @@ fn retained_and_reconstructed_artifacts_preserve_semantic_parity() {
     let reconstructed_provenance = graph
         .reconstruct_provenance_artifact_without_retained_fast_path(dependent)
         .unwrap();
-    assert_eq!(retained_provenance.vertices, reconstructed_provenance.vertices);
+    assert_eq!(
+        retained_provenance.vertices,
+        reconstructed_provenance.vertices
+    );
     assert_eq!(retained_provenance.edges, reconstructed_provenance.edges);
     assert_eq!(
         retained_provenance.causal_links,
         reconstructed_provenance.causal_links
     );
-    assert_eq!(retained_provenance.rewiring, reconstructed_provenance.rewiring);
+    assert_eq!(
+        retained_provenance.rewiring,
+        reconstructed_provenance.rewiring
+    );
     let reconstructed_historical = reconstructed_explanation
         .historical_artifact_record
         .clone()
@@ -555,7 +565,31 @@ fn hot_effect_path_only_retains_cold_artifact_records_when_policy_requires_it() 
             .observe()
             .metrics()
             .storage
+            .hot_node_inline_size_bytes
+            > 0
+    );
+    assert!(
+        omitted
+            .observe()
+            .metrics()
+            .storage
+            .warm_node_inline_size_bytes
+            > 0
+    );
+    assert!(
+        omitted
+            .observe()
+            .metrics()
+            .storage
             .hot_runtime_artifact_inline_size_bytes
+            > 0
+    );
+    assert!(
+        omitted
+            .observe()
+            .metrics()
+            .storage
+            .warm_runtime_artifact_inline_size_bytes
             > 0
     );
     assert!(
@@ -986,7 +1020,8 @@ fn explanation_surfaces_causality_and_trace_summary() {
 fn explanation_surfaces_retained_reuse_certification() {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
-    let entry = graph.get_entry_mut(node).unwrap();
+    {
+    let mut entry = graph.get_entry_mut(node).unwrap();
     let reuse_boundary_context = ReuseBoundaryContext {
         topology_regime: 1,
         tolerance_regime: VersionComparatorPolicy::Exact,
@@ -1002,18 +1037,19 @@ fn explanation_surfaces_retained_reuse_certification() {
         partition_region_basis: PartitionScopeSet::default(),
         strategy_detail: crate::data::reuse::ReuseStrategyBoundaryContext::None,
     };
-    entry.set_runtime_artifact_state(Some(RuntimeArtifactState {
-        recomputed: false,
-        memoized_origin: MemoizedResultOrigin::MemoizedFromCache,
-        reuse_origin: crate::data::reuse::ReuseOrigin::MemoizedArtifactReuse,
-        reuse_basis: crate::data::trace::ReuseOperationalBasis::new(ReuseBasis::strategy(
+    let mut runtime = RuntimeArtifactState::default();
+    runtime.hot_mut().recomputed = false;
+    runtime.warm_mut().memoized_origin = MemoizedResultOrigin::MemoizedFromCache;
+    runtime.warm_mut().reuse_origin = crate::data::reuse::ReuseOrigin::MemoizedArtifactReuse;
+    runtime.warm_mut().reuse_basis = crate::data::trace::ReuseOperationalBasis::new(
+        ReuseBasis::strategy(
             crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse,
             ReuseSource::MemoizedArtifact,
             ReuseCrossing::None,
-        )),
-        reuse_boundary_authority: Some(reuse_boundary_context.authority()),
-        ..RuntimeArtifactState::default()
-    }));
+        ),
+    );
+    runtime.warm_mut().reuse_boundary_authority = Some(reuse_boundary_context.authority());
+    entry.set_runtime_artifact_state(Some(runtime));
     entry.set_retained_diagnostic_artifact(Some(RetainedDiagnosticArtifact {
         changed_regions: CanonicalChangedRegions::default(),
         labels: Vec::new(),
@@ -1031,6 +1067,7 @@ fn explanation_surfaces_retained_reuse_certification() {
         }),
         reuse_boundary_context: Some(reuse_boundary_context),
     }));
+    }
 
     let explanation = graph.observe().explain(node).unwrap();
     assert_eq!(
@@ -1077,25 +1114,29 @@ fn reuse_boundary_detail_lives_in_cold_retained_lane_while_hot_runtime_keeps_com
                 ),
         },
     };
-    let entry = graph.get_entry_mut(node).unwrap();
-    entry.set_runtime_artifact_state(Some(RuntimeArtifactState {
-        reuse_origin: crate::data::reuse::ReuseOrigin::CrossIdentityPersistentReuse,
-        reuse_basis: crate::data::trace::ReuseOperationalBasis::new(ReuseBasis::strategy(
-            crate::data::reuse::ReuseStrategy::CrossIdentityPersistentMatch,
-            ReuseSource::PersistentCorrespondence,
-            ReuseCrossing::PersistentIdentityBoundary,
-        )),
-        reuse_boundary_authority: Some(reuse_boundary_context.authority()),
-        ..RuntimeArtifactState::default()
-    }));
-    entry.set_retained_diagnostic_artifact(Some(RetainedDiagnosticArtifact {
-        changed_regions: CanonicalChangedRegions::default(),
-        labels: Vec::new(),
-        keyed_family: None,
-        keyed_key: None,
-        reuse_certification: None,
-        reuse_boundary_context: Some(reuse_boundary_context.clone()),
-    }));
+    {
+        let mut entry = graph.get_entry_mut(node).unwrap();
+        let mut runtime = RuntimeArtifactState::default();
+        runtime.warm_mut().reuse_origin =
+            crate::data::reuse::ReuseOrigin::CrossIdentityPersistentReuse;
+        runtime.warm_mut().reuse_basis = crate::data::trace::ReuseOperationalBasis::new(
+            ReuseBasis::strategy(
+                crate::data::reuse::ReuseStrategy::CrossIdentityPersistentMatch,
+                ReuseSource::PersistentCorrespondence,
+                ReuseCrossing::PersistentIdentityBoundary,
+            ),
+        );
+        runtime.warm_mut().reuse_boundary_authority = Some(reuse_boundary_context.authority());
+        entry.set_runtime_artifact_state(Some(runtime));
+        entry.set_retained_diagnostic_artifact(Some(RetainedDiagnosticArtifact {
+            changed_regions: CanonicalChangedRegions::default(),
+            labels: Vec::new(),
+            keyed_family: None,
+            keyed_key: None,
+            reuse_certification: None,
+            reuse_boundary_context: Some(reuse_boundary_context.clone()),
+        }));
+    }
 
     let runtime = graph
         .observe()
@@ -1105,8 +1146,7 @@ fn reuse_boundary_detail_lives_in_cold_retained_lane_while_hot_runtime_keeps_com
         .expect("runtime artifact");
     assert_eq!(
         runtime
-            .reuse_boundary_authority
-            .as_ref()
+            .reuse_boundary_authority()
             .and_then(|authority| authority.persistent_correspondence_kind()),
         Some(crate::data::reuse::PersistentCorrespondenceKind::LineageBackedMapping)
     );

@@ -2,6 +2,10 @@ use std::collections::BTreeSet;
 
 use smallvec::SmallVec;
 
+use crate::merge::data::{
+    AspectMergePolicyDeclaration, AspectMergePolicyKind, IdentityBasisDeclaration,
+    IdentityBasisKind, IdentityBasisScope,
+};
 use crate::schema::data::{
     derive_relation_integrity_plan_revision, AllowedCycleClass, AspectBinding, AspectComparator,
     AspectPlanCatalog, AspectPlanRevision, AspectPrecision, CardinalityContractDeclaration,
@@ -103,6 +107,13 @@ fn canonicalize_declarations(
 ) -> Result<KindAspectDeclarations, SchemaRegistryError> {
     let mut seen = BTreeSet::new();
     let mut aspects = declarations.aspects;
+    let mut identity_declarations =
+        canonicalize_identity_declarations(kind_id, declarations.identity_declarations, &aspects, &domain)?;
+    let merge_policy_declarations = canonicalize_merge_policy_declarations(
+        kind_id,
+        declarations.merge_policy_declarations,
+        &aspects,
+    )?;
     let payload_schema = declarations
         .payload_schema
         .map(|payload_schema| canonicalize_payload_schema(kind_id, payload_schema))
@@ -117,12 +128,207 @@ fn canonicalize_declarations(
         }
         validate_declared_aspect(kind_id, aspect, &domain)?;
     }
-    let plan_revision = derive_plan_revision(&aspects);
+    identity_declarations.sort();
+    let plan_revision = derive_plan_revision(
+        &aspects,
+        &identity_declarations,
+        &merge_policy_declarations,
+    );
     Ok(KindAspectDeclarations {
         plan_revision,
         aspects,
+        identity_declarations,
+        merge_policy_declarations,
         payload_schema,
     })
+}
+
+fn canonicalize_identity_declarations(
+    kind_id: crate::identity::data::KindId,
+    mut declarations: Vec<IdentityBasisDeclaration>,
+    aspects: &[DeclaredAspect],
+    domain: &RegistrationDomain,
+) -> Result<Vec<IdentityBasisDeclaration>, SchemaRegistryError> {
+    if declarations.is_empty() {
+        declarations = default_identity_declarations(kind_id, domain);
+    }
+    declarations.sort();
+    let mut seen = BTreeSet::new();
+    let aspect_keys = aspects
+        .iter()
+        .map(|aspect| aspect.key.clone())
+        .collect::<BTreeSet<_>>();
+    for declaration in &declarations {
+        if !seen.insert(declaration.clone()) {
+            return Err(SchemaRegistryError::invalid_aspect_declaration(
+                kind_id,
+                format!("duplicate identity basis declaration for scope {:?}", declaration.scope),
+            ));
+        }
+        match &declaration.scope {
+            IdentityBasisScope::EntityKind(scope_kind) => {
+                if *scope_kind != kind_id || !matches!(domain, RegistrationDomain::Entity) {
+                    return Err(SchemaRegistryError::invalid_aspect_declaration(
+                        kind_id,
+                        "entity identity declarations must target the registering entity kind",
+                    ));
+                }
+            }
+            IdentityBasisScope::RelationKind(scope_kind) => {
+                if *scope_kind != kind_id || !matches!(domain, RegistrationDomain::Relation { .. }) {
+                    return Err(SchemaRegistryError::invalid_aspect_declaration(
+                        kind_id,
+                        "relation identity declarations must target the registering relation kind",
+                    ));
+                }
+            }
+            IdentityBasisScope::AspectKey(aspect_key) => {
+                if !aspect_keys.contains(aspect_key) {
+                    return Err(SchemaRegistryError::invalid_aspect_declaration(
+                        kind_id,
+                        format!(
+                            "identity basis declaration references undeclared aspect key {:?}",
+                            aspect_key
+                        ),
+                    ));
+                }
+                if !matches!(declaration.basis, IdentityBasisKind::DeclaredKeySet(_)) {
+                    return Err(SchemaRegistryError::invalid_aspect_declaration(
+                        kind_id,
+                        "aspect-key-scoped identity declarations must use DeclaredKeySet",
+                    ));
+                }
+            }
+        }
+        if matches!(domain, RegistrationDomain::Relation { .. })
+            && matches!(declaration.basis, IdentityBasisKind::LineageIdentity)
+        {
+            return Err(SchemaRegistryError::invalid_aspect_declaration(
+                kind_id,
+                "relation kinds cannot currently declare LineageIdentity",
+            ));
+        }
+        if let IdentityBasisKind::DeclaredKeySet(keys) = &declaration.basis {
+            if keys.is_empty() {
+                return Err(SchemaRegistryError::invalid_aspect_declaration(
+                    kind_id,
+                    "DeclaredKeySet identity declarations must contain at least one aspect key",
+                ));
+            }
+            for key in keys.iter() {
+                if !aspect_keys.contains(key) {
+                    return Err(SchemaRegistryError::invalid_aspect_declaration(
+                        kind_id,
+                        format!(
+                            "DeclaredKeySet identity declaration references undeclared aspect key {:?}",
+                            key
+                        ),
+                    ));
+                }
+            }
+        }
+        match &declaration.basis {
+            IdentityBasisKind::StorageIdentity
+            | IdentityBasisKind::LineageIdentity
+            | IdentityBasisKind::DeclaredKeySet(_) => {}
+            IdentityBasisKind::StructuralFingerprint => {
+                return Err(SchemaRegistryError::invalid_aspect_declaration(
+                    kind_id,
+                    "merge planning does not yet support StructuralFingerprint identity declarations",
+                ));
+            }
+            IdentityBasisKind::Custom(_) => {
+                return Err(SchemaRegistryError::invalid_aspect_declaration(
+                    kind_id,
+                    "merge planning does not yet support custom identity declarations",
+                ));
+            }
+        }
+    }
+    Ok(declarations)
+}
+
+fn default_identity_declarations(
+    kind_id: crate::identity::data::KindId,
+    domain: &RegistrationDomain,
+) -> Vec<IdentityBasisDeclaration> {
+    match domain {
+        RegistrationDomain::Entity => vec![
+            IdentityBasisDeclaration {
+                scope: IdentityBasisScope::EntityKind(kind_id),
+                basis: IdentityBasisKind::StorageIdentity,
+            },
+            IdentityBasisDeclaration {
+                scope: IdentityBasisScope::EntityKind(kind_id),
+                basis: IdentityBasisKind::LineageIdentity,
+            },
+        ],
+        RegistrationDomain::Relation { .. } => vec![IdentityBasisDeclaration {
+            scope: IdentityBasisScope::RelationKind(kind_id),
+            basis: IdentityBasisKind::StorageIdentity,
+        }],
+    }
+}
+
+fn canonicalize_merge_policy_declarations(
+    kind_id: crate::identity::data::KindId,
+    mut declarations: Vec<AspectMergePolicyDeclaration>,
+    aspects: &[DeclaredAspect],
+) -> Result<Vec<AspectMergePolicyDeclaration>, SchemaRegistryError> {
+    declarations.sort_by(|left, right| left.aspect_key.cmp(&right.aspect_key));
+    let aspect_keys = aspects
+        .iter()
+        .map(|aspect| aspect.key.clone())
+        .collect::<BTreeSet<_>>();
+    let mut seen = BTreeSet::new();
+    for declaration in &declarations {
+        if !aspect_keys.contains(&declaration.aspect_key) {
+            return Err(SchemaRegistryError::invalid_aspect_declaration(
+                kind_id,
+                format!(
+                    "merge policy declaration references undeclared aspect key {:?}",
+                    declaration.aspect_key
+                ),
+            ));
+        }
+        if !seen.insert(declaration.aspect_key.clone()) {
+            return Err(SchemaRegistryError::invalid_aspect_declaration(
+                kind_id,
+                format!(
+                    "duplicate merge policy declaration for aspect key {:?}",
+                    declaration.aspect_key
+                ),
+            ));
+        }
+        match declaration.policy {
+            AspectMergePolicyKind::FailOnConflict | AspectMergePolicyKind::PreferRicher => {}
+            AspectMergePolicyKind::LastWriterWins => {
+                return Err(SchemaRegistryError::invalid_aspect_declaration(
+                    kind_id,
+                    "merge planning does not yet support LastWriterWins declarations",
+                ));
+            }
+            AspectMergePolicyKind::MonotonicCounter => {
+                return Err(SchemaRegistryError::invalid_aspect_declaration(
+                    kind_id,
+                    "merge planning does not yet support MonotonicCounter declarations",
+                ));
+            }
+            AspectMergePolicyKind::AdditiveSet => {
+                return Err(SchemaRegistryError::invalid_aspect_declaration(
+                    kind_id,
+                    "merge planning does not yet support AdditiveSet declarations",
+                ));
+            }
+            AspectMergePolicyKind::Custom(_) => {
+                return Err(SchemaRegistryError::invalid_aspect_declaration(
+                    kind_id,
+                    "merge planning does not yet support custom merge policy declarations",
+                ));
+            }
+        }
+    }
+    Ok(declarations)
 }
 
 fn validate_declared_aspect(
@@ -703,7 +909,11 @@ fn lower_binding(aspect: &DeclaredAspect) -> LoweredAspectBinding {
     }
 }
 
-fn derive_plan_revision(aspects: &[DeclaredAspect]) -> AspectPlanRevision {
+fn derive_plan_revision(
+    aspects: &[DeclaredAspect],
+    identity_declarations: &[IdentityBasisDeclaration],
+    merge_policy_declarations: &[AspectMergePolicyDeclaration],
+) -> AspectPlanRevision {
     const FNV_OFFSET: u128 = 0x6c62272e07bb014262b821756295c58d;
     const FNV_PRIME: u128 = 0x0000000001000000000000000000013B;
 
@@ -766,6 +976,62 @@ fn derive_plan_revision(aspects: &[DeclaredAspect]) -> AspectPlanRevision {
                 AspectPrecision::Opaque => b"opaque",
             },
         );
+    }
+    for declaration in identity_declarations {
+        match &declaration.scope {
+            IdentityBasisScope::EntityKind(kind_id) => {
+                mix_bytes(&mut hash, b"identity_scope_entity_kind");
+                mix_bytes(&mut hash, &kind_id.0.to_le_bytes());
+            }
+            IdentityBasisScope::RelationKind(kind_id) => {
+                mix_bytes(&mut hash, b"identity_scope_relation_kind");
+                mix_bytes(&mut hash, &kind_id.0.to_le_bytes());
+            }
+            IdentityBasisScope::AspectKey(aspect_key) => {
+                mix_bytes(&mut hash, b"identity_scope_aspect_key");
+                mix_interned_string(&mut hash, &aspect_key.0);
+            }
+        }
+        match &declaration.basis {
+            IdentityBasisKind::StorageIdentity => mix_bytes(&mut hash, b"identity_basis_storage"),
+            IdentityBasisKind::LineageIdentity => mix_bytes(&mut hash, b"identity_basis_lineage"),
+            IdentityBasisKind::StructuralFingerprint => {
+                mix_bytes(&mut hash, b"identity_basis_structural")
+            }
+            IdentityBasisKind::DeclaredKeySet(keys) => {
+                mix_bytes(&mut hash, b"identity_basis_declared_key_set");
+                for key in keys.iter() {
+                    mix_interned_string(&mut hash, &key.0);
+                }
+            }
+            IdentityBasisKind::Custom(custom) => {
+                mix_bytes(&mut hash, b"identity_basis_custom");
+                mix_bytes(&mut hash, custom.name.as_bytes());
+                mix_bytes(&mut hash, &custom.semantic_version.to_le_bytes());
+            }
+        }
+    }
+    for declaration in merge_policy_declarations {
+        mix_bytes(&mut hash, b"merge_policy_declaration");
+        mix_interned_string(&mut hash, &declaration.aspect_key.0);
+        match &declaration.policy {
+            AspectMergePolicyKind::FailOnConflict => mix_bytes(&mut hash, b"merge_policy_fail"),
+            AspectMergePolicyKind::LastWriterWins => mix_bytes(&mut hash, b"merge_policy_lww"),
+            AspectMergePolicyKind::MonotonicCounter => {
+                mix_bytes(&mut hash, b"merge_policy_monotonic_counter")
+            }
+            AspectMergePolicyKind::AdditiveSet => {
+                mix_bytes(&mut hash, b"merge_policy_additive_set")
+            }
+            AspectMergePolicyKind::PreferRicher => {
+                mix_bytes(&mut hash, b"merge_policy_prefer_richer")
+            }
+            AspectMergePolicyKind::Custom(custom) => {
+                mix_bytes(&mut hash, b"merge_policy_custom");
+                mix_bytes(&mut hash, custom.name.as_bytes());
+                mix_bytes(&mut hash, &custom.semantic_version.to_le_bytes());
+            }
+        }
     }
     AspectPlanRevision(hash)
 }

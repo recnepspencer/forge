@@ -107,8 +107,7 @@ pub(super) fn subscriber_invalidation_evidence(
 
     if saw_same_source_dependency
         && !graph
-            .get_entry(source)?
-            .get_eval_config()
+            .node_eval_config(source)?
             .partitioned_output
     {
         return Ok(Some(SubscriptionInvalidationEvidence {

@@ -2,34 +2,14 @@ use crate::data::dependency::{DependencyEdge, DependencySnapshot};
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
-use crate::data::trace::{
-    ArtifactMergeAuthority, ArtifactTransitionKey, ArtifactWriteDelta, MergeAdoptability,
-    RuntimeArtifactState,
-};
+use crate::data::node::CheckpointNodeImage;
+use crate::data::trace::{ArtifactMergeAuthority, ArtifactWriteDelta, MergeAdoptability};
 
 use super::{
-    AdoptedNodeMaterialization, ArtifactMergeComparable, CausalityCarryPolicy,
-    DependencyFingerprint, DependencyRemapRecord, MergeNodeMap, RetainedArtifactCarryPolicy,
-    RuntimeArtifactCarryPolicy, SourceNodeAdoptionCarryPolicy, SourceNodeAdoptionPlanCore,
-    TargetNodeIdentityIntent,
+    AdoptedNodeMaterialization, CausalityCarryPolicy, DependencyRemapRecord, MergeNodeMap,
+    RetainedArtifactCarryPolicy, RuntimeArtifactCarryPolicy, SourceNodeAdoptionCarryPolicy,
+    SourceNodeAdoptionPlanCore, TargetNodeIdentityIntent,
 };
-
-pub(crate) fn merge_comparable(
-    runtime: Option<&RuntimeArtifactState>,
-) -> Option<ArtifactMergeComparable> {
-    let runtime = runtime?;
-    Some(ArtifactMergeComparable {
-        output_identity: runtime.output_identity.clone(),
-        continuity_token: runtime.continuity_token.clone_inner(),
-        reuse_basis: runtime.reuse_basis.clone_inner(),
-        dependency_fingerprint: DependencyFingerprint {
-            dependency_count: runtime.dependency_count,
-            meaningful_input_changes: runtime.meaningful_input_changes,
-            output_hash: runtime.output_hash,
-        },
-        authority: runtime.merge_authority.clone(),
-    })
-}
 
 pub(crate) fn adopt_source_node_into_target(
     target_graph: &mut SignalGraph,
@@ -38,31 +18,22 @@ pub(crate) fn adopt_source_node_into_target(
     carry_policy: &SourceNodeAdoptionCarryPolicy,
     node_map: &MergeNodeMap,
 ) -> Result<(AdoptedNodeMaterialization, Vec<DependencyRemapRecord>), SignalError> {
-    let source_entry = source_graph.get_entry(core.source_node)?.clone();
+    let source_image = source_graph.node_checkpoint_image(core.source_node)?;
     let target_node = match core.target_identity {
         TargetNodeIdentityIntent::ExistingMapping { mapped_target_node } => mapped_target_node,
         TargetNodeIdentityIntent::AllocateTargetNode => {
-            let mut entry = source_entry.clone();
-            entry.set_dependencies_id(crate::data::graph::DependencySetId::EMPTY);
-            entry.set_subscribers_id(crate::data::graph::SubscriberSetId::EMPTY);
-            entry.set_dep_snapshot_id(crate::data::dependency::DependencySnapshotId::EMPTY);
-            apply_carry_policy(&mut entry, &source_entry, carry_policy, &core.authority);
-            let target_node = target_graph.create_node_from_entry(entry);
-            if let Some(mut runtime) = target_graph
-                .get_entry(target_node)?
-                .get_runtime_artifact_state()
-                .cloned()
-            {
-                runtime.lineage_artifact_id = ArtifactTransitionKey::new(Some(
+            let mut entry_image = source_image.clone();
+            entry_image.clear_dependency_handles_for_adoption();
+            apply_carry_policy(&mut entry_image, &source_image, carry_policy, &core.authority);
+            entry_image.set_eval_config(core.entry_contract.eval_config.clone());
+            if let Some(runtime) = entry_image.runtime_artifact_state_mut() {
+                runtime.set_lineage_artifact_id(Some(
                     target_graph
                         .diagnostics_state_mut()
                         .allocate_lineage_artifact_id(),
                 ));
-                target_graph
-                    .get_entry_mut(target_node)?
-                    .set_runtime_artifact_state(Some(runtime));
             }
-            target_node
+            target_graph.create_node_from_checkpoint_image(entry_image)
         }
     };
 
@@ -77,18 +48,16 @@ pub(crate) fn adopt_source_node_into_target(
         &core.dependency_snapshot_ref.snapshot,
         node_map,
     )?;
-    target_graph
-        .get_entry_mut(target_node)?
-        .set_eval_config(core.entry_contract.eval_config.clone());
     target_graph.set_dependencies(target_node, remapped_edges.clone())?;
     target_graph.set_dep_snapshot(target_node, remapped_snapshot)?;
     if matches!(
         core.target_identity,
         TargetNodeIdentityIntent::ExistingMapping { .. }
     ) {
-        let mut entry = target_graph.get_entry(target_node)?.clone();
-        apply_carry_policy(&mut entry, &source_entry, carry_policy, &core.authority);
-        target_graph.replace_entry(target_node, entry)?;
+        let mut entry_image = target_graph.node_checkpoint_image(target_node)?;
+        apply_carry_policy(&mut entry_image, &source_image, carry_policy, &core.authority);
+        entry_image.set_eval_config(core.entry_contract.eval_config.clone());
+        target_graph.replace_entry_from_checkpoint_image(target_node, entry_image)?;
         target_graph.set_dependencies(target_node, remapped_edges)?;
     }
 
@@ -106,8 +75,8 @@ pub(crate) fn adopt_source_node_into_target(
 }
 
 fn apply_carry_policy(
-    entry: &mut crate::data::node::NodeEntry,
-    source_entry: &crate::data::node::NodeEntry,
+    entry: &mut CheckpointNodeImage,
+    source_entry: &CheckpointNodeImage,
     carry_policy: &SourceNodeAdoptionCarryPolicy,
     authority: &ArtifactMergeAuthority,
 ) {
@@ -115,7 +84,7 @@ fn apply_carry_policy(
         RuntimeArtifactCarryPolicy::CarryMergeAdoptable
             if matches!(authority.adoptability, MergeAdoptability::Adoptable) =>
         {
-            source_entry.get_runtime_artifact_state().cloned()
+            source_entry.runtime_artifact_state().cloned()
         }
         RuntimeArtifactCarryPolicy::CarryMergeAdoptable
         | RuntimeArtifactCarryPolicy::RebuildAfterAdoption
@@ -123,19 +92,19 @@ fn apply_carry_policy(
     };
 
     let retained = match carry_policy.retained_artifact {
-        RetainedArtifactCarryPolicy::CarryIfPolicyAllows => {
-            source_entry.cold_artifact_record().cloned()
-        }
+        RetainedArtifactCarryPolicy::CarryIfPolicyAllows => source_entry.retained_artifact().cloned(),
         RetainedArtifactCarryPolicy::ReconstructIfNeeded | RetainedArtifactCarryPolicy::Drop => {
             None
         }
     };
 
-    entry.apply_artifact_write_delta(ArtifactWriteDelta { runtime, retained });
+    let ArtifactWriteDelta { runtime, retained } = ArtifactWriteDelta { runtime, retained };
+    entry.set_runtime_artifact_state(runtime);
+    entry.set_retained_artifact(retained);
 
     match carry_policy.causality {
         CausalityCarryPolicy::CarryIfPolicyAllows => {
-            entry.set_causality(source_entry.get_causality().cloned());
+            entry.set_causality(source_entry.causality().cloned());
         }
         CausalityCarryPolicy::Drop => entry.set_causality(None),
     }

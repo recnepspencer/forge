@@ -84,10 +84,10 @@ pub(super) fn build_stage_apply_groups(
             if group.task_indices.len() >= chunk_size {
                 continue;
             }
-            if conflicts_with(&group.footprint, &task.footprint) {
+            if conflicts_with(&group.footprint, task.footprint()) {
                 continue;
             }
-            merge(&mut group.footprint, &task.footprint);
+            merge(&mut group.footprint, task.footprint());
             group.task_indices.push(task_index);
             placed = true;
             break;
@@ -95,7 +95,7 @@ pub(super) fn build_stage_apply_groups(
         if !placed {
             groups.push(DisjointApplyGroup {
                 task_indices: vec![task_index],
-                footprint: task.footprint.clone(),
+                footprint: task.footprint().clone(),
             });
         }
     }

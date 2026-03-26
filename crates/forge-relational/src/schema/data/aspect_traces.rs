@@ -6,6 +6,7 @@ use crate::diagnostics::data::{
     RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
 };
 use crate::identity::data::KindId;
+use crate::merge::data::{AspectMergePolicyDeclaration, IdentityBasisDeclaration};
 use crate::publication::patch::data::AspectKey;
 
 use super::{
@@ -19,6 +20,8 @@ pub struct AspectDeclarationTrace {
     pub kind_id: KindId,
     pub plan_revision: AspectPlanRevision,
     pub declarations: Vec<AspectDeclarationTraceRow>,
+    pub identity_declarations: Vec<IdentityBasisDeclaration>,
+    pub merge_policy_declarations: Vec<AspectMergePolicyDeclaration>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -60,6 +63,8 @@ impl KindAspectDeclarations {
                     precision: aspect.precision,
                 })
                 .collect(),
+            identity_declarations: self.identity_declarations.clone(),
+            merge_policy_declarations: self.merge_policy_declarations.clone(),
         }
     }
 }
@@ -122,6 +127,8 @@ struct AspectDeclarationTraceFields {
     kind_id: u64,
     plan_revision: String,
     declarations: Vec<AspectDeclarationTraceRow>,
+    identity_declarations: Vec<IdentityBasisDeclaration>,
+    merge_policy_declarations: Vec<AspectMergePolicyDeclaration>,
 }
 
 impl AspectDeclarationTraceFields {
@@ -130,6 +137,8 @@ impl AspectDeclarationTraceFields {
             kind_id: trace.kind_id.0 as u64,
             plan_revision: trace.plan_revision.0.to_string(),
             declarations: trace.declarations.clone(),
+            identity_declarations: trace.identity_declarations.clone(),
+            merge_policy_declarations: trace.merge_policy_declarations.clone(),
         }
     }
 }

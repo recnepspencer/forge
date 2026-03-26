@@ -41,9 +41,9 @@ pub(crate) fn preview_maybe_stale(
     node: NodeId,
     resolver: &mut impl ComparatorPolicyResolver,
 ) -> Result<MaybeStalePreview, SignalError> {
-    let entry = graph.get_entry(node)?;
     let snapshot = graph.get_dep_snapshot(node)?;
-    let comparator = resolver.policy_for_node(node, entry.get_eval_config().comparator.as_ref());
+    let comparator =
+        resolver.policy_for_node(node, graph.node_eval_config(node)?.comparator.as_ref());
     let mut requires_upstream_evaluation = Vec::new();
     let mut meaningful_change_detected = false;
 
@@ -53,19 +53,24 @@ pub(crate) fn preview_maybe_stale(
             continue;
         }
 
-        let source_entry = graph.get_entry(snapshot_entry.source)?;
-        if !matches!(source_entry.get_state(), NodeState::Clean) {
+        if !matches!(graph.get_state(snapshot_entry.source)?, NodeState::Clean) {
             requires_upstream_evaluation.push(snapshot_entry.source);
             continue;
         }
 
-        let current_version =
-            source_entry.version_for_scope(snapshot_entry.aspect, snapshot_entry.scope.as_ref());
+        let current_version = graph.node_version_for_scope(
+            snapshot_entry.source,
+            snapshot_entry.aspect,
+            snapshot_entry.scope.as_ref(),
+        )?;
         if let Some(scope) = &snapshot_entry.scope {
             if current_version == snapshot_entry.cached_version {
                 continue;
             }
-            if partition_scope_untouched(source_entry.get_runtime_artifact_state(), scope) {
+            if partition_scope_untouched(
+                graph.node_runtime_artifact_hot(snapshot_entry.source)?,
+                scope,
+            ) {
                 continue;
             }
             meaningful_change_detected = true;
@@ -92,7 +97,7 @@ pub(crate) fn preview_maybe_stale(
 }
 
 pub(crate) fn partition_scope_untouched(
-    trace_summary: Option<&crate::data::trace::RuntimeArtifactState>,
+    trace_summary: Option<&crate::data::trace::RuntimeArtifactHot>,
     scope: &PartitionSubscription,
 ) -> bool {
     trace_summary.is_none_or(|summary| {

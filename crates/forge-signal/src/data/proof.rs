@@ -1073,16 +1073,16 @@ impl PendingSnapshotCommit {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PendingStableShapeSnapshotCommit {
-    pub node: NodeId,
-    pub update: VersionOnlySnapshotUpdate,
-    pub delta: SnapshotDeltaRecord,
+    node: NodeId,
+    update: VersionOnlySnapshotUpdate,
+    delta: SnapshotDeltaRecord,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PendingReplacementSnapshotCommit {
-    pub node: NodeId,
-    pub update: ReplacementSnapshotUpdate,
-    pub delta: SnapshotDeltaRecord,
+    node: NodeId,
+    update: ReplacementSnapshotUpdate,
+    delta: SnapshotDeltaRecord,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -1263,6 +1263,12 @@ impl SnapshotBatchCommit {
 }
 
 impl StableShapeSnapshotBatchCommit {
+    pub fn node(&self, index: usize) -> Option<NodeId> {
+        self.pending
+            .get(index)
+            .map(PendingStableShapeSnapshotCommit::node)
+    }
+
     pub fn pending(&self) -> &[PendingStableShapeSnapshotCommit] {
         self.pending.as_slice()
     }
@@ -1291,6 +1297,50 @@ impl MixedSnapshotBatchCommit {
 
     pub fn is_empty(&self) -> bool {
         self.stable_shape.is_empty() && self.replacements.is_empty()
+    }
+}
+
+impl ClassifiedSnapshotBatchCommit {
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Self::StableShape(commit) => commit.is_empty(),
+            Self::Mixed(commit) => commit.is_empty(),
+        }
+    }
+
+    pub fn target_nodes(&self) -> &DedupedNodeBatch {
+        match self {
+            Self::StableShape(commit) => commit.target_nodes(),
+            Self::Mixed(commit) => commit.target_nodes(),
+        }
+    }
+}
+
+impl PendingStableShapeSnapshotCommit {
+    pub fn node(&self) -> NodeId {
+        self.node
+    }
+
+    pub fn update(&self) -> &VersionOnlySnapshotUpdate {
+        &self.update
+    }
+
+    pub fn delta(&self) -> SnapshotDeltaRecord {
+        self.delta
+    }
+}
+
+impl PendingReplacementSnapshotCommit {
+    pub fn node(&self) -> NodeId {
+        self.node
+    }
+
+    pub fn update(&self) -> &ReplacementSnapshotUpdate {
+        &self.update
+    }
+
+    pub fn delta(&self) -> SnapshotDeltaRecord {
+        self.delta
     }
 }
 

@@ -28,8 +28,8 @@ pub mod types {
         ArtifactPolicyClass, AuthorityPolicy, CanonicalDependencyOrder, ComparatorBasis,
         CompileTimePerformanceContract, ContextRequirement, EquivalenceContract,
         EvaluationCondition, IdentityBasis, MaintenanceMode, NodeAuthorityContract, NodeContract,
-        NodeEntry, NodeEvaluationConfig, NodeExecutionContract, NodeProjectionContract,
-        NodeReuseContract, NodeSemanticContract, NodeState, PathClass, PerformanceCounterSurface,
+        NodeEvaluationConfig, NodeExecutionContract, NodeProjectionContract, NodeReuseContract,
+        NodeSemanticContract, NodeState, PathClass, PerformanceCounterSurface,
         PerformanceEnforcementLayer, ResolvedPerformancePolicy, SuppressionBasis,
     };
     pub use crate::data::output::{
@@ -62,7 +62,7 @@ pub mod types {
     pub use crate::data::trace::{
         ArtifactAuthorityClass, ArtifactMergeAuthority, CausalityMetadata, ColdArtifactIntent,
         ColdArtifactRecord, HistoricalArtifactRecord, HotArtifactWrite, MergeAdoptability,
-        RetainedDiagnosticArtifact, RuntimeArtifactState, TraceSummary,
+        RetainedDiagnosticArtifact, RuntimeArtifactHot, RuntimeArtifactWarm, TraceSummary,
     };
     pub use crate::state::{
         SignalBranchHandle, SignalBranchId, SignalSnapshotDiagnostics, SignalSnapshotId,

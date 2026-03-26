@@ -89,10 +89,10 @@ fn dependency_inputs_match_graph(
     node: NodeId,
     dependency_inputs: &EffectDependencyInputs,
 ) -> Result<bool, SignalError> {
-    let entry = graph.get_entry(node)?;
+    let (dependency_set_id, dependency_snapshot_id) = graph.node_dependency_ids(node)?;
     Ok(
-        dependency_inputs.context.dependency_set_id == entry.get_dependencies_id()
-            && dependency_inputs.context.dependency_snapshot_id == entry.get_dep_snapshot_id(),
+        dependency_inputs.context.dependency_set_id == dependency_set_id
+            && dependency_inputs.context.dependency_snapshot_id == dependency_snapshot_id,
     )
 }
 
@@ -153,8 +153,8 @@ fn resolve_effect_comparator(
     node: NodeId,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
 ) -> Result<crate::data::comparator::VersionComparatorPolicy, SignalError> {
-    let entry = graph.get_entry(node)?;
-    Ok(comparator_resolver.policy_for_node(node, entry.get_eval_config().comparator.as_ref()))
+    let config = graph.node_eval_config(node)?;
+    Ok(comparator_resolver.policy_for_node(node, config.comparator.as_ref()))
 }
 
 pub(crate) fn collect_effect_dependency_inputs_iter<I>(
@@ -176,7 +176,7 @@ pub(crate) fn verdict_for_evaluated_result(
     result: &NodeEvaluationResult,
     meaningful_output_change: bool,
 ) -> Result<EvaluationVerdict, SignalError> {
-    let previous_trace = graph.get_entry(node)?.get_runtime_artifact_state();
+    let previous_trace = graph.node_runtime_artifact_warm(node)?;
     let previous_output_identity = previous_trace.and_then(|trace| trace.output_identity.as_ref());
     let previous_continuity_token =
         previous_trace.and_then(|trace| trace.continuity_token.as_ref());
@@ -221,10 +221,10 @@ fn build_effect_dependency_inputs(
     graph: &mut SignalGraph,
     node: NodeId,
 ) -> Result<EffectDependencyInputs, SignalError> {
-    let entry = graph.get_entry(node)?;
+    let (dependency_set_id, dependency_snapshot_id) = graph.node_dependency_ids(node)?;
     let context = crate::logic::evaluation::DependencyInputContext {
-        dependency_set_id: entry.get_dependencies_id(),
-        dependency_snapshot_id: entry.get_dep_snapshot_id(),
+        dependency_set_id,
+        dependency_snapshot_id,
     };
     graph.refresh_runtime_dependencies_of(node)?;
     let dependencies = graph.current_runtime_dependencies_of(node)?.to_vec();
@@ -263,8 +263,7 @@ pub(crate) fn build_effect_dependency_inputs_for_dependencies(
                 break;
             }
 
-            let entry = graph.get_entry(source)?;
-            let version = entry.version_for_scope(aspect, dep.scope_ref());
+            let version = graph.node_version_for_scope(source, aspect, dep.scope_ref())?;
             stable_shape_versions.push(version);
             if previous_entry.sort_key() != dep.sort_key() {
                 shape_stable = false;
@@ -336,8 +335,7 @@ pub(crate) fn build_effect_dependency_inputs_for_dependencies(
                 let source = dep.source();
                 let aspect = dep.aspect();
                 if graph.is_alive(source) {
-                    let entry = graph.get_entry(source)?;
-                    let ver = entry.version_for_scope(aspect, dep.scope_ref());
+                    let ver = graph.node_version_for_scope(source, aspect, dep.scope_ref())?;
                     snapshot.record(source, aspect, ver, dep.scope_ref().cloned());
                     while snapshot_index < snapshot_entries.len()
                         && snapshot_entries[snapshot_index].sort_key() < dep.sort_key()

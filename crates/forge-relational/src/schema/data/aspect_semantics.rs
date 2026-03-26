@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
 use crate::identity::data::KindId;
+use crate::merge::data::{AspectMergePolicyDeclaration, IdentityBasisDeclaration};
 use crate::publication::patch::data::AspectKey;
 use crate::schema::data::PayloadSchemaDeclaration;
 use crate::symbols::data::InternedString;
@@ -15,6 +16,10 @@ pub struct AspectPlanRevision(pub u128);
 pub struct KindAspectDeclarations {
     pub plan_revision: AspectPlanRevision,
     pub aspects: Vec<DeclaredAspect>,
+    #[serde(default)]
+    pub identity_declarations: Vec<IdentityBasisDeclaration>,
+    #[serde(default)]
+    pub merge_policy_declarations: Vec<AspectMergePolicyDeclaration>,
     pub payload_schema: Option<PayloadSchemaDeclaration>,
 }
 
@@ -23,8 +28,26 @@ impl KindAspectDeclarations {
         Self {
             plan_revision: AspectPlanRevision(0),
             aspects,
+            identity_declarations: Vec::new(),
+            merge_policy_declarations: Vec::new(),
             payload_schema: None,
         }
+    }
+
+    pub fn with_identity_declarations(
+        mut self,
+        identity_declarations: Vec<IdentityBasisDeclaration>,
+    ) -> Self {
+        self.identity_declarations = identity_declarations;
+        self
+    }
+
+    pub fn with_merge_policy_declarations(
+        mut self,
+        merge_policy_declarations: Vec<AspectMergePolicyDeclaration>,
+    ) -> Self {
+        self.merge_policy_declarations = merge_policy_declarations;
+        self
     }
 
     pub fn with_payload_schema(mut self, payload_schema: PayloadSchemaDeclaration) -> Self {
