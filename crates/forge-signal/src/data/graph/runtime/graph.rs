@@ -649,7 +649,7 @@ impl SignalGraph {
                 .get(&node)
                 .cloned()
                 .unwrap_or_else(DependencySnapshot::empty);
-            let previous_snapshot_id = self.get_entry(node)?.get_dep_snapshot_id();
+            let (_, previous_snapshot_id) = self.node_dependency_ids(node)?;
             let mut shape_store = self.topology.dependency_snapshot_shapes.clone();
             let previous_shape_handle = previous.shape().intern(&mut shape_store);
             let (update, delta) = CommittedSnapshotUpdate::between(

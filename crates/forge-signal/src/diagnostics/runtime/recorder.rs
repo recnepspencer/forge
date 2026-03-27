@@ -449,6 +449,8 @@ pub fn record_lineage_transition(
     Ok(())
 }
 
+#[allow(dead_code)]
+#[allow(dead_code)]
 pub fn stamp_trace_summary_and_record_lineage_transition(
     graph: &mut SignalGraph,
     node: crate::data::handle::NodeId,
@@ -459,8 +461,26 @@ pub fn stamp_trace_summary_and_record_lineage_transition(
     let Some(after_finalize_image) = graph.node_runtime_artifact_finalize_image(node)? else {
         return Ok(());
     };
+    stamp_trace_summary_and_record_lineage_transition_from_image(
+        graph,
+        node,
+        before_trace,
+        &after_finalize_image,
+        execution_record_id,
+        semantic_segment_id,
+    )
+}
+
+pub fn stamp_trace_summary_and_record_lineage_transition_from_image(
+    graph: &mut SignalGraph,
+    node: crate::data::handle::NodeId,
+    before_trace: Option<&RuntimeArtifactFinalizeImage>,
+    after_finalize_image: &RuntimeArtifactFinalizeImage,
+    execution_record_id: ExecutionRecordId,
+    semantic_segment_id: SemanticSegmentId,
+) -> Result<(), crate::data::error::SignalError> {
     let (artifact_id, previous_artifact_id, transition) =
-        derive_lineage_transition(graph, before_trace, &after_finalize_image);
+        derive_lineage_transition(graph, before_trace, after_finalize_image);
     graph.stamp_runtime_artifact_lineage_and_execution(
         node,
         artifact_id,

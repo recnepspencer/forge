@@ -14,12 +14,28 @@ pub(crate) struct MaybeStalePreview {
     pub(crate) requires_upstream_evaluation: Vec<NodeId>,
 }
 
+#[allow(dead_code)]
 pub(crate) fn capture_current_dependencies(
     graph: &mut SignalGraph,
     node: NodeId,
 ) -> Result<PreparedDependencyCapture, SignalError> {
     let mut capture = PreparedDependencyCapture::new();
     for dependency in graph.runtime_dependencies_of(node)? {
+        capture.record(
+            dependency.source(),
+            dependency.aspect(),
+            dependency.scope_ref().cloned(),
+        );
+    }
+    Ok(capture.into_sorted_unique())
+}
+
+pub(crate) fn capture_current_dependencies_without_refresh(
+    graph: &SignalGraph,
+    node: NodeId,
+) -> Result<PreparedDependencyCapture, SignalError> {
+    let mut capture = PreparedDependencyCapture::new();
+    for dependency in graph.current_runtime_dependencies_of(node)? {
         capture.record(
             dependency.source(),
             dependency.aspect(),

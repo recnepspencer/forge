@@ -2,8 +2,10 @@ use crate::authority::commit::phases::artifacts::prepare_publication_artifacts;
 use crate::authority::commit::phases::finalize::{
     finalize_commit_publication, FinalizeCommitInput,
 };
-use crate::authority::commit::phases::history::resolve_commit_history;
-use crate::authority::commit::phases::mutation::run_authoritative_mutation;
+use crate::authority::commit::phases::history::{
+    resolve_commit_history, resolve_commit_history_for_merge,
+};
+use crate::authority::commit::phases::mutation::run_authoritative_mutation_for_runtime;
 use crate::authority::commit::phases::prepare::{
     prepare_working_state_scope, record_preparation_counters,
 };
@@ -22,7 +24,8 @@ use crate::schema::data::SchemaTransitionSummary;
 use crate::transactions::data::{
     CommitExecution, CommitLog, CommitOutcome, CommitPatchBudgetSummary, CommitPhase,
     CommitPhaseTiming, CommitPublication, CommitResult, CommitSchemaSummary, CommitValidation,
-    TransactionCommitError,
+    MergeCommitMutationPlan, MergedCommitPlan, TransactionCommitError, TransactionId,
+    TransactionOptions,
 };
 use crate::transactions::logic::RelationalTransaction;
 use std::sync::Arc;
@@ -42,307 +45,327 @@ impl<'a> RelationalTransaction<'a> {
     /// Any failure before publication discards the touched-partition overlay without making the
     /// commit visible.
     pub fn commit(mut self) -> Result<CommitResult, TransactionCommitError> {
-        let mut commit_log = CommitLog::new();
-        let mut phase_timing = CommitPhaseTiming::default();
-        let diagnostics_start = self
-            .runtime
-            .publication_access()
-            .diagnostics()
-            .artifacts()
-            .len();
-        let complexity_before = self
-            .runtime
-            .services
-            .instrumentation
-            .complexity_counters
-            .lock()
-            .expect("complexity counter lock poisoned")
-            .clone();
-        let mut invariant_executions = Vec::new();
-
-        commit_log.begin_phase(CommitPhase::DraftPreparation);
-        let phase_started = Instant::now();
+        let mut draft_preparation_log = CommitLog::new();
+        draft_preparation_log.begin_phase(CommitPhase::DraftPreparation);
         let prepared = prepare_working_state_scope(&mut self).map_err(|error| {
-            attach_rejection(&mut commit_log, CommitPhase::DraftPreparation, error)
+            attach_rejection(
+                &mut draft_preparation_log,
+                CommitPhase::DraftPreparation,
+                error,
+            )
         })?;
-        let merged_plan = prepared.merged_plan;
-        let structural_summary = prepared.structural_summary;
-        let public_structural_summary = structural_summary.public_summary(
-            self.runtime
-                .config
-                .schema
-                .descriptor_semantics_policy
-                .current_write_version(),
-        );
-        let mut working_state = prepared.working_state;
-        record_preparation_counters(self.runtime, &working_state, &structural_summary);
-        commit_log.record_structural_summary(&public_structural_summary);
-        commit_log.complete_phase(CommitPhase::DraftPreparation);
-        phase_timing.working_state_preparation_micros = elapsed_micros(phase_started);
-
-        commit_log.begin_phase(CommitPhase::InvariantPreCheck);
-        let phase_started = Instant::now();
-        let pre_commit_invariants = self
-            .runtime
-            .invariant_authority()
-            .enforce_commit_boundary(&merged_plan)
-            .map_err(|error| {
-                attach_rejection(&mut commit_log, CommitPhase::InvariantPreCheck, error)
-            })?;
-        commit_log.record_invariant_outcomes(&pre_commit_invariants);
-        invariant_executions.push(pre_commit_invariants);
-        commit_log.complete_phase(CommitPhase::InvariantPreCheck);
-        phase_timing.invariant_pre_check_micros = elapsed_micros(phase_started);
-
-        commit_log.begin_phase(CommitPhase::AuthoritativeMutation);
-        let phase_started = Instant::now();
-        let mutation = run_authoritative_mutation(&mut self, &mut working_state, &merged_plan)
-            .map_err(|error| {
-                attach_rejection(&mut commit_log, CommitPhase::AuthoritativeMutation, error)
-            })?;
-        let version_id = mutation.version_id;
-        let mut effect = mutation.effect;
-        commit_log.record_invariant_outcomes(&mutation.invariant_results);
-        invariant_executions.push(mutation.invariant_results);
-        commit_log.complete_phase(CommitPhase::AuthoritativeMutation);
-        phase_timing.authoritative_mutation_micros = elapsed_micros(phase_started);
-
-        commit_log.begin_phase(CommitPhase::HistoryResolution);
-        let phase_started = Instant::now();
-        let history = resolve_commit_history(&mut self, version_id).map_err(|error| {
-            attach_rejection(&mut commit_log, CommitPhase::HistoryResolution, error)
-        })?;
-        let commit_id = history.commit_id;
-        let branch_id = history.branch_id.clone();
-        let commit_reference = history.commit_reference.clone();
-        let history_summary = history.summary();
-        let merge_base_commits = history.merge_base_commits;
-        let merge_parent_branches = self.options.merge_parent_branches.clone();
-        commit_log.record_history_resolution(&history_summary);
-        commit_log.complete_phase(CommitPhase::HistoryResolution);
-        phase_timing.history_resolution_micros = elapsed_micros(phase_started);
-
-        let schema_continuity =
-            resolve_schema_continuity(&mut *self.runtime, &branch_id, &self.options).map_err(
-                |error| attach_rejection(&mut commit_log, CommitPhase::ArtifactAssembly, error),
-            )?;
-        emit_schema_continuity_diagnostic(self.runtime, &branch_id, &schema_continuity);
-
-        {
-            commit_log.begin_phase(CommitPhase::InvariantPostCheck);
-            let phase_started = Instant::now();
-            let post_invariants = self
-                .runtime
-                .invariant_authority()
-                .enforce_snapshot_publication_for_working_state(
-                    &working_state,
-                    version_id,
-                    &merged_plan,
-                )
-                .map_err(TransactionCommitError::publication)
-                .map_err(|error| {
-                    attach_rejection(&mut commit_log, CommitPhase::InvariantPostCheck, error)
-                })?;
-            commit_log.record_invariant_outcomes(&post_invariants);
-            invariant_executions.push(post_invariants);
-            commit_log.complete_phase(CommitPhase::InvariantPostCheck);
-            phase_timing.invariant_post_check_micros = elapsed_micros(phase_started);
-        }
-
-        commit_log.begin_phase(CommitPhase::ArtifactAssembly);
-        let phase_started = Instant::now();
-        let patch_records = std::mem::take(&mut effect.publication.patch_records);
-        let patch = assemble_patch(self.runtime, commit_reference.commit_id, patch_records);
-        #[cfg(test)]
-        if let Some(fault) = current_test_diff_preparation_fault() {
-            let (failure_class, label) = match fault {
-                TestDiffPreparationFault::FragmentCanonicalizationFailure => (
-                    PreparationFailureClass::FragmentCanonicalizationFailure,
-                    "fragment_canonicalization_failure",
-                ),
-                TestDiffPreparationFault::PacketOverlapDetected => (
-                    PreparationFailureClass::PacketOverlapDetected,
-                    "packet_overlap_detected",
-                ),
-            };
-            emit_preparation_failure(
-                self.runtime,
-                crate::diagnostics::data::DiagnosticsScope::PatchPublication,
-                failure_class,
-                serde_json::json!({
-                    "failure_class": label,
-                    "commit_id": commit_reference.commit_id.0,
-                    "patch_record_count": patch.records.len(),
-                }),
-            );
-        }
-        let patch_budget_summary = CommitPatchBudgetSummary {
-            patch_record_count: patch.records.len(),
-            max_patch_records_per_commit: self
-                .runtime
-                .config
-                .publication
-                .policy
-                .max_patch_records_per_commit,
-        };
-        commit_log.record_patch_budget(&patch_budget_summary);
-        enforce_patch_budget(self.runtime, &patch).map_err(|error| {
-            attach_rejection(&mut commit_log, CommitPhase::ArtifactAssembly, error)
-        })?;
-        let publication = prepare_publication_artifacts(
+        execute_authoritative_commit(
             self.runtime,
-            &mut working_state,
-            patch,
-            &commit_reference,
-            &branch_id,
-            version_id,
-            &merge_parent_branches,
-            &merge_base_commits,
-            &merged_plan,
-            &schema_continuity,
-            effect,
+            self.transaction_id,
+            self.options,
+            CommitAuthorityInput::Mutation(prepared.merged_plan),
+            prepared.structural_summary,
+            prepared.working_state,
         )
-        .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::ArtifactAssembly, error))?;
-        let change_summary = publication.change_summary.clone();
-        let aspect_summary = publication.aspect_summary.clone();
-        let aspect_evaluation_traces = publication.aspect_evaluation_traces.clone();
-        let aspect_emission_traces = publication.aspect_emission_traces.clone();
-        let publication_summary = publication.summary.clone();
-        let publication_snapshot = publication.finalize.artifacts.bundle.snapshot.clone();
-        if self
-            .runtime
+    }
+}
+
+pub(crate) enum CommitAuthorityInput {
+    Mutation(MergedCommitPlan),
+    Merge(MergeCommitMutationPlan),
+}
+
+pub(crate) fn execute_authoritative_commit(
+    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    transaction_id: TransactionId,
+    options: TransactionOptions,
+    authority_input: CommitAuthorityInput,
+    structural_summary: crate::authority::commit::structural_summary::CommitStructuralSummary,
+    mut working_state: crate::storage::overlay::WorkingState,
+) -> Result<CommitResult, TransactionCommitError> {
+    let mut commit_log = CommitLog::new();
+    let mut phase_timing = CommitPhaseTiming::default();
+    let diagnostics_start = runtime
+        .publication_access()
+        .diagnostics()
+        .artifacts()
+        .len();
+    let complexity_before = runtime
+        .services
+        .instrumentation
+        .complexity_counters
+        .lock()
+        .expect("complexity counter lock poisoned")
+        .clone();
+    let mut invariant_executions = Vec::new();
+    let merged_plan = match &authority_input {
+        CommitAuthorityInput::Mutation(plan) => plan.clone(),
+        CommitAuthorityInput::Merge(plan) => plan.merged_plan.clone(),
+    };
+    let public_structural_summary = structural_summary.public_summary(
+        runtime
             .config
-            .diagnostics
-            .profile
-            .detailed_traces_enabled
-        {
-            for trace in &aspect_evaluation_traces {
-                self.runtime
-                    .publication_authority()
-                    .push_diagnostic_artifact(trace.diagnostic_artifact());
-            }
-            for trace in &aspect_emission_traces {
-                self.runtime
-                    .publication_authority()
-                    .push_diagnostic_artifact(trace.diagnostic_artifact());
-            }
+            .schema
+            .descriptor_semantics_policy
+            .current_write_version(),
+    );
+    commit_log.begin_phase(CommitPhase::DraftPreparation);
+    let phase_started = Instant::now();
+    record_preparation_counters(runtime, &working_state, &structural_summary);
+    commit_log.record_structural_summary(&public_structural_summary);
+    commit_log.complete_phase(CommitPhase::DraftPreparation);
+    phase_timing.working_state_preparation_micros = elapsed_micros(phase_started);
+
+    commit_log.begin_phase(CommitPhase::InvariantPreCheck);
+    let phase_started = Instant::now();
+    let pre_commit_invariants = runtime
+        .invariant_authority()
+        .enforce_commit_boundary(&merged_plan)
+        .map_err(|error| {
+            attach_rejection(&mut commit_log, CommitPhase::InvariantPreCheck, error)
+        })?;
+    commit_log.record_invariant_outcomes(&pre_commit_invariants);
+    invariant_executions.push(pre_commit_invariants);
+    commit_log.complete_phase(CommitPhase::InvariantPreCheck);
+    phase_timing.invariant_pre_check_micros = elapsed_micros(phase_started);
+
+    commit_log.begin_phase(CommitPhase::AuthoritativeMutation);
+    let phase_started = Instant::now();
+    let mutation = run_authoritative_mutation_for_runtime(
+        runtime,
+        transaction_id,
+        &mut working_state,
+        &merged_plan,
+    )
+    .map_err(|error| {
+        attach_rejection(&mut commit_log, CommitPhase::AuthoritativeMutation, error)
+    })?;
+    let version_id = mutation.version_id;
+    let mut effect = mutation.effect;
+    commit_log.record_invariant_outcomes(&mutation.invariant_results);
+    invariant_executions.push(mutation.invariant_results);
+    commit_log.complete_phase(CommitPhase::AuthoritativeMutation);
+    phase_timing.authoritative_mutation_micros = elapsed_micros(phase_started);
+
+    commit_log.begin_phase(CommitPhase::HistoryResolution);
+    let phase_started = Instant::now();
+    let history = match &authority_input {
+        CommitAuthorityInput::Mutation(_) => {
+            let mut transaction = RelationalTransaction {
+                runtime,
+                transaction_id,
+                options: options.clone(),
+                batches: Vec::new(),
+                savepoints: Vec::new(),
+                last_merged_plan: None,
+            };
+            resolve_commit_history(&mut transaction, version_id)
         }
-        commit_log.record_changed_records(&change_summary);
-        commit_log.record_aspect_summary(&aspect_summary);
-        commit_log.record_publication_artifacts(&publication_summary);
-        commit_log.complete_phase(CommitPhase::ArtifactAssembly);
-        phase_timing.artifact_assembly_micros = elapsed_micros(phase_started);
+        CommitAuthorityInput::Merge(plan) => {
+            resolve_commit_history_for_merge(runtime, &options, plan, version_id)
+        }
+    }
+    .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::HistoryResolution, error))?;
+    let commit_id = history.commit_id;
+    let branch_id = history.branch_id.clone();
+    let commit_reference = history.commit_reference.clone();
+    let history_summary = history.summary();
+    let merge_base_commits = history.merge_base_commits;
+    let merge_parent_branches = options.merge_parent_branches.clone();
+    commit_log.record_history_resolution(&history_summary);
+    commit_log.complete_phase(CommitPhase::HistoryResolution);
+    phase_timing.history_resolution_micros = elapsed_micros(phase_started);
 
-        commit_log.begin_phase(CommitPhase::DurableAppend);
+    let schema_continuity = resolve_schema_continuity(runtime, &branch_id, &options)
+        .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::ArtifactAssembly, error))?;
+    emit_schema_continuity_diagnostic(runtime, &branch_id, &schema_continuity);
+
+    {
+        commit_log.begin_phase(CommitPhase::InvariantPostCheck);
         let phase_started = Instant::now();
-        commit_log.record_durable_append_prepared(
-            commit_id,
-            &branch_id.0,
-            publication
-                .finalize
-                .canonical_commit_envelope
-                .patch
-                .position,
-        );
-        append_durable_commit(
-            self.runtime,
-            &publication.finalize.canonical_commit_envelope,
-            commit_id,
-            &branch_id,
+        let post_invariants = runtime
+            .invariant_authority()
+            .enforce_snapshot_publication_for_working_state(&working_state, version_id, &merged_plan)
+            .map_err(TransactionCommitError::publication)
+            .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::InvariantPostCheck, error))?;
+        commit_log.record_invariant_outcomes(&post_invariants);
+        invariant_executions.push(post_invariants);
+        commit_log.complete_phase(CommitPhase::InvariantPostCheck);
+        phase_timing.invariant_post_check_micros = elapsed_micros(phase_started);
+    }
+
+    commit_log.begin_phase(CommitPhase::ArtifactAssembly);
+    let phase_started = Instant::now();
+    let patch_records = std::mem::take(&mut effect.publication.patch_records);
+    let patch = assemble_patch(runtime, commit_reference.commit_id, patch_records);
+    #[cfg(test)]
+    if let Some(fault) = current_test_diff_preparation_fault() {
+        let (failure_class, label) = match fault {
+            TestDiffPreparationFault::FragmentCanonicalizationFailure => (
+                PreparationFailureClass::FragmentCanonicalizationFailure,
+                "fragment_canonicalization_failure",
+            ),
+            TestDiffPreparationFault::PacketOverlapDetected => (
+                PreparationFailureClass::PacketOverlapDetected,
+                "packet_overlap_detected",
+            ),
+        };
+        emit_preparation_failure(
+            runtime,
+            crate::diagnostics::data::DiagnosticsScope::PatchPublication,
+            failure_class,
+            serde_json::json!({
+                "failure_class": label,
+                "commit_id": commit_reference.commit_id.0,
+                "patch_record_count": patch.records.len(),
+            }),
         )
-        .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::DurableAppend, error))?;
-        commit_log.complete_phase(CommitPhase::DurableAppend);
-        phase_timing.durable_append_micros = elapsed_micros(phase_started);
+    }
+    let patch_budget_summary = CommitPatchBudgetSummary {
+        patch_record_count: patch.records.len(),
+        max_patch_records_per_commit: runtime.config.publication.policy.max_patch_records_per_commit,
+    };
+    commit_log.record_patch_budget(&patch_budget_summary);
+    enforce_patch_budget(runtime, &patch)
+        .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::ArtifactAssembly, error))?;
+    let publication = prepare_publication_artifacts(
+        runtime,
+        &mut working_state,
+        patch,
+        &commit_reference,
+        &branch_id,
+        version_id,
+        &merge_parent_branches,
+        &merge_base_commits,
+        &merged_plan,
+        &schema_continuity,
+        effect,
+    )
+    .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::ArtifactAssembly, error))?;
+    let change_summary = publication.change_summary.clone();
+    let aspect_summary = publication.aspect_summary.clone();
+    let aspect_evaluation_traces = publication.aspect_evaluation_traces.clone();
+    let aspect_emission_traces = publication.aspect_emission_traces.clone();
+    let publication_summary = publication.summary.clone();
+    let publication_snapshot = publication.finalize.artifacts.bundle.snapshot.clone();
+    if runtime.config.diagnostics.profile.detailed_traces_enabled {
+        for trace in &aspect_evaluation_traces {
+            runtime
+                .publication_authority()
+                .push_diagnostic_artifact(trace.diagnostic_artifact());
+        }
+        for trace in &aspect_emission_traces {
+            runtime
+                .publication_authority()
+                .push_diagnostic_artifact(trace.diagnostic_artifact());
+        }
+    }
+    commit_log.record_changed_records(&change_summary);
+    commit_log.record_aspect_summary(&aspect_summary);
+    commit_log.record_publication_artifacts(&publication_summary);
+    commit_log.complete_phase(CommitPhase::ArtifactAssembly);
+    phase_timing.artifact_assembly_micros = elapsed_micros(phase_started);
 
-        commit_log.begin_phase(CommitPhase::Publication);
-        let phase_started = Instant::now();
-        let crate::authority::commit::phases::artifacts::PublicationPreparation {
-            change_summary: _,
-            aspect_summary: _,
-            aspect_evaluation_traces: _,
-            aspect_emission_traces: _,
-            summary: _,
-            finalize:
-                crate::authority::commit::phases::artifacts::PublicationFinalizeArtifacts {
-                    artifacts,
-                    changed_records,
-                    canonical_commit_envelope,
-                    adjacency_deltas,
-                },
-        } = publication;
-        let canonical_commit_envelope = Arc::new(canonical_commit_envelope);
-        finalize_commit_publication(
-            self.runtime,
-            working_state,
-            FinalizeCommitInput {
-                changed_records: &changed_records,
-                version_id,
-                previous_branch_head_version: history.previous_branch_head_version,
-                commit_id,
-                commit_reference: &commit_reference,
-                canonical_commit_envelope: canonical_commit_envelope.clone(),
-                branch_id: &branch_id,
-                merge_base_commits: &merge_base_commits,
+    commit_log.begin_phase(CommitPhase::DurableAppend);
+    let phase_started = Instant::now();
+    commit_log.record_durable_append_prepared(
+        commit_id,
+        &branch_id.0,
+        publication
+            .finalize
+            .canonical_commit_envelope
+            .patch
+            .position,
+    );
+    append_durable_commit(
+        runtime,
+        &publication.finalize.canonical_commit_envelope,
+        commit_id,
+        &branch_id,
+    )
+    .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::DurableAppend, error))?;
+    commit_log.complete_phase(CommitPhase::DurableAppend);
+    phase_timing.durable_append_micros = elapsed_micros(phase_started);
+
+    commit_log.begin_phase(CommitPhase::Publication);
+    let phase_started = Instant::now();
+    let crate::authority::commit::phases::artifacts::PublicationPreparation {
+        change_summary: _,
+        aspect_summary: _,
+        aspect_evaluation_traces: _,
+        aspect_emission_traces: _,
+        summary: _,
+        finalize:
+            crate::authority::commit::phases::artifacts::PublicationFinalizeArtifacts {
                 artifacts,
-                merge_parent_branches: &merge_parent_branches,
+                changed_records,
+                canonical_commit_envelope,
                 adjacency_deltas,
             },
-        );
-        commit_log.record_commit_published(commit_id, &commit_reference.branch_id.0);
-        commit_log.complete_phase(CommitPhase::Publication);
-        phase_timing.publication_micros = elapsed_micros(phase_started);
-
-        let complexity_after = self
-            .runtime
-            .services
-            .instrumentation
-            .complexity_counters
-            .lock()
-            .expect("complexity counter lock poisoned")
-            .clone();
-        let diagnostics = self
-            .runtime
-            .publication_access()
-            .diagnostics_since(diagnostics_start);
-        let commit_summary = commit_log.summary().clone();
-        let schema_summary = CommitSchemaSummary {
-            transition: canonical_commit_envelope
-                .schema_transition
-                .as_ref()
-                .map(SchemaTransitionSummary::from_artifact),
-            descriptor_semantics_version: canonical_commit_envelope.descriptor_semantics_version,
-        };
-        let commit_outcome = CommitOutcome {
-            transaction_id: self.transaction_id,
-            commit: commit_reference,
+    } = publication;
+    let canonical_commit_envelope = Arc::new(canonical_commit_envelope);
+    finalize_commit_publication(
+        runtime,
+        working_state,
+        FinalizeCommitInput {
+            changed_records: &changed_records,
             version_id,
-            snapshot: publication_snapshot,
-            changed_records,
-            publication_status: PublicationStatus::Published,
-            commit_log,
-        };
+            previous_branch_head_version: history.previous_branch_head_version,
+            commit_id,
+            commit_reference: &commit_reference,
+            canonical_commit_envelope: canonical_commit_envelope.clone(),
+            branch_id: &branch_id,
+            merge_base_commits: &merge_base_commits,
+            artifacts,
+            merge_parent_branches: &merge_parent_branches,
+            adjacency_deltas,
+        },
+    );
+    commit_log.record_commit_published(commit_id, &commit_reference.branch_id.0);
+    commit_log.complete_phase(CommitPhase::Publication);
+    phase_timing.publication_micros = elapsed_micros(phase_started);
 
-        Ok(CommitResult {
-            outcome: commit_outcome,
-            summary: commit_summary,
-            structural_summary: public_structural_summary,
-            schema_summary,
-            publication: CommitPublication {
-                diagnostics,
-                envelope: canonical_commit_envelope,
-                aspect_evaluation_traces,
-                aspect_emission_traces,
-            },
-            validation: CommitValidation {
-                summary: CommitValidation::summarize(&invariant_executions),
-                invariant_executions,
-            },
-            execution: CommitExecution {
-                phase_timing,
-                complexity_delta: complexity_delta(complexity_before, complexity_after),
-            },
-        })
-    }
+    let complexity_after = runtime
+        .services
+        .instrumentation
+        .complexity_counters
+        .lock()
+        .expect("complexity counter lock poisoned")
+        .clone();
+    let diagnostics = runtime.publication_access().diagnostics_since(diagnostics_start);
+    let commit_summary = commit_log.summary().clone();
+    let schema_summary = CommitSchemaSummary {
+        transition: canonical_commit_envelope
+            .schema_transition
+            .as_ref()
+            .map(SchemaTransitionSummary::from_artifact),
+        descriptor_semantics_version: canonical_commit_envelope.descriptor_semantics_version,
+    };
+    let commit_outcome = CommitOutcome {
+        transaction_id,
+        commit: commit_reference,
+        version_id,
+        snapshot: publication_snapshot,
+        changed_records,
+        publication_status: PublicationStatus::Published,
+        commit_log,
+    };
+
+    Ok(CommitResult {
+        outcome: commit_outcome,
+        summary: commit_summary,
+        structural_summary: public_structural_summary,
+        schema_summary,
+        publication: CommitPublication {
+            diagnostics,
+            envelope: canonical_commit_envelope,
+            aspect_evaluation_traces,
+            aspect_emission_traces,
+        },
+        validation: CommitValidation {
+            summary: CommitValidation::summarize(&invariant_executions),
+            invariant_executions,
+        },
+        execution: CommitExecution {
+            phase_timing,
+            complexity_delta: complexity_delta(complexity_before, complexity_after),
+        },
+    })
 }
 
 fn attach_rejection(

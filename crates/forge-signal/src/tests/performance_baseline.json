@@ -1,46 +1,53 @@
 {
-  "version": 1,
+  "version": 2,
+  "environment": {
+    "target_os": "windows",
+    "target_arch": "x86_64",
+    "profile": "unknown",
+    "toolchain": "stable-x86_64-pc-windows-msvc",
+    "processor_identifier": "AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD"
+  },
   "cases": {
-    "dependency_reconciliation_rotating_window_staged|balanced|serial": {
-      "suite": "dependency_reconciliation_rotating_window_staged",
+    "chain_10k_bootstrap|balanced|serial": {
+      "suite": "chain_10k_bootstrap",
       "profile": "balanced",
       "executor": "serial",
-      "sample_count": 3,
+      "sample_count": 7,
       "elapsed_micros": {
-        "min": 235958,
-        "median": 240990,
-        "p95": 257030,
-        "p99": 257030,
-        "max": 257030
+        "min": 71343,
+        "median": 73167,
+        "p95": 84424,
+        "p99": 84424,
+        "max": 84424
       },
       "allocated_bytes": {
-        "min": 638079825,
-        "median": 638079825,
-        "p95": 638079865,
-        "p99": 638079865,
-        "max": 638079865
+        "min": 166897614,
+        "median": 166897614,
+        "p95": 166897614,
+        "p99": 166897614,
+        "max": 166897614
       },
       "peak_live_bytes": {
-        "min": 3355,
-        "median": 3355,
-        "p95": 3395,
-        "p99": 3395,
-        "max": 3395
+        "min": 4001,
+        "median": 4001,
+        "p95": 4001,
+        "p99": 4001,
+        "max": 4001
       },
       "access_counters": {
         "materialized_entry_reads": {
-          "min": 247065,
-          "median": 247065,
-          "p95": 247065,
-          "p99": 247065,
-          "max": 247065
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "materialized_entry_writes": {
-          "min": 90944,
-          "median": 90944,
-          "p95": 90944,
-          "p99": 90944,
-          "max": 90944
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "reconstructed_artifact_reads": {
           "min": 0,
@@ -50,11 +57,105 @@
           "max": 0
         },
         "retained_artifact_reads": {
-          "min": 14336,
-          "median": 14336,
-          "p95": 14336,
-          "p99": 14336,
-          "max": 14336
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
+        },
+        "runtime_artifact_state_reads": {
+          "min": 10000,
+          "median": 10000,
+          "p95": 10000,
+          "p99": 10000,
+          "max": 10000
+        },
+        "runtime_artifact_warm_reads": {
+          "min": 30000,
+          "median": 30000,
+          "p95": 30000,
+          "p99": 30000,
+          "max": 30000
+        }
+      },
+      "phase_metrics": {
+        "bootstrap_execute_nanos": {
+          "min": 53070600,
+          "median": 53712000,
+          "p95": 65183000,
+          "p99": 65183000,
+          "max": 65183000
+        },
+        "bootstrap_plan_nanos": {
+          "min": 4862000,
+          "median": 4918600,
+          "p95": 5689800,
+          "p99": 5689800,
+          "max": 5689800
+        },
+        "build_nanos": {
+          "min": 13158500,
+          "median": 13963300,
+          "p95": 15214000,
+          "p99": 15214000,
+          "max": 15214000
+        }
+      }
+    },
+    "dependency_reconciliation_rotating_window_staged|balanced|serial": {
+      "suite": "dependency_reconciliation_rotating_window_staged",
+      "profile": "balanced",
+      "executor": "serial",
+      "sample_count": 5,
+      "elapsed_micros": {
+        "min": 128015,
+        "median": 142969,
+        "p95": 150771,
+        "p99": 150771,
+        "max": 150771
+      },
+      "allocated_bytes": {
+        "min": 338476314,
+        "median": 338476314,
+        "p95": 338476314,
+        "p99": 338476314,
+        "max": 338476314
+      },
+      "peak_live_bytes": {
+        "min": 3624,
+        "median": 3624,
+        "p95": 3624,
+        "p99": 3624,
+        "max": 3624
+      },
+      "access_counters": {
+        "materialized_entry_reads": {
+          "min": 1664,
+          "median": 1664,
+          "p95": 1664,
+          "p99": 1664,
+          "max": 1664
+        },
+        "materialized_entry_writes": {
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
+        },
+        "reconstructed_artifact_reads": {
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
+        },
+        "retained_artifact_reads": {
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "runtime_artifact_state_reads": {
           "min": 27264,
@@ -64,11 +165,55 @@
           "max": 27264
         },
         "runtime_artifact_warm_reads": {
-          "min": 64384,
-          "median": 64384,
-          "p95": 64384,
-          "p99": 64384,
-          "max": 64384
+          "min": 26368,
+          "median": 26368,
+          "p95": 26368,
+          "p99": 26368,
+          "max": 26368
+        }
+      },
+      "phase_metrics": {
+        "dependency_reconcile_nanos": {
+          "min": 9366700,
+          "median": 10583900,
+          "p95": 10869900,
+          "p99": 10869900,
+          "max": 10869900
+        },
+        "planning_nanos": {
+          "min": 7716600,
+          "median": 7853400,
+          "p95": 8145800,
+          "p99": 8145800,
+          "max": 8145800
+        },
+        "report_semantic_finalize_nanos": {
+          "min": 33727100,
+          "median": 39910200,
+          "p95": 44504700,
+          "p99": 44504700,
+          "max": 44504700
+        },
+        "report_stage_apply_nanos": {
+          "min": 55122900,
+          "median": 59101100,
+          "p95": 62141600,
+          "p99": 62141600,
+          "max": 62141600
+        },
+        "report_stage_precompute_nanos": {
+          "min": 4108900,
+          "median": 5028700,
+          "p95": 5563800,
+          "p99": 5563800,
+          "max": 5563800
+        },
+        "snapshot_batch_commit_nanos": {
+          "min": 6965400,
+          "median": 7472700,
+          "p95": 7643200,
+          "p99": 7643200,
+          "max": 7643200
         }
       }
     },
@@ -76,42 +221,42 @@
       "suite": "dependency_reconciliation_rotating_window",
       "profile": "balanced",
       "executor": "serial",
-      "sample_count": 3,
+      "sample_count": 5,
       "elapsed_micros": {
-        "min": 36722,
-        "median": 38338,
-        "p95": 40619,
-        "p99": 40619,
-        "max": 40619
+        "min": 21370,
+        "median": 22458,
+        "p95": 28086,
+        "p99": 28086,
+        "max": 28086
       },
       "allocated_bytes": {
-        "min": 30359726,
-        "median": 30359726,
-        "p95": 30359726,
-        "p99": 30359726,
-        "max": 30359726
+        "min": 28761538,
+        "median": 28761538,
+        "p95": 28761538,
+        "p99": 28761538,
+        "max": 28761538
       },
       "peak_live_bytes": {
-        "min": 2626,
-        "median": 2626,
-        "p95": 2626,
-        "p99": 2626,
-        "max": 2626
+        "min": 2646,
+        "median": 2646,
+        "p95": 2646,
+        "p99": 2646,
+        "max": 2646
       },
       "access_counters": {
         "materialized_entry_reads": {
-          "min": 91712,
-          "median": 91712,
-          "p95": 91712,
-          "p99": 91712,
-          "max": 91712
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "materialized_entry_writes": {
-          "min": 41472,
-          "median": 41472,
-          "p95": 41472,
-          "p99": 41472,
-          "max": 41472
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "reconstructed_artifact_reads": {
           "min": 0,
@@ -135,6 +280,29 @@
           "max": 0
         },
         "runtime_artifact_warm_reads": {
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
+        }
+      },
+      "phase_metrics": {
+        "dependency_reconcile_nanos": {
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
+        },
+        "reconcile_loop_nanos": {
+          "min": 21370100,
+          "median": 22458200,
+          "p95": 28086500,
+          "p99": 28086500,
+          "max": 28086500
+        },
+        "snapshot_batch_commit_nanos": {
           "min": 0,
           "median": 0,
           "p95": 0,
@@ -147,42 +315,42 @@
       "suite": "dependency_reconciliation_stable_shape_staged",
       "profile": "balanced",
       "executor": "serial",
-      "sample_count": 3,
+      "sample_count": 5,
       "elapsed_micros": {
-        "min": 286410,
-        "median": 293673,
-        "p95": 297568,
-        "p99": 297568,
-        "max": 297568
+        "min": 123127,
+        "median": 124295,
+        "p95": 128247,
+        "p99": 128247,
+        "max": 128247
       },
       "allocated_bytes": {
-        "min": 1274156434,
-        "median": 1274156434,
-        "p95": 1274156434,
-        "p99": 1274156434,
-        "max": 1274156434
+        "min": 501089723,
+        "median": 501089723,
+        "p95": 501089723,
+        "p99": 501089723,
+        "max": 501089723
       },
       "peak_live_bytes": {
-        "min": 3355,
-        "median": 3355,
-        "p95": 3355,
-        "p99": 3355,
-        "max": 3355
+        "min": 3624,
+        "median": 3624,
+        "p95": 3624,
+        "p99": 3624,
+        "max": 3624
       },
       "access_counters": {
         "materialized_entry_reads": {
-          "min": 625929,
-          "median": 625929,
-          "p95": 625929,
-          "p99": 625929,
-          "max": 625929
+          "min": 3136,
+          "median": 3136,
+          "p95": 3136,
+          "p99": 3136,
+          "max": 3136
         },
         "materialized_entry_writes": {
-          "min": 170560,
-          "median": 170560,
-          "p95": 170560,
-          "p99": 170560,
-          "max": 170560
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "reconstructed_artifact_reads": {
           "min": 0,
@@ -192,11 +360,11 @@
           "max": 0
         },
         "retained_artifact_reads": {
-          "min": 14336,
-          "median": 14336,
-          "p95": 14336,
-          "p99": 14336,
-          "max": 14336
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "runtime_artifact_state_reads": {
           "min": 28736,
@@ -206,11 +374,55 @@
           "max": 28736
         },
         "runtime_artifact_warm_reads": {
-          "min": 73216,
-          "median": 73216,
-          "p95": 73216,
-          "p99": 73216,
-          "max": 73216
+          "min": 30784,
+          "median": 30784,
+          "p95": 30784,
+          "p99": 30784,
+          "max": 30784
+        }
+      },
+      "phase_metrics": {
+        "dependency_reconcile_nanos": {
+          "min": 2588300,
+          "median": 2672600,
+          "p95": 2791200,
+          "p99": 2791200,
+          "max": 2791200
+        },
+        "planning_nanos": {
+          "min": 7760200,
+          "median": 7837900,
+          "p95": 8137000,
+          "p99": 8137000,
+          "max": 8137000
+        },
+        "report_semantic_finalize_nanos": {
+          "min": 22575000,
+          "median": 23007900,
+          "p95": 24225700,
+          "p99": 24225700,
+          "max": 24225700
+        },
+        "report_stage_apply_nanos": {
+          "min": 44169200,
+          "median": 44573400,
+          "p95": 46025300,
+          "p99": 46025300,
+          "max": 46025300
+        },
+        "report_stage_precompute_nanos": {
+          "min": 3841000,
+          "median": 4013300,
+          "p95": 4335000,
+          "p99": 4335000,
+          "max": 4335000
+        },
+        "snapshot_batch_commit_nanos": {
+          "min": 8279500,
+          "median": 8477700,
+          "p95": 8754800,
+          "p99": 8754800,
+          "max": 8754800
         }
       }
     },
@@ -218,42 +430,42 @@
       "suite": "fintech_mixed_fanout",
       "profile": "development",
       "executor": "serial",
-      "sample_count": 3,
+      "sample_count": 7,
       "elapsed_micros": {
-        "min": 130559,
-        "median": 132489,
-        "p95": 135085,
-        "p99": 135085,
-        "max": 135085
+        "min": 53962,
+        "median": 56558,
+        "p95": 61297,
+        "p99": 61297,
+        "max": 61297
       },
       "allocated_bytes": {
-        "min": 933639210,
-        "median": 933639210,
-        "p95": 933639210,
-        "p99": 933639210,
-        "max": 933639210
+        "min": 847177170,
+        "median": 847177170,
+        "p95": 847177170,
+        "p99": 847177170,
+        "max": 847177170
       },
       "peak_live_bytes": {
-        "min": 847,
-        "median": 847,
-        "p95": 847,
-        "p99": 847,
-        "max": 847
+        "min": 2266,
+        "median": 2266,
+        "p95": 2266,
+        "p99": 2266,
+        "max": 2266
       },
       "access_counters": {
         "materialized_entry_reads": {
-          "min": 30629556,
-          "median": 30629556,
-          "p95": 30629556,
-          "p99": 30629556,
-          "max": 30629556
+          "min": 29313020,
+          "median": 29313020,
+          "p95": 29313020,
+          "p99": 29313020,
+          "max": 29313020
         },
         "materialized_entry_writes": {
-          "min": 17453,
-          "median": 17453,
-          "p95": 17453,
-          "p99": 17453,
-          "max": 17453
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "reconstructed_artifact_reads": {
           "min": 0,
@@ -263,25 +475,48 @@
           "max": 0
         },
         "retained_artifact_reads": {
-          "min": 23877,
-          "median": 23877,
-          "p95": 23877,
-          "p99": 23877,
-          "max": 23877
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "runtime_artifact_state_reads": {
-          "min": 631051,
-          "median": 631051,
-          "p95": 631051,
-          "p99": 631051,
-          "max": 631051
+          "min": 631282,
+          "median": 631282,
+          "p95": 631282,
+          "p99": 631282,
+          "max": 631282
         },
         "runtime_artifact_warm_reads": {
-          "min": 5864,
-          "median": 5864,
-          "p95": 5864,
-          "p99": 5864,
-          "max": 5864
+          "min": 3834,
+          "median": 3834,
+          "p95": 3834,
+          "p99": 3834,
+          "max": 3834
+        }
+      },
+      "phase_metrics": {
+        "mutation_nanos": {
+          "min": 6746400,
+          "median": 7080800,
+          "p95": 10627800,
+          "p99": 10627800,
+          "max": 10627800
+        },
+        "read_after_nanos": {
+          "min": 47092100,
+          "median": 49551100,
+          "p95": 50819400,
+          "p99": 50819400,
+          "max": 50819400
+        },
+        "read_before_nanos": {
+          "min": 100200,
+          "median": 119400,
+          "p95": 149800,
+          "p99": 149800,
+          "max": 149800
         }
       }
     },
@@ -289,42 +524,42 @@
       "suite": "fintech_mixed_fanout",
       "profile": "forensic",
       "executor": "serial",
-      "sample_count": 3,
+      "sample_count": 7,
       "elapsed_micros": {
-        "min": 132099,
-        "median": 136508,
-        "p95": 136737,
-        "p99": 136737,
-        "max": 136737
+        "min": 55711,
+        "median": 61580,
+        "p95": 71527,
+        "p99": 71527,
+        "max": 71527
       },
       "allocated_bytes": {
-        "min": 938895244,
-        "median": 938895244,
-        "p95": 938895244,
-        "p99": 938895244,
-        "max": 938895244
+        "min": 852158874,
+        "median": 852158874,
+        "p95": 852158874,
+        "p99": 852158874,
+        "max": 852158874
       },
       "peak_live_bytes": {
-        "min": 847,
-        "median": 847,
-        "p95": 847,
-        "p99": 847,
-        "max": 847
+        "min": 2266,
+        "median": 2266,
+        "p95": 2266,
+        "p99": 2266,
+        "max": 2266
       },
       "access_counters": {
         "materialized_entry_reads": {
-          "min": 30632345,
-          "median": 30632345,
-          "p95": 30632345,
-          "p99": 30632345,
-          "max": 30632345
+          "min": 29315517,
+          "median": 29315517,
+          "p95": 29315517,
+          "p99": 29315517,
+          "max": 29315517
         },
         "materialized_entry_writes": {
-          "min": 17453,
-          "median": 17453,
-          "p95": 17453,
-          "p99": 17453,
-          "max": 17453
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "reconstructed_artifact_reads": {
           "min": 0,
@@ -334,25 +569,48 @@
           "max": 0
         },
         "retained_artifact_reads": {
-          "min": 23877,
-          "median": 23877,
-          "p95": 23877,
-          "p99": 23877,
-          "max": 23877
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "runtime_artifact_state_reads": {
-          "min": 631051,
-          "median": 631051,
-          "p95": 631051,
-          "p99": 631051,
-          "max": 631051
+          "min": 631282,
+          "median": 631282,
+          "p95": 631282,
+          "p99": 631282,
+          "max": 631282
         },
         "runtime_artifact_warm_reads": {
-          "min": 5864,
-          "median": 5864,
-          "p95": 5864,
-          "p99": 5864,
-          "max": 5864
+          "min": 3834,
+          "median": 3834,
+          "p95": 3834,
+          "p99": 3834,
+          "max": 3834
+        }
+      },
+      "phase_metrics": {
+        "mutation_nanos": {
+          "min": 6769000,
+          "median": 7953000,
+          "p95": 9933300,
+          "p99": 9933300,
+          "max": 9933300
+        },
+        "read_after_nanos": {
+          "min": 48499700,
+          "median": 52116200,
+          "p95": 63405100,
+          "p99": 63405100,
+          "max": 63405100
+        },
+        "read_before_nanos": {
+          "min": 155900,
+          "median": 166000,
+          "p95": 216400,
+          "p99": 216400,
+          "max": 216400
         }
       }
     },
@@ -360,42 +618,42 @@
       "suite": "fintech_mixed_fanout",
       "profile": "operational",
       "executor": "serial",
-      "sample_count": 3,
+      "sample_count": 5,
       "elapsed_micros": {
-        "min": 123317,
-        "median": 126612,
-        "p95": 152408,
-        "p99": 152408,
-        "max": 152408
+        "min": 54195,
+        "median": 79178,
+        "p95": 80065,
+        "p99": 80065,
+        "max": 80065
       },
       "allocated_bytes": {
-        "min": 918634609,
-        "median": 918634609,
-        "p95": 918634609,
-        "p99": 918634609,
-        "max": 918634609
+        "min": 834617265,
+        "median": 834617265,
+        "p95": 834617265,
+        "p99": 834617265,
+        "max": 834617265
       },
       "peak_live_bytes": {
-        "min": 847,
-        "median": 847,
-        "p95": 847,
-        "p99": 847,
-        "max": 847
+        "min": 2266,
+        "median": 2266,
+        "p95": 2266,
+        "p99": 2266,
+        "max": 2266
       },
       "access_counters": {
         "materialized_entry_reads": {
-          "min": 30626181,
-          "median": 30626181,
-          "p95": 30626181,
-          "p99": 30626181,
-          "max": 30626181
+          "min": 29311308,
+          "median": 29311308,
+          "p95": 29311308,
+          "p99": 29311308,
+          "max": 29311308
         },
         "materialized_entry_writes": {
-          "min": 17453,
-          "median": 17453,
-          "p95": 17453,
-          "p99": 17453,
-          "max": 17453
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "reconstructed_artifact_reads": {
           "min": 0,
@@ -405,25 +663,48 @@
           "max": 0
         },
         "retained_artifact_reads": {
-          "min": 19503,
-          "median": 19503,
-          "p95": 19503,
-          "p99": 19503,
-          "max": 19503
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "runtime_artifact_state_reads": {
-          "min": 631051,
-          "median": 631051,
-          "p95": 631051,
-          "p99": 631051,
-          "max": 631051
+          "min": 630432,
+          "median": 630432,
+          "p95": 630432,
+          "p99": 630432,
+          "max": 630432
         },
         "runtime_artifact_warm_reads": {
-          "min": 5864,
-          "median": 5864,
-          "p95": 5864,
-          "p99": 5864,
-          "max": 5864
+          "min": 3834,
+          "median": 3834,
+          "p95": 3834,
+          "p99": 3834,
+          "max": 3834
+        }
+      },
+      "phase_metrics": {
+        "mutation_nanos": {
+          "min": 5431300,
+          "median": 8334300,
+          "p95": 8446500,
+          "p99": 8446500,
+          "max": 8446500
+        },
+        "read_after_nanos": {
+          "min": 48664300,
+          "median": 70694300,
+          "p95": 71581600,
+          "p99": 71581600,
+          "max": 71581600
+        },
+        "read_before_nanos": {
+          "min": 100100,
+          "median": 158800,
+          "p95": 169400,
+          "p99": 169400,
+          "max": 169400
         }
       }
     },
@@ -431,42 +712,42 @@
       "suite": "harness_observability_profile",
       "profile": "development",
       "executor": "serial",
-      "sample_count": 3,
+      "sample_count": 7,
       "elapsed_micros": {
-        "min": 87,
-        "median": 120,
-        "p95": 367,
-        "p99": 367,
-        "max": 367
+        "min": 2410,
+        "median": 2495,
+        "p95": 3338,
+        "p99": 3338,
+        "max": 3338
       },
       "allocated_bytes": {
-        "min": 1873159,
-        "median": 1873159,
-        "p95": 1873159,
-        "p99": 1873159,
-        "max": 1873159
+        "min": 8379145,
+        "median": 8379145,
+        "p95": 8379145,
+        "p99": 8379145,
+        "max": 8379145
       },
       "peak_live_bytes": {
-        "min": 695,
-        "median": 695,
-        "p95": 695,
-        "p99": 695,
-        "max": 695
+        "min": 730,
+        "median": 730,
+        "p95": 730,
+        "p99": 730,
+        "max": 730
       },
       "access_counters": {
         "materialized_entry_reads": {
-          "min": 50,
-          "median": 50,
-          "p95": 50,
-          "p99": 50,
-          "max": 50
+          "min": 960,
+          "median": 960,
+          "p95": 960,
+          "p99": 960,
+          "max": 960
         },
         "materialized_entry_writes": {
-          "min": 12,
-          "median": 12,
-          "p95": 12,
-          "p99": 12,
-          "max": 12
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "reconstructed_artifact_reads": {
           "min": 0,
@@ -476,25 +757,34 @@
           "max": 0
         },
         "retained_artifact_reads": {
-          "min": 2,
-          "median": 2,
-          "p95": 2,
-          "p99": 2,
-          "max": 2
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "runtime_artifact_state_reads": {
-          "min": 4,
-          "median": 4,
-          "p95": 4,
-          "p99": 4,
-          "max": 4
+          "min": 288,
+          "median": 288,
+          "p95": 288,
+          "p99": 288,
+          "max": 288
         },
         "runtime_artifact_warm_reads": {
-          "min": 11,
-          "median": 11,
-          "p95": 11,
-          "p99": 11,
-          "max": 11
+          "min": 504,
+          "median": 504,
+          "p95": 504,
+          "p99": 504,
+          "max": 504
+        }
+      },
+      "phase_metrics": {
+        "observe_loop_nanos": {
+          "min": 2410500,
+          "median": 2495200,
+          "p95": 3338000,
+          "p99": 3338000,
+          "max": 3338000
         }
       }
     },
@@ -502,42 +792,42 @@
       "suite": "harness_observability_profile",
       "profile": "forensic",
       "executor": "serial",
-      "sample_count": 3,
+      "sample_count": 7,
       "elapsed_micros": {
-        "min": 74,
-        "median": 92,
-        "p95": 203,
-        "p99": 203,
-        "max": 203
+        "min": 2404,
+        "median": 2461,
+        "p95": 2739,
+        "p99": 2739,
+        "max": 2739
       },
       "allocated_bytes": {
-        "min": 1873054,
-        "median": 1873054,
-        "p95": 1873054,
-        "p99": 1873054,
-        "max": 1873054
+        "min": 8375758,
+        "median": 8375758,
+        "p95": 8375758,
+        "p99": 8375758,
+        "max": 8375758
       },
       "peak_live_bytes": {
-        "min": 695,
-        "median": 695,
-        "p95": 695,
-        "p99": 695,
-        "max": 695
+        "min": 730,
+        "median": 730,
+        "p95": 730,
+        "p99": 730,
+        "max": 730
       },
       "access_counters": {
         "materialized_entry_reads": {
-          "min": 50,
-          "median": 50,
-          "p95": 50,
-          "p99": 50,
-          "max": 50
+          "min": 960,
+          "median": 960,
+          "p95": 960,
+          "p99": 960,
+          "max": 960
         },
         "materialized_entry_writes": {
-          "min": 12,
-          "median": 12,
-          "p95": 12,
-          "p99": 12,
-          "max": 12
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "reconstructed_artifact_reads": {
           "min": 0,
@@ -547,25 +837,34 @@
           "max": 0
         },
         "retained_artifact_reads": {
-          "min": 2,
-          "median": 2,
-          "p95": 2,
-          "p99": 2,
-          "max": 2
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "runtime_artifact_state_reads": {
-          "min": 4,
-          "median": 4,
-          "p95": 4,
-          "p99": 4,
-          "max": 4
+          "min": 288,
+          "median": 288,
+          "p95": 288,
+          "p99": 288,
+          "max": 288
         },
         "runtime_artifact_warm_reads": {
-          "min": 11,
-          "median": 11,
-          "p95": 11,
-          "p99": 11,
-          "max": 11
+          "min": 504,
+          "median": 504,
+          "p95": 504,
+          "p99": 504,
+          "max": 504
+        }
+      },
+      "phase_metrics": {
+        "observe_loop_nanos": {
+          "min": 2404900,
+          "median": 2461600,
+          "p95": 2739600,
+          "p99": 2739600,
+          "max": 2739600
         }
       }
     },
@@ -573,42 +872,42 @@
       "suite": "suppression_wide_fanout",
       "profile": "balanced",
       "executor": "serial",
-      "sample_count": 3,
+      "sample_count": 7,
       "elapsed_micros": {
-        "min": 17931,
-        "median": 18837,
-        "p95": 18947,
-        "p99": 18947,
-        "max": 18947
+        "min": 1033,
+        "median": 1087,
+        "p95": 1263,
+        "p99": 1263,
+        "max": 1263
       },
       "allocated_bytes": {
-        "min": 177736524,
-        "median": 177736524,
-        "p95": 177736524,
-        "p99": 177736524,
-        "max": 177736524
+        "min": 6704041,
+        "median": 6704041,
+        "p95": 6704041,
+        "p99": 6704041,
+        "max": 6704041
       },
       "peak_live_bytes": {
-        "min": 847,
-        "median": 847,
-        "p95": 847,
-        "p99": 847,
-        "max": 847
+        "min": 2383,
+        "median": 2383,
+        "p95": 2383,
+        "p99": 2383,
+        "max": 2383
       },
       "access_counters": {
         "materialized_entry_reads": {
-          "min": 172515,
-          "median": 172515,
-          "p95": 172515,
-          "p99": 172515,
-          "max": 172515
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "materialized_entry_writes": {
-          "min": 1175,
-          "median": 1175,
-          "p95": 1175,
-          "p99": 1175,
-          "max": 1175
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "reconstructed_artifact_reads": {
           "min": 0,
@@ -625,18 +924,34 @@
           "max": 0
         },
         "runtime_artifact_state_reads": {
-          "min": 17420,
-          "median": 17420,
-          "p95": 17420,
-          "p99": 17420,
-          "max": 17420
+          "min": 17160,
+          "median": 17160,
+          "p95": 17160,
+          "p99": 17160,
+          "max": 17160
         },
         "runtime_artifact_warm_reads": {
-          "min": 920,
-          "median": 920,
-          "p95": 920,
-          "p99": 920,
-          "max": 920
+          "min": 651,
+          "median": 651,
+          "p95": 651,
+          "p99": 651,
+          "max": 651
+        }
+      },
+      "phase_metrics": {
+        "leaf_reread_nanos": {
+          "min": 818600,
+          "median": 824900,
+          "p95": 852700,
+          "p99": 852700,
+          "max": 852700
+        },
+        "stage_execution_nanos": {
+          "min": 466200,
+          "median": 473800,
+          "p95": 481900,
+          "p99": 481900,
+          "max": 481900
         }
       }
     },
@@ -644,42 +959,42 @@
       "suite": "topology_rewiring_churn",
       "profile": "balanced",
       "executor": "serial",
-      "sample_count": 3,
+      "sample_count": 5,
       "elapsed_micros": {
-        "min": 30852,
-        "median": 31156,
-        "p95": 40757,
-        "p99": 40757,
-        "max": 40757
+        "min": 6875,
+        "median": 7233,
+        "p95": 8151,
+        "p99": 8151,
+        "max": 8151
       },
       "allocated_bytes": {
-        "min": 11419966,
-        "median": 11419966,
-        "p95": 11419966,
-        "p99": 11419966,
-        "max": 11419966
+        "min": 8670159,
+        "median": 8670159,
+        "p95": 8670159,
+        "p99": 8670159,
+        "max": 8670159
       },
       "peak_live_bytes": {
-        "min": 2626,
-        "median": 2626,
-        "p95": 2626,
-        "p99": 2626,
-        "max": 2626
+        "min": 2643,
+        "median": 2643,
+        "p95": 2643,
+        "p99": 2643,
+        "max": 2643
       },
       "access_counters": {
         "materialized_entry_reads": {
-          "min": 100128,
-          "median": 100128,
-          "p95": 100128,
-          "p99": 100128,
-          "max": 100128
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "materialized_entry_writes": {
-          "min": 49664,
-          "median": 49664,
-          "p95": 49664,
-          "p99": 49664,
-          "max": 49664
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "reconstructed_artifact_reads": {
           "min": 0,
@@ -709,48 +1024,57 @@
           "p99": 0,
           "max": 0
         }
+      },
+      "phase_metrics": {
+        "rewire_loop_nanos": {
+          "min": 6875500,
+          "median": 7233300,
+          "p95": 8151800,
+          "p99": 8151800,
+          "max": 8151800
+        }
       }
     },
     "topology_rewiring_rotating_window|balanced|serial": {
       "suite": "topology_rewiring_rotating_window",
       "profile": "balanced",
       "executor": "serial",
-      "sample_count": 3,
+      "sample_count": 5,
       "elapsed_micros": {
-        "min": 233533,
-        "median": 233554,
-        "p95": 240782,
-        "p99": 240782,
-        "max": 240782
+        "min": 12932,
+        "median": 13518,
+        "p95": 13991,
+        "p99": 13991,
+        "max": 13991
       },
       "allocated_bytes": {
-        "min": 76235310,
-        "median": 76235310,
-        "p95": 76235310,
-        "p99": 76235310,
-        "max": 76235310
+        "min": 16299423,
+        "median": 16299423,
+        "p95": 16299423,
+        "p99": 16299423,
+        "max": 16299423
       },
       "peak_live_bytes": {
-        "min": 2626,
-        "median": 2626,
-        "p95": 2626,
-        "p99": 2626,
-        "max": 2626
+        "min": 2643,
+        "median": 2643,
+        "p95": 2643,
+        "p99": 2643,
+        "max": 2643
       },
       "access_counters": {
         "materialized_entry_reads": {
-          "min": 723008,
-          "median": 723008,
-          "p95": 723008,
-          "p99": 723008,
-          "max": 723008
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "materialized_entry_writes": {
-          "min": 347136,
-          "median": 347136,
-          "p95": 347136,
-          "p99": 347136,
-          "max": 347136
+          "min": 0,
+          "median": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0
         },
         "reconstructed_artifact_reads": {
           "min": 0,
@@ -779,6 +1103,15 @@
           "p95": 0,
           "p99": 0,
           "max": 0
+        }
+      },
+      "phase_metrics": {
+        "rewire_loop_nanos": {
+          "min": 12932300,
+          "median": 13518200,
+          "p95": 13991400,
+          "p99": 13991400,
+          "max": 13991400
         }
       }
     }

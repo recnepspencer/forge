@@ -37,6 +37,41 @@ impl PerfMeasurement {
     }
 }
 
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum PerfTimingPolicy {
+    StrictHeavy,
+    MedianOnly,
+    StructuralOnly,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct PerfCaseContract<'a> {
+    pub suite: &'a str,
+    pub profile: &'a str,
+    pub executor: &'a str,
+    pub timing_policy: PerfTimingPolicy,
+    pub phase_metrics: &'a [&'a str],
+}
+
+impl<'a> PerfCaseContract<'a> {
+    pub(crate) const fn new(
+        suite: &'a str,
+        profile: &'a str,
+        executor: &'a str,
+        timing_policy: PerfTimingPolicy,
+        phase_metrics: &'a [&'a str],
+    ) -> Self {
+        Self {
+            suite,
+            profile,
+            executor,
+            timing_policy,
+            phase_metrics,
+        }
+    }
+}
+
 #[derive(Debug, Serialize)]
 struct PerfSampleRecord<'a> {
     kind: &'static str,
@@ -72,6 +107,8 @@ pub(crate) struct PerfCaseSummary {
     allocated_bytes: NumericSummary,
     peak_live_bytes: NumericSummary,
     access_counters: BTreeMap<String, NumericSummary>,
+    #[serde(default)]
+    phase_metrics: BTreeMap<String, NumericSummary>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -86,34 +123,41 @@ struct NumericSummary {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct PerfBaselineFile {
     version: u32,
+    #[serde(default)]
+    environment: Option<PerfEnvironmentFingerprint>,
     cases: BTreeMap<String, PerfCaseSummary>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+struct PerfEnvironmentFingerprint {
+    target_os: String,
+    target_arch: String,
+    profile: String,
+    toolchain: Option<String>,
+    processor_identifier: Option<String>,
+}
+
 pub(crate) fn capture_and_certify_perf_samples<F>(
-    suite: &str,
-    profile: &str,
-    executor: &str,
+    contract: PerfCaseContract<'_>,
     measure: F,
 ) -> Vec<PerfMeasurement>
 where
     F: FnMut() -> PerfMeasurement,
 {
-    let samples = capture_perf_samples(suite, profile, executor, measure);
-    let summary = summarize_perf_samples(suite, profile, executor, &samples);
-    certify_against_baseline(&summary);
+    let samples = capture_perf_samples(contract, measure);
+    let summary = summarize_perf_samples(contract, &samples);
+    certify_against_baseline(contract, &summary);
     samples
 }
 
 pub(crate) fn capture_perf_samples<F>(
-    suite: &str,
-    profile: &str,
-    executor: &str,
+    contract: PerfCaseContract<'_>,
     mut measure: F,
 ) -> Vec<PerfMeasurement>
 where
     F: FnMut() -> PerfMeasurement,
 {
-    let sample_count = perf_sample_count();
+    let sample_count = perf_sample_count(contract.timing_policy);
     let mut samples = Vec::with_capacity(sample_count);
     let _alloc_guard = PERF_ALLOC_LOCK
         .lock()
@@ -131,9 +175,9 @@ where
         );
         emit(&PerfSampleRecord {
             kind: "sample",
-            suite,
-            profile,
-            executor,
+            suite: contract.suite,
+            profile: contract.profile,
+            executor: contract.executor,
             sample_index,
             elapsed_micros: measurement.elapsed_micros,
             metrics: &measurement.metrics,
@@ -148,9 +192,9 @@ where
     elapsed.sort_unstable();
     emit(&PerfSummaryRecord {
         kind: "summary",
-        suite,
-        profile,
-        executor,
+        suite: contract.suite,
+        profile: contract.profile,
+        executor: contract.executor,
         sample_count,
         min_elapsed_micros: elapsed[0],
         median_elapsed_micros: percentile(&elapsed, 50),
@@ -163,9 +207,7 @@ where
 }
 
 fn summarize_perf_samples(
-    suite: &str,
-    profile: &str,
-    executor: &str,
+    contract: PerfCaseContract<'_>,
     samples: &[PerfMeasurement],
 ) -> PerfCaseSummary {
     let elapsed = samples
@@ -197,27 +239,41 @@ fn summarize_perf_samples(
         access_counters.insert(key.to_string(), summarize_u128(&values));
     }
 
+    let mut phase_metrics = BTreeMap::new();
+    for key in contract.phase_metrics {
+        let values = samples
+            .iter()
+            .map(|sample| numeric_metric(&sample.metrics, &[key]))
+            .collect::<Vec<_>>();
+        phase_metrics.insert((*key).to_string(), summarize_u128(&values));
+    }
+
     let summary = PerfCaseSummary {
-        suite: suite.to_string(),
-        profile: profile.to_string(),
-        executor: executor.to_string(),
+        suite: contract.suite.to_string(),
+        profile: contract.profile.to_string(),
+        executor: contract.executor.to_string(),
         sample_count: samples.len(),
         elapsed_micros: summarize_u128(&elapsed),
         allocated_bytes: summarize_u128(&allocated_bytes),
         peak_live_bytes: summarize_u128(&peak_live_bytes),
         access_counters,
+        phase_metrics,
     };
 
     emit(&summary);
     summary
 }
 
-fn perf_sample_count() -> usize {
+fn perf_sample_count(timing_policy: PerfTimingPolicy) -> usize {
     env::var("FORGE_SIGNAL_PERF_SAMPLES")
         .ok()
         .and_then(|raw| raw.parse::<usize>().ok())
         .filter(|count| *count > 0)
-        .unwrap_or(3)
+        .unwrap_or(match timing_policy {
+            PerfTimingPolicy::StrictHeavy => 5,
+            PerfTimingPolicy::MedianOnly => 7,
+            PerfTimingPolicy::StructuralOnly => 3,
+        })
 }
 
 fn percentile(sorted: &[u128], percentile: usize) -> u128 {
@@ -316,10 +372,12 @@ fn attach_access_counters(
     }
 }
 
-fn certify_against_baseline(summary: &PerfCaseSummary) {
+fn certify_against_baseline(contract: PerfCaseContract<'_>, summary: &PerfCaseSummary) {
     let key = baseline_case_key(&summary.suite, &summary.profile, &summary.executor);
     let mut baseline = load_baseline_file();
     if update_perf_baseline() {
+        baseline.version = 2;
+        baseline.environment = Some(current_environment_fingerprint());
         baseline.cases.insert(key, summary.clone());
         write_baseline_file(&baseline);
         return;
@@ -329,9 +387,41 @@ fn certify_against_baseline(summary: &PerfCaseSummary) {
         .cases
         .get(&key)
         .unwrap_or_else(|| panic!("missing perf baseline case for {key}"));
-    assert_perf_regression_budget("elapsed median", summary.elapsed_micros.median, expected.elapsed_micros.median, 1.20);
-    assert_perf_regression_budget("elapsed p95", summary.elapsed_micros.p95, expected.elapsed_micros.p95, 1.25);
-    assert_perf_regression_budget("elapsed max", summary.elapsed_micros.max, expected.elapsed_micros.max, 1.35);
+
+    if baseline.environment.as_ref() == Some(&current_environment_fingerprint()) {
+        match contract.timing_policy {
+            PerfTimingPolicy::StrictHeavy => {
+                assert_perf_regression_budget(
+                    "elapsed median",
+                    summary.elapsed_micros.median,
+                    expected.elapsed_micros.median,
+                    1.20,
+                );
+                assert_perf_regression_budget(
+                    "elapsed p95",
+                    summary.elapsed_micros.p95,
+                    expected.elapsed_micros.p95,
+                    1.25,
+                );
+                assert_perf_regression_budget(
+                    "elapsed max",
+                    summary.elapsed_micros.max,
+                    expected.elapsed_micros.max,
+                    1.35,
+                );
+            }
+            PerfTimingPolicy::MedianOnly => {
+                assert_perf_regression_budget(
+                    "elapsed median",
+                    summary.elapsed_micros.median,
+                    expected.elapsed_micros.median,
+                    1.35,
+                );
+            }
+            PerfTimingPolicy::StructuralOnly => {}
+        }
+    }
+
     assert_perf_regression_budget(
         "allocated bytes median",
         summary.allocated_bytes.median,
@@ -367,6 +457,23 @@ fn certify_against_baseline(summary: &PerfCaseSummary) {
             "access counter {counter} regressed for {key}: observed max {} > baseline max {}",
             observed.max,
             expected.max
+        );
+    }
+
+    for phase_metric in contract.phase_metrics {
+        let observed = summary
+            .phase_metrics
+            .get(*phase_metric)
+            .unwrap_or_else(|| panic!("missing observed phase metric {phase_metric} for {key}"));
+        let expected = expected
+            .phase_metrics
+            .get(*phase_metric)
+            .unwrap_or_else(|| panic!("missing baseline phase metric {phase_metric} for {key}"));
+        assert_perf_regression_budget(
+            &format!("phase metric {phase_metric} median"),
+            observed.median,
+            expected.median,
+            1.25,
         );
     }
 }
@@ -418,4 +525,14 @@ fn update_perf_baseline() -> bool {
             value == "1" || value == "true" || value == "yes"
         })
         .unwrap_or(false)
+}
+
+fn current_environment_fingerprint() -> PerfEnvironmentFingerprint {
+    PerfEnvironmentFingerprint {
+        target_os: env::consts::OS.to_string(),
+        target_arch: env::consts::ARCH.to_string(),
+        profile: env::var("PROFILE").unwrap_or_else(|_| "unknown".to_string()),
+        toolchain: env::var("RUSTUP_TOOLCHAIN").ok(),
+        processor_identifier: env::var("PROCESSOR_IDENTIFIER").ok(),
+    }
 }

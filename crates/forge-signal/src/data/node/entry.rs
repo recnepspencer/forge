@@ -94,6 +94,7 @@ impl Default for NodeEntry {
     }
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 impl NodeEntry {
     /// Create a new node entry in the `Dirty` state.
     pub fn new() -> Self {
@@ -123,6 +124,7 @@ impl NodeEntry {
     }
 
     /// Transition to `Clean` and clear all dirty tracking.
+    #[allow(dead_code)]
     pub fn transition_clean(&mut self) {
         self.set_state(NodeState::Clean);
         self.set_dirty_aspects(AspectMask::EMPTY);
@@ -142,6 +144,7 @@ impl NodeEntry {
     }
 
     /// Transition to `MaybeStale` for one aspect.
+    #[allow(dead_code)]
     pub fn transition_maybe_stale(&mut self, aspect: Aspect) {
         let was_clean = matches!(self.hot.state, NodeState::Clean);
         let already_dirty_for_aspect = self
@@ -229,6 +232,7 @@ impl NodeEntry {
     }
 
     #[cfg(test)]
+    #[allow(dead_code)]
     pub fn get_partitioned_aspect_version(&self, scope: &PartitionSubscription) -> AspectVersion {
         self.hot.aspect_versions.scoped(scope)
     }
@@ -305,6 +309,7 @@ impl NodeEntry {
 
     /// Mutably access the runtime artifact state when an operation needs to
     /// update warm metadata in place without rebuilding the whole carrier.
+    #[allow(dead_code)]
     pub fn runtime_artifact_state_mut(&mut self) -> Option<&mut RuntimeArtifactState> {
         self.warm.runtime_artifact_state.as_mut()
     }
@@ -365,6 +370,7 @@ impl NodeEntry {
 
     /// Apply explicit hot/cold artifact lane updates without implying that the
     /// lanes are a single ambient payload.
+    #[allow(dead_code)]
     pub fn apply_artifact_write_delta(&mut self, delta: ArtifactWriteDelta) {
         self.set_runtime_artifact_state(delta.runtime);
         self.set_retained_diagnostic_artifact(delta.retained);

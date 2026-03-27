@@ -34,7 +34,16 @@ pub(crate) struct HistoryScopedMergePlan {
     pub(crate) source_delta: BranchCommitDelta,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub(crate) enum VisibleMergeRecordKind {
     Entity,
     Relation,

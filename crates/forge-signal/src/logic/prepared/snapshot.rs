@@ -76,7 +76,7 @@ impl<'a> ExecutionReadView<'a> {
         aspect: Aspect,
     ) -> Result<AspectVersion, SignalError> {
         self.capture_dependency(source, aspect);
-        Ok(self.graph().get_entry(source)?.get_aspect_version())
+        Ok(self.graph().node_aspect_version(source)?)
     }
 
     #[cfg(test)]
@@ -87,10 +87,7 @@ impl<'a> ExecutionReadView<'a> {
         scope: PartitionSubscription,
     ) -> Result<AspectVersion, SignalError> {
         self.capture_partition_dependency(source, aspect, scope.clone());
-        Ok(self
-            .graph()
-            .get_entry(source)?
-            .get_partitioned_aspect_version(&scope))
+        Ok(self.graph().node_partitioned_aspect_version(source, &scope)?)
     }
 
     #[cfg(test)]

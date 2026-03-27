@@ -15,7 +15,9 @@ use crate::data::reuse::ReuseBoundaryEvidence;
 #[cfg(feature = "parallel")]
 use crate::data::reuse::ReuseBoundaryFailure;
 use crate::logic::evaluation::EffectDependencyInputs;
-use crate::logic::evaluation::{DeferralReason, PreparedApplyResult, SuppressionReason};
+use crate::logic::evaluation::{
+    DeferralReason, PreparedApplyResult, PreviousArtifactWarmSnapshot, SuppressionReason,
+};
 #[cfg(test)]
 use crate::logic::prepared::PreparedDependencyCapture;
 use crate::logic::prepared::{PreparedEvaluation, PreparedEvaluationOutcome};
@@ -169,10 +171,10 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
                     keyed,
                 )
             })?;
-        let mut apply_result = apply_effect_with_policy_and_condition(
-            graph,
-            node,
-            passive.result,
+            let mut apply_result = apply_effect_with_policy_and_condition(
+                graph,
+                node,
+                passive.result,
             comparator_resolver,
             execution_metadata,
             passive.verdict,
@@ -180,11 +182,12 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
             passive.reuse_boundary_authority,
             passive.reuse_boundary_detail,
             passive.keyed,
-            passive.causality,
-            None,
-            dependency_inputs,
-            defer_snapshot_commit,
-        )?;
+                passive.causality,
+                None,
+                dependency_inputs,
+                defer_snapshot_commit,
+                None,
+            )?;
         apply_result.dependency_updates = dependency_updates;
         return Ok(apply_result);
     }
@@ -198,8 +201,16 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
                 execution_metadata,
             );
             let reuse_contract = graph.node_eval_config(node)?.contract.reuse.clone();
-            let previous_reuse_boundary_authority = graph
-                .node_runtime_artifact_warm(node)?
+            let previous_artifact_warm =
+                graph
+                    .node_runtime_artifact_warm(node)?
+                    .map(|trace| PreviousArtifactWarmSnapshot {
+                        output_identity: trace.output_identity.clone(),
+                        continuity_token: trace.continuity_token.clone_inner(),
+                        reuse_boundary_authority: trace.reuse_boundary_authority.clone(),
+                    });
+            let previous_reuse_boundary_authority = previous_artifact_warm
+                .as_ref()
                 .and_then(|trace| trace.reuse_boundary_authority.clone());
             let (current_reuse_boundary_authority, current_reuse_boundary_detail) =
                 resolve_effect_reuse_boundary(
@@ -256,8 +267,11 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
             let metadata = execution_metadata.unwrap_or(&synthesized_metadata);
             let meaningful_output_change =
                 node_output_change_is_meaningful(graph, node, &result, comparator_resolver)?;
-            let verdict =
-                verdict_for_evaluated_result(graph, node, &result, meaningful_output_change)?;
+            let verdict = verdict_for_evaluated_result(
+                previous_artifact_warm.as_ref(),
+                &result,
+                meaningful_output_change,
+            )?;
             let mut apply_result = apply_effect_with_policy_and_condition(
                 graph,
                 node,
@@ -273,6 +287,7 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
                 reuse_certification,
                 dependency_inputs,
                 defer_snapshot_commit,
+                previous_artifact_warm,
             )?;
             apply_result.dependency_updates = dependency_updates;
             Ok(apply_result)
@@ -319,6 +334,7 @@ pub(crate) fn build_prepared_apply_commit_packet(
             passive.causality,
             None,
             dependency_inputs,
+            None,
         );
         return graph
             .build_apply_commit_packet(effect, comparator_policy, defer_snapshot_commit)
@@ -334,8 +350,16 @@ pub(crate) fn build_prepared_apply_commit_packet(
                 execution_metadata,
             );
             let reuse_contract = graph.node_eval_config(node)?.contract.reuse.clone();
-            let previous_reuse_boundary_authority = graph
-                .node_runtime_artifact_warm(node)?
+            let previous_artifact_warm =
+                graph
+                    .node_runtime_artifact_warm(node)?
+                    .map(|trace| PreviousArtifactWarmSnapshot {
+                        output_identity: trace.output_identity.clone(),
+                        continuity_token: trace.continuity_token.clone_inner(),
+                        reuse_boundary_authority: trace.reuse_boundary_authority.clone(),
+                    });
+            let previous_reuse_boundary_authority = previous_artifact_warm
+                .as_ref()
                 .and_then(|trace| trace.reuse_boundary_authority.clone());
             let (current_reuse_boundary_authority, current_reuse_boundary_detail) =
                 resolve_effect_reuse_boundary_with_policy(
@@ -396,8 +420,11 @@ pub(crate) fn build_prepared_apply_commit_packet(
                 &result,
                 &comparator_policy,
             )?;
-            let verdict =
-                verdict_for_evaluated_result(graph, node, &result, meaningful_output_change)?;
+            let verdict = verdict_for_evaluated_result(
+                previous_artifact_warm.as_ref(),
+                &result,
+                meaningful_output_change,
+            )?;
             let effect = build_evaluation_effect(
                 node,
                 result,
@@ -410,6 +437,7 @@ pub(crate) fn build_prepared_apply_commit_packet(
                 prepared.trace_data.causality,
                 reuse_certification,
                 dependency_inputs,
+                previous_artifact_warm,
             );
             graph
                 .build_apply_commit_packet(effect, comparator_policy, defer_snapshot_commit)

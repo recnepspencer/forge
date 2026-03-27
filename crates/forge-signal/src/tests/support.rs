@@ -130,6 +130,14 @@ pub trait GraphDependencyBatchExt {
         upstream: NodeId,
         aspect: Aspect,
     ) -> Result<(), SignalError>;
+
+    fn rewire_dependency(
+        &mut self,
+        downstream: NodeId,
+        old_upstream: NodeId,
+        new_upstream: NodeId,
+        aspect: Aspect,
+    ) -> Result<(), SignalError>;
 }
 
 impl GraphDependencyBatchExt for SignalGraph {
@@ -177,6 +185,17 @@ impl GraphDependencyBatchExt for SignalGraph {
         aspect: Aspect,
     ) -> Result<(), SignalError> {
         self.drop_simple_dependency_edge(downstream, upstream, aspect)
+            .map(|_| ())
+    }
+
+    fn rewire_dependency(
+        &mut self,
+        downstream: NodeId,
+        old_upstream: NodeId,
+        new_upstream: NodeId,
+        aspect: Aspect,
+    ) -> Result<(), SignalError> {
+        self.rewire_simple_dependency_edge(downstream, old_upstream, new_upstream, aspect)
             .map(|_| ())
     }
 }

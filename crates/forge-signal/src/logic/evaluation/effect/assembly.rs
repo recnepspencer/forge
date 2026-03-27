@@ -1,5 +1,9 @@
-use crate::data::output::{ChangedRegion, MemoizedResultOrigin, OutputIdentity};
-use crate::data::reuse::{ReuseBoundaryContext, ReuseCertificationRecord};
+use crate::data::output::{
+    ArtifactContinuityToken, ChangedRegion, MemoizedResultOrigin, OutputIdentity,
+};
+use crate::data::reuse::{
+    ReuseBoundaryAuthority, ReuseBoundaryContext, ReuseCertificationRecord,
+};
 use crate::data::trace::CausalityMetadata;
 use crate::logic::prepared::PreparedKeyedContext;
 
@@ -13,6 +17,13 @@ pub(crate) struct EvaluationEffect {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub(crate) struct PreviousArtifactWarmSnapshot {
+    pub output_identity: Option<OutputIdentity>,
+    pub continuity_token: Option<ArtifactContinuityToken>,
+    pub reuse_boundary_authority: Option<ReuseBoundaryAuthority>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub(crate) struct EffectRuntimeMetadata {
     pub memoized_origin: MemoizedResultOrigin,
     pub recomputed: bool,
@@ -20,6 +31,7 @@ pub(crate) struct EffectRuntimeMetadata {
     pub causality: Option<CausalityMetadata>,
     pub reuse_certification: Option<ReuseCertificationRecord>,
     pub reuse_boundary_detail: Option<ReuseBoundaryContext>,
+    pub previous_artifact_warm: Option<PreviousArtifactWarmSnapshot>,
 }
 
 impl EvaluationEffect {
@@ -71,6 +83,10 @@ impl EvaluationEffect {
 
     pub(crate) fn reuse_boundary_detail(&self) -> Option<&ReuseBoundaryContext> {
         self.runtime_metadata.reuse_boundary_detail.as_ref()
+    }
+
+    pub(crate) fn previous_artifact_warm(&self) -> Option<&PreviousArtifactWarmSnapshot> {
+        self.runtime_metadata.previous_artifact_warm.as_ref()
     }
 }
 

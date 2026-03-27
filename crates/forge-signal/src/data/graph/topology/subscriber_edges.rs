@@ -32,7 +32,7 @@ impl SignalGraph {
             .topology
             .subscriber_edges
             .insert_from_slice(subscribers);
-        self.get_entry_mut(node)?.set_subscribers_id(subscribers_id);
+        self.set_subscribers_id_direct(node, subscribers_id)?;
         self.record_graph_storage_pressure();
         Ok(())
     }
@@ -309,8 +309,7 @@ impl SignalGraph {
 
             if changed {
                 let subscribers_id = self.topology.subscriber_edges.insert_from_slice(&updated);
-                self.get_entry_mut(source)?
-                    .set_subscribers_id(subscribers_id);
+                self.set_subscribers_id_direct(source, subscribers_id)?;
                 self.record_graph_storage_pressure();
             }
 
@@ -336,7 +335,7 @@ impl SignalGraph {
         let subscribers_id = self.topology.subscriber_edges.insert_from_slice(&updated);
         updated.clear();
         self.traversal.topology_node_buffer = updated;
-        self.get_entry_mut(node)?.set_subscribers_id(subscribers_id);
+        self.set_subscribers_id_direct(node, subscribers_id)?;
         self.record_graph_storage_pressure();
         Ok(true)
     }

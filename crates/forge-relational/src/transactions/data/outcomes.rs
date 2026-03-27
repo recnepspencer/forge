@@ -6,7 +6,9 @@ use std::sync::Arc;
 use crate::diagnostics::data::DiagnosticCode;
 use crate::diagnostics::data::RelationalDiagnosticArtifact;
 use crate::errors::data::{ErrorContext, ErrorOperation, RelationalSubsystem, SuggestedFix};
+use crate::history::data::{BranchId, CommitId, OrderedParentList};
 use crate::identity::data::{EntityId, RelationId, VersionId};
+use crate::merge::data::{BoundExecutableMergePlan, MergeExecutionRequest};
 use crate::performance::data::RuntimeComplexityCounters;
 use crate::publication::data::diff::PatchRecord;
 use crate::publication::data::{PublicationError, PublicationStatus};
@@ -29,6 +31,50 @@ use super::{
 pub struct MergedCommitPlan {
     pub transaction_id: TransactionId,
     pub merged_intents: Vec<MutationIntent>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MergeExecutionStructuralSummary {
+    pub executed_record_count: usize,
+    pub adopted_source_record_count: usize,
+    pub preserved_shared_record_count: usize,
+    pub reconciled_record_count: usize,
+    pub emitted_mutation_intent_count: usize,
+    pub emitted_entity_create_count: usize,
+    pub emitted_relation_create_count: usize,
+    pub emitted_entity_update_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MergeExecutionSummary {
+    pub request: MergeExecutionRequest,
+    pub target_head_commit_id: crate::history::data::CommitId,
+    pub source_head_commit_id: crate::history::data::CommitId,
+    pub merge_base_commit_id: crate::history::data::CommitId,
+    pub executed_record_count: usize,
+    pub adopted_source_record_count: usize,
+    pub preserved_shared_record_count: usize,
+    pub reconciled_record_count: usize,
+    pub emitted_mutation_intent_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MergeCommitMutationPlan {
+    pub transaction_id: TransactionId,
+    pub target_branch: BranchId,
+    pub source_branch: BranchId,
+    pub parent_commits: OrderedParentList,
+    pub merge_base_commits: Arc<[CommitId]>,
+    pub executable_plan: BoundExecutableMergePlan,
+    pub merged_plan: MergedCommitPlan,
+    pub structural_summary: MergeExecutionStructuralSummary,
+    pub merge_execution_summary: MergeExecutionSummary,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MergeExecutionOutcome {
+    pub commit: CommitResult,
+    pub execution_summary: MergeExecutionSummary,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

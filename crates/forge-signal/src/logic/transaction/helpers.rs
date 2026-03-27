@@ -36,10 +36,10 @@ pub fn emit_event_in_txn<'a, D, I, E, Ctx, T>(
 
 pub(super) fn collect_dirty_targets(graph: &SignalGraph) -> Vec<NodeId> {
     DedupedNodeBatch::canonicalize_unordered(graph.live_node_ids().into_iter().filter_map(|node| {
-        let Ok(entry) = graph.get_entry(node) else {
+        let Ok(state) = graph.get_state(node) else {
             return None;
         };
-        (!matches!(entry.get_state(), crate::data::node::NodeState::Clean)).then_some(node)
+        (!matches!(state, crate::data::node::NodeState::Clean)).then_some(node)
     }))
     .into_vec()
 }

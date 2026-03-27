@@ -11,20 +11,20 @@ use crate::data::trace::{
 use super::{NodeEvaluationConfig, NodeState};
 
 #[derive(Debug, Clone, PartialEq)]
-pub(super) struct CheckpointNodeImageParts {
-    pub(super) state: NodeState,
-    pub(super) dirty_aspects: AspectMask,
-    pub(super) dirty_partition_scopes: Vec<(Aspect, PartitionSubscription)>,
-    pub(super) aspect_versions: PartitionVersionMap,
-    pub(super) dependencies_id: DependencySetId,
-    pub(super) subscribers_id: SubscriberSetId,
-    pub(super) dep_snapshot_id: DependencySnapshotId,
-    pub(super) tombstoned: bool,
-    pub(super) runtime_artifact_state: Option<RuntimeArtifactState>,
-    pub(super) retained_artifact: Option<RetainedDiagnosticArtifact>,
-    pub(super) causality: Option<CausalityMetadata>,
-    pub(super) execution_trace: Option<ExecutionTraceStamp>,
-    pub(super) eval_config: NodeEvaluationConfig,
+pub(crate) struct CheckpointNodeImageParts {
+    pub(crate) state: NodeState,
+    pub(crate) dirty_aspects: AspectMask,
+    pub(crate) dirty_partition_scopes: Vec<(Aspect, PartitionSubscription)>,
+    pub(crate) aspect_versions: PartitionVersionMap,
+    pub(crate) dependencies_id: DependencySetId,
+    pub(crate) subscribers_id: SubscriberSetId,
+    pub(crate) dep_snapshot_id: DependencySnapshotId,
+    pub(crate) tombstoned: bool,
+    pub(crate) runtime_artifact_state: Option<RuntimeArtifactState>,
+    pub(crate) retained_artifact: Option<RetainedDiagnosticArtifact>,
+    pub(crate) causality: Option<CausalityMetadata>,
+    pub(crate) execution_trace: Option<ExecutionTraceStamp>,
+    pub(crate) eval_config: NodeEvaluationConfig,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -51,7 +51,7 @@ pub struct CheckpointNodeImage {
 }
 
 impl CheckpointNodeImage {
-    pub(super) fn from_parts(parts: CheckpointNodeImageParts) -> Self {
+    pub(crate) fn from_parts(parts: CheckpointNodeImageParts) -> Self {
         Self {
             state: parts.state,
             dirty_aspects: parts.dirty_aspects,
@@ -69,7 +69,7 @@ impl CheckpointNodeImage {
         }
     }
 
-    pub(super) fn into_parts(self) -> CheckpointNodeImageParts {
+    pub(crate) fn into_parts(self) -> CheckpointNodeImageParts {
         CheckpointNodeImageParts {
             state: self.state,
             dirty_aspects: self.dirty_aspects,

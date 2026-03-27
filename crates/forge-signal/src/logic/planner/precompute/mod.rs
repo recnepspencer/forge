@@ -26,7 +26,7 @@ use self::executor_pool::PlannerExecutorPool;
 use super::types::EligibleTask;
 #[cfg(feature = "parallel")]
 use super::types::ParallelExecutionPolicy;
-use super::validation::capture_current_dependencies;
+use super::validation::capture_current_dependencies_without_refresh;
 use crate::data::comparator::ComparatorPolicyResolver;
 
 #[derive(Debug, Clone)]
@@ -354,7 +354,7 @@ fn prepare_condition_blocked_result(
     node: NodeId,
     prepared: PreparedEvaluation,
 ) -> Result<Option<PreparedEvaluation>, SignalError> {
-    let dependencies = capture_current_dependencies(graph, node)?;
+    let dependencies = capture_current_dependencies_without_refresh(graph, node)?;
     Ok(Some(prepared.with_dependencies(dependencies)))
 }
 
@@ -389,7 +389,7 @@ fn prepare_validated_clean_if_unchanged(
         return Ok(None);
     }
 
-    let dependencies = capture_current_dependencies(graph, task.node)?;
+    let dependencies = capture_current_dependencies_without_refresh(graph, task.node)?;
     Ok(Some(
         PreparedEvaluation::validated_clean().with_dependencies(dependencies),
     ))

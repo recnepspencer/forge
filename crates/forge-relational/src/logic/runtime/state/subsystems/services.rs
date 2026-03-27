@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::logic::runtime::state::subsystems::RuntimeSubsystem;
 use crate::logic::runtime::RuntimeComplexityCounters;
@@ -8,13 +9,16 @@ use crate::symbols::data::StringInterner;
 
 #[derive(Debug, Clone, Default)]
 struct RuntimeSequenceState {
+    runtime_instance_id: u64,
     next_transaction_id: u64,
     next_savepoint_id: u64,
 }
 
 impl RuntimeSequenceState {
     fn new() -> Self {
+        static NEXT_RUNTIME_INSTANCE_ID: AtomicU64 = AtomicU64::new(1);
         Self {
+            runtime_instance_id: NEXT_RUNTIME_INSTANCE_ID.fetch_add(1, Ordering::Relaxed),
             next_transaction_id: 1,
             next_savepoint_id: 1,
         }
@@ -100,6 +104,10 @@ impl RuntimeServices {
         savepoint_id
     }
 
+    pub(crate) fn runtime_instance_id(&self) -> u64 {
+        self.sequence.runtime_instance_id
+    }
+
     pub(crate) fn compiled_artifact(
         &self,
         compiled_artifact_id: u64,
@@ -132,7 +140,7 @@ impl RuntimeSubsystem for RuntimeServices {
 
     fn fork(&self) -> Self {
         Self {
-            sequence: self.sequence.clone(),
+            sequence: RuntimeSequenceState::new(),
             instrumentation: self.instrumentation.fork(),
             simulation: self.simulation.clone(),
             symbols: self.symbols.clone(),

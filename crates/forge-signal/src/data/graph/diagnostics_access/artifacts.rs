@@ -190,25 +190,28 @@ impl SignalGraph {
         if !policy.retains_explanation_facts() && !policy.retains_provenance_facts() {
             return Ok(());
         }
-        let entry = self.get_entry(node)?;
-        let Some(runtime) = entry.get_runtime_artifact_state() else {
+        let Some(runtime) = self.node_runtime_artifact_state(node)? else {
             return Ok(());
         };
         let contract = self.get_contract(node)?.clone();
-        let condition = entry.get_eval_config().condition.clone();
+        let condition = self.node_eval_config(node)?.condition.clone();
+        let state = self.get_state(node)?;
+        let cold_artifact = self.node_cold_artifact_record(node)?;
+        let execution_trace = self.node_execution_trace_stamp(node)?;
+        let causality = self.causality_of(node)?;
         let rewiring = rewiring;
         let mut compact_explanation = ExplanationFact::from_runtime_projection(
             node,
-            *entry.get_state(),
+            state,
             contract.semantics.reads,
             contract.semantics.produces,
             contract.semantics.partition_scope.clone(),
             contract.semantics.required_context,
             condition,
             runtime,
-            entry.cold_artifact_record(),
-            entry.execution_trace_stamp(),
-            entry.get_causality(),
+            cold_artifact,
+            execution_trace,
+            causality,
             rewiring.clone(),
         )
         .explanation;

@@ -598,6 +598,36 @@ impl<'runtime> PerformanceAccess<'runtime> {
         });
     }
 
+    pub(crate) fn count_merge_execution_verification_request(&self) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.merge_execution_verification_requests += 1;
+        });
+    }
+
+    pub(crate) fn count_merge_execution_branch_head_checks(&self, checks: usize) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.merge_execution_branch_head_checks += checks;
+        });
+    }
+
+    pub(crate) fn count_merge_execution_merge_base_checks(&self, checks: usize) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.merge_execution_merge_base_checks += checks;
+        });
+    }
+
+    pub(crate) fn count_merge_execution_schema_snapshot_kinds(&self, kinds: usize) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.merge_execution_schema_kinds_snapshotted += kinds;
+        });
+    }
+
+    pub(crate) fn count_merge_execution_compiled_plan_digest_checks(&self, checks: usize) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.merge_execution_compiled_plan_digest_checks += checks;
+        });
+    }
+
     pub(crate) fn count_descriptor_version_mismatch(&self) {
         self.runtime.services.instrumentation.count(|counters| {
             counters.descriptor_version_mismatches_encountered += 1;

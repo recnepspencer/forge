@@ -174,6 +174,11 @@ pub struct RuntimeComplexityCounters {
     pub merge_lowered_records_emitted: usize,
     pub merge_decision_log_width: usize,
     pub merge_planning_elapsed_nanos: u128,
+    pub merge_execution_verification_requests: usize,
+    pub merge_execution_branch_head_checks: usize,
+    pub merge_execution_merge_base_checks: usize,
+    pub merge_execution_schema_kinds_snapshotted: usize,
+    pub merge_execution_compiled_plan_digest_checks: usize,
     pub descriptor_version_mismatches_encountered: usize,
 }
 
@@ -463,5 +468,13 @@ pub const COMPLEXITY_CONTRACTS: &[ComplexityContract] = &[
             "tests::complexity::contracts::merge_budgets::complexity_budget_merge_planning_reports_request_shaped_work",
             "tests::history::milestone_7b::merge_planning_artifact_certification_is_stable_across_roundtrip_and_recovery",
         ],
+    },
+    ComplexityContract {
+        id: "runtime.merge.execution_verification",
+        function_path: "merge/logic/execution.rs::MergeAccess::verify_prepared_merge_execution",
+        declared_time_complexity: "O(branch_head_checks + merge_base_check + schema_kinds_snapshotted + compiled_plan_digest_rows)",
+        budget_summary: "Prepared merge verification must stay a proof check over authority freshness and sealed executable-plan integrity; it must not rerun planning or silently charge its work to merge planning counters.",
+        status: ComplexityStatus::Verified,
+        proof_tests: &["tests::history::milestone_7c_phase_a::verify_prepared_merge_execution_reports_verification_counters_without_planning_work"],
     },
 ];

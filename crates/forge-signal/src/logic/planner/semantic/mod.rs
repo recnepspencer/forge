@@ -14,7 +14,7 @@ use crate::data::output::MemoizedResultOrigin;
 use crate::data::reuse::ReuseBasis;
 #[cfg(feature = "parallel")]
 use crate::data::trace::RuntimeArtifactFinalizeImage;
-use crate::diagnostics::recorder::stamp_trace_summary_and_record_lineage_transition;
+use crate::diagnostics::recorder::stamp_trace_summary_and_record_lineage_transition_from_image;
 #[cfg(feature = "parallel")]
 use crate::logic::evaluation::EvaluationVerdict;
 #[cfg(feature = "parallel")]
@@ -250,10 +250,14 @@ pub(super) fn finalize_stage_batch(
                 memoized_origin,
                 reuse_basis,
             ) = update.into_parts();
-            stamp_trace_summary_and_record_lineage_transition(
+            let after_finalize_image = graph.node_runtime_artifact_finalize_image(node)?;
+            stamp_trace_summary_and_record_lineage_transition_from_image(
                 graph,
                 node,
                 before_artifact_state.as_ref(),
+                after_finalize_image
+                    .as_ref()
+                    .ok_or_else(|| SignalError::internal("semantic finalize expected runtime artifact finalize image"))?,
                 identity.record_id,
                 identity.segment_id,
             )?;
@@ -265,7 +269,7 @@ pub(super) fn finalize_stage_batch(
                 before_state,
                 after_state,
                 before_artifact_state.as_ref(),
-                graph.node_runtime_artifact_finalize_image(node)?.as_ref(),
+                after_finalize_image.as_ref(),
                 verdict,
                 memoized_origin,
                 reuse_basis,
@@ -330,10 +334,14 @@ pub(in crate::logic::planner) fn finalize_serial_stage_batch(
                 "serial finalize proof was violated: stage-ordered seed and applied node diverged",
             ));
         }
-        stamp_trace_summary_and_record_lineage_transition(
+        let after_finalize_image = graph.node_runtime_artifact_finalize_image(applied.node)?;
+        stamp_trace_summary_and_record_lineage_transition_from_image(
             graph,
             applied.node,
             seed.before_artifact_state.as_ref(),
+            after_finalize_image
+                .as_ref()
+                .ok_or_else(|| SignalError::internal("serial finalize expected runtime artifact finalize image"))?,
             seed.identity.record_id,
             seed.identity.segment_id,
         )?;
@@ -345,9 +353,7 @@ pub(in crate::logic::planner) fn finalize_serial_stage_batch(
             seed.before_state,
             applied.after_state,
             seed.before_artifact_state.as_ref(),
-            graph
-                .node_runtime_artifact_finalize_image(applied.node)?
-                .as_ref(),
+            after_finalize_image.as_ref(),
             applied.verdict.clone(),
             applied.memoized_origin,
             applied.reuse_basis.clone(),

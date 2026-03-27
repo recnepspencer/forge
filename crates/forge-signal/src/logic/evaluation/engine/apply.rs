@@ -13,7 +13,8 @@ use crate::data::reuse::{
 };
 use crate::logic::evaluation::{
     DiagnosticEnvelope, EffectDependencyInputs, EffectRuntimeMetadata, EvaluationEffect,
-    EvaluationVerdict, OperationalEffect, PreparedApplyResult, SuppressionReason,
+    EvaluationVerdict, OperationalEffect, PreparedApplyResult, PreviousArtifactWarmSnapshot,
+    SuppressionReason,
 };
 use crate::logic::prepared::PreparedKeyedContext;
 
@@ -34,6 +35,7 @@ pub(crate) fn apply_effect_with_policy_and_condition(
     reuse_certification: Option<ReuseCertificationRecord>,
     dependency_inputs: Option<EffectDependencyInputs>,
     defer_snapshot_commit: bool,
+    previous_artifact_warm: Option<PreviousArtifactWarmSnapshot>,
 ) -> Result<PreparedApplyResult, SignalError> {
     let dependency_inputs = resolve_effect_dependency_inputs(graph, node, dependency_inputs)?;
     let effect = build_evaluation_effect(
@@ -48,6 +50,7 @@ pub(crate) fn apply_effect_with_policy_and_condition(
         causality,
         reuse_certification,
         dependency_inputs,
+        previous_artifact_warm,
     );
     let comparator = resolve_effect_comparator(graph, node, comparator_resolver)?;
     let (report, pending_snapshot) = graph.apply_effect(
@@ -108,6 +111,7 @@ pub(crate) fn build_evaluation_effect(
     causality: Option<crate::data::trace::CausalityMetadata>,
     reuse_certification: Option<ReuseCertificationRecord>,
     dependency_inputs: EffectDependencyInputs,
+    previous_artifact_warm: Option<PreviousArtifactWarmSnapshot>,
 ) -> EvaluationEffect {
     let memoized_origin = execution_metadata
         .map(|metadata| metadata.memoized_origin)
@@ -144,6 +148,7 @@ pub(crate) fn build_evaluation_effect(
             causality,
             reuse_certification,
             reuse_boundary_detail,
+            previous_artifact_warm,
         },
     }
 }
@@ -171,12 +176,10 @@ where
 }
 
 pub(crate) fn verdict_for_evaluated_result(
-    graph: &SignalGraph,
-    node: NodeId,
+    previous_trace: Option<&PreviousArtifactWarmSnapshot>,
     result: &NodeEvaluationResult,
     meaningful_output_change: bool,
 ) -> Result<EvaluationVerdict, SignalError> {
-    let previous_trace = graph.node_runtime_artifact_warm(node)?;
     let previous_output_identity = previous_trace.and_then(|trace| trace.output_identity.as_ref());
     let previous_continuity_token =
         previous_trace.and_then(|trace| trace.continuity_token.as_ref());

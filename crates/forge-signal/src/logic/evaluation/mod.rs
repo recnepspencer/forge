@@ -14,6 +14,7 @@ pub use effect::{
 pub(crate) use effect::{
     DependencyInputContext, EffectComparison, EffectDependencyInputs, EffectRuntimeMetadata,
     EvaluationEffect, PendingDependencySnapshot, PreparedApplyResult,
+    PreviousArtifactWarmSnapshot,
 };
 pub(crate) use engine::apply_prepared_evaluation_after_dependencies_with_policy;
 #[cfg(test)]

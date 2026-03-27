@@ -128,8 +128,13 @@ pub mod merge {
         MergePlanningDecisionKind, MergePlanningDecisionLog,
         MergePlanningDecisionLogDigestBasis, MergePlanningDecisionRecord,
         MergePlanningRequest, MergePlanningSummary, MergePolicyResolution, MergeRecordIdentity,
-        ResolvedMergeBase, SchemaDeclaredCorrespondenceValidationSummary,
+        MergeExecutionDeniedRecord, MergeExecutionError, MergeExecutionFreshnessPolicy,
+        MergeExecutionPreparationError, MergeExecutionReadinessReport,
+        MergeExecutionCompilationError, MergeExecutionMutationPlanError,
+        MergeExecutionRequest, PreparedMergeExecution, ResolvedMergeBase,
+        SchemaDeclaredCorrespondenceValidationSummary,
     };
+    pub use crate::transactions::data::MergeExecutionOutcome;
     pub use crate::merge::logic::MergeAccess;
 }
 
@@ -270,6 +275,8 @@ pub mod transactions {
         RelationMutationIntent, RelationScope, ReplaceEntityIntent, RollbackEffect,
         RollbackOutcome, RollbackSummary, SavepointId, TransactionCommitError, TransactionId,
         TransactionOptions, UndoRecord, UpdateEntityIntent, WorkerIntentBatch,
+        MergeCommitMutationPlan, MergeExecutionStructuralSummary, MergeExecutionSummary,
+        MergeExecutionOutcome,
     };
     pub use crate::transactions::logic::RelationalTransaction;
 }

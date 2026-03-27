@@ -62,8 +62,19 @@ impl SignalGraph {
         ),
         SignalError,
     > {
-        let comparison = self.compare_effect(&effect, comparator)?;
-        let artifact_write = self.build_effect_artifact_write(&effect, comparison)?;
+        let previous_warm = if let Some(snapshot) = effect.previous_artifact_warm().cloned() {
+            Some(snapshot)
+        } else {
+            self.node_runtime_artifact_warm(effect.operational.node)?
+                .map(|trace| crate::logic::evaluation::PreviousArtifactWarmSnapshot {
+                    output_identity: trace.output_identity.clone(),
+                    continuity_token: trace.continuity_token.clone_inner(),
+                    reuse_boundary_authority: trace.reuse_boundary_authority.clone(),
+                })
+        };
+        let comparison = self.compare_effect(&effect, previous_warm.as_ref(), comparator)?;
+        let artifact_write =
+            self.build_effect_artifact_write(&effect, previous_warm.as_ref(), comparison)?;
         let pending_snapshot = if defer_snapshot_commit {
             let snapshot_start = Instant::now();
             let pending = crate::logic::evaluation::PendingDependencySnapshot {
@@ -114,8 +125,19 @@ impl SignalGraph {
         comparator: VersionComparatorPolicy,
         defer_snapshot_commit: bool,
     ) -> Result<ApplyCommitPacket, SignalError> {
-        let comparison = self.compare_effect(&effect, comparator)?;
-        let artifact_write = self.build_effect_artifact_write(&effect, comparison)?;
+        let previous_warm = if let Some(snapshot) = effect.previous_artifact_warm().cloned() {
+            Some(snapshot)
+        } else {
+            self.node_runtime_artifact_warm(effect.operational.node)?
+                .map(|trace| crate::logic::evaluation::PreviousArtifactWarmSnapshot {
+                    output_identity: trace.output_identity.clone(),
+                    continuity_token: trace.continuity_token.clone_inner(),
+                    reuse_boundary_authority: trace.reuse_boundary_authority.clone(),
+                })
+        };
+        let comparison = self.compare_effect(&effect, previous_warm.as_ref(), comparator)?;
+        let artifact_write =
+            self.build_effect_artifact_write(&effect, previous_warm.as_ref(), comparison)?;
         let pending_snapshot = if defer_snapshot_commit {
             Some(crate::logic::evaluation::PendingDependencySnapshot {
                 node: effect.operational.node,
@@ -170,9 +192,9 @@ impl SignalGraph {
     fn compare_effect(
         &self,
         effect: &EvaluationEffect,
+        previous_trace: Option<&crate::logic::evaluation::PreviousArtifactWarmSnapshot>,
         comparator: VersionComparatorPolicy,
     ) -> Result<EffectComparison, SignalError> {
-        let previous_trace = self.node_runtime_artifact_warm(effect.operational.node)?;
         let output_identity_unchanged = matches!(
             (
                 previous_trace.and_then(|trace| trace.output_identity.as_ref()),
@@ -214,13 +236,13 @@ impl SignalGraph {
     fn build_effect_artifact_write(
         &self,
         effect: &EvaluationEffect,
+        previous_warm: Option<&crate::logic::evaluation::PreviousArtifactWarmSnapshot>,
         comparison: EffectComparison,
     ) -> Result<Option<HotArtifactWrite>, SignalError> {
         if !verdict_retains_runtime_artifact(&effect.operational.verdict) {
             return Ok(None);
         }
         let previous_hot = self.node_runtime_artifact_hot(effect.operational.node)?;
-        let previous_warm = self.node_runtime_artifact_warm(effect.operational.node)?;
         let cold_intent =
             build_cold_artifact_intent(effect, &self.runtime_policy().retention_budget);
         let write = Some(HotArtifactWrite {
@@ -268,7 +290,7 @@ impl SignalGraph {
                             effect.continuity_token().cloned()
                         } else {
                             previous_warm
-                                .and_then(|trace| trace.continuity_token.clone_inner())
+                                .and_then(|trace| trace.continuity_token.clone())
                                 .or_else(|| effect.continuity_token().cloned())
                         },
                     ),
@@ -931,6 +953,7 @@ mod tests {
                     }],
                 }),
                 reuse_boundary_detail: None,
+                previous_artifact_warm: None,
             },
         };
 

@@ -5,8 +5,8 @@ use crate::data::dependency::{
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::node::{
-    CheckpointNodeImage, NodeColdData, NodeContract, NodeEntry, NodeEvaluationConfig, NodeHotData,
-    NodeState, NodeWarmData,
+    CheckpointNodeImage, CheckpointNodeImageParts, NodeColdData, NodeContract, NodeEntry,
+    NodeEvaluationConfig, NodeHotData, NodeState, NodeWarmData,
 };
 use crate::data::output::PartitionSubscription;
 use crate::data::proof::{
@@ -200,7 +200,24 @@ impl SignalGraph {
         &self,
         id: NodeId,
     ) -> Result<CheckpointNodeImage, SignalError> {
-        Ok(self.materialize_entry(id)?.to_checkpoint_image())
+        let hot = self.hot_ref(id)?;
+        let warm = self.warm_ref(id)?;
+        let cold = self.cold_ref(id)?;
+        Ok(CheckpointNodeImage::from_parts(CheckpointNodeImageParts {
+            state: hot.state,
+            dirty_aspects: hot.dirty_aspects,
+            dirty_partition_scopes: hot.dirty_partition_scopes.iter().cloned().collect(),
+            aspect_versions: hot.aspect_versions.clone(),
+            dependencies_id: hot.dependencies_id,
+            subscribers_id: hot.subscribers_id,
+            dep_snapshot_id: hot.dep_snapshot_id,
+            tombstoned: warm.tombstoned,
+            runtime_artifact_state: warm.runtime_artifact_state.clone(),
+            retained_artifact: cold.and_then(|cold| cold.retained_artifact.clone()),
+            causality: cold.and_then(|cold| cold.causality.clone()),
+            execution_trace: cold.and_then(|cold| cold.execution_trace),
+            eval_config: warm.eval_config.clone(),
+        }))
     }
 
     pub(crate) fn node_condition(
@@ -269,6 +286,68 @@ impl SignalGraph {
             .and_then(|cold| cold.as_deref()))
     }
 
+    fn hot_mut(&mut self, id: NodeId) -> Result<&mut NodeHotData, SignalError> {
+        self.validate_handle(id)?;
+        self.arena
+            .hot
+            .get_mut(id.index() as usize)
+            .and_then(Option::as_mut)
+            .ok_or_else(|| stale_error(id, id.generation()))
+    }
+
+    fn warm_mut(&mut self, id: NodeId) -> Result<&mut NodeWarmData, SignalError> {
+        self.validate_handle(id)?;
+        self.arena
+            .warm
+            .get_mut(id.index() as usize)
+            .ok_or_else(|| stale_error(id, id.generation()))
+    }
+
+    fn cold_mut(&mut self, id: NodeId) -> Result<&mut NodeColdData, SignalError> {
+        self.validate_handle(id)?;
+        Ok(self.arena.cold[id.index() as usize]
+            .get_or_insert_with(|| Box::new(NodeColdData::default()))
+            .as_mut())
+    }
+
+    fn trim_cold_if_empty(&mut self, id: NodeId) {
+        let index = id.index() as usize;
+        if self.arena.cold[index].as_ref().is_some_and(|cold| {
+            cold.retained_artifact.is_none()
+                && cold.causality.is_none()
+                && cold.execution_trace.is_none()
+        }) {
+            self.arena.cold[index] = None;
+        }
+    }
+
+    fn set_dep_snapshot_id_direct(
+        &mut self,
+        id: NodeId,
+        snapshot_id: crate::data::dependency::DependencySnapshotId,
+    ) -> Result<(), SignalError> {
+        self.hot_mut(id)?.dep_snapshot_id = snapshot_id;
+        Ok(())
+    }
+
+    pub(crate) fn set_dependencies_id_direct(
+        &mut self,
+        id: NodeId,
+        dependencies_id: super::super::DependencySetId,
+    ) -> Result<(), SignalError> {
+        self.hot_mut(id)?.dependencies_id = dependencies_id;
+        Ok(())
+    }
+
+    pub(crate) fn set_subscribers_id_direct(
+        &mut self,
+        id: NodeId,
+        subscribers_id: super::super::SubscriberSetId,
+    ) -> Result<(), SignalError> {
+        self.hot_mut(id)?.subscribers_id = subscribers_id;
+        Ok(())
+    }
+
     fn materialize_entry(&self, id: NodeId) -> Result<NodeEntry, SignalError> {
         crate::data::access_counters::note_materialized_entry_read();
         Ok(NodeEntry::from_storage_parts(
@@ -327,7 +406,7 @@ impl SignalGraph {
         snapshot: DependencySnapshot,
     ) -> Result<(), SignalError> {
         let previous = self.get_dep_snapshot(id)?.clone();
-        let previous_snapshot_id = self.get_entry(id)?.get_dep_snapshot_id();
+        let (_, previous_snapshot_id) = self.node_dependency_ids(id)?;
         let previous_shape_handle = self.dependency_snapshot_shape_handle(previous_snapshot_id);
         let (update, delta) = CommittedSnapshotUpdate::between(
             id,
@@ -359,7 +438,7 @@ impl SignalGraph {
         }
         let snapshot_id =
             self.insert_dependency_snapshot(update.apply_to(&previous).into_snapshot());
-        self.get_entry_mut(id)?.set_dep_snapshot_id(snapshot_id);
+        self.set_dep_snapshot_id_direct(id, snapshot_id)?;
         self.record_branch_mutation_snapshot(
             id,
             DependencySnapshotStructuralDelta::from_snapshot_delta(delta),
@@ -408,7 +487,7 @@ impl SignalGraph {
         }
         let next_snapshot = update.apply_to(&previous);
         let snapshot_id = self.insert_dependency_snapshot(next_snapshot.into_snapshot());
-        self.get_entry_mut(id)?.set_dep_snapshot_id(snapshot_id);
+        self.set_dep_snapshot_id_direct(id, snapshot_id)?;
         self.record_branch_mutation_snapshot(
             id,
             DependencySnapshotStructuralDelta::from_snapshot_delta(delta),
@@ -445,8 +524,7 @@ impl SignalGraph {
                 .apply_to(&previous)
                 .into_snapshot();
             let snapshot_id = self.insert_dependency_snapshot(next_snapshot);
-            self.get_entry_mut(snapshot.node())?
-                .set_dep_snapshot_id(snapshot_id);
+            self.set_dep_snapshot_id_direct(snapshot.node(), snapshot_id)?;
             self.record_branch_mutation_snapshot(
                 snapshot.node(),
                 DependencySnapshotStructuralDelta::from_snapshot_delta(snapshot.delta()),
@@ -491,8 +569,7 @@ impl SignalGraph {
                 .apply_to(&previous)
                 .into_snapshot();
             let snapshot_id = self.insert_dependency_snapshot(next_snapshot);
-            self.get_entry_mut(snapshot.node())?
-                .set_dep_snapshot_id(snapshot_id);
+            self.set_dep_snapshot_id_direct(snapshot.node(), snapshot_id)?;
             self.record_branch_mutation_snapshot(
                 snapshot.node(),
                 DependencySnapshotStructuralDelta::from_snapshot_delta(snapshot.delta()),
@@ -511,8 +588,7 @@ impl SignalGraph {
                 .apply_to(self.get_dep_snapshot(snapshot.node())?)
                 .into_snapshot();
             let snapshot_id = self.insert_dependency_snapshot(next_snapshot);
-            self.get_entry_mut(snapshot.node())?
-                .set_dep_snapshot_id(snapshot_id);
+            self.set_dep_snapshot_id_direct(snapshot.node(), snapshot_id)?;
             self.record_branch_mutation_snapshot(
                 snapshot.node(),
                 DependencySnapshotStructuralDelta::from_snapshot_delta(snapshot.delta()),
@@ -556,7 +632,7 @@ impl SignalGraph {
             }
             let previous = self.get_dep_snapshot(node)?.clone();
             let next = target.get_dep_snapshot(node)?.clone();
-            let previous_snapshot_id = self.get_entry(node)?.get_dep_snapshot_id();
+            let (_, previous_snapshot_id) = self.node_dependency_ids(node)?;
             let mut shape_store = self.topology.dependency_snapshot_shapes.clone();
             let previous_shape_handle = previous.shape().intern(&mut shape_store);
             let (update, delta) = CommittedSnapshotUpdate::between(
@@ -634,7 +710,7 @@ impl SignalGraph {
         ),
         SignalError,
     > {
-        let runtime = self.node_runtime_artifact_state(node)?;
+        let runtime = self.warm_ref(node)?.runtime_artifact_state.as_ref();
         Ok((
             runtime.and_then(|state| state.lineage_artifact_id().get()),
             runtime.map(crate::data::trace::RuntimeArtifactState::output_hash),
@@ -648,8 +724,9 @@ impl SignalGraph {
         version: AspectVersion,
         changed_regions: &[ChangedRegion],
     ) -> Result<(), SignalError> {
-        self.get_entry_mut(node)?
-            .apply_aspect_version(version, changed_regions);
+        self.hot_mut(node)?
+            .aspect_versions
+            .apply_evaluation(version, changed_regions);
         Ok(())
     }
 
@@ -658,13 +735,22 @@ impl SignalGraph {
         node: NodeId,
         delta: crate::data::trace::ArtifactWriteDelta,
     ) -> Result<bool, SignalError> {
-        let mut entry = self.get_entry_mut(node)?;
-        entry.apply_artifact_write_delta(delta);
-        Ok(entry.cold_artifact_record().is_some())
+        self.warm_mut(node)?.runtime_artifact_state = delta.runtime;
+        let retained_present = delta.retained.is_some();
+        if retained_present {
+            self.cold_mut(node)?.retained_artifact = delta.retained;
+        } else if let Some(cold) = self.arena.cold[node.index() as usize].as_mut() {
+            cold.retained_artifact = None;
+        }
+        self.trim_cold_if_empty(node);
+        Ok(retained_present)
     }
 
     pub(crate) fn transition_node_clean(&mut self, node: NodeId) -> Result<(), SignalError> {
-        self.get_entry_mut(node)?.transition_clean();
+        let hot = self.hot_mut(node)?;
+        hot.state = NodeState::Clean;
+        hot.dirty_aspects = crate::data::aspect::AspectMask::EMPTY;
+        hot.dirty_partition_scopes.clear();
         Ok(())
     }
 
@@ -674,7 +760,14 @@ impl SignalGraph {
         aspect: crate::data::aspect::Aspect,
         scopes: &[PartitionSubscription],
     ) -> Result<(), SignalError> {
-        self.get_entry_mut(node)?.transition_dirty(aspect, scopes);
+        let hot = self.hot_mut(node)?;
+        let was_clean = matches!(hot.state, NodeState::Clean);
+        let already_dirty_for_aspect = hot
+            .dirty_aspects
+            .contains(crate::data::aspect::AspectMask::from_aspect(aspect));
+        hot.state = NodeState::Dirty;
+        hot.dirty_aspects.insert(aspect);
+        merge_dirty_partition_scopes(hot, aspect, scopes, was_clean, already_dirty_for_aspect);
         Ok(())
     }
 
@@ -683,7 +776,17 @@ impl SignalGraph {
         node: NodeId,
         aspect: crate::data::aspect::Aspect,
     ) -> Result<(), SignalError> {
-        self.get_entry_mut(node)?.transition_maybe_stale(aspect);
+        let hot = self.hot_mut(node)?;
+        let was_clean = matches!(hot.state, NodeState::Clean);
+        let already_dirty_for_aspect = hot
+            .dirty_aspects
+            .contains(crate::data::aspect::AspectMask::from_aspect(aspect));
+        hot.state = NodeState::MaybeStale;
+        hot.dirty_aspects.insert(aspect);
+        if was_clean || !already_dirty_for_aspect {
+            hot.dirty_partition_scopes
+                .retain(|(candidate_aspect, _)| *candidate_aspect != aspect);
+        }
         Ok(())
     }
 
@@ -692,7 +795,7 @@ impl SignalGraph {
         node: NodeId,
         state: NodeState,
     ) -> Result<(), SignalError> {
-        self.get_entry_mut(node)?.set_state(state);
+        self.hot_mut(node)?.state = state;
         Ok(())
     }
 
@@ -721,7 +824,6 @@ impl SignalGraph {
         &self,
         node: NodeId,
     ) -> Result<Option<&ColdArtifactRecord>, SignalError> {
-        crate::data::access_counters::note_retained_artifact_read();
         Ok(self
             .cold_ref(node)?
             .and_then(|cold| cold.retained_artifact.as_ref()))
@@ -754,7 +856,12 @@ impl SignalGraph {
         node: NodeId,
         causality: Option<CausalityMetadata>,
     ) -> Result<(), SignalError> {
-        self.get_entry_mut(node)?.set_causality(causality);
+        if causality.is_some() {
+            self.cold_mut(node)?.causality = causality;
+        } else if let Some(cold) = self.arena.cold[node.index() as usize].as_mut() {
+            cold.causality = None;
+        }
+        self.trim_cold_if_empty(node);
         self.record_branch_mutation_causality(node);
         Ok(())
     }
@@ -766,15 +873,51 @@ impl SignalGraph {
         execution_record_id: crate::logic::planner::ExecutionRecordId,
         semantic_segment_id: crate::logic::planner::SemanticSegmentId,
     ) -> Result<(), SignalError> {
-        let mut entry = self.get_entry_mut(node)?;
-        let Some(runtime) = entry.runtime_artifact_state_mut() else {
+        let Some(runtime) = self.warm_mut(node)?.runtime_artifact_state.as_mut() else {
             return Ok(());
         };
         runtime.set_lineage_artifact_id(Some(artifact_id));
-        entry.set_execution_trace_stamp(Some(ExecutionTraceStamp {
+        self.cold_mut(node)?.execution_trace = Some(ExecutionTraceStamp {
             execution_record_id: Some(execution_record_id.0),
             semantic_segment_id: Some(semantic_segment_id.0),
-        }));
+        });
         Ok(())
+    }
+}
+
+fn merge_dirty_partition_scopes(
+    hot: &mut NodeHotData,
+    changed_aspect: crate::data::aspect::Aspect,
+    changed_scopes: &[PartitionSubscription],
+    was_clean: bool,
+    already_dirty_for_aspect: bool,
+) {
+    if changed_scopes.is_empty() {
+        hot.dirty_partition_scopes
+            .retain(|(candidate_aspect, _)| *candidate_aspect != changed_aspect);
+        return;
+    }
+    if !was_clean
+        && already_dirty_for_aspect
+        && hot
+            .dirty_partition_scopes
+            .iter()
+            .filter(|(candidate_aspect, _)| *candidate_aspect == changed_aspect)
+            .next()
+            .is_none()
+    {
+        return;
+    }
+    for scope in changed_scopes {
+        if !hot
+            .dirty_partition_scopes
+            .iter()
+            .any(|(candidate_aspect, candidate_scope)| {
+                *candidate_aspect == changed_aspect && *candidate_scope == *scope
+            })
+        {
+            hot.dirty_partition_scopes
+                .push((changed_aspect, scope.clone()));
+        }
     }
 }

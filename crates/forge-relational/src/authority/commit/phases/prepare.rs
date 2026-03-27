@@ -1,4 +1,5 @@
 use crate::authority::commit::structural_summary::CommitStructuralSummary;
+use crate::logic::runtime::RelationalRuntime;
 use crate::storage::overlay::WorkingState;
 use crate::transactions::data::{MergedCommitPlan, TransactionCommitError};
 use crate::transactions::logic::RelationalTransaction;
@@ -17,24 +18,34 @@ pub(crate) fn prepare_working_state_scope(
     let merged_plan = transaction
         .build_merged_plan_for_state(&planning_state, intents)
         .map_err(TransactionCommitError::conflict)?;
-    let structural_summary = CommitStructuralSummary::derive(
-        &transaction.runtime.storage_access().current_state(),
-        &planning_state,
-        &merged_plan,
+    Ok(prepare_authoritative_working_state_scope(
+        transaction.runtime,
+        merged_plan,
         transaction.options.merge_parent_branches.len(),
-    );
-    let working_state = transaction
-        .runtime
-        .storage_authority()
-        .working_state_for_touched_partitions(
-            structural_summary.touched_partitions.iter().copied(),
-        );
+    ))
+}
 
-    Ok(PreparedWorkingStateScope {
+pub(crate) fn prepare_authoritative_working_state_scope(
+    runtime: &mut RelationalRuntime,
+    merged_plan: MergedCommitPlan,
+    merge_parent_count: usize,
+) -> PreparedWorkingStateScope {
+    let current_state = runtime.storage_access().current_state();
+    let structural_summary = CommitStructuralSummary::derive(
+        &current_state,
+        &current_state,
+        &merged_plan,
+        merge_parent_count,
+    );
+    let working_state = runtime
+        .storage_authority()
+        .working_state_for_touched_partitions(structural_summary.touched_partitions.iter().copied());
+
+    PreparedWorkingStateScope {
         merged_plan,
         structural_summary,
         working_state,
-    })
+    }
 }
 
 pub(crate) fn record_preparation_counters(

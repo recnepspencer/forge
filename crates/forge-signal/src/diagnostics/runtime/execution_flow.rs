@@ -33,7 +33,8 @@ pub(crate) fn record_semantic_execution(
     let explanation = if retention_budget.retain_flow_explanation {
         first_target
             .as_ref()
-            .and_then(|target| graph.observe().explain(*target).ok())
+            .and_then(|target| graph.materialize_explanation_artifact(*target).ok())
+            .and_then(|(explanation, _availability)| explanation)
             .map(|explanation| ExplanationSummary::from_explanation(&explanation, profile))
     } else {
         None

@@ -27,6 +27,17 @@ impl RelationalRuntime {
         &self.config
     }
 
+    pub(crate) fn runtime_instance_id(&self) -> u64 {
+        self.services.runtime_instance_id()
+    }
+
+    pub(crate) fn resolve_symbol(
+        &self,
+        symbol: crate::symbols::data::Symbol,
+    ) -> Option<&str> {
+        self.services.symbols.resolve(symbol)
+    }
+
     #[cfg(test)]
     pub(crate) fn set_entity_structural_identity_for_test(
         &mut self,
