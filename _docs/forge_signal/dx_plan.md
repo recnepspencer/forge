@@ -238,6 +238,8 @@ Stop internal/certification/support surfaces from defining the public identity.
 
 ## Phase 3: Thin And Reorganize The Core Surface
 
+Status: Complete
+
 ### Goal
 
 Make the visible API architecture coherent and compact.
@@ -276,6 +278,8 @@ Make the visible API architecture coherent and compact.
 ---
 
 ## Phase 4: Condense High-Ceremony Flows
+
+Status: Complete
 
 ### Goal
 
@@ -348,6 +352,10 @@ For each high-value workflow family:
 ---
 
 ## Phase 5: Rationalize Policy Surfaces
+
+Primary execution doc:
+
+- [`_docs/forge_signal/dx_phase_5_plan.md`](/Users/spenstar/Documents/programming/forge/forge/_docs/forge_signal/dx_phase_5_plan.md)
 
 ### Goal
 

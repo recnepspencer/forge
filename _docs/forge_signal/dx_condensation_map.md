@@ -118,7 +118,7 @@ For each family, record:
 
 ### Target abstraction shape
 
-- declaration builder around `ComputationSpec`
+- declaration builder around `Recipe`
 
 ### Raw APIs retained
 
@@ -134,6 +134,8 @@ For each family, record:
 
 - the guided computation declaration should become the recommended production
   path once it can express the majority of serious workflows
+- the public noun should stay human and product-shaped, not config-packet
+  flavored
 
 ---
 
@@ -216,6 +218,11 @@ For each family, record:
 
 - explicit planning remains a first-class advanced feature
 - the guided path should make the happy path memorable
+- current guided shape:
+  - `runtime.target(node).read(...)`
+  - `runtime.target(node).run(...)`
+  - `tx.target(node).read(...)`
+  - `tx.target(node).run(...)`
 
 ---
 

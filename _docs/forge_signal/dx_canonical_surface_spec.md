@@ -124,12 +124,10 @@ Preferred mental split:
 Canonical shape to drive toward:
 
 ```rust
-let node = runtime.define_computation(
-    ComputationSpec::new("price.total")
-        .depends_on([source])
-        .produces([PRICE])
-        .on_demand()
-        .compute(|ctx| { ... }),
+let total = runtime.define(
+    Recipe::new("price.total", tier, |ctx| { ... })
+        .reads([PRICE])
+        .produces([TOTAL]),
 )?;
 ```
 
@@ -216,13 +214,12 @@ Target property:
 Canonical shape to drive toward:
 
 ```rust
-let merge = runtime.merge()
+let planned = runtime.merge()
     .from(source_branch)
     .into(target_branch)
-    .with_policy(policy)
     .plan()?;
 
-let result = merge.execute()?;
+let result = planned.execute()?;
 ```
 
 Meaning:
