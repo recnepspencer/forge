@@ -13,10 +13,11 @@ use crate::data::proof::{
     ClassifiedSnapshotBatchCommit, MixedSnapshotBatchCommit, PendingSnapshotBatch,
     SnapshotBatchCommit, StableShapeSnapshotBatchCommit,
 };
-use crate::data::reuse::ReuseBasis;
+use crate::data::reuse::{PersistentCorrespondenceKind, ReuseBasis};
 use crate::data::trace::{
     CausalityMetadata, ColdArtifactRecord, ExecutionTraceStamp, RetainedDiagnosticArtifact,
-    RuntimeArtifactFinalizeImage, RuntimeArtifactHot, RuntimeArtifactWarm,
+    RuntimeArtifactFinalizeImage, RuntimeArtifactHot, RuntimeArtifactOperationalSummary,
+    RuntimeArtifactReuseBoundarySnapshot, RuntimeArtifactWarm,
 };
 use crate::data::{aspect::AspectVersion, core_profile::StableHashValue, output::ChangedRegion};
 use std::ops::{Deref, DerefMut};
@@ -40,6 +41,13 @@ pub(crate) struct MaterializedEntryGuard<'a> {
     graph: &'a mut SignalGraph,
     id: NodeId,
     entry: NodeEntry,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) struct NodeReplayProjection {
+    pub lineage_artifact_id: Option<crate::diagnostics::lineage::LineageArtifactId>,
+    pub persistent_correspondence_kind: Option<PersistentCorrespondenceKind>,
+    pub composition_region_count: Option<u32>,
 }
 
 impl Deref for MaterializedEntryGuard<'_> {
@@ -136,8 +144,8 @@ impl SignalGraph {
         id: NodeId,
     ) -> Result<Vec<PartitionSubscription>, SignalError> {
         Ok(self
-            .hot_ref(id)?
-            .dirty_partition_scopes
+            .warm_ref(id)?
+            .dirty_partition_scope_payload
             .iter()
             .map(|(_, scope)| scope.clone())
             .collect())
@@ -147,7 +155,7 @@ impl SignalGraph {
         &self,
         id: NodeId,
     ) -> Result<bool, SignalError> {
-        Ok(!self.hot_ref(id)?.dirty_partition_scopes.is_empty())
+        Ok(!self.hot_ref(id)?.dirty_partition_scope_aspects.is_empty())
     }
 
     pub(crate) fn node_runtime_artifact_hot(
@@ -171,6 +179,28 @@ impl SignalGraph {
             .runtime_artifact_state
             .as_ref()
             .map(|state| state.warm()))
+    }
+
+    pub(crate) fn node_runtime_artifact_reuse_boundary_snapshot(
+        &self,
+        id: NodeId,
+    ) -> Result<Option<RuntimeArtifactReuseBoundarySnapshot>, SignalError> {
+        Ok(self
+            .warm_ref(id)?
+            .runtime_artifact_state
+            .as_ref()
+            .map(crate::data::trace::RuntimeArtifactState::reuse_boundary_snapshot))
+    }
+
+    pub(crate) fn node_runtime_artifact_operational_summary(
+        &self,
+        id: NodeId,
+    ) -> Result<Option<RuntimeArtifactOperationalSummary>, SignalError> {
+        Ok(self
+            .warm_ref(id)?
+            .runtime_artifact_state
+            .as_ref()
+            .map(crate::data::trace::RuntimeArtifactState::operational_summary))
     }
 
     pub(crate) fn node_runtime_artifact_state(
@@ -206,8 +236,11 @@ impl SignalGraph {
         Ok(CheckpointNodeImage::from_parts(CheckpointNodeImageParts {
             state: hot.state,
             dirty_aspects: hot.dirty_aspects,
-            dirty_partition_scopes: hot.dirty_partition_scopes.iter().cloned().collect(),
-            aspect_versions: hot.aspect_versions.clone(),
+            dirty_partition_scopes: warm.dirty_partition_scope_payload.iter().cloned().collect(),
+            aspect_versions: crate::data::aspect::PartitionVersionMap::from_storage_parts(
+                hot.aspect_version_header,
+                warm.aspect_version_overrides.clone(),
+            ),
             dependencies_id: hot.dependencies_id,
             subscribers_id: hot.subscribers_id,
             dep_snapshot_id: hot.dep_snapshot_id,
@@ -231,7 +264,7 @@ impl SignalGraph {
         &self,
         id: NodeId,
     ) -> Result<crate::data::aspect::AspectVersion, SignalError> {
-        Ok(self.hot_ref(id)?.aspect_versions.global())
+        Ok(self.hot_ref(id)?.aspect_version_header.global())
     }
 
     pub(crate) fn node_partitioned_aspect_version(
@@ -239,7 +272,11 @@ impl SignalGraph {
         id: NodeId,
         scope: &PartitionSubscription,
     ) -> Result<AspectVersion, SignalError> {
-        Ok(self.hot_ref(id)?.aspect_versions.scoped(scope))
+        let hot = self.hot_ref(id)?;
+        let warm = self.warm_ref(id)?;
+        Ok(warm
+            .aspect_version_overrides
+            .scoped_or_global(scope, hot.aspect_version_header.global()))
     }
 
     pub(crate) fn node_version_for_scope(
@@ -248,7 +285,13 @@ impl SignalGraph {
         aspect: crate::data::aspect::Aspect,
         scope: Option<&PartitionSubscription>,
     ) -> Result<u64, SignalError> {
-        Ok(self.hot_ref(id)?.aspect_versions.version_for_scope(aspect, scope))
+        let hot = self.hot_ref(id)?;
+        let warm = self.warm_ref(id)?;
+        Ok(warm.aspect_version_overrides.version_for_scope(
+            aspect,
+            scope,
+            hot.aspect_version_header.global(),
+        ))
     }
 
     pub(crate) fn get_entry(&self, id: NodeId) -> Result<MaterializedEntryRef, SignalError> {
@@ -724,9 +767,16 @@ impl SignalGraph {
         version: AspectVersion,
         changed_regions: &[ChangedRegion],
     ) -> Result<(), SignalError> {
-        self.hot_mut(node)?
-            .aspect_versions
-            .apply_evaluation(version, changed_regions);
+        let has_partition_overrides = {
+            let warm = self.warm_mut(node)?;
+            warm.aspect_version_overrides
+                .apply_evaluation(version, changed_regions);
+            warm.aspect_version_overrides.has_overrides()
+        };
+        let hot = self.hot_mut(node)?;
+        hot.aspect_version_header.set_global(version);
+        hot.aspect_version_header
+            .set_has_partition_overrides(has_partition_overrides);
         Ok(())
     }
 
@@ -750,7 +800,8 @@ impl SignalGraph {
         let hot = self.hot_mut(node)?;
         hot.state = NodeState::Clean;
         hot.dirty_aspects = crate::data::aspect::AspectMask::EMPTY;
-        hot.dirty_partition_scopes.clear();
+        hot.dirty_partition_scope_aspects = crate::data::aspect::AspectMask::EMPTY;
+        self.warm_mut(node)?.dirty_partition_scope_payload.clear();
         Ok(())
     }
 
@@ -760,14 +811,23 @@ impl SignalGraph {
         aspect: crate::data::aspect::Aspect,
         scopes: &[PartitionSubscription],
     ) -> Result<(), SignalError> {
-        let hot = self.hot_mut(node)?;
+        let hot = self.hot_ref(node)?;
         let was_clean = matches!(hot.state, NodeState::Clean);
         let already_dirty_for_aspect = hot
             .dirty_aspects
             .contains(crate::data::aspect::AspectMask::from_aspect(aspect));
+        let has_scoped_payload = {
+            let warm = self.warm_mut(node)?;
+            merge_dirty_partition_scopes(warm, aspect, scopes, was_clean, already_dirty_for_aspect)
+        };
+        let hot = self.hot_mut(node)?;
         hot.state = NodeState::Dirty;
         hot.dirty_aspects.insert(aspect);
-        merge_dirty_partition_scopes(hot, aspect, scopes, was_clean, already_dirty_for_aspect);
+        if has_scoped_payload {
+            hot.dirty_partition_scope_aspects.insert(aspect);
+        } else {
+            sync_dirty_partition_scope_flag(hot, aspect);
+        }
         Ok(())
     }
 
@@ -776,16 +836,22 @@ impl SignalGraph {
         node: NodeId,
         aspect: crate::data::aspect::Aspect,
     ) -> Result<(), SignalError> {
-        let hot = self.hot_mut(node)?;
+        let hot = self.hot_ref(node)?;
         let was_clean = matches!(hot.state, NodeState::Clean);
         let already_dirty_for_aspect = hot
             .dirty_aspects
             .contains(crate::data::aspect::AspectMask::from_aspect(aspect));
+        let should_clear_scopes = was_clean || !already_dirty_for_aspect;
+        if should_clear_scopes {
+            self.warm_mut(node)?
+                .dirty_partition_scope_payload
+                .retain(|(candidate_aspect, _)| *candidate_aspect != aspect);
+        }
+        let hot = self.hot_mut(node)?;
         hot.state = NodeState::MaybeStale;
         hot.dirty_aspects.insert(aspect);
-        if was_clean || !already_dirty_for_aspect {
-            hot.dirty_partition_scopes
-                .retain(|(candidate_aspect, _)| *candidate_aspect != aspect);
+        if should_clear_scopes {
+            sync_dirty_partition_scope_flag(hot, aspect);
         }
         Ok(())
     }
@@ -840,15 +906,28 @@ impl SignalGraph {
             .and_then(|state| state.lineage_artifact_id().get()))
     }
 
-    pub(crate) fn node_reuse_boundary_authority(
+    pub(crate) fn node_replay_projection(
         &self,
         node: NodeId,
-    ) -> Result<Option<&crate::data::reuse::ReuseBoundaryAuthority>, SignalError> {
-        Ok(self
-            .warm_ref(node)?
-            .runtime_artifact_state
-            .as_ref()
-            .and_then(|state| state.reuse_boundary_authority()))
+    ) -> Result<NodeReplayProjection, SignalError> {
+        let runtime_artifact_state = self.warm_ref(node)?.runtime_artifact_state.as_ref();
+        let lineage_artifact_id =
+            runtime_artifact_state.and_then(|state| state.lineage_artifact_id().get());
+        let (persistent_correspondence_kind, composition_region_count) = runtime_artifact_state
+            .and_then(|state| state.reuse_boundary_authority())
+            .map(|authority| {
+                (
+                    authority.persistent_correspondence_kind(),
+                    authority.composition_region_count(),
+                )
+            })
+            .unwrap_or((None, 0));
+        Ok(NodeReplayProjection {
+            lineage_artifact_id,
+            persistent_correspondence_kind,
+            composition_region_count: (composition_region_count > 0)
+                .then_some(composition_region_count),
+        })
     }
 
     pub fn set_causality(
@@ -886,38 +965,49 @@ impl SignalGraph {
 }
 
 fn merge_dirty_partition_scopes(
-    hot: &mut NodeHotData,
+    warm: &mut NodeWarmData,
     changed_aspect: crate::data::aspect::Aspect,
     changed_scopes: &[PartitionSubscription],
     was_clean: bool,
     already_dirty_for_aspect: bool,
-) {
+) -> bool {
     if changed_scopes.is_empty() {
-        hot.dirty_partition_scopes
+        warm.dirty_partition_scope_payload
             .retain(|(candidate_aspect, _)| *candidate_aspect != changed_aspect);
-        return;
+        return false;
     }
     if !was_clean
         && already_dirty_for_aspect
-        && hot
-            .dirty_partition_scopes
+        && warm
+            .dirty_partition_scope_payload
             .iter()
             .filter(|(candidate_aspect, _)| *candidate_aspect == changed_aspect)
             .next()
             .is_none()
     {
-        return;
+        return false;
     }
     for scope in changed_scopes {
-        if !hot
-            .dirty_partition_scopes
+        if !warm
+            .dirty_partition_scope_payload
             .iter()
             .any(|(candidate_aspect, candidate_scope)| {
                 *candidate_aspect == changed_aspect && *candidate_scope == *scope
             })
         {
-            hot.dirty_partition_scopes
+            warm.dirty_partition_scope_payload
                 .push((changed_aspect, scope.clone()));
         }
     }
+    true
+}
+
+fn sync_dirty_partition_scope_flag(
+    hot: &mut NodeHotData,
+    aspect: crate::data::aspect::Aspect,
+) {
+    hot.dirty_partition_scope_aspects = crate::data::aspect::AspectMask::from_bits(
+        hot.dirty_partition_scope_aspects.bits()
+            & !crate::data::aspect::AspectMask::from_aspect(aspect).bits(),
+    );
 }

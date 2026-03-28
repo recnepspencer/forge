@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
-use crate::data::aspect::{Aspect, AspectMask, AspectVersion, PartitionVersionMap, MAX_ASPECTS};
+use crate::data::aspect::{
+    Aspect, AspectMask, AspectVersion, AspectVersionHeader, PartitionVersionMap,
+    PartitionVersionOverrides, MAX_ASPECTS,
+};
 use crate::data::core_profile::HOT_VEC_INLINE_CAPACITY;
 use crate::data::dependency::DependencySnapshotId;
 use crate::data::graph::{DependencySetId, SubscriberSetId};
@@ -50,9 +53,8 @@ pub(crate) struct NodeHotData {
     pub(crate) state: NodeState,
     pub(crate) dirty_aspects: AspectMask,
     #[serde(default)]
-    pub(crate) dirty_partition_scopes:
-        SmallVec<[(crate::data::aspect::Aspect, PartitionSubscription); HOT_VEC_INLINE_CAPACITY]>,
-    pub(crate) aspect_versions: PartitionVersionMap,
+    pub(crate) dirty_partition_scope_aspects: AspectMask,
+    pub(crate) aspect_version_header: AspectVersionHeader,
     pub(crate) dependencies_id: DependencySetId,
     pub(crate) subscribers_id: SubscriberSetId,
     pub(crate) dep_snapshot_id: DependencySnapshotId,
@@ -62,6 +64,11 @@ pub(crate) struct NodeHotData {
 pub(crate) struct NodeWarmData {
     #[serde(default)]
     pub(crate) tombstoned: bool,
+    #[serde(default)]
+    pub(crate) aspect_version_overrides: PartitionVersionOverrides,
+    #[serde(default)]
+    pub(crate) dirty_partition_scope_payload:
+        SmallVec<[(crate::data::aspect::Aspect, PartitionSubscription); HOT_VEC_INLINE_CAPACITY]>,
     #[serde(default)]
     pub(crate) runtime_artifact_state: Option<RuntimeArtifactState>,
     #[serde(default)]
@@ -102,8 +109,8 @@ impl NodeEntry {
             hot: NodeHotData {
                 state: NodeState::Dirty,
                 dirty_aspects: AspectMask::from_bits(((1u32 << MAX_ASPECTS) - 1) as _),
-                dirty_partition_scopes: SmallVec::new(),
-                aspect_versions: PartitionVersionMap::zero(),
+                dirty_partition_scope_aspects: AspectMask::EMPTY,
+                aspect_version_header: AspectVersionHeader::zero(),
                 dependencies_id: DependencySetId::EMPTY,
                 subscribers_id: SubscriberSetId::EMPTY,
                 dep_snapshot_id: DependencySnapshotId::EMPTY,
@@ -177,31 +184,33 @@ impl NodeEntry {
 
     #[cfg(test)]
     pub fn dirty_partition_scopes(&self) -> impl Iterator<Item = &PartitionSubscription> {
-        self.hot
-            .dirty_partition_scopes
+        self.warm
+            .dirty_partition_scope_payload
             .iter()
             .map(|(_, scope)| scope)
     }
 
     pub fn clear_dirty_partition_scopes(&mut self) {
-        self.hot.dirty_partition_scopes.clear();
+        self.hot.dirty_partition_scope_aspects = AspectMask::EMPTY;
+        self.warm.dirty_partition_scope_payload.clear();
     }
 
     pub fn get_dirty_partition_scopes_for(
         &self,
         aspect: crate::data::aspect::Aspect,
     ) -> impl Iterator<Item = &PartitionSubscription> {
-        self.hot
-            .dirty_partition_scopes
+        self.warm
+            .dirty_partition_scope_payload
             .iter()
             .filter(move |(candidate_aspect, _)| *candidate_aspect == aspect)
             .map(|(_, scope)| scope)
     }
 
     pub fn clear_dirty_partition_scopes_for(&mut self, aspect: crate::data::aspect::Aspect) {
-        self.hot
-            .dirty_partition_scopes
+        self.warm
+            .dirty_partition_scope_payload
             .retain(|(candidate_aspect, _)| *candidate_aspect != aspect);
+        self.sync_dirty_partition_scope_flag(aspect);
     }
 
     pub fn add_dirty_partition_scope(
@@ -210,14 +219,15 @@ impl NodeEntry {
         scope: PartitionSubscription,
     ) {
         if !self
-            .hot
-            .dirty_partition_scopes
+            .warm
+            .dirty_partition_scope_payload
             .iter()
             .any(|(candidate_aspect, candidate_scope)| {
                 *candidate_aspect == aspect && *candidate_scope == scope
             })
         {
-            self.hot.dirty_partition_scopes.push((aspect, scope));
+            self.warm.dirty_partition_scope_payload.push((aspect, scope));
+            self.hot.dirty_partition_scope_aspects.insert(aspect);
         }
     }
 
@@ -228,22 +238,32 @@ impl NodeEntry {
 
     /// The current aspect versions.
     pub fn get_aspect_version(&self) -> AspectVersion {
-        self.hot.aspect_versions.global()
+        self.hot.aspect_version_header.global()
     }
 
     #[cfg(test)]
     #[allow(dead_code)]
     pub fn get_partitioned_aspect_version(&self, scope: &PartitionSubscription) -> AspectVersion {
-        self.hot.aspect_versions.scoped(scope)
+        self.warm
+            .aspect_version_overrides
+            .scoped_or_global(scope, self.hot.aspect_version_header.global())
     }
 
     pub fn version_for_scope(&self, aspect: Aspect, scope: Option<&PartitionSubscription>) -> u64 {
-        self.hot.aspect_versions.version_for_scope(aspect, scope)
+        self.warm.aspect_version_overrides.version_for_scope(
+            aspect,
+            scope,
+            self.hot.aspect_version_header.global(),
+        )
     }
 
     /// Set the aspect version after evaluation.
     pub fn set_aspect_version(&mut self, version: AspectVersion) {
-        self.hot.aspect_versions.set_global(version);
+        self.hot.aspect_version_header.set_global(version);
+        self.warm.aspect_version_overrides.set_global(version);
+        self.hot
+            .aspect_version_header
+            .set_has_partition_overrides(self.warm.aspect_version_overrides.has_overrides());
     }
 
     pub fn apply_aspect_version(
@@ -251,9 +271,13 @@ impl NodeEntry {
         version: AspectVersion,
         changed_regions: &[ChangedRegion],
     ) {
-        self.hot
-            .aspect_versions
+        self.hot.aspect_version_header.set_global(version);
+        self.warm
+            .aspect_version_overrides
             .apply_evaluation(version, changed_regions);
+        self.hot
+            .aspect_version_header
+            .set_has_partition_overrides(self.warm.aspect_version_overrides.has_overrides());
     }
 
     /// Graph-owned dependency set handle.
@@ -477,8 +501,16 @@ impl NodeEntry {
         CheckpointNodeImage::from_parts(CheckpointNodeImageParts {
             state: self.hot.state,
             dirty_aspects: self.hot.dirty_aspects,
-            dirty_partition_scopes: self.hot.dirty_partition_scopes.iter().cloned().collect(),
-            aspect_versions: self.hot.aspect_versions.clone(),
+            dirty_partition_scopes: self
+                .warm
+                .dirty_partition_scope_payload
+                .iter()
+                .cloned()
+                .collect(),
+            aspect_versions: PartitionVersionMap::from_storage_parts(
+                self.hot.aspect_version_header,
+                self.warm.aspect_version_overrides.clone(),
+            ),
             dependencies_id: self.hot.dependencies_id,
             subscribers_id: self.hot.subscribers_id,
             dep_snapshot_id: self.hot.dep_snapshot_id,
@@ -493,23 +525,28 @@ impl NodeEntry {
 
     pub(crate) fn from_checkpoint_image(image: CheckpointNodeImage) -> Self {
         let image = image.into_parts();
+        let (aspect_version_header, aspect_version_overrides) =
+            image.aspect_versions.into_storage_parts();
         let mut entry = Self {
             hot: NodeHotData {
                 state: image.state,
                 dirty_aspects: image.dirty_aspects,
-                dirty_partition_scopes: image.dirty_partition_scopes.into_iter().collect(),
-                aspect_versions: image.aspect_versions,
+                dirty_partition_scope_aspects: AspectMask::EMPTY,
+                aspect_version_header,
                 dependencies_id: image.dependencies_id,
                 subscribers_id: image.subscribers_id,
                 dep_snapshot_id: image.dep_snapshot_id,
             },
             warm: NodeWarmData {
                 tombstoned: image.tombstoned,
+                aspect_version_overrides,
+                dirty_partition_scope_payload: image.dirty_partition_scopes.into_iter().collect(),
                 runtime_artifact_state: image.runtime_artifact_state,
                 eval_config: image.eval_config,
             },
             cold: None,
         };
+        entry.sync_all_dirty_partition_scope_flags();
         entry.set_retained_diagnostic_artifact(image.retained_artifact);
         entry.set_causality(image.causality);
         entry.set_execution_trace_stamp(image.execution_trace);
@@ -570,6 +607,28 @@ impl NodeEntry {
         }
         for scope in changed_scopes {
             self.add_dirty_partition_scope(changed_aspect, scope.clone());
+        }
+    }
+
+    fn sync_all_dirty_partition_scope_flags(&mut self) {
+        self.hot.dirty_partition_scope_aspects = AspectMask::EMPTY;
+        for (aspect, _) in &self.warm.dirty_partition_scope_payload {
+            self.hot.dirty_partition_scope_aspects.insert(*aspect);
+        }
+    }
+
+    fn sync_dirty_partition_scope_flag(&mut self, aspect: Aspect) {
+        if self
+            .warm
+            .dirty_partition_scope_payload
+            .iter()
+            .any(|(candidate_aspect, _)| *candidate_aspect == aspect)
+        {
+            self.hot.dirty_partition_scope_aspects.insert(aspect);
+        } else {
+            self.hot.dirty_partition_scope_aspects = AspectMask::from_bits(
+                self.hot.dirty_partition_scope_aspects.bits() & !AspectMask::from_aspect(aspect).bits(),
+            );
         }
     }
 }

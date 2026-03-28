@@ -130,6 +130,37 @@ impl ExplanationFact {
         fact.compact_projection = true;
         fact
     }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn compact_explanation_from_runtime_projection(
+        node: NodeId,
+        state: NodeState,
+        contract_reads: crate::data::aspect::AspectMask,
+        contract_produces: crate::data::aspect::AspectMask,
+        contract_partition_scope: Option<Vec<PartitionSubscription>>,
+        required_context: ContextRequirement,
+        condition: EvaluationCondition,
+        runtime: &RuntimeArtifactState,
+        retained: Option<&ColdArtifactRecord>,
+        execution: Option<ExecutionTraceStamp>,
+        causality: Option<&CausalityMetadata>,
+        rewiring: Option<RewiringSummary>,
+    ) -> NodeExplanation {
+        compact_retained_explanation(
+            node,
+            state,
+            contract_reads,
+            contract_produces,
+            contract_partition_scope,
+            required_context,
+            condition,
+            runtime,
+            retained,
+            execution,
+            causality,
+            rewiring,
+        )
+    }
 }
 
 impl ProvenanceFact {

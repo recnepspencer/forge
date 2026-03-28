@@ -21,16 +21,10 @@ impl SignalGraph {
         explanation: &mut NodeExplanation,
         rewiring: &crate::logic::explain::RewiringSummary,
     ) {
+        explanation
+            .causal_links
+            .reserve(rewiring.removed.len() + rewiring.added.len());
         for dependency in &rewiring.removed {
-            let already_present = explanation.causal_links.iter().any(|link| {
-                matches!(link.kind, CausalLinkKind::DependencyRemoved)
-                    && link.source == Some(dependency.source)
-                    && link.aspect == Some(dependency.aspect)
-                    && link.scope.validation_scope == dependency.subscription
-            });
-            if already_present {
-                continue;
-            }
             explanation.causal_links.push(CausalLink {
                 source: Some(dependency.source),
                 aspect: Some(dependency.aspect),
@@ -51,15 +45,6 @@ impl SignalGraph {
         }
 
         for dependency in &rewiring.added {
-            let already_present = explanation.causal_links.iter().any(|link| {
-                matches!(link.kind, CausalLinkKind::DependencyAdded)
-                    && link.source == Some(dependency.source)
-                    && link.aspect == Some(dependency.aspect)
-                    && link.scope.validation_scope == dependency.subscription
-            });
-            if already_present {
-                continue;
-            }
             explanation.causal_links.push(CausalLink {
                 source: Some(dependency.source),
                 aspect: Some(dependency.aspect),
@@ -200,7 +185,7 @@ impl SignalGraph {
         let execution_trace = self.node_execution_trace_stamp(node)?;
         let causality = self.causality_of(node)?;
         let rewiring = rewiring;
-        let mut compact_explanation = ExplanationFact::from_runtime_projection(
+        let mut compact_explanation = ExplanationFact::compact_explanation_from_runtime_projection(
             node,
             state,
             contract.semantics.reads,
@@ -213,8 +198,7 @@ impl SignalGraph {
             execution_trace,
             causality,
             rewiring.clone(),
-        )
-        .explanation;
+        );
         if let Some(rewiring) = compact_explanation.rewiring.clone() {
             self.attach_rewiring_topology_links(&mut compact_explanation, &rewiring);
         }

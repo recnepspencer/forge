@@ -9,6 +9,7 @@ use crate::facade::{
     transaction::*,
     types::{AspectMask, ChangedRegion, DependencyEdge, NodeId, NodeState, SignalError},
 };
+use crate::data::trace::{RuntimeArtifactHot, RuntimeArtifactState, RuntimeArtifactWarm};
 use crate::logic::prepared::PreparedEvaluation;
 
 use super::compute::{ComputeContext, Computed, ErasedComputed};
@@ -63,6 +64,8 @@ impl ReactiveGraph {
             .expect("newly created input node should be available");
         entry.set_state(NodeState::Clean);
         entry.set_dirty_aspects(AspectMask::EMPTY);
+        let version = entry.get_aspect_version();
+        entry.set_runtime_artifact_state(Some(easy_seed_runtime_artifact_state(version, 0, false)));
 
         Signal::new(node)
     }
@@ -124,6 +127,7 @@ impl ReactiveGraph {
             entry.set_aspect_version(next);
             entry.set_state(NodeState::Clean);
             entry.set_dirty_aspects(AspectMask::EMPTY);
+            entry.set_runtime_artifact_state(Some(easy_seed_runtime_artifact_state(next, 0, false)));
         }
 
         if self.batch_depth > 0 {
@@ -250,6 +254,11 @@ impl ReactiveGraph {
             entry.set_state(NodeState::Clean);
             entry.set_dirty_aspects(AspectMask::EMPTY);
             entry.clear_dirty_partition_scopes();
+            entry.set_runtime_artifact_state(Some(easy_seed_runtime_artifact_state(
+                prepared.result.aspect_version,
+                prepared.dependencies.len() as u32,
+                true,
+            )));
         }
         self.graph.set_dependencies(
             node,
@@ -308,4 +317,21 @@ impl ReactiveGraph {
             .cloned()
             .ok_or_else(|| SignalError::invalid_input("easy-mode signal type mismatch"))
     }
+}
+
+fn easy_seed_runtime_artifact_state(
+    version: crate::facade::types::AspectVersion,
+    dependency_count: u32,
+    recomputed: bool,
+) -> RuntimeArtifactState {
+    let mut hot = RuntimeArtifactHot::default();
+    hot.dependency_count = dependency_count;
+    hot.recomputed = recomputed;
+    hot.changed_partition_count = 0;
+    hot.meaningful_input_changes = 0;
+    hot.propagation_suppressed = false;
+    hot.output_hash = crate::data::core_profile::StableHashValue::from(version.slots()[0]);
+    let mut warm = RuntimeArtifactWarm::default();
+    warm.memoized_origin = crate::data::output::MemoizedResultOrigin::DirectCompute;
+    RuntimeArtifactState::new(hot, warm)
 }

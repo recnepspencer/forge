@@ -1073,6 +1073,7 @@ fn durability_contract_failure_missing_authoritative_parent_closure_is_explicit(
         RecoveryCompatibilityCheck::verified_at(ReplayVerificationLayer::DigestParity),
         RecoveryVerificationMode::NormalRecoveryVerification,
         DescriptorSemanticsVersion::default(),
+        true,
     );
     let mut recovered = runtime_with_test_schema();
     let error = recovered

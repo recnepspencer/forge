@@ -81,12 +81,101 @@ pub struct PartitionVersionMap {
     partitions: BTreeMap<PartitionToken, AspectVersion>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AspectVersionHeader {
+    global: AspectVersion,
+    has_partition_overrides: bool,
+}
+
+impl Default for AspectVersionHeader {
+    fn default() -> Self {
+        Self::zero()
+    }
+}
+
+#[allow(dead_code)]
+impl AspectVersionHeader {
+    pub const fn zero() -> Self {
+        Self {
+            global: AspectVersion::zero(),
+            has_partition_overrides: false,
+        }
+    }
+
+    pub const fn global(&self) -> AspectVersion {
+        self.global
+    }
+
+    pub const fn has_partition_overrides(&self) -> bool {
+        self.has_partition_overrides
+    }
+
+    pub fn set_global(&mut self, version: AspectVersion) {
+        self.global = version;
+    }
+
+    pub fn set_has_partition_overrides(&mut self, has_partition_overrides: bool) {
+        self.has_partition_overrides = has_partition_overrides;
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct PartitionVersionOverrides {
+    #[serde(default)]
+    partitions: BTreeMap<PartitionToken, AspectVersion>,
+}
+
+impl PartitionVersionOverrides {
+    pub fn scoped_or_global(
+        &self,
+        scope: &PartitionSubscription,
+        global: AspectVersion,
+    ) -> AspectVersion {
+        self.partitions
+            .get(&scope.partition)
+            .copied()
+            .unwrap_or(global)
+    }
+
+    pub fn version_for_scope(
+        &self,
+        aspect: Aspect,
+        scope: Option<&PartitionSubscription>,
+        global: AspectVersion,
+    ) -> u64 {
+        match scope {
+            Some(scope) => self.scoped_or_global(scope, global).get(aspect),
+            None => global.get(aspect),
+        }
+    }
+
+    pub fn set_global(&mut self, version: AspectVersion) {
+        for partition in self.partitions.values_mut() {
+            *partition = version;
+        }
+    }
+
+    pub fn apply_evaluation(&mut self, version: AspectVersion, changed_regions: &[ChangedRegion]) {
+        if changed_regions.is_empty() {
+            return;
+        }
+        for region in changed_regions {
+            self.partitions.insert(region.partition.clone(), version);
+        }
+    }
+
+    pub fn has_overrides(&self) -> bool {
+        !self.partitions.is_empty()
+    }
+}
+
 impl Default for PartitionVersionMap {
     fn default() -> Self {
         Self::zero()
     }
 }
 
+#[allow(dead_code)]
 impl PartitionVersionMap {
     pub const fn zero() -> Self {
         Self {
@@ -127,6 +216,29 @@ impl PartitionVersionMap {
         }
         for region in changed_regions {
             self.partitions.insert(region.partition.clone(), version);
+        }
+    }
+
+    pub fn into_storage_parts(self) -> (AspectVersionHeader, PartitionVersionOverrides) {
+        let overrides = PartitionVersionOverrides {
+            partitions: self.partitions,
+        };
+        (
+            AspectVersionHeader {
+                global: self.global,
+                has_partition_overrides: overrides.has_overrides(),
+            },
+            overrides,
+        )
+    }
+
+    pub fn from_storage_parts(
+        header: AspectVersionHeader,
+        overrides: PartitionVersionOverrides,
+    ) -> Self {
+        Self {
+            global: header.global(),
+            partitions: overrides.partitions,
         }
     }
 }

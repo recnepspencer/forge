@@ -6,7 +6,6 @@ use crate::logic::context::EvaluationContext;
 use crate::logic::evaluation::EvaluationOutput;
 
 use super::aspects::{ALERT, CURVE, LIQUIDITY, PRICE, RISK, VOL};
-use super::fixture::FintechDomainFixture;
 use super::node_families::{AggregateSourceNodes, FxNodes, InstrumentNodes};
 use super::partition_surface::PartitionSurfaceNodes;
 
@@ -34,15 +33,26 @@ struct InstrumentShape {
 }
 
 impl FintechEvaluationShape {
-    pub(super) fn from_fixture(fixture: &FintechDomainFixture) -> Self {
+    pub(super) fn from_parts(
+        fx: FxNodes,
+        aggregate_sources: &[AggregateSourceNodes],
+        curve_buckets: &[NodeId],
+        vol_surface_buckets: &[NodeId],
+        scenario_sources: &[NodeId],
+        instruments: &[super::fixture::InstrumentFixture],
+        book_aggregates: &[NodeId],
+        desk_aggregates: &[NodeId],
+        scenario_aggregates: &[NodeId],
+        bucket_aggregates: &[NodeId],
+        partition: PartitionSurfaceNodes,
+    ) -> Self {
         Self {
-            fx: fixture.fx,
-            aggregate_sources: fixture.aggregate_sources.clone(),
-            curve_buckets: fixture.curve_buckets.clone(),
-            vol_surface_buckets: fixture.vol_surface_buckets.clone(),
-            scenario_sources: fixture.scenario_sources.clone(),
-            instruments: fixture
-                .instruments
+            fx,
+            aggregate_sources: aggregate_sources.to_vec(),
+            curve_buckets: curve_buckets.to_vec(),
+            vol_surface_buckets: vol_surface_buckets.to_vec(),
+            scenario_sources: scenario_sources.to_vec(),
+            instruments: instruments
                 .iter()
                 .map(|instrument| InstrumentShape {
                     book_index: instrument.book_index,
@@ -51,11 +61,11 @@ impl FintechEvaluationShape {
                     scenarios: instrument.scenarios.clone(),
                 })
                 .collect(),
-            book_aggregates: fixture.book_aggregates.clone(),
-            desk_aggregates: fixture.desk_aggregates.clone(),
-            scenario_aggregates: fixture.scenario_aggregates.clone(),
-            bucket_aggregates: fixture.bucket_aggregates.clone(),
-            partition: fixture.handles.partition,
+            book_aggregates: book_aggregates.to_vec(),
+            desk_aggregates: desk_aggregates.to_vec(),
+            scenario_aggregates: scenario_aggregates.to_vec(),
+            bucket_aggregates: bucket_aggregates.to_vec(),
+            partition,
         }
     }
 

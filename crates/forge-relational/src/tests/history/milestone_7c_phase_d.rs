@@ -17,8 +17,8 @@ use crate::facade::transactions::{
 use crate::schema::data::RelationPayloadClass;
 use crate::symbols::data::InternedString;
 use crate::tests::support::{
-    create_branch_from_main, create_entity, create_entity_outcome_on_branch, entity_payload_aspect,
-    persisted_runtime_with_test_schema, runtime_with_test_schema, update_entity,
+    create_branch_from_main, create_entity, create_entity_outcome_on_branch,
+    entity_payload_aspect, persisted_runtime_with_test_schema, runtime_with_test_schema, update_entity,
     CascadeDeletePolicy, CrossContextPolicy,
 };
 

@@ -251,16 +251,16 @@ pub(super) fn finalize_stage_batch(
                 reuse_basis,
             ) = update.into_parts();
             let after_finalize_image = graph.node_runtime_artifact_finalize_image(node)?;
-            stamp_trace_summary_and_record_lineage_transition_from_image(
-                graph,
-                node,
-                before_artifact_state.as_ref(),
-                after_finalize_image
-                    .as_ref()
-                    .ok_or_else(|| SignalError::internal("semantic finalize expected runtime artifact finalize image"))?,
-                identity.record_id,
-                identity.segment_id,
-            )?;
+            if let Some(after_finalize_image) = after_finalize_image.as_ref() {
+                stamp_trace_summary_and_record_lineage_transition_from_image(
+                    graph,
+                    node,
+                    before_artifact_state.as_ref(),
+                    after_finalize_image,
+                    identity.record_id,
+                    identity.segment_id,
+                )?;
+            }
             let task = &stage_tasks[task_index];
             let task_record = classify_task_execution_record(
                 identity.record_id,
@@ -299,10 +299,7 @@ pub(in crate::logic::planner) fn finalize_serial_stage_batch(
     report: &mut ExecutionReport,
     stage_record: &mut StageExecutionRecord,
 ) -> Result<FinalizedSerialStageBatch, SignalError> {
-    let _ = batch.stage_order_proof();
-    let stage_tasks = batch.stage_tasks();
-    let finalize_seeds = batch.finalize_seeds();
-    let applied_tasks = batch.applied_tasks();
+    let (stage_tasks, finalize_seeds, applied_tasks, _stage_order) = batch.into_parts();
 
     if finalize_seeds.is_empty() {
         let empty_range = SemanticTaskRange {
@@ -328,23 +325,23 @@ pub(in crate::logic::planner) fn finalize_serial_stage_batch(
     };
     let mut task_records = Vec::with_capacity(applied_tasks.len());
 
-    for (seed, applied) in finalize_seeds.iter().zip(applied_tasks.iter()) {
+    for (seed, applied) in finalize_seeds.into_iter().zip(applied_tasks.into_iter()) {
         if seed.node != applied.node {
             return Err(SignalError::internal(
                 "serial finalize proof was violated: stage-ordered seed and applied node diverged",
             ));
         }
         let after_finalize_image = graph.node_runtime_artifact_finalize_image(applied.node)?;
-        stamp_trace_summary_and_record_lineage_transition_from_image(
-            graph,
-            applied.node,
-            seed.before_artifact_state.as_ref(),
-            after_finalize_image
-                .as_ref()
-                .ok_or_else(|| SignalError::internal("serial finalize expected runtime artifact finalize image"))?,
-            seed.identity.record_id,
-            seed.identity.segment_id,
-        )?;
+        if let Some(after_finalize_image) = after_finalize_image.as_ref() {
+            stamp_trace_summary_and_record_lineage_transition_from_image(
+                graph,
+                applied.node,
+                seed.before_artifact_state.as_ref(),
+                after_finalize_image,
+                seed.identity.record_id,
+                seed.identity.segment_id,
+            )?;
+        }
         let task = &stage_tasks[seed.task_index];
         let task_record = classify_task_execution_record(
             seed.identity.record_id,
@@ -354,9 +351,9 @@ pub(in crate::logic::planner) fn finalize_serial_stage_batch(
             applied.after_state,
             seed.before_artifact_state.as_ref(),
             after_finalize_image.as_ref(),
-            applied.verdict.clone(),
+            applied.verdict,
             applied.memoized_origin,
-            applied.reuse_basis.clone(),
+            applied.reuse_basis,
         );
         record_semantic_update(
             graph,
@@ -370,7 +367,7 @@ pub(in crate::logic::planner) fn finalize_serial_stage_batch(
         task_records.push(task_record);
     }
 
-    let semantic_segment_count = finalize_seeds.len() as u32;
+    let semantic_segment_count = task_records.len() as u32;
     stage_record.semantic_segment_count = semantic_segment_count;
     Ok(FinalizedSerialStageBatch::new(
         semantic_task_range,

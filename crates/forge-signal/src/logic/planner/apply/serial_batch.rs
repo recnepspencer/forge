@@ -143,16 +143,17 @@ impl AppliedSerialTask {
         verdict: EvaluationVerdict,
     ) -> Result<Self, SignalError> {
         let after_state = graph.get_state(node)?;
-        let after_trace = graph.node_runtime_artifact_warm(node)?;
+        let after_trace = graph.node_runtime_artifact_operational_summary(node)?;
         Ok(Self {
             node,
             verdict,
             after_state,
             memoized_origin: after_trace
+                .as_ref()
                 .map(|trace| trace.memoized_origin)
                 .unwrap_or(crate::data::output::MemoizedResultOrigin::DirectCompute),
             reuse_basis: after_trace
-                .map(|trace| trace.reuse_basis.clone_inner())
+                .map(|trace| trace.reuse_basis)
                 .unwrap_or_else(crate::data::reuse::ReuseBasis::fresh_compute),
         })
     }
@@ -614,10 +615,6 @@ impl StageOrderedAppliedTasks {
         self.tasks.len()
     }
 
-    fn as_slice(&self) -> &[AppliedSerialTask] {
-        self.tasks.as_slice()
-    }
-
     fn exact_width(&self) -> ExactStageWidth {
         self.exact_width
     }
@@ -726,20 +723,20 @@ impl ReadySerialFinalizeBatch {
         }
     }
 
-    pub(in crate::logic::planner) fn stage_tasks(&self) -> &[EligibleTask] {
-        &self.stage_tasks
-    }
-
-    pub(in crate::logic::planner) fn finalize_seeds(&self) -> &[SerialFinalizeSeed] {
-        &self.finalize_seeds
-    }
-
-    pub(in crate::logic::planner) fn applied_tasks(&self) -> &[AppliedSerialTask] {
-        self.applied_tasks.as_slice()
-    }
-
-    pub(in crate::logic::planner) fn stage_order_proof(&self) -> StageTaskOrderProof {
-        self.stage_order
+    pub(in crate::logic::planner) fn into_parts(
+        self,
+    ) -> (
+        Vec<EligibleTask>,
+        Vec<SerialFinalizeSeed>,
+        Vec<AppliedSerialTask>,
+        StageTaskOrderProof,
+    ) {
+        (
+            self.stage_tasks,
+            self.finalize_seeds,
+            self.applied_tasks.tasks,
+            self.stage_order,
+        )
     }
 }
 

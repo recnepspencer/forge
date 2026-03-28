@@ -7,8 +7,10 @@ use sha2::{Digest, Sha256};
 use crate::capabilities::AspectPlanSource;
 use crate::merge::data::{
     AdoptSourceRecordPlan, BoundExecutableMergePlan, BoundExecutableMergeRecordPlan,
-    ExecutableAspectPlan, ExecutionReadyLoweredMergePlan, LoweredAspectExecutionIntent,
-    LoweredRecordDecision, MergeExecutableRecordProvenance, MergeExecutionAuthorityBinding,
+    ConvergeDeletedOnBothSidesRecordPlan, ExecutableAspectPlan,
+    ExecutionReadyLoweredMergePlan, LoweredAspectExecutionIntent, LoweredRecordDecision,
+    MergeExecutableClass,
+    MergeExecutableRecordProvenance, MergeExecutionAuthorityBinding,
     MergeExecutionCompilationError, MergeExecutionError, MergeExecutionPreparationError,
     MergeExecutionRequest, MergeValueMaterialization, MergeValueSourceSide,
     PreparedMergeExecution, PreserveSharedRecordPlan, ReconcileRecordPlan,
@@ -248,6 +250,8 @@ fn compile_bound_executable_plan(
         .map(|lowered_record| compile_record_plan(runtime, &source_records_by_ref, lowered_record))
         .collect::<Result<Vec<_>, _>>()?;
     let record_plans: Arc<[BoundExecutableMergeRecordPlan]> = Arc::from(record_plans);
+    let diagnostics_plan =
+        crate::merge::data::diagnostics_plan_from_record_plans(record_plans.as_ref());
     let executable_plan_digest = crate::merge::data::compiled_executable_plan_digest(
         &request.target_branch,
         &request.source_branch,
@@ -275,6 +279,7 @@ fn compile_bound_executable_plan(
         authority_binding: binding,
         parent_order,
         record_plans,
+        diagnostics_plan,
     })
 }
 
@@ -290,6 +295,13 @@ fn compile_record_plan(
     })?;
     let provenance = MergeExecutableRecordProvenance {
         classification: lowered_record.classification,
+        resolution_class: lowered_record.resolution_class,
+        executable_class: lowered_record.executable_class.ok_or_else(|| {
+            MergeExecutionCompilationError::MissingExecutableClass {
+                record: lowered_record.record.clone(),
+                resolution_class: lowered_record.resolution_class,
+            }
+        })?,
         causal_disposition: lowered_record.causal_disposition,
         policy_resolution: lowered_record.policy_resolution,
         applied_policies: lowered_record.applied_policies.clone(),
@@ -297,8 +309,32 @@ fn compile_record_plan(
     let aspect_plan = compile_executable_aspect_plans(runtime, source_record, lowered_record)?;
 
     match &lowered_record.record_decision {
-        LoweredRecordDecision::Execute(bundle) => match bundle.kind {
-            crate::merge::data::LoweredRecordExecutionIntentKind::AdoptSourceRecord => {
+        LoweredRecordDecision::Execute(bundle) => {
+            let executable_class = provenance.executable_class;
+            if !matches!(
+                (executable_class, bundle.kind),
+                (
+                    MergeExecutableClass::AdoptSourceRecord,
+                    crate::merge::data::LoweredRecordExecutionIntentKind::AdoptSourceRecord
+                ) | (
+                    MergeExecutableClass::PreserveSharedRecord,
+                    crate::merge::data::LoweredRecordExecutionIntentKind::PreserveSharedRecord
+                ) | (
+                    MergeExecutableClass::ReconcileRecord,
+                    crate::merge::data::LoweredRecordExecutionIntentKind::ReconcileRecord
+                ) | (
+                    MergeExecutableClass::ConvergeDeletedOnBothSides,
+                    crate::merge::data::LoweredRecordExecutionIntentKind::ConvergeDeletedOnBothSides
+                )
+            ) {
+                return Err(MergeExecutionCompilationError::ExecutableClassDecisionMismatch {
+                    record: lowered_record.record.clone(),
+                    executable_class,
+                    decision: crate::merge::data::LoweredRecordDecisionKind::Execute,
+                });
+            }
+            match executable_class {
+            MergeExecutableClass::AdoptSourceRecord => {
                 let source_visible_snapshot = crate::merge::data::visible_record_snapshot(source_record)
                     .ok_or_else(|| MergeExecutionCompilationError::MissingSourceSnapshot {
                         record: lowered_record.record.clone(),
@@ -317,7 +353,7 @@ fn compile_record_plan(
                     },
                 ))
             }
-            crate::merge::data::LoweredRecordExecutionIntentKind::PreserveSharedRecord => {
+            MergeExecutableClass::PreserveSharedRecord => {
                 Ok(BoundExecutableMergeRecordPlan::PreserveShared(
                     PreserveSharedRecordPlan {
                         record: lowered_record.record.clone(),
@@ -332,7 +368,7 @@ fn compile_record_plan(
                     },
                 ))
             }
-            crate::merge::data::LoweredRecordExecutionIntentKind::ReconcileRecord => {
+            MergeExecutableClass::ReconcileRecord => {
                 let target_record = lowered_record.target_record.clone().ok_or_else(|| {
                     MergeExecutionCompilationError::MissingTargetRecord {
                         record: lowered_record.record.clone(),
@@ -361,7 +397,22 @@ fn compile_record_plan(
                     },
                 ))
             }
-        },
+            MergeExecutableClass::ConvergeDeletedOnBothSides => Ok(
+                BoundExecutableMergeRecordPlan::ConvergeDeletedOnBothSides(
+                    ConvergeDeletedOnBothSidesRecordPlan {
+                        source_record: lowered_record.record.clone(),
+                        target_record: lowered_record.target_record.clone(),
+                        equality_witness: crate::merge::data::SharedTruthWitness {
+                            witness_digest: crate::merge::data::equality_witness_digest(
+                                source_record,
+                            ),
+                        },
+                        provenance,
+                    },
+                ),
+            ),
+        }
+        }
         LoweredRecordDecision::Block(_) => Err(
             MergeExecutionCompilationError::UnsupportedRecordDecision {
                 record: lowered_record.record.clone(),

@@ -75,6 +75,7 @@ impl<'runtime> DurabilityAccess<'runtime> {
                     .schema
                     .descriptor_semantics_policy
                     .current_write_version(),
+                true,
             );
         };
         let mut skipped_corrupt_checkpoints = Vec::new();
@@ -190,6 +191,7 @@ impl<'runtime> DurabilityAccess<'runtime> {
             continuity_compatibility,
             verification_mode,
             descriptor_semantics_version,
+            true,
         )
     }
 }
@@ -251,6 +253,7 @@ fn in_memory_recovery_plan(
         continuity_compatibility,
         verification_mode,
         descriptor_semantics_version,
+        true,
     )
 }
 

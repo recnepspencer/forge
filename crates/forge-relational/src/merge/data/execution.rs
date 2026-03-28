@@ -121,6 +121,15 @@ pub enum MergeExecutionCompilationError {
         record: RecordRef,
         record_kind: &'static str,
     },
+    MissingExecutableClass {
+        record: RecordRef,
+        resolution_class: crate::merge::data::MergeResolutionClass,
+    },
+    ExecutableClassDecisionMismatch {
+        record: RecordRef,
+        executable_class: crate::merge::data::MergeExecutableClass,
+        decision: LoweredRecordDecisionKind,
+    },
     UnsupportedRecordDecision {
         record: RecordRef,
         decision: LoweredRecordDecisionKind,
@@ -373,6 +382,8 @@ pub enum ExecutableAspectPlan {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MergeExecutableRecordProvenance {
     pub classification: MergeConflictClass,
+    pub resolution_class: crate::merge::data::MergeResolutionClass,
+    pub executable_class: crate::merge::data::MergeExecutableClass,
     pub causal_disposition: crate::merge::data::MergeRecordCausalDisposition,
     pub policy_resolution: MergePolicyResolution,
     pub applied_policies: Arc<[ResolvedAspectMergePolicy]>,
@@ -408,10 +419,19 @@ pub struct ReconcileRecordPlan {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ConvergeDeletedOnBothSidesRecordPlan {
+    pub source_record: RecordRef,
+    pub target_record: Option<RecordRef>,
+    pub equality_witness: SharedTruthWitness,
+    pub provenance: MergeExecutableRecordProvenance,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BoundExecutableMergeRecordPlan {
     AdoptSource(AdoptSourceRecordPlan),
     PreserveShared(PreserveSharedRecordPlan),
     Reconcile(ReconcileRecordPlan),
+    ConvergeDeletedOnBothSides(ConvergeDeletedOnBothSidesRecordPlan),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -419,6 +439,7 @@ pub struct BoundExecutableMergePlan {
     pub authority_binding: MergeExecutionAuthorityBinding,
     pub parent_order: Arc<[CommitId]>,
     pub record_plans: Arc<[BoundExecutableMergeRecordPlan]>,
+    pub diagnostics_plan: crate::merge::data::MergeExecutionDiagnosticsPlan,
 }
 
 pub(crate) fn compiled_executable_plan_digest(
@@ -543,6 +564,20 @@ fn executable_record_plan_digest_rows(
                 provenance: Some(&plan.provenance),
                 aspect_plan: executable_aspect_plan_digest_rows(&plan.aspect_plan),
             },
+            BoundExecutableMergeRecordPlan::ConvergeDeletedOnBothSides(plan) => {
+                ExecutableRecordPlanDigestRow {
+                    variant: "converge_deleted_on_both_sides",
+                    source_record: Some(&plan.source_record),
+                    target_record: plan.target_record.as_ref(),
+                    record: None,
+                    record_kind: None,
+                    source_visible_snapshot: None,
+                    equality_witness: Some(&plan.equality_witness),
+                    identity_basis: None,
+                    provenance: Some(&plan.provenance),
+                    aspect_plan: Vec::new(),
+                }
+            }
         })
         .collect()
 }

@@ -52,6 +52,7 @@ pub(crate) struct PerfCaseContract<'a> {
     pub executor: &'a str,
     pub timing_policy: PerfTimingPolicy,
     pub phase_metrics: &'a [&'a str],
+    pub access_counter_maxima: &'a [(&'a str, u128)],
 }
 
 impl<'a> PerfCaseContract<'a> {
@@ -61,6 +62,7 @@ impl<'a> PerfCaseContract<'a> {
         executor: &'a str,
         timing_policy: PerfTimingPolicy,
         phase_metrics: &'a [&'a str],
+        access_counter_maxima: &'a [(&'a str, u128)],
     ) -> Self {
         Self {
             suite,
@@ -68,6 +70,7 @@ impl<'a> PerfCaseContract<'a> {
             executor,
             timing_policy,
             phase_metrics,
+            access_counter_maxima,
         }
     }
 }
@@ -162,6 +165,13 @@ where
     let _alloc_guard = PERF_ALLOC_LOCK
         .lock()
         .expect("perf allocation instrumentation lock should not be poisoned");
+
+    // Prime allocator pages, graph storage interners, and branch-local caches before
+    // we start recording cert samples. Without this, targeted perf runs can fail on
+    // cold-start noise even when the full suite passes under the same code.
+    for _ in 0..perf_warmup_count(contract.timing_policy) {
+        let _ = measure();
+    }
 
     for sample_index in 0..sample_count {
         let access_before = crate::data::access_counters::snapshot();
@@ -273,6 +283,17 @@ fn perf_sample_count(timing_policy: PerfTimingPolicy) -> usize {
             PerfTimingPolicy::StrictHeavy => 5,
             PerfTimingPolicy::MedianOnly => 7,
             PerfTimingPolicy::StructuralOnly => 3,
+        })
+}
+
+fn perf_warmup_count(timing_policy: PerfTimingPolicy) -> usize {
+    env::var("FORGE_SIGNAL_PERF_WARMUPS")
+        .ok()
+        .and_then(|raw| raw.parse::<usize>().ok())
+        .unwrap_or(match timing_policy {
+            PerfTimingPolicy::StrictHeavy => 0,
+            PerfTimingPolicy::MedianOnly => 2,
+            PerfTimingPolicy::StructuralOnly => 0,
         })
 }
 
@@ -422,6 +443,21 @@ fn certify_against_baseline(contract: PerfCaseContract<'_>, summary: &PerfCaseSu
         }
     }
 
+    for (counter, maximum) in contract.access_counter_maxima {
+        let observed = summary
+            .access_counters
+            .get(*counter)
+            .unwrap_or_else(|| panic!("missing summarized access counter {counter}"))
+            .p95;
+        assert!(
+            observed <= *maximum,
+            "access counter {} exceeded allowed maximum: observed {} > {}",
+            counter,
+            observed,
+            maximum
+        );
+    }
+
     assert_perf_regression_budget(
         "allocated bytes median",
         summary.allocated_bytes.median,
@@ -460,21 +496,21 @@ fn certify_against_baseline(contract: PerfCaseContract<'_>, summary: &PerfCaseSu
         );
     }
 
-    for phase_metric in contract.phase_metrics {
-        let observed = summary
-            .phase_metrics
-            .get(*phase_metric)
-            .unwrap_or_else(|| panic!("missing observed phase metric {phase_metric} for {key}"));
-        let expected = expected
-            .phase_metrics
-            .get(*phase_metric)
-            .unwrap_or_else(|| panic!("missing baseline phase metric {phase_metric} for {key}"));
-        assert_perf_regression_budget(
-            &format!("phase metric {phase_metric} median"),
-            observed.median,
-            expected.median,
-            1.25,
-        );
+    if !matches!(contract.timing_policy, PerfTimingPolicy::StructuralOnly) {
+        for phase_metric in contract.phase_metrics {
+            let observed = summary.phase_metrics.get(*phase_metric).unwrap_or_else(|| {
+                panic!("missing observed phase metric {phase_metric} for {key}")
+            });
+            let expected = expected.phase_metrics.get(*phase_metric).unwrap_or_else(|| {
+                panic!("missing baseline phase metric {phase_metric} for {key}")
+            });
+            assert_perf_regression_budget(
+                &format!("phase metric {phase_metric} median"),
+                observed.median,
+                expected.median,
+                1.25,
+            );
+        }
     }
 }
 

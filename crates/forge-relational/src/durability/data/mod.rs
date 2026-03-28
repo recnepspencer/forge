@@ -284,6 +284,7 @@ pub struct RecoveryPlan {
     pub compatibility: RecoveryCompatibilityCheck,
     pub verification_plan: RecoveryVerificationPlan,
     pub descriptor_semantics_version: DescriptorSemanticsVersion,
+    pub restore_authoritative_envelopes: bool,
 }
 
 impl RecoveryVerificationPlan {
@@ -358,6 +359,7 @@ impl RecoveryPlan {
         compatibility: RecoveryCompatibilityCheck,
         verification_mode: RecoveryVerificationMode,
         descriptor_semantics_version: DescriptorSemanticsVersion,
+        restore_authoritative_envelopes: bool,
     ) -> Self {
         Self {
             config,
@@ -370,6 +372,7 @@ impl RecoveryPlan {
             compatibility,
             verification_plan: RecoveryVerificationPlan::from_mode(verification_mode),
             descriptor_semantics_version,
+            restore_authoritative_envelopes,
         }
     }
 

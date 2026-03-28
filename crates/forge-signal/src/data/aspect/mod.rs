@@ -4,4 +4,6 @@ mod version;
 
 pub use aspect::{Aspect, MAX_ASPECTS};
 pub use mask::AspectMask;
-pub use version::{AspectVersion, PartitionVersionMap};
+pub use version::{
+    AspectVersion, AspectVersionHeader, PartitionVersionMap, PartitionVersionOverrides,
+};

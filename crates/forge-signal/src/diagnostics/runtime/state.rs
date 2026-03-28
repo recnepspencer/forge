@@ -315,6 +315,7 @@ impl DiagnosticsState {
         self.pending_graph_summary = Some(summary);
     }
 
+    #[allow(dead_code)]
     pub fn complete_flow(
         &mut self,
         flow: FlowSummary,
@@ -323,6 +324,19 @@ impl DiagnosticsState {
     ) {
         self.latest_flow = Some(flow);
         self.latest_graph_summary = Some(graph_summary);
+        self.recent_history.push_back(history);
+        self.trim_history();
+        self.pending_input = None;
+        self.pending_graph_summary = None;
+    }
+
+    pub fn complete_flow_without_graph_summary(
+        &mut self,
+        flow: FlowSummary,
+        history: ExecutionHistorySummary,
+    ) {
+        self.latest_flow = Some(flow);
+        self.latest_graph_summary = None;
         self.recent_history.push_back(history);
         self.trim_history();
         self.pending_input = None;

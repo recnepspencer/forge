@@ -125,8 +125,11 @@ where
         .or_else(|| options.target_branch.clone())
         .unwrap_or_else(|| runtime.runtime_config().history.main_branch.clone());
     let requested_merge_parent_count = merge_plan
-        .map(|plan| usize::from(plan.source_branch != plan.target_branch))
+        .map(|plan| plan.requested_merge_parent_count)
         .unwrap_or(options.merge_parent_branches.len());
+    let merge_parent_branches = merge_plan
+        .map(|plan| plan.merge_parent_branches.as_ref())
+        .unwrap_or(options.merge_parent_branches.as_slice());
     let previous_branch_head_version = runtime
         .history_access()
         .branch_head(&branch_id)
@@ -140,8 +143,7 @@ where
                 conflict.detail.clone(),
                 json!({
                     "branch_id": branch_id.0,
-                    "merge_parent_branches": options
-                        .merge_parent_branches
+                    "merge_parent_branches": merge_parent_branches
                         .iter()
                         .map(|branch| branch.0.clone())
                         .collect::<Vec<_>>(),

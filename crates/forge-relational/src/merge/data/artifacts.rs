@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::merge::data::{
     AspectComparisonState, AspectMergePolicyDeclaration, AspectMergePolicyKind,
     AuthorizedAspectValueSurface, CausalAnnotationSummary, ConflictClassificationSummary,
+    MergeExecutableClass, MergeResolutionClass,
     IdentityBasisDeclaration, IdentityBasisKind, IdentityBasisScope, IdentityDiscoverySummary,
     LoweredAspectAction, LoweredAspectDenialIntent, LoweredAspectExecutionIntent,
     LoweredMergeAction, LoweredMergeBlockedReason, LoweredMergePlanSummary,
@@ -10,7 +11,8 @@ use crate::merge::data::{
     LoweredRecordExecutionIntentKind, MergeAncestrySummary, MergeConflictClass,
     MergeExecutionReadiness, MergePlanningDecisionLog, MergePlanningDecisionLogDigestBasis,
     MergePlanningRequest, MergePolicyResolution, MergePolicyResolutionSummary,
-    RelationConflictEvidence, ResolvedAspectMergePolicy, ResolvedMergeBase,
+    MergeVisibilityEvidence, RelationConflictEvidence, ResolvedAspectMergePolicy,
+    ResolvedMergeBase,
 };
 use crate::history::data::CommitId;
 use crate::identity::data::KindId;
@@ -64,6 +66,9 @@ pub struct MergeConflictDigestBasis {
     pub classes: std::sync::Arc<[MergeConflictClass]>,
     pub validated_schema_correspondence: std::sync::Arc<[bool]>,
     pub relation_evidence: std::sync::Arc<[Option<RelationConflictEvidence>]>,
+    pub source_visibility_evidence: std::sync::Arc<[MergeVisibilityEvidence]>,
+    pub target_visibility_evidence: std::sync::Arc<[MergeVisibilityEvidence]>,
+    pub base_visibility_evidence: std::sync::Arc<[MergeVisibilityEvidence]>,
     pub aspect_evidence_keys: std::sync::Arc<[std::sync::Arc<[crate::publication::patch::data::AspectKey]>]>,
     pub aspect_evidence_comparisons:
         std::sync::Arc<[std::sync::Arc<[crate::merge::data::AspectComparisonState]>]>,
@@ -81,6 +86,8 @@ pub struct MergePolicyDigestBasis {
 pub struct MergeLoweredPlanDigestBasis {
     pub records: std::sync::Arc<[RecordRef]>,
     pub readiness: std::sync::Arc<[MergeExecutionReadiness]>,
+    pub resolution_classes: std::sync::Arc<[MergeResolutionClass]>,
+    pub executable_classes: std::sync::Arc<[Option<MergeExecutableClass>]>,
     pub record_decisions: std::sync::Arc<[LoweredRecordDecisionKind]>,
     pub lowered_actions: std::sync::Arc<[Option<LoweredMergeAction>]>,
     pub blocked_reasons: std::sync::Arc<[Option<LoweredMergeBlockedReason>]>,

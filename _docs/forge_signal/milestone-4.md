@@ -427,23 +427,25 @@ hot surfaces in:
 - [effect.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/forge/crates/forge-signal/src/data/graph/runtime/effect.rs)
 - [apply.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/forge/crates/forge-signal/src/logic/evaluation/engine/apply.rs)
 
-`NodeEntry`-owned fields expected to move to `NodeHotStore`:
+`NodeEntry`-owned fields expected to live in the hot lane:
 
 - `state`
 - `dirty_aspects`
-- `dirty_partition_scopes` if representative suppression/invalidation workloads
-  prove it belongs there
-- `aspect_versions`
+- `dirty_partition_scope_aspects`
+- `aspect_version_header`
 - `dependencies_id`
 - `subscribers_id`
 - `dep_snapshot_id`
 
-`NodeEntry`-owned fields expected to move to `NodeWarmStore`:
+`NodeEntry`-owned fields expected to live in the warm lane:
 
 - `eval_config`
 - `tombstoned`
+- `aspect_version_overrides`
+- `dirty_partition_scope_payload`
+- `runtime_artifact_state`
 
-`NodeEntry`-owned fields expected to move to `NodeColdStore`:
+`NodeEntry`-owned fields expected to live in the cold lane:
 
 - retained artifact record
 - causality metadata
@@ -485,7 +487,7 @@ Any field promoted into hot storage must therefore pass an interior heat audit.
 At minimum, this audit must examine:
 
 - `PartitionVersionMap`
-- `DirtyScopeInlineSet`
+- dirty partition scope payload shape
 - dependency and subscriber handle dereference patterns
 - any hot artifact substructure promoted into `RuntimeArtifactHot`
 
@@ -507,37 +509,55 @@ This audit is a required input to Phase 3, not optional follow-up work.
 
 ## Concrete In-Memory Types
 
-The target architecture should converge toward the following concrete storage
+The concrete storage now converges toward the following physically split lane
 shapes:
 
 ```rust
-pub struct NodeHotStore {
-    state: Vec<NodeState>,
-    dirty_aspects: Vec<AspectMask>,
-    dirty_partition_scopes: Vec<DirtyScopeInlineSet>,
-    aspect_versions: Vec<PartitionVersionMap>,
-    dependencies_id: Vec<DependencySetId>,
-    subscribers_id: Vec<SubscriberSetId>,
-    dep_snapshot_id: Vec<DependencySnapshotId>,
-    artifact_hot: Vec<Option<RuntimeArtifactHot>>,
+pub struct NodeArena {
+    nodes: Vec<Slot>,
+    hot: Vec<Option<NodeHotData>>,
+    warm: Vec<NodeWarmData>,
+    cold: Vec<Option<Box<NodeColdData>>>,
 }
 
-pub struct NodeWarmStore {
-    tombstoned: Vec<bool>,
-    eval_config: Vec<NodeEvaluationConfig>,
-    artifact_warm: Vec<Option<RuntimeArtifactWarm>>,
+pub struct NodeHotData {
+    state: NodeState,
+    dirty_aspects: AspectMask,
+    dirty_partition_scope_aspects: AspectMask,
+    aspect_version_header: AspectVersionHeader,
+    dependencies_id: DependencySetId,
+    subscribers_id: SubscriberSetId,
+    dep_snapshot_id: DependencySnapshotId,
 }
 
-pub struct NodeColdStore {
-    retained_artifact: Vec<Option<RetainedDiagnosticArtifact>>,
-    causality: Vec<Option<CausalityMetadata>>,
-    execution_trace: Vec<Option<ExecutionTraceStamp>>,
+pub struct NodeWarmData {
+    tombstoned: bool,
+    aspect_version_overrides: PartitionVersionOverrides,
+    dirty_partition_scope_payload:
+        SmallVec<[(Aspect, PartitionSubscription); HOT_VEC_INLINE_CAPACITY]>,
+    runtime_artifact_state: Option<RuntimeArtifactState>,
+    eval_config: NodeEvaluationConfig,
+}
+
+pub struct NodeColdData {
+    retained_artifact: Option<RetainedDiagnosticArtifact>,
+    causality: Option<CausalityMetadata>,
+    execution_trace: Option<ExecutionTraceStamp>,
 }
 ```
 
-These shapes are provisional structural targets, not final locality commitments.
-In particular, `Vec<Option<T>>` is acceptable as a migration representation but
-is not automatically the final locality-hardened answer for sparse or skewed
+The important landed property is physical lane separation:
+
+- slot metadata is no longer the same object as node payload
+- hot, warm, and cold node facts now live in separate index-addressed lane
+  arrays
+- fixed-width hot headers stay in `NodeHotData`
+- partition-version overrides and scoped-dirty payloads stay in the warm lane
+  behind explicit escalation
+
+These shapes are still not a license to treat every inner field as equally hot.
+In particular, `Vec<Option<T>>` is acceptable as a lane representation but is
+not automatically the final locality-hardened answer for sparse or skewed
 artifact presence.
 
 Candidate final encodings for optional side-lane data include:
@@ -576,11 +596,12 @@ bitflags! {
 pub struct RuntimeArtifactHot {
     pub output_hash: StableHashValue,
     pub output_change: OutputChange,
+    pub recomputed: bool,
     pub dependency_count: u32,
     pub meaningful_input_changes: u32,
     pub changed_partition_count: u32,
+    pub propagation_suppressed: bool,
     pub changed_scopes: CompactChangedScopeProof,
-    pub truth_flags: RuntimeArtifactTruthFlags,
 }
 
 pub struct RuntimeArtifactWarm {
@@ -592,12 +613,12 @@ pub struct RuntimeArtifactWarm {
     pub reuse_boundary_authority: Option<ReuseBoundaryAuthority>,
     pub lineage_artifact_id: ArtifactTransitionKey,
     pub merge_authority: ArtifactMergeAuthority,
-    pub presence_flags: RuntimeArtifactWarmPresenceFlags,
 }
 ```
 
-The split between `truth_flags` and `presence_flags` is mandatory. Operational
-truth and warm-presence metadata must not be packed into the same bitfield.
+The important landed rule is still mandatory even though the final
+representation uses separate typed fields instead of bitflags: operational truth
+and warm-presence semantics must remain physically and semantically separated.
 
 ## Authority and Derivation Contract
 

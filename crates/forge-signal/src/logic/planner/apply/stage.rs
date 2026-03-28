@@ -640,7 +640,7 @@ fn publish_group_local_task_commit(
     })?;
     let after_trace =
         graph
-            .node_runtime_artifact_warm(node)
+            .node_runtime_artifact_operational_summary(node)
             .map_err(|error| GroupedApplyFailure {
                 node,
                 record_id: identity.record_id,
@@ -648,10 +648,11 @@ fn publish_group_local_task_commit(
                 reuse_failure: None,
             })?;
     let memoized_origin = after_trace
+        .as_ref()
         .map(|trace| trace.memoized_origin)
         .unwrap_or(crate::data::output::MemoizedResultOrigin::DirectCompute);
     let reuse_basis = after_trace
-        .map(|trace| trace.reuse_basis.clone_inner())
+        .map(|trace| trace.reuse_basis)
         .unwrap_or(crate::data::reuse::ReuseBasis::fresh_compute());
     Ok(SemanticTaskUpdate::new(
         task_index,

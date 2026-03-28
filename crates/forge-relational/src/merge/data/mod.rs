@@ -4,6 +4,7 @@ mod causal;
 mod conflicts;
 mod decisions;
 mod execution;
+mod execution_artifacts;
 mod identity;
 mod plans;
 mod policy;
@@ -15,6 +16,7 @@ pub use causal::*;
 pub use conflicts::*;
 pub use decisions::*;
 pub use execution::*;
+pub use execution_artifacts::*;
 pub use identity::*;
 pub use plans::MergePlanningError;
 pub(crate) use plans::{

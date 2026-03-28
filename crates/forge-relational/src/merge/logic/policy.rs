@@ -2,8 +2,9 @@ use std::sync::Arc;
 
 use crate::merge::data::{
     AspectComparisonState, AspectMergePolicyKind, AspectPolicyResolutionRecord,
-    CausallyAnnotatedMergePlan, MergeConflictClass, MergePlanningError, MergePlanningRequest,
-    MergePolicyResolution, MergePolicyResolutionRecord, MergePolicyResolutionSummary,
+    CausallyAnnotatedMergePlan, DeletionMergeClass, MergeConflictClass, MergePlanningError,
+    MergePlanningRequest, MergePolicyResolution, MergePolicyResolutionRecord,
+    MergePolicyResolutionSummary,
     PolicyResolvedMergePlan, ResolvedAspectMergePolicy, VisibleMergeRecordKind,
 };
 use crate::merge::logic::aspect_plan_lookup::lowered_plan_for_record;
@@ -109,11 +110,16 @@ fn aggregate_record_resolution(
 ) -> MergePolicyResolution {
     if aspects.is_empty() {
         return match classification {
-            MergeConflictClass::SourceOnlyAddition | MergeConflictClass::ExactSharedTruth => {
+            MergeConflictClass::SourceOnlyAddition
+            | MergeConflictClass::ExactSharedTruth
+            | MergeConflictClass::Deletion(DeletionMergeClass::DeletedOnBothSides) => {
                 MergePolicyResolution::AutoResolved
             }
             MergeConflictClass::SchemaDeclaredCorrespondence
-            | MergeConflictClass::Deletion(_)
+            | MergeConflictClass::Deletion(DeletionMergeClass::SourceDeletedTargetLive)
+            | MergeConflictClass::Deletion(DeletionMergeClass::SourceLiveTargetDeleted)
+            | MergeConflictClass::Deletion(DeletionMergeClass::DeletedVsModified)
+            | MergeConflictClass::Deletion(DeletionMergeClass::DeletedVsRewired)
             | MergeConflictClass::DivergentVisibleState
             | MergeConflictClass::RelationEndpointDivergence => {
                 MergePolicyResolution::RequiresManualResolution
@@ -223,5 +229,22 @@ fn resolution_for_aspect(
             ) => MergePolicyResolution::AutoResolved,
             _ => MergePolicyResolution::RequiresManualResolution,
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::aggregate_record_resolution;
+    use crate::merge::data::{DeletionMergeClass, MergeConflictClass, MergePolicyResolution};
+
+    #[test]
+    fn deleted_on_both_sides_without_aspect_rows_is_auto_resolved() {
+        assert_eq!(
+            aggregate_record_resolution(
+                MergeConflictClass::Deletion(DeletionMergeClass::DeletedOnBothSides),
+                &[],
+            ),
+            MergePolicyResolution::AutoResolved
+        );
     }
 }

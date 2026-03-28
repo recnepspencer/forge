@@ -1,4 +1,5 @@
 use crate::data::graph::SignalGraph;
+use std::collections::BTreeMap;
 
 use super::super::types::{ExecutionReport, PlanSummary, StageExecutionRecord, StageExecutor};
 
@@ -25,6 +26,9 @@ pub(crate) fn begin_execution_report(
         plan_summary: *summary,
         stage_count: summary.stage_count,
         task_count: summary.task_count,
+        maybe_stale_validation_tasks: maybe_stale_validation_tasks as u32,
+        latest_execution_record_id: None,
+        reuse_origin_counts: BTreeMap::new(),
         tasks_executed: 0,
         tasks_pruned: 0,
         tasks_validated_clean: 0,

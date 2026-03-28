@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fmt;
 #[cfg(feature = "parallel")]
 use std::num::NonZeroUsize;
@@ -671,6 +672,9 @@ pub struct ExecutionReport {
     pub plan_summary: PlanSummary,
     pub stage_count: u32,
     pub task_count: u32,
+    pub maybe_stale_validation_tasks: u32,
+    pub latest_execution_record_id: Option<u64>,
+    pub reuse_origin_counts: BTreeMap<ReuseOrigin, u32>,
     pub tasks_executed: u32,
     pub tasks_pruned: u32,
     pub tasks_validated_clean: u32,

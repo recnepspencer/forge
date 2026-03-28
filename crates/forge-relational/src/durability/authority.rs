@@ -7,6 +7,8 @@ use crate::capabilities::{
 use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
+use crate::history::data::{BranchId, CommitId, OrderedParentList};
+use crate::merge::data::{MergeExecutionRequest, MergeIntent};
 use crate::durability::checkpoints::images::{partition_from_image, partition_to_image};
 use crate::durability::data::{
     CheckpointCoverage, CompactionOutcome, CompactionPlan, DurabilityError, DurabilityMode,
@@ -23,7 +25,11 @@ use crate::lineage::data::{LineageCheckpointArtifact, LineageCheckpointDigestBas
 use crate::logic::runtime::{RecoveryOutcome as RuntimeRecoveryOutcome, RelationalRuntime};
 use crate::replay::data::CanonicalCommitEnvelope;
 use crate::schema::logic::{validate_schema_continuity_bundle, SchemaContinuityBundleIssue};
-use crate::transactions::data::{TransactionOptions, WorkerIntentBatch};
+use crate::transactions::data::{
+    merge_commit_mutation_plan_token, MergeCommitMutationPlan, MergeExecutionStructuralSummary,
+    MergeExecutionSummary, TransactionOptions, WorkerIntentBatch,
+};
+use crate::authority::commit::pipeline::{execute_authoritative_commit, AuthoritativeCommitContext};
 use serde_json::json;
 use std::sync::Arc;
 
@@ -683,19 +689,20 @@ fn rebuild_runtime_from_plan(plan: RecoveryPlan) -> Result<RelationalRuntime, Du
             .branch_heads
             .contains_key(&envelope.branch_context)
         {
-            let parent_branch = envelope
+            let parent_head = envelope
                 .commit
                 .ordered_parents()
                 .as_slice()
                 .first()
                 .and_then(|parent| restored.history.commit_envelopes.get(parent))
-                .map(|parent| parent.branch_context.clone())
-                .unwrap_or_else(|| restored.config.history.main_branch.clone());
-            let _ = restored
-                .history_authority()
-                .create_branch(envelope.branch_context.clone(), &parent_branch);
+                .map(|parent| parent.commit.clone());
+            restored
+                .history
+                .branch_heads
+                .insert(envelope.branch_context.clone(), parent_head);
         }
-        if is_metadata_only_lineage_commit(envelope) {
+        validate_expected_recovery_parent_shape(&restored, envelope)?;
+        if is_metadata_only_lineage_commit(envelope) || is_metadata_only_merge_commit(envelope) {
             restored.history_authority().publish_metadata_only_commit(
                 envelope.commit.commit_id,
                 envelope.commit.clone(),
@@ -703,37 +710,82 @@ fn rebuild_runtime_from_plan(plan: RecoveryPlan) -> Result<RelationalRuntime, Du
                 envelope.patch.position,
                 Arc::new(envelope.clone()),
             );
-            apply_authoritative_commit_artifacts(&mut restored, envelope);
-            validate_recovered_history_parity(&restored, envelope)?;
+            if plan.restore_authoritative_envelopes {
+                apply_authoritative_commit_artifacts(&mut restored, envelope);
+                validate_recovered_history_parity(&restored, envelope)?;
+            }
         } else {
-            let mut txn = restored.begin_transaction(TransactionOptions {
-                target_branch: Some(envelope.branch_context.clone()),
-                merge_parent_branches: envelope.merge_parent_branches.clone(),
-                ..schema_transition_options_for_replay(envelope)
-            });
-            txn.push_batch(WorkerIntentBatch {
-                name: format!("recovery-commit-{}", envelope.commit.commit_id.0),
-                partition_key: None,
-                worker_local_only: true,
-                intents: envelope
-                    .merged_plan
-                    .merged_intents
-                    .clone()
-                    .into_iter()
-                    .map(crate::transactions::data::MutationIntent::from)
-                    .collect(),
-            });
-            txn.commit().map_err(|_| {
-                DurabilityError::new(
-                    RecoveryFailureClass::ReplayFailure,
-                    format!(
-                        "failed to replay durable commit {}",
-                        envelope.commit.commit_id.0
-                    ),
+            if envelope.merge_parent_branches.is_empty() {
+                let mut txn = restored.begin_transaction(TransactionOptions {
+                    target_branch: Some(envelope.branch_context.clone()),
+                    merge_parent_branches: envelope.merge_parent_branches.clone(),
+                    ..schema_transition_options_for_replay(envelope)
+                });
+                txn.push_batch(WorkerIntentBatch {
+                    name: format!("recovery-commit-{}", envelope.commit.commit_id.0),
+                    partition_key: None,
+                    worker_local_only: true,
+                    intents: envelope
+                        .merged_plan
+                        .merged_intents
+                        .clone()
+                        .into_iter()
+                        .map(crate::transactions::data::MutationIntent::from)
+                        .collect(),
+                });
+                txn.commit().map_err(|_| {
+                    DurabilityError::new(
+                        RecoveryFailureClass::ReplayFailure,
+                        format!(
+                            "failed to replay durable commit {}",
+                            envelope.commit.commit_id.0
+                        ),
+                    )
+                })?;
+            } else {
+                let merge_plan = merge_commit_mutation_plan_from_envelope(envelope).ok_or_else(|| {
+                    DurabilityError::new(
+                        RecoveryFailureClass::ReplayFailure,
+                        format!(
+                            "failed to reconstruct merge execution summary for durable merge commit {}",
+                            envelope.commit.commit_id.0
+                        ),
+                    )
+                })?;
+                execute_authoritative_commit(
+                    &mut restored,
+                    AuthoritativeCommitContext::from_merge(
+                        TransactionOptions {
+                            target_branch: Some(envelope.branch_context.clone()),
+                            merge_parent_branches: envelope.merge_parent_branches.clone(),
+                            ..schema_transition_options_for_replay(envelope)
+                        },
+                        merge_plan,
+                    )
+                    .map_err(|_| {
+                        DurabilityError::new(
+                            RecoveryFailureClass::ReplayFailure,
+                            format!(
+                                "failed to reconstruct merge authority context for durable merge commit {}",
+                                envelope.commit.commit_id.0
+                            ),
+                        )
+                    })?,
                 )
-            })?;
-            apply_authoritative_commit_artifacts(&mut restored, envelope);
-            validate_recovered_history_parity(&restored, envelope)?;
+                .map_err(|_| {
+                    DurabilityError::new(
+                        RecoveryFailureClass::ReplayFailure,
+                        format!(
+                            "failed to replay durable merge commit {}",
+                            envelope.commit.commit_id.0
+                        ),
+                    )
+                })?;
+            }
+            if plan.restore_authoritative_envelopes {
+                apply_authoritative_commit_artifacts(&mut restored, envelope);
+                validate_recovered_history_parity(&restored, envelope)?;
+            }
         }
     }
 
@@ -932,6 +984,33 @@ fn apply_authoritative_commit_artifacts(
     runtime: &mut RelationalRuntime,
     envelope: &CanonicalCommitEnvelope,
 ) {
+    runtime.history.commit_graph.insert(
+        envelope.commit.commit_id,
+        VersionNode {
+            commit: envelope.commit.clone(),
+        },
+    );
+    if runtime
+        .history
+        .branch_heads
+        .get(&envelope.branch_context)
+        .and_then(|head| head.as_ref())
+        .is_some_and(|head| head.commit_id == envelope.commit.commit_id)
+    {
+        runtime
+            .history
+            .branch_heads
+            .insert(envelope.branch_context.clone(), Some(envelope.commit.clone()));
+    }
+    runtime.history.commit_envelopes.insert(
+        envelope.commit.commit_id,
+        Arc::new(envelope.clone()),
+    );
+    runtime
+        .history
+        .patch_stream_index
+        .insert(envelope.patch.position, envelope.commit.commit_id);
+
     if !envelope.lineage_events().is_empty() {
         for event in envelope.lineage_events() {
             if let Some(existing) = runtime
@@ -965,14 +1044,13 @@ fn apply_authoritative_commit_artifacts(
                 generations.sort_by_key(|candidate| candidate.generation_id);
             }
         }
-        if let Some(commit_envelope) = runtime
+        let commit_envelope = runtime
             .history
             .commit_envelopes
             .get_mut(&envelope.commit.commit_id)
-        {
-            let commit_envelope = Arc::make_mut(commit_envelope);
-            commit_envelope.append_index_generations_canonical(&envelope.index_generations);
-        }
+            .expect("authoritative durable envelope must be present after restoration");
+        let commit_envelope = Arc::make_mut(commit_envelope);
+        commit_envelope.append_index_generations_canonical(&envelope.index_generations);
     }
 }
 
@@ -1018,9 +1096,80 @@ fn validate_recovered_history_parity(
     Ok(())
 }
 
+fn validate_expected_recovery_parent_shape(
+    runtime: &RelationalRuntime,
+    envelope: &CanonicalCommitEnvelope,
+) -> Result<(), DurabilityError> {
+    let ordered_parents = envelope.commit.ordered_parents();
+    let observed_parents = ordered_parents.as_slice();
+    let current_branch_head = runtime
+        .history
+        .branch_heads
+        .get(&envelope.branch_context)
+        .and_then(|head| head.as_ref())
+        .map(|head| head.commit_id);
+
+    if envelope.merge_parent_branches.is_empty() {
+        let expected = current_branch_head.into_iter().collect::<Vec<_>>();
+        if observed_parents != expected.as_slice() {
+            return Err(DurabilityError::new(
+                RecoveryFailureClass::ReplayFailure,
+                format!(
+                    "recovered durable history parity drifted for commit {}",
+                    envelope.commit.commit_id.0
+                ),
+            )
+            .with_history_drift_class(HistoryDriftClass::DurabilityParityDrift));
+        }
+        return Ok(());
+    }
+
+    let mut expected = Vec::with_capacity(envelope.merge_parent_branches.len() + 1);
+    if let Some(target_head) = current_branch_head {
+        expected.push(target_head);
+    }
+    for branch in &envelope.merge_parent_branches {
+        let branch_head = runtime
+            .history
+            .branch_heads
+            .get(branch)
+            .and_then(|head| head.as_ref())
+            .map(|head| head.commit_id)
+            .ok_or_else(|| {
+                DurabilityError::new(
+                    RecoveryFailureClass::ReplayFailure,
+                    format!(
+                        "recovered durable history parity drifted for commit {}",
+                        envelope.commit.commit_id.0
+                    ),
+                )
+                .with_history_drift_class(HistoryDriftClass::DurabilityParityDrift)
+            })?;
+        expected.push(branch_head);
+    }
+    if observed_parents != expected.as_slice() {
+        return Err(DurabilityError::new(
+            RecoveryFailureClass::ReplayFailure,
+            format!(
+                "recovered durable history parity drifted for commit {}",
+                envelope.commit.commit_id.0
+            ),
+        )
+        .with_history_drift_class(HistoryDriftClass::DurabilityParityDrift));
+    }
+    Ok(())
+}
+
 fn is_metadata_only_lineage_commit(envelope: &CanonicalCommitEnvelope) -> bool {
     envelope.authority_kind()
         == crate::replay::data::CanonicalCommitAuthorityKind::MetadataOnlyLineage
+}
+
+fn is_metadata_only_merge_commit(envelope: &CanonicalCommitEnvelope) -> bool {
+    envelope.authority_kind()
+        == crate::replay::data::CanonicalCommitAuthorityKind::VersionedTransaction
+        && !envelope.merge_parent_branches.is_empty()
+        && envelope.merged_plan.merged_intents.is_empty()
 }
 
 fn schema_transition_options_for_replay(envelope: &CanonicalCommitEnvelope) -> TransactionOptions {
@@ -1038,6 +1187,70 @@ fn schema_transition_options_for_replay(envelope: &CanonicalCommitEnvelope) -> T
         },
         Some(transition.reconciliation_descriptor.policy),
     )
+}
+
+fn merge_commit_mutation_plan_from_envelope(
+    envelope: &CanonicalCommitEnvelope,
+) -> Option<MergeCommitMutationPlan> {
+    let summary_entry = envelope
+        .diagnostics_summary
+        .entries
+        .iter()
+        .find(|entry| entry.code == DiagnosticCode::MergeExecutionPublished)?;
+    let fields = &summary_entry.fields;
+    let request = MergeExecutionRequest {
+        target_branch: BranchId(fields.get("target_branch")?.as_str()?.to_string()),
+        source_branch: BranchId(fields.get("source_branch")?.as_str()?.to_string()),
+        merge_intent: MergeIntent::ReconcileIntoTarget,
+    };
+    let structural_summary = MergeExecutionStructuralSummary {
+        executed_record_count: json_u64(fields, "executed_record_count")? as usize,
+        adopted_source_record_count: json_u64(fields, "adopted_source_record_count")? as usize,
+        preserved_shared_record_count: json_u64(fields, "preserved_shared_record_count")? as usize,
+        reconciled_record_count: json_u64(fields, "reconciled_record_count")? as usize,
+        converged_deleted_on_both_sides_count: json_u64(
+            fields,
+            "converged_deleted_on_both_sides_count",
+        )? as usize,
+        emitted_mutation_intent_count: json_u64(fields, "emitted_mutation_intent_count")? as usize,
+        emitted_entity_create_count: json_u64(fields, "emitted_entity_create_count")? as usize,
+        emitted_relation_create_count: json_u64(fields, "emitted_relation_create_count")? as usize,
+        emitted_entity_update_count: json_u64(fields, "emitted_entity_update_count")? as usize,
+    };
+    let execution_summary = MergeExecutionSummary {
+        request: request.clone(),
+        target_head_commit_id: CommitId(json_u64(fields, "target_head_commit_id")?),
+        source_head_commit_id: CommitId(json_u64(fields, "source_head_commit_id")?),
+        merge_base_commit_id: CommitId(json_u64(fields, "merge_base_commit_id")?),
+        executed_record_count: structural_summary.executed_record_count,
+        adopted_source_record_count: structural_summary.adopted_source_record_count,
+        preserved_shared_record_count: structural_summary.preserved_shared_record_count,
+        reconciled_record_count: structural_summary.reconciled_record_count,
+        converged_deleted_on_both_sides_count: structural_summary
+            .converged_deleted_on_both_sides_count,
+        emitted_mutation_intent_count: structural_summary.emitted_mutation_intent_count,
+        diagnostics_digest: fields.get("diagnostics_digest")?.as_str()?.to_string(),
+        execution_digest: fields.get("execution_digest")?.as_str()?.to_string(),
+    };
+    Some(MergeCommitMutationPlan {
+        transaction_id: envelope.merged_plan.transaction_id,
+        target_branch: envelope.branch_context.clone(),
+        source_branch: request.source_branch.clone(),
+        merge_parent_branches: envelope.merge_parent_branches.clone().into(),
+        requested_merge_parent_count: envelope.merge_parent_branches.len(),
+        parent_commits: OrderedParentList::from_authoritative(
+            envelope.commit.ordered_parents().as_slice().to_vec(),
+        ),
+        merge_base_commits: envelope.merge_base_commits.clone().into(),
+        merged_plan: envelope.merged_plan.clone(),
+        structural_summary,
+        merge_execution_summary: execution_summary,
+        proof_token: merge_commit_mutation_plan_token(),
+    })
+}
+
+fn json_u64(fields: &serde_json::Value, key: &str) -> Option<u64> {
+    fields.get(key)?.as_u64()
 }
 
 fn validate_schema_continuity_compatibility(

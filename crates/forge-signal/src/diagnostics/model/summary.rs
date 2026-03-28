@@ -559,6 +559,65 @@ impl ExecutionHistorySummary {
             nodes,
         }
     }
+
+    pub fn from_report(
+        report: &ExecutionReport,
+        profile: DiagnosticsTier,
+        detail_limit: DetailLimit,
+        retain_history_details: bool,
+    ) -> Self {
+        if !retain_history_details {
+            return Self {
+                profile,
+                traced_node_count: report.task_count,
+                execution_record_count: report.task_count,
+                latest_execution_record_id: report.latest_execution_record_id,
+                reuse_origin_counts: report.reuse_origin_counts.clone(),
+                nodes: Vec::new(),
+            };
+        }
+
+        let mut traced_node_count = 0_u32;
+        let mut execution_record_count = 0_u32;
+        let mut latest_execution_record_id = None;
+        let mut reuse_origin_counts = ReuseOriginCounts::new();
+        let mut nodes = Vec::new();
+
+        for task in report.stages.iter().flat_map(|stage| stage.task_records.iter()) {
+            traced_node_count += 1;
+            execution_record_count += 1;
+            latest_execution_record_id = Some(
+                latest_execution_record_id.map_or(task.id.0, |current: u64| current.max(task.id.0)),
+            );
+            *reuse_origin_counts.entry(task.reuse_origin).or_insert(0) += 1;
+
+            if retain_history_details && nodes.len() < detail_limit.get() {
+                nodes.push(ExecutionHistoryNodeSummary {
+                    node: task.node,
+                    execution_record_id: Some(task.id.0),
+                    semantic_segment_id: Some(task.semantic_segment_id.0),
+                    output_change: None,
+                    memoized_origin: Some(task.memoized_origin),
+                    reuse_basis: Some(task.reuse_basis.clone()),
+                    reuse_origin: Some(task.reuse_origin),
+                    persistent_correspondence_kind: None,
+                    composition_region_count: 0,
+                    reuse_certification_proof_count: 0,
+                    changed_partition_count: 0,
+                    causality_kind: None,
+                });
+            }
+        }
+
+        Self {
+            profile,
+            traced_node_count,
+            execution_record_count,
+            latest_execution_record_id,
+            reuse_origin_counts,
+            nodes,
+        }
+    }
 }
 
 impl EvaluationPlan {

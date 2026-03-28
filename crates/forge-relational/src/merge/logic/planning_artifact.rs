@@ -152,6 +152,24 @@ pub(super) fn materialize_planning_artifact(
                     .map(|classification| classification.relation_evidence)
                     .collect::<Vec<_>>(),
             ),
+            source_visibility_evidence: std::sync::Arc::from(
+                plan.classifications
+                    .iter()
+                    .map(|classification| classification.source_visibility_evidence.clone())
+                    .collect::<Vec<_>>(),
+            ),
+            target_visibility_evidence: std::sync::Arc::from(
+                plan.classifications
+                    .iter()
+                    .map(|classification| classification.target_visibility_evidence.clone())
+                    .collect::<Vec<_>>(),
+            ),
+            base_visibility_evidence: std::sync::Arc::from(
+                plan.classifications
+                    .iter()
+                    .map(|classification| classification.base_visibility_evidence.clone())
+                    .collect::<Vec<_>>(),
+            ),
             aspect_evidence_keys: std::sync::Arc::from(
                 plan.classifications
                     .iter()
@@ -231,6 +249,18 @@ pub(super) fn materialize_planning_artifact(
                 plan.lowered_records
                     .iter()
                     .map(|record| record.readiness)
+                    .collect::<Vec<_>>(),
+            ),
+            resolution_classes: std::sync::Arc::from(
+                plan.lowered_records
+                    .iter()
+                    .map(|record| record.resolution_class)
+                    .collect::<Vec<_>>(),
+            ),
+            executable_classes: std::sync::Arc::from(
+                plan.lowered_records
+                    .iter()
+                    .map(|record| record.executable_class)
                     .collect::<Vec<_>>(),
             ),
             record_decisions: std::sync::Arc::from(

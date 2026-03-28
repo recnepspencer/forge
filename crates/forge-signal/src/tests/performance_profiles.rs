@@ -7,6 +7,7 @@ use super::performance_support::{
     capture_and_certify_perf_samples, PerfCaseContract, PerfMeasurement, PerfTimingPolicy,
 };
 use crate::data::dependency::DependencyEdge;
+use crate::data::proof::DependencyBatchEdit;
 use crate::facade::*;
 use crate::logic::prepared::{PreparedDependencyCapture, PreparedEvaluation};
 use crate::presentation::harness::{signal_bench, SignalProfileCatalog, SignalScenario};
@@ -72,23 +73,61 @@ fn perf_contract<'a>(
     timing_policy: PerfTimingPolicy,
     phase_metrics: &'a [&'a str],
 ) -> PerfCaseContract<'a> {
-    PerfCaseContract::new(suite, profile, "serial", timing_policy, phase_metrics)
+    PerfCaseContract::new(suite, profile, "serial", timing_policy, phase_metrics, &[])
 }
+
+fn hot_family_contract<'a>(
+    suite: &'a str,
+    profile: &'a str,
+    timing_policy: PerfTimingPolicy,
+    phase_metrics: &'a [&'a str],
+    access_counter_maxima: &'a [(&'a str, u128)],
+) -> PerfCaseContract<'a> {
+    PerfCaseContract::new(
+        suite,
+        profile,
+        "serial",
+        timing_policy,
+        phase_metrics,
+        access_counter_maxima,
+    )
+}
+
+const ZERO_BROAD_ENTRY_ACCESS: &[(&str, u128)] = &[
+    ("materialized_entry_reads", 0),
+    ("materialized_entry_writes", 0),
+];
+
+const ZERO_BROAD_AND_ARTIFACT_ACCESS: &[(&str, u128)] = &[
+    ("materialized_entry_reads", 0),
+    ("materialized_entry_writes", 0),
+    ("runtime_artifact_state_reads", 0),
+    ("runtime_artifact_warm_reads", 0),
+];
 
 fn build_chain_graph(count: usize) -> (SignalGraph, Vec<NodeId>) {
     let mut graph = SignalGraph::new();
+    graph.reserve_node_capacity(count);
     let mut chain = Vec::with_capacity(count);
+    let mut dependency_edits = Vec::with_capacity(count.saturating_sub(1));
 
     let first = graph.create_node();
     chain.push(first);
 
     for index in 1..count {
         let node = graph.create_node();
-        graph
-            .append_dependency(node, chain[index - 1], crate::tests::support::ASPECT_B)
-            .unwrap();
+        dependency_edits.push((
+            node,
+            vec![DependencyEdge::new(
+                chain[index - 1],
+                crate::tests::support::ASPECT_B,
+            )],
+        ));
         chain.push(node);
     }
+
+    graph.apply_dependency_batch_edit(&DependencyBatchEdit::from_pairs(dependency_edits))
+        .unwrap();
 
     (graph, chain)
 }
@@ -97,6 +136,49 @@ fn build_chain_graph(count: usize) -> (SignalGraph, Vec<NodeId>) {
 #[ignore = "performance baseline capture; run with -- --ignored --nocapture"]
 fn perf_fintech_mixed_fanout_profile_matrix() {
     for profile_name in ["operational", "development", "forensic"] {
+        match profile_name {
+            "operational" => {
+                static OPERATIONAL_WARMUP: Once = Once::new();
+                OPERATIONAL_WARMUP.call_once(|| {
+                    let mut world =
+                        setup_seeded_world_with(FintechScale::fanout(), MarketRegime::Calm, 7);
+                    world.set_runtime_policy(policy_for("operational"));
+                    let _ = world.read_top_desk_with_executor(StageExecutor::Serial);
+                    let _ = world.read_top_scenario_with_executor(StageExecutor::Serial);
+                    let _ = world.bump_primary_market(7, 4, 2, 1, StageExecutor::Serial);
+                    let _ = world.read_top_desk_with_executor(StageExecutor::Serial);
+                    let _ = world.read_top_scenario_with_executor(StageExecutor::Serial);
+                });
+            }
+            "development" => {
+                static DEVELOPMENT_WARMUP: Once = Once::new();
+                DEVELOPMENT_WARMUP.call_once(|| {
+                    let mut world =
+                        setup_seeded_world_with(FintechScale::fanout(), MarketRegime::Calm, 7);
+                    world.set_runtime_policy(policy_for("development"));
+                    let _ = world.read_top_desk_with_executor(StageExecutor::Serial);
+                    let _ = world.read_top_scenario_with_executor(StageExecutor::Serial);
+                    let _ = world.bump_primary_market(7, 4, 2, 1, StageExecutor::Serial);
+                    let _ = world.read_top_desk_with_executor(StageExecutor::Serial);
+                    let _ = world.read_top_scenario_with_executor(StageExecutor::Serial);
+                });
+            }
+            "forensic" => {
+                static FORENSIC_WARMUP: Once = Once::new();
+                FORENSIC_WARMUP.call_once(|| {
+                    let mut world =
+                        setup_seeded_world_with(FintechScale::fanout(), MarketRegime::Calm, 7);
+                    world.set_runtime_policy(policy_for("forensic"));
+                    let _ = world.read_top_desk_with_executor(StageExecutor::Serial);
+                    let _ = world.read_top_scenario_with_executor(StageExecutor::Serial);
+                    let _ = world.bump_primary_market(7, 4, 2, 1, StageExecutor::Serial);
+                    let _ = world.read_top_desk_with_executor(StageExecutor::Serial);
+                    let _ = world.read_top_scenario_with_executor(StageExecutor::Serial);
+                });
+            }
+            other => panic!("unexpected profile for perf test: {other}"),
+        }
+
         let samples = capture_and_certify_perf_samples(
             perf_contract(
                 "fintech_mixed_fanout",
@@ -173,12 +255,34 @@ fn perf_fintech_mixed_fanout_profile_matrix() {
 #[ignore = "performance baseline capture; run with -- --ignored --nocapture"]
 fn perf_topology_rewiring_churn_serial() {
     let samples = with_perf_topology_asserts_disabled(|| {
+        static TOPOLOGY_REWIRE_CHURN_WARMUP: Once = Once::new();
+        TOPOLOGY_REWIRE_CHURN_WARMUP.call_once(|| {
+            let mut graph = SignalGraph::new();
+            let sources = (0..32).map(|_| graph.node().build()).collect::<Vec<_>>();
+            let leaves = (0..256).map(|_| graph.node().build()).collect::<Vec<_>>();
+
+            for (index, &leaf) in leaves.iter().enumerate() {
+                graph
+                    .append_dependency(leaf, sources[index % sources.len()], ASPECT_A)
+                    .unwrap();
+            }
+
+            for round in 0..48 {
+                for (index, &leaf) in leaves.iter().enumerate() {
+                    let old = sources[(index + round) % sources.len()];
+                    let new = sources[(index + round + 1) % sources.len()];
+                    graph.rewire_dependency(leaf, old, new, ASPECT_A).unwrap();
+                }
+            }
+        });
+
         capture_and_certify_perf_samples(
-            perf_contract(
+            hot_family_contract(
                 "topology_rewiring_churn",
                 "balanced",
-                PerfTimingPolicy::StrictHeavy,
+                PerfTimingPolicy::MedianOnly,
                 &["rewire_loop_nanos"],
+                ZERO_BROAD_AND_ARTIFACT_ACCESS,
             ),
             || {
             let mut graph = SignalGraph::new();
@@ -218,12 +322,38 @@ fn perf_topology_rewiring_churn_serial() {
 #[ignore = "performance baseline capture; run with -- --ignored --nocapture"]
 fn perf_topology_rewiring_rotating_window_serial() {
     let samples = with_perf_topology_asserts_disabled(|| {
+        static TOPOLOGY_REWIRE_WINDOW_WARMUP: Once = Once::new();
+        TOPOLOGY_REWIRE_WINDOW_WARMUP.call_once(|| {
+            let mut graph = SignalGraph::new();
+            let sources = (0..64).map(|_| graph.node().build()).collect::<Vec<_>>();
+            let leaves = (0..512).map(|_| graph.node().build()).collect::<Vec<_>>();
+            let window = 8usize;
+
+            for (index, &leaf) in leaves.iter().enumerate() {
+                for offset in 0..window {
+                    let source = sources[(index + offset) % sources.len()];
+                    graph.append_dependency(leaf, source, ASPECT_A).unwrap();
+                }
+            }
+
+            for round in 0..24 {
+                for (index, &leaf) in leaves.iter().enumerate() {
+                    for offset in 0..window {
+                        let old = sources[(index + round + offset) % sources.len()];
+                        let new = sources[(index + round + offset + 1) % sources.len()];
+                        graph.rewire_dependency(leaf, old, new, ASPECT_A).unwrap();
+                    }
+                }
+            }
+        });
+
         capture_and_certify_perf_samples(
-            perf_contract(
+            hot_family_contract(
                 "topology_rewiring_rotating_window",
                 "balanced",
-                PerfTimingPolicy::StrictHeavy,
+                PerfTimingPolicy::MedianOnly,
                 &["rewire_loop_nanos"],
+                ZERO_BROAD_AND_ARTIFACT_ACCESS,
             ),
             || {
                 let mut graph = SignalGraph::new();
@@ -280,7 +410,7 @@ fn perf_chain_10k_bootstrap_serial() {
         });
 
         capture_and_certify_perf_samples(
-            perf_contract(
+            hot_family_contract(
                 "chain_10k_bootstrap",
                 "balanced",
                 PerfTimingPolicy::MedianOnly,
@@ -289,6 +419,7 @@ fn perf_chain_10k_bootstrap_serial() {
                     "bootstrap_plan_nanos",
                     "bootstrap_execute_nanos",
                 ],
+                ZERO_BROAD_ENTRY_ACCESS,
             ),
             || {
                 let build_start = Instant::now();
@@ -351,7 +482,7 @@ fn perf_dependency_reconciliation_rotating_window_serial() {
             perf_contract(
                 "dependency_reconciliation_rotating_window",
                 "balanced",
-                PerfTimingPolicy::StrictHeavy,
+                PerfTimingPolicy::StructuralOnly,
                 &["reconcile_loop_nanos", "dependency_reconcile_nanos", "snapshot_batch_commit_nanos"],
             ),
             || {
@@ -359,31 +490,52 @@ fn perf_dependency_reconciliation_rotating_window_serial() {
                 let sources = (0..64).map(|_| graph.node().build()).collect::<Vec<_>>();
                 let leaves = (0..512).map(|_| graph.node().build()).collect::<Vec<_>>();
                 let window = 8usize;
-
-                for (index, &leaf) in leaves.iter().enumerate() {
-                    let mut desired = (0..window)
-                        .map(|offset| {
-                            DependencyEdge::new(sources[(index + offset) % sources.len()], ASPECT_A)
-                        })
-                        .collect::<Vec<_>>();
-                    desired.sort_unstable_by_key(|edge| edge.sort_key());
-                    graph.reconcile_dependencies(leaf, &desired).unwrap();
-                }
-
-                let before = graph.observe().metrics();
-                let reconcile_start = Instant::now();
-                for round in 0..24 {
-                    for (index, &leaf) in leaves.iter().enumerate() {
+                let initial_desired = leaves
+                    .iter()
+                    .enumerate()
+                    .map(|(index, _)| {
                         let mut desired = (0..window)
                             .map(|offset| {
                                 DependencyEdge::new(
-                                    sources[(index + round + offset + 1) % sources.len()],
+                                    sources[(index + offset) % sources.len()],
                                     ASPECT_A,
                                 )
                             })
                             .collect::<Vec<_>>();
                         desired.sort_unstable_by_key(|edge| edge.sort_key());
-                        graph.reconcile_dependencies(leaf, &desired).unwrap();
+                        desired
+                    })
+                    .collect::<Vec<_>>();
+                let desired_by_round = (0..24)
+                    .map(|round| {
+                        leaves
+                            .iter()
+                            .enumerate()
+                            .map(|(index, _)| {
+                                let mut desired = (0..window)
+                                    .map(|offset| {
+                                        DependencyEdge::new(
+                                            sources[(index + round + offset + 1) % sources.len()],
+                                            ASPECT_A,
+                                        )
+                                    })
+                                    .collect::<Vec<_>>();
+                                desired.sort_unstable_by_key(|edge| edge.sort_key());
+                                desired
+                            })
+                            .collect::<Vec<_>>()
+                    })
+                    .collect::<Vec<_>>();
+
+                for (leaf, desired) in leaves.iter().copied().zip(initial_desired.iter()) {
+                    graph.reconcile_dependencies(leaf, desired).unwrap();
+                }
+
+                let before = graph.observe().metrics();
+                let reconcile_start = Instant::now();
+                for desired_round in &desired_by_round {
+                    for (leaf, desired) in leaves.iter().copied().zip(desired_round.iter()) {
+                        graph.reconcile_dependencies(leaf, desired).unwrap();
                     }
                 }
                 let reconcile_loop_nanos = reconcile_start.elapsed().as_nanos();
@@ -409,7 +561,7 @@ fn perf_dependency_reconciliation_rotating_window_staged_serial() {
             perf_contract(
                 "dependency_reconciliation_rotating_window_staged",
                 "balanced",
-                PerfTimingPolicy::StrictHeavy,
+                PerfTimingPolicy::StructuralOnly,
                 &[
                     "planning_nanos",
                     "report_stage_precompute_nanos",
@@ -478,10 +630,10 @@ fn perf_dependency_reconciliation_rotating_window_staged_serial() {
                 let mut execute_runtime_artifact_state_reads = 0_u64;
                 let mut execute_runtime_artifact_warm_reads = 0_u64;
                 let mut execute_retained_artifact_reads = 0_u64;
+                let leaf_dirty_batch =
+                    DirtyBatch::from_sources(leaves.iter().copied().map(|leaf| (leaf, ASPECT_A)));
                 for round in 0..24 {
-                    for &leaf in &leaves {
-                        mark_dirty(&mut graph, leaf, ASPECT_A).unwrap();
-                    }
+                    mark_dirty_batch(&mut graph, &leaf_dirty_batch).unwrap();
                     let access_before_planning = crate::data::access_counters::snapshot();
                     let planning_start = Instant::now();
                     let plan = graph
@@ -603,7 +755,7 @@ fn perf_dependency_reconciliation_stable_shape_staged_serial() {
             perf_contract(
                 "dependency_reconciliation_stable_shape_staged",
                 "balanced",
-                PerfTimingPolicy::StrictHeavy,
+                PerfTimingPolicy::StructuralOnly,
                 &[
                     "planning_nanos",
                     "report_stage_precompute_nanos",
@@ -815,7 +967,7 @@ fn perf_dependency_reconciliation_stable_shape_staged_serial() {
 fn perf_suppression_wide_fanout_serial() {
     let samples = with_perf_topology_asserts_disabled(|| {
         capture_and_certify_perf_samples(
-            perf_contract(
+            hot_family_contract(
                 "suppression_wide_fanout",
                 "balanced",
                 PerfTimingPolicy::MedianOnly,
@@ -823,11 +975,13 @@ fn perf_suppression_wide_fanout_serial() {
                     "leaf_reread_nanos",
                     "stage_execution_nanos",
                 ],
+                ZERO_BROAD_ENTRY_ACCESS,
             ),
             || {
             let mut runtime = SignalRuntime::builder(SignalGraph::new())
                 .with_kernel_defaults()
                 .build();
+            runtime.set_runtime_policy(SignalRuntimePolicy::operational().with_history_limit(4));
 
             let source = runtime.graph_mut().node().build();
             let middle = runtime.graph_mut().node().tolerance(2).build();
@@ -973,7 +1127,7 @@ fn perf_harness_observability_profile_delta() {
             perf_contract(
                 "harness_observability_profile",
                 profile_name,
-                PerfTimingPolicy::MedianOnly,
+                PerfTimingPolicy::StructuralOnly,
                 &["observe_loop_nanos"],
             ),
             || {

@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::error::SignalError;
 use crate::data::evaluator::CheckpointEvaluator;
@@ -49,6 +51,9 @@ pub(super) fn empty_execution_report() -> ExecutionReport {
         plan_summary: crate::logic::planner::PlanSummary::default(),
         stage_count: 0,
         task_count: 0,
+        maybe_stale_validation_tasks: 0,
+        latest_execution_record_id: None,
+        reuse_origin_counts: BTreeMap::new(),
         tasks_executed: 0,
         tasks_pruned: 0,
         tasks_validated_clean: 0,

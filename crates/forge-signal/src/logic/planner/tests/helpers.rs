@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::data::comparator::ComparatorPolicyResolver;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
@@ -15,6 +17,19 @@ pub(super) fn empty_execution_report(plan: &EvaluationPlan) -> ExecutionReport {
         plan_summary: plan.summary,
         stage_count: plan.summary.stage_count,
         task_count: plan.summary.task_count,
+        maybe_stale_validation_tasks: plan
+            .stages
+            .iter()
+            .flat_map(|stage| &stage.tasks)
+            .filter(|task| {
+                matches!(
+                    task.reason,
+                    super::super::types::TaskReason::MaybeStaleValidation
+                )
+            })
+            .count() as u32,
+        latest_execution_record_id: None,
+        reuse_origin_counts: BTreeMap::new(),
         tasks_executed: 0,
         tasks_pruned: 0,
         tasks_validated_clean: 0,

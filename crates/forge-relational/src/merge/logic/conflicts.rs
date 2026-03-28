@@ -6,6 +6,7 @@ use crate::merge::data::{
     ConflictClassifiedMergePlan, DeletionMergeClass, EndpointContinuityClass,
     IdentityMatchClass, IdentityResolutionReason, IdentityScopedMergePlan,
     MergeConflictClass, MergeConflictClassification, MergePlanningError, MergePlanningRequest,
+    MergeVisibilityEvidence, MergeVisibilityEvidenceKind, MergeVisibilityState,
     RelationConflictEvidence, RelationConflictPropagation, RelationContinuityClass,
     VisibleMergeRecord, VisibleMergeRecordKind,
 };
@@ -55,7 +56,8 @@ impl<'runtime> MergeAccess<'runtime> {
             .map(|correspondence| (correspondence.source_record.clone(), correspondence))
             .collect::<BTreeMap<_, _>>();
 
-        let classifications = identity_plan
+        let classifications = Arc::<[MergeConflictClassification]>::from(
+            identity_plan
             .candidates
             .iter()
             .map(|candidate| {
@@ -76,8 +78,9 @@ impl<'runtime> MergeAccess<'runtime> {
                     candidate.reason.clone(),
                 ))
             })
-            .collect::<Result<Vec<_>, MergePlanningError>>()?;
-        let conflict_summary = summarize_classifications(Arc::from(classifications.clone()));
+            .collect::<Result<Vec<_>, MergePlanningError>>()?,
+        );
+        let conflict_summary = summarize_classifications(classifications.clone());
 
         Ok(ConflictClassifiedMergePlan {
             request: identity_plan.request,
@@ -92,7 +95,7 @@ impl<'runtime> MergeAccess<'runtime> {
             candidates: identity_plan.candidates,
             validated_schema_correspondences: identity_plan.validated_schema_correspondences,
             identity_summary: identity_plan.identity_summary,
-            classifications: Arc::from(classifications),
+            classifications,
             conflict_summary,
         })
     }
@@ -146,10 +149,14 @@ fn classify_candidate(
     match_class: IdentityMatchClass,
     reason: IdentityResolutionReason,
 ) -> MergeConflictClassification {
-    let base_record_visible = base_record_is_visible(record, base_version_id, base_view);
-    let source_record_visible = source_record_is_visible(record);
-    let target_record_visible =
-        target_record_is_visible(record, candidate_target_record.as_ref(), target_view);
+    let base_visibility_evidence =
+        base_record_visibility_evidence(record, base_version_id, base_view);
+    let source_visibility_evidence = source_record_visibility_evidence(record);
+    let target_visibility_evidence =
+        target_record_visibility_evidence(record, candidate_target_record.as_ref(), target_view);
+    let base_record_visible = visibility_evidence_is_visible(&base_visibility_evidence);
+    let source_record_visible = visibility_evidence_is_visible(&source_visibility_evidence);
+    let target_record_visible = visibility_evidence_is_visible(&target_visibility_evidence);
     let target_record = candidate_target_record
         .as_ref()
         .and_then(|target_record| visible_target_record(target_view, target_record));
@@ -185,6 +192,9 @@ fn classify_candidate(
         base_record_visible,
         source_record_visible,
         target_record_visible,
+        base_visibility_evidence,
+        source_visibility_evidence,
+        target_visibility_evidence,
     }
 }
 
@@ -235,14 +245,19 @@ fn classify_source_deleted(
     base_view: &RelationalReadView,
 ) -> DeletionMergeClass {
     match record.record_kind {
-        VisibleMergeRecordKind::Entity => match (base_entity_record(base_view, record), record.target_entity.as_ref()) {
+        VisibleMergeRecordKind::Entity => {
+            match (base_entity_record(base_view, record), record.target_entity.as_ref()) {
             (Some(base), Some(target)) if !entity_state_equal(base, target) => {
                 DeletionMergeClass::DeletedVsModified
             }
             _ => DeletionMergeClass::SourceDeletedTargetLive,
-        },
+        }
+        }
         VisibleMergeRecordKind::Relation => {
-            match (base_relation_record(base_view, record), record.target_relation.as_ref()) {
+            match (
+                base_relation_record(base_view, record),
+                record.target_relation.as_ref(),
+            ) {
                 (Some(base), Some(target)) if !relation_endpoints_equal(base, target) => {
                     DeletionMergeClass::DeletedVsRewired
                 }
@@ -260,14 +275,19 @@ fn classify_target_deleted(
     base_view: &RelationalReadView,
 ) -> DeletionMergeClass {
     match record.record_kind {
-        VisibleMergeRecordKind::Entity => match (base_entity_record(base_view, record), record.source_entity.as_ref()) {
+        VisibleMergeRecordKind::Entity => {
+            match (base_entity_record(base_view, record), record.source_entity.as_ref()) {
             (Some(base), Some(source)) if !entity_state_equal(base, source) => {
                 DeletionMergeClass::DeletedVsModified
             }
             _ => DeletionMergeClass::SourceLiveTargetDeleted,
-        },
+        }
+        }
         VisibleMergeRecordKind::Relation => {
-            match (base_relation_record(base_view, record), record.source_relation.as_ref()) {
+            match (
+                base_relation_record(base_view, record),
+                record.source_relation.as_ref(),
+            ) {
                 (Some(base), Some(source)) if !relation_endpoints_equal(base, source) => {
                     DeletionMergeClass::DeletedVsRewired
                 }
@@ -560,69 +580,233 @@ fn interned_field_name(field: &InternedString) -> Option<&str> {
     }
 }
 
-fn source_record_is_visible(record: &VisibleMergeRecord) -> bool {
+fn source_record_visibility_evidence(record: &VisibleMergeRecord) -> MergeVisibilityEvidence {
     match record.record_kind {
-        VisibleMergeRecordKind::Entity => record
-            .source_entity
-            .as_ref()
-            .is_some_and(is_visible_lifecycle),
-        VisibleMergeRecordKind::Relation => record
-            .source_relation
-            .as_ref()
-            .is_some_and(is_visible_lifecycle),
+        VisibleMergeRecordKind::Entity => embedded_visibility_evidence(
+            record.record_ref.clone(),
+            MergeVisibilityEvidenceKind::SourceEmbeddedSurface,
+            record.source_entity.as_ref().map(|entity| entity.lifecycle),
+            record.source_entity.as_ref().map(|entity| entity.created_at_version),
+            record.source_entity.as_ref().and_then(|entity| entity.retired_at_version),
+        ),
+        VisibleMergeRecordKind::Relation => embedded_visibility_evidence(
+            record.record_ref.clone(),
+            MergeVisibilityEvidenceKind::SourceEmbeddedSurface,
+            record.source_relation.as_ref().map(|relation| relation.lifecycle),
+            record.source_relation.as_ref().map(|relation| relation.created_at_version),
+            record.source_relation.as_ref().and_then(|relation| relation.retired_at_version),
+        ),
     }
 }
 
-fn target_record_is_visible(
+fn target_record_visibility_evidence(
     record: &VisibleMergeRecord,
     candidate_target_record: Option<&RecordRef>,
     target_view: &RelationalReadView,
-) -> bool {
+) -> MergeVisibilityEvidence {
     if let Some(target_record) = candidate_target_record {
-        return record_visible_in_view(target_view, target_record);
+        let resolved_target = view_record_visibility_metadata(target_view, target_record);
+        return MergeVisibilityEvidence {
+            observed_record: target_record.clone(),
+            kind: MergeVisibilityEvidenceKind::TargetCandidateViewLookup,
+            state: resolved_target
+                .as_ref()
+                .map(|_| MergeVisibilityState::Visible)
+                .unwrap_or(MergeVisibilityState::NotVisible),
+            embedded_surface_state: embedded_target_visibility_state(record, target_record),
+            lifecycle: resolved_target.as_ref().map(|metadata| metadata.lifecycle),
+            created_at_version: resolved_target
+                .as_ref()
+                .map(|metadata| metadata.created_at_version),
+            retired_at_version: resolved_target
+                .as_ref()
+                .and_then(|metadata| metadata.retired_at_version),
+        };
     }
     match record.record_kind {
-        VisibleMergeRecordKind::Entity => record.target_entity.as_ref().is_some_and(is_visible_lifecycle),
-        VisibleMergeRecordKind::Relation => record
-            .target_relation
-            .as_ref()
-            .is_some_and(is_visible_lifecycle),
+        VisibleMergeRecordKind::Entity => embedded_visibility_evidence(
+            record.record_ref.clone(),
+            MergeVisibilityEvidenceKind::TargetEmbeddedSurface,
+            record.target_entity.as_ref().map(|entity| entity.lifecycle),
+            record.target_entity.as_ref().map(|entity| entity.created_at_version),
+            record.target_entity.as_ref().and_then(|entity| entity.retired_at_version),
+        ),
+        VisibleMergeRecordKind::Relation => embedded_visibility_evidence(
+            record.record_ref.clone(),
+            MergeVisibilityEvidenceKind::TargetEmbeddedSurface,
+            record.target_relation.as_ref().map(|relation| relation.lifecycle),
+            record.target_relation.as_ref().map(|relation| relation.created_at_version),
+            record.target_relation.as_ref().and_then(|relation| relation.retired_at_version),
+        ),
     }
 }
 
-fn record_visible_in_view(view: &RelationalReadView, record_ref: &RecordRef) -> bool {
-    match record_ref {
-        RecordRef::Entity(entity_id) => view.get_entity(*entity_id).is_some_and(is_visible_lifecycle),
-        RecordRef::Relation(relation_id) => view
-            .get_relation(*relation_id)
-            .is_some_and(is_visible_lifecycle),
-    }
-}
-
-fn base_record_is_visible(
+fn base_record_visibility_evidence(
     record: &VisibleMergeRecord,
     base_version_id: VersionId,
     base_view: &RelationalReadView,
-) -> bool {
+) -> MergeVisibilityEvidence {
+    if let Some(base_record) = view_record_visibility_metadata(base_view, &record.record_ref) {
+        return MergeVisibilityEvidence {
+            observed_record: record.record_ref.clone(),
+            kind: MergeVisibilityEvidenceKind::BaseResolvedViewLookup,
+            state: MergeVisibilityState::Visible,
+            embedded_surface_state: None,
+            lifecycle: Some(base_record.lifecycle),
+            created_at_version: Some(base_record.created_at_version),
+            retired_at_version: base_record.retired_at_version,
+        };
+    }
     match record.record_kind {
-        VisibleMergeRecordKind::Entity => record
-            .source_entity
-            .as_ref()
-            .or(record.target_entity.as_ref())
-            .map(|entity| record_existed_at_base(entity.created_at_version, entity.retired_at_version, base_version_id))
-            .unwrap_or_else(|| record_visible_in_view(base_view, &record.record_ref)),
-        VisibleMergeRecordKind::Relation => record
-            .source_relation
-            .as_ref()
-            .or(record.target_relation.as_ref())
-            .map(|relation| {
-                record_existed_at_base(
+        VisibleMergeRecordKind::Entity => {
+            if let Some(entity) = record.source_entity.as_ref().or(record.target_entity.as_ref()) {
+                return historical_window_visibility_evidence(
+                    record.record_ref.clone(),
+                    entity.lifecycle,
+                    entity.created_at_version,
+                    entity.retired_at_version,
+                    base_version_id,
+                );
+            }
+            fallback_view_visibility_evidence(record.record_ref.clone(), base_view, &record.record_ref)
+        }
+        VisibleMergeRecordKind::Relation => {
+            if let Some(relation) = record.source_relation.as_ref().or(record.target_relation.as_ref()) {
+                return historical_window_visibility_evidence(
+                    record.record_ref.clone(),
+                    relation.lifecycle,
                     relation.created_at_version,
                     relation.retired_at_version,
                     base_version_id,
-                )
-            })
-            .unwrap_or_else(|| record_visible_in_view(base_view, &record.record_ref)),
+                );
+            }
+            fallback_view_visibility_evidence(record.record_ref.clone(), base_view, &record.record_ref)
+        }
+    }
+}
+
+fn visibility_evidence_is_visible(evidence: &MergeVisibilityEvidence) -> bool {
+    evidence.state == MergeVisibilityState::Visible
+}
+
+fn embedded_visibility_evidence(
+    observed_record: RecordRef,
+    kind: MergeVisibilityEvidenceKind,
+    lifecycle: Option<RecordLifecycleState>,
+    created_at_version: Option<VersionId>,
+    retired_at_version: Option<VersionId>,
+) -> MergeVisibilityEvidence {
+    let state = lifecycle
+        .filter(|lifecycle| is_visible_lifecycle_value(*lifecycle))
+        .map(|_| MergeVisibilityState::Visible)
+        .unwrap_or(MergeVisibilityState::NotVisible);
+    MergeVisibilityEvidence {
+        observed_record,
+        kind,
+        state,
+        embedded_surface_state: None,
+        lifecycle,
+        created_at_version,
+        retired_at_version,
+    }
+}
+
+fn historical_window_visibility_evidence(
+    observed_record: RecordRef,
+    lifecycle: RecordLifecycleState,
+    created_at_version: VersionId,
+    retired_at_version: Option<VersionId>,
+    base_version_id: VersionId,
+) -> MergeVisibilityEvidence {
+    let state = if record_existed_at_base(created_at_version, retired_at_version, base_version_id) {
+        MergeVisibilityState::Visible
+    } else {
+        MergeVisibilityState::NotVisible
+    };
+    MergeVisibilityEvidence {
+        observed_record,
+        kind: MergeVisibilityEvidenceKind::BaseHistoricalWindow,
+        state,
+        embedded_surface_state: None,
+        lifecycle: Some(lifecycle),
+        created_at_version: Some(created_at_version),
+        retired_at_version,
+    }
+}
+
+fn fallback_view_visibility_evidence(
+    observed_record: RecordRef,
+    view: &RelationalReadView,
+    record_ref: &RecordRef,
+) -> MergeVisibilityEvidence {
+    let state = if view_record_visibility_metadata(view, record_ref).is_some() {
+        MergeVisibilityState::Visible
+    } else {
+        MergeVisibilityState::NotVisible
+    };
+    MergeVisibilityEvidence {
+        observed_record,
+        kind: MergeVisibilityEvidenceKind::BaseViewFallback,
+        state,
+        embedded_surface_state: None,
+        lifecycle: None,
+        created_at_version: None,
+        retired_at_version: None,
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct ViewRecordVisibilityMetadata {
+    lifecycle: RecordLifecycleState,
+    created_at_version: VersionId,
+    retired_at_version: Option<VersionId>,
+}
+
+fn view_record_visibility_metadata(
+    view: &RelationalReadView,
+    record_ref: &RecordRef,
+) -> Option<ViewRecordVisibilityMetadata> {
+    match record_ref {
+        RecordRef::Entity(entity_id) => view.get_entity(*entity_id).map(|entity| ViewRecordVisibilityMetadata {
+            lifecycle: entity.lifecycle,
+            created_at_version: entity.created_at_version,
+            retired_at_version: entity.retired_at_version,
+        }),
+        RecordRef::Relation(relation_id) => {
+            view.get_relation(*relation_id)
+                .map(|relation| ViewRecordVisibilityMetadata {
+                    lifecycle: relation.lifecycle,
+                    created_at_version: relation.created_at_version,
+                    retired_at_version: relation.retired_at_version,
+                })
+        }
+    }
+}
+
+fn embedded_target_visibility_state(
+    record: &VisibleMergeRecord,
+    candidate_target_record: &RecordRef,
+) -> Option<MergeVisibilityState> {
+    if candidate_target_record != &record.record_ref {
+        return None;
+    }
+    match record.record_kind {
+        VisibleMergeRecordKind::Entity => record
+            .target_entity
+            .as_ref()
+            .map(|entity| visibility_state_from_lifecycle(entity.lifecycle)),
+        VisibleMergeRecordKind::Relation => record
+            .target_relation
+            .as_ref()
+            .map(|relation| visibility_state_from_lifecycle(relation.lifecycle)),
+    }
+}
+
+fn visibility_state_from_lifecycle(lifecycle: RecordLifecycleState) -> MergeVisibilityState {
+    if is_visible_lifecycle_value(lifecycle) {
+        MergeVisibilityState::Visible
+    } else {
+        MergeVisibilityState::NotVisible
     }
 }
 
@@ -637,31 +821,12 @@ fn record_existed_at_base(
             .unwrap_or(true)
 }
 
-fn is_visible_lifecycle<T>(record: &T) -> bool
-where
-    T: MergeLifecycleView,
-{
+fn is_visible_lifecycle_value(lifecycle: RecordLifecycleState) -> bool {
     !matches!(
-        record.lifecycle(),
+        lifecycle,
         RecordLifecycleState::DeletedRetained
             | RecordLifecycleState::RetainedDanglingForAudit
             | RecordLifecycleState::Reclaimable
             | RecordLifecycleState::Reusable
     )
-}
-
-trait MergeLifecycleView {
-    fn lifecycle(&self) -> RecordLifecycleState;
-}
-
-impl MergeLifecycleView for EntityReadRecord {
-    fn lifecycle(&self) -> RecordLifecycleState {
-        self.lifecycle
-    }
-}
-
-impl MergeLifecycleView for RelationReadRecord {
-    fn lifecycle(&self) -> RecordLifecycleState {
-        self.lifecycle
-    }
 }

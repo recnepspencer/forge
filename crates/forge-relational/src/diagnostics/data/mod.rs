@@ -68,6 +68,7 @@ pub enum DiagnosticCode {
     ReplayRetentionReleased,
     RetentionPlanInspected,
     MergeBaseResolved,
+    MergeExecutionPublished,
     MergeCommitPublished,
     CommitPublished,
     LineageCandidateRecorded,

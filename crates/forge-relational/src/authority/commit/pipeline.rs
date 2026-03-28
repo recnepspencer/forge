@@ -7,7 +7,8 @@ use crate::authority::commit::phases::history::{
 };
 use crate::authority::commit::phases::mutation::run_authoritative_mutation_for_runtime;
 use crate::authority::commit::phases::prepare::{
-    prepare_working_state_scope, record_preparation_counters,
+    prepare_authoritative_working_state_scope, prepare_working_state_scope,
+    record_preparation_counters,
 };
 use crate::authority::commit::phases::publication::{append_durable_commit, enforce_patch_budget};
 use crate::authority::commit::phases::schema_continuity::{
@@ -56,28 +57,121 @@ impl<'a> RelationalTransaction<'a> {
         })?;
         execute_authoritative_commit(
             self.runtime,
-            self.transaction_id,
-            self.options,
-            CommitAuthorityInput::Mutation(prepared.merged_plan),
-            prepared.structural_summary,
-            prepared.working_state,
+            AuthoritativeCommitContext::from_mutation(
+                self.transaction_id,
+                self.options,
+                prepared,
+            ),
         )
     }
 }
 
+#[derive(Debug)]
 pub(crate) enum CommitAuthorityInput {
     Mutation(MergedCommitPlan),
     Merge(MergeCommitMutationPlan),
 }
 
-pub(crate) fn execute_authoritative_commit(
-    runtime: &mut crate::logic::runtime::RelationalRuntime,
+#[derive(Debug)]
+pub(crate) struct AuthoritativeCommitContext {
     transaction_id: TransactionId,
     options: TransactionOptions,
     authority_input: CommitAuthorityInput,
+    prepared_scope: Option<PreparedAuthorityScope>,
+    merge_execution_accounting: Option<MergeExecutionAccounting>,
+}
+
+#[derive(Debug)]
+struct PreparedAuthorityScope {
     structural_summary: crate::authority::commit::structural_summary::CommitStructuralSummary,
-    mut working_state: crate::storage::overlay::WorkingState,
+    working_state: crate::storage::overlay::WorkingState,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct MergeExecutionAccounting {
+    admitted_records: usize,
+    emitted_mutation_intents: usize,
+}
+
+impl AuthoritativeCommitContext {
+    pub(crate) fn from_mutation(
+        transaction_id: TransactionId,
+        options: TransactionOptions,
+        prepared: crate::authority::commit::phases::prepare::PreparedWorkingStateScope,
+    ) -> Self {
+        Self {
+            transaction_id,
+            options,
+            authority_input: CommitAuthorityInput::Mutation(prepared.merged_plan),
+            prepared_scope: Some(PreparedAuthorityScope {
+                structural_summary: prepared.structural_summary,
+                working_state: prepared.working_state,
+            }),
+            merge_execution_accounting: None,
+        }
+    }
+
+    pub(crate) fn from_merge(
+        options: TransactionOptions,
+        merge_plan: MergeCommitMutationPlan,
+    ) -> Result<Self, TransactionCommitError> {
+        if options.target_branch.as_ref() != Some(&merge_plan.target_branch) {
+            return Err(invalid_merge_context(
+                "merge commit context target branch does not match merge proof",
+            ));
+        }
+        if options.merge_parent_branches != merge_plan.merge_parent_branches.as_ref() {
+            return Err(invalid_merge_context(
+                "merge commit context merge parent branches do not match merge proof",
+            ));
+        }
+        if merge_plan.requested_merge_parent_count != merge_plan.merge_parent_branches.len() {
+            return Err(invalid_merge_context(
+                "merge commit context requested merge parent count does not match merge proof",
+            ));
+        }
+        let expected_parents = [
+            merge_plan.merge_execution_summary.target_head_commit_id,
+            merge_plan.merge_execution_summary.source_head_commit_id,
+        ];
+        if merge_plan.parent_commits.as_slice() != expected_parents {
+            return Err(invalid_merge_context(
+                "merge commit context ordered parent commits do not match merge proof",
+            ));
+        }
+
+        Ok(Self {
+            transaction_id: merge_plan.transaction_id,
+            options,
+            merge_execution_accounting: Some(MergeExecutionAccounting {
+                admitted_records: merge_plan.structural_summary.executed_record_count,
+                emitted_mutation_intents: merge_plan.structural_summary.emitted_mutation_intent_count,
+            }),
+            authority_input: CommitAuthorityInput::Merge(merge_plan),
+            prepared_scope: None,
+        })
+    }
+}
+
+fn invalid_merge_context(detail: &str) -> TransactionCommitError {
+    TransactionCommitError::conflict(crate::transactions::data::CommitConflict::new(
+        crate::transactions::data::ConflictClass::InvalidMergeParent {
+            detail: detail.to_string(),
+        },
+    ))
+}
+
+pub(crate) fn execute_authoritative_commit(
+    runtime: &mut crate::logic::runtime::RelationalRuntime,
+    context: AuthoritativeCommitContext,
 ) -> Result<CommitResult, TransactionCommitError> {
+    let AuthoritativeCommitContext {
+        transaction_id,
+        options,
+        authority_input,
+        prepared_scope,
+        merge_execution_accounting,
+    } = context;
     let mut commit_log = CommitLog::new();
     let mut phase_timing = CommitPhaseTiming::default();
     let diagnostics_start = runtime
@@ -93,9 +187,35 @@ pub(crate) fn execute_authoritative_commit(
         .expect("complexity counter lock poisoned")
         .clone();
     let mut invariant_executions = Vec::new();
-    let merged_plan = match &authority_input {
-        CommitAuthorityInput::Mutation(plan) => plan.clone(),
-        CommitAuthorityInput::Merge(plan) => plan.merged_plan.clone(),
+    let (mutation_plan, merge_history_plan) = match authority_input {
+        CommitAuthorityInput::Mutation(plan) => (Some(plan), None),
+        CommitAuthorityInput::Merge(plan) => (None, Some(plan)),
+    };
+    let merged_plan = match (&mutation_plan, &merge_history_plan) {
+        (Some(plan), None) => plan,
+        (None, Some(plan)) => &plan.merged_plan,
+        _ => unreachable!("authoritative commit context must carry exactly one authority input"),
+    };
+    let merge_parent_count = merge_history_plan
+        .as_ref()
+        .map(|plan| plan.requested_merge_parent_count)
+        .unwrap_or(options.merge_parent_branches.len());
+    let PreparedAuthorityScope {
+        structural_summary,
+        mut working_state,
+    } = match prepared_scope {
+        Some(scope) => scope,
+        None => {
+            let (structural_summary, working_state) = prepare_authoritative_working_state_scope(
+                runtime,
+                merged_plan,
+                merge_parent_count,
+            );
+            PreparedAuthorityScope {
+                structural_summary,
+                working_state,
+            }
+        }
     };
     let public_structural_summary = structural_summary.public_summary(
         runtime
@@ -144,8 +264,8 @@ pub(crate) fn execute_authoritative_commit(
 
     commit_log.begin_phase(CommitPhase::HistoryResolution);
     let phase_started = Instant::now();
-    let history = match &authority_input {
-        CommitAuthorityInput::Mutation(_) => {
+    let history = match &merge_history_plan {
+        None => {
             let mut transaction = RelationalTransaction {
                 runtime,
                 transaction_id,
@@ -156,7 +276,7 @@ pub(crate) fn execute_authoritative_commit(
             };
             resolve_commit_history(&mut transaction, version_id)
         }
-        CommitAuthorityInput::Merge(plan) => {
+        Some(plan) => {
             resolve_commit_history_for_merge(runtime, &options, plan, version_id)
         }
     }
@@ -170,6 +290,16 @@ pub(crate) fn execute_authoritative_commit(
     commit_log.record_history_resolution(&history_summary);
     commit_log.complete_phase(CommitPhase::HistoryResolution);
     phase_timing.history_resolution_micros = elapsed_micros(phase_started);
+    let additional_diagnostics_entries = merge_history_plan
+        .as_ref()
+        .map(|plan| {
+            vec![crate::merge::logic::merge_execution_summary_entry(
+                &plan.merge_execution_summary,
+                &plan.structural_summary,
+                commit_id,
+            )]
+        })
+        .unwrap_or_default();
 
     let schema_continuity = resolve_schema_continuity(runtime, &branch_id, &options)
         .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::ArtifactAssembly, error))?;
@@ -235,6 +365,7 @@ pub(crate) fn execute_authoritative_commit(
         &merged_plan,
         &schema_continuity,
         effect,
+        additional_diagnostics_entries,
     )
     .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::ArtifactAssembly, error))?;
     let change_summary = publication.change_summary.clone();
@@ -319,6 +450,13 @@ pub(crate) fn execute_authoritative_commit(
     commit_log.record_commit_published(commit_id, &commit_reference.branch_id.0);
     commit_log.complete_phase(CommitPhase::Publication);
     phase_timing.publication_micros = elapsed_micros(phase_started);
+
+    if let Some(accounting) = merge_execution_accounting {
+        runtime.performance_access().count_merge_execution_request(
+            accounting.admitted_records,
+            accounting.emitted_mutation_intents,
+        );
+    }
 
     let complexity_after = runtime
         .services
@@ -585,6 +723,306 @@ fn complexity_delta(
         inspection_commit_reads: after
             .inspection_commit_reads
             .saturating_sub(before.inspection_commit_reads),
+        inspection_connectivity_entity_scans: after
+            .inspection_connectivity_entity_scans
+            .saturating_sub(before.inspection_connectivity_entity_scans),
+        inspection_connectivity_relation_scans: after
+            .inspection_connectivity_relation_scans
+            .saturating_sub(before.inspection_connectivity_relation_scans),
+        inspection_connectivity_frontier_expansions: after
+            .inspection_connectivity_frontier_expansions
+            .saturating_sub(before.inspection_connectivity_frontier_expansions),
+        inspection_connectivity_components_evaluated: after
+            .inspection_connectivity_components_evaluated
+            .saturating_sub(before.inspection_connectivity_components_evaluated),
+        inspection_budget_refusals: after
+            .inspection_budget_refusals
+            .saturating_sub(before.inspection_budget_refusals),
+        inspection_retention_entity_slot_scans: after
+            .inspection_retention_entity_slot_scans
+            .saturating_sub(before.inspection_retention_entity_slot_scans),
+        inspection_retention_relation_slot_scans: after
+            .inspection_retention_relation_slot_scans
+            .saturating_sub(before.inspection_retention_relation_slot_scans),
+        relation_cardinality_minimum_certification_contracts_evaluated: after
+            .relation_cardinality_minimum_certification_contracts_evaluated
+            .saturating_sub(before.relation_cardinality_minimum_certification_contracts_evaluated),
+        relation_cardinality_minimum_certification_entity_slot_scans: after
+            .relation_cardinality_minimum_certification_entity_slot_scans
+            .saturating_sub(before.relation_cardinality_minimum_certification_entity_slot_scans),
+        relation_cardinality_minimum_certification_relation_slot_scans: after
+            .relation_cardinality_minimum_certification_relation_slot_scans
+            .saturating_sub(before.relation_cardinality_minimum_certification_relation_slot_scans),
+        lineage_recorded_candidate_width: after
+            .lineage_recorded_candidate_width
+            .saturating_sub(before.lineage_recorded_candidate_width),
+        lineage_validated_candidate_width: after
+            .lineage_validated_candidate_width
+            .saturating_sub(before.lineage_validated_candidate_width),
+        lineage_promotion_eligible_candidate_width: after
+            .lineage_promotion_eligible_candidate_width
+            .saturating_sub(before.lineage_promotion_eligible_candidate_width),
+        lineage_promotion_rejection_count: after
+            .lineage_promotion_rejection_count
+            .saturating_sub(before.lineage_promotion_rejection_count),
+        lineage_promotion_accepted_count: after
+            .lineage_promotion_accepted_count
+            .saturating_sub(before.lineage_promotion_accepted_count),
+        lineage_finalization_event_batch_width: after
+            .lineage_finalization_event_batch_width
+            .saturating_sub(before.lineage_finalization_event_batch_width),
+        lineage_finalization_decision_log_width: after
+            .lineage_finalization_decision_log_width
+            .saturating_sub(before.lineage_finalization_decision_log_width),
+        lineage_historical_resolution_requests: after
+            .lineage_historical_resolution_requests
+            .saturating_sub(before.lineage_historical_resolution_requests),
+        lineage_historical_resolution_branch_event_scans: after
+            .lineage_historical_resolution_branch_event_scans
+            .saturating_sub(before.lineage_historical_resolution_branch_event_scans),
+        lineage_historical_resolution_traversed_events: after
+            .lineage_historical_resolution_traversed_events
+            .saturating_sub(before.lineage_historical_resolution_traversed_events),
+        lineage_branch_divergence_requests: after
+            .lineage_branch_divergence_requests
+            .saturating_sub(before.lineage_branch_divergence_requests),
+        lineage_branch_divergence_event_scans: after
+            .lineage_branch_divergence_event_scans
+            .saturating_sub(before.lineage_branch_divergence_event_scans),
+        lineage_graph_snapshot_requests: after
+            .lineage_graph_snapshot_requests
+            .saturating_sub(before.lineage_graph_snapshot_requests),
+        lineage_graph_snapshot_nodes_materialized: after
+            .lineage_graph_snapshot_nodes_materialized
+            .saturating_sub(before.lineage_graph_snapshot_nodes_materialized),
+        lineage_graph_snapshot_events_materialized: after
+            .lineage_graph_snapshot_events_materialized
+            .saturating_sub(before.lineage_graph_snapshot_events_materialized),
+        lineage_graph_snapshot_candidates_materialized: after
+            .lineage_graph_snapshot_candidates_materialized
+            .saturating_sub(before.lineage_graph_snapshot_candidates_materialized),
+        lineage_branch_divergence_node_scans: after
+            .lineage_branch_divergence_node_scans
+            .saturating_sub(before.lineage_branch_divergence_node_scans),
+        lineage_graph_snapshot_visibility_cache_hits: after
+            .lineage_graph_snapshot_visibility_cache_hits
+            .saturating_sub(before.lineage_graph_snapshot_visibility_cache_hits),
+        lineage_graph_snapshot_visibility_cache_miss_reconstructions: after
+            .lineage_graph_snapshot_visibility_cache_miss_reconstructions
+            .saturating_sub(before.lineage_graph_snapshot_visibility_cache_miss_reconstructions),
+        lineage_publication_event_width: after
+            .lineage_publication_event_width
+            .saturating_sub(before.lineage_publication_event_width),
+        lineage_publication_decision_width: after
+            .lineage_publication_decision_width
+            .saturating_sub(before.lineage_publication_decision_width),
+        schema_transition_atoms_inspected: after
+            .schema_transition_atoms_inspected
+            .saturating_sub(before.schema_transition_atoms_inspected),
+        schema_changed_subtrees_inspected: after
+            .schema_changed_subtrees_inspected
+            .saturating_sub(before.schema_changed_subtrees_inspected),
+        schema_unchanged_subtrees_reused_by_fingerprint: after
+            .schema_unchanged_subtrees_reused_by_fingerprint
+            .saturating_sub(before.schema_unchanged_subtrees_reused_by_fingerprint),
+        schema_bridge_descriptors_built: after
+            .schema_bridge_descriptors_built
+            .saturating_sub(before.schema_bridge_descriptors_built),
+        schema_normalized_descriptor_compositions: after
+            .schema_normalized_descriptor_compositions
+            .saturating_sub(before.schema_normalized_descriptor_compositions),
+        schema_transition_continue_unchanged_count: after
+            .schema_transition_continue_unchanged_count
+            .saturating_sub(before.schema_transition_continue_unchanged_count),
+        schema_transition_continue_transparent_bridge_count: after
+            .schema_transition_continue_transparent_bridge_count
+            .saturating_sub(before.schema_transition_continue_transparent_bridge_count),
+        schema_transition_continue_visible_bridge_count: after
+            .schema_transition_continue_visible_bridge_count
+            .saturating_sub(before.schema_transition_continue_visible_bridge_count),
+        schema_transition_continue_contract_upgrade_count: after
+            .schema_transition_continue_contract_upgrade_count
+            .saturating_sub(before.schema_transition_continue_contract_upgrade_count),
+        schema_transition_require_renegotiation_count: after
+            .schema_transition_require_renegotiation_count
+            .saturating_sub(before.schema_transition_require_renegotiation_count),
+        schema_transition_rejected_count: after
+            .schema_transition_rejected_count
+            .saturating_sub(before.schema_transition_rejected_count),
+        schema_historical_interpretation_sensitive_boundaries: after
+            .schema_historical_interpretation_sensitive_boundaries
+            .saturating_sub(before.schema_historical_interpretation_sensitive_boundaries),
+        schema_reconciliation_reject_lossy_narrowing_count: after
+            .schema_reconciliation_reject_lossy_narrowing_count
+            .saturating_sub(before.schema_reconciliation_reject_lossy_narrowing_count),
+        schema_reconciliation_preserve_information_count: after
+            .schema_reconciliation_preserve_information_count
+            .saturating_sub(before.schema_reconciliation_preserve_information_count),
+        schema_reconciliation_preserve_target_contract_count: after
+            .schema_reconciliation_preserve_target_contract_count
+            .saturating_sub(before.schema_reconciliation_preserve_target_contract_count),
+        schema_reconciliation_preserve_source_contract_count: after
+            .schema_reconciliation_preserve_source_contract_count
+            .saturating_sub(before.schema_reconciliation_preserve_source_contract_count),
+        schema_reconciliation_permit_lossy_narrowing_with_annotation_count: after
+            .schema_reconciliation_permit_lossy_narrowing_with_annotation_count
+            .saturating_sub(before.schema_reconciliation_permit_lossy_narrowing_with_annotation_count),
+        schema_reconciliation_require_explicit_projection_count: after
+            .schema_reconciliation_require_explicit_projection_count
+            .saturating_sub(before.schema_reconciliation_require_explicit_projection_count),
+        subscriber_resume_evaluations: after
+            .subscriber_resume_evaluations
+            .saturating_sub(before.subscriber_resume_evaluations),
+        subscriber_continue_unchanged_count: after
+            .subscriber_continue_unchanged_count
+            .saturating_sub(before.subscriber_continue_unchanged_count),
+        subscriber_continue_transparent_bridge_count: after
+            .subscriber_continue_transparent_bridge_count
+            .saturating_sub(before.subscriber_continue_transparent_bridge_count),
+        subscriber_continue_visible_bridge_count: after
+            .subscriber_continue_visible_bridge_count
+            .saturating_sub(before.subscriber_continue_visible_bridge_count),
+        subscriber_continue_contract_upgrade_count: after
+            .subscriber_continue_contract_upgrade_count
+            .saturating_sub(before.subscriber_continue_contract_upgrade_count),
+        subscriber_require_renegotiation_count: after
+            .subscriber_require_renegotiation_count
+            .saturating_sub(before.subscriber_require_renegotiation_count),
+        subscriber_rejected_count: after
+            .subscriber_rejected_count
+            .saturating_sub(before.subscriber_rejected_count),
+        replay_digest_parity_checks: after
+            .replay_digest_parity_checks
+            .saturating_sub(before.replay_digest_parity_checks),
+        replay_summary_parity_checks: after
+            .replay_summary_parity_checks
+            .saturating_sub(before.replay_summary_parity_checks),
+        replay_deep_artifact_parity_checks: after
+            .replay_deep_artifact_parity_checks
+            .saturating_sub(before.replay_deep_artifact_parity_checks),
+        replay_lineage_authority_lookup_requests: after
+            .replay_lineage_authority_lookup_requests
+            .saturating_sub(before.replay_lineage_authority_lookup_requests),
+        replay_lineage_log_index_hits: after
+            .replay_lineage_log_index_hits
+            .saturating_sub(before.replay_lineage_log_index_hits),
+        replay_lineage_checkpoint_index_hits: after
+            .replay_lineage_checkpoint_index_hits
+            .saturating_sub(before.replay_lineage_checkpoint_index_hits),
+        replay_lineage_durable_basis_selections: after
+            .replay_lineage_durable_basis_selections
+            .saturating_sub(before.replay_lineage_durable_basis_selections),
+        replay_lineage_history_fallback_basis_selections: after
+            .replay_lineage_history_fallback_basis_selections
+            .saturating_sub(before.replay_lineage_history_fallback_basis_selections),
+        replay_lineage_authoritative_basis_rejections: after
+            .replay_lineage_authoritative_basis_rejections
+            .saturating_sub(before.replay_lineage_authoritative_basis_rejections),
+        replay_lineage_digest_event_width: after
+            .replay_lineage_digest_event_width
+            .saturating_sub(before.replay_lineage_digest_event_width),
+        replay_lineage_digest_decision_width: after
+            .replay_lineage_digest_decision_width
+            .saturating_sub(before.replay_lineage_digest_decision_width),
+        merge_history_ancestry_traversals: after
+            .merge_history_ancestry_traversals
+            .saturating_sub(before.merge_history_ancestry_traversals),
+        merge_history_ancestry_nodes_visited: after
+            .merge_history_ancestry_nodes_visited
+            .saturating_sub(before.merge_history_ancestry_nodes_visited),
+        merge_history_parent_comparisons: after
+            .merge_history_parent_comparisons
+            .saturating_sub(before.merge_history_parent_comparisons),
+        merge_history_replay_parent_checks: after
+            .merge_history_replay_parent_checks
+            .saturating_sub(before.merge_history_replay_parent_checks),
+        merge_history_replay_planning_nodes_visited: after
+            .merge_history_replay_planning_nodes_visited
+            .saturating_sub(before.merge_history_replay_planning_nodes_visited),
+        merge_history_durability_parent_checks: after
+            .merge_history_durability_parent_checks
+            .saturating_sub(before.merge_history_durability_parent_checks),
+        merge_history_durability_validation_nodes_visited: after
+            .merge_history_durability_validation_nodes_visited
+            .saturating_sub(before.merge_history_durability_validation_nodes_visited),
+        merge_planning_requests: after
+            .merge_planning_requests
+            .saturating_sub(before.merge_planning_requests),
+        merge_planning_schema_kinds_snapshotted: after
+            .merge_planning_schema_kinds_snapshotted
+            .saturating_sub(before.merge_planning_schema_kinds_snapshotted),
+        merge_planning_target_commits_scoped: after
+            .merge_planning_target_commits_scoped
+            .saturating_sub(before.merge_planning_target_commits_scoped),
+        merge_planning_source_commits_scoped: after
+            .merge_planning_source_commits_scoped
+            .saturating_sub(before.merge_planning_source_commits_scoped),
+        merge_planning_target_records_scoped: after
+            .merge_planning_target_records_scoped
+            .saturating_sub(before.merge_planning_target_records_scoped),
+        merge_planning_source_records_scoped: after
+            .merge_planning_source_records_scoped
+            .saturating_sub(before.merge_planning_source_records_scoped),
+        merge_identity_candidates_discovered: after
+            .merge_identity_candidates_discovered
+            .saturating_sub(before.merge_identity_candidates_discovered),
+        merge_identity_effective_declarations: after
+            .merge_identity_effective_declarations
+            .saturating_sub(before.merge_identity_effective_declarations),
+        merge_identity_target_records_scanned: after
+            .merge_identity_target_records_scanned
+            .saturating_sub(before.merge_identity_target_records_scanned),
+        merge_identity_target_records_indexed: after
+            .merge_identity_target_records_indexed
+            .saturating_sub(before.merge_identity_target_records_indexed),
+        merge_conflict_records_classified: after
+            .merge_conflict_records_classified
+            .saturating_sub(before.merge_conflict_records_classified),
+        merge_causal_records_annotated: after
+            .merge_causal_records_annotated
+            .saturating_sub(before.merge_causal_records_annotated),
+        merge_policy_records_resolved: after
+            .merge_policy_records_resolved
+            .saturating_sub(before.merge_policy_records_resolved),
+        merge_lowered_records_emitted: after
+            .merge_lowered_records_emitted
+            .saturating_sub(before.merge_lowered_records_emitted),
+        merge_decision_log_width: after
+            .merge_decision_log_width
+            .saturating_sub(before.merge_decision_log_width),
+        merge_planning_elapsed_nanos: after
+            .merge_planning_elapsed_nanos
+            .saturating_sub(before.merge_planning_elapsed_nanos),
+        merge_execution_verification_requests: after
+            .merge_execution_verification_requests
+            .saturating_sub(before.merge_execution_verification_requests),
+        merge_execution_branch_head_checks: after
+            .merge_execution_branch_head_checks
+            .saturating_sub(before.merge_execution_branch_head_checks),
+        merge_execution_merge_base_checks: after
+            .merge_execution_merge_base_checks
+            .saturating_sub(before.merge_execution_merge_base_checks),
+        merge_execution_schema_kinds_snapshotted: after
+            .merge_execution_schema_kinds_snapshotted
+            .saturating_sub(before.merge_execution_schema_kinds_snapshotted),
+        merge_execution_compiled_plan_digest_checks: after
+            .merge_execution_compiled_plan_digest_checks
+            .saturating_sub(before.merge_execution_compiled_plan_digest_checks),
+        merge_execution_attempts: after
+            .merge_execution_attempts
+            .saturating_sub(before.merge_execution_attempts),
+        merge_execution_requests: after
+            .merge_execution_requests
+            .saturating_sub(before.merge_execution_requests),
+        merge_execution_records_admitted: after
+            .merge_execution_records_admitted
+            .saturating_sub(before.merge_execution_records_admitted),
+        merge_execution_mutation_intents_emitted: after
+            .merge_execution_mutation_intents_emitted
+            .saturating_sub(before.merge_execution_mutation_intents_emitted),
+        descriptor_version_mismatches_encountered: after
+            .descriptor_version_mismatches_encountered
+            .saturating_sub(before.descriptor_version_mismatches_encountered),
         live_entity_history_entries_trimmed: after
             .live_entity_history_entries_trimmed
             .saturating_sub(before.live_entity_history_entries_trimmed),
@@ -597,6 +1035,5 @@ fn complexity_delta(
         reverse_adjacency_updates: after
             .reverse_adjacency_updates
             .saturating_sub(before.reverse_adjacency_updates),
-        ..RuntimeComplexityCounters::default()
     }
 }

@@ -7,7 +7,7 @@ use crate::diagnostics::flow::{
 use crate::diagnostics::policy::OrdinaryAccessLane;
 use crate::diagnostics::replay::{ReplayEvent, ReplayEventDetail, ReplayEventKind};
 use crate::diagnostics::summary::{
-    EvaluationPlanSummary, ExecutionHistorySummary, ExplanationSummary, GraphSummary,
+    EvaluationPlanSummary, ExecutionHistorySummary, ExplanationSummary,
 };
 use crate::logic::explain::CausalLinkKind;
 use crate::logic::planner::{ExecutionReport, TaskExecutionOutcome};
@@ -55,13 +55,14 @@ pub(crate) fn record_semantic_execution(
         None,
         explanation,
     );
-    let graph_summary = GraphSummary::from_graph(
-        graph,
-        profile,
-        retention_budget.detail_limit,
-        OrdinaryAccessLane,
-    );
-    let history = if execution_history_unchanged(report) {
+    let history = if !retention_budget.retain_history_details {
+        ExecutionHistorySummary::from_report(
+            report,
+            profile,
+            retention_budget.detail_limit,
+            false,
+        )
+    } else if execution_history_unchanged(report) {
         graph
             .diagnostics_state()
             .recent_history()
@@ -83,30 +84,22 @@ pub(crate) fn record_semantic_execution(
             retention_budget.detail_limit,
             retention_budget.retain_history_details,
             OrdinaryAccessLane,
-        )
+            )
     };
+    let _ = retention_budget;
+    let _ = profile;
+    let _ = OrdinaryAccessLane;
     graph
         .diagnostics_state_mut()
-        .complete_flow(flow, history, graph_summary);
+        .complete_flow_without_graph_summary(flow, history);
+    let branch_id = graph.current_branch().id;
     for task in report
         .stages
         .iter()
         .flat_map(|stage| stage.task_records.iter())
     {
         let cursor = graph.diagnostics_state_mut().allocate_replay_cursor();
-        let branch_id = graph.observe().current_branch().id;
-        let lineage_artifact_id = graph.node_lineage_artifact_id(task.node).ok().flatten();
-        let persistent_correspondence_kind = graph
-            .node_reuse_boundary_authority(task.node)
-            .ok()
-            .flatten()
-            .and_then(|authority| authority.persistent_correspondence_kind());
-        let composition_region_count = graph
-            .node_reuse_boundary_authority(task.node)
-            .ok()
-            .flatten()
-            .map(|authority| authority.composition_region_count())
-            .filter(|count| *count > 0);
+        let replay_projection = graph.node_replay_projection(task.node).ok().unwrap_or_default();
         graph
             .diagnostics_state_mut()
             .record_replay_event(ReplayEvent::new(
@@ -117,10 +110,10 @@ pub(crate) fn record_semantic_execution(
                 Some(task.node),
                 Some(task.id.0),
                 Some(task.semantic_segment_id.0),
-                lineage_artifact_id,
+                replay_projection.lineage_artifact_id,
                 Some(task.reuse_origin),
-                persistent_correspondence_kind,
-                composition_region_count,
+                replay_projection.persistent_correspondence_kind,
+                replay_projection.composition_region_count,
                 Some(ReplayEventDetail::TaskOutcome(task.outcome)),
             ));
     }
@@ -148,8 +141,13 @@ fn sample_flow_causes(
 
     let mut samples = Vec::new();
     for node in nodes {
-        let Ok(explanation) = graph.observe().explain(node) else {
-            continue;
+        let explanation = if let Some(fact) = graph.explanation_fact(node) {
+            fact.explanation.clone()
+        } else {
+            let Ok(explanation) = graph.observe().explain(node) else {
+                continue;
+            };
+            explanation
         };
         let mut suspect_classes = Vec::new();
         if explanation.rewiring.is_some() {

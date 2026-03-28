@@ -179,6 +179,10 @@ pub struct RuntimeComplexityCounters {
     pub merge_execution_merge_base_checks: usize,
     pub merge_execution_schema_kinds_snapshotted: usize,
     pub merge_execution_compiled_plan_digest_checks: usize,
+    pub merge_execution_attempts: usize,
+    pub merge_execution_requests: usize,
+    pub merge_execution_records_admitted: usize,
+    pub merge_execution_mutation_intents_emitted: usize,
     pub descriptor_version_mismatches_encountered: usize,
 }
 
@@ -476,5 +480,13 @@ pub const COMPLEXITY_CONTRACTS: &[ComplexityContract] = &[
         budget_summary: "Prepared merge verification must stay a proof check over authority freshness and sealed executable-plan integrity; it must not rerun planning or silently charge its work to merge planning counters.",
         status: ComplexityStatus::Verified,
         proof_tests: &["tests::history::milestone_7c_phase_a::verify_prepared_merge_execution_reports_verification_counters_without_planning_work"],
+    },
+    ComplexityContract {
+        id: "runtime.merge.execution_commit",
+        function_path: "merge/facade.rs::RelationalRuntime::execute_prepared_merge",
+        declared_time_complexity: "O(admitted_records + emitted_mutation_intents + shared_commit_lifecycle_cost)",
+        budget_summary: "Prepared merge execution must distinguish execution attempts from successfully published merge commits, and successful merge commit deltas must report admitted record width and emitted mutation width explicitly.",
+        status: ComplexityStatus::Verified,
+        proof_tests: &["tests::history::milestone_7c_phase_e::execute_prepared_merge_reports_execution_counters_and_structural_summary"],
     },
 ];

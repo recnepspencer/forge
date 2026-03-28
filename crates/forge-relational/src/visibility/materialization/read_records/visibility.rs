@@ -120,12 +120,12 @@ pub(super) fn lifecycle_storage_visible(lifecycle: RecordLifecycleState) -> bool
 
 pub(super) fn historical_lifecycle(
     retired_at: Option<crate::identity::data::VersionId>,
-    current_lifecycle: RecordLifecycleState,
+    version_id: crate::identity::data::VersionId,
 ) -> RecordLifecycleState {
-    if retired_at.is_some() {
+    if retired_at.is_some_and(|retired_at| retired_at <= version_id) {
         RecordLifecycleState::DeletedRetained
     } else {
-        current_lifecycle
+        RecordLifecycleState::Live
     }
 }
 

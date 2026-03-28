@@ -6,9 +6,9 @@ use serde_json::{Map, Value};
 
 use crate::capabilities::AspectPlanSource;
 use crate::merge::data::{
-    AdoptSourceRecordPlan, BoundExecutableMergeRecordPlan, ExecutableAspectPlan,
-    MaterializedAspectValue, MaterializedAspectValuePayload, MergeExecutionMutationPlanError,
-    PreparedMergeExecution, ReconcileRecordPlan,
+    AdoptSourceRecordPlan, BoundExecutableMergeRecordPlan, ExecutableAspectPlan, MaterializedAspectValue,
+    MaterializedAspectValuePayload, MergeExecutionMutationPlanError, PreparedMergeExecution,
+    ReconcileRecordPlan,
 };
 use crate::payloads::data::RecordPayload;
 use crate::schema::data::{LoweredAspectBinding, LoweredExecutableAspectBindingKind};
@@ -18,7 +18,8 @@ use crate::symbols::data::InternedString;
 use crate::transactions::data::{
     CreateIntent, EntityMutationIntent, EntitySpec, MergeCommitMutationPlan,
     MergeExecutionStructuralSummary, MergeExecutionSummary, MergedCommitPlan, MutationIntent,
-    RelationSpec, TransactionId, UpdateEntityIntent,
+    RelationSpec, TransactionId,
+    UpdateEntityIntent,
 };
 
 use super::MergeAccess;
@@ -35,6 +36,7 @@ impl<'runtime> MergeAccess<'runtime> {
             adopted_source_record_count: 0,
             preserved_shared_record_count: 0,
             reconciled_record_count: 0,
+            converged_deleted_on_both_sides_count: 0,
             emitted_mutation_intent_count: 0,
             emitted_entity_create_count: 0,
             emitted_relation_create_count: 0,
@@ -72,6 +74,9 @@ impl<'runtime> MergeAccess<'runtime> {
                         merged_intents.push(intent);
                     }
                 }
+                BoundExecutableMergeRecordPlan::ConvergeDeletedOnBothSides(_plan) => {
+                    summary.converged_deleted_on_both_sides_count += 1;
+                }
             }
         }
 
@@ -80,6 +85,7 @@ impl<'runtime> MergeAccess<'runtime> {
             merged_intents,
         };
         let binding = &prepared.bound_executable_plan().authority_binding;
+        let diagnostics_plan = &prepared.bound_executable_plan().diagnostics_plan;
         let merge_execution_summary = MergeExecutionSummary {
             request: prepared.request().clone(),
             target_head_commit_id: binding.target_head_commit_id,
@@ -89,21 +95,27 @@ impl<'runtime> MergeAccess<'runtime> {
             adopted_source_record_count: summary.adopted_source_record_count,
             preserved_shared_record_count: summary.preserved_shared_record_count,
             reconciled_record_count: summary.reconciled_record_count,
+            converged_deleted_on_both_sides_count: summary
+                .converged_deleted_on_both_sides_count,
             emitted_mutation_intent_count: summary.emitted_mutation_intent_count,
+            diagnostics_digest: diagnostics_plan.digest.clone(),
+            execution_digest: binding.executable_plan_digest.clone(),
         };
 
         Ok(MergeCommitMutationPlan {
             transaction_id,
             target_branch: prepared.request().target_branch.clone(),
             source_branch: prepared.request().source_branch.clone(),
+            merge_parent_branches: Arc::from([prepared.request().source_branch.clone()]),
+            requested_merge_parent_count: 1,
             parent_commits: crate::history::data::OrderedParentList::from_authoritative(
                 prepared.bound_executable_plan().parent_order.iter().copied().collect(),
             ),
             merge_base_commits: Arc::from([binding.merge_base_commit_id]),
-            executable_plan: prepared.bound_executable_plan().clone(),
             merged_plan,
             structural_summary: summary,
             merge_execution_summary,
+            proof_token: crate::transactions::data::merge_commit_mutation_plan_token(),
         })
     }
 }

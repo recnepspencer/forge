@@ -79,14 +79,7 @@ pub(super) fn materialize_entity_record_at_version(
         ),
         lineage_id: metadata.lineage_id,
         kind,
-        lifecycle: historical_lifecycle(
-            partition.entity_arena.retired_at_for_slot(slot),
-            partition
-                .entity_arena
-                .get_slot(slot)
-                .map(|slot_view| slot_view.lifecycle())
-                .unwrap_or(RecordLifecycleState::Reusable),
-        ),
+        lifecycle: historical_lifecycle(metadata.retired_at(), version_id),
         created_at_version: metadata.effective_at(),
         retired_at_version: metadata.retired_at(),
         payload,
@@ -166,14 +159,7 @@ pub(super) fn materialize_relation_record_at_version(
             metadata.generation,
         ),
         kind,
-        lifecycle: historical_lifecycle(
-            partition.relation_arena.retired_at_for_slot(slot),
-            partition
-                .relation_arena
-                .get_slot(slot)
-                .map(|slot_view| slot_view.lifecycle())
-                .unwrap_or(RecordLifecycleState::Reusable),
-        ),
+        lifecycle: historical_lifecycle(metadata.retired_at(), version_id),
         created_at_version: metadata.effective_at(),
         retired_at_version: metadata.retired_at(),
         source: metadata.endpoints.source,

@@ -18,18 +18,24 @@ pub(crate) fn prepare_working_state_scope(
     let merged_plan = transaction
         .build_merged_plan_for_state(&planning_state, intents)
         .map_err(TransactionCommitError::conflict)?;
-    Ok(prepare_authoritative_working_state_scope(
+    let (structural_summary, working_state) = prepare_authoritative_working_state_scope(
         transaction.runtime,
-        merged_plan,
+        &merged_plan,
         transaction.options.merge_parent_branches.len(),
-    ))
+    );
+
+    Ok(PreparedWorkingStateScope {
+        merged_plan,
+        structural_summary,
+        working_state,
+    })
 }
 
 pub(crate) fn prepare_authoritative_working_state_scope(
     runtime: &mut RelationalRuntime,
-    merged_plan: MergedCommitPlan,
+    merged_plan: &MergedCommitPlan,
     merge_parent_count: usize,
-) -> PreparedWorkingStateScope {
+) -> (CommitStructuralSummary, WorkingState) {
     let current_state = runtime.storage_access().current_state();
     let structural_summary = CommitStructuralSummary::derive(
         &current_state,
@@ -41,11 +47,7 @@ pub(crate) fn prepare_authoritative_working_state_scope(
         .storage_authority()
         .working_state_for_touched_partitions(structural_summary.touched_partitions.iter().copied());
 
-    PreparedWorkingStateScope {
-        merged_plan,
-        structural_summary,
-        working_state,
-    }
+    (structural_summary, working_state)
 }
 
 pub(crate) fn record_preparation_counters(

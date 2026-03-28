@@ -32,15 +32,12 @@ pub(super) fn absorb_execution_report_telemetry(
     telemetry: &mut RuntimeTelemetry,
     report: &ExecutionReport,
 ) {
-    let mut maybe_stale_validation_tasks = 0_u64;
     let mut stage_execution_nanos = 0_u128;
-    let mut max_tasks_in_stage = 0_u64;
     #[cfg(feature = "parallel")]
     let mut parallel_stages = 0_u64;
 
     for stage in &report.stages {
         stage_execution_nanos += stage.duration_nanos;
-        max_tasks_in_stage = max_tasks_in_stage.max(stage.task_records.len() as u64);
         #[cfg(feature = "parallel")]
         if matches!(
             stage.outcome,
@@ -48,21 +45,13 @@ pub(super) fn absorb_execution_report_telemetry(
         ) {
             parallel_stages += 1;
         }
-        for record in &stage.task_records {
-            if matches!(
-                record.scheduled_reason,
-                crate::logic::planner::TaskReason::MaybeStaleValidation
-            ) {
-                maybe_stale_validation_tasks += 1;
-            }
-        }
     }
 
     telemetry.planner.plans_built += 1;
     telemetry.planner.stages_built += report.stage_count as u64;
     telemetry.planner.tasks_scheduled += report.task_count as u64;
     telemetry.planner.tasks_pruned_before_execution += report.tasks_pruned as u64;
-    telemetry.planner.maybe_stale_validation_tasks += maybe_stale_validation_tasks;
+    telemetry.planner.maybe_stale_validation_tasks += report.maybe_stale_validation_tasks as u64;
     telemetry.execution.stage_execution_count += report.stage_count as u64;
     telemetry.execution.stage_execution_nanos += stage_execution_nanos;
     telemetry.execution.execution_snapshots_built += report.execution_snapshots_built as u64;
@@ -86,7 +75,7 @@ pub(super) fn absorb_execution_report_telemetry(
     telemetry.execution.max_tasks_in_stage = telemetry
         .execution
         .max_tasks_in_stage
-        .max(max_tasks_in_stage);
+        .max(report.plan_summary.max_stage_width as u64);
 }
 
 pub(super) fn executor_for_strategy(strategy: EvaluationStrategy) -> StageExecutor {

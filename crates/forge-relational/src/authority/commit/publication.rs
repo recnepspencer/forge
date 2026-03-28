@@ -243,16 +243,21 @@ fn diff_kind_order(
 
 pub(super) fn diagnostics_summary_artifact(
     config: &crate::config::data::RelationalRuntimeConfig,
+    reserved_entries: Vec<RelationalDiagnosticsEntry>,
     entries: Vec<RelationalDiagnosticsEntry>,
 ) -> RelationalDiagnosticArtifact {
+    let max_entries = config.diagnostics.profile.max_entries_per_artifact;
+    // Reserved entries are proof-carrying summary surfaces for the authoritative lifecycle.
+    // They must survive even when the optional diagnostics budget is exhausted or configured
+    // below the reserved-entry count.
+    let mut kept = reserved_entries;
+    let remaining_capacity = max_entries.saturating_sub(kept.len());
+    kept.extend(entries.into_iter().take(remaining_capacity));
     RelationalDiagnosticArtifact {
         scope: DiagnosticsScope::Transaction,
         kind: DiagnosticsArtifactKind::MinimalSummary,
         determinism: crate::diagnostics::data::DeterminismExpectation::Required,
-        entries: entries
-            .into_iter()
-            .take(config.diagnostics.profile.max_entries_per_artifact)
-            .collect(),
+        entries: kept,
     }
 }
 

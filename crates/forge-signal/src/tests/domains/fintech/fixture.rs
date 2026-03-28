@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::facade::*;
 use crate::tests::support::DependencyBatchBuilder;
 
@@ -26,6 +28,7 @@ pub(super) struct InstrumentFixture {
 
 pub(crate) struct FintechWorld {
     pub(super) runtime: FintechRuntime,
+    pub(super) evaluation: Arc<FintechEvaluationShape>,
     pub(super) handles: FintechWorldHandles,
     pub(super) fx: FxNodes,
     pub(super) aggregate_sources: Vec<AggregateSourceNodes>,
@@ -140,8 +143,8 @@ impl FintechWorld {
         self.handles.primary.market_source
     }
 
-    pub(super) fn evaluation_shape(&self) -> FintechEvaluationShape {
-        FintechEvaluationShape::from_fixture(self)
+    pub(super) fn evaluation_shape(&self) -> Arc<FintechEvaluationShape> {
+        Arc::clone(&self.evaluation)
     }
 
     pub(super) fn node_state(&self, node: NodeId) -> Result<NodeState, SignalError> {
@@ -320,7 +323,7 @@ impl FintechWorld {
         executor: StageExecutor,
     ) -> Result<AspectVersion, SignalError> {
         let source = self.primary_market_source();
-        let current = self.read_node_with_executor(source, executor)?;
+        let current = self.runtime.graph().node_aspect_version(source)?;
         let bumped = AspectVersion::from_updates([
             (
                 super::aspects::PRICE,
@@ -371,7 +374,7 @@ impl FintechWorld {
         executor: StageExecutor,
     ) -> Result<AspectVersion, SignalError> {
         let source = self.partitioned_market_source();
-        let current = self.read_node_with_executor(source, executor)?;
+        let current = self.runtime.graph().node_aspect_version(source)?;
         let bumped = AspectVersion::from_updates([
             (
                 super::aspects::PRICE,
@@ -642,8 +645,23 @@ pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
         })
         .expect("partition locality source should seed cleanly");
 
+    let evaluation = Arc::new(FintechEvaluationShape::from_parts(
+        fx,
+        aggregate_sources.as_slice(),
+        curve_buckets.as_slice(),
+        vol_surface_buckets.as_slice(),
+        scenario_sources.as_slice(),
+        instruments.as_slice(),
+        book_aggregates.as_slice(),
+        desk_aggregates.as_slice(),
+        scenario_aggregates.as_slice(),
+        bucket_aggregates.as_slice(),
+        handles.partition,
+    ));
+
     FintechWorld {
         runtime,
+        evaluation,
         handles,
         fx,
         aggregate_sources,

@@ -65,11 +65,11 @@ impl SignalGraph {
         let previous_warm = if let Some(snapshot) = effect.previous_artifact_warm().cloned() {
             Some(snapshot)
         } else {
-            self.node_runtime_artifact_warm(effect.operational.node)?
+            self.node_runtime_artifact_reuse_boundary_snapshot(effect.operational.node)?
                 .map(|trace| crate::logic::evaluation::PreviousArtifactWarmSnapshot {
-                    output_identity: trace.output_identity.clone(),
-                    continuity_token: trace.continuity_token.clone_inner(),
-                    reuse_boundary_authority: trace.reuse_boundary_authority.clone(),
+                    output_identity: trace.output_identity,
+                    continuity_token: trace.continuity_token,
+                    reuse_boundary_authority: trace.reuse_boundary_authority,
                 })
         };
         let comparison = self.compare_effect(&effect, previous_warm.as_ref(), comparator)?;
@@ -128,11 +128,11 @@ impl SignalGraph {
         let previous_warm = if let Some(snapshot) = effect.previous_artifact_warm().cloned() {
             Some(snapshot)
         } else {
-            self.node_runtime_artifact_warm(effect.operational.node)?
+            self.node_runtime_artifact_reuse_boundary_snapshot(effect.operational.node)?
                 .map(|trace| crate::logic::evaluation::PreviousArtifactWarmSnapshot {
-                    output_identity: trace.output_identity.clone(),
-                    continuity_token: trace.continuity_token.clone_inner(),
-                    reuse_boundary_authority: trace.reuse_boundary_authority.clone(),
+                    output_identity: trace.output_identity,
+                    continuity_token: trace.continuity_token,
+                    reuse_boundary_authority: trace.reuse_boundary_authority,
                 })
         };
         let comparison = self.compare_effect(&effect, previous_warm.as_ref(), comparator)?;

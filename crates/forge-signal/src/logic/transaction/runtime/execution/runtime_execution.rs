@@ -182,6 +182,9 @@ where
         F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
         O: IntoEvaluationOutput,
     {
+        if matches!(self.graph.get_state(node)?, crate::data::node::NodeState::Clean) {
+            return Ok(self.graph.node_aspect_version(node)?);
+        }
         self.evaluate_with_plan_and_executor(
             node,
             runtime_ctx,
@@ -190,6 +193,61 @@ where
             executor,
         )?;
         Ok(self.graph.node_aspect_version(node)?)
+    }
+
+    pub fn read_many<F, O>(
+        &mut self,
+        nodes: &[NodeId],
+        runtime_ctx: &Ctx,
+        evaluator: &F,
+    ) -> Result<Vec<AspectVersion>, SignalError>
+    where
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
+    {
+        let strategy = self.derive_evaluation_strategy();
+        let versions =
+            self.read_many_with_executor(nodes, runtime_ctx, evaluator, executor_for_strategy(strategy))?;
+        apply_strategy_maintenance(&mut self.graph, strategy);
+        Ok(versions)
+    }
+
+    pub fn read_many_with_executor<F, O>(
+        &mut self,
+        nodes: &[NodeId],
+        runtime_ctx: &Ctx,
+        evaluator: &F,
+        executor: StageExecutor,
+    ) -> Result<Vec<AspectVersion>, SignalError>
+    where
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
+    {
+        let pending = nodes
+            .iter()
+            .copied()
+            .filter(|node| {
+                !matches!(
+                    self.graph.get_state(*node),
+                    Ok(crate::data::node::NodeState::Clean)
+                )
+            })
+            .collect::<Vec<_>>();
+        if !pending.is_empty() {
+            self.execute_evaluation(
+                ExecutionIntent::Targets {
+                    targets: &pending,
+                    request_mode: EvaluationRequestMode::Default,
+                },
+                runtime_ctx,
+                evaluator,
+                executor,
+            )?;
+        }
+        nodes.iter()
+            .copied()
+            .map(|node| self.graph.node_aspect_version(node))
+            .collect()
     }
 
     pub fn evaluate_dirty<F, O>(

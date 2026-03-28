@@ -112,6 +112,7 @@ pub(super) fn replay_recovery_plan_for_chain(
             .and_then(|commit_id| source.commit_envelope(*commit_id))
             .map(|envelope| envelope.descriptor_semantics_version)
             .unwrap_or_else(DescriptorSemanticsVersion::default),
+        false,
     )
 }
 

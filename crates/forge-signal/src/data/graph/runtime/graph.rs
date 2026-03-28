@@ -689,6 +689,14 @@ impl SignalGraph {
         }
     }
 
+    #[cfg(test)]
+    pub(crate) fn reserve_node_capacity(&mut self, additional: usize) {
+        self.arena.nodes.reserve(additional);
+        self.arena.hot.reserve(additional);
+        self.arena.warm.reserve(additional);
+        self.arena.cold.reserve(additional);
+    }
+
     fn record_branch_mutation(
         &mut self,
         node: NodeId,

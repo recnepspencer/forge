@@ -8,7 +8,7 @@ use crate::diagnostics::data::RelationalDiagnosticArtifact;
 use crate::errors::data::{ErrorContext, ErrorOperation, RelationalSubsystem, SuggestedFix};
 use crate::history::data::{BranchId, CommitId, OrderedParentList};
 use crate::identity::data::{EntityId, RelationId, VersionId};
-use crate::merge::data::{BoundExecutableMergePlan, MergeExecutionRequest};
+use crate::merge::data::MergeExecutionRequest;
 use crate::performance::data::RuntimeComplexityCounters;
 use crate::publication::data::diff::PatchRecord;
 use crate::publication::data::{PublicationError, PublicationStatus};
@@ -39,6 +39,7 @@ pub struct MergeExecutionStructuralSummary {
     pub adopted_source_record_count: usize,
     pub preserved_shared_record_count: usize,
     pub reconciled_record_count: usize,
+    pub converged_deleted_on_both_sides_count: usize,
     pub emitted_mutation_intent_count: usize,
     pub emitted_entity_create_count: usize,
     pub emitted_relation_create_count: usize,
@@ -55,26 +56,40 @@ pub struct MergeExecutionSummary {
     pub adopted_source_record_count: usize,
     pub preserved_shared_record_count: usize,
     pub reconciled_record_count: usize,
+    pub converged_deleted_on_both_sides_count: usize,
     pub emitted_mutation_intent_count: usize,
+    pub diagnostics_digest: String,
+    pub execution_digest: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MergeCommitMutationPlan {
     pub transaction_id: TransactionId,
     pub target_branch: BranchId,
     pub source_branch: BranchId,
+    pub merge_parent_branches: Arc<[BranchId]>,
+    pub requested_merge_parent_count: usize,
     pub parent_commits: OrderedParentList,
     pub merge_base_commits: Arc<[CommitId]>,
-    pub executable_plan: BoundExecutableMergePlan,
     pub merged_plan: MergedCommitPlan,
     pub structural_summary: MergeExecutionStructuralSummary,
     pub merge_execution_summary: MergeExecutionSummary,
+    #[serde(skip_serializing, skip_deserializing, default = "merge_commit_mutation_plan_token")]
+    pub(crate) proof_token: MergeCommitMutationPlanToken,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MergeExecutionOutcome {
     pub commit: CommitResult,
     pub execution_summary: MergeExecutionSummary,
+    pub structural_summary: MergeExecutionStructuralSummary,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) struct MergeCommitMutationPlanToken;
+
+pub(crate) fn merge_commit_mutation_plan_token() -> MergeCommitMutationPlanToken {
+    MergeCommitMutationPlanToken
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

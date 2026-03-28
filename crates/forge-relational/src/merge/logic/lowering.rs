@@ -4,6 +4,7 @@ use std::sync::Arc;
 use crate::capabilities::AspectPlanSource;
 use crate::merge::data::{
     AspectComparisonState, AuthorizedAspectValueSurface, AuthorizedAspectValueUsage,
+    DeletionExecutionClass, MergeExecutableClass, MergeResolutionClass,
     LoweredAspectAction, LoweredAspectDenialIntent, LoweredAspectExecutionIntent,
     LoweredAspectOutcome, LoweredMergeAction, LoweredMergeBlockedReason, LoweredMergePlan,
     LoweredMergePlanRecord, LoweredMergePlanSummary, LoweredMergeRejectedReason,
@@ -71,6 +72,12 @@ impl<'runtime> MergeAccess<'runtime> {
                     aspect_outcomes.as_slice(),
                     readiness,
                 );
+                let resolution_class = resolution_class_for_record(policy_record.classification);
+                let executable_class = executable_class_for_record(
+                    resolution_class,
+                    readiness,
+                    execution_bundle.as_ref().map(|bundle| bundle.kind),
+                );
                 let denial_bundle = denial_bundle_for_record(
                     policy_record.classification,
                     aspect_outcomes.as_slice(),
@@ -96,6 +103,8 @@ impl<'runtime> MergeAccess<'runtime> {
                     record: policy_record.record.clone(),
                     target_record: policy_record.target_record.clone(),
                     classification: policy_record.classification,
+                    resolution_class,
+                    executable_class,
                     causal_disposition: causal.disposition,
                     applied_policies: policy_record.applied_policies.clone(),
                     policy_resolution: policy_record.resolution,
@@ -201,6 +210,12 @@ fn synthesized_execution_bundle(
             crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence,
             Some(LoweredMergeAction::ReconcileSchemaCorrespondence),
         ) => LoweredRecordExecutionIntentKind::ReconcileRecord,
+        (
+            crate::merge::data::MergeConflictClass::Deletion(
+                crate::merge::data::DeletionMergeClass::DeletedOnBothSides,
+            ),
+            Some(LoweredMergeAction::ConvergeDeletedOnBothSides),
+        ) => LoweredRecordExecutionIntentKind::ConvergeDeletedOnBothSides,
         _ => return None,
     };
     Some(LoweredRecordExecutionBundle {
@@ -231,8 +246,20 @@ fn blocked_denial_kind_from_reason(
     reason: LoweredMergeBlockedReason,
 ) -> LoweredRecordDenialKind {
     match reason {
-        LoweredMergeBlockedReason::DeletionSemanticsRequireExplicitResolution => {
-            LoweredRecordDenialKind::BlockedDeletion
+        LoweredMergeBlockedReason::SourceDeletedTargetLive => {
+            LoweredRecordDenialKind::BlockedSourceDeletedTargetLive
+        }
+        LoweredMergeBlockedReason::SourceLiveTargetDeleted => {
+            LoweredRecordDenialKind::BlockedSourceLiveTargetDeleted
+        }
+        LoweredMergeBlockedReason::DeletedOnBothSides => {
+            LoweredRecordDenialKind::BlockedDeletedOnBothSides
+        }
+        LoweredMergeBlockedReason::DeletedVsModified => {
+            LoweredRecordDenialKind::BlockedDeletedVsModified
+        }
+        LoweredMergeBlockedReason::DeletedVsRewired => {
+            LoweredRecordDenialKind::BlockedDeletedVsRewired
         }
         LoweredMergeBlockedReason::RelationEndpointDivergence => {
             LoweredRecordDenialKind::BlockedRelationEndpointDivergence
@@ -306,9 +333,84 @@ fn lowered_action_for_record(
         crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence => {
             Some(LoweredMergeAction::ReconcileSchemaCorrespondence)
         }
+        crate::merge::data::MergeConflictClass::Deletion(
+            crate::merge::data::DeletionMergeClass::DeletedOnBothSides,
+        ) => Some(LoweredMergeAction::ConvergeDeletedOnBothSides),
         crate::merge::data::MergeConflictClass::Deletion(_)
         | crate::merge::data::MergeConflictClass::DivergentVisibleState
         | crate::merge::data::MergeConflictClass::RelationEndpointDivergence => None,
+    }
+}
+
+fn resolution_class_for_record(
+    classification: crate::merge::data::MergeConflictClass,
+) -> MergeResolutionClass {
+    match classification {
+        crate::merge::data::MergeConflictClass::SourceOnlyAddition => {
+            MergeResolutionClass::SourceOnlyAddition
+        }
+        crate::merge::data::MergeConflictClass::ExactSharedTruth => {
+            MergeResolutionClass::ExactSharedTruth
+        }
+        crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence => {
+            MergeResolutionClass::SchemaDeclaredCorrespondence
+        }
+        crate::merge::data::MergeConflictClass::Deletion(class) => {
+            MergeResolutionClass::Deletion(match class {
+                crate::merge::data::DeletionMergeClass::SourceDeletedTargetLive => {
+                    DeletionExecutionClass::SourceDeletedTargetLive
+                }
+                crate::merge::data::DeletionMergeClass::SourceLiveTargetDeleted => {
+                    DeletionExecutionClass::SourceLiveTargetDeleted
+                }
+                crate::merge::data::DeletionMergeClass::DeletedOnBothSides => {
+                    DeletionExecutionClass::DeletedOnBothSides
+                }
+                crate::merge::data::DeletionMergeClass::DeletedVsModified => {
+                    DeletionExecutionClass::DeletedVsModified
+                }
+                crate::merge::data::DeletionMergeClass::DeletedVsRewired => {
+                    DeletionExecutionClass::DeletedVsRewired
+                }
+            })
+        }
+        crate::merge::data::MergeConflictClass::RelationEndpointDivergence => {
+            MergeResolutionClass::Topology(
+                crate::merge::data::TopologyExecutionClass::RelationEndpointDivergence,
+            )
+        }
+        crate::merge::data::MergeConflictClass::DivergentVisibleState => {
+            MergeResolutionClass::DivergentVisibleState
+        }
+    }
+}
+
+fn executable_class_for_record(
+    resolution_class: MergeResolutionClass,
+    readiness: MergeExecutionReadiness,
+    execution_bundle_kind: Option<LoweredRecordExecutionIntentKind>,
+) -> Option<MergeExecutableClass> {
+    if readiness != MergeExecutionReadiness::Admitted {
+        return None;
+    }
+    match (resolution_class, execution_bundle_kind) {
+        (
+            MergeResolutionClass::SourceOnlyAddition,
+            Some(LoweredRecordExecutionIntentKind::AdoptSourceRecord),
+        ) => Some(MergeExecutableClass::AdoptSourceRecord),
+        (
+            MergeResolutionClass::ExactSharedTruth,
+            Some(LoweredRecordExecutionIntentKind::PreserveSharedRecord),
+        ) => Some(MergeExecutableClass::PreserveSharedRecord),
+        (
+            MergeResolutionClass::SchemaDeclaredCorrespondence,
+            Some(LoweredRecordExecutionIntentKind::ReconcileRecord),
+        ) => Some(MergeExecutableClass::ReconcileRecord),
+        (
+            MergeResolutionClass::Deletion(DeletionExecutionClass::DeletedOnBothSides),
+            Some(LoweredRecordExecutionIntentKind::ConvergeDeletedOnBothSides),
+        ) => Some(MergeExecutableClass::ConvergeDeletedOnBothSides),
+        _ => None,
     }
 }
 
@@ -322,8 +424,8 @@ fn blocked_reason_for_record(
     }
     if aspect_outcomes.is_empty() {
         return match classification {
-            crate::merge::data::MergeConflictClass::Deletion(_) => {
-                Some(LoweredMergeBlockedReason::DeletionSemanticsRequireExplicitResolution)
+            crate::merge::data::MergeConflictClass::Deletion(class) => {
+                Some(blocked_reason_for_deletion_class(class))
             }
             crate::merge::data::MergeConflictClass::RelationEndpointDivergence => {
                 Some(LoweredMergeBlockedReason::RelationEndpointDivergence)
@@ -336,10 +438,11 @@ fn blocked_reason_for_record(
             }
         };
     }
-    if aspect_outcomes.iter().any(|aspect| {
-        aspect.blocked_reason == Some(LoweredMergeBlockedReason::DeletionSemanticsRequireExplicitResolution)
+    if let Some(reason) = aspect_outcomes.iter().find_map(|aspect| {
+        aspect.blocked_reason
+            .filter(|reason| is_deletion_blocked_reason(*reason))
     }) {
-        Some(LoweredMergeBlockedReason::DeletionSemanticsRequireExplicitResolution)
+        Some(reason)
     } else if aspect_outcomes
         .iter()
         .any(|aspect| aspect.blocked_reason == Some(LoweredMergeBlockedReason::RelationEndpointDivergence))
@@ -447,17 +550,33 @@ fn blocked_denial_kind_for_record(
     aspects: &[LoweredRecordDenialAspectIntent],
 ) -> LoweredRecordDenialKind {
     if aspects.iter().any(|aspect| {
-        aspect.intent == LoweredAspectDenialIntent::BlockedDeletion
+        aspect.intent == LoweredAspectDenialIntent::BlockedSourceDeletedTargetLive
     }) {
-        LoweredRecordDenialKind::BlockedDeletion
+        LoweredRecordDenialKind::BlockedSourceDeletedTargetLive
+    } else if aspects.iter().any(|aspect| {
+        aspect.intent == LoweredAspectDenialIntent::BlockedSourceLiveTargetDeleted
+    }) {
+        LoweredRecordDenialKind::BlockedSourceLiveTargetDeleted
+    } else if aspects.iter().any(|aspect| {
+        aspect.intent == LoweredAspectDenialIntent::BlockedDeletedOnBothSides
+    }) {
+        LoweredRecordDenialKind::BlockedDeletedOnBothSides
+    } else if aspects.iter().any(|aspect| {
+        aspect.intent == LoweredAspectDenialIntent::BlockedDeletedVsModified
+    }) {
+        LoweredRecordDenialKind::BlockedDeletedVsModified
+    } else if aspects.iter().any(|aspect| {
+        aspect.intent == LoweredAspectDenialIntent::BlockedDeletedVsRewired
+    }) {
+        LoweredRecordDenialKind::BlockedDeletedVsRewired
     } else if aspects.iter().any(|aspect| {
         aspect.intent == LoweredAspectDenialIntent::BlockedRelationEndpointDivergence
     }) {
         LoweredRecordDenialKind::BlockedRelationEndpointDivergence
     } else {
         match classification {
-            crate::merge::data::MergeConflictClass::Deletion(_) => {
-                LoweredRecordDenialKind::BlockedDeletion
+            crate::merge::data::MergeConflictClass::Deletion(class) => {
+                blocked_denial_kind_from_reason(blocked_reason_for_deletion_class(class))
             }
             crate::merge::data::MergeConflictClass::RelationEndpointDivergence => {
                 LoweredRecordDenialKind::BlockedRelationEndpointDivergence
@@ -605,8 +724,20 @@ fn lowered_aspect_denial_intent(
             comparison,
             readiness,
         )? {
-            LoweredMergeBlockedReason::DeletionSemanticsRequireExplicitResolution => {
-                Some(LoweredAspectDenialIntent::BlockedDeletion)
+            LoweredMergeBlockedReason::SourceDeletedTargetLive => {
+                Some(LoweredAspectDenialIntent::BlockedSourceDeletedTargetLive)
+            }
+            LoweredMergeBlockedReason::SourceLiveTargetDeleted => {
+                Some(LoweredAspectDenialIntent::BlockedSourceLiveTargetDeleted)
+            }
+            LoweredMergeBlockedReason::DeletedOnBothSides => {
+                Some(LoweredAspectDenialIntent::BlockedDeletedOnBothSides)
+            }
+            LoweredMergeBlockedReason::DeletedVsModified => {
+                Some(LoweredAspectDenialIntent::BlockedDeletedVsModified)
+            }
+            LoweredMergeBlockedReason::DeletedVsRewired => {
+                Some(LoweredAspectDenialIntent::BlockedDeletedVsRewired)
             }
             LoweredMergeBlockedReason::RelationEndpointDivergence => {
                 Some(LoweredAspectDenialIntent::BlockedRelationEndpointDivergence)
@@ -696,8 +827,8 @@ fn blocked_reason_for_aspect(
         return None;
     }
     match (classification, comparison) {
-        (crate::merge::data::MergeConflictClass::Deletion(_), _) => {
-            Some(LoweredMergeBlockedReason::DeletionSemanticsRequireExplicitResolution)
+        (crate::merge::data::MergeConflictClass::Deletion(class), _) => {
+            Some(blocked_reason_for_deletion_class(class))
         }
         (
             crate::merge::data::MergeConflictClass::RelationEndpointDivergence,
@@ -710,6 +841,39 @@ fn blocked_reason_for_aspect(
         }
         _ => Some(LoweredMergeBlockedReason::ManualConflictResolutionRequired),
     }
+}
+
+fn blocked_reason_for_deletion_class(
+    class: crate::merge::data::DeletionMergeClass,
+) -> LoweredMergeBlockedReason {
+    match class {
+        crate::merge::data::DeletionMergeClass::SourceDeletedTargetLive => {
+            LoweredMergeBlockedReason::SourceDeletedTargetLive
+        }
+        crate::merge::data::DeletionMergeClass::SourceLiveTargetDeleted => {
+            LoweredMergeBlockedReason::SourceLiveTargetDeleted
+        }
+        crate::merge::data::DeletionMergeClass::DeletedOnBothSides => {
+            LoweredMergeBlockedReason::DeletedOnBothSides
+        }
+        crate::merge::data::DeletionMergeClass::DeletedVsModified => {
+            LoweredMergeBlockedReason::DeletedVsModified
+        }
+        crate::merge::data::DeletionMergeClass::DeletedVsRewired => {
+            LoweredMergeBlockedReason::DeletedVsRewired
+        }
+    }
+}
+
+fn is_deletion_blocked_reason(reason: LoweredMergeBlockedReason) -> bool {
+    matches!(
+        reason,
+        LoweredMergeBlockedReason::SourceDeletedTargetLive
+            | LoweredMergeBlockedReason::SourceLiveTargetDeleted
+            | LoweredMergeBlockedReason::DeletedOnBothSides
+            | LoweredMergeBlockedReason::DeletedVsModified
+            | LoweredMergeBlockedReason::DeletedVsRewired
+    )
 }
 
 fn rejected_reason_for_aspect(
@@ -794,5 +958,91 @@ fn build_decision_log_digest_basis(
                 .map(|decision| decision.policy_resolution)
                 .collect::<Vec<_>>(),
         ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        blocked_denial_kind_from_reason, blocked_reason_for_deletion_class,
+        executable_class_for_record, is_deletion_blocked_reason,
+    };
+    use crate::merge::data::{
+        DeletionExecutionClass, DeletionMergeClass, LoweredMergeBlockedReason,
+        LoweredRecordDenialKind, LoweredRecordExecutionIntentKind, MergeExecutableClass,
+        MergeExecutionReadiness, MergeResolutionClass,
+    };
+
+    #[test]
+    fn deletion_classes_map_to_distinct_blocked_reasons() {
+        assert_eq!(
+            blocked_reason_for_deletion_class(DeletionMergeClass::SourceDeletedTargetLive),
+            LoweredMergeBlockedReason::SourceDeletedTargetLive
+        );
+        assert_eq!(
+            blocked_reason_for_deletion_class(DeletionMergeClass::SourceLiveTargetDeleted),
+            LoweredMergeBlockedReason::SourceLiveTargetDeleted
+        );
+        assert_eq!(
+            blocked_reason_for_deletion_class(DeletionMergeClass::DeletedOnBothSides),
+            LoweredMergeBlockedReason::DeletedOnBothSides
+        );
+        assert_eq!(
+            blocked_reason_for_deletion_class(DeletionMergeClass::DeletedVsModified),
+            LoweredMergeBlockedReason::DeletedVsModified
+        );
+        assert_eq!(
+            blocked_reason_for_deletion_class(DeletionMergeClass::DeletedVsRewired),
+            LoweredMergeBlockedReason::DeletedVsRewired
+        );
+    }
+
+    #[test]
+    fn deletion_blocked_reasons_map_to_distinct_denial_kinds() {
+        assert_eq!(
+            blocked_denial_kind_from_reason(LoweredMergeBlockedReason::SourceDeletedTargetLive),
+            LoweredRecordDenialKind::BlockedSourceDeletedTargetLive
+        );
+        assert_eq!(
+            blocked_denial_kind_from_reason(LoweredMergeBlockedReason::SourceLiveTargetDeleted),
+            LoweredRecordDenialKind::BlockedSourceLiveTargetDeleted
+        );
+        assert_eq!(
+            blocked_denial_kind_from_reason(LoweredMergeBlockedReason::DeletedOnBothSides),
+            LoweredRecordDenialKind::BlockedDeletedOnBothSides
+        );
+        assert_eq!(
+            blocked_denial_kind_from_reason(LoweredMergeBlockedReason::DeletedVsModified),
+            LoweredRecordDenialKind::BlockedDeletedVsModified
+        );
+        assert_eq!(
+            blocked_denial_kind_from_reason(LoweredMergeBlockedReason::DeletedVsRewired),
+            LoweredRecordDenialKind::BlockedDeletedVsRewired
+        );
+    }
+
+    #[test]
+    fn deletion_reason_detector_is_specific_to_deletion_blocking() {
+        assert!(is_deletion_blocked_reason(
+            LoweredMergeBlockedReason::DeletedVsModified
+        ));
+        assert!(!is_deletion_blocked_reason(
+            LoweredMergeBlockedReason::ManualConflictResolutionRequired
+        ));
+        assert!(!is_deletion_blocked_reason(
+            LoweredMergeBlockedReason::RelationEndpointDivergence
+        ));
+    }
+
+    #[test]
+    fn deleted_on_both_sides_maps_to_explicit_executable_class_when_admitted() {
+        assert_eq!(
+            executable_class_for_record(
+                MergeResolutionClass::Deletion(DeletionExecutionClass::DeletedOnBothSides),
+                MergeExecutionReadiness::Admitted,
+                Some(LoweredRecordExecutionIntentKind::ConvergeDeletedOnBothSides),
+            ),
+            Some(MergeExecutableClass::ConvergeDeletedOnBothSides)
+        );
     }
 }

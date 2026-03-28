@@ -3,6 +3,7 @@ use crate::authority::commit::phases::publication::{
 };
 use crate::authority::commit::phases::schema_continuity::SchemaContinuityPlan;
 use crate::authority::commit::publication::diagnostics_summary_artifact;
+use crate::diagnostics::data::RelationalDiagnosticsEntry;
 use crate::history::data::CommitReference;
 use crate::publication::data::diff::RelationalPatchRecord;
 use crate::transactions::data::{
@@ -39,9 +40,13 @@ pub(crate) fn prepare_publication_artifacts(
     merged_plan: &MergedCommitPlan,
     schema_continuity: &SchemaContinuityPlan,
     effect: crate::authority::mutation::MutationEffect,
+    additional_diagnostics_entries: Vec<RelationalDiagnosticsEntry>,
 ) -> Result<PublicationPreparation, TransactionCommitError> {
-    let diagnostics_summary =
-        diagnostics_summary_artifact(&runtime.config, effect.diagnostics.entries);
+    let diagnostics_summary = diagnostics_summary_artifact(
+        &runtime.config,
+        additional_diagnostics_entries,
+        effect.diagnostics.entries,
+    );
     let aspect_evaluation_traces = effect
         .publication
         .canonical_deltas

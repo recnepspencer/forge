@@ -55,6 +55,39 @@ pub enum LoweredMergeAction {
     KeepSourceAddition,
     KeepExactSharedTruth,
     ReconcileSchemaCorrespondence,
+    ConvergeDeletedOnBothSides,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DeletionExecutionClass {
+    SourceDeletedTargetLive,
+    SourceLiveTargetDeleted,
+    DeletedOnBothSides,
+    DeletedVsModified,
+    DeletedVsRewired,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TopologyExecutionClass {
+    RelationEndpointDivergence,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MergeResolutionClass {
+    SourceOnlyAddition,
+    ExactSharedTruth,
+    SchemaDeclaredCorrespondence,
+    Deletion(DeletionExecutionClass),
+    Topology(TopologyExecutionClass),
+    DivergentVisibleState,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MergeExecutableClass {
+    AdoptSourceRecord,
+    PreserveSharedRecord,
+    ReconcileRecord,
+    ConvergeDeletedOnBothSides,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -62,6 +95,7 @@ pub enum LoweredRecordExecutionIntentKind {
     AdoptSourceRecord,
     PreserveSharedRecord,
     ReconcileRecord,
+    ConvergeDeletedOnBothSides,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -103,7 +137,11 @@ pub enum LoweredAspectExecutionIntent {
 pub enum LoweredMergeBlockedReason {
     ManualConflictResolutionRequired,
     RelationEndpointDivergence,
-    DeletionSemanticsRequireExplicitResolution,
+    SourceDeletedTargetLive,
+    SourceLiveTargetDeleted,
+    DeletedOnBothSides,
+    DeletedVsModified,
+    DeletedVsRewired,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -113,7 +151,11 @@ pub enum LoweredMergeRejectedReason {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LoweredAspectDenialIntent {
-    BlockedDeletion,
+    BlockedSourceDeletedTargetLive,
+    BlockedSourceLiveTargetDeleted,
+    BlockedDeletedOnBothSides,
+    BlockedDeletedVsModified,
+    BlockedDeletedVsRewired,
     BlockedRelationEndpointDivergence,
     BlockedManualResolution,
     RejectedPolicy,
@@ -153,7 +195,11 @@ pub enum LoweredRecordDecisionKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LoweredRecordDenialKind {
-    BlockedDeletion,
+    BlockedSourceDeletedTargetLive,
+    BlockedSourceLiveTargetDeleted,
+    BlockedDeletedOnBothSides,
+    BlockedDeletedVsModified,
+    BlockedDeletedVsRewired,
     BlockedRelationEndpointDivergence,
     BlockedManualResolution,
     RejectedPolicy,
@@ -216,6 +262,8 @@ pub struct LoweredMergePlanRecord {
     pub record: RecordRef,
     pub target_record: Option<RecordRef>,
     pub classification: crate::merge::data::MergeConflictClass,
+    pub resolution_class: MergeResolutionClass,
+    pub executable_class: Option<MergeExecutableClass>,
     pub causal_disposition: crate::merge::data::MergeRecordCausalDisposition,
     pub applied_policies: Arc<[ResolvedAspectMergePolicy]>,
     pub policy_resolution: MergePolicyResolution,

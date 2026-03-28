@@ -240,6 +240,20 @@ pub struct RuntimeArtifactFinalizeImage {
     lineage_artifact_id: ArtifactTransitionKey,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RuntimeArtifactReuseBoundarySnapshot {
+    pub output_identity: Option<OutputIdentity>,
+    pub continuity_token: Option<ArtifactContinuityToken>,
+    pub reuse_boundary_authority: Option<ReuseBoundaryAuthority>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RuntimeArtifactOperationalSummary {
+    pub memoized_origin: MemoizedResultOrigin,
+    pub reuse_basis: ReuseBasis,
+    pub reuse_origin: ReuseOrigin,
+}
+
 impl RuntimeArtifactState {
     pub fn new(hot: RuntimeArtifactHot, warm: RuntimeArtifactWarm) -> Self {
         Self { hot, warm }
@@ -331,6 +345,22 @@ impl RuntimeArtifactState {
 
     pub fn set_lineage_artifact_id(&mut self, artifact_id: Option<LineageArtifactId>) {
         self.warm.lineage_artifact_id = ArtifactTransitionKey::new(artifact_id);
+    }
+
+    pub fn reuse_boundary_snapshot(&self) -> RuntimeArtifactReuseBoundarySnapshot {
+        RuntimeArtifactReuseBoundarySnapshot {
+            output_identity: self.output_identity().cloned(),
+            continuity_token: self.continuity_token_authority().clone_inner(),
+            reuse_boundary_authority: self.reuse_boundary_authority().cloned(),
+        }
+    }
+
+    pub fn operational_summary(&self) -> RuntimeArtifactOperationalSummary {
+        RuntimeArtifactOperationalSummary {
+            memoized_origin: self.memoized_origin(),
+            reuse_basis: self.reuse_basis().clone_inner(),
+            reuse_origin: self.reuse_origin(),
+        }
     }
 }
 

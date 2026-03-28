@@ -524,8 +524,8 @@ fn classify_reason(
         return Ok(TaskReason::OutputDiffDependent);
     }
 
-    let warm_trace = graph.node_runtime_artifact_warm(node)?;
-    if warm_trace.is_some_and(|summary| {
+    let operational_summary = graph.node_runtime_artifact_operational_summary(node)?;
+    if operational_summary.is_some_and(|summary| {
         summary.reuse_basis.source == crate::data::reuse::ReuseSource::MemoizedArtifact
     }) {
         return Ok(TaskReason::MemoValidation);

@@ -164,6 +164,16 @@ pub(crate) fn accumulate_report_counters(
     report: &mut ExecutionReport,
     task_record: &TaskExecutionRecord,
 ) {
+    report.latest_execution_record_id = Some(
+        report
+            .latest_execution_record_id
+            .map_or(task_record.id.0, |current| current.max(task_record.id.0)),
+    );
+    *report
+        .reuse_origin_counts
+        .entry(task_record.reuse_origin)
+        .or_insert(0) += 1;
+
     match task_record.outcome {
         TaskExecutionOutcome::Recomputed | TaskExecutionOutcome::PropagationSuppressed => {
             report.tasks_executed += 1;

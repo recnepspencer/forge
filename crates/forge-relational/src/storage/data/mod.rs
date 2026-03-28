@@ -113,14 +113,16 @@ impl RelationalReadView {
 
     pub fn get_entity(&self, entity_id: EntityId) -> Option<&EntityReadRecord> {
         self.entities
-            .iter()
-            .find(|record| record.entity_id == entity_id)
+            .binary_search_by_key(&entity_id, |record| record.entity_id)
+            .ok()
+            .map(|index| &self.entities[index])
     }
 
     pub fn get_relation(&self, relation_id: RelationId) -> Option<&RelationReadRecord> {
         self.relations
-            .iter()
-            .find(|record| record.relation_id == relation_id)
+            .binary_search_by_key(&relation_id, |record| record.relation_id)
+            .ok()
+            .map(|index| &self.relations[index])
     }
 }
 

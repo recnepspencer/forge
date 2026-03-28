@@ -44,6 +44,7 @@ const RUNTIME_SNAPSHOTTING_SOURCE: &str =
 const CHECKPOINT_IMAGE_SOURCE: &str = include_str!("../data/node/checkpoint_image.rs");
 const STATE_SOURCE: &str = include_str!("../state/mod.rs");
 const PERFORMANCE_SUPPORT_SOURCE: &str = include_str!("./performance_support.rs");
+const PERFORMANCE_PROFILES_SOURCE: &str = include_str!("./performance_profiles.rs");
 const PERFORMANCE_BASELINE_SOURCE: &str = include_str!("./performance_baseline.json");
 const ENTRIES_SOURCE: &str = include_str!("../data/graph/storage/entries.rs");
 const GRAPH_RUNTIME_SOURCE: &str = include_str!("../data/graph/runtime/graph.rs");
@@ -112,6 +113,67 @@ fn hot_apply_modules_do_not_use_broad_entry_accessors_for_reads() {
             "{name} should not require broad mutable entry access on the read-path seam"
         );
     }
+}
+
+#[test]
+fn perf_harness_supports_hot_family_access_counter_budgets() {
+    assert!(
+        PERFORMANCE_SUPPORT_SOURCE.contains("access_counter_maxima"),
+        "performance support should encode explicit access-counter budgets for hot families"
+    );
+    assert!(
+        PERFORMANCE_SUPPORT_SOURCE.contains("for (counter, maximum) in contract.access_counter_maxima"),
+        "performance support should certify access-counter maxima as part of perf-case enforcement"
+    );
+}
+
+#[test]
+fn hot_perf_families_forbid_broad_entry_access() {
+    for suite in [
+        "topology_rewiring_churn",
+        "topology_rewiring_rotating_window",
+        "chain_10k_bootstrap",
+        "suppression_wide_fanout",
+    ] {
+        assert!(
+            PERFORMANCE_PROFILES_SOURCE.contains(&format!("\"{suite}\"")),
+            "{suite} perf family should remain source-visible in the cert profile file"
+        );
+    }
+    assert!(
+        PERFORMANCE_PROFILES_SOURCE.contains("ZERO_BROAD_ENTRY_ACCESS"),
+        "perf profiles should define an explicit zero-broad-entry budget for narrowed hot families"
+    );
+    assert!(
+        PERFORMANCE_PROFILES_SOURCE.contains("ZERO_BROAD_AND_ARTIFACT_ACCESS"),
+        "perf profiles should define an explicit zero-broad-and-artifact budget for already-clean topology families"
+    );
+    assert!(
+        PERFORMANCE_PROFILES_SOURCE.contains("hot_family_contract("),
+        "hot perf families should use explicit hot-family contracts instead of generic perf contracts"
+    );
+    assert!(
+        PERFORMANCE_PROFILES_SOURCE.contains("\"suppression_wide_fanout\"")
+            && PERFORMANCE_PROFILES_SOURCE.contains("SignalRuntimePolicy::operational().with_history_limit(4)"),
+        "suppression perf cert should run under explicit operational policy instead of paying development-mode diagnostic retention by default"
+    );
+}
+
+#[test]
+fn observability_perf_profiles_use_structural_only_certification() {
+    assert!(
+        PERFORMANCE_SUPPORT_SOURCE.contains("PerfTimingPolicy::StructuralOnly"),
+        "performance support should expose a structural-only cert mode for rich observability workloads"
+    );
+    assert!(
+        PERFORMANCE_SUPPORT_SOURCE.contains("if !matches!(contract.timing_policy, PerfTimingPolicy::StructuralOnly)"),
+        "structural-only perf cases should skip timing-phase regression gates"
+    );
+    assert!(
+        PERFORMANCE_PROFILES_SOURCE.contains("\"harness_observability_profile\"")
+            && PERFORMANCE_PROFILES_SOURCE.contains("PerfTimingPolicy::StructuralOnly"),
+        "observability perf profiles should certify structural/resource behavior without hard timing gating"
+    );
 }
 
 #[test]
