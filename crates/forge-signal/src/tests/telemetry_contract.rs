@@ -239,7 +239,7 @@ fn runtime_metrics_surface_typed_reuse_family_counters() {
         .build();
     let compute_calls = std::sync::atomic::AtomicU32::new(0);
     let projection = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "projection".into(),
             contract: NodeContract::reads([ASPECT_A])
                 .with_produces([ASPECT_B])
@@ -294,7 +294,7 @@ fn typed_rejection_counters_match_runtime_reuse_failures() {
         .with_kernel_defaults()
         .build();
     let projection = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "restricted-projection".into(),
             contract: NodeContract::reads([ASPECT_A])
                 .with_produces([ASPECT_B])

@@ -1,7 +1,7 @@
 use crate::data::error::SignalError;
 use std::time::Instant;
 
-use super::super::computation::{ComputationSpec, DefinedComputation};
+use super::super::computation::{DefinedComputation, Recipe};
 use super::super::transaction::{
     SignalTransaction, TransactionExecutionState, TransactionResult, TransactionScratch,
 };
@@ -13,17 +13,17 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub fn define_computation<F>(
+    pub fn define<F>(
         &mut self,
-        spec: ComputationSpec<T, F>,
+        recipe: Recipe<T, F>,
     ) -> Result<DefinedComputation<T, F>, SignalError> {
         self.config.define_computation(
-            spec.family.clone(),
-            spec.contract.clone(),
-            spec.tier,
-            spec.comparator.clone(),
+            recipe.family.clone(),
+            recipe.contract.clone(),
+            recipe.tier,
+            recipe.comparator.clone(),
         )?;
-        Ok(DefinedComputation::from_spec(spec))
+        Ok(DefinedComputation::from_recipe(recipe))
     }
 
     pub fn begin<'a>(

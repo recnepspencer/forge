@@ -9,7 +9,8 @@ pub use envelope::{
 pub(in crate::logic::transaction::runtime) use transaction_types::TransactionExecutionState;
 pub(in crate::logic::transaction::runtime) use transaction_types::TransactionScratch;
 pub use transaction_types::{
-    EvaluationSummary, TransactionReplayEntry, TransactionResult, TransactionTiming,
+    BatchChangeSession, EvaluationSummary, TransactionReplayEntry, TransactionResult,
+    TransactionTiming,
 };
 pub use transaction_types::{SignalTransaction, TransactionOutcome};
 pub(in crate::logic::transaction::runtime) use transaction_types::{

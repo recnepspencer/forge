@@ -401,7 +401,7 @@ pub struct SignalRuntimePolicy {
 
 impl Default for SignalRuntimePolicy {
     fn default() -> Self {
-        Self::operational()
+        Self::development()
     }
 }
 

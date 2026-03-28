@@ -16,7 +16,8 @@ pub(crate) use runtime::recorder;
 pub(crate) use runtime::state;
 
 pub use access::{
-    diagnostics_for_graph, diagnostics_for_runtime, GraphDiagnostics, RuntimeDiagnostics,
+    diagnostics_for_graph, diagnostics_for_runtime, GraphComparisonDiagnostics, GraphDiagnostics,
+    RuntimeDiagnostics,
 };
 pub use compare::{
     explanations_semantically_equivalent, graphs_semantically_equivalent,

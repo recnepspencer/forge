@@ -2079,7 +2079,7 @@ fn define_computation_applies_contract_comparator_and_tier_to_created_nodes() {
         .with_produces([ASPECT_B])
         .with_required_context(ContextRequirement::DomainContext);
     let computation = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "geometry".into(),
             contract: contract.clone(),
             tier: Tier::Feature,

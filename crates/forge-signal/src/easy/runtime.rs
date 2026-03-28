@@ -4,11 +4,10 @@ use std::marker::PhantomData;
 use std::sync::Mutex;
 
 use crate::facade::{
-    graph::*,
-    proof::DirtyBatch,
-    transaction::*,
-    types::{AspectMask, ChangedRegion, DependencyEdge, NodeId, NodeState, SignalError},
+    AspectMask, BatchChange, ChangedRegion, DependencyEdge, NodeId, NodeState, SignalError,
+    SignalGraph,
 };
+use crate::facade::runtime::mark_dirty_batch;
 use crate::data::trace::{RuntimeArtifactHot, RuntimeArtifactState, RuntimeArtifactWarm};
 use crate::logic::prepared::PreparedEvaluation;
 
@@ -135,7 +134,7 @@ impl ReactiveGraph {
         } else {
             mark_dirty_batch(
                 &mut self.graph,
-                &DirtyBatch::singleton(signal.node, DEFAULT_ASPECT, Vec::<ChangedRegion>::new()),
+                &BatchChange::singleton(signal.node, DEFAULT_ASPECT, Vec::<ChangedRegion>::new()),
             )?;
         }
         Ok(())
@@ -172,7 +171,7 @@ impl ReactiveGraph {
             let dirty_nodes = std::mem::take(&mut self.batched_dirty_nodes);
             if let Err(err) = mark_dirty_batch(
                 &mut self.graph,
-                &DirtyBatch::from_sources(
+                &BatchChange::from_sources(
                     dirty_nodes.into_iter().map(|node| (node, DEFAULT_ASPECT)),
                 ),
             ) {
@@ -320,7 +319,7 @@ impl ReactiveGraph {
 }
 
 fn easy_seed_runtime_artifact_state(
-    version: crate::facade::types::AspectVersion,
+    version: crate::facade::AspectVersion,
     dependency_count: u32,
     recomputed: bool,
 ) -> RuntimeArtifactState {

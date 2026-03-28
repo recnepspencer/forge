@@ -13,7 +13,9 @@ use crate::diagnostics::replay::ReplayEventKind;
 use crate::diagnostics::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::logic::invalidation::mark_dirty_batch;
 
-use super::transaction_types::{SignalTransaction, StagedEventOperation, TransactionReplayEntry};
+use super::transaction_types::{
+    BatchChangeSession, SignalTransaction, StagedEventOperation, TransactionReplayEntry,
+};
 
 impl<'a, D, I, E, Ctx, T> SignalTransaction<'a, D, I, E, Ctx, T>
 where
@@ -72,6 +74,14 @@ where
         self.apply_result(result).map(|_| ())
     }
 
+    pub fn mark_changed(
+        &mut self,
+        source: NodeId,
+        changed_aspect: Aspect,
+    ) -> Result<(), SignalError> {
+        self.mark_dirty(source, changed_aspect)
+    }
+
     #[doc(hidden)]
     pub fn mark_dirty_with_regions(
         &mut self,
@@ -87,6 +97,15 @@ where
         self.apply_result(result).map(|_| ())
     }
 
+    pub fn mark_changed_with_regions(
+        &mut self,
+        source: NodeId,
+        changed_aspect: Aspect,
+        changed_regions: &[ChangedRegion],
+    ) -> Result<(), SignalError> {
+        self.mark_dirty_with_regions(source, changed_aspect, changed_regions)
+    }
+
     pub fn mark_dirty_batch(
         &mut self,
         dirty: &DirtyBatch,
@@ -96,6 +115,17 @@ where
             self.stage_mark_dirty_candidates(entry.source)?;
         }
         mark_dirty_batch(&mut *self.graph, dirty)
+    }
+
+    pub fn apply_batch_changes(
+        &mut self,
+        dirty: &DirtyBatch,
+    ) -> Result<SemanticBatchCommit, SignalError> {
+        self.mark_dirty_batch(dirty)
+    }
+
+    pub fn batch_changes<'tx>(&'tx mut self) -> BatchChangeSession<'tx, 'a, D, I, E, Ctx, T> {
+        BatchChangeSession::new(self)
     }
 
     pub fn flush_checkpoint<Ev>(
@@ -250,5 +280,19 @@ where
                 execution_record_id: None,
                 semantic_segment_id: None,
             });
+    }
+}
+
+impl<'tx, 'a, D, I, E, Ctx, T> BatchChangeSession<'tx, 'a, D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub fn apply(mut self) -> Result<SemanticBatchCommit, SignalError> {
+        let batch = DirtyBatch::new(self.entries.drain(..));
+        let result = self.tx.apply_batch_changes(&batch);
+        self.applied = true;
+        result
     }
 }

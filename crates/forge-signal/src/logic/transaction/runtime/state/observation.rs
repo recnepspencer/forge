@@ -4,7 +4,7 @@ use crate::data::tier::TierPolicy;
 use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::diagnostics::profile::DiagnosticsTier;
 
-use super::runtime_state::SignalRuntime;
+use super::{runtime_state::SignalRuntime, RuntimeHistory, RuntimeMerge};
 
 impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
 where
@@ -18,6 +18,18 @@ where
 
     pub fn runtime_policy(&self) -> SignalRuntimePolicy {
         self.graph.runtime_policy()
+    }
+
+    pub fn diagnostics(&self) -> crate::diagnostics::RuntimeDiagnostics<'_> {
+        self.observe().diagnostics()
+    }
+
+    pub fn history(&mut self) -> RuntimeHistory<'_, D, I, E, Ctx, T> {
+        RuntimeHistory::new(self)
+    }
+
+    pub fn merge(&mut self) -> RuntimeMerge<'_, D, I, E, Ctx, T> {
+        RuntimeMerge::new(self)
     }
 
     pub fn set_diagnostics_profile(&mut self, profile: DiagnosticsTier) {

@@ -100,6 +100,7 @@ pub(crate) fn record_semantic_execution(
     {
         let cursor = graph.diagnostics_state_mut().allocate_replay_cursor();
         let replay_projection = graph.node_replay_projection(task.node).ok().unwrap_or_default();
+        let lineage_artifact_id = graph.node_lineage_artifact_id(task.node).ok().flatten();
         graph
             .diagnostics_state_mut()
             .record_replay_event(ReplayEvent::new(
@@ -110,7 +111,7 @@ pub(crate) fn record_semantic_execution(
                 Some(task.node),
                 Some(task.id.0),
                 Some(task.semantic_segment_id.0),
-                replay_projection.lineage_artifact_id,
+                lineage_artifact_id.or(replay_projection.lineage_artifact_id),
                 Some(task.reuse_origin),
                 replay_projection.persistent_correspondence_kind,
                 replay_projection.composition_region_count,
@@ -141,16 +142,21 @@ fn sample_flow_causes(
 
     let mut samples = Vec::new();
     for node in nodes {
-        let explanation = if let Some(fact) = graph.explanation_fact(node) {
-            fact.explanation.clone()
-        } else {
-            let Ok(explanation) = graph.observe().explain(node) else {
-                continue;
-            };
-            explanation
+        let explanation = match graph.observe().explain(node) {
+            Ok(explanation) => explanation,
+            Err(_) => {
+                let Some(fact) = graph.explanation_fact(node) else {
+                    continue;
+                };
+                fact.explanation.clone()
+            }
         };
+        let rewired = explanation
+            .rewiring
+            .as_ref()
+            .is_some_and(|rewiring| !rewiring.added.is_empty() || !rewiring.removed.is_empty());
         let mut suspect_classes = Vec::new();
-        if explanation.rewiring.is_some() {
+        if rewired {
             suspect_classes.push("rewiring".to_string());
         }
         if explanation.causal_links.iter().any(|link| {
@@ -203,7 +209,7 @@ fn sample_flow_causes(
                 .take(limit)
                 .collect(),
             suspect_classes,
-            rewired: explanation.rewiring.is_some(),
+            rewired,
             conservative_recompute: explanation.causal_links.iter().any(|link| {
                 matches!(
                     link.disposition,

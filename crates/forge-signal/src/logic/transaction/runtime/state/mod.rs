@@ -1,5 +1,6 @@
 mod branching;
 mod builder;
+mod guided;
 mod merge;
 mod mutation;
 mod observation;
@@ -8,6 +9,7 @@ mod reconstructability;
 mod runtime_state;
 
 pub use builder::SignalRuntimeBuilder;
+pub use guided::{PlannedRuntimeMerge, RuntimeHistory, RuntimeMerge};
 #[allow(unused_imports)]
 pub use merge::{
     ArtifactMergeAction, ArtifactMergeComparable, BranchConflictResolutionPlan, BranchMergeBase,

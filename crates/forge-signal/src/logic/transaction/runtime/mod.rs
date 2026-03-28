@@ -4,8 +4,9 @@ mod execution;
 mod state;
 mod transaction;
 
-pub use computation::{ComputationSpec, DefinedComputation, DefinedKeyedComputation};
+pub use computation::{DefinedComputation, DefinedKeyedComputation, Recipe};
 pub use config::SignalRuntimeConfig;
+pub use execution::{RuntimeExecutionRequest, TransactionExecutionRequest};
 pub use state::{
     ArtifactMergeAction, ArtifactMergeComparable, BranchConflictResolutionPlan, BranchMergeBase,
     BranchMergeConflictEvidence, BranchMergeConflictKind, BranchMergeConflictRecord,
@@ -24,11 +25,11 @@ pub use state::{
 pub use state::{
     BoundedJournalSegment, CheckpointBoundary, CheckpointRecord, DependencyIndexRebuildProof,
     JournalSegment, MergeSupportRebuildProof, ReconstructabilityProof, ReconstructabilityRecord,
-    ReplaySuffixRebuildProof, RequiredDerivedRebuildSet, RuntimeMaterializer, RuntimeObserver,
-    SignalRuntime, SignalRuntimeBuilder,
+    ReplaySuffixRebuildProof, RequiredDerivedRebuildSet, RuntimeHistory, RuntimeMaterializer,
+    RuntimeMerge, RuntimeObserver, PlannedRuntimeMerge, SignalRuntime, SignalRuntimeBuilder,
 };
 pub use transaction::{
-    AdvisoryRecord, DecisionDetail, DecisionLog, DecisionRecord, DecisionSummary,
-    EvaluationSummary, IntegrityMarkers, SignalTransaction, TransactionOutcome,
-    TransactionReplayEntry, TransactionResult, TransactionTiming,
+    AdvisoryRecord, BatchChangeSession, DecisionDetail, DecisionLog, DecisionRecord,
+    DecisionSummary, EvaluationSummary, IntegrityMarkers, SignalTransaction,
+    TransactionOutcome, TransactionReplayEntry, TransactionResult, TransactionTiming,
 };

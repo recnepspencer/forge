@@ -38,7 +38,19 @@ where
         source: SignalBranchHandle,
         target: SignalBranchHandle,
     ) -> Result<BranchMergeResult, SignalError> {
-        if source.id == target.id {
+        let request = BranchMergeRequest {
+            source_branch: source,
+            target_branch: target,
+        };
+        let plan = self.plan_branch_merge_request(&request)?;
+        self.execute_branch_merge_request_plan(&request, &plan)
+    }
+
+    pub(crate) fn plan_branch_merge_request(
+        &mut self,
+        request: &BranchMergeRequest,
+    ) -> Result<BranchMergePlan, SignalError> {
+        if request.source_branch.id == request.target_branch.id {
             let error = SignalError::branch_merge_failed(
                 BranchMergeFailureKind::SelfMergeRejected,
                 "branch merge cannot target itself",
@@ -46,35 +58,38 @@ where
             crate::diagnostics::recorder::record_branch_merge_failure(
                 &mut self.graph,
                 &error,
-                Some(source.clone()),
-                Some(target.clone()),
+                Some(request.source_branch.clone()),
+                Some(request.target_branch.clone()),
             );
             return Err(error);
         }
-        let request = BranchMergeRequest {
-            source_branch: source.clone(),
-            target_branch: target.clone(),
-        };
-        let plan = match self.build_branch_merge_plan(&request) {
-            Ok(plan) => plan,
+        match self.build_branch_merge_plan(request) {
+            Ok(plan) => Ok(plan),
             Err(error) => {
                 crate::diagnostics::recorder::record_branch_merge_failure(
                     &mut self.graph,
                     &error,
-                    Some(source.clone()),
-                    Some(target.clone()),
+                    Some(request.source_branch.clone()),
+                    Some(request.target_branch.clone()),
                 );
-                return Err(error);
+                Err(error)
             }
-        };
-        let summary = match self.execute_branch_merge_plan(&request, &plan) {
+        }
+    }
+
+    pub(crate) fn execute_branch_merge_request_plan(
+        &mut self,
+        request: &BranchMergeRequest,
+        plan: &BranchMergePlan,
+    ) -> Result<BranchMergeResult, SignalError> {
+        let summary = match self.execute_branch_merge_plan(request, plan) {
             Ok(summary) => summary,
             Err(error) => {
                 crate::diagnostics::recorder::record_branch_merge_failure(
                     &mut self.graph,
                     &error,
-                    Some(source.clone()),
-                    Some(target.clone()),
+                    Some(request.source_branch.clone()),
+                    Some(request.target_branch.clone()),
                 );
                 return Err(error);
             }
@@ -82,8 +97,8 @@ where
         crate::diagnostics::recorder::record_branch_merge_summary(
             &mut self.graph,
             &summary,
-            source.name,
-            target.name,
+            request.source_branch.name.clone(),
+            request.target_branch.name.clone(),
         );
         Ok(BranchMergeResult {
             source_branch: summary.source_branch_id,

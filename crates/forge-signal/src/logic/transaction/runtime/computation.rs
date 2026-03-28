@@ -15,12 +15,74 @@ use crate::logic::planner::ExecutionReport;
 use super::state::SignalRuntime;
 use super::transaction::SignalTransaction;
 
-pub struct ComputationSpec<T, F> {
+pub struct Recipe<T, F> {
     pub family: ComputationFamily,
     pub contract: NodeContract,
     pub tier: T,
     pub comparator: VersionComparatorPolicy,
     pub evaluator: F,
+}
+
+impl<T, F> Recipe<T, F> {
+    pub fn new(family: impl Into<ComputationFamily>, tier: T, evaluator: F) -> Self {
+        Self {
+            family: family.into(),
+            contract: NodeContract::wildcard(),
+            tier,
+            comparator: VersionComparatorPolicy::Exact,
+            evaluator,
+        }
+    }
+
+    pub fn with_contract(mut self, contract: NodeContract) -> Self {
+        self.contract = contract;
+        self
+    }
+
+    pub fn with_tier(mut self, tier: T) -> Self {
+        self.tier = tier;
+        self
+    }
+
+    pub fn with_comparator(mut self, comparator: VersionComparatorPolicy) -> Self {
+        self.contract = self.contract.with_comparator_override(&comparator);
+        self.comparator = comparator;
+        self
+    }
+
+    pub fn reads(mut self, reads: impl Into<crate::data::aspect::AspectMask>) -> Self {
+        self.contract = self.contract.with_reads(reads);
+        self
+    }
+
+    pub fn produces(mut self, produces: impl Into<crate::data::aspect::AspectMask>) -> Self {
+        self.contract = self.contract.with_produces(produces);
+        self
+    }
+
+    pub fn partition_scope(
+        mut self,
+        partition_scope: impl Into<PartitionSubscription>,
+    ) -> Self {
+        self.contract = self.contract.with_partition_scope(partition_scope);
+        self
+    }
+
+    pub fn partition_scopes(
+        mut self,
+        partition_scopes: impl IntoIterator<Item = PartitionSubscription>,
+    ) -> Self {
+        self.contract = self.contract.with_partition_scopes(partition_scopes);
+        self
+    }
+
+    pub fn required_context(
+        mut self,
+        required_context: crate::data::node::ContextRequirement,
+    ) -> Self {
+        self.contract = self.contract.with_required_context(required_context);
+        self
+    }
 }
 
 pub struct DefinedComputation<T, F> {
@@ -37,7 +99,7 @@ pub struct DefinedKeyedComputation<'a, T, F> {
 }
 
 impl<T: Copy, F> DefinedComputation<T, F> {
-    pub(crate) fn from_spec(spec: ComputationSpec<T, F>) -> Self {
+    pub(crate) fn from_recipe(spec: Recipe<T, F>) -> Self {
         Self {
             family: spec.family,
             contract: spec.contract,
@@ -137,6 +199,21 @@ where
             &self.definition.evaluator,
             EvaluationRequestMode::Default,
         )
+    }
+
+    pub fn run<D, I, E, Ctx, O>(
+        &self,
+        runtime: &mut SignalRuntime<D, I, E, Ctx, T>,
+        runtime_ctx: &Ctx,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        D: Copy + Ord + std::fmt::Debug + 'static,
+        I: Copy + Ord,
+        Ctx: Sync,
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
+    {
+        self.execute(runtime, runtime_ctx)
     }
 
     pub fn read<D, I, E, Ctx, O>(

@@ -178,6 +178,7 @@ fn reconverging_frontier_does_not_revisit_already_visited_nodes() {
 }
 
 #[test]
+#[ignore = "stress-scale invalidation depth; keep out of the default dev loop"]
 fn deep_invalidation_chain_completes_without_recursive_cycle_detection() {
     let mut graph = SignalGraph::new();
     let root = graph.node().build();

@@ -1,181 +1,109 @@
 # forge-signal
 
-Deterministic reactive computation runtime for host-managed state graphs.
+`forge-signal` is a deterministic incremental runtime for derived work.
 
-`forge-signal` gives you:
+Your app owns the real state. `forge-signal` owns:
 
-- dependency DAG scheduling
-- aspect-aware invalidation
-- partition-aware subscriptions for large derived artifacts
-- lazy recomputation
-- conditional nodes
-- transactional rollback
-- production diagnostics and causal explanations
-- deterministic behavior
+- dependency tracking
+- invalidation
+- recompute
+- rollback
+- diagnostics
 
-It stays domain-free. Your application owns the truth state. `forge-signal` owns invalidation and recomputation.
+The main import path is:
 
-## Hard Mode
+```rust
+use forge_signal::facade::*;
+```
 
-The core API is explicit, but it should read cleanly.
+Most days, the shape is simple:
+
+- build a `SignalGraph`
+- build a `SignalRuntime`
+- mark changes in a transaction
+- read the derived node you care about
+- use diagnostics when something smells off
+
+## What it is good at
+
+- web backends and reactive views
+- finance and risk pipelines
+- ML feature and scoring flows
+- geometry or compiler-style partial recompute
+
+## Small example
 
 ```rust
 use forge_signal::facade::*;
 
 const PRICE: Aspect = Aspect::new(0);
-const TAX: Aspect = Aspect::new(1);
+const TOTAL: Aspect = Aspect::new(1);
+
+#[derive(Default)]
+struct CheckoutState {
+    price_version: u64,
+    total_version: u64,
+}
 
 let mut graph = SignalGraph::new();
-
 let price = graph.node().build();
-let total = graph
-    .node()
-    .depends_on_aspects([PRICE, TAX])
-    .on_demand()
-    .build();
+let total = graph.node().on_demand().build();
+
 graph.set_dependencies(total, [DependencyEdge::new(price, PRICE)])?;
 
-let mut runtime = SignalRuntime::builder(graph)
-    .checkpoint_barrier(CheckpointBarrier::PerOperation)
-    .build();
+let mut runtime = SignalRuntime::build_for::<CheckoutState>(graph);
 
-let mut latest_total = 0_u64;
-runtime.transaction(&mut (), |transaction| {
-    transaction.mark_dirty(price, PRICE)?;
-    let precompute = |_node: NodeId, view: &ExecutionReadView<'_>| {
-        latest_total += 1;
-        Ok(view.finish(AspectVersion::from_updates([(PRICE, latest_total)])))
+let mut state = CheckoutState {
+    price_version: 2,
+    total_version: 5,
+};
+
+let evaluate = |view: &mut EvaluationContext<'_, CheckoutState>| {
+    let result = if view.node() == price {
+        view.finish(NodeEvaluationResult::from_version(
+            AspectVersion::from_updates([(PRICE, view.domain().price_version)]),
+        ))
+    } else {
+        let _upstream = view.read_aspect_version(price, PRICE)?;
+        view.finish(NodeEvaluationResult::from_version(
+            AspectVersion::from_updates([(TOTAL, view.domain().total_version)]),
+        ))
     };
+    Ok::<_, SignalError>(result)
+};
 
-    let _current = transaction.get(total, &precompute)?;
+runtime.transaction(&mut state, |tx| {
+    tx.mark_changed(price, PRICE)?;
+    tx.target(total).read(&evaluate)?;
     Ok(())
 })?;
+
+let version = runtime.target(total).read(&state, &evaluate)?;
+assert_eq!(version.get(TOTAL), 5);
+# Ok::<(), SignalError>(())
 ```
 
-### Core ideas
+## Start here
 
-- `depends_on_aspects(...)` expresses which kinds of changes matter to a node
-- `condition(...)` expresses when a node is allowed to run
-- condition helpers like `on_demand()`, `debounce(...)`, `aspect_filter(...)`, `delta_threshold(...)`, and `custom_condition(...)` keep common policies readable
-- `transaction(...)` gives one linear mutation/evaluation flow
-- `graph.node()` replaces raw config-struct-heavy node creation for common cases
+- [Docs index](./docs/README.md)
+- [Quickstart](./docs/QUICKSTART.md)
+- [Daily workflows](./docs/DAILY_WORKFLOWS.md)
+- [Diagnostics](./docs/DIAGNOSTICS.md)
 
-### Conditions
+## Examples
 
-| Condition | Meaning |
-| --- | --- |
-| `EvaluationCondition::Always` | Run whenever the node is dirty |
-| `EvaluationCondition::OnDemand` | Run only when explicitly requested |
-| `EvaluationCondition::Debounce(ms)` | Run only after the quiet period |
-| `EvaluationCondition::AspectFilter(mask)` | Run only when matching aspects changed |
-| `EvaluationCondition::DeltaThreshold(value)` | Run only when change crosses the threshold |
-| `EvaluationCondition::Custom(key)` | Host decides through a resolver |
+- [`examples/web_live_search.rs`](./examples/web_live_search.rs)
+- [`examples/finance_risk_refresh.rs`](./examples/finance_risk_refresh.rs)
+- [`examples/ml_feature_pipeline.rs`](./examples/ml_feature_pipeline.rs)
 
-## Easy Mode
+## Reality check
 
-If you just want reactive values, use the separate `easy` module.
+This crate is meant to feel clean on the normal path and still have real power
+when you need more control.
 
-```rust
-use forge_signal::easy::*;
+If you are just getting started, stay in:
 
-let mut graph = ReactiveGraph::new();
-let price = graph.input(100.0_f64);
-let tax = graph.input(0.08_f64);
-
-let total = graph.computed(|context| {
-    context.get(price) * (1.0 + context.get(tax))
-});
-
-assert_eq!(graph.get(total), 108.0);
-
-graph.batch(|reactive| {
-    reactive.set(price, 200.0);
-    reactive.set(tax, 0.10);
-});
-
-assert_eq!(graph.get(total), 220.0);
-```
-
-Easy mode is a wrapper over the same runtime ideas. It is not a second execution engine.
-
-## Why It Exists
-
-Most reactive systems make invalidation easy but correctness hard.
-
-`forge-signal` is built for workloads where you need:
-
-- explicit mutation boundaries
-- rollback on failure
-- deterministic behavior
-- precise aspect-level change tracking
-- diagnostics that can explain, compare, and diff runtime behavior under pressure
-- a runtime that can later grow into richer planners, memoization, and bridge integration
-
-## Diagnostics
-
-Diagnostics are a first-class production surface, not just test helpers. The runtime now exposes:
-
-- summaries for graphs, plans, execution reports, explanations, and execution history
-- structured diffs and semantic compare helpers
-- graph/plan/report/execution inspectors
-- causal flow summaries
-- failure diagnostics with rollback context
-- explicit diagnostics profiles: `Operational`, `Development`, and `Forensic`
-- runtime-policy-driven artifact retention: replay and stable semantic IDs are always authoritative, while explanation/provenance may be retained, reconstructed, or omitted depending on policy
-- generic continuity hooks: hosts can preserve lineage with `with_continuity_token(...)` without forcing domain meaning into `OutputIdentity`
-- build-time core storage profiles: `compact`, `standard`, and `extended`
-
-Runtime policy presets are also available for common deployment shapes:
-
-- `SignalDeploymentPreset::WebDevelopment`
-- `SignalRuntimePolicy::game_engine()`
-- `SignalRuntimePolicy::fintech()`
-- `SignalRuntimePolicy::kernel()`
-
-Artifact access is explicit:
-
-- `graph.retained_explanation_artifact(...)`
-- `graph.reconstruct_explanation_artifact(...)`
-- `graph.retained_provenance_artifact(...)`
-- `graph.reconstruct_provenance_artifact(...)`
-
-Quick starts:
-
-- [Web Development](./QUICKSTART_WEB_DEVELOPMENT.md)
-- [Game Engines](./QUICKSTART_GAME_ENGINES.md)
-- [Fintech](./QUICKSTART_FINTECH.md)
-- [Docs Index](./DOCS.md)
-- [API Surface](./docs/API_SURFACE.md)
-- [Conditions And Comparators](./docs/CONDITIONS_AND_COMPARATORS.md)
-- [Artifact Access Matrix](./docs/ARTIFACT_ACCESS_MATRIX.md)
-- [Snapshots, Branches, And Replay](./docs/SNAPSHOTS_BRANCHES_AND_REPLAY.md)
-- [Lineage Model](./docs/LINEAGE_MODEL.md)
-- [Transactions And Keyed Runtime](./docs/TRANSACTIONS_AND_KEYED_RUNTIME.md)
-- [Checkpoints And Tiers](./docs/CHECKPOINTS_AND_TIERS.md)
-- [Lifecycle And GC](./docs/LIFECYCLE_AND_GC.md)
-- [Advanced Patterns](./docs/ADVANCED_PATTERNS.md)
-- [Harness And Certification](./docs/HARNESS_AND_CERTIFICATION.md)
-- [_docs/engineering/forge_signal_adversarial_testing_matrix.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_signal_adversarial_testing_matrix.md)
-- [LOW_LEVEL_NERDS.md](./LOW_LEVEL_NERDS.md)
-
-Choose this if:
-
-- `WebDevelopment`: request-driven or UI-driven workloads where cheap operational mode matters most
-- `GameEngine`: repeated frame/editor updates where parallel recompute should be available but observability must stay lightweight
-- `Fintech`: audit/replay-heavy systems where richer retained diagnostics are worth the overhead
-- `Kernel`: the heaviest investigative/compute setting when maximal retained semantic detail matters
-
-Parallel certification, determinism gates, failure acceptance criteria, and the runtime/persistence ownership boundary are documented in [PARALLEL_CERTIFICATION.md](./PARALLEL_CERTIFICATION.md) and [BOUNDARY_CONTRACT.md](./BOUNDARY_CONTRACT.md).
-The durable adversarial contract matrix that maps those promises to concrete test lanes lives in [_docs/engineering/forge_signal_adversarial_testing_matrix.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_signal_adversarial_testing_matrix.md).
-
-## Current Focus
-
-The current public surface is centered on:
-
+- `SignalGraph`
 - `SignalRuntime`
-- `SignalRuntime::builder(...)`
-- `runtime.transaction(...)`
-- `SignalGraph::node()`
-- `forge_signal::easy::*`
-
-Lower-level APIs still exist, but these are the intended front doors.
+- `transaction(...)`
+- `runtime.diagnostics()`

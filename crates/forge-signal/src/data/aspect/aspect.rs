@@ -20,7 +20,7 @@ impl Aspect {
     /// Prefer defining aspects as named constants near the graph domain model:
     ///
     /// ```rust
-    /// use forge_signal::facade::types::Aspect;
+    /// use forge_signal::facade::Aspect;
     ///
     /// const PRICE: Aspect = Aspect::new(0);
     /// const TAX: Aspect = Aspect::new(1);

@@ -7,6 +7,8 @@ use crate::data::bitset::DenseBitset;
 use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::dirty_set::BatchedDirtySet;
 use crate::data::handle::NodeId;
+use crate::data::output::ChangedRegion;
+use crate::data::proof::DirtyBatchEntry;
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::failure::FailureSummary;
@@ -315,4 +317,52 @@ where
     pub(in crate::logic::transaction::runtime) finished: bool,
     pub(in crate::logic::transaction::runtime) execution_state: TransactionExecutionState,
     pub(in crate::logic::transaction::runtime) started_at: Instant,
+}
+
+pub struct BatchChangeSession<'tx, 'a, D, I, E, Ctx, T = ()>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub(in crate::logic::transaction::runtime) tx: &'tx mut SignalTransaction<'a, D, I, E, Ctx, T>,
+    pub(in crate::logic::transaction::runtime) entries: Vec<DirtyBatchEntry>,
+    pub(in crate::logic::transaction::runtime) applied: bool,
+}
+
+impl<'tx, 'a, D, I, E, Ctx, T> BatchChangeSession<'tx, 'a, D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub(in crate::logic::transaction::runtime) fn new(
+        tx: &'tx mut SignalTransaction<'a, D, I, E, Ctx, T>,
+    ) -> Self {
+        Self {
+            tx,
+            entries: Vec::new(),
+            applied: false,
+        }
+    }
+
+    pub fn mark(mut self, source: NodeId, changed_aspect: crate::data::aspect::Aspect) -> Self {
+        self.entries
+            .push(DirtyBatchEntry::without_regions(source, changed_aspect));
+        self
+    }
+
+    pub fn mark_regions(
+        mut self,
+        source: NodeId,
+        changed_aspect: crate::data::aspect::Aspect,
+        changed_regions: &[ChangedRegion],
+    ) -> Self {
+        self.entries.push(DirtyBatchEntry::new(
+            source,
+            changed_aspect,
+            changed_regions.to_vec(),
+        ));
+        self
+    }
 }

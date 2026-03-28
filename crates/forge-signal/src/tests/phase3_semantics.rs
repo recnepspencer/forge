@@ -162,7 +162,7 @@ fn defined_computation_keyed_lookup_reuses_same_runtime_entry() {
         .with_kernel_defaults()
         .build();
     let volumes = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "fighter-projection".into(),
             contract: NodeContract::reads([ASPECT_A]).with_produces([ASPECT_B]),
             tier: (),
@@ -248,7 +248,7 @@ fn defined_computation_evaluate_memoized_reuses_cached_result() {
         .build();
     let compute_calls = AtomicU32::new(0);
     let projection = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "projection".into(),
             contract: NodeContract::reads([ASPECT_A]).with_produces([ASPECT_B]),
             tier: (),
@@ -304,7 +304,7 @@ fn defined_computation_evaluate_cross_identity_reuses_cached_result_via_public_a
         .build();
     let compute_calls = AtomicU32::new(0);
     let projection = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "projection".into(),
             contract: NodeContract::reads([ASPECT_A])
                 .with_produces([ASPECT_B])
@@ -399,7 +399,7 @@ fn cross_identity_contract_declared_basis_is_retained_in_runtime_truth() {
         .graph_mut()
         .set_runtime_policy(SignalRuntimePolicy::development());
     let projection = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "projection".into(),
             contract: NodeContract::reads([ASPECT_A])
                 .with_produces([ASPECT_B])
@@ -469,7 +469,7 @@ fn cross_identity_lineage_mapping_is_retained_in_runtime_truth() {
         .graph_mut()
         .set_runtime_policy(SignalRuntimePolicy::development());
     let projection = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "projection".into(),
             contract: NodeContract::reads([ASPECT_A])
                 .with_produces([ASPECT_B])
@@ -535,7 +535,7 @@ fn cross_identity_region_identity_basis_is_retained_in_runtime_truth() {
         .graph_mut()
         .set_runtime_policy(SignalRuntimePolicy::development());
     let projection = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "projection".into(),
             contract: NodeContract::reads([ASPECT_A])
                 .with_produces([ASPECT_B])
@@ -604,7 +604,7 @@ fn cross_identity_changed_contract_basis_is_rejected_and_preserves_previous_corr
         .set_runtime_policy(SignalRuntimePolicy::development());
     let compute_calls = AtomicU32::new(0);
     let projection = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "projection".into(),
             contract: NodeContract::reads([ASPECT_A])
                 .with_produces([ASPECT_B])
@@ -700,7 +700,7 @@ fn cross_identity_evidence_family_change_is_rejected_and_not_treated_as_equivale
         .set_runtime_policy(SignalRuntimePolicy::development());
     let compute_calls = AtomicU32::new(0);
     let projection = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "projection".into(),
             contract: NodeContract::reads([ASPECT_A])
                 .with_produces([ASPECT_B])
@@ -785,7 +785,7 @@ fn ambiguous_lineage_mapping_is_rejected_before_cross_identity_reuse_commits() {
         .graph_mut()
         .set_runtime_policy(SignalRuntimePolicy::development());
     let projection = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "projection".into(),
             contract: NodeContract::reads([ASPECT_A])
                 .with_produces([ASPECT_B])
@@ -848,7 +848,7 @@ fn cross_identity_lineage_and_history_preserve_correspondence_family() {
         .with_kernel_defaults()
         .build();
     let projection = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "projection".into(),
             contract: NodeContract::reads([ASPECT_A])
                 .with_produces([ASPECT_B])
@@ -932,7 +932,7 @@ fn branch_local_cross_identity_rejection_preserves_main_correspondence_and_linea
         .graph_mut()
         .set_runtime_policy(SignalRuntimePolicy::development());
     let projection = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "projection".into(),
             contract: NodeContract::reads([ASPECT_A])
                 .with_produces([ASPECT_B])
@@ -1074,7 +1074,7 @@ fn branch_local_cross_identity_history_retains_committed_family_after_rejected_e
         .with_kernel_defaults()
         .build();
     let projection = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "projection".into(),
             contract: NodeContract::reads([ASPECT_A])
                 .with_produces([ASPECT_B])
@@ -1164,7 +1164,7 @@ fn defined_computation_evaluate_partial_splice_uses_public_api() {
         .build();
     let compute_calls = AtomicU32::new(0);
     let projection = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "projection".into(),
             contract: NodeContract::reads([ASPECT_A])
                 .with_produces([ASPECT_B])
@@ -1281,7 +1281,7 @@ fn branch_local_partial_splice_rejection_preserves_main_mixed_provenance() {
         .graph_mut()
         .set_runtime_policy(SignalRuntimePolicy::development());
     let projection = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "projection".into(),
             contract: NodeContract::reads([ASPECT_A])
                 .with_produces([ASPECT_B])
@@ -1409,7 +1409,7 @@ fn branch_local_partial_splice_history_retains_committed_region_accounting_after
         .with_kernel_defaults()
         .build();
     let projection = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "projection".into(),
             contract: NodeContract::reads([ASPECT_A])
                 .with_produces([ASPECT_B])

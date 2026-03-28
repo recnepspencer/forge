@@ -1,8 +1,11 @@
 use crate::data::graph::signal_graph::SignalGraph;
-use crate::diagnostics::replay::{ReplayEvent, ReplaySlice};
+use crate::diagnostics::replay::ReplaySlice;
 use crate::state::SignalBranchHandle;
+#[cfg(any(test, doctest))]
+use crate::diagnostics::replay::ReplayEvent;
 
 impl SignalGraph {
+    #[cfg(any(test, doctest))]
     pub(crate) fn replay_events(&self) -> &std::collections::VecDeque<ReplayEvent> {
         self.observation.diagnostics.replay_events()
     }

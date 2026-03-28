@@ -62,6 +62,7 @@ impl DenseBitset {
     }
 
     /// Merge `other` into this bitset.
+    #[cfg(test)]
     pub fn merge(&mut self, other: &Self) {
         if self.words.len() < other.words.len() {
             self.words.resize(other.words.len(), 0);

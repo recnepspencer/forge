@@ -4,22 +4,14 @@ use std::num::NonZeroUsize;
 use std::time::Instant;
 
 #[cfg(feature = "parallel")]
-use forge_signal::facade::diagnostics::SignalRuntimePolicy;
-#[cfg(feature = "parallel")]
-use forge_signal::facade::evaluation::EvaluationRequestMode;
-#[cfg(feature = "parallel")]
-use forge_signal::facade::graph::SignalGraph;
-#[cfg(feature = "parallel")]
-use forge_signal::facade::planning::{ExecutionReport, ParallelExecutionPolicy, StageExecutor};
-#[cfg(feature = "parallel")]
-use forge_signal::facade::proof::DirtyBatch;
-#[cfg(feature = "parallel")]
-use forge_signal::facade::transaction::mark_dirty_batch;
-#[cfg(feature = "parallel")]
-use forge_signal::facade::types::{
-    Aspect, AspectVersion, ChangedRegion, DependencyEdge, NodeEvaluationResult,
-    CORE_STORAGE_PROFILE_ID,
+use forge_signal::facade::{
+    Aspect, AspectVersion, BatchChange, ChangedRegion, DependencyEdge, EvaluationRequestMode,
+    NodeEvaluationResult, SignalGraph,
 };
+#[cfg(feature = "parallel")]
+use forge_signal::facade::advanced::{ExecutionReport, ParallelExecutionPolicy, StageExecutor};
+#[cfg(feature = "parallel")]
+use forge_signal::facade::runtime::{mark_dirty_batch, SignalRuntimePolicy};
 #[cfg(feature = "parallel")]
 use serde::Serialize;
 
@@ -103,7 +95,7 @@ fn summarize(
         workload,
         executor_profile,
         runtime_policy,
-        core_storage_profile: CORE_STORAGE_PROFILE_ID,
+        core_storage_profile: "public-facade-default",
         stage_parallel_admission_reasons: report
             .stages
             .iter()
@@ -165,7 +157,7 @@ fn run_deep_chain(
 
     mark_dirty_batch(
         &mut graph,
-        &DirtyBatch::from_sources([(chain[0], ASPECT_A)]),
+        &BatchChange::from_sources([(chain[0], ASPECT_A)]),
     )
     .unwrap();
     let plan_start = Instant::now();
@@ -213,7 +205,7 @@ fn run_wide_stage(
 
     mark_dirty_batch(
         &mut graph,
-        &DirtyBatch::from_sources(requested.iter().copied().map(|node| (node, ASPECT_A))),
+        &BatchChange::from_sources(requested.iter().copied().map(|node| (node, ASPECT_A))),
     )
     .unwrap();
     let plan_start = Instant::now();
@@ -303,7 +295,7 @@ fn run_partition_tolerance(
 
     mark_dirty_batch(
         &mut graph,
-        &DirtyBatch::singleton(
+        &BatchChange::singleton(
             source,
             ASPECT_A,
             vec![ChangedRegion::new("core"), ChangedRegion::new("shell")],

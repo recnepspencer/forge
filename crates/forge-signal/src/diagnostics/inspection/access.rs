@@ -27,6 +27,8 @@ pub struct GraphDiagnostics<'a> {
     graph: &'a SignalGraph,
 }
 
+pub struct GraphComparisonDiagnostics;
+
 pub struct GraphForensicDiagnostics<'a> {
     graph: &'a SignalGraph,
 }
@@ -40,12 +42,40 @@ impl<'a> GraphDiagnostics<'a> {
         GraphForensicDiagnostics { graph: self.graph }
     }
 
+    pub fn compare(&self) -> GraphComparisonDiagnostics {
+        GraphComparisonDiagnostics
+    }
+
+    pub fn explain(&self, node: NodeId) -> Result<NodeExplanation, crate::data::error::SignalError> {
+        self.graph.observe().explain(node)
+    }
+
+    pub fn why(&self, node: NodeId) -> Result<NodeExplanation, crate::data::error::SignalError> {
+        self.explain(node)
+    }
+
     pub fn summary(&self, profile: DiagnosticsTier) -> GraphSummary {
         self.graph.observe().diagnostics_summary(profile)
     }
 
+    pub fn summary_now(&self) -> GraphSummary {
+        self.summary(self.graph.runtime_policy().tier)
+    }
+
     pub fn history(&self, profile: DiagnosticsTier) -> ExecutionHistorySummary {
         self.graph.observe().execution_history_summary(profile)
+    }
+
+    pub fn history_now(&self) -> ExecutionHistorySummary {
+        self.history(self.graph.runtime_policy().tier)
+    }
+
+    pub fn health(&self, profile: DiagnosticsTier) -> GraphSummary {
+        self.summary(profile)
+    }
+
+    pub fn health_now(&self) -> GraphSummary {
+        self.summary_now()
     }
 
     pub fn latest_flow(&self) -> Option<&'a FlowSummary> {
@@ -137,6 +167,72 @@ impl<'a> GraphDiagnostics<'a> {
         T: PartialEq,
     {
         repeat_run_summaries_equal(summaries)
+    }
+}
+
+impl GraphComparisonDiagnostics {
+    pub fn graphs(&self, left: &GraphSummary, right: &GraphSummary) -> crate::diagnostics::GraphDiff {
+        crate::diagnostics::compare_graphs(left, right)
+    }
+
+    pub fn plans(
+        &self,
+        left: &crate::diagnostics::EvaluationPlanSummary,
+        right: &crate::diagnostics::EvaluationPlanSummary,
+    ) -> crate::diagnostics::PlanDiff {
+        crate::diagnostics::compare_plans(left, right)
+    }
+
+    pub fn reports(
+        &self,
+        left: &crate::diagnostics::ExecutionReportSummary,
+        right: &crate::diagnostics::ExecutionReportSummary,
+    ) -> crate::diagnostics::ExecutionReportDiff {
+        crate::diagnostics::compare_execution_reports(left, right)
+    }
+
+    pub fn explanations(
+        &self,
+        left: &crate::diagnostics::ExplanationSummary,
+        right: &crate::diagnostics::ExplanationSummary,
+    ) -> crate::diagnostics::ExplanationDiff {
+        crate::diagnostics::compare_explanations(left, right)
+    }
+
+    pub fn histories(
+        &self,
+        left: &ExecutionHistorySummary,
+        right: &ExecutionHistorySummary,
+    ) -> crate::diagnostics::HistoryDiff {
+        crate::diagnostics::compare_execution_history(left, right)
+    }
+
+    pub fn flows(&self, left: &FlowSummary, right: &FlowSummary) -> crate::diagnostics::FlowDiff {
+        crate::diagnostics::compare_flows(left, right)
+    }
+
+    pub fn failures(
+        &self,
+        left: &FailureSummary,
+        right: &FailureSummary,
+    ) -> crate::diagnostics::FailureDiff {
+        crate::diagnostics::compare_failures(left, right)
+    }
+
+    pub fn replay(
+        &self,
+        left: &crate::diagnostics::ReplaySlice,
+        right: &crate::diagnostics::ReplaySlice,
+    ) -> crate::diagnostics::ReplayDiff {
+        crate::diagnostics::compare_replay_slices(left, right)
+    }
+
+    pub fn lineage(
+        &self,
+        left: &[crate::diagnostics::LineageRecord],
+        right: &[crate::diagnostics::LineageRecord],
+    ) -> crate::diagnostics::LineageDiff {
+        crate::diagnostics::compare_lineage_records(left, right)
     }
 }
 

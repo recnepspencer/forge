@@ -2,24 +2,16 @@
 use std::num::NonZeroUsize;
 
 #[cfg(feature = "parallel")]
-use forge_signal::facade::diagnostics::{
-    DiagnosticsAvailability, DiagnosticsTier, SignalRuntimePolicy,
+use forge_signal::facade::diagnostics::{DiagnosticsAvailability, DiagnosticsTier};
+#[cfg(feature = "parallel")]
+use forge_signal::facade::{
+    Aspect, AspectVersion, BatchChange, ChangedRegion, DependencyEdge, EvaluationRequestMode,
+    NodeEvaluationResult, NodeId, SignalGraph,
 };
 #[cfg(feature = "parallel")]
-use forge_signal::facade::evaluation::EvaluationRequestMode;
+use forge_signal::facade::advanced::{ParallelExecutionPolicy, StageExecutor};
 #[cfg(feature = "parallel")]
-use forge_signal::facade::graph::SignalGraph;
-#[cfg(feature = "parallel")]
-use forge_signal::facade::planning::{ParallelExecutionPolicy, StageExecutor};
-#[cfg(feature = "parallel")]
-use forge_signal::facade::proof::DirtyBatch;
-#[cfg(feature = "parallel")]
-use forge_signal::facade::transaction::mark_dirty_batch;
-#[cfg(feature = "parallel")]
-use forge_signal::facade::types::{
-    Aspect, AspectVersion, ChangedRegion, DependencyEdge, NodeEvaluationResult, NodeId,
-    CORE_STORAGE_PROFILE_ID,
-};
+use forge_signal::facade::runtime::{mark_dirty_batch, SignalRuntimePolicy};
 #[cfg(feature = "parallel")]
 use serde_json::json;
 
@@ -99,7 +91,7 @@ fn canonical_runtime_artifacts(
         .collect::<Vec<_>>();
     json!({
         "runtime_policy": policy_name(runtime_policy),
-        "core_storage_profile": CORE_STORAGE_PROFILE_ID,
+        "core_storage_profile": "public-facade-default",
         "explanation": {
             "node": explanation.node.to_string(),
             "state": format!("{:?}", explanation.state),
@@ -241,7 +233,7 @@ fn main() {
 
     mark_dirty_batch(
         &mut graph,
-        &DirtyBatch::singleton(
+        &BatchChange::singleton(
             source,
             ASPECT_A,
             vec![

@@ -16,12 +16,6 @@ impl BitsetFrontier {
         }
     }
 
-    /// Clear both boards.
-    pub fn clear(&mut self) {
-        self.current.clear_all();
-        self.next.clear_all();
-    }
-
     /// Seed one index into current board.
     pub fn seed(&mut self, idx: usize) {
         self.current.mark(idx);
@@ -33,6 +27,7 @@ impl BitsetFrontier {
     }
 
     /// Current frontier indices in ascending deterministic order.
+    #[cfg(test)]
     pub fn current_indices(&self) -> Vec<usize> {
         self.current.marked_indices()
     }

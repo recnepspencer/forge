@@ -1,40 +1,9 @@
 use std::collections::BTreeMap;
 
-use crate::data::checkpoint::CheckpointBarrier;
-use crate::data::error::SignalError;
-use crate::data::evaluator::CheckpointEvaluator;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::proof::DedupedNodeBatch;
 use crate::logic::planner::ExecutionReport;
-
-use super::runtime::SignalTransaction;
-
-pub fn flush_checkpoint_in_txn<'a, D, I, E, Ctx, T, Ev>(
-    txn: &mut SignalTransaction<'a, D, I, E, Ctx, T>,
-    barrier: CheckpointBarrier,
-    evaluator: &mut Ev,
-    ctx: &mut Ev::Context,
-) -> Result<usize, SignalError>
-where
-    D: Copy + Ord + std::fmt::Debug + 'static,
-    I: Copy + Ord,
-    T: Copy + Ord,
-    Ev: CheckpointEvaluator<Domain = D, Impact = I>,
-{
-    txn.flush_checkpoint(barrier, evaluator, ctx)
-}
-
-pub fn emit_event_in_txn<'a, D, I, E, Ctx, T>(
-    txn: &mut SignalTransaction<'a, D, I, E, Ctx, T>,
-    event: E,
-) where
-    D: Copy + Ord + std::fmt::Debug + 'static,
-    I: Copy + Ord,
-    T: Copy + Ord,
-{
-    txn.emit_event(event);
-}
 
 pub(super) fn collect_dirty_targets(graph: &SignalGraph) -> Vec<NodeId> {
     DedupedNodeBatch::canonicalize_unordered(graph.live_node_ids().into_iter().filter_map(|node| {

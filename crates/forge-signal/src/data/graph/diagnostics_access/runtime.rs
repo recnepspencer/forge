@@ -42,6 +42,7 @@ impl SignalGraph {
         self.observation.diagnostics.set_policy(policy);
     }
 
+    #[cfg(any(test, doctest))]
     pub(crate) fn diagnostics_summary(&self, profile: DiagnosticsTier) -> GraphSummary {
         if self.diagnostics_state().has_pending_change_input() {
             if let Some(summary) = self.diagnostics_state().pending_graph_summary() {

@@ -22,6 +22,143 @@ enum ExecutionIntent<'a> {
     Dirty,
 }
 
+pub struct RuntimeExecutionRequest<'a, D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    runtime: &'a mut SignalRuntime<D, I, E, Ctx, T>,
+    targets: Vec<NodeId>,
+    request_mode: EvaluationRequestMode,
+    executor: Option<StageExecutor>,
+}
+
+impl<'a, D, I, E, Ctx, T> RuntimeExecutionRequest<'a, D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    Ctx: Sync,
+    T: Copy + Ord,
+{
+    fn new(
+        runtime: &'a mut SignalRuntime<D, I, E, Ctx, T>,
+        targets: Vec<NodeId>,
+        request_mode: EvaluationRequestMode,
+    ) -> Self {
+        Self {
+            runtime,
+            targets,
+            request_mode,
+            executor: None,
+        }
+    }
+
+    pub fn on_demand(mut self) -> Self {
+        self.request_mode = EvaluationRequestMode::ForceOnDemand;
+        self
+    }
+
+    pub fn with_mode(mut self, request_mode: EvaluationRequestMode) -> Self {
+        self.request_mode = request_mode;
+        self
+    }
+
+    pub fn with_executor(mut self, executor: StageExecutor) -> Self {
+        self.executor = Some(executor);
+        self
+    }
+
+    pub fn run<F, O>(self, runtime_ctx: &Ctx, evaluator: &F) -> Result<ExecutionReport, SignalError>
+    where
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
+    {
+        let executor = self
+            .executor
+            .unwrap_or_else(|| executor_for_strategy(self.runtime.derive_evaluation_strategy()));
+        self.runtime.execute_evaluation(
+            ExecutionIntent::Targets {
+                targets: &self.targets,
+                request_mode: self.request_mode,
+            },
+            runtime_ctx,
+            evaluator,
+            executor,
+        )
+    }
+
+    pub fn read<F, O>(self, runtime_ctx: &Ctx, evaluator: &F) -> Result<AspectVersion, SignalError>
+    where
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
+    {
+        let [node] = self.targets.as_slice() else {
+            return Err(SignalError::invalid_input(
+                "guided read requires exactly one target; use read_many for multiple targets",
+            ));
+        };
+        let executor = self
+            .executor
+            .unwrap_or_else(|| executor_for_strategy(self.runtime.derive_evaluation_strategy()));
+        if !matches!(
+            self.runtime.graph.get_state(*node)?,
+            crate::data::node::NodeState::Clean
+        ) {
+            self.runtime.execute_evaluation(
+                ExecutionIntent::Targets {
+                    targets: &self.targets,
+                    request_mode: self.request_mode,
+                },
+                runtime_ctx,
+                evaluator,
+                executor,
+            )?;
+        }
+        self.runtime.graph.node_aspect_version(*node)
+    }
+
+    pub fn read_many<F, O>(
+        self,
+        runtime_ctx: &Ctx,
+        evaluator: &F,
+    ) -> Result<Vec<AspectVersion>, SignalError>
+    where
+        F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+        O: IntoEvaluationOutput,
+    {
+        let pending = self
+            .targets
+            .iter()
+            .copied()
+            .filter(|node| {
+                !matches!(
+                    self.runtime.graph.get_state(*node),
+                    Ok(crate::data::node::NodeState::Clean)
+                )
+            })
+            .collect::<Vec<_>>();
+        if !pending.is_empty() {
+            let executor = self
+                .executor
+                .unwrap_or_else(|| executor_for_strategy(self.runtime.derive_evaluation_strategy()));
+            self.runtime.execute_evaluation(
+                ExecutionIntent::Targets {
+                    targets: &pending,
+                    request_mode: self.request_mode,
+                },
+                runtime_ctx,
+                evaluator,
+                executor,
+            )?;
+        }
+        self.targets
+            .into_iter()
+            .map(|node| self.runtime.graph.node_aspect_version(node))
+            .collect()
+    }
+}
+
 impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
@@ -29,6 +166,21 @@ where
     Ctx: Sync,
     T: Copy + Ord,
 {
+    pub fn target(&mut self, node: NodeId) -> RuntimeExecutionRequest<'_, D, I, E, Ctx, T> {
+        RuntimeExecutionRequest::new(self, vec![node], EvaluationRequestMode::Default)
+    }
+
+    pub fn targets(
+        &mut self,
+        nodes: impl IntoIterator<Item = NodeId>,
+    ) -> RuntimeExecutionRequest<'_, D, I, E, Ctx, T> {
+        RuntimeExecutionRequest::new(
+            self,
+            nodes.into_iter().collect(),
+            EvaluationRequestMode::Default,
+        )
+    }
+
     pub fn build_evaluation_plan(
         &mut self,
         targets: &[NodeId],

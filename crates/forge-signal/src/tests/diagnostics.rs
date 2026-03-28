@@ -125,12 +125,14 @@ fn diagnostics_entrypoint_exposes_one_discoverable_surface() {
     let summary = diagnostics.summary(DiagnosticsTier::Operational);
     let history = diagnostics.history(DiagnosticsTier::Operational);
     let latest_flow = diagnostics.latest_flow();
+    let compare = diagnostics.compare();
     let graph_inspector = diagnostics.inspect_graph();
     let execution_inspector = diagnostics.inspect_execution();
 
     assert_eq!(summary.active_node_count, 1);
     assert!(history.latest_execution_record_id.is_some());
     assert!(latest_flow.is_some());
+    assert!(compare.graphs(&summary, &summary).is_empty());
     assert!(graph_inspector
         .nodes_with_execution_record()
         .contains(&node));
@@ -707,7 +709,7 @@ fn diagnostics_history_and_replay_preserve_typed_advanced_reuse_origins() {
         .build();
     let compute_calls = AtomicU32::new(0);
     let projection = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "diagnostics-projection".into(),
             contract: NodeContract::reads([ASPECT_A])
                 .with_produces([ASPECT_B])

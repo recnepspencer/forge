@@ -1521,7 +1521,7 @@ fn snapshot_restore_preserves_advanced_reuse_history_truth() {
         .build();
     runtime.set_runtime_policy(SignalRuntimePolicy::development());
     let projection = runtime
-        .define_computation(ComputationSpec {
+        .define(Recipe {
             family: "phase5-advanced-reuse".into(),
             contract: NodeContract::reads([ASPECT_A])
                 .with_produces([ASPECT_B])

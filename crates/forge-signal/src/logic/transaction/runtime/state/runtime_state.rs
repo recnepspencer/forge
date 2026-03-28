@@ -2,6 +2,7 @@ use std::ops::{Deref, DerefMut};
 
 use crate::data::graph::{EvaluationStrategy, SignalGraph};
 use crate::data::telemetry::{RuntimeTelemetry, TransactionTelemetry};
+use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::events::EventBus;
 use crate::state::{SignalBranchHandle, SignalBranchId};
@@ -199,12 +200,97 @@ where
 impl SignalRuntime<(), (), (), (), ()> {
     /// Create a runtime builder from a graph.
     ///
-    /// This is the recommended entrypoint for most applications.
+    /// Use this when you need abnormal setup, not for the normal path.
     pub fn builder(
         graph: SignalGraph,
     ) -> SignalRuntimeBuilder<super::builder::Missing, super::builder::Missing, (), (), (), (), ()>
     {
         SignalRuntimeBuilder::new(graph)
+    }
+
+    /// Build a runtime with the recommended default setup for a typed app context.
+    pub fn build_for<Ctx>(graph: SignalGraph) -> SignalRuntime<(), (), (), Ctx, ()> {
+        SignalRuntime::<(), (), (), Ctx, ()>::build(graph)
+    }
+
+    /// Build a runtime with the richer development diagnostics preset for a typed app context.
+    pub fn development_for<Ctx>(graph: SignalGraph) -> SignalRuntime<(), (), (), Ctx, ()> {
+        SignalRuntime::<(), (), (), Ctx, ()>::development(graph)
+    }
+
+    /// Build a runtime with the lean operational diagnostics preset for a typed app context.
+    pub fn operational_for<Ctx>(graph: SignalGraph) -> SignalRuntime<(), (), (), Ctx, ()> {
+        SignalRuntime::<(), (), (), Ctx, ()>::operational(graph)
+    }
+
+    /// Build a runtime with the web-development preset for a typed app context.
+    pub fn web_development_for<Ctx>(graph: SignalGraph) -> SignalRuntime<(), (), (), Ctx, ()> {
+        SignalRuntime::<(), (), (), Ctx, ()>::web_development(graph)
+    }
+
+    /// Build a runtime with the fintech preset for a typed app context.
+    pub fn fintech_for<Ctx>(graph: SignalGraph) -> SignalRuntime<(), (), (), Ctx, ()> {
+        SignalRuntime::<(), (), (), Ctx, ()>::fintech(graph)
+    }
+
+    /// Build a runtime with the heaviest forensic preset for a typed app context.
+    pub fn forensic_for<Ctx>(graph: SignalGraph) -> SignalRuntime<(), (), (), Ctx, ()> {
+        SignalRuntime::<(), (), (), Ctx, ()>::forensic(graph)
+    }
+}
+
+impl<Ctx> SignalRuntime<(), (), (), Ctx, ()> {
+    /// Build a runtime with the recommended default setup for a typed app context.
+    ///
+    /// This defaults to the richer development diagnostics profile rather than
+    /// the lean operational one.
+    pub fn build(graph: SignalGraph) -> Self {
+        Self::development(graph)
+    }
+
+    /// Build a runtime with the development policy preset.
+    pub fn development(graph: SignalGraph) -> Self {
+        SignalRuntime::<(), (), (), (), ()>::builder(graph)
+            .with_context::<Ctx>()
+            .with_kernel_defaults()
+            .runtime_policy(SignalRuntimePolicy::development())
+            .build()
+    }
+
+    /// Build a runtime with the operational policy preset.
+    pub fn operational(graph: SignalGraph) -> Self {
+        SignalRuntime::<(), (), (), (), ()>::builder(graph)
+            .with_context::<Ctx>()
+            .with_kernel_defaults()
+            .runtime_policy(SignalRuntimePolicy::operational())
+            .build()
+    }
+
+    /// Build a runtime with the web-development policy preset.
+    pub fn web_development(graph: SignalGraph) -> Self {
+        SignalRuntime::<(), (), (), (), ()>::builder(graph)
+            .with_context::<Ctx>()
+            .with_kernel_defaults()
+            .runtime_policy(SignalRuntimePolicy::web_development())
+            .build()
+    }
+
+    /// Build a runtime with the fintech policy preset.
+    pub fn fintech(graph: SignalGraph) -> Self {
+        SignalRuntime::<(), (), (), (), ()>::builder(graph)
+            .with_context::<Ctx>()
+            .with_kernel_defaults()
+            .runtime_policy(SignalRuntimePolicy::fintech())
+            .build()
+    }
+
+    /// Build a runtime with the forensic policy preset.
+    pub fn forensic(graph: SignalGraph) -> Self {
+        SignalRuntime::<(), (), (), (), ()>::builder(graph)
+            .with_context::<Ctx>()
+            .with_kernel_defaults()
+            .runtime_policy(SignalRuntimePolicy::forensic())
+            .build()
     }
 }
 

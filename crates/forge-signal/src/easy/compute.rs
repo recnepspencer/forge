@@ -2,7 +2,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::marker::PhantomData;
 
-use crate::facade::types::*;
+use crate::facade::{AspectVersion, NodeEvaluationResult, NodeId, SignalError};
 use crate::logic::prepared::{PreparedDependencyCapture, PreparedEvaluation};
 
 use super::signal::{Signal, DEFAULT_ASPECT};

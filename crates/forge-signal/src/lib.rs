@@ -1,51 +1,103 @@
 //! # forge-signal
 //!
-//! Generic, deterministic reactive computation runtime for host-managed state graphs.
-//! `forge-signal` is domain-free infrastructure and does not own host
-//! structural graphs.
+//! `forge-signal` is a deterministic incremental runtime for derived work.
 //!
-//! ## Architecture
+//! Your app owns the real state.
+//! `forge-signal` owns dependency tracking, invalidation, recompute, rollback,
+//! and diagnostics.
 //!
-//! Two graph kinds must remain separate:
-//! - **Evaluation dependency graph (owned here):** DAG only.
-//! - **Structural host graph (external):** may be cyclic and is opaque input.
+//! The main import path is:
 //!
-//! See `crates/forge-signal/BOUNDARY_CONTRACT.md` for normative integration
-//! boundaries.
+//! ```rust
+//! use forge_signal::facade::*;
+//! ```
 //!
-//! ## Core Concepts
+//! Most days, the center of gravity is:
 //!
-//! - **Three-state invalidation** ([`facade::NodeState`]):
-//!   `Clean(Version)` / `MaybeStale` / `Dirty`
-//! - **In-place transactions with hard rewind** ([`facade::SignalRuntime`]):
-//!   graph writes happen in-place and are restored from sparse patches on failure
-//! - **Multi-aspect versioning** ([`facade::AspectVersion`]):
-//!   User-defined aspect slots carry independent version counters
-//! - **Push phase** ([`facade::mark_dirty`]):
-//!   Synchronous dirty propagation with cycle detection
-//! - **Pull phase**:
-//!   Planner-backed prepared precompute plus deterministic serial apply
-//! - **Condition-gated evaluation** ([`facade::EvaluationCondition`]):
-//!   on-demand, aspect-filtered, threshold, debounce, and custom evaluation policies,
-//!   exposed through readable builder helpers on [`facade::NodeBuilder`]
-//! - **Partition-aware subscriptions** ([`facade::PartitionSubscription`]):
-//!   downstream nodes can subscribe to one partition or one partition/detail pair
-//!   instead of invalidating on every change to a large artifact
-//! - **Parallel safety** ([`facade::ExecutionReadView`]):
-//!   Immutable execution snapshot for stage-local precompute, not thread-local mutation
-//! - **Diagnostics-first observability**:
-//!   production summaries, diffs, inspectors, failure diagnostics, and causal flow reporting
-//! - **Productized runtime surface**:
-//!   [`facade::SignalRuntime::builder`] and [`easy::ReactiveGraph`]
+//! - [`facade::SignalGraph`]
+//! - [`facade::SignalRuntime`]
+//! - `runtime.transaction(...)`
+//! - `runtime.diagnostics()`
 //!
-//! ## Dependencies
+//! ## Fast Mental Model
 //!
-//! - `serde`: snapshot-friendly data structures
-//! - `tracing`: runtime instrumentation hooks
+//! - Build a dependency graph.
+//! - Tell the runtime what changed.
+//! - Read the derived node you care about.
+//! - Ask diagnostics why something ran when it should not have.
 //!
-//! ## Dependents
+//! `forge-signal` is domain-free on purpose. The same runtime shape works for:
 //!
-//! - Any crate that needs deterministic reactive DAG evaluation
+//! - web backends and reactive views
+//! - finance and risk pipelines
+//! - ML feature and scoring flows
+//! - geometry or compiler-style partial recompute
+//!
+//! ## Small Example
+//!
+//! ```no_run
+//! use forge_signal::facade::*;
+//! const PRICE: Aspect = Aspect::new(0);
+//! const TOTAL: Aspect = Aspect::new(1);
+//!
+//! #[derive(Default)]
+//! struct CheckoutState {
+//!     price_version: u64,
+//!     total_version: u64,
+//! }
+//!
+//! let mut graph = SignalGraph::new();
+//! let price = graph.node().build();
+//! let total = graph.node().on_demand().build();
+//!
+//! graph.set_dependencies(total, [DependencyEdge::new(price, PRICE)])?;
+//!
+//! let mut runtime = SignalRuntime::build_for::<CheckoutState>(graph);
+//!
+//! let mut state = CheckoutState {
+//!     price_version: 2,
+//!     total_version: 5,
+//! };
+//!
+//! let evaluate = |view: &mut EvaluationContext<'_, CheckoutState>| {
+//!     let result = if view.node() == price {
+//!         view.finish(NodeEvaluationResult::from_version(
+//!             AspectVersion::from_updates([(PRICE, view.domain().price_version)]),
+//!         ))
+//!     } else {
+//!         let _upstream = view.read_aspect_version(price, PRICE)?;
+//!         view.finish(NodeEvaluationResult::from_version(
+//!             AspectVersion::from_updates([(TOTAL, view.domain().total_version)]),
+//!         ))
+//!     };
+//!     Ok::<_, SignalError>(result)
+//! };
+//!
+//! runtime.transaction(&mut state, |tx| {
+//!     tx.mark_changed(price, PRICE)?;
+//!     tx.target(total).read(&evaluate)?;
+//!     Ok(())
+//! })?;
+//!
+//! let version = runtime.target(total).read(&state, &evaluate)?;
+//! assert_eq!(version.get(TOTAL), 5);
+//! # Ok::<(), SignalError>(())
+//! ```
+//!
+//! ## Docs
+//!
+//! Start with:
+//!
+//! - `crates/forge-signal/docs/QUICKSTART.md`
+//! - `crates/forge-signal/docs/DAILY_WORKFLOWS.md`
+//! - `crates/forge-signal/docs/API_OVERVIEW.md`
+//! - `crates/forge-signal/docs/DIAGNOSTICS.md`
+//!
+//! Examples live in:
+//!
+//! - `crates/forge-signal/examples/web_live_search.rs`
+//! - `crates/forge-signal/examples/finance_risk_refresh.rs`
+//! - `crates/forge-signal/examples/ml_feature_pipeline.rs`
 
 #![forbid(unsafe_code)]
 
@@ -53,7 +105,10 @@ mod data;
 pub mod diagnostics;
 pub mod easy;
 mod logic;
+#[cfg(not(test))]
 mod presentation;
+#[cfg(test)]
+pub mod presentation;
 mod state;
 
 pub mod facade;
