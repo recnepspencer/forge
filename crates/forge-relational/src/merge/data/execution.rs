@@ -341,6 +341,7 @@ pub enum MaterializedAspectValuePayload {
         record: RecordRef,
         aspect_key: crate::publication::patch::data::AspectKey,
     },
+    InlineCanonicalJson(serde_json::Value),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -358,6 +359,18 @@ pub struct SharedTruthWitness {
 pub struct ReconciledIdentityBasis {
     pub source_record: RecordRef,
     pub target_record: RecordRef,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MergeLineageContinuityVerdict {
+    Unchanged,
+    Preserved,
+    Transformed,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DeletedOnBothSidesSemantics {
+    AuthoritativeMutualDeletionConvergence,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -423,6 +436,8 @@ pub struct ConvergeDeletedOnBothSidesRecordPlan {
     pub source_record: RecordRef,
     pub target_record: Option<RecordRef>,
     pub equality_witness: SharedTruthWitness,
+    pub semantics: DeletedOnBothSidesSemantics,
+    pub lineage_continuity: MergeLineageContinuityVerdict,
     pub provenance: MergeExecutableRecordProvenance,
 }
 
@@ -536,6 +551,8 @@ fn executable_record_plan_digest_rows(
                 }),
                 source_visible_snapshot: Some(&plan.source_visible_snapshot),
                 equality_witness: None,
+                deletion_semantics: None,
+                lineage_continuity: None,
                 identity_basis: None,
                 provenance: Some(&plan.provenance),
                 aspect_plan: executable_aspect_plan_digest_rows(&plan.aspect_plan),
@@ -548,6 +565,8 @@ fn executable_record_plan_digest_rows(
                 record_kind: None,
                 source_visible_snapshot: None,
                 equality_witness: Some(&plan.equality_witness),
+                deletion_semantics: None,
+                lineage_continuity: None,
                 identity_basis: None,
                 provenance: Some(&plan.provenance),
                 aspect_plan: executable_aspect_plan_digest_rows(&plan.aspect_plan),
@@ -560,6 +579,8 @@ fn executable_record_plan_digest_rows(
                 record_kind: None,
                 source_visible_snapshot: Some(&plan.source_visible_snapshot),
                 equality_witness: None,
+                deletion_semantics: None,
+                lineage_continuity: None,
                 identity_basis: Some(&plan.identity_basis),
                 provenance: Some(&plan.provenance),
                 aspect_plan: executable_aspect_plan_digest_rows(&plan.aspect_plan),
@@ -573,6 +594,8 @@ fn executable_record_plan_digest_rows(
                     record_kind: None,
                     source_visible_snapshot: None,
                     equality_witness: Some(&plan.equality_witness),
+                    deletion_semantics: Some(&plan.semantics),
+                    lineage_continuity: Some(&plan.lineage_continuity),
                     identity_basis: None,
                     provenance: Some(&plan.provenance),
                     aspect_plan: Vec::new(),
@@ -640,6 +663,8 @@ struct ExecutableRecordPlanDigestRow<'a> {
     record_kind: Option<&'static str>,
     source_visible_snapshot: Option<&'a VisibleMergeRecordSnapshot>,
     equality_witness: Option<&'a SharedTruthWitness>,
+    deletion_semantics: Option<&'a DeletedOnBothSidesSemantics>,
+    lineage_continuity: Option<&'a MergeLineageContinuityVerdict>,
     identity_basis: Option<&'a ReconciledIdentityBasis>,
     provenance: Option<&'a MergeExecutableRecordProvenance>,
     aspect_plan: Vec<ExecutableAspectPlanDigestRow<'a>>,

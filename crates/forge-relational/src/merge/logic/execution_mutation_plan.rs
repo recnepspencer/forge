@@ -37,6 +37,7 @@ impl<'runtime> MergeAccess<'runtime> {
             preserved_shared_record_count: 0,
             reconciled_record_count: 0,
             converged_deleted_on_both_sides_count: 0,
+            deleted_on_both_sides_lineage_unchanged_count: 0,
             emitted_mutation_intent_count: 0,
             emitted_entity_create_count: 0,
             emitted_relation_create_count: 0,
@@ -74,8 +75,13 @@ impl<'runtime> MergeAccess<'runtime> {
                         merged_intents.push(intent);
                     }
                 }
-                BoundExecutableMergeRecordPlan::ConvergeDeletedOnBothSides(_plan) => {
+                BoundExecutableMergeRecordPlan::ConvergeDeletedOnBothSides(plan) => {
                     summary.converged_deleted_on_both_sides_count += 1;
+                    if plan.lineage_continuity
+                        == crate::merge::data::MergeLineageContinuityVerdict::Unchanged
+                    {
+                        summary.deleted_on_both_sides_lineage_unchanged_count += 1;
+                    }
                 }
             }
         }
@@ -97,6 +103,8 @@ impl<'runtime> MergeAccess<'runtime> {
             reconciled_record_count: summary.reconciled_record_count,
             converged_deleted_on_both_sides_count: summary
                 .converged_deleted_on_both_sides_count,
+            deleted_on_both_sides_lineage_unchanged_count: summary
+                .deleted_on_both_sides_lineage_unchanged_count,
             emitted_mutation_intent_count: summary.emitted_mutation_intent_count,
             diagnostics_digest: diagnostics_plan.digest.clone(),
             execution_digest: binding.executable_plan_digest.clone(),
@@ -380,6 +388,7 @@ fn resolve_materialized_json_value(
                 detail: "digest-only equality witnesses cannot be lowered into payload mutation",
             },
         ),
+        MaterializedAspectValuePayload::InlineCanonicalJson(value) => Ok(value.clone()),
     }
 }
 

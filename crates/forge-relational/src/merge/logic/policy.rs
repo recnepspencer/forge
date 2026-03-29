@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::merge::data::{
@@ -6,11 +8,28 @@ use crate::merge::data::{
     MergeManualResolutionClass, MergePlanningError, MergePlanningRequest,
     MergePolicyDecisionBoundary, MergePolicyOwnershipClass, MergePolicyOwnershipSurface,
     MergePolicyProofBoundary, MergePolicyRejectClass, MergePolicyResolution,
+    MergeResolvedAspectValueStrategy,
     MergePolicyResolutionRecord, MergePolicyResolutionSummary, TopologyRewireAdmissionPolicy,
     PolicyResolvedMergePlan, ResolvedAspectMergePolicy, VisibleMergeRecordKind,
 };
 use crate::merge::logic::aspect_plan_lookup::lowered_plan_for_record;
 use crate::merge::logic::MergeAccess;
+use crate::payloads::data::RecordPayload;
+use crate::schema::data::{LoweredAspectBinding, LoweredExecutableAspectBindingKind};
+use crate::storage::data::RelationalReadView;
+use serde_json::Value;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BindingSide {
+    Source,
+    Target,
+}
+
+#[derive(Debug, Clone)]
+enum RuntimeAspectValueBinding {
+    EntityField(crate::symbols::data::InternedString),
+    RelationField(crate::symbols::data::InternedString),
+}
 
 impl<'runtime> MergeAccess<'runtime> {
     pub(crate) fn plan_policy_scope(
@@ -25,11 +44,34 @@ impl<'runtime> MergeAccess<'runtime> {
         &self,
         causal_plan: CausallyAnnotatedMergePlan,
     ) -> Result<PolicyResolvedMergePlan, MergePlanningError> {
+        let history = self.runtime.history_access();
+        let base_envelope = history
+            .commit_envelope(causal_plan.merge_base.commit_id)
+            .ok_or(MergePlanningError::MissingMergeBaseEnvelope {
+                commit_id: causal_plan.merge_base.commit_id,
+            })?;
+        let source_view = self
+            .runtime
+            .visibility_reads()
+            .read_version(causal_plan.source_head.version_id);
+        let target_view = self
+            .runtime
+            .visibility_reads()
+            .read_version(causal_plan.target_head.version_id);
+        let base_view = self
+            .runtime
+            .visibility_reads()
+            .read_version(base_envelope.commit.version_id);
         let source_records_by_ref = causal_plan
             .source_records
             .iter()
             .map(|record| (record.record_ref.clone(), record))
             .collect::<std::collections::BTreeMap<_, _>>();
+        let causal_dispositions_by_record = causal_plan
+            .causal_annotations
+            .iter()
+            .map(|annotation| (annotation.record.clone(), annotation.disposition))
+            .collect::<BTreeMap<_, _>>();
         let policy_records = causal_plan
             .classifications
             .iter()
@@ -45,6 +87,14 @@ impl<'runtime> MergeAccess<'runtime> {
                     record,
                     classification,
                     applied_policies.as_slice(),
+                    *causal_dispositions_by_record
+                        .get(&classification.record)
+                        .ok_or_else(|| MergePlanningError::MissingCausalAnnotation {
+                            record: classification.record.clone(),
+                        })?,
+                    &source_view,
+                    &target_view,
+                    &base_view,
                 )?;
                 let ownership_surface =
                     ownership_surface_for_policies(applied_policies.as_slice());
@@ -156,25 +206,33 @@ fn aggregate_record_resolution(
             }
         };
     }
-    if aspects
-        .iter()
-        .any(|aspect| matches!(aspect.decision_boundary, MergePolicyDecisionBoundary::Reject { .. }))
-    {
-        MergePolicyDecisionBoundary::Reject {
-            class: MergePolicyRejectClass::BuiltInFailOnConflict,
+    let mut reject_class: Option<MergePolicyRejectClass> = None;
+    let mut manual_class: Option<MergeManualResolutionClass> = None;
+
+    for aspect in aspects {
+        match aspect.decision_boundary {
+            MergePolicyDecisionBoundary::AutoResolved => {}
+            MergePolicyDecisionBoundary::RequiresManualResolution { class } => {
+                manual_class = Some(match manual_class {
+                    None => class,
+                    Some(existing) if existing == class => existing,
+                    Some(_) => MergeManualResolutionClass::MixedAspectManualResolution,
+                });
+            }
+            MergePolicyDecisionBoundary::Reject { class } => {
+                reject_class = Some(match reject_class {
+                    None => class,
+                    Some(existing) if existing == class => existing,
+                    Some(_) => MergePolicyRejectClass::MixedAspectRejectClasses,
+                });
+            }
         }
-    } else if aspects
-        .iter()
-        .any(|aspect| {
-            matches!(
-                aspect.decision_boundary,
-                MergePolicyDecisionBoundary::RequiresManualResolution { .. }
-            )
-        })
-    {
-        MergePolicyDecisionBoundary::RequiresManualResolution {
-            class: MergeManualResolutionClass::GenericRuntimeConflict,
-        }
+    }
+
+    if let Some(class) = reject_class {
+        MergePolicyDecisionBoundary::Reject { class }
+    } else if let Some(class) = manual_class {
+        MergePolicyDecisionBoundary::RequiresManualResolution { class }
     } else {
         MergePolicyDecisionBoundary::AutoResolved
     }
@@ -219,10 +277,14 @@ fn resolve_aspects_for_record(
     record: &crate::merge::data::VisibleMergeRecord,
     classification: &crate::merge::data::MergeConflictClassification,
     applied_policies: &[ResolvedAspectMergePolicy],
+    causal_disposition: crate::merge::data::MergeRecordCausalDisposition,
+    source_view: &RelationalReadView,
+    target_view: &RelationalReadView,
+    base_view: &RelationalReadView,
 ) -> Result<Vec<AspectPolicyResolutionRecord>, MergePlanningError> {
-    if lowered_plan_for_record(runtime, record).is_none() {
+    let Some(lowered_plan) = lowered_plan_for_record(runtime, record) else {
         return Ok(Vec::new());
-    }
+    };
     Ok(classification
         .aspect_evidence
         .iter()
@@ -231,26 +293,99 @@ fn resolve_aspects_for_record(
                 .iter()
                 .find(|policy| policy.aspect_key == aspect.aspect_key)
                 .map(|policy| policy.policy.clone());
-            let resolution =
-                decision_boundary_for_aspect(
-                    classification,
-                    aspect.comparison,
-                    applied_policy.as_ref(),
-                );
+            let binding = lowered_plan
+                .executable_bindings
+                .iter()
+                .find(|binding| {
+                    binding_matches_aspect(runtime, binding, &aspect.aspect_key)
+                });
+            let decision_boundary = decision_boundary_for_aspect(
+                classification,
+                aspect.comparison,
+                applied_policy.as_ref(),
+                causal_disposition,
+            );
+            let resolved_value_strategy = resolve_aspect_value_strategy(
+                runtime,
+                record,
+                classification,
+                binding,
+                aspect.aspect_key.clone(),
+                aspect.comparison,
+                applied_policy.as_ref(),
+                decision_boundary,
+                causal_disposition,
+                source_view,
+                target_view,
+                base_view,
+            );
             AspectPolicyResolutionRecord {
                 aspect_key: aspect.aspect_key.clone(),
                 comparison: aspect.comparison,
                 applied_policy,
-                decision_boundary: resolution,
+                decision_boundary,
+                resolved_value_strategy,
             }
         })
         .collect())
+}
+
+fn binding_matches_aspect(
+    runtime: &crate::logic::runtime::RelationalRuntime,
+    binding: &LoweredAspectBinding,
+    aspect_key: &crate::publication::patch::data::AspectKey,
+) -> bool {
+    if aspect_key_equivalent(runtime, &binding.aspect_key, aspect_key) {
+        return true;
+    }
+    let Some(aspect_name) = interned_string_value(runtime, &aspect_key.0) else {
+        return false;
+    };
+    match &binding.binding_kind {
+        LoweredExecutableAspectBindingKind::EntityJsonScalarField { field }
+        | LoweredExecutableAspectBindingKind::RelationJsonScalarField { field } => {
+            interned_string_value(runtime, field)
+                .map(|field_name| field_name == aspect_name)
+                .unwrap_or(false)
+        }
+        _ => false,
+    }
+}
+
+fn aspect_key_equivalent(
+    runtime: &crate::logic::runtime::RelationalRuntime,
+    left: &crate::publication::patch::data::AspectKey,
+    right: &crate::publication::patch::data::AspectKey,
+) -> bool {
+    if left == right {
+        return true;
+    }
+    match (
+        interned_string_value(runtime, &left.0),
+        interned_string_value(runtime, &right.0),
+    ) {
+        (Some(left), Some(right)) => left == right,
+        _ => false,
+    }
+}
+
+fn interned_string_value<'a>(
+    runtime: &'a crate::logic::runtime::RelationalRuntime,
+    value: &'a crate::symbols::data::InternedString,
+) -> Option<Cow<'a, str>> {
+    match value {
+        crate::symbols::data::InternedString::Raw(raw) => Some(Cow::Borrowed(raw.as_str())),
+        crate::symbols::data::InternedString::Symbol(symbol) => {
+            runtime.resolve_symbol(*symbol).map(Cow::Borrowed)
+        }
+    }
 }
 
 fn decision_boundary_for_aspect(
     classification: &crate::merge::data::MergeConflictClassification,
     comparison: AspectComparisonState,
     applied_policy: Option<&AspectMergePolicyKind>,
+    causal_disposition: crate::merge::data::MergeRecordCausalDisposition,
 ) -> MergePolicyDecisionBoundary {
     if classification.identity_reason == crate::merge::data::IdentityResolutionReason::SchemaDeclaredCorrespondence
         && !classification.validated_schema_correspondence
@@ -277,21 +412,602 @@ fn decision_boundary_for_aspect(
         AspectComparisonState::Unavailable => MergePolicyDecisionBoundary::RequiresManualResolution {
             class: MergeManualResolutionClass::MissingVisibleState,
         },
-        AspectComparisonState::TargetOnly => {
-            MergePolicyDecisionBoundary::RequiresManualResolution {
-                class: MergeManualResolutionClass::GenericRuntimeConflict,
-            }
-        }
-        AspectComparisonState::Divergent => match (classification.class, applied_policy) {
+        AspectComparisonState::TargetOnly => match (classification.class, applied_policy) {
             (
-                MergeConflictClass::SchemaDeclaredCorrespondence,
-                Some(AspectMergePolicyKind::PreferRicher),
+                MergeConflictClass::SchemaDeclaredCorrespondence
+                | MergeConflictClass::DivergentVisibleState,
+                Some(
+                    AspectMergePolicyKind::LastWriterWins
+                    | AspectMergePolicyKind::MonotonicCounter
+                    | AspectMergePolicyKind::AdditiveSet,
+                ),
             ) => MergePolicyDecisionBoundary::AutoResolved,
             _ => MergePolicyDecisionBoundary::RequiresManualResolution {
                 class: MergeManualResolutionClass::GenericRuntimeConflict,
             },
         },
+        AspectComparisonState::Divergent => match (classification.class, applied_policy) {
+            (
+                MergeConflictClass::SchemaDeclaredCorrespondence
+                | MergeConflictClass::DivergentVisibleState,
+                Some(AspectMergePolicyKind::PreferRicher),
+            )
+            | (
+                MergeConflictClass::SchemaDeclaredCorrespondence
+                | MergeConflictClass::DivergentVisibleState,
+                Some(AspectMergePolicyKind::MonotonicCounter | AspectMergePolicyKind::AdditiveSet),
+            ) => MergePolicyDecisionBoundary::AutoResolved,
+            (
+                MergeConflictClass::SchemaDeclaredCorrespondence
+                | MergeConflictClass::DivergentVisibleState,
+                Some(AspectMergePolicyKind::LastWriterWins),
+            ) => match causal_disposition {
+                crate::merge::data::MergeRecordCausalDisposition::SourceAfterTarget
+                | crate::merge::data::MergeRecordCausalDisposition::SourceOnly => {
+                    MergePolicyDecisionBoundary::AutoResolved
+                }
+                crate::merge::data::MergeRecordCausalDisposition::SourceBeforeTarget
+                | crate::merge::data::MergeRecordCausalDisposition::TargetOnly => {
+                    MergePolicyDecisionBoundary::AutoResolved
+                }
+                crate::merge::data::MergeRecordCausalDisposition::Concurrent
+                | crate::merge::data::MergeRecordCausalDisposition::Equal => {
+                    MergePolicyDecisionBoundary::Reject {
+                        class: MergePolicyRejectClass::LastWriterWinsCausalConflict,
+                    }
+                }
+            },
+            _ => MergePolicyDecisionBoundary::RequiresManualResolution {
+                class: MergeManualResolutionClass::GenericRuntimeConflict,
+            },
+        },
     }
+}
+
+fn resolve_aspect_value_strategy(
+    runtime: &crate::logic::runtime::RelationalRuntime,
+    record: &crate::merge::data::VisibleMergeRecord,
+    classification: &crate::merge::data::MergeConflictClassification,
+    binding: Option<&LoweredAspectBinding>,
+    aspect_key: crate::publication::patch::data::AspectKey,
+    comparison: AspectComparisonState,
+    applied_policy: Option<&AspectMergePolicyKind>,
+    decision_boundary: MergePolicyDecisionBoundary,
+    causal_disposition: crate::merge::data::MergeRecordCausalDisposition,
+    source_view: &RelationalReadView,
+    target_view: &RelationalReadView,
+    base_view: &RelationalReadView,
+) -> Option<MergeResolvedAspectValueStrategy> {
+    if decision_boundary != MergePolicyDecisionBoundary::AutoResolved {
+        return None;
+    }
+    let value_binding = runtime_aspect_value_binding(runtime, record, binding, &aspect_key);
+    match applied_policy {
+        Some(AspectMergePolicyKind::PreferRicher) => match comparison {
+            AspectComparisonState::Equal | AspectComparisonState::SourceOnly => {
+                Some(MergeResolvedAspectValueStrategy::SourceVisibleValue)
+            }
+            AspectComparisonState::TargetOnly => {
+                Some(MergeResolvedAspectValueStrategy::TargetVisibleValue)
+            }
+            AspectComparisonState::Divergent => {
+                Some(MergeResolvedAspectValueStrategy::SourceVisibleValue)
+            }
+            AspectComparisonState::Unavailable => None,
+        },
+        Some(AspectMergePolicyKind::LastWriterWins) => match comparison {
+            AspectComparisonState::Equal | AspectComparisonState::SourceOnly => {
+                Some(MergeResolvedAspectValueStrategy::SourceVisibleValue)
+            }
+            AspectComparisonState::TargetOnly => {
+                Some(MergeResolvedAspectValueStrategy::TargetVisibleValue)
+            }
+            AspectComparisonState::Divergent => match causal_disposition {
+                crate::merge::data::MergeRecordCausalDisposition::SourceAfterTarget
+                | crate::merge::data::MergeRecordCausalDisposition::SourceOnly => {
+                    Some(MergeResolvedAspectValueStrategy::SourceVisibleValue)
+                }
+                crate::merge::data::MergeRecordCausalDisposition::SourceBeforeTarget
+                | crate::merge::data::MergeRecordCausalDisposition::TargetOnly => {
+                    Some(MergeResolvedAspectValueStrategy::TargetVisibleValue)
+                }
+                crate::merge::data::MergeRecordCausalDisposition::Concurrent
+                | crate::merge::data::MergeRecordCausalDisposition::Equal => None,
+            },
+            AspectComparisonState::Unavailable => None,
+        },
+        Some(AspectMergePolicyKind::MonotonicCounter) => value_binding.as_ref().and_then(|binding| {
+            monotonic_counter_strategy(
+                runtime,
+                record,
+                classification,
+                binding,
+                &aspect_key,
+                comparison,
+                source_view,
+                target_view,
+                base_view,
+            )
+        }),
+        Some(AspectMergePolicyKind::AdditiveSet) => value_binding.as_ref().and_then(|binding| {
+            additive_set_strategy(
+                runtime,
+                record,
+                classification,
+                binding,
+                &aspect_key,
+                comparison,
+                source_view,
+                target_view,
+                base_view,
+            )
+        }),
+        _ => match comparison {
+            AspectComparisonState::Equal | AspectComparisonState::SourceOnly => {
+                Some(MergeResolvedAspectValueStrategy::SourceVisibleValue)
+            }
+            _ => None,
+        },
+    }
+}
+
+fn runtime_aspect_value_binding(
+    runtime: &crate::logic::runtime::RelationalRuntime,
+    record: &crate::merge::data::VisibleMergeRecord,
+    binding: Option<&LoweredAspectBinding>,
+    aspect_key: &crate::publication::patch::data::AspectKey,
+) -> Option<RuntimeAspectValueBinding> {
+    if let Some(binding) = binding {
+        match &binding.binding_kind {
+            LoweredExecutableAspectBindingKind::EntityJsonScalarField { field } => {
+                return Some(RuntimeAspectValueBinding::EntityField(field.clone()));
+            }
+            LoweredExecutableAspectBindingKind::RelationJsonScalarField { field } => {
+                return Some(RuntimeAspectValueBinding::RelationField(field.clone()));
+            }
+            _ => {}
+        }
+    }
+
+    if let Some(kind_id) = record.source_kind_id.or(record.kind_id) {
+        let declarations = match record.record_kind {
+            VisibleMergeRecordKind::Entity => &runtime
+                .config()
+                .schema
+                .registry
+                .entity_registration(kind_id)
+                .ok()?
+                .aspect_declarations
+                .aspects,
+            VisibleMergeRecordKind::Relation => &runtime
+                .config()
+                .schema
+                .registry
+                .relation_registration(kind_id)
+                .ok()?
+                .aspect_declarations
+                .aspects,
+        };
+
+        if let Some(binding) = declarations.iter().find_map(|declared| {
+            if !aspect_key_equivalent(runtime, &declared.key, aspect_key) {
+                return None;
+            }
+            match &declared.binding {
+                crate::schema::data::AspectBinding::EntityPayloadField { field } => {
+                    Some(RuntimeAspectValueBinding::EntityField(field.clone()))
+                }
+                crate::schema::data::AspectBinding::RelationPayloadField { field } => {
+                    Some(RuntimeAspectValueBinding::RelationField(field.clone()))
+                }
+                _ => None,
+            }
+        }) {
+            return Some(binding);
+        }
+    }
+
+    let aspect_name = interned_string_value(runtime, &aspect_key.0)?;
+    let field = crate::symbols::data::InternedString::Raw(aspect_name.into_owned());
+    match record.record_kind {
+        VisibleMergeRecordKind::Entity => Some(RuntimeAspectValueBinding::EntityField(field)),
+        VisibleMergeRecordKind::Relation => Some(RuntimeAspectValueBinding::RelationField(field)),
+    }
+}
+
+fn monotonic_counter_strategy(
+    runtime: &crate::logic::runtime::RelationalRuntime,
+    record: &crate::merge::data::VisibleMergeRecord,
+    classification: &crate::merge::data::MergeConflictClassification,
+    binding: &RuntimeAspectValueBinding,
+    aspect_key: &crate::publication::patch::data::AspectKey,
+    comparison: AspectComparisonState,
+    source_view: &RelationalReadView,
+    target_view: &RelationalReadView,
+    base_view: &RelationalReadView,
+) -> Option<MergeResolvedAspectValueStrategy> {
+    let base = binding_json_number_from_view(runtime, record, classification, binding, base_view);
+    let resolved = match comparison {
+        AspectComparisonState::Equal => {
+            Value::from(binding_json_number(
+                runtime,
+                record,
+                classification,
+                binding,
+                BindingSide::Source,
+                source_view,
+                target_view,
+            )?)
+        }
+        AspectComparisonState::SourceOnly => {
+            Value::from(binding_json_number(
+                runtime,
+                record,
+                classification,
+                binding,
+                BindingSide::Source,
+                source_view,
+                target_view,
+            )?)
+        }
+        AspectComparisonState::TargetOnly => {
+            Value::from(binding_json_number(
+                runtime,
+                record,
+                classification,
+                binding,
+                BindingSide::Target,
+                source_view,
+                target_view,
+            )?)
+        }
+        AspectComparisonState::Divergent => {
+            let source = binding_json_number(
+                runtime,
+                record,
+                classification,
+                binding,
+                BindingSide::Source,
+                source_view,
+                target_view,
+            );
+            let target = binding_json_number(
+                runtime,
+                record,
+                classification,
+                binding,
+                BindingSide::Target,
+                source_view,
+                target_view,
+            );
+            #[cfg(test)]
+            if source.is_none() || target.is_none() || base.is_none() {
+                eprintln!(
+                    "monotonic-counter-missing-value record={:?} class={:?} source={:?} target={:?} base={:?}",
+                    record.record_ref, classification.class, source, target, base
+                );
+            }
+            let source = source?;
+            let target = target?;
+            let base = base?;
+            Value::from(source + target - base)
+        }
+        AspectComparisonState::Unavailable => return None,
+    };
+    let _ = aspect_key;
+    Some(MergeResolvedAspectValueStrategy::InlineCanonicalJson(resolved))
+}
+
+fn additive_set_strategy(
+    runtime: &crate::logic::runtime::RelationalRuntime,
+    record: &crate::merge::data::VisibleMergeRecord,
+    classification: &crate::merge::data::MergeConflictClassification,
+    binding: &RuntimeAspectValueBinding,
+    aspect_key: &crate::publication::patch::data::AspectKey,
+    comparison: AspectComparisonState,
+    source_view: &RelationalReadView,
+    target_view: &RelationalReadView,
+    base_view: &RelationalReadView,
+) -> Option<MergeResolvedAspectValueStrategy> {
+    let resolved = match comparison {
+        AspectComparisonState::Equal => {
+            binding_json_set(
+                runtime,
+                record,
+                classification,
+                binding,
+                BindingSide::Source,
+                source_view,
+                target_view,
+            )?
+        }
+        AspectComparisonState::SourceOnly => {
+            binding_json_set(
+                runtime,
+                record,
+                classification,
+                binding,
+                BindingSide::Source,
+                source_view,
+                target_view,
+            )?
+        }
+        AspectComparisonState::TargetOnly => {
+            binding_json_set(
+                runtime,
+                record,
+                classification,
+                binding,
+                BindingSide::Target,
+                source_view,
+                target_view,
+            )?
+        }
+        AspectComparisonState::Divergent => {
+            let source = binding_json_set(
+                runtime,
+                record,
+                classification,
+                binding,
+                BindingSide::Source,
+                source_view,
+                target_view,
+            );
+            let target = binding_json_set(
+                runtime,
+                record,
+                classification,
+                binding,
+                BindingSide::Target,
+                source_view,
+                target_view,
+            );
+            let base =
+                binding_json_set_from_view(runtime, record, classification, binding, base_view);
+            #[cfg(test)]
+            if source.is_none() || target.is_none() || base.is_none() {
+                eprintln!(
+                    "additive-set-missing-value record={:?} class={:?} source={:?} target={:?} base={:?}",
+                    record.record_ref, classification.class, source, target, base
+                );
+            }
+            let source = source?;
+            let target = target?;
+            let base = base?;
+            merge_additive_sets(&base, &source, &target)
+        }
+        AspectComparisonState::Unavailable => return None,
+    };
+    let _ = aspect_key;
+    Some(MergeResolvedAspectValueStrategy::InlineCanonicalJson(Value::Array(
+        resolved,
+    )))
+}
+
+fn binding_json_number(
+    runtime: &crate::logic::runtime::RelationalRuntime,
+    record: &crate::merge::data::VisibleMergeRecord,
+    classification: &crate::merge::data::MergeConflictClassification,
+    binding: &RuntimeAspectValueBinding,
+    side: BindingSide,
+    source_view: &RelationalReadView,
+    target_view: &RelationalReadView,
+) -> Option<i64> {
+    binding_json_value(
+        runtime,
+        record,
+        classification,
+        binding,
+        side,
+        source_view,
+        target_view,
+    )?
+    .as_i64()
+}
+
+fn binding_json_number_from_view(
+    runtime: &crate::logic::runtime::RelationalRuntime,
+    record: &crate::merge::data::VisibleMergeRecord,
+    classification: &crate::merge::data::MergeConflictClassification,
+    binding: &RuntimeAspectValueBinding,
+    base_view: &RelationalReadView,
+) -> Option<i64> {
+    binding_json_value_from_view(runtime, record, classification, binding, base_view)?.as_i64()
+}
+
+fn binding_json_set(
+    runtime: &crate::logic::runtime::RelationalRuntime,
+    record: &crate::merge::data::VisibleMergeRecord,
+    classification: &crate::merge::data::MergeConflictClassification,
+    binding: &RuntimeAspectValueBinding,
+    side: BindingSide,
+    source_view: &RelationalReadView,
+    target_view: &RelationalReadView,
+) -> Option<Vec<Value>> {
+    json_array_set(binding_json_value(
+        runtime,
+        record,
+        classification,
+        binding,
+        side,
+        source_view,
+        target_view,
+    )?)
+}
+
+fn binding_json_set_from_view(
+    runtime: &crate::logic::runtime::RelationalRuntime,
+    record: &crate::merge::data::VisibleMergeRecord,
+    classification: &crate::merge::data::MergeConflictClassification,
+    binding: &RuntimeAspectValueBinding,
+    base_view: &RelationalReadView,
+) -> Option<Vec<Value>> {
+    json_array_set(binding_json_value_from_view(
+        runtime,
+        record,
+        classification,
+        binding,
+        base_view,
+    )?)
+}
+
+fn binding_json_value(
+    runtime: &crate::logic::runtime::RelationalRuntime,
+    record: &crate::merge::data::VisibleMergeRecord,
+    classification: &crate::merge::data::MergeConflictClassification,
+    binding: &RuntimeAspectValueBinding,
+    side: BindingSide,
+    source_view: &RelationalReadView,
+    target_view: &RelationalReadView,
+) -> Option<Value> {
+    let source_record_ref = &record.record_ref;
+    let target_record_ref = classification.target_record.as_ref().unwrap_or(&record.record_ref);
+    match (&record.record_kind, binding, side) {
+        (
+            VisibleMergeRecordKind::Entity,
+            RuntimeAspectValueBinding::EntityField(field),
+            BindingSide::Source,
+        ) => match source_record_ref {
+            crate::transactions::data::RecordRef::Entity(entity_id) => source_view
+                .get_entity(*entity_id)
+                .and_then(|entity| json_field_value(runtime, &entity.payload, field)),
+            _ => None,
+        },
+        (
+            VisibleMergeRecordKind::Entity,
+            RuntimeAspectValueBinding::EntityField(field),
+            BindingSide::Target,
+        ) => match target_record_ref {
+            crate::transactions::data::RecordRef::Entity(entity_id) => target_view
+                .get_entity(*entity_id)
+                .and_then(|entity| json_field_value(runtime, &entity.payload, field)),
+            _ => None,
+        },
+        (
+            VisibleMergeRecordKind::Relation,
+            RuntimeAspectValueBinding::RelationField(field),
+            BindingSide::Source,
+        ) => match source_record_ref {
+            crate::transactions::data::RecordRef::Relation(relation_id) => source_view
+                .get_relation(*relation_id)
+                .and_then(|relation| relation.payload.as_ref())
+                .and_then(|payload| json_field_value(runtime, payload, field)),
+            _ => None,
+        },
+        (
+            VisibleMergeRecordKind::Relation,
+            RuntimeAspectValueBinding::RelationField(field),
+            BindingSide::Target,
+        ) => match target_record_ref {
+            crate::transactions::data::RecordRef::Relation(relation_id) => target_view
+                .get_relation(*relation_id)
+                .and_then(|relation| relation.payload.as_ref())
+                .and_then(|payload| json_field_value(runtime, payload, field)),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+fn binding_json_value_from_view(
+    runtime: &crate::logic::runtime::RelationalRuntime,
+    record: &crate::merge::data::VisibleMergeRecord,
+    classification: &crate::merge::data::MergeConflictClassification,
+    binding: &RuntimeAspectValueBinding,
+    base_view: &RelationalReadView,
+) -> Option<Value> {
+    let base_record_ref = classification
+        .target_record
+        .as_ref()
+        .filter(|_| classification.base_record_visible)
+        .unwrap_or(&record.record_ref);
+    match (&record.record_kind, binding) {
+        (
+            VisibleMergeRecordKind::Entity,
+            RuntimeAspectValueBinding::EntityField(field),
+        ) => match base_record_ref {
+            crate::transactions::data::RecordRef::Entity(entity_id) => {
+                base_view
+                    .get_entity(*entity_id)
+                    .and_then(|entity| json_field_value(runtime, &entity.payload, field))
+            }
+            _ => None,
+        },
+        (
+            VisibleMergeRecordKind::Relation,
+            RuntimeAspectValueBinding::RelationField(field),
+        ) => match base_record_ref {
+            crate::transactions::data::RecordRef::Relation(relation_id) => base_view
+                .get_relation(*relation_id)
+                .and_then(|relation| relation.payload.as_ref())
+                .and_then(|payload| json_field_value(runtime, payload, field)),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+fn json_field_value(
+    runtime: &crate::logic::runtime::RelationalRuntime,
+    payload: &RecordPayload,
+    field: &crate::symbols::data::InternedString,
+) -> Option<Value> {
+    let field_name = match field {
+        crate::symbols::data::InternedString::Raw(raw) => raw.as_str(),
+        crate::symbols::data::InternedString::Symbol(symbol) => runtime.resolve_symbol(*symbol)?,
+    };
+    payload.as_json()?.get(field_name).cloned()
+}
+
+fn json_array_set(value: Value) -> Option<Vec<Value>> {
+    let mut values = match value {
+        Value::Array(values) => values,
+        _ => return None,
+    };
+    values.sort_by_key(|value| serde_json::to_string(value).unwrap_or_default());
+    values.dedup();
+    Some(values)
+}
+
+fn merge_additive_sets(base: &[Value], source: &[Value], target: &[Value]) -> Vec<Value> {
+    let base_keys = base
+        .iter()
+        .map(value_fingerprint)
+        .collect::<BTreeMap<_, _>>();
+    let source_keys = source
+        .iter()
+        .map(value_fingerprint)
+        .collect::<BTreeMap<_, _>>();
+    let target_keys = target
+        .iter()
+        .map(value_fingerprint)
+        .collect::<BTreeMap<_, _>>();
+
+    let mut merged = BTreeMap::<String, Value>::new();
+
+    for (key, value) in &base_keys {
+        let removed_by_source = !source_keys.contains_key(key);
+        let removed_by_target = !target_keys.contains_key(key);
+        if !(removed_by_source && removed_by_target) {
+            merged.insert(key.clone(), value.clone());
+        }
+    }
+
+    for (key, value) in &source_keys {
+        merged.insert(key.clone(), value.clone());
+    }
+    for (key, value) in &target_keys {
+        merged.insert(key.clone(), value.clone());
+    }
+
+    merged.into_values().collect()
+}
+
+fn value_fingerprint(value: &Value) -> (String, Value) {
+    (
+        serde_json::to_string(value).unwrap_or_else(|_| "<invalid-json>".to_string()),
+        value.clone(),
+    )
 }
 
 #[cfg(test)]
@@ -304,6 +1020,7 @@ mod tests {
         AspectMergePolicyKind, CustomMergePolicyIdentity, DeletionMergeClass,
         MergeManualResolutionClass, MergePolicyDecisionBoundary,
         MergeConflictClass, MergePolicyOwnershipClass, MergePolicyOwnershipSurface,
+        MergePolicyRejectClass,
         MergePolicyProofBoundary, MergePolicyResolutionRecord, ResolvedAspectMergePolicy,
         TopologyRewireAdmissionPolicy,
     };
@@ -404,5 +1121,79 @@ mod tests {
         let summary = summarize_policy_records(records);
         assert_eq!(summary.runtime_only_record_count, 1);
         assert_eq!(summary.custom_policy_record_count, 1);
+    }
+
+    #[test]
+    fn aggregate_record_resolution_preserves_specific_manual_resolution_class() {
+        let aspects = [crate::merge::data::AspectPolicyResolutionRecord {
+            aspect_key: AspectKey(InternedString::from("name")),
+            comparison: crate::merge::data::AspectComparisonState::Unavailable,
+            applied_policy: None,
+            decision_boundary: MergePolicyDecisionBoundary::RequiresManualResolution {
+                class: MergeManualResolutionClass::MissingVisibleState,
+            },
+            resolved_value_strategy: None,
+        }];
+
+        assert_eq!(
+            aggregate_record_resolution(MergeConflictClass::DivergentVisibleState, &aspects),
+            MergePolicyDecisionBoundary::RequiresManualResolution {
+                class: MergeManualResolutionClass::MissingVisibleState,
+            }
+        );
+    }
+
+    #[test]
+    fn aggregate_record_resolution_marks_mixed_manual_resolution_classes_explicitly() {
+        let aspects = [
+            crate::merge::data::AspectPolicyResolutionRecord {
+                aspect_key: AspectKey(InternedString::from("name")),
+                comparison: crate::merge::data::AspectComparisonState::Unavailable,
+                applied_policy: None,
+                decision_boundary: MergePolicyDecisionBoundary::RequiresManualResolution {
+                    class: MergeManualResolutionClass::MissingVisibleState,
+                },
+                resolved_value_strategy: None,
+            },
+            crate::merge::data::AspectPolicyResolutionRecord {
+                aspect_key: AspectKey(InternedString::from("other")),
+                comparison: crate::merge::data::AspectComparisonState::TargetOnly,
+                applied_policy: None,
+                decision_boundary: MergePolicyDecisionBoundary::RequiresManualResolution {
+                    class: MergeManualResolutionClass::UnvalidatedSchemaCorrespondence,
+                },
+                resolved_value_strategy: None,
+            },
+        ];
+
+        assert_eq!(
+            aggregate_record_resolution(MergeConflictClass::SchemaDeclaredCorrespondence, &aspects),
+            MergePolicyDecisionBoundary::RequiresManualResolution {
+                class: MergeManualResolutionClass::MixedAspectManualResolution,
+            }
+        );
+    }
+
+    #[test]
+    fn aggregate_record_resolution_preserves_specific_reject_class() {
+        let aspects = [crate::merge::data::AspectPolicyResolutionRecord {
+            aspect_key: AspectKey(InternedString::from("name")),
+            comparison: crate::merge::data::AspectComparisonState::Divergent,
+            applied_policy: Some(AspectMergePolicyKind::FailOnConflict),
+            decision_boundary: MergePolicyDecisionBoundary::Reject {
+                class: MergePolicyRejectClass::BuiltInFailOnConflict,
+            },
+            resolved_value_strategy: None,
+        }];
+
+        assert_eq!(
+            aggregate_record_resolution(
+                MergeConflictClass::SchemaDeclaredCorrespondence,
+                &aspects
+            ),
+            MergePolicyDecisionBoundary::Reject {
+                class: MergePolicyRejectClass::BuiltInFailOnConflict,
+            }
+        );
     }
 }

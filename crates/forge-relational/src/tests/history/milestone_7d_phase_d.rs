@@ -2,13 +2,28 @@ use crate::facade::diagnostics::DiagnosticCode;
 use crate::facade::history::BranchId;
 use crate::facade::merge::{
     DeletionExecutionClass, LoweredMergeBlockedReason, LoweredRecordDenialKind,
-    MergeExecutionError, MergeExecutionRequest, MergeIntent, MergeResolutionClass,
+    MergeExecutionError, MergeExecutionRequest, MergeIntent, MergePolicyDecisionBoundary,
+    MergePolicyRejectClass, MergeResolutionClass, MergeResolvedAspectValueStrategy,
+    IdentityBasisDeclaration, IdentityBasisKind, IdentityBasisScope,
     RelationConflictPropagation, TopologyExecutionClass, TopologyRegionConflictReason,
 };
-use crate::facade::transactions::RecordRef;
+use crate::facade::runtime::RelationalRuntimeApi;
+use crate::facade::transactions::{
+    CreateIntent, EntityMutationIntent, MutationIntent, TransactionOptions, UpdateEntityIntent,
+    WorkerIntentBatch, RecordRef,
+};
+use crate::merge::data::AspectMergePolicyDeclaration;
+use crate::payloads::data::RecordPayload;
+use crate::publication::patch::data::AspectKey;
+use crate::schema::data::{
+    AspectBinding, AspectComparator, AspectPrecision, DeclaredAspect, EntityKindRegistration,
+    KindAspectDeclarations, RelationKindRegistration, RelationPayloadClass, SchemaId,
+    SchemaVersionId,
+};
+use crate::symbols::data::InternedString;
 use crate::tests::support::{
     capture_aspect_truth_bundle, certification_digest, checkpoint_and_recover_with,
-    create_branch_from_main, create_entity, create_relation_in_partition_on_branch,
+    changed_entities, create_branch_from_main, create_entity, create_relation_in_partition_on_branch,
     delete_entity, delete_entity_on_branch, delete_relation_on_branch,
     persisted_runtime_with_test_schema, unique_test_store_path, update_entity,
 };
@@ -34,6 +49,10 @@ fn deleted_on_both_sides_merge_commit_has_replay_and_recovery_parity() {
 
     assert_eq!(merge.structural_summary.executed_record_count, 1);
     assert_eq!(merge.structural_summary.converged_deleted_on_both_sides_count, 1);
+    assert_eq!(
+        merge.structural_summary.deleted_on_both_sides_lineage_unchanged_count,
+        1
+    );
     assert_eq!(merge.structural_summary.emitted_mutation_intent_count, 0);
 
     let live_envelope = runtime
@@ -85,12 +104,329 @@ fn deleted_on_both_sides_merge_commit_has_replay_and_recovery_parity() {
         serde_json::json!(1)
     );
     assert_eq!(
+        summary_entry.fields["deleted_on_both_sides_lineage_unchanged_count"],
+        serde_json::json!(1)
+    );
+    assert_eq!(
         summary_entry.fields["execution_digest"],
         serde_json::json!(merge.execution_summary.execution_digest)
     );
     assert_eq!(
         summary_entry.fields["diagnostics_digest"],
         serde_json::json!(merge.execution_summary.diagnostics_digest)
+    );
+
+    let live_execution_artifact = runtime
+        .publication_access()
+        .diagnostics()
+        .artifacts()
+        .iter()
+        .find(|artifact| {
+            artifact.kind == crate::facade::diagnostics::DiagnosticsArtifactKind::DetailedTrace
+                && artifact.entries.iter().any(|entry| {
+                    entry.code == DiagnosticCode::MergeExecutionPublished
+                        && entry.fields["commit_id"]
+                            == serde_json::json!(merge.commit.commit.commit_id.0.clone())
+                })
+        })
+        .expect("live merge execution artifact")
+        .clone();
+    let record_entry = live_execution_artifact
+        .entries
+        .iter()
+        .find(|entry| {
+            entry.fields["record_class"]
+                == serde_json::json!("converge_deleted_on_both_sides")
+        })
+        .expect("deleted-on-both-sides execution row");
+    assert_eq!(
+        record_entry.fields["lineage_continuity"],
+        serde_json::json!("Unchanged")
+    );
+    assert!(record_entry.fields["equality_witness_digest"].is_string());
+}
+
+#[test]
+fn built_in_last_writer_wins_reject_parity_is_stable_across_recovery() {
+    let mut runtime =
+        runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins);
+    let entity = create_entity_with_payload(
+        &mut runtime,
+        "shared",
+        serde_json::json!({ "value": "base" }),
+    );
+    create_branch_from_main(&mut runtime, "feature");
+    update_entity_payload_on_branch(
+        &mut runtime,
+        entity,
+        serde_json::json!({ "value": "main-change" }),
+        BranchId("main".to_string()),
+    );
+    update_entity_payload_on_branch(
+        &mut runtime,
+        entity,
+        serde_json::json!({ "value": "feature-change" }),
+        BranchId("feature".to_string()),
+    );
+
+    let live_artifact = runtime
+        .merge_access()
+        .inspect_planning_scope(
+            MergeExecutionRequest {
+                target_branch: BranchId("main".to_string()),
+                source_branch: BranchId("feature".to_string()),
+                merge_intent: MergeIntent::ReconcileIntoTarget,
+            }
+            .into(),
+        )
+        .expect("live planning artifact");
+    let live_record = live_artifact
+        .lowered_plan
+        .records
+        .iter()
+        .find(|record| record.record == RecordRef::Entity(entity))
+        .expect("live lowered record");
+    let live_policy_row = live_artifact.policy_resolution.records[0]
+        .aspect_resolutions
+        .iter()
+        .find(|row| row.aspect_key.0 == InternedString::Raw("value".to_string()))
+        .expect("live policy row");
+
+    assert_eq!(
+        live_policy_row.applied_policy,
+        Some(AspectMergePolicyKind::LastWriterWins)
+    );
+    assert_eq!(
+        live_policy_row.decision_boundary,
+        MergePolicyDecisionBoundary::Reject {
+            class: MergePolicyRejectClass::LastWriterWinsCausalConflict,
+        },
+        "last-writer-wins policy row: {live_policy_row:?}"
+    );
+    assert_eq!(live_policy_row.resolved_value_strategy, None);
+    assert!(matches!(
+        live_record.record_decision,
+        crate::facade::merge::LoweredRecordDecision::Reject(_)
+    ));
+
+    let (_recovery, recovered) =
+        checkpoint_and_recover_with(&mut runtime, || {
+            runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins)
+        });
+    let recovered_artifact = recovered
+        .merge_access()
+        .inspect_planning_scope(
+            MergeExecutionRequest {
+                target_branch: BranchId("main".to_string()),
+                source_branch: BranchId("feature".to_string()),
+                merge_intent: MergeIntent::ReconcileIntoTarget,
+            }
+            .into(),
+        )
+        .expect("recovered planning artifact");
+
+    assert_eq!(
+        certification_digest(&live_artifact.digest_basis.policy),
+        certification_digest(&recovered_artifact.digest_basis.policy)
+    );
+    assert_eq!(
+        certification_digest(&live_artifact.digest_basis.lowered_plan),
+        certification_digest(&recovered_artifact.digest_basis.lowered_plan)
+    );
+}
+
+#[test]
+fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recovery_parity() {
+    let mut runtime =
+        runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::MonotonicCounter);
+    let entity = create_entity_with_payload(
+        &mut runtime,
+        "counter",
+        serde_json::json!({ "value": 10 }),
+    );
+    create_branch_from_main(&mut runtime, "feature");
+    update_entity_payload_on_branch(
+        &mut runtime,
+        entity,
+        serde_json::json!({ "value": 15 }),
+        BranchId("main".to_string()),
+    );
+    update_entity_payload_on_branch(
+        &mut runtime,
+        entity,
+        serde_json::json!({ "value": 13 }),
+        BranchId("feature".to_string()),
+    );
+
+    let live_artifact = runtime
+        .merge_access()
+        .inspect_planning_scope(
+            MergeExecutionRequest {
+                target_branch: BranchId("main".to_string()),
+                source_branch: BranchId("feature".to_string()),
+                merge_intent: MergeIntent::ReconcileIntoTarget,
+            }
+            .into(),
+        )
+        .expect("live planning artifact");
+    let live_policy_row = live_artifact.policy_resolution.records[0]
+        .aspect_resolutions
+        .iter()
+        .find(|row| row.aspect_key.0 == InternedString::Raw("value".to_string()))
+        .expect("live policy row");
+    let schema_debug = runtime
+        .config()
+        .schema
+        .registry
+        .entity_registration(KindId(1))
+        .expect("entity registration")
+        .aspect_declarations
+        .clone();
+    assert_eq!(
+        live_policy_row.resolved_value_strategy,
+        Some(MergeResolvedAspectValueStrategy::InlineCanonicalJson(serde_json::json!(18))),
+        "monotonic-counter policy row: {live_policy_row:?}; schema={schema_debug:?}"
+    );
+
+    let prepared = runtime
+        .prepare_merge_execution(MergeExecutionRequest {
+            target_branch: BranchId("main".to_string()),
+            source_branch: BranchId("feature".to_string()),
+            merge_intent: MergeIntent::ReconcileIntoTarget,
+        })
+        .expect("prepared counter merge");
+    let merge = runtime
+        .execute_prepared_merge(prepared)
+        .expect("executed counter merge");
+
+    assert_eq!(
+        read_entity_json_field(&runtime, &BranchId("main".to_string()), entity, "value"),
+        serde_json::json!(18)
+    );
+
+    let (_recovery, recovered) =
+        checkpoint_and_recover_with(&mut runtime, || {
+            runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::MonotonicCounter)
+        });
+    let recovered_artifact = recovered
+        .merge_access()
+        .inspect_planning_scope(
+            MergeExecutionRequest {
+                target_branch: BranchId("main".to_string()),
+                source_branch: BranchId("feature".to_string()),
+                merge_intent: MergeIntent::ReconcileIntoTarget,
+            }
+            .into(),
+        )
+        .expect("recovered planning artifact");
+    assert_eq!(
+        read_entity_json_field(&recovered, &BranchId("main".to_string()), entity, "value"),
+        serde_json::json!(18)
+    );
+    assert_eq!(
+        certification_digest(&live_artifact.digest_basis.policy),
+        certification_digest(&recovered_artifact.digest_basis.policy)
+    );
+    assert_eq!(
+        merge.execution_summary.executed_record_count,
+        1
+    );
+}
+
+#[test]
+fn built_in_additive_set_merge_is_auto_resolved_with_observed_remove_semantics_and_recovery_parity()
+{
+    let mut runtime =
+        runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::AdditiveSet);
+    let entity = create_entity_with_payload(
+        &mut runtime,
+        "set",
+        serde_json::json!({ "value": ["a"] }),
+    );
+    create_branch_from_main(&mut runtime, "feature");
+    update_entity_payload_on_branch(
+        &mut runtime,
+        entity,
+        serde_json::json!({ "value": [] }),
+        BranchId("main".to_string()),
+    );
+    update_entity_payload_on_branch(
+        &mut runtime,
+        entity,
+        serde_json::json!({ "value": ["a", "b"] }),
+        BranchId("feature".to_string()),
+    );
+
+    let live_artifact = runtime
+        .merge_access()
+        .inspect_planning_scope(
+            MergeExecutionRequest {
+                target_branch: BranchId("main".to_string()),
+                source_branch: BranchId("feature".to_string()),
+                merge_intent: MergeIntent::ReconcileIntoTarget,
+            }
+            .into(),
+        )
+        .expect("live planning artifact");
+    let live_policy_row = live_artifact.policy_resolution.records[0]
+        .aspect_resolutions
+        .iter()
+        .find(|row| row.aspect_key.0 == InternedString::Raw("value".to_string()))
+        .expect("live policy row");
+    let schema_debug = runtime
+        .config()
+        .schema
+        .registry
+        .entity_registration(KindId(1))
+        .expect("entity registration")
+        .aspect_declarations
+        .clone();
+    assert_eq!(
+        live_policy_row.resolved_value_strategy,
+        Some(MergeResolvedAspectValueStrategy::InlineCanonicalJson(
+            serde_json::json!(["a", "b"])
+        )),
+        "additive-set policy row: {live_policy_row:?}; schema={schema_debug:?}"
+    );
+
+    let prepared = runtime
+        .prepare_merge_execution(MergeExecutionRequest {
+            target_branch: BranchId("main".to_string()),
+            source_branch: BranchId("feature".to_string()),
+            merge_intent: MergeIntent::ReconcileIntoTarget,
+        })
+        .expect("prepared set merge");
+    runtime
+        .execute_prepared_merge(prepared)
+        .expect("executed set merge");
+
+    assert_eq!(
+        read_entity_json_field(&runtime, &BranchId("main".to_string()), entity, "value"),
+        serde_json::json!(["a", "b"])
+    );
+
+    let (_recovery, recovered) =
+        checkpoint_and_recover_with(&mut runtime, || {
+            runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::AdditiveSet)
+        });
+    let recovered_artifact = recovered
+        .merge_access()
+        .inspect_planning_scope(
+            MergeExecutionRequest {
+                target_branch: BranchId("main".to_string()),
+                source_branch: BranchId("feature".to_string()),
+                merge_intent: MergeIntent::ReconcileIntoTarget,
+            }
+            .into(),
+        )
+        .expect("recovered planning artifact");
+    assert_eq!(
+        read_entity_json_field(&recovered, &BranchId("main".to_string()), entity, "value"),
+        serde_json::json!(["a", "b"])
+    );
+    assert_eq!(
+        certification_digest(&live_artifact.digest_basis.policy),
+        certification_digest(&recovered_artifact.digest_basis.policy)
     );
 }
 
@@ -912,4 +1248,164 @@ fn persisted_runtime_with_topology_identity_registry(
             segment_commit_capacity: 2,
         })
         .build()
+}
+use crate::{
+    config::data::{CascadeDeletePolicy, CrossContextPolicy},
+    facade::identity::KindId,
+    facade::merge::AspectMergePolicyKind,
+    schema::data::RelationalSchemaRegistry,
+};
+
+fn runtime_with_payload_field_merge_policy(
+    field_name: &str,
+    merge_policy: AspectMergePolicyKind,
+) -> crate::facade::runtime::RelationalRuntime {
+    let name_key = AspectKey(InternedString::Raw("name".to_string()));
+    let aspect_key = AspectKey(InternedString::Raw(field_name.to_string()));
+    let registry = RelationalSchemaRegistry::new()
+        .register_entity_kind(EntityKindRegistration {
+            kind_id: KindId(1),
+            kind_name: "test.entity".to_string(),
+            schema_id: SchemaId("test".to_string()),
+            schema_version_id: SchemaVersionId(1),
+            aspect_declarations: KindAspectDeclarations::new(vec![
+                DeclaredAspect {
+                    key: name_key.clone(),
+                    binding: AspectBinding::EntityPayloadField {
+                        field: InternedString::Raw("name".to_string()),
+                    },
+                    comparator: AspectComparator::JsonScalarEquality,
+                    precision: AspectPrecision::Structured,
+                },
+                DeclaredAspect {
+                    key: aspect_key.clone(),
+                    binding: AspectBinding::EntityPayloadField {
+                        field: InternedString::Raw(field_name.to_string()),
+                    },
+                    comparator: AspectComparator::JsonScalarEquality,
+                    precision: AspectPrecision::Structured,
+                },
+            ])
+            .with_identity_declarations(vec![IdentityBasisDeclaration {
+                scope: IdentityBasisScope::AspectKey(name_key.clone()),
+                basis: IdentityBasisKind::DeclaredKeySet(vec![name_key].into()),
+            }])
+            .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
+                aspect_key,
+                policy: merge_policy,
+            }]),
+        })
+        .and_then(|registry: RelationalSchemaRegistry| {
+            registry.register_relation_kind(RelationKindRegistration {
+                kind_id: KindId(2),
+                kind_name: "test.relation".to_string(),
+                schema_id: SchemaId("test".to_string()),
+                schema_version_id: SchemaVersionId(1),
+                payload_class: RelationPayloadClass::PayloadBearingRelation,
+                cross_context_policy: CrossContextPolicy::AllowExplicit,
+                cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
+                aspect_declarations: KindAspectDeclarations::default(),
+                relation_integrity: crate::schema::data::RelationIntegrityDeclarations::default(),
+            })
+        })
+        .expect("schema registry");
+    RelationalRuntimeApi::builder().schema_registry(registry).build()
+}
+
+fn create_entity_with_payload(
+    runtime: &mut crate::facade::runtime::RelationalRuntime,
+    client_key: &str,
+    payload: serde_json::Value,
+) -> crate::facade::identity::EntityId {
+    create_entity_with_payload_on_branch(
+        runtime,
+        client_key,
+        payload,
+        BranchId("main".to_string()),
+    )
+}
+
+fn create_entity_with_payload_on_branch(
+    runtime: &mut crate::facade::runtime::RelationalRuntime,
+    client_key: &str,
+    payload: serde_json::Value,
+    branch_id: BranchId,
+) -> crate::facade::identity::EntityId {
+    let mut txn = runtime.begin_transaction(TransactionOptions {
+        target_branch: Some(branch_id),
+        ..TransactionOptions::default()
+    });
+    txn.push_batch(
+        WorkerIntentBatch::new(format!("create-{client_key}")).push(MutationIntent::Create(
+            CreateIntent::Entity(crate::transactions::data::EntitySpec {
+                partition_id: crate::facade::identity::PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: InternedString::Raw(client_key.to_string()),
+                payload: RecordPayload::StructuredJson(payload_with_identity_name(
+                    client_key, payload,
+                )),
+            }),
+        )),
+    );
+    changed_entities(&txn.commit().unwrap())[0]
+}
+
+fn update_entity_payload_on_branch(
+    runtime: &mut crate::facade::runtime::RelationalRuntime,
+    entity_id: crate::facade::identity::EntityId,
+    payload: serde_json::Value,
+    branch_id: BranchId,
+) {
+    let stable_name = read_entity_json_field(runtime, &branch_id, entity_id, "name")
+        .as_str()
+        .expect("stable name string")
+        .to_string();
+    let mut txn = runtime.begin_transaction(TransactionOptions {
+        target_branch: Some(branch_id),
+        ..TransactionOptions::default()
+    });
+    txn.push_batch(
+        WorkerIntentBatch::new("update-payload").push(MutationIntent::Entity(
+            EntityMutationIntent::Update(UpdateEntityIntent {
+                entity_id,
+                payload: RecordPayload::StructuredJson(payload_with_identity_name(
+                    &stable_name,
+                    payload,
+                )),
+            }),
+        )),
+    );
+    txn.commit().unwrap();
+}
+
+fn payload_with_identity_name(client_key: &str, payload: serde_json::Value) -> serde_json::Value {
+    let mut object = match payload {
+        serde_json::Value::Object(object) => object,
+        other => panic!("expected object payload, got {other:?}"),
+    };
+    object
+        .entry("name".to_string())
+        .or_insert_with(|| serde_json::Value::String(client_key.to_string()));
+    serde_json::Value::Object(object)
+}
+
+fn read_entity_json_field(
+    runtime: &crate::facade::runtime::RelationalRuntime,
+    branch: &BranchId,
+    entity_id: crate::facade::identity::EntityId,
+    field: &str,
+) -> serde_json::Value {
+    let version_id = runtime
+        .history_access()
+        .branch_head(branch)
+        .expect("branch head")
+        .version_id;
+    runtime
+        .visibility_reads()
+        .read_version(version_id)
+        .get_entity(entity_id)
+        .and_then(|entity| entity.payload.as_json())
+        .and_then(|json| json.get(field))
+        .cloned()
+        .expect("json field value")
 }

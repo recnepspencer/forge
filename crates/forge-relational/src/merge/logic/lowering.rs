@@ -233,6 +233,10 @@ fn synthesized_execution_bundle(
         (
             crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence,
             Some(LoweredMergeAction::ReconcileSchemaCorrespondence),
+        )
+        | (
+            crate::merge::data::MergeConflictClass::DivergentVisibleState,
+            Some(LoweredMergeAction::ReconcileDivergentVisibleState),
         ) => LoweredRecordExecutionIntentKind::ReconcileRecord,
         (
             crate::merge::data::MergeConflictClass::Deletion(
@@ -271,6 +275,12 @@ fn blocked_denial_kind_from_reason(
     reason: LoweredMergeBlockedReason,
 ) -> LoweredRecordDenialKind {
     match reason {
+        LoweredMergeBlockedReason::MissingVisibleState => {
+            LoweredRecordDenialKind::BlockedMissingVisibleState
+        }
+        LoweredMergeBlockedReason::UnvalidatedSchemaCorrespondence => {
+            LoweredRecordDenialKind::BlockedUnvalidatedSchemaCorrespondence
+        }
         LoweredMergeBlockedReason::SourceDeletedTargetLive => {
             LoweredRecordDenialKind::BlockedSourceDeletedTargetLive
         }
@@ -364,11 +374,13 @@ fn lowered_action_for_record(
         crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence => {
             Some(LoweredMergeAction::ReconcileSchemaCorrespondence)
         }
+        crate::merge::data::MergeConflictClass::DivergentVisibleState => {
+            Some(LoweredMergeAction::ReconcileDivergentVisibleState)
+        }
         crate::merge::data::MergeConflictClass::Deletion(
             crate::merge::data::DeletionMergeClass::DeletedOnBothSides,
         ) => Some(LoweredMergeAction::ConvergeDeletedOnBothSides),
         crate::merge::data::MergeConflictClass::Deletion(_)
-        | crate::merge::data::MergeConflictClass::DivergentVisibleState
         | crate::merge::data::MergeConflictClass::RelationEndpointDivergence => None,
     }
 }
@@ -474,6 +486,10 @@ fn executable_class_for_record(
         (
             MergeResolutionClass::SchemaDeclaredCorrespondence,
             Some(LoweredRecordExecutionIntentKind::ReconcileRecord),
+        )
+        | (
+            MergeResolutionClass::DivergentVisibleState,
+            Some(LoweredRecordExecutionIntentKind::ReconcileRecord),
         ) => Some(MergeExecutableClass::ReconcileRecord),
         (
             MergeResolutionClass::Deletion(DeletionExecutionClass::DeletedOnBothSides),
@@ -558,13 +574,15 @@ fn execution_bundle_for_record(
         crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence => {
             LoweredRecordExecutionIntentKind::ReconcileRecord
         }
+        crate::merge::data::MergeConflictClass::DivergentVisibleState => {
+            LoweredRecordExecutionIntentKind::ReconcileRecord
+        }
         crate::merge::data::MergeConflictClass::Deletion(
             crate::merge::data::DeletionMergeClass::DeletedOnBothSides,
         ) if aspect_intents.is_empty() => {
             LoweredRecordExecutionIntentKind::ConvergeDeletedOnBothSides
         }
         crate::merge::data::MergeConflictClass::Deletion(_)
-        | crate::merge::data::MergeConflictClass::DivergentVisibleState
         | crate::merge::data::MergeConflictClass::RelationEndpointDivergence => {
             return None;
         }
@@ -579,11 +597,19 @@ fn rejected_reason_for_record(
     aspect_outcomes: &[LoweredAspectOutcome],
     readiness: MergeExecutionReadiness,
 ) -> Option<LoweredMergeRejectedReason> {
-    (readiness == MergeExecutionReadiness::Rejected
-        && aspect_outcomes
-            .iter()
-            .any(|aspect| aspect.rejected_reason == Some(LoweredMergeRejectedReason::FailOnConflictPolicy)))
-    .then_some(LoweredMergeRejectedReason::FailOnConflictPolicy)
+    if readiness != MergeExecutionReadiness::Rejected {
+        return None;
+    }
+
+    let mut reject_reason: Option<LoweredMergeRejectedReason> = None;
+    for aspect in aspect_outcomes.iter().filter_map(|aspect| aspect.rejected_reason) {
+        reject_reason = Some(match reject_reason {
+            None => aspect,
+            Some(existing) if existing == aspect => existing,
+            Some(_) => LoweredMergeRejectedReason::MixedPolicyRejectClasses,
+        });
+    }
+    reject_reason
 }
 
 fn denial_bundle_for_record(
@@ -624,10 +650,28 @@ fn denial_bundle_for_record(
                 })
                 .collect::<Vec<_>>();
             Some(LoweredRecordDenialBundle {
-                kind: LoweredRecordDenialKind::RejectedPolicy,
+                kind: rejected_denial_kind_for_record(aspects.as_slice()),
                 aspects: Arc::from(aspects),
             })
         }
+    }
+}
+
+fn rejected_denial_kind_for_record(
+    aspects: &[LoweredRecordDenialAspectIntent],
+) -> LoweredRecordDenialKind {
+    if aspects
+        .iter()
+        .any(|aspect| aspect.intent == LoweredAspectDenialIntent::RejectedCustomPolicy)
+    {
+        LoweredRecordDenialKind::RejectedCustomPolicy
+    } else if aspects
+        .iter()
+        .any(|aspect| aspect.intent == LoweredAspectDenialIntent::RejectedMixedPolicyClasses)
+    {
+        LoweredRecordDenialKind::RejectedMixedPolicyClasses
+    } else {
+        LoweredRecordDenialKind::RejectedPolicy
     }
 }
 
@@ -637,6 +681,14 @@ fn blocked_denial_kind_for_record(
     aspects: &[LoweredRecordDenialAspectIntent],
 ) -> LoweredRecordDenialKind {
     if aspects.iter().any(|aspect| {
+        aspect.intent == LoweredAspectDenialIntent::BlockedMissingVisibleState
+    }) {
+        LoweredRecordDenialKind::BlockedMissingVisibleState
+    } else if aspects.iter().any(|aspect| {
+        aspect.intent == LoweredAspectDenialIntent::BlockedUnvalidatedSchemaCorrespondence
+    }) {
+        LoweredRecordDenialKind::BlockedUnvalidatedSchemaCorrespondence
+    } else if aspects.iter().any(|aspect| {
         aspect.intent == LoweredAspectDenialIntent::BlockedSourceDeletedTargetLive
     }) {
         LoweredRecordDenialKind::BlockedSourceDeletedTargetLive
@@ -737,6 +789,9 @@ fn lowered_aspect_outcomes_for_record(
                         readiness,
                     )
                 }),
+                resolved_value_strategy: aspect_resolution.and_then(|aspect| {
+                    aspect.resolved_value_strategy.clone()
+                }),
                 denial_intent: aspect_resolution.and_then(|aspect| {
                     lowered_aspect_denial_intent(
                         policy_record.classification,
@@ -751,6 +806,7 @@ fn lowered_aspect_outcomes_for_record(
                         policy_record.classification,
                         resolution_class,
                         aspect.comparison,
+                        aspect.decision_boundary,
                         readiness,
                     )
                 }),
@@ -802,9 +858,11 @@ fn lowered_aspect_action_for_resolution(
             Some(LoweredAspectAction::KeepSharedAspect)
         }
         (
-            crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence,
+            crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence
+            | crate::merge::data::MergeConflictClass::DivergentVisibleState,
             AspectComparisonState::Equal
             | AspectComparisonState::SourceOnly
+            | AspectComparisonState::TargetOnly
             | AspectComparisonState::Divergent,
         ) => Some(LoweredAspectAction::ReconcileCorrespondedAspect),
         _ => None,
@@ -824,8 +882,15 @@ fn lowered_aspect_denial_intent(
             classification,
             resolution_class,
             comparison,
+            decision_boundary,
             readiness,
         )? {
+            LoweredMergeBlockedReason::MissingVisibleState => {
+                Some(LoweredAspectDenialIntent::BlockedMissingVisibleState)
+            }
+            LoweredMergeBlockedReason::UnvalidatedSchemaCorrespondence => {
+                Some(LoweredAspectDenialIntent::BlockedUnvalidatedSchemaCorrespondence)
+            }
             LoweredMergeBlockedReason::SourceDeletedTargetLive => {
                 Some(LoweredAspectDenialIntent::BlockedSourceDeletedTargetLive)
             }
@@ -856,7 +921,23 @@ fn lowered_aspect_denial_intent(
         },
         MergeExecutionReadiness::Rejected => {
             rejected_reason_for_aspect(decision_boundary, readiness)?;
-            Some(LoweredAspectDenialIntent::RejectedPolicy)
+            Some(match decision_boundary {
+                MergePolicyDecisionBoundary::Reject {
+                    class: crate::merge::data::MergePolicyRejectClass::BuiltInFailOnConflict,
+                } => LoweredAspectDenialIntent::RejectedPolicy,
+                MergePolicyDecisionBoundary::Reject {
+                    class:
+                        crate::merge::data::MergePolicyRejectClass::LastWriterWinsCausalConflict
+                        | crate::merge::data::MergePolicyRejectClass::InvalidBuiltInPolicyValueShape,
+                } => LoweredAspectDenialIntent::RejectedPolicy,
+                MergePolicyDecisionBoundary::Reject {
+                    class: crate::merge::data::MergePolicyRejectClass::CustomPolicyRejected,
+                } => LoweredAspectDenialIntent::RejectedCustomPolicy,
+                MergePolicyDecisionBoundary::Reject {
+                    class: crate::merge::data::MergePolicyRejectClass::MixedAspectRejectClasses,
+                } => LoweredAspectDenialIntent::RejectedMixedPolicyClasses,
+                _ => LoweredAspectDenialIntent::RejectedPolicy,
+            })
         }
     }
 }
@@ -887,9 +968,11 @@ fn authorized_values_for_aspect(
             base: AuthorizedAspectValueUsage::NotAuthorized,
         }),
         (
-            crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence,
+            crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence
+            | crate::merge::data::MergeConflictClass::DivergentVisibleState,
             AspectComparisonState::Equal
             | AspectComparisonState::SourceOnly
+            | AspectComparisonState::TargetOnly
             | AspectComparisonState::Divergent,
         ) => Some(AuthorizedAspectValueSurface {
             source: AuthorizedAspectValueUsage::ConsumeVisibleValue,
@@ -917,9 +1000,11 @@ fn lowered_aspect_execution_intent(
             AspectComparisonState::Equal,
         ) => Some(LoweredAspectExecutionIntent::PreserveSharedValue { authorized_values }),
         (
-            crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence,
+            crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence
+            | crate::merge::data::MergeConflictClass::DivergentVisibleState,
             AspectComparisonState::Equal
             | AspectComparisonState::SourceOnly
+            | AspectComparisonState::TargetOnly
             | AspectComparisonState::Divergent,
         ) => Some(LoweredAspectExecutionIntent::ReconcileVisibleValues { authorized_values }),
         _ => None,
@@ -930,10 +1015,23 @@ fn blocked_reason_for_aspect(
     classification: crate::merge::data::MergeConflictClass,
     resolution_class: MergeResolutionClass,
     comparison: AspectComparisonState,
+    decision_boundary: MergePolicyDecisionBoundary,
     readiness: MergeExecutionReadiness,
 ) -> Option<LoweredMergeBlockedReason> {
     if readiness != MergeExecutionReadiness::Blocked {
         return None;
+    }
+    if let MergePolicyDecisionBoundary::RequiresManualResolution { class } = decision_boundary {
+        match class {
+            crate::merge::data::MergeManualResolutionClass::MissingVisibleState => {
+                return Some(LoweredMergeBlockedReason::MissingVisibleState);
+            }
+            crate::merge::data::MergeManualResolutionClass::UnvalidatedSchemaCorrespondence => {
+                return Some(LoweredMergeBlockedReason::UnvalidatedSchemaCorrespondence);
+            }
+            crate::merge::data::MergeManualResolutionClass::GenericRuntimeConflict
+            | crate::merge::data::MergeManualResolutionClass::MixedAspectManualResolution => {}
+        }
     }
     match (classification, comparison) {
         (crate::merge::data::MergeConflictClass::Deletion(class), _) => {
@@ -1011,7 +1109,23 @@ fn rejected_reason_for_aspect(
 ) -> Option<LoweredMergeRejectedReason> {
     (readiness == MergeExecutionReadiness::Rejected
         && matches!(decision_boundary, MergePolicyDecisionBoundary::Reject { .. }))
-    .then_some(LoweredMergeRejectedReason::FailOnConflictPolicy)
+    .then_some(match decision_boundary {
+        MergePolicyDecisionBoundary::Reject {
+            class: crate::merge::data::MergePolicyRejectClass::BuiltInFailOnConflict,
+        } => LoweredMergeRejectedReason::FailOnConflictPolicy,
+        MergePolicyDecisionBoundary::Reject {
+            class:
+                crate::merge::data::MergePolicyRejectClass::LastWriterWinsCausalConflict
+                | crate::merge::data::MergePolicyRejectClass::InvalidBuiltInPolicyValueShape,
+        } => LoweredMergeRejectedReason::FailOnConflictPolicy,
+        MergePolicyDecisionBoundary::Reject {
+            class: crate::merge::data::MergePolicyRejectClass::CustomPolicyRejected,
+        } => LoweredMergeRejectedReason::CustomPolicyRejected,
+        MergePolicyDecisionBoundary::Reject {
+            class: crate::merge::data::MergePolicyRejectClass::MixedAspectRejectClasses,
+        } => LoweredMergeRejectedReason::MixedPolicyRejectClasses,
+        _ => LoweredMergeRejectedReason::FailOnConflictPolicy,
+    })
 }
 
 fn build_decision_log(lowered_records: &[LoweredMergePlanRecord]) -> MergePlanningDecisionLog {
@@ -1093,11 +1207,14 @@ fn build_decision_log_digest_basis(
 #[cfg(test)]
 mod tests {
     use super::{
-        blocked_denial_kind_from_reason, blocked_reason_for_deletion_class,
-        executable_class_for_record, is_deletion_blocked_reason,
+        blocked_denial_kind_from_reason, blocked_reason_for_aspect,
+        blocked_reason_for_deletion_class, executable_class_for_record,
+        is_deletion_blocked_reason, rejected_reason_for_aspect,
     };
     use crate::merge::data::{
-        DeletionExecutionClass, DeletionMergeClass, LoweredMergeBlockedReason,
+        AspectComparisonState, DeletionExecutionClass, DeletionMergeClass,
+        LoweredMergeBlockedReason, LoweredMergeRejectedReason, MergeManualResolutionClass,
+        MergePolicyDecisionBoundary, MergePolicyRejectClass,
         LoweredRecordDenialKind, LoweredRecordExecutionIntentKind, MergeExecutableClass,
         MergeExecutionReadiness, MergeResolutionClass,
     };
@@ -1152,6 +1269,16 @@ mod tests {
             blocked_denial_kind_from_reason(LoweredMergeBlockedReason::TopologyRegionConflict),
             LoweredRecordDenialKind::BlockedTopologyRegionConflict
         );
+        assert_eq!(
+            blocked_denial_kind_from_reason(LoweredMergeBlockedReason::MissingVisibleState),
+            LoweredRecordDenialKind::BlockedMissingVisibleState
+        );
+        assert_eq!(
+            blocked_denial_kind_from_reason(
+                LoweredMergeBlockedReason::UnvalidatedSchemaCorrespondence
+            ),
+            LoweredRecordDenialKind::BlockedUnvalidatedSchemaCorrespondence
+        );
     }
 
     #[test]
@@ -1176,6 +1303,44 @@ mod tests {
                 Some(LoweredRecordExecutionIntentKind::ConvergeDeletedOnBothSides),
             ),
             Some(MergeExecutableClass::ConvergeDeletedOnBothSides)
+        );
+    }
+
+    #[test]
+    fn blocked_reason_for_aspect_preserves_specific_manual_resolution_class() {
+        assert_eq!(
+            blocked_reason_for_aspect(
+                crate::merge::data::MergeConflictClass::DivergentVisibleState,
+                MergeResolutionClass::DivergentVisibleState,
+                AspectComparisonState::Unavailable,
+                MergePolicyDecisionBoundary::RequiresManualResolution {
+                    class: MergeManualResolutionClass::MissingVisibleState,
+                },
+                MergeExecutionReadiness::Blocked,
+            ),
+            Some(LoweredMergeBlockedReason::MissingVisibleState)
+        );
+    }
+
+    #[test]
+    fn rejected_reason_for_aspect_preserves_specific_reject_class() {
+        assert_eq!(
+            rejected_reason_for_aspect(
+                MergePolicyDecisionBoundary::Reject {
+                    class: MergePolicyRejectClass::BuiltInFailOnConflict,
+                },
+                MergeExecutionReadiness::Rejected,
+            ),
+            Some(LoweredMergeRejectedReason::FailOnConflictPolicy)
+        );
+        assert_eq!(
+            rejected_reason_for_aspect(
+                MergePolicyDecisionBoundary::Reject {
+                    class: MergePolicyRejectClass::CustomPolicyRejected,
+                },
+                MergeExecutionReadiness::Rejected,
+            ),
+            Some(LoweredMergeRejectedReason::CustomPolicyRejected)
         );
     }
 }

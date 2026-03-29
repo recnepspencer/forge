@@ -300,26 +300,27 @@ fn canonicalize_merge_policy_declarations(
                 ),
             ));
         }
+        let aspect = aspects
+            .iter()
+            .find(|aspect| aspect.key == declaration.aspect_key)
+            .expect("merge policy declaration references existing declared aspect");
         match declaration.policy {
             AspectMergePolicyKind::FailOnConflict | AspectMergePolicyKind::PreferRicher => {}
-            AspectMergePolicyKind::LastWriterWins => {
-                return Err(SchemaRegistryError::invalid_aspect_declaration(
-                    kind_id,
-                    "merge planning does not yet support LastWriterWins declarations",
-                ));
-            }
-            AspectMergePolicyKind::MonotonicCounter => {
-                return Err(SchemaRegistryError::invalid_aspect_declaration(
-                    kind_id,
-                    "merge planning does not yet support MonotonicCounter declarations",
-                ));
-            }
-            AspectMergePolicyKind::AdditiveSet => {
-                return Err(SchemaRegistryError::invalid_aspect_declaration(
-                    kind_id,
-                    "merge planning does not yet support AdditiveSet declarations",
-                ));
-            }
+            AspectMergePolicyKind::LastWriterWins
+            | AspectMergePolicyKind::MonotonicCounter
+            | AspectMergePolicyKind::AdditiveSet => match (&aspect.binding, aspect.comparator) {
+                (
+                    AspectBinding::EntityPayloadField { .. }
+                    | AspectBinding::RelationPayloadField { .. },
+                    AspectComparator::JsonScalarEquality,
+                ) => {}
+                _ => {
+                    return Err(SchemaRegistryError::invalid_aspect_declaration(
+                        kind_id,
+                        "built-in merge policies LastWriterWins, MonotonicCounter, and AdditiveSet require JsonScalarEquality payload-field aspects",
+                    ));
+                }
+            },
             AspectMergePolicyKind::Custom(_) => {
                 return Err(SchemaRegistryError::invalid_aspect_declaration(
                     kind_id,

@@ -32,6 +32,7 @@ pub(crate) fn merge_execution_summary_entry(
             "preserved_shared_record_count": structural_summary.preserved_shared_record_count,
             "reconciled_record_count": structural_summary.reconciled_record_count,
             "converged_deleted_on_both_sides_count": structural_summary.converged_deleted_on_both_sides_count,
+            "deleted_on_both_sides_lineage_unchanged_count": structural_summary.deleted_on_both_sides_lineage_unchanged_count,
             "emitted_mutation_intent_count": structural_summary.emitted_mutation_intent_count,
             "emitted_entity_create_count": structural_summary.emitted_entity_create_count,
             "emitted_relation_create_count": structural_summary.emitted_relation_create_count,
@@ -115,11 +116,37 @@ fn executed_record_diagnostics_entry(
             "record": row.record,
             "classification": format!("{:?}", row.provenance.classification),
             "causal_disposition": format!("{:?}", row.provenance.causal_disposition),
-            "policy_proof_boundary": format!("{:?}", row.provenance.policy_proof_boundary),
+            "equality_witness_digest": row.equality_witness.as_ref().map(|witness| witness.witness_digest.clone()),
+            "deletion_semantics": row.deletion_semantics.map(|semantics| format!("{:?}", semantics)),
+            "lineage_continuity": row.lineage_continuity.map(|verdict| format!("{:?}", verdict)),
+            "policy_proof_boundary": policy_proof_boundary_json(row.provenance.policy_proof_boundary),
             "applied_policies": row.provenance.applied_policies,
             "aspect_rows": row.aspect_rows.iter().map(executed_aspect_row_json).collect::<Vec<_>>(),
         }),
     }
+}
+
+fn policy_proof_boundary_json(
+    boundary: crate::merge::data::MergePolicyProofBoundary,
+) -> serde_json::Value {
+    let decision_boundary = match boundary.decision_boundary {
+        crate::merge::data::MergePolicyDecisionBoundary::AutoResolved => json!({
+            "kind": "auto_resolved",
+        }),
+        crate::merge::data::MergePolicyDecisionBoundary::RequiresManualResolution { class } => json!({
+            "kind": "requires_manual_resolution",
+            "class": format!("{:?}", class),
+        }),
+        crate::merge::data::MergePolicyDecisionBoundary::Reject { class } => json!({
+            "kind": "reject",
+            "class": format!("{:?}", class),
+        }),
+    };
+
+    json!({
+        "ownership_surface": format!("{:?}", boundary.ownership_surface),
+        "decision_boundary": decision_boundary,
+    })
 }
 
 fn executed_aspect_row_json(row: &ExecutedMergeAspectDiagnosticRow) -> serde_json::Value {

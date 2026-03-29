@@ -1,0 +1,24 @@
+{
+  "name": "@forge/signal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "types": "./src/index.d.ts"
+    }
+  },
+  "files": [
+    "src",
+    "pkg"
+  ],
+  "scripts": {
+    "build:wasm": "wasm-pack build ../../crates/forge-signal-wasm --target bundler --out-dir pkg --out-name forge_signal_wasm",
+    "check:wasm": "cargo check -p forge-signal-wasm --target wasm32-unknown-unknown",
+    "check:types": "npx --yes -p typescript tsc -p tsconfig.json --noEmit"
+  }
+}

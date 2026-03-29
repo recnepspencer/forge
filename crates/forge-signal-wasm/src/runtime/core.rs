@@ -1,0 +1,1063 @@
+use std::cell::RefCell;
+use std::collections::BTreeMap;
+use std::rc::Rc;
+use std::sync::{Arc, Mutex};
+
+use forge_signal::facade::{
+    Aspect, AspectVersion, DependencyEdge, EvaluationContext, NodeEvaluationResult, NodeId,
+    OutputChange, SignalError, SignalGraph, SignalRuntime as NativeRuntime,
+};
+use forge_signal::facade::history::RuntimeSnapshot;
+use forge_signal::facade::history::{RuntimeBranch, RuntimeBranchId};
+use forge_signal::facade::specialist::EvaluationOutput;
+use forge_signal::facade::specialist::EvaluationVerdict;
+use forge_signal::facade::adapters::{BranchMergePlan, BranchMergeResult};
+
+use crate::boundary::errors::ForgeSignalJsError;
+use crate::expression::evaluation::ExprEnvironment;
+use crate::expression::model::{IdentitySpec, SignalValue};
+use crate::recipe::model::{
+    KeyedReadSpec, KeyedRecipeFamilySpec, KeyedSourceFamilySpec, RecipeSpec, SourceSpec,
+    TransactionOp,
+};
+use crate::runtime::adapters::{RuntimeDefinitionEnvelope, RuntimeEnvelope};
+use crate::runtime::policy::RuntimePolicySpec;
+use crate::runtime::specialist::VersionSummary;
+use crate::runtime::summaries::{
+    HealthSummary, LineageSummary, ReplaySummary, RunSummary, RuntimeSnapshotEnvelope,
+    RuntimeStoreSnapshot, StoredRecipeSnapshot, StoredSourceSnapshot, WhySummary,
+};
+
+const DEFAULT_ASPECT: Aspect = Aspect::new(0);
+
+type SharedStore = Arc<Mutex<RuntimeStore>>;
+pub type SharedCore = Rc<RefCell<RuntimeCore>>;
+type WasmRuntime = NativeRuntime<(), (), (), SharedStore, ()>;
+
+#[derive(Debug, Clone)]
+struct CatalogEntry {
+    node: NodeId,
+}
+
+#[derive(Debug, Clone)]
+struct StoredSource {
+    value: SignalValue,
+    version: u64,
+}
+
+#[derive(Debug, Clone)]
+struct StoredRecipe {
+    spec: RecipeSpec,
+    value: SignalValue,
+    version: u64,
+    initialized: bool,
+    output_identity: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+struct StoredSourceFamily {
+    spec: KeyedSourceFamilySpec,
+}
+
+#[derive(Debug, Clone)]
+struct StoredRecipeFamily {
+    spec: KeyedRecipeFamilySpec,
+}
+
+#[derive(Debug, Clone, Default)]
+struct RuntimeStore {
+    sources: BTreeMap<String, StoredSource>,
+    recipes: BTreeMap<String, StoredRecipe>,
+    source_families: BTreeMap<String, StoredSourceFamily>,
+    recipe_families: BTreeMap<String, StoredRecipeFamily>,
+}
+
+impl RuntimeStore {
+    fn read_value(&self, id: &str) -> Option<SignalValue> {
+        self.sources
+            .get(id)
+            .map(|source| source.value.clone())
+            .or_else(|| self.recipes.get(id).map(|recipe| recipe.value.clone()))
+    }
+
+    fn snapshot(&self) -> RuntimeStoreSnapshot {
+        RuntimeStoreSnapshot {
+            sources: self
+                .sources
+                .iter()
+                .map(|(id, source)| StoredSourceSnapshot {
+                    id: id.clone(),
+                    value: source.value.clone(),
+                    version: source.version,
+                })
+                .collect(),
+            recipes: self
+                .recipes
+                .iter()
+                .map(|(id, recipe)| StoredRecipeSnapshot {
+                    id: id.clone(),
+                    value: recipe.value.clone(),
+                    version: recipe.version,
+                    initialized: recipe.initialized,
+                    output_identity: recipe.output_identity.clone(),
+                })
+                .collect(),
+        }
+    }
+
+    fn restore_snapshot(&mut self, snapshot: RuntimeStoreSnapshot) {
+        self.sources = snapshot
+            .sources
+            .into_iter()
+            .map(|source| {
+                (
+                    source.id,
+                    StoredSource {
+                        value: source.value,
+                        version: source.version,
+                    },
+                )
+            })
+            .collect();
+        for recipe in snapshot.recipes {
+            if let Some(existing) = self.recipes.get_mut(&recipe.id) {
+                existing.value = recipe.value;
+                existing.version = recipe.version;
+                existing.initialized = recipe.initialized;
+                existing.output_identity = recipe.output_identity;
+            }
+        }
+    }
+}
+
+pub struct RuntimeCore {
+    runtime: WasmRuntime,
+    store: SharedStore,
+    catalog: BTreeMap<String, CatalogEntry>,
+    nodes_by_id: BTreeMap<NodeId, String>,
+    policy: RuntimePolicySpec,
+}
+
+impl RuntimeCore {
+    pub fn new(policy: RuntimePolicySpec) -> Result<Self, ForgeSignalJsError> {
+        let graph = SignalGraph::new();
+        let mut runtime = NativeRuntime::build_for::<SharedStore>(graph);
+        runtime.set_runtime_policy(policy.clone().into_native()?);
+        Ok(Self {
+            runtime,
+            store: Arc::new(Mutex::new(RuntimeStore::default())),
+            catalog: BTreeMap::new(),
+            nodes_by_id: BTreeMap::new(),
+            policy,
+        })
+    }
+
+    pub fn set_runtime_policy(
+        &mut self,
+        policy: RuntimePolicySpec,
+    ) -> Result<(), ForgeSignalJsError> {
+        self.runtime.set_runtime_policy(policy.clone().into_native()?);
+        self.policy = policy;
+        Ok(())
+    }
+
+    pub fn define_source_family(
+        &mut self,
+        spec: KeyedSourceFamilySpec,
+    ) -> Result<(), ForgeSignalJsError> {
+        let mut store = self.lock_store()?;
+        if store.source_families.contains_key(&spec.family_id)
+            || store.recipe_families.contains_key(&spec.family_id)
+        {
+            return Err(ForgeSignalJsError::invalid_input(format!(
+                "family `{}` already exists",
+                spec.family_id
+            )));
+        }
+        store
+            .source_families
+            .insert(spec.family_id.clone(), StoredSourceFamily { spec });
+        Ok(())
+    }
+
+    pub fn define_keyed_recipe_family(
+        &mut self,
+        spec: KeyedRecipeFamilySpec,
+    ) -> Result<(), ForgeSignalJsError> {
+        let mut store = self.lock_store()?;
+        if store.recipe_families.contains_key(&spec.family_id)
+            || store.source_families.contains_key(&spec.family_id)
+        {
+            return Err(ForgeSignalJsError::invalid_input(format!(
+                "family `{}` already exists",
+                spec.family_id
+            )));
+        }
+        for read in &spec.reads {
+            if !store.source_families.contains_key(&read.family_id)
+                && !store.recipe_families.contains_key(&read.family_id)
+            {
+                return Err(ForgeSignalJsError::invalid_input(format!(
+                    "keyed family `{}` reads unknown family `{}`",
+                    spec.family_id, read.family_id
+                )));
+            }
+        }
+        store
+            .recipe_families
+            .insert(spec.family_id.clone(), StoredRecipeFamily { spec });
+        Ok(())
+    }
+
+    pub fn define_source(&mut self, spec: SourceSpec) -> Result<(), ForgeSignalJsError> {
+        self.ensure_unique_id(&spec.id)?;
+        let node = self.runtime.graph_mut().node().build();
+        self.catalog.insert(spec.id.clone(), CatalogEntry { node });
+        self.nodes_by_id.insert(node, spec.id.clone());
+        let mut store = self.lock_store()?;
+        store.sources.insert(
+            spec.id,
+            StoredSource {
+                value: spec.initial,
+                version: 1,
+            },
+        );
+        Ok(())
+    }
+
+    pub fn define_recipe(&mut self, spec: RecipeSpec) -> Result<(), ForgeSignalJsError> {
+        self.ensure_unique_id(&spec.id)?;
+        self.ensure_known_reads(&spec.reads)?;
+        let dependencies = spec
+            .reads
+            .iter()
+            .map(|read| {
+                self.catalog
+                    .get(read)
+                    .map(|entry| DependencyEdge::new(entry.node, DEFAULT_ASPECT))
+                    .ok_or_else(|| {
+                        ForgeSignalJsError::invalid_input(format!("unknown read `{read}`"))
+                    })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let mut graph = self.runtime.graph_mut();
+        let node = graph.node().on_demand().build();
+        graph
+            .set_dependencies(node, dependencies)
+            .map_err(ForgeSignalJsError::from)?;
+        drop(graph);
+        self.catalog.insert(spec.id.clone(), CatalogEntry { node });
+        self.nodes_by_id.insert(node, spec.id.clone());
+        let mut store = self.lock_store()?;
+        let recipe_id = spec.id.clone();
+        store.recipes.insert(
+            recipe_id,
+            StoredRecipe {
+                spec,
+                value: SignalValue::Null,
+                version: 0,
+                initialized: false,
+                output_identity: None,
+            },
+        );
+        Ok(())
+    }
+
+    pub fn read_value(&mut self, id: &str) -> Result<SignalValue, ForgeSignalJsError> {
+        let node = self.node_for_id(id)?;
+        let evaluator = self.evaluator();
+        self.runtime
+            .read(node, &self.store, &evaluator)
+            .map_err(ForgeSignalJsError::from)?;
+        let store = self.lock_store()?;
+        store.read_value(id).ok_or_else(|| {
+            ForgeSignalJsError::invalid_input(format!("unknown signal id `{id}`"))
+        })
+    }
+
+    pub fn ensure_source_key(
+        &mut self,
+        family_id: &str,
+        key: &str,
+        initial: Option<SignalValue>,
+    ) -> Result<String, ForgeSignalJsError> {
+        let composite_id = composite_keyed_id(family_id, key);
+        if self.catalog.contains_key(&composite_id) {
+            return Ok(composite_id);
+        }
+        let spec = {
+            let store = self.lock_store()?;
+            let family = store.source_families.get(family_id).ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!("unknown source family `{family_id}`"))
+            })?;
+            SourceSpec {
+                id: composite_id.clone(),
+                initial: initial.unwrap_or_else(|| family.spec.initial.clone()),
+            }
+        };
+        self.define_source(spec)?;
+        Ok(composite_id)
+    }
+
+    pub fn ensure_recipe_key(
+        &mut self,
+        family_id: &str,
+        key: &str,
+    ) -> Result<String, ForgeSignalJsError> {
+        let composite_id = composite_keyed_id(family_id, key);
+        if self.catalog.contains_key(&composite_id) {
+            return Ok(composite_id);
+        }
+        let family = {
+            let store = self.lock_store()?;
+            store.recipe_families.get(family_id).cloned().ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!("unknown recipe family `{family_id}`"))
+            })?
+        };
+        for read in &family.spec.reads {
+            let source_id = composite_keyed_id(&read.family_id, key);
+            if !self.catalog.contains_key(&source_id) {
+                if self.lock_store()?.source_families.contains_key(&read.family_id) {
+                    self.ensure_source_key(&read.family_id, key, None)?;
+                } else {
+                    self.ensure_recipe_key(&read.family_id, key)?;
+                }
+            }
+        }
+        let recipe = RecipeSpec {
+            id: composite_id.clone(),
+            reads: family
+                .spec
+                .reads
+                .iter()
+                .map(|read| composite_keyed_id(&read.family_id, key))
+                .collect(),
+            expr: rewrite_keyed_expr(&family.spec.expr, &family.spec.reads, key),
+            when: family.spec.when.as_ref().map(|condition| crate::expression::model::ConditionSpec {
+                expr: rewrite_keyed_expr(&condition.expr, &family.spec.reads, key),
+            }),
+            identity: family.spec.identity.as_ref().map(|identity| match identity {
+                IdentitySpec::Exact => IdentitySpec::Exact,
+                IdentitySpec::Expr { expr } => IdentitySpec::Expr {
+                    expr: rewrite_keyed_expr(expr, &family.spec.reads, key),
+                },
+            }),
+        };
+        self.define_recipe(recipe)?;
+        Ok(composite_id)
+    }
+
+    pub fn read_keyed_value(
+        &mut self,
+        family_id: &str,
+        key: &str,
+    ) -> Result<SignalValue, ForgeSignalJsError> {
+        let id = if self.lock_store()?.recipe_families.contains_key(family_id) {
+            self.ensure_recipe_key(family_id, key)?
+        } else {
+            self.ensure_source_key(family_id, key, None)?
+        };
+        self.read_value(&id)
+    }
+
+    pub fn set_keyed_value(
+        &mut self,
+        family_id: &str,
+        key: &str,
+        value: SignalValue,
+    ) -> Result<RunSummary, ForgeSignalJsError> {
+        let id = self.ensure_source_key(family_id, key, Some(value.clone()))?;
+        self.apply_transaction(vec![TransactionOp::Set { id, value }])
+    }
+
+    pub fn apply_transaction(
+        &mut self,
+        ops: Vec<TransactionOp>,
+    ) -> Result<RunSummary, ForgeSignalJsError> {
+        let previous = self.lock_store()?.clone();
+        let changes = self.collect_changes(&ops);
+        let changed_ids = changes.iter().map(|change| change.id.clone()).collect::<Vec<_>>();
+        let store = self.store.clone();
+        let catalog = self.catalog.clone();
+        let evaluator = self.evaluator();
+
+        let result = self.runtime.transaction(&mut self.store, move |tx| {
+            {
+                let mut locked = store
+                    .lock()
+                    .map_err(|_| SignalError::internal("runtime store mutex poisoned"))?;
+                for change in &changes {
+                    let source = locked.sources.get_mut(&change.id).ok_or_else(|| {
+                        SignalError::invalid_input(format!("unknown source `{}`", change.id))
+                    })?;
+                    source.value = change.value.clone();
+                    source.version = source.version.saturating_add(1);
+                }
+            }
+
+            for id in &changed_ids {
+                let node = catalog
+                    .get(id)
+                    .map(|entry| entry.node)
+                    .ok_or_else(|| SignalError::invalid_input(format!("unknown source `{id}`")))?;
+                tx.mark_changed(node, DEFAULT_ASPECT)?;
+            }
+
+            tx.evaluate_dirty(&evaluator)?;
+            Ok(())
+        });
+
+        match result {
+            Ok(result) => Ok(RunSummary {
+                touched_nodes: result.touched_nodes,
+                nodes_evaluated: result.evaluation_summary.nodes_evaluated,
+                nodes_recomputed: result.evaluation_summary.nodes_recomputed,
+                nodes_suppressed: result.evaluation_summary.nodes_suppressed,
+                plans_built: result.evaluation_summary.plans_built,
+                stages_executed: result.evaluation_summary.stages_executed,
+                total_nanos: result.timing.total_nanos.to_string(),
+                evaluation_nanos: result.timing.evaluation_nanos.to_string(),
+                commit_nanos: result.timing.commit_nanos.to_string(),
+            }),
+            Err(err) => {
+                self.restore_store(previous)?;
+                Err(ForgeSignalJsError::from(err))
+            }
+        }
+    }
+
+    pub fn why(&self, id: &str) -> Result<WhySummary, ForgeSignalJsError> {
+        let node = self.node_for_id(id)?;
+        let explanation = self
+            .runtime
+            .diagnostics()
+            .why(node)
+            .map_err(ForgeSignalJsError::from)?;
+        Ok(WhySummary {
+            id: id.to_owned(),
+            node: explanation.node.to_string(),
+            state: format!("{:?}", explanation.state),
+            upstream: explanation
+                .upstream
+                .iter()
+                .map(|cause| format!("{cause:?}"))
+                .collect(),
+            changed_regions: explanation
+                .changed_regions
+                .iter()
+                .map(|region| match &region.detail {
+                    Some(detail) => format!("{}:{}", region.partition.0, detail),
+                    None => region.partition.0.clone(),
+                })
+                .collect(),
+            propagation_suppressed: explanation.propagation_suppressed,
+            output_change: explanation.output_change.map(|change| format!("{change:?}")),
+            output_identity: explanation.output_identity.map(|value| String::from(value)),
+        })
+    }
+
+    pub fn health(&self) -> Result<HealthSummary, ForgeSignalJsError> {
+        Ok(self.runtime.diagnostics().health_view().summary_now().into())
+    }
+
+    pub fn replay_for_id(&mut self, id: &str) -> Result<ReplaySummary, ForgeSignalJsError> {
+        let node = self.node_for_id(id)?;
+        let replay = {
+            let history = self.runtime.history();
+            history.replay_for_node(node)
+        };
+        Ok(replay.into())
+    }
+
+    pub fn lineage_for_id(&mut self, id: &str) -> Result<LineageSummary, ForgeSignalJsError> {
+        let node = self.node_for_id(id)?;
+        let chain = {
+            let history = self.runtime.history();
+            history.lineage_for_node(node)
+        };
+        Ok(chain.to_owned_records().into())
+    }
+
+    pub fn snapshot(&mut self) -> Result<RuntimeSnapshotEnvelope, ForgeSignalJsError> {
+        let snapshot: RuntimeSnapshot = {
+            let mut history = self.runtime.history();
+            history.snapshot()
+        };
+        Ok(RuntimeSnapshotEnvelope {
+            snapshot,
+            state: self.lock_store()?.snapshot(),
+        })
+    }
+
+    pub fn restore_snapshot(
+        &mut self,
+        envelope: RuntimeSnapshotEnvelope,
+    ) -> Result<(), ForgeSignalJsError> {
+        self.runtime
+            .restore_snapshot(&envelope.snapshot)
+            .map_err(ForgeSignalJsError::from)?;
+        let mut store = self.lock_store()?;
+        store.restore_snapshot(envelope.state);
+        Ok(())
+    }
+
+    pub fn current_branch(&self) -> RuntimeBranch {
+        self.runtime.current_branch()
+    }
+
+    pub fn branches(&self) -> Vec<RuntimeBranch> {
+        self.runtime.known_branches()
+    }
+
+    pub fn create_branch(&mut self, name: String) -> Result<RuntimeBranch, ForgeSignalJsError> {
+        self.runtime.create_branch(name).map_err(ForgeSignalJsError::from)
+    }
+
+    pub fn switch_branch(&mut self, branch_id: u64) -> Result<(), ForgeSignalJsError> {
+        let branch = self
+            .runtime
+            .branch_handle(RuntimeBranchId(branch_id))
+            .ok_or_else(|| ForgeSignalJsError::invalid_input(format!("unknown branch `{branch_id}`")))?;
+        self.runtime.switch_branch(branch).map_err(ForgeSignalJsError::from)
+    }
+
+    pub fn replay_for_branch(&mut self, branch_id: u64) -> Result<ReplaySummary, ForgeSignalJsError> {
+        Ok(self
+            .runtime
+            .replay_for_branch(RuntimeBranchId(branch_id))
+            .into())
+    }
+
+    pub fn branch_snapshot(
+        &mut self,
+        branch_id: u64,
+    ) -> Result<RuntimeSnapshot, ForgeSignalJsError> {
+        let branch = self
+            .runtime
+            .branch_handle(RuntimeBranchId(branch_id))
+            .ok_or_else(|| ForgeSignalJsError::invalid_input(format!("unknown branch `{branch_id}`")))?;
+        let mut history = self.runtime.history();
+        history.branch_snapshot(branch).map_err(ForgeSignalJsError::from)
+    }
+
+    pub fn merge_branches(
+        &mut self,
+        source_branch_id: u64,
+        target_branch_id: u64,
+    ) -> Result<BranchMergeResult, ForgeSignalJsError> {
+        let source = self
+            .runtime
+            .branch_handle(RuntimeBranchId(source_branch_id))
+            .ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!("unknown branch `{source_branch_id}`"))
+            })?;
+        let target = self
+            .runtime
+            .branch_handle(RuntimeBranchId(target_branch_id))
+            .ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!("unknown branch `{target_branch_id}`"))
+            })?;
+        self.runtime
+            .merge_branch(source, target)
+            .map_err(ForgeSignalJsError::from)
+    }
+
+    pub fn plan_merge_branches(
+        &mut self,
+        source_branch_id: u64,
+        target_branch_id: u64,
+    ) -> Result<BranchMergePlan, ForgeSignalJsError> {
+        let source = self
+            .runtime
+            .branch_handle(RuntimeBranchId(source_branch_id))
+            .ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!("unknown branch `{source_branch_id}`"))
+            })?;
+        let target = self
+            .runtime
+            .branch_handle(RuntimeBranchId(target_branch_id))
+            .ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!("unknown branch `{target_branch_id}`"))
+            })?;
+        self.runtime
+            .merge()
+            .from(source)
+            .into_branch(target)
+            .plan()
+            .map(|planned| planned.plan().clone())
+            .map_err(ForgeSignalJsError::from)
+    }
+
+    pub fn graph_summary(&self) -> Result<forge_signal::facade::diagnostics::GraphSummary, ForgeSignalJsError> {
+        Ok(self.runtime.diagnostics().summary_now())
+    }
+
+    pub fn evaluate_dirty(&mut self) -> Result<RunSummary, ForgeSignalJsError> {
+        let evaluator = self.evaluator();
+        let report = self
+            .runtime
+            .evaluate_dirty(&self.store, &evaluator)
+            .map_err(ForgeSignalJsError::from)?;
+        Ok(RunSummary {
+            touched_nodes: report.task_count,
+            nodes_evaluated: report.tasks_executed,
+            nodes_recomputed: report
+                .stages
+                .iter()
+                .flat_map(|stage| stage.task_records.iter())
+                .filter(|record| matches!(record.verdict, Some(EvaluationVerdict::Recomputed)))
+                .count() as u32,
+            nodes_suppressed: report.tasks_with_suppressed_propagation,
+            plans_built: 1,
+            stages_executed: report.stage_count,
+            total_nanos: (report.execution_snapshot_nanos
+                + report.stage_precompute_nanos
+                + report.stage_apply_nanos
+                + report.semantic_finalize_nanos)
+                .to_string(),
+            evaluation_nanos: (report.stage_precompute_nanos + report.stage_apply_nanos)
+                .to_string(),
+            commit_nanos: report.semantic_finalize_nanos.to_string(),
+        })
+    }
+
+    pub fn read_versions(
+        &mut self,
+        ids: Vec<String>,
+    ) -> Result<Vec<VersionSummary>, ForgeSignalJsError> {
+        let mut versions = Vec::with_capacity(ids.len());
+        let evaluator = self.evaluator();
+        for id in ids {
+            let node = self.node_for_id(&id)?;
+            let version = self
+                .runtime
+                .read(node, &self.store, &evaluator)
+                .map_err(ForgeSignalJsError::from)?;
+            versions.push(VersionSummary {
+                id,
+                version: version.get(DEFAULT_ASPECT),
+            });
+        }
+        Ok(versions)
+    }
+
+    pub fn export_definitions(&self) -> Result<RuntimeDefinitionEnvelope, ForgeSignalJsError> {
+        let store = self.lock_store()?;
+        Ok(RuntimeDefinitionEnvelope {
+            policy: self.policy.clone(),
+            sources: store
+                .sources
+                .iter()
+                .map(|(id, source)| SourceSpec {
+                    id: id.clone(),
+                    initial: source.value.clone(),
+                })
+                .collect(),
+            recipes: store
+                .recipes
+                .values()
+                .map(|recipe| recipe.spec.clone())
+                .collect(),
+            source_families: store
+                .source_families
+                .values()
+                .map(|family| family.spec.clone())
+                .collect(),
+            recipe_families: store
+                .recipe_families
+                .values()
+                .map(|family| family.spec.clone())
+                .collect(),
+        })
+    }
+
+    pub fn export_runtime_envelope(&mut self) -> Result<RuntimeEnvelope, ForgeSignalJsError> {
+        Ok(RuntimeEnvelope {
+            definitions: self.export_definitions()?,
+            snapshot: self.snapshot()?,
+        })
+    }
+
+    pub fn replace_runtime_envelope(
+        &mut self,
+        envelope: RuntimeEnvelope,
+    ) -> Result<(), ForgeSignalJsError> {
+        let mut rebuilt = RuntimeCore::new(envelope.definitions.policy.clone())?;
+        for family in envelope.definitions.source_families {
+            rebuilt.define_source_family(family)?;
+        }
+        for family in envelope.definitions.recipe_families {
+            rebuilt.define_keyed_recipe_family(family)?;
+        }
+        for source in envelope.definitions.sources {
+            rebuilt.define_source(source)?;
+        }
+        for recipe in envelope.definitions.recipes {
+            rebuilt.define_recipe(recipe)?;
+        }
+        rebuilt.restore_snapshot(envelope.snapshot)?;
+        *self = rebuilt;
+        Ok(())
+    }
+
+    fn evaluator(
+        &self,
+    ) -> impl for<'ctx> Fn(
+            &mut EvaluationContext<'ctx, SharedStore>,
+        ) -> Result<EvaluationOutput, SignalError>
+           + Sync {
+        let store = self.store.clone();
+        let nodes_by_id = self.nodes_by_id.clone();
+        move |view| evaluate_node(view, &store, &nodes_by_id)
+    }
+
+    fn ensure_unique_id(&self, id: &str) -> Result<(), ForgeSignalJsError> {
+        if self.catalog.contains_key(id) {
+            return Err(ForgeSignalJsError::invalid_input(format!(
+                "signal id `{id}` already exists"
+            )));
+        }
+        Ok(())
+    }
+
+    fn ensure_known_reads(&self, reads: &[String]) -> Result<(), ForgeSignalJsError> {
+        for read in reads {
+            if !self.catalog.contains_key(read) {
+                return Err(ForgeSignalJsError::invalid_input(format!(
+                    "unknown read `{read}`"
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    fn collect_changes(&self, ops: &[TransactionOp]) -> Vec<SetChange> {
+        let mut deduped = BTreeMap::<String, SignalValue>::new();
+        for op in ops {
+            match op {
+                TransactionOp::Set { id, value } => {
+                    deduped.insert(id.clone(), value.clone());
+                }
+                TransactionOp::SetMany { values } => {
+                    for value in values {
+                        deduped.insert(value.id.clone(), value.value.clone());
+                    }
+                }
+            }
+        }
+        deduped
+            .into_iter()
+            .map(|(id, value)| SetChange { id, value })
+            .collect()
+    }
+
+    fn lock_store(&self) -> Result<std::sync::MutexGuard<'_, RuntimeStore>, ForgeSignalJsError> {
+        self.store
+            .lock()
+            .map_err(|_| ForgeSignalJsError::internal("runtime store mutex poisoned"))
+    }
+
+    fn restore_store(&self, previous: RuntimeStore) -> Result<(), ForgeSignalJsError> {
+        let mut store = self.lock_store()?;
+        *store = previous;
+        Ok(())
+    }
+
+    fn node_for_id(&self, id: &str) -> Result<NodeId, ForgeSignalJsError> {
+        self.catalog
+            .get(id)
+            .map(|entry| entry.node)
+            .ok_or_else(|| ForgeSignalJsError::invalid_input(format!("unknown signal id `{id}`")))
+    }
+}
+
+#[derive(Debug, Clone)]
+struct SetChange {
+    id: String,
+    value: SignalValue,
+}
+
+pub fn new_shared_core(policy: RuntimePolicySpec) -> Result<SharedCore, ForgeSignalJsError> {
+    Ok(Rc::new(RefCell::new(RuntimeCore::new(policy)?)))
+}
+
+fn evaluate_node(
+    view: &mut EvaluationContext<'_, SharedStore>,
+    store: &SharedStore,
+    nodes_by_id: &BTreeMap<NodeId, String>,
+) -> Result<EvaluationOutput, SignalError> {
+    let Some(id) = nodes_by_id.get(&view.node()) else {
+        return Err(SignalError::invalid_input("missing runtime node id mapping"));
+    };
+
+    let mut locked = store
+        .lock()
+        .map_err(|_| SignalError::internal("runtime store mutex poisoned"))?;
+
+    if let Some(source) = locked.sources.get(id) {
+        return Ok(view.finish(NodeEvaluationResult::from_version(
+            AspectVersion::from_updates([(DEFAULT_ASPECT, source.version)]),
+        )));
+    }
+
+    let reads = locked
+        .recipes
+        .get(id)
+        .map(|recipe| recipe.spec.reads.clone())
+        .ok_or_else(|| SignalError::invalid_input(format!("unknown runtime recipe `{id}`")))?;
+
+    let mut read_values = BTreeMap::new();
+    for read in &reads {
+        let Some(read_node) = nodes_by_id
+            .iter()
+            .find_map(|(node, candidate)| if candidate == read { Some(*node) } else { None })
+        else {
+            return Err(SignalError::invalid_input(format!(
+                "recipe `{id}` references unknown read `{read}`"
+            )));
+        };
+        let _ = view.read_aspect_version(read_node, DEFAULT_ASPECT)?;
+        let value = locked.read_value(read).ok_or_else(|| {
+            SignalError::invalid_input(format!(
+                "recipe `{id}` could not read current value for `{read}`"
+            ))
+        })?;
+        read_values.insert(read.clone(), value);
+    }
+
+    let env = ExprEnvironment::new(&read_values);
+    let recipe = locked
+        .recipes
+        .get_mut(id)
+        .ok_or_else(|| SignalError::invalid_input(format!("unknown runtime recipe `{id}`")))?;
+
+    if let Some(condition) = &recipe.spec.when {
+        match env.evaluate(&condition.expr) {
+            Ok(SignalValue::Bool(false)) if recipe.initialized => {
+                let mut result = NodeEvaluationResult::from_version(AspectVersion::from_updates([
+                    (DEFAULT_ASPECT, recipe.version),
+                ]))
+                .with_output_change(OutputChange::Unchanged);
+                if let Some(identity) = &recipe.output_identity {
+                    result = result.with_output_identity(identity.clone());
+                }
+                return Ok(view.finish(result));
+            }
+            Ok(SignalValue::Bool(_)) => {}
+            Ok(_) => {
+                return Err(SignalError::invalid_input(
+                    "recipe condition must evaluate to a boolean",
+                ));
+            }
+            Err(err) => return Err(SignalError::invalid_input(err.message)),
+        }
+    }
+
+    let next_value = env
+        .evaluate(&recipe.spec.expr)
+        .map_err(|err| SignalError::invalid_input(err.message))?;
+    let next_identity = resolve_identity(&recipe.spec.identity, &env, &next_value)
+        .map_err(|err| SignalError::invalid_input(err.message))?;
+
+    let output_change = if !recipe.initialized {
+        OutputChange::Replaced
+    } else if recipe.output_identity == next_identity && recipe.value == next_value {
+        OutputChange::Unchanged
+    } else if recipe.output_identity == next_identity {
+        OutputChange::Refreshed
+    } else {
+        OutputChange::Replaced
+    };
+
+    if !recipe.initialized || !matches!(output_change, OutputChange::Unchanged) {
+        recipe.version = recipe.version.saturating_add(1);
+        recipe.value = next_value;
+        recipe.initialized = true;
+        recipe.output_identity = next_identity.clone();
+    }
+
+    let mut result = NodeEvaluationResult::from_version(AspectVersion::from_updates([(
+        DEFAULT_ASPECT,
+        recipe.version,
+    )]))
+    .with_output_change(output_change);
+    if let Some(identity) = next_identity {
+        result = result.with_output_identity(identity);
+    }
+    Ok(view.finish(result))
+}
+
+fn resolve_identity(
+    spec: &Option<IdentitySpec>,
+    env: &ExprEnvironment<'_>,
+    value: &SignalValue,
+) -> Result<Option<String>, ForgeSignalJsError> {
+    match spec {
+        Some(IdentitySpec::Exact) => Ok(Some(canonical_value_string(value)?)),
+        Some(IdentitySpec::Expr { expr }) => Ok(Some(canonical_value_string(&env.evaluate(expr)?)?)),
+        None => Ok(None),
+    }
+}
+
+fn canonical_value_string(value: &SignalValue) -> Result<String, ForgeSignalJsError> {
+    serde_json::to_string(value)
+        .map_err(|err| ForgeSignalJsError::internal(format!("failed to canonicalize signal value: {err}")))
+}
+
+fn composite_keyed_id(family_id: &str, key: &str) -> String {
+    format!("{family_id}::{key}")
+}
+
+fn rewrite_keyed_expr(
+    expr: &crate::expression::model::Expr,
+    reads: &[KeyedReadSpec],
+    key: &str,
+) -> crate::expression::model::Expr {
+    use crate::expression::model::Expr;
+
+    match expr {
+        Expr::Value { value } => Expr::Value { value: value.clone() },
+        Expr::Read { id } => {
+            let rewritten = reads
+                .iter()
+                .find(|read| read.family_id == *id)
+                .map(|read| composite_keyed_id(&read.family_id, key))
+                .unwrap_or_else(|| id.clone());
+            Expr::Read { id: rewritten }
+        }
+        Expr::Get { target, field } => Expr::Get {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+            field: field.clone(),
+        },
+        Expr::At { target, index } => Expr::At {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+            index: Box::new(rewrite_keyed_expr(index, reads, key)),
+        },
+        Expr::First { target } => Expr::First {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+        },
+        Expr::Last { target } => Expr::Last {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+        },
+        Expr::Slice { target, start, end } => Expr::Slice {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+            start: Box::new(rewrite_keyed_expr(start, reads, key)),
+            end: end
+                .as_ref()
+                .map(|value| Box::new(rewrite_keyed_expr(value, reads, key))),
+        },
+        Expr::Join { target, separator } => Expr::Join {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+            separator: Box::new(rewrite_keyed_expr(separator, reads, key)),
+        },
+        Expr::Flatten { target } => Expr::Flatten {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+        },
+        Expr::Object { fields } => Expr::Object {
+            fields: fields
+                .iter()
+                .map(|(name, value)| (name.clone(), rewrite_keyed_expr(value, reads, key)))
+                .collect(),
+        },
+        Expr::Array { items } => Expr::Array {
+            items: items
+                .iter()
+                .map(|item| rewrite_keyed_expr(item, reads, key))
+                .collect(),
+        },
+        Expr::Sum { args } => Expr::Sum {
+            args: args.iter().map(|arg| rewrite_keyed_expr(arg, reads, key)).collect(),
+        },
+        Expr::Multiply { args } => Expr::Multiply {
+            args: args.iter().map(|arg| rewrite_keyed_expr(arg, reads, key)).collect(),
+        },
+        Expr::Concat { args } => Expr::Concat {
+            args: args.iter().map(|arg| rewrite_keyed_expr(arg, reads, key)).collect(),
+        },
+        Expr::Coalesce { args } => Expr::Coalesce {
+            args: args.iter().map(|arg| rewrite_keyed_expr(arg, reads, key)).collect(),
+        },
+        Expr::Length { target } => Expr::Length {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+        },
+        Expr::Contains { target, value } => Expr::Contains {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+            value: Box::new(rewrite_keyed_expr(value, reads, key)),
+        },
+        Expr::MergeObjects { args } => Expr::MergeObjects {
+            args: args.iter().map(|arg| rewrite_keyed_expr(arg, reads, key)).collect(),
+        },
+        Expr::Keys { target } => Expr::Keys {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+        },
+        Expr::Values { target } => Expr::Values {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+        },
+        Expr::HasField { target, field } => Expr::HasField {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+            field: field.clone(),
+        },
+        Expr::Pick { target, fields } => Expr::Pick {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+            fields: fields.clone(),
+        },
+        Expr::Omit { target, fields } => Expr::Omit {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+            fields: fields.clone(),
+        },
+        Expr::Append { target, value } => Expr::Append {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+            value: Box::new(rewrite_keyed_expr(value, reads, key)),
+        },
+        Expr::Subtract { left, right } => Expr::Subtract {
+            left: Box::new(rewrite_keyed_expr(left, reads, key)),
+            right: Box::new(rewrite_keyed_expr(right, reads, key)),
+        },
+        Expr::Divide { left, right } => Expr::Divide {
+            left: Box::new(rewrite_keyed_expr(left, reads, key)),
+            right: Box::new(rewrite_keyed_expr(right, reads, key)),
+        },
+        Expr::Eq { left, right } => Expr::Eq {
+            left: Box::new(rewrite_keyed_expr(left, reads, key)),
+            right: Box::new(rewrite_keyed_expr(right, reads, key)),
+        },
+        Expr::Neq { left, right } => Expr::Neq {
+            left: Box::new(rewrite_keyed_expr(left, reads, key)),
+            right: Box::new(rewrite_keyed_expr(right, reads, key)),
+        },
+        Expr::Gt { left, right } => Expr::Gt {
+            left: Box::new(rewrite_keyed_expr(left, reads, key)),
+            right: Box::new(rewrite_keyed_expr(right, reads, key)),
+        },
+        Expr::Gte { left, right } => Expr::Gte {
+            left: Box::new(rewrite_keyed_expr(left, reads, key)),
+            right: Box::new(rewrite_keyed_expr(right, reads, key)),
+        },
+        Expr::Lt { left, right } => Expr::Lt {
+            left: Box::new(rewrite_keyed_expr(left, reads, key)),
+            right: Box::new(rewrite_keyed_expr(right, reads, key)),
+        },
+        Expr::Lte { left, right } => Expr::Lte {
+            left: Box::new(rewrite_keyed_expr(left, reads, key)),
+            right: Box::new(rewrite_keyed_expr(right, reads, key)),
+        },
+        Expr::And { args } => Expr::And {
+            args: args.iter().map(|arg| rewrite_keyed_expr(arg, reads, key)).collect(),
+        },
+        Expr::Or { args } => Expr::Or {
+            args: args.iter().map(|arg| rewrite_keyed_expr(arg, reads, key)).collect(),
+        },
+        Expr::Not { arg } => Expr::Not {
+            arg: Box::new(rewrite_keyed_expr(arg, reads, key)),
+        },
+        Expr::If {
+            condition,
+            then_expr,
+            else_expr,
+        } => Expr::If {
+            condition: Box::new(rewrite_keyed_expr(condition, reads, key)),
+            then_expr: Box::new(rewrite_keyed_expr(then_expr, reads, key)),
+            else_expr: Box::new(rewrite_keyed_expr(else_expr, reads, key)),
+        },
+    }
+}

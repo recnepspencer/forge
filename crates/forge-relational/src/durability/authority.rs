@@ -1212,6 +1212,10 @@ fn merge_commit_mutation_plan_from_envelope(
             fields,
             "converged_deleted_on_both_sides_count",
         )? as usize,
+        deleted_on_both_sides_lineage_unchanged_count: json_u64(
+            fields,
+            "deleted_on_both_sides_lineage_unchanged_count",
+        )? as usize,
         emitted_mutation_intent_count: json_u64(fields, "emitted_mutation_intent_count")? as usize,
         emitted_entity_create_count: json_u64(fields, "emitted_entity_create_count")? as usize,
         emitted_relation_create_count: json_u64(fields, "emitted_relation_create_count")? as usize,
@@ -1228,6 +1232,8 @@ fn merge_commit_mutation_plan_from_envelope(
         reconciled_record_count: structural_summary.reconciled_record_count,
         converged_deleted_on_both_sides_count: structural_summary
             .converged_deleted_on_both_sides_count,
+        deleted_on_both_sides_lineage_unchanged_count: structural_summary
+            .deleted_on_both_sides_lineage_unchanged_count,
         emitted_mutation_intent_count: structural_summary.emitted_mutation_intent_count,
         diagnostics_digest: fields.get("diagnostics_digest")?.as_str()?.to_string(),
         execution_digest: fields.get("execution_digest")?.as_str()?.to_string(),

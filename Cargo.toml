@@ -14,6 +14,7 @@ members = [
     "crates/forge-schema",
     "crates/forge-spec",
     "crates/forge-signal",
+    "crates/forge-signal-wasm",
     "crates/forge-spatial",
     # UI library stack
     "crates/forge-ui-types",
@@ -44,6 +45,7 @@ forge-repr = { path = "crates/forge-repr" }
 forge-schema = { path = "crates/forge-schema" }
 forge-spec = { path = "crates/forge-spec" }
 forge-signal = { path = "crates/forge-signal" }
+forge-signal-wasm = { path = "crates/forge-signal-wasm" }
 forge-spatial = { path = "crates/forge-spatial" }
 # Internal crates — UI library stack
 forge-ui-types      = { path = "crates/forge-ui-types" }

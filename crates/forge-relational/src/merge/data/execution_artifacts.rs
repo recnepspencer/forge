@@ -41,6 +41,9 @@ pub struct ExecutedMergeRecordDiagnosticRow {
     pub source_record: Option<RecordRef>,
     pub target_record: Option<RecordRef>,
     pub record: Option<RecordRef>,
+    pub equality_witness: Option<crate::merge::data::SharedTruthWitness>,
+    pub deletion_semantics: Option<crate::merge::data::DeletedOnBothSidesSemantics>,
+    pub lineage_continuity: Option<crate::merge::data::MergeLineageContinuityVerdict>,
     pub provenance: MergeExecutableRecordProvenance,
     pub aspect_rows: Arc<[ExecutedMergeAspectDiagnosticRow]>,
 }
@@ -85,6 +88,9 @@ fn executed_record_row(
             source_record: Some(plan.source_record.clone()),
             target_record: None,
             record: None,
+            equality_witness: None,
+            deletion_semantics: None,
+            lineage_continuity: None,
             provenance: plan.provenance.clone(),
             aspect_rows: Arc::from(
                 plan.aspect_plan
@@ -98,6 +104,9 @@ fn executed_record_row(
             source_record: None,
             target_record: plan.target_record.clone(),
             record: Some(plan.record.clone()),
+            equality_witness: Some(plan.equality_witness.clone()),
+            deletion_semantics: None,
+            lineage_continuity: None,
             provenance: plan.provenance.clone(),
             aspect_rows: Arc::from(
                 plan.aspect_plan
@@ -111,6 +120,9 @@ fn executed_record_row(
             source_record: Some(plan.source_record.clone()),
             target_record: Some(plan.target_record.clone()),
             record: None,
+            equality_witness: None,
+            deletion_semantics: None,
+            lineage_continuity: None,
             provenance: plan.provenance.clone(),
             aspect_rows: Arc::from(
                 plan.aspect_plan
@@ -125,6 +137,9 @@ fn executed_record_row(
                 source_record: Some(plan.source_record.clone()),
                 target_record: plan.target_record.clone(),
                 record: None,
+                equality_witness: Some(plan.equality_witness.clone()),
+                deletion_semantics: Some(plan.semantics),
+                lineage_continuity: Some(plan.lineage_continuity),
                 provenance: plan.provenance.clone(),
                 aspect_rows: Arc::from(Vec::<ExecutedMergeAspectDiagnosticRow>::new()),
             }

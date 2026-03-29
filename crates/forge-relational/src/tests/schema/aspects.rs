@@ -239,18 +239,14 @@ fn schema_rejects_unsupported_structural_fingerprint_identity_declarations() {
 }
 
 #[test]
-fn schema_rejects_unsupported_merge_policy_declarations() {
+fn schema_accepts_runtime_owned_payload_field_merge_policies_and_rejects_custom_policy() {
     let name_key = AspectKey(InternedString::Raw("name".to_string()));
     for policy in [
         AspectMergePolicyKind::LastWriterWins,
         AspectMergePolicyKind::MonotonicCounter,
         AspectMergePolicyKind::AdditiveSet,
-        AspectMergePolicyKind::Custom(crate::facade::merge::CustomMergePolicyIdentity {
-            name: "custom.merge".into(),
-            semantic_version: 1,
-        }),
     ] {
-        let error = RelationalSchemaRegistry::new()
+        let registry = RelationalSchemaRegistry::new()
             .register_entity_kind(EntityKindRegistration {
                 kind_id: KindId(1),
                 kind_name: "test.entity".to_string(),
@@ -266,6 +262,79 @@ fn schema_rejects_unsupported_merge_policy_declarations() {
                 }])
                 .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
                     aspect_key: name_key.clone(),
+                    policy: policy.clone(),
+                }]),
+            })
+            .expect("runtime-owned payload field policy should register");
+
+        assert_eq!(
+            registry.entity_merge_policy_declarations(KindId(1)).unwrap(),
+            &[AspectMergePolicyDeclaration {
+                aspect_key: name_key.clone(),
+                policy,
+            }]
+        );
+    }
+
+    let error = RelationalSchemaRegistry::new()
+        .register_entity_kind(EntityKindRegistration {
+            kind_id: KindId(1),
+            kind_name: "test.entity".to_string(),
+            schema_id: SchemaId("test".to_string()),
+            schema_version_id: SchemaVersionId(1),
+            aspect_declarations: KindAspectDeclarations::new(vec![DeclaredAspect {
+                key: name_key.clone(),
+                binding: AspectBinding::EntityPayloadField {
+                    field: InternedString::Raw("name".to_string()),
+                },
+                comparator: AspectComparator::JsonScalarEquality,
+                precision: AspectPrecision::Structured,
+            }])
+            .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
+                aspect_key: name_key.clone(),
+                policy: AspectMergePolicyKind::Custom(crate::facade::merge::CustomMergePolicyIdentity {
+                    name: "custom.merge".into(),
+                    semantic_version: 1,
+                }),
+            }]),
+        })
+        .unwrap_err();
+
+    assert!(matches!(
+        error.class,
+        SchemaRegistryErrorClass::InvalidAspectDeclaration {
+            kind_id: KindId(1),
+            ..
+        }
+    ));
+}
+
+#[test]
+fn schema_rejects_runtime_owned_merge_policies_on_non_payload_field_aspects() {
+    let lifecycle_key = AspectKey(InternedString::Raw("lifecycle".to_string()));
+    for policy in [
+        AspectMergePolicyKind::Custom(crate::facade::merge::CustomMergePolicyIdentity {
+            name: "custom.merge".into(),
+            semantic_version: 1,
+        }),
+        AspectMergePolicyKind::LastWriterWins,
+        AspectMergePolicyKind::MonotonicCounter,
+        AspectMergePolicyKind::AdditiveSet,
+    ] {
+        let error = RelationalSchemaRegistry::new()
+            .register_entity_kind(EntityKindRegistration {
+                kind_id: KindId(1),
+                kind_name: "test.entity".to_string(),
+                schema_id: SchemaId("test".to_string()),
+                schema_version_id: SchemaVersionId(1),
+                aspect_declarations: KindAspectDeclarations::new(vec![DeclaredAspect {
+                    key: lifecycle_key.clone(),
+                    binding: AspectBinding::LifecycleTransition,
+                    comparator: AspectComparator::LifecycleTransitionEquality,
+                    precision: AspectPrecision::Structured,
+                }])
+                .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
+                    aspect_key: lifecycle_key.clone(),
                     policy,
                 }]),
             })

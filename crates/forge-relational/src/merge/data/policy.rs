@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::publication::patch::data::AspectKey;
 use crate::transactions::data::RecordRef;
@@ -52,12 +53,24 @@ pub enum MergeManualResolutionClass {
     GenericRuntimeConflict,
     MissingVisibleState,
     UnvalidatedSchemaCorrespondence,
+    MixedAspectManualResolution,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MergePolicyRejectClass {
     BuiltInFailOnConflict,
+    LastWriterWinsCausalConflict,
+    InvalidBuiltInPolicyValueShape,
     CustomPolicyRejected,
+    MixedAspectRejectClasses,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MergeResolvedAspectValueStrategy {
+    SourceVisibleValue,
+    TargetVisibleValue,
+    BaseVisibleValue,
+    InlineCanonicalJson(Value),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -104,6 +117,7 @@ pub enum LoweredMergeAction {
     KeepSourceAddition,
     KeepExactSharedTruth,
     ReconcileSchemaCorrespondence,
+    ReconcileDivergentVisibleState,
     ConvergeDeletedOnBothSides,
 }
 
@@ -193,6 +207,8 @@ pub enum LoweredAspectExecutionIntent {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LoweredMergeBlockedReason {
     ManualConflictResolutionRequired,
+    MissingVisibleState,
+    UnvalidatedSchemaCorrespondence,
     RelationEndpointRewiredLocal,
     RelationEndpointRewiredEscalated,
     TopologyRegionConflict,
@@ -206,6 +222,8 @@ pub enum LoweredMergeBlockedReason {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LoweredMergeRejectedReason {
     FailOnConflictPolicy,
+    CustomPolicyRejected,
+    MixedPolicyRejectClasses,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -215,11 +233,15 @@ pub enum LoweredAspectDenialIntent {
     BlockedDeletedOnBothSides,
     BlockedDeletedVsModified,
     BlockedDeletedVsRewired,
+    BlockedMissingVisibleState,
+    BlockedUnvalidatedSchemaCorrespondence,
     BlockedRelationEndpointRewiredLocal,
     BlockedRelationEndpointRewiredEscalated,
     BlockedTopologyRegionConflict,
     BlockedManualResolution,
     RejectedPolicy,
+    RejectedCustomPolicy,
+    RejectedMixedPolicyClasses,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -230,6 +252,7 @@ pub struct LoweredAspectOutcome {
     pub lowered_action: Option<LoweredAspectAction>,
     pub authorized_values: Option<AuthorizedAspectValueSurface>,
     pub execution_intent: Option<LoweredAspectExecutionIntent>,
+    pub resolved_value_strategy: Option<MergeResolvedAspectValueStrategy>,
     pub denial_intent: Option<LoweredAspectDenialIntent>,
     pub blocked_reason: Option<LoweredMergeBlockedReason>,
     pub rejected_reason: Option<LoweredMergeRejectedReason>,
@@ -261,11 +284,15 @@ pub enum LoweredRecordDenialKind {
     BlockedDeletedOnBothSides,
     BlockedDeletedVsModified,
     BlockedDeletedVsRewired,
+    BlockedMissingVisibleState,
+    BlockedUnvalidatedSchemaCorrespondence,
     BlockedRelationEndpointRewiredLocal,
     BlockedRelationEndpointRewiredEscalated,
     BlockedTopologyRegionConflict,
     BlockedManualResolution,
     RejectedPolicy,
+    RejectedCustomPolicy,
+    RejectedMixedPolicyClasses,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -327,6 +354,7 @@ pub struct AspectPolicyResolutionRecord {
     pub comparison: AspectComparisonState,
     pub applied_policy: Option<AspectMergePolicyKind>,
     pub decision_boundary: MergePolicyDecisionBoundary,
+    pub resolved_value_strategy: Option<MergeResolvedAspectValueStrategy>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

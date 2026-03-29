@@ -245,6 +245,7 @@ which everything else can be reconstructed:
 - lineage events (replace, split, merge-identity)
 - schema evolution boundary artifacts
 - CDC cursor checkpoints (durable position contracts)
+- primary content blobs (uploaded documents, exported models, attached files)
 
 **Derived durable artifacts** — stored for performance and bounded reads, but
 reconstructible from authoritative artifacts if lost:
@@ -254,6 +255,8 @@ reconstructible from authoritative artifacts if lost:
 - physical indexes and aspect-local read accelerators
 - structural fingerprint tables
 - any physical layout optimization
+- derived content blobs (rendered thumbnails, compiled outputs, cached
+  conversions)
 
 **Ephemeral artifacts** — in-memory only, not persisted, discarded freely:
 
@@ -1175,6 +1178,138 @@ What this enables:
 - analysis sharing with exact basis preservation
 - partial replication bootstrap without shipping the entire store history
 
+### Blob and Object Storage Architecture
+
+#### Native object storage
+
+Technical role:
+`forge-store` must own blob and file storage as a native capability — not as
+delegation to an external object store. The store IS the object store. Binary
+files of any type — documents, images, meshes, STEP exports, simulation
+outputs, compiled artifacts, media — must be storable, retrievable,
+deduplicated, replicated, and retained through the same store infrastructure
+that handles structural truth artifacts.
+
+This is an explicit architectural decision: the store does not depend on AWS S3,
+MinIO, or any external object storage service. It builds its own
+content-addressed object storage tier as part of the unified persistence
+engine. Deployment is one system, not a database plus a separate file server.
+
+#### Content-addressed blob storage
+
+Technical role:
+All blobs are stored as content-addressed immutable objects identified by
+cryptographic digest. The same content stored twice occupies storage once.
+
+The store must support:
+
+- content-addressed identity for all stored blobs
+- deduplication across entities, branches, commits, and tenants
+- blob integrity verification through digest comparison at any time
+- immutable blob semantics — a stored blob is never modified, only
+  created or eventually reclaimed by retention policy
+
+This reuses and extends the content-addressed structural block architecture
+already defined for structural data. Blobs are the same pattern at a
+different granularity.
+
+#### Tiered blob placement
+
+Technical role:
+The store must physically tier blob storage by size and access pattern within
+its own storage engine:
+
+- **inline blobs** (small, below a configurable threshold): stored directly
+  in the primary database alongside structural data; this is faster than
+  filesystem round-trips for small objects and avoids the operational cost of
+  managing many tiny files
+- **external blobs** (large, above the threshold): stored as content-addressed
+  files in the store's own managed object pool on local disk; only a reference
+  (digest, size, tier location) is stored in the primary database
+- **cold blobs**: content-addressed objects migrated to the store's cold
+  storage tier under retention and budget policy; still retrievable but with
+  higher latency
+
+Tier boundaries are configurable per deployment. The blob API is unified —
+callers do not know or care which tier holds the physical bytes.
+
+What this enables:
+
+- a single store binary handles both structured data and arbitrary file
+  storage with no external dependencies
+- small blobs (icons, thumbnails, config files, small documents) benefit
+  from database locality and transactional guarantees
+- large blobs (CAD models, simulation datasets, media) avoid bloating the
+  primary database while remaining content-addressed and deduplicated
+- deployment is one system — no separate file server, no separate backup
+  strategy, no separate replication pipeline
+
+#### Blob-entity association
+
+Technical role:
+Blobs must be associable with entities, commits, and branches through
+explicit typed references, not as payload fields or ad-hoc metadata:
+
+- an entity can reference zero or more blobs by digest
+- a commit envelope can carry blob references for attached artifacts
+- blob references are first-class fields in the schema, not opaque strings
+- blob references participate in CDC so subscribers know when attachments
+  change
+
+Blob references are structurally distinct from entity payloads. A blob is
+not a large payload field — it is a separate content-addressed object with
+its own storage lifecycle, deduplication semantics, and retrieval path.
+
+#### Blob lifecycle and retention
+
+Technical role:
+Blob retention must follow the same policy model as structural artifact
+retention:
+
+- blobs referenced by live entities are retained
+- blobs referenced only by compacted or reclaimed history are eligible for
+  reclamation under retention policy
+- unreferenced blobs (orphaned by entity deletion or lineage compaction) are
+  reclaimable
+- retention policy can declare per-kind or per-type blob retention rules
+- blob reclamation participates in the same compaction pipeline as structural
+  artifact reclamation
+
+What this enables:
+
+- controlled storage growth for blob-heavy workloads
+- explicit tradeoffs between blob history depth and storage cost
+- no silent blob accumulation or orphaned file buildup
+- the same retention policy governs structural data and associated files
+
+#### Blob replication and export
+
+Technical role:
+Blobs must participate in the store's replication, import/export, and
+edge-sync primitives:
+
+- replication ships blob content alongside structural commit artifacts
+- import/export capsules include referenced blobs with digest verification
+- partial replication can include or exclude blobs by policy
+- blob integrity is verifiable through the same cross-artifact digest graph
+  used for structural artifacts
+
+What this enables:
+
+- complete store replication including all associated files in one pipeline
+- edge and offline deployments that carry their full file state
+- verified import/export with blob integrity guarantees
+- bandwidth-aware replication that can defer large blobs when constrained
+
+#### Blob durable artifact classification
+
+Blobs are classified as **authoritative artifacts** when they represent
+primary content (uploaded documents, exported models, attached files).
+Blobs are classified as **derived durable artifacts** when they represent
+generated content (rendered thumbnails, compiled outputs, cached
+conversions). The classification determines retention priority and
+rebuild semantics.
+
 ### Admission Control and Budget Architecture
 
 #### Store-native admission control and budget contracts
@@ -1190,6 +1325,8 @@ The store must own explicit budgets and admission control for:
 - replay rebuild debt (how expensive a full rebuild would be)
 - WAL growth rate and size
 - correspondence index growth
+- blob storage footprint per tier (inline, external, cold)
+- blob deduplication ratio and orphan accumulation rate
 
 What this enables:
 
@@ -1342,6 +1479,8 @@ The highest-signal storage programs are:
 - storage diagnostics and integrity verification
 - schema evolution boundary persistence
 - exact vs approximate derived artifact classification
+- native content-addressed blob and object storage
+- tiered blob placement (inline, external, cold)
 - solver-friendly pinned basis objects
 - durable mode: WAL-coordinated runtime lifecycle
 - embedded mode: checkpoint and commit reception from external runtime

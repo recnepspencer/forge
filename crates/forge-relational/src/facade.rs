@@ -142,6 +142,7 @@ pub mod merge {
         MergeExecutionCompilationError, MergeExecutionMutationPlanError,
         MergeExecutionRequest, PreparedMergeExecution, ResolvedMergeBase,
         SchemaDeclaredCorrespondenceValidationSummary, MergeExecutionDiagnosticsPlan,
+        MergeResolvedAspectValueStrategy,
         ExecutedMergeRecordDiagnosticRow, ExecutedMergeRecordClass,
         ExecutedMergeAspectDiagnosticRow, ExecutedMergeAspectClass,
     };

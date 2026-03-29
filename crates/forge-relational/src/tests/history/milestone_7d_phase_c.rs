@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::facade::diagnostics::DiagnosticCode;
+use crate::diagnostics::data::DiagnosticsArtifactKind;
 use crate::facade::history::BranchId;
 use crate::facade::merge::{
     DeletionExecutionClass, MergeConflictClass, MergeExecutableClass,
@@ -80,6 +81,14 @@ fn promoted_deleted_on_both_sides_compiles_to_an_explicit_executable_record_vari
                 plan.provenance.executable_class,
                 MergeExecutableClass::ConvergeDeletedOnBothSides
             );
+            assert_eq!(
+                plan.semantics,
+                crate::merge::data::DeletedOnBothSidesSemantics::AuthoritativeMutualDeletionConvergence
+            );
+            assert_eq!(
+                plan.lineage_continuity,
+                crate::merge::data::MergeLineageContinuityVerdict::Unchanged
+            );
         }
         other => panic!("expected deleted-on-both-sides record plan, got {other:?}"),
     }
@@ -97,10 +106,18 @@ fn promoted_deleted_on_both_sides_derives_zero_mutation_intent_execution_plan() 
 
     assert_eq!(plan.structural_summary.executed_record_count, 1);
     assert_eq!(plan.structural_summary.converged_deleted_on_both_sides_count, 1);
+    assert_eq!(
+        plan.structural_summary.deleted_on_both_sides_lineage_unchanged_count,
+        1
+    );
     assert_eq!(plan.structural_summary.emitted_mutation_intent_count, 0);
     assert!(plan.merged_plan.merged_intents.is_empty());
     assert_eq!(
         plan.merge_execution_summary.converged_deleted_on_both_sides_count,
+        1
+    );
+    assert_eq!(
+        plan.merge_execution_summary.deleted_on_both_sides_lineage_unchanged_count,
         1
     );
 }
@@ -120,6 +137,10 @@ fn promoted_deleted_on_both_sides_executes_through_authoritative_merge_publicati
 
     assert_eq!(merge.structural_summary.executed_record_count, 1);
     assert_eq!(merge.structural_summary.converged_deleted_on_both_sides_count, 1);
+    assert_eq!(
+        merge.structural_summary.deleted_on_both_sides_lineage_unchanged_count,
+        1
+    );
     assert_eq!(merge.structural_summary.emitted_mutation_intent_count, 0);
     assert!(envelope.merged_plan.merged_intents.is_empty());
 
@@ -132,6 +153,37 @@ fn promoted_deleted_on_both_sides_executes_through_authoritative_merge_publicati
     assert_eq!(
         summary_entry.fields["converged_deleted_on_both_sides_count"],
         serde_json::json!(1)
+    );
+    assert_eq!(
+        summary_entry.fields["deleted_on_both_sides_lineage_unchanged_count"],
+        serde_json::json!(1)
+    );
+
+    let diagnostics = runtime.publication_access().diagnostics();
+    let success_artifact = diagnostics
+        .artifacts()
+        .iter()
+        .find(|artifact| {
+            artifact.kind == DiagnosticsArtifactKind::DetailedTrace
+                && artifact.entries.iter().any(|entry| {
+                entry.code == DiagnosticCode::MergeExecutionPublished
+                    && entry.fields["commit_id"] == serde_json::json!(merge.commit.commit.commit_id.0.clone())
+            })
+        })
+        .expect("merge execution success artifact");
+    let record_entry = success_artifact
+        .entries
+        .iter()
+        .find(|entry| entry.fields["record_class"] == serde_json::json!("converge_deleted_on_both_sides"))
+        .expect("deleted-on-both-sides record entry");
+    assert!(record_entry.fields["equality_witness_digest"].is_string());
+    assert_eq!(
+        record_entry.fields["deletion_semantics"],
+        serde_json::json!("AuthoritativeMutualDeletionConvergence")
+    );
+    assert_eq!(
+        record_entry.fields["lineage_continuity"],
+        serde_json::json!("Unchanged")
     );
 }
 

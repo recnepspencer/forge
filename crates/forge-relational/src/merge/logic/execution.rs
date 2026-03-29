@@ -407,6 +407,8 @@ fn compile_record_plan(
                                 source_record,
                             ),
                         },
+                        semantics: crate::merge::data::DeletedOnBothSidesSemantics::AuthoritativeMutualDeletionConvergence,
+                        lineage_continuity: crate::merge::data::MergeLineageContinuityVerdict::Unchanged,
                         provenance,
                     },
                 ),
@@ -497,9 +499,13 @@ fn compile_executable_aspect_plans(
                     lowered_record.record.clone(),
                     aspect.aspect_key.clone(),
                 );
+                let resolved_value = resolved_materialized_value(
+                    lowered_record,
+                    aspect,
+                );
                 ExecutableAspectPlan::ReconcileValue {
                     aspect_key: aspect.aspect_key.clone(),
-                    resolved_value: source_value.clone(),
+                    resolved_value,
                     source_value,
                     target_value,
                     base_value,
@@ -509,6 +515,44 @@ fn compile_executable_aspect_plans(
         plans.push(plan);
     }
     Ok(Arc::from(plans))
+}
+
+fn resolved_materialized_value(
+    lowered_record: &crate::merge::data::LoweredMergePlanRecord,
+    aspect: &crate::merge::data::LoweredAspectOutcome,
+) -> Option<MaterializedAspectValue> {
+    match aspect.resolved_value_strategy.as_ref()? {
+        crate::merge::data::MergeResolvedAspectValueStrategy::SourceVisibleValue => Some(
+            crate::merge::data::aspect_reference(
+                MergeValueSourceSide::Source,
+                lowered_record.record.clone(),
+                aspect.aspect_key.clone(),
+            ),
+        ),
+        crate::merge::data::MergeResolvedAspectValueStrategy::TargetVisibleValue => Some(
+            crate::merge::data::aspect_reference(
+                MergeValueSourceSide::Target,
+                lowered_record
+                    .target_record
+                    .clone()
+                    .unwrap_or_else(|| lowered_record.record.clone()),
+                aspect.aspect_key.clone(),
+            ),
+        ),
+        crate::merge::data::MergeResolvedAspectValueStrategy::BaseVisibleValue => Some(
+            crate::merge::data::aspect_reference(
+                MergeValueSourceSide::Base,
+                lowered_record.record.clone(),
+                aspect.aspect_key.clone(),
+            ),
+        ),
+        crate::merge::data::MergeResolvedAspectValueStrategy::InlineCanonicalJson(value) => {
+            Some(MaterializedAspectValue {
+                policy: MergeValueMaterialization::EagerInlineCanonicalValue,
+                payload: MaterializedAspectValuePayload::InlineCanonicalJson(value.clone()),
+            })
+        }
+    }
 }
 
 fn aspect_materialized_reference(

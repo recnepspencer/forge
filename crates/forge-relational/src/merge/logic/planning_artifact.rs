@@ -237,6 +237,9 @@ pub(super) fn materialize_planning_artifact(
                                         .as_ref()
                                         .map(|policy| policy.ownership_class()),
                                     decision_boundary: aspect.decision_boundary,
+                                    resolved_value_strategy: aspect
+                                        .resolved_value_strategy
+                                        .clone(),
                                 })
                                 .collect::<Vec<_>>(),
                         )
@@ -331,6 +334,9 @@ pub(super) fn materialize_planning_artifact(
                                     lowered_action: aspect.lowered_action,
                                     authorized_values: aspect.authorized_values,
                                     execution_intent: aspect.execution_intent,
+                                    resolved_value_strategy: aspect
+                                        .resolved_value_strategy
+                                        .clone(),
                                     denial_intent: aspect.denial_intent,
                                     blocked_reason: aspect.blocked_reason,
                                     rejected_reason: aspect.rejected_reason,
