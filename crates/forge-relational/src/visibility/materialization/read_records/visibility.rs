@@ -129,6 +129,7 @@ pub(super) fn historical_lifecycle(
     }
 }
 
+
 #[cfg(test)]
 mod tests {
     use crate::logic::runtime::RelationalRuntime;

@@ -11,20 +11,14 @@ use crate::facade::runtime::mark_dirty_batch;
 use crate::data::trace::{RuntimeArtifactHot, RuntimeArtifactState, RuntimeArtifactWarm};
 use crate::logic::prepared::PreparedEvaluation;
 
-use super::compute::{ComputeContext, Computed, ErasedComputed};
+use super::compute::{Computed, ErasedComputed, SignalContext};
 use super::signal::{ComputedSignal, InputSignal, Signal, DEFAULT_ASPECT};
 
-/// Convenience graph wrapper for lightweight typed experiments and examples.
+/// Convenience app wrapper for lightweight typed experiments and examples.
 ///
 /// This surface intentionally trades execution-model explicitness for ergonomics.
 /// It is not the canonical kernel-grade runtime interface.
-#[cfg_attr(
-    doc,
-    deprecated(
-        note = "ReactiveGraph is convenience-only and intentionally not the production runtime surface"
-    )
-)]
-pub struct ReactiveGraph {
+pub struct SignalApp {
     graph: SignalGraph,
     values: HashMap<NodeId, Box<dyn Any + Send + Sync>>,
     computed: HashMap<NodeId, Box<dyn ErasedComputed>>,
@@ -34,13 +28,13 @@ pub struct ReactiveGraph {
     batch_entry_undo: HashMap<NodeId, crate::data::node::NodeEntry>,
 }
 
-impl Default for ReactiveGraph {
+impl Default for SignalApp {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ReactiveGraph {
+impl SignalApp {
     pub fn new() -> Self {
         Self {
             graph: SignalGraph::new(),
@@ -72,7 +66,7 @@ impl ReactiveGraph {
     pub fn computed<T, F>(&mut self, compute: F) -> ComputedSignal<T>
     where
         T: Clone + Send + Sync + 'static,
-        F: Fn(&mut ComputeContext<'_>) -> T + Send + Sync + 'static,
+        F: Fn(&mut SignalContext<'_>) -> T + Send + Sync + 'static,
     {
         let node = self.graph.node().on_demand().build();
         let erased: Box<dyn ErasedComputed> = Box::new(Computed {
@@ -81,12 +75,12 @@ impl ReactiveGraph {
         });
         self.computed.insert(node, erased);
         self.seed_computed_if_possible(node)
-            .expect("easy-mode failed to seed computed node");
+            .expect("easy path failed to seed computed node");
         Signal::new(node)
     }
 
     pub fn get<T: Clone + Send + Sync + 'static>(&mut self, signal: Signal<T>) -> T {
-        self.try_get(signal).expect("easy-mode evaluation failed")
+        self.try_get(signal).expect("easy path evaluation failed")
     }
 
     pub fn try_get<T: Clone + Send + Sync + 'static>(
@@ -94,12 +88,12 @@ impl ReactiveGraph {
         signal: Signal<T>,
     ) -> Result<T, SignalError> {
         self.ensure_evaluated(signal.node)
-            .map_err(|err| SignalError::internal(format!("easy-mode evaluation failed: {err}")))?;
+            .map_err(|err| SignalError::internal(format!("easy path evaluation failed: {err}")))?;
         self.try_read_value(signal)
     }
 
     pub fn set<T: Clone + Send + Sync + 'static>(&mut self, signal: InputSignal<T>, value: T) {
-        self.try_set(signal, value).expect("easy-mode set failed");
+        self.try_set(signal, value).expect("easy path set failed");
     }
 
     pub fn try_set<T: Clone + Send + Sync + 'static>(
@@ -148,7 +142,7 @@ impl ReactiveGraph {
             apply(graph);
             Ok(())
         })
-        .expect("easy-mode batch failed");
+        .expect("easy path batch failed");
     }
 
     pub fn try_batch<F>(&mut self, apply: F) -> Result<(), SignalError>
@@ -206,13 +200,13 @@ impl ReactiveGraph {
                     .get(DEFAULT_ASPECT);
                 let staged_guard = staged_values
                     .lock()
-                    .map_err(|_| SignalError::internal("easy-mode staged value mutex poisoned"))?;
+                    .map_err(|_| SignalError::internal("easy path staged value mutex poisoned"))?;
                 let (value, prepared) =
                     computed.precompute(values, &staged_guard, current_version)?;
                 drop(staged_guard);
                 staged_values
                     .lock()
-                    .map_err(|_| SignalError::internal("easy-mode staged value mutex poisoned"))?
+                    .map_err(|_| SignalError::internal("easy path staged value mutex poisoned"))?
                     .insert(current, value);
                 Ok(prepared)
             } else {
@@ -222,7 +216,7 @@ impl ReactiveGraph {
 
         let staged_values = staged_values
             .into_inner()
-            .map_err(|_| SignalError::internal("easy-mode staged value mutex poisoned"))?;
+            .map_err(|_| SignalError::internal("easy path staged value mutex poisoned"))?;
         for (node, value) in staged_values {
             self.values.insert(node, value);
         }
@@ -310,11 +304,11 @@ impl ReactiveGraph {
         let stored = self
             .values
             .get(&signal.node)
-            .ok_or_else(|| SignalError::invalid_input("easy-mode signal has no stored value"))?;
+            .ok_or_else(|| SignalError::invalid_input("easy signal has no stored value"))?;
         stored
             .downcast_ref::<T>()
             .cloned()
-            .ok_or_else(|| SignalError::invalid_input("easy-mode signal type mismatch"))
+            .ok_or_else(|| SignalError::invalid_input("easy signal type mismatch"))
     }
 }
 

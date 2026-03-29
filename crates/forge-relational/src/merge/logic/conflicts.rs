@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
 
 use crate::merge::data::{
@@ -8,13 +8,14 @@ use crate::merge::data::{
     MergeConflictClass, MergeConflictClassification, MergePlanningError, MergePlanningRequest,
     MergeVisibilityEvidence, MergeVisibilityEvidenceKind, MergeVisibilityState,
     RelationConflictEvidence, RelationConflictPropagation, RelationContinuityClass,
+    TopologyRegionConflictReason,
     VisibleMergeRecord, VisibleMergeRecordKind,
 };
 use crate::merge::logic::aspect_plan_lookup::lowered_plan_for_record;
 use crate::merge::logic::MergeAccess;
 use crate::payloads::data::RecordPayload;
 use crate::schema::data::{LoweredAspectBinding, LoweredExecutableAspectBindingKind};
-use crate::identity::data::VersionId;
+use crate::identity::data::{EntityId, VersionId};
 use crate::symbols::data::InternedString;
 use crate::storage::data::{EntityReadRecord, RecordLifecycleState, RelationReadRecord, RelationalReadView};
 use crate::transactions::data::RecordRef;
@@ -56,30 +57,36 @@ impl<'runtime> MergeAccess<'runtime> {
             .map(|correspondence| (correspondence.source_record.clone(), correspondence))
             .collect::<BTreeMap<_, _>>();
 
-        let classifications = Arc::<[MergeConflictClassification]>::from(
+        let classifications = refine_relation_topology_conflicts(
+            self.runtime,
+            &source_records_by_ref,
+            &base_view,
+            &target_view,
             identity_plan
-            .candidates
-            .iter()
-            .map(|candidate| {
-                let record = source_records_by_ref.get(&candidate.source_record).ok_or_else(|| {
-                    MergePlanningError::MissingConflictSourceRecord {
-                        record: candidate.source_record.clone(),
-                    }
-                })?;
-                Ok(classify_candidate(
-                    self.runtime,
-                    record,
-                    candidate.target_record.clone(),
-                    validated_by_source.contains_key(&candidate.source_record),
-                    base_version_id,
-                    &base_view,
-                    &target_view,
-                    candidate.match_class.clone(),
-                    candidate.reason.clone(),
-                ))
-            })
-            .collect::<Result<Vec<_>, MergePlanningError>>()?,
+                .candidates
+                .iter()
+                .map(|candidate| {
+                    let record =
+                        source_records_by_ref.get(&candidate.source_record).ok_or_else(|| {
+                            MergePlanningError::MissingConflictSourceRecord {
+                                record: candidate.source_record.clone(),
+                            }
+                        })?;
+                    Ok(classify_candidate(
+                        self.runtime,
+                        record,
+                        candidate.target_record.clone(),
+                        validated_by_source.contains_key(&candidate.source_record),
+                        base_version_id,
+                        &base_view,
+                        &target_view,
+                        candidate.match_class.clone(),
+                        candidate.reason.clone(),
+                    ))
+                })
+                .collect::<Result<Vec<_>, MergePlanningError>>()?,
         );
+        let classifications = Arc::<[MergeConflictClassification]>::from(classifications);
         let conflict_summary = summarize_classifications(classifications.clone());
 
         Ok(ConflictClassifiedMergePlan {
@@ -167,8 +174,16 @@ fn classify_candidate(
         reason.clone(),
         has_validated_schema_correspondence,
     );
+    let relation_evidence = relation_conflict_evidence(record, target_record.as_ref(), base_view);
     let class = if has_validated_schema_correspondence {
-        MergeConflictClass::SchemaDeclaredCorrespondence
+        match relation_evidence.as_ref() {
+            Some(evidence)
+                if evidence.propagation != RelationConflictPropagation::RelationLocalOnly =>
+            {
+                MergeConflictClass::RelationEndpointDivergence
+            }
+            _ => MergeConflictClass::SchemaDeclaredCorrespondence,
+        }
     } else {
         classify_record_state(
             record,
@@ -179,7 +194,6 @@ fn classify_candidate(
             base_view,
         )
     };
-    let relation_evidence = relation_conflict_evidence(record, target_record.as_ref(), base_view);
 
     MergeConflictClassification {
         record: record.record_ref.clone(),
@@ -377,13 +391,185 @@ fn relation_conflict_evidence(
     };
     let propagation = match endpoint_continuity {
         EndpointContinuityClass::EndpointsStable => RelationConflictPropagation::RelationLocalOnly,
-        _ => RelationConflictPropagation::EscalatesToTopologyRegionConflict,
+        _ => RelationConflictPropagation::RelationLocalRewireCandidate,
     };
     Some(RelationConflictEvidence {
         endpoint_continuity,
         relation_continuity,
         propagation,
+        topology_neighborhood_records: Arc::from(Vec::<RecordRef>::new()),
+        topology_neighborhood_rewired_records: Arc::from(Vec::<RecordRef>::new()),
+        topology_region_conflict_reason: None,
     })
+}
+
+fn refine_relation_topology_conflicts(
+    runtime: &crate::logic::runtime::RelationalRuntime,
+    source_records_by_ref: &BTreeMap<RecordRef, &VisibleMergeRecord>,
+    base_view: &RelationalReadView,
+    target_view: &RelationalReadView,
+    mut classifications: Vec<MergeConflictClassification>,
+) -> Vec<MergeConflictClassification> {
+    let mut relation_nodes = Vec::<RelationTopologyNode>::new();
+    for (index, classification) in classifications.iter().enumerate() {
+        let Some(relation_evidence) = classification.relation_evidence.as_ref() else {
+            continue;
+        };
+        let Some(source_record) = source_records_by_ref.get(&classification.record) else {
+            continue;
+        };
+        let endpoint_ids = relation_topology_endpoints(
+            source_record,
+            classification.target_record.as_ref(),
+            base_view,
+            target_view,
+        );
+        if endpoint_ids.is_empty() {
+            continue;
+        }
+        relation_nodes.push(RelationTopologyNode {
+            classification_index: index,
+            record: classification.record.clone(),
+            endpoint_ids,
+            rewired: relation_evidence.propagation
+                == RelationConflictPropagation::RelationLocalRewireCandidate,
+        });
+    }
+
+    if relation_nodes.is_empty() {
+        return classifications;
+    }
+
+    let mut endpoint_index = BTreeMap::<EntityId, Vec<usize>>::new();
+    for (node_index, node) in relation_nodes.iter().enumerate() {
+        for endpoint in &node.endpoint_ids {
+            endpoint_index.entry(*endpoint).or_default().push(node_index);
+        }
+    }
+
+    let mut visited = vec![false; relation_nodes.len()];
+    let mut scoped_relation_candidates = 0;
+    let mut scoped_endpoint_incidences = 0;
+    let mut region_conflicts_detected = 0;
+    let mut region_records_escalated = 0;
+    for node_index in 0..relation_nodes.len() {
+        if visited[node_index] {
+            continue;
+        }
+        let component = relation_topology_component(node_index, &relation_nodes, &endpoint_index, &mut visited);
+        let component_has_rewire_seed = component
+            .iter()
+            .any(|component_index| relation_nodes[*component_index].rewired);
+        if !component_has_rewire_seed {
+            continue;
+        }
+        scoped_relation_candidates += component.len();
+        scoped_endpoint_incidences += component
+            .iter()
+            .map(|component_index| relation_nodes[*component_index].endpoint_ids.len())
+            .sum::<usize>();
+        let component_records = Arc::<[RecordRef]>::from(
+            component
+                .iter()
+                .map(|component_index| relation_nodes[*component_index].record.clone())
+                .collect::<Vec<_>>(),
+        );
+        let rewired_records = Arc::<[RecordRef]>::from(
+            component
+                .iter()
+                .filter(|component_index| relation_nodes[**component_index].rewired)
+                .map(|component_index| relation_nodes[*component_index].record.clone())
+                .collect::<Vec<_>>(),
+        );
+        let escalate_to_region = rewired_records.len() > 1;
+        if escalate_to_region {
+            region_conflicts_detected += 1;
+            region_records_escalated += rewired_records.len();
+        }
+        for component_index in component {
+            let classification = &mut classifications[relation_nodes[component_index].classification_index];
+            if let Some(evidence) = classification.relation_evidence.as_mut() {
+                evidence.topology_neighborhood_records = component_records.clone();
+                evidence.topology_neighborhood_rewired_records = rewired_records.clone();
+                if relation_nodes[component_index].rewired && escalate_to_region {
+                    evidence.propagation =
+                        RelationConflictPropagation::EscalatesToTopologyRegionConflict;
+                    evidence.topology_region_conflict_reason =
+                        Some(TopologyRegionConflictReason::ConnectedRewireNeighborhood);
+                }
+            }
+        }
+    }
+
+    runtime
+        .performance_access()
+        .count_merge_topology_region_detection(
+            scoped_relation_candidates,
+            scoped_endpoint_incidences,
+            region_conflicts_detected,
+            region_records_escalated,
+        );
+    classifications
+}
+
+#[derive(Debug)]
+struct RelationTopologyNode {
+    classification_index: usize,
+    record: RecordRef,
+    endpoint_ids: BTreeSet<EntityId>,
+    rewired: bool,
+}
+
+fn relation_topology_component(
+    seed_index: usize,
+    nodes: &[RelationTopologyNode],
+    endpoint_index: &BTreeMap<EntityId, Vec<usize>>,
+    visited: &mut [bool],
+) -> Vec<usize> {
+    let mut queue = VecDeque::from([seed_index]);
+    let mut component = Vec::new();
+    visited[seed_index] = true;
+    while let Some(node_index) = queue.pop_front() {
+        component.push(node_index);
+        for endpoint in &nodes[node_index].endpoint_ids {
+            if let Some(neighbors) = endpoint_index.get(endpoint) {
+                for neighbor in neighbors {
+                    if !visited[*neighbor] {
+                        visited[*neighbor] = true;
+                        queue.push_back(*neighbor);
+                    }
+                }
+            }
+        }
+    }
+    component.sort_by(|left, right| nodes[*left].record.cmp(&nodes[*right].record));
+    component
+}
+
+fn relation_topology_endpoints(
+    source_record: &VisibleMergeRecord,
+    candidate_target_record: Option<&RecordRef>,
+    base_view: &RelationalReadView,
+    target_view: &RelationalReadView,
+) -> BTreeSet<EntityId> {
+    let mut endpoints = BTreeSet::new();
+    if let Some(source) = source_record.source_relation.as_ref() {
+        endpoints.insert(source.source);
+        endpoints.insert(source.target);
+    }
+    if let Some(target_relation) = candidate_target_record
+        .and_then(|target_record| visible_target_record(target_view, target_record))
+        .and_then(|record| record.target_relation)
+        .or_else(|| source_record.target_relation.clone())
+    {
+        endpoints.insert(target_relation.source);
+        endpoints.insert(target_relation.target);
+    }
+    if let Some(base) = base_relation_record(base_view, source_record) {
+        endpoints.insert(base.source);
+        endpoints.insert(base.target);
+    }
+    endpoints
 }
 
 fn endpoint_continuity_between(

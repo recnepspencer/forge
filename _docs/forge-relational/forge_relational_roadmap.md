@@ -737,6 +737,107 @@ This sub-milestone is complete only when:
 - `Durable recovery and schema mismatch test` is satisfied for merge-bearing histories
 - `Merge-ready history shape test` remains satisfied on real merge-produced histories, not only fixtures
 
+### Milestone 7D: Deletion And Topology Merge Execution
+
+#### Goal
+
+Extend merge from the admitted non-deletion 7C subset into explicit deletion
+and topology merge semantics without weakening the proof chain, serialized
+authority model, replay parity, or diagnostics rigor established in Milestone
+7C.
+
+#### Must Ship
+
+- explicit deletion execution ontology rather than a generic blocked-deletion
+  bucket
+- explicit topology execution ontology for relation rewiring and topology
+  escalation surfaces
+- typed mapping from conflict classification into:
+  - executable merge classes
+  - explicitly non-executable denial classes
+- promotion of the safest first deletion execution class
+- durable and replay-stable diagnostics that distinguish:
+  - executable deletion truth
+  - blocked deletion truth
+  - topology-local rewire escalation
+  - topology-region denial
+- branch-local deletion and topology certification over real authored histories,
+  not synthetic patch-only fixtures
+
+#### Must Preserve
+
+- merge execution must continue to consume proof-carrying prepared/lowered
+  merge artifacts only
+- generic commit apply must not rediscover deletion semantics, topology
+  semantics, or relation continuity
+- the shared authoritative commit pipeline must remain shared
+- fail-closed behavior for every non-admitted deletion or topology class
+- replay, durability, and diagnostics parity for merge-bearing histories
+
+#### Explicit 7D Scope Rules
+
+Milestone 7D is not "make deletes work in merge somehow."
+
+It must be explicit about which classes are:
+
+- represented in the ontology
+- executable in this milestone
+- intentionally fail-closed in this milestone
+
+Required ontology coverage includes:
+
+- deletion classes:
+  - source-deleted / target-live
+  - source-live / target-deleted
+  - deleted-on-both-sides
+  - deleted-vs-modified
+  - deleted-vs-rewired
+- topology classes:
+  - relation-local endpoint rewiring
+  - rewiring escalated by current milestone policy
+  - true topology-region conflict
+
+One especially important rule must stay explicit:
+
+- relation-local rewiring evidence must not be flattened into generic topology
+  conflict before the ontology has a chance to classify it
+
+That distinction is required so future topology execution can be widened
+honestly instead of by reinterpreting old denial buckets.
+
+#### Acceptance Requirements
+
+This sub-milestone is complete only when:
+
+- at least one deletion class is executable end to end with replay and recovery
+  parity
+- non-executable deletion classes retain typed denial and recovery-stable
+  planning artifacts
+- topology-bearing merge requests retain typed denial and recovery-stable
+  planning artifacts
+- replay and durability continue to satisfy:
+  - `Hostile commit/replay equivalence test`
+  - `Durable recovery and schema mismatch test`
+  - `Merge-ready history shape test`
+- the roadmap is paired with an explicit deletion/topology merge certification
+  test or suite if
+  [test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md)
+  does not already contain one
+
+#### Must Not Fake
+
+Milestone 7D must not:
+
+- silently broaden one-sided deletion execution without an explicit policy
+  surface
+- silently treat rewiring as ordinary reconciliation
+- silently treat topology-region conflict as the same thing as relation-local
+  rewiring
+- move merge meaning back into generic commit execution helpers
+
+7D is the point where deletion and topology become first-class merge truth, not
+special-case leftovers.
+
 ## Milestone 8: Parallel Read, Bulk Mutation, and Scale Query Completion
 
 ### Goal
@@ -778,105 +879,143 @@ named requirements from
 - `Deterministic observability under hostile scheduling test`
 - `Snapshot-stable concurrent read vs hot rewrite test`
 
-## Milestone 8.5: Intent-Based Reconciliation
+## Milestone 8.5: Extensible Commit Strategies
 
 ### Goal
 
-Introduce intent-based reconciliation as a first-class commit semantic so
-callers can declare desired structural shape and the runtime plans and executes
-reconciliation toward that shape through the invariant and merge pipelines.
+Replace the hard-coded mutation-only commit model with an extensible commit
+strategy system so that domain-specific commit types — intent reconciliation,
+constraint solving, workflow advancement, bridge-mediated evaluation — compose
+with the full commit pipeline (transaction, invariant, merge, replay, publication)
+without modifying the runtime.
 
-This milestone exists because the mutation-only commit model ("here is what
-changed") does not capture higher-level semantic goals. Many real-world
-operations are intent-driven: a CAD assembly constraint says "these faces must
-be flush," a deployment manifest says "this service must have 3 replicas," a
-compliance rule says "this entity must satisfy GDPR." These are not mutations;
-they are declarations of desired structural state that the runtime must
-reconcile toward.
+### Adversarial Constraint
 
-The practical value is that intent-based reconciliation composes with branching:
-two branches can declare conflicting intents, and the merge pipeline can detect
-intent conflicts at a higher semantic level than record-level field conflicts.
-This is strictly more powerful than mutation-based merge because it preserves
-caller goals through divergence and reconciliation.
+A caller-supplied commit strategy that panics, deadlocks, produces
+non-deterministic mutations, or silently violates schema constraints must not
+corrupt the runtime's authoritative state, break replay parity, or bypass the
+invariant pipeline. The commit pipeline must treat the strategy as an untrusted
+effect producer: its output is validated, its failures are contained, and its
+replay determinism is verified — not assumed.
+
+### Motivation
+
+The mutation-only commit model ("here is what changed") does not capture
+higher-level semantic goals. Many real-world operations are strategy-driven:
+
+- A CAD assembly constraint says "these faces must be flush" → constraint solver
+  produces mutations
+- A deployment manifest says "this service must have 3 replicas" → intent differ
+  produces mutations
+- A compliance rule says "this entity must satisfy GDPR" → policy engine
+  produces mutations
+- A signal-relational bridge says "evaluate the signal graph and reflect results
+  into relational state" → bridge evaluator produces mutations
+
+These all share the same commit lifecycle (open transaction → produce effects →
+validate invariants → commit with causal metadata → notify subscribers) but
+differ only in how effects are produced. Per Architectural Law 28, the shared
+lifecycle is the abstraction and the effect-production strategy is the parameter.
 
 ### Prerequisites
 
-- Milestone 6.5 (invariant pipeline) for validating intent legality
-- Milestone 7C (merge execution) for merging branches with divergent intents
-- Causal commit metadata (from Milestone 7B) for determining intent ordering
+- Milestone 6.5 (invariant pipeline) for validating strategy-produced mutations
+- Milestone 7C (merge execution) for merging branches with strategy-produced
+  commits
+- Causal commit metadata (from Milestone 7B) for causal ordering of
+  strategy-produced commits
 
 ### Must Ship
 
-#### Intent Commit Type
+#### Commit Strategy Trait
 
-- a new commit type distinct from mutation commits that carries a structural
-  intent declaration rather than a set of explicit mutations
-- intent declarations must be typed and schema-validated, not freeform; the
-  runtime must reject intents that reference nonexistent kinds, invalid
-  cardinalities, or structurally impossible topologies
-- the runtime must plan a reconciliation path from current state to intended
-  state, producing a mutation plan that is then validated through the invariant
-  pipeline before execution
-- intent commits must produce canonical commit envelopes with the same replay
-  and durability guarantees as mutation commits
+- a typed trait (or equivalent extension point) that allows callers to define
+  custom commit strategies with a declared input type and a lowered mutation plan
+  as output
+- the strategy receives a read-only view of current authoritative state and
+  produces a mutation batch; it does not have write access to the runtime
+- strategy registration must be schema-level and freeze-at-construction, not
+  ad-hoc; a strategy registered after the first commit is rejected
+- each registered strategy must carry a deterministic descriptor so replay can
+  verify strategy identity across sessions
 
-#### Intent Conflict Detection
+#### Strategy Containment
 
-- when two branches carry conflicting intents (e.g., one branch declares
-  "entity X must have at least 5 outgoing relations" and another declares
-  "entity X must have at most 3 outgoing relations"), merge must detect the
-  intent conflict at the semantic level, not merely the mutation level
-- intent conflicts must be classified as a distinct conflict category from
-  record-level merge conflicts, with their own structured diagnostics
-- structurally compatible intents from different branches must auto-reconcile;
-  structurally incompatible intents must fail-explicit with explanation
+- a strategy that returns an error must cause the transaction to fail-explicit
+  without partial mutation; the runtime must not apply a partial mutation batch
+  from a failed strategy
+- a strategy that produces mutations violating schema constraints must be
+  rejected at the invariant pipeline boundary, not at the strategy boundary;
+  the strategy is not trusted to self-validate
+- a strategy that produces non-deterministic output (different mutations for
+  the same input state) must be detectable through replay parity verification;
+  the runtime must record the strategy input alongside the mutation output so
+  replay can re-invoke the strategy and compare
+- strategies must not hold references into the runtime across transaction
+  boundaries; the strategy is invoked, produces output, and returns — it does
+  not persist state between commits
 
-#### Intent Reconciliation Pipeline
+#### Strategy-Aware Merge
 
-- reconciliation planning must use the schema, current state, and declared
-  intent to determine what mutations are needed to reach the intended state
-- the planned mutations must pass through the full invariant pipeline at commit
-  boundary; if the mutations required to satisfy an intent would violate another
-  invariant, the intent commit must fail-explicit with a typed explanation of
-  the structural impossibility
-- reconciliation must be idempotent: applying the same intent to a state that
-  already satisfies it must produce no mutations and succeed
-- reconciliation must compose with CRDT-style merge policies: if an aspect has
-  a declared merge policy and an intent targets that aspect, the reconciliation
-  must respect the merge policy
+- merge must carry strategy metadata on commits so the merge pipeline can
+  distinguish commits produced by different strategies
+- when two branches carry commits from different strategies targeting the same
+  records, merge must classify the conflict using both record-level and
+  strategy-level metadata
+- strategy-level conflict classification must be a distinct category from
+  record-level conflicts, with structured diagnostics that name the conflicting
+  strategies and their declared intents
 
-#### Intent Persistence and Replay
+#### Reference Implementation: Intent Reconciliation
 
-- persisted intent artifacts must record the declared intent, the planned
-  reconciliation mutations, and the invariant validation results
-- replay must verify that the same intent applied to the same pre-state produces
-  the same mutations; divergence is a replay parity violation
-- intent declarations must be canonical artifacts with digest bases, not opaque
+- the milestone must ship an intent reconciliation strategy as a concrete
+  implementation that demonstrates the full strategy lifecycle
+- intent reconciliation accepts a desired-state declaration, diffs against
+  current state, and produces a mutation batch
+- intent reconciliation must be idempotent: applying the same intent to a state
+  that already satisfies it must produce no mutations and succeed
+- intent reconciliation must compose with CRDT-style merge policies: if an
+  aspect has a declared merge policy and an intent targets that aspect, the
+  reconciliation must respect the merge policy
+
+#### Strategy Persistence and Replay
+
+- persisted commit artifacts must record the strategy identity, the strategy
+  input, the produced mutation batch, and the invariant validation results
+- replay must re-invoke the registered strategy with the recorded input and
+  verify that it produces the same mutation batch; divergence is a replay
+  parity violation
+- strategy inputs must be canonical artifacts with digest bases, not opaque
   blobs
 
 ### Must Preserve
 
-- serialized authority for truth mutation (intent reconciliation produces
-  mutations through the existing commit authority, not a parallel path)
+- serialized authority for truth mutation (strategies produce mutations through
+  the existing commit authority, not a parallel path)
 - canonical observability and replay
 - coherent publication
-- invariant enforcement at commit boundary (intents do not bypass invariants)
-- explicit failure rather than partial reconciliation
+- invariant enforcement at commit boundary (strategies do not bypass invariants)
+- explicit failure rather than partial strategy execution
 
 ### Acceptance Requirements
 
 This milestone is complete only when:
 
-- intent commits produce canonical commit envelopes verified by the existing
-  replay certification pipeline
-- intent conflict detection is demonstrated under hostile branching scenarios
-  with structurally incompatible intents
-- reconciliation idempotency is verified
-- `Hostile commit/replay equivalence test` is satisfied for intent-bearing
+- at least two distinct commit strategies (intent reconciliation and one other)
+  produce canonical commit envelopes verified by the existing replay
+  certification pipeline
+- strategy containment is demonstrated: a deliberately failing strategy does not
+  corrupt runtime state
+- strategy replay parity is verified: replaying a strategy-produced commit
+  re-invokes the strategy and confirms identical output
+- strategy-aware merge conflict classification is demonstrated under hostile
+  branching scenarios with commits from different strategies targeting the same
+  records
+- intent reconciliation idempotency is verified as a specific case
+- `Hostile commit/replay equivalence test` is satisfied for strategy-bearing
   histories
-- the roadmap is paired with an explicit intent-reconciliation certification
-  test if
+- the roadmap is paired with an explicit extensible-commit-strategy
+  certification test if
   [test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md)
   does not already contain one
 

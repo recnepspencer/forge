@@ -224,7 +224,10 @@ impl VisibilityCache {
         if !entry.recent_resident {
             return false;
         }
-        if entry.branch_head_refs > 0 || entry.replay_refs > 0 || entry.active_snapshot_refs > 0 {
+        if entry.branch_head_refs > 0
+            || entry.replay_refs > 0
+            || entry.active_snapshot_refs > 0
+        {
             return false;
         }
         entry.recent_resident = false;
@@ -232,7 +235,9 @@ impl VisibilityCache {
             .lock()
             .expect("recent visibility policy lock poisoned")
             .resident_count -= 1;
-        if entry.branch_head_refs == 0 && entry.replay_refs == 0 && entry.active_snapshot_refs == 0
+        if entry.branch_head_refs == 0
+            && entry.replay_refs == 0
+            && entry.active_snapshot_refs == 0
         {
             residency.remove(&version_id);
         }

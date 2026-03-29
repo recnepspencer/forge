@@ -210,6 +210,7 @@ fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolat
         source,
         feature_target,
         "topo-edge-feature",
+        "topo-edge-feature",
         PartitionId(22),
         BranchId("feature".to_string()),
     );

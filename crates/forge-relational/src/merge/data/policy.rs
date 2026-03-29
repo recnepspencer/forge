@@ -21,6 +21,19 @@ pub enum AspectMergePolicyKind {
     Custom(CustomMergePolicyIdentity),
 }
 
+impl AspectMergePolicyKind {
+    pub const fn ownership_class(&self) -> MergePolicyOwnershipClass {
+        match self {
+            AspectMergePolicyKind::Custom(_) => MergePolicyOwnershipClass::CustomPolicy,
+            AspectMergePolicyKind::FailOnConflict
+            | AspectMergePolicyKind::LastWriterWins
+            | AspectMergePolicyKind::MonotonicCounter
+            | AspectMergePolicyKind::AdditiveSet
+            | AspectMergePolicyKind::PreferRicher => MergePolicyOwnershipClass::RuntimeBuiltIn,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AspectMergePolicyDeclaration {
     pub aspect_key: AspectKey,
@@ -32,6 +45,42 @@ pub enum MergePolicyResolution {
     AutoResolved,
     RequiresManualResolution,
     Reject,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MergeManualResolutionClass {
+    GenericRuntimeConflict,
+    MissingVisibleState,
+    UnvalidatedSchemaCorrespondence,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MergePolicyRejectClass {
+    BuiltInFailOnConflict,
+    CustomPolicyRejected,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MergePolicyDecisionBoundary {
+    AutoResolved,
+    RequiresManualResolution {
+        class: MergeManualResolutionClass,
+    },
+    Reject {
+        class: MergePolicyRejectClass,
+    },
+}
+
+impl MergePolicyDecisionBoundary {
+    pub const fn resolution(self) -> MergePolicyResolution {
+        match self {
+            MergePolicyDecisionBoundary::AutoResolved => MergePolicyResolution::AutoResolved,
+            MergePolicyDecisionBoundary::RequiresManualResolution { .. } => {
+                MergePolicyResolution::RequiresManualResolution
+            }
+            MergePolicyDecisionBoundary::Reject { .. } => MergePolicyResolution::Reject,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -69,7 +118,15 @@ pub enum DeletionExecutionClass {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TopologyExecutionClass {
-    RelationEndpointDivergence,
+    RelationEndpointStable,
+    RelationEndpointRewiredLocal,
+    RelationEndpointRewiredEscalated,
+    TopologyRegionConflict,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TopologyRewireAdmissionPolicy {
+    AlwaysEscalateToTopologyRegion,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -136,7 +193,9 @@ pub enum LoweredAspectExecutionIntent {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LoweredMergeBlockedReason {
     ManualConflictResolutionRequired,
-    RelationEndpointDivergence,
+    RelationEndpointRewiredLocal,
+    RelationEndpointRewiredEscalated,
+    TopologyRegionConflict,
     SourceDeletedTargetLive,
     SourceLiveTargetDeleted,
     DeletedOnBothSides,
@@ -156,7 +215,9 @@ pub enum LoweredAspectDenialIntent {
     BlockedDeletedOnBothSides,
     BlockedDeletedVsModified,
     BlockedDeletedVsRewired,
-    BlockedRelationEndpointDivergence,
+    BlockedRelationEndpointRewiredLocal,
+    BlockedRelationEndpointRewiredEscalated,
+    BlockedTopologyRegionConflict,
     BlockedManualResolution,
     RejectedPolicy,
 }
@@ -200,7 +261,9 @@ pub enum LoweredRecordDenialKind {
     BlockedDeletedOnBothSides,
     BlockedDeletedVsModified,
     BlockedDeletedVsRewired,
-    BlockedRelationEndpointDivergence,
+    BlockedRelationEndpointRewiredLocal,
+    BlockedRelationEndpointRewiredEscalated,
+    BlockedTopologyRegionConflict,
     BlockedManualResolution,
     RejectedPolicy,
 }
@@ -230,6 +293,24 @@ pub struct ResolvedAspectMergePolicy {
     pub policy: AspectMergePolicyKind,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MergePolicyOwnershipClass {
+    RuntimeBuiltIn,
+    CustomPolicy,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MergePolicyOwnershipSurface {
+    RuntimeOnly,
+    ContainsCustomPolicy,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MergePolicyProofBoundary {
+    pub ownership_surface: MergePolicyOwnershipSurface,
+    pub decision_boundary: MergePolicyDecisionBoundary,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MergePolicyResolutionRecord {
     pub record: RecordRef,
@@ -237,7 +318,7 @@ pub struct MergePolicyResolutionRecord {
     pub classification: crate::merge::data::MergeConflictClass,
     pub aspect_resolutions: Arc<[AspectPolicyResolutionRecord]>,
     pub applied_policies: Arc<[ResolvedAspectMergePolicy]>,
-    pub resolution: MergePolicyResolution,
+    pub proof_boundary: MergePolicyProofBoundary,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -245,7 +326,7 @@ pub struct AspectPolicyResolutionRecord {
     pub aspect_key: AspectKey,
     pub comparison: AspectComparisonState,
     pub applied_policy: Option<AspectMergePolicyKind>,
-    pub resolution: MergePolicyResolution,
+    pub decision_boundary: MergePolicyDecisionBoundary,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -254,6 +335,8 @@ pub struct MergePolicyResolutionSummary {
     pub auto_resolved_count: usize,
     pub requires_manual_resolution_count: usize,
     pub reject_count: usize,
+    pub runtime_only_record_count: usize,
+    pub custom_policy_record_count: usize,
     pub records: Arc<[MergePolicyResolutionRecord]>,
 }
 
@@ -266,7 +349,7 @@ pub struct LoweredMergePlanRecord {
     pub executable_class: Option<MergeExecutableClass>,
     pub causal_disposition: crate::merge::data::MergeRecordCausalDisposition,
     pub applied_policies: Arc<[ResolvedAspectMergePolicy]>,
-    pub policy_resolution: MergePolicyResolution,
+    pub policy_proof_boundary: MergePolicyProofBoundary,
     pub readiness: MergeExecutionReadiness,
     pub record_decision: LoweredRecordDecision,
     pub lowered_action: Option<LoweredMergeAction>,

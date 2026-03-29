@@ -26,12 +26,20 @@ impl<'a> RelationalTransaction<'a> {
         current_state: &impl PartitionAccess,
         mut intents: Vec<MutationIntent>,
     ) -> Result<MergedCommitPlan, CommitConflict> {
+        let history = self.runtime.history_access();
+        let branch_basis_version_id = self
+            .options
+            .target_branch
+            .as_ref()
+            .and_then(|branch_id| history.branch_head(branch_id).map(|head| head.version_id));
         for intent in &intents {
             validate_intent(
+                self.runtime,
                 current_state,
                 self.runtime.runtime_config(),
                 self.runtime.runtime_config().storage.cross_context_policy,
                 self.runtime.runtime_instrumentation(),
+                branch_basis_version_id,
                 intent,
             )?;
         }

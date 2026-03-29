@@ -303,7 +303,7 @@ fn compile_record_plan(
             }
         })?,
         causal_disposition: lowered_record.causal_disposition,
-        policy_resolution: lowered_record.policy_resolution,
+        policy_proof_boundary: lowered_record.policy_proof_boundary,
         applied_policies: lowered_record.applied_policies.clone(),
     };
     let aspect_plan = compile_executable_aspect_plans(runtime, source_record, lowered_record)?;

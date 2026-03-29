@@ -13,6 +13,7 @@ use crate::logic::runtime::{RelationalReplayRecord, RelationalRuntime, ReplaySch
 use crate::publication::data::{PublicationBundle, PublicationStatus};
 use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
 use crate::storage::logic::state::PublicationArtifacts;
+use crate::visibility::snapshot_states::build_visibility_state;
 use rayon::prelude::*;
 use serde_json::json;
 
@@ -102,9 +103,7 @@ impl<'runtime> PublicationAuthority<'runtime> {
             else {
                 break;
             };
-            self.runtime
-                .visibility
-                .remove_published_handle(oldest_snapshot_id);
+            let _ = self.runtime.visibility.remove_published_handle(oldest_snapshot_id);
         }
     }
 
@@ -176,9 +175,13 @@ impl<'runtime> PublicationAuthority<'runtime> {
     ) -> SnapshotId {
         let PublicationArtifacts { bundle } = artifacts;
         let snapshot_id = bundle.snapshot.snapshot_id;
-        self.runtime
-            .visibility
-            .insert_published_handle(snapshot_id, version_id);
+        let snapshot_state = build_visibility_state(
+            self.runtime,
+            version_id,
+            snapshot_id,
+            bundle.snapshot.read_policy,
+        );
+        self.runtime.visibility.insert_published_handle(snapshot_state);
         self.push_diagnostic_artifact(bundle.diagnostics_summary.clone());
         self.runtime.publication.latest_bundle = Some(bundle);
         self.prune_published_snapshot_handles_if_needed();
@@ -301,7 +304,7 @@ impl<'runtime> PublicationAuthority<'runtime> {
                 }
                 PostCommitConsumerObservation::PublishedHandlePrunePlan(snapshot_ids) => {
                     for snapshot_id in snapshot_ids {
-                        self.runtime.visibility.remove_published_handle(snapshot_id);
+                        let _ = self.runtime.visibility.remove_published_handle(snapshot_id);
                     }
                 }
             }

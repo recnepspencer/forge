@@ -3,14 +3,15 @@ use serde::{Deserialize, Serialize};
 use crate::merge::data::{
     AspectComparisonState, AspectMergePolicyDeclaration, AspectMergePolicyKind,
     AuthorizedAspectValueSurface, CausalAnnotationSummary, ConflictClassificationSummary,
-    MergeExecutableClass, MergeResolutionClass,
+    MergeExecutableClass, MergePolicyDecisionBoundary, MergePolicyOwnershipClass,
+    MergePolicyProofBoundary, MergeResolutionClass,
     IdentityBasisDeclaration, IdentityBasisKind, IdentityBasisScope, IdentityDiscoverySummary,
     LoweredAspectAction, LoweredAspectDenialIntent, LoweredAspectExecutionIntent,
     LoweredMergeAction, LoweredMergeBlockedReason, LoweredMergePlanSummary,
     LoweredMergeRejectedReason, LoweredRecordDecisionKind, LoweredRecordDenialKind,
     LoweredRecordExecutionIntentKind, MergeAncestrySummary, MergeConflictClass,
     MergeExecutionReadiness, MergePlanningDecisionLog, MergePlanningDecisionLogDigestBasis,
-    MergePlanningRequest, MergePolicyResolution, MergePolicyResolutionSummary,
+    MergePlanningRequest, MergePolicyResolutionSummary,
     MergeVisibilityEvidence, RelationConflictEvidence, ResolvedAspectMergePolicy,
     ResolvedMergeBase,
 };
@@ -77,7 +78,7 @@ pub struct MergeConflictDigestBasis {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MergePolicyDigestBasis {
     pub records: std::sync::Arc<[RecordRef]>,
-    pub resolutions: std::sync::Arc<[MergePolicyResolution]>,
+    pub proof_boundaries: std::sync::Arc<[MergePolicyProofBoundary]>,
     pub applied_policies: std::sync::Arc<[std::sync::Arc<[ResolvedAspectMergePolicy]>]>,
     pub aspect_rows: std::sync::Arc<[std::sync::Arc<[MergePolicyAspectDigestRow]>]>,
 }
@@ -126,7 +127,8 @@ pub struct MergePolicyAspectDigestRow {
     pub aspect_key: crate::publication::patch::data::AspectKey,
     pub comparison: AspectComparisonState,
     pub applied_policy: Option<AspectMergePolicyKind>,
-    pub resolution: MergePolicyResolution,
+    pub policy_ownership: Option<MergePolicyOwnershipClass>,
+    pub decision_boundary: MergePolicyDecisionBoundary,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -165,6 +167,7 @@ pub struct MergeSchemaKindSemanticSnapshot {
 pub struct MergeSchemaSnapshotDigestBasis {
     pub authoritative_schema_id: Option<SchemaId>,
     pub authoritative_schema_version_id: Option<SchemaVersionId>,
+    pub registry_digest: String,
     pub touched_kinds: std::sync::Arc<[MergeSchemaKindSemanticSnapshot]>,
 }
 

@@ -10,9 +10,15 @@ pub(super) fn apply(
 ) -> Result<MutationOutcome, CommitConflict> {
     let version_id = workspace.version_id();
     let cascade_delete_policy = workspace.cascade_delete_policy();
+    let branch_local_no_op = workspace.branch_local_delete_allows_entity(intent.entity_id);
     let mut outcome = MutationOutcome::entity_deleted(intent.entity_id);
     workspace.with_context(|context| {
-        ensure_entity_target_is_current(context.state, intent.entity_id)?;
+        if let Err(error) = ensure_entity_target_is_current(context.state, intent.entity_id) {
+            if branch_local_no_op {
+                return Ok::<(), CommitConflict>(());
+            }
+            return Err(error);
+        }
         delete_entity_with_cascade(
             context.state,
             version_id,

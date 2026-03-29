@@ -2,7 +2,6 @@ use std::ops::{Deref, DerefMut};
 
 use crate::data::graph::{EvaluationStrategy, SignalGraph};
 use crate::data::telemetry::{RuntimeTelemetry, TransactionTelemetry};
-use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::events::EventBus;
 use crate::state::{SignalBranchHandle, SignalBranchId};
@@ -253,7 +252,7 @@ impl<Ctx> SignalRuntime<(), (), (), Ctx, ()> {
         SignalRuntime::<(), (), (), (), ()>::builder(graph)
             .with_context::<Ctx>()
             .with_kernel_defaults()
-            .runtime_policy(SignalRuntimePolicy::development())
+            .development_policy()
             .build()
     }
 
@@ -262,7 +261,7 @@ impl<Ctx> SignalRuntime<(), (), (), Ctx, ()> {
         SignalRuntime::<(), (), (), (), ()>::builder(graph)
             .with_context::<Ctx>()
             .with_kernel_defaults()
-            .runtime_policy(SignalRuntimePolicy::operational())
+            .operational_policy()
             .build()
     }
 
@@ -271,7 +270,7 @@ impl<Ctx> SignalRuntime<(), (), (), Ctx, ()> {
         SignalRuntime::<(), (), (), (), ()>::builder(graph)
             .with_context::<Ctx>()
             .with_kernel_defaults()
-            .runtime_policy(SignalRuntimePolicy::web_development())
+            .web_development_policy()
             .build()
     }
 
@@ -280,7 +279,7 @@ impl<Ctx> SignalRuntime<(), (), (), Ctx, ()> {
         SignalRuntime::<(), (), (), (), ()>::builder(graph)
             .with_context::<Ctx>()
             .with_kernel_defaults()
-            .runtime_policy(SignalRuntimePolicy::fintech())
+            .fintech_policy()
             .build()
     }
 
@@ -289,7 +288,7 @@ impl<Ctx> SignalRuntime<(), (), (), Ctx, ()> {
         SignalRuntime::<(), (), (), (), ()>::builder(graph)
             .with_context::<Ctx>()
             .with_kernel_defaults()
-            .runtime_policy(SignalRuntimePolicy::forensic())
+            .forensic_policy()
             .build()
     }
 }

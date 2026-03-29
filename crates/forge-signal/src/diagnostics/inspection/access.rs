@@ -29,6 +29,14 @@ pub struct GraphDiagnostics<'a> {
 
 pub struct GraphComparisonDiagnostics;
 
+pub struct GraphHealthDiagnostics<'a> {
+    graph: &'a SignalGraph,
+}
+
+pub struct GraphInspectDiagnostics<'a> {
+    graph: &'a SignalGraph,
+}
+
 pub struct GraphForensicDiagnostics<'a> {
     graph: &'a SignalGraph,
 }
@@ -44,6 +52,16 @@ impl<'a> GraphDiagnostics<'a> {
 
     pub fn compare(&self) -> GraphComparisonDiagnostics {
         GraphComparisonDiagnostics
+    }
+
+    /// Group health-oriented reads in one place.
+    pub fn health_view(&self) -> GraphHealthDiagnostics<'a> {
+        GraphHealthDiagnostics { graph: self.graph }
+    }
+
+    /// Group inspector-style reads in one place.
+    pub fn inspect(&self) -> GraphInspectDiagnostics<'a> {
+        GraphInspectDiagnostics { graph: self.graph }
     }
 
     pub fn explain(&self, node: NodeId) -> Result<NodeExplanation, crate::data::error::SignalError> {
@@ -170,6 +188,70 @@ impl<'a> GraphDiagnostics<'a> {
     }
 }
 
+impl<'a> GraphHealthDiagnostics<'a> {
+    pub fn summary(&self, profile: DiagnosticsTier) -> GraphSummary {
+        self.graph.observe().diagnostics_summary(profile)
+    }
+
+    pub fn summary_now(&self) -> GraphSummary {
+        self.summary(self.graph.runtime_policy().tier)
+    }
+
+    pub fn current(&self, profile: DiagnosticsTier) -> GraphSummary {
+        self.summary(profile)
+    }
+
+    pub fn current_now(&self) -> GraphSummary {
+        self.summary_now()
+    }
+
+    pub fn latest_flow(&self) -> Option<&'a FlowSummary> {
+        self.graph.observe().latest_flow_diagnostics()
+    }
+
+    pub fn latest_failure(&self) -> Option<&'a FailureSummary> {
+        self.graph.observe().latest_failure_diagnostics()
+    }
+
+    pub fn latest_rollback(&self) -> Option<&'a RollbackDiagnostic> {
+        self.graph.observe().latest_rollback_diagnostics()
+    }
+
+    pub fn latest_frontier_execution(&self) -> Option<&'a FrontierExecutionSummary> {
+        self.graph.observe().latest_frontier_execution_summary()
+    }
+
+    pub fn latest_invalidation_trace_records(&self) -> &'a [InvalidationTraceRecord] {
+        self.graph.observe().latest_invalidation_trace_records()
+    }
+
+    pub fn recent_history(&self) -> &'a VecDeque<ExecutionHistorySummary> {
+        self.graph.observe().recent_execution_history_diagnostics()
+    }
+}
+
+impl<'a> GraphInspectDiagnostics<'a> {
+    pub fn graph(&self) -> GraphInspector<'a> {
+        inspect_graph(self.graph)
+    }
+
+    pub fn execution(&self) -> ExecutionInspector<'a> {
+        inspect_execution(self.graph)
+    }
+
+    pub fn plan(&self, plan: &'a EvaluationPlan) -> PlanInspector<'a> {
+        inspect_plan(plan)
+    }
+
+    pub fn report(&self, report: &'a ExecutionReport) -> ReportInspector<'a> {
+        inspect_report(report)
+    }
+
+    pub fn flow(&self, flow: &'a FlowSummary) -> FlowInspector<'a> {
+        inspect_flow(flow)
+    }
+}
+
 impl GraphComparisonDiagnostics {
     pub fn graphs(&self, left: &GraphSummary, right: &GraphSummary) -> crate::diagnostics::GraphDiff {
         crate::diagnostics::compare_graphs(left, right)
@@ -221,16 +303,16 @@ impl GraphComparisonDiagnostics {
 
     pub fn replay(
         &self,
-        left: &crate::diagnostics::ReplaySlice,
-        right: &crate::diagnostics::ReplaySlice,
+        left: &crate::diagnostics::ReplayView,
+        right: &crate::diagnostics::ReplayView,
     ) -> crate::diagnostics::ReplayDiff {
         crate::diagnostics::compare_replay_slices(left, right)
     }
 
     pub fn lineage(
         &self,
-        left: &[crate::diagnostics::LineageRecord],
-        right: &[crate::diagnostics::LineageRecord],
+        left: &[crate::diagnostics::LineageEvent],
+        right: &[crate::diagnostics::LineageEvent],
     ) -> crate::diagnostics::LineageDiff {
         crate::diagnostics::compare_lineage_records(left, right)
     }

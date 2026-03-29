@@ -1,10 +1,14 @@
+use std::collections::BTreeSet;
+
+use crate::authority::intent_merge::{entity_exists_in_version_basis, relation_exists_in_version_basis};
 use crate::authority::mutation::{
-    apply_plan_to_working_state, MutationApplyOutcome, MutationEffect,
+    apply_plan_to_working_state, BranchLocalDeleteAllowance, MutationApplyOutcome, MutationEffect,
 };
+use crate::history::data::BranchId;
 use crate::identity::data::VersionId;
 use crate::logic::runtime::RelationalRuntime;
 use crate::transactions::data::{
-    AuthoritativeApplyPlan, MergedCommitPlan, TransactionCommitError, TransactionId,
+    AuthoritativeApplyPlan, MergedCommitPlan, MutationIntent, TransactionCommitError, TransactionId,
 };
 use crate::validation::engine::InvariantExecutionResult;
 
@@ -21,6 +25,7 @@ pub(crate) fn run_authoritative_mutation_for_runtime(
     transaction_id: TransactionId,
     working_state: &mut crate::logic::runtime::WorkingState,
     merged_plan: &MergedCommitPlan,
+    target_branch: Option<&BranchId>,
 ) -> Result<MutationPhaseOutput, TransactionCommitError> {
     let version_id = runtime.history_access().preview_next_version_id();
     let apply_plan = AuthoritativeApplyPlan {
@@ -35,6 +40,8 @@ pub(crate) fn run_authoritative_mutation_for_runtime(
         cross_context_policy: runtime.config.storage.cross_context_policy,
         execution_model: runtime.config.execution.execution_model,
     };
+    let branch_local_delete_allowance =
+        branch_local_delete_allowance_for_plan(runtime, merged_plan, target_branch);
     let MutationApplyOutcome {
         effect,
         preparation_telemetry,
@@ -45,6 +52,7 @@ pub(crate) fn run_authoritative_mutation_for_runtime(
         &runtime.config.schema.registry,
         &runtime.aspect_semantics.plans,
         &mut runtime.services.symbols,
+        branch_local_delete_allowance,
     )
     .map_err(TransactionCommitError::conflict)?;
     runtime
@@ -87,4 +95,53 @@ pub(crate) fn run_authoritative_mutation_for_runtime(
         effect,
         invariant_results,
     })
+}
+
+fn branch_local_delete_allowance_for_plan(
+    runtime: &RelationalRuntime,
+    merged_plan: &MergedCommitPlan,
+    target_branch: Option<&BranchId>,
+) -> BranchLocalDeleteAllowance {
+    let Some(branch_id) = target_branch else {
+        return BranchLocalDeleteAllowance::default();
+    };
+    let history = runtime.history_access();
+    let Some(branch_head) = history.branch_head(branch_id) else {
+        return BranchLocalDeleteAllowance::default();
+    };
+    let current_state = runtime.storage_access().current_state();
+    let mut entity_ids = BTreeSet::new();
+    let mut relation_ids = BTreeSet::new();
+
+    for intent in &merged_plan.merged_intents {
+        match intent {
+            MutationIntent::Entity(crate::transactions::data::EntityMutationIntent::Delete(spec)) => {
+                if !crate::authority::intent_merge::entity_exists_in_state(&current_state, spec.entity_id)
+                    && entity_exists_in_version_basis(runtime, branch_head.version_id, spec.entity_id)
+                {
+                    entity_ids.insert(spec.entity_id);
+                }
+            }
+            MutationIntent::Relation(
+                crate::transactions::data::RelationMutationIntent::Delete(spec),
+            ) => {
+                if !crate::authority::intent_merge::relation_exists_in_state(
+                    &current_state,
+                    spec.relation_id,
+                ) && relation_exists_in_version_basis(
+                    runtime,
+                    branch_head.version_id,
+                    spec.relation_id,
+                ) {
+                    relation_ids.insert(spec.relation_id);
+                }
+            }
+            MutationIntent::Create(_) | MutationIntent::Entity(_) => {}
+        }
+    }
+
+    BranchLocalDeleteAllowance {
+        entity_ids,
+        relation_ids,
+    }
 }

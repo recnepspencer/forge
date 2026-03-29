@@ -115,7 +115,7 @@ fn executed_record_diagnostics_entry(
             "record": row.record,
             "classification": format!("{:?}", row.provenance.classification),
             "causal_disposition": format!("{:?}", row.provenance.causal_disposition),
-            "policy_resolution": format!("{:?}", row.provenance.policy_resolution),
+            "policy_proof_boundary": format!("{:?}", row.provenance.policy_proof_boundary),
             "applied_policies": row.provenance.applied_policies,
             "aspect_rows": row.aspect_rows.iter().map(executed_aspect_row_json).collect::<Vec<_>>(),
         }),

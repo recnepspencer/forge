@@ -28,6 +28,7 @@ pub(crate) struct PartitionMutationJournal {
 pub(crate) struct SnapshotPartitionPins {
     pub(crate) entity_slots: DenseSlotBitSet,
     pub(crate) relation_slots: DenseSlotBitSet,
+    pub(crate) retained_relation_slots: DenseSlotBitSet,
 }
 
 #[derive(Debug, Clone)]

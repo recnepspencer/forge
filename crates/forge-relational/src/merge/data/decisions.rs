@@ -18,7 +18,7 @@ pub struct MergePlanningDecisionRecord {
     pub decision: MergePlanningDecisionKind,
     pub classification: crate::merge::data::MergeConflictClass,
     pub causal_disposition: crate::merge::data::MergeRecordCausalDisposition,
-    pub policy_resolution: crate::merge::data::MergePolicyResolution,
+    pub policy_proof_boundary: crate::merge::data::MergePolicyProofBoundary,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -33,5 +33,5 @@ pub struct MergePlanningDecisionLogDigestBasis {
     pub canonical_target_records: Arc<[Option<RecordRef>]>,
     pub canonical_classifications: Arc<[crate::merge::data::MergeConflictClass]>,
     pub canonical_causal_dispositions: Arc<[crate::merge::data::MergeRecordCausalDisposition]>,
-    pub canonical_policy_resolutions: Arc<[crate::merge::data::MergePolicyResolution]>,
+    pub canonical_policy_proof_boundaries: Arc<[crate::merge::data::MergePolicyProofBoundary]>,
 }

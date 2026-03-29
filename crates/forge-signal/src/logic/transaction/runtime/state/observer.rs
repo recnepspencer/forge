@@ -12,7 +12,7 @@ use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::diagnostics::profile::DiagnosticsTier;
 use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
 use crate::diagnostics::{
-    FailureSummary, FlowSummary, ReplaySlice, RollbackDiagnostic, SynthesizedReplaySlice,
+    FailureSummary, FlowSummary, ReplayView, RollbackDiagnostic, SynthesizedReplaySlice,
 };
 use crate::logic::explain::{explain_with_policy_resolver, NodeExplanation};
 use crate::presentation::metrics::RuntimeMetrics;
@@ -165,17 +165,17 @@ where
         self.graph().evaluation_strategy()
     }
 
-    pub fn replay_for_node(&self, node: NodeId) -> ReplaySlice {
+    pub fn replay_for_node(&self, node: NodeId) -> ReplayView {
         self.graph().replay_for_node(node).to_owned_slice()
     }
 
-    pub fn replay_for_artifact(&self, artifact_id: LineageArtifactId) -> ReplaySlice {
+    pub fn replay_for_artifact(&self, artifact_id: LineageArtifactId) -> ReplayView {
         self.graph()
             .replay_for_artifact(artifact_id)
             .to_owned_slice()
     }
 
-    pub fn replay_from_cursor(&self, start: crate::diagnostics::ReplayCursor) -> ReplaySlice {
+    pub fn replay_from_cursor(&self, start: crate::diagnostics::ReplayCursor) -> ReplayView {
         self.graph().replay_from_cursor(start).to_owned_slice()
     }
 
@@ -183,17 +183,17 @@ where
         &self,
         start: crate::diagnostics::ReplayCursor,
         end: crate::diagnostics::ReplayCursor,
-    ) -> ReplaySlice {
+    ) -> ReplayView {
         self.graph().replay_between(start, end).to_owned_slice()
     }
 
-    pub fn replay_around_snapshot(&self, snapshot_id: SignalSnapshotId) -> ReplaySlice {
+    pub fn replay_around_snapshot(&self, snapshot_id: SignalSnapshotId) -> ReplayView {
         self.graph()
             .replay_around_snapshot(snapshot_id)
             .to_owned_slice()
     }
 
-    pub fn replay_for_branch(&self, branch_id: SignalBranchId) -> ReplaySlice {
+    pub fn replay_for_branch(&self, branch_id: SignalBranchId) -> ReplayView {
         self.runtime
             .branches
             .replay_graph(

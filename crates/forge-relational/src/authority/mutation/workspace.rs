@@ -1,7 +1,10 @@
+use std::collections::BTreeSet;
+
 use crate::authority::commit::preparation::planning::strategy::{
     ParallelLegality, ParallelProfitability, PreparationStrategy, PreparationStrategySelection,
 };
 use crate::config::data::MutationConfig;
+use crate::identity::data::{EntityId, RelationId};
 use crate::identity::data::VersionId;
 use crate::schema::data::{AspectPlanCatalog, LoweredAspectPlan, RelationalSchemaRegistry};
 use crate::storage::overlay::WorkingState;
@@ -21,6 +24,12 @@ pub(crate) struct MutationPreparationTelemetry {
     pub(crate) staged_parallel_strategy_count: usize,
 }
 
+#[derive(Debug, Clone, Default)]
+pub(crate) struct BranchLocalDeleteAllowance {
+    pub(crate) entity_ids: BTreeSet<EntityId>,
+    pub(crate) relation_ids: BTreeSet<RelationId>,
+}
+
 pub(crate) struct MutationWorkspace<'a> {
     state: &'a mut WorkingState,
     symbols: &'a mut StringInterner,
@@ -28,6 +37,7 @@ pub(crate) struct MutationWorkspace<'a> {
     schema: &'a RelationalSchemaRegistry,
     aspect_plans: &'a AspectPlanCatalog,
     version_id: VersionId,
+    branch_local_delete_allowance: BranchLocalDeleteAllowance,
     preparation_telemetry: MutationPreparationTelemetry,
 }
 
@@ -39,6 +49,7 @@ impl<'a> MutationWorkspace<'a> {
         schema: &'a RelationalSchemaRegistry,
         aspect_plans: &'a AspectPlanCatalog,
         version_id: VersionId,
+        branch_local_delete_allowance: BranchLocalDeleteAllowance,
     ) -> Self {
         Self {
             state,
@@ -47,6 +58,7 @@ impl<'a> MutationWorkspace<'a> {
             schema,
             aspect_plans,
             version_id,
+            branch_local_delete_allowance,
             preparation_telemetry: MutationPreparationTelemetry::default(),
         }
     }
@@ -69,6 +81,24 @@ impl<'a> MutationWorkspace<'a> {
 
     pub(crate) fn version_id(&self) -> VersionId {
         self.version_id
+    }
+
+    pub(crate) fn branch_local_delete_allows_entity(
+        &self,
+        entity_id: EntityId,
+    ) -> bool {
+        self.branch_local_delete_allowance
+            .entity_ids
+            .contains(&entity_id)
+    }
+
+    pub(crate) fn branch_local_delete_allows_relation(
+        &self,
+        relation_id: RelationId,
+    ) -> bool {
+        self.branch_local_delete_allowance
+            .relation_ids
+            .contains(&relation_id)
     }
 
     pub(crate) fn entity_aspect_plan(

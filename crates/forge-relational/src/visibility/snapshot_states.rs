@@ -45,19 +45,26 @@ pub(crate) fn build_visibility_state(
             .or_insert_with(|| SnapshotPartitionPins {
                 entity_slots: DenseSlotBitSet::with_capacity(entity_slots.words().len() * 64),
                 relation_slots: DenseSlotBitSet::with_capacity(0),
+                retained_relation_slots: DenseSlotBitSet::with_capacity(0),
             });
         pins.entity_slots = entity_slots;
     }
     let mut pinned_relation_count = 0;
     for (partition_id, relation_slots) in relation_partitions {
         pinned_relation_count += relation_slots.count_ones();
+        let retained_relation_slots =
+            retained_relation_slots_for_version(runtime, &current_state, partition_id, &relation_slots, version_id);
         let pins = pinned_partitions
             .entry(partition_id)
             .or_insert_with(|| SnapshotPartitionPins {
                 entity_slots: DenseSlotBitSet::with_capacity(0),
                 relation_slots: DenseSlotBitSet::with_capacity(relation_slots.words().len() * 64),
+                retained_relation_slots: DenseSlotBitSet::with_capacity(
+                    relation_slots.words().len() * 64,
+                ),
             });
         pins.relation_slots = relation_slots;
+        pins.retained_relation_slots = retained_relation_slots;
     }
     SnapshotState {
         handle,
@@ -93,7 +100,14 @@ pub(crate) fn read_view_from_snapshot_state(
                 relation_id,
                 state.handle.version_id,
             ) {
-                relations.push(record);
+                relations.push(if pins.retained_relation_slots.count_ones_in_range(slot, slot + 1) == 1 {
+                    crate::storage::data::RelationReadRecord {
+                        lifecycle: crate::storage::data::RecordLifecycleState::RetainedDanglingForAudit,
+                        ..record
+                    }
+                } else {
+                    record
+                });
             }
         }
     }
@@ -106,4 +120,27 @@ pub(crate) fn read_view_from_snapshot_state(
         entities,
         relations,
     }
+}
+
+fn retained_relation_slots_for_version(
+    runtime: &RelationalRuntime,
+    state: &impl crate::storage::logic::state::PartitionAccess,
+    partition_id: crate::identity::data::PartitionId,
+    relation_slots: &DenseSlotBitSet,
+    version_id: crate::identity::data::VersionId,
+) -> DenseSlotBitSet {
+    let reader = runtime.visibility_reads();
+    let mut retained = DenseSlotBitSet::with_capacity(relation_slots.words().len() * 64);
+    for slot in relation_slots.iter_set_slots() {
+        let relation_id = crate::identity::data::RelationId::new(partition_id, slot as u64, 0);
+        if reader
+            .relation_record_for_id_at_version(state, relation_id, version_id)
+            .is_some_and(|record| {
+                record.lifecycle == crate::storage::data::RecordLifecycleState::RetainedDanglingForAudit
+            })
+        {
+            retained.set(slot, true);
+        }
+    }
+    retained
 }

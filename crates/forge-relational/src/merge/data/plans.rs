@@ -193,6 +193,7 @@ pub enum MergePlanningError {
         target_record: RecordRef,
     },
     MissingLoweringSourceRecord { record: RecordRef },
+    MissingLoweringConflictClassification { record: RecordRef },
     MissingCausalAnnotation { record: RecordRef },
     MissingLoweredRecordExecutionBundle {
         classification: crate::merge::data::MergeConflictClass,

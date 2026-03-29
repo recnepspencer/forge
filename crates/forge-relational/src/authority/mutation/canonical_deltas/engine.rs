@@ -442,7 +442,15 @@ mod tests {
         config: &'a crate::config::data::MutationConfig,
         schema: &'a RelationalSchemaRegistry,
     ) -> MutationWorkspace<'a> {
-        MutationWorkspace::new(state, symbols, config, schema, aspect_plans, VersionId(1))
+        MutationWorkspace::new(
+            state,
+            symbols,
+            config,
+            schema,
+            aspect_plans,
+            VersionId(1),
+            crate::authority::mutation::BranchLocalDeleteAllowance::default(),
+        )
     }
 
     #[test]

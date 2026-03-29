@@ -1,5 +1,7 @@
 use std::collections::BTreeSet;
 
+use sha2::Digest;
+
 use crate::logic::runtime::RelationalRuntime;
 use crate::merge::data::{
     LoweredMergePlan, MergeArtifactDigestBasis, MergeBaseDigestBasis, MergeCausalDigestBasis,
@@ -149,7 +151,7 @@ pub(super) fn materialize_planning_artifact(
             relation_evidence: std::sync::Arc::from(
                 plan.classifications
                     .iter()
-                    .map(|classification| classification.relation_evidence)
+                    .map(|classification| classification.relation_evidence.clone())
                     .collect::<Vec<_>>(),
             ),
             source_visibility_evidence: std::sync::Arc::from(
@@ -206,10 +208,10 @@ pub(super) fn materialize_planning_artifact(
                     .map(|record| record.record.clone())
                     .collect::<Vec<_>>(),
             ),
-            resolutions: std::sync::Arc::from(
+            proof_boundaries: std::sync::Arc::from(
                 plan.policy_records
                     .iter()
-                    .map(|record| record.resolution)
+                    .map(|record| record.proof_boundary)
                     .collect::<Vec<_>>(),
             ),
             applied_policies: std::sync::Arc::from(
@@ -230,7 +232,11 @@ pub(super) fn materialize_planning_artifact(
                                     aspect_key: aspect.aspect_key.clone(),
                                     comparison: aspect.comparison,
                                     applied_policy: aspect.applied_policy.clone(),
-                                    resolution: aspect.resolution,
+                                    policy_ownership: aspect
+                                        .applied_policy
+                                        .as_ref()
+                                        .map(|policy| policy.ownership_class()),
+                                    decision_boundary: aspect.decision_boundary,
                                 })
                                 .collect::<Vec<_>>(),
                         )
@@ -504,6 +510,13 @@ fn merge_schema_snapshot(
     MergeSchemaSnapshotDigestBasis {
         authoritative_schema_id: touched_kinds.first().map(|kind| kind.schema_id.clone()),
         authoritative_schema_version_id: touched_kinds.first().map(|kind| kind.schema_version_id),
+        registry_digest: schema_registry_digest(registry),
         touched_kinds: std::sync::Arc::from(touched_kinds),
     }
+}
+
+fn schema_registry_digest(registry: &RelationalSchemaRegistry) -> String {
+    let bytes = serde_json::to_vec(registry).expect("schema registry serialization");
+    let digest = sha2::Sha256::digest(bytes);
+    digest.iter().map(|byte| format!("{byte:02x}")).collect()
 }

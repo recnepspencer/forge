@@ -1,5 +1,7 @@
 use crate::facade::history::BranchId;
-use crate::facade::merge::{MergeConflictClass, MergeExecutionRequest, MergeIntent};
+use crate::facade::merge::{
+    MergeConflictClass, MergeExecutionRequest, MergeIntent, MergePolicyOwnershipSurface,
+};
 use crate::facade::transactions::RecordRef;
 use crate::tests::support::{
     create_branch_from_main, create_entity, create_entity_outcome_on_branch, delete_entity,
@@ -230,4 +232,71 @@ fn merge_planning_digest_basis_carries_visibility_evidence_rows() {
         artifact.digest_basis.conflict.records.len(),
         artifact.digest_basis.conflict.base_visibility_evidence.len()
     );
+}
+
+#[test]
+fn merge_planning_policy_surface_is_explicitly_runtime_owned_before_lowering() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    let entity = create_entity(&mut runtime, "shared");
+    create_branch_from_main(&mut runtime, "feature");
+    update_entity(&mut runtime, entity, "same");
+    update_entity_on_branch(
+        &mut runtime,
+        entity,
+        "same",
+        BranchId("feature".to_string()),
+    );
+
+    let artifact = runtime
+        .merge_access()
+        .inspect_planning_scope(
+            MergeExecutionRequest {
+                target_branch: BranchId("main".to_string()),
+                source_branch: BranchId("feature".to_string()),
+                merge_intent: MergeIntent::ReconcileIntoTarget,
+            }
+            .into(),
+        )
+        .expect("planning artifact");
+
+    assert_eq!(
+        artifact.policy_resolution.runtime_only_record_count,
+        artifact.policy_resolution.resolved_record_count
+    );
+    assert_eq!(artifact.policy_resolution.custom_policy_record_count, 0);
+}
+
+#[test]
+fn merge_planning_digest_basis_carries_policy_ownership_surface_rows() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    create_entity(&mut runtime, "root");
+    create_branch_from_main(&mut runtime, "feature");
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
+
+    let artifact = runtime
+        .merge_access()
+        .inspect_planning_scope(
+            MergeExecutionRequest {
+                target_branch: BranchId("main".to_string()),
+                source_branch: BranchId("feature".to_string()),
+                merge_intent: MergeIntent::ReconcileIntoTarget,
+            }
+            .into(),
+        )
+        .expect("planning artifact");
+
+    assert_eq!(
+        artifact.digest_basis.policy.records.len(),
+        artifact.digest_basis.policy.proof_boundaries.len()
+    );
+    assert!(artifact
+        .digest_basis
+        .policy
+        .proof_boundaries
+        .iter()
+        .all(|boundary| boundary.ownership_surface == MergePolicyOwnershipSurface::RuntimeOnly));
 }

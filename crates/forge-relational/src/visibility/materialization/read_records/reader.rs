@@ -57,7 +57,8 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         let version_id = self
             .runtime
             .published_snapshot_version(handle.snapshot_id)?;
-        let read_view = self.read_version(version_id);
+        let state = self.runtime.visibility.published_snapshot_state(handle.snapshot_id)?;
+        let read_view = read_view_from_snapshot_state(self.runtime, &state);
         Some(SnapshotInspectionSummary {
             version_id,
             entity_count: read_view.entities.len(),
@@ -84,10 +85,10 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             };
             return Some(read_view);
         }
-        let version_id = self
-            .runtime
+        self.runtime
             .published_snapshot_version(handle.snapshot_id)?;
-        let mut read_view = self.read_version(version_id);
+        let state = self.runtime.visibility.published_snapshot_state(handle.snapshot_id)?;
+        let mut read_view = read_view_from_snapshot_state(self.runtime, &state);
         read_view.snapshot = handle.clone();
         Some(read_view)
     }
@@ -346,7 +347,11 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             .runtime
             .published_snapshot_version(handle.snapshot_id)?;
         let residency = residency_for_version(self.runtime, version_id);
-        let cached = cached_state_for_version(self.runtime, version_id).is_some();
+        let cached = self
+            .runtime
+            .visibility
+            .published_snapshot_state(handle.snapshot_id)
+            .is_some();
         let recent_window = self.runtime.recent_visibility_window();
         let recent_candidate = self.runtime.visibility_cache_enabled()
             && recent_window > 0

@@ -90,6 +90,25 @@ where
         }
     }
 
+    /// Adjust the current checkpoint setup in one place.
+    pub fn adjust_checkpoints<F>(
+        mut self,
+        adjust: F,
+    ) -> SignalRuntimeBuilder<Present, ComparatorState, D, I, E, Ctx, T>
+    where
+        F: FnOnce(&mut CheckpointPolicy<D>),
+    {
+        adjust(&mut self.checkpoint_policy);
+        SignalRuntimeBuilder {
+            graph: self.graph,
+            checkpoint_policy: self.checkpoint_policy,
+            fallback_comparator: self.fallback_comparator,
+            runtime_policy: self.runtime_policy,
+            tier_policies: self.tier_policies,
+            _marker: PhantomData,
+        }
+    }
+
     /// Set the fallback comparator used when a node or tier does not provide one.
     pub fn fallback_comparator(
         self,
@@ -105,12 +124,82 @@ where
         }
     }
 
+    /// Adjust the fallback comparator without restating the whole value.
+    pub fn adjust_fallback_comparator<F>(
+        mut self,
+        adjust: F,
+    ) -> SignalRuntimeBuilder<CheckpointState, Present, D, I, E, Ctx, T>
+    where
+        F: FnOnce(VersionComparatorPolicy) -> VersionComparatorPolicy,
+    {
+        self.fallback_comparator = adjust(self.fallback_comparator);
+        SignalRuntimeBuilder {
+            graph: self.graph,
+            checkpoint_policy: self.checkpoint_policy,
+            fallback_comparator: self.fallback_comparator,
+            runtime_policy: self.runtime_policy,
+            tier_policies: self.tier_policies,
+            _marker: PhantomData,
+        }
+    }
+
     /// Set runtime observability and semantic retention policy.
     ///
     /// Use one of the named presets like `SignalRuntimePolicy::operational()`
     /// or `SignalRuntimePolicy::fintech()` unless you need a custom mix.
     pub fn runtime_policy(mut self, runtime_policy: SignalRuntimePolicy) -> Self {
         self.runtime_policy = runtime_policy;
+        self
+    }
+
+    /// Adjust the current runtime policy without rebuilding it from scratch.
+    pub fn adjust_runtime_policy<F>(mut self, adjust: F) -> Self
+    where
+        F: FnOnce(SignalRuntimePolicy) -> SignalRuntimePolicy,
+    {
+        self.runtime_policy = adjust(self.runtime_policy);
+        self
+    }
+
+    /// Use the normal development posture for this builder.
+    pub fn development_policy(mut self) -> Self {
+        self.runtime_policy = SignalRuntimePolicy::development();
+        self
+    }
+
+    /// Use the lean operational posture for this builder.
+    pub fn operational_policy(mut self) -> Self {
+        self.runtime_policy = SignalRuntimePolicy::operational();
+        self
+    }
+
+    /// Use the heavier forensic posture for this builder.
+    pub fn forensic_policy(mut self) -> Self {
+        self.runtime_policy = SignalRuntimePolicy::forensic();
+        self
+    }
+
+    /// Use the web-development preset for this builder.
+    pub fn web_development_policy(mut self) -> Self {
+        self.runtime_policy = SignalRuntimePolicy::web_development();
+        self
+    }
+
+    /// Use the fintech preset for this builder.
+    pub fn fintech_policy(mut self) -> Self {
+        self.runtime_policy = SignalRuntimePolicy::fintech();
+        self
+    }
+
+    /// Use the kernel-oriented forensic preset for this builder.
+    pub fn kernel_policy(mut self) -> Self {
+        self.runtime_policy = SignalRuntimePolicy::kernel();
+        self
+    }
+
+    /// Use the game-engine preset for this builder.
+    pub fn game_engine_policy(mut self) -> Self {
+        self.runtime_policy = SignalRuntimePolicy::game_engine();
         self
     }
 

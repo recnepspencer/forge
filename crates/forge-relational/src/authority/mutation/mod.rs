@@ -15,4 +15,6 @@ pub(crate) use canonical_deltas::CanonicalRecordAspectDelta;
 pub(crate) use effect::{AdjacencyDelta, AdjacencyDeltaKind, MutationEffect};
 pub(crate) use execution::{apply_plan_to_working_state, MutationApplyOutcome};
 pub(crate) use record_changes::apply_adjacency_deltas;
-pub(crate) use workspace::{MutationPreparationTelemetry, MutationWorkspace};
+pub(crate) use workspace::{
+    BranchLocalDeleteAllowance, MutationPreparationTelemetry, MutationWorkspace,
+};

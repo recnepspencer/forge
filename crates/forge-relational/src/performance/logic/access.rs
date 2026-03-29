@@ -598,6 +598,21 @@ impl<'runtime> PerformanceAccess<'runtime> {
         });
     }
 
+    pub(crate) fn count_merge_topology_region_detection(
+        &self,
+        relation_candidates: usize,
+        endpoint_incidences: usize,
+        region_conflicts: usize,
+        region_records_escalated: usize,
+    ) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.merge_topology_relation_candidates_scoped += relation_candidates;
+            counters.merge_topology_endpoint_incidences_scoped += endpoint_incidences;
+            counters.merge_topology_region_conflicts_detected += region_conflicts;
+            counters.merge_topology_region_records_escalated += region_records_escalated;
+        });
+    }
+
     pub(crate) fn count_merge_execution_verification_request(&self) {
         self.runtime.services.instrumentation.count(|counters| {
             counters.merge_execution_verification_requests += 1;

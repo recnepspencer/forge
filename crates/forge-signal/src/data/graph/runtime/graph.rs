@@ -21,7 +21,7 @@ use crate::data::reuse::ReuseBasis;
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::diagnostics::lineage::LineageArtifactId;
 use crate::diagnostics::state::DiagnosticsState;
-use crate::diagnostics::DiagnosticsTier;
+use crate::diagnostics::DiagnosticsLevel;
 use crate::state::{
     SignalCheckpointArena, SignalCheckpointAuthority, SignalCheckpointSlot,
     SignalCheckpointTopology,
@@ -984,10 +984,10 @@ impl SignalGraph {
         }
     }
 
-    fn observation_level_for_profile(profile: DiagnosticsTier) -> ObservationLevel {
+    fn observation_level_for_profile(profile: DiagnosticsLevel) -> ObservationLevel {
         match profile {
-            DiagnosticsTier::Operational => ObservationLevel::Minimal,
-            DiagnosticsTier::Development | DiagnosticsTier::Forensic => ObservationLevel::Full,
+            DiagnosticsLevel::Operational => ObservationLevel::Minimal,
+            DiagnosticsLevel::Development | DiagnosticsLevel::Forensic => ObservationLevel::Full,
         }
     }
 

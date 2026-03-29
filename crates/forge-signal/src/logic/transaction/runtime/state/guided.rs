@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use crate::data::error::SignalError;
-use crate::diagnostics::{LineageRecord, ReplaySlice, SynthesizedLineageChain};
+use crate::diagnostics::{LineageEvent, ReplayView, SynthesizedLineageChain};
 use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotV1};
 
 use super::merge::{BranchMergeResult, BranchMergeStrategy};
@@ -80,11 +80,11 @@ where
         self.runtime.capture_branch_snapshot(branch)
     }
 
-    pub fn replay_for_branch(&self, branch_id: SignalBranchId) -> ReplaySlice {
+    pub fn replay_for_branch(&self, branch_id: SignalBranchId) -> ReplayView {
         self.runtime.replay_for_branch(branch_id)
     }
 
-    pub fn replay_for_node(&self, node: crate::data::handle::NodeId) -> ReplaySlice {
+    pub fn replay_for_node(&self, node: crate::data::handle::NodeId) -> ReplayView {
         self.runtime.observe().replay_for_node(node)
     }
 
@@ -92,7 +92,7 @@ where
         self.runtime.observe().lineage_chain_for_node(node)
     }
 
-    pub fn latest_lineage(&self) -> &VecDeque<LineageRecord> {
+    pub fn latest_lineage(&self) -> &VecDeque<LineageEvent> {
         self.runtime.graph().observe().lineage_records()
     }
 }

@@ -9,7 +9,7 @@ That usually means:
 - recompute related derived work
 - either commit the whole thing or roll it back
 
-## Main surfaces
+## Main Surfaces
 
 - `runtime.begin()`
 - `runtime.transaction(ctx, |tx| ...)`
@@ -62,12 +62,6 @@ runtime.transaction(&mut (), |tx| {
 # Ok::<(), SignalError>(())
 ```
 
-## Practical rule
+## Practical Rule
 
 If the update matters to correctness, do it in a transaction.
-
-Good examples:
-
-- user edits a document and you recompute search indexes
-- a pricing update affects several derived outputs
-- a DSL change invalidates multiple compiled artifacts at once

@@ -1,20 +1,26 @@
 use std::collections::BTreeSet;
 
 use crate::capabilities::{SchemaSource, StorageRead};
+use crate::identity::data::VersionId;
+use crate::logic::runtime::RelationalRuntime;
 use crate::logic::runtime::RuntimeInstrumentation;
 use crate::transactions::data::{
     CommitConflict, ConflictClass, CreateIntent, ExistingRecordTarget, MutationIntent,
     RelationIdentity, RelationSpec,
 };
 
-use super::record_lookup::{entity_exists_in_state, relation_exists_in_state};
+use super::record_lookup::{
+    entity_exists_in_state, relation_exists_in_state, relation_exists_in_version_basis,
+};
 use super::schema_conflicts::schema_error_to_commit_conflict;
 
 pub(super) fn validate_relation_intent(
+    runtime: &RelationalRuntime,
     state: &impl StorageRead,
     schema_source: &impl SchemaSource,
     default_cross_context_policy: crate::config::data::CrossContextPolicy,
     instrumentation: &RuntimeInstrumentation,
+    branch_basis_version_id: Option<VersionId>,
     intent: &MutationIntent,
 ) -> Result<(), CommitConflict> {
     match intent {
@@ -39,7 +45,11 @@ pub(super) fn validate_relation_intent(
         MutationIntent::Relation(crate::transactions::data::RelationMutationIntent::Delete(
             spec,
         )) => {
-            if relation_exists_in_state(state, spec.relation_id) {
+            if relation_exists_in_state(state, spec.relation_id)
+                || branch_basis_version_id.is_some_and(|version_id| {
+                    relation_exists_in_version_basis(runtime, version_id, spec.relation_id)
+                })
+            {
                 Ok(())
             } else {
                 Err(CommitConflict::new(ConflictClass::StaleTarget {

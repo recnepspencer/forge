@@ -6,10 +6,13 @@ use crate::facade::merge::{
     DeletionExecutionClass, MergeConflictClass, MergeExecutableClass,
     MergeExecutionRequest, MergeIntent, MergeResolutionClass,
 };
-use crate::facade::transactions::TransactionId;
+use crate::facade::transactions::{
+    DeleteEntityIntent, EntityMutationIntent, MutationIntent, TransactionCommitError,
+    TransactionId, TransactionOptions, WorkerIntentBatch,
+};
 use crate::tests::support::{
-    create_branch_from_main, create_entity, create_entity_outcome_on_branch,
-    persisted_runtime_with_test_schema,
+    create_branch_from_main, create_entity, create_entity_outcome_on_branch, delete_entity,
+    delete_entity_on_branch, persisted_runtime_with_test_schema,
 };
 
 fn prepared_merge_promoted_to_deleted_on_both_sides(
@@ -35,7 +38,10 @@ fn prepared_merge_promoted_to_deleted_on_both_sides(
         lowered[0].resolution_class =
             MergeResolutionClass::Deletion(DeletionExecutionClass::DeletedOnBothSides);
         lowered[0].executable_class = Some(MergeExecutableClass::ConvergeDeletedOnBothSides);
-        lowered[0].policy_resolution = crate::facade::merge::MergePolicyResolution::AutoResolved;
+        lowered[0].policy_proof_boundary = crate::merge::data::MergePolicyProofBoundary {
+            ownership_surface: crate::facade::merge::MergePolicyOwnershipSurface::RuntimeOnly,
+            decision_boundary: crate::merge::data::MergePolicyDecisionBoundary::AutoResolved,
+        };
         lowered[0].readiness = crate::facade::merge::MergeExecutionReadiness::Admitted;
         lowered[0].record_decision = crate::facade::merge::LoweredRecordDecision::Execute(
             crate::merge::data::LoweredRecordExecutionBundle {
@@ -127,4 +133,64 @@ fn promoted_deleted_on_both_sides_executes_through_authoritative_merge_publicati
         summary_entry.fields["converged_deleted_on_both_sides_count"],
         serde_json::json!(1)
     );
+}
+
+#[test]
+fn real_feature_branch_delete_after_main_delete_is_authorable_and_classifies_as_deleted_on_both_sides() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    let entity = create_entity(&mut runtime, "shared");
+    create_branch_from_main(&mut runtime, "feature");
+    delete_entity(&mut runtime, entity);
+    delete_entity_on_branch(&mut runtime, entity, BranchId("feature".to_string()));
+
+    let artifact = runtime
+        .merge_access()
+        .inspect_planning_scope(
+            MergeExecutionRequest {
+                target_branch: BranchId("main".to_string()),
+                source_branch: BranchId("feature".to_string()),
+                merge_intent: MergeIntent::ReconcileIntoTarget,
+            }
+            .into(),
+        )
+        .expect("planning artifact");
+
+    let lowered = artifact
+        .lowered_plan
+        .records
+        .iter()
+        .find(|record| {
+            record.resolution_class
+                == MergeResolutionClass::Deletion(DeletionExecutionClass::DeletedOnBothSides)
+        })
+        .expect("lowered record");
+
+    assert_eq!(
+        lowered.resolution_class,
+        MergeResolutionClass::Deletion(DeletionExecutionClass::DeletedOnBothSides)
+    );
+    assert_eq!(
+        lowered.executable_class,
+        Some(MergeExecutableClass::ConvergeDeletedOnBothSides)
+    );
+}
+
+#[test]
+fn branch_local_delete_allowance_does_not_make_same_branch_stale_delete_legal() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    let entity = create_entity(&mut runtime, "shared");
+    delete_entity(&mut runtime, entity);
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("stale-delete").push(MutationIntent::Entity(
+            EntityMutationIntent::Delete(DeleteEntityIntent { entity_id: entity }),
+        )),
+    );
+
+    match txn.commit() {
+        Err(TransactionCommitError::Conflict { error, .. }) => {
+            assert_eq!(error.code(), crate::facade::diagnostics::DiagnosticCode::StaleHandle);
+        }
+        other => panic!("expected stale delete rejection, got {other:?}"),
+    }
 }

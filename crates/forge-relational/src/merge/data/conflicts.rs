@@ -45,14 +45,23 @@ pub enum EndpointContinuityClass {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RelationConflictPropagation {
     RelationLocalOnly,
+    RelationLocalRewireCandidate,
     EscalatesToTopologyRegionConflict,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TopologyRegionConflictReason {
+    ConnectedRewireNeighborhood,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RelationConflictEvidence {
     pub endpoint_continuity: EndpointContinuityClass,
     pub relation_continuity: RelationContinuityClass,
     pub propagation: RelationConflictPropagation,
+    pub topology_neighborhood_records: Arc<[RecordRef]>,
+    pub topology_neighborhood_rewired_records: Arc<[RecordRef]>,
+    pub topology_region_conflict_reason: Option<TopologyRegionConflictReason>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

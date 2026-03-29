@@ -4,13 +4,26 @@
 //!
 //! Your app owns the real state.
 //! `forge-signal` owns dependency tracking, invalidation, recompute, rollback,
-//! and diagnostics.
+//! diagnostics, replay, and history.
 //!
-//! The main import path is:
+//! There are two normal entry paths:
 //!
 //! ```rust
+//! use forge_signal::easy::*;
 //! use forge_signal::facade::*;
 //! ```
+//!
+//! Use `easy` for the shortest path.
+//! Use `facade` when you want the broader runtime surface from the start.
+//!
+//! The important line is this:
+//!
+//! - not "reactive graph plus some debug helpers"
+//! - not "incremental cache plus a separate audit layer"
+//! - not "rerun less work and figure out the rest later"
+//!
+//! `forge-signal` keeps change propagation, transactions, diagnostics, and
+//! history in one runtime.
 //!
 //! Most days, the center of gravity is:
 //!
@@ -18,6 +31,7 @@
 //! - [`facade::SignalRuntime`]
 //! - `runtime.transaction(...)`
 //! - `runtime.diagnostics()`
+//! - `runtime.history()`
 //!
 //! ## Fast Mental Model
 //!
@@ -25,6 +39,7 @@
 //! - Tell the runtime what changed.
 //! - Read the derived node you care about.
 //! - Ask diagnostics why something ran when it should not have.
+//! - Use history when you need the trail, not just the latest answer.
 //!
 //! `forge-signal` is domain-free on purpose. The same runtime shape works for:
 //!
@@ -32,6 +47,14 @@
 //! - finance and risk pipelines
 //! - ML feature and scoring flows
 //! - geometry or compiler-style partial recompute
+//!
+//! The flagship story looks like this:
+//!
+//! - a source file changes
+//! - a transaction lands the update
+//! - only the right downstream targets rerun
+//! - diagnostics explain why the bundle moved
+//! - replay keeps the trail
 //!
 //! ## Small Example
 //!
@@ -88,16 +111,17 @@
 //!
 //! Start with:
 //!
-//! - `crates/forge-signal/docs/QUICKSTART.md`
-//! - `crates/forge-signal/docs/DAILY_WORKFLOWS.md`
+//! - `crates/forge-signal/docs/GETTING_STARTED.md`
 //! - `crates/forge-signal/docs/API_OVERVIEW.md`
-//! - `crates/forge-signal/docs/DIAGNOSTICS.md`
+//! - `crates/forge-signal/docs/walkthroughs/compiler-targeted-rebuild.md`
+//! - `crates/forge-signal/docs/guides/running-the-runtime.md`
+//! - `crates/forge-signal/docs/guides/debugging-and-diagnostics.md`
 //!
 //! Examples live in:
 //!
-//! - `crates/forge-signal/examples/web_live_search.rs`
-//! - `crates/forge-signal/examples/finance_risk_refresh.rs`
-//! - `crates/forge-signal/examples/ml_feature_pipeline.rs`
+//! - `crates/forge-signal/examples/easy_task_board.rs`
+//! - `crates/forge-signal/examples/compiler_targeted_rebuild.rs`
+//! - `crates/forge-signal/examples/geometry_partial_recompute.rs`
 
 #![forbid(unsafe_code)]
 

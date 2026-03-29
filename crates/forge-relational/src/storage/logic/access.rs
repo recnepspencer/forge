@@ -87,8 +87,20 @@ impl<'runtime> StorageAccess<'runtime> {
             }
             let mut relation_slots =
                 DenseSlotBitSet::with_capacity(partition.relation_arena.slot_count());
+            let mut retained_relation_slots =
+                DenseSlotBitSet::with_capacity(partition.relation_arena.slot_count());
             for slot in partition.relation_arena.live_bitset.iter_set_slots() {
                 relation_slots.set(slot, true);
+                if partition
+                    .relation_arena
+                    .get_slot(slot)
+                    .is_some_and(|slot_view| {
+                        slot_view.lifecycle()
+                            == crate::storage::data::RecordLifecycleState::RetainedDanglingForAudit
+                    })
+                {
+                    retained_relation_slots.set(slot, true);
+                }
             }
             if entity_slots.count_ones() > 0 || relation_slots.count_ones() > 0 {
                 pinned_partitions.insert(
@@ -96,6 +108,7 @@ impl<'runtime> StorageAccess<'runtime> {
                     crate::storage::overlay::SnapshotPartitionPins {
                         entity_slots,
                         relation_slots,
+                        retained_relation_slots,
                     },
                 );
             }

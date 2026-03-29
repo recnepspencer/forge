@@ -5,13 +5,15 @@ use std::time::Instant;
 
 #[cfg(feature = "parallel")]
 use forge_signal::facade::{
-    Aspect, AspectVersion, BatchChange, ChangedRegion, DependencyEdge, EvaluationRequestMode,
+    Aspect, AspectVersion, BatchChange, ChangedRegion, DependencyEdge,
     NodeEvaluationResult, SignalGraph,
 };
 #[cfg(feature = "parallel")]
-use forge_signal::facade::advanced::{ExecutionReport, ParallelExecutionPolicy, StageExecutor};
+use forge_signal::facade::specialist::{
+    ExecutionReport, ParallelExecutionPolicy, RunMode, StageExecutor,
+};
 #[cfg(feature = "parallel")]
-use forge_signal::facade::runtime::{mark_dirty_batch, SignalRuntimePolicy};
+use forge_signal::facade::runtime::{mark_dirty_batch, RuntimePolicy};
 #[cfg(feature = "parallel")]
 use serde::Serialize;
 
@@ -116,11 +118,11 @@ fn summarize(
 }
 
 #[cfg(feature = "parallel")]
-fn runtime_policy_profiles() -> [(&'static str, SignalRuntimePolicy); 3] {
+fn runtime_policy_profiles() -> [(&'static str, RuntimePolicy); 3] {
     [
-        ("operational", SignalRuntimePolicy::operational()),
-        ("development", SignalRuntimePolicy::development()),
-        ("forensic", SignalRuntimePolicy::forensic()),
+        ("operational", RuntimePolicy::operational()),
+        ("development", RuntimePolicy::development()),
+        ("forensic", RuntimePolicy::forensic()),
     ]
 }
 
@@ -128,7 +130,7 @@ fn runtime_policy_profiles() -> [(&'static str, SignalRuntimePolicy); 3] {
 fn run_deep_chain(
     executor_profile: &'static str,
     runtime_policy_name: &'static str,
-    runtime_policy: SignalRuntimePolicy,
+    runtime_policy: RuntimePolicy,
     executor: StageExecutor,
 ) -> PerfRecord {
     let mut graph = SignalGraph::new();
@@ -147,7 +149,7 @@ fn run_deep_chain(
     }
 
     let bootstrap = graph
-        .build_evaluation_plan(&chain, EvaluationRequestMode::ForceOnDemand)
+        .build_evaluation_plan(&chain, RunMode::ForceOnDemand)
         .unwrap();
     graph
         .execute_prepared_plan(&bootstrap, &(), &|ctx| {
@@ -162,7 +164,7 @@ fn run_deep_chain(
     .unwrap();
     let plan_start = Instant::now();
     let plan = graph
-        .build_evaluation_plan(&chain, EvaluationRequestMode::Default)
+        .build_evaluation_plan(&chain, RunMode::Default)
         .unwrap();
     let planning_nanos = plan_start.elapsed().as_nanos();
     let execute_start = Instant::now();
@@ -188,14 +190,14 @@ fn run_deep_chain(
 fn run_wide_stage(
     executor_profile: &'static str,
     runtime_policy_name: &'static str,
-    runtime_policy: SignalRuntimePolicy,
+    runtime_policy: RuntimePolicy,
     executor: StageExecutor,
 ) -> PerfRecord {
     let mut graph = SignalGraph::new();
     graph.set_runtime_policy(runtime_policy);
     let requested: Vec<_> = (0..256).map(|_| graph.node().build()).collect();
     let bootstrap = graph
-        .build_evaluation_plan(&requested, EvaluationRequestMode::ForceOnDemand)
+        .build_evaluation_plan(&requested, RunMode::ForceOnDemand)
         .unwrap();
     graph
         .execute_prepared_plan(&bootstrap, &(), &|ctx| {
@@ -210,7 +212,7 @@ fn run_wide_stage(
     .unwrap();
     let plan_start = Instant::now();
     let plan = graph
-        .build_evaluation_plan(&requested, EvaluationRequestMode::Default)
+        .build_evaluation_plan(&requested, RunMode::Default)
         .unwrap();
     let planning_nanos = plan_start.elapsed().as_nanos();
     let execute_start = Instant::now();
@@ -236,7 +238,7 @@ fn run_wide_stage(
 fn run_partition_tolerance(
     executor_profile: &'static str,
     runtime_policy_name: &'static str,
-    runtime_policy: SignalRuntimePolicy,
+    runtime_policy: RuntimePolicy,
     executor: StageExecutor,
 ) -> PerfRecord {
     let mut graph = SignalGraph::new();
@@ -262,7 +264,7 @@ fn run_partition_tolerance(
         .chain(std::iter::once(target))
         .collect();
     let bootstrap = graph
-        .build_evaluation_plan(&bootstrap_targets, EvaluationRequestMode::ForceOnDemand)
+        .build_evaluation_plan(&bootstrap_targets, RunMode::ForceOnDemand)
         .unwrap();
     let bootstrap_branches = branches.clone();
     graph
@@ -304,7 +306,7 @@ fn run_partition_tolerance(
     .unwrap();
     let plan_start = Instant::now();
     let plan = graph
-        .build_evaluation_plan(&[target], EvaluationRequestMode::Default)
+        .build_evaluation_plan(&[target], RunMode::Default)
         .unwrap();
     let planning_nanos = plan_start.elapsed().as_nanos();
     let execute_start = Instant::now();

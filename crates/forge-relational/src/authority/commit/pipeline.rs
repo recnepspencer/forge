@@ -251,6 +251,7 @@ pub(crate) fn execute_authoritative_commit(
         transaction_id,
         &mut working_state,
         &merged_plan,
+        options.target_branch.as_ref(),
     )
     .map_err(|error| {
         attach_rejection(&mut commit_log, CommitPhase::AuthoritativeMutation, error)
@@ -978,6 +979,18 @@ fn complexity_delta(
         merge_conflict_records_classified: after
             .merge_conflict_records_classified
             .saturating_sub(before.merge_conflict_records_classified),
+        merge_topology_relation_candidates_scoped: after
+            .merge_topology_relation_candidates_scoped
+            .saturating_sub(before.merge_topology_relation_candidates_scoped),
+        merge_topology_endpoint_incidences_scoped: after
+            .merge_topology_endpoint_incidences_scoped
+            .saturating_sub(before.merge_topology_endpoint_incidences_scoped),
+        merge_topology_region_conflicts_detected: after
+            .merge_topology_region_conflicts_detected
+            .saturating_sub(before.merge_topology_region_conflicts_detected),
+        merge_topology_region_records_escalated: after
+            .merge_topology_region_records_escalated
+            .saturating_sub(before.merge_topology_region_records_escalated),
         merge_causal_records_annotated: after
             .merge_causal_records_annotated
             .saturating_sub(before.merge_causal_records_annotated),

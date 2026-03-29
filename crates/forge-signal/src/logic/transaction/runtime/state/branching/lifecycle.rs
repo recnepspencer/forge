@@ -131,7 +131,7 @@ where
             .replay_graph(branch_id, self.graph.current_branch().id, &self.graph)
     }
 
-    pub fn replay_for_branch(&self, branch_id: SignalBranchId) -> crate::diagnostics::ReplaySlice {
+    pub fn replay_for_branch(&self, branch_id: SignalBranchId) -> crate::diagnostics::ReplayView {
         self.replay_graph_for_branch(branch_id)
             .map(|graph| graph.replay_for_branch(branch_id))
             .unwrap_or_default()

@@ -140,6 +140,29 @@ fn diagnostics_entrypoint_exposes_one_discoverable_surface() {
 }
 
 #[test]
+fn diagnostics_grouped_job_views_are_discoverable() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let compute = |ctx: &mut EvaluationContext<'_, ()>| Ok(ctx.finish(version_ab(1, 0)));
+    let plan = graph
+        .build_evaluation_plan(&[node], EvaluationRequestMode::ForceOnDemand)
+        .unwrap();
+    let report = graph.execute_prepared_plan(&plan, &(), &compute).unwrap();
+
+    let diagnostics = graph.observe().diagnostics();
+    let health = diagnostics.health_view();
+    let inspect = diagnostics.inspect();
+
+    assert_eq!(health.current_now().active_node_count, 1);
+    assert!(health.latest_flow().is_some());
+    assert!(health.recent_history().back().is_some());
+    assert!(inspect.graph().nodes_with_execution_record().contains(&node));
+    assert_eq!(inspect.execution().nodes_with_trace_summaries(), vec![node]);
+    assert_eq!(inspect.plan(&plan).stage_count(), 1);
+    assert!(inspect.report(&report).task_record_for_node(node).is_some());
+}
+
+#[test]
 fn diagnostics_plan_summary_reports_contract_pruning() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
@@ -417,7 +440,7 @@ fn diagnostics_profiles_control_retention_bounds() {
     let node = graph.node().build();
     let compute = |ctx: &mut EvaluationContext<'_, ()>| Ok(ctx.finish(version_ab(1, 0)));
 
-    graph.set_diagnostics_profile(DiagnosticsTier::Operational);
+    graph.reset_runtime_policy_to_tier(DiagnosticsTier::Operational);
     for _ in 0..8 {
         mark_dirty(&mut graph, node, ASPECT_A).unwrap();
         let plan = graph
@@ -427,7 +450,7 @@ fn diagnostics_profiles_control_retention_bounds() {
     }
     assert!(graph.observe().recent_execution_history_diagnostics().len() <= 4);
 
-    graph.set_diagnostics_profile(DiagnosticsTier::Forensic);
+    graph.reset_runtime_policy_to_tier(DiagnosticsTier::Forensic);
     for _ in 0..8 {
         mark_dirty(&mut graph, node, ASPECT_A).unwrap();
         let plan = graph
@@ -442,7 +465,7 @@ fn diagnostics_profiles_control_retention_bounds() {
 fn operational_profile_repeated_waves_stay_bounded_and_shallow() {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
-    graph.set_diagnostics_profile(DiagnosticsTier::Operational);
+    graph.reset_runtime_policy_to_tier(DiagnosticsTier::Operational);
     let compute = |ctx: &mut EvaluationContext<'_, ()>| Ok(ctx.finish(version_ab(1, 0)));
 
     for _ in 0..100 {
@@ -506,7 +529,7 @@ fn repeated_failure_capture_stays_current_and_bounded() {
         .build();
     runtime
         .graph_mut()
-        .set_diagnostics_profile(DiagnosticsTier::Development);
+        .reset_runtime_policy_to_tier(DiagnosticsTier::Development);
     let node = runtime.graph_mut().node().build();
     let mut runtime_ctx = ();
 
@@ -550,7 +573,7 @@ fn repeated_rollbacks_keep_latest_rollback_current_and_bounded() {
         .build();
     runtime
         .graph_mut()
-        .set_diagnostics_profile(DiagnosticsTier::Development);
+        .reset_runtime_policy_to_tier(DiagnosticsTier::Development);
     let node = runtime.graph_mut().node().build();
     let mut runtime_ctx = ();
 
@@ -1133,7 +1156,7 @@ fn repeated_memoized_execution_retains_bounded_diagnostics() {
         .build();
     runtime
         .graph_mut()
-        .set_diagnostics_profile(DiagnosticsTier::Operational);
+        .reset_runtime_policy_to_tier(DiagnosticsTier::Operational);
     let family = define_keyed_computation(&mut runtime, "projection", ());
     let keyed = family.keyed("bulkhead");
     let node = keyed.node(&mut runtime);
@@ -1174,7 +1197,7 @@ fn repeated_memoized_execution_retains_bounded_diagnostics() {
 #[test]
 fn repeated_partition_heavy_invalidation_retains_bounded_diagnostics() {
     let mut graph = SignalGraph::new();
-    graph.set_diagnostics_profile(DiagnosticsTier::Development);
+    graph.reset_runtime_policy_to_tier(DiagnosticsTier::Development);
     let source = graph.node().partitioned_output().build();
     let wing = graph.node().build();
     let tail = graph.node().build();

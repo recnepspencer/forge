@@ -8,6 +8,11 @@ mod compute;
 mod runtime;
 mod signal;
 
-pub use compute::ComputeContext;
-pub use runtime::ReactiveGraph;
+pub use compute::SignalContext;
+pub use runtime::SignalApp;
 pub use signal::{ComputedSignal, InputSignal, Signal};
+
+#[cfg(test)]
+pub use compute::SignalContext as ComputeContext;
+#[cfg(test)]
+pub use runtime::SignalApp as ReactiveGraph;

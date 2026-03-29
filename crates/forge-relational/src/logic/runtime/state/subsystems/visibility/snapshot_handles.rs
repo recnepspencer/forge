@@ -2,11 +2,12 @@ use std::collections::BTreeMap;
 
 use crate::identity::data::VersionId;
 use crate::snapshots::data::{SnapshotId, SnapshotReadPolicy};
+use crate::storage::overlay::SnapshotState;
 
 #[derive(Debug, Default)]
 pub(crate) struct SnapshotHandles {
     active: BTreeMap<SnapshotId, SnapshotHandleBinding>,
-    published: BTreeMap<SnapshotId, VersionId>,
+    published: BTreeMap<SnapshotId, SnapshotState>,
     next_snapshot_id: u64,
 }
 
@@ -68,16 +69,22 @@ impl SnapshotHandles {
         self.active.values().map(|binding| binding.version_id)
     }
 
-    pub(crate) fn insert_published(&mut self, snapshot_id: SnapshotId, version_id: VersionId) {
-        self.published.insert(snapshot_id, version_id);
+    pub(crate) fn insert_published(&mut self, state: SnapshotState) {
+        self.published.insert(state.handle.snapshot_id, state);
     }
 
-    pub(crate) fn remove_published(&mut self, snapshot_id: SnapshotId) -> Option<VersionId> {
+    pub(crate) fn remove_published(&mut self, snapshot_id: SnapshotId) -> Option<SnapshotState> {
         self.published.remove(&snapshot_id)
     }
 
     pub(crate) fn published_version(&self, snapshot_id: SnapshotId) -> Option<VersionId> {
-        self.published.get(&snapshot_id).copied()
+        self.published
+            .get(&snapshot_id)
+            .map(|state| state.handle.version_id)
+    }
+
+    pub(crate) fn published_state(&self, snapshot_id: SnapshotId) -> Option<&SnapshotState> {
+        self.published.get(&snapshot_id)
     }
 
     pub(crate) fn oldest_published_snapshot_id(&self) -> Option<SnapshotId> {

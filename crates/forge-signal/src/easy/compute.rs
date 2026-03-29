@@ -19,7 +19,7 @@ pub(crate) trait ErasedComputed: Send + Sync {
 pub(crate) struct Computed<T, F>
 where
     T: Clone + Send + Sync + 'static,
-    F: Fn(&mut ComputeContext<'_>) -> T + Send + Sync + 'static,
+    F: Fn(&mut SignalContext<'_>) -> T + Send + Sync + 'static,
 {
     pub(crate) closure: F,
     pub(crate) marker: PhantomData<fn() -> T>,
@@ -28,7 +28,7 @@ where
 impl<T, F> ErasedComputed for Computed<T, F>
 where
     T: Clone + Send + Sync + 'static,
-    F: Fn(&mut ComputeContext<'_>) -> T + Send + Sync + 'static,
+    F: Fn(&mut SignalContext<'_>) -> T + Send + Sync + 'static,
 {
     fn precompute(
         &self,
@@ -37,7 +37,7 @@ where
         current_version: u64,
     ) -> Result<(Box<dyn Any + Send + Sync>, PreparedEvaluation), SignalError> {
         let mut capture = PreparedDependencyCapture::default();
-        let mut context = ComputeContext {
+        let mut context = SignalContext {
             values,
             staged_values,
             capture: &mut capture,
@@ -51,13 +51,13 @@ where
     }
 }
 
-pub struct ComputeContext<'a> {
+pub struct SignalContext<'a> {
     pub(crate) values: &'a HashMap<NodeId, Box<dyn Any + Send + Sync>>,
     pub(crate) staged_values: &'a HashMap<NodeId, Box<dyn Any + Send + Sync>>,
     pub(crate) capture: &'a mut PreparedDependencyCapture,
 }
 
-impl<'a> ComputeContext<'a> {
+impl<'a> SignalContext<'a> {
     pub fn get<T: Clone + Send + Sync + 'static>(&mut self, signal: Signal<T>) -> T {
         self.capture.record(signal.node, DEFAULT_ASPECT, None);
         self.staged_values

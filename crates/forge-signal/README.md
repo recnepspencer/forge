@@ -2,21 +2,51 @@
 
 `forge-signal` is a deterministic incremental runtime for derived work.
 
-Your app owns the real state. `forge-signal` owns:
+Your app owns the real state.
+`forge-signal` owns:
 
 - dependency tracking
 - invalidation
 - recompute
 - rollback
 - diagnostics
+- replay and history
 
-The main import path is:
+This crate is not just trying to rerun less work.
+It is trying to keep updates, transactional truth, explanation, and history in
+one system.
+
+There are two normal entry paths:
 
 ```rust
+use forge_signal::easy::*;
 use forge_signal::facade::*;
 ```
 
-Most days, the shape is simple:
+Use `easy` for the shortest path.
+Use `facade` when you want the broader runtime surface from the start.
+
+## What Makes It Different
+
+The important line is this:
+
+- not "reactive graph plus some debug helpers"
+- not "incremental cache plus a separate audit layer"
+- not "rerun less work and figure out the rest later"
+
+Forge Signal keeps change propagation, transactions, diagnostics, and history
+in the same runtime.
+
+That means:
+
+- updates should land as one unit
+- rollback should leave the runtime in a sane state
+- diagnostics should explain why work happened
+- replay and history should keep the trail
+
+## Fast Mental Model
+
+Most days, the shape is:
 
 - build a `SignalGraph`
 - build a `SignalRuntime`
@@ -24,12 +54,29 @@ Most days, the shape is simple:
 - read the derived node you care about
 - use diagnostics when something smells off
 
-## What it is good at
+If you start in `easy`, that is still the same system.
+You are not signing up for a toy path you need to throw away later.
+
+## Where It Fits
 
 - web backends and reactive views
 - finance and risk pipelines
 - ML feature and scoring flows
 - geometry or compiler-style partial recompute
+
+## One Continuous Story
+
+The flagship story looks like this:
+
+- a source file changes
+- a transaction lands the update
+- only the right downstream targets rerun
+- diagnostics explain why the bundle moved
+- replay keeps the trail
+
+That full version lives here:
+
+- [Compiler targeted rebuild walkthrough](./docs/walkthroughs/compiler-targeted-rebuild.md)
 
 ## Small example
 
@@ -86,20 +133,25 @@ assert_eq!(version.get(TOTAL), 5);
 ## Start here
 
 - [Docs index](./docs/README.md)
-- [Quickstart](./docs/QUICKSTART.md)
-- [Daily workflows](./docs/DAILY_WORKFLOWS.md)
-- [Diagnostics](./docs/DIAGNOSTICS.md)
+- [Getting started](./docs/GETTING_STARTED.md)
+- [API overview](./docs/API_OVERVIEW.md)
+- [Compiler targeted rebuild walkthrough](./docs/walkthroughs/compiler-targeted-rebuild.md)
+- [Running the runtime](./docs/guides/running-the-runtime.md)
+- [Debugging and diagnostics](./docs/guides/debugging-and-diagnostics.md)
 
 ## Examples
 
-- [`examples/web_live_search.rs`](./examples/web_live_search.rs)
-- [`examples/finance_risk_refresh.rs`](./examples/finance_risk_refresh.rs)
-- [`examples/ml_feature_pipeline.rs`](./examples/ml_feature_pipeline.rs)
+- [`examples/easy_task_board.rs`](./examples/easy_task_board.rs) for the short path
+- [`examples/compiler_targeted_rebuild.rs`](./examples/compiler_targeted_rebuild.rs) for targeted rebuilds, diagnostics, and replay
+- [`examples/geometry_partial_recompute.rs`](./examples/geometry_partial_recompute.rs) for region-aware invalidation
+
+## Walkthroughs
+
+- [Easy task board](./docs/walkthroughs/easy-task-board.md)
+- [Compiler targeted rebuild](./docs/walkthroughs/compiler-targeted-rebuild.md)
+- [Geometry partial recompute](./docs/walkthroughs/geometry-partial-recompute.md)
 
 ## Reality check
-
-This crate is meant to feel clean on the normal path and still have real power
-when you need more control.
 
 If you are just getting started, stay in:
 
@@ -107,3 +159,5 @@ If you are just getting started, stay in:
 - `SignalRuntime`
 - `transaction(...)`
 - `runtime.diagnostics()`
+
+Or start in `easy` and move out only when you need more room.

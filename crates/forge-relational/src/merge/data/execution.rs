@@ -7,8 +7,8 @@ use crate::history::data::{BranchId, CommitId, CommitReference};
 use crate::merge::data::{
     BranchTouchedRecordDelta, LoweredMergePlanRecord, LoweredRecordDecision,
     LoweredRecordDecisionKind, MergeConflictClass, MergePlanningArtifactCore, MergePlanningError,
-    MergePlanningRequest, MergePolicyResolution, MergeSchemaSnapshotDigestBasis,
-    ResolvedAspectMergePolicy, ResolvedMergeBase, VisibleMergeRecord, VisibleMergeRecordKind,
+    MergePlanningRequest, MergeSchemaSnapshotDigestBasis, ResolvedAspectMergePolicy,
+    ResolvedMergeBase, VisibleMergeRecord, VisibleMergeRecordKind,
 };
 use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 use crate::transactions::data::RecordRef;
@@ -385,7 +385,7 @@ pub struct MergeExecutableRecordProvenance {
     pub resolution_class: crate::merge::data::MergeResolutionClass,
     pub executable_class: crate::merge::data::MergeExecutableClass,
     pub causal_disposition: crate::merge::data::MergeRecordCausalDisposition,
-    pub policy_resolution: MergePolicyResolution,
+    pub policy_proof_boundary: crate::merge::data::MergePolicyProofBoundary,
     pub applied_policies: Arc<[ResolvedAspectMergePolicy]>,
 }
 

@@ -127,9 +127,15 @@ impl<'runtime> VisibilityAuthority<'runtime> {
             }
             return true;
         }
-        self.runtime
+        if self
+            .runtime
             .visibility
             .remove_published_handle(handle.snapshot_id)
             .is_some()
+        {
+            true
+        } else {
+            false
+        }
     }
 }

@@ -78,6 +78,23 @@ pub(crate) fn delete_entity_on_branch(
     txn.commit().unwrap()
 }
 
+pub(crate) fn delete_relation_on_branch(
+    runtime: &mut RelationalRuntime,
+    relation_id: RelationId,
+    branch_id: BranchId,
+) -> CommitResult {
+    let mut txn = runtime.begin_transaction(TransactionOptions {
+        target_branch: Some(branch_id),
+        ..TransactionOptions::default()
+    });
+    txn.push_batch(
+        WorkerIntentBatch::new("delete-relation").push(MutationIntent::Relation(
+            RelationMutationIntent::Delete(DeleteRelationIntent { relation_id }),
+        )),
+    );
+    txn.commit().unwrap()
+}
+
 pub(crate) fn update_entity(
     runtime: &mut RelationalRuntime,
     entity_id: crate::facade::identity::EntityId,
@@ -113,7 +130,14 @@ pub(crate) fn create_relation(
     target: crate::facade::identity::EntityId,
     client_key: &str,
 ) -> RelationId {
-    create_relation_in_partition(runtime, source, target, client_key, PartitionId::main())
+    create_relation_with_payload_label(
+        runtime,
+        source,
+        target,
+        client_key,
+        client_key,
+        PartitionId::main(),
+    )
 }
 
 pub(crate) fn create_relation_in_partition(
@@ -123,11 +147,23 @@ pub(crate) fn create_relation_in_partition(
     client_key: &str,
     partition_id: PartitionId,
 ) -> RelationId {
+    create_relation_with_payload_label(runtime, source, target, client_key, client_key, partition_id)
+}
+
+pub(crate) fn create_relation_with_payload_label(
+    runtime: &mut RelationalRuntime,
+    source: crate::facade::identity::EntityId,
+    target: crate::facade::identity::EntityId,
+    client_key: &str,
+    label: &str,
+    partition_id: PartitionId,
+) -> RelationId {
     create_relation_in_partition_on_branch(
         runtime,
         source,
         target,
         client_key,
+        label,
         partition_id,
         BranchId("main".to_string()),
     )
@@ -138,6 +174,7 @@ pub(crate) fn create_relation_in_partition_on_branch(
     source: crate::facade::identity::EntityId,
     target: crate::facade::identity::EntityId,
     client_key: &str,
+    label: &str,
     partition_id: PartitionId,
     branch_id: BranchId,
 ) -> RelationId {
@@ -153,7 +190,7 @@ pub(crate) fn create_relation_in_partition_on_branch(
                 client_key: InternedString::Raw(client_key.to_string()),
                 source,
                 target,
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"rel"}))),
+                payload: Some(RecordPayload::StructuredJson(json!({"label":label}))),
             },
         ))),
     );
@@ -176,7 +213,7 @@ pub(crate) fn create_relation_outcome(
                 client_key: InternedString::Raw(client_key.to_string()),
                 source,
                 target,
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"rel"}))),
+                payload: Some(RecordPayload::StructuredJson(json!({"label":client_key}))),
             },
         ))),
     );

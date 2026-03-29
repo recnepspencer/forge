@@ -2,16 +2,16 @@
 use std::num::NonZeroUsize;
 
 #[cfg(feature = "parallel")]
-use forge_signal::facade::diagnostics::{DiagnosticsAvailability, DiagnosticsTier};
+use forge_signal::facade::diagnostics::{DiagnosticsAvailability, DiagnosticsLevel};
 #[cfg(feature = "parallel")]
 use forge_signal::facade::{
-    Aspect, AspectVersion, BatchChange, ChangedRegion, DependencyEdge, EvaluationRequestMode,
+    Aspect, AspectVersion, BatchChange, ChangedRegion, DependencyEdge,
     NodeEvaluationResult, NodeId, SignalGraph,
 };
 #[cfg(feature = "parallel")]
-use forge_signal::facade::advanced::{ParallelExecutionPolicy, StageExecutor};
+use forge_signal::facade::specialist::{ParallelExecutionPolicy, RunMode, StageExecutor};
 #[cfg(feature = "parallel")]
-use forge_signal::facade::runtime::{mark_dirty_batch, SignalRuntimePolicy};
+use forge_signal::facade::runtime::{mark_dirty_batch, RuntimePolicy};
 #[cfg(feature = "parallel")]
 use serde_json::json;
 
@@ -24,20 +24,20 @@ fn version_ab(a: u64, b: u64) -> AspectVersion {
 }
 
 #[cfg(feature = "parallel")]
-fn policy_name(policy: SignalRuntimePolicy) -> &'static str {
+fn policy_name(policy: RuntimePolicy) -> &'static str {
     match policy.tier {
-        DiagnosticsTier::Operational => "operational",
-        DiagnosticsTier::Development => "development",
-        DiagnosticsTier::Forensic => "forensic",
+        DiagnosticsLevel::Operational => "operational",
+        DiagnosticsLevel::Development => "development",
+        DiagnosticsLevel::Forensic => "forensic",
     }
 }
 
 #[cfg(feature = "parallel")]
-fn parse_runtime_policy(label: &str) -> SignalRuntimePolicy {
+fn parse_runtime_policy(label: &str) -> RuntimePolicy {
     match label {
-        "operational" => SignalRuntimePolicy::operational(),
-        "development" => SignalRuntimePolicy::development(),
-        "forensic" => SignalRuntimePolicy::forensic(),
+        "operational" => RuntimePolicy::operational(),
+        "development" => RuntimePolicy::development(),
+        "forensic" => RuntimePolicy::forensic(),
         other => panic!("unsupported runtime policy: {other}"),
     }
 }
@@ -58,7 +58,7 @@ fn materialization_label(mode: DiagnosticsAvailability) -> &'static str {
 fn canonical_runtime_artifacts(
     graph: &SignalGraph,
     node: NodeId,
-    runtime_policy: SignalRuntimePolicy,
+    runtime_policy: RuntimePolicy,
 ) -> serde_json::Value {
     let observer = graph.observe();
     let (explanation, explanation_mode) = observer
@@ -71,7 +71,7 @@ fn canonical_runtime_artifacts(
         .unwrap();
     let explanation = explanation.expect("snapshot fixture should have an explainable target");
     let explanation_fact = observer.explanation_fact(node);
-    let diagnostics = observer.diagnostics_summary(DiagnosticsTier::Development);
+    let diagnostics = observer.diagnostics_summary(DiagnosticsLevel::Development);
     let replay = observer
         .replay_events()
         .iter()
@@ -200,7 +200,7 @@ fn main() {
     let bootstrap = graph
         .build_evaluation_plan(
             &[source, shell, core, target],
-            EvaluationRequestMode::ForceOnDemand,
+            RunMode::ForceOnDemand,
         )
         .unwrap();
     graph
@@ -244,7 +244,7 @@ fn main() {
     )
     .unwrap();
     let plan = graph
-        .build_evaluation_plan(&[target], EvaluationRequestMode::Default)
+        .build_evaluation_plan(&[target], RunMode::Default)
         .unwrap();
     graph
         .execute_prepared_plan_with_executor(

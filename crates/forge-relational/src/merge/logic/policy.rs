@@ -2,9 +2,11 @@ use std::sync::Arc;
 
 use crate::merge::data::{
     AspectComparisonState, AspectMergePolicyKind, AspectPolicyResolutionRecord,
-    CausallyAnnotatedMergePlan, DeletionMergeClass, MergeConflictClass, MergePlanningError,
-    MergePlanningRequest, MergePolicyResolution, MergePolicyResolutionRecord,
-    MergePolicyResolutionSummary,
+    CausallyAnnotatedMergePlan, DeletionMergeClass, MergeConflictClass,
+    MergeManualResolutionClass, MergePlanningError, MergePlanningRequest,
+    MergePolicyDecisionBoundary, MergePolicyOwnershipClass, MergePolicyOwnershipSurface,
+    MergePolicyProofBoundary, MergePolicyRejectClass, MergePolicyResolution,
+    MergePolicyResolutionRecord, MergePolicyResolutionSummary, TopologyRewireAdmissionPolicy,
     PolicyResolvedMergePlan, ResolvedAspectMergePolicy, VisibleMergeRecordKind,
 };
 use crate::merge::logic::aspect_plan_lookup::lowered_plan_for_record;
@@ -44,19 +46,27 @@ impl<'runtime> MergeAccess<'runtime> {
                     classification,
                     applied_policies.as_slice(),
                 )?;
-                let resolution =
-                    aggregate_record_resolution(classification.class, aspect_resolutions.as_slice());
+                let ownership_surface =
+                    ownership_surface_for_policies(applied_policies.as_slice());
+                let decision_boundary = aggregate_record_resolution(
+                    classification.class,
+                    aspect_resolutions.as_slice(),
+                );
                 Ok(MergePolicyResolutionRecord {
                     record: classification.record.clone(),
                     target_record: classification.target_record.clone(),
                     classification: classification.class,
                     aspect_resolutions: Arc::from(aspect_resolutions),
                     applied_policies: Arc::from(applied_policies),
-                    resolution,
+                    proof_boundary: MergePolicyProofBoundary {
+                        ownership_surface,
+                        decision_boundary,
+                    },
                 })
             })
             .collect::<Result<Vec<_>, MergePlanningError>>()?;
-        let policy_summary = summarize_policy_records(Arc::from(policy_records.clone()));
+        let policy_records: Arc<[MergePolicyResolutionRecord]> = Arc::from(policy_records);
+        let policy_summary = summarize_policy_records(policy_records.clone());
 
         Ok(PolicyResolvedMergePlan {
             request: causal_plan.request,
@@ -75,10 +85,15 @@ impl<'runtime> MergeAccess<'runtime> {
             conflict_summary: causal_plan.conflict_summary,
             causal_annotations: causal_plan.causal_annotations,
             causal_summary: causal_plan.causal_summary,
-            policy_records: Arc::from(policy_records),
+            policy_records,
             policy_summary,
         })
     }
+}
+
+pub(crate) const fn current_topology_rewire_admission_policy(
+) -> TopologyRewireAdmissionPolicy {
+    TopologyRewireAdmissionPolicy::AlwaysEscalateToTopologyRegion
 }
 
 fn effective_merge_policies_for_record(
@@ -104,16 +119,29 @@ fn effective_merge_policies_for_record(
         .collect()
 }
 
+fn ownership_surface_for_policies(
+    applied_policies: &[ResolvedAspectMergePolicy],
+) -> MergePolicyOwnershipSurface {
+    if applied_policies
+        .iter()
+        .any(|policy| policy.policy.ownership_class() == MergePolicyOwnershipClass::CustomPolicy)
+    {
+        MergePolicyOwnershipSurface::ContainsCustomPolicy
+    } else {
+        MergePolicyOwnershipSurface::RuntimeOnly
+    }
+}
+
 fn aggregate_record_resolution(
     classification: MergeConflictClass,
     aspects: &[AspectPolicyResolutionRecord],
-) -> MergePolicyResolution {
+) -> MergePolicyDecisionBoundary {
     if aspects.is_empty() {
         return match classification {
             MergeConflictClass::SourceOnlyAddition
             | MergeConflictClass::ExactSharedTruth
             | MergeConflictClass::Deletion(DeletionMergeClass::DeletedOnBothSides) => {
-                MergePolicyResolution::AutoResolved
+                MergePolicyDecisionBoundary::AutoResolved
             }
             MergeConflictClass::SchemaDeclaredCorrespondence
             | MergeConflictClass::Deletion(DeletionMergeClass::SourceDeletedTargetLive)
@@ -122,22 +150,33 @@ fn aggregate_record_resolution(
             | MergeConflictClass::Deletion(DeletionMergeClass::DeletedVsRewired)
             | MergeConflictClass::DivergentVisibleState
             | MergeConflictClass::RelationEndpointDivergence => {
-                MergePolicyResolution::RequiresManualResolution
+                MergePolicyDecisionBoundary::RequiresManualResolution {
+                    class: MergeManualResolutionClass::GenericRuntimeConflict,
+                }
             }
         };
     }
     if aspects
         .iter()
-        .any(|aspect| aspect.resolution == MergePolicyResolution::Reject)
+        .any(|aspect| matches!(aspect.decision_boundary, MergePolicyDecisionBoundary::Reject { .. }))
     {
-        MergePolicyResolution::Reject
+        MergePolicyDecisionBoundary::Reject {
+            class: MergePolicyRejectClass::BuiltInFailOnConflict,
+        }
     } else if aspects
         .iter()
-        .any(|aspect| aspect.resolution == MergePolicyResolution::RequiresManualResolution)
+        .any(|aspect| {
+            matches!(
+                aspect.decision_boundary,
+                MergePolicyDecisionBoundary::RequiresManualResolution { .. }
+            )
+        })
     {
-        MergePolicyResolution::RequiresManualResolution
+        MergePolicyDecisionBoundary::RequiresManualResolution {
+            class: MergeManualResolutionClass::GenericRuntimeConflict,
+        }
     } else {
-        MergePolicyResolution::AutoResolved
+        MergePolicyDecisionBoundary::AutoResolved
     }
 }
 
@@ -147,14 +186,20 @@ fn summarize_policy_records(
     let mut auto_resolved_count = 0;
     let mut requires_manual_resolution_count = 0;
     let mut reject_count = 0;
+    let mut runtime_only_record_count = 0;
+    let mut custom_policy_record_count = 0;
 
     for record in records.iter() {
-        match record.resolution {
+        match record.proof_boundary.decision_boundary.resolution() {
             MergePolicyResolution::AutoResolved => auto_resolved_count += 1,
             MergePolicyResolution::RequiresManualResolution => {
                 requires_manual_resolution_count += 1
             }
             MergePolicyResolution::Reject => reject_count += 1,
+        }
+        match record.proof_boundary.ownership_surface {
+            MergePolicyOwnershipSurface::RuntimeOnly => runtime_only_record_count += 1,
+            MergePolicyOwnershipSurface::ContainsCustomPolicy => custom_policy_record_count += 1,
         }
     }
 
@@ -163,6 +208,8 @@ fn summarize_policy_records(
         auto_resolved_count,
         requires_manual_resolution_count,
         reject_count,
+        runtime_only_record_count,
+        custom_policy_record_count,
         records,
     }
 }
@@ -185,26 +232,32 @@ fn resolve_aspects_for_record(
                 .find(|policy| policy.aspect_key == aspect.aspect_key)
                 .map(|policy| policy.policy.clone());
             let resolution =
-                resolution_for_aspect(classification, aspect.comparison, applied_policy.as_ref());
+                decision_boundary_for_aspect(
+                    classification,
+                    aspect.comparison,
+                    applied_policy.as_ref(),
+                );
             AspectPolicyResolutionRecord {
                 aspect_key: aspect.aspect_key.clone(),
                 comparison: aspect.comparison,
                 applied_policy,
-                resolution,
+                decision_boundary: resolution,
             }
         })
         .collect())
 }
 
-fn resolution_for_aspect(
+fn decision_boundary_for_aspect(
     classification: &crate::merge::data::MergeConflictClassification,
     comparison: AspectComparisonState,
     applied_policy: Option<&AspectMergePolicyKind>,
-) -> MergePolicyResolution {
+) -> MergePolicyDecisionBoundary {
     if classification.identity_reason == crate::merge::data::IdentityResolutionReason::SchemaDeclaredCorrespondence
         && !classification.validated_schema_correspondence
     {
-        return MergePolicyResolution::RequiresManualResolution;
+        return MergePolicyDecisionBoundary::RequiresManualResolution {
+            class: MergeManualResolutionClass::UnvalidatedSchemaCorrespondence,
+        };
     }
     if matches!(applied_policy, Some(AspectMergePolicyKind::FailOnConflict))
         && matches!(
@@ -212,30 +265,53 @@ fn resolution_for_aspect(
             AspectComparisonState::Divergent | AspectComparisonState::TargetOnly
         )
     {
-        return MergePolicyResolution::Reject;
+        return MergePolicyDecisionBoundary::Reject {
+            class: MergePolicyRejectClass::BuiltInFailOnConflict,
+        };
     }
 
     match comparison {
         AspectComparisonState::Equal | AspectComparisonState::SourceOnly => {
-            MergePolicyResolution::AutoResolved
+            MergePolicyDecisionBoundary::AutoResolved
         }
-        AspectComparisonState::Unavailable | AspectComparisonState::TargetOnly => {
-            MergePolicyResolution::RequiresManualResolution
+        AspectComparisonState::Unavailable => MergePolicyDecisionBoundary::RequiresManualResolution {
+            class: MergeManualResolutionClass::MissingVisibleState,
+        },
+        AspectComparisonState::TargetOnly => {
+            MergePolicyDecisionBoundary::RequiresManualResolution {
+                class: MergeManualResolutionClass::GenericRuntimeConflict,
+            }
         }
         AspectComparisonState::Divergent => match (classification.class, applied_policy) {
             (
                 MergeConflictClass::SchemaDeclaredCorrespondence,
                 Some(AspectMergePolicyKind::PreferRicher),
-            ) => MergePolicyResolution::AutoResolved,
-            _ => MergePolicyResolution::RequiresManualResolution,
+            ) => MergePolicyDecisionBoundary::AutoResolved,
+            _ => MergePolicyDecisionBoundary::RequiresManualResolution {
+                class: MergeManualResolutionClass::GenericRuntimeConflict,
+            },
         },
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::aggregate_record_resolution;
-    use crate::merge::data::{DeletionMergeClass, MergeConflictClass, MergePolicyResolution};
+    use super::{
+        aggregate_record_resolution, current_topology_rewire_admission_policy,
+        ownership_surface_for_policies, summarize_policy_records,
+    };
+    use crate::merge::data::{
+        AspectMergePolicyKind, CustomMergePolicyIdentity, DeletionMergeClass,
+        MergeManualResolutionClass, MergePolicyDecisionBoundary,
+        MergeConflictClass, MergePolicyOwnershipClass, MergePolicyOwnershipSurface,
+        MergePolicyProofBoundary, MergePolicyResolutionRecord, ResolvedAspectMergePolicy,
+        TopologyRewireAdmissionPolicy,
+    };
+    use crate::identity::data::{EntityId, PartitionId};
+    use crate::publication::patch::data::AspectKey;
+    use crate::symbols::data::InternedString;
+    use crate::transactions::data::RecordRef;
+    use std::sync::Arc;
 
     #[test]
     fn deleted_on_both_sides_without_aspect_rows_is_auto_resolved() {
@@ -244,7 +320,89 @@ mod tests {
                 MergeConflictClass::Deletion(DeletionMergeClass::DeletedOnBothSides),
                 &[],
             ),
-            MergePolicyResolution::AutoResolved
+            MergePolicyDecisionBoundary::AutoResolved
         );
+    }
+
+    #[test]
+    fn topology_rewire_policy_is_explicitly_fail_closed_in_7d() {
+        assert_eq!(
+            current_topology_rewire_admission_policy(),
+            TopologyRewireAdmissionPolicy::AlwaysEscalateToTopologyRegion
+        );
+    }
+
+    #[test]
+    fn ownership_class_distinguishes_runtime_and_custom_policies() {
+        assert_eq!(
+            AspectMergePolicyKind::PreferRicher.ownership_class(),
+            MergePolicyOwnershipClass::RuntimeBuiltIn
+        );
+        assert_eq!(
+            AspectMergePolicyKind::Custom(CustomMergePolicyIdentity {
+                name: Arc::from("domain"),
+                semantic_version: 1,
+            })
+            .ownership_class(),
+            MergePolicyOwnershipClass::CustomPolicy
+        );
+    }
+
+    #[test]
+    fn ownership_surface_reports_custom_policy_participation() {
+        let runtime_only = [ResolvedAspectMergePolicy {
+            aspect_key: AspectKey(InternedString::from("name")),
+            policy: AspectMergePolicyKind::PreferRicher,
+        }];
+        let custom = [ResolvedAspectMergePolicy {
+            aspect_key: AspectKey(InternedString::from("name")),
+            policy: AspectMergePolicyKind::Custom(CustomMergePolicyIdentity {
+                name: Arc::from("domain"),
+                semantic_version: 1,
+            }),
+        }];
+
+        assert_eq!(
+            ownership_surface_for_policies(&runtime_only),
+            MergePolicyOwnershipSurface::RuntimeOnly
+        );
+        assert_eq!(
+            ownership_surface_for_policies(&custom),
+            MergePolicyOwnershipSurface::ContainsCustomPolicy
+        );
+    }
+
+    #[test]
+    fn policy_summary_reports_runtime_only_vs_custom_record_counts() {
+        let records = Arc::from(vec![
+            MergePolicyResolutionRecord {
+                record: RecordRef::Entity(EntityId::new(PartitionId::main(), 1, 1)),
+                target_record: None,
+                classification: MergeConflictClass::ExactSharedTruth,
+                aspect_resolutions: Arc::from(Vec::new()),
+                applied_policies: Arc::from(Vec::new()),
+                proof_boundary: MergePolicyProofBoundary {
+                    ownership_surface: MergePolicyOwnershipSurface::RuntimeOnly,
+                    decision_boundary: MergePolicyDecisionBoundary::AutoResolved,
+                },
+            },
+            MergePolicyResolutionRecord {
+                record: RecordRef::Entity(EntityId::new(PartitionId::main(), 2, 1)),
+                target_record: None,
+                classification: MergeConflictClass::SchemaDeclaredCorrespondence,
+                aspect_resolutions: Arc::from(Vec::new()),
+                applied_policies: Arc::from(Vec::new()),
+                proof_boundary: MergePolicyProofBoundary {
+                    ownership_surface: MergePolicyOwnershipSurface::ContainsCustomPolicy,
+                    decision_boundary: MergePolicyDecisionBoundary::RequiresManualResolution {
+                        class: MergeManualResolutionClass::GenericRuntimeConflict,
+                    },
+                },
+            },
+        ]);
+
+        let summary = summarize_policy_records(records);
+        assert_eq!(summary.runtime_only_record_count, 1);
+        assert_eq!(summary.custom_policy_record_count, 1);
     }
 }

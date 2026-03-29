@@ -1052,6 +1052,21 @@ fn runtime_policy_maps_into_s9_contract_and_strategy_defaults() {
 }
 
 #[test]
+fn diagnostics_profile_reset_restores_stock_tier_policy() {
+    let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(
+        SignalRuntimePolicy::forensic()
+            .with_history_limit(23)
+            .with_detail_limit(41)
+            .with_history_details(false),
+    );
+
+    graph.reset_runtime_policy_to_tier(DiagnosticsTier::Operational);
+
+    assert_eq!(graph.runtime_policy(), SignalRuntimePolicy::operational());
+}
+
+#[test]
 fn node_contract_and_runtime_policy_expose_s9_1_enforcement_surfaces() {
     let contract = NodeContract::reads([ASPECT_A])
         .with_equivalence(EquivalenceContract::for_comparator_override(

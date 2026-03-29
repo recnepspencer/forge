@@ -34,10 +34,23 @@ impl SignalGraph {
         self.observation.diagnostics.policy()
     }
 
-    pub fn set_diagnostics_profile(&mut self, profile: DiagnosticsTier) {
+    /// Reset graph diagnostics to the stock policy for one diagnostics tier.
+    ///
+    /// This is a lower-level convenience reset. If the caller means to keep
+    /// custom retention or replay overrides, they should apply a full
+    /// `SignalRuntimePolicy` instead.
+    pub fn reset_runtime_policy_to_tier(&mut self, profile: DiagnosticsTier) {
         self.observation.diagnostics.set_profile(profile);
     }
 
+    #[deprecated(
+        note = "use reset_runtime_policy_to_tier(...) for stock preset resets, or set_runtime_policy(...) for full policy control"
+    )]
+    pub fn set_diagnostics_profile(&mut self, profile: DiagnosticsTier) {
+        self.reset_runtime_policy_to_tier(profile);
+    }
+
+    /// Apply the full runtime policy bundle to the graph diagnostics state.
     pub fn set_runtime_policy(&mut self, policy: SignalRuntimePolicy) {
         self.observation.diagnostics.set_policy(policy);
     }

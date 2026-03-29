@@ -1,15 +1,41 @@
 use crate::capabilities::StorageRead;
+use crate::identity::data::VersionId;
 use crate::identity::data::{EntityId, RecordId, RelationId};
+use crate::logic::runtime::RelationalRuntime;
 use crate::storage::logic::state::{
     partition_of, EntityRecordKind, RecordKind, RelationRecordKind,
 };
 
-pub(super) fn entity_exists_in_state(state: &impl StorageRead, entity_id: EntityId) -> bool {
+pub(crate) fn entity_exists_in_state(state: &impl StorageRead, entity_id: EntityId) -> bool {
     record_exists_in_state::<EntityRecordKind>(state, entity_id)
 }
 
-pub(super) fn relation_exists_in_state(state: &impl StorageRead, relation_id: RelationId) -> bool {
+pub(crate) fn relation_exists_in_state(state: &impl StorageRead, relation_id: RelationId) -> bool {
     record_exists_in_state::<RelationRecordKind>(state, relation_id)
+}
+
+pub(crate) fn entity_exists_in_version_basis(
+    runtime: &RelationalRuntime,
+    version_id: VersionId,
+    entity_id: EntityId,
+) -> bool {
+    runtime
+        .visibility_reads()
+        .read_version(version_id)
+        .get_entity(entity_id)
+        .is_some()
+}
+
+pub(crate) fn relation_exists_in_version_basis(
+    runtime: &RelationalRuntime,
+    version_id: VersionId,
+    relation_id: RelationId,
+) -> bool {
+    runtime
+        .visibility_reads()
+        .read_version(version_id)
+        .get_relation(relation_id)
+        .is_some()
 }
 
 fn record_exists_in_state<K: RecordKind>(
