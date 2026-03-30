@@ -72,6 +72,6 @@ pub struct DerivedIndexBuildOutcome {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReadWithStorageFallbackOutcome {
-    pub result: crate::query::data::QueryWorkPacket,
+    pub result: crate::storage::data::PacketResult,
     pub used_index_generation: Option<DerivedIndexGenerationId>,
 }

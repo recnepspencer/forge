@@ -1,8 +1,10 @@
 use wasm_bindgen::prelude::*;
+use js_sys::Uint8Array;
 
 use crate::boundary::serde::{from_js, to_js};
 use crate::recipe::model::{
-    KeyedRecipeFamilySpec, KeyedSourceFamilySpec, RecipeSpec, SourceSpec, TransactionOp,
+    KeyedRecipeFamilySpec, KeyedSetValue, KeyedSourceFamilySpec, RecipeSpec, SourceSpec,
+    TransactionOp,
 };
 use crate::runtime::core::{new_shared_core, SharedCore};
 use crate::runtime::policy::RuntimePolicySpec;
@@ -84,6 +86,33 @@ impl SignalApp {
         to_js(&summary).map_err(JsValue::from)
     }
 
+    pub fn transaction_with_packed_grid_rgba(
+        &self,
+        prefix_ops: JsValue,
+        family_id: String,
+        width: u32,
+        height: u32,
+        rgba: JsValue,
+        suffix_ops: JsValue,
+    ) -> Result<JsValue, JsValue> {
+        let mut ops: Vec<TransactionOp> = from_js(prefix_ops)?;
+        let rgba = Uint8Array::new(&rgba).to_vec();
+        ops.push(TransactionOp::SetPackedGridRgba {
+            family_id,
+            width,
+            height,
+            rgba,
+        });
+        let suffix_ops: Vec<TransactionOp> = from_js(suffix_ops)?;
+        ops.extend(suffix_ops);
+        let summary = self
+            .core
+            .borrow_mut()
+            .apply_transaction(ops)
+            .map_err(JsValue::from)?;
+        to_js(&summary).map_err(JsValue::from)
+    }
+
     pub fn read(&self, id: String) -> Result<JsValue, JsValue> {
         let value = self
             .core
@@ -113,6 +142,30 @@ impl SignalApp {
             .core
             .borrow_mut()
             .set_keyed_value(&family_id, &key, value)
+            .map_err(JsValue::from)?;
+        to_js(&summary).map_err(JsValue::from)
+    }
+
+    pub fn read_keyed_many(&self, family_id: String, keys: JsValue) -> Result<JsValue, JsValue> {
+        let keys: Vec<String> = from_js(keys)?;
+        let values = self
+            .core
+            .borrow_mut()
+            .read_keyed_values(&family_id, keys)
+            .map_err(JsValue::from)?;
+        to_js(&values).map_err(JsValue::from)
+    }
+
+    pub fn set_keyed_many(
+        &self,
+        family_id: String,
+        values: JsValue,
+    ) -> Result<JsValue, JsValue> {
+        let values: Vec<KeyedSetValue> = from_js(values)?;
+        let summary = self
+            .core
+            .borrow_mut()
+            .set_keyed_values(&family_id, values)
             .map_err(JsValue::from)?;
         to_js(&summary).map_err(JsValue::from)
     }
@@ -195,6 +248,33 @@ impl SignalRuntime {
         to_js(&summary).map_err(JsValue::from)
     }
 
+    pub fn transaction_with_packed_grid_rgba(
+        &self,
+        prefix_ops: JsValue,
+        family_id: String,
+        width: u32,
+        height: u32,
+        rgba: JsValue,
+        suffix_ops: JsValue,
+    ) -> Result<JsValue, JsValue> {
+        let mut ops: Vec<TransactionOp> = from_js(prefix_ops)?;
+        let rgba = Uint8Array::new(&rgba).to_vec();
+        ops.push(TransactionOp::SetPackedGridRgba {
+            family_id,
+            width,
+            height,
+            rgba,
+        });
+        let suffix_ops: Vec<TransactionOp> = from_js(suffix_ops)?;
+        ops.extend(suffix_ops);
+        let summary = self
+            .core
+            .borrow_mut()
+            .apply_transaction(ops)
+            .map_err(JsValue::from)?;
+        to_js(&summary).map_err(JsValue::from)
+    }
+
     pub fn read(&self, id: String) -> Result<JsValue, JsValue> {
         let value = self
             .core
@@ -224,6 +304,30 @@ impl SignalRuntime {
             .core
             .borrow_mut()
             .set_keyed_value(&family_id, &key, value)
+            .map_err(JsValue::from)?;
+        to_js(&summary).map_err(JsValue::from)
+    }
+
+    pub fn read_keyed_many(&self, family_id: String, keys: JsValue) -> Result<JsValue, JsValue> {
+        let keys: Vec<String> = from_js(keys)?;
+        let values = self
+            .core
+            .borrow_mut()
+            .read_keyed_values(&family_id, keys)
+            .map_err(JsValue::from)?;
+        to_js(&values).map_err(JsValue::from)
+    }
+
+    pub fn set_keyed_many(
+        &self,
+        family_id: String,
+        values: JsValue,
+    ) -> Result<JsValue, JsValue> {
+        let values: Vec<KeyedSetValue> = from_js(values)?;
+        let summary = self
+            .core
+            .borrow_mut()
+            .set_keyed_values(&family_id, values)
             .map_err(JsValue::from)?;
         to_js(&summary).map_err(JsValue::from)
     }

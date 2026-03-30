@@ -1,5 +1,4 @@
-use std::time::Instant;
-
+use crate::clock::RuntimeInstant;
 use super::super::signal_graph::SignalGraph;
 
 impl SignalGraph {
@@ -27,7 +26,7 @@ impl SignalGraph {
         let Some(epoch_plan) = self.arena.plan_compaction_epoch(should_run, family_budget) else {
             return;
         };
-        let gc_start = Instant::now();
+        let gc_start = RuntimeInstant::now();
         for family in epoch_plan.families() {
             self.compact_storage_family(family);
         }

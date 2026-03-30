@@ -1,6 +1,10 @@
 import { decodeSnapshotEnvelope, encodeSignalValue } from "../internal/codec.js";
 import { summarizeMergePlan, summarizeMergeResult } from "../internal/merge-reports.js";
 
+function normalizeBranchId(branchId) {
+  return typeof branchId === "bigint" ? branchId : BigInt(branchId);
+}
+
 function normalizeSnapshot(snapshot) {
   return {
     ...snapshot,
@@ -52,15 +56,15 @@ export class SignalHistory {
   }
 
   switchBranch(branchId) {
-    return this.inner.switch_branch(branchId);
+    return this.inner.switch_branch(normalizeBranchId(branchId));
   }
 
   replayForBranch(branchId) {
-    return this.inner.replay_for_branch(branchId);
+    return this.inner.replay_for_branch(normalizeBranchId(branchId));
   }
 
   branchSnapshot(branchId) {
-    return this.inner.branch_snapshot(branchId);
+    return this.inner.branch_snapshot(normalizeBranchId(branchId));
   }
 
   planMergeBranches(sourceBranchId, targetBranchId) {
@@ -68,7 +72,10 @@ export class SignalHistory {
   }
 
   planMergeBranchesDetailed(sourceBranchId, targetBranchId) {
-    return this.inner.plan_merge_branches(sourceBranchId, targetBranchId);
+    return this.inner.plan_merge_branches(
+      normalizeBranchId(sourceBranchId),
+      normalizeBranchId(targetBranchId)
+    );
   }
 
   mergeBranches(sourceBranchId, targetBranchId) {
@@ -76,6 +83,9 @@ export class SignalHistory {
   }
 
   mergeBranchesDetailed(sourceBranchId, targetBranchId) {
-    return this.inner.merge_branches(sourceBranchId, targetBranchId);
+    return this.inner.merge_branches(
+      normalizeBranchId(sourceBranchId),
+      normalizeBranchId(targetBranchId)
+    );
   }
 }

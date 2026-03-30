@@ -1,5 +1,4 @@
-use std::time::Instant;
-
+use crate::clock::RuntimeInstant;
 use crate::data::aspect::AspectMask;
 use crate::data::comparator::ComparatorPolicyResolver;
 #[cfg(feature = "parallel")]
@@ -113,7 +112,7 @@ where
     if !pending_snapshots.is_empty() {
         graph.apply_classified_snapshot_batch_commit(pending_snapshots)?;
     }
-    let semantic_finalize_start = Instant::now();
+    let semantic_finalize_start = RuntimeInstant::now();
     match finalize_work {
         StageFinalizeWork::Serial(batch) => {
             let ready = batch.into_ready_for_finalize()?;
@@ -445,7 +444,7 @@ fn run_grouped_concurrent_apply_pass(
         .execution
         .parallel_stage_dispatch_count += 1;
 
-    let dependency_input_start = Instant::now();
+    let dependency_input_start = RuntimeInstant::now();
     let dependency_inputs =
         collect_effect_dependency_inputs_iter(graph, tasks.iter().map(|task| task.node()))?;
     graph.telemetry_mut().execution.dependency_input_build_nanos +=

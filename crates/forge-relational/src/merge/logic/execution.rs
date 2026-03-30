@@ -17,6 +17,7 @@ use crate::merge::data::{
     ReconciledIdentityBasis, RuntimeInstanceId,
 };
 use crate::merge::data::{MaterializedAspectValue, MaterializedAspectValuePayload};
+use crate::merge::logic::naming::resolve_interned_string;
 use crate::payloads::data::RecordPayload;
 use crate::schema::data::{LoweredAspectBinding, LoweredExecutableAspectBindingKind};
 use crate::storage::data::RecordLifecycleState;
@@ -369,6 +370,11 @@ fn compile_record_plan(
                 ))
             }
             MergeExecutableClass::ReconcileRecord => {
+                if source_record.record_kind == crate::merge::data::VisibleMergeRecordKind::Relation {
+                    return Err(MergeExecutionCompilationError::PreparedAuthorityBindingMismatch {
+                        detail: "relation reconcile records are not executable in phase D",
+                    });
+                }
                 let target_record = lowered_record.target_record.clone().ok_or_else(|| {
                     MergeExecutionCompilationError::MissingTargetRecord {
                         record: lowered_record.record.clone(),
@@ -408,7 +414,10 @@ fn compile_record_plan(
                             ),
                         },
                         semantics: crate::merge::data::DeletedOnBothSidesSemantics::AuthoritativeMutualDeletionConvergence,
-                        lineage_continuity: crate::merge::data::MergeLineageContinuityVerdict::Unchanged,
+                        lineage_continuity: derive_deleted_on_both_sides_lineage_continuity(
+                            lowered_record,
+                            source_record,
+                        ),
                         provenance,
                     },
                 ),
@@ -707,13 +716,34 @@ fn interned_field_name<'a>(
     runtime: &'a crate::logic::runtime::RelationalRuntime,
     field: &'a InternedString,
 ) -> Option<&'a str> {
-    match field {
-        InternedString::Raw(raw) => Some(raw.as_str()),
-        InternedString::Symbol(symbol) => runtime.resolve_symbol(*symbol),
-    }
+    resolve_interned_string(runtime, field).map(|field_name| match field_name {
+        std::borrow::Cow::Borrowed(name) => name,
+        std::borrow::Cow::Owned(_) => unreachable!("interned merge field names never allocate"),
+    })
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     digest.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+fn derive_deleted_on_both_sides_lineage_continuity(
+    lowered_record: &crate::merge::data::LoweredMergePlanRecord,
+    source_record: &crate::merge::data::VisibleMergeRecord,
+) -> crate::merge::data::MergeLineageContinuityVerdict {
+    let source_lineage_id = source_record.source_lineage_id.or(source_record.lineage_id);
+    let target_lineage_id = source_record.target_lineage_id.or(source_record.lineage_id);
+
+    if lowered_record.target_record.is_none() {
+        return crate::merge::data::MergeLineageContinuityVerdict::Unchanged;
+    }
+
+    match (source_lineage_id, target_lineage_id) {
+        (Some(source_lineage_id), Some(target_lineage_id))
+            if source_lineage_id == target_lineage_id =>
+        {
+            crate::merge::data::MergeLineageContinuityVerdict::Unchanged
+        }
+        _ => crate::merge::data::MergeLineageContinuityVerdict::Preserved,
+    }
 }

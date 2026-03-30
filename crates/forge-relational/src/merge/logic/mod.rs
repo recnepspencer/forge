@@ -6,6 +6,7 @@ mod execution_diagnostics;
 mod execution_mutation_plan;
 mod identity;
 mod lowering;
+mod naming;
 mod planning;
 mod planning_artifact;
 mod policy;

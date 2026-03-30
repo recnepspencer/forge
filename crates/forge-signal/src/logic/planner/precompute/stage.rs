@@ -74,7 +74,7 @@ pub(in crate::logic::planner) fn perform_stage_precompute(
 }
 
 fn run_snapshot_pass(graph: &mut SignalGraph) -> SnapshotPass {
-    let snapshot_start = std::time::Instant::now();
+    let snapshot_start = crate::clock::RuntimeInstant::now();
     graph.telemetry_mut().execution.execution_snapshots_built += 1;
     SnapshotPass {
         snapshot_nanos: snapshot_start.elapsed().as_nanos(),
@@ -96,7 +96,7 @@ fn run_precompute_dispatch_pass(
     executor: StageExecutor,
     #[cfg(feature = "parallel")] parallel_admission: StageParallelAdmission,
 ) -> Result<PrecomputeDispatchPass, SignalError> {
-    let precompute_start = std::time::Instant::now();
+    let precompute_start = crate::clock::RuntimeInstant::now();
     let execution = dispatch_stage_precompute(
         graph,
         tasks,

@@ -52,6 +52,7 @@ pub enum MergePolicyResolution {
 pub enum MergeManualResolutionClass {
     GenericRuntimeConflict,
     MissingVisibleState,
+    MissingAncestorValueBasis,
     UnvalidatedSchemaCorrespondence,
     MixedAspectManualResolution,
 }
@@ -208,6 +209,7 @@ pub enum LoweredAspectExecutionIntent {
 pub enum LoweredMergeBlockedReason {
     ManualConflictResolutionRequired,
     MissingVisibleState,
+    MissingAncestorValueBasis,
     UnvalidatedSchemaCorrespondence,
     RelationEndpointRewiredLocal,
     RelationEndpointRewiredEscalated,
@@ -234,6 +236,7 @@ pub enum LoweredAspectDenialIntent {
     BlockedDeletedVsModified,
     BlockedDeletedVsRewired,
     BlockedMissingVisibleState,
+    BlockedMissingAncestorValueBasis,
     BlockedUnvalidatedSchemaCorrespondence,
     BlockedRelationEndpointRewiredLocal,
     BlockedRelationEndpointRewiredEscalated,
@@ -285,6 +288,7 @@ pub enum LoweredRecordDenialKind {
     BlockedDeletedVsModified,
     BlockedDeletedVsRewired,
     BlockedMissingVisibleState,
+    BlockedMissingAncestorValueBasis,
     BlockedUnvalidatedSchemaCorrespondence,
     BlockedRelationEndpointRewiredLocal,
     BlockedRelationEndpointRewiredEscalated,

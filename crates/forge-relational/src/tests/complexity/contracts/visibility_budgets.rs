@@ -1,5 +1,8 @@
 use crate::tests::support::*;
 use crate::validation::data::InvariantVerdict;
+use crate::facade::history::BranchId;
+use crate::facade::indexes::{DerivedIndexBuildRequest, DerivedIndexDefinition, DerivedIndexId, DerivedIndexKind};
+use crate::facade::query::{FallbackParityMode, QueryFallbackContract, QueryScope, QueryOrderingContract, QueryLocalityClass, QueryExecutionShape, ReductionDiscipline, PlannedQueryPacket, DeterministicQueryPlanKey};
 
 #[test]
 fn complexity_budget_snapshot_visibility_state_avoids_record_materialization() {
@@ -239,4 +242,67 @@ fn complexity_budget_partition_scoped_historical_relation_scans_are_partition_bo
 
     assert_eq!(records.len(), 1);
     assert_eq!(counters.visibility_relation_slot_scans, 1);
+}
+
+#[test]
+fn complexity_budget_index_entity_field_equals_avoids_snapshot_materialization() {
+    let mut runtime = runtime_with_test_schema();
+    let alpha = create_entity_outcome(&mut runtime, "alpha");
+    let index = runtime.index_authority().register(DerivedIndexDefinition {
+        index_id: DerivedIndexId(0),
+        name: "entity.name.lookup".to_string(),
+        kind: DerivedIndexKind::EntityPayloadField {
+            field: "name".to_string(),
+        },
+        branch_scoped: false,
+    });
+    let build = runtime
+        .index_authority()
+        .build_for_commit(DerivedIndexBuildRequest {
+            source_commit_id: alpha.commit.commit_id,
+            branch_id: BranchId("main".to_string()),
+            index_ids: vec![index.index_id],
+        });
+    assert!(build.failed_indexes.is_empty());
+
+    let snapshot = runtime.visibility_authority().snapshot();
+    let context = runtime
+        .visibility_reads()
+        .query_plan_context(&snapshot)
+        .expect("query plan context");
+    let packet = PlannedQueryPacket {
+        label: "entity-name-equals".to_string(),
+        context_id: context,
+        scope: QueryScope::EntityPayloadFieldEquals {
+            field: "name".to_string(),
+            value: "alpha".to_string(),
+            partition_scope: None,
+        },
+        locality: QueryLocalityClass::CrossPartitionTraversal,
+        ordering: QueryOrderingContract::CanonicalEntityIdOrder,
+        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        execution_shape: QueryExecutionShape::BulkPacketized,
+        reduction: ReductionDiscipline::DeterministicMerge,
+        plan_key: DeterministicQueryPlanKey(2001),
+        target_count_hint: 0,
+    };
+
+    runtime.performance_access().reset_counters();
+    let _ = runtime
+        .index_access()
+        .execute_query_plan_with_fallback_parity(
+            runtime
+                .visibility_reads()
+                .plan_query_packet(&snapshot, packet)
+                .expect("query plan"),
+            FallbackParityMode::ProductionAdmissibility,
+        )
+        .expect("query outcome");
+    let counters = runtime.performance_access().counters();
+
+    assert_eq!(counters.visible_entity_records_materialized, 0);
+    assert_eq!(counters.query_index_attempt_count, 1);
+    assert_eq!(counters.query_index_path_count, 1);
+    assert_eq!(counters.query_index_parity_verification_count, 0);
+    assert_eq!(counters.query_entity_records_emitted, 1);
 }

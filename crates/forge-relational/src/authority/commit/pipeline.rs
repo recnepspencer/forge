@@ -25,8 +25,8 @@ use crate::schema::data::SchemaTransitionSummary;
 use crate::transactions::data::{
     CommitExecution, CommitLog, CommitOutcome, CommitPatchBudgetSummary, CommitPhase,
     CommitPhaseTiming, CommitPublication, CommitResult, CommitSchemaSummary, CommitValidation,
-    MergeCommitMutationPlan, MergedCommitPlan, TransactionCommitError, TransactionId,
-    TransactionOptions,
+    MergeCommitMutationPlan, MergedCommitPlan, ProvenanceCompleteBulkMutationBatch,
+    TransactionCommitError, TransactionId, TransactionOptions,
 };
 use crate::transactions::logic::RelationalTransaction;
 use std::sync::Arc;
@@ -46,6 +46,9 @@ impl<'a> RelationalTransaction<'a> {
     /// Any failure before publication discards the touched-partition overlay without making the
     /// commit visible.
     pub fn commit(mut self) -> Result<CommitResult, TransactionCommitError> {
+        let admitted_bulk_batch = self
+            .admit_provenance_complete_bulk_mutation_batch()
+            .map_err(TransactionCommitError::conflict)?;
         let mut draft_preparation_log = CommitLog::new();
         draft_preparation_log.begin_phase(CommitPhase::DraftPreparation);
         let prepared = prepare_working_state_scope(&mut self).map_err(|error| {
@@ -61,6 +64,7 @@ impl<'a> RelationalTransaction<'a> {
                 self.transaction_id,
                 self.options,
                 prepared,
+                admitted_bulk_batch,
             ),
         )
     }
@@ -79,6 +83,7 @@ pub(crate) struct AuthoritativeCommitContext {
     authority_input: CommitAuthorityInput,
     prepared_scope: Option<PreparedAuthorityScope>,
     merge_execution_accounting: Option<MergeExecutionAccounting>,
+    bulk_mutation_batch: Option<ProvenanceCompleteBulkMutationBatch>,
 }
 
 #[derive(Debug)]
@@ -98,6 +103,7 @@ impl AuthoritativeCommitContext {
         transaction_id: TransactionId,
         options: TransactionOptions,
         prepared: crate::authority::commit::phases::prepare::PreparedWorkingStateScope,
+        bulk_mutation_batch: Option<ProvenanceCompleteBulkMutationBatch>,
     ) -> Self {
         Self {
             transaction_id,
@@ -108,6 +114,7 @@ impl AuthoritativeCommitContext {
                 working_state: prepared.working_state,
             }),
             merge_execution_accounting: None,
+            bulk_mutation_batch,
         }
     }
 
@@ -149,6 +156,7 @@ impl AuthoritativeCommitContext {
             }),
             authority_input: CommitAuthorityInput::Merge(merge_plan),
             prepared_scope: None,
+            bulk_mutation_batch: None,
         })
     }
 }
@@ -171,6 +179,7 @@ pub(crate) fn execute_authoritative_commit(
         authority_input,
         prepared_scope,
         merge_execution_accounting,
+        bulk_mutation_batch,
     } = context;
     let mut commit_log = CommitLog::new();
     let mut phase_timing = CommitPhaseTiming::default();
@@ -186,6 +195,15 @@ pub(crate) fn execute_authoritative_commit(
         .lock()
         .expect("complexity counter lock poisoned")
         .clone();
+    if let Some(admitted_bulk_batch) = bulk_mutation_batch.as_ref() {
+        let planned = admitted_bulk_batch.planned();
+        runtime.performance_access().count_bulk_mutation_plan(
+            &planned.locality,
+            planned.naming.normalized_client_keys.len(),
+            planned.lineage.transitions.len(),
+            planned.provenance.worker_batch_names.len(),
+        );
+    }
     let mut invariant_executions = Vec::new();
     let (mutation_plan, merge_history_plan) = match authority_input {
         CommitAuthorityInput::Mutation(plan) => (Some(plan), None),
@@ -577,6 +595,63 @@ fn complexity_delta(
         visible_relation_records_materialized: after
             .visible_relation_records_materialized
             .saturating_sub(before.visible_relation_records_materialized),
+        query_packet_count: after
+            .query_packet_count
+            .saturating_sub(before.query_packet_count),
+        query_packet_item_count: after
+            .query_packet_item_count
+            .saturating_sub(before.query_packet_item_count),
+        query_parallel_legal_count: after
+            .query_parallel_legal_count
+            .saturating_sub(before.query_parallel_legal_count),
+        query_parallel_profitable_count: after
+            .query_parallel_profitable_count
+            .saturating_sub(before.query_parallel_profitable_count),
+        query_serial_strategy_count: after
+            .query_serial_strategy_count
+            .saturating_sub(before.query_serial_strategy_count),
+        query_staged_parallel_strategy_count: after
+            .query_staged_parallel_strategy_count
+            .saturating_sub(before.query_staged_parallel_strategy_count),
+        query_index_attempt_count: after
+            .query_index_attempt_count
+            .saturating_sub(before.query_index_attempt_count),
+        query_index_path_count: after
+            .query_index_path_count
+            .saturating_sub(before.query_index_path_count),
+        query_index_rejection_count: after
+            .query_index_rejection_count
+            .saturating_sub(before.query_index_rejection_count),
+        query_index_parity_verification_count: after
+            .query_index_parity_verification_count
+            .saturating_sub(before.query_index_parity_verification_count),
+        query_entity_records_emitted: after
+            .query_entity_records_emitted
+            .saturating_sub(before.query_entity_records_emitted),
+        query_relation_records_emitted: after
+            .query_relation_records_emitted
+            .saturating_sub(before.query_relation_records_emitted),
+        bulk_mutation_batch_count: after
+            .bulk_mutation_batch_count
+            .saturating_sub(before.bulk_mutation_batch_count),
+        bulk_mutation_entity_target_count: after
+            .bulk_mutation_entity_target_count
+            .saturating_sub(before.bulk_mutation_entity_target_count),
+        bulk_mutation_relation_target_count: after
+            .bulk_mutation_relation_target_count
+            .saturating_sub(before.bulk_mutation_relation_target_count),
+        bulk_mutation_cross_partition_relation_count: after
+            .bulk_mutation_cross_partition_relation_count
+            .saturating_sub(before.bulk_mutation_cross_partition_relation_count),
+        bulk_mutation_naming_normalization_count: after
+            .bulk_mutation_naming_normalization_count
+            .saturating_sub(before.bulk_mutation_naming_normalization_count),
+        bulk_mutation_lineage_transition_count: after
+            .bulk_mutation_lineage_transition_count
+            .saturating_sub(before.bulk_mutation_lineage_transition_count),
+        bulk_mutation_provenance_record_count: after
+            .bulk_mutation_provenance_record_count
+            .saturating_sub(before.bulk_mutation_provenance_record_count),
         visibility_cache_hits: after
             .visibility_cache_hits
             .saturating_sub(before.visibility_cache_hits),

@@ -71,6 +71,36 @@ export const expr = {
   append(target, value) {
     return { kind: "append", target, value };
   },
+  abs(target) {
+    return { kind: "abs", target };
+  },
+  min(...args) {
+    return { kind: "min", args };
+  },
+  max(...args) {
+    return { kind: "max", args };
+  },
+  sqrt(target) {
+    return { kind: "sqrt", target };
+  },
+  sin(target) {
+    return { kind: "sin", target };
+  },
+  cos(target) {
+    return { kind: "cos", target };
+  },
+  floor(target) {
+    return { kind: "floor", target };
+  },
+  mod(left, right) {
+    return { kind: "mod", left, right };
+  },
+  clamp(value, min, max) {
+    return { kind: "clamp", value, min, max };
+  },
+  atan2(y, x) {
+    return { kind: "atan2", y, x };
+  },
   subtract(left, right) {
     return { kind: "subtract", left, right };
   },

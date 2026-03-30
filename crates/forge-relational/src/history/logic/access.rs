@@ -68,6 +68,18 @@ impl<'runtime> HistoryAccess<'runtime> {
             .map(|envelope| envelope.as_ref())
     }
 
+    pub(crate) fn commit_envelope_for_version(
+        &self,
+        version_id: crate::identity::data::VersionId,
+    ) -> Option<&CanonicalCommitEnvelope> {
+        self.runtime
+            .history
+            .commit_envelopes
+            .values()
+            .map(|envelope| envelope.as_ref())
+            .find(|envelope| envelope.commit.version_id == version_id)
+    }
+
     pub(crate) fn latest_patch_stream_position(&self) -> Option<PatchStreamPosition> {
         self.runtime
             .history

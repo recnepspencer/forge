@@ -300,6 +300,53 @@ impl<'a> ExprEnvironment<'a> {
                     )),
                 }
             }
+            Expr::Abs { target } => Ok(SignalValue::Number(
+                self.require_number(&self.evaluate(target)?)?.abs(),
+            )),
+            Expr::Min { args } => self.extreme_number(args, f64::min, "min"),
+            Expr::Max { args } => self.extreme_number(args, f64::max, "max"),
+            Expr::Sqrt { target } => {
+                let value = self.require_number(&self.evaluate(target)?)?;
+                if value < 0.0 {
+                    return Err(ForgeSignalJsError::invalid_input(
+                        "sqrt requires a non-negative input",
+                    ));
+                }
+                Ok(SignalValue::Number(value.sqrt()))
+            }
+            Expr::Sin { target } => Ok(SignalValue::Number(
+                self.require_number(&self.evaluate(target)?)?.sin(),
+            )),
+            Expr::Cos { target } => Ok(SignalValue::Number(
+                self.require_number(&self.evaluate(target)?)?.cos(),
+            )),
+            Expr::Floor { target } => Ok(SignalValue::Number(
+                self.require_number(&self.evaluate(target)?)?.floor(),
+            )),
+            Expr::Mod { left, right } => {
+                let divisor = self.require_number(&self.evaluate(right)?)?;
+                if divisor == 0.0 {
+                    return Err(ForgeSignalJsError::invalid_input("mod by zero"));
+                }
+                Ok(SignalValue::Number(
+                    self.require_number(&self.evaluate(left)?)? % divisor,
+                ))
+            }
+            Expr::Clamp { value, min, max } => {
+                let value = self.require_number(&self.evaluate(value)?)?;
+                let min = self.require_number(&self.evaluate(min)?)?;
+                let max = self.require_number(&self.evaluate(max)?)?;
+                if min > max {
+                    return Err(ForgeSignalJsError::invalid_input(
+                        "clamp requires min <= max",
+                    ));
+                }
+                Ok(SignalValue::Number(value.clamp(min, max)))
+            }
+            Expr::Atan2 { y, x } => Ok(SignalValue::Number(
+                self.require_number(&self.evaluate(y)?)?
+                    .atan2(self.require_number(&self.evaluate(x)?)?),
+            )),
             Expr::Subtract { left, right } => Ok(SignalValue::Number(
                 self.require_number(&self.evaluate(left)?)?
                     - self.require_number(&self.evaluate(right)?)?,
@@ -381,6 +428,28 @@ impl<'a> ExprEnvironment<'a> {
             self.require_number(&self.evaluate(left)?)?,
             self.require_number(&self.evaluate(right)?)?,
         )))
+    }
+
+    fn extreme_number<F>(
+        &self,
+        args: &[Expr],
+        select: F,
+        op_name: &'static str,
+    ) -> Result<SignalValue, ForgeSignalJsError>
+    where
+        F: Fn(f64, f64) -> f64,
+    {
+        let mut iter = args.iter();
+        let Some(first) = iter.next() else {
+            return Err(ForgeSignalJsError::invalid_input(format!(
+                "{op_name} requires at least one input"
+            )));
+        };
+        let mut current = self.require_number(&self.evaluate(first)?)?;
+        for arg in iter {
+            current = select(current, self.require_number(&self.evaluate(arg)?)?);
+        }
+        Ok(SignalValue::Number(current))
     }
 
     fn require_bool(&self, value: &SignalValue) -> Result<bool, ForgeSignalJsError> {

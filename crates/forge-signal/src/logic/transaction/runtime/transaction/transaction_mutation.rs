@@ -1,5 +1,4 @@
-use std::time::Instant;
-
+use crate::clock::RuntimeInstant;
 use crate::data::aspect::Aspect;
 use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::dirty_set::DomainImpact;
@@ -137,7 +136,7 @@ where
     where
         Ev: CheckpointEvaluator<Domain = D, Impact = I>,
     {
-        let flush_start = Instant::now();
+        let flush_start = RuntimeInstant::now();
         let domains: Vec<D> = self
             .scratch
             .staged_dirty

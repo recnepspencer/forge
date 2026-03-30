@@ -10,6 +10,7 @@ use crate::merge::data::{
     MaterializedAspectValuePayload, MergeExecutionMutationPlanError, PreparedMergeExecution,
     ReconcileRecordPlan,
 };
+use crate::merge::logic::naming::resolve_interned_string;
 use crate::payloads::data::RecordPayload;
 use crate::schema::data::{LoweredAspectBinding, LoweredExecutableAspectBindingKind};
 use crate::storage::overlay::PartitionAccess;
@@ -278,6 +279,7 @@ fn apply_entity_aspect_resolution(
                 }
             })?;
             let resolved_json = resolve_materialized_json_value(
+                runtime,
                 plan,
                 aspect_key,
                 resolved_value,
@@ -314,6 +316,7 @@ fn apply_entity_aspect_resolution(
 }
 
 fn resolve_materialized_json_value(
+    runtime: &crate::logic::runtime::RelationalRuntime,
     plan: &ReconcileRecordPlan,
     aspect_key: &crate::publication::patch::data::AspectKey,
     value: &MaterializedAspectValue,
@@ -345,7 +348,7 @@ fn resolve_materialized_json_value(
                     source_entity
                         .payload
                         .as_json()
-                        .and_then(|json| json.get(aspect_key_name(aspect_key)?))
+                        .and_then(|json| json.get(aspect_key_name(runtime, aspect_key)?.as_ref()))
                         .cloned()
                         .ok_or_else(|| MergeExecutionMutationPlanError::InvalidVisibleAspectReference {
                             record: plan.target_record.clone(),
@@ -364,7 +367,7 @@ fn resolve_materialized_json_value(
                     target_entity
                         .payload
                         .as_json()
-                        .and_then(|json| json.get(aspect_key_name(aspect_key)?))
+                        .and_then(|json| json.get(aspect_key_name(runtime, aspect_key)?.as_ref()))
                         .cloned()
                         .ok_or_else(|| MergeExecutionMutationPlanError::InvalidVisibleAspectReference {
                             record: plan.target_record.clone(),
@@ -449,21 +452,19 @@ fn merge_client_key(prefix: &str, record: &crate::transactions::data::RecordRef)
     InternedString::Raw(format!("{prefix}-{suffix}"))
 }
 
-fn aspect_key_name(
-    aspect_key: &crate::publication::patch::data::AspectKey,
-) -> Option<&str> {
-    match &aspect_key.0 {
-        InternedString::Raw(raw) => Some(raw.as_str()),
-        InternedString::Symbol(_) => None,
-    }
+fn aspect_key_name<'a>(
+    runtime: &'a crate::logic::runtime::RelationalRuntime,
+    aspect_key: &'a crate::publication::patch::data::AspectKey,
+) -> Option<std::borrow::Cow<'a, str>> {
+    resolve_interned_string(runtime, &aspect_key.0)
 }
 
 fn interned_field_name<'a>(
     runtime: &'a crate::logic::runtime::RelationalRuntime,
     field: &'a InternedString,
 ) -> Option<&'a str> {
-    match field {
-        InternedString::Raw(raw) => Some(raw.as_str()),
-        InternedString::Symbol(symbol) => runtime.resolve_symbol(*symbol),
-    }
+    resolve_interned_string(runtime, field).map(|field_name| match field_name {
+        std::borrow::Cow::Borrowed(name) => name,
+        std::borrow::Cow::Owned(_) => unreachable!("interned merge field names never allocate"),
+    })
 }

@@ -10,6 +10,7 @@ use crate::merge::data::{
     ValidatedSchemaDeclaredCorrespondence, VisibleMergeRecord, VisibleMergeRecordKind,
 };
 use crate::merge::logic::aspect_plan_lookup::lowered_plan_for_record;
+use crate::merge::logic::naming::resolve_interned_string;
 use crate::merge::logic::planning::branch_delta_summary;
 use crate::merge::logic::MergeAccess;
 use crate::payloads::data::RecordPayload;
@@ -18,7 +19,6 @@ use crate::schema::data::LoweredExecutableAspectBindingKind;
 use crate::storage::data::RecordLifecycleState;
 use crate::storage::data::{EntityReadRecord, RelationReadRecord, RelationalReadView};
 use crate::transactions::data::RecordRef;
-use crate::symbols::data::InternedString;
 use serde_json::Value;
 
 impl<'runtime> MergeAccess<'runtime> {
@@ -542,12 +542,13 @@ fn extract_declared_key_signature(
         .collect::<Option<Vec<_>>>()?;
     let components = bindings
         .into_iter()
-        .map(|binding| extract_identity_component(record, binding))
+        .map(|binding| extract_identity_component(runtime, record, binding))
         .collect::<Option<Vec<_>>>()?;
     Some(declared_identity_signature(&components))
 }
 
 fn extract_identity_component(
+    runtime: &crate::logic::runtime::RelationalRuntime,
     record: &VisibleMergeRecord,
     binding: &crate::schema::data::LoweredAspectBinding,
 ) -> Option<DeclaredIdentityComponent> {
@@ -559,7 +560,8 @@ fn extract_identity_component(
             Some(entity),
             _,
             LoweredExecutableAspectBindingKind::EntityJsonScalarField { field },
-        ) => interned_field_name(field).and_then(|field_name| extract_json_component(&entity.payload, field_name)),
+        ) => resolve_interned_string(runtime, field)
+            .and_then(|field_name| extract_json_component(&entity.payload, field_name.as_ref())),
         (
             VisibleMergeRecordKind::Relation,
             _,
@@ -568,7 +570,10 @@ fn extract_identity_component(
         ) => relation
             .payload
             .as_ref()
-            .and_then(|payload| interned_field_name(field).and_then(|field_name| extract_json_component(payload, field_name))),
+            .and_then(|payload| {
+                resolve_interned_string(runtime, field)
+                    .and_then(|field_name| extract_json_component(payload, field_name.as_ref()))
+            }),
         (
             VisibleMergeRecordKind::Relation,
             _,
@@ -618,13 +623,6 @@ fn extract_opaque_component(payload: &RecordPayload) -> Option<DeclaredIdentityC
     match payload {
         RecordPayload::StructuredJson(_) => None,
         RecordPayload::OpaqueBytes(bytes) => Some(DeclaredIdentityComponent::OpaqueBytes(bytes.clone())),
-    }
-}
-
-fn interned_field_name(field: &InternedString) -> Option<&str> {
-    match field {
-        InternedString::Raw(raw) => Some(raw.as_str()),
-        InternedString::Symbol(_) => None,
     }
 }
 

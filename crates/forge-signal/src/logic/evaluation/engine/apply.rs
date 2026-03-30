@@ -240,11 +240,11 @@ pub(crate) fn build_effect_dependency_inputs_for_dependencies(
     context: crate::logic::evaluation::DependencyInputContext,
     dependencies: &[DependencyEdge],
 ) -> Result<EffectDependencyInputs, SignalError> {
-    let shape_handle_lookup_start = std::time::Instant::now();
+    let shape_handle_lookup_start = crate::clock::RuntimeInstant::now();
     let previous_shape_handle =
         graph.dependency_snapshot_shape_handle(context.dependency_snapshot_id);
     let shape_handle_lookup_nanos = shape_handle_lookup_start.elapsed().as_nanos();
-    let previous_snapshot_fetch_start = std::time::Instant::now();
+    let previous_snapshot_fetch_start = crate::clock::RuntimeInstant::now();
     let previous_snapshot = graph.get_dep_snapshot(node)?;
     let previous_snapshot_fetch_nanos = previous_snapshot_fetch_start.elapsed().as_nanos();
     let (stable_shape_proved, inputs) = {
@@ -253,7 +253,7 @@ pub(crate) fn build_effect_dependency_inputs_for_dependencies(
         let mut shape_stable = dependencies.len() == previous_entries.len();
         let mut changes = 0_u32;
         let mut stable_shape_versions = Vec::with_capacity(dependencies.len());
-        let version_scan_start = std::time::Instant::now();
+        let version_scan_start = crate::clock::RuntimeInstant::now();
         for dep in dependencies {
             let source = dep.source();
             let aspect = dep.aspect();
@@ -280,7 +280,7 @@ pub(crate) fn build_effect_dependency_inputs_for_dependencies(
         let version_scan_nanos = version_scan_start.elapsed().as_nanos();
 
         if shape_stable && previous_index == previous_entries.len() {
-            let stable_proof_start = std::time::Instant::now();
+            let stable_proof_start = crate::clock::RuntimeInstant::now();
             let scan = DependencyInputScan::stable_shape(
                 node,
                 context.dependency_snapshot_id,
@@ -294,7 +294,7 @@ pub(crate) fn build_effect_dependency_inputs_for_dependencies(
                 })?;
             let versions = VersionVector::from_scan(&basis, &scan);
             let stable_proof_nanos = stable_proof_start.elapsed().as_nanos();
-            let version_delta_start = std::time::Instant::now();
+            let version_delta_start = crate::clock::RuntimeInstant::now();
             let snapshot_delta = SnapshotDeltaRecord::for_version_update(
                 node,
                 previous_snapshot,
@@ -333,7 +333,7 @@ pub(crate) fn build_effect_dependency_inputs_for_dependencies(
             let mut snapshot_index = 0usize;
             changes = 0_u32;
 
-            let replacement_build_start = std::time::Instant::now();
+            let replacement_build_start = crate::clock::RuntimeInstant::now();
             for dep in dependencies {
                 let source = dep.source();
                 let aspect = dep.aspect();

@@ -80,10 +80,12 @@ export class SignalApp {
   recipeFamily<T = SignalValue>(
     spec: KeyedRecipeFamilySpec<T> | RecipeFamilyBuilder<T>
   ): RecipeFamilyHandle<T>;
-  batch<T = SignalValue>(ops: Array<{ kind: "set"; id: string; value: T } | { kind: "setMany"; values: Array<{ id: string; value: T }> }>): RunSummary;
+  batch<T = SignalValue>(ops: Array<TransactionOp<T>>): RunSummary;
   read<T = SignalValue>(id: string): T;
   readKeyed<T = SignalValue>(familyId: string, key: string): T;
   setKeyed<T = SignalValue>(familyId: string, key: string, value: T): RunSummary;
+  readKeyedMany<T = SignalValue>(familyId: string, keys: string[]): T[];
+  setKeyedMany<T = SignalValue>(familyId: string, values: Array<{ key: string; value: T }>): RunSummary;
   diagnostics(): SignalDiagnostics;
   history(): SignalHistory;
   specialist(): SignalSpecialist;
@@ -100,10 +102,12 @@ export class SignalRuntime {
   defineRecipeFamily<T = SignalValue>(
     spec: KeyedRecipeFamilySpec<T> | RecipeFamilyBuilder<T>
   ): RecipeFamilyHandle<T>;
-  transaction<T = SignalValue>(ops: Array<{ kind: "set"; id: string; value: T } | { kind: "setMany"; values: Array<{ id: string; value: T }> }>): RunSummary;
+  transaction<T = SignalValue>(ops: Array<TransactionOp<T>>): RunSummary;
   read<T = SignalValue>(id: string): T;
   readKeyed<T = SignalValue>(familyId: string, key: string): T;
   setKeyed<T = SignalValue>(familyId: string, key: string, value: T): RunSummary;
+  readKeyedMany<T = SignalValue>(familyId: string, keys: string[]): T[];
+  setKeyedMany<T = SignalValue>(familyId: string, values: Array<{ key: string; value: T }>): RunSummary;
   diagnostics(): SignalDiagnostics;
   history(): SignalHistory;
   specialist(): SignalSpecialist;

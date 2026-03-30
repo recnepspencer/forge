@@ -4,7 +4,7 @@ use crate::diagnostics::epochs::{
 };
 use crate::diagnostics::replay::ReplayEventKind;
 use crate::logic::events::EventFlushError;
-use std::time::Instant;
+use crate::clock::RuntimeInstant;
 
 use super::super::transaction_types::{
     SignalTransaction, StagedEventOperation, TransactionOutcome, TransactionReplayEntry,
@@ -19,7 +19,7 @@ where
     T: Copy + Ord,
 {
     pub fn commit(mut self) -> Result<TransactionResult, SignalError> {
-        let commit_start = Instant::now();
+        let commit_start = RuntimeInstant::now();
         if self.finished {
             return Err(SignalError::transaction_finished());
         }
@@ -64,7 +64,7 @@ where
                     self.event_bus.emit(event)
                 }
                 StagedEventOperation::Flush(barrier) => {
-                    let flush_start = Instant::now();
+                    let flush_start = RuntimeInstant::now();
                     let completed_subscribers = match self
                         .event_bus
                         .flush(barrier, self.runtime_ctx)

@@ -3,9 +3,9 @@ import type {
   BranchMergeResult,
   Expr,
   ExprInput,
-  KeyedReadSpec,
   KeyedRecipeFamilySpec,
   KeyedSourceFamilySpec,
+  RecipeFamilyReadSpec,
   RuntimePolicy,
   RuntimePolicyPreset,
   SignalPrimitive,
@@ -56,7 +56,13 @@ export class RecipeFamilyBuilder<T = SignalValue> {
   constructor(familyId: string);
   reads(
     ...reads: Array<
-      string | KeyedReadSpec | SourceFamilyHandle<any> | RecipeFamilyHandle<any>
+      | string
+      | RecipeFamilyReadSpec
+      | SignalHandle<any>
+      | SourceHandle<any>
+      | RecipeHandle<any>
+      | SourceFamilyHandle<any>
+      | RecipeFamilyHandle<any>
     >
   ): this;
   expr(expr: Expr<T>): this;
@@ -99,6 +105,16 @@ export const expr: {
     ...fields: K[]
   ): Expr<Omit<T, K>>;
   append<T = SignalValue>(target: Expr<T[]>, value: ExprInput<T>): Expr<T[]>;
+  abs(target: ExprInput<number>): Expr<number>;
+  min(...args: Array<ExprInput<number>>): Expr<number>;
+  max(...args: Array<ExprInput<number>>): Expr<number>;
+  sqrt(target: ExprInput<number>): Expr<number>;
+  sin(target: ExprInput<number>): Expr<number>;
+  cos(target: ExprInput<number>): Expr<number>;
+  floor(target: ExprInput<number>): Expr<number>;
+  mod(left: ExprInput<number>, right: ExprInput<number>): Expr<number>;
+  clamp(value: ExprInput<number>, min: ExprInput<number>, max: ExprInput<number>): Expr<number>;
+  atan2(y: ExprInput<number>, x: ExprInput<number>): Expr<number>;
   subtract(left: ExprInput<number>, right: ExprInput<number>): Expr<number>;
   divide(left: ExprInput<number>, right: ExprInput<number>): Expr<number>;
   eq(left: ExprInput<SignalValue>, right: ExprInput<SignalValue>): Expr<boolean>;
@@ -124,10 +140,16 @@ export const keyed: {
   read(
     family:
       | string
-      | KeyedReadSpec
       | SourceFamilyHandle<any>
       | RecipeFamilyHandle<any>
-  ): KeyedReadSpec;
+  ): RecipeFamilyReadSpec;
+  signal(
+    read:
+      | string
+      | SignalHandle<any>
+      | SourceHandle<any>
+      | RecipeHandle<any>
+  ): RecipeFamilyReadSpec;
 };
 
 export const tx: {

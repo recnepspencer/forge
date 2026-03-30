@@ -10,6 +10,12 @@ use crate::merge::data::{
 use crate::merge::logic::MergeAccess;
 use crate::transactions::data::RecordRef;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum TouchedRecordKey {
+    EntitySlot(crate::identity::data::PartitionId, u64),
+    RelationSlot(crate::identity::data::PartitionId, u64),
+}
+
 impl<'runtime> MergeAccess<'runtime> {
     pub(crate) fn plan_causal_scope(
         &self,
@@ -41,7 +47,7 @@ impl<'runtime> MergeAccess<'runtime> {
             .iter()
             .map(|classification| {
                 let source_latest_touch = source_touch_index
-                    .get(&classification.record)
+                    .get(&touched_record_key(&classification.record))
                     .copied()
                     .map(|commit_id| BranchCausalDot {
                         branch_id: conflict_plan.source_delta.branch_id.clone(),
@@ -50,7 +56,13 @@ impl<'runtime> MergeAccess<'runtime> {
                 let target_latest_touch = classification
                     .target_record
                     .as_ref()
-                    .and_then(|record_ref| target_touch_index.get(record_ref).copied())
+                    .map(touched_record_key)
+                    .or_else(|| {
+                        classification
+                            .target_record_visible
+                            .then(|| touched_record_key(&classification.record))
+                    })
+                    .and_then(|record_key| target_touch_index.get(&record_key).copied())
                     .map(|commit_id| BranchCausalDot {
                         branch_id: conflict_plan.target_delta.branch_id.clone(),
                         commit_id,
@@ -97,7 +109,7 @@ impl<'runtime> MergeAccess<'runtime> {
 
 fn touched_record_latest_commit_index(
     delta: &crate::merge::data::BranchCommitDelta,
-) -> BTreeMap<RecordRef, CommitId> {
+) -> BTreeMap<TouchedRecordKey, CommitId> {
     delta.touched_records
         .iter()
         .filter_map(|record| {
@@ -105,9 +117,20 @@ fn touched_record_latest_commit_index(
                 .commit_ids
                 .last()
                 .copied()
-                .map(|commit_id| (record.target.clone(), commit_id))
+                .map(|commit_id| (touched_record_key(&record.target), commit_id))
         })
         .collect()
+}
+
+fn touched_record_key(record: &RecordRef) -> TouchedRecordKey {
+    match record {
+        RecordRef::Entity(entity_id) => {
+            TouchedRecordKey::EntitySlot(entity_id.partition_id, entity_id.local_slot.0)
+        }
+        RecordRef::Relation(relation_id) => {
+            TouchedRecordKey::RelationSlot(relation_id.partition_id, relation_id.local_slot.0)
+        }
+    }
 }
 
 fn causal_disposition(

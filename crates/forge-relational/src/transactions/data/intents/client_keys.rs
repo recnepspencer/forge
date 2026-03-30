@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use crate::symbols::data::{InternedString, StringInterner, SymbolPolicy};
 
-use super::{CreateIntent, MutationIntent};
+use super::{CreateIntent, EntityMutationIntent, MutationIntent};
 
 impl MutationIntent {
     pub(crate) fn collect_raw_client_keys(&self, raw_values: &mut BTreeSet<String>) {
@@ -20,6 +20,11 @@ impl MutationIntent {
             }
             Self::Create(CreateIntent::Relation(spec)) => {
                 if let InternedString::Raw(raw) = &spec.client_key {
+                    raw_values.insert(raw.clone());
+                }
+            }
+            Self::Entity(EntityMutationIntent::Replace(spec)) => {
+                if let InternedString::Raw(raw) = &spec.replacement.client_key {
                     raw_values.insert(raw.clone());
                 }
             }
@@ -46,6 +51,13 @@ impl MutationIntent {
             Self::Create(CreateIntent::Relation(spec)) => {
                 spec.client_key =
                     normalize_interned_string(interner, policy, spec.client_key.clone());
+            }
+            Self::Entity(EntityMutationIntent::Replace(spec)) => {
+                spec.replacement.client_key = normalize_interned_string(
+                    interner,
+                    policy,
+                    spec.replacement.client_key.clone(),
+                );
             }
             Self::Entity(_) | Self::Relation(_) => {}
         }

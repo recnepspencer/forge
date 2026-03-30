@@ -32,9 +32,10 @@ pub struct RecipeSpec {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct KeyedReadSpec {
-    pub family_id: String,
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum RecipeFamilyReadSpec {
+    Signal { id: String },
+    Keyed { family_id: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -42,7 +43,7 @@ pub struct KeyedReadSpec {
 pub struct KeyedRecipeFamilySpec {
     pub family_id: String,
     #[serde(default)]
-    pub reads: Vec<KeyedReadSpec>,
+    pub reads: Vec<RecipeFamilyReadSpec>,
     pub expr: Expr,
     #[serde(default)]
     pub when: Option<ConditionSpec>,
@@ -55,11 +56,30 @@ pub struct KeyedRecipeFamilySpec {
 pub enum TransactionOp {
     Set { id: String, value: SignalValue },
     SetMany { values: Vec<SetValue> },
+    SetManyKeyed {
+        #[serde(rename = "familyId")]
+        family_id: String,
+        values: Vec<KeyedSetValue>,
+    },
+    SetPackedGridRgba {
+        #[serde(rename = "familyId")]
+        family_id: String,
+        width: u32,
+        height: u32,
+        rgba: Vec<u8>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SetValue {
     pub id: String,
+    pub value: SignalValue,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KeyedSetValue {
+    pub key: String,
     pub value: SignalValue,
 }

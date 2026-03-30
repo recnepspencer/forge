@@ -22,5 +22,9 @@ serde_json = { workspace = true }
 
 [dev-dependencies]
 stats_alloc = "0.1"
+
+[target.'cfg(all(target_family = "wasm", target_os = "unknown"))'.dependencies]
+js-sys = "0.3"
+wasm-bindgen = "0.2"
 [lints]
 workspace = true

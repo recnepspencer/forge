@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
-use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
 
+use crate::clock::RuntimeInstant;
 use crate::data::bitset::DenseBitset;
 use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::dirty_set::BatchedDirtySet;
@@ -316,7 +316,7 @@ where
     pub(in crate::logic::transaction::runtime) poisoned: bool,
     pub(in crate::logic::transaction::runtime) finished: bool,
     pub(in crate::logic::transaction::runtime) execution_state: TransactionExecutionState,
-    pub(in crate::logic::transaction::runtime) started_at: Instant,
+    pub(in crate::logic::transaction::runtime) started_at: RuntimeInstant,
 }
 
 pub struct BatchChangeSession<'tx, 'a, D, I, E, Ctx, T = ()>

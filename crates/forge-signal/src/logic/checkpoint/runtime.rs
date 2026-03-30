@@ -7,7 +7,7 @@ use crate::data::effect_mapping::EffectMapping;
 use crate::data::error::SignalError;
 use crate::data::evaluator::CheckpointEvaluator;
 use crate::data::telemetry::RuntimeTelemetry;
-use std::time::Instant;
+use crate::clock::RuntimeInstant;
 
 /// Runtime state for batched Tier-0 signal scheduling.
 #[derive(Debug, Clone)]
@@ -89,7 +89,7 @@ impl<D: Copy + Ord, I: Copy + Ord> CheckpointRuntime<D, I> {
     where
         E: CheckpointEvaluator<Domain = D, Impact = I>,
     {
-        let flush_start = Instant::now();
+        let flush_start = RuntimeInstant::now();
         let domains: Vec<D> = self
             .dirty
             .dirty_domains()

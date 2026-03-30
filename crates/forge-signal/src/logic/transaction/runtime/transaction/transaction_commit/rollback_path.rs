@@ -1,7 +1,7 @@
 use crate::data::error::SignalError;
 use crate::diagnostics::replay::ReplayEventKind;
 use crate::diagnostics::{ExecutionFailureContext, ExecutionFailurePhase, RollbackDiagnostic};
-use std::time::Instant;
+use crate::clock::RuntimeInstant;
 
 use super::super::transaction_types::{
     CreatedNodeRollbackDelta, GraphPatchRollbackDelta, SignalTransaction,
@@ -15,7 +15,7 @@ where
     T: Copy + Ord,
 {
     pub fn rollback(mut self) -> Result<TransactionResult, SignalError> {
-        let commit_start = Instant::now();
+        let commit_start = RuntimeInstant::now();
         if self.finished {
             return Err(SignalError::transaction_finished());
         }
@@ -116,7 +116,7 @@ where
         failure_phase: ExecutionFailurePhase,
         increment_poison_count: bool,
         outcome: Result<TransactionOutcome, SignalError>,
-        commit_start: Instant,
+        commit_start: RuntimeInstant,
     ) -> Result<TransactionResult, SignalError> {
         let rollback_patch_count = self.rollback_patch_count();
         let touched_nodes = self.scratch.graph_patches.touched_nodes(self.graph).len() as u32;

@@ -23,6 +23,16 @@ const EXPR_KINDS = new Set([
   "pick",
   "omit",
   "append",
+  "abs",
+  "min",
+  "max",
+  "sqrt",
+  "sin",
+  "cos",
+  "floor",
+  "mod",
+  "clamp",
+  "atan2",
   "subtract",
   "divide",
   "eq",
@@ -99,6 +109,11 @@ export function normalizeExpr(input) {
     case "length":
     case "keys":
     case "values":
+    case "abs":
+    case "sqrt":
+    case "sin":
+    case "cos":
+    case "floor":
       return { kind: input.kind, target: normalizeExpr(input.target) };
     case "slice":
       return {
@@ -127,6 +142,8 @@ export function normalizeExpr(input) {
     case "mergeObjects":
     case "and":
     case "or":
+    case "min":
+    case "max":
       return { kind: input.kind, args: input.args.map(normalizeExpr) };
     case "not":
       return { kind: "not", arg: normalizeExpr(input.arg) };
@@ -163,10 +180,24 @@ export function normalizeExpr(input) {
     case "gte":
     case "lt":
     case "lte":
+    case "mod":
       return {
         kind: input.kind,
         left: normalizeExpr(input.left),
         right: normalizeExpr(input.right)
+      };
+    case "clamp":
+      return {
+        kind: "clamp",
+        value: normalizeExpr(input.value),
+        min: normalizeExpr(input.min),
+        max: normalizeExpr(input.max)
+      };
+    case "atan2":
+      return {
+        kind: "atan2",
+        y: normalizeExpr(input.y),
+        x: normalizeExpr(input.x)
       };
     case "if":
       return {
@@ -228,16 +259,45 @@ export function normalizeRecipeFamilySpec(spec) {
   const normalized = materializeSpec(spec);
   return {
     familyId: normalized.familyId,
-    reads: normalized.reads ?? [],
+    reads: (normalized.reads ?? []).map(normalizeRecipeFamilyRead),
     expr: normalizeExpr(normalized.expr),
     when: normalizeCondition(normalized.when),
     identity: normalizeIdentity(normalized.identity)
   };
 }
 
+function normalizeRecipeFamilyRead(read) {
+  if (!read || typeof read !== "object") {
+    throw new Error("Recipe family reads must be declared explicitly.");
+  }
+  if (read.kind === "signal" && typeof read.id === "string") {
+    return { kind: "signal", id: read.id };
+  }
+  if (read.kind === "keyed" && typeof read.familyId === "string") {
+    return { kind: "keyed", familyId: read.familyId };
+  }
+  throw new Error("Invalid recipe family read.");
+}
+
 export function normalizeTransactionOp(op) {
   if (op.kind === "set") {
     return { kind: "set", id: op.id, value: encodeSignalValue(op.value) };
+  }
+  if (op.kind === "setPackedGridRgba") {
+    return {
+      kind: "setPackedGridRgba",
+      familyId: op.familyId,
+      width: op.width,
+      height: op.height,
+      rgba: op.rgba
+    };
+  }
+  if (op.kind === "setManyKeyed") {
+    return {
+      kind: "setManyKeyed",
+      familyId: op.familyId,
+      values: op.values.map(({ key, value }) => ({ key, value: encodeSignalValue(value) }))
+    };
   }
   return {
     kind: "setMany",

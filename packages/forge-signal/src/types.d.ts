@@ -31,6 +31,16 @@ export type Expr<T = SignalValue> =
   | { kind: "pick"; target: Expr<Record<string, SignalValue>>; fields: string[] }
   | { kind: "omit"; target: Expr<Record<string, SignalValue>>; fields: string[] }
   | { kind: "append"; target: Expr<SignalValue[]>; value: ExprInput<SignalValue> }
+  | { kind: "abs"; target: ExprInput<number> }
+  | { kind: "min"; args: Array<ExprInput<number>> }
+  | { kind: "max"; args: Array<ExprInput<number>> }
+  | { kind: "sqrt"; target: ExprInput<number> }
+  | { kind: "sin"; target: ExprInput<number> }
+  | { kind: "cos"; target: ExprInput<number> }
+  | { kind: "floor"; target: ExprInput<number> }
+  | { kind: "mod"; left: ExprInput<number>; right: ExprInput<number> }
+  | { kind: "clamp"; value: ExprInput<number>; min: ExprInput<number>; max: ExprInput<number> }
+  | { kind: "atan2"; y: ExprInput<number>; x: ExprInput<number> }
   | { kind: "subtract"; left: ExprInput<number>; right: ExprInput<number> }
   | { kind: "divide"; left: ExprInput<number>; right: ExprInput<number> }
   | { kind: "eq"; left: ExprInput<SignalValue>; right: ExprInput<SignalValue> }
@@ -65,13 +75,13 @@ export type KeyedSourceFamilySpec<T = SignalValue> = {
   initial?: T;
 };
 
-export type KeyedReadSpec = {
-  familyId: string;
-};
+export type RecipeFamilyReadSpec =
+  | { kind: "signal"; id: string }
+  | { kind: "keyed"; familyId: string };
 
 export type KeyedRecipeFamilySpec<T = SignalValue> = {
   familyId: string;
-  reads?: KeyedReadSpec[];
+  reads?: RecipeFamilyReadSpec[];
   expr: Expr<T>;
   when?: ConditionSpec | null;
   identity?: IdentitySpec | null;
@@ -79,7 +89,9 @@ export type KeyedRecipeFamilySpec<T = SignalValue> = {
 
 export type TransactionOp<T = SignalValue> =
   | { kind: "set"; id: string; value: T }
-  | { kind: "setMany"; values: Array<{ id: string; value: T }> };
+  | { kind: "setMany"; values: Array<{ id: string; value: T }> }
+  | { kind: "setManyKeyed"; familyId: string; values: Array<{ key: string; value: T }> }
+  | { kind: "setPackedGridRgba"; familyId: string; width: number; height: number; rgba: Uint8ClampedArray | Uint8Array };
 
 export type RuntimePolicyPreset =
   | "development"

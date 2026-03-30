@@ -1448,12 +1448,14 @@ name = "forge-signal"
 version = "0.1.0"
 dependencies = [
  "forge-harness",
+ "js-sys",
  "rayon",
  "serde",
  "serde_json",
  "smallvec",
  "stats_alloc",
  "tracing",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -1462,6 +1464,7 @@ version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
  "forge-signal",
+ "js-sys",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",

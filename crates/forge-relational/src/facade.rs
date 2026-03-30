@@ -203,7 +203,14 @@ pub mod publication {
 
 pub mod query {
     pub use crate::query::data::{
-        PartitionHint, QueryExecutionShape, QueryWorkPacket, ReadPacketPlan, ReductionDiscipline,
+        CanonicalQueryResult, DeterministicQueryFragmentKey, DeterministicQueryPlanKey,
+        FallbackParityMode, FallbackParityVerifiedQueryOutcome, IndexQueryRejectionClass,
+        PartitionHint, PlannedQueryPacket, QueryAccessPath, QueryComplexitySummary,
+        QueryExecutionOutcome, QueryExecutionShape, QueryFallbackContract,
+        QueryFragmentCounters, QueryLocalityClass, QueryOrderingContract,
+        QueryParallelLegality, QueryParallelProfitability, QueryPlanContextId,
+        QueryPlanEvidenceBasis, QueryScope, QuerySerialReason, QueryWorkPacket,
+        QueryWorkerFragment, ReadPacketPlan, ReductionDiscipline, SnapshotPinnedQueryPlan,
     };
 }
 
@@ -274,21 +281,25 @@ pub mod symbols {
 }
 
 pub mod transactions {
-    pub use crate::transactions::data::{
-        AspectEmissionTrace, AspectEvaluationTrace, AspectEvaluationTraceRow,
-        AspectLifecycleTransitionClass, AspectTagAccuracyReport, AspectTraceEvidence,
-        AuthoritativeApplyPlan, AuthorityMode, BulkEntityCreateIntent, BulkRelationCreateIntent,
-        CommitAspectSummary, CommitAuthority, CommitChangeSummary, CommitConflict,
-        CommitHistorySummary, CommitLog, CommitOutcome, CommitPatchBudgetSummary, CommitPhase,
-        CommitPhaseTiming, CommitPublicationSummary, CommitResult, CommitSchemaSummary,
-        CommitStructuralSummary, CommitSummary, CommitTopology, CommitTraceEvent, ConflictClass,
-        CreateIntent, CrossContextEndpointClass, DeleteEntityIntent, DeleteRelationIntent,
-        EntityMutationIntent, MergedCommitPlan, MutationIntent, PatchVsTruthDeltaReport, RecordRef,
-        RelationMutationIntent, RelationScope, ReplaceEntityIntent, RollbackEffect,
-        RollbackOutcome, RollbackSummary, SavepointId, TransactionCommitError, TransactionId,
-        TransactionOptions, UndoRecord, UpdateEntityIntent, WorkerIntentBatch,
-        MergeCommitMutationPlan, MergeExecutionStructuralSummary, MergeExecutionSummary,
-        MergeExecutionOutcome,
-    };
-    pub use crate::transactions::logic::RelationalTransaction;
-}
+     pub use crate::transactions::data::{
+          AspectEmissionTrace, AspectEvaluationTrace, AspectEvaluationTraceRow,
+          AspectLifecycleTransitionClass, AspectTagAccuracyReport, AspectTraceEvidence,
+          AuthoritativeApplyPlan, AuthorityMode, BulkEntityCreateIntent, BulkMutationLineagePlan,
+          BulkMutationLocalityFootprint, BulkMutationNamingPlan, BulkMutationProvenancePlan,
+          BulkMutationScope, BulkRelationCreateIntent, LineageSafeBulkMutationBatch,
+          NamingStableBulkMutationBatch, ProvenanceCompleteBulkMutationBatch,
+          CommitAspectSummary, CommitAuthority, CommitChangeSummary, CommitConflict,
+          CommitHistorySummary, CommitLog, CommitOutcome, CommitPatchBudgetSummary, CommitPhase,
+          CommitPhaseTiming, CommitPublicationSummary, CommitResult, CommitSchemaSummary,
+          CommitStructuralSummary, CommitSummary, CommitTopology, CommitTraceEvent, ConflictClass,
+          CreateIntent, CrossContextEndpointClass, DeleteEntityIntent, DeleteRelationIntent,
+          EntityMutationIntent, MergedCommitPlan, MutationIntent, PatchVsTruthDeltaReport,
+          PlannedBulkMutationBatch, PlannedLineageTransition, RecordRef, RelationMutationIntent,
+          RelationScope, ReplaceEntityIntent, RollbackEffect, RollbackOutcome, RollbackSummary,
+          SavepointId, TransactionCommitError, TransactionId, TransactionOptions, UndoRecord,
+          UpdateEntityIntent, WorkerIntentBatch,
+          MergeCommitMutationPlan, MergeExecutionStructuralSummary, MergeExecutionSummary,
+          MergeExecutionOutcome,
+      };
+      pub use crate::transactions::logic::RelationalTransaction;
+  }

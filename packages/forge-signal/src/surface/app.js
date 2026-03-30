@@ -48,7 +48,28 @@ export class SignalApp {
   }
 
   batch(ops) {
-    return this.inner.batch(ops.map(normalizeTransactionOp));
+    const normalized = ops.map(normalizeTransactionOp);
+    const packedIndex = normalized.findIndex((op) => op.kind === "setPackedGridRgba");
+    if (packedIndex === -1) {
+      return this.inner.batch(normalized);
+    }
+
+    const packed = normalized[packedIndex];
+    const before = normalized.slice(0, packedIndex);
+    const after = normalized.slice(packedIndex + 1);
+    const laterPacked = after.find((op) => op.kind === "setPackedGridRgba");
+    if (laterPacked) {
+      throw new Error("Only one packed grid RGBA op is supported per batch.");
+    }
+
+    return this.inner.transaction_with_packed_grid_rgba(
+      before,
+      packed.familyId,
+      packed.width,
+      packed.height,
+      packed.rgba,
+      after
+    );
   }
 
   read(id) {
@@ -61,6 +82,14 @@ export class SignalApp {
 
   setKeyed(familyId, key, value) {
     return this._setKeyed(familyId, key, value);
+  }
+
+  readKeyedMany(familyId, keys) {
+    return this._readKeyedMany(familyId, keys);
+  }
+
+  setKeyedMany(familyId, values) {
+    return this._setKeyedMany(familyId, values);
   }
 
   diagnostics() {
@@ -93,5 +122,19 @@ export class SignalApp {
 
   _setKeyed(familyId, key, value) {
     return this.inner.set_keyed(familyId, key, encodeSignalValue(value));
+  }
+
+  _readKeyedMany(familyId, keys) {
+    return this.inner.read_keyed_many(familyId, keys).map(decodeSignalValue);
+  }
+
+  _setKeyedMany(familyId, values) {
+    return this.inner.set_keyed_many(
+      familyId,
+      values.map(({ key, value }) => ({
+        key,
+        value: encodeSignalValue(value)
+      }))
+    );
   }
 }

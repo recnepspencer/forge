@@ -2,7 +2,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::identity::data::{EntityId, LineageId, RelationId, VersionId};
 use crate::payloads::data::RecordPayload;
-use crate::query::data::QueryExecutionShape;
+use crate::query::data::{
+    deterministic_query_fragment_key, QueryExecutionShape, QueryFragmentCounters,
+    QueryWorkerFragment,
+};
 use crate::schema::data::KindResolution;
 use crate::snapshots::data::SnapshotHandle;
 use crate::transactions::data::RecordRef;
@@ -109,6 +112,51 @@ impl RelationalReadView {
             entities,
             relations,
         }
+    }
+
+    pub fn execute_planned_packet_fragment(
+        &self,
+        plan_key: crate::query::data::DeterministicQueryPlanKey,
+        ordering: crate::query::data::QueryOrderingContract,
+        targets: &[RecordRef],
+        fragment_ordinal: u64,
+    ) -> Option<QueryWorkerFragment> {
+        let mut entities = Vec::new();
+        let mut relations = Vec::new();
+        let mut touched_partitions = std::collections::BTreeSet::new();
+
+        for target in targets {
+            match target {
+                RecordRef::Entity(entity_id) => {
+                    touched_partitions.insert(entity_id.partition_id);
+                    if let Some(record) = self.get_entity(*entity_id) {
+                        entities.push(record.clone());
+                    }
+                }
+                RecordRef::Relation(relation_id) => {
+                    touched_partitions.insert(relation_id.partition_id);
+                    if let Some(record) = self.get_relation(*relation_id) {
+                        relations.push(record.clone());
+                    }
+                }
+            }
+        }
+        let entity_records_emitted = entities.len();
+        let relation_records_emitted = relations.len();
+
+        Some(QueryWorkerFragment {
+            plan_key,
+            fragment_key: deterministic_query_fragment_key(plan_key, fragment_ordinal),
+            ordering,
+            entities,
+            relations,
+            counters: QueryFragmentCounters {
+                target_count: targets.len(),
+                entity_records_emitted,
+                relation_records_emitted,
+                touched_partitions: touched_partitions.len(),
+            },
+        })
     }
 
     pub fn get_entity(&self, entity_id: EntityId) -> Option<&EntityReadRecord> {

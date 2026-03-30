@@ -17,7 +17,7 @@ use crate::logic::evaluation::{
     SuppressionReason,
 };
 use smallvec::SmallVec;
-use std::time::Instant;
+use crate::clock::RuntimeInstant;
 
 use super::graph::{RuntimeArtifactStructuralDelta, SignalGraph};
 
@@ -76,7 +76,7 @@ impl SignalGraph {
         let artifact_write =
             self.build_effect_artifact_write(&effect, previous_warm.as_ref(), comparison)?;
         let pending_snapshot = if defer_snapshot_commit {
-            let snapshot_start = Instant::now();
+            let snapshot_start = RuntimeInstant::now();
             let pending = crate::logic::evaluation::PendingDependencySnapshot {
                 node: effect.operational.node,
                 update: std::mem::replace(

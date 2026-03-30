@@ -1,8 +1,13 @@
 use crate::facade::history::BranchId;
-use crate::facade::merge::MergeIntent;
+use crate::facade::merge::{MergeExecutionRequest, MergeIntent};
+use crate::facade::transactions::{
+    CreateIntent, MutationIntent, TransactionOptions, WorkerIntentBatch,
+};
+use crate::payloads::data::RecordPayload;
+use crate::symbols::data::InternedString;
 use crate::tests::support::{
-    create_branch_from_main, create_entity, persisted_runtime_with_test_schema, update_entity,
-    update_entity_on_branch,
+    changed_entities, create_branch_from_main, create_entity, persisted_runtime_with_test_schema,
+    update_entity, update_entity_on_branch,
 };
 
 #[test]
@@ -67,4 +72,68 @@ fn complexity_budget_merge_planning_reports_request_shaped_work() {
         artifact.decision_log.decisions.len()
     );
     assert!(counters.merge_planning_elapsed_nanos > 0);
+}
+
+#[test]
+fn complexity_budget_merge_execution_reports_admitted_records_and_emitted_mutations() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    create_entity(
+        &mut runtime,
+        "main-anchor",
+    );
+    create_branch_from_main(&mut runtime, "feature");
+    let mut txn = runtime.begin_transaction(TransactionOptions {
+        target_branch: Some(BranchId("feature".to_string())),
+        ..TransactionOptions::default()
+    });
+    txn.push_batch(
+        WorkerIntentBatch::new("create-feature-only").push(MutationIntent::Create(
+            CreateIntent::Entity(crate::transactions::data::EntitySpec {
+                partition_id: crate::facade::identity::PartitionId::main(),
+                kind_id: crate::facade::identity::KindId(1),
+                client_key: InternedString::Raw("feature-only".to_string()),
+                payload: RecordPayload::StructuredJson(serde_json::json!({
+                    "name": "feature-only"
+                })),
+            }),
+        )),
+    );
+    let feature_only = changed_entities(&txn.commit().expect("feature-only create"))[0];
+
+    let prepared = runtime
+        .prepare_merge_execution(MergeExecutionRequest {
+            target_branch: BranchId("main".to_string()),
+            source_branch: BranchId("feature".to_string()),
+            merge_intent: MergeIntent::ReconcileIntoTarget,
+        })
+        .expect("prepared merge execution");
+
+    runtime.performance_access().reset_counters();
+    let outcome = runtime
+        .execute_prepared_merge(prepared)
+        .expect("executed merge");
+    let counters = runtime.performance_access().counters();
+
+    assert!(runtime
+        .performance_access()
+        .contracts()
+        .iter()
+        .any(|contract| contract.id == "runtime.merge.execution_commit"));
+    assert_eq!(counters.merge_execution_attempts, 1);
+    assert_eq!(
+        counters.merge_execution_requests,
+        outcome.structural_summary.executed_record_count
+    );
+    assert_eq!(
+        counters.merge_execution_records_admitted,
+        outcome.structural_summary.executed_record_count
+    );
+    assert_eq!(
+        counters.merge_execution_mutation_intents_emitted,
+        outcome.structural_summary.emitted_mutation_intent_count
+    );
+    assert_eq!(outcome.structural_summary.adopted_source_record_count, 1);
+    assert_eq!(outcome.structural_summary.emitted_entity_create_count, 1);
+    assert_eq!(changed_entities(&outcome.commit).len(), 1);
+    assert_ne!(changed_entities(&outcome.commit)[0], feature_only);
 }

@@ -12,11 +12,11 @@ use crate::merge::data::{
     VisibleMergeRecord, VisibleMergeRecordKind,
 };
 use crate::merge::logic::aspect_plan_lookup::lowered_plan_for_record;
+use crate::merge::logic::naming::resolve_interned_string;
 use crate::merge::logic::MergeAccess;
 use crate::payloads::data::RecordPayload;
 use crate::schema::data::{LoweredAspectBinding, LoweredExecutableAspectBindingKind};
 use crate::identity::data::{EntityId, VersionId};
-use crate::symbols::data::InternedString;
 use crate::storage::data::{EntityReadRecord, RecordLifecycleState, RelationReadRecord, RelationalReadView};
 use crate::transactions::data::RecordRef;
 use serde_json::Value;
@@ -616,7 +616,7 @@ fn aspect_conflict_evidence(
         .iter()
         .map(|binding| AspectConflictEvidence {
             aspect_key: binding.aspect_key.clone(),
-            comparison: compare_binding(source_record, target_record, binding),
+            comparison: compare_binding(runtime, source_record, target_record, binding),
         })
         .collect()
 }
@@ -664,13 +664,16 @@ fn visible_target_record(
 }
 
 fn compare_binding(
+    runtime: &crate::logic::runtime::RelationalRuntime,
     source_record: &VisibleMergeRecord,
     target_record: Option<&VisibleMergeRecord>,
     binding: &LoweredAspectBinding,
 ) -> AspectComparisonState {
-    let source = extract_binding_component(source_record, binding, BindingSide::Source);
+    let source = extract_binding_component(runtime, source_record, binding, BindingSide::Source);
     let target =
-        target_record.and_then(|record| extract_binding_component(record, binding, BindingSide::Target));
+        target_record.and_then(|record| {
+            extract_binding_component(runtime, record, binding, BindingSide::Target)
+        });
     match (source, target) {
         (Some(source), Some(target)) if source == target => AspectComparisonState::Equal,
         (Some(_), Some(_)) => AspectComparisonState::Divergent,
@@ -695,6 +698,7 @@ enum BindingSide {
 }
 
 fn extract_binding_component(
+    runtime: &crate::logic::runtime::RelationalRuntime,
     record: &VisibleMergeRecord,
     binding: &LoweredAspectBinding,
     side: BindingSide,
@@ -713,14 +717,18 @@ fn extract_binding_component(
             VisibleMergeRecordKind::Entity,
             LoweredExecutableAspectBindingKind::EntityJsonScalarField { field },
         ) => entity.and_then(|entity| {
-            interned_field_name(field).and_then(|name| json_component(&entity.payload, name))
+            resolve_interned_string(runtime, field)
+                .and_then(|name| json_component(&entity.payload, name.as_ref()))
         }),
         (
             VisibleMergeRecordKind::Relation,
             LoweredExecutableAspectBindingKind::RelationJsonScalarField { field },
         ) => relation
             .and_then(|relation| relation.payload.as_ref())
-            .and_then(|payload| interned_field_name(field).and_then(|name| json_component(payload, name))),
+            .and_then(|payload| {
+                resolve_interned_string(runtime, field)
+                    .and_then(|name| json_component(payload, name.as_ref()))
+            }),
         (
             VisibleMergeRecordKind::Relation,
             LoweredExecutableAspectBindingKind::RelationSourceEndpointIdentity,
@@ -756,13 +764,6 @@ fn opaque_component(payload: Option<&RecordPayload>) -> Option<AspectComponent> 
     match payload? {
         RecordPayload::StructuredJson(_) => None,
         RecordPayload::OpaqueBytes(bytes) => Some(AspectComponent::Opaque(bytes.clone())),
-    }
-}
-
-fn interned_field_name(field: &InternedString) -> Option<&str> {
-    match field {
-        InternedString::Raw(raw) => Some(raw.as_str()),
-        InternedString::Symbol(_) => None,
     }
 }
 

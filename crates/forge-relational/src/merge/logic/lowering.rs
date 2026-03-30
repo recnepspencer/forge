@@ -278,6 +278,9 @@ fn blocked_denial_kind_from_reason(
         LoweredMergeBlockedReason::MissingVisibleState => {
             LoweredRecordDenialKind::BlockedMissingVisibleState
         }
+        LoweredMergeBlockedReason::MissingAncestorValueBasis => {
+            LoweredRecordDenialKind::BlockedMissingAncestorValueBasis
+        }
         LoweredMergeBlockedReason::UnvalidatedSchemaCorrespondence => {
             LoweredRecordDenialKind::BlockedUnvalidatedSchemaCorrespondence
         }
@@ -685,6 +688,10 @@ fn blocked_denial_kind_for_record(
     }) {
         LoweredRecordDenialKind::BlockedMissingVisibleState
     } else if aspects.iter().any(|aspect| {
+        aspect.intent == LoweredAspectDenialIntent::BlockedMissingAncestorValueBasis
+    }) {
+        LoweredRecordDenialKind::BlockedMissingAncestorValueBasis
+    } else if aspects.iter().any(|aspect| {
         aspect.intent == LoweredAspectDenialIntent::BlockedUnvalidatedSchemaCorrespondence
     }) {
         LoweredRecordDenialKind::BlockedUnvalidatedSchemaCorrespondence
@@ -888,6 +895,9 @@ fn lowered_aspect_denial_intent(
             LoweredMergeBlockedReason::MissingVisibleState => {
                 Some(LoweredAspectDenialIntent::BlockedMissingVisibleState)
             }
+            LoweredMergeBlockedReason::MissingAncestorValueBasis => {
+                Some(LoweredAspectDenialIntent::BlockedMissingAncestorValueBasis)
+            }
             LoweredMergeBlockedReason::UnvalidatedSchemaCorrespondence => {
                 Some(LoweredAspectDenialIntent::BlockedUnvalidatedSchemaCorrespondence)
             }
@@ -1025,6 +1035,9 @@ fn blocked_reason_for_aspect(
         match class {
             crate::merge::data::MergeManualResolutionClass::MissingVisibleState => {
                 return Some(LoweredMergeBlockedReason::MissingVisibleState);
+            }
+            crate::merge::data::MergeManualResolutionClass::MissingAncestorValueBasis => {
+                return Some(LoweredMergeBlockedReason::MissingAncestorValueBasis);
             }
             crate::merge::data::MergeManualResolutionClass::UnvalidatedSchemaCorrespondence => {
                 return Some(LoweredMergeBlockedReason::UnvalidatedSchemaCorrespondence);

@@ -8,6 +8,7 @@ use crate::schema::data::{
     HistoricalInterpretationSensitivity, SchemaContinuationClassification,
     SchemaReconciliationPolicy,
 };
+use crate::transactions::data::BulkMutationLocalityFootprint;
 
 pub struct PerformanceAccess<'runtime> {
     runtime: &'runtime RelationalRuntime,
@@ -208,6 +209,95 @@ impl<'runtime> PerformanceAccess<'runtime> {
             .services
             .instrumentation
             .count(|counters| counters.preparation_reducer_conflict_count += conflicts);
+    }
+
+    pub(crate) fn count_query_packet_shape(&self, packets: usize, items: usize) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.query_packet_count += packets;
+            counters.query_packet_item_count += items;
+        });
+    }
+
+    pub(crate) fn count_query_parallel_legal(&self) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.query_parallel_legal_count += 1);
+    }
+
+    pub(crate) fn count_query_parallel_profitable(&self) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.query_parallel_profitable_count += 1);
+    }
+
+    pub(crate) fn count_query_serial_strategy(&self) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.query_serial_strategy_count += 1);
+    }
+
+    pub(crate) fn count_query_staged_parallel_strategy(&self) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.query_staged_parallel_strategy_count += 1);
+    }
+
+    pub(crate) fn count_query_index_attempt(&self) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.query_index_attempt_count += 1);
+    }
+
+    pub(crate) fn count_query_index_path(&self) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.query_index_path_count += 1);
+    }
+
+    pub(crate) fn count_query_index_rejection(&self) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.query_index_rejection_count += 1);
+    }
+
+    pub(crate) fn count_query_index_parity_verification(&self) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.query_index_parity_verification_count += 1);
+    }
+
+    pub(crate) fn count_query_emissions(&self, entities: usize, relations: usize) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.query_entity_records_emitted += entities;
+            counters.query_relation_records_emitted += relations;
+        });
+    }
+
+    pub(crate) fn count_bulk_mutation_plan(
+        &self,
+        locality: &BulkMutationLocalityFootprint,
+        normalized_client_key_count: usize,
+        lineage_transition_count: usize,
+        provenance_record_count: usize,
+    ) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.bulk_mutation_batch_count += 1;
+            counters.bulk_mutation_entity_target_count += locality.entity_target_count;
+            counters.bulk_mutation_relation_target_count += locality.relation_target_count;
+            counters.bulk_mutation_cross_partition_relation_count +=
+                locality.cross_partition_relation_count;
+            counters.bulk_mutation_naming_normalization_count += normalized_client_key_count;
+            counters.bulk_mutation_lineage_transition_count += lineage_transition_count;
+            counters.bulk_mutation_provenance_record_count += provenance_record_count;
+        });
     }
 
     pub(crate) fn count_post_commit_consumer_shape(

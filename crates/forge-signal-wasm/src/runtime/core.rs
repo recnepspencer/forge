@@ -3,6 +3,9 @@ use std::collections::BTreeMap;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
+use js_sys::Date;
+use wasm_bindgen::prelude::*;
+
 use forge_signal::facade::{
     Aspect, AspectVersion, DependencyEdge, EvaluationContext, NodeEvaluationResult, NodeId,
     OutputChange, SignalError, SignalGraph, SignalRuntime as NativeRuntime,
@@ -17,8 +20,8 @@ use crate::boundary::errors::ForgeSignalJsError;
 use crate::expression::evaluation::ExprEnvironment;
 use crate::expression::model::{IdentitySpec, SignalValue};
 use crate::recipe::model::{
-    KeyedReadSpec, KeyedRecipeFamilySpec, KeyedSourceFamilySpec, RecipeSpec, SourceSpec,
-    TransactionOp,
+    KeyedRecipeFamilySpec, KeyedSetValue, KeyedSourceFamilySpec, RecipeFamilyReadSpec,
+    RecipeSpec, SourceSpec, TransactionOp,
 };
 use crate::runtime::adapters::{RuntimeDefinitionEnvelope, RuntimeEnvelope};
 use crate::runtime::policy::RuntimePolicySpec;
@@ -29,6 +32,25 @@ use crate::runtime::summaries::{
 };
 
 const DEFAULT_ASPECT: Aspect = Aspect::new(0);
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console, js_name = log)]
+    fn console_log(message: &str);
+}
+
+fn perf_now_ms() -> f64 {
+    Date::now()
+}
+
+#[cfg(target_arch = "wasm32")]
+fn wasm_debug(message: impl AsRef<str>) {
+    console_log(message.as_ref());
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn wasm_debug(_message: impl AsRef<str>) {}
 
 type SharedStore = Arc<Mutex<RuntimeStore>>;
 pub type SharedCore = Rc<RefCell<RuntimeCore>>;
@@ -62,6 +84,15 @@ struct StoredSourceFamily {
 #[derive(Debug, Clone)]
 struct StoredRecipeFamily {
     spec: KeyedRecipeFamilySpec,
+}
+
+#[derive(Debug, Clone)]
+struct DenseGridFamily {
+    width: u32,
+    height: u32,
+    ids: Vec<String>,
+    nodes: Vec<NodeId>,
+    key_to_index: BTreeMap<String, usize>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -135,6 +166,7 @@ pub struct RuntimeCore {
     store: SharedStore,
     catalog: BTreeMap<String, CatalogEntry>,
     nodes_by_id: BTreeMap<NodeId, String>,
+    dense_grids: BTreeMap<String, Arc<DenseGridFamily>>,
     policy: RuntimePolicySpec,
 }
 
@@ -148,6 +180,7 @@ impl RuntimeCore {
             store: Arc::new(Mutex::new(RuntimeStore::default())),
             catalog: BTreeMap::new(),
             nodes_by_id: BTreeMap::new(),
+            dense_grids: BTreeMap::new(),
             policy,
         })
     }
@@ -194,13 +227,25 @@ impl RuntimeCore {
             )));
         }
         for read in &spec.reads {
-            if !store.source_families.contains_key(&read.family_id)
-                && !store.recipe_families.contains_key(&read.family_id)
-            {
-                return Err(ForgeSignalJsError::invalid_input(format!(
-                    "keyed family `{}` reads unknown family `{}`",
-                    spec.family_id, read.family_id
-                )));
+            match read {
+                RecipeFamilyReadSpec::Signal { id } => {
+                    if !self.catalog.contains_key(id) {
+                        return Err(ForgeSignalJsError::invalid_input(format!(
+                            "keyed family `{}` reads unknown signal `{id}`",
+                            spec.family_id
+                        )));
+                    }
+                }
+                RecipeFamilyReadSpec::Keyed { family_id } => {
+                    if !store.source_families.contains_key(family_id)
+                        && !store.recipe_families.contains_key(family_id)
+                    {
+                        return Err(ForgeSignalJsError::invalid_input(format!(
+                            "keyed family `{}` reads unknown family `{family_id}`",
+                            spec.family_id
+                        )));
+                    }
+                }
             }
         }
         store
@@ -281,6 +326,15 @@ impl RuntimeCore {
         key: &str,
         initial: Option<SignalValue>,
     ) -> Result<String, ForgeSignalJsError> {
+        if let Some(grid) = self.dense_grids.get(family_id) {
+            if let Some(index) = grid.key_to_index.get(key) {
+                return Ok(grid.ids[*index].clone());
+            }
+            return Err(ForgeSignalJsError::invalid_input(format!(
+                "key `{key}` is outside dense grid family `{family_id}`"
+            )));
+        }
+
         let composite_id = composite_keyed_id(family_id, key);
         if self.catalog.contains_key(&composite_id) {
             return Ok(composite_id);
@@ -299,6 +353,98 @@ impl RuntimeCore {
         Ok(composite_id)
     }
 
+    fn ensure_dense_rgba_grid(
+        &mut self,
+        family_id: &str,
+        width: u32,
+        height: u32,
+    ) -> Result<Arc<DenseGridFamily>, ForgeSignalJsError> {
+        if let Some(existing) = self.dense_grids.get(family_id) {
+            if existing.width != width || existing.height != height {
+                return Err(ForgeSignalJsError::invalid_input(format!(
+                    "dense grid family `{family_id}` was initialized as {}x{} and cannot become {width}x{height}",
+                    existing.width, existing.height
+                )));
+            }
+            return Ok(existing.clone());
+        }
+
+        let started_at = perf_now_ms();
+        wasm_debug(format!(
+            "[forge-signal-wasm] dense-grid:init family={family_id} size={}x{} cells={}",
+            width,
+            height,
+            (width as usize) * (height as usize)
+        ));
+
+        let initial = {
+            let store = self.lock_store()?;
+            let family = store.source_families.get(family_id).ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!("unknown source family `{family_id}`"))
+            })?;
+            family.spec.initial.clone()
+        };
+
+        let mut ids = Vec::with_capacity((width as usize) * (height as usize));
+        let mut nodes = Vec::with_capacity((width as usize) * (height as usize));
+        let mut key_to_index = BTreeMap::new();
+        let mut pending_sources = Vec::with_capacity((width as usize) * (height as usize));
+
+        for index in 0..((width as usize) * (height as usize)) {
+            let x = index % (width as usize);
+            let y = index / (width as usize);
+            let key = format!("{x},{y}");
+            let id = composite_keyed_id(family_id, &key);
+            if let Some(existing) = self.catalog.get(&id) {
+                ids.push(id.clone());
+                nodes.push(existing.node);
+                key_to_index.insert(key, index);
+                continue;
+            }
+
+            let node = self.runtime.graph_mut().node().build();
+            self.catalog.insert(id.clone(), CatalogEntry { node });
+            self.nodes_by_id.insert(node, id.clone());
+            ids.push(id.clone());
+            nodes.push(node);
+            key_to_index.insert(key, index);
+            pending_sources.push((id, initial.clone()));
+
+            if index > 0 && index % 10_000 == 0 {
+                wasm_debug(format!(
+                    "[forge-signal-wasm] dense-grid:init progress family={family_id} built={index}"
+                ));
+            }
+        }
+
+        if !pending_sources.is_empty() {
+            let mut store = self.lock_store()?;
+            for (id, value) in pending_sources {
+                store.sources.insert(
+                    id,
+                    StoredSource {
+                        value,
+                        version: 1,
+                    },
+                );
+            }
+        }
+
+        let family = Arc::new(DenseGridFamily {
+            width,
+            height,
+            ids,
+            nodes,
+            key_to_index,
+        });
+        self.dense_grids.insert(family_id.to_owned(), family.clone());
+        wasm_debug(format!(
+            "[forge-signal-wasm] dense-grid:ready family={family_id} elapsed_ms={:.1}",
+            perf_now_ms() - started_at
+        ));
+        Ok(family)
+    }
+
     pub fn ensure_recipe_key(
         &mut self,
         family_id: &str,
@@ -315,12 +461,14 @@ impl RuntimeCore {
             })?
         };
         for read in &family.spec.reads {
-            let source_id = composite_keyed_id(&read.family_id, key);
-            if !self.catalog.contains_key(&source_id) {
-                if self.lock_store()?.source_families.contains_key(&read.family_id) {
-                    self.ensure_source_key(&read.family_id, key, None)?;
-                } else {
-                    self.ensure_recipe_key(&read.family_id, key)?;
+            if let RecipeFamilyReadSpec::Keyed { family_id } = read {
+                let source_id = composite_keyed_id(family_id, key);
+                if !self.catalog.contains_key(&source_id) {
+                    if self.lock_store()?.source_families.contains_key(family_id) {
+                        self.ensure_source_key(family_id, key, None)?;
+                    } else {
+                        self.ensure_recipe_key(family_id, key)?;
+                    }
                 }
             }
         }
@@ -330,7 +478,10 @@ impl RuntimeCore {
                 .spec
                 .reads
                 .iter()
-                .map(|read| composite_keyed_id(&read.family_id, key))
+                .map(|read| match read {
+                    RecipeFamilyReadSpec::Signal { id } => id.clone(),
+                    RecipeFamilyReadSpec::Keyed { family_id } => composite_keyed_id(family_id, key),
+                })
                 .collect(),
             expr: rewrite_keyed_expr(&family.spec.expr, &family.spec.reads, key),
             when: family.spec.when.as_ref().map(|condition| crate::expression::model::ConditionSpec {
@@ -370,56 +521,141 @@ impl RuntimeCore {
         self.apply_transaction(vec![TransactionOp::Set { id, value }])
     }
 
+    pub fn read_keyed_values(
+        &mut self,
+        family_id: &str,
+        keys: Vec<String>,
+    ) -> Result<Vec<SignalValue>, ForgeSignalJsError> {
+        let mut values = Vec::with_capacity(keys.len());
+        for key in keys {
+            values.push(self.read_keyed_value(family_id, &key)?);
+        }
+        Ok(values)
+    }
+
+    pub fn set_keyed_values(
+        &mut self,
+        family_id: &str,
+        values: Vec<KeyedSetValue>,
+    ) -> Result<RunSummary, ForgeSignalJsError> {
+        let mut normalized = Vec::with_capacity(values.len());
+        for entry in values {
+            let id = self.ensure_source_key(family_id, &entry.key, Some(entry.value.clone()))?;
+            normalized.push(crate::recipe::model::SetValue { id, value: entry.value });
+        }
+
+        self.apply_transaction(vec![TransactionOp::SetMany { values: normalized }])
+    }
+
     pub fn apply_transaction(
         &mut self,
         ops: Vec<TransactionOp>,
     ) -> Result<RunSummary, ForgeSignalJsError> {
+        let started_at = perf_now_ms();
+        wasm_debug(format!(
+            "[forge-signal-wasm] tx:start ops={}",
+            ops.len()
+        ));
         let previous = self.lock_store()?.clone();
-        let changes = self.collect_changes(&ops);
-        let changed_ids = changes.iter().map(|change| change.id.clone()).collect::<Vec<_>>();
+        let changes = self.collect_changes(&ops)?;
+        wasm_debug(format!(
+            "[forge-signal-wasm] tx:collect-done changes={} elapsed_ms={:.1}",
+            changes.len(),
+            perf_now_ms() - started_at
+        ));
         let store = self.store.clone();
-        let catalog = self.catalog.clone();
+        let dense_grids = self.dense_grids.clone();
         let evaluator = self.evaluator();
 
         let result = self.runtime.transaction(&mut self.store, move |tx| {
+            wasm_debug("[forge-signal-wasm] tx:apply-start");
             {
                 let mut locked = store
                     .lock()
                     .map_err(|_| SignalError::internal("runtime store mutex poisoned"))?;
                 for change in &changes {
-                    let source = locked.sources.get_mut(&change.id).ok_or_else(|| {
-                        SignalError::invalid_input(format!("unknown source `{}`", change.id))
-                    })?;
-                    source.value = change.value.clone();
-                    source.version = source.version.saturating_add(1);
+                    match change {
+                        SetChange::Source { id, value, node } => {
+                            let source = locked.sources.get_mut(id).ok_or_else(|| {
+                                SignalError::invalid_input(format!("unknown source `{id}`"))
+                            })?;
+                            source.value = value.clone();
+                            source.version = source.version.saturating_add(1);
+                            tx.mark_changed(*node, DEFAULT_ASPECT)?;
+                        }
+                        SetChange::DenseGridRgba { family_id, rgba } => {
+                            let family = dense_grids.get(family_id).ok_or_else(|| {
+                                SignalError::invalid_input(format!(
+                                    "unknown dense grid family `{family_id}`"
+                                ))
+                            })?;
+                            wasm_debug(format!(
+                                "[forge-signal-wasm] tx:dense-apply-start family={family_id} cells={}",
+                                family.ids.len()
+                            ));
+                            for index in 0..family.ids.len() {
+                                let offset = index * 4;
+                                let source = locked.sources.get_mut(&family.ids[index]).ok_or_else(|| {
+                                    SignalError::invalid_input(format!(
+                                        "unknown dense source `{}`",
+                                        family.ids[index]
+                                    ))
+                                })?;
+                                set_rgba_signal_value(
+                                    &mut source.value,
+                                    rgba[offset],
+                                    rgba[offset + 1],
+                                    rgba[offset + 2],
+                                    rgba[offset + 3],
+                                );
+                                source.version = source.version.saturating_add(1);
+                                tx.mark_changed(family.nodes[index], DEFAULT_ASPECT)?;
+                                if index > 0 && index % 10_000 == 0 {
+                                    wasm_debug(format!(
+                                        "[forge-signal-wasm] tx:dense-apply progress family={family_id} applied={index}"
+                                    ));
+                                }
+                            }
+                            wasm_debug(format!(
+                                "[forge-signal-wasm] tx:dense-apply-done family={family_id}"
+                            ));
+                        }
+                    }
                 }
             }
 
-            for id in &changed_ids {
-                let node = catalog
-                    .get(id)
-                    .map(|entry| entry.node)
-                    .ok_or_else(|| SignalError::invalid_input(format!("unknown source `{id}`")))?;
-                tx.mark_changed(node, DEFAULT_ASPECT)?;
-            }
-
+            wasm_debug("[forge-signal-wasm] tx:evaluate-dirty-start");
             tx.evaluate_dirty(&evaluator)?;
+            wasm_debug("[forge-signal-wasm] tx:evaluate-dirty-done");
             Ok(())
         });
 
         match result {
-            Ok(result) => Ok(RunSummary {
-                touched_nodes: result.touched_nodes,
-                nodes_evaluated: result.evaluation_summary.nodes_evaluated,
-                nodes_recomputed: result.evaluation_summary.nodes_recomputed,
-                nodes_suppressed: result.evaluation_summary.nodes_suppressed,
-                plans_built: result.evaluation_summary.plans_built,
-                stages_executed: result.evaluation_summary.stages_executed,
-                total_nanos: result.timing.total_nanos.to_string(),
-                evaluation_nanos: result.timing.evaluation_nanos.to_string(),
-                commit_nanos: result.timing.commit_nanos.to_string(),
-            }),
+            Ok(result) => {
+                wasm_debug(format!(
+                    "[forge-signal-wasm] tx:done touched={} evaluated={} elapsed_ms={:.1}",
+                    result.touched_nodes,
+                    result.evaluation_summary.nodes_evaluated,
+                    perf_now_ms() - started_at
+                ));
+                Ok(RunSummary {
+                    touched_nodes: result.touched_nodes,
+                    nodes_evaluated: result.evaluation_summary.nodes_evaluated,
+                    nodes_recomputed: result.evaluation_summary.nodes_recomputed,
+                    nodes_suppressed: result.evaluation_summary.nodes_suppressed,
+                    plans_built: result.evaluation_summary.plans_built,
+                    stages_executed: result.evaluation_summary.stages_executed,
+                    total_nanos: result.timing.total_nanos.to_string(),
+                    evaluation_nanos: result.timing.evaluation_nanos.to_string(),
+                    commit_nanos: result.timing.commit_nanos.to_string(),
+                })
+            }
             Err(err) => {
+                wasm_debug(format!(
+                    "[forge-signal-wasm] tx:error elapsed_ms={:.1} message={}",
+                    perf_now_ms() - started_at,
+                    err
+                ));
                 self.restore_store(previous)?;
                 Err(ForgeSignalJsError::from(err))
             }
@@ -731,8 +967,9 @@ impl RuntimeCore {
         Ok(())
     }
 
-    fn collect_changes(&self, ops: &[TransactionOp]) -> Vec<SetChange> {
+    fn collect_changes(&mut self, ops: &[TransactionOp]) -> Result<Vec<SetChange>, ForgeSignalJsError> {
         let mut deduped = BTreeMap::<String, SignalValue>::new();
+        let mut packed = Vec::new();
         for op in ops {
             match op {
                 TransactionOp::Set { id, value } => {
@@ -743,12 +980,42 @@ impl RuntimeCore {
                         deduped.insert(value.id.clone(), value.value.clone());
                     }
                 }
+                TransactionOp::SetManyKeyed { family_id, values } => {
+                    for value in values {
+                        let id = self.ensure_source_key(family_id, &value.key, Some(value.value.clone()))?;
+                        deduped.insert(id, value.value.clone());
+                    }
+                }
+                TransactionOp::SetPackedGridRgba {
+                    family_id,
+                    width,
+                    height,
+                    rgba,
+                } => {
+                    let expected_len = (*width as usize) * (*height as usize) * 4;
+                    if rgba.len() != expected_len {
+                        return Err(ForgeSignalJsError::invalid_input(format!(
+                            "packed rgba length {} does not match {width}x{height} grid",
+                            rgba.len()
+                        )));
+                    }
+                    self.ensure_dense_rgba_grid(family_id, *width, *height)?;
+                    packed.push(SetChange::DenseGridRgba {
+                        family_id: family_id.clone(),
+                        rgba: rgba.clone(),
+                    });
+                }
             }
         }
-        deduped
+        let mut normalized = deduped
             .into_iter()
-            .map(|(id, value)| SetChange { id, value })
-            .collect()
+            .map(|(id, value)| {
+                let node = self.node_for_id(&id)?;
+                Ok(SetChange::Source { id, value, node })
+            })
+            .collect::<Result<Vec<_>, ForgeSignalJsError>>()?;
+        normalized.extend(packed);
+        Ok(normalized)
     }
 
     fn lock_store(&self) -> Result<std::sync::MutexGuard<'_, RuntimeStore>, ForgeSignalJsError> {
@@ -772,9 +1039,16 @@ impl RuntimeCore {
 }
 
 #[derive(Debug, Clone)]
-struct SetChange {
-    id: String,
-    value: SignalValue,
+enum SetChange {
+    Source {
+        id: String,
+        value: SignalValue,
+        node: NodeId,
+    },
+    DenseGridRgba {
+        family_id: String,
+        rgba: Vec<u8>,
+    },
 }
 
 pub fn new_shared_core(policy: RuntimePolicySpec) -> Result<SharedCore, ForgeSignalJsError> {
@@ -904,13 +1178,36 @@ fn canonical_value_string(value: &SignalValue) -> Result<String, ForgeSignalJsEr
         .map_err(|err| ForgeSignalJsError::internal(format!("failed to canonicalize signal value: {err}")))
 }
 
+fn rgba_signal_value(r: u8, g: u8, b: u8, a: u8) -> SignalValue {
+    SignalValue::Object(vec![
+        ("r".to_owned(), SignalValue::Number(r as f64)),
+        ("g".to_owned(), SignalValue::Number(g as f64)),
+        ("b".to_owned(), SignalValue::Number(b as f64)),
+        ("a".to_owned(), SignalValue::Number(a as f64)),
+    ])
+}
+
+fn set_rgba_signal_value(value: &mut SignalValue, r: u8, g: u8, b: u8, a: u8) {
+    match value {
+        SignalValue::Object(fields) if fields.len() == 4 => {
+            fields[0].1 = SignalValue::Number(r as f64);
+            fields[1].1 = SignalValue::Number(g as f64);
+            fields[2].1 = SignalValue::Number(b as f64);
+            fields[3].1 = SignalValue::Number(a as f64);
+        }
+        _ => {
+            *value = rgba_signal_value(r, g, b, a);
+        }
+    }
+}
+
 fn composite_keyed_id(family_id: &str, key: &str) -> String {
     format!("{family_id}::{key}")
 }
 
 fn rewrite_keyed_expr(
     expr: &crate::expression::model::Expr,
-    reads: &[KeyedReadSpec],
+    reads: &[RecipeFamilyReadSpec],
     key: &str,
 ) -> crate::expression::model::Expr {
     use crate::expression::model::Expr;
@@ -920,8 +1217,13 @@ fn rewrite_keyed_expr(
         Expr::Read { id } => {
             let rewritten = reads
                 .iter()
-                .find(|read| read.family_id == *id)
-                .map(|read| composite_keyed_id(&read.family_id, key))
+                .find_map(|read| match read {
+                    RecipeFamilyReadSpec::Signal { .. } => None,
+                    RecipeFamilyReadSpec::Keyed { family_id } if family_id == id => {
+                        Some(composite_keyed_id(family_id, key))
+                    }
+                    RecipeFamilyReadSpec::Keyed { .. } => None,
+                })
                 .unwrap_or_else(|| id.clone());
             Expr::Read { id: rewritten }
         }
@@ -1008,6 +1310,40 @@ fn rewrite_keyed_expr(
         Expr::Append { target, value } => Expr::Append {
             target: Box::new(rewrite_keyed_expr(target, reads, key)),
             value: Box::new(rewrite_keyed_expr(value, reads, key)),
+        },
+        Expr::Abs { target } => Expr::Abs {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+        },
+        Expr::Min { args } => Expr::Min {
+            args: args.iter().map(|arg| rewrite_keyed_expr(arg, reads, key)).collect(),
+        },
+        Expr::Max { args } => Expr::Max {
+            args: args.iter().map(|arg| rewrite_keyed_expr(arg, reads, key)).collect(),
+        },
+        Expr::Sqrt { target } => Expr::Sqrt {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+        },
+        Expr::Sin { target } => Expr::Sin {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+        },
+        Expr::Cos { target } => Expr::Cos {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+        },
+        Expr::Floor { target } => Expr::Floor {
+            target: Box::new(rewrite_keyed_expr(target, reads, key)),
+        },
+        Expr::Mod { left, right } => Expr::Mod {
+            left: Box::new(rewrite_keyed_expr(left, reads, key)),
+            right: Box::new(rewrite_keyed_expr(right, reads, key)),
+        },
+        Expr::Clamp { value, min, max } => Expr::Clamp {
+            value: Box::new(rewrite_keyed_expr(value, reads, key)),
+            min: Box::new(rewrite_keyed_expr(min, reads, key)),
+            max: Box::new(rewrite_keyed_expr(max, reads, key)),
+        },
+        Expr::Atan2 { y, x } => Expr::Atan2 {
+            y: Box::new(rewrite_keyed_expr(y, reads, key)),
+            x: Box::new(rewrite_keyed_expr(x, reads, key)),
         },
         Expr::Subtract { left, right } => Expr::Subtract {
             left: Box::new(rewrite_keyed_expr(left, reads, key)),

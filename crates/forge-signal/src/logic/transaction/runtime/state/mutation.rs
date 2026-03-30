@@ -1,5 +1,5 @@
 use crate::data::error::SignalError;
-use std::time::Instant;
+use crate::clock::RuntimeInstant;
 
 use super::super::computation::{DefinedComputation, Recipe};
 use super::super::transaction::{
@@ -44,7 +44,7 @@ where
             poisoned: false,
             finished: false,
             execution_state: TransactionExecutionState::default(),
-            started_at: Instant::now(),
+            started_at: RuntimeInstant::now(),
         }
     }
 

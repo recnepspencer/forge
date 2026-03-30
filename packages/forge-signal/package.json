@@ -17,7 +17,7 @@
     "pkg"
   ],
   "scripts": {
-    "build:wasm": "wasm-pack build ../../crates/forge-signal-wasm --target bundler --out-dir pkg --out-name forge_signal_wasm",
+    "build:wasm": "powershell -NoProfile -Command \"if (Test-Path 'pkg') { Remove-Item 'pkg' -Recurse -Force }; wasm-pack build ../../crates/forge-signal-wasm --target bundler --out-dir ../../packages/forge-signal/pkg --out-name forge_signal_wasm\"",
     "check:wasm": "cargo check -p forge-signal-wasm --target wasm32-unknown-unknown",
     "check:types": "npx --yes -p typescript tsc -p tsconfig.json --noEmit"
   }

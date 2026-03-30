@@ -4,7 +4,7 @@ use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::event_subscriber::{EventSubscriber, SubscriberId};
 use crate::data::subscriber_context::SubscriberContext;
 use crate::data::telemetry::RuntimeTelemetry;
-use std::time::Instant;
+use crate::clock::RuntimeInstant;
 
 use super::errors::{EventFlushError, SubscriberRegistryError};
 use super::ordering::resolve_order;
@@ -187,7 +187,7 @@ where
         barrier: CheckpointBarrier,
         runtime: &mut C,
     ) -> Result<Vec<CompletedSubscriber>, EventFlushError<D>> {
-        let flush_start = Instant::now();
+        let flush_start = RuntimeInstant::now();
         self.ensure_finalized().map_err(EventFlushError::Registry)?;
 
         let routed_batches = self.event_router.as_ref().map(|router| {

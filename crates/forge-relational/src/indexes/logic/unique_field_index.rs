@@ -145,14 +145,14 @@ fn tracked_unique_entity_fields(runtime: &RelationalRuntime) -> BTreeSet<String>
     fields
 }
 
-pub(super) fn payload_field_key(payload: &RecordPayload, field: &str) -> Option<String> {
+pub(crate) fn payload_field_key(payload: &RecordPayload, field: &str) -> Option<String> {
     payload.as_json()?.get(field).map(|value| match value {
         serde_json::Value::String(text) => text.clone(),
         other => other.to_string(),
     })
 }
 
-pub(super) fn payload_field_key_optional(
+pub(crate) fn payload_field_key_optional(
     payload: &Option<RecordPayload>,
     field: &str,
 ) -> Option<String> {

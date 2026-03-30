@@ -1,6 +1,6 @@
 use std::sync::Mutex;
-use std::time::Instant;
 
+use crate::clock::RuntimeInstant;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::output::ComputationKey;
@@ -172,7 +172,7 @@ where
                     (family_id, key_id, resolve_memo_key_id()?),
                     cached_result.clone(),
                 );
-                let execution_start = Instant::now();
+                let execution_start = RuntimeInstant::now();
                 let report = match execute_targets_with_prepared_runtime_config_detailed(
                     self.graph,
                     self.config,
@@ -212,7 +212,7 @@ where
         }
 
         let last_result = Mutex::new(None);
-        let execution_start = Instant::now();
+        let execution_start = RuntimeInstant::now();
         let result = match execute_targets_with_prepared_runtime_config_detailed(
             self.graph,
             self.config,

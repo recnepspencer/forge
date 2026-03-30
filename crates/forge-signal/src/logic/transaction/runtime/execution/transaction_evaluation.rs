@@ -1,5 +1,4 @@
-use std::time::Instant;
-
+use crate::clock::RuntimeInstant;
 use crate::data::aspect::AspectVersion;
 use crate::data::comparator::{
     DefaultComparatorPolicyResolver, DefaultComparatorResolver, VersionComparatorPolicy,
@@ -234,7 +233,7 @@ where
         F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
         O: IntoEvaluationOutput,
     {
-        let execution_start = Instant::now();
+        let execution_start = RuntimeInstant::now();
         let report = match execute_plan_with_runtime_config(
             self.graph,
             self.config,
@@ -471,7 +470,7 @@ where
             }
         };
 
-        let execution_start = Instant::now();
+        let execution_start = RuntimeInstant::now();
         let report = match execute_targets_with_runtime_config_detailed(
             self.graph,
             self.config,

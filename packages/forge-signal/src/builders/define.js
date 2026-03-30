@@ -18,6 +18,27 @@ function familyIdFrom(value) {
   throw new Error("Family reads must be family ids or family handles.");
 }
 
+function recipeFamilyReadFrom(value) {
+  if (typeof value === "string") {
+    return { kind: "signal", id: value };
+  }
+  if (value && typeof value.kind === "string") {
+    if (value.kind === "signal" && typeof value.id === "string") {
+      return { kind: "signal", id: value.id };
+    }
+    if (value.kind === "keyed" && typeof value.familyId === "string") {
+      return { kind: "keyed", familyId: value.familyId };
+    }
+  }
+  if (value && typeof value.id === "string") {
+    return { kind: "signal", id: value.id };
+  }
+  if (value && typeof value.familyId === "string") {
+    return { kind: "keyed", familyId: value.familyId };
+  }
+  throw new Error("Recipe family reads must be signal ids, signal handles, or keyed family handles.");
+}
+
 export class SourceBuilder {
   constructor(id) {
     this.spec = { id, initial: null };
@@ -98,7 +119,7 @@ export class RecipeFamilyBuilder {
   }
 
   reads(...reads) {
-    this.spec.reads = reads.flat().map((read) => ({ familyId: familyIdFrom(read) }));
+    this.spec.reads = reads.flat().map(recipeFamilyReadFrom);
     return this;
   }
 
@@ -153,6 +174,9 @@ export const define = {
 
 export const keyed = {
   read(family) {
-    return { familyId: familyIdFrom(family) };
+    return { kind: "keyed", familyId: familyIdFrom(family) };
+  },
+  signal(read) {
+    return { kind: "signal", id: readIdFrom(read) };
   }
 };

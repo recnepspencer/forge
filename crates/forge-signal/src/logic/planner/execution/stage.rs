@@ -1,5 +1,4 @@
-use std::time::Instant;
-
+use crate::clock::RuntimeInstant;
 use crate::data::comparator::ComparatorPolicyResolver;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
@@ -38,7 +37,7 @@ where
         + Sync,
     R: ComparatorPolicyResolver,
 {
-    let stage_start = Instant::now();
+    let stage_start = RuntimeInstant::now();
     let prepared_pass = run_stage_precompute_pass(ctx, stage)?;
     let applied_pass = run_stage_apply_pass(ctx, stage, prepared_pass, stage_start)?;
     complete_stage_reporting_pass(ctx, applied_pass);
@@ -82,7 +81,7 @@ fn run_stage_apply_pass<F, R>(
     ctx: &mut ExecutionContext<'_, F, R>,
     stage: &StageSlice<'_>,
     prepared_pass: StagePreparedPass,
-    stage_start: Instant,
+    stage_start: RuntimeInstant,
 ) -> Result<StageAppliedPass, SignalError>
 where
     F: Fn(
@@ -92,7 +91,7 @@ where
         + Sync,
     R: ComparatorPolicyResolver,
 {
-    let apply_start = Instant::now();
+    let apply_start = RuntimeInstant::now();
     let mut stage_record = begin_stage_record(
         stage.index,
         prepared_pass.snapshot_nanos,

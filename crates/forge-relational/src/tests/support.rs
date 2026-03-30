@@ -30,7 +30,12 @@ pub(super) use crate::facade::publication::{
     PatchStreamPosition, PatchStreamRequest, PublicationStage, PublicationStatus,
     SubscriberResumeRequest, SubscriberStreamFailureClass,
 };
-pub(super) use crate::facade::query::QueryWorkPacket;
+pub(super) use crate::facade::query::{
+    DeterministicQueryPlanKey, PlannedQueryPacket, QueryExecutionShape, QueryFallbackContract,
+    QueryLocalityClass, QueryOrderingContract, QueryParallelLegality,
+    QueryParallelProfitability, QueryPlanEvidenceBasis, QueryScope, QuerySerialReason,
+    QueryWorkPacket, ReductionDiscipline,
+};
 pub(super) use crate::facade::runtime::{
     EntityReadRecord, InvariantCatalog, InvariantClass, InvariantRegistration, InvariantRule,
     RelationalRuntime, RelationalRuntimeApi,

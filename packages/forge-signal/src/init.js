@@ -1,28 +1,28 @@
-import * as wasm from "../pkg/forge_signal_wasm.js";
+import * as wasmModule from "@forge/signal/wasm";
 
 import { SignalApp } from "./surface/app.js";
 import { SignalRuntime } from "./surface/runtime.js";
 
 let initPromise;
 
-export async function initForgeSignal(input) {
+export async function initForgeSignal() {
   if (!initPromise) {
-    initPromise = Promise.resolve(input).then(() => wasm);
+    initPromise = Promise.resolve(wasmModule);
   }
-  await initPromise;
-  return wasm;
+
+  return initPromise;
 }
 
 export async function createSignalApp() {
-  await initForgeSignal();
+  const wasm = await initForgeSignal();
   return new SignalApp(new wasm.SignalApp());
 }
 
 export async function createSignalRuntime() {
-  await initForgeSignal();
+  const wasm = await initForgeSignal();
   return new SignalRuntime(new wasm.SignalRuntime());
 }
 
-export function currentForgeSignalModule() {
-  return wasm;
+export async function currentForgeSignalModule() {
+  return initForgeSignal();
 }

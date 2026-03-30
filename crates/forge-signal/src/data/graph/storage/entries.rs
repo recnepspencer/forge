@@ -21,7 +21,7 @@ use crate::data::trace::{
 };
 use crate::data::{aspect::AspectVersion, core_profile::StableHashValue, output::ChangedRegion};
 use std::ops::{Deref, DerefMut};
-use std::time::Instant;
+use crate::clock::RuntimeInstant;
 
 use super::super::node_builder::NodeBuilder;
 use super::super::signal_graph::stale_error;
@@ -646,7 +646,7 @@ impl SignalGraph {
         &mut self,
         commit: ClassifiedSnapshotBatchCommit,
     ) -> Result<(), SignalError> {
-        let commit_start = Instant::now();
+        let commit_start = RuntimeInstant::now();
         let result = match commit {
             ClassifiedSnapshotBatchCommit::StableShape(commit) => {
                 self.apply_stable_shape_snapshot_batch_commit(commit)
