@@ -107,7 +107,9 @@ fn main() -> Result<(), SignalError> {
     let explanation = runtime.diagnostics().why(app_bundle)?;
     let rendered = format!("{explanation}");
     assert!(
-        rendered.contains("source") || rendered.contains("upstream") || rendered.contains("Changed"),
+        rendered.contains("source")
+            || rendered.contains("upstream")
+            || rendered.contains("Changed"),
         "bundle explanation should say why the target reran"
     );
 

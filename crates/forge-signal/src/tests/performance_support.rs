@@ -340,7 +340,9 @@ fn summarize_u128(values: &[u128]) -> NumericSummary {
 
 fn snapshot_allocation_stats(region: &Region<'_, std::alloc::System>) -> AllocationStats {
     let stats = region.change();
-    let live_bytes = stats.bytes_allocated.saturating_sub(stats.bytes_deallocated);
+    let live_bytes = stats
+        .bytes_allocated
+        .saturating_sub(stats.bytes_deallocated);
     AllocationStats {
         allocation_calls: stats.allocations as u64,
         deallocation_calls: stats.deallocations as u64,
@@ -501,9 +503,12 @@ fn certify_against_baseline(contract: PerfCaseContract<'_>, summary: &PerfCaseSu
             let observed = summary.phase_metrics.get(*phase_metric).unwrap_or_else(|| {
                 panic!("missing observed phase metric {phase_metric} for {key}")
             });
-            let expected = expected.phase_metrics.get(*phase_metric).unwrap_or_else(|| {
-                panic!("missing baseline phase metric {phase_metric} for {key}")
-            });
+            let expected = expected
+                .phase_metrics
+                .get(*phase_metric)
+                .unwrap_or_else(|| {
+                    panic!("missing baseline phase metric {phase_metric} for {key}")
+                });
             assert_perf_regression_budget(
                 &format!("phase metric {phase_metric} median"),
                 observed.median,
@@ -535,8 +540,12 @@ fn baseline_file_path() -> PathBuf {
 
 fn load_baseline_file() -> PerfBaselineFile {
     let path = baseline_file_path();
-    let raw = fs::read_to_string(&path)
-        .unwrap_or_else(|err| panic!("failed to read perf baseline file {}: {err}", path.display()));
+    let raw = fs::read_to_string(&path).unwrap_or_else(|err| {
+        panic!(
+            "failed to read perf baseline file {}: {err}",
+            path.display()
+        )
+    });
     serde_json::from_str(&raw).unwrap_or_else(|err| {
         panic!(
             "failed to deserialize perf baseline file {}: {err}",
@@ -547,10 +556,13 @@ fn load_baseline_file() -> PerfBaselineFile {
 
 fn write_baseline_file(baseline: &PerfBaselineFile) {
     let path = baseline_file_path();
-    let raw = serde_json::to_string_pretty(baseline)
-        .expect("perf baseline file should serialize");
-    fs::write(&path, raw)
-        .unwrap_or_else(|err| panic!("failed to write perf baseline file {}: {err}", path.display()));
+    let raw = serde_json::to_string_pretty(baseline).expect("perf baseline file should serialize");
+    fs::write(&path, raw).unwrap_or_else(|err| {
+        panic!(
+            "failed to write perf baseline file {}: {err}",
+            path.display()
+        )
+    });
 }
 
 fn update_perf_baseline() -> bool {

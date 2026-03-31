@@ -4,12 +4,16 @@
   "private": true,
   "type": "module",
   "sideEffects": false,
-  "main": "./src/index.js",
+  "main": "./src/index.ts",
   "types": "./src/index.d.ts",
   "exports": {
     ".": {
-      "import": "./src/index.js",
+      "import": "./src/index.ts",
       "types": "./src/index.d.ts"
+    },
+    "./wasm": {
+      "import": "./pkg/forge_signal_wasm.js",
+      "types": "./src/wasm.d.ts"
     }
   },
   "files": [
@@ -19,6 +23,8 @@
   "scripts": {
     "build:wasm": "powershell -NoProfile -Command \"if (Test-Path 'pkg') { Remove-Item 'pkg' -Recurse -Force }; wasm-pack build ../../crates/forge-signal-wasm --target bundler --out-dir ../../packages/forge-signal/pkg --out-name forge_signal_wasm\"",
     "check:wasm": "cargo check -p forge-signal-wasm --target wasm32-unknown-unknown",
-    "check:types": "npx --yes -p typescript tsc -p tsconfig.json --noEmit"
+    "check:boundary": "npx --yes -p typescript tsc -p tsconfig.boundary.json --noEmit",
+    "check:types": "npx --yes -p typescript tsc -p tsconfig.json --noEmit",
+    "check:runtime-smoke": "node test/runtime-branch-smoke.mjs"
   }
 }

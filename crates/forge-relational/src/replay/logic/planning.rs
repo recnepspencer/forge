@@ -17,7 +17,8 @@ pub(super) fn load_replay_envelope(
 }
 
 pub(super) fn promised_replay_surfaces(
-    envelope: &CanonicalCommitEnvelope,
+    original: &CanonicalCommitEnvelope,
+    recovered: Option<&CanonicalCommitEnvelope>,
 ) -> Vec<ReplayObservableSurface> {
     let mut surfaces = vec![
         ReplayObservableSurface::Snapshot,
@@ -26,10 +27,19 @@ pub(super) fn promised_replay_surfaces(
         ReplayObservableSurface::History,
         ReplayObservableSurface::BranchHead,
     ];
-    if envelope.has_lineage_authority() {
+    if original.has_lineage_authority()
+        || recovered.is_some_and(|envelope| envelope.has_lineage_authority())
+    {
         surfaces.push(ReplayObservableSurface::Lineage);
     }
-    if !envelope.index_generations.is_empty() {
+    if original.strategy_artifacts.is_some()
+        || recovered.is_some_and(|envelope| envelope.strategy_artifacts.is_some())
+    {
+        surfaces.push(ReplayObservableSurface::Strategy);
+    }
+    if !original.index_generations.is_empty()
+        || recovered.is_some_and(|envelope| !envelope.index_generations.is_empty())
+    {
         surfaces.push(ReplayObservableSurface::DerivedIndexes);
     }
     surfaces
@@ -61,6 +71,7 @@ pub(super) fn replay_commit_closure_by_commit_id_order(
 pub(super) fn replay_recovery_plan_for_chain(
     source: &(impl CommitEnvelopeSource + DurabilityRead),
     config: &crate::logic::runtime::RelationalRuntimeConfig,
+    commit_strategy_executors: crate::commit_strategies::FrozenCommitStrategyExecutorRegistry,
     chain: &[CommitId],
     verification_mode: crate::replay::data::ReplayVerificationMode,
 ) -> RecoveryPlan {
@@ -87,6 +98,14 @@ pub(super) fn replay_recovery_plan_for_chain(
         .filter(|commit_id| tail_start.is_none_or(|start| *commit_id > start))
         .filter_map(|commit_id| source.commit_envelope(commit_id).cloned())
         .collect();
+    let mut restore_authoritative_envelope_commit_ids = chain
+        .iter()
+        .copied()
+        .filter_map(|commit_id| source.commit_envelope(commit_id))
+        .filter(|envelope| envelope.strategy_artifacts.is_some())
+        .map(|envelope| envelope.commit.commit_id)
+        .collect::<Vec<_>>();
+    restore_authoritative_envelope_commit_ids.sort_unstable();
     RecoveryPlan::new(
         config.clone(),
         source.durable_store().cloned(),
@@ -112,8 +131,9 @@ pub(super) fn replay_recovery_plan_for_chain(
             .and_then(|commit_id| source.commit_envelope(*commit_id))
             .map(|envelope| envelope.descriptor_semantics_version)
             .unwrap_or_else(DescriptorSemanticsVersion::default),
-        false,
+        restore_authoritative_envelope_commit_ids,
     )
+    .with_commit_strategy_executors(commit_strategy_executors)
 }
 
 fn replay_verification_mode_to_recovery_mode(

@@ -1,10 +1,10 @@
 use std::marker::PhantomData;
 
+use crate::clock::RuntimeInstant;
 use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::event_subscriber::{EventSubscriber, SubscriberId};
 use crate::data::subscriber_context::SubscriberContext;
 use crate::data::telemetry::RuntimeTelemetry;
-use crate::clock::RuntimeInstant;
 
 use super::errors::{EventFlushError, SubscriberRegistryError};
 use super::ordering::resolve_order;

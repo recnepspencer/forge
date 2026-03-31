@@ -4,17 +4,14 @@ import type { RunSummary } from "@forge/signal";
 
 import {
   createSceneRuntime,
-  ensureFeatureBranch,
   executeMerge,
   planMerge,
   readBranchInspect,
-  readRenderAspects,
-  readBranchSummary,
+  readBranchInspectForNode,
   renderBranch,
   totalGraphNodes,
   updateScene,
 } from "../core/runtime";
-import { applyLookDelta, movementStep, renderScene } from "../core/renderer";
 import { RENDER_HEIGHT, RENDER_WIDTH } from "../core/types";
 import type {
   BranchId,
@@ -36,9 +33,17 @@ type CachedBranch = {
 };
 
 type TimelineState = {
+  id: string;
+  parentIds: string[];
+  branchName: string | null;
+  kind: "normal" | "branch" | "merge";
   label: string;
   frameIndex: number;
   activeBranchName: string | null;
+  branchCount: number;
+  snapshotId: number | null;
+  primaryNode: string;
+  touchedNodes: string[];
   branches: Array<{
     name: string;
     state: SceneState;
@@ -55,19 +60,18 @@ type SessionState = {
   mergeResult: MergeResult | null;
   timeline: TimelineState[];
   timelineIndex: number;
+  commitCounter: number;
+  branchHeads: Map<string, string>;
   inspect: BranchInspect | null;
-  pressed: Set<string>;
-  lookDelta: { x: number; y: number };
+  inspectNodeId: string;
 };
 
 let session: SessionState | null = null;
 let booting = false;
 let renderLock = false;
 let bootStartedAt = 0;
-let tickHandle: number | null = null;
-let lastTick = 0;
 
-const FPS_KEYS = new Set(["w", "a", "s", "d", "space", "shift"]);
+
 
 self.onmessage = (event: MessageEvent<WorkerCommand>) => {
   postDebug("worker:message-received", event.data?.type ?? "unknown");
@@ -91,17 +95,6 @@ async function handleCommand(command: WorkerCommand) {
       case "init":
         await initializeSession();
         break;
-      case "setInputs":
-        if (session) {
-          session.pressed = new Set(command.pressed.filter((key) => FPS_KEYS.has(key)));
-        }
-        break;
-      case "look":
-        if (session) {
-          session.lookDelta.x += command.deltaX;
-          session.lookDelta.y += command.deltaY;
-        }
-        break;
       case "branch":
         await withSession(createBranch);
         break;
@@ -111,11 +104,14 @@ async function handleCommand(command: WorkerCommand) {
       case "activateBranch":
         await withSession((current) => activateBranch(current, command.branchId));
         break;
+      case "inspectNode":
+        await withSession((current) => inspectNode(current, command.branchId, command.nodeId));
+        break;
       case "scrub":
         await withSession((current) => scrubTimeline(current, command.index));
         break;
       case "setScenePatch":
-        await withSession((current) => applyScenePatch(current, command.patch, command.label));
+        await withSession((current) => applyScenePatch(current, command.branchId, command.patch, command.label));
         break;
     }
   } catch (error) {
@@ -160,14 +156,14 @@ async function initializeSession() {
       mergeResult: null,
       timeline: [],
       timelineIndex: 0,
+      commitCounter: 0,
+      branchHeads: new Map(),
       inspect: readBranchInspect(runtime, initial.branchId),
-      pressed: new Set<string>(),
-      lookDelta: { x: 0, y: 0 },
+      inspectNodeId: "hudModel",
     };
 
     captureTimeline(session, "boot", true);
     emitSnapshot([initial.branchId]);
-    ensureTickLoop();
     postDebug("boot:ready", "worker session ready");
   } finally {
     booting = false;
@@ -187,101 +183,27 @@ async function withSession(fn: (current: SessionState) => Promise<void>) {
   }
 }
 
-function ensureTickLoop() {
-  if (tickHandle !== null) {
+
+
+async function applyScenePatch(current: SessionState, branchId: BranchId, patch: ScenePatch, label?: string) {
+  const target = current.branches.get(branchId) ?? getActiveBranch(current);
+  if (!target || isEmptyScenePatch(patch)) {
     return;
   }
-  tickHandle = self.setInterval(() => {
-    void tick();
-  }, 16);
-}
+  current.runtime.history().switchBranch(target.summary.id);
 
-async function tick() {
-  const current = session;
-  if (!current || renderLock) {
-    return;
-  }
-
-  if (current.pressed.size === 0 && current.lookDelta.x === 0 && current.lookDelta.y === 0) {
-    return;
-  }
-
-  const now = performance.now();
-  if (now - lastTick < 16) {
-    return;
-  }
-  lastTick = now;
-
-  const active = getActiveBranch(current);
-  if (!active) {
-    return;
-  }
-
-  const looked = applyLookDelta(active.summary.state.camera, -current.lookDelta.x, current.lookDelta.y);
-  current.lookDelta = { x: 0, y: 0 };
-  const moved = movementStep(current.pressed, looked);
-  const state = {
-    ...active.summary.state,
-    camera: moved,
-  };
-  const rendered = renderScene(state, readRenderAspects(current.runtime));
-  updateBranchCache(
-    current,
-    active.summary.id,
-    {
-      ...active.summary,
-      state,
-      hud: {
-        ...active.summary.hud,
-        renderMs: rendered.stats.renderMs,
-        frameIndex: active.summary.hud.frameIndex + 1,
-      },
-    },
-    rendered.frame,
+  postDebug(
+    "scene-patch:start",
+    JSON.stringify({
+      branchId: target.summary.id,
+      label: label ?? "edit",
+      patch,
+      before: summarizeBranchState(target.summary),
+    }),
   );
-  current.activeBranchId = active.summary.id;
-  emitSnapshot([active.summary.id]);
-}
 
-async function applyScenePatch(current: SessionState, patch: ScenePatch, label?: string) {
-  const active = getActiveBranch(current);
-  if (!active || isEmptyScenePatch(patch)) {
-    return;
-  }
 
-  if (isTransientCameraPatch(patch, label)) {
-    const state = mergeSceneState(active.summary.state, patch);
-    const rendered = renderScene(state, readRenderAspects(current.runtime));
-    updateBranchCache(
-      current,
-      active.summary.id,
-      {
-        ...active.summary,
-        state,
-        hud: {
-          ...active.summary.hud,
-          renderMs: rendered.stats.renderMs,
-          frameIndex: active.summary.hud.frameIndex + 1,
-        },
-      },
-      rendered.frame,
-    );
-    current.activeBranchId = active.summary.id;
-    emitSnapshot([active.summary.id]);
-    return;
-  }
-
-  const runtimePatch: ScenePatch = {
-    ...patch,
-    // Keep the live FPS camera authoritative for subsequent signal-backed edits
-    // so gear/light changes do not snap the viewport back to older runtime state.
-    camera: {
-      ...active.summary.state.camera,
-      ...patch.camera,
-    },
-  };
-
-  const update = await updateScene(current.runtime, active.summary.id, runtimePatch, (phase, detail) => {
+  const update = await updateScene(current.runtime, target.summary.id, patch, (phase, detail) => {
     postDebug(phase, detail);
   });
 
@@ -298,14 +220,28 @@ async function applyScenePatch(current: SessionState, patch: ScenePatch, label?:
   );
   current.activeBranchId = update.branchId;
   current.latestSummary = update.summary;
-  current.mergePlan = computeMergePlan(current);
-  current.inspect = readBranchInspect(current.runtime, update.branchId);
+  current.mergePlan = null;
+  current.inspect = safeInspect(current.runtime, update.branchId, current.inspectNodeId);
+  postDebug(
+    "scene-patch:done",
+    JSON.stringify({
+      branchId: update.branchId,
+      label: label ?? "edit",
+      after: summarizeBranchState({
+        id: update.branchId,
+        name: update.branchName,
+        state: update.state,
+        hud: update.hud,
+      }),
+    }),
+  );
   captureTimeline(current, label ?? "edit", false);
   emitSnapshot([update.branchId]);
 }
 
 async function createBranch(current: SessionState) {
-  const branchId = ensureFeatureBranch(current.runtime);
+  const existing = Array.from(current.branches.values()).find((branch) => branch.summary.name === "what-if");
+  const branchId = existing?.summary.id ?? current.runtime.history().createBranch("what-if").id;
   const update = await renderBranch(current.runtime, branchId, (phase, detail) => {
     postDebug(phase, detail);
   });
@@ -322,8 +258,8 @@ async function createBranch(current: SessionState) {
   );
   current.activeBranchId = branchId;
   current.latestSummary = update.summary;
-  current.mergePlan = computeMergePlan(current);
-  current.inspect = readBranchInspect(current.runtime, branchId);
+  current.mergePlan = null;
+  current.inspect = safeInspect(current.runtime, branchId, current.inspectNodeId);
   captureTimeline(current, "branch", true);
   emitSnapshot([branchId]);
 }
@@ -334,7 +270,18 @@ async function mergeActiveBranch(current: SessionState) {
   if (!feature || !main) {
     return;
   }
+  current.runtime.history().switchBranch(feature.summary.id);
 
+  postDebug(
+    "merge:start",
+    JSON.stringify({
+      source: summarizeBranchState(feature.summary),
+      target: summarizeBranchState(main.summary),
+      plan: current.mergePlan ?? computeMergePlan(current),
+    }),
+  );
+
+  current.mergePlan = current.mergePlan ?? computeMergePlan(current);
   const mergeResult = await executeMerge(current.runtime, feature.summary.id, main.summary.id);
   const mainUpdate = await renderBranch(current.runtime, main.summary.id, (phase, detail) => {
     postDebug(phase, detail);
@@ -350,17 +297,26 @@ async function mergeActiveBranch(current: SessionState) {
     },
     mainUpdate.frame,
   );
-
-  const featureSummary = readBranchSummary(current.runtime, feature.summary.id, (phase, detail) => {
-    postDebug(phase, detail);
-  });
-  updateBranchCache(current, feature.summary.id, featureSummary, feature.frame);
+  current.branches.get(feature.summary.id)?.frame.close();
+  current.branches.delete(feature.summary.id);
 
   current.activeBranchId = main.summary.id;
   current.latestSummary = mainUpdate.summary;
   current.mergeResult = mergeResult;
-  current.mergePlan = computeMergePlan(current);
-  current.inspect = readBranchInspect(current.runtime, main.summary.id);
+  current.mergePlan = null;
+  current.inspect = safeInspect(current.runtime, main.summary.id, current.inspectNodeId);
+  postDebug(
+    "merge:done",
+    JSON.stringify({
+      result: mergeResult,
+      targetAfter: summarizeBranchState({
+        id: mainUpdate.branchId,
+        name: mainUpdate.branchName,
+        state: mainUpdate.state,
+        hud: mainUpdate.hud,
+      }),
+    }),
+  );
   captureTimeline(current, "merge", true);
   emitSnapshot([main.summary.id]);
 }
@@ -371,8 +327,25 @@ async function activateBranch(current: SessionState, branchId: BranchId) {
     return;
   }
 
+  current.runtime.history().switchBranch(target.summary.id);
   current.activeBranchId = branchId;
-  current.inspect = readBranchInspect(current.runtime, branchId);
+  current.latestSummary = null;
+  current.mergePlan = null;
+  current.inspect = safeInspect(current.runtime, branchId, current.inspectNodeId);
+  postDebug(
+    "activate:branch-selected",
+    JSON.stringify({
+      branchId,
+      selected: summarizeBranchState(target.summary),
+    }),
+  );
+  emitSnapshot([]);
+}
+
+async function inspectNode(current: SessionState, branchId: BranchId, nodeId: string) {
+  current.activeBranchId = branchId;
+  current.inspectNodeId = nodeId;
+  current.inspect = safeInspect(current.runtime, branchId, nodeId);
   emitSnapshot([]);
 }
 
@@ -388,7 +361,12 @@ async function scrubTimeline(current: SessionState, index: number) {
     graphNodes: current.graphNodes,
     timeline: current.timeline,
     timelineIndex: index,
+    ...rebuildCommitState(current.timeline, index),
   };
+  session.inspectNodeId = nextEntry.primaryNode;
+  if (session.activeBranchId !== null) {
+    session.inspect = safeInspect(session.runtime, session.activeBranchId, session.inspectNodeId);
+  }
 
   emitSnapshot(Array.from(session.branches.keys()));
 }
@@ -399,7 +377,11 @@ async function rebuildFromTimeline(entry: TimelineState) {
 
   const mainTarget = entry.branches.find((branch) => branch.name !== "what-if") ?? entry.branches[0];
   const mainId = runtime.history().currentBranch().id;
-  const mainUpdate = await updateScene(runtime, mainId, mainTarget.state);
+  const mainUpdate = await updateScene(runtime, mainId, {
+    camera: mainTarget.state.camera,
+    light: mainTarget.state.light,
+    gear: mainTarget.state.gear,
+  });
   branches.set(mainUpdate.branchId, {
       summary: {
         id: mainUpdate.branchId,
@@ -414,8 +396,12 @@ async function rebuildFromTimeline(entry: TimelineState) {
 
   const featureTarget = entry.branches.find((branch) => branch.name === "what-if");
   if (featureTarget) {
-    const featureId = ensureFeatureBranch(runtime);
-    const featureUpdate = await updateScene(runtime, featureId, featureTarget.state);
+    const featureId = runtime.history().createBranch("what-if").id;
+    const featureUpdate = await updateScene(runtime, featureId, {
+      camera: featureTarget.state.camera,
+      light: featureTarget.state.light,
+      gear: featureTarget.state.gear,
+    });
     branches.set(featureUpdate.branchId, {
       summary: {
         id: featureUpdate.branchId,
@@ -440,13 +426,14 @@ async function rebuildFromTimeline(entry: TimelineState) {
     mergeResult: null,
     timeline: [],
     timelineIndex: 0,
+    commitCounter: 0,
+    branchHeads: new Map(),
     inspect: null,
-    pressed: new Set<string>(),
-    lookDelta: { x: 0, y: 0 },
+    inspectNodeId: entry.primaryNode,
   };
 
-  provisional.mergePlan = computeMergePlan(provisional);
-  provisional.inspect = readBranchInspect(runtime, activeBranchId);
+  provisional.mergePlan = null;
+  provisional.inspect = readBranchInspectForNode(runtime, activeBranchId, provisional.inspectNodeId);
   return provisional;
 }
 
@@ -489,15 +476,33 @@ function captureTimeline(current: SessionState, label: string, force: boolean) {
     return;
   }
 
+  const branchName = active?.summary.name ?? null;
+  const commitId = `c${current.commitCounter + 1}`;
+  const kind = timelineKindForLabel(label);
+  const parentIds = parentCommitIdsFor(current, kind, branchName);
+
   current.timeline.push({
+    id: commitId,
+    parentIds,
+    branchName,
+    kind,
     label,
     frameIndex,
     activeBranchName: active?.summary.name ?? null,
+    branchCount: current.branches.size,
+    snapshotId:
+      active != null
+        ? current.runtime.history().branches().find((branch) => branch.id === active.summary.id)?.headSnapshotId ?? null
+        : null,
+    primaryNode: primaryNodeForLabel(label),
+    touchedNodes: touchedNodesForLabel(label, active?.summary.state.gear.teeth ?? 1),
     branches: Array.from(current.branches.values()).map((branch) => ({
       name: branch.summary.name,
       state: structuredClone(branch.summary.state),
     })),
   });
+  current.commitCounter += 1;
+  updateBranchHeads(current.branchHeads, branchName, commitId, kind);
   current.timeline = current.timeline.slice(-80);
   current.timelineIndex = current.timeline.length - 1;
 }
@@ -533,9 +538,17 @@ function emitSnapshot(frameBranchIds: BranchId[]) {
     mergePlan: current.mergePlan,
     mergeResult: current.mergeResult,
     timeline: current.timeline.map((entry) => ({
+      id: entry.id,
+      parentIds: entry.parentIds,
+      branchName: entry.branchName,
+      kind: entry.kind,
       label: entry.label,
       frameIndex: entry.frameIndex,
       activeBranchName: entry.activeBranchName,
+      branchCount: entry.branchCount,
+      snapshotId: entry.snapshotId,
+      primaryNode: entry.primaryNode,
+      touchedNodes: entry.touchedNodes,
     })),
     timelineIndex: current.timelineIndex,
     inspect: current.inspect,
@@ -549,25 +562,14 @@ function isEmptyScenePatch(patch: ScenePatch) {
   return !patch.camera && !patch.light && !patch.gear;
 }
 
-function isTransientCameraPatch(patch: ScenePatch, label?: string) {
-  return Boolean(patch.camera) && !patch.light && !patch.gear && (label === "orbit" || label === "zoom");
-}
 
-function mergeSceneState(base: SceneState, patch: ScenePatch): SceneState {
-  return {
-    camera: {
-      ...base.camera,
-      ...patch.camera,
-    },
-    light: {
-      ...base.light,
-      ...patch.light,
-    },
-    gear: {
-      ...base.gear,
-      ...patch.gear,
-    },
-  };
+
+function safeInspect(runtime: RuntimeHandle, branchId: BranchId, nodeId: string): BranchInspect | null {
+  try {
+    return readBranchInspectForNode(runtime, branchId, nodeId);
+  } catch {
+    return null;
+  }
 }
 
 function formatError(error: unknown): string {
@@ -587,5 +589,140 @@ function formatError(error: unknown): string {
     return JSON.stringify(error);
   } catch {
     return String(error);
+  }
+}
+
+function summarizeBranchState(summary: BranchSummary) {
+  return {
+    id: summary.id,
+    name: summary.name,
+    gear: {
+      teeth: summary.state.gear.teeth,
+      outerRadius: summary.state.gear.outerRadius,
+      innerRadius: summary.state.gear.innerRadius,
+      thickness: summary.state.gear.thickness,
+      rotation: summary.state.gear.rotation,
+    },
+    lightIntensity: summary.state.light.intensity,
+  };
+}
+
+
+function timelineKindForLabel(label: string): TimelineState["kind"] {
+  if (label === "branch") return "branch";
+  if (label === "merge") return "merge";
+  return "normal";
+}
+
+function parentCommitIdsFor(
+  current: SessionState,
+  kind: TimelineState["kind"],
+  branchName: string | null,
+): string[] {
+  const mainHead = current.branchHeads.get("main");
+  const whatIfHead = current.branchHeads.get("what-if");
+
+  if (kind === "branch") {
+    return mainHead ? [mainHead] : [];
+  }
+
+  if (kind === "merge") {
+    return [mainHead, whatIfHead].filter((value): value is string => Boolean(value));
+  }
+
+  if (branchName && current.branchHeads.has(branchName)) {
+    return [current.branchHeads.get(branchName)!];
+  }
+
+  return mainHead ? [mainHead] : [];
+}
+
+function updateBranchHeads(
+  heads: Map<string, string>,
+  branchName: string | null,
+  commitId: string,
+  kind: TimelineState["kind"],
+) {
+  if (kind === "branch") {
+    heads.set("what-if", commitId);
+    return;
+  }
+
+  if (kind === "merge") {
+    heads.set("main", commitId);
+    heads.delete("what-if");
+    return;
+  }
+
+  if (branchName) {
+    heads.set(branchName, commitId);
+  }
+}
+
+function rebuildCommitState(timeline: TimelineState[], index: number) {
+  const branchHeads = new Map<string, string>();
+  const slice = timeline.slice(0, index + 1);
+  for (const entry of slice) {
+    updateBranchHeads(branchHeads, entry.branchName, entry.id, entry.kind);
+  }
+  return {
+    commitCounter: slice.reduce((max, entry) => {
+      const n = Number.parseInt(entry.id.slice(1), 10);
+      return Number.isFinite(n) ? Math.max(max, n) : max;
+    }, 0),
+    branchHeads,
+  };
+}
+
+function primaryNodeForLabel(label: string): string {
+  switch (label) {
+    case "teeth":
+      return "gearToothModel::tooth-0";
+    case "outer":
+    case "inner":
+    case "thickness":
+    case "rotation":
+      return "gearMeshModel";
+    case "light":
+      return "lightingModel";
+    case "boot":
+      return "gearMeshModel";
+    default:
+      return "hudModel";
+  }
+}
+
+function touchedNodesForLabel(label: string, teeth: number): string[] {
+  const toothNodes = Array.from({ length: Math.min(teeth, 6) }, (_, index) => `gearToothModel::tooth-${index}`);
+  switch (label) {
+    case "boot":
+      return [
+        "gearDimensionsModel",
+        "gearProfileModel",
+        "gearTopologyModel",
+        "gearMeshModel",
+        ...toothNodes,
+        "lightingModel",
+        "viewportProjectionModel",
+        "viewportShadingModel",
+        "hudModel",
+      ];
+    case "branch":
+    case "merge":
+      return ["hudModel", "viewportProjectionModel", "viewportShadingModel"];
+    case "teeth":
+      return ["gearTeeth", ...toothNodes, "gearDimensionsModel", "gearProfileModel", "gearTopologyModel", "gearMeshModel", "viewportProjectionModel", "viewportShadingModel", "hudModel"];
+    case "outer":
+      return ["gearOuterRadius", "gearDimensionsModel", "gearProfileModel", "gearTopologyModel", "gearMeshModel", "viewportProjectionModel", "viewportShadingModel", "hudModel"];
+    case "inner":
+      return ["gearInnerRadius", "gearDimensionsModel", "gearProfileModel", "gearTopologyModel", "gearMeshModel", "viewportProjectionModel", "viewportShadingModel", "hudModel"];
+    case "thickness":
+      return ["gearThickness", "gearDimensionsModel", "gearTopologyModel", "gearMeshModel", "viewportProjectionModel", "viewportShadingModel", "hudModel"];
+    case "rotation":
+      return ["gearRotation", "gearDimensionsModel", "viewportProjectionModel", "viewportShadingModel", "hudModel"];
+    case "light":
+      return ["lightIntensity", "lightingModel", "viewportProjectionModel", "viewportShadingModel", "hudModel"];
+    default:
+      return ["hudModel"];
   }
 }

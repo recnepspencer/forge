@@ -56,12 +56,7 @@ pub(crate) fn record_semantic_execution(
         explanation,
     );
     let history = if !retention_budget.retain_history_details {
-        ExecutionHistorySummary::from_report(
-            report,
-            profile,
-            retention_budget.detail_limit,
-            false,
-        )
+        ExecutionHistorySummary::from_report(report, profile, retention_budget.detail_limit, false)
     } else if execution_history_unchanged(report) {
         graph
             .diagnostics_state()
@@ -84,7 +79,7 @@ pub(crate) fn record_semantic_execution(
             retention_budget.detail_limit,
             retention_budget.retain_history_details,
             OrdinaryAccessLane,
-            )
+        )
     };
     let _ = retention_budget;
     let _ = profile;
@@ -99,7 +94,10 @@ pub(crate) fn record_semantic_execution(
         .flat_map(|stage| stage.task_records.iter())
     {
         let cursor = graph.diagnostics_state_mut().allocate_replay_cursor();
-        let replay_projection = graph.node_replay_projection(task.node).ok().unwrap_or_default();
+        let replay_projection = graph
+            .node_replay_projection(task.node)
+            .ok()
+            .unwrap_or_default();
         let lineage_artifact_id = graph.node_lineage_artifact_id(task.node).ok().flatten();
         graph
             .diagnostics_state_mut()

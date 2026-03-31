@@ -16,9 +16,17 @@ export type BranchSummary = {
 };
 
 export type TimelineEntry = {
+  id: string;
+  parentIds: string[];
+  branchName: string | null;
+  kind: "normal" | "branch" | "merge";
   label: string;
   frameIndex: number;
   activeBranchName: string | null;
+  branchCount: number;
+  snapshotId?: number | null;
+  primaryNode: string;
+  touchedNodes: string[];
 };
 
 export type WorkerSnapshot = {
@@ -50,8 +58,9 @@ export type WorkerCommand =
   | { type: "branch" }
   | { type: "merge" }
   | { type: "activateBranch"; branchId: BranchId }
+  | { type: "inspectNode"; branchId: BranchId; nodeId: string }
   | { type: "scrub"; index: number }
-  | { type: "setScenePatch"; patch: ScenePatch; label?: string };
+  | { type: "setScenePatch"; branchId: BranchId; patch: ScenePatch; label?: string };
 
 export type WorkerEvent =
   | { type: "snapshot"; snapshot: WorkerSnapshot; frames: BranchFrame[] }

@@ -3,8 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::identity::data::{EntityId, LineageId, RelationId, VersionId};
 use crate::payloads::data::RecordPayload;
 use crate::query::data::{
-    deterministic_query_fragment_key, QueryExecutionShape, QueryFragmentCounters,
-    QueryWorkerFragment,
+    deterministic_query_fragment_key, QueryFragmentCounters, QueryWorkerFragment,
 };
 use crate::schema::data::KindResolution;
 use crate::snapshots::data::SnapshotHandle;
@@ -46,19 +45,6 @@ pub struct RelationReadRecord {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PacketResult {
-    pub execution_shape: QueryExecutionShape,
-    pub entities: Vec<EntityReadRecord>,
-    pub relations: Vec<RelationReadRecord>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct IndexedReadOutcome {
-    pub result: PacketResult,
-    pub used_index_generation: Option<crate::indexes::data::DerivedIndexGenerationId>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RelationalReadView {
     pub(crate) snapshot: SnapshotHandle,
     pub(crate) entities: Vec<EntityReadRecord>,
@@ -76,42 +62,6 @@ impl RelationalReadView {
 
     pub fn relations(&self) -> &[RelationReadRecord] {
         &self.relations
-    }
-
-    pub fn execute_packet(&self, packet: &crate::query::data::QueryWorkPacket) -> PacketResult {
-        let entity_index = self
-            .entities
-            .iter()
-            .enumerate()
-            .map(|(index, record)| (record.entity_id, index))
-            .collect::<std::collections::BTreeMap<_, _>>();
-        let relation_index = self
-            .relations
-            .iter()
-            .enumerate()
-            .map(|(index, record)| (record.relation_id, index))
-            .collect::<std::collections::BTreeMap<_, _>>();
-        let mut entities = Vec::new();
-        let mut relations = Vec::new();
-        for target in &packet.targets {
-            match target {
-                RecordRef::Entity(entity_id) => {
-                    if let Some(index) = entity_index.get(entity_id) {
-                        entities.push(self.entities[*index].clone());
-                    }
-                }
-                RecordRef::Relation(relation_id) => {
-                    if let Some(index) = relation_index.get(relation_id) {
-                        relations.push(self.relations[*index].clone());
-                    }
-                }
-            }
-        }
-        PacketResult {
-            execution_shape: QueryExecutionShape::BulkPacketized,
-            entities,
-            relations,
-        }
     }
 
     pub fn execute_planned_packet_fragment(
@@ -156,6 +106,7 @@ impl RelationalReadView {
                 relation_records_emitted,
                 touched_partitions: touched_partitions.len(),
             },
+            traversal_basis: None,
         })
     }
 

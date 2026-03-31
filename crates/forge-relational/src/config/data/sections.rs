@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::commit_strategies::data::CommitStrategyRegistration;
 use crate::diagnostics::data::RelationalDiagnosticsProfile;
 use crate::history::data::{BranchId, HistoryRetentionClass, VersionGraphPolicy};
 use crate::logic::commit::CommitAuthorityContract;
@@ -54,6 +55,11 @@ pub struct SchemaConfig {
     pub invariant_catalog: InvariantCatalog,
     pub descriptor_semantics_policy: DescriptorSemanticsCompatibilityPolicy,
     pub descriptor_canonicalization_policy: DescriptorCanonicalizationCompatibilityPolicy,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct CommitStrategiesConfig {
+    pub registrations: Vec<CommitStrategyRegistration>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

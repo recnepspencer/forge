@@ -5,12 +5,43 @@
 pub mod config {
     pub use crate::config::data::{
         AdjacencyBackend, AdjacencyPolicy, CascadeDeletePolicy, CheckpointPolicy,
-        CompiledLanePolicy, ConfigProvenance, ConfigProvenanceEntry, ConfigValueSource,
-        CrossContextPolicy, DurabilityPolicy, DurableLogPolicy, DurableLogRetentionMode,
-        MvccConfig, PatchSurfacePolicy, PublicationConfig, RelationalConfigOverride,
-        RelationalRuntimeProfile, RetentionBackend, RetentionPolicy, SnapshotReleasePolicy,
-        StorageLayoutConfig, VisibilityCachePolicy,
+        CommitStrategiesConfig, CompiledLanePolicy, ConfigProvenance, ConfigProvenanceEntry,
+        ConfigValueSource, CrossContextPolicy, DurabilityPolicy, DurableLogPolicy,
+        DurableLogRetentionMode, MvccConfig, PatchSurfacePolicy, PublicationConfig,
+        RelationalConfigOverride, RelationalRuntimeProfile, RetentionBackend, RetentionPolicy,
+        SnapshotReleasePolicy, StorageLayoutConfig, VisibilityCachePolicy,
     };
+}
+
+pub mod commit_strategies {
+    pub use crate::commit_strategies::data::{
+        CanonicalStrategyCommitRequest, CanonicalStrategyInputArtifact,
+        CanonicalStrategyInputDigest, CanonicalStrategyOutputArtifact,
+        CanonicalStrategyOutputDigest, CommitStrategyDescriptor, CommitStrategyDescriptorDigest,
+        CommitStrategyExecutionRegistration, CommitStrategyExecutor, CommitStrategyFamilyName,
+        CommitStrategyId, CommitStrategyRegistration, CommitStrategyRegistrationError,
+        CommitStrategySemanticName, CommitStrategyVersion, LoweredStrategyCommitPlan,
+        PersistentArtifactName, RawStrategyCommitRequest, StrategyCallerProvenance,
+        StrategyCommitArtifactBundle, StrategyCommitRequestError, StrategyExecutionDraft,
+        StrategyExecutionResult, StrategyExecutionSummary, StrategyExecutorFailure,
+        StrategyExecutorFailureClass, StrategyInputSchemaName, StrategyInputSchemaVersion,
+        StrategyIntentName, StrategyLoweringError, StrategyLoweringProvenance,
+        StrategyLoweringSummary, StrategyMergeConflictClass, StrategyMergeDescriptor,
+        StrategyMutationProgram, StrategyMutationProgramDigest, StrategyObservationContext,
+        StrategyOutputSchemaName, StrategyPacketContract, StrategyReadContract,
+        StrategyReadCostClass, StrategyReadLocalityClass, StrategyReadScopeClass,
+        StrategyReplayDescriptor, StrategyRequestCanonicalization, StrategyRequestOrigin,
+        StrategyTraversalBasis, StrategyVisibilityReadView, ValidatedStrategyCommitPlan,
+    };
+    pub use crate::commit_strategies::facade::{
+        CommitStrategiesAuthorityFacade, CommitStrategiesFacade,
+    };
+    pub use crate::commit_strategies::strategies::{
+        IntentReconciliationAction, IntentReconciliationInput, IntentReconciliationOutput,
+        IntentReconciliationStrategy, ReplicaConvergenceAction, ReplicaConvergenceInput,
+        ReplicaConvergenceOutput, ReplicaConvergenceStrategy,
+    };
+    pub use crate::commit_strategies::{FrozenCommitStrategyRegistry, StrategyExecutionError};
 }
 
 pub mod diagnostics {
@@ -86,7 +117,6 @@ pub mod indexes {
         DerivedIndexBuildOutcome, DerivedIndexBuildRequest, DerivedIndexCompatibility,
         DerivedIndexDefinition, DerivedIndexGeneration, DerivedIndexGenerationId, DerivedIndexId,
         DerivedIndexKind, DerivedIndexPayload, DerivedIndexPublicationStatus,
-        ReadWithStorageFallbackOutcome,
     };
 }
 
@@ -112,42 +142,36 @@ pub mod merge {
     pub use crate::merge::data::{
         AspectMergePolicyDeclaration, AspectMergePolicyKind, BranchCausalDot, BranchDeltaSummary,
         CausalAnnotationSummary, CausalFrontier, CommitCausalMetadata, CommitCausalRelation,
-        ConflictClassificationSummary,
-        CustomIdentityBasisIdentity, CustomMergePolicyIdentity, IdentityBasisDeclaration,
-        IdentityBasisKind, IdentityBasisScope, IdentityDiscoverySummary, IdentityMatchCandidate,
-        IdentityMatchClass, IdentityResolutionReason, LoweredMergePlanRecord,
-        LoweredMergePlanSummary, LoweredMergeAction, LoweredMergeBlockedReason,
-        LoweredMergeRejectedReason, LoweredAspectAction, LoweredAspectOutcome,
-        LoweredRecordDecision, LoweredRecordDecisionKind, LoweredRecordDenialKind,
-        MergeExecutableClass, MergeManualResolutionClass, MergePolicyDecisionBoundary,
-        MergePolicyOwnershipClass, MergePolicyOwnershipSurface, MergePolicyProofBoundary,
-        MergePolicyRejectClass, MergeResolutionClass, DeletionExecutionClass, TopologyExecutionClass,
-        TopologyRewireAdmissionPolicy,
-        MergeExecutionAuthorityContract,
-        MergeExecutionAuthorizationRule, MergeExecutionDecisionSurface,
-        MergeAncestrySummary, MergeArtifactDigestBasis, MergeSchemaKindClass,
-        MergeSchemaKindSemanticSnapshot, MergeSchemaSnapshotDigestBasis,
-        MergeCausalEvidenceModel, MergeRecordCausalAnnotation, MergeRecordCausalDisposition,
-        DeletionMergeClass, MergeConflictClass, MergeConflictClassification,
-        EndpointContinuityClass, RelationConflictPropagation, RelationContinuityClass,
-        TopologyRegionConflictReason,
-        MergeExecutionReadiness, MergeVisibilityEvidence, MergeVisibilityEvidenceKind,
-        MergeVisibilityState,
-        MergeBaseSelectionRule, MergeIntent, MergePlanningArtifactCore, MergePlanningError,
-        MergePlanningDecisionKind, MergePlanningDecisionLog,
-        MergePlanningDecisionLogDigestBasis, MergePlanningDecisionRecord,
-        MergePlanningRequest, MergePlanningSummary, MergePolicyResolution, MergeRecordIdentity,
-        MergeExecutionDeniedRecord, MergeExecutionError, MergeExecutionFreshnessPolicy,
-        MergeExecutionPreparationError, MergeExecutionReadinessReport,
-        MergeExecutionCompilationError, MergeExecutionMutationPlanError,
-        MergeExecutionRequest, PreparedMergeExecution, ResolvedMergeBase,
-        SchemaDeclaredCorrespondenceValidationSummary, MergeExecutionDiagnosticsPlan,
-        MergeResolvedAspectValueStrategy,
-        ExecutedMergeRecordDiagnosticRow, ExecutedMergeRecordClass,
-        ExecutedMergeAspectDiagnosticRow, ExecutedMergeAspectClass,
+        ConflictClassificationSummary, CustomIdentityBasisIdentity, CustomMergePolicyIdentity,
+        DeletionExecutionClass, DeletionMergeClass, EndpointContinuityClass,
+        ExecutedMergeAspectClass, ExecutedMergeAspectDiagnosticRow, ExecutedMergeRecordClass,
+        ExecutedMergeRecordDiagnosticRow, IdentityBasisDeclaration, IdentityBasisKind,
+        IdentityBasisScope, IdentityDiscoverySummary, IdentityMatchCandidate, IdentityMatchClass,
+        IdentityResolutionReason, LoweredAspectAction, LoweredAspectOutcome, LoweredMergeAction,
+        LoweredMergeBlockedReason, LoweredMergePlanRecord, LoweredMergePlanSummary,
+        LoweredMergeRejectedReason, LoweredRecordDecision, LoweredRecordDecisionKind,
+        LoweredRecordDenialKind, MergeAncestrySummary, MergeArtifactDigestBasis,
+        MergeBaseSelectionRule, MergeCausalEvidenceModel, MergeConflictClass,
+        MergeConflictClassification, MergeExecutableClass, MergeExecutionAuthorityContract,
+        MergeExecutionAuthorizationRule, MergeExecutionCompilationError,
+        MergeExecutionDecisionSurface, MergeExecutionDeniedRecord, MergeExecutionDiagnosticsPlan,
+        MergeExecutionError, MergeExecutionFreshnessPolicy, MergeExecutionMutationPlanError,
+        MergeExecutionPreparationError, MergeExecutionReadiness, MergeExecutionReadinessReport,
+        MergeExecutionRequest, MergeIntent, MergeManualResolutionClass, MergePlanningArtifactCore,
+        MergePlanningDecisionKind, MergePlanningDecisionLog, MergePlanningDecisionLogDigestBasis,
+        MergePlanningDecisionRecord, MergePlanningError, MergePlanningRequest,
+        MergePlanningSummary, MergePolicyDecisionBoundary, MergePolicyOwnershipClass,
+        MergePolicyOwnershipSurface, MergePolicyProofBoundary, MergePolicyRejectClass,
+        MergePolicyResolution, MergeRecordCausalAnnotation, MergeRecordCausalDisposition,
+        MergeRecordIdentity, MergeResolutionClass, MergeResolvedAspectValueStrategy,
+        MergeSchemaKindClass, MergeSchemaKindSemanticSnapshot, MergeSchemaSnapshotDigestBasis,
+        MergeVisibilityEvidence, MergeVisibilityEvidenceKind, MergeVisibilityState,
+        PreparedMergeExecution, RelationConflictPropagation, RelationContinuityClass,
+        ResolvedMergeBase, SchemaDeclaredCorrespondenceValidationSummary, TopologyExecutionClass,
+        TopologyRegionConflictReason, TopologyRewireAdmissionPolicy,
     };
-    pub use crate::transactions::data::MergeExecutionOutcome;
     pub use crate::merge::logic::MergeAccess;
+    pub use crate::transactions::data::MergeExecutionOutcome;
 }
 
 pub mod runtime {
@@ -160,10 +184,10 @@ pub mod runtime {
         EntityReadRecord, EntityRecordProjection, HarnessAuditMode, InvariantCatalog,
         InvariantCheckResult, InvariantClass, InvariantDecisionKind, InvariantDecisionRecord,
         InvariantExecutionPoint, InvariantFailureEffect, InvariantRegistration, InvariantRule,
-        PacketResult, PartitionStorageStats, RelationReadRecord, RelationRecordProjection,
-        RelationalReadView, RelationalReplayRecord, RelationalRuntime, RelationalRuntimeConfig,
-        ReplaySchemaVersion, RuntimeComplexityCounters, SnapshotGuard, StorageStats,
-        TopologyFreezeMode, VisibilityProjectionView,
+        PartitionStorageStats, RelationReadRecord, RelationRecordProjection, RelationalReadView,
+        RelationalReplayRecord, RelationalRuntime, RelationalRuntimeConfig, ReplaySchemaVersion,
+        RuntimeComplexityCounters, SnapshotGuard, StorageStats, TopologyFreezeMode,
+        VisibilityProjectionView,
     };
     pub use crate::presentation::api::RelationalRuntimeApi;
     pub use crate::presentation::contracts::{
@@ -206,11 +230,10 @@ pub mod query {
         CanonicalQueryResult, DeterministicQueryFragmentKey, DeterministicQueryPlanKey,
         FallbackParityMode, FallbackParityVerifiedQueryOutcome, IndexQueryRejectionClass,
         PartitionHint, PlannedQueryPacket, QueryAccessPath, QueryComplexitySummary,
-        QueryExecutionOutcome, QueryExecutionShape, QueryFallbackContract,
-        QueryFragmentCounters, QueryLocalityClass, QueryOrderingContract,
-        QueryParallelLegality, QueryParallelProfitability, QueryPlanContextId,
-        QueryPlanEvidenceBasis, QueryScope, QuerySerialReason, QueryWorkPacket,
-        QueryWorkerFragment, ReadPacketPlan, ReductionDiscipline, SnapshotPinnedQueryPlan,
+        QueryExecutionOutcome, QueryExecutionShape, QueryFallbackContract, QueryFragmentCounters,
+        QueryLocalityClass, QueryOrderingContract, QueryParallelLegality,
+        QueryParallelProfitability, QueryPlanContextId, QueryPlanEvidenceBasis, QueryScope,
+        QuerySerialReason, QueryWorkerFragment, ReductionDiscipline, SnapshotPinnedQueryPlan,
     };
 }
 
@@ -281,25 +304,24 @@ pub mod symbols {
 }
 
 pub mod transactions {
-     pub use crate::transactions::data::{
-          AspectEmissionTrace, AspectEvaluationTrace, AspectEvaluationTraceRow,
-          AspectLifecycleTransitionClass, AspectTagAccuracyReport, AspectTraceEvidence,
-          AuthoritativeApplyPlan, AuthorityMode, BulkEntityCreateIntent, BulkMutationLineagePlan,
-          BulkMutationLocalityFootprint, BulkMutationNamingPlan, BulkMutationProvenancePlan,
-          BulkMutationScope, BulkRelationCreateIntent, LineageSafeBulkMutationBatch,
-          NamingStableBulkMutationBatch, ProvenanceCompleteBulkMutationBatch,
-          CommitAspectSummary, CommitAuthority, CommitChangeSummary, CommitConflict,
-          CommitHistorySummary, CommitLog, CommitOutcome, CommitPatchBudgetSummary, CommitPhase,
-          CommitPhaseTiming, CommitPublicationSummary, CommitResult, CommitSchemaSummary,
-          CommitStructuralSummary, CommitSummary, CommitTopology, CommitTraceEvent, ConflictClass,
-          CreateIntent, CrossContextEndpointClass, DeleteEntityIntent, DeleteRelationIntent,
-          EntityMutationIntent, MergedCommitPlan, MutationIntent, PatchVsTruthDeltaReport,
-          PlannedBulkMutationBatch, PlannedLineageTransition, RecordRef, RelationMutationIntent,
-          RelationScope, ReplaceEntityIntent, RollbackEffect, RollbackOutcome, RollbackSummary,
-          SavepointId, TransactionCommitError, TransactionId, TransactionOptions, UndoRecord,
-          UpdateEntityIntent, WorkerIntentBatch,
-          MergeCommitMutationPlan, MergeExecutionStructuralSummary, MergeExecutionSummary,
-          MergeExecutionOutcome,
-      };
-      pub use crate::transactions::logic::RelationalTransaction;
-  }
+    pub use crate::transactions::data::{
+        AspectEmissionTrace, AspectEvaluationTrace, AspectEvaluationTraceRow,
+        AspectLifecycleTransitionClass, AspectTagAccuracyReport, AspectTraceEvidence,
+        AuthoritativeApplyPlan, AuthorityMode, BulkEntityCreateIntent, BulkMutationLineagePlan,
+        BulkMutationLocalityFootprint, BulkMutationNamingPlan, BulkMutationProvenancePlan,
+        BulkMutationScope, BulkRelationCreateIntent, CommitAspectSummary, CommitAuthority,
+        CommitChangeSummary, CommitConflict, CommitHistorySummary, CommitLog, CommitOutcome,
+        CommitPatchBudgetSummary, CommitPhase, CommitPhaseTiming, CommitPublicationSummary,
+        CommitResult, CommitSchemaSummary, CommitStructuralSummary, CommitSummary, CommitTopology,
+        CommitTraceEvent, ConflictClass, CreateIntent, CrossContextEndpointClass,
+        DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent,
+        LineageSafeBulkMutationBatch, MergeCommitMutationPlan, MergeExecutionOutcome,
+        MergeExecutionStructuralSummary, MergeExecutionSummary, MergedCommitPlan, MutationIntent,
+        NamingStableBulkMutationBatch, PatchVsTruthDeltaReport, PlannedBulkMutationBatch,
+        PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch, RecordRef,
+        RelationMutationIntent, RelationScope, ReplaceEntityIntent, RollbackEffect,
+        RollbackOutcome, RollbackSummary, SavepointId, TransactionCommitError, TransactionId,
+        TransactionOptions, UndoRecord, UpdateEntityIntent, WorkerIntentBatch,
+    };
+    pub use crate::transactions::logic::RelationalTransaction;
+}

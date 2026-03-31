@@ -7,10 +7,10 @@ use crate::facade::config::RelationalRuntimeProfile;
 use crate::facade::durability::{DurabilityMode, DurableStoreLayout};
 use crate::facade::history::BranchId;
 use crate::facade::identity::{EntityId, PartitionId, RelationId};
-use crate::facade::query::QueryWorkPacket;
 use crate::facade::runtime::{RelationalReadView, RelationalRuntime, RelationalRuntimeApi};
 use crate::facade::snapshots::SnapshotHandle;
 use crate::facade::transactions::RecordRef;
+use crate::query::data::PlannedQueryPacket;
 
 use self::casebook::{build_casebook, build_workflow_cases};
 use self::entity_seeding::seed_entities;
@@ -121,9 +121,44 @@ impl FintechWorld {
             .unwrap()
     }
 
-    pub(super) fn packet_for_portfolio_probe(&self) -> QueryWorkPacket {
+    pub(super) fn read_query(
+        &self,
+        snapshot: &SnapshotHandle,
+        packet: PlannedQueryPacket,
+    ) -> crate::query::data::CanonicalQueryResult {
+        self.runtime
+            .visibility_reads()
+            .execute_query_plan(
+                self.runtime
+                    .visibility_reads()
+                    .plan_query_packet(snapshot, packet)
+                    .expect("planned fintech query"),
+            )
+            .expect("executed fintech query")
+            .result
+    }
+
+    fn explicit_probe_packet(
+        &self,
+        snapshot: &SnapshotHandle,
+        label: &str,
+        targets: Vec<RecordRef>,
+    ) -> PlannedQueryPacket {
+        let context = self
+            .runtime
+            .visibility_reads()
+            .query_plan_context(snapshot)
+            .expect("query plan context");
+        PlannedQueryPacket::explicit_targets(label, context, targets)
+    }
+
+    pub(super) fn packet_for_portfolio_probe(
+        &self,
+        snapshot: &SnapshotHandle,
+    ) -> PlannedQueryPacket {
         let case = self.baseline_portfolio_case();
-        QueryWorkPacket::bulk(
+        self.explicit_probe_packet(
+            snapshot,
             "portfolio-check",
             vec![
                 RecordRef::Entity(case.account),
@@ -133,18 +168,28 @@ impl FintechWorld {
         )
     }
 
-    pub(super) fn packet_for_case_probe(&self, role: FintechCaseRole) -> QueryWorkPacket {
+    pub(super) fn packet_for_case_probe(
+        &self,
+        role: FintechCaseRole,
+        snapshot: &SnapshotHandle,
+    ) -> PlannedQueryPacket {
         match role {
-            FintechCaseRole::BaselinePortfolio => self.packet_for_portfolio_probe(),
-            FintechCaseRole::LateTradeCorrection => self.packet_for_correction_probe(),
-            FintechCaseRole::IntradayRisk => self.packet_for_intraday_risk_probe(),
-            FintechCaseRole::FailedSettlementRepair => self.packet_for_settlement_repair_probe(),
+            FintechCaseRole::BaselinePortfolio => self.packet_for_portfolio_probe(snapshot),
+            FintechCaseRole::LateTradeCorrection => self.packet_for_correction_probe(snapshot),
+            FintechCaseRole::IntradayRisk => self.packet_for_intraday_risk_probe(snapshot),
+            FintechCaseRole::FailedSettlementRepair => {
+                self.packet_for_settlement_repair_probe(snapshot)
+            }
         }
     }
 
-    pub(super) fn packet_for_correction_probe(&self) -> QueryWorkPacket {
+    pub(super) fn packet_for_correction_probe(
+        &self,
+        snapshot: &SnapshotHandle,
+    ) -> PlannedQueryPacket {
         let case = self.late_trade_correction_case();
-        QueryWorkPacket::bulk(
+        self.explicit_probe_packet(
+            snapshot,
             "correction-probe",
             vec![
                 RecordRef::Entity(case.trade),
@@ -154,9 +199,13 @@ impl FintechWorld {
         )
     }
 
-    pub(super) fn packet_for_intraday_risk_probe(&self) -> QueryWorkPacket {
+    pub(super) fn packet_for_intraday_risk_probe(
+        &self,
+        snapshot: &SnapshotHandle,
+    ) -> PlannedQueryPacket {
         let case = self.intraday_risk_case();
-        QueryWorkPacket::bulk(
+        self.explicit_probe_packet(
+            snapshot,
             "intraday-risk-probe",
             vec![
                 RecordRef::Entity(case.instrument),
@@ -167,9 +216,13 @@ impl FintechWorld {
         )
     }
 
-    pub(super) fn packet_for_settlement_repair_probe(&self) -> QueryWorkPacket {
+    pub(super) fn packet_for_settlement_repair_probe(
+        &self,
+        snapshot: &SnapshotHandle,
+    ) -> PlannedQueryPacket {
         let case = self.failed_settlement_repair_case();
-        QueryWorkPacket::bulk(
+        self.explicit_probe_packet(
+            snapshot,
             "settlement-repair-probe",
             vec![
                 RecordRef::Entity(case.settlement),

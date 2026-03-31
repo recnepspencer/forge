@@ -1,8 +1,4 @@
 use crate::data::output::IntoNodeEvaluationResult;
-use crate::facade::{
-    Aspect, AspectMask, AspectVersion, DependencyBatchEdit, DependencyEdge, NodeId,
-    PartitionToken, SignalError, SignalGraph,
-};
 use crate::facade::advanced::{
     ComparatorPolicyResolver, ConditionResolver, DefaultComparatorPolicyResolver,
     DefaultComparatorResolver, DefaultConditionResolver, EvaluationContext, EvaluationOutput,
@@ -10,6 +6,10 @@ use crate::facade::advanced::{
 };
 use crate::facade::integration::NodeContract;
 use crate::facade::runtime::{ComputationFamily, DefinedComputation, Recipe, SignalRuntime};
+use crate::facade::{
+    Aspect, AspectMask, AspectVersion, DependencyBatchEdit, DependencyEdge, NodeId, PartitionToken,
+    SignalError, SignalGraph,
+};
 use crate::logic::planner::{
     build_evaluation_plan_with_policy_resolver, execute_plan_with_policy_and_condition,
     StageExecutor,

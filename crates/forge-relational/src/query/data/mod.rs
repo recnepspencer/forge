@@ -3,10 +3,10 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::history::data::CommitId;
 use crate::history::data::AspectFilter;
-use crate::indexes::data::DerivedIndexGenerationId;
+use crate::history::data::CommitId;
 use crate::identity::data::{EntityId, KindId, PartitionId, VersionId};
+use crate::indexes::data::DerivedIndexGenerationId;
 use crate::schema::data::{DescriptorSemanticsVersion, SchemaVersionId};
 use crate::snapshots::data::{SnapshotHandle, SnapshotId};
 use crate::storage::data::{EntityReadRecord, RelationReadRecord};
@@ -30,9 +30,7 @@ pub struct QueryPlanContextId {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum QueryPlanEvidenceBasis {
-    CanonicalCommitEnvelope {
-        commit_id: CommitId,
-    },
+    CanonicalCommitEnvelope { commit_id: CommitId },
     GenesisRuntimeBootstrap,
 }
 
@@ -84,19 +82,13 @@ pub enum QuerySerialReason {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum QueryParallelProfitability {
     Profitable,
-    SerialPreferred {
-        reason: QuerySerialReason,
-    },
+    SerialPreferred { reason: QuerySerialReason },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum QueryLocalityClass {
-    SinglePartition {
-        partition_id: PartitionId,
-    },
-    PartitionBounded {
-        partitions: Arc<[PartitionId]>,
-    },
+    SinglePartition { partition_id: PartitionId },
+    PartitionBounded { partitions: Arc<[PartitionId]> },
     CrossPartitionTraversal,
 }
 
@@ -116,6 +108,21 @@ pub enum QueryScope {
     EntityPayloadFieldEquals {
         field: String,
         value: String,
+        partition_scope: Option<Arc<[PartitionId]>>,
+    },
+    EntityPayloadFieldAnyOf {
+        field: String,
+        values: Arc<[String]>,
+        partition_scope: Option<Arc<[PartitionId]>>,
+    },
+    RelationPayloadFieldEquals {
+        field: String,
+        value: String,
+        partition_scope: Option<Arc<[PartitionId]>>,
+    },
+    RelationPayloadFieldAnyOf {
+        field: String,
+        values: Arc<[String]>,
         partition_scope: Option<Arc<[PartitionId]>>,
     },
     AspectFilteredEntities {
@@ -173,6 +180,27 @@ pub struct QueryFragmentCounters {
     pub touched_partitions: usize,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct TraversalEntityVisitKey {
+    pub depth: u32,
+    pub root_seed: EntityId,
+    pub via_relation: Option<crate::identity::data::RelationId>,
+    pub entity_id: EntityId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct TraversalRelationVisitKey {
+    pub depth: u32,
+    pub root_seed: EntityId,
+    pub relation_id: crate::identity::data::RelationId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct TraversalReductionBasis {
+    pub entity_visit_keys: Vec<TraversalEntityVisitKey>,
+    pub relation_visit_keys: Vec<TraversalRelationVisitKey>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QueryWorkerFragment {
     pub plan_key: DeterministicQueryPlanKey,
@@ -181,6 +209,7 @@ pub struct QueryWorkerFragment {
     pub entities: Vec<EntityReadRecord>,
     pub relations: Vec<RelationReadRecord>,
     pub counters: QueryFragmentCounters,
+    pub traversal_basis: Option<TraversalReductionBasis>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -246,15 +275,6 @@ pub struct FallbackParityVerifiedQueryOutcome {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct QueryWorkPacket {
-    pub label: String,
-    pub partition_hint: Option<PartitionHint>,
-    pub execution_shape: QueryExecutionShape,
-    pub reduction: ReductionDiscipline,
-    pub targets: Vec<RecordRef>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReadPacketPlan {
     pub label: String,
     pub entity_chunk_indexes: Vec<usize>,
@@ -262,37 +282,29 @@ pub struct ReadPacketPlan {
     pub target_count: usize,
 }
 
-impl QueryWorkPacket {
-    pub fn bulk(label: impl Into<String>, targets: Vec<RecordRef>) -> Self {
-        Self {
-            label: label.into(),
-            partition_hint: None,
-            execution_shape: QueryExecutionShape::BulkPacketized,
-            reduction: ReductionDiscipline::DeterministicMerge,
-            targets,
-        }
-    }
-
-    pub fn planned_with_context(self, context_id: QueryPlanContextId) -> PlannedQueryPacket {
-        PlannedQueryPacket::from_legacy_packet(self, context_id)
-    }
-}
-
 impl PlannedQueryPacket {
-    pub fn from_legacy_packet(packet: QueryWorkPacket, context_id: QueryPlanContextId) -> Self {
-        let QueryWorkPacket {
+    pub fn explicit_targets(
+        label: impl Into<String>,
+        context_id: QueryPlanContextId,
+        targets: Vec<RecordRef>,
+    ) -> Self {
+        Self::explicit_targets_with_locality(
             label,
-            partition_hint,
-            execution_shape,
-            reduction,
+            context_id,
             targets,
-        } = packet;
-        let locality = match partition_hint {
-            Some(PartitionHint { partition_id }) => QueryLocalityClass::SinglePartition {
-                partition_id,
-            },
-            None => QueryLocalityClass::CrossPartitionTraversal,
-        };
+            QueryLocalityClass::CrossPartitionTraversal,
+        )
+    }
+
+    pub fn explicit_targets_with_locality(
+        label: impl Into<String>,
+        context_id: QueryPlanContextId,
+        targets: Vec<RecordRef>,
+        locality: QueryLocalityClass,
+    ) -> Self {
+        let label = label.into();
+        let execution_shape = QueryExecutionShape::BulkPacketized;
+        let reduction = ReductionDiscipline::DeterministicMerge;
         let target_count_hint = targets.len();
         let scope = QueryScope::ExplicitTargets {
             targets: Arc::<[RecordRef]>::from(targets),
@@ -324,7 +336,7 @@ impl PlannedQueryPacket {
         }
     }
 
-    pub fn explicit_targets(&self) -> Option<&[RecordRef]> {
+    pub fn explicit_target_refs(&self) -> Option<&[RecordRef]> {
         match &self.scope {
             QueryScope::ExplicitTargets { targets } => Some(targets.as_ref()),
             _ => None,
@@ -332,12 +344,7 @@ impl PlannedQueryPacket {
     }
 
     pub fn requires_serial_reduction(&self) -> bool {
-        matches!(
-            self.scope,
-            QueryScope::OutgoingNeighborhood { .. }
-                | QueryScope::IncomingNeighborhood { .. }
-                | QueryScope::ConnectivityTraversal { .. }
-        )
+        false
     }
 }
 
@@ -388,26 +395,36 @@ pub fn reduce_query_fragments(
     mut fragments: Vec<QueryWorkerFragment>,
 ) -> CanonicalQueryResult {
     fragments.sort_by_key(|fragment| fragment.fragment_key);
-    let mut entities = Vec::new();
-    let mut relations = Vec::new();
-    for fragment in fragments {
-        entities.extend(fragment.entities);
-        relations.extend(fragment.relations);
-    }
-
-    match ordering {
+    let (entities, relations) = match ordering {
         QueryOrderingContract::CanonicalEntityIdOrder => {
+            let mut entities = fragments
+                .into_iter()
+                .flat_map(|fragment| fragment.entities.into_iter())
+                .collect::<Vec<_>>();
             entities.sort_by_key(|record| record.entity_id);
+            (entities, Vec::new())
         }
         QueryOrderingContract::CanonicalRelationIdOrder => {
+            let mut relations = fragments
+                .into_iter()
+                .flat_map(|fragment| fragment.relations.into_iter())
+                .collect::<Vec<_>>();
             relations.sort_by_key(|record| record.relation_id);
+            (Vec::new(), relations)
         }
         QueryOrderingContract::CanonicalRecordRefOrder => {
+            let mut entities = Vec::new();
+            let mut relations = Vec::new();
+            for fragment in fragments {
+                entities.extend(fragment.entities);
+                relations.extend(fragment.relations);
+            }
             entities.sort_by_key(|record| record.entity_id);
             relations.sort_by_key(|record| record.relation_id);
+            (entities, relations)
         }
-        QueryOrderingContract::CanonicalTraversalOrder => {}
-    }
+        QueryOrderingContract::CanonicalTraversalOrder => reduce_traversal_fragments(fragments),
+    };
 
     let reduction_digest = certification_digest(&(ordering, &entities, &relations));
     CanonicalQueryResult {
@@ -417,6 +434,100 @@ pub fn reduce_query_fragments(
         relations,
         reduction_digest,
     }
+}
+
+fn reduce_traversal_fragments(
+    fragments: Vec<QueryWorkerFragment>,
+) -> (Vec<EntityReadRecord>, Vec<RelationReadRecord>) {
+    let entity_capacity = fragments
+        .iter()
+        .map(|fragment| fragment.entities.len())
+        .sum();
+    let relation_capacity = fragments
+        .iter()
+        .map(|fragment| fragment.relations.len())
+        .sum();
+    let mut keyed_entities = Vec::with_capacity(entity_capacity);
+    let mut keyed_relations = Vec::with_capacity(relation_capacity);
+    let mut fallback_entities = Vec::with_capacity(entity_capacity);
+    let mut fallback_relations = Vec::with_capacity(relation_capacity);
+
+    for fragment in fragments {
+        let QueryWorkerFragment {
+            entities,
+            relations,
+            traversal_basis,
+            ..
+        } = fragment;
+        match traversal_basis {
+            Some(traversal_basis) => {
+                keyed_entities.extend(traversal_basis.entity_visit_keys.into_iter().zip(entities));
+                keyed_relations.extend(
+                    traversal_basis
+                        .relation_visit_keys
+                        .into_iter()
+                        .zip(relations),
+                );
+            }
+            None => {
+                fallback_entities.extend(entities);
+                fallback_relations.extend(relations);
+            }
+        }
+    }
+
+    (
+        reduce_traversal_entities(keyed_entities, fallback_entities),
+        reduce_traversal_relations(keyed_relations, fallback_relations),
+    )
+}
+
+fn reduce_traversal_entities(
+    mut keyed_entities: Vec<(TraversalEntityVisitKey, EntityReadRecord)>,
+    fallback_entities: Vec<EntityReadRecord>,
+) -> Vec<EntityReadRecord> {
+    if keyed_entities.is_empty() {
+        let mut seen = std::collections::BTreeSet::new();
+        return fallback_entities
+            .into_iter()
+            .filter(|record| seen.insert(record.entity_id))
+            .collect();
+    }
+
+    keyed_entities.sort_by(|left, right| {
+        left.0
+            .cmp(&right.0)
+            .then_with(|| certification_digest(&left.1).cmp(&certification_digest(&right.1)))
+    });
+    let mut seen = std::collections::BTreeSet::new();
+    keyed_entities
+        .into_iter()
+        .filter_map(|(_, record)| seen.insert(record.entity_id).then_some(record))
+        .collect()
+}
+
+fn reduce_traversal_relations(
+    mut keyed_relations: Vec<(TraversalRelationVisitKey, RelationReadRecord)>,
+    fallback_relations: Vec<RelationReadRecord>,
+) -> Vec<RelationReadRecord> {
+    if keyed_relations.is_empty() {
+        let mut seen = std::collections::BTreeSet::new();
+        return fallback_relations
+            .into_iter()
+            .filter(|record| seen.insert(record.relation_id))
+            .collect();
+    }
+
+    keyed_relations.sort_by(|left, right| {
+        left.0
+            .cmp(&right.0)
+            .then_with(|| certification_digest(&left.1).cmp(&certification_digest(&right.1)))
+    });
+    let mut seen = std::collections::BTreeSet::new();
+    keyed_relations
+        .into_iter()
+        .filter_map(|(_, record)| seen.insert(record.relation_id).then_some(record))
+        .collect()
 }
 
 pub(crate) fn certification_digest<T: Serialize>(value: &T) -> String {
@@ -432,14 +543,24 @@ impl From<PartitionId> for PartitionHint {
 }
 
 impl QueryScope {
+    pub fn canonical_value_scope(values: &[String]) -> Arc<[String]> {
+        let mut canonical = values.to_vec();
+        canonical.sort();
+        canonical.dedup();
+        Arc::from(canonical)
+    }
+
     pub fn target_count_hint(&self) -> usize {
         match self {
             Self::ExplicitTargets { targets } => targets.len(),
             Self::EntityKindScan { .. }
             | Self::RelationKindScan { .. }
             | Self::EntityPayloadFieldEquals { .. }
+            | Self::RelationPayloadFieldEquals { .. }
             | Self::AspectFilteredEntities { .. }
             | Self::AspectFilteredRelations { .. } => 0,
+            Self::EntityPayloadFieldAnyOf { values, .. }
+            | Self::RelationPayloadFieldAnyOf { values, .. } => values.len(),
             Self::OutgoingNeighborhood { seeds, .. }
             | Self::IncomingNeighborhood { seeds, .. }
             | Self::ConnectivityTraversal { seeds, .. } => seeds.len(),
@@ -450,24 +571,27 @@ impl QueryScope {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::payloads::data::RecordPayload;
     use crate::schema::data::DescriptorSemanticsVersion;
+    use crate::schema::data::{KindResolution, SchemaId, SchemaVersionId};
+    use crate::storage::data::RecordLifecycleState;
 
     #[test]
-    fn legacy_query_packet_converts_to_planned_explicit_targets_packet() {
-        let legacy = QueryWorkPacket::bulk(
+    fn explicit_target_helper_builds_planned_packet() {
+        let planned = PlannedQueryPacket::explicit_targets(
             "targets",
+            QueryPlanContextId {
+                runtime_instance_id: 11,
+                snapshot_id: SnapshotId(5),
+                version_id: VersionId(19),
+                schema_version: SchemaVersionId(2),
+                descriptor_semantics_version: DescriptorSemanticsVersion(1),
+                evidence_basis: QueryPlanEvidenceBasis::CanonicalCommitEnvelope {
+                    commit_id: CommitId(13),
+                },
+            },
             vec![RecordRef::Entity(EntityId::new(PartitionId(7), 3, 1))],
         );
-        let planned = legacy.planned_with_context(QueryPlanContextId {
-            runtime_instance_id: 11,
-            snapshot_id: SnapshotId(5),
-            version_id: VersionId(19),
-            schema_version: SchemaVersionId(2),
-            descriptor_semantics_version: DescriptorSemanticsVersion(1),
-            evidence_basis: QueryPlanEvidenceBasis::CanonicalCommitEnvelope {
-                commit_id: CommitId(13),
-            },
-        });
 
         assert_eq!(planned.label, "targets");
         assert_eq!(
@@ -481,23 +605,15 @@ mod tests {
         assert_eq!(planned.fallback, QueryFallbackContract::StorageOnly);
         assert_eq!(planned.target_count_hint, 1);
         assert_eq!(
-            planned.explicit_targets(),
+            planned.explicit_target_refs(),
             Some([RecordRef::Entity(EntityId::new(PartitionId(7), 3, 1))].as_slice())
         );
     }
 
     #[test]
-    fn legacy_query_packet_partition_hint_converts_to_single_partition_locality() {
-        let legacy = QueryWorkPacket {
-            label: "partitioned".to_string(),
-            partition_hint: Some(PartitionHint::from(PartitionId(42))),
-            execution_shape: QueryExecutionShape::BulkPacketized,
-            reduction: ReductionDiscipline::DeterministicMerge,
-            targets: vec![],
-        };
-
-        let planned = PlannedQueryPacket::from_legacy_packet(
-            legacy,
+    fn explicit_target_helper_can_bind_single_partition_locality() {
+        let planned = PlannedQueryPacket::explicit_targets_with_locality(
+            "partitioned",
             QueryPlanContextId {
                 runtime_instance_id: 1,
                 snapshot_id: SnapshotId(2),
@@ -507,6 +623,10 @@ mod tests {
                 evidence_basis: QueryPlanEvidenceBasis::CanonicalCommitEnvelope {
                     commit_id: CommitId(21),
                 },
+            },
+            vec![],
+            QueryLocalityClass::SinglePartition {
+                partition_id: PartitionId(42),
             },
         );
 
@@ -519,11 +639,7 @@ mod tests {
     }
 
     #[test]
-    fn legacy_query_packet_conversion_generates_non_zero_deterministic_plan_key() {
-        let packet = QueryWorkPacket::bulk(
-            "legacy",
-            vec![RecordRef::Entity(EntityId::new(PartitionId(7), 3, 1))],
-        );
+    fn explicit_target_helper_generates_non_zero_deterministic_plan_key() {
         let context = QueryPlanContextId {
             runtime_instance_id: 11,
             snapshot_id: SnapshotId(7),
@@ -535,10 +651,192 @@ mod tests {
             },
         };
 
-        let first = PlannedQueryPacket::from_legacy_packet(packet.clone(), context.clone());
-        let second = PlannedQueryPacket::from_legacy_packet(packet, context);
+        let first = PlannedQueryPacket::explicit_targets(
+            "legacy",
+            context.clone(),
+            vec![RecordRef::Entity(EntityId::new(PartitionId(7), 3, 1))],
+        );
+        let second = PlannedQueryPacket::explicit_targets(
+            "legacy",
+            context,
+            vec![RecordRef::Entity(EntityId::new(PartitionId(7), 3, 1))],
+        );
 
         assert_ne!(first.plan_key, DeterministicQueryPlanKey(0));
         assert_eq!(first.plan_key, second.plan_key);
+    }
+
+    #[test]
+    fn traversal_reduction_uses_visit_keys_for_cross_fragment_determinism() {
+        let seed = EntityId::new(PartitionId(1), 1, 1);
+        let mid = EntityId::new(PartitionId(1), 2, 1);
+        let leaf = EntityId::new(PartitionId(1), 3, 1);
+        let relation = crate::identity::data::RelationId::new(PartitionId(1), 1, 1);
+        let kind = KindResolution {
+            kind_id: KindId(1),
+            kind_name: "test.entity".to_string(),
+            schema_id: SchemaId("test".to_string()),
+            schema_version_id: SchemaVersionId(1),
+        };
+        let relation_kind = KindResolution {
+            kind_id: KindId(2),
+            kind_name: "test.relation".to_string(),
+            schema_id: SchemaId("test".to_string()),
+            schema_version_id: SchemaVersionId(1),
+        };
+
+        let reduced = reduce_query_fragments(
+            QueryExecutionShape::BulkPacketized,
+            QueryOrderingContract::CanonicalTraversalOrder,
+            vec![
+                QueryWorkerFragment {
+                    plan_key: DeterministicQueryPlanKey(1),
+                    fragment_key: DeterministicQueryFragmentKey(2),
+                    ordering: QueryOrderingContract::CanonicalTraversalOrder,
+                    entities: vec![
+                        EntityReadRecord {
+                            entity_id: mid,
+                            lineage_id: None,
+                            kind: kind.clone(),
+                            lifecycle: RecordLifecycleState::Live,
+                            created_at_version: VersionId(1),
+                            retired_at_version: None,
+                            payload: RecordPayload::StructuredJson(
+                                serde_json::json!({"name":"mid"}),
+                            ),
+                        },
+                        EntityReadRecord {
+                            entity_id: leaf,
+                            lineage_id: None,
+                            kind: kind.clone(),
+                            lifecycle: RecordLifecycleState::Live,
+                            created_at_version: VersionId(1),
+                            retired_at_version: None,
+                            payload: RecordPayload::StructuredJson(
+                                serde_json::json!({"name":"leaf"}),
+                            ),
+                        },
+                    ],
+                    relations: vec![RelationReadRecord {
+                        relation_id: relation,
+                        kind: relation_kind,
+                        lifecycle: RecordLifecycleState::Live,
+                        created_at_version: VersionId(1),
+                        retired_at_version: None,
+                        source: seed,
+                        target: mid,
+                        payload: Some(RecordPayload::StructuredJson(
+                            serde_json::json!({"label":"edge"}),
+                        )),
+                    }],
+                    counters: QueryFragmentCounters {
+                        target_count: 1,
+                        entity_records_emitted: 2,
+                        relation_records_emitted: 1,
+                        touched_partitions: 1,
+                    },
+                    traversal_basis: Some(TraversalReductionBasis {
+                        entity_visit_keys: vec![
+                            TraversalEntityVisitKey {
+                                depth: 1,
+                                root_seed: seed,
+                                via_relation: Some(relation),
+                                entity_id: mid,
+                            },
+                            TraversalEntityVisitKey {
+                                depth: 2,
+                                root_seed: seed,
+                                via_relation: Some(relation),
+                                entity_id: leaf,
+                            },
+                        ],
+                        relation_visit_keys: vec![TraversalRelationVisitKey {
+                            depth: 0,
+                            root_seed: seed,
+                            relation_id: relation,
+                        }],
+                    }),
+                },
+                QueryWorkerFragment {
+                    plan_key: DeterministicQueryPlanKey(1),
+                    fragment_key: DeterministicQueryFragmentKey(1),
+                    ordering: QueryOrderingContract::CanonicalTraversalOrder,
+                    entities: vec![
+                        EntityReadRecord {
+                            entity_id: seed,
+                            lineage_id: None,
+                            kind,
+                            lifecycle: RecordLifecycleState::Live,
+                            created_at_version: VersionId(1),
+                            retired_at_version: None,
+                            payload: RecordPayload::StructuredJson(
+                                serde_json::json!({"name":"seed"}),
+                            ),
+                        },
+                        EntityReadRecord {
+                            entity_id: mid,
+                            lineage_id: None,
+                            kind: KindResolution {
+                                kind_id: KindId(1),
+                                kind_name: "test.entity".to_string(),
+                                schema_id: SchemaId("test".to_string()),
+                                schema_version_id: SchemaVersionId(1),
+                            },
+                            lifecycle: RecordLifecycleState::Live,
+                            created_at_version: VersionId(1),
+                            retired_at_version: None,
+                            payload: RecordPayload::StructuredJson(
+                                serde_json::json!({"name":"mid-duplicate"}),
+                            ),
+                        },
+                    ],
+                    relations: vec![],
+                    counters: QueryFragmentCounters {
+                        target_count: 1,
+                        entity_records_emitted: 2,
+                        relation_records_emitted: 0,
+                        touched_partitions: 1,
+                    },
+                    traversal_basis: Some(TraversalReductionBasis {
+                        entity_visit_keys: vec![
+                            TraversalEntityVisitKey {
+                                depth: 0,
+                                root_seed: seed,
+                                via_relation: None,
+                                entity_id: seed,
+                            },
+                            TraversalEntityVisitKey {
+                                depth: 1,
+                                root_seed: seed,
+                                via_relation: Some(relation),
+                                entity_id: mid,
+                            },
+                        ],
+                        relation_visit_keys: vec![],
+                    }),
+                },
+            ],
+        );
+
+        assert_eq!(
+            reduced
+                .entities
+                .iter()
+                .map(|record| record.entity_id)
+                .collect::<Vec<_>>(),
+            vec![seed, mid, leaf]
+        );
+        assert_eq!(
+            reduced
+                .relations
+                .iter()
+                .map(|record| record.relation_id)
+                .collect::<Vec<_>>(),
+            vec![relation]
+        );
+        assert_eq!(
+            reduced.entities[1].payload,
+            RecordPayload::StructuredJson(serde_json::json!({"name":"mid"}))
+        );
     }
 }

@@ -353,14 +353,16 @@ fn chunk_diagnostics_and_packet_plans_are_public_and_stable() {
     let entity_a = changed_entities(&first)[0];
     let entity_b = changed_entities(&second)[0];
     let snapshot = runtime.visibility_authority().snapshot();
-    let packet = QueryWorkPacket::bulk(
+    let packet = explicit_query_packet(
+        &runtime,
+        &snapshot,
         "pair",
         vec![RecordRef::Entity(entity_a), RecordRef::Entity(entity_b)],
     );
 
     let plan = runtime
         .storage_access()
-        .plan_read_packet(&snapshot, &packet)
+        .plan_read_explicit_query_packet(&snapshot, &packet)
         .unwrap();
     let diagnostics = runtime
         .storage_access()
@@ -484,23 +486,34 @@ fn bulk_like_aspect_history_filters_and_query_packets_stay_stable_after_recovery
     for (index, leaf) in leaves.iter().enumerate() {
         let _ = update_entity(&mut runtime, *leaf, &format!("leaf-{index}-updated"));
     }
-    let packet = QueryWorkPacket::bulk(
+    let snapshot = runtime.visibility_authority().snapshot();
+    let planned_packet = runtime
+        .storage_access()
+        .plan_read_explicit_query_packet(
+            &snapshot,
+            &explicit_query_packet(
+                &runtime,
+                &snapshot,
+                "fanout-entities",
+                leaves
+                    .iter()
+                    .copied()
+                    .map(RecordRef::Entity)
+                    .collect::<Vec<_>>(),
+            ),
+        )
+        .unwrap();
+    let before_recovery_reads = execute_explicit_query(
+        &runtime,
+        &snapshot,
         "fanout-entities",
         leaves
             .iter()
             .copied()
             .map(RecordRef::Entity)
             .collect::<Vec<_>>(),
-    );
-    let snapshot = runtime.visibility_authority().snapshot();
-    let planned_packet = runtime
-        .storage_access()
-        .plan_read_packet(&snapshot, &packet)
-        .unwrap();
-    let before_recovery_reads = runtime
-        .visibility_reads()
-        .execute_read_packet(&snapshot, &packet)
-        .unwrap();
+    )
+    .result;
     let name_filter = all_aspect_filter(["name"]);
     let endpoints_filter = all_aspect_filter(["source", "target"]);
     let delete_outcome = delete_entity(&mut runtime, hub);
@@ -533,10 +546,17 @@ fn bulk_like_aspect_history_filters_and_query_packets_stay_stable_after_recovery
         .recover(recovery_plan)
         .unwrap();
     let recovered_snapshot = recovered.visibility_authority().snapshot();
-    let recovered_reads = recovered
-        .visibility_reads()
-        .execute_read_packet(&recovered_snapshot, &packet)
-        .unwrap();
+    let recovered_reads = execute_explicit_query(
+        &recovered,
+        &recovered_snapshot,
+        "fanout-entities",
+        leaves
+            .iter()
+            .copied()
+            .map(RecordRef::Entity)
+            .collect::<Vec<_>>(),
+    )
+    .result;
     let recovered_entity_digests = leaves
         .iter()
         .map(|entity| entity_aspect_history_digest(&recovered, *entity, Some(&name_filter)))

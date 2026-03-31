@@ -15,7 +15,13 @@ pub(crate) fn validate_intent(
     branch_basis_version_id: Option<VersionId>,
     intent: &MutationIntent,
 ) -> Result<(), CommitConflict> {
-    validate_entity_intent(runtime, state, schema_source, branch_basis_version_id, intent)?;
+    validate_entity_intent(
+        runtime,
+        state,
+        schema_source,
+        branch_basis_version_id,
+        intent,
+    )?;
     validate_relation_intent(
         runtime,
         state,

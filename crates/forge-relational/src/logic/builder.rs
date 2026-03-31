@@ -1,3 +1,6 @@
+use crate::commit_strategies::data::{
+    CommitStrategyExecutionRegistration, CommitStrategyRegistration,
+};
 use crate::config::data::{
     AdjacencyPolicy, CascadeDeletePolicy, CompiledLanePolicy, CrossContextPolicy, DurabilityPolicy,
     DurableLogPolicy, MvccConfig, PublicationConfig, RelationIntegrityScopeBudget,
@@ -16,6 +19,7 @@ pub struct RelationalRuntimeBuilder {
     profile: RelationalRuntimeProfile,
     overrides: RelationalConfigOverride,
     custom_invariants: Vec<CustomInvariantRegistration>,
+    commit_strategy_executors: Vec<CommitStrategyExecutionRegistration>,
 }
 
 impl Default for RelationalRuntimeBuilder {
@@ -24,6 +28,7 @@ impl Default for RelationalRuntimeBuilder {
             profile: RelationalRuntimeProfile::CertificationCore,
             overrides: RelationalConfigOverride::default(),
             custom_invariants: Vec::new(),
+            commit_strategy_executors: Vec::new(),
         }
     }
 }
@@ -86,6 +91,24 @@ impl RelationalRuntimeBuilder {
 
     pub fn custom_invariant(mut self, custom_invariant: CustomInvariantRegistration) -> Self {
         self.custom_invariants.push(custom_invariant);
+        self
+    }
+
+    pub fn commit_strategy(mut self, commit_strategy: CommitStrategyRegistration) -> Self {
+        self.overrides
+            .commit_strategies
+            .registrations
+            .get_or_insert_with(Vec::new)
+            .push(commit_strategy);
+        self
+    }
+
+    pub fn commit_strategy_executor(
+        mut self,
+        commit_strategy_executor: CommitStrategyExecutionRegistration,
+    ) -> Self {
+        self.commit_strategy_executors
+            .push(commit_strategy_executor);
         self
     }
 
@@ -177,9 +200,10 @@ impl RelationalRuntimeBuilder {
     }
 
     pub fn build(self) -> RelationalRuntime {
-        RelationalRuntime::new_with_custom_invariants(
+        RelationalRuntime::new_with_extensions(
             RelationalRuntimeConfig::resolved(self.profile, self.overrides),
             self.custom_invariants,
+            self.commit_strategy_executors,
         )
     }
 }
@@ -189,6 +213,14 @@ mod tests {
     use std::sync::Arc;
 
     use super::RelationalRuntimeBuilder;
+    use crate::commit_strategies::data::{
+        CommitStrategyDescriptor, CommitStrategyFamilyName, CommitStrategyId,
+        CommitStrategyRegistration, CommitStrategySemanticName, CommitStrategyVersion,
+        PersistentArtifactName, StrategyInputSchemaName, StrategyInputSchemaVersion,
+        StrategyIntentName, StrategyOutputSchemaName, StrategyPacketContract, StrategyReadContract,
+        StrategyReadCostClass, StrategyReadLocalityClass, StrategyReadScopeClass,
+        StrategyRequestCanonicalization, StrategyTraversalBasis,
+    };
     use crate::validation::data::{
         CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
         CustomInvariantOperationalMetadata, CustomInvariantPreparationError,
@@ -260,6 +292,140 @@ mod tests {
                 .rule_id()
                 .as_str(),
             "builder.test.rule"
+        );
+    }
+
+    #[test]
+    fn builder_attaches_frozen_commit_strategy_registry() {
+        let registration = CommitStrategyRegistration::new(CommitStrategyDescriptor::new(
+            CommitStrategyId(41),
+            CommitStrategySemanticName::new("strategy.intent.reconcile"),
+            CommitStrategyFamilyName::new("strategy.intent"),
+            CommitStrategyVersion::new(1, 0),
+            StrategyIntentName::new("reconcile.desired.state"),
+            StrategyInputSchemaName::new("intent.reconcile.input.v1"),
+            StrategyInputSchemaVersion(1),
+            StrategyOutputSchemaName::new("intent.reconcile.output.v1"),
+            StrategyRequestCanonicalization::JsonStableObjectOrderV1,
+            StrategyReadContract {
+                scope_class: StrategyReadScopeClass::ExplicitTargetsOnly,
+                locality_class: StrategyReadLocalityClass::SinglePartition,
+                traversal_basis: StrategyTraversalBasis::NoTraversal,
+                packet_contract: StrategyPacketContract::ProjectionOnly,
+                cost_class: StrategyReadCostClass::ORequestedSurface,
+            },
+            PersistentArtifactName::new("strategy.intent.reconcile"),
+        ))
+        .expect("valid strategy registration");
+        let runtime = RelationalRuntimeBuilder::new()
+            .commit_strategy(registration.clone())
+            .build();
+
+        assert_eq!(runtime.commit_strategy_registry().len(), 1);
+        assert_eq!(
+            runtime
+                .commit_strategy_registry()
+                .iter()
+                .next()
+                .expect("registered strategy")
+                .descriptor()
+                .semantic_name()
+                .as_str(),
+            "strategy.intent.reconcile"
+        );
+        assert!(!runtime
+            .commit_strategy_registry()
+            .registry_digest()
+            .is_empty());
+        assert_eq!(
+            runtime
+                .commit_strategy_registry()
+                .iter()
+                .next()
+                .expect("registered strategy")
+                .descriptor()
+                .digest(),
+            registration.descriptor().digest()
+        );
+        assert_eq!(
+            runtime
+                .config()
+                .commit_strategies
+                .registrations
+                .first()
+                .expect("config registration")
+                .descriptor()
+                .semantic_name()
+                .as_str(),
+            "strategy.intent.reconcile"
+        );
+        assert_eq!(
+            runtime
+                .config()
+                .provenance
+                .source_for("commit_strategies.registrations")
+                .expect("strategy provenance")
+                .source,
+            crate::config::data::ConfigValueSource::BuilderOverride
+        );
+        assert!(runtime
+            .config()
+            .provenance
+            .source_for("commit_strategies.registrations")
+            .expect("strategy provenance")
+            .detail
+            .contains("descriptor_set_digest="));
+    }
+
+    #[test]
+    fn runtime_commit_strategy_facade_canonicalizes_requests_against_frozen_registry() {
+        let registration = CommitStrategyRegistration::new(CommitStrategyDescriptor::new(
+            CommitStrategyId(41),
+            CommitStrategySemanticName::new("strategy.intent.reconcile"),
+            CommitStrategyFamilyName::new("strategy.intent"),
+            CommitStrategyVersion::new(1, 0),
+            StrategyIntentName::new("reconcile.desired.state"),
+            StrategyInputSchemaName::new("intent.reconcile.input.v1"),
+            StrategyInputSchemaVersion(1),
+            StrategyOutputSchemaName::new("intent.reconcile.output.v1"),
+            StrategyRequestCanonicalization::JsonStableObjectOrderV1,
+            StrategyReadContract {
+                scope_class: StrategyReadScopeClass::ExplicitTargetsOnly,
+                locality_class: StrategyReadLocalityClass::SinglePartition,
+                traversal_basis: StrategyTraversalBasis::NoTraversal,
+                packet_contract: StrategyPacketContract::ProjectionOnly,
+                cost_class: StrategyReadCostClass::ORequestedSurface,
+            },
+            PersistentArtifactName::new("strategy.intent.reconcile"),
+        ))
+        .expect("valid strategy registration");
+        let runtime = RelationalRuntimeBuilder::new()
+            .commit_strategy(registration)
+            .build();
+
+        let request = crate::facade::commit_strategies::RawStrategyCommitRequest::new(
+            CommitStrategySemanticName::new("strategy.intent.reconcile"),
+            br#"{"z":3,"a":1}"#.to_vec(),
+            crate::facade::commit_strategies::StrategyCallerProvenance {
+                request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Api,
+                actor_identity: Some("user-1".to_string()),
+                correlation_id: Some("corr-1".to_string()),
+            },
+        );
+
+        let canonical = runtime
+            .commit_strategies()
+            .canonicalize_request(&request)
+            .expect("canonical request");
+
+        assert_eq!(canonical.strategy_id(), CommitStrategyId(41));
+        assert_eq!(
+            canonical.canonical_input().canonical_bytes(),
+            br#"{"a":1,"z":3}"#
+        );
+        assert_eq!(
+            canonical.canonical_input().canonicalization(),
+            StrategyRequestCanonicalization::JsonStableObjectOrderV1
         );
     }
 }

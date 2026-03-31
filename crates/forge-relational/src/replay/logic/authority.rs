@@ -16,6 +16,7 @@ use crate::replay::data::{
     VerifiedDescriptorDigest, VerifiedReplaySurfaceDigest,
 };
 use crate::schema::logic::{validate_schema_continuity_bundle, ValidatedSchemaContinuityBundle};
+use crate::transactions::data::TransactionOptions;
 
 use super::diagnostics::record_replay_diagnostic;
 use super::planning::{
@@ -106,6 +107,7 @@ impl<'runtime> ReplayAuthority<'runtime> {
         let replay_plan = replay_recovery_plan_for_chain(
             self.runtime,
             self.runtime.runtime_config(),
+            self.runtime.commit_strategy_executor_registry().clone(),
             &commit_closure,
             request.verification_mode,
         );
@@ -190,8 +192,17 @@ impl<'runtime> ReplayAuthority<'runtime> {
                 );
             }
         };
-        let compared_surfaces = promised_replay_surfaces(&envelope);
+        let compared_surfaces = promised_replay_surfaces(&envelope, Some(&replayed_envelope));
         let mut mismatches = Vec::new();
+        if compared_surfaces.contains(&ReplayObservableSurface::Strategy) {
+            verify_strategy_reexecution_surface(
+                self.runtime,
+                &mut mismatches,
+                &envelope,
+                &commit_closure,
+                request.verification_mode,
+            );
+        }
         let selected_lineage_authority = if compared_surfaces
             .contains(&ReplayObservableSurface::Lineage)
         {
@@ -289,6 +300,21 @@ impl<'runtime> ReplayAuthority<'runtime> {
                 )
             },
         );
+        if compared_surfaces.contains(&ReplayObservableSurface::Strategy) {
+            compare_replay_surface(
+                self.runtime,
+                &verification_plan,
+                &mut mismatches,
+                ReplayObservableSurface::Strategy,
+                ReplayMismatchClass::StrategyArtifactDrift,
+                surface_basis_for_strategy(envelope.strategy_artifacts.as_ref()),
+                surface_basis_for_strategy(replayed_envelope.strategy_artifacts.as_ref()),
+                "strategy replay descriptor differed",
+                || envelope.strategy_artifacts == replayed_envelope.strategy_artifacts,
+                || format!("{:?}", envelope.strategy_artifacts),
+                || format!("{:?}", replayed_envelope.strategy_artifacts),
+            );
+        }
         if replayed_envelope.descriptor_semantics_version != envelope.descriptor_semantics_version {
             self.runtime
                 .performance_access()
@@ -997,6 +1023,155 @@ fn surface_basis_for_published_lineage(
             published_lineage.digest_basis().lineage_decision_count(),
         ))),
     )
+}
+
+fn surface_basis_for_strategy(
+    strategy_artifacts: Option<&crate::commit_strategies::data::StrategyCommitArtifactBundle>,
+) -> ReplaySurfaceComparisonBasis {
+    ReplaySurfaceComparisonBasis::new(
+        ReplaySurfaceAuthorityKind::Strategy,
+        strategy_artifacts.map(|artifacts| {
+            VerifiedReplaySurfaceDigest::new(
+                ReplaySurfaceAuthorityKind::Strategy,
+                artifacts.replay_descriptor(),
+            )
+        }),
+        strategy_artifacts.map(|artifacts| {
+            crate::replay::data::stable_digest(&(
+                artifacts.replay_descriptor().strategy_id(),
+                artifacts.replay_descriptor().input_digest(),
+                artifacts.replay_descriptor().output_digest(),
+                artifacts.replay_descriptor().mutation_program_digest(),
+                artifacts.replay_descriptor().validated_against_version_id(),
+            ))
+        }),
+    )
+}
+
+fn verify_strategy_reexecution_surface(
+    runtime: &mut RelationalRuntime,
+    mismatches: &mut Vec<ReplayMismatch>,
+    envelope: &CanonicalCommitEnvelope,
+    commit_closure: &[CommitId],
+    verification_mode: ReplayVerificationMode,
+) {
+    let Some(expected_artifacts) = envelope.strategy_artifacts.as_ref() else {
+        return;
+    };
+    let basis_closure = &commit_closure[..commit_closure.len().saturating_sub(1)];
+    let basis_plan = super::planning::replay_recovery_plan_for_chain(
+        runtime,
+        runtime.runtime_config(),
+        runtime.commit_strategy_executor_registry().clone(),
+        basis_closure,
+        verification_mode,
+    );
+    let mut basis_runtime = match RelationalRuntime::rebuild_runtime_from_plan(basis_plan) {
+        Ok(runtime) => runtime,
+        Err(error) => {
+            mismatches.push(ReplayMismatch {
+                class: ReplayMismatchClass::StrategyExecutorUnavailable,
+                history_drift_class: None,
+                surface: ReplayObservableSurface::Strategy,
+                verification_layer: ReplayVerificationLayer::DeepArtifactParity,
+                detail: format!(
+                    "failed to rebuild pre-commit strategy replay basis: {}",
+                    error.detail
+                ),
+                expected: Some(format!("{:?}", expected_artifacts.replay_descriptor())),
+                observed: None,
+            });
+            return;
+        }
+    };
+    let replay_request = expected_artifacts.replay_request();
+    let snapshot = basis_runtime.visibility_authority().snapshot();
+    let execution = match basis_runtime
+        .commit_strategies()
+        .execute(&replay_request, &snapshot)
+    {
+        Ok(execution) => execution,
+        Err(error) => {
+            mismatches.push(ReplayMismatch {
+                class: ReplayMismatchClass::StrategyExecutionFailure,
+                history_drift_class: None,
+                surface: ReplayObservableSurface::Strategy,
+                verification_layer: ReplayVerificationLayer::DeepArtifactParity,
+                detail: format!("strategy replay re-execution failed: {error:?}"),
+                expected: Some(format!("{:?}", expected_artifacts.replay_descriptor())),
+                observed: None,
+            });
+            return;
+        }
+    };
+    let lowered = match basis_runtime.commit_strategies_authority().lower_execution(
+        &replay_request,
+        &execution,
+        TransactionOptions {
+            target_branch: Some(envelope.branch_context.clone()),
+            merge_parent_branches: envelope.merge_parent_branches.clone(),
+            ..TransactionOptions::default()
+        },
+    ) {
+        Ok(lowered) => lowered,
+        Err(error) => {
+            mismatches.push(ReplayMismatch {
+                class: ReplayMismatchClass::StrategyLoweringDrift,
+                history_drift_class: None,
+                surface: ReplayObservableSurface::Strategy,
+                verification_layer: ReplayVerificationLayer::DeepArtifactParity,
+                detail: format!("strategy replay re-lowering failed: {error:?}"),
+                expected: Some(format!("{:?}", expected_artifacts.replay_descriptor())),
+                observed: None,
+            });
+            return;
+        }
+    };
+    let observed = crate::commit_strategies::data::StrategyCommitArtifactBundle::from_lowered(
+        &lowered,
+        basis_runtime
+            .commit_strategy_registry()
+            .get_by_id(replay_request.strategy_id())
+            .expect("replayed strategy request should resolve to a registered descriptor")
+            .descriptor(),
+    );
+    if observed.lowering_provenance() == expected_artifacts.lowering_provenance()
+        && observed.lowering_summary() == expected_artifacts.lowering_summary()
+        && execution.output().digest() == expected_artifacts.replay_descriptor().output_digest()
+        && execution.mutation_program().digest()
+            == expected_artifacts
+                .replay_descriptor()
+                .mutation_program_digest()
+        && execution.summary().entity_record_reads
+            == expected_artifacts.lowering_summary().entity_record_reads()
+        && execution.summary().relation_record_reads
+            == expected_artifacts
+                .lowering_summary()
+                .relation_record_reads()
+        && execution.summary().projected_partition_reads
+            == expected_artifacts
+                .lowering_summary()
+                .projected_partition_reads()
+    {
+        runtime
+            .performance_access()
+            .count_replay_verification_layer(ReplayVerificationLayer::DeepArtifactParity);
+        return;
+    }
+    runtime
+        .performance_access()
+        .count_replay_verification_layer(ReplayVerificationLayer::DeepArtifactParity);
+    mismatches.push(ReplayMismatch {
+        class: ReplayMismatchClass::StrategyLoweringDrift,
+        history_drift_class: None,
+        surface: ReplayObservableSurface::Strategy,
+        verification_layer: ReplayVerificationLayer::DeepArtifactParity,
+        detail:
+            "strategy replay re-execution or re-lowering diverged from the committed strategy proof"
+                .to_string(),
+        expected: Some(format!("{:?}", expected_artifacts.replay_descriptor())),
+        observed: Some(format!("{:?}", observed.replay_descriptor())),
+    });
 }
 
 fn published_lineage_artifacts_match(

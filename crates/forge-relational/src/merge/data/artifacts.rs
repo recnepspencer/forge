@@ -1,22 +1,21 @@
 use serde::{Deserialize, Serialize};
 
+use crate::history::data::CommitId;
+use crate::identity::data::KindId;
 use crate::merge::data::{
     AspectComparisonState, AspectMergePolicyDeclaration, AspectMergePolicyKind,
     AuthorizedAspectValueSurface, CausalAnnotationSummary, ConflictClassificationSummary,
-    MergeExecutableClass, MergePolicyDecisionBoundary, MergePolicyOwnershipClass,
-    MergePolicyProofBoundary, MergeResolutionClass,
     IdentityBasisDeclaration, IdentityBasisKind, IdentityBasisScope, IdentityDiscoverySummary,
     LoweredAspectAction, LoweredAspectDenialIntent, LoweredAspectExecutionIntent,
     LoweredMergeAction, LoweredMergeBlockedReason, LoweredMergePlanSummary,
     LoweredMergeRejectedReason, LoweredRecordDecisionKind, LoweredRecordDenialKind,
     LoweredRecordExecutionIntentKind, MergeAncestrySummary, MergeConflictClass,
-    MergeExecutionReadiness, MergePlanningDecisionLog, MergePlanningDecisionLogDigestBasis,
-    MergePlanningRequest, MergePolicyResolutionSummary,
-    MergeVisibilityEvidence, RelationConflictEvidence, ResolvedAspectMergePolicy,
-    ResolvedMergeBase,
+    MergeExecutableClass, MergeExecutionReadiness, MergePlanningDecisionLog,
+    MergePlanningDecisionLogDigestBasis, MergePlanningRequest, MergePolicyDecisionBoundary,
+    MergePolicyOwnershipClass, MergePolicyProofBoundary, MergePolicyResolutionSummary,
+    MergeResolutionClass, MergeVisibilityEvidence, RelationConflictEvidence,
+    ResolvedAspectMergePolicy, ResolvedMergeBase, StrategyConflictClass,
 };
-use crate::history::data::CommitId;
-use crate::identity::data::KindId;
 use crate::schema::data::{
     AspectPlanRevision, RelationIntegrityPlanRevision, RelationPayloadClass, SchemaId,
     SchemaVersionId,
@@ -66,11 +65,17 @@ pub struct MergeConflictDigestBasis {
     pub records: std::sync::Arc<[RecordRef]>,
     pub classes: std::sync::Arc<[MergeConflictClass]>,
     pub validated_schema_correspondence: std::sync::Arc<[bool]>,
+    pub strategy_conflict_classes: std::sync::Arc<[Option<StrategyConflictClass>]>,
+    pub source_strategy_descriptors:
+        std::sync::Arc<[std::sync::Arc<[crate::commit_strategies::data::StrategyMergeDescriptor]>]>,
+    pub target_strategy_descriptors:
+        std::sync::Arc<[std::sync::Arc<[crate::commit_strategies::data::StrategyMergeDescriptor]>]>,
     pub relation_evidence: std::sync::Arc<[Option<RelationConflictEvidence>]>,
     pub source_visibility_evidence: std::sync::Arc<[MergeVisibilityEvidence]>,
     pub target_visibility_evidence: std::sync::Arc<[MergeVisibilityEvidence]>,
     pub base_visibility_evidence: std::sync::Arc<[MergeVisibilityEvidence]>,
-    pub aspect_evidence_keys: std::sync::Arc<[std::sync::Arc<[crate::publication::patch::data::AspectKey]>]>,
+    pub aspect_evidence_keys:
+        std::sync::Arc<[std::sync::Arc<[crate::publication::patch::data::AspectKey]>]>,
     pub aspect_evidence_comparisons:
         std::sync::Arc<[std::sync::Arc<[crate::merge::data::AspectComparisonState]>]>,
 }

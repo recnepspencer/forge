@@ -45,7 +45,9 @@ pub(crate) fn prepare_authoritative_working_state_scope(
     );
     let working_state = runtime
         .storage_authority()
-        .working_state_for_touched_partitions(structural_summary.touched_partitions.iter().copied());
+        .working_state_for_touched_partitions(
+            structural_summary.touched_partitions.iter().copied(),
+        );
 
     (structural_summary, working_state)
 }

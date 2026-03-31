@@ -10,7 +10,8 @@ use crate::tests::support::{
 };
 
 #[test]
-fn merge_planning_conflict_classification_carries_target_view_visibility_evidence_for_exact_shared_truth() {
+fn merge_planning_conflict_classification_carries_target_view_visibility_evidence_for_exact_shared_truth(
+) {
     let mut runtime = persisted_runtime_with_test_schema();
     let entity = create_entity(&mut runtime, "shared");
     create_branch_from_main(&mut runtime, "feature");
@@ -51,7 +52,9 @@ fn merge_planning_conflict_classification_carries_target_view_visibility_evidenc
         crate::facade::merge::MergeVisibilityState::Visible
     );
     assert_eq!(
-        classification.target_visibility_evidence.embedded_surface_state,
+        classification
+            .target_visibility_evidence
+            .embedded_surface_state,
         Some(crate::facade::merge::MergeVisibilityState::Visible)
     );
     assert_eq!(
@@ -123,7 +126,8 @@ fn merge_planning_conflict_classification_carries_base_window_evidence_for_targe
 }
 
 #[test]
-fn merge_planning_conflict_classification_carries_target_lookup_evidence_for_source_deleted_record() {
+fn merge_planning_conflict_classification_carries_target_lookup_evidence_for_source_deleted_record()
+{
     let mut runtime = persisted_runtime_with_test_schema();
     let entity = create_entity(&mut runtime, "shared");
     create_branch_from_main(&mut runtime, "feature");
@@ -150,7 +154,9 @@ fn merge_planning_conflict_classification_carries_target_lookup_evidence_for_sou
 
     assert_eq!(
         classification.class,
-        MergeConflictClass::Deletion(crate::facade::merge::DeletionMergeClass::SourceDeletedTargetLive)
+        MergeConflictClass::Deletion(
+            crate::facade::merge::DeletionMergeClass::SourceDeletedTargetLive
+        )
     );
     assert_eq!(
         classification.source_visibility_evidence.kind,
@@ -169,7 +175,9 @@ fn merge_planning_conflict_classification_carries_target_lookup_evidence_for_sou
         crate::facade::merge::MergeVisibilityState::Visible
     );
     assert_eq!(
-        classification.target_visibility_evidence.embedded_surface_state,
+        classification
+            .target_visibility_evidence
+            .embedded_surface_state,
         Some(crate::facade::merge::MergeVisibilityState::Visible)
     );
     assert_eq!(
@@ -194,7 +202,10 @@ fn merge_planning_conflict_classification_carries_target_lookup_evidence_for_sou
     let target_record = main_view
         .get_entity(entity)
         .expect("main branch should still see entity at its head");
-    assert_eq!(target_record.lifecycle, crate::storage::data::RecordLifecycleState::Live);
+    assert_eq!(
+        target_record.lifecycle,
+        crate::storage::data::RecordLifecycleState::Live
+    );
 }
 
 #[test]
@@ -222,15 +233,27 @@ fn merge_planning_digest_basis_carries_visibility_evidence_rows() {
 
     assert_eq!(
         artifact.digest_basis.conflict.records.len(),
-        artifact.digest_basis.conflict.source_visibility_evidence.len()
+        artifact
+            .digest_basis
+            .conflict
+            .source_visibility_evidence
+            .len()
     );
     assert_eq!(
         artifact.digest_basis.conflict.records.len(),
-        artifact.digest_basis.conflict.target_visibility_evidence.len()
+        artifact
+            .digest_basis
+            .conflict
+            .target_visibility_evidence
+            .len()
     );
     assert_eq!(
         artifact.digest_basis.conflict.records.len(),
-        artifact.digest_basis.conflict.base_visibility_evidence.len()
+        artifact
+            .digest_basis
+            .conflict
+            .base_visibility_evidence
+            .len()
     );
 }
 

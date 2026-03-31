@@ -3,8 +3,9 @@ use std::collections::BTreeMap;
 use crate::storage::overlay::PartitionState;
 
 use super::{
-    AspectSemanticsSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
-    LineageSubsystem, PublicationSubsystem, RuntimeServices, VisibilitySubsystem,
+    AspectSemanticsSubsystem, CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem,
+    IndexingSubsystem, LineageSubsystem, PublicationSubsystem, RuntimeServices,
+    VisibilitySubsystem,
 };
 use crate::logic::runtime::RelationalRuntimeConfig;
 
@@ -12,6 +13,7 @@ use crate::logic::runtime::RelationalRuntimeConfig;
 pub struct RelationalRuntime {
     pub(crate) config: RelationalRuntimeConfig,
     pub(crate) aspect_semantics: AspectSemanticsSubsystem,
+    pub(crate) commit_strategies: CommitStrategiesSubsystem,
     pub(crate) partitions: BTreeMap<crate::identity::data::PartitionId, PartitionState>,
     pub(crate) visibility: VisibilitySubsystem,
     pub(crate) publication: PublicationSubsystem,
@@ -27,14 +29,35 @@ impl RelationalRuntime {
         &self.config
     }
 
+    pub fn commit_strategy_registry(
+        &self,
+    ) -> &crate::commit_strategies::FrozenCommitStrategyRegistry {
+        &self.commit_strategies.registry
+    }
+
+    pub(crate) fn commit_strategy_executor_registry(
+        &self,
+    ) -> &crate::commit_strategies::FrozenCommitStrategyExecutorRegistry {
+        &self.commit_strategies.executors
+    }
+
+    pub fn commit_strategies(
+        &self,
+    ) -> crate::commit_strategies::facade::CommitStrategiesFacade<'_> {
+        crate::commit_strategies::facade::CommitStrategiesFacade::new(self)
+    }
+
+    pub fn commit_strategies_authority(
+        &mut self,
+    ) -> crate::commit_strategies::facade::CommitStrategiesAuthorityFacade<'_> {
+        crate::commit_strategies::facade::CommitStrategiesAuthorityFacade::new(self)
+    }
+
     pub(crate) fn runtime_instance_id(&self) -> u64 {
         self.services.runtime_instance_id()
     }
 
-    pub(crate) fn resolve_symbol(
-        &self,
-        symbol: crate::symbols::data::Symbol,
-    ) -> Option<&str> {
+    pub(crate) fn resolve_symbol(&self, symbol: crate::symbols::data::Symbol) -> Option<&str> {
         self.services.symbols.resolve(symbol)
     }
 
@@ -145,5 +168,11 @@ impl RelationalRuntime {
             })
             .map(|history| history.len())
             .unwrap_or(0)
+    }
+}
+
+impl Drop for RelationalRuntime {
+    fn drop(&mut self) {
+        crate::indexes::logic::purge_index_query_scratch_hints(self.runtime_instance_id());
     }
 }

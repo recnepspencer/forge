@@ -1,4 +1,5 @@
 use super::*;
+use crate::facade::query::PlannedQueryPacket;
 use crate::tests::domains::fintech::fixture::FintechCaseRole;
 
 #[test]
@@ -24,12 +25,31 @@ fn fintech_persisted_workflow_recovers_checkpoint_tail_and_keeps_queryable_portf
         .unwrap()
         .snapshot
         .clone();
-
-    let packet = world.packet_for_portfolio_probe();
+    let packet = {
+        let context = recovered
+            .visibility_reads()
+            .query_plan_context(&recovered_snapshot)
+            .expect("recovered portfolio query plan context");
+        PlannedQueryPacket::explicit_targets(
+            "portfolio-check",
+            context,
+            world
+                .packet_for_portfolio_probe(&world.latest_snapshot())
+                .explicit_target_refs()
+                .expect("portfolio probe uses explicit targets")
+                .to_vec(),
+        )
+    };
     let result = recovered
         .visibility_reads()
-        .execute_read_packet(&recovered_snapshot, &packet)
-        .unwrap();
+        .execute_query_plan(
+            recovered
+                .visibility_reads()
+                .plan_query_packet(&recovered_snapshot, packet)
+                .expect("planned recovered query"),
+        )
+        .expect("executed recovered query")
+        .result;
     let before_probe = capture_case_truth_probe(
         &world,
         FintechCaseRole::BaselinePortfolio,
@@ -180,7 +200,7 @@ fn fintech_persisted_workflow_supports_compaction_after_checkpoint() {
     );
 
     let compaction = compact_world_store(&mut world).unwrap();
-    let (recovered, outcome) = recover_persisted_world(&world).unwrap();
+    let (mut recovered, outcome) = recover_persisted_world(&world).unwrap();
     let recovered_probe = capture_recovery_probe(&recovered, &outcome);
 
     assert!(
@@ -194,16 +214,32 @@ fn fintech_persisted_workflow_supports_compaction_after_checkpoint() {
             .cloned(),
         recovered.history_access().latest_commit().cloned()
     );
-    let packet = world.packet_for_portfolio_probe();
-    let version_id = recovered
-        .history_access()
-        .latest_commit()
-        .expect("recovered runtime should restore a latest commit")
-        .version_id;
+    let recovered_snapshot = recovered.visibility_authority().snapshot();
+    let packet = {
+        let context = recovered
+            .visibility_reads()
+            .query_plan_context(&recovered_snapshot)
+            .expect("recovered portfolio query plan context");
+        PlannedQueryPacket::explicit_targets(
+            "portfolio-check",
+            context,
+            world
+                .packet_for_portfolio_probe(&world.latest_snapshot())
+                .explicit_target_refs()
+                .expect("portfolio probe uses explicit targets")
+                .to_vec(),
+        )
+    };
     let result = recovered
         .visibility_reads()
-        .read_version(version_id)
-        .execute_packet(&packet);
+        .execute_query_plan(
+            recovered
+                .visibility_reads()
+                .plan_query_packet(&recovered_snapshot, packet)
+                .expect("planned recovered portfolio query"),
+        )
+        .expect("executed recovered portfolio query")
+        .result;
     assert_eq!(result.entities.len(), pre_compaction_probe.entity_count);
     assert!(recovered_probe.latest_commit_id.is_some());
 }
@@ -275,21 +311,37 @@ fn fintech_recovery_falls_back_from_corrupt_latest_checkpoint_and_keeps_truth() 
     let corrupted = corrupt_latest_checkpoint_file(&plan);
     assert!(corrupted.is_some());
 
-    let (recovered, outcome) =
+    let (mut recovered, outcome) =
         recover_runtime_from_plan(world.runtime.durability_access().recovery_plan(
             crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
         ))
         .unwrap();
-    let packet = world.packet_for_correction_probe();
-    let version_id = recovered
-        .history_access()
-        .latest_commit()
-        .expect("recovered runtime should restore a latest commit")
-        .version_id;
+    let recovered_snapshot = recovered.visibility_authority().snapshot();
+    let packet = {
+        let context = recovered
+            .visibility_reads()
+            .query_plan_context(&recovered_snapshot)
+            .expect("recovered correction query plan context");
+        PlannedQueryPacket::explicit_targets(
+            "correction-probe",
+            context,
+            world
+                .packet_for_correction_probe(&world.latest_snapshot())
+                .explicit_target_refs()
+                .expect("correction probe uses explicit targets")
+                .to_vec(),
+        )
+    };
     let result = recovered
         .visibility_reads()
-        .read_version(version_id)
-        .execute_packet(&packet);
+        .execute_query_plan(
+            recovered
+                .visibility_reads()
+                .plan_query_packet(&recovered_snapshot, packet)
+                .expect("planned recovered correction query"),
+        )
+        .expect("executed recovered correction query")
+        .result;
 
     assert_eq!(outcome.latest_commit, Some(correction.commit.clone()));
     assert!(!outcome

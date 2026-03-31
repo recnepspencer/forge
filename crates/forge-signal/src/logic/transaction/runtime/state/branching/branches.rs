@@ -38,7 +38,6 @@ impl LatestMergeReference {
             merge_strategy,
         }
     }
-
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -81,7 +80,6 @@ impl BranchAncestryState {
     pub fn forked_from_snapshot_id(&self) -> Option<SignalSnapshotId> {
         self.forked_from_snapshot_id
     }
-
 }
 
 #[derive(Debug, Clone)]
@@ -174,7 +172,8 @@ where
     }
 
     pub fn reset_mutation_ledger(&mut self, baseline_snapshot: Option<SignalSnapshotId>) {
-        self.mutation_ledger = BranchMutationLedger::default().with_baseline_snapshot(baseline_snapshot);
+        self.mutation_ledger =
+            BranchMutationLedger::default().with_baseline_snapshot(baseline_snapshot);
     }
 
     #[cfg(test)]
@@ -252,7 +251,10 @@ where
     }
 
     pub fn packet(self, snapshot_id: SignalSnapshotId) -> SnapshotStatePacket<D, I, T> {
-        SnapshotStatePacket { snapshot_id, state: self }
+        SnapshotStatePacket {
+            snapshot_id,
+            state: self,
+        }
     }
 }
 
@@ -389,8 +391,7 @@ where
         if packet_branch_id != state_branch_id {
             return Err(crate::data::error::SignalError::internal(format!(
                 "fork packet branch mismatch: packet branch {} does not match state branch {}",
-                packet_branch_id.0,
-                state_branch_id.0
+                packet_branch_id.0, state_branch_id.0
             )));
         }
         let expected_parent = packet
@@ -453,11 +454,7 @@ where
         let ancestry = state.ancestry().clone();
         let mutation_ledger = state.mutation_ledger().clone();
         let _ = state;
-        self.record_branch_meta(
-            branch_id,
-            ancestry,
-            mutation_ledger,
-        );
+        self.record_branch_meta(branch_id, ancestry, mutation_ledger);
         Some(result)
     }
 
@@ -482,9 +479,7 @@ where
         if branch_id == active_branch {
             Some(active_graph)
         } else {
-            self.branches
-                .get(&branch_id)
-                .map(BranchState::graph)
+            self.branches.get(&branch_id).map(BranchState::graph)
         }
     }
 
@@ -521,7 +516,27 @@ where
         self.branches
             .get(&branch_id)
             .map(BranchState::mutation_ledger)
-            .or_else(|| self.branch_meta.get(&branch_id).map(|meta| &meta.mutation_ledger))
+            .or_else(|| {
+                self.branch_meta
+                    .get(&branch_id)
+                    .map(|meta| &meta.mutation_ledger)
+            })
+    }
+
+    pub(in crate::logic::transaction::runtime) fn branch_mutation_ledger_mut(
+        &mut self,
+        branch_id: SignalBranchId,
+        baseline_snapshot_id: Option<crate::state::SignalSnapshotId>,
+    ) -> &mut BranchMutationLedger {
+        &mut self
+            .branch_meta
+            .entry(branch_id)
+            .or_insert_with(|| BranchRuntimeMeta {
+                ancestry: BranchAncestryState::new(branch_id, None, baseline_snapshot_id),
+                mutation_ledger: BranchMutationLedger::default()
+                    .with_baseline_snapshot(baseline_snapshot_id),
+            })
+            .mutation_ledger
     }
 
     fn observe_allocator_state(&mut self, graph: &SignalGraph) {

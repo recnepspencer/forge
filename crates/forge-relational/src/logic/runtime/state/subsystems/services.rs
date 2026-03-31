@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Mutex;
 
 use crate::logic::runtime::state::subsystems::RuntimeSubsystem;
 use crate::logic::runtime::RuntimeComplexityCounters;

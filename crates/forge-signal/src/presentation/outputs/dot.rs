@@ -25,12 +25,7 @@ pub fn to_dot(graph: &SignalGraph) -> String {
         let Ok(condition) = graph.node_condition(node) else {
             continue;
         };
-        let mut label = format!(
-            "{}\\nstate={:?}\\ncondition={:?}",
-            node,
-            state,
-            condition
-        );
+        let mut label = format!("{}\\nstate={:?}\\ncondition={:?}", node, state, condition);
         let Ok(dirty_aspects) = graph.node_dirty_aspects(node) else {
             continue;
         };

@@ -1,10 +1,10 @@
+use crate::clock::RuntimeInstant;
 use crate::data::error::SignalError;
 use crate::diagnostics::epochs::{
     EventEpochOutcome, EventEpochSummary, EventSubscriberOutcome, EventSubscriberOutcomeKind,
 };
 use crate::diagnostics::replay::ReplayEventKind;
 use crate::logic::events::EventFlushError;
-use crate::clock::RuntimeInstant;
 
 use super::super::transaction_types::{
     SignalTransaction, StagedEventOperation, TransactionOutcome, TransactionReplayEntry,
@@ -223,8 +223,11 @@ where
                 .store_memoized_result(&family, &key, &memo_key, result);
         }
         self.scratch.graph_patches.commit_and_clear();
-        self.graph
-            .record_branch_mutation_nodes(touched_nodes.as_slice().iter().copied());
+        let current_branch = self.graph.current_branch();
+        self.branches
+            .branch_mutation_ledger_mut(current_branch.id, current_branch.head_snapshot_id)
+            .absorb_records(self.graph.branch_mutation_records());
+        self.graph.clear_branch_mutation_nodes();
         self.telemetry.transaction.transaction_commit_count += 1;
         self.telemetry.transaction.staged_node_patch_count += self.scratch.staged_patch_count;
         self.telemetry.transaction.max_touched_nodes_in_txn = self

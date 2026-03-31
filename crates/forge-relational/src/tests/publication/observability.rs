@@ -362,7 +362,9 @@ fn publication_snapshot_handle_reads_without_becoming_a_pinned_snapshot() {
         .visibility_reads()
         .inspect_snapshot(&outcome.snapshot)
         .unwrap();
-    let packet = QueryWorkPacket::bulk(
+    let packet = explicit_query_packet(
+        &runtime,
+        &outcome.snapshot,
         "entities",
         vec![RecordRef::Entity(changed_entities(&outcome)[0])],
     );
@@ -375,12 +377,20 @@ fn publication_snapshot_handle_reads_without_becoming_a_pinned_snapshot() {
     assert_eq!(inspection.entity_count, 1);
     assert!(runtime
         .storage_access()
-        .plan_read_packet(&outcome.snapshot, &packet)
+        .plan_read_explicit_query_packet(&outcome.snapshot, &packet)
         .is_some());
-    assert!(runtime
-        .visibility_reads()
-        .execute_read_packet(&outcome.snapshot, &packet)
-        .is_some());
+    assert_eq!(
+        execute_explicit_query(
+            &runtime,
+            &outcome.snapshot,
+            "entities",
+            vec![RecordRef::Entity(changed_entities(&outcome)[0])],
+        )
+        .result
+        .entities
+        .len(),
+        1
+    );
     assert!(runtime
         .visibility_authority()
         .release_snapshot(&outcome.snapshot));
@@ -604,18 +614,30 @@ fn aspect_relevant_diagnostics(
 ) -> Vec<crate::facade::diagnostics::RelationalDiagnosticArtifact> {
     diagnostics
         .iter()
-        .filter(|artifact| {
-            artifact.entries.iter().any(|entry| {
-                matches!(
-                    entry.code,
-                    DiagnosticCode::AspectEvaluationTraced
-                        | DiagnosticCode::AspectEmissionTraced
-                        | DiagnosticCode::EntityCreated
-                        | DiagnosticCode::CommitPublished
-                )
-            })
+        .filter_map(|artifact| {
+            let entries = artifact
+                .entries
+                .iter()
+                .filter(|entry| {
+                    matches!(
+                        entry.code,
+                        DiagnosticCode::AspectEvaluationTraced
+                            | DiagnosticCode::AspectEmissionTraced
+                            | DiagnosticCode::EntityCreated
+                            | DiagnosticCode::CommitPublished
+                    )
+                })
+                .cloned()
+                .collect::<Vec<_>>();
+            (!entries.is_empty()).then_some(
+                crate::facade::diagnostics::RelationalDiagnosticArtifact {
+                    scope: artifact.scope.clone(),
+                    kind: artifact.kind.clone(),
+                    determinism: artifact.determinism.clone(),
+                    entries,
+                },
+            )
         })
-        .cloned()
         .collect()
 }
 
@@ -646,18 +668,23 @@ fn bulk_packets_are_the_primary_read_surface() {
     let snapshot = runtime.visibility_authority().snapshot();
     let plan = runtime
         .storage_access()
-        .plan_read_packet(
+        .plan_read_explicit_query_packet(
             &snapshot,
-            &QueryWorkPacket::bulk("entities", vec![RecordRef::Entity(entity)]),
+            &explicit_query_packet(
+                &runtime,
+                &snapshot,
+                "entities",
+                vec![RecordRef::Entity(entity)],
+            ),
         )
         .unwrap();
-    let result = runtime
-        .visibility_reads()
-        .execute_read_packet(
-            &snapshot,
-            &QueryWorkPacket::bulk("entities", vec![RecordRef::Entity(entity)]),
-        )
-        .unwrap();
+    let result = execute_explicit_query(
+        &runtime,
+        &snapshot,
+        "entities",
+        vec![RecordRef::Entity(entity)],
+    )
+    .result;
 
     assert_eq!(plan.entity_chunk_indexes, vec![0]);
     assert_eq!(result.entities.len(), 1);
@@ -709,11 +736,13 @@ fn runtime_packet_execution_and_storage_stats_are_readable() {
     let mut runtime = runtime_with_test_schema();
     let entity = create_entity(&mut runtime, "first");
     let snapshot = runtime.visibility_authority().snapshot();
-    let packet = QueryWorkPacket::bulk("entities", vec![RecordRef::Entity(entity)]);
-    let result = runtime
-        .visibility_reads()
-        .execute_read_packet(&snapshot, &packet)
-        .unwrap();
+    let result = execute_explicit_query(
+        &runtime,
+        &snapshot,
+        "entities",
+        vec![RecordRef::Entity(entity)],
+    )
+    .result;
     let stats = runtime.storage_access().storage_stats();
 
     assert_eq!(result.entities.len(), 1);

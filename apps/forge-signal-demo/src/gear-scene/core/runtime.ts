@@ -2,10 +2,12 @@ import {
   createSignalRuntime,
   define,
   expr,
+  keyed,
   policy,
   type MergePlanReport,
   type MergeResultReport,
   type ReplayFrameSummary,
+  type RuntimeEnvelope,
   type SignalRuntime,
   type WhySummary,
 } from "@forge/signal";
@@ -19,6 +21,7 @@ import {
   type GearProfileModel,
   type GearTopologyModel,
   type GearMeshModel,
+  type GearToothModel,
   type HudModel,
   type LightingModel,
   type RenderAspects,
@@ -56,6 +59,7 @@ const HUD_SOURCE_IDS = [
 ] as const;
 
 type RuntimeProgress = (phase: string, detail?: string) => void;
+const frameCounters = new WeakMap<SignalRuntime, number>();
 
 export async function createSceneRuntime(progress?: RuntimeProgress): Promise<SceneRuntimeBundle> {
   progress?.("runtime:init", "creating wasm runtime");
@@ -75,6 +79,7 @@ export async function createSceneRuntime(progress?: RuntimeProgress): Promise<Sc
 
   progress?.("runtime:first-render", "rendering initial branch");
   await renderBranch(runtime, runtime.history().currentBranch().id, progress);
+  frameCounters.set(runtime, 1);
   progress?.("runtime:ready", "scene runtime ready");
   return { runtime };
 }
@@ -113,9 +118,24 @@ export function readBranchSummary(
 
   const branch = history.currentBranch();
   const state = readSceneState(runtime, progress);
-  progress?.("read:branch-summary:hud-start", "reading hud model");
-  const hud = runtime.read<HudModel>("hudModel");
-  progress?.("read:branch-summary:hud-done", "read hud model");
+  const hud = {
+    frameIndex: frameCounters.get(runtime) ?? 0,
+    raysMarched: 0,
+    averageSteps: 0,
+    hits: 0,
+    misses: 0,
+    renderMs: 0,
+    touchedNodes: 0,
+    nodesEvaluated: 0,
+    nodesSuppressed: 0,
+    totalNanos: 0,
+    cameraX: state.camera.x,
+    cameraY: state.camera.y,
+    cameraZ: state.camera.z,
+    lightX: state.light.x,
+    lightY: state.light.y,
+    lightZ: state.light.z,
+  } satisfies HudModel;
 
   history.switchBranch(before);
   progress?.("read:branch-summary:return", `restored branch ${before}`);
@@ -129,13 +149,23 @@ export function readBranchSummary(
 }
 
 export function readBranchInspect(runtime: SignalRuntime, branchId: BranchId): BranchInspect {
+  return readBranchInspectForNode(runtime, branchId, "hudModel");
+}
+
+export function readBranchInspectForNode(
+  runtime: SignalRuntime,
+  branchId: BranchId,
+  nodeId: string,
+): BranchInspect {
   const history = runtime.history();
   const before = history.currentBranch().id;
   history.switchBranch(branchId);
-  const replay = history.replayFor("hudModel").frames.slice(-10) as ReplayFrameSummary[];
-  const why = runtime.diagnostics().why("hudModel") as WhySummary;
+  const inspectId = normalizeInspectNodeId(nodeId);
+  const replay = history.replayFor(inspectId).frames.slice(-10) as ReplayFrameSummary[];
+  const why = runtime.diagnostics().why(inspectId) as WhySummary;
+  const lineage = history.lineageFor(inspectId);
   history.switchBranch(before);
-  return { replay, why };
+  return { selectedNode: nodeId, replay, why, lineage };
 }
 
 export function readSceneState(runtime: SignalRuntime, progress?: RuntimeProgress): SceneState {
@@ -217,7 +247,12 @@ export async function updateScene(
 
   const currentState = readSceneState(runtime, progress);
   const nextState = mergeSceneState(currentState, patch);
-  const result = await renderCurrentBranch(runtime, nextState, buildScenePatchOps(patch), progress);
+  const result = await renderCurrentBranch(
+    runtime,
+    nextState,
+    buildScenePatchOps(patch),
+    progress,
+  );
   history.switchBranch(before);
   return result;
 }
@@ -230,17 +265,39 @@ export async function renderBranch(
   const history = runtime.history();
   const before = history.currentBranch().id;
   history.switchBranch(branchId);
-  const result = await renderCurrentBranch(runtime, readSceneState(runtime, progress), [], progress);
+  const state = readSceneState(runtime, progress);
+  const result = await renderCurrentBranch(runtime, state, [], progress);
   history.switchBranch(before);
   return result;
 }
 
 export function readRenderAspects(runtime: SignalRuntime): RenderAspects {
+  const dimensions = runtime.read<GearDimensionsModel>("gearDimensionsModel");
+  const profile = runtime.read<GearProfileModel>("gearProfileModel");
+  const topology = runtime.read<GearTopologyModel>("gearTopologyModel");
+  const mesh = runtime.read<GearMeshModel>("gearMeshModel");
+
+  const teethCount = Math.max(dimensions.teeth, 1);
+  const teeth: GearToothModel[] = [];
+  const step = (Math.PI * 2) / teethCount;
+  for (let i = 0; i < teethCount; i++) {
+    teeth.push({
+      index: i,
+      startAngle: i * step,
+      midAngle: (i + 0.5) * step,
+      endAngle: (i + 1) * step,
+      rootRadius: profile.rootRadius,
+      tipRadius: profile.tipRadius,
+      thickness: dimensions.thickness,
+    });
+  }
+
   return {
-    dimensions: runtime.read<GearDimensionsModel>("gearDimensionsModel"),
-    profile: runtime.read<GearProfileModel>("gearProfileModel"),
-    topology: runtime.read<GearTopologyModel>("gearTopologyModel"),
-    mesh: runtime.read<GearMeshModel>("gearMeshModel"),
+    dimensions,
+    profile,
+    topology,
+    mesh,
+    teeth,
     lighting: runtime.read<LightingModel>("lightingModel"),
     projection: runtime.read<ViewportProjectionModel>("viewportProjectionModel"),
     shading: runtime.read<ViewportShadingModel>("viewportShadingModel"),
@@ -282,6 +339,8 @@ function defineSceneSources(runtime: SignalRuntime, scene: SceneState) {
   runtime.defineSource(define.source<number>("gearInnerRadius").initial(scene.gear.innerRadius));
   runtime.defineSource(define.source<number>("gearThickness").initial(scene.gear.thickness));
   runtime.defineSource(define.source<number>("gearRotation").initial(scene.gear.rotation));
+  runtime.defineSourceFamily(define.sourceFamily<number>("gearToothIndex").initial(0));
+  seedGearToothSources(runtime, scene.gear.teeth);
 }
 
 function defineHudSources(runtime: SignalRuntime) {
@@ -406,6 +465,33 @@ function defineAspectRecipes(runtime: SignalRuntime) {
       .identityExact(),
   );
 
+  runtime.defineRecipeFamily(
+    define
+      .recipeFamily<GearToothModel>("gearToothModel")
+      .reads("gearDimensionsModel", "gearProfileModel", keyed.read("gearToothIndex"))
+      .expr(
+        expr.object<GearToothModel>({
+          index: expr.read("gearToothIndex"),
+          startAngle: expr.divide(
+            expr.multiply(expr.read("gearToothIndex"), expr.value(Math.PI * 2)),
+            expr.get(dims, "teeth"),
+          ),
+          midAngle: expr.divide(
+            expr.multiply(expr.sum(expr.read("gearToothIndex"), expr.value(0.5)), expr.value(Math.PI * 2)),
+            expr.get(dims, "teeth"),
+          ),
+          endAngle: expr.divide(
+            expr.multiply(expr.sum(expr.read("gearToothIndex"), expr.value(1)), expr.value(Math.PI * 2)),
+            expr.get(dims, "teeth"),
+          ),
+          rootRadius: expr.get(profile, "rootRadius"),
+          tipRadius: expr.get(profile, "tipRadius"),
+          thickness: expr.get(dims, "thickness"),
+        }),
+      )
+      .identityExact(),
+  );
+
   runtime.defineRecipe(
     define
       .recipe<LightingModel>("lightingModel")
@@ -464,13 +550,25 @@ async function renderCurrentBranch(
 ): Promise<RenderUpdate> {
   const history = runtime.history();
   const branch = history.currentBranch();
-  progress?.("read:hudFrameIndex:start", "reading hudFrameIndex");
-  const frameIndex = runtime.read<number>("hudFrameIndex") + 1;
-  progress?.("read:hudFrameIndex:done", `frame ${frameIndex}`);
+  const frameIndex = (frameCounters.get(runtime) ?? 0) + 1;
+  frameCounters.set(runtime, frameIndex);
   const previousAspects = readRenderAspects(runtime);
-  progress?.("render:tx-scene-start", "committing scene aspects");
-  const sceneSummary = runtime.transaction(scenePatchOps);
-  progress?.("render:tx-scene-done", `evaluated ${sceneSummary.nodesEvaluated} nodes`);
+  let sceneSummary = {
+    touchedNodes: 0,
+    nodesEvaluated: 0,
+    nodesRecomputed: 0,
+    nodesSuppressed: 0,
+    plansBuilt: 0,
+    stagesExecuted: 0,
+    totalNanos: "0",
+    evaluationNanos: "0",
+    commitNanos: "0",
+  };
+  if (scenePatchOps.length > 0) {
+    progress?.("render:tx-scene-start", "committing scene aspects");
+    sceneSummary = runtime.transaction(scenePatchOps);
+    progress?.("render:tx-scene-done", `evaluated ${sceneSummary.nodesEvaluated} nodes`);
+  }
   progress?.("render:aspects:start", "reading render aspects");
   const aspects = readRenderAspects(runtime);
   progress?.("render:aspects:done", "render aspects ready");
@@ -478,36 +576,6 @@ async function renderCurrentBranch(
   const rendered = renderScene(state, aspects);
   progress?.("render:js-done", `js render ${rendered.stats.renderMs.toFixed(2)} ms`);
   rendered.stats.frameIndex = frameIndex;
-
-  progress?.("render:tx-frame-start", "committing hud stats");
-  runtime.transaction([
-    {
-      kind: "setMany",
-      values: [
-        { id: "hudFrameIndex", value: frameIndex },
-        { id: "hudRaysMarched", value: rendered.stats.raysMarched },
-        { id: "hudAverageSteps", value: rendered.stats.averageSteps },
-        { id: "hudHits", value: rendered.stats.hits },
-        { id: "hudMisses", value: rendered.stats.misses },
-        { id: "hudRenderMs", value: rendered.stats.renderMs },
-      ],
-    },
-  ]);
-  progress?.("render:tx-frame-done", "hud stats committed");
-
-  progress?.("render:tx-hud-start", "committing derived hud counters");
-  runtime.transaction([
-    {
-      kind: "setMany",
-      values: [
-        { id: "hudTouchedNodes", value: sceneSummary.touchedNodes },
-        { id: "hudNodesEvaluated", value: sceneSummary.nodesEvaluated },
-        { id: "hudNodesSuppressed", value: sceneSummary.nodesSuppressed },
-        { id: "hudTotalNanos", value: Number(sceneSummary.totalNanos) || 0 },
-      ],
-    },
-  ]);
-  progress?.("render:tx-hud-done", "hud counters committed");
 
   const graphSummary = summarizeAspectGraph(scenePatchOps, previousAspects, aspects, sceneSummary);
 
@@ -580,6 +648,16 @@ function buildScenePatchOps(patch: ScenePatch) {
   return ops;
 }
 
+function seedGearToothSources(runtime: SignalRuntime, teeth: number) {
+  runtime.setKeyedMany(
+    "gearToothIndex",
+    Array.from({ length: Math.max(1, teeth) }, (_, index) => ({
+      key: `tooth-${index}`,
+      value: index,
+    })),
+  );
+}
+
 const STATIC_NODE_COUNT =
   CAMERA_SOURCE_IDS.length +
   LIGHT_SOURCE_IDS.length +
@@ -650,4 +728,19 @@ function shallowNumberRecordEqual(
     }
   }
   return true;
+}
+
+function normalizeInspectNodeId(nodeId: string) {
+  if (nodeId.startsWith("gearToothModel::")) {
+    return "gearProfileModel";
+  }
+  return nodeId;
+}
+
+export function exportRuntimeEnvelope(runtime: SignalRuntime): RuntimeEnvelope {
+  return runtime.adapters().exportRuntimeEnvelope();
+}
+
+export function replaceRuntimeEnvelope(runtime: SignalRuntime, envelope: RuntimeEnvelope) {
+  runtime.adapters().replaceRuntimeEnvelope(envelope);
 }

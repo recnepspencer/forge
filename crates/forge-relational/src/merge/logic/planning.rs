@@ -59,18 +59,18 @@ impl<'runtime> MergeAccess<'runtime> {
                 supporting_left_ancestors: Arc::from(left_ancestors),
                 supporting_right_ancestors: Arc::from(right_ancestors),
             },
-            target_delta: self.branch_commit_delta(
-                request.target_branch,
-                target_delta_commits.as_slice(),
-            ),
-            source_delta: self.branch_commit_delta(
-                request.source_branch,
-                source_delta_commits.as_slice(),
-            ),
+            target_delta: self
+                .branch_commit_delta(request.target_branch, target_delta_commits.as_slice()),
+            source_delta: self
+                .branch_commit_delta(request.source_branch, source_delta_commits.as_slice()),
         })
     }
 
-    fn branch_commit_delta(&self, branch_id: crate::history::data::BranchId, commits: &[CommitId]) -> BranchCommitDelta {
+    fn branch_commit_delta(
+        &self,
+        branch_id: crate::history::data::BranchId,
+        commits: &[CommitId],
+    ) -> BranchCommitDelta {
         let history = self.runtime.history_access();
         let mut touched_records = BTreeMap::new();
         for commit_id in commits {

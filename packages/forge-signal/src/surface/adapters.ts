@@ -1,11 +1,13 @@
 import {
   decodeDefinitions,
   decodeRuntimeEnvelope,
-  normalizeRuntimeEnvelope
-} from "../internal/codec.js";
+  normalizeRuntimeEnvelope,
+} from "../internal/codec.ts";
 
 export class SignalAdapters {
-  constructor(inner) {
+  inner: any;
+
+  constructor(inner: any) {
     this.inner = inner;
   }
 
@@ -17,7 +19,7 @@ export class SignalAdapters {
     return decodeRuntimeEnvelope(this.inner.export_runtime_envelope());
   }
 
-  replaceRuntimeEnvelope(envelope) {
+  replaceRuntimeEnvelope(envelope: any) {
     return this.inner.replace_runtime_envelope(normalizeRuntimeEnvelope(envelope));
   }
 }

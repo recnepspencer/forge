@@ -44,7 +44,8 @@ fn evaluate_chain_bulk(graph: &mut SignalGraph, chain: &[NodeId]) {
     let plan = graph
         .build_evaluation_plan(chain, EvaluationRequestMode::Default)
         .unwrap();
-    graph.execute_prepared_plan(&plan, &(), &|_ctx| Ok(version_ab(0, 1)))
+    graph
+        .execute_prepared_plan(&plan, &(), &|_ctx| Ok(version_ab(0, 1)))
         .unwrap();
 }
 
@@ -59,7 +60,8 @@ fn evaluate_chain_bulk_profile(
         .unwrap();
     let plan_elapsed_ms = plan_start.elapsed().as_millis();
     let execute_start = Instant::now();
-    graph.execute_prepared_plan(&plan, &(), &|_ctx| Ok(version_ab(0, 1)))
+    graph
+        .execute_prepared_plan(&plan, &(), &|_ctx| Ok(version_ab(0, 1)))
         .unwrap();
     let execute_elapsed_ms = execute_start.elapsed().as_millis();
     let telemetry = *graph.telemetry();

@@ -31,12 +31,12 @@ fn legacy_query_packet_planning_marks_single_target_packets_serial_preferred() {
     let mut runtime = runtime_with_test_schema();
     let created = create_entity_outcome(&mut runtime, "single");
     let entity = changed_entities(&created)[0];
-    let packet = QueryWorkPacket::bulk("single-target", vec![RecordRef::Entity(entity)]);
-
-    let plan = runtime
-        .visibility_reads()
-        .plan_legacy_query_packet(&created.snapshot, packet)
-        .expect("planned legacy packet");
+    let plan = planned_explicit_query(
+        &runtime,
+        &created.snapshot,
+        "single-target",
+        vec![RecordRef::Entity(entity)],
+    );
 
     assert_eq!(plan.legality, QueryParallelLegality::LegalReadOnlySnapshot);
     assert_eq!(
@@ -57,10 +57,7 @@ fn legacy_query_packet_planning_marks_single_chunk_packets_serial_preferred() {
         RecordRef::Entity(changed_entities(&second)[0]),
     ];
 
-    let plan = runtime
-        .visibility_reads()
-        .plan_legacy_query_packet(&second.snapshot, QueryWorkPacket::bulk("pair", targets))
-        .expect("planned packet");
+    let plan = planned_explicit_query(&runtime, &second.snapshot, "pair", targets);
 
     assert_eq!(plan.legality, QueryParallelLegality::LegalReadOnlySnapshot);
     assert_eq!(
@@ -72,7 +69,7 @@ fn legacy_query_packet_planning_marks_single_chunk_packets_serial_preferred() {
 }
 
 #[test]
-fn traversal_query_packets_require_serial_reduction_admission() {
+fn traversal_query_packets_are_legal_read_only_snapshots_and_narrow_traversals_stay_serial() {
     let mut runtime = runtime_with_test_schema();
     let created = create_entity_outcome(&mut runtime, "seed");
     let seed = changed_entities(&created)[0];
@@ -103,16 +100,59 @@ fn traversal_query_packets_require_serial_reduction_admission() {
         .plan_query_packet(&created.snapshot, packet)
         .expect("snapshot pinned plan");
 
-    assert_eq!(
-        plan.legality,
-        QueryParallelLegality::RequiresSerialReduction
-    );
+    assert_eq!(plan.legality, QueryParallelLegality::LegalReadOnlySnapshot);
     assert_eq!(
         plan.profitability,
         QueryParallelProfitability::SerialPreferred {
             reason: QuerySerialReason::TinyPacket,
         }
     );
+}
+
+#[test]
+fn multi_seed_traversal_query_packets_become_profitable_after_seed_packetization() {
+    let mut runtime = runtime_with_test_schema();
+    let first = create_entity_outcome(&mut runtime, "seed-1");
+    let second = create_entity_outcome(&mut runtime, "seed-2");
+    let third = create_entity_outcome(&mut runtime, "seed-3");
+    let fourth = create_entity_outcome(&mut runtime, "seed-4");
+    let fifth = create_entity_outcome(&mut runtime, "seed-5");
+    let seeds = [
+        changed_entities(&first)[0],
+        changed_entities(&second)[0],
+        changed_entities(&third)[0],
+        changed_entities(&fourth)[0],
+        changed_entities(&fifth)[0],
+    ];
+    let context = runtime
+        .visibility_reads()
+        .query_plan_context(&fifth.snapshot)
+        .expect("query plan context");
+
+    let packet = PlannedQueryPacket {
+        label: "connectivity-profit".to_string(),
+        context_id: context,
+        scope: QueryScope::ConnectivityTraversal {
+            seeds: std::sync::Arc::from(seeds),
+            relation_kind_scope: None,
+            max_depth: Some(1),
+        },
+        locality: QueryLocalityClass::CrossPartitionTraversal,
+        ordering: QueryOrderingContract::CanonicalTraversalOrder,
+        fallback: QueryFallbackContract::StorageOnly,
+        execution_shape: QueryExecutionShape::BulkPacketized,
+        reduction: ReductionDiscipline::DeterministicMerge,
+        plan_key: DeterministicQueryPlanKey(18),
+        target_count_hint: 5,
+    };
+
+    let plan = runtime
+        .visibility_reads()
+        .plan_query_packet(&fifth.snapshot, packet)
+        .expect("snapshot pinned plan");
+
+    assert_eq!(plan.legality, QueryParallelLegality::LegalReadOnlySnapshot);
+    assert_eq!(plan.profitability, QueryParallelProfitability::Profitable);
 }
 
 #[test]
@@ -141,12 +181,10 @@ fn query_planning_rejects_packets_with_forged_context() {
         target_count_hint: 1,
     };
 
-    assert!(
-        runtime
-            .visibility_reads()
-            .plan_query_packet(&created.snapshot, packet)
-            .is_none()
-    );
+    assert!(runtime
+        .visibility_reads()
+        .plan_query_packet(&created.snapshot, packet)
+        .is_none());
 }
 
 #[test]
@@ -155,20 +193,18 @@ fn legacy_packet_plan_key_is_deterministic_for_identical_inputs() {
     let created = create_entity_outcome(&mut runtime, "plan-key");
     let entity = changed_entities(&created)[0];
 
-    let first = runtime
-        .visibility_reads()
-        .plan_legacy_query_packet(
-            &created.snapshot,
-            QueryWorkPacket::bulk("stable", vec![RecordRef::Entity(entity)]),
-        )
-        .expect("first plan");
-    let second = runtime
-        .visibility_reads()
-        .plan_legacy_query_packet(
-            &created.snapshot,
-            QueryWorkPacket::bulk("stable", vec![RecordRef::Entity(entity)]),
-        )
-        .expect("second plan");
+    let first = planned_explicit_query(
+        &runtime,
+        &created.snapshot,
+        "stable",
+        vec![RecordRef::Entity(entity)],
+    );
+    let second = planned_explicit_query(
+        &runtime,
+        &created.snapshot,
+        "stable",
+        vec![RecordRef::Entity(entity)],
+    );
 
     assert_ne!(first.packet.plan_key, DeterministicQueryPlanKey(0));
     assert_eq!(first.packet.plan_key, second.packet.plan_key);

@@ -1,4 +1,4 @@
-function countEntries(value, path) {
+function countEntries(value: any, path: string[]) {
   let current = value;
   for (const segment of path) {
     current = current?.[segment];
@@ -6,7 +6,7 @@ function countEntries(value, path) {
   return Array.isArray(current) ? current.length : 0;
 }
 
-export function summarizeMergePlan(plan) {
+export function summarizeMergePlan(plan: any) {
   return {
     sourceBranchId: plan.source_branch_id ?? null,
     targetBranchId: plan.target_branch_id ?? null,
@@ -21,11 +21,11 @@ export function summarizeMergePlan(plan) {
     supportNodeCount: countEntries(plan, ["conservative_overlap", "support_nodes"]),
     nodePlanCount: countEntries(plan, ["node_plan"]),
     adoptionCount: countEntries(plan, ["adoption_core"]),
-    hasResolutionPlan: !!plan.resolution_plan
+    hasResolutionPlan: !!plan.resolution_plan,
   };
 }
 
-export function summarizeMergeResult(result) {
+export function summarizeMergeResult(result: any) {
   const counters = result.counters ?? {};
   return {
     sourceBranchId: result.source_branch ?? null,
@@ -46,10 +46,10 @@ export function summarizeMergeResult(result) {
     skippedNonAdoptableCount: counters.skipped_non_adoptable_count ?? 0,
     conflictCount: Array.isArray(result.records)
       ? result.records.reduce(
-          (total, record) => total + (record.resolved_conflict_kinds?.length ?? 0),
-          0
+          (total: number, record: any) => total + (record.resolved_conflict_kinds?.length ?? 0),
+          0,
         )
       : 0,
-    hasResolutionPlan: !!result.resolution_plan
+    hasResolutionPlan: !!result.resolution_plan,
   };
 }

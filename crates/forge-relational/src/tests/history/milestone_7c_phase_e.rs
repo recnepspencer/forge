@@ -1,6 +1,6 @@
+use crate::facade::diagnostics::{DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope};
 use crate::facade::history::BranchId;
 use crate::facade::merge::{MergeExecutionOutcome, MergeExecutionRequest, MergeIntent};
-use crate::facade::diagnostics::{DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope};
 use crate::facade::transactions::TransactionOptions;
 use crate::tests::support::{
     capture_aspect_truth_bundle, certification_digest, checkpoint_and_recover_with,
@@ -8,8 +8,7 @@ use crate::tests::support::{
     persisted_runtime_with_test_schema,
 };
 
-fn execute_feature_into_main_merge(
-) -> (
+fn execute_feature_into_main_merge() -> (
     crate::facade::runtime::RelationalRuntime,
     MergeExecutionOutcome,
     crate::facade::history::CommitId,
@@ -18,8 +17,11 @@ fn execute_feature_into_main_merge(
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    let feature_head =
-        create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    let feature_head = create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
             target_branch: BranchId("main".to_string()),
@@ -54,8 +56,14 @@ fn execute_prepared_merge_publishes_ordered_multi_parent_commit_through_canonica
         merge.commit.commit.parents,
         vec![main_head_commit_id, feature_head_commit_id]
     );
-    assert_eq!(merge.execution_summary.target_head_commit_id, main_head_commit_id);
-    assert_eq!(merge.execution_summary.source_head_commit_id, feature_head_commit_id);
+    assert_eq!(
+        merge.execution_summary.target_head_commit_id,
+        main_head_commit_id
+    );
+    assert_eq!(
+        merge.execution_summary.source_head_commit_id,
+        feature_head_commit_id
+    );
     assert_eq!(merge.execution_summary.executed_record_count, 1);
 
     let envelope = replay
@@ -154,9 +162,10 @@ fn execute_prepared_merge_produces_merge_ready_history_shape() {
         Some(feature_head_commit_id)
     );
 
-    let inspection = runtime
-        .history_access()
-        .inspect_merge(&BranchId("feature".to_string()), &BranchId("main".to_string()));
+    let inspection = runtime.history_access().inspect_merge(
+        &BranchId("feature".to_string()),
+        &BranchId("main".to_string()),
+    );
     assert!(inspection.source_only_commits.is_empty());
     assert_eq!(inspection.merge_base, Some(feature_head_commit_id));
     assert_eq!(
@@ -182,7 +191,11 @@ fn execute_prepared_merge_reports_execution_counters_and_structural_summary() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -205,34 +218,60 @@ fn execute_prepared_merge_reports_execution_counters_and_structural_summary() {
     assert_eq!(counters.merge_execution_requests, 1);
     assert_eq!(counters.merge_execution_records_admitted, 1);
     assert_eq!(counters.merge_execution_mutation_intents_emitted, 1);
-    assert_eq!(merge.commit.execution.complexity_delta.merge_execution_attempts, 1);
-    assert_eq!(merge.commit.execution.complexity_delta.merge_execution_requests, 1);
     assert_eq!(
-        merge.commit.execution.complexity_delta.merge_execution_records_admitted,
+        merge
+            .commit
+            .execution
+            .complexity_delta
+            .merge_execution_attempts,
         1
     );
     assert_eq!(
-        merge.commit.execution.complexity_delta.merge_execution_mutation_intents_emitted,
+        merge
+            .commit
+            .execution
+            .complexity_delta
+            .merge_execution_requests,
+        1
+    );
+    assert_eq!(
+        merge
+            .commit
+            .execution
+            .complexity_delta
+            .merge_execution_records_admitted,
+        1
+    );
+    assert_eq!(
+        merge
+            .commit
+            .execution
+            .complexity_delta
+            .merge_execution_mutation_intents_emitted,
         1
     );
     assert!(merge
         .commit
         .diagnostics()
         .iter()
-        .any(|artifact| artifact.kind == DiagnosticsArtifactKind::MinimalSummary
-            && artifact
-                .entries
-                .iter()
-                .any(|entry| entry.code == DiagnosticCode::MergeExecutionPublished)));
+        .any(
+            |artifact| artifact.kind == DiagnosticsArtifactKind::MinimalSummary
+                && artifact
+                    .entries
+                    .iter()
+                    .any(|entry| entry.code == DiagnosticCode::MergeExecutionPublished)
+        ));
     let execution_artifact = merge
         .commit
         .diagnostics()
         .iter()
-        .find(|artifact| artifact.kind == DiagnosticsArtifactKind::DetailedTrace
-            && artifact
-                .entries
-                .iter()
-                .any(|entry| entry.code == DiagnosticCode::MergeExecutionPublished))
+        .find(|artifact| {
+            artifact.kind == DiagnosticsArtifactKind::DetailedTrace
+                && artifact
+                    .entries
+                    .iter()
+                    .any(|entry| entry.code == DiagnosticCode::MergeExecutionPublished)
+        })
         .expect("merge execution detailed artifact");
     assert!(execution_artifact.entries.iter().all(|entry| {
         entry.code == DiagnosticCode::MergeExecutionPublished
@@ -241,13 +280,16 @@ fn execute_prepared_merge_reports_execution_counters_and_structural_summary() {
     }));
 }
 
-
 #[test]
 fn execute_prepared_merge_records_attempt_without_success_on_failure() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -301,7 +343,11 @@ fn merge_commit_context_rejects_mismatched_parent_branch_metadata() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -312,7 +358,10 @@ fn merge_commit_context_rejects_mismatched_parent_branch_metadata() {
         .expect("prepared merge execution");
     let mutation_plan = runtime
         .merge_access()
-        .derive_merge_commit_mutation_plan(crate::facade::transactions::TransactionId(999), &prepared)
+        .derive_merge_commit_mutation_plan(
+            crate::facade::transactions::TransactionId(999),
+            &prepared,
+        )
         .expect("merge mutation plan");
 
     let error = crate::authority::commit::pipeline::AuthoritativeCommitContext::from_merge(
@@ -342,7 +391,11 @@ fn execute_prepared_merge_preserves_reserved_summary_when_optional_diagnostics_b
     runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
     create_entity_outcome(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {

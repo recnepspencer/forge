@@ -846,7 +846,9 @@ fn builder_adjust_helpers_keep_advanced_policy_changes_grouped() {
         .with_domains::<Domain>()
         .adjust_runtime_policy(|policy| policy.with_history_limit(9).with_detail_limit(3))
         .adjust_fallback_comparator(|_| VersionComparatorPolicy::Tolerance { epsilon: 4 })
-        .adjust_checkpoints(|policy| policy.set_barrier(Domain::Cache, CheckpointBarrier::PerCommit))
+        .adjust_checkpoints(|policy| {
+            policy.set_barrier(Domain::Cache, CheckpointBarrier::PerCommit)
+        })
         .build();
 
     assert_eq!(runtime.runtime_policy().retention_budget.history_limit, 9);
@@ -885,7 +887,12 @@ fn runtime_adjust_helpers_update_existing_policy_owners() {
         VersionComparatorPolicy::Tolerance { epsilon: 7 }
     );
     assert_eq!(
-        runtime.config().tier_policies().get(Tier::A).unwrap().default_comparator,
+        runtime
+            .config()
+            .tier_policies()
+            .get(Tier::A)
+            .unwrap()
+            .default_comparator,
         VersionComparatorPolicy::Tolerance { epsilon: 2 }
     );
     assert_eq!(

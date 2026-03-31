@@ -313,7 +313,8 @@ pub fn record_snapshot_restore_lineage(graph: &mut SignalGraph, snapshot_id: Sig
                 .live_node_ids()
                 .into_iter()
                 .filter_map(|node| {
-                    graph.node_lineage_artifact_id(node)
+                    graph
+                        .node_lineage_artifact_id(node)
                         .ok()
                         .flatten()
                         .map(|artifact_id| (node, artifact_id))
@@ -509,11 +510,7 @@ pub fn record_invalidation_lineage(
     node: crate::data::handle::NodeId,
     cause: InvalidationCause,
 ) {
-    let Some(artifact_id) = graph
-        .node_lineage_artifact_id(node)
-        .ok()
-        .flatten()
-    else {
+    let Some(artifact_id) = graph.node_lineage_artifact_id(node).ok().flatten() else {
         return;
     };
     let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();

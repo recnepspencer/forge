@@ -139,9 +139,9 @@ where
             })
             .collect::<Vec<_>>();
         if !pending.is_empty() {
-            let executor = self
-                .executor
-                .unwrap_or_else(|| executor_for_strategy(self.runtime.derive_evaluation_strategy()));
+            let executor = self.executor.unwrap_or_else(|| {
+                executor_for_strategy(self.runtime.derive_evaluation_strategy())
+            });
             self.runtime.execute_evaluation(
                 ExecutionIntent::Targets {
                     targets: &pending,
@@ -334,7 +334,10 @@ where
         F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
         O: IntoEvaluationOutput,
     {
-        if matches!(self.graph.get_state(node)?, crate::data::node::NodeState::Clean) {
+        if matches!(
+            self.graph.get_state(node)?,
+            crate::data::node::NodeState::Clean
+        ) {
             return Ok(self.graph.node_aspect_version(node)?);
         }
         self.evaluate_with_plan_and_executor(
@@ -358,8 +361,12 @@ where
         O: IntoEvaluationOutput,
     {
         let strategy = self.derive_evaluation_strategy();
-        let versions =
-            self.read_many_with_executor(nodes, runtime_ctx, evaluator, executor_for_strategy(strategy))?;
+        let versions = self.read_many_with_executor(
+            nodes,
+            runtime_ctx,
+            evaluator,
+            executor_for_strategy(strategy),
+        )?;
         apply_strategy_maintenance(&mut self.graph, strategy);
         Ok(versions)
     }
@@ -396,7 +403,8 @@ where
                 executor,
             )?;
         }
-        nodes.iter()
+        nodes
+            .iter()
             .copied()
             .map(|node| self.graph.node_aspect_version(node))
             .collect()

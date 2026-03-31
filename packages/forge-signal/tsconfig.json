@@ -6,13 +6,15 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "allowJs": false
+    "allowJs": false,
+    "allowImportingTsExtensions": true
   },
   "include": [
     "src/index.d.ts",
     "src/types.d.ts",
     "src/builders.d.ts",
     "src/surface.d.ts",
+    "src/wasm.d.ts",
     "test/types-smoke.ts"
   ]
 }

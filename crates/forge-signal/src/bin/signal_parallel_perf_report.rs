@@ -4,16 +4,16 @@ use std::num::NonZeroUsize;
 use std::time::Instant;
 
 #[cfg(feature = "parallel")]
-use forge_signal::facade::{
-    Aspect, AspectVersion, BatchChange, ChangedRegion, DependencyEdge,
-    NodeEvaluationResult, SignalGraph,
-};
+use forge_signal::facade::runtime::{mark_dirty_batch, RuntimePolicy};
 #[cfg(feature = "parallel")]
 use forge_signal::facade::specialist::{
     ExecutionReport, ParallelExecutionPolicy, RunMode, StageExecutor,
 };
 #[cfg(feature = "parallel")]
-use forge_signal::facade::runtime::{mark_dirty_batch, RuntimePolicy};
+use forge_signal::facade::{
+    Aspect, AspectVersion, BatchChange, ChangedRegion, DependencyEdge, NodeEvaluationResult,
+    SignalGraph,
+};
 #[cfg(feature = "parallel")]
 use serde::Serialize;
 

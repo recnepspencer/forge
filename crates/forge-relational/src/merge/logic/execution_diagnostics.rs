@@ -5,7 +5,7 @@ use crate::diagnostics::data::{
     RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
 };
 use crate::merge::data::{
-    ExecutedMergeAspectDiagnosticRow, ExecutedMergeAspectClass, ExecutedMergeRecordClass,
+    ExecutedMergeAspectClass, ExecutedMergeAspectDiagnosticRow, ExecutedMergeRecordClass,
     ExecutedMergeRecordDiagnosticRow, MergeExecutionDiagnosticsPlan, PreparedMergeExecution,
 };
 use crate::transactions::data::{MergeExecutionStructuralSummary, MergeExecutionSummary};
@@ -133,10 +133,12 @@ fn policy_proof_boundary_json(
         crate::merge::data::MergePolicyDecisionBoundary::AutoResolved => json!({
             "kind": "auto_resolved",
         }),
-        crate::merge::data::MergePolicyDecisionBoundary::RequiresManualResolution { class } => json!({
-            "kind": "requires_manual_resolution",
-            "class": format!("{:?}", class),
-        }),
+        crate::merge::data::MergePolicyDecisionBoundary::RequiresManualResolution { class } => {
+            json!({
+                "kind": "requires_manual_resolution",
+                "class": format!("{:?}", class),
+            })
+        }
         crate::merge::data::MergePolicyDecisionBoundary::Reject { class } => json!({
             "kind": "reject",
             "class": format!("{:?}", class),
@@ -178,9 +180,7 @@ fn executed_aspect_class_label(class: ExecutedMergeAspectClass) -> &'static str 
     }
 }
 
-fn merge_execution_failure_code(
-    error: &crate::merge::data::MergeExecutionError,
-) -> DiagnosticCode {
+fn merge_execution_failure_code(error: &crate::merge::data::MergeExecutionError) -> DiagnosticCode {
     match error {
         crate::merge::data::MergeExecutionError::MergeBaseDrift { .. } => {
             DiagnosticCode::MissingMergeBase

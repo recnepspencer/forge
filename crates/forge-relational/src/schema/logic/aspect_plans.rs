@@ -107,8 +107,12 @@ fn canonicalize_declarations(
 ) -> Result<KindAspectDeclarations, SchemaRegistryError> {
     let mut seen = BTreeSet::new();
     let mut aspects = declarations.aspects;
-    let mut identity_declarations =
-        canonicalize_identity_declarations(kind_id, declarations.identity_declarations, &aspects, &domain)?;
+    let mut identity_declarations = canonicalize_identity_declarations(
+        kind_id,
+        declarations.identity_declarations,
+        &aspects,
+        &domain,
+    )?;
     let merge_policy_declarations = canonicalize_merge_policy_declarations(
         kind_id,
         declarations.merge_policy_declarations,
@@ -129,11 +133,8 @@ fn canonicalize_declarations(
         validate_declared_aspect(kind_id, aspect, &domain)?;
     }
     identity_declarations.sort();
-    let plan_revision = derive_plan_revision(
-        &aspects,
-        &identity_declarations,
-        &merge_policy_declarations,
-    );
+    let plan_revision =
+        derive_plan_revision(&aspects, &identity_declarations, &merge_policy_declarations);
     Ok(KindAspectDeclarations {
         plan_revision,
         aspects,
@@ -162,7 +163,10 @@ fn canonicalize_identity_declarations(
         if !seen.insert(declaration.clone()) {
             return Err(SchemaRegistryError::invalid_aspect_declaration(
                 kind_id,
-                format!("duplicate identity basis declaration for scope {:?}", declaration.scope),
+                format!(
+                    "duplicate identity basis declaration for scope {:?}",
+                    declaration.scope
+                ),
             ));
         }
         match &declaration.scope {
@@ -175,7 +179,8 @@ fn canonicalize_identity_declarations(
                 }
             }
             IdentityBasisScope::RelationKind(scope_kind) => {
-                if *scope_kind != kind_id || !matches!(domain, RegistrationDomain::Relation { .. }) {
+                if *scope_kind != kind_id || !matches!(domain, RegistrationDomain::Relation { .. })
+                {
                     return Err(SchemaRegistryError::invalid_aspect_declaration(
                         kind_id,
                         "relation identity declarations must target the registering relation kind",

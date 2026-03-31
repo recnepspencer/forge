@@ -23,8 +23,7 @@ use crate::{
     config::data::{CascadeDeletePolicy, CrossContextPolicy},
     facade::identity::KindId,
     facade::merge::{
-        AspectMergePolicyKind, IdentityBasisDeclaration, IdentityBasisKind,
-        IdentityBasisScope,
+        AspectMergePolicyKind, IdentityBasisDeclaration, IdentityBasisKind, IdentityBasisScope,
     },
     schema::data::RelationalSchemaRegistry,
 };
@@ -70,7 +69,9 @@ fn runtime_with_name_merge_policy(
             })
         })
         .expect("schema registry");
-    RelationalRuntimeApi::builder().schema_registry(registry).build()
+    RelationalRuntimeApi::builder()
+        .schema_registry(registry)
+        .build()
 }
 
 #[test]
@@ -358,12 +359,11 @@ fn admitted_source_addition_carries_executable_class() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    let feature_only =
-        crate::tests::support::create_entity_outcome_on_branch(
-            &mut runtime,
-            "feature-only",
-            BranchId("feature".to_string()),
-        );
+    let feature_only = crate::tests::support::create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
     let entity = crate::tests::support::changed_entities(&feature_only)[0];
 
     let artifact = runtime
@@ -385,7 +385,10 @@ fn admitted_source_addition_carries_executable_class() {
         .find(|record| record.record == RecordRef::Entity(entity))
         .expect("lowered record");
 
-    assert_eq!(lowered.resolution_class, MergeResolutionClass::SourceOnlyAddition);
+    assert_eq!(
+        lowered.resolution_class,
+        MergeResolutionClass::SourceOnlyAddition
+    );
     assert_eq!(
         lowered.executable_class,
         Some(MergeExecutableClass::AdoptSourceRecord)

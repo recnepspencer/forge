@@ -1,9 +1,7 @@
 use crate::data::output::{
     ArtifactContinuityToken, ChangedRegion, MemoizedResultOrigin, OutputIdentity,
 };
-use crate::data::reuse::{
-    ReuseBoundaryAuthority, ReuseBoundaryContext, ReuseCertificationRecord,
-};
+use crate::data::reuse::{ReuseBoundaryAuthority, ReuseBoundaryContext, ReuseCertificationRecord};
 use crate::data::trace::CausalityMetadata;
 use crate::logic::prepared::PreparedKeyedContext;
 

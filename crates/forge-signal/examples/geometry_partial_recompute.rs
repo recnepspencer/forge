@@ -53,8 +53,9 @@ fn main() -> Result<(), SignalError> {
                 view.domain().airframe_version,
             )]));
             if !view.domain().changed_partition.is_empty() {
-                result =
-                    result.with_changed_region(ChangedRegion::new(view.domain().changed_partition.as_str()));
+                result = result.with_changed_region(ChangedRegion::new(
+                    view.domain().changed_partition.as_str(),
+                ));
             }
             view.finish(result)
         } else if view.node() == wing_skin {

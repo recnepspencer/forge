@@ -4,9 +4,16 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import wasm from "vite-plugin-wasm";
 
+const workspaceRoot = path.resolve(__dirname, "../..");
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), wasm()],
+  server: {
+    fs: {
+      allow: [workspaceRoot],
+    },
+  },
   worker: {
     format: "es",
     plugins: () => [wasm()],
@@ -19,7 +26,7 @@ export default defineConfig({
       },
       {
         find: "@forge/signal",
-        replacement: path.resolve(__dirname, "../../packages/forge-signal/src/index.js"),
+        replacement: path.resolve(__dirname, "../../packages/forge-signal/src/index.ts"),
       },
     ],
     preserveSymlinks: true,

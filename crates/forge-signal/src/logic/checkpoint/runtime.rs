@@ -1,5 +1,6 @@
 //! Tier-0 checkpoint runtime for batched domain refresh.
 
+use crate::clock::RuntimeInstant;
 use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::checkpoint_policy::CheckpointPolicy;
 use crate::data::dirty_set::{BatchedDirtySet, DomainImpact};
@@ -7,7 +8,6 @@ use crate::data::effect_mapping::EffectMapping;
 use crate::data::error::SignalError;
 use crate::data::evaluator::CheckpointEvaluator;
 use crate::data::telemetry::RuntimeTelemetry;
-use crate::clock::RuntimeInstant;
 
 /// Runtime state for batched Tier-0 signal scheduling.
 #[derive(Debug, Clone)]

@@ -80,8 +80,14 @@ fn run_merge_planning_certification() -> MergePlanningCertificationBundle {
 #[test]
 fn merge_planning_artifact_certification_is_stable_across_roundtrip_and_recovery() {
     let certification = run_merge_planning_certification();
-    assert_eq!(certification.artifact_digest, certification.roundtrip_digest);
-    assert_eq!(certification.artifact_digest, certification.recovered_digest);
+    assert_eq!(
+        certification.artifact_digest,
+        certification.roundtrip_digest
+    );
+    assert_eq!(
+        certification.artifact_digest,
+        certification.recovered_digest
+    );
     assert!(certification.schema_snapshot_digest.len() > 8);
     assert!(certification.artifact_digest.len() > 8);
     assert!(certification.decision_log_digest.len() > 8);
@@ -112,10 +118,12 @@ fn merge_planning_schema_snapshot_changes_when_schema_semantics_change() {
                     scope: IdentityBasisScope::AspectKey(name_key.clone()),
                     basis: IdentityBasisKind::DeclaredKeySet(vec![name_key.clone()].into()),
                 }])
-                .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
-                    aspect_key: name_key,
-                    policy: merge_policy,
-                }]),
+                .with_merge_policy_declarations(vec![
+                    AspectMergePolicyDeclaration {
+                        aspect_key: name_key,
+                        policy: merge_policy,
+                    },
+                ]),
             })
             .and_then(|registry| {
                 registry.register_relation_kind(RelationKindRegistration {
@@ -125,13 +133,17 @@ fn merge_planning_schema_snapshot_changes_when_schema_semantics_change() {
                     schema_version_id: SchemaVersionId(1),
                     payload_class: RelationPayloadClass::PayloadBearingRelation,
                     cross_context_policy: crate::config::data::CrossContextPolicy::AllowExplicit,
-                    cascade_delete_policy: crate::config::data::CascadeDeletePolicy::CascadeDeleteRelations,
+                    cascade_delete_policy:
+                        crate::config::data::CascadeDeletePolicy::CascadeDeleteRelations,
                     aspect_declarations: KindAspectDeclarations::default(),
-                    relation_integrity: crate::schema::data::RelationIntegrityDeclarations::default(),
+                    relation_integrity: crate::schema::data::RelationIntegrityDeclarations::default(
+                    ),
                 })
             })
             .unwrap();
-        RelationalRuntimeApi::builder().schema_registry(registry).build()
+        RelationalRuntimeApi::builder()
+            .schema_registry(registry)
+            .build()
     }
 
     fn snapshot_digest(runtime: &mut crate::facade::runtime::RelationalRuntime) -> String {

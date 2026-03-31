@@ -107,10 +107,9 @@ impl SignalGraph {
                 crate::logic::transaction::RequiredDerivedRebuildSet::DependencyIndexes(_) => {
                     let classified_checkpoint_batch =
                         restore_plan.checkpoint_restore_batch().clone_inner();
-                    rebuild_breadth += classified_checkpoint_batch.target_nodes().as_slice().len()
-                        as u64;
-                    restored
-                        .apply_classified_snapshot_batch_commit(classified_checkpoint_batch)?;
+                    rebuild_breadth +=
+                        classified_checkpoint_batch.target_nodes().as_slice().len() as u64;
+                    restored.apply_classified_snapshot_batch_commit(classified_checkpoint_batch)?;
                 }
                 crate::logic::transaction::RequiredDerivedRebuildSet::ReplaySuffix(replay) => {
                     if snapshot.diagnostics.replay_frames.len() < replay.replay_event_count as usize
@@ -358,8 +357,10 @@ impl SignalGraph {
                 &snapshot.checkpoint_image.authority,
                 &snapshot.checkpoint_image.dependency_snapshot_batch,
             )?;
-        let dependency_snapshot_delta_node_count =
-            dependency_snapshot_delta_batch.target_nodes().as_slice().len() as u64;
+        let dependency_snapshot_delta_node_count = dependency_snapshot_delta_batch
+            .target_nodes()
+            .as_slice()
+            .len() as u64;
         let dependency_snapshot_batch = snapshot
             .checkpoint_image
             .dependency_snapshot_batch
@@ -435,8 +436,7 @@ impl SignalGraph {
             restore_plan.dependency_snapshot_delta_node_count();
         self.telemetry_mut()
             .checkpoint
-            .snapshot_restore_coarse_reason_count +=
-            restore_plan.coarse_reasons().len() as u64;
+            .snapshot_restore_coarse_reason_count += restore_plan.coarse_reasons().len() as u64;
         crate::diagnostics::recorder::record_snapshot_restore_lineage(
             self,
             snapshot.meta.snapshot_id,

@@ -75,7 +75,10 @@ impl<'runtime> DurabilityAccess<'runtime> {
                     .schema
                     .descriptor_semantics_policy
                     .current_write_version(),
-                true,
+                Vec::new(),
+            )
+            .with_commit_strategy_executors(
+                self.runtime.commit_strategy_executor_registry().clone(),
             );
         };
         let mut skipped_corrupt_checkpoints = Vec::new();
@@ -168,6 +171,10 @@ impl<'runtime> DurabilityAccess<'runtime> {
                 self.runtime.primary_schema_version_id(),
             );
         }
+        let restore_authoritative_envelope_commit_ids = tail_log
+            .iter()
+            .map(|entry| entry.commit.commit_id)
+            .collect();
         RecoveryPlan::new(
             self.runtime.runtime_config().clone(),
             Some(store.clone()),
@@ -191,8 +198,9 @@ impl<'runtime> DurabilityAccess<'runtime> {
             continuity_compatibility,
             verification_mode,
             descriptor_semantics_version,
-            true,
+            restore_authoritative_envelope_commit_ids,
         )
+        .with_commit_strategy_executors(self.runtime.commit_strategy_executor_registry().clone())
     }
 }
 
@@ -234,6 +242,10 @@ fn in_memory_recovery_plan(
             .unwrap_or(&[]),
         &tail_log,
     );
+    let restore_authoritative_envelope_commit_ids = tail_log
+        .iter()
+        .map(|entry| entry.commit.commit_id)
+        .collect();
     RecoveryPlan::new(
         runtime.runtime_config().clone(),
         runtime.durable_store().cloned(),
@@ -253,8 +265,9 @@ fn in_memory_recovery_plan(
         continuity_compatibility,
         verification_mode,
         descriptor_semantics_version,
-        true,
+        restore_authoritative_envelope_commit_ids,
     )
+    .with_commit_strategy_executors(runtime.commit_strategy_executor_registry().clone())
 }
 
 fn descriptor_semantics_version_for_envelopes(

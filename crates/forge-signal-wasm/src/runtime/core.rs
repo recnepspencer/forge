@@ -3,25 +3,25 @@ use std::collections::BTreeMap;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-use js_sys::Date;
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-use forge_signal::facade::{
-    Aspect, AspectVersion, DependencyEdge, EvaluationContext, NodeEvaluationResult, NodeId,
-    OutputChange, SignalError, SignalGraph, SignalRuntime as NativeRuntime,
-};
+use forge_signal::facade::adapters::{ArtifactMergeAction, BranchMergePlan, BranchMergeResult};
 use forge_signal::facade::history::RuntimeSnapshot;
 use forge_signal::facade::history::{RuntimeBranch, RuntimeBranchId};
 use forge_signal::facade::specialist::EvaluationOutput;
 use forge_signal::facade::specialist::EvaluationVerdict;
-use forge_signal::facade::adapters::{BranchMergePlan, BranchMergeResult};
+use forge_signal::facade::{
+    Aspect, AspectVersion, DependencyEdge, EvaluationContext, NodeEvaluationResult, NodeId,
+    OutputChange, SignalError, SignalGraph, SignalRuntime as NativeRuntime,
+};
 
 use crate::boundary::errors::ForgeSignalJsError;
 use crate::expression::evaluation::ExprEnvironment;
 use crate::expression::model::{IdentitySpec, SignalValue};
 use crate::recipe::model::{
-    KeyedRecipeFamilySpec, KeyedSetValue, KeyedSourceFamilySpec, RecipeFamilyReadSpec,
-    RecipeSpec, SourceSpec, TransactionOp,
+    KeyedRecipeFamilySpec, KeyedSetValue, KeyedSourceFamilySpec, RecipeFamilyReadSpec, RecipeSpec,
+    SourceSpec, TransactionOp,
 };
 use crate::runtime::adapters::{RuntimeDefinitionEnvelope, RuntimeEnvelope};
 use crate::runtime::policy::RuntimePolicySpec;
@@ -32,6 +32,8 @@ use crate::runtime::summaries::{
 };
 
 const DEFAULT_ASPECT: Aspect = Aspect::new(0);
+#[cfg(target_arch = "wasm32")]
+const WASM_DEBUG_LOGS: bool = false;
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
@@ -41,12 +43,27 @@ extern "C" {
 }
 
 fn perf_now_ms() -> f64 {
-    Date::now()
+    #[cfg(target_arch = "wasm32")]
+    {
+        return js_sys::Date::now();
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        use std::sync::OnceLock;
+        use std::time::Instant;
+
+        static START: OnceLock<Instant> = OnceLock::new();
+        let start = START.get_or_init(Instant::now);
+        return start.elapsed().as_secs_f64() * 1000.0;
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
 fn wasm_debug(message: impl AsRef<str>) {
-    console_log(message.as_ref());
+    if WASM_DEBUG_LOGS {
+        console_log(message.as_ref());
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -93,6 +110,19 @@ struct DenseGridFamily {
     ids: Vec<String>,
     nodes: Vec<NodeId>,
     key_to_index: BTreeMap<String, usize>,
+}
+
+#[derive(Debug, Clone, Default)]
+struct BranchRuntimeMetadata {
+    catalog: BTreeMap<String, CatalogEntry>,
+    nodes_by_id: BTreeMap<NodeId, String>,
+    dense_grids: BTreeMap<String, Arc<DenseGridFamily>>,
+}
+
+#[derive(Debug, Clone, Default)]
+struct BranchRuntimeState {
+    metadata: BranchRuntimeMetadata,
+    store: RuntimeStoreSnapshot,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -167,6 +197,9 @@ pub struct RuntimeCore {
     catalog: BTreeMap<String, CatalogEntry>,
     nodes_by_id: BTreeMap<NodeId, String>,
     dense_grids: BTreeMap<String, Arc<DenseGridFamily>>,
+    branch_states: BTreeMap<u64, BranchRuntimeState>,
+    snapshot_states: BTreeMap<u64, BranchRuntimeState>,
+    runtime_snapshots: BTreeMap<u64, RuntimeSnapshot>,
     policy: RuntimePolicySpec,
 }
 
@@ -175,12 +208,18 @@ impl RuntimeCore {
         let graph = SignalGraph::new();
         let mut runtime = NativeRuntime::build_for::<SharedStore>(graph);
         runtime.set_runtime_policy(policy.clone().into_native()?);
+        let current_branch_id = runtime.current_branch().id.0;
+        let mut branch_metadata = BTreeMap::new();
+        branch_metadata.insert(current_branch_id, BranchRuntimeState::default());
         Ok(Self {
             runtime,
             store: Arc::new(Mutex::new(RuntimeStore::default())),
             catalog: BTreeMap::new(),
             nodes_by_id: BTreeMap::new(),
             dense_grids: BTreeMap::new(),
+            branch_states: branch_metadata,
+            snapshot_states: BTreeMap::new(),
+            runtime_snapshots: BTreeMap::new(),
             policy,
         })
     }
@@ -189,7 +228,8 @@ impl RuntimeCore {
         &mut self,
         policy: RuntimePolicySpec,
     ) -> Result<(), ForgeSignalJsError> {
-        self.runtime.set_runtime_policy(policy.clone().into_native()?);
+        self.runtime
+            .set_runtime_policy(policy.clone().into_native()?);
         self.policy = policy;
         Ok(())
     }
@@ -256,17 +296,26 @@ impl RuntimeCore {
 
     pub fn define_source(&mut self, spec: SourceSpec) -> Result<(), ForgeSignalJsError> {
         self.ensure_unique_id(&spec.id)?;
+        let source_id = spec.id.clone();
         let node = self.runtime.graph_mut().node().build();
-        self.catalog.insert(spec.id.clone(), CatalogEntry { node });
-        self.nodes_by_id.insert(node, spec.id.clone());
+        self.catalog
+            .insert(source_id.clone(), CatalogEntry { node });
+        self.nodes_by_id.insert(node, source_id.clone());
         let mut store = self.lock_store()?;
         store.sources.insert(
-            spec.id,
+            source_id.clone(),
             StoredSource {
                 value: spec.initial,
                 version: 1,
             },
         );
+        drop(store);
+
+        let evaluator = self.evaluator();
+        self.runtime
+            .read(node, &self.store, &evaluator)
+            .map_err(ForgeSignalJsError::from)?;
+        self.runtime.clear_live_branch_mutation_residue();
         Ok(())
     }
 
@@ -310,14 +359,25 @@ impl RuntimeCore {
 
     pub fn read_value(&mut self, id: &str) -> Result<SignalValue, ForgeSignalJsError> {
         let node = self.node_for_id(id)?;
+        let should_recompute_recipe = self
+            .lock_store()?
+            .recipes
+            .get(id)
+            .map(|recipe| !recipe.initialized)
+            .unwrap_or(false);
+        if should_recompute_recipe {
+            forge_signal::facade::core::mark_dirty(self.runtime.graph_mut(), node, DEFAULT_ASPECT)
+                .map_err(ForgeSignalJsError::from)?;
+        }
         let evaluator = self.evaluator();
         self.runtime
             .read(node, &self.store, &evaluator)
             .map_err(ForgeSignalJsError::from)?;
+        self.runtime.clear_live_branch_mutation_residue();
         let store = self.lock_store()?;
-        store.read_value(id).ok_or_else(|| {
-            ForgeSignalJsError::invalid_input(format!("unknown signal id `{id}`"))
-        })
+        store
+            .read_value(id)
+            .ok_or_else(|| ForgeSignalJsError::invalid_input(format!("unknown signal id `{id}`")))
     }
 
     pub fn ensure_source_key(
@@ -420,13 +480,7 @@ impl RuntimeCore {
         if !pending_sources.is_empty() {
             let mut store = self.lock_store()?;
             for (id, value) in pending_sources {
-                store.sources.insert(
-                    id,
-                    StoredSource {
-                        value,
-                        version: 1,
-                    },
-                );
+                store.sources.insert(id, StoredSource { value, version: 1 });
             }
         }
 
@@ -437,7 +491,8 @@ impl RuntimeCore {
             nodes,
             key_to_index,
         });
-        self.dense_grids.insert(family_id.to_owned(), family.clone());
+        self.dense_grids
+            .insert(family_id.to_owned(), family.clone());
         wasm_debug(format!(
             "[forge-signal-wasm] dense-grid:ready family={family_id} elapsed_ms={:.1}",
             perf_now_ms() - started_at
@@ -456,9 +511,15 @@ impl RuntimeCore {
         }
         let family = {
             let store = self.lock_store()?;
-            store.recipe_families.get(family_id).cloned().ok_or_else(|| {
-                ForgeSignalJsError::invalid_input(format!("unknown recipe family `{family_id}`"))
-            })?
+            store
+                .recipe_families
+                .get(family_id)
+                .cloned()
+                .ok_or_else(|| {
+                    ForgeSignalJsError::invalid_input(format!(
+                        "unknown recipe family `{family_id}`"
+                    ))
+                })?
         };
         for read in &family.spec.reads {
             if let RecipeFamilyReadSpec::Keyed { family_id } = read {
@@ -484,15 +545,21 @@ impl RuntimeCore {
                 })
                 .collect(),
             expr: rewrite_keyed_expr(&family.spec.expr, &family.spec.reads, key),
-            when: family.spec.when.as_ref().map(|condition| crate::expression::model::ConditionSpec {
-                expr: rewrite_keyed_expr(&condition.expr, &family.spec.reads, key),
+            when: family.spec.when.as_ref().map(|condition| {
+                crate::expression::model::ConditionSpec {
+                    expr: rewrite_keyed_expr(&condition.expr, &family.spec.reads, key),
+                }
             }),
-            identity: family.spec.identity.as_ref().map(|identity| match identity {
-                IdentitySpec::Exact => IdentitySpec::Exact,
-                IdentitySpec::Expr { expr } => IdentitySpec::Expr {
-                    expr: rewrite_keyed_expr(expr, &family.spec.reads, key),
-                },
-            }),
+            identity: family
+                .spec
+                .identity
+                .as_ref()
+                .map(|identity| match identity {
+                    IdentitySpec::Exact => IdentitySpec::Exact,
+                    IdentitySpec::Expr { expr } => IdentitySpec::Expr {
+                        expr: rewrite_keyed_expr(expr, &family.spec.reads, key),
+                    },
+                }),
         };
         self.define_recipe(recipe)?;
         Ok(composite_id)
@@ -541,10 +608,44 @@ impl RuntimeCore {
         let mut normalized = Vec::with_capacity(values.len());
         for entry in values {
             let id = self.ensure_source_key(family_id, &entry.key, Some(entry.value.clone()))?;
-            normalized.push(crate::recipe::model::SetValue { id, value: entry.value });
+            normalized.push(crate::recipe::model::SetValue {
+                id,
+                value: entry.value,
+            });
         }
 
         self.apply_transaction(vec![TransactionOp::SetMany { values: normalized }])
+    }
+
+    pub fn clear_keyed_family_cache(&mut self, family_id: &str) -> Result<(), ForgeSignalJsError> {
+        let prefix = format!("{family_id}::");
+
+        if let Some(grid) = self.dense_grids.remove(family_id) {
+            for node in &grid.nodes {
+                self.nodes_by_id.remove(node);
+            }
+            for id in &grid.ids {
+                self.catalog.remove(id);
+            }
+        }
+
+        let stale_ids: Vec<String> = self
+            .catalog
+            .keys()
+            .filter(|id| id.starts_with(&prefix))
+            .cloned()
+            .collect();
+
+        for id in stale_ids {
+            if let Some(entry) = self.catalog.remove(&id) {
+                self.nodes_by_id.remove(&entry.node);
+            }
+        }
+
+        let mut store = self.lock_store()?;
+        store.sources.retain(|id, _| !id.starts_with(&prefix));
+        store.recipes.retain(|id, _| !id.starts_with(&prefix));
+        Ok(())
     }
 
     pub fn apply_transaction(
@@ -552,10 +653,7 @@ impl RuntimeCore {
         ops: Vec<TransactionOp>,
     ) -> Result<RunSummary, ForgeSignalJsError> {
         let started_at = perf_now_ms();
-        wasm_debug(format!(
-            "[forge-signal-wasm] tx:start ops={}",
-            ops.len()
-        ));
+        wasm_debug(format!("[forge-signal-wasm] tx:start ops={}", ops.len()));
         let previous = self.lock_store()?.clone();
         let changes = self.collect_changes(&ops)?;
         wasm_debug(format!(
@@ -632,6 +730,9 @@ impl RuntimeCore {
 
         match result {
             Ok(result) => {
+                let active_branch_id = self.runtime.current_branch().id.0;
+                self.branch_states
+                    .insert(active_branch_id, self.snapshot_branch_state());
                 wasm_debug(format!(
                     "[forge-signal-wasm] tx:done touched={} evaluated={} elapsed_ms={:.1}",
                     result.touched_nodes,
@@ -687,13 +788,20 @@ impl RuntimeCore {
                 })
                 .collect(),
             propagation_suppressed: explanation.propagation_suppressed,
-            output_change: explanation.output_change.map(|change| format!("{change:?}")),
+            output_change: explanation
+                .output_change
+                .map(|change| format!("{change:?}")),
             output_identity: explanation.output_identity.map(|value| String::from(value)),
         })
     }
 
     pub fn health(&self) -> Result<HealthSummary, ForgeSignalJsError> {
-        Ok(self.runtime.diagnostics().health_view().summary_now().into())
+        Ok(self
+            .runtime
+            .diagnostics()
+            .health_view()
+            .summary_now()
+            .into())
     }
 
     pub fn replay_for_id(&mut self, id: &str) -> Result<ReplaySummary, ForgeSignalJsError> {
@@ -719,6 +827,10 @@ impl RuntimeCore {
             let mut history = self.runtime.history();
             history.snapshot()
         };
+        self.runtime_snapshots
+            .insert(snapshot.meta.snapshot_id.0, snapshot.clone());
+        self.snapshot_states
+            .insert(snapshot.meta.snapshot_id.0, self.snapshot_branch_state());
         Ok(RuntimeSnapshotEnvelope {
             snapshot,
             state: self.lock_store()?.snapshot(),
@@ -746,18 +858,42 @@ impl RuntimeCore {
     }
 
     pub fn create_branch(&mut self, name: String) -> Result<RuntimeBranch, ForgeSignalJsError> {
-        self.runtime.create_branch(name).map_err(ForgeSignalJsError::from)
+        let state = self.snapshot_branch_state();
+        let branch = self
+            .runtime
+            .create_branch(name)
+            .map_err(ForgeSignalJsError::from)?;
+        self.branch_states.insert(branch.id.0, state);
+        Ok(branch)
     }
 
     pub fn switch_branch(&mut self, branch_id: u64) -> Result<(), ForgeSignalJsError> {
+        let current_branch_id = self.runtime.current_branch().id.0;
+        let current_state = self.snapshot_branch_state();
+        self.branch_states
+            .insert(current_branch_id, current_state.clone());
         let branch = self
             .runtime
             .branch_handle(RuntimeBranchId(branch_id))
-            .ok_or_else(|| ForgeSignalJsError::invalid_input(format!("unknown branch `{branch_id}`")))?;
-        self.runtime.switch_branch(branch).map_err(ForgeSignalJsError::from)
+            .ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!("unknown branch `{branch_id}`"))
+            })?;
+        self.runtime
+            .switch_branch(branch)
+            .map_err(ForgeSignalJsError::from)?;
+        let target_state = self
+            .branch_states
+            .get(&branch_id)
+            .cloned()
+            .unwrap_or(current_state);
+        self.restore_branch_state(target_state)?;
+        Ok(())
     }
 
-    pub fn replay_for_branch(&mut self, branch_id: u64) -> Result<ReplaySummary, ForgeSignalJsError> {
+    pub fn replay_for_branch(
+        &mut self,
+        branch_id: u64,
+    ) -> Result<ReplaySummary, ForgeSignalJsError> {
         Ok(self
             .runtime
             .replay_for_branch(RuntimeBranchId(branch_id))
@@ -771,9 +907,90 @@ impl RuntimeCore {
         let branch = self
             .runtime
             .branch_handle(RuntimeBranchId(branch_id))
-            .ok_or_else(|| ForgeSignalJsError::invalid_input(format!("unknown branch `{branch_id}`")))?;
+            .ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!("unknown branch `{branch_id}`"))
+            })?;
         let mut history = self.runtime.history();
-        history.branch_snapshot(branch).map_err(ForgeSignalJsError::from)
+        let snapshot = history
+            .branch_snapshot(branch)
+            .map_err(ForgeSignalJsError::from)?;
+        self.runtime_snapshots
+            .insert(snapshot.meta.snapshot_id.0, snapshot.clone());
+        self.snapshot_states.insert(
+            snapshot.meta.snapshot_id.0,
+            self.state_for_branch(branch_id),
+        );
+        Ok(snapshot)
+    }
+
+    pub fn branch_snapshot_id(&mut self, branch_id: u64) -> Result<u64, ForgeSignalJsError> {
+        Ok(self.branch_snapshot(branch_id)?.meta.snapshot_id.0)
+    }
+
+    pub fn branch_snapshot_envelope(
+        &mut self,
+        branch_id: u64,
+    ) -> Result<RuntimeSnapshotEnvelope, ForgeSignalJsError> {
+        let snapshot = self.branch_snapshot(branch_id)?;
+        let state = self
+            .snapshot_states
+            .get(&snapshot.meta.snapshot_id.0)
+            .map(|state| state.store.clone())
+            .ok_or_else(|| {
+                ForgeSignalJsError::internal(format!(
+                    "snapshot `{}` missing runtime-local branch state",
+                    snapshot.meta.snapshot_id.0
+                ))
+            })?;
+        Ok(RuntimeSnapshotEnvelope { snapshot, state })
+    }
+
+    pub fn restore_branch_snapshot(
+        &mut self,
+        branch_id: u64,
+        snapshot: RuntimeSnapshot,
+    ) -> Result<(), ForgeSignalJsError> {
+        let branch = self
+            .runtime
+            .branch_handle(RuntimeBranchId(branch_id))
+            .ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!("unknown branch `{branch_id}`"))
+            })?;
+        self.runtime
+            .restore_branch_snapshot(branch, &snapshot)
+            .map_err(ForgeSignalJsError::from)?;
+        let state = self
+            .snapshot_states
+            .get(&snapshot.meta.snapshot_id.0)
+            .cloned()
+            .ok_or_else(|| {
+                ForgeSignalJsError::internal(format!(
+                    "snapshot `{}` is missing runtime-local branch semantic state",
+                    snapshot.meta.snapshot_id.0
+                ))
+            })?;
+        self.branch_states.insert(branch_id, state.clone());
+        if self.runtime.current_branch().id.0 == branch_id {
+            self.restore_branch_state(state)?;
+        }
+        Ok(())
+    }
+
+    pub fn restore_branch_snapshot_by_id(
+        &mut self,
+        branch_id: u64,
+        snapshot_id: u64,
+    ) -> Result<(), ForgeSignalJsError> {
+        let snapshot = self
+            .runtime_snapshots
+            .get(&snapshot_id)
+            .cloned()
+            .ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!(
+                    "unknown runtime snapshot `{snapshot_id}`"
+                ))
+            })?;
+        self.restore_branch_snapshot(branch_id, snapshot)
     }
 
     pub fn merge_branches(
@@ -781,6 +998,31 @@ impl RuntimeCore {
         source_branch_id: u64,
         target_branch_id: u64,
     ) -> Result<BranchMergeResult, ForgeSignalJsError> {
+        let current_branch_id = self.runtime.current_branch().id.0;
+        let current_state = self.snapshot_branch_state();
+        self.branch_states
+            .insert(current_branch_id, current_state.clone());
+
+        if current_branch_id != source_branch_id {
+            self.switch_branch(source_branch_id)?;
+        }
+        let source_state = self.snapshot_branch_state();
+        self.branch_states
+            .insert(source_branch_id, source_state.clone());
+
+        if self.runtime.current_branch().id.0 != target_branch_id {
+            self.switch_branch(target_branch_id)?;
+        }
+        let target_state = self.snapshot_branch_state();
+        self.branch_states
+            .insert(target_branch_id, target_state.clone());
+
+        if self.runtime.current_branch().id.0 != source_branch_id {
+            self.switch_branch(source_branch_id)?;
+        }
+
+        let merged_metadata = merge_branch_metadata(&target_state.metadata, &source_state.metadata);
+        self.restore_branch_metadata(merged_metadata.clone());
         let source = self
             .runtime
             .branch_handle(RuntimeBranchId(source_branch_id))
@@ -796,6 +1038,31 @@ impl RuntimeCore {
         self.runtime
             .merge_branch(source, target)
             .map_err(ForgeSignalJsError::from)
+            .map(|result| {
+                let merged_store = merge_branch_store(
+                    &target_state.store,
+                    &source_state.store,
+                    &source_state.metadata,
+                    &merged_metadata,
+                    &result,
+                );
+                let merged_state = BranchRuntimeState {
+                    metadata: merged_metadata,
+                    store: merged_store,
+                };
+                self.branch_states
+                    .insert(target_branch_id, merged_state.clone());
+                let active_branch_id = self.runtime.current_branch().id.0;
+                let restored = if active_branch_id == target_branch_id {
+                    merged_state
+                } else if active_branch_id == source_branch_id {
+                    source_state
+                } else {
+                    current_state
+                };
+                let _ = self.restore_branch_state(restored);
+                result
+            })
     }
 
     pub fn plan_merge_branches(
@@ -824,7 +1091,9 @@ impl RuntimeCore {
             .map_err(ForgeSignalJsError::from)
     }
 
-    pub fn graph_summary(&self) -> Result<forge_signal::facade::diagnostics::GraphSummary, ForgeSignalJsError> {
+    pub fn graph_summary(
+        &self,
+    ) -> Result<forge_signal::facade::diagnostics::GraphSummary, ForgeSignalJsError> {
         Ok(self.runtime.diagnostics().summary_now())
     }
 
@@ -869,6 +1138,7 @@ impl RuntimeCore {
                 .runtime
                 .read(node, &self.store, &evaluator)
                 .map_err(ForgeSignalJsError::from)?;
+            self.runtime.clear_live_branch_mutation_residue();
             versions.push(VersionSummary {
                 id,
                 version: version.get(DEFAULT_ASPECT),
@@ -939,8 +1209,8 @@ impl RuntimeCore {
     fn evaluator(
         &self,
     ) -> impl for<'ctx> Fn(
-            &mut EvaluationContext<'ctx, SharedStore>,
-        ) -> Result<EvaluationOutput, SignalError>
+        &mut EvaluationContext<'ctx, SharedStore>,
+    ) -> Result<EvaluationOutput, SignalError>
            + Sync {
         let store = self.store.clone();
         let nodes_by_id = self.nodes_by_id.clone();
@@ -967,7 +1237,10 @@ impl RuntimeCore {
         Ok(())
     }
 
-    fn collect_changes(&mut self, ops: &[TransactionOp]) -> Result<Vec<SetChange>, ForgeSignalJsError> {
+    fn collect_changes(
+        &mut self,
+        ops: &[TransactionOp],
+    ) -> Result<Vec<SetChange>, ForgeSignalJsError> {
         let mut deduped = BTreeMap::<String, SignalValue>::new();
         let mut packed = Vec::new();
         for op in ops {
@@ -982,7 +1255,11 @@ impl RuntimeCore {
                 }
                 TransactionOp::SetManyKeyed { family_id, values } => {
                     for value in values {
-                        let id = self.ensure_source_key(family_id, &value.key, Some(value.value.clone()))?;
+                        let id = self.ensure_source_key(
+                            family_id,
+                            &value.key,
+                            Some(value.value.clone()),
+                        )?;
                         deduped.insert(id, value.value.clone());
                     }
                 }
@@ -1036,6 +1313,51 @@ impl RuntimeCore {
             .map(|entry| entry.node)
             .ok_or_else(|| ForgeSignalJsError::invalid_input(format!("unknown signal id `{id}`")))
     }
+
+    fn snapshot_branch_metadata(&self) -> BranchRuntimeMetadata {
+        BranchRuntimeMetadata {
+            catalog: self.catalog.clone(),
+            nodes_by_id: self.nodes_by_id.clone(),
+            dense_grids: self.dense_grids.clone(),
+        }
+    }
+
+    fn snapshot_branch_state(&self) -> BranchRuntimeState {
+        BranchRuntimeState {
+            metadata: self.snapshot_branch_metadata(),
+            store: self
+                .lock_store()
+                .map(|store| store.snapshot())
+                .unwrap_or_default(),
+        }
+    }
+
+    fn restore_branch_metadata(&mut self, metadata: BranchRuntimeMetadata) {
+        self.catalog = metadata.catalog;
+        self.nodes_by_id = metadata.nodes_by_id;
+        self.dense_grids = metadata.dense_grids;
+    }
+
+    fn restore_branch_state(
+        &mut self,
+        state: BranchRuntimeState,
+    ) -> Result<(), ForgeSignalJsError> {
+        self.restore_branch_metadata(state.metadata);
+        let mut store = self.lock_store()?;
+        store.restore_snapshot(state.store);
+        Ok(())
+    }
+
+    fn state_for_branch(&self, branch_id: u64) -> BranchRuntimeState {
+        if self.runtime.current_branch().id.0 == branch_id {
+            self.snapshot_branch_state()
+        } else {
+            self.branch_states
+                .get(&branch_id)
+                .cloned()
+                .unwrap_or_default()
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -1051,6 +1373,93 @@ enum SetChange {
     },
 }
 
+fn merge_branch_metadata(
+    target: &BranchRuntimeMetadata,
+    source: &BranchRuntimeMetadata,
+) -> BranchRuntimeMetadata {
+    let mut merged = target.clone();
+    for (node, id) in &source.nodes_by_id {
+        merged
+            .nodes_by_id
+            .entry(*node)
+            .or_insert_with(|| id.clone());
+    }
+    for (id, entry) in &source.catalog {
+        merged
+            .catalog
+            .entry(id.clone())
+            .or_insert_with(|| entry.clone());
+    }
+    for (family_id, grid) in &source.dense_grids {
+        merged
+            .dense_grids
+            .entry(family_id.clone())
+            .or_insert_with(|| grid.clone());
+    }
+    merged
+}
+
+fn merge_branch_store(
+    target: &RuntimeStoreSnapshot,
+    source: &RuntimeStoreSnapshot,
+    source_metadata: &BranchRuntimeMetadata,
+    merged_metadata: &BranchRuntimeMetadata,
+    result: &BranchMergeResult,
+) -> RuntimeStoreSnapshot {
+    let mut merged = target.clone();
+    let mut merged_sources: BTreeMap<String, StoredSourceSnapshot> = merged
+        .sources
+        .into_iter()
+        .map(|entry| (entry.id.clone(), entry))
+        .collect();
+    let source_sources: BTreeMap<String, StoredSourceSnapshot> = source
+        .sources
+        .iter()
+        .cloned()
+        .map(|entry| (entry.id.clone(), entry))
+        .collect();
+
+    for record in &result.records {
+        let should_adopt = matches!(
+            record.action,
+            ArtifactMergeAction::Adopted
+                | ArtifactMergeAction::Replaced
+                | ArtifactMergeAction::IntroducedIntoTarget
+                | ArtifactMergeAction::EquivalentUnchanged
+        );
+        if !should_adopt {
+            continue;
+        }
+
+        let Some(source_id) = source_metadata.nodes_by_id.get(&record.source_node) else {
+            continue;
+        };
+        let Some(source_value) = source_sources.get(source_id) else {
+            continue;
+        };
+        let target_id = record
+            .target_node
+            .and_then(|node| merged_metadata.nodes_by_id.get(&node).cloned())
+            .unwrap_or_else(|| source_id.clone());
+        merged_sources.insert(
+            target_id.clone(),
+            StoredSourceSnapshot {
+                id: target_id,
+                value: source_value.value.clone(),
+                version: source_value.version,
+            },
+        );
+    }
+
+    merged.sources = merged_sources.into_values().collect();
+    for recipe in &mut merged.recipes {
+        recipe.value = SignalValue::Null;
+        recipe.initialized = false;
+        recipe.output_identity = None;
+    }
+    merged
+}
+
 pub fn new_shared_core(policy: RuntimePolicySpec) -> Result<SharedCore, ForgeSignalJsError> {
     Ok(Rc::new(RefCell::new(RuntimeCore::new(policy)?)))
 }
@@ -1061,7 +1470,9 @@ fn evaluate_node(
     nodes_by_id: &BTreeMap<NodeId, String>,
 ) -> Result<EvaluationOutput, SignalError> {
     let Some(id) = nodes_by_id.get(&view.node()) else {
-        return Err(SignalError::invalid_input("missing runtime node id mapping"));
+        return Err(SignalError::invalid_input(
+            "missing runtime node id mapping",
+        ));
     };
 
     let mut locked = store
@@ -1082,9 +1493,10 @@ fn evaluate_node(
 
     let mut read_values = BTreeMap::new();
     for read in &reads {
-        let Some(read_node) = nodes_by_id
-            .iter()
-            .find_map(|(node, candidate)| if candidate == read { Some(*node) } else { None })
+        let Some(read_node) =
+            nodes_by_id
+                .iter()
+                .find_map(|(node, candidate)| if candidate == read { Some(*node) } else { None })
         else {
             return Err(SignalError::invalid_input(format!(
                 "recipe `{id}` references unknown read `{read}`"
@@ -1108,10 +1520,12 @@ fn evaluate_node(
     if let Some(condition) = &recipe.spec.when {
         match env.evaluate(&condition.expr) {
             Ok(SignalValue::Bool(false)) if recipe.initialized => {
-                let mut result = NodeEvaluationResult::from_version(AspectVersion::from_updates([
-                    (DEFAULT_ASPECT, recipe.version),
-                ]))
-                .with_output_change(OutputChange::Unchanged);
+                let mut result =
+                    NodeEvaluationResult::from_version(AspectVersion::from_updates([(
+                        DEFAULT_ASPECT,
+                        recipe.version,
+                    )]))
+                    .with_output_change(OutputChange::Unchanged);
                 if let Some(identity) = &recipe.output_identity {
                     result = result.with_output_identity(identity.clone());
                 }
@@ -1168,14 +1582,17 @@ fn resolve_identity(
 ) -> Result<Option<String>, ForgeSignalJsError> {
     match spec {
         Some(IdentitySpec::Exact) => Ok(Some(canonical_value_string(value)?)),
-        Some(IdentitySpec::Expr { expr }) => Ok(Some(canonical_value_string(&env.evaluate(expr)?)?)),
+        Some(IdentitySpec::Expr { expr }) => {
+            Ok(Some(canonical_value_string(&env.evaluate(expr)?)?))
+        }
         None => Ok(None),
     }
 }
 
 fn canonical_value_string(value: &SignalValue) -> Result<String, ForgeSignalJsError> {
-    serde_json::to_string(value)
-        .map_err(|err| ForgeSignalJsError::internal(format!("failed to canonicalize signal value: {err}")))
+    serde_json::to_string(value).map_err(|err| {
+        ForgeSignalJsError::internal(format!("failed to canonicalize signal value: {err}"))
+    })
 }
 
 fn rgba_signal_value(r: u8, g: u8, b: u8, a: u8) -> SignalValue {
@@ -1213,7 +1630,9 @@ fn rewrite_keyed_expr(
     use crate::expression::model::Expr;
 
     match expr {
-        Expr::Value { value } => Expr::Value { value: value.clone() },
+        Expr::Value { value } => Expr::Value {
+            value: value.clone(),
+        },
         Expr::Read { id } => {
             let rewritten = reads
                 .iter()
@@ -1268,16 +1687,28 @@ fn rewrite_keyed_expr(
                 .collect(),
         },
         Expr::Sum { args } => Expr::Sum {
-            args: args.iter().map(|arg| rewrite_keyed_expr(arg, reads, key)).collect(),
+            args: args
+                .iter()
+                .map(|arg| rewrite_keyed_expr(arg, reads, key))
+                .collect(),
         },
         Expr::Multiply { args } => Expr::Multiply {
-            args: args.iter().map(|arg| rewrite_keyed_expr(arg, reads, key)).collect(),
+            args: args
+                .iter()
+                .map(|arg| rewrite_keyed_expr(arg, reads, key))
+                .collect(),
         },
         Expr::Concat { args } => Expr::Concat {
-            args: args.iter().map(|arg| rewrite_keyed_expr(arg, reads, key)).collect(),
+            args: args
+                .iter()
+                .map(|arg| rewrite_keyed_expr(arg, reads, key))
+                .collect(),
         },
         Expr::Coalesce { args } => Expr::Coalesce {
-            args: args.iter().map(|arg| rewrite_keyed_expr(arg, reads, key)).collect(),
+            args: args
+                .iter()
+                .map(|arg| rewrite_keyed_expr(arg, reads, key))
+                .collect(),
         },
         Expr::Length { target } => Expr::Length {
             target: Box::new(rewrite_keyed_expr(target, reads, key)),
@@ -1287,7 +1718,10 @@ fn rewrite_keyed_expr(
             value: Box::new(rewrite_keyed_expr(value, reads, key)),
         },
         Expr::MergeObjects { args } => Expr::MergeObjects {
-            args: args.iter().map(|arg| rewrite_keyed_expr(arg, reads, key)).collect(),
+            args: args
+                .iter()
+                .map(|arg| rewrite_keyed_expr(arg, reads, key))
+                .collect(),
         },
         Expr::Keys { target } => Expr::Keys {
             target: Box::new(rewrite_keyed_expr(target, reads, key)),
@@ -1315,10 +1749,16 @@ fn rewrite_keyed_expr(
             target: Box::new(rewrite_keyed_expr(target, reads, key)),
         },
         Expr::Min { args } => Expr::Min {
-            args: args.iter().map(|arg| rewrite_keyed_expr(arg, reads, key)).collect(),
+            args: args
+                .iter()
+                .map(|arg| rewrite_keyed_expr(arg, reads, key))
+                .collect(),
         },
         Expr::Max { args } => Expr::Max {
-            args: args.iter().map(|arg| rewrite_keyed_expr(arg, reads, key)).collect(),
+            args: args
+                .iter()
+                .map(|arg| rewrite_keyed_expr(arg, reads, key))
+                .collect(),
         },
         Expr::Sqrt { target } => Expr::Sqrt {
             target: Box::new(rewrite_keyed_expr(target, reads, key)),
@@ -1378,10 +1818,16 @@ fn rewrite_keyed_expr(
             right: Box::new(rewrite_keyed_expr(right, reads, key)),
         },
         Expr::And { args } => Expr::And {
-            args: args.iter().map(|arg| rewrite_keyed_expr(arg, reads, key)).collect(),
+            args: args
+                .iter()
+                .map(|arg| rewrite_keyed_expr(arg, reads, key))
+                .collect(),
         },
         Expr::Or { args } => Expr::Or {
-            args: args.iter().map(|arg| rewrite_keyed_expr(arg, reads, key)).collect(),
+            args: args
+                .iter()
+                .map(|arg| rewrite_keyed_expr(arg, reads, key))
+                .collect(),
         },
         Expr::Not { arg } => Expr::Not {
             arg: Box::new(rewrite_keyed_expr(arg, reads, key)),

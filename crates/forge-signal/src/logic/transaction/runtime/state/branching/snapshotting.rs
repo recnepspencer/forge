@@ -48,8 +48,8 @@ where
                 crate::logic::transaction::RequiredDerivedRebuildSet::DependencyIndexes(_) => {
                     let classified_checkpoint_batch =
                         restore_plan.checkpoint_restore_batch().clone_inner();
-                    rebuild_breadth += classified_checkpoint_batch.target_nodes().as_slice().len()
-                        as u64;
+                    rebuild_breadth +=
+                        classified_checkpoint_batch.target_nodes().as_slice().len() as u64;
                     graph.apply_classified_snapshot_batch_commit(classified_checkpoint_batch)?;
                 }
                 crate::logic::transaction::RequiredDerivedRebuildSet::ReplaySuffix(replay) => {
@@ -267,11 +267,7 @@ where
                 .graph_mut()
                 .diagnostics_state_mut()
                 .refresh_retained_views(history, graph_summary);
-            let branch_catalog = state
-                .graph()
-                .diagnostics_state()
-                .branch_catalog()
-                .clone();
+            let branch_catalog = state.graph().diagnostics_state().branch_catalog().clone();
             let preserved_transaction = self.telemetry.transaction;
             self.apply_branch_lifecycle_transfer(
                 crate::logic::transaction::runtime::state::runtime_state::BranchLifecycleTransfer::Restore(
@@ -300,8 +296,7 @@ where
                 restore_plan.dependency_snapshot_delta_node_count();
             self.telemetry
                 .checkpoint
-                .snapshot_restore_coarse_reason_count +=
-                restore_plan.coarse_reasons().len() as u64;
+                .snapshot_restore_coarse_reason_count += restore_plan.coarse_reasons().len() as u64;
             self.synchronize_branch_catalogs(branch_catalog);
             return Ok(());
         }
@@ -526,8 +521,7 @@ where
         graph
             .diagnostics_state_mut()
             .set_branch_head_snapshot(branch.id, snapshot.meta.snapshot_id);
-        let mut state =
-            snapshot_state.into_branch_state(graph, snapshot.runtime_telemetry.clone());
+        let mut state = snapshot_state.into_branch_state(graph, snapshot.runtime_telemetry.clone());
         crate::diagnostics::recorder::record_snapshot_restore_lineage(
             state.graph_mut(),
             snapshot.meta.snapshot_id,
@@ -551,11 +545,7 @@ where
             .graph_mut()
             .diagnostics_state_mut()
             .refresh_retained_views(history, graph_summary);
-        let branch_catalog = state
-            .graph()
-            .diagnostics_state()
-            .branch_catalog()
-            .clone();
+        let branch_catalog = state.graph().diagnostics_state().branch_catalog().clone();
         self.telemetry.checkpoint.snapshot_restore_count += 1;
         if matches!(
             intent.artifacts,
@@ -571,8 +561,7 @@ where
             restore_plan.dependency_snapshot_delta_node_count();
         self.telemetry
             .checkpoint
-            .snapshot_restore_coarse_reason_count +=
-            restore_plan.coarse_reasons().len() as u64;
+            .snapshot_restore_coarse_reason_count += restore_plan.coarse_reasons().len() as u64;
         self.branches.store_branch_state(state);
         self.synchronize_branch_catalogs(branch_catalog);
         Ok(())

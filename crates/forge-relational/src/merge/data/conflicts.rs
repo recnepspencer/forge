@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
+use crate::commit_strategies::data::StrategyMergeDescriptor;
+use crate::history::data::CommitId;
 use crate::identity::data::VersionId;
 use crate::merge::data::AspectComparisonState;
 use crate::merge::data::IdentityResolutionReason;
@@ -25,7 +27,25 @@ pub enum MergeConflictClass {
     SchemaDeclaredCorrespondence,
     Deletion(DeletionMergeClass),
     DivergentVisibleState,
+    StrategyIntentConflict,
     RelationEndpointDivergence,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum StrategyConflictClass {
+    SameStrategyDivergentOutput,
+    DifferentStrategyOverlappingIntent,
+    SourceStrategyOnly,
+    TargetStrategyOnly,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StrategyConflictEvidence {
+    pub class: StrategyConflictClass,
+    pub source_commit_ids: Arc<[CommitId]>,
+    pub target_commit_ids: Arc<[CommitId]>,
+    pub source_descriptors: Arc<[StrategyMergeDescriptor]>,
+    pub target_descriptors: Arc<[StrategyMergeDescriptor]>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -104,6 +124,7 @@ pub struct MergeConflictClassification {
     pub identity_reason: IdentityResolutionReason,
     pub validated_schema_correspondence: bool,
     pub aspect_evidence: Arc<[AspectConflictEvidence]>,
+    pub strategy_evidence: Option<StrategyConflictEvidence>,
     pub relation_evidence: Option<RelationConflictEvidence>,
     pub target_record: Option<RecordRef>,
     pub base_record_visible: bool,
@@ -122,6 +143,7 @@ pub struct ConflictClassificationSummary {
     pub schema_declared_correspondence_count: usize,
     pub deletion_conflict_count: usize,
     pub divergent_visible_state_count: usize,
+    pub strategy_intent_conflict_count: usize,
     pub relation_endpoint_divergence_count: usize,
     pub classifications: Arc<[MergeConflictClassification]>,
 }

@@ -1,9 +1,11 @@
 export class SignalDiagnostics {
-  constructor(inner) {
+  inner: any;
+
+  constructor(inner: any) {
     this.inner = inner;
   }
 
-  why(id) {
+  why(id: string) {
     return this.inner.why(id);
   }
 

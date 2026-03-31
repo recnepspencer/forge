@@ -24,6 +24,7 @@
 
 mod authority;
 mod capabilities;
+mod commit_strategies;
 mod config;
 mod diagnostics;
 mod durability;

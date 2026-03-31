@@ -21,9 +21,9 @@ pub use identity::*;
 pub use plans::MergePlanningError;
 pub(crate) use plans::{
     BranchCommitDelta, BranchTouchedRecordDelta, CausallyAnnotatedMergePlan,
-    ConflictClassifiedMergePlan, HistoryScopedMergePlan, IdentityScopedMergePlan,
-    LoweredMergePlan, PolicyResolvedMergePlan, ValidatedSchemaDeclaredCorrespondence,
-    VisibleMergeRecord, VisibleMergeRecordKind,
+    ConflictClassifiedMergePlan, HistoryScopedMergePlan, IdentityScopedMergePlan, LoweredMergePlan,
+    PolicyResolvedMergePlan, ValidatedSchemaDeclaredCorrespondence, VisibleMergeRecord,
+    VisibleMergeRecordKind,
 };
 pub use policy::*;
 pub use requests::*;

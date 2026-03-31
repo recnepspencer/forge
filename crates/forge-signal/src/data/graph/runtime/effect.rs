@@ -1,3 +1,4 @@
+use crate::clock::RuntimeInstant;
 use crate::data::comparator::{ComparatorPolicyResolver, VersionComparatorPolicy};
 use crate::data::core_profile::StableHashValue;
 use crate::data::error::SignalError;
@@ -17,7 +18,6 @@ use crate::logic::evaluation::{
     SuppressionReason,
 };
 use smallvec::SmallVec;
-use crate::clock::RuntimeInstant;
 
 use super::graph::{RuntimeArtifactStructuralDelta, SignalGraph};
 
@@ -66,11 +66,13 @@ impl SignalGraph {
             Some(snapshot)
         } else {
             self.node_runtime_artifact_reuse_boundary_snapshot(effect.operational.node)?
-                .map(|trace| crate::logic::evaluation::PreviousArtifactWarmSnapshot {
-                    output_identity: trace.output_identity,
-                    continuity_token: trace.continuity_token,
-                    reuse_boundary_authority: trace.reuse_boundary_authority,
-                })
+                .map(
+                    |trace| crate::logic::evaluation::PreviousArtifactWarmSnapshot {
+                        output_identity: trace.output_identity,
+                        continuity_token: trace.continuity_token,
+                        reuse_boundary_authority: trace.reuse_boundary_authority,
+                    },
+                )
         };
         let comparison = self.compare_effect(&effect, previous_warm.as_ref(), comparator)?;
         let artifact_write =
@@ -129,11 +131,13 @@ impl SignalGraph {
             Some(snapshot)
         } else {
             self.node_runtime_artifact_reuse_boundary_snapshot(effect.operational.node)?
-                .map(|trace| crate::logic::evaluation::PreviousArtifactWarmSnapshot {
-                    output_identity: trace.output_identity,
-                    continuity_token: trace.continuity_token,
-                    reuse_boundary_authority: trace.reuse_boundary_authority,
-                })
+                .map(
+                    |trace| crate::logic::evaluation::PreviousArtifactWarmSnapshot {
+                        output_identity: trace.output_identity,
+                        continuity_token: trace.continuity_token,
+                        reuse_boundary_authority: trace.reuse_boundary_authority,
+                    },
+                )
         };
         let comparison = self.compare_effect(&effect, previous_warm.as_ref(), comparator)?;
         let artifact_write =
@@ -337,6 +341,7 @@ impl SignalGraph {
         {
             let (previous_artifact_id, previous_output_hash, previous_reuse_basis) =
                 self.node_runtime_artifact_structural_state(node)?;
+            let previous_state = self.node_state(node)?;
             if let Some(causality) = effect.take_causality() {
                 self.set_causality(node, Some(causality))?;
             }
@@ -375,7 +380,7 @@ impl SignalGraph {
             }
             if verdict_transitions_clean(&effect.operational.verdict) {
                 self.transition_node_clean(node)?;
-                state_changed = true;
+                state_changed = !matches!(previous_state, NodeState::Clean);
             } else {
                 match effect.operational.verdict {
                     EvaluationVerdict::Deferred {
@@ -383,7 +388,10 @@ impl SignalGraph {
                             DeferralReason::ConditionNotMet
                             | DeferralReason::OnDemandNotRequested
                             | DeferralReason::DebounceWindow,
-                    } => self.set_node_state(node, NodeState::MaybeStale)?,
+                    } => {
+                        self.set_node_state(node, NodeState::MaybeStale)?;
+                        state_changed = !matches!(previous_state, NodeState::MaybeStale);
+                    }
                     _ => {}
                 }
             }

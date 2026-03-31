@@ -102,6 +102,12 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
         reader.visible_entities_of_kind(kind_id, self.version_id)
     }
 
+    pub fn entity_record(&self, entity_id: EntityId) -> Option<EntityReadRecord> {
+        let reader = self.reader();
+        let state = self.runtime.storage_access().current_state();
+        reader.entity_record_for_id_at_version(&state, entity_id, self.version_id)
+    }
+
     pub fn all_entity_records(&self) -> Vec<EntityReadRecord> {
         let reader = self.reader();
         let state = self.runtime.storage_access().current_state();
@@ -139,6 +145,12 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
     pub fn relation_records(&self, kind_id: KindId) -> Vec<RelationReadRecord> {
         let reader = self.reader();
         reader.visible_relations_of_kind(kind_id, self.version_id)
+    }
+
+    pub fn relation_record(&self, relation_id: RelationId) -> Option<RelationReadRecord> {
+        let reader = self.reader();
+        let state = self.runtime.storage_access().current_state();
+        reader.relation_record_for_id_at_version(&state, relation_id, self.version_id)
     }
 
     pub fn all_relation_records(&self) -> Vec<RelationReadRecord> {

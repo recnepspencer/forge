@@ -1,5 +1,5 @@
-use crate::data::error::SignalError;
 use crate::clock::RuntimeInstant;
+use crate::data::error::SignalError;
 
 use super::super::computation::{DefinedComputation, Recipe};
 use super::super::transaction::{
@@ -39,6 +39,7 @@ where
             checkpoint: &mut self.checkpoint,
             event_bus: &mut self.event_bus,
             telemetry: &mut self.telemetry,
+            branches: &mut self.branches,
             scratch: TransactionScratch::new(),
             rollback_packets: super::super::transaction::TransactionRollbackPacketSet::default(),
             poisoned: false,

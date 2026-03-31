@@ -5,8 +5,7 @@ use crate::facade::history::BranchId;
 use crate::facade::identity::{KindId, PartitionId};
 use crate::facade::merge::{
     AspectMergePolicyDeclaration, AspectMergePolicyKind, IdentityBasisDeclaration,
-    IdentityBasisKind, IdentityBasisScope, MergeExecutionError, MergeExecutionRequest,
-    MergeIntent,
+    IdentityBasisKind, IdentityBasisScope, MergeExecutionError, MergeExecutionRequest, MergeIntent,
 };
 use crate::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use crate::facade::schema::{
@@ -23,8 +22,8 @@ use crate::tests::support::{
     capture_aspect_truth_bundle, certification_digest, checkpoint_and_recover_with,
     create_branch_from_main, create_entity, create_entity_outcome_on_branch, entity_payload_aspect,
     persisted_runtime_with_test_schema, read_entity_name, unique_test_store_path, update_entity,
-    update_entity_on_branch, CascadeDeletePolicy, CrossContextPolicy, DurableStoreLayout,
-    DurabilityMode, RelationalRuntimeProfile,
+    update_entity_on_branch, CascadeDeletePolicy, CrossContextPolicy, DurabilityMode,
+    DurableStoreLayout, RelationalRuntimeProfile,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -67,11 +66,16 @@ fn authoritative_merge_execution_certification_emits_machine_checkable_artifacts
 }
 
 #[test]
-fn authoritative_merge_execution_certification_rejects_stale_prepared_merge_after_target_advances() {
+fn authoritative_merge_execution_certification_rejects_stale_prepared_merge_after_target_advances()
+{
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -91,11 +95,16 @@ fn authoritative_merge_execution_certification_rejects_stale_prepared_merge_afte
 }
 
 #[test]
-fn authoritative_merge_execution_certification_rejects_stale_prepared_merge_after_source_advances() {
+fn authoritative_merge_execution_certification_rejects_stale_prepared_merge_after_source_advances()
+{
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -123,7 +132,11 @@ fn authoritative_merge_execution_certification_rejects_schema_semantic_drift_aft
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -173,7 +186,11 @@ fn certify_source_only_addition_merge_execution() -> MergeExecutionCertification
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -205,8 +222,8 @@ fn certify_prefer_richer_merge_execution() -> MergeExecutionCertificationArtifac
         ..TransactionOptions::default()
     });
     feature_txn.push_batch(
-        WorkerIntentBatch::new("feature-seed").push(MutationIntent::Create(
-            CreateIntent::Entity(crate::transactions::data::EntitySpec {
+        WorkerIntentBatch::new("feature-seed").push(MutationIntent::Create(CreateIntent::Entity(
+            crate::transactions::data::EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: InternedString::Raw("feature-shared".to_string()),
@@ -214,8 +231,8 @@ fn certify_prefer_richer_merge_execution() -> MergeExecutionCertificationArtifac
                     "name": "shared-name",
                     "status": "active"
                 })),
-            }),
-        )),
+            },
+        ))),
     );
     feature_txn.commit().expect("feature branch seed");
 
@@ -273,13 +290,20 @@ where
     );
     crate::logic::runtime::RelationalRuntime::rebuild_runtime_from_plan(direct_rebuild_plan)
         .unwrap_or_else(|error| panic!("direct replay rebuild failed: {error:?}"));
-    let replay = runtime.replay_authority().replay_commit(crate::facade::replay::RelationalReplayRequest {
-        commit_id: merge.commit.commit.commit_id,
-        branch_id: BranchId("main".to_string()),
-        execution_mode: crate::facade::replay::ReplayExecutionMode::SerialDeterministic,
-        verification_mode: crate::facade::replay::ReplayVerificationMode::AuditRecoveryVerification,
-    });
-    assert!(replay.failure.is_none(), "replay certification failure: {replay:?}");
+    let replay =
+        runtime
+            .replay_authority()
+            .replay_commit(crate::facade::replay::RelationalReplayRequest {
+                commit_id: merge.commit.commit.commit_id,
+                branch_id: BranchId("main".to_string()),
+                execution_mode: crate::facade::replay::ReplayExecutionMode::SerialDeterministic,
+                verification_mode:
+                    crate::facade::replay::ReplayVerificationMode::AuditRecoveryVerification,
+            });
+    assert!(
+        replay.failure.is_none(),
+        "replay certification failure: {replay:?}"
+    );
 
     let (_recovery, mut recovered) = checkpoint_and_recover_with(runtime, recovered_factory);
     let recovered_envelope = recovered
@@ -290,7 +314,10 @@ where
     let recovered_truth_bundle = capture_aspect_truth_bundle(&mut recovered, &[], &[], &[]);
 
     assert_eq!(envelope, recovered_envelope);
-    assert_eq!(truth_bundle.visible_truth, recovered_truth_bundle.visible_truth);
+    assert_eq!(
+        truth_bundle.visible_truth,
+        recovered_truth_bundle.visible_truth
+    );
     assert_eq!(
         runtime
             .history_access()

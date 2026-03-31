@@ -51,6 +51,7 @@ pub enum MergePolicyResolution {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MergeManualResolutionClass {
     GenericRuntimeConflict,
+    StrategyIntentConflict,
     MissingVisibleState,
     MissingAncestorValueBasis,
     UnvalidatedSchemaCorrespondence,
@@ -77,12 +78,8 @@ pub enum MergeResolvedAspectValueStrategy {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MergePolicyDecisionBoundary {
     AutoResolved,
-    RequiresManualResolution {
-        class: MergeManualResolutionClass,
-    },
-    Reject {
-        class: MergePolicyRejectClass,
-    },
+    RequiresManualResolution { class: MergeManualResolutionClass },
+    Reject { class: MergePolicyRejectClass },
 }
 
 impl MergePolicyDecisionBoundary {
@@ -208,6 +205,7 @@ pub enum LoweredAspectExecutionIntent {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LoweredMergeBlockedReason {
     ManualConflictResolutionRequired,
+    StrategyIntentConflictRequiresManualResolution,
     MissingVisibleState,
     MissingAncestorValueBasis,
     UnvalidatedSchemaCorrespondence,
@@ -235,6 +233,7 @@ pub enum LoweredAspectDenialIntent {
     BlockedDeletedOnBothSides,
     BlockedDeletedVsModified,
     BlockedDeletedVsRewired,
+    BlockedStrategyIntentConflict,
     BlockedMissingVisibleState,
     BlockedMissingAncestorValueBasis,
     BlockedUnvalidatedSchemaCorrespondence,

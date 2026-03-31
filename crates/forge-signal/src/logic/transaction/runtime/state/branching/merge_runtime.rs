@@ -7,22 +7,22 @@ use crate::state::{SignalBranchHandle, SnapshotArtifactRetentionPolicy};
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::super::merge::{
-    adopt_source_node_into_target, remap_dependency_snapshot,
-    AdoptedNodeContract, AdoptionDependencySnapshotRef, AdoptionDependencyTopology,
-    ArtifactMergeAction, BranchConflictResolutionPlan, BranchMergeBase,
-    BranchMergeConflictEvidence, BranchMergeConflictKind, BranchMergeConflictRecord,
-    BranchMergeConflictSummary, BranchMergeCounters, BranchMergeDivergence,
-    BranchMergeExecutionSummary, BranchMergeFailureKind, BranchMergeKind, BranchMergePlan,
-    BranchMergeReconciliationPolicy, BranchMergeRequest, BranchMergeResolutionRequirement,
-    BranchMergeResult, BranchMergeStrategy, CausalityCarryPolicy, ConflictMergePolicy,
-    ConflictResolutionRecord, ConflictResolutionStrategy, ConservativeOverlapExpansion,
-    ExistingTargetMergePolicy, LoweredMergePlan, MergeBoundaryWitness, MergeBoundaryWitnessKind,
-    MergeDecisionBasis, MergeNodeMap, MergeTouchedNodeSet, MergedArtifactRecord,
-    NodeMergeInputState, NodeMergePlan, NodeReconciliationDecision, NodeReconciliationShape,
-    PlannedMergeCandidateSet, ProofMinimalOverlapBasis, RetainedArtifactCarryPolicy,
-    RuntimeArtifactCarryPolicy, SourceNodeAdoptionCarryPolicy, SourceNodeAdoptionPlanCore,
-    SourceOnlyMergePolicy, StructuralMergeCandidateRecord, StructuralMergeJournalSlice,
-    TargetNodeIdentityIntent, TopologyRepairSummary,
+    adopt_source_node_into_target, remap_dependency_snapshot, AdoptedNodeContract,
+    AdoptionDependencySnapshotRef, AdoptionDependencyTopology, ArtifactMergeAction,
+    BranchConflictResolutionPlan, BranchMergeBase, BranchMergeConflictEvidence,
+    BranchMergeConflictKind, BranchMergeConflictRecord, BranchMergeConflictSummary,
+    BranchMergeCounters, BranchMergeDivergence, BranchMergeExecutionSummary,
+    BranchMergeFailureKind, BranchMergeKind, BranchMergePlan, BranchMergeReconciliationPolicy,
+    BranchMergeRequest, BranchMergeResolutionRequirement, BranchMergeResult, BranchMergeStrategy,
+    CausalityCarryPolicy, ConflictMergePolicy, ConflictResolutionRecord,
+    ConflictResolutionStrategy, ConservativeOverlapExpansion, ExistingTargetMergePolicy,
+    LoweredMergePlan, MergeBoundaryWitness, MergeBoundaryWitnessKind, MergeDecisionBasis,
+    MergeNodeMap, MergeTouchedNodeSet, MergedArtifactRecord, NodeMergeInputState, NodeMergePlan,
+    NodeReconciliationDecision, NodeReconciliationShape, PlannedMergeCandidateSet,
+    ProofMinimalOverlapBasis, RetainedArtifactCarryPolicy, RuntimeArtifactCarryPolicy,
+    SourceNodeAdoptionCarryPolicy, SourceNodeAdoptionPlanCore, SourceOnlyMergePolicy,
+    StructuralMergeCandidateRecord, StructuralMergeJournalSlice, TargetNodeIdentityIntent,
+    TopologyRepairSummary,
 };
 use super::super::runtime_state::SignalRuntime;
 use super::branches::LatestMergeReference;
@@ -158,7 +158,9 @@ where
         let target_graph = target_state.graph();
         let target_snapshot_id_before =
             target_graph.branch_head_snapshot_id(request.target_branch.id);
-        let source_snapshot_id = source_state.graph().branch_head_snapshot_id(request.source_branch.id);
+        let source_snapshot_id = source_state
+            .graph()
+            .branch_head_snapshot_id(request.source_branch.id);
         let merge_base_snapshot = source_state.ancestry().forked_from_snapshot_id();
         let mut node_map = MergeNodeMap::default();
         if !source_state.mutation_ledger().boundary_established {
@@ -340,8 +342,7 @@ where
         let mut adoption_core = Vec::new();
         let mut adoption_policy = Vec::new();
         for source_node in source_nodes {
-            let source_projection =
-                node_merge_projection(source_state.graph(), source_node)?;
+            let source_projection = node_merge_projection(source_state.graph(), source_node)?;
             let source_cmp = source_projection
                 .as_ref()
                 .map(|projection| projection.comparable.clone());
@@ -441,10 +442,7 @@ where
                                 .to_vec(),
                         },
                         dependency_snapshot_ref: AdoptionDependencySnapshotRef {
-                            snapshot: source_state
-                                .graph()
-                                .get_dep_snapshot(source_node)?
-                                .clone(),
+                            snapshot: source_state.graph().get_dep_snapshot(source_node)?.clone(),
                         },
                     });
                     adoption_policy.push(SourceNodeAdoptionCarryPolicy {
@@ -541,7 +539,11 @@ where
         let mut repaired_sources = BTreeSet::new();
         let target_snapshot_before = plan.target_snapshot_id_before();
 
-        for (core, policy) in plan.adoption_core().iter().zip(plan.adoption_policy().iter()) {
+        for (core, policy) in plan
+            .adoption_core()
+            .iter()
+            .zip(plan.adoption_policy().iter())
+        {
             let (materialized, remaps) = adopt_source_node_into_target(
                 target_state.graph_mut(),
                 source_state.graph(),
@@ -562,13 +564,11 @@ where
                         .graph()
                         .node_checkpoint_image(node_plan.source_node())?;
                     let mut replacement = source_image.clone();
-                    let (dependencies_id, dep_snapshot_id) = target_state
-                        .graph()
-                        .node_dependency_ids(target_node)?;
+                    let (dependencies_id, dep_snapshot_id) =
+                        target_state.graph().node_dependency_ids(target_node)?;
                     replacement.set_dependencies_id(dependencies_id);
-                    replacement.set_subscribers_id(
-                        target_state.graph().node_subscribers_id(target_node)?,
-                    );
+                    replacement
+                        .set_subscribers_id(target_state.graph().node_subscribers_id(target_node)?);
                     replacement.set_dep_snapshot_id(dep_snapshot_id);
                     if matches!(
                         node_plan.decision(),
@@ -792,7 +792,10 @@ where
                 .node_plan()
                 .iter()
                 .filter(|node| {
-                    matches!(node.shape(), NodeReconciliationShape::SourceOnlyIntroduction)
+                    matches!(
+                        node.shape(),
+                        NodeReconciliationShape::SourceOnlyIntroduction
+                    )
                 })
                 .count() as u64,
             target_only_count: 0,
@@ -828,11 +831,11 @@ where
         };
 
         let merged_source_nodes = summary
-                .records
-                .iter()
-                .filter(|record| !matches!(record.action, ArtifactMergeAction::SkippedNonAdoptable))
-                .map(|record| record.source_node)
-                .collect::<Vec<_>>();
+            .records
+            .iter()
+            .filter(|record| !matches!(record.action, ArtifactMergeAction::SkippedNonAdoptable))
+            .map(|record| record.source_node)
+            .collect::<Vec<_>>();
 
         let target_snapshot_packet =
             crate::logic::transaction::runtime::state::branching::SnapshotBranchState::from_branch_state(&target_state)

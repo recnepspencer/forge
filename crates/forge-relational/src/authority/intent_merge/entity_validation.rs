@@ -71,11 +71,11 @@ fn validate_existing_entity_intent(
 ) -> Result<(), CommitConflict> {
     let schema_registry = schema_source.schema_registry();
     let exists_in_current_state = entity_exists_in_state(state, entity_id);
-    let branch_delete_is_authorized =
-        matches!(intent, MutationIntent::Entity(EntityMutationIntent::Delete(_)))
-            && branch_basis_version_id.is_some_and(|version_id| {
-                entity_exists_in_version_basis(runtime, version_id, entity_id)
-            });
+    let branch_delete_is_authorized = matches!(
+        intent,
+        MutationIntent::Entity(EntityMutationIntent::Delete(_))
+    ) && branch_basis_version_id
+        .is_some_and(|version_id| entity_exists_in_version_basis(runtime, version_id, entity_id));
     if !exists_in_current_state && !branch_delete_is_authorized {
         return Err(CommitConflict::new(ConflictClass::StaleTarget {
             target: crate::transactions::data::ExistingRecordTarget::Entity(entity_id),

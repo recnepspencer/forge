@@ -24,7 +24,12 @@ pub(crate) fn adopt_source_node_into_target(
         TargetNodeIdentityIntent::AllocateTargetNode => {
             let mut entry_image = source_image.clone();
             entry_image.clear_dependency_handles_for_adoption();
-            apply_carry_policy(&mut entry_image, &source_image, carry_policy, &core.authority);
+            apply_carry_policy(
+                &mut entry_image,
+                &source_image,
+                carry_policy,
+                &core.authority,
+            );
             entry_image.set_eval_config(core.entry_contract.eval_config.clone());
             if let Some(runtime) = entry_image.runtime_artifact_state_mut() {
                 runtime.set_lineage_artifact_id(Some(
@@ -55,7 +60,12 @@ pub(crate) fn adopt_source_node_into_target(
         TargetNodeIdentityIntent::ExistingMapping { .. }
     ) {
         let mut entry_image = target_graph.node_checkpoint_image(target_node)?;
-        apply_carry_policy(&mut entry_image, &source_image, carry_policy, &core.authority);
+        apply_carry_policy(
+            &mut entry_image,
+            &source_image,
+            carry_policy,
+            &core.authority,
+        );
         entry_image.set_eval_config(core.entry_contract.eval_config.clone());
         target_graph.replace_entry_from_checkpoint_image(target_node, entry_image)?;
         target_graph.set_dependencies(target_node, remapped_edges)?;
@@ -92,7 +102,9 @@ fn apply_carry_policy(
     };
 
     let retained = match carry_policy.retained_artifact {
-        RetainedArtifactCarryPolicy::CarryIfPolicyAllows => source_entry.retained_artifact().cloned(),
+        RetainedArtifactCarryPolicy::CarryIfPolicyAllows => {
+            source_entry.retained_artifact().cloned()
+        }
         RetainedArtifactCarryPolicy::ReconstructIfNeeded | RetainedArtifactCarryPolicy::Drop => {
             None
         }

@@ -1,5 +1,5 @@
-use crate::clock::RuntimeInstant;
 use super::super::signal_graph::SignalGraph;
+use crate::clock::RuntimeInstant;
 
 impl SignalGraph {
     pub fn tombstone_count(&self) -> u32 {

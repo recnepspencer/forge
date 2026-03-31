@@ -21,6 +21,7 @@ type Triangle = {
   normal: Vec3;
   base: number;
   roughness: number;
+  layer: number;
 };
 
 type ProjectedTriangle = {
@@ -28,20 +29,20 @@ type ProjectedTriangle = {
   depth: number;
   fill: string;
   stroke: string;
+  layer: number;
 };
 
 let scratchCanvas: OffscreenCanvas | null = null;
 let scratchContext: OffscreenCanvasRenderingContext2D | null = null;
 
 export function defaultSceneState(): SceneState {
+  const camera = cameraLookAt(
+    { x: 0.95, y: 2.2, z: -5.0 },
+    { x: 0, y: 0.08, z: 0 },
+  );
+
   return {
-    camera: {
-      x: 0,
-      y: 0.25,
-      z: -4.2,
-      yaw: 0.18,
-      pitch: -0.1,
-    },
+    camera,
     light: {
       x: -2.2,
       y: 2.8,
@@ -273,31 +274,28 @@ function buildGearMesh(_scene: SceneState, aspects: RenderAspects): Triangle[] {
   const bottomInner = inner.map((point) => ({ ...point, y: -half }));
 
   const triangles: Triangle[] = [];
-  appendRingSurface(triangles, topOuter, topInner, "#bcc7d0", 0.24, false);
-  appendRingSurface(triangles, bottomOuter, bottomInner, "#707d89", 0.3, true);
-  appendSideWalls(triangles, topOuter, bottomOuter, "#9ba8b3", 0.4, false);
-  appendSideWalls(triangles, topInner, bottomInner, "#596571", 0.28, true);
+  appendRingSurface(triangles, topOuter, topInner, "#bcc7d0", 0.24, false, 2);
+  appendRingSurface(triangles, bottomOuter, bottomInner, "#707d89", 0.3, true, 0);
+  appendSideWalls(triangles, topOuter, bottomOuter, "#9ba8b3", 0.4, false, 1);
+  appendSideWalls(triangles, topInner, bottomInner, "#596571", 0.28, true, 1);
   return triangles;
 }
 
 function createOuterRing(aspects: RenderAspects): Vec3[] {
   const ring: Vec3[] = [];
-  const teeth = Math.max(aspects.dimensions.teeth, 8);
-  const step = aspects.profile.toothStep;
-  const root = aspects.profile.rootRadius;
-  const tip = aspects.profile.tipRadius;
-  const shoulder = aspects.profile.shoulderRadius;
   const rotation = aspects.dimensions.rotation;
+  const shoulder = aspects.profile.shoulderRadius;
 
-  for (let tooth = 0; tooth < teeth; tooth += 1) {
-    const base = rotation + tooth * step;
+  for (const tooth of aspects.teeth) {
+    const base = rotation + tooth.midAngle;
+    const halfStep = (tooth.endAngle - tooth.startAngle) * 0.5;
     const samples = [
-      { angle: base - step * 0.5, radius: root },
-      { angle: base - step * 0.26, radius: shoulder },
-      { angle: base - step * 0.1, radius: tip },
-      { angle: base + step * 0.1, radius: tip },
-      { angle: base + step * 0.26, radius: shoulder },
-      { angle: base + step * 0.5, radius: root },
+      { angle: base - halfStep,        radius: tooth.rootRadius },
+      { angle: base - halfStep * 0.52, radius: shoulder },
+      { angle: base - halfStep * 0.2,  radius: tooth.tipRadius },
+      { angle: base + halfStep * 0.2,  radius: tooth.tipRadius },
+      { angle: base + halfStep * 0.52, radius: shoulder },
+      { angle: base + halfStep,        radius: tooth.rootRadius },
     ];
 
     for (const sample of samples) {
@@ -313,7 +311,7 @@ function createOuterRing(aspects: RenderAspects): Vec3[] {
 }
 
 function createInnerRing(aspects: RenderAspects): Vec3[] {
-  const segments = aspects.topology.ringSegments;
+  const segments = Math.max(aspects.mesh.outerRingCount, 3);
   const ring: Vec3[] = [];
   const radius = aspects.dimensions.innerRadius;
   for (let i = 0; i < segments; i += 1) {
@@ -334,6 +332,7 @@ function appendRingSurface(
   base: string,
   roughness: number,
   invert: boolean,
+  layer: number,
 ) {
   const count = outer.length;
   for (let i = 0; i < count; i += 1) {
@@ -341,11 +340,11 @@ function appendRingSurface(
     const innerIndex = Math.floor((i / count) * inner.length) % inner.length;
     const innerNext = Math.floor((next / count) * inner.length) % inner.length;
     if (invert) {
-      triangles.push(makeTriangle(outer[i], inner[innerIndex], inner[innerNext], base, roughness));
-      triangles.push(makeTriangle(outer[i], inner[innerNext], outer[next], base, roughness));
+      triangles.push(makeTriangle(outer[i], inner[innerIndex], inner[innerNext], base, roughness, layer));
+      triangles.push(makeTriangle(outer[i], inner[innerNext], outer[next], base, roughness, layer));
     } else {
-      triangles.push(makeTriangle(outer[i], inner[innerNext], inner[innerIndex], base, roughness));
-      triangles.push(makeTriangle(outer[i], outer[next], inner[innerNext], base, roughness));
+      triangles.push(makeTriangle(outer[i], inner[innerNext], inner[innerIndex], base, roughness, layer));
+      triangles.push(makeTriangle(outer[i], outer[next], inner[innerNext], base, roughness, layer));
     }
   }
 }
@@ -357,21 +356,22 @@ function appendSideWalls(
   base: string,
   roughness: number,
   invert: boolean,
+  layer: number,
 ) {
   const count = top.length;
   for (let i = 0; i < count; i += 1) {
     const next = (i + 1) % count;
     if (invert) {
-      triangles.push(makeTriangle(top[i], bottom[next], bottom[i], base, roughness));
-      triangles.push(makeTriangle(top[i], top[next], bottom[next], base, roughness));
+      triangles.push(makeTriangle(top[i], bottom[next], bottom[i], base, roughness, layer));
+      triangles.push(makeTriangle(top[i], top[next], bottom[next], base, roughness, layer));
     } else {
-      triangles.push(makeTriangle(top[i], bottom[i], bottom[next], base, roughness));
-      triangles.push(makeTriangle(top[i], bottom[next], top[next], base, roughness));
+      triangles.push(makeTriangle(top[i], bottom[i], bottom[next], base, roughness, layer));
+      triangles.push(makeTriangle(top[i], bottom[next], top[next], base, roughness, layer));
     }
   }
 }
 
-function makeTriangle(a: Vec3, b: Vec3, c: Vec3, base: string, roughness: number): Triangle {
+function makeTriangle(a: Vec3, b: Vec3, c: Vec3, base: string, roughness: number, layer: number): Triangle {
   return {
     a,
     b,
@@ -379,6 +379,7 @@ function makeTriangle(a: Vec3, b: Vec3, c: Vec3, base: string, roughness: number
     normal: normalize(cross(subtract(b, a), subtract(c, a))),
     base: parseHex(base),
     roughness,
+    layer,
   };
 }
 
@@ -412,10 +413,16 @@ function projectTriangles(scene: SceneState, aspects: RenderAspects, triangles: 
       depth: (ca.z + cb.z + cc.z) / 3,
       fill: shade(triangle.base, brightness),
       stroke: shade(triangle.base, Math.max(brightness - 0.18, 0.16)),
+      layer: triangle.layer,
     });
   }
 
-  projected.sort((left, right) => right.depth - left.depth);
+  projected.sort((left, right) => {
+    if (left.layer !== right.layer) {
+      return left.layer - right.layer;
+    }
+    return right.depth - left.depth;
+  });
   return projected;
 }
 
@@ -497,6 +504,21 @@ function moveCamera(base: CameraState, vector: { x: number; y: number; z: number
     x: base.x + vector.x * scalar,
     y: base.y + vector.y * scalar,
     z: base.z + vector.z * scalar,
+  };
+}
+
+function cameraLookAt(position: Vec3, target: Vec3): CameraState {
+  const dx = target.x - position.x;
+  const dy = target.y - position.y;
+  const dz = target.z - position.z;
+  const flat = Math.hypot(dx, dz) || 1;
+
+  return {
+    x: position.x,
+    y: position.y,
+    z: position.z,
+    yaw: Math.atan2(-dx, dz),
+    pitch: -Math.atan2(dy, flat),
   };
 }
 

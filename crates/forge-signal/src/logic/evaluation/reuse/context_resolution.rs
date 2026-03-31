@@ -25,7 +25,8 @@ pub(crate) fn resolve_reuse_boundary_context(
     resolve_reuse_boundary_context_with_policy(
         graph,
         node,
-        comparator_resolver.policy_for_node(node, graph.node_eval_config(node)?.comparator.as_ref()),
+        comparator_resolver
+            .policy_for_node(node, graph.node_eval_config(node)?.comparator.as_ref()),
         result,
         keyed,
     )
@@ -41,7 +42,8 @@ pub(crate) fn resolve_reuse_boundary_authority(
     resolve_reuse_boundary_authority_with_policy(
         graph,
         node,
-        comparator_resolver.policy_for_node(node, graph.node_eval_config(node)?.comparator.as_ref()),
+        comparator_resolver
+            .policy_for_node(node, graph.node_eval_config(node)?.comparator.as_ref()),
         result,
         keyed,
     )

@@ -171,10 +171,10 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
                     keyed,
                 )
             })?;
-            let mut apply_result = apply_effect_with_policy_and_condition(
-                graph,
-                node,
-                passive.result,
+        let mut apply_result = apply_effect_with_policy_and_condition(
+            graph,
+            node,
+            passive.result,
             comparator_resolver,
             execution_metadata,
             passive.verdict,
@@ -182,12 +182,12 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
             passive.reuse_boundary_authority,
             passive.reuse_boundary_detail,
             passive.keyed,
-                passive.causality,
-                None,
-                dependency_inputs,
-                defer_snapshot_commit,
-                None,
-            )?;
+            passive.causality,
+            None,
+            dependency_inputs,
+            defer_snapshot_commit,
+            None,
+        )?;
         apply_result.dependency_updates = dependency_updates;
         return Ok(apply_result);
     }
@@ -201,14 +201,13 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
                 execution_metadata,
             );
             let reuse_contract = graph.node_eval_config(node)?.contract.reuse.clone();
-            let previous_artifact_warm =
-                graph
-                    .node_runtime_artifact_reuse_boundary_snapshot(node)?
-                    .map(|trace| PreviousArtifactWarmSnapshot {
-                        output_identity: trace.output_identity,
-                        continuity_token: trace.continuity_token,
-                        reuse_boundary_authority: trace.reuse_boundary_authority,
-                    });
+            let previous_artifact_warm = graph
+                .node_runtime_artifact_reuse_boundary_snapshot(node)?
+                .map(|trace| PreviousArtifactWarmSnapshot {
+                    output_identity: trace.output_identity,
+                    continuity_token: trace.continuity_token,
+                    reuse_boundary_authority: trace.reuse_boundary_authority,
+                });
             let previous_reuse_boundary_authority = previous_artifact_warm
                 .as_ref()
                 .and_then(|trace| trace.reuse_boundary_authority.clone());
@@ -350,14 +349,13 @@ pub(crate) fn build_prepared_apply_commit_packet(
                 execution_metadata,
             );
             let reuse_contract = graph.node_eval_config(node)?.contract.reuse.clone();
-            let previous_artifact_warm =
-                graph
-                    .node_runtime_artifact_reuse_boundary_snapshot(node)?
-                    .map(|trace| PreviousArtifactWarmSnapshot {
-                        output_identity: trace.output_identity,
-                        continuity_token: trace.continuity_token,
-                        reuse_boundary_authority: trace.reuse_boundary_authority,
-                    });
+            let previous_artifact_warm = graph
+                .node_runtime_artifact_reuse_boundary_snapshot(node)?
+                .map(|trace| PreviousArtifactWarmSnapshot {
+                    output_identity: trace.output_identity,
+                    continuity_token: trace.continuity_token,
+                    reuse_boundary_authority: trace.reuse_boundary_authority,
+                });
             let previous_reuse_boundary_authority = previous_artifact_warm
                 .as_ref()
                 .and_then(|trace| trace.reuse_boundary_authority.clone());

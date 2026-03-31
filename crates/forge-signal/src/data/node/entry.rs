@@ -17,8 +17,8 @@ use crate::data::trace::{
     RuntimeArtifactState, TraceSummary,
 };
 
-use super::condition::NodeEvaluationConfig;
 use super::checkpoint_image::CheckpointNodeImageParts;
+use super::condition::NodeEvaluationConfig;
 use super::CheckpointNodeImage;
 
 /// Three-state invalidation for a signal node.
@@ -218,15 +218,14 @@ impl NodeEntry {
         aspect: crate::data::aspect::Aspect,
         scope: PartitionSubscription,
     ) {
-        if !self
-            .warm
-            .dirty_partition_scope_payload
-            .iter()
-            .any(|(candidate_aspect, candidate_scope)| {
+        if !self.warm.dirty_partition_scope_payload.iter().any(
+            |(candidate_aspect, candidate_scope)| {
                 *candidate_aspect == aspect && *candidate_scope == scope
-            })
-        {
-            self.warm.dirty_partition_scope_payload.push((aspect, scope));
+            },
+        ) {
+            self.warm
+                .dirty_partition_scope_payload
+                .push((aspect, scope));
             self.hot.dirty_partition_scope_aspects.insert(aspect);
         }
     }
@@ -627,7 +626,8 @@ impl NodeEntry {
             self.hot.dirty_partition_scope_aspects.insert(aspect);
         } else {
             self.hot.dirty_partition_scope_aspects = AspectMask::from_bits(
-                self.hot.dirty_partition_scope_aspects.bits() & !AspectMask::from_aspect(aspect).bits(),
+                self.hot.dirty_partition_scope_aspects.bits()
+                    & !AspectMask::from_aspect(aspect).bits(),
             );
         }
     }

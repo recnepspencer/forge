@@ -32,11 +32,12 @@ where
             .diagnostics_state_mut()
             .set_active_branch(handle.id);
         self.telemetry.transaction.explicit_fork_count += 1;
-        self.branches.store_fork_packet(ExplicitBranchForkPacket::new(
-            parent_branch_id,
-            handle.id,
-            branch_state,
-        ))?;
+        self.branches
+            .store_fork_packet(ExplicitBranchForkPacket::new(
+                parent_branch_id,
+                handle.id,
+                branch_state,
+            ))?;
         let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
         self.synchronize_branch_catalogs(branch_catalog);
         crate::diagnostics::recorder::record_snapshot_event(

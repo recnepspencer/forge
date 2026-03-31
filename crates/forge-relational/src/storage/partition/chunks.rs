@@ -1,6 +1,6 @@
 use crate::identity::data::{VersionBound, VersionId};
 use crate::logic::runtime::RelationalRuntime;
-use crate::query::data::{QueryWorkPacket, ReadPacketPlan};
+use crate::query::data::{PlannedQueryPacket, ReadPacketPlan};
 use crate::storage::data::{
     ChunkDiagnostics, ChunkVisibilitySummary, ChunkedStorageSummary, RecordLifecycleState,
 };
@@ -48,18 +48,19 @@ pub(crate) fn chunk_diagnostics(
     }
 }
 
-pub(crate) fn plan_read_packet(
+pub(crate) fn plan_read_explicit_query_packet(
     runtime: &RelationalRuntime,
     handle: &crate::snapshots::data::SnapshotHandle,
-    packet: &QueryWorkPacket,
+    packet: &PlannedQueryPacket,
 ) -> Option<ReadPacketPlan> {
     if !runtime.visibility.is_known_snapshot(handle.snapshot_id) {
         return None;
     }
+    let targets = packet.explicit_target_refs()?;
     let mut entity_chunk_indexes = Vec::new();
     let mut relation_chunk_indexes = Vec::new();
 
-    for target in &packet.targets {
+    for target in targets {
         match target {
             RecordRef::Entity(entity_id) => {
                 let chunk_index = slot_chunk_index(
@@ -86,7 +87,7 @@ pub(crate) fn plan_read_packet(
         label: packet.label.clone(),
         entity_chunk_indexes,
         relation_chunk_indexes,
-        target_count: packet.targets.len(),
+        target_count: targets.len(),
     })
 }
 

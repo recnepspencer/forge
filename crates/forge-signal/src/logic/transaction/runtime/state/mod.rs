@@ -8,6 +8,7 @@ mod observer;
 mod reconstructability;
 mod runtime_state;
 
+pub(in crate::logic::transaction::runtime) use branching::BranchManager;
 pub use builder::SignalRuntimeBuilder;
 pub use guided::{PlannedRuntimeMerge, RuntimeHistory, RuntimeMerge};
 #[allow(unused_imports)]

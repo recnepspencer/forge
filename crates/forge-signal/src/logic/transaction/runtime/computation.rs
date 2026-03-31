@@ -60,10 +60,7 @@ impl<T, F> Recipe<T, F> {
         self
     }
 
-    pub fn partition_scope(
-        mut self,
-        partition_scope: impl Into<PartitionSubscription>,
-    ) -> Self {
+    pub fn partition_scope(mut self, partition_scope: impl Into<PartitionSubscription>) -> Self {
         self.contract = self.contract.with_partition_scope(partition_scope);
         self
     }

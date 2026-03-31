@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 
-use crate::authority::intent_merge::{entity_exists_in_version_basis, relation_exists_in_version_basis};
+use crate::authority::intent_merge::{
+    entity_exists_in_version_basis, relation_exists_in_version_basis,
+};
 use crate::authority::mutation::{
     apply_plan_to_working_state, BranchLocalDeleteAllowance, MutationApplyOutcome, MutationEffect,
 };
@@ -55,14 +57,12 @@ pub(crate) fn run_authoritative_mutation_for_runtime(
         branch_local_delete_allowance,
     )
     .map_err(TransactionCommitError::conflict)?;
-    runtime
-        .performance_access()
-        .count_preparation_packet_shape(
-            preparation_telemetry.packet_count,
-            preparation_telemetry.packet_item_count,
-            preparation_telemetry.packet_peak_width_total,
-            preparation_telemetry.scope_unit_count,
-        );
+    runtime.performance_access().count_preparation_packet_shape(
+        preparation_telemetry.packet_count,
+        preparation_telemetry.packet_item_count,
+        preparation_telemetry.packet_peak_width_total,
+        preparation_telemetry.scope_unit_count,
+    );
     for _ in 0..preparation_telemetry.parallel_legal_count {
         runtime
             .performance_access()
@@ -97,7 +97,7 @@ pub(crate) fn run_authoritative_mutation_for_runtime(
     })
 }
 
-fn branch_local_delete_allowance_for_plan(
+pub(crate) fn branch_local_delete_allowance_for_plan(
     runtime: &RelationalRuntime,
     merged_plan: &MergedCommitPlan,
     target_branch: Option<&BranchId>,
@@ -115,10 +115,17 @@ fn branch_local_delete_allowance_for_plan(
 
     for intent in &merged_plan.merged_intents {
         match intent {
-            MutationIntent::Entity(crate::transactions::data::EntityMutationIntent::Delete(spec)) => {
-                if !crate::authority::intent_merge::entity_exists_in_state(&current_state, spec.entity_id)
-                    && entity_exists_in_version_basis(runtime, branch_head.version_id, spec.entity_id)
-                {
+            MutationIntent::Entity(crate::transactions::data::EntityMutationIntent::Delete(
+                spec,
+            )) => {
+                if !crate::authority::intent_merge::entity_exists_in_state(
+                    &current_state,
+                    spec.entity_id,
+                ) && entity_exists_in_version_basis(
+                    runtime,
+                    branch_head.version_id,
+                    spec.entity_id,
+                ) {
                     entity_ids.insert(spec.entity_id);
                 }
             }

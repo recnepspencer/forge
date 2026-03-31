@@ -6,11 +6,11 @@ use crate::capabilities::RuntimeConfigSource;
 use crate::symbols::data::{InternedString, StringInterner, SymbolPolicy};
 use crate::transactions::data::{
     BulkMutationLineagePlan, BulkMutationLocalityFootprint, BulkMutationNamingPlan,
-    BulkMutationProvenancePlan, BulkMutationScope, CommitConflict,
-    ConflictClass, CreateIntent, EntityMutationIntent, LineageSafeBulkMutationBatch,
-    MergedCommitPlan, MutationIntent, NamingStableBulkMutationBatch, PlannedBulkMutationBatch,
-    PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch, RelationMutationIntent,
-    SavepointId, TransactionOptions, WorkerIntentBatch,
+    BulkMutationProvenancePlan, BulkMutationScope, CommitConflict, ConflictClass, CreateIntent,
+    EntityMutationIntent, LineageSafeBulkMutationBatch, MergedCommitPlan, MutationIntent,
+    NamingStableBulkMutationBatch, PlannedBulkMutationBatch, PlannedLineageTransition,
+    ProvenanceCompleteBulkMutationBatch, RelationMutationIntent, SavepointId, TransactionOptions,
+    WorkerIntentBatch,
 };
 
 use crate::logic::runtime::RelationalRuntime;
@@ -74,15 +74,9 @@ impl<'a> RelationalTransaction<'a> {
             &planned,
             self.runtime.runtime_config().identity.symbol_policy,
         )?;
-        self.runtime.performance_access().count_bulk_mutation_plan(
-            &planned.locality,
-            planned.naming.normalized_client_keys.len(),
-            planned.lineage.transitions.len(),
-            planned.provenance.worker_batch_names.len(),
-        );
-        Ok(Some(crate::transactions::data::naming_stable_bulk_mutation_batch(
-            planned,
-        )))
+        Ok(Some(
+            crate::transactions::data::naming_stable_bulk_mutation_batch(planned),
+        ))
     }
 
     pub fn admit_lineage_safe_bulk_mutation_batch(
@@ -92,9 +86,9 @@ impl<'a> RelationalTransaction<'a> {
             return Ok(None);
         };
         validate_lineage_plan(naming_stable.planned())?;
-        Ok(Some(crate::transactions::data::lineage_safe_bulk_mutation_batch(
-            naming_stable,
-        )))
+        Ok(Some(
+            crate::transactions::data::lineage_safe_bulk_mutation_batch(naming_stable),
+        ))
     }
 
     pub fn admit_provenance_complete_bulk_mutation_batch(
@@ -438,17 +432,22 @@ fn validate_naming_plan(
     planned: &PlannedBulkMutationBatch,
     symbol_policy: SymbolPolicy,
 ) -> Result<(), CommitConflict> {
-    let mut expected = bulk_mutation_naming(planned.intents.as_ref()).normalized_client_keys.to_vec();
+    let mut expected = bulk_mutation_naming(planned.intents.as_ref())
+        .normalized_client_keys
+        .to_vec();
     let actual = planned.naming.normalized_client_keys.as_ref().to_vec();
     if expected != actual {
-        return Err(CommitConflict::new(ConflictClass::MutationStateInconsistency {
-            detail: "bulk mutation naming plan no longer matches canonicalized intents".to_string(),
-            fields: serde_json::json!({
-                "transaction_id": planned.transaction_id.0,
-                "expected_count": expected.len(),
-                "actual_count": actual.len(),
-            }),
-        }));
+        return Err(CommitConflict::new(
+            ConflictClass::MutationStateInconsistency {
+                detail: "bulk mutation naming plan no longer matches canonicalized intents"
+                    .to_string(),
+                fields: serde_json::json!({
+                    "transaction_id": planned.transaction_id.0,
+                    "expected_count": expected.len(),
+                    "actual_count": actual.len(),
+                }),
+            },
+        ));
     }
 
     if symbol_policy != SymbolPolicy::Disabled
@@ -458,26 +457,31 @@ fn validate_naming_plan(
             .iter()
             .any(|value| !matches!(value, InternedString::Symbol(_)))
     {
-        return Err(CommitConflict::new(ConflictClass::MutationStateInconsistency {
-            detail: "bulk mutation naming admission requires normalized interned client keys"
-                .to_string(),
-            fields: serde_json::json!({
-                "transaction_id": planned.transaction_id.0,
-                "symbol_policy": format!("{symbol_policy:?}"),
-            }),
-        }));
+        return Err(CommitConflict::new(
+            ConflictClass::MutationStateInconsistency {
+                detail: "bulk mutation naming admission requires normalized interned client keys"
+                    .to_string(),
+                fields: serde_json::json!({
+                    "transaction_id": planned.transaction_id.0,
+                    "symbol_policy": format!("{symbol_policy:?}"),
+                }),
+            },
+        ));
     }
 
     let expected_digest = crate::transactions::data::certification_digest(&expected);
     if planned.naming.naming_digest != expected_digest {
-        return Err(CommitConflict::new(ConflictClass::MutationStateInconsistency {
-            detail: "bulk mutation naming digest does not match canonical naming set".to_string(),
-            fields: serde_json::json!({
-                "transaction_id": planned.transaction_id.0,
-                "expected_digest": expected_digest,
-                "actual_digest": planned.naming.naming_digest,
-            }),
-        }));
+        return Err(CommitConflict::new(
+            ConflictClass::MutationStateInconsistency {
+                detail: "bulk mutation naming digest does not match canonical naming set"
+                    .to_string(),
+                fields: serde_json::json!({
+                    "transaction_id": planned.transaction_id.0,
+                    "expected_digest": expected_digest,
+                    "actual_digest": planned.naming.naming_digest,
+                }),
+            },
+        ));
     }
 
     expected.clear();
@@ -485,41 +489,51 @@ fn validate_naming_plan(
 }
 
 fn validate_lineage_plan(planned: &PlannedBulkMutationBatch) -> Result<(), CommitConflict> {
-    let expected_transitions = bulk_mutation_lineage(planned.intents.as_ref()).transitions.to_vec();
+    let expected_transitions = bulk_mutation_lineage(planned.intents.as_ref())
+        .transitions
+        .to_vec();
     let actual_transitions = planned.lineage.transitions.as_ref().to_vec();
     if expected_transitions != actual_transitions {
-        return Err(CommitConflict::new(ConflictClass::MutationStateInconsistency {
-            detail: "bulk mutation lineage plan no longer matches canonicalized intents".to_string(),
-            fields: serde_json::json!({
-                "transaction_id": planned.transaction_id.0,
-                "expected_count": expected_transitions.len(),
-                "actual_count": actual_transitions.len(),
-            }),
-        }));
+        return Err(CommitConflict::new(
+            ConflictClass::MutationStateInconsistency {
+                detail: "bulk mutation lineage plan no longer matches canonicalized intents"
+                    .to_string(),
+                fields: serde_json::json!({
+                    "transaction_id": planned.transaction_id.0,
+                    "expected_count": expected_transitions.len(),
+                    "actual_count": actual_transitions.len(),
+                }),
+            },
+        ));
     }
 
     let expected_digest = crate::transactions::data::certification_digest(&expected_transitions);
     if planned.lineage.lineage_scope_digest != expected_digest {
-        return Err(CommitConflict::new(ConflictClass::MutationStateInconsistency {
-            detail: "bulk mutation lineage digest does not match canonical lineage transitions"
-                .to_string(),
-            fields: serde_json::json!({
-                "transaction_id": planned.transaction_id.0,
-                "expected_digest": expected_digest,
-                "actual_digest": planned.lineage.lineage_scope_digest,
-            }),
-        }));
+        return Err(CommitConflict::new(
+            ConflictClass::MutationStateInconsistency {
+                detail: "bulk mutation lineage digest does not match canonical lineage transitions"
+                    .to_string(),
+                fields: serde_json::json!({
+                    "transaction_id": planned.transaction_id.0,
+                    "expected_digest": expected_digest,
+                    "actual_digest": planned.lineage.lineage_scope_digest,
+                }),
+            },
+        ));
     }
 
     if matches!(planned.scope, BulkMutationScope::TopologyRegionRewrite)
         && planned.lineage.transitions.is_empty()
     {
-        return Err(CommitConflict::new(ConflictClass::MutationStateInconsistency {
-            detail: "topology rewrite admission requires explicit lineage transitions".to_string(),
-            fields: serde_json::json!({
-                "transaction_id": planned.transaction_id.0,
-            }),
-        }));
+        return Err(CommitConflict::new(
+            ConflictClass::MutationStateInconsistency {
+                detail: "topology rewrite admission requires explicit lineage transitions"
+                    .to_string(),
+                fields: serde_json::json!({
+                    "transaction_id": planned.transaction_id.0,
+                }),
+            },
+        ));
     }
 
     Ok(())
@@ -539,27 +553,31 @@ fn validate_provenance_plan(
         || planned.provenance.worker_partition_keys != expected.worker_partition_keys
         || planned.provenance.worker_local_only_flags != expected.worker_local_only_flags
     {
-        return Err(CommitConflict::new(ConflictClass::MutationStateInconsistency {
-            detail: "bulk mutation provenance plan no longer matches staged worker evidence"
-                .to_string(),
-            fields: serde_json::json!({
-                "transaction_id": planned.transaction_id.0,
-                "expected_batch_count": expected.worker_batch_names.len(),
-                "actual_batch_count": planned.provenance.worker_batch_names.len(),
-            }),
-        }));
+        return Err(CommitConflict::new(
+            ConflictClass::MutationStateInconsistency {
+                detail: "bulk mutation provenance plan no longer matches staged worker evidence"
+                    .to_string(),
+                fields: serde_json::json!({
+                    "transaction_id": planned.transaction_id.0,
+                    "expected_batch_count": expected.worker_batch_names.len(),
+                    "actual_batch_count": planned.provenance.worker_batch_names.len(),
+                }),
+            },
+        ));
     }
 
     if planned.provenance.provenance_digest != expected.provenance_digest {
-        return Err(CommitConflict::new(ConflictClass::MutationStateInconsistency {
-            detail: "bulk mutation provenance digest does not match staged worker evidence"
-                .to_string(),
-            fields: serde_json::json!({
-                "transaction_id": planned.transaction_id.0,
-                "expected_digest": expected.provenance_digest,
-                "actual_digest": planned.provenance.provenance_digest,
-            }),
-        }));
+        return Err(CommitConflict::new(
+            ConflictClass::MutationStateInconsistency {
+                detail: "bulk mutation provenance digest does not match staged worker evidence"
+                    .to_string(),
+                fields: serde_json::json!({
+                    "transaction_id": planned.transaction_id.0,
+                    "expected_digest": expected.provenance_digest,
+                    "actual_digest": planned.provenance.provenance_digest,
+                }),
+            },
+        ));
     }
 
     Ok(())
@@ -584,7 +602,9 @@ mod tests {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_keys: vec![InternedString::Raw("raw-key".to_string())],
-                payloads: vec![RecordPayload::StructuredJson(serde_json::json!({"name":"raw"}))],
+                payloads: vec![RecordPayload::StructuredJson(
+                    serde_json::json!({"name":"raw"}),
+                )],
             }),
         )));
 
@@ -605,17 +625,21 @@ mod tests {
         let mut runtime = runtime_with_test_schema();
         let entity = create_entity(&mut runtime, "replace-me");
         let mut txn = runtime.begin_transaction(TransactionOptions::default());
-        txn.push_batch(WorkerIntentBatch::new("rewrite").push(MutationIntent::Entity(
-            EntityMutationIntent::Replace(ReplaceEntityIntent {
-                entity_id: entity,
-                replacement: crate::transactions::data::EntitySpec {
-                    partition_id: PartitionId::main(),
-                    kind_id: KindId(1),
-                    client_key: InternedString::Raw("replacement".to_string()),
-                    payload: RecordPayload::StructuredJson(serde_json::json!({"name":"replacement"})),
-                },
-            }),
-        )));
+        txn.push_batch(
+            WorkerIntentBatch::new("rewrite").push(MutationIntent::Entity(
+                EntityMutationIntent::Replace(ReplaceEntityIntent {
+                    entity_id: entity,
+                    replacement: crate::transactions::data::EntitySpec {
+                        partition_id: PartitionId::main(),
+                        kind_id: KindId(1),
+                        client_key: InternedString::Raw("replacement".to_string()),
+                        payload: RecordPayload::StructuredJson(
+                            serde_json::json!({"name":"replacement"}),
+                        ),
+                    },
+                }),
+            )),
+        );
 
         let mut planned = txn.plan_bulk_mutation_batch().expect("planned batch");
         planned.lineage.lineage_scope_digest = "tampered".to_string();
@@ -633,15 +657,19 @@ mod tests {
         let source = create_entity(&mut runtime, "source");
         let target = create_entity(&mut runtime, "target");
         let mut txn = runtime.begin_transaction(TransactionOptions::default());
-        txn.push_batch(WorkerIntentBatch::new("worker-a").push(MutationIntent::Create(
-            CreateIntent::BulkRelations(BulkRelationCreateIntent {
-                partition_id: PartitionId::main(),
-                kind_id: KindId(2),
-                client_keys: vec![InternedString::Raw("edge".to_string())],
-                endpoints: vec![(source, target)],
-                payloads: vec![Some(RecordPayload::StructuredJson(serde_json::json!({"label":"edge"})))],
-            }),
-        )));
+        txn.push_batch(
+            WorkerIntentBatch::new("worker-a").push(MutationIntent::Create(
+                CreateIntent::BulkRelations(BulkRelationCreateIntent {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(2),
+                    client_keys: vec![InternedString::Raw("edge".to_string())],
+                    endpoints: vec![(source, target)],
+                    payloads: vec![Some(RecordPayload::StructuredJson(
+                        serde_json::json!({"label":"edge"}),
+                    ))],
+                }),
+            )),
+        );
 
         let mut planned = txn.plan_bulk_mutation_batch().expect("planned batch");
         planned.provenance.worker_batch_names = Arc::<[String]>::from(vec!["tampered".to_string()]);
@@ -652,5 +680,32 @@ mod tests {
             error.class,
             ConflictClass::MutationStateInconsistency { .. }
         ));
+    }
+
+    #[test]
+    fn naming_admission_does_not_mutate_runtime_counters() {
+        let mut runtime = runtime_with_test_schema();
+        runtime.performance_access().reset_counters();
+        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        txn.push_batch(WorkerIntentBatch::new("bulk").push(MutationIntent::Create(
+            CreateIntent::BulkEntities(BulkEntityCreateIntent {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_keys: vec![InternedString::Raw("raw-key".to_string())],
+                payloads: vec![RecordPayload::StructuredJson(
+                    serde_json::json!({"name":"raw"}),
+                )],
+            }),
+        )));
+
+        let admitted = txn
+            .admit_naming_stable_bulk_mutation_batch()
+            .expect("admission should succeed");
+        let counters = txn.runtime.performance_access().counters();
+
+        assert!(admitted.is_some());
+        assert_eq!(counters.bulk_mutation_batch_count, 0);
+        assert_eq!(counters.bulk_mutation_naming_normalization_count, 0);
+        assert_eq!(counters.bulk_mutation_lineage_transition_count, 0);
     }
 }

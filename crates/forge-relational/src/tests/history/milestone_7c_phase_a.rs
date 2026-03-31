@@ -28,7 +28,11 @@ fn prepare_merge_execution_admits_fully_ready_source_only_addition() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let request = MergeExecutionRequest {
         target_branch: BranchId("main".to_string()),
@@ -99,11 +103,13 @@ fn prepare_merge_execution_rejects_rejected_merge_plans() {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![entity_payload_aspect("name", "name")])
-                .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
-                    aspect_key: AspectKey(InternedString::Raw("name".to_string())),
-                    policy: AspectMergePolicyKind::FailOnConflict,
-                }]),
+            aspect_declarations: KindAspectDeclarations::new(vec![entity_payload_aspect(
+                "name", "name",
+            )])
+            .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
+                aspect_key: AspectKey(InternedString::Raw("name".to_string())),
+                policy: AspectMergePolicyKind::FailOnConflict,
+            }]),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -119,7 +125,9 @@ fn prepare_merge_execution_rejects_rejected_merge_plans() {
             })
         })
         .unwrap();
-    let mut runtime = RelationalRuntimeApi::builder().schema_registry(registry).build();
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(registry)
+        .build();
     let shared = create_entity(&mut runtime, "shared");
     create_branch_from_main(&mut runtime, "feature");
     update_entity(&mut runtime, shared, "shared-main");
@@ -158,7 +166,11 @@ fn runtime_prepare_merge_execution_matches_merge_access_surface() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
     let request = MergeExecutionRequest {
         target_branch: BranchId("main".to_string()),
         source_branch: BranchId("feature".to_string()),
@@ -182,7 +194,11 @@ fn verify_prepared_merge_execution_accepts_fresh_prepared_merge() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -203,7 +219,11 @@ fn verify_prepared_merge_execution_rejects_runtime_instance_mismatch() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -214,7 +234,10 @@ fn verify_prepared_merge_execution_rejects_runtime_instance_mismatch() {
         .expect("prepared merge");
     let forked = runtime.fork();
 
-    match forked.merge_access().verify_prepared_merge_execution(&prepared) {
+    match forked
+        .merge_access()
+        .verify_prepared_merge_execution(&prepared)
+    {
         Err(MergeExecutionError::RuntimeInstanceMismatch { .. }) => {}
         other => panic!("expected runtime instance mismatch, got {other:?}"),
     }
@@ -225,7 +248,11 @@ fn verify_prepared_merge_execution_rejects_target_head_drift() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -237,7 +264,10 @@ fn verify_prepared_merge_execution_rejects_target_head_drift() {
 
     create_entity(&mut runtime, "main-advance");
 
-    match runtime.merge_access().verify_prepared_merge_execution(&prepared) {
+    match runtime
+        .merge_access()
+        .verify_prepared_merge_execution(&prepared)
+    {
         Err(MergeExecutionError::StaleBranchHead { branch, .. }) => {
             assert_eq!(branch, BranchId("main".to_string()));
         }
@@ -250,7 +280,11 @@ fn verify_prepared_merge_execution_rejects_source_head_drift() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -260,9 +294,16 @@ fn verify_prepared_merge_execution_rejects_source_head_drift() {
         })
         .expect("prepared merge");
 
-    create_entity_outcome_on_branch(&mut runtime, "feature-advance", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-advance",
+        BranchId("feature".to_string()),
+    );
 
-    match runtime.merge_access().verify_prepared_merge_execution(&prepared) {
+    match runtime
+        .merge_access()
+        .verify_prepared_merge_execution(&prepared)
+    {
         Err(MergeExecutionError::StaleBranchHead { branch, .. }) => {
             assert_eq!(branch, BranchId("feature".to_string()));
         }
@@ -275,7 +316,11 @@ fn verify_prepared_merge_execution_rejects_schema_semantic_drift() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -312,7 +357,10 @@ fn verify_prepared_merge_execution_rejects_schema_semantic_drift() {
         .unwrap();
     runtime.config.schema.registry = drifted_registry;
 
-    match runtime.merge_access().verify_prepared_merge_execution(&prepared) {
+    match runtime
+        .merge_access()
+        .verify_prepared_merge_execution(&prepared)
+    {
         Err(MergeExecutionError::SchemaSemanticDrift { .. }) => {}
         other => panic!("expected schema drift rejection, got {other:?}"),
     }
@@ -323,7 +371,11 @@ fn verify_prepared_merge_execution_rejects_merge_base_drift() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let mut prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -332,10 +384,14 @@ fn verify_prepared_merge_execution_rejects_merge_base_drift() {
             merge_intent: MergeIntent::ReconcileIntoTarget,
         })
         .expect("prepared merge");
-    prepared.authority_binding_mut_for_test().merge_base_commit_id =
-        crate::facade::history::CommitId(999_999);
+    prepared
+        .authority_binding_mut_for_test()
+        .merge_base_commit_id = crate::facade::history::CommitId(999_999);
 
-    match runtime.merge_access().verify_prepared_merge_execution(&prepared) {
+    match runtime
+        .merge_access()
+        .verify_prepared_merge_execution(&prepared)
+    {
         Err(MergeExecutionError::MergeBaseDrift { .. }) => {}
         other => panic!("expected merge-base drift rejection, got {other:?}"),
     }
@@ -346,7 +402,11 @@ fn verify_prepared_merge_execution_does_not_increment_planning_counters() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -363,7 +423,10 @@ fn verify_prepared_merge_execution_does_not_increment_planning_counters() {
         .expect("verification should succeed");
 
     let after = runtime.performance_access().counters();
-    assert_eq!(before.merge_planning_requests, after.merge_planning_requests);
+    assert_eq!(
+        before.merge_planning_requests,
+        after.merge_planning_requests
+    );
     assert_eq!(
         before.merge_planning_schema_kinds_snapshotted,
         after.merge_planning_schema_kinds_snapshotted
@@ -399,7 +462,11 @@ fn verify_prepared_merge_execution_reports_verification_counters_without_plannin
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -431,7 +498,11 @@ fn prepare_merge_execution_compiles_source_addition_record_plan() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -443,17 +514,15 @@ fn prepare_merge_execution_compiles_source_addition_record_plan() {
 
     assert_eq!(prepared.bound_executable_plan().record_plans.len(), 1);
     match &prepared.bound_executable_plan().record_plans[0] {
-        BoundExecutableMergeRecordPlan::AdoptSource(plan) => {
-            match &plan.source_visible_snapshot {
-                crate::merge::data::VisibleMergeRecordSnapshot::Entity(entity) => {
-                    assert_eq!(
-                        entity.payload.as_json().and_then(|json| json.get("name")),
-                        Some(&serde_json::Value::String("feature-only".to_string()))
-                    );
-                }
-                other => panic!("expected entity source snapshot, got {other:?}"),
+        BoundExecutableMergeRecordPlan::AdoptSource(plan) => match &plan.source_visible_snapshot {
+            crate::merge::data::VisibleMergeRecordSnapshot::Entity(entity) => {
+                assert_eq!(
+                    entity.payload.as_json().and_then(|json| json.get("name")),
+                    Some(&serde_json::Value::String("feature-only".to_string()))
+                );
             }
-        }
+            other => panic!("expected entity source snapshot, got {other:?}"),
+        },
         other => panic!("expected adopt-source record plan, got {other:?}"),
     }
 }
@@ -466,7 +535,9 @@ fn prepare_merge_execution_compiles_exact_shared_record_plan() {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![entity_payload_aspect("name", "name")]),
+            aspect_declarations: KindAspectDeclarations::new(vec![entity_payload_aspect(
+                "name", "name",
+            )]),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -482,11 +553,18 @@ fn prepare_merge_execution_compiles_exact_shared_record_plan() {
             })
         })
         .unwrap();
-    let mut runtime = RelationalRuntimeApi::builder().schema_registry(registry).build();
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(registry)
+        .build();
     let shared = create_entity(&mut runtime, "shared");
     create_branch_from_main(&mut runtime, "feature");
     update_entity(&mut runtime, shared, "same");
-    update_entity_on_branch(&mut runtime, shared, "same", BranchId("feature".to_string()));
+    update_entity_on_branch(
+        &mut runtime,
+        shared,
+        "same",
+        BranchId("feature".to_string()),
+    );
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -500,7 +578,10 @@ fn prepare_merge_execution_compiles_exact_shared_record_plan() {
     match &prepared.bound_executable_plan().record_plans[0] {
         BoundExecutableMergeRecordPlan::PreserveShared(plan) => {
             assert!(!plan.equality_witness.witness_digest.is_empty());
-            assert_eq!(plan.provenance.classification, crate::merge::data::MergeConflictClass::ExactSharedTruth);
+            assert_eq!(
+                plan.provenance.classification,
+                crate::merge::data::MergeConflictClass::ExactSharedTruth
+            );
             assert!(!plan.aspect_plan.is_empty());
             match &plan.aspect_plan[0] {
                 ExecutableAspectPlan::PreserveSharedValue { shared_value, .. } => {
@@ -531,17 +612,19 @@ fn prepare_merge_execution_compiles_reconcile_record_plan() {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![entity_payload_aspect("name", "name")])
-                .with_identity_declarations(vec![crate::facade::merge::IdentityBasisDeclaration {
-                    scope: crate::facade::merge::IdentityBasisScope::AspectKey(name_key.clone()),
-                    basis: crate::facade::merge::IdentityBasisKind::DeclaredKeySet(
-                        Arc::from([name_key.clone()]),
-                    ),
-                }])
-                .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
-                    aspect_key: name_key.clone(),
-                    policy: AspectMergePolicyKind::PreferRicher,
-                }]),
+            aspect_declarations: KindAspectDeclarations::new(vec![entity_payload_aspect(
+                "name", "name",
+            )])
+            .with_identity_declarations(vec![crate::facade::merge::IdentityBasisDeclaration {
+                scope: crate::facade::merge::IdentityBasisScope::AspectKey(name_key.clone()),
+                basis: crate::facade::merge::IdentityBasisKind::DeclaredKeySet(Arc::from([
+                    name_key.clone(),
+                ])),
+            }])
+            .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
+                aspect_key: name_key.clone(),
+                policy: AspectMergePolicyKind::PreferRicher,
+            }]),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -557,7 +640,9 @@ fn prepare_merge_execution_compiles_reconcile_record_plan() {
             })
         })
         .unwrap();
-    let mut runtime = RelationalRuntimeApi::builder().schema_registry(registry).build();
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(registry)
+        .build();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
     create_entity(&mut runtime, "shared-name");
@@ -587,9 +672,18 @@ fn prepare_merge_execution_compiles_reconcile_record_plan() {
                     let source_value = source_value.as_ref().expect("source value");
                     let target_value = target_value.as_ref().expect("target value");
                     let base_value = base_value.as_ref().expect("base value");
-                    assert_eq!(source_value.policy, MergeValueMaterialization::SnapshotPinnedRead);
-                    assert_eq!(target_value.policy, MergeValueMaterialization::SnapshotPinnedRead);
-                    assert_eq!(base_value.policy, MergeValueMaterialization::SnapshotPinnedRead);
+                    assert_eq!(
+                        source_value.policy,
+                        MergeValueMaterialization::SnapshotPinnedRead
+                    );
+                    assert_eq!(
+                        target_value.policy,
+                        MergeValueMaterialization::SnapshotPinnedRead
+                    );
+                    assert_eq!(
+                        base_value.policy,
+                        MergeValueMaterialization::SnapshotPinnedRead
+                    );
                     match &source_value.payload {
                         MaterializedAspectValuePayload::VisibleAspectReference { .. } => {}
                         other => panic!("expected source aspect reference, got {other:?}"),
@@ -611,7 +705,11 @@ fn compile_execution_ready_merge_plan_rejects_missing_source_record() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let mut prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -636,7 +734,11 @@ fn verify_prepared_merge_execution_rejects_corrupted_compiled_plan() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let mut prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -647,7 +749,10 @@ fn verify_prepared_merge_execution_rejects_corrupted_compiled_plan() {
         .expect("prepared merge");
     prepared.bound_executable_plan_mut_for_test().record_plans = Arc::from([]);
 
-    match runtime.merge_access().verify_prepared_merge_execution(&prepared) {
+    match runtime
+        .merge_access()
+        .verify_prepared_merge_execution(&prepared)
+    {
         Err(MergeExecutionError::Compilation(
             MergeExecutionCompilationError::PreparedAuthorityBindingMismatch { .. },
         )) => {}

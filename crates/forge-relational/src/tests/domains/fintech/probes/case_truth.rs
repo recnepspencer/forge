@@ -45,12 +45,8 @@ pub(crate) fn read_snapshot_probe(
     snapshot: &SnapshotHandle,
     stage: ProbeStage,
 ) -> CaseTruthProbe {
-    let packet = world.packet_for_case_probe(case);
-    let result = world
-        .runtime
-        .visibility_reads()
-        .execute_read_packet(snapshot, &packet)
-        .expect("snapshot probe should be readable");
+    let packet = world.packet_for_case_probe(case, snapshot);
+    let result = world.read_query(snapshot, packet);
     CaseTruthProbe {
         case_role: case,
         stage,
@@ -111,17 +107,32 @@ pub(crate) fn read_version_probe(
     version_id: VersionId,
     stage: ProbeStage,
 ) -> CaseTruthProbe {
-    let packet = world.packet_for_case_probe(case);
+    let packet = world.packet_for_case_probe(case, &world.latest_snapshot());
     let read = world.runtime.visibility_reads().read_version(version_id);
-    let result = read.execute_packet(&packet);
+    let fragment = read
+        .execute_planned_packet_fragment(
+            crate::facade::query::DeterministicQueryPlanKey(0),
+            crate::facade::query::QueryOrderingContract::CanonicalRecordRefOrder,
+            packet
+                .explicit_target_refs()
+                .expect("case version probe uses explicit target packet"),
+            0,
+        )
+        .expect("version probe packet fragment");
+    let reduced = crate::query::data::reduce_query_fragments(
+        crate::facade::query::QueryExecutionShape::BulkPacketized,
+        crate::facade::query::QueryOrderingContract::CanonicalRecordRefOrder,
+        vec![fragment],
+    );
+    let entities = reduced.entities;
+    let relations = reduced.relations;
     CaseTruthProbe {
         case_role: case,
         stage,
         snapshot_id: 0,
-        entity_count: result.entities.len(),
-        relation_count: result.relations.len(),
-        corrected_trade_count: result
-            .entities
+        entity_count: entities.len(),
+        relation_count: relations.len(),
+        corrected_trade_count: entities
             .iter()
             .filter(|entity| {
                 payload_has(&entity.payload, "corrected", |value| {
@@ -129,8 +140,7 @@ pub(crate) fn read_version_probe(
                 })
             })
             .count(),
-        repaired_settlement_count: result
-            .entities
+        repaired_settlement_count: entities
             .iter()
             .filter(|entity| {
                 payload_type_is(&entity.payload, "settlement")
@@ -139,8 +149,7 @@ pub(crate) fn read_version_probe(
                     })
             })
             .count(),
-        open_breach_count: result
-            .entities
+        open_breach_count: entities
             .iter()
             .filter(|entity| {
                 payload_type_is(&entity.payload, "limit_breach")
@@ -149,13 +158,11 @@ pub(crate) fn read_version_probe(
                     })
             })
             .count(),
-        audit_record_count: result
-            .entities
+        audit_record_count: entities
             .iter()
             .filter(|entity| payload_type_is(&entity.payload, "audit_record"))
             .count(),
-        payload_fingerprints: result
-            .entities
+        payload_fingerprints: entities
             .iter()
             .enumerate()
             .map(|(idx, entity)| {

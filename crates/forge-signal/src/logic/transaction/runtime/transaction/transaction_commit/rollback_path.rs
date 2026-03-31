@@ -1,7 +1,7 @@
+use crate::clock::RuntimeInstant;
 use crate::data::error::SignalError;
 use crate::diagnostics::replay::ReplayEventKind;
 use crate::diagnostics::{ExecutionFailureContext, ExecutionFailurePhase, RollbackDiagnostic};
-use crate::clock::RuntimeInstant;
 
 use super::super::transaction_types::{
     CreatedNodeRollbackDelta, GraphPatchRollbackDelta, SignalTransaction,

@@ -553,7 +553,11 @@ fn apply_direct_entry(
 
 fn mark_source_seed(graph: &mut SignalGraph, seed: &InvalidationSeed) -> Result<(), SignalError> {
     let source_was_clean = matches!(graph.get_state(seed.source_node)?, NodeState::Clean);
-    graph.transition_node_dirty(seed.source_node, seed.aspect, seed.changed_scopes.as_slice())?;
+    graph.transition_node_dirty(
+        seed.source_node,
+        seed.aspect,
+        seed.changed_scopes.as_slice(),
+    )?;
     if source_was_clean {
         record_invalidation_lineage(
             graph,

@@ -20,6 +20,9 @@ use crate::authority::commit::{
     preparation::diagnostics::{emit_preparation_failure, failures::PreparationFailureClass},
     publication::{current_test_diff_preparation_fault, TestDiffPreparationFault},
 };
+use crate::commit_strategies::data::{
+    LoweredStrategyCommitPlan, StrategyCommitArtifactBundle, ValidatedStrategyCommitPlan,
+};
 use crate::publication::data::PublicationStatus;
 use crate::schema::data::SchemaTransitionSummary;
 use crate::transactions::data::{
@@ -29,6 +32,7 @@ use crate::transactions::data::{
     TransactionCommitError, TransactionId, TransactionOptions,
 };
 use crate::transactions::logic::RelationalTransaction;
+use crate::validation::engine::InvariantExecutionResult;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -46,11 +50,18 @@ impl<'a> RelationalTransaction<'a> {
     /// Any failure before publication discards the touched-partition overlay without making the
     /// commit visible.
     pub fn commit(mut self) -> Result<CommitResult, TransactionCommitError> {
-        let admitted_bulk_batch = self
-            .admit_provenance_complete_bulk_mutation_batch()
-            .map_err(TransactionCommitError::conflict)?;
         let mut draft_preparation_log = CommitLog::new();
         draft_preparation_log.begin_phase(CommitPhase::DraftPreparation);
+        let admitted_bulk_batch = self
+            .admit_provenance_complete_bulk_mutation_batch()
+            .map_err(TransactionCommitError::conflict)
+            .map_err(|error| {
+                attach_rejection(
+                    &mut draft_preparation_log,
+                    CommitPhase::DraftPreparation,
+                    error,
+                )
+            })?;
         let prepared = prepare_working_state_scope(&mut self).map_err(|error| {
             attach_rejection(
                 &mut draft_preparation_log,
@@ -74,6 +85,7 @@ impl<'a> RelationalTransaction<'a> {
 pub(crate) enum CommitAuthorityInput {
     Mutation(MergedCommitPlan),
     Merge(MergeCommitMutationPlan),
+    Strategy(LoweredStrategyCommitPlan),
 }
 
 #[derive(Debug)]
@@ -84,6 +96,9 @@ pub(crate) struct AuthoritativeCommitContext {
     prepared_scope: Option<PreparedAuthorityScope>,
     merge_execution_accounting: Option<MergeExecutionAccounting>,
     bulk_mutation_batch: Option<ProvenanceCompleteBulkMutationBatch>,
+    prevalidated_commit_boundary: Option<InvariantExecutionResult>,
+    validated_against_version_id: Option<crate::identity::data::VersionId>,
+    strategy_commit_artifacts: Option<StrategyCommitArtifactBundle>,
 }
 
 #[derive(Debug)]
@@ -115,6 +130,9 @@ impl AuthoritativeCommitContext {
             }),
             merge_execution_accounting: None,
             bulk_mutation_batch,
+            prevalidated_commit_boundary: None,
+            validated_against_version_id: None,
+            strategy_commit_artifacts: None,
         }
     }
 
@@ -152,18 +170,91 @@ impl AuthoritativeCommitContext {
             options,
             merge_execution_accounting: Some(MergeExecutionAccounting {
                 admitted_records: merge_plan.structural_summary.executed_record_count,
-                emitted_mutation_intents: merge_plan.structural_summary.emitted_mutation_intent_count,
+                emitted_mutation_intents: merge_plan
+                    .structural_summary
+                    .emitted_mutation_intent_count,
             }),
             authority_input: CommitAuthorityInput::Merge(merge_plan),
             prepared_scope: None,
             bulk_mutation_batch: None,
+            prevalidated_commit_boundary: None,
+            validated_against_version_id: None,
+            strategy_commit_artifacts: None,
         })
+    }
+
+    pub(crate) fn from_strategy(
+        runtime: &crate::logic::runtime::RelationalRuntime,
+        lowered_plan: LoweredStrategyCommitPlan,
+    ) -> Self {
+        let descriptor = runtime
+            .commit_strategy_registry()
+            .get_by_id(lowered_plan.request().strategy_id())
+            .expect("strategy lowering provenance should resolve to a registered descriptor")
+            .descriptor();
+        Self {
+            transaction_id: lowered_plan.transaction_id(),
+            options: lowered_plan.options().clone(),
+            authority_input: CommitAuthorityInput::Strategy(lowered_plan.clone()),
+            prepared_scope: None,
+            merge_execution_accounting: None,
+            bulk_mutation_batch: lowered_plan.bulk_mutation_batch().cloned(),
+            prevalidated_commit_boundary: None,
+            validated_against_version_id: None,
+            strategy_commit_artifacts: Some(StrategyCommitArtifactBundle::from_lowered(
+                &lowered_plan,
+                descriptor,
+            )),
+        }
+    }
+
+    pub(crate) fn from_validated_strategy(
+        runtime: &crate::logic::runtime::RelationalRuntime,
+        validated_plan: ValidatedStrategyCommitPlan,
+    ) -> Self {
+        let descriptor = runtime
+            .commit_strategy_registry()
+            .get_by_id(validated_plan.lowered_plan().request().strategy_id())
+            .expect("validated strategy plan should resolve to a registered descriptor")
+            .descriptor();
+        Self {
+            transaction_id: validated_plan.lowered_plan().transaction_id(),
+            options: validated_plan.lowered_plan().options().clone(),
+            authority_input: CommitAuthorityInput::Strategy(validated_plan.lowered_plan().clone()),
+            prepared_scope: Some(PreparedAuthorityScope {
+                structural_summary: validated_plan.prepared_scope().structural_summary.clone(),
+                working_state: validated_plan.prepared_scope().working_state.clone(),
+            }),
+            merge_execution_accounting: None,
+            bulk_mutation_batch: validated_plan.lowered_plan().bulk_mutation_batch().cloned(),
+            prevalidated_commit_boundary: Some(validated_plan.commit_boundary_invariants().clone()),
+            validated_against_version_id: Some(validated_plan.validated_against_version_id()),
+            strategy_commit_artifacts: Some(
+                StrategyCommitArtifactBundle::from_lowered(
+                    validated_plan.lowered_plan(),
+                    descriptor,
+                )
+                .with_preview_validation(
+                    validated_plan.validation_summary(),
+                    validated_plan.preview_validation_cost(),
+                    validated_plan.validated_against_version_id(),
+                ),
+            ),
+        }
     }
 }
 
 fn invalid_merge_context(detail: &str) -> TransactionCommitError {
     TransactionCommitError::conflict(crate::transactions::data::CommitConflict::new(
         crate::transactions::data::ConflictClass::InvalidMergeParent {
+            detail: detail.to_string(),
+        },
+    ))
+}
+
+fn stale_strategy_validation_basis(detail: &str) -> TransactionCommitError {
+    TransactionCommitError::conflict(crate::transactions::data::CommitConflict::new(
+        crate::transactions::data::ConflictClass::StaleValidationBasis {
             detail: detail.to_string(),
         },
     ))
@@ -180,14 +271,13 @@ pub(crate) fn execute_authoritative_commit(
         prepared_scope,
         merge_execution_accounting,
         bulk_mutation_batch,
+        prevalidated_commit_boundary,
+        validated_against_version_id,
+        strategy_commit_artifacts,
     } = context;
     let mut commit_log = CommitLog::new();
     let mut phase_timing = CommitPhaseTiming::default();
-    let diagnostics_start = runtime
-        .publication_access()
-        .diagnostics()
-        .artifacts()
-        .len();
+    let diagnostics_start = runtime.publication_access().diagnostics().artifacts().len();
     let complexity_before = runtime
         .services
         .instrumentation
@@ -204,10 +294,18 @@ pub(crate) fn execute_authoritative_commit(
             planned.provenance.worker_batch_names.len(),
         );
     }
+    if let Some(validated_version_id) = validated_against_version_id {
+        if validated_version_id != runtime.current_version_id() {
+            return Err(stale_strategy_validation_basis(
+                "validated strategy plan no longer matches the current committed version basis",
+            ));
+        }
+    }
     let mut invariant_executions = Vec::new();
     let (mutation_plan, merge_history_plan) = match authority_input {
         CommitAuthorityInput::Mutation(plan) => (Some(plan), None),
         CommitAuthorityInput::Merge(plan) => (None, Some(plan)),
+        CommitAuthorityInput::Strategy(plan) => (Some(plan.merged_plan().clone()), None),
     };
     let merged_plan = match (&mutation_plan, &merge_history_plan) {
         (Some(plan), None) => plan,
@@ -224,11 +322,8 @@ pub(crate) fn execute_authoritative_commit(
     } = match prepared_scope {
         Some(scope) => scope,
         None => {
-            let (structural_summary, working_state) = prepare_authoritative_working_state_scope(
-                runtime,
-                merged_plan,
-                merge_parent_count,
-            );
+            let (structural_summary, working_state) =
+                prepare_authoritative_working_state_scope(runtime, merged_plan, merge_parent_count);
             PreparedAuthorityScope {
                 structural_summary,
                 working_state,
@@ -251,12 +346,15 @@ pub(crate) fn execute_authoritative_commit(
 
     commit_log.begin_phase(CommitPhase::InvariantPreCheck);
     let phase_started = Instant::now();
-    let pre_commit_invariants = runtime
-        .invariant_authority()
-        .enforce_commit_boundary(&merged_plan)
-        .map_err(|error| {
-            attach_rejection(&mut commit_log, CommitPhase::InvariantPreCheck, error)
-        })?;
+    let pre_commit_invariants = match prevalidated_commit_boundary {
+        Some(result) => result,
+        None => runtime
+            .invariant_authority()
+            .enforce_commit_boundary(&merged_plan)
+            .map_err(|error| {
+                attach_rejection(&mut commit_log, CommitPhase::InvariantPreCheck, error)
+            })?,
+    };
     commit_log.record_invariant_outcomes(&pre_commit_invariants);
     invariant_executions.push(pre_commit_invariants);
     commit_log.complete_phase(CommitPhase::InvariantPreCheck);
@@ -295,9 +393,7 @@ pub(crate) fn execute_authoritative_commit(
             };
             resolve_commit_history(&mut transaction, version_id)
         }
-        Some(plan) => {
-            resolve_commit_history_for_merge(runtime, &options, plan, version_id)
-        }
+        Some(plan) => resolve_commit_history_for_merge(runtime, &options, plan, version_id),
     }
     .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::HistoryResolution, error))?;
     let commit_id = history.commit_id;
@@ -329,9 +425,15 @@ pub(crate) fn execute_authoritative_commit(
         let phase_started = Instant::now();
         let post_invariants = runtime
             .invariant_authority()
-            .enforce_snapshot_publication_for_working_state(&working_state, version_id, &merged_plan)
+            .enforce_snapshot_publication_for_working_state(
+                &working_state,
+                version_id,
+                &merged_plan,
+            )
             .map_err(TransactionCommitError::publication)
-            .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::InvariantPostCheck, error))?;
+            .map_err(|error| {
+                attach_rejection(&mut commit_log, CommitPhase::InvariantPostCheck, error)
+            })?;
         commit_log.record_invariant_outcomes(&post_invariants);
         invariant_executions.push(post_invariants);
         commit_log.complete_phase(CommitPhase::InvariantPostCheck);
@@ -367,7 +469,11 @@ pub(crate) fn execute_authoritative_commit(
     }
     let patch_budget_summary = CommitPatchBudgetSummary {
         patch_record_count: patch.records.len(),
-        max_patch_records_per_commit: runtime.config.publication.policy.max_patch_records_per_commit,
+        max_patch_records_per_commit: runtime
+            .config
+            .publication
+            .policy
+            .max_patch_records_per_commit,
     };
     commit_log.record_patch_budget(&patch_budget_summary);
     enforce_patch_budget(runtime, &patch)
@@ -382,6 +488,7 @@ pub(crate) fn execute_authoritative_commit(
         &merge_parent_branches,
         &merge_base_commits,
         &merged_plan,
+        strategy_commit_artifacts.clone(),
         &schema_continuity,
         effect,
         additional_diagnostics_entries,
@@ -484,7 +591,9 @@ pub(crate) fn execute_authoritative_commit(
         .lock()
         .expect("complexity counter lock poisoned")
         .clone();
-    let diagnostics = runtime.publication_access().diagnostics_since(diagnostics_start);
+    let diagnostics = runtime
+        .publication_access()
+        .diagnostics_since(diagnostics_start);
     let commit_summary = commit_log.summary().clone();
     let schema_summary = CommitSchemaSummary {
         transition: canonical_commit_envelope
@@ -513,6 +622,7 @@ pub(crate) fn execute_authoritative_commit(
             envelope: canonical_commit_envelope,
             aspect_evaluation_traces,
             aspect_emission_traces,
+            strategy_artifacts: strategy_commit_artifacts,
         },
         validation: CommitValidation {
             summary: CommitValidation::summarize(&invariant_executions),
@@ -601,6 +711,12 @@ fn complexity_delta(
         query_packet_item_count: after
             .query_packet_item_count
             .saturating_sub(before.query_packet_item_count),
+        query_packet_peak_width_total: after
+            .query_packet_peak_width_total
+            .saturating_sub(before.query_packet_peak_width_total),
+        query_scope_unit_count: after
+            .query_scope_unit_count
+            .saturating_sub(before.query_scope_unit_count),
         query_parallel_legal_count: after
             .query_parallel_legal_count
             .saturating_sub(before.query_parallel_legal_count),
@@ -613,6 +729,9 @@ fn complexity_delta(
         query_staged_parallel_strategy_count: after
             .query_staged_parallel_strategy_count
             .saturating_sub(before.query_staged_parallel_strategy_count),
+        query_fragment_scratch_reuse_count: after
+            .query_fragment_scratch_reuse_count
+            .saturating_sub(before.query_fragment_scratch_reuse_count),
         query_index_attempt_count: after
             .query_index_attempt_count
             .saturating_sub(before.query_index_attempt_count),
@@ -625,6 +744,9 @@ fn complexity_delta(
         query_index_parity_verification_count: after
             .query_index_parity_verification_count
             .saturating_sub(before.query_index_parity_verification_count),
+        query_index_scratch_reuse_count: after
+            .query_index_scratch_reuse_count
+            .saturating_sub(before.query_index_scratch_reuse_count),
         query_entity_records_emitted: after
             .query_entity_records_emitted
             .saturating_sub(before.query_entity_records_emitted),
@@ -942,7 +1064,9 @@ fn complexity_delta(
             .saturating_sub(before.schema_reconciliation_preserve_source_contract_count),
         schema_reconciliation_permit_lossy_narrowing_with_annotation_count: after
             .schema_reconciliation_permit_lossy_narrowing_with_annotation_count
-            .saturating_sub(before.schema_reconciliation_permit_lossy_narrowing_with_annotation_count),
+            .saturating_sub(
+                before.schema_reconciliation_permit_lossy_narrowing_with_annotation_count,
+            ),
         schema_reconciliation_require_explicit_projection_count: after
             .schema_reconciliation_require_explicit_projection_count
             .saturating_sub(before.schema_reconciliation_require_explicit_projection_count),

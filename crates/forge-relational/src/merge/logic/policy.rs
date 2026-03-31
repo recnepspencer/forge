@@ -4,21 +4,20 @@ use std::sync::Arc;
 
 use crate::merge::data::{
     AspectComparisonState, AspectMergePolicyKind, AspectPolicyResolutionRecord,
-    CausallyAnnotatedMergePlan, DeletionMergeClass, MergeConflictClass,
-    MergeManualResolutionClass, MergePlanningError, MergePlanningRequest,
-    MergePolicyDecisionBoundary, MergePolicyOwnershipClass, MergePolicyOwnershipSurface,
-    MergePolicyProofBoundary, MergePolicyRejectClass, MergePolicyResolution,
-    MergeResolvedAspectValueStrategy,
-    MergePolicyResolutionRecord, MergePolicyResolutionSummary, TopologyRewireAdmissionPolicy,
-    PolicyResolvedMergePlan, ResolvedAspectMergePolicy, VisibleMergeRecordKind,
+    CausallyAnnotatedMergePlan, DeletionMergeClass, MergeConflictClass, MergeManualResolutionClass,
+    MergePlanningError, MergePlanningRequest, MergePolicyDecisionBoundary,
+    MergePolicyOwnershipClass, MergePolicyOwnershipSurface, MergePolicyProofBoundary,
+    MergePolicyRejectClass, MergePolicyResolution, MergePolicyResolutionRecord,
+    MergePolicyResolutionSummary, MergeResolvedAspectValueStrategy, PolicyResolvedMergePlan,
+    ResolvedAspectMergePolicy, TopologyRewireAdmissionPolicy, VisibleMergeRecordKind,
 };
 use crate::merge::logic::aspect_plan_lookup::lowered_plan_for_record;
 use crate::merge::logic::naming::resolve_interned_string;
 use crate::merge::logic::MergeAccess;
 use crate::payloads::data::RecordPayload;
-use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 use crate::schema::data::{LoweredAspectBinding, LoweredExecutableAspectBindingKind};
 use crate::storage::data::RelationalReadView;
+use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 use serde_json::Value;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,15 +38,12 @@ struct PolicyReadViewContext<'a> {
 }
 
 struct PolicyReadViewIndex {
-    entities_by_lineage: BTreeMap<crate::identity::data::LineageId, crate::identity::data::EntityId>,
-    entities_by_slot: BTreeMap<
-        (crate::identity::data::PartitionId, u64),
-        crate::identity::data::EntityId,
-    >,
-    relations_by_slot: BTreeMap<
-        (crate::identity::data::PartitionId, u64),
-        crate::identity::data::RelationId,
-    >,
+    entities_by_lineage:
+        BTreeMap<crate::identity::data::LineageId, crate::identity::data::EntityId>,
+    entities_by_slot:
+        BTreeMap<(crate::identity::data::PartitionId, u64), crate::identity::data::EntityId>,
+    relations_by_slot:
+        BTreeMap<(crate::identity::data::PartitionId, u64), crate::identity::data::RelationId>,
 }
 
 struct BaseCommitPayloadContext {
@@ -55,9 +51,7 @@ struct BaseCommitPayloadContext {
 }
 
 impl BaseCommitPayloadContext {
-    fn from_envelope(
-        envelope: &crate::replay::data::CanonicalCommitEnvelope,
-    ) -> Self {
+    fn from_envelope(envelope: &crate::replay::data::CanonicalCommitEnvelope) -> Self {
         let mut payloads_by_record = BTreeMap::new();
         for patch_record in &envelope.patch.records {
             match &patch_record.detail {
@@ -112,7 +106,11 @@ impl PolicyReadViewIndex {
         let entities_by_lineage = view
             .entities()
             .iter()
-            .filter_map(|entity| entity.lineage_id.map(|lineage_id| (lineage_id, entity.entity_id)))
+            .filter_map(|entity| {
+                entity
+                    .lineage_id
+                    .map(|lineage_id| (lineage_id, entity.entity_id))
+            })
             .collect();
         let entities_by_slot = view
             .entities()
@@ -155,16 +153,20 @@ impl<'a> PolicyReadViewContext<'a> {
         entity_id: crate::identity::data::EntityId,
         lineage_hint: Option<crate::identity::data::LineageId>,
     ) -> Option<&EntityReadRecord> {
-        self.view.get_entity(entity_id).or_else(|| {
-            lineage_hint
-                .and_then(|lineage_id| self.index.entities_by_lineage.get(&lineage_id).copied())
-                .and_then(|resolved_entity_id| self.view.get_entity(resolved_entity_id))
-        }).or_else(|| {
-            self.index.entities_by_slot
-                .get(&(entity_id.partition_id, entity_id.local_slot.0))
-                .copied()
-                .and_then(|resolved_entity_id| self.view.get_entity(resolved_entity_id))
-        })
+        self.view
+            .get_entity(entity_id)
+            .or_else(|| {
+                lineage_hint
+                    .and_then(|lineage_id| self.index.entities_by_lineage.get(&lineage_id).copied())
+                    .and_then(|resolved_entity_id| self.view.get_entity(resolved_entity_id))
+            })
+            .or_else(|| {
+                self.index
+                    .entities_by_slot
+                    .get(&(entity_id.partition_id, entity_id.local_slot.0))
+                    .copied()
+                    .and_then(|resolved_entity_id| self.view.get_entity(resolved_entity_id))
+            })
     }
 
     fn relation_for_record(
@@ -172,7 +174,8 @@ impl<'a> PolicyReadViewContext<'a> {
         relation_id: crate::identity::data::RelationId,
     ) -> Option<&RelationReadRecord> {
         self.view.get_relation(relation_id).or_else(|| {
-            self.index.relations_by_slot
+            self.index
+                .relations_by_slot
                 .get(&(relation_id.partition_id, relation_id.local_slot.0))
                 .copied()
                 .and_then(|resolved_relation_id| self.view.get_relation(resolved_relation_id))
@@ -245,7 +248,8 @@ impl<'runtime> MergeAccess<'runtime> {
             .iter()
             .map(|annotation| (annotation.record.clone(), annotation))
             .collect::<BTreeMap<_, _>>();
-        let mut record_base_views = BTreeMap::<crate::history::data::CommitId, RelationalReadView>::new();
+        let mut record_base_views =
+            BTreeMap::<crate::history::data::CommitId, RelationalReadView>::new();
         let mut record_base_view_indices =
             BTreeMap::<crate::history::data::CommitId, PolicyReadViewIndex>::new();
         let mut record_base_payload_contexts =
@@ -260,11 +264,11 @@ impl<'runtime> MergeAccess<'runtime> {
                         record: classification.record.clone(),
                     })?;
                 let applied_policies = effective_merge_policies_for_record(self.runtime, record);
-                let annotation = causal_annotations_by_record.get(&classification.record).ok_or_else(
-                    || MergePlanningError::MissingCausalAnnotation {
+                let annotation = causal_annotations_by_record
+                    .get(&classification.record)
+                    .ok_or_else(|| MergePlanningError::MissingCausalAnnotation {
                         record: classification.record.clone(),
-                    },
-                )?;
+                    })?;
                 let base_commit_id = record_policy_base_commit_id(
                     &history,
                     annotation,
@@ -280,9 +284,9 @@ impl<'runtime> MergeAccess<'runtime> {
                         })?
                         .commit
                         .version_id;
-                    record_base_views.entry(base_commit_id).or_insert_with(|| {
-                        self.runtime.visibility_reads().read_version(version_id)
-                    })
+                    record_base_views
+                        .entry(base_commit_id)
+                        .or_insert_with(|| self.runtime.visibility_reads().read_version(version_id))
                 };
                 let record_base_view_index = if base_commit_id == causal_plan.merge_base.commit_id {
                     &base_view_index
@@ -293,21 +297,22 @@ impl<'runtime> MergeAccess<'runtime> {
                 };
                 let record_base_view_context =
                     PolicyReadViewContext::new(record_base_view, record_base_view_index);
-                let record_base_payload_context =
-                    if base_commit_id == causal_plan.merge_base.commit_id {
-                        record_base_payload_contexts.entry(base_commit_id).or_insert_with(|| {
-                            BaseCommitPayloadContext::from_envelope(base_envelope)
-                        })
-                    } else {
-                        let envelope = history
-                            .commit_envelope(base_commit_id)
-                            .ok_or(MergePlanningError::MissingMergeBaseEnvelope {
-                                commit_id: base_commit_id,
-                            })?;
-                        record_base_payload_contexts
-                            .entry(base_commit_id)
-                            .or_insert_with(|| BaseCommitPayloadContext::from_envelope(envelope))
-                    };
+                let record_base_payload_context = if base_commit_id
+                    == causal_plan.merge_base.commit_id
+                {
+                    record_base_payload_contexts
+                        .entry(base_commit_id)
+                        .or_insert_with(|| BaseCommitPayloadContext::from_envelope(base_envelope))
+                } else {
+                    let envelope = history.commit_envelope(base_commit_id).ok_or(
+                        MergePlanningError::MissingMergeBaseEnvelope {
+                            commit_id: base_commit_id,
+                        },
+                    )?;
+                    record_base_payload_contexts
+                        .entry(base_commit_id)
+                        .or_insert_with(|| BaseCommitPayloadContext::from_envelope(envelope))
+                };
                 let record_base_payload_override = record_base_payload_override(
                     record_base_payload_context,
                     record,
@@ -328,8 +333,7 @@ impl<'runtime> MergeAccess<'runtime> {
                     &record_base_view_context,
                     record_base_payload_override.as_ref(),
                 )?;
-                let ownership_surface =
-                    ownership_surface_for_policies(applied_policies.as_slice());
+                let ownership_surface = ownership_surface_for_policies(applied_policies.as_slice());
                 let decision_boundary = aggregate_record_resolution(
                     classification.class,
                     aspect_resolutions.as_slice(),
@@ -377,8 +381,7 @@ impl<'runtime> MergeAccess<'runtime> {
     }
 }
 
-pub(crate) const fn current_topology_rewire_admission_policy(
-) -> TopologyRewireAdmissionPolicy {
+pub(crate) const fn current_topology_rewire_admission_policy() -> TopologyRewireAdmissionPolicy {
     TopologyRewireAdmissionPolicy::AlwaysEscalateToTopologyRegion
 }
 
@@ -392,7 +395,9 @@ fn effective_merge_policies_for_record(
     let registry = &runtime.config().schema.registry;
     let declarations = match record.record_kind {
         VisibleMergeRecordKind::Entity => registry.entity_merge_policy_declarations(kind_id).ok(),
-        VisibleMergeRecordKind::Relation => registry.relation_merge_policy_declarations(kind_id).ok(),
+        VisibleMergeRecordKind::Relation => {
+            registry.relation_merge_policy_declarations(kind_id).ok()
+        }
     }
     .unwrap_or(&[]);
 
@@ -438,6 +443,11 @@ fn aggregate_record_resolution(
             | MergeConflictClass::RelationEndpointDivergence => {
                 MergePolicyDecisionBoundary::RequiresManualResolution {
                     class: MergeManualResolutionClass::GenericRuntimeConflict,
+                }
+            }
+            MergeConflictClass::StrategyIntentConflict => {
+                MergePolicyDecisionBoundary::RequiresManualResolution {
+                    class: MergeManualResolutionClass::StrategyIntentConflict,
                 }
             }
         };
@@ -533,9 +543,7 @@ fn resolve_aspects_for_record(
             let binding = lowered_plan
                 .executable_bindings
                 .iter()
-                .find(|binding| {
-                    binding_matches_aspect(runtime, binding, &aspect.aspect_key)
-                });
+                .find(|binding| binding_matches_aspect(runtime, binding, &aspect.aspect_key));
             let initial_decision_boundary = decision_boundary_for_aspect(
                 classification,
                 aspect.comparison,
@@ -619,7 +627,8 @@ fn decision_boundary_for_aspect(
     applied_policy: Option<&AspectMergePolicyKind>,
     causal_disposition: crate::merge::data::MergeRecordCausalDisposition,
 ) -> MergePolicyDecisionBoundary {
-    if classification.identity_reason == crate::merge::data::IdentityResolutionReason::SchemaDeclaredCorrespondence
+    if classification.identity_reason
+        == crate::merge::data::IdentityResolutionReason::SchemaDeclaredCorrespondence
         && !classification.validated_schema_correspondence
     {
         return MergePolicyDecisionBoundary::RequiresManualResolution {
@@ -641,9 +650,11 @@ fn decision_boundary_for_aspect(
         AspectComparisonState::Equal | AspectComparisonState::SourceOnly => {
             MergePolicyDecisionBoundary::AutoResolved
         }
-        AspectComparisonState::Unavailable => MergePolicyDecisionBoundary::RequiresManualResolution {
-            class: MergeManualResolutionClass::MissingVisibleState,
-        },
+        AspectComparisonState::Unavailable => {
+            MergePolicyDecisionBoundary::RequiresManualResolution {
+                class: MergeManualResolutionClass::MissingVisibleState,
+            }
+        }
         AspectComparisonState::TargetOnly => match (classification.class, applied_policy) {
             (
                 MergeConflictClass::SchemaDeclaredCorrespondence
@@ -722,16 +733,12 @@ fn resolve_aspect_value_strategy(
                     MergeResolvedAspectValueStrategy::SourceVisibleValue,
                 )
             }
-            AspectComparisonState::TargetOnly => {
-                AutoResolutionStrategy::Resolved(
-                    MergeResolvedAspectValueStrategy::TargetVisibleValue,
-                )
-            }
-            AspectComparisonState::Divergent => {
-                AutoResolutionStrategy::Resolved(
-                    MergeResolvedAspectValueStrategy::SourceVisibleValue,
-                )
-            }
+            AspectComparisonState::TargetOnly => AutoResolutionStrategy::Resolved(
+                MergeResolvedAspectValueStrategy::TargetVisibleValue,
+            ),
+            AspectComparisonState::Divergent => AutoResolutionStrategy::Resolved(
+                MergeResolvedAspectValueStrategy::SourceVisibleValue,
+            ),
             AspectComparisonState::Unavailable => AutoResolutionStrategy::NotRequired,
         },
         Some(AspectMergePolicyKind::LastWriterWins) => match comparison {
@@ -740,11 +747,9 @@ fn resolve_aspect_value_strategy(
                     MergeResolvedAspectValueStrategy::SourceVisibleValue,
                 )
             }
-            AspectComparisonState::TargetOnly => {
-                AutoResolutionStrategy::Resolved(
-                    MergeResolvedAspectValueStrategy::TargetVisibleValue,
-                )
-            }
+            AspectComparisonState::TargetOnly => AutoResolutionStrategy::Resolved(
+                MergeResolvedAspectValueStrategy::TargetVisibleValue,
+            ),
             AspectComparisonState::Divergent => match causal_disposition {
                 crate::merge::data::MergeRecordCausalDisposition::SourceAfterTarget
                 | crate::merge::data::MergeRecordCausalDisposition::SourceOnly => {
@@ -839,22 +844,26 @@ fn runtime_aspect_value_binding(
 
     if let Some(kind_id) = record.source_kind_id.or(record.kind_id) {
         let declarations = match record.record_kind {
-            VisibleMergeRecordKind::Entity => &runtime
-                .config()
-                .schema
-                .registry
-                .entity_registration(kind_id)
-                .ok()?
-                .aspect_declarations
-                .aspects,
-            VisibleMergeRecordKind::Relation => &runtime
-                .config()
-                .schema
-                .registry
-                .relation_registration(kind_id)
-                .ok()?
-                .aspect_declarations
-                .aspects,
+            VisibleMergeRecordKind::Entity => {
+                &runtime
+                    .config()
+                    .schema
+                    .registry
+                    .entity_registration(kind_id)
+                    .ok()?
+                    .aspect_declarations
+                    .aspects
+            }
+            VisibleMergeRecordKind::Relation => {
+                &runtime
+                    .config()
+                    .schema
+                    .registry
+                    .relation_registration(kind_id)
+                    .ok()?
+                    .aspect_declarations
+                    .aspects
+            }
         };
 
         if let Some(binding) = declarations.iter().find_map(|declared| {
@@ -899,8 +908,14 @@ fn record_policy_base_commit_id(
     fallback_merge_base_commit_id: crate::history::data::CommitId,
 ) -> crate::history::data::CommitId {
     match (
-        annotation.source_latest_touch.as_ref().map(|dot| dot.commit_id),
-        annotation.target_latest_touch.as_ref().map(|dot| dot.commit_id),
+        annotation
+            .source_latest_touch
+            .as_ref()
+            .map(|dot| dot.commit_id),
+        annotation
+            .target_latest_touch
+            .as_ref()
+            .map(|dot| dot.commit_id),
     ) {
         (Some(source_commit_id), Some(target_commit_id)) => history
             .max_commit_id_common_ancestor(source_commit_id, target_commit_id)
@@ -1304,7 +1319,10 @@ fn binding_json_value(
     target_view: &PolicyReadViewContext<'_>,
 ) -> Result<Value, ValueLookupFailure> {
     let source_record_ref = &record.record_ref;
-    let target_record_ref = classification.target_record.as_ref().unwrap_or(&record.record_ref);
+    let target_record_ref = classification
+        .target_record
+        .as_ref()
+        .unwrap_or(&record.record_ref);
     match (&record.record_kind, binding, side) {
         (
             VisibleMergeRecordKind::Entity,
@@ -1374,52 +1392,53 @@ fn binding_json_value_from_view(
     base_view: &PolicyReadViewContext<'_>,
     base_payload_override: Option<&RecordPayload>,
 ) -> Result<Value, ValueLookupFailure> {
-    let base_record_ref = classification.target_record.as_ref().unwrap_or(&record.record_ref);
+    let base_record_ref = classification
+        .target_record
+        .as_ref()
+        .unwrap_or(&record.record_ref);
     match (&record.record_kind, binding) {
-        (
-            VisibleMergeRecordKind::Entity,
-            RuntimeAspectValueBinding::EntityField(field),
-        ) => match base_record_ref {
-            crate::transactions::data::RecordRef::Entity(entity_id) => base_view
-                .entity_for_record(
-                    *entity_id,
-                    record
-                        .source_lineage_id
-                        .or(record.target_lineage_id)
-                        .or(record.lineage_id),
-                )
-                .ok_or(ValueLookupFailure::MissingRecordBasis)
-                .and_then(|entity| json_field_value(runtime, &entity.payload, field))
-                .or_else(|failure| match (failure, base_payload_override) {
-                    (ValueLookupFailure::MissingRecordBasis, Some(payload)) => {
-                        json_field_value(runtime, payload, field)
-                    }
-                    (other, _) => Err(other),
-                }),
-            _ => Err(ValueLookupFailure::MissingRecordBasis),
-        },
-        (
-            VisibleMergeRecordKind::Relation,
-            RuntimeAspectValueBinding::RelationField(field),
-        ) => match base_record_ref {
-            crate::transactions::data::RecordRef::Relation(relation_id) => base_view
-                .relation_for_record(*relation_id)
-                .ok_or(ValueLookupFailure::MissingRecordBasis)
-                .and_then(|relation| {
-                    relation
-                        .payload
-                        .as_ref()
-                        .ok_or(ValueLookupFailure::MissingField)
-                        .and_then(|payload| json_field_value(runtime, payload, field))
-                })
-                .or_else(|failure| match (failure, base_payload_override) {
-                    (ValueLookupFailure::MissingRecordBasis, Some(payload)) => {
-                        json_field_value(runtime, payload, field)
-                    }
-                    (other, _) => Err(other),
-                }),
-            _ => Err(ValueLookupFailure::MissingRecordBasis),
-        },
+        (VisibleMergeRecordKind::Entity, RuntimeAspectValueBinding::EntityField(field)) => {
+            match base_record_ref {
+                crate::transactions::data::RecordRef::Entity(entity_id) => base_view
+                    .entity_for_record(
+                        *entity_id,
+                        record
+                            .source_lineage_id
+                            .or(record.target_lineage_id)
+                            .or(record.lineage_id),
+                    )
+                    .ok_or(ValueLookupFailure::MissingRecordBasis)
+                    .and_then(|entity| json_field_value(runtime, &entity.payload, field))
+                    .or_else(|failure| match (failure, base_payload_override) {
+                        (ValueLookupFailure::MissingRecordBasis, Some(payload)) => {
+                            json_field_value(runtime, payload, field)
+                        }
+                        (other, _) => Err(other),
+                    }),
+                _ => Err(ValueLookupFailure::MissingRecordBasis),
+            }
+        }
+        (VisibleMergeRecordKind::Relation, RuntimeAspectValueBinding::RelationField(field)) => {
+            match base_record_ref {
+                crate::transactions::data::RecordRef::Relation(relation_id) => base_view
+                    .relation_for_record(*relation_id)
+                    .ok_or(ValueLookupFailure::MissingRecordBasis)
+                    .and_then(|relation| {
+                        relation
+                            .payload
+                            .as_ref()
+                            .ok_or(ValueLookupFailure::MissingField)
+                            .and_then(|payload| json_field_value(runtime, payload, field))
+                    })
+                    .or_else(|failure| match (failure, base_payload_override) {
+                        (ValueLookupFailure::MissingRecordBasis, Some(payload)) => {
+                            json_field_value(runtime, payload, field)
+                        }
+                        (other, _) => Err(other),
+                    }),
+                _ => Err(ValueLookupFailure::MissingRecordBasis),
+            }
+        }
         _ => Err(ValueLookupFailure::MissingRecordBasis),
     }
 }
@@ -1498,18 +1517,15 @@ fn value_fingerprint(value: &Value) -> (String, Value) {
 mod tests {
     use super::{
         aggregate_record_resolution, current_topology_rewire_admission_policy,
-        decision_boundary_for_aspect,
-        ownership_surface_for_policies, summarize_policy_records,
-    };
-    use crate::merge::data::{
-        AspectMergePolicyKind, CustomMergePolicyIdentity, DeletionMergeClass,
-        MergeManualResolutionClass, MergePolicyDecisionBoundary,
-        MergeConflictClass, MergePolicyOwnershipClass, MergePolicyOwnershipSurface,
-        MergePolicyRejectClass,
-        MergePolicyProofBoundary, MergePolicyResolutionRecord, ResolvedAspectMergePolicy,
-        TopologyRewireAdmissionPolicy,
+        decision_boundary_for_aspect, ownership_surface_for_policies, summarize_policy_records,
     };
     use crate::identity::data::{EntityId, PartitionId};
+    use crate::merge::data::{
+        AspectMergePolicyKind, CustomMergePolicyIdentity, DeletionMergeClass, MergeConflictClass,
+        MergeManualResolutionClass, MergePolicyDecisionBoundary, MergePolicyOwnershipClass,
+        MergePolicyOwnershipSurface, MergePolicyProofBoundary, MergePolicyRejectClass,
+        MergePolicyResolutionRecord, ResolvedAspectMergePolicy, TopologyRewireAdmissionPolicy,
+    };
     use crate::publication::patch::data::AspectKey;
     use crate::symbols::data::InternedString;
     use crate::transactions::data::RecordRef;
@@ -1672,10 +1688,7 @@ mod tests {
         }];
 
         assert_eq!(
-            aggregate_record_resolution(
-                MergeConflictClass::SchemaDeclaredCorrespondence,
-                &aspects
-            ),
+            aggregate_record_resolution(MergeConflictClass::SchemaDeclaredCorrespondence, &aspects),
             MergePolicyDecisionBoundary::Reject {
                 class: MergePolicyRejectClass::BuiltInFailOnConflict,
             }
@@ -1688,9 +1701,11 @@ mod tests {
             &crate::merge::data::MergeConflictClassification {
                 record: RecordRef::Entity(EntityId::new(PartitionId::main(), 1, 1)),
                 class: MergeConflictClass::DivergentVisibleState,
-                identity_reason: crate::merge::data::IdentityResolutionReason::DeclaredBasisNoVisibleTargetMatch,
+                identity_reason:
+                    crate::merge::data::IdentityResolutionReason::DeclaredBasisNoVisibleTargetMatch,
                 validated_schema_correspondence: false,
                 aspect_evidence: Arc::from(Vec::new()),
+                strategy_evidence: None,
                 relation_evidence: None,
                 target_record: None,
                 base_record_visible: true,

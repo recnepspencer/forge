@@ -202,7 +202,10 @@ impl GraphSummary {
             if dependencies.iter().any(|edge| edge.scope_ref().is_some()) {
                 nodes_with_partition_scopes += 1;
             }
-            if graph.node_runtime_artifact_state_present(node).unwrap_or(false) {
+            if graph
+                .node_runtime_artifact_state_present(node)
+                .unwrap_or(false)
+            {
                 nodes_with_trace_summary += 1;
                 if graph
                     .node_execution_trace_stamp(node)
@@ -583,7 +586,11 @@ impl ExecutionHistorySummary {
         let mut reuse_origin_counts = ReuseOriginCounts::new();
         let mut nodes = Vec::new();
 
-        for task in report.stages.iter().flat_map(|stage| stage.task_records.iter()) {
+        for task in report
+            .stages
+            .iter()
+            .flat_map(|stage| stage.task_records.iter())
+        {
             traced_node_count += 1;
             execution_record_count += 1;
             latest_execution_record_id = Some(

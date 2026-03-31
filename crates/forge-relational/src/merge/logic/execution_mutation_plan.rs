@@ -6,21 +6,20 @@ use serde_json::{Map, Value};
 
 use crate::capabilities::AspectPlanSource;
 use crate::merge::data::{
-    AdoptSourceRecordPlan, BoundExecutableMergeRecordPlan, ExecutableAspectPlan, MaterializedAspectValue,
-    MaterializedAspectValuePayload, MergeExecutionMutationPlanError, PreparedMergeExecution,
-    ReconcileRecordPlan,
+    AdoptSourceRecordPlan, BoundExecutableMergeRecordPlan, ExecutableAspectPlan,
+    MaterializedAspectValue, MaterializedAspectValuePayload, MergeExecutionMutationPlanError,
+    PreparedMergeExecution, ReconcileRecordPlan,
 };
 use crate::merge::logic::naming::resolve_interned_string;
 use crate::payloads::data::RecordPayload;
 use crate::schema::data::{LoweredAspectBinding, LoweredExecutableAspectBindingKind};
-use crate::storage::overlay::PartitionAccess;
 use crate::storage::data::{EntityReadRecord, RelationReadRecord};
+use crate::storage::overlay::PartitionAccess;
 use crate::symbols::data::InternedString;
 use crate::transactions::data::{
     CreateIntent, EntityMutationIntent, EntitySpec, MergeCommitMutationPlan,
     MergeExecutionStructuralSummary, MergeExecutionSummary, MergedCommitPlan, MutationIntent,
-    RelationSpec, TransactionId,
-    UpdateEntityIntent,
+    RelationSpec, TransactionId, UpdateEntityIntent,
 };
 
 use super::MergeAccess;
@@ -68,8 +67,10 @@ impl<'runtime> MergeAccess<'runtime> {
                 BoundExecutableMergeRecordPlan::Reconcile(plan) => {
                     summary.reconciled_record_count += 1;
                     if let Some(intent) = self.derive_reconcile_intent(plan)? {
-                        if matches!(intent, MutationIntent::Entity(EntityMutationIntent::Update(_)))
-                        {
+                        if matches!(
+                            intent,
+                            MutationIntent::Entity(EntityMutationIntent::Update(_))
+                        ) {
                             summary.emitted_entity_update_count += 1;
                         }
                         summary.emitted_mutation_intent_count += 1;
@@ -102,8 +103,7 @@ impl<'runtime> MergeAccess<'runtime> {
             adopted_source_record_count: summary.adopted_source_record_count,
             preserved_shared_record_count: summary.preserved_shared_record_count,
             reconciled_record_count: summary.reconciled_record_count,
-            converged_deleted_on_both_sides_count: summary
-                .converged_deleted_on_both_sides_count,
+            converged_deleted_on_both_sides_count: summary.converged_deleted_on_both_sides_count,
             deleted_on_both_sides_lineage_unchanged_count: summary
                 .deleted_on_both_sides_lineage_unchanged_count,
             emitted_mutation_intent_count: summary.emitted_mutation_intent_count,
@@ -118,7 +118,12 @@ impl<'runtime> MergeAccess<'runtime> {
             merge_parent_branches: Arc::from([prepared.request().source_branch.clone()]),
             requested_merge_parent_count: 1,
             parent_commits: crate::history::data::OrderedParentList::from_authoritative(
-                prepared.bound_executable_plan().parent_order.iter().copied().collect(),
+                prepared
+                    .bound_executable_plan()
+                    .parent_order
+                    .iter()
+                    .copied()
+                    .collect(),
             ),
             merge_base_commits: Arc::from([binding.merge_base_commit_id]),
             merged_plan,
@@ -141,16 +146,16 @@ fn derive_source_adoption_intent(
                 payload: entity.payload.clone(),
             })))
         }
-        crate::merge::data::VisibleMergeRecordSnapshot::Relation(relation) => {
-            Ok(MutationIntent::Create(CreateIntent::Relation(RelationSpec {
+        crate::merge::data::VisibleMergeRecordSnapshot::Relation(relation) => Ok(
+            MutationIntent::Create(CreateIntent::Relation(RelationSpec {
                 partition_id: relation.relation_id.partition_id,
                 kind_id: relation.kind.kind_id,
                 client_key: merge_client_key("adopt-source-relation", &plan.source_record),
                 source: relation.source,
                 target: relation.target,
                 payload: relation.payload.clone(),
-            })))
-        }
+            })),
+        ),
     }
 }
 
@@ -167,14 +172,18 @@ impl<'runtime> MergeAccess<'runtime> {
             (
                 crate::merge::data::VisibleMergeRecordSnapshot::Relation(_),
                 crate::transactions::data::RecordRef::Relation(_),
-            ) => Err(MergeExecutionMutationPlanError::UnsupportedReconcileRecordKind {
-                record: plan.target_record.clone(),
-                detail: "relation reconciliation is not executable in phase D",
-            }),
-            _ => Err(MergeExecutionMutationPlanError::UnsupportedReconcileRecordKind {
-                record: plan.target_record.clone(),
-                detail: "source/target record kinds do not match reconcile executable class",
-            }),
+            ) => Err(
+                MergeExecutionMutationPlanError::UnsupportedReconcileRecordKind {
+                    record: plan.target_record.clone(),
+                    detail: "relation reconciliation is not executable in phase D",
+                },
+            ),
+            _ => Err(
+                MergeExecutionMutationPlanError::UnsupportedReconcileRecordKind {
+                    record: plan.target_record.clone(),
+                    detail: "source/target record kinds do not match reconcile executable class",
+                },
+            ),
         }
     }
 
@@ -184,18 +193,21 @@ impl<'runtime> MergeAccess<'runtime> {
         source_entity: &EntityReadRecord,
         target_entity_id: crate::identity::data::EntityId,
     ) -> Result<Option<MutationIntent>, MergeExecutionMutationPlanError> {
-        let target_entity = current_entity_snapshot(self.runtime, target_entity_id).ok_or_else(|| {
-            MergeExecutionMutationPlanError::MissingTargetEntitySnapshot {
-                record: plan.target_record.clone(),
-            }
-        })?;
+        let target_entity =
+            current_entity_snapshot(self.runtime, target_entity_id).ok_or_else(|| {
+                MergeExecutionMutationPlanError::MissingTargetEntitySnapshot {
+                    record: plan.target_record.clone(),
+                }
+            })?;
         let target_binding_plan = self
             .runtime
             .entity_aspect_plan(target_entity.kind.kind_id)
-            .ok_or_else(|| MergeExecutionMutationPlanError::UnsupportedReconcileRecordKind {
-                record: plan.target_record.clone(),
-                detail: "target entity kind has no executable aspect plan",
-            })?;
+            .ok_or_else(
+                || MergeExecutionMutationPlanError::UnsupportedReconcileRecordKind {
+                    record: plan.target_record.clone(),
+                    detail: "target entity kind has no executable aspect plan",
+                },
+            )?;
         let mut payload = target_entity.payload.as_json().cloned().ok_or_else(|| {
             MergeExecutionMutationPlanError::UnsupportedReconcileRecordKind {
                 record: plan.target_record.clone(),
@@ -330,11 +342,14 @@ fn resolve_materialized_json_value(
             aspect_key: reference_key,
         } => {
             if reference_key != aspect_key {
-                return Err(MergeExecutionMutationPlanError::InvalidVisibleAspectReference {
-                    record: plan.target_record.clone(),
-                    aspect_key: aspect_key.clone(),
-                    detail: "resolved aspect reference key does not match executable aspect key",
-                });
+                return Err(
+                    MergeExecutionMutationPlanError::InvalidVisibleAspectReference {
+                        record: plan.target_record.clone(),
+                        aspect_key: aspect_key.clone(),
+                        detail:
+                            "resolved aspect reference key does not match executable aspect key",
+                    },
+                );
             }
             match side {
                 crate::merge::data::MergeValueSourceSide::Source => {
@@ -403,7 +418,12 @@ fn current_entity_snapshot(
     let partition = current_state.get_partition(entity_id.partition_id)?;
     let slot = partition.entity_arena.get(&entity_id)?;
     let kind_id = slot.kind_id()?;
-    let kind = runtime.config.schema.registry.resolve_entity(kind_id).ok()?;
+    let kind = runtime
+        .config
+        .schema
+        .registry
+        .resolve_entity(kind_id)
+        .ok()?;
     Some(EntityReadRecord {
         entity_id,
         lineage_id: None,
@@ -425,7 +445,12 @@ fn current_relation_snapshot(
     let slot = partition.relation_arena.get(&relation_id)?;
     let kind_id = slot.kind_id()?;
     let endpoints = slot.extra().as_ref()?;
-    let kind = runtime.config.schema.registry.resolve_relation(kind_id).ok()?;
+    let kind = runtime
+        .config
+        .schema
+        .registry
+        .resolve_relation(kind_id)
+        .ok()?;
     Some(RelationReadRecord {
         relation_id,
         kind,

@@ -401,12 +401,11 @@ fn max_dependency_delta(graph: &SignalGraph, node: NodeId) -> Result<u64, Signal
         if !graph.is_alive(snapshot_entry.source) {
             continue;
         }
-        let current_version = graph
-            .node_version_for_scope(
-                snapshot_entry.source,
-                snapshot_entry.aspect,
-                snapshot_entry.scope.as_ref(),
-            )?;
+        let current_version = graph.node_version_for_scope(
+            snapshot_entry.source,
+            snapshot_entry.aspect,
+            snapshot_entry.scope.as_ref(),
+        )?;
         max_delta = max_delta.max(current_version.abs_diff(snapshot_entry.cached_version));
     }
     Ok(max_delta)

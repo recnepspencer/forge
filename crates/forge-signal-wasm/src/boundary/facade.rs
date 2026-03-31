@@ -1,14 +1,15 @@
-use wasm_bindgen::prelude::*;
+use forge_signal::facade::history::RuntimeSnapshot;
 use js_sys::Uint8Array;
+use wasm_bindgen::prelude::*;
 
 use crate::boundary::serde::{from_js, to_js};
 use crate::recipe::model::{
     KeyedRecipeFamilySpec, KeyedSetValue, KeyedSourceFamilySpec, RecipeSpec, SourceSpec,
     TransactionOp,
 };
+use crate::runtime::adapters::RuntimeEnvelope;
 use crate::runtime::core::{new_shared_core, SharedCore};
 use crate::runtime::policy::RuntimePolicySpec;
-use crate::runtime::adapters::RuntimeEnvelope;
 use crate::runtime::summaries::RuntimeSnapshotEnvelope;
 
 #[wasm_bindgen(js_name = SignalApp)]
@@ -52,12 +53,18 @@ impl SignalApp {
 
     pub fn source(&self, spec: JsValue) -> Result<(), JsValue> {
         let spec: SourceSpec = from_js(spec)?;
-        self.core.borrow_mut().define_source(spec).map_err(JsValue::from)
+        self.core
+            .borrow_mut()
+            .define_source(spec)
+            .map_err(JsValue::from)
     }
 
     pub fn recipe(&self, spec: JsValue) -> Result<(), JsValue> {
         let spec: RecipeSpec = from_js(spec)?;
-        self.core.borrow_mut().define_recipe(spec).map_err(JsValue::from)
+        self.core
+            .borrow_mut()
+            .define_recipe(spec)
+            .map_err(JsValue::from)
     }
 
     pub fn source_family(&self, spec: JsValue) -> Result<(), JsValue> {
@@ -156,11 +163,7 @@ impl SignalApp {
         to_js(&values).map_err(JsValue::from)
     }
 
-    pub fn set_keyed_many(
-        &self,
-        family_id: String,
-        values: JsValue,
-    ) -> Result<JsValue, JsValue> {
+    pub fn set_keyed_many(&self, family_id: String, values: JsValue) -> Result<JsValue, JsValue> {
         let values: Vec<KeyedSetValue> = from_js(values)?;
         let summary = self
             .core
@@ -214,12 +217,18 @@ impl SignalRuntime {
 
     pub fn define_source(&self, spec: JsValue) -> Result<(), JsValue> {
         let spec: SourceSpec = from_js(spec)?;
-        self.core.borrow_mut().define_source(spec).map_err(JsValue::from)
+        self.core
+            .borrow_mut()
+            .define_source(spec)
+            .map_err(JsValue::from)
     }
 
     pub fn define_recipe(&self, spec: JsValue) -> Result<(), JsValue> {
         let spec: RecipeSpec = from_js(spec)?;
-        self.core.borrow_mut().define_recipe(spec).map_err(JsValue::from)
+        self.core
+            .borrow_mut()
+            .define_recipe(spec)
+            .map_err(JsValue::from)
     }
 
     pub fn define_source_family(&self, spec: JsValue) -> Result<(), JsValue> {
@@ -318,11 +327,7 @@ impl SignalRuntime {
         to_js(&values).map_err(JsValue::from)
     }
 
-    pub fn set_keyed_many(
-        &self,
-        family_id: String,
-        values: JsValue,
-    ) -> Result<JsValue, JsValue> {
+    pub fn set_keyed_many(&self, family_id: String, values: JsValue) -> Result<JsValue, JsValue> {
         let values: Vec<KeyedSetValue> = from_js(values)?;
         let summary = self
             .core
@@ -330,6 +335,13 @@ impl SignalRuntime {
             .set_keyed_values(&family_id, values)
             .map_err(JsValue::from)?;
         to_js(&summary).map_err(JsValue::from)
+    }
+
+    pub fn clear_keyed_family_cache(&self, family_id: String) -> Result<(), JsValue> {
+        self.core
+            .borrow_mut()
+            .clear_keyed_family_cache(&family_id)
+            .map_err(JsValue::from)
     }
 
     pub fn diagnostics(&self) -> SignalDiagnostics {
@@ -391,11 +403,7 @@ impl SignalHistory {
     }
 
     pub fn snapshot(&self) -> Result<JsValue, JsValue> {
-        let snapshot = self
-            .core
-            .borrow_mut()
-            .snapshot()
-            .map_err(JsValue::from)?;
+        let snapshot = self.core.borrow_mut().snapshot().map_err(JsValue::from)?;
         to_js(&snapshot).map_err(JsValue::from)
     }
 
@@ -451,6 +459,45 @@ impl SignalHistory {
         to_js(&snapshot).map_err(JsValue::from)
     }
 
+    pub fn branch_snapshot_id(&self, branch_id: u64) -> Result<u64, JsValue> {
+        self.core
+            .borrow_mut()
+            .branch_snapshot_id(branch_id)
+            .map_err(JsValue::from)
+    }
+
+    pub fn branch_snapshot_envelope(&self, branch_id: u64) -> Result<JsValue, JsValue> {
+        let snapshot = self
+            .core
+            .borrow_mut()
+            .branch_snapshot_envelope(branch_id)
+            .map_err(JsValue::from)?;
+        to_js(&snapshot).map_err(JsValue::from)
+    }
+
+    pub fn restore_branch_snapshot(
+        &self,
+        branch_id: u64,
+        snapshot: JsValue,
+    ) -> Result<(), JsValue> {
+        let snapshot: RuntimeSnapshot = from_js(snapshot)?;
+        self.core
+            .borrow_mut()
+            .restore_branch_snapshot(branch_id, snapshot)
+            .map_err(JsValue::from)
+    }
+
+    pub fn restore_branch_snapshot_by_id(
+        &self,
+        branch_id: u64,
+        snapshot_id: u64,
+    ) -> Result<(), JsValue> {
+        self.core
+            .borrow_mut()
+            .restore_branch_snapshot_by_id(branch_id, snapshot_id)
+            .map_err(JsValue::from)
+    }
+
     pub fn merge_branches(
         &self,
         source_branch_id: u64,
@@ -481,11 +528,7 @@ impl SignalHistory {
 #[wasm_bindgen]
 impl SignalSpecialist {
     pub fn graph_summary(&self) -> Result<JsValue, JsValue> {
-        let summary = self
-            .core
-            .borrow()
-            .graph_summary()
-            .map_err(JsValue::from)?;
+        let summary = self.core.borrow().graph_summary().map_err(JsValue::from)?;
         to_js(&summary).map_err(JsValue::from)
     }
 

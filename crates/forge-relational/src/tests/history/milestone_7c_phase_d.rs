@@ -17,8 +17,8 @@ use crate::facade::transactions::{
 use crate::schema::data::RelationPayloadClass;
 use crate::symbols::data::InternedString;
 use crate::tests::support::{
-    create_branch_from_main, create_entity, create_entity_outcome_on_branch,
-    entity_payload_aspect, persisted_runtime_with_test_schema, runtime_with_test_schema, update_entity,
+    create_branch_from_main, create_entity, create_entity_outcome_on_branch, entity_payload_aspect,
+    persisted_runtime_with_test_schema, runtime_with_test_schema, update_entity,
     CascadeDeletePolicy, CrossContextPolicy,
 };
 
@@ -27,7 +27,11 @@ fn derive_merge_commit_mutation_plan_emits_source_authorized_create_intent() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -67,7 +71,9 @@ fn derive_merge_commit_mutation_plan_preserves_exact_shared_truth_without_mutati
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![entity_payload_aspect("name", "name")]),
+            aspect_declarations: KindAspectDeclarations::new(vec![entity_payload_aspect(
+                "name", "name",
+            )]),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -83,7 +89,9 @@ fn derive_merge_commit_mutation_plan_preserves_exact_shared_truth_without_mutati
             })
         })
         .unwrap();
-    let mut runtime = RelationalRuntimeApi::builder().schema_registry(registry).build();
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(registry)
+        .build();
     let shared = create_entity(&mut runtime, "shared");
     create_branch_from_main(&mut runtime, "feature");
     update_entity(&mut runtime, shared, "same");
@@ -149,40 +157,52 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
             })
         })
         .unwrap();
-    let mut runtime = RelationalRuntimeApi::builder().schema_registry(registry).build();
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(registry)
+        .build();
 
-    let mut main_txn = runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
+    let mut main_txn =
+        runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
     main_txn.push_batch(
-        crate::facade::transactions::WorkerIntentBatch::new("main-seed").push(MutationIntent::Create(
-            CreateIntent::Entity(crate::transactions::data::EntitySpec {
-                partition_id: crate::facade::identity::PartitionId::main(),
-                kind_id: KindId(1),
-                client_key: InternedString::Raw("main-shared".to_string()),
-                payload: crate::payloads::data::RecordPayload::StructuredJson(serde_json::json!({
-                    "name": "shared-name"
-                })),
-            }),
-        )),
+        crate::facade::transactions::WorkerIntentBatch::new("main-seed").push(
+            MutationIntent::Create(CreateIntent::Entity(
+                crate::transactions::data::EntitySpec {
+                    partition_id: crate::facade::identity::PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: InternedString::Raw("main-shared".to_string()),
+                    payload: crate::payloads::data::RecordPayload::StructuredJson(
+                        serde_json::json!({
+                            "name": "shared-name"
+                        }),
+                    ),
+                },
+            )),
+        ),
     );
     main_txn.commit().unwrap();
 
     create_branch_from_main(&mut runtime, "feature");
-    let mut feature_txn = runtime.begin_transaction(crate::facade::transactions::TransactionOptions {
-        target_branch: Some(BranchId("feature".to_string())),
-        ..crate::facade::transactions::TransactionOptions::default()
-    });
+    let mut feature_txn =
+        runtime.begin_transaction(crate::facade::transactions::TransactionOptions {
+            target_branch: Some(BranchId("feature".to_string())),
+            ..crate::facade::transactions::TransactionOptions::default()
+        });
     feature_txn.push_batch(
-        crate::facade::transactions::WorkerIntentBatch::new("feature-seed").push(MutationIntent::Create(
-            CreateIntent::Entity(crate::transactions::data::EntitySpec {
-                partition_id: crate::facade::identity::PartitionId::main(),
-                kind_id: KindId(1),
-                client_key: InternedString::Raw("feature-shared".to_string()),
-                payload: crate::payloads::data::RecordPayload::StructuredJson(serde_json::json!({
-                    "name": "shared-name",
-                    "status": "active"
-                })),
-            }),
-        )),
+        crate::facade::transactions::WorkerIntentBatch::new("feature-seed").push(
+            MutationIntent::Create(CreateIntent::Entity(
+                crate::transactions::data::EntitySpec {
+                    partition_id: crate::facade::identity::PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: InternedString::Raw("feature-shared".to_string()),
+                    payload: crate::payloads::data::RecordPayload::StructuredJson(
+                        serde_json::json!({
+                            "name": "shared-name",
+                            "status": "active"
+                        }),
+                    ),
+                },
+            )),
+        ),
     );
     feature_txn.commit().unwrap();
 
@@ -204,7 +224,8 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
     assert_eq!(plan.merged_plan.merged_intents.len(), 1);
     match &plan.merged_plan.merged_intents[0] {
         MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-            payload, ..
+            payload,
+            ..
         })) => {
             assert_eq!(
                 payload.as_json().and_then(|json| json.get("name")),
@@ -224,7 +245,11 @@ fn derive_merge_commit_mutation_plan_does_not_rely_on_raw_lowered_record_arrays(
     let mut runtime = runtime_with_test_schema();
     create_entity(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(&mut runtime, "feature-only", BranchId("feature".to_string()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
 
     let mut prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {

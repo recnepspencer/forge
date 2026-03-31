@@ -603,7 +603,9 @@ fn scope_provenance_for_cause(graph: &SignalGraph, cause: &UpstreamCause) -> Sco
         .node_runtime_artifact_state(source)
         .ok()
         .flatten()
-        .and_then(|trace| translated_source_scope(trace.changed_scopes().as_slice(), &validation_scope));
+        .and_then(|trace| {
+            translated_source_scope(trace.changed_scopes().as_slice(), &validation_scope)
+        });
 
     let (kind, note) = match (source_scope.as_ref(), changed) {
         (Some(source_scope), true) if *source_scope != validation_scope => (

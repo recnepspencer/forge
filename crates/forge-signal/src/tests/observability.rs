@@ -1,5 +1,5 @@
-use crate::facade::*;
 use crate::data::trace::RuntimeArtifactState;
+use crate::facade::*;
 use crate::tests::support::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -1025,52 +1025,51 @@ fn explanation_surfaces_retained_reuse_certification() {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
     {
-    let mut entry = graph.get_entry_mut(node).unwrap();
-    let reuse_boundary_context = ReuseBoundaryContext {
-        topology_regime: 1,
-        tolerance_regime: VersionComparatorPolicy::Exact,
-        semantic_region: ReuseSemanticRegionIdentity::new(
-            node,
-            false,
-            Vec::new(),
-            ContextRequirement::None,
-        ),
-        authority_policy: AuthorityPolicy::SpeculativeThenReconcile,
-        artifact_family: None,
-        structural_dependency_basis: crate::data::dependency::DependencySnapshotId::EMPTY,
-        partition_region_basis: PartitionScopeSet::default(),
-        strategy_detail: crate::data::reuse::ReuseStrategyBoundaryContext::None,
-    };
-    let mut runtime = RuntimeArtifactState::default();
-    runtime.hot_mut().recomputed = false;
-    runtime.warm_mut().memoized_origin = MemoizedResultOrigin::MemoizedFromCache;
-    runtime.warm_mut().reuse_origin = crate::data::reuse::ReuseOrigin::MemoizedArtifactReuse;
-    runtime.warm_mut().reuse_basis = crate::data::trace::ReuseOperationalBasis::new(
-        ReuseBasis::strategy(
-            crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse,
-            ReuseSource::MemoizedArtifact,
-            ReuseCrossing::None,
-        ),
-    );
-    runtime.warm_mut().reuse_boundary_authority = Some(reuse_boundary_context.authority());
-    entry.set_runtime_artifact_state(Some(runtime));
-    entry.set_retained_diagnostic_artifact(Some(RetainedDiagnosticArtifact {
-        changed_regions: CanonicalChangedRegions::default(),
-        labels: Vec::new(),
-        keyed_family: None,
-        keyed_key: None,
-        reuse_certification: Some(ReuseCertificationRecord {
-            strategy: crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse,
-            origin: crate::data::reuse::ReuseOrigin::MemoizedArtifactReuse,
-            source: ReuseSource::MemoizedArtifact,
-            crossing: ReuseCrossing::None,
-            proofs: vec![ReuseBoundaryProof {
-                boundary: ArtifactSemanticBoundary::TopologyRegime,
-                satisfied: true,
-            }],
-        }),
-        reuse_boundary_context: Some(reuse_boundary_context),
-    }));
+        let mut entry = graph.get_entry_mut(node).unwrap();
+        let reuse_boundary_context = ReuseBoundaryContext {
+            topology_regime: 1,
+            tolerance_regime: VersionComparatorPolicy::Exact,
+            semantic_region: ReuseSemanticRegionIdentity::new(
+                node,
+                false,
+                Vec::new(),
+                ContextRequirement::None,
+            ),
+            authority_policy: AuthorityPolicy::SpeculativeThenReconcile,
+            artifact_family: None,
+            structural_dependency_basis: crate::data::dependency::DependencySnapshotId::EMPTY,
+            partition_region_basis: PartitionScopeSet::default(),
+            strategy_detail: crate::data::reuse::ReuseStrategyBoundaryContext::None,
+        };
+        let mut runtime = RuntimeArtifactState::default();
+        runtime.hot_mut().recomputed = false;
+        runtime.warm_mut().memoized_origin = MemoizedResultOrigin::MemoizedFromCache;
+        runtime.warm_mut().reuse_origin = crate::data::reuse::ReuseOrigin::MemoizedArtifactReuse;
+        runtime.warm_mut().reuse_basis =
+            crate::data::trace::ReuseOperationalBasis::new(ReuseBasis::strategy(
+                crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse,
+                ReuseSource::MemoizedArtifact,
+                ReuseCrossing::None,
+            ));
+        runtime.warm_mut().reuse_boundary_authority = Some(reuse_boundary_context.authority());
+        entry.set_runtime_artifact_state(Some(runtime));
+        entry.set_retained_diagnostic_artifact(Some(RetainedDiagnosticArtifact {
+            changed_regions: CanonicalChangedRegions::default(),
+            labels: Vec::new(),
+            keyed_family: None,
+            keyed_key: None,
+            reuse_certification: Some(ReuseCertificationRecord {
+                strategy: crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse,
+                origin: crate::data::reuse::ReuseOrigin::MemoizedArtifactReuse,
+                source: ReuseSource::MemoizedArtifact,
+                crossing: ReuseCrossing::None,
+                proofs: vec![ReuseBoundaryProof {
+                    boundary: ArtifactSemanticBoundary::TopologyRegime,
+                    satisfied: true,
+                }],
+            }),
+            reuse_boundary_context: Some(reuse_boundary_context),
+        }));
     }
 
     let explanation = graph.observe().explain(node).unwrap();
@@ -1123,13 +1122,12 @@ fn reuse_boundary_detail_lives_in_cold_retained_lane_while_hot_runtime_keeps_com
         let mut runtime = RuntimeArtifactState::default();
         runtime.warm_mut().reuse_origin =
             crate::data::reuse::ReuseOrigin::CrossIdentityPersistentReuse;
-        runtime.warm_mut().reuse_basis = crate::data::trace::ReuseOperationalBasis::new(
-            ReuseBasis::strategy(
+        runtime.warm_mut().reuse_basis =
+            crate::data::trace::ReuseOperationalBasis::new(ReuseBasis::strategy(
                 crate::data::reuse::ReuseStrategy::CrossIdentityPersistentMatch,
                 ReuseSource::PersistentCorrespondence,
                 ReuseCrossing::PersistentIdentityBoundary,
-            ),
-        );
+            ));
         runtime.warm_mut().reuse_boundary_authority = Some(reuse_boundary_context.authority());
         entry.set_runtime_artifact_state(Some(runtime));
         entry.set_retained_diagnostic_artifact(Some(RetainedDiagnosticArtifact {

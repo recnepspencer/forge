@@ -17,11 +17,11 @@ impl<'a> ExprEnvironment<'a> {
     pub fn evaluate(&self, expr: &Expr) -> Result<SignalValue, ForgeSignalJsError> {
         match expr {
             Expr::Value { value } => Ok(value.clone()),
-            Expr::Read { id } => self
-                .reads
-                .get(id)
-                .cloned()
-                .ok_or_else(|| ForgeSignalJsError::invalid_input(format!("unknown read `{id}`"))),
+            Expr::Read { id } => {
+                self.reads.get(id).cloned().ok_or_else(|| {
+                    ForgeSignalJsError::invalid_input(format!("unknown read `{id}`"))
+                })
+            }
             Expr::Get { target, field } => {
                 let target = self.evaluate(target)?;
                 match target {
@@ -360,10 +360,12 @@ impl<'a> ExprEnvironment<'a> {
                     self.require_number(&self.evaluate(left)?)? / denominator,
                 ))
             }
-            Expr::Eq { left, right } => Ok(SignalValue::Bool(self.evaluate(left)? == self.evaluate(right)?)),
-            Expr::Neq { left, right } => {
-                Ok(SignalValue::Bool(self.evaluate(left)? != self.evaluate(right)?))
-            }
+            Expr::Eq { left, right } => Ok(SignalValue::Bool(
+                self.evaluate(left)? == self.evaluate(right)?,
+            )),
+            Expr::Neq { left, right } => Ok(SignalValue::Bool(
+                self.evaluate(left)? != self.evaluate(right)?,
+            )),
             Expr::Gt { left, right } => self.compare_numbers(left, right, |l, r| l > r),
             Expr::Gte { left, right } => self.compare_numbers(left, right, |l, r| l >= r),
             Expr::Lt { left, right } => self.compare_numbers(left, right, |l, r| l < r),

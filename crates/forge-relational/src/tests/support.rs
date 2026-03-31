@@ -32,9 +32,8 @@ pub(super) use crate::facade::publication::{
 };
 pub(super) use crate::facade::query::{
     DeterministicQueryPlanKey, PlannedQueryPacket, QueryExecutionShape, QueryFallbackContract,
-    QueryLocalityClass, QueryOrderingContract, QueryParallelLegality,
-    QueryParallelProfitability, QueryPlanEvidenceBasis, QueryScope, QuerySerialReason,
-    QueryWorkPacket, ReductionDiscipline,
+    QueryLocalityClass, QueryOrderingContract, QueryParallelLegality, QueryParallelProfitability,
+    QueryPlanEvidenceBasis, QueryScope, QuerySerialReason, ReductionDiscipline,
 };
 pub(super) use crate::facade::runtime::{
     EntityReadRecord, InvariantCatalog, InvariantClass, InvariantRegistration, InvariantRule,
@@ -163,6 +162,46 @@ pub(super) fn capture_aspect_truth_bundle(
             })
             .collect(),
     }
+}
+
+pub(super) fn planned_explicit_query(
+    runtime: &RelationalRuntime,
+    snapshot: &crate::snapshots::data::SnapshotHandle,
+    label: &str,
+    targets: Vec<RecordRef>,
+) -> crate::query::data::SnapshotPinnedQueryPlan {
+    runtime
+        .visibility_reads()
+        .plan_query_packet(
+            snapshot,
+            explicit_query_packet(runtime, snapshot, label, targets),
+        )
+        .expect("planned explicit query")
+}
+
+pub(super) fn explicit_query_packet(
+    runtime: &RelationalRuntime,
+    snapshot: &crate::snapshots::data::SnapshotHandle,
+    label: &str,
+    targets: Vec<RecordRef>,
+) -> PlannedQueryPacket {
+    let context = runtime
+        .visibility_reads()
+        .query_plan_context(snapshot)
+        .expect("query plan context");
+    PlannedQueryPacket::explicit_targets(label, context, targets)
+}
+
+pub(super) fn execute_explicit_query(
+    runtime: &RelationalRuntime,
+    snapshot: &crate::snapshots::data::SnapshotHandle,
+    label: &str,
+    targets: Vec<RecordRef>,
+) -> crate::query::data::QueryExecutionOutcome {
+    runtime
+        .visibility_reads()
+        .execute_query_plan(planned_explicit_query(runtime, snapshot, label, targets))
+        .expect("query execution outcome")
 }
 
 pub(super) fn assert_stable_aspect_truth_bundle_eq(

@@ -173,21 +173,12 @@ fn fintech_world_exposes_named_domain_probes_for_correction_risk_and_settlement(
     let world = setup_world();
     let snapshot = world.latest_snapshot();
 
-    let correction = world
-        .runtime
-        .visibility_reads()
-        .execute_read_packet(&snapshot, &world.packet_for_correction_probe())
-        .unwrap();
-    let risk = world
-        .runtime
-        .visibility_reads()
-        .execute_read_packet(&snapshot, &world.packet_for_intraday_risk_probe())
-        .unwrap();
-    let settlement = world
-        .runtime
-        .visibility_reads()
-        .execute_read_packet(&snapshot, &world.packet_for_settlement_repair_probe())
-        .unwrap();
+    let correction = world.read_query(&snapshot, world.packet_for_correction_probe(&snapshot));
+    let risk = world.read_query(&snapshot, world.packet_for_intraday_risk_probe(&snapshot));
+    let settlement = world.read_query(
+        &snapshot,
+        world.packet_for_settlement_repair_probe(&snapshot),
+    );
 
     assert_eq!(correction.entities.len(), 3);
     assert_eq!(risk.entities.len(), 4);

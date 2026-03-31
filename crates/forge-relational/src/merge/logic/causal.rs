@@ -39,7 +39,12 @@ impl<'runtime> MergeAccess<'runtime> {
             .collect::<BTreeSet<_>>();
         let ancestor_cache = relevant_commit_ids
             .into_iter()
-            .map(|commit_id| (commit_id, history.ancestor_closure_by_commit_id_order(commit_id)))
+            .map(|commit_id| {
+                (
+                    commit_id,
+                    history.ancestor_closure_by_commit_id_order(commit_id),
+                )
+            })
             .collect::<BTreeMap<_, _>>();
 
         let annotations = conflict_plan
@@ -110,7 +115,8 @@ impl<'runtime> MergeAccess<'runtime> {
 fn touched_record_latest_commit_index(
     delta: &crate::merge::data::BranchCommitDelta,
 ) -> BTreeMap<TouchedRecordKey, CommitId> {
-    delta.touched_records
+    delta
+        .touched_records
         .iter()
         .filter_map(|record| {
             record

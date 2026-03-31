@@ -64,7 +64,10 @@ impl<'a> GraphDiagnostics<'a> {
         GraphInspectDiagnostics { graph: self.graph }
     }
 
-    pub fn explain(&self, node: NodeId) -> Result<NodeExplanation, crate::data::error::SignalError> {
+    pub fn explain(
+        &self,
+        node: NodeId,
+    ) -> Result<NodeExplanation, crate::data::error::SignalError> {
         self.graph.observe().explain(node)
     }
 
@@ -253,7 +256,11 @@ impl<'a> GraphInspectDiagnostics<'a> {
 }
 
 impl GraphComparisonDiagnostics {
-    pub fn graphs(&self, left: &GraphSummary, right: &GraphSummary) -> crate::diagnostics::GraphDiff {
+    pub fn graphs(
+        &self,
+        left: &GraphSummary,
+        right: &GraphSummary,
+    ) -> crate::diagnostics::GraphDiff {
         crate::diagnostics::compare_graphs(left, right)
     }
 

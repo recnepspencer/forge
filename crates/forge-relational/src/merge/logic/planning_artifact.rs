@@ -5,13 +5,12 @@ use sha2::Digest;
 use crate::logic::runtime::RelationalRuntime;
 use crate::merge::data::{
     LoweredMergePlan, MergeArtifactDigestBasis, MergeBaseDigestBasis, MergeCausalDigestBasis,
-    MergeConflictDigestBasis, MergeExecutionAuthorityContract,
-    MergeExecutionAuthorizationRule, MergeExecutionConsumptionRule,
-    MergeExecutionDecisionSurface, MergeIdentityDigestBasis, MergeLoweredAspectDigestRow,
-    MergeLoweredPlanDigestBasis, MergePlanningArtifactCore, MergePlanningSummary,
-    MergePolicyAspectDigestRow, MergePolicyDigestBasis, MergeRequestDigestBasis,
-    MergeSchemaKindClass, MergeSchemaKindSemanticSnapshot, MergeSchemaSnapshotDigestBasis,
-    VisibleMergeRecordKind,
+    MergeConflictDigestBasis, MergeExecutionAuthorityContract, MergeExecutionAuthorizationRule,
+    MergeExecutionConsumptionRule, MergeExecutionDecisionSurface, MergeIdentityDigestBasis,
+    MergeLoweredAspectDigestRow, MergeLoweredPlanDigestBasis, MergePlanningArtifactCore,
+    MergePlanningSummary, MergePolicyAspectDigestRow, MergePolicyDigestBasis,
+    MergeRequestDigestBasis, MergeSchemaKindClass, MergeSchemaKindSemanticSnapshot,
+    MergeSchemaSnapshotDigestBasis, VisibleMergeRecordKind,
 };
 use crate::schema::data::RelationalSchemaRegistry;
 use crate::transactions::data::RecordRef;
@@ -60,7 +59,8 @@ pub(super) fn materialize_planning_artifact(
         identity_authority: MergeExecutionConsumptionRule::ConsumeCanonicalLoweredArtifactOnly,
         conflict_authority: MergeExecutionConsumptionRule::ConsumeCanonicalLoweredArtifactOnly,
         policy_authority: MergeExecutionConsumptionRule::ConsumeCanonicalLoweredArtifactOnly,
-        value_authorization: MergeExecutionAuthorizationRule::MustNotWidenBeyondAuthorizedAspectValueSurface,
+        value_authorization:
+            MergeExecutionAuthorizationRule::MustNotWidenBeyondAuthorizedAspectValueSurface,
     };
     let digest_basis = MergeArtifactDigestBasis {
         request: MergeRequestDigestBasis {
@@ -146,6 +146,45 @@ pub(super) fn materialize_planning_artifact(
                 plan.classifications
                     .iter()
                     .map(|classification| classification.validated_schema_correspondence)
+                    .collect::<Vec<_>>(),
+            ),
+            strategy_conflict_classes: std::sync::Arc::from(
+                plan.classifications
+                    .iter()
+                    .map(|classification| {
+                        classification
+                            .strategy_evidence
+                            .as_ref()
+                            .map(|evidence| evidence.class)
+                    })
+                    .collect::<Vec<_>>(),
+            ),
+            source_strategy_descriptors: std::sync::Arc::from(
+                plan.classifications
+                    .iter()
+                    .map(|classification| {
+                        std::sync::Arc::from(
+                            classification
+                                .strategy_evidence
+                                .as_ref()
+                                .map(|evidence| evidence.source_descriptors.to_vec())
+                                .unwrap_or_default(),
+                        )
+                    })
+                    .collect::<Vec<_>>(),
+            ),
+            target_strategy_descriptors: std::sync::Arc::from(
+                plan.classifications
+                    .iter()
+                    .map(|classification| {
+                        std::sync::Arc::from(
+                            classification
+                                .strategy_evidence
+                                .as_ref()
+                                .map(|evidence| evidence.target_descriptors.to_vec())
+                                .unwrap_or_default(),
+                        )
+                    })
                     .collect::<Vec<_>>(),
             ),
             relation_evidence: std::sync::Arc::from(
@@ -237,9 +276,7 @@ pub(super) fn materialize_planning_artifact(
                                         .as_ref()
                                         .map(|policy| policy.ownership_class()),
                                     decision_boundary: aspect.decision_boundary,
-                                    resolved_value_strategy: aspect
-                                        .resolved_value_strategy
-                                        .clone(),
+                                    resolved_value_strategy: aspect.resolved_value_strategy.clone(),
                                 })
                                 .collect::<Vec<_>>(),
                         )
@@ -334,9 +371,7 @@ pub(super) fn materialize_planning_artifact(
                                     lowered_action: aspect.lowered_action,
                                     authorized_values: aspect.authorized_values,
                                     execution_intent: aspect.execution_intent,
-                                    resolved_value_strategy: aspect
-                                        .resolved_value_strategy
-                                        .clone(),
+                                    resolved_value_strategy: aspect.resolved_value_strategy.clone(),
                                     denial_intent: aspect.denial_intent,
                                     blocked_reason: aspect.blocked_reason,
                                     rejected_reason: aspect.rejected_reason,
@@ -361,15 +396,15 @@ pub(super) fn materialize_planning_artifact(
         plan.identity_summary.candidate_count,
         plan.identity_summary.effective_declarations.len(),
     );
-    runtime.performance_access().count_merge_conflict_classification(
-        plan.conflict_summary.classified_record_count,
-    );
-    runtime.performance_access().count_merge_causal_annotation(
-        plan.causal_summary.classified_record_count,
-    );
-    runtime.performance_access().count_merge_policy_resolution(
-        plan.policy_summary.resolved_record_count,
-    );
+    runtime
+        .performance_access()
+        .count_merge_conflict_classification(plan.conflict_summary.classified_record_count);
+    runtime
+        .performance_access()
+        .count_merge_causal_annotation(plan.causal_summary.classified_record_count);
+    runtime
+        .performance_access()
+        .count_merge_policy_resolution(plan.policy_summary.resolved_record_count);
     runtime.performance_access().count_merge_lowering(
         plan.lowered_summary.record_count,
         plan.decision_log.decisions.len(),
@@ -475,7 +510,10 @@ fn merge_schema_snapshot(
                 schema_id: registration.schema_id.clone(),
                 schema_version_id: registration.schema_version_id,
                 aspect_plan_revision: registration.aspect_declarations.plan_revision,
-                identity_declarations: registration.aspect_declarations.identity_declarations.clone(),
+                identity_declarations: registration
+                    .aspect_declarations
+                    .identity_declarations
+                    .clone(),
                 merge_policy_declarations: registration
                     .aspect_declarations
                     .merge_policy_declarations
@@ -494,7 +532,10 @@ fn merge_schema_snapshot(
                 schema_id: registration.schema_id.clone(),
                 schema_version_id: registration.schema_version_id,
                 aspect_plan_revision: registration.aspect_declarations.plan_revision,
-                identity_declarations: registration.aspect_declarations.identity_declarations.clone(),
+                identity_declarations: registration
+                    .aspect_declarations
+                    .identity_declarations
+                    .clone(),
                 merge_policy_declarations: registration
                     .aspect_declarations
                     .merge_policy_declarations

@@ -3,12 +3,12 @@ use std::collections::{BTreeSet, HashMap};
 use std::marker::PhantomData;
 use std::sync::Mutex;
 
+use crate::data::trace::{RuntimeArtifactHot, RuntimeArtifactState, RuntimeArtifactWarm};
+use crate::facade::runtime::mark_dirty_batch;
 use crate::facade::{
     AspectMask, BatchChange, ChangedRegion, DependencyEdge, NodeId, NodeState, SignalError,
     SignalGraph,
 };
-use crate::facade::runtime::mark_dirty_batch;
-use crate::data::trace::{RuntimeArtifactHot, RuntimeArtifactState, RuntimeArtifactWarm};
 use crate::logic::prepared::PreparedEvaluation;
 
 use super::compute::{Computed, ErasedComputed, SignalContext};
@@ -120,7 +120,8 @@ impl SignalApp {
             entry.set_aspect_version(next);
             entry.set_state(NodeState::Clean);
             entry.set_dirty_aspects(AspectMask::EMPTY);
-            entry.set_runtime_artifact_state(Some(easy_seed_runtime_artifact_state(next, 0, false)));
+            entry
+                .set_runtime_artifact_state(Some(easy_seed_runtime_artifact_state(next, 0, false)));
         }
 
         if self.batch_depth > 0 {

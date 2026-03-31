@@ -147,7 +147,14 @@ pub(crate) fn create_relation_in_partition(
     client_key: &str,
     partition_id: PartitionId,
 ) -> RelationId {
-    create_relation_with_payload_label(runtime, source, target, client_key, client_key, partition_id)
+    create_relation_with_payload_label(
+        runtime,
+        source,
+        target,
+        client_key,
+        client_key,
+        partition_id,
+    )
 }
 
 pub(crate) fn create_relation_with_payload_label(

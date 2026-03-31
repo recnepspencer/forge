@@ -1,9 +1,9 @@
-import * as wasmModule from "@forge/signal/wasm";
+import * as wasmModule from "../pkg/forge_signal_wasm.js";
 
-import { SignalApp } from "./surface/app.js";
-import { SignalRuntime } from "./surface/runtime.js";
+import { SignalApp } from "./surface/app.ts";
+import { SignalRuntime } from "./surface/runtime.ts";
 
-let initPromise;
+let initPromise: Promise<typeof wasmModule> | undefined;
 
 export async function initForgeSignal() {
   if (!initPromise) {

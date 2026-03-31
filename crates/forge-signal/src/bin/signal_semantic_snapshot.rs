@@ -4,14 +4,14 @@ use std::num::NonZeroUsize;
 #[cfg(feature = "parallel")]
 use forge_signal::facade::diagnostics::{DiagnosticsAvailability, DiagnosticsLevel};
 #[cfg(feature = "parallel")]
-use forge_signal::facade::{
-    Aspect, AspectVersion, BatchChange, ChangedRegion, DependencyEdge,
-    NodeEvaluationResult, NodeId, SignalGraph,
-};
+use forge_signal::facade::runtime::{mark_dirty_batch, RuntimePolicy};
 #[cfg(feature = "parallel")]
 use forge_signal::facade::specialist::{ParallelExecutionPolicy, RunMode, StageExecutor};
 #[cfg(feature = "parallel")]
-use forge_signal::facade::runtime::{mark_dirty_batch, RuntimePolicy};
+use forge_signal::facade::{
+    Aspect, AspectVersion, BatchChange, ChangedRegion, DependencyEdge, NodeEvaluationResult,
+    NodeId, SignalGraph,
+};
 #[cfg(feature = "parallel")]
 use serde_json::json;
 
@@ -198,10 +198,7 @@ fn main() {
         .unwrap();
 
     let bootstrap = graph
-        .build_evaluation_plan(
-            &[source, shell, core, target],
-            RunMode::ForceOnDemand,
-        )
+        .build_evaluation_plan(&[source, shell, core, target], RunMode::ForceOnDemand)
         .unwrap();
     graph
         .execute_prepared_plan(&bootstrap, &(), &move |ctx| {

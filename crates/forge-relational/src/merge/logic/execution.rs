@@ -7,14 +7,12 @@ use sha2::{Digest, Sha256};
 use crate::capabilities::AspectPlanSource;
 use crate::merge::data::{
     AdoptSourceRecordPlan, BoundExecutableMergePlan, BoundExecutableMergeRecordPlan,
-    ConvergeDeletedOnBothSidesRecordPlan, ExecutableAspectPlan,
-    ExecutionReadyLoweredMergePlan, LoweredAspectExecutionIntent, LoweredRecordDecision,
-    MergeExecutableClass,
+    ConvergeDeletedOnBothSidesRecordPlan, ExecutableAspectPlan, ExecutionReadyLoweredMergePlan,
+    LoweredAspectExecutionIntent, LoweredRecordDecision, MergeExecutableClass,
     MergeExecutableRecordProvenance, MergeExecutionAuthorityBinding,
     MergeExecutionCompilationError, MergeExecutionError, MergeExecutionPreparationError,
-    MergeExecutionRequest, MergeValueMaterialization, MergeValueSourceSide,
-    PreparedMergeExecution, PreserveSharedRecordPlan, ReconcileRecordPlan,
-    ReconciledIdentityBasis, RuntimeInstanceId,
+    MergeExecutionRequest, MergeValueMaterialization, MergeValueSourceSide, PreparedMergeExecution,
+    PreserveSharedRecordPlan, ReconcileRecordPlan, ReconciledIdentityBasis, RuntimeInstanceId,
 };
 use crate::merge::data::{MaterializedAspectValue, MaterializedAspectValuePayload};
 use crate::merge::logic::naming::resolve_interned_string;
@@ -185,8 +183,7 @@ impl<'runtime> MergeAccess<'runtime> {
             .count_merge_execution_schema_snapshot_kinds(
                 current_schema_snapshot.touched_kinds.len(),
             );
-        let current_digest =
-            crate::merge::data::schema_snapshot_digest(&current_schema_snapshot);
+        let current_digest = crate::merge::data::schema_snapshot_digest(&current_schema_snapshot);
         if current_digest != binding.schema_snapshot_digest {
             return Err(MergeExecutionError::SchemaSemanticDrift {
                 planned_digest: binding.schema_snapshot_digest.clone(),
@@ -289,11 +286,12 @@ fn compile_record_plan(
     source_records_by_ref: &BTreeMap<RecordRef, &crate::merge::data::VisibleMergeRecord>,
     lowered_record: &crate::merge::data::LoweredMergePlanRecord,
 ) -> Result<BoundExecutableMergeRecordPlan, MergeExecutionCompilationError> {
-    let source_record = source_records_by_ref.get(&lowered_record.record).copied().ok_or_else(|| {
-        MergeExecutionCompilationError::MissingSourceRecord {
+    let source_record = source_records_by_ref
+        .get(&lowered_record.record)
+        .copied()
+        .ok_or_else(|| MergeExecutionCompilationError::MissingSourceRecord {
             record: lowered_record.record.clone(),
-        }
-    })?;
+        })?;
     let provenance = MergeExecutableRecordProvenance {
         classification: lowered_record.classification,
         resolution_class: lowered_record.resolution_class,
@@ -328,11 +326,13 @@ fn compile_record_plan(
                     crate::merge::data::LoweredRecordExecutionIntentKind::ConvergeDeletedOnBothSides
                 )
             ) {
-                return Err(MergeExecutionCompilationError::ExecutableClassDecisionMismatch {
-                    record: lowered_record.record.clone(),
-                    executable_class,
-                    decision: crate::merge::data::LoweredRecordDecisionKind::Execute,
-                });
+                return Err(
+                    MergeExecutionCompilationError::ExecutableClassDecisionMismatch {
+                        record: lowered_record.record.clone(),
+                        executable_class,
+                        decision: crate::merge::data::LoweredRecordDecisionKind::Execute,
+                    },
+                );
             }
             match executable_class {
             MergeExecutableClass::AdoptSourceRecord => {
@@ -424,18 +424,18 @@ fn compile_record_plan(
             ),
         }
         }
-        LoweredRecordDecision::Block(_) => Err(
-            MergeExecutionCompilationError::UnsupportedRecordDecision {
+        LoweredRecordDecision::Block(_) => {
+            Err(MergeExecutionCompilationError::UnsupportedRecordDecision {
                 record: lowered_record.record.clone(),
                 decision: crate::merge::data::LoweredRecordDecisionKind::Block,
-            },
-        ),
-        LoweredRecordDecision::Reject(_) => Err(
-            MergeExecutionCompilationError::UnsupportedRecordDecision {
+            })
+        }
+        LoweredRecordDecision::Reject(_) => {
+            Err(MergeExecutionCompilationError::UnsupportedRecordDecision {
                 record: lowered_record.record.clone(),
                 decision: crate::merge::data::LoweredRecordDecisionKind::Reject,
-            },
-        ),
+            })
+        }
     }
 }
 
@@ -508,10 +508,7 @@ fn compile_executable_aspect_plans(
                     lowered_record.record.clone(),
                     aspect.aspect_key.clone(),
                 );
-                let resolved_value = resolved_materialized_value(
-                    lowered_record,
-                    aspect,
-                );
+                let resolved_value = resolved_materialized_value(lowered_record, aspect);
                 ExecutableAspectPlan::ReconcileValue {
                     aspect_key: aspect.aspect_key.clone(),
                     resolved_value,
@@ -531,30 +528,30 @@ fn resolved_materialized_value(
     aspect: &crate::merge::data::LoweredAspectOutcome,
 ) -> Option<MaterializedAspectValue> {
     match aspect.resolved_value_strategy.as_ref()? {
-        crate::merge::data::MergeResolvedAspectValueStrategy::SourceVisibleValue => Some(
-            crate::merge::data::aspect_reference(
+        crate::merge::data::MergeResolvedAspectValueStrategy::SourceVisibleValue => {
+            Some(crate::merge::data::aspect_reference(
                 MergeValueSourceSide::Source,
                 lowered_record.record.clone(),
                 aspect.aspect_key.clone(),
-            ),
-        ),
-        crate::merge::data::MergeResolvedAspectValueStrategy::TargetVisibleValue => Some(
-            crate::merge::data::aspect_reference(
+            ))
+        }
+        crate::merge::data::MergeResolvedAspectValueStrategy::TargetVisibleValue => {
+            Some(crate::merge::data::aspect_reference(
                 MergeValueSourceSide::Target,
                 lowered_record
                     .target_record
                     .clone()
                     .unwrap_or_else(|| lowered_record.record.clone()),
                 aspect.aspect_key.clone(),
-            ),
-        ),
-        crate::merge::data::MergeResolvedAspectValueStrategy::BaseVisibleValue => Some(
-            crate::merge::data::aspect_reference(
+            ))
+        }
+        crate::merge::data::MergeResolvedAspectValueStrategy::BaseVisibleValue => {
+            Some(crate::merge::data::aspect_reference(
                 MergeValueSourceSide::Base,
                 lowered_record.record.clone(),
                 aspect.aspect_key.clone(),
-            ),
-        ),
+            ))
+        }
         crate::merge::data::MergeResolvedAspectValueStrategy::InlineCanonicalJson(value) => {
             Some(MaterializedAspectValue {
                 policy: MergeValueMaterialization::EagerInlineCanonicalValue,
@@ -573,9 +570,9 @@ fn aspect_materialized_reference(
     match usage {
         crate::merge::data::AuthorizedAspectValueUsage::NotAuthorized => None,
         crate::merge::data::AuthorizedAspectValueUsage::ConsumeVisibleValue
-        | crate::merge::data::AuthorizedAspectValueUsage::ConsumeBaseValue => {
-            Some(crate::merge::data::aspect_reference(side, record, aspect_key))
-        }
+        | crate::merge::data::AuthorizedAspectValueUsage::ConsumeBaseValue => Some(
+            crate::merge::data::aspect_reference(side, record, aspect_key),
+        ),
         crate::merge::data::AuthorizedAspectValueUsage::EqualityWitnessOnly => None,
     }
 }
@@ -586,32 +583,29 @@ fn aspect_shared_witness_digest(
     aspect_key: &crate::publication::patch::data::AspectKey,
     record: RecordRef,
 ) -> Result<String, MergeExecutionCompilationError> {
-    let binding = aspect_binding_for_record(runtime, source_record, aspect_key).ok_or_else(|| {
-        MergeExecutionCompilationError::MissingAspectBinding {
-            record: record.clone(),
-            aspect_key: aspect_key.clone(),
-        }
-    })?;
-    let source_component = extract_binding_component(
-        runtime,
-        source_record,
-        binding,
-        BindingSide::Source,
-    )
-    .ok_or_else(|| MergeExecutionCompilationError::MissingAspectValueWitness {
-        record: record.clone(),
-        aspect_key: aspect_key.clone(),
-    })?;
-    let target_component = extract_binding_component(
-        runtime,
-        source_record,
-        binding,
-        BindingSide::Target,
-    )
-    .ok_or_else(|| MergeExecutionCompilationError::MissingAspectValueWitness {
-        record,
-        aspect_key: aspect_key.clone(),
-    })?;
+    let binding =
+        aspect_binding_for_record(runtime, source_record, aspect_key).ok_or_else(|| {
+            MergeExecutionCompilationError::MissingAspectBinding {
+                record: record.clone(),
+                aspect_key: aspect_key.clone(),
+            }
+        })?;
+    let source_component =
+        extract_binding_component(runtime, source_record, binding, BindingSide::Source)
+            .ok_or_else(
+                || MergeExecutionCompilationError::MissingAspectValueWitness {
+                    record: record.clone(),
+                    aspect_key: aspect_key.clone(),
+                },
+            )?;
+    let target_component =
+        extract_binding_component(runtime, source_record, binding, BindingSide::Target)
+            .ok_or_else(
+                || MergeExecutionCompilationError::MissingAspectValueWitness {
+                    record,
+                    aspect_key: aspect_key.clone(),
+                },
+            )?;
     let bytes = serde_json::to_vec(&(aspect_key, source_component, target_component))
         .expect("aspect witness serialization");
     Ok(sha256_hex(&bytes))
@@ -625,7 +619,9 @@ fn aspect_binding_for_record<'a>(
     let kind_id = source_record.source_kind_id.or(source_record.kind_id)?;
     let plan = match source_record.record_kind {
         crate::merge::data::VisibleMergeRecordKind::Entity => runtime.entity_aspect_plan(kind_id),
-        crate::merge::data::VisibleMergeRecordKind::Relation => runtime.relation_aspect_plan(kind_id),
+        crate::merge::data::VisibleMergeRecordKind::Relation => {
+            runtime.relation_aspect_plan(kind_id)
+        }
     }?;
     plan.executable_bindings
         .iter()
@@ -666,14 +662,17 @@ fn extract_binding_component(
             crate::merge::data::VisibleMergeRecordKind::Entity,
             LoweredExecutableAspectBindingKind::EntityJsonScalarField { field },
         ) => entity.and_then(|entity| {
-            interned_field_name(runtime, field).and_then(|name| json_component(&entity.payload, name))
+            interned_field_name(runtime, field)
+                .and_then(|name| json_component(&entity.payload, name))
         }),
         (
             crate::merge::data::VisibleMergeRecordKind::Relation,
             LoweredExecutableAspectBindingKind::RelationJsonScalarField { field },
         ) => relation
             .and_then(|relation| relation.payload.as_ref())
-            .and_then(|payload| interned_field_name(runtime, field).and_then(|name| json_component(payload, name))),
+            .and_then(|payload| {
+                interned_field_name(runtime, field).and_then(|name| json_component(payload, name))
+            }),
         (
             crate::merge::data::VisibleMergeRecordKind::Relation,
             LoweredExecutableAspectBindingKind::RelationSourceEndpointIdentity,

@@ -2,7 +2,9 @@ use serde::{Deserialize, Serialize};
 
 use forge_signal::diagnostics::ReplayEvent;
 use forge_signal::facade::diagnostics::GraphSummary;
-use forge_signal::facade::history::{LineageEvent as NativeLineageEvent, ReplayView, RuntimeSnapshot};
+use forge_signal::facade::history::{
+    LineageEvent as NativeLineageEvent, ReplayView, RuntimeSnapshot,
+};
 
 use crate::expression::model::SignalValue;
 
@@ -75,6 +77,7 @@ pub struct LineageEventSummary {
     pub emitted_on_branch_id: u64,
     pub node: Option<String>,
     pub subject_artifact_id: Option<u64>,
+    pub parent_artifact_id: Option<u64>,
     pub snapshot_id: Option<u64>,
 }
 
@@ -85,7 +88,7 @@ pub struct RuntimeSnapshotEnvelope {
     pub state: RuntimeStoreSnapshot,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeStoreSnapshot {
     pub sources: Vec<StoredSourceSnapshot>,
@@ -146,7 +149,11 @@ impl From<ReplayEvent> for ReplayFrameSummary {
             detail: value
                 .detail
                 .and_then(|detail| detail.as_message().map(str::to_owned))
-                .or_else(|| value.execution_record_id.map(|id| format!("executionRecord:{id}"))),
+                .or_else(|| {
+                    value
+                        .execution_record_id
+                        .map(|id| format!("executionRecord:{id}"))
+                }),
         }
     }
 }
@@ -162,6 +169,7 @@ impl From<Vec<NativeLineageEvent>> for LineageSummary {
                     emitted_on_branch_id: record.emitted_on_branch_id().0,
                     node: record.node().map(|node| node.to_string()),
                     subject_artifact_id: record.subject_artifact_id().map(|id| id.0),
+                    parent_artifact_id: record.parent_artifact_id().map(|id| id.0),
                     snapshot_id: record.snapshot_id().map(|id| id.0),
                 })
                 .collect(),

@@ -1,5 +1,31 @@
 # Milestone 8 Engineering Spec
 
+## Status
+
+Milestone 8 is complete as of 2026-03-30.
+
+This document now serves two roles:
+
+- the architectural spec that governed implementation
+- the closeout record for what actually shipped
+
+Closeout verification completed against:
+
+- full `forge-relational` test matrix
+- compile-fail phase-boundary suite
+- UI boundary suite
+- Milestone 8 hostile query, parity, publication, fintech, and complexity lanes
+
+Notable shipped closeout points:
+
+- proof-bearing query planning is the only supported growth path
+- immutable parallel read execution is reducer-owned and deterministic
+- bounded deterministic `SampledParity` is implemented
+- accelerated query support includes equality and `AnyOf` payload-field lanes
+- bulk mutation planning and admission carry naming, lineage, and provenance
+- legacy public packet/result fallback surfaces were hard-removed rather than
+  left as compatibility debt
+
 ## 1. Milestone Intent
 
 Milestone 8 completes the scale side of `forge-relational`.
@@ -55,44 +81,33 @@ The code already gives Milestone 8 a substantial base:
 - existing client-key normalization substrate in
   [client_keys.rs](/Users/Esther/Documents/Programming/forge_workspace/forge/crates/forge-relational/src/transactions/data/intents/client_keys.rs)
 
-### 2.2 Weak Seams That Milestone 8 Must Address
+### 2.2 Historical Weak Seams Milestone 8 Addressed
 
-The following seams are the exact current-resolution gaps.
+These were the exact low-resolution seams at milestone start, and they are now
+closed:
 
-1. `QueryWorkPacket` is too weak as a scale contract.
-   In
-   [query/data/mod.rs](/Users/Esther/Documents/Programming/forge_workspace/forge/crates/forge-relational/src/query/data/mod.rs),
-   it carries only `label`, `partition_hint`, `execution_shape`, `reduction`,
-   and `targets`. It cannot represent locality proof, canonical traversal
-   policy, index admissibility, or packet identity.
+1. `QueryWorkPacket` was too weak as a scale contract and has been removed.
+   `PlannedQueryPacket` is the surviving growth path.
 
-2. `ReadPacketPlan` is too weak as a plan contract.
-   It is currently a chunk-touch summary, not a proof-bearing execution plan.
+2. `ReadPacketPlan` was only a chunk-touch summary.
+   It remains a narrow storage-planning artifact, not a proof-bearing query
+   contract.
 
-3. `RelationalReadView::execute_packet` is not a scale-grade primary engine.
-   In
-   [storage/data/mod.rs](/Users/Esther/Documents/Programming/forge_workspace/forge/crates/forge-relational/src/storage/data/mod.rs),
-   it rebuilds BTreeMap indexes per call and clones selected records. That is
-   acceptable for a convenience path, not for kernel-grade query execution.
+3. `RelationalReadView::execute_packet` was not a scale-grade primary engine.
+   The reducer-based planned-query execution path replaced it as the supported
+   read surface.
 
-4. `IndexAccess::read_with_storage_fallback` is not yet a fully honest dual-path
+4. `IndexAccess::read_with_storage_fallback` was not an honest dual-path
    surface.
-   In
-   [indexes/logic/access.rs](/Users/Esther/Documents/Programming/forge_workspace/forge/crates/forge-relational/src/indexes/logic/access.rs),
-   it executes the storage path and reports a compatible generation. It does
-   not yet embody explicit admissibility, typed rejection, or true dual-path
-   execution semantics.
+   It has been replaced by typed admissibility, parity modes, and
+   `FallbackParityVerifiedQueryOutcome`.
 
-5. Bulk mutation currently exists mainly as intent shape, not as a proof-bearing
-   scale surface.
-   `BulkEntityCreateIntent` and `BulkRelationCreateIntent` are good ingress
-   types, but they do not yet encode locality footprint, naming stability,
-   lineage expectations, or provenance completeness.
+5. Bulk mutation existed mainly as intent shape rather than proof-bearing scale
+   work.
+   Planning and proof-widened admission are now first-class contracts.
 
-6. Persistent naming is present, but not yet elevated to a bulk-mutation
-   planning contract.
-   Current `client_key` normalization is necessary substrate, but it is not yet
-   a first-class planning artifact.
+6. Persistent naming existed as substrate but not planning contract.
+   It now participates directly in bulk mutation planning and admission.
 
 ## 3. Architectural Laws For This Milestone
 
@@ -279,6 +294,26 @@ pub enum QueryScope {
         kind_id: KindId,
         partition_scope: Option<Arc<[PartitionId]>>,
     },
+    EntityPayloadFieldEquals {
+        field: String,
+        value: String,
+        partition_scope: Option<Arc<[PartitionId]>>,
+    },
+    EntityPayloadFieldAnyOf {
+        field: String,
+        values: Arc<[String]>,
+        partition_scope: Option<Arc<[PartitionId]>>,
+    },
+    RelationPayloadFieldEquals {
+        field: String,
+        value: String,
+        partition_scope: Option<Arc<[PartitionId]>>,
+    },
+    RelationPayloadFieldAnyOf {
+        field: String,
+        values: Arc<[String]>,
+        partition_scope: Option<Arc<[PartitionId]>>,
+    },
     AspectFilteredEntities {
         kind_id: Option<KindId>,
         aspect_filter: AspectFilter,
@@ -411,10 +446,9 @@ This is the Rule 41 boundary for immutable parallel read.
 ```rust
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QueryFragmentCounters {
+    pub target_count: usize,
     pub entity_records_emitted: usize,
     pub relation_records_emitted: usize,
-    pub entity_slots_scanned: usize,
-    pub relation_slots_scanned: usize,
     pub touched_partitions: usize,
 }
 
@@ -442,9 +476,9 @@ pub struct QueryComplexitySummary {
     pub packet_count: usize,
     pub fragment_count: usize,
     pub touched_partitions: usize,
+    pub target_count: usize,
     pub entity_records_emitted: usize,
     pub relation_records_emitted: usize,
-    pub fallback_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -719,6 +753,13 @@ not the guarantee that both paths were executed on every request.
 The specific parity mode in effect should be explicit in diagnostics and, where
 appropriate, in harness-visible metadata.
 
+Current implementation note:
+
+- `SampledParity` is implemented as a bounded deterministic production mode
+- sampled verification selection is derived from stable workload identity
+  rather than scheduler state or thread affinity
+- `CertificationParity` remains the always-dual-run lane
+
 ## 11. Bulk Mutation Semantic Non-Flattening Rules
 
 Bulk mutation planning is one of the strongest parts of Milestone 8, but it is
@@ -741,19 +782,24 @@ transition classification surfaces.
 
 ## 12. API Evolution Plan
 
-### 12.1 Existing Types To Keep Temporarily
+### 12.1 Legacy Surface Break
 
-Keep as compatibility surfaces:
+Milestone 8 now assumes a hard break on the legacy public query and fallback
+compatibility facade.
 
-- `QueryWorkPacket`
-- `ReadPacketPlan`
-- `PacketResult`
-- `IndexedReadOutcome`
-- `RelationalReadView::execute_packet`
-- `IndexAccess::read_with_storage_fallback`
+Completed removals and demotions:
 
-These should not be the growth path for Milestone 8, but they can remain during
-migration.
+- `QueryWorkPacket` is no longer part of the public facade growth path
+- `PacketResult` is no longer part of the public facade growth path
+- `IndexedReadOutcome` is removed
+- `RelationalReadView::execute_packet` is removed from the growth path
+- `IndexAccess::read_with_storage_fallback` is removed from the growth path
+
+Remaining rule:
+
+- no new scale-grade feature work may target legacy packet/result compatibility
+  types directly, even internally, except where a sealed ingress adapter is
+  still needed for narrow planning heuristics or test scaffolding
 
 ### 12.2 New Growth Path
 
@@ -829,6 +875,8 @@ Completion condition:
 
 ### Phase 1: Query Packet Modeling Upgrade
 
+Status: shipped
+
 Goal:
 
 - introduce proof-bearing query planning types without breaking existing
@@ -848,8 +896,7 @@ Required code changes:
 
 - add new types under `query/data`
 - export them through the `query` facade
-- add a compatibility conversion from `QueryWorkPacket` only for
-  `ExplicitTargets`
+- replace explicit-target ingress with `PlannedQueryPacket::explicit_targets`
 
 Completion condition:
 
@@ -942,7 +989,8 @@ Deliver:
 
 Required code changes:
 
-- evolve or supersede `IndexAccess::read_with_storage_fallback`
+- replace the old storage-fallback helper with an explicit parity/admissibility
+  surface
 - add explicit admissibility evaluation
 - add typed rejection for incompatible or unsupported index paths
 - only report index use when the index path actually participates
@@ -1093,15 +1141,15 @@ These may land after the first reducer path exists:
 
 ### 16.1 `QueryWorkPacket`
 
-Problem:
+Historical problem:
 
-- useful compatibility shape
-- too weak for scale truth
+- it was a useful compatibility shape
+- it was too weak for scale truth
 
-Decision:
+Shipped outcome:
 
-- retain temporarily as a compatibility ingress
-- stop growing it
+- removed
+- replaced by direct `PlannedQueryPacket` construction
 
 ### 16.2 `ReadPacketPlan`
 
@@ -1116,33 +1164,28 @@ Decision:
 
 ### 16.3 `RelationalReadView::execute_packet`
 
-Problem:
+Historical problem:
 
-- honest convenience surface
-- mechanically dishonest as industrial primary surface
+- it was an honest convenience surface
+- it was mechanically dishonest as an industrial primary surface
 
-Decision:
+Shipped outcome:
 
-- retain for compatibility and small test helpers
-- move scale-grade execution to reducer-based query execution
+- removed from the supported growth path
+- reducer-based planned-query execution is the canonical read surface
 
 ### 16.4 `IndexAccess::read_with_storage_fallback`
 
-Problem:
+Historical problem:
 
-- current name suggests a real dual-path semantic surface
-- current behavior is mostly storage execution plus generation annotation
+- the name suggested a real dual-path semantic surface
+- the behavior was mostly storage execution plus generation annotation
 
-Decision:
+Shipped outcome:
 
-- either evolve it into a true dual-path surface
-- or narrow the old method and add a Milestone 8 primary method
-
-Preferred path:
-
-- keep old method for compatibility
-- add
-  `execute_query_with_fallback_parity(...) -> FallbackParityVerifiedQueryOutcome`
+- removed from the supported growth path
+- replaced by
+  `execute_query_plan_with_fallback_parity(...) -> FallbackParityVerifiedQueryOutcome`
 
 ### 16.5 Bulk Mutation Intents
 
@@ -1214,7 +1257,7 @@ Phase 1-2 tests:
 
 - planning context identity changes invalidate reuse
 - partition-local and cross-partition plans classify differently
-- explicit target packets map correctly from `QueryWorkPacket`
+- explicit target packets construct directly as proof-bearing planned packets
 
 Phase 3 tests:
 
@@ -1270,7 +1313,8 @@ Order:
 
 Dual-path rot is a serious risk. To prevent it:
 
-- no new scale-grade feature work may target `QueryWorkPacket`
+- no new scale-grade feature work may reintroduce a weak packet compatibility
+  bag in place of `PlannedQueryPacket`
 - no new scale-grade feature work may target `RelationalReadView::execute_packet`
 - compatibility paths must be marked in code comments and docs as compatibility
   or convenience surfaces
@@ -1311,9 +1355,17 @@ Milestone 8 is complete only when all are true:
 - complexity contracts and counters exist for the new hot paths
 - required certification tests pass with canonical artifact outputs
 
+Current status:
+
+- all exit criteria are satisfied
+- full crate verification is green
+- no legacy public query packet/result fallback growth surface remains
+- deterministic diagnostics and workload-derived counters are in place for the
+  shipped parallel read lanes
+
 ### 21.3 Summary
 
-The core correction to earlier drafts is this:
+The core correction to earlier drafts was this:
 
 Milestone 8 is not mainly about adding faster query code.
 
@@ -1332,6 +1384,5 @@ That means:
 - memory/allocation strategy explicit at the primary execution path
 - migration that starts from the real current seams, not a greenfield fantasy
 
-If this document is followed faithfully, Milestone 8 should produce a runtime
-that is not only faster and broader, but still truth-grade under hostile CAD,
-chip, and branch-divergent workloads.
+Milestone 8 produced a runtime that is broader, faster, and still truth-grade
+under hostile CAD, chip, and branch-divergent workloads.

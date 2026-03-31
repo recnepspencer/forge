@@ -13,6 +13,7 @@ pub enum SnapshotReadPolicy {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SnapshotHandle {
+    pub runtime_instance_id: u64,
     pub snapshot_id: SnapshotId,
     pub version_id: VersionId,
     pub read_policy: SnapshotReadPolicy,
@@ -21,6 +22,7 @@ pub struct SnapshotHandle {
 impl SnapshotHandle {
     pub const fn new(snapshot_id: u64, version_id: u64) -> Self {
         Self {
+            runtime_instance_id: 0,
             snapshot_id: SnapshotId(snapshot_id),
             version_id: VersionId(version_id),
             read_policy: SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,

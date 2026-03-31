@@ -27,6 +27,7 @@ pub struct CanonicalCommitEnvelope {
     pub commit: CommitReference,
     pub branch_context: BranchId,
     pub authority_kind: CanonicalCommitAuthorityKind,
+    pub strategy_artifacts: Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
     pub merge_parent_branches: Vec<BranchId>,
     pub merge_base_commits: Vec<CommitId>,
     pub schema_version: SchemaVersionId,
@@ -55,6 +56,7 @@ impl CanonicalCommitEnvelope {
         commit: CommitReference,
         branch_context: BranchId,
         authority_kind: CanonicalCommitAuthorityKind,
+        strategy_artifacts: Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
         merge_parent_branches: Vec<BranchId>,
         merge_base_commits: Vec<CommitId>,
         schema_version: SchemaVersionId,
@@ -74,6 +76,7 @@ impl CanonicalCommitEnvelope {
             commit,
             branch_context,
             authority_kind,
+            strategy_artifacts,
             merge_parent_branches,
             merge_base_commits,
             schema_version,
@@ -186,6 +189,7 @@ pub enum ReplayObservableSurface {
     History,
     BranchHead,
     Lineage,
+    Strategy,
     DerivedIndexes,
 }
 
@@ -224,6 +228,7 @@ pub enum ReplaySurfaceAuthorityKind {
     Snapshot,
     BranchHead,
     Lineage,
+    Strategy,
     DerivedIndexes,
 }
 
@@ -355,6 +360,10 @@ pub enum ReplayMismatchClass {
     SnapshotDrift,
     BranchHeadDrift,
     LineageDrift,
+    StrategyArtifactDrift,
+    StrategyExecutorUnavailable,
+    StrategyExecutionFailure,
+    StrategyLoweringDrift,
     DerivedIndexDrift,
     SchemaTransitionDrift,
     SchemaContinuationDescriptorDrift,

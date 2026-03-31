@@ -36,7 +36,7 @@ const taxes = runtime.defineSourceFamily(
   define.sourceFamily<number>("taxFamily").initial(0)
 );
 
-const totals = runtime.defineRecipeFamily(
+const totals: import("../src/index.js").RecipeFamilyHandle<number> = runtime.defineRecipeFamily(
   define
     .recipeFamily<number>("totalFamily")
     .reads(prices, taxes)
@@ -46,7 +46,7 @@ const totals = runtime.defineRecipeFamily(
 prices.key("cart-1").set(100);
 const keyedTotal: number = totals.key("cart-1").read();
 
-const profileRecipe = runtime.defineRecipe(
+const profileRecipe: RecipeHandle<{ name: string; tier: string }> = runtime.defineRecipe(
   define
     .recipe<{ name: string; tier: string }>("profile")
     .reads("price")

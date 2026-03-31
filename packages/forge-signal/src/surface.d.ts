@@ -86,6 +86,7 @@ export class SignalApp {
   setKeyed<T = SignalValue>(familyId: string, key: string, value: T): RunSummary;
   readKeyedMany<T = SignalValue>(familyId: string, keys: string[]): T[];
   setKeyedMany<T = SignalValue>(familyId: string, values: Array<{ key: string; value: T }>): RunSummary;
+  clearKeyedFamilyCache(familyId: string): void;
   diagnostics(): SignalDiagnostics;
   history(): SignalHistory;
   specialist(): SignalSpecialist;
@@ -108,6 +109,7 @@ export class SignalRuntime {
   setKeyed<T = SignalValue>(familyId: string, key: string, value: T): RunSummary;
   readKeyedMany<T = SignalValue>(familyId: string, keys: string[]): T[];
   setKeyedMany<T = SignalValue>(familyId: string, values: Array<{ key: string; value: T }>): RunSummary;
+  clearKeyedFamilyCache(familyId: string): void;
   diagnostics(): SignalDiagnostics;
   history(): SignalHistory;
   specialist(): SignalSpecialist;
@@ -120,6 +122,8 @@ export class SignalDiagnostics {
 }
 
 export class SignalHistory {
+  snapshotOpaque(): unknown;
+  restoreSnapshotOpaque(snapshot: unknown): void;
   replayFor(id: string): ReplaySummary;
   lineageFor(id: string): LineageSummary;
   snapshot(): RuntimeSnapshotEnvelope;
@@ -130,6 +134,11 @@ export class SignalHistory {
   switchBranch(branchId: number): void;
   replayForBranch(branchId: number): ReplaySummary;
   branchSnapshot(branchId: number): unknown;
+  branchSnapshotId(branchId: number): number | bigint;
+  branchSnapshotEnvelope(branchId: number): RuntimeSnapshotEnvelope;
+  branchSnapshotEnvelopeOpaque(branchId: number): unknown;
+  restoreBranchSnapshotOpaque(branchId: number, snapshot: unknown): void;
+  restoreBranchSnapshotById(branchId: number, snapshotId: number | bigint): void;
   planMergeBranches(sourceBranchId: number, targetBranchId: number): MergePlanReport;
   planMergeBranchesDetailed(sourceBranchId: number, targetBranchId: number): BranchMergePlan;
   mergeBranches(sourceBranchId: number, targetBranchId: number): MergeResultReport;

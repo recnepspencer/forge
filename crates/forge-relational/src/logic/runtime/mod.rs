@@ -17,8 +17,8 @@ pub use crate::simulation::data::{
 #[allow(unused_imports)]
 pub use crate::storage::data::{
     ChunkDiagnostics, ChunkVisibilitySummary, ChunkedStorageSummary, EntityReadRecord,
-    IndexedReadOutcome, PacketResult, PartitionStorageStats, RecordLifecycleState,
-    RelationReadRecord, RelationalReadView, RetentionPassOutcome, RetentionPlan, StorageStats,
+    PartitionStorageStats, RecordLifecycleState, RelationReadRecord, RelationalReadView,
+    RetentionPassOutcome, RetentionPlan, StorageStats,
 };
 #[allow(unused_imports)]
 pub use crate::validation::data::{
@@ -44,10 +44,10 @@ pub use crate::visibility::materialization::read_records::{
 pub(crate) use crate::storage::logic::state::{PartitionAccess, WorkingState};
 pub use state::RelationalRuntime;
 pub(crate) use state::{
-    AspectSemanticsSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
-    LineageSubsystem, PublicationSubsystem, ReplayRetentionState, RuntimeInstrumentation,
-    RuntimeServices, RuntimeSubsystem, SnapshotHandleBinding, VisibilityResidency,
-    VisibilitySubsystem,
+    AspectSemanticsSubsystem, CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem,
+    IndexingSubsystem, LineageSubsystem, PublicationSubsystem, ReplayRetentionState,
+    RuntimeInstrumentation, RuntimeServices, RuntimeSubsystem, SnapshotHandleBinding,
+    VisibilityResidency, VisibilitySubsystem,
 };
 
 #[derive(Debug, Clone)]

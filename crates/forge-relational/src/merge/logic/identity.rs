@@ -30,7 +30,10 @@ impl<'runtime> MergeAccess<'runtime> {
         Ok(self.discover_identity_scope(history_plan))
     }
 
-    fn discover_identity_scope(&self, history_plan: HistoryScopedMergePlan) -> IdentityScopedMergePlan {
+    fn discover_identity_scope(
+        &self,
+        history_plan: HistoryScopedMergePlan,
+    ) -> IdentityScopedMergePlan {
         let target_view = self
             .runtime
             .visibility_reads()
@@ -44,7 +47,10 @@ impl<'runtime> MergeAccess<'runtime> {
             merge_base_rule: history_plan.merge_base.rule,
             merge_base_commit_id: history_plan.merge_base.commit_id,
             supporting_left_ancestor_count: history_plan.merge_base.supporting_left_ancestors.len(),
-            supporting_right_ancestor_count: history_plan.merge_base.supporting_right_ancestors.len(),
+            supporting_right_ancestor_count: history_plan
+                .merge_base
+                .supporting_right_ancestors
+                .len(),
             target: branch_delta_summary(&history_plan.target_head, &history_plan.target_delta),
             source: branch_delta_summary(&history_plan.source_head, &history_plan.source_delta),
         };
@@ -220,7 +226,9 @@ fn identity_summary(
     let mut custom_basis_candidate_count = 0;
     let schema_declared_candidates = candidates
         .iter()
-        .filter(|candidate| candidate.reason == IdentityResolutionReason::SchemaDeclaredCorrespondence)
+        .filter(|candidate| {
+            candidate.reason == IdentityResolutionReason::SchemaDeclaredCorrespondence
+        })
         .collect::<Vec<_>>();
     let mut schema_source_counts = BTreeMap::<RecordRef, usize>::new();
     let mut schema_target_counts = BTreeMap::<RecordRef, usize>::new();
@@ -229,7 +237,9 @@ fn identity_summary(
             .entry(candidate.source_record.clone())
             .or_insert(0) += 1;
         if let Some(target_record) = &candidate.target_record {
-            *schema_target_counts.entry(target_record.clone()).or_insert(0) += 1;
+            *schema_target_counts
+                .entry(target_record.clone())
+                .or_insert(0) += 1;
         }
     }
     let rejected_non_unique_source_count = schema_source_counts
@@ -322,11 +332,13 @@ fn validate_schema_declared_correspondences(
                 .get(&correspondence.target_record)
                 .copied()
                 .unwrap_or(0);
-            (source_count == 1 && target_count == 1).then_some(ValidatedSchemaDeclaredCorrespondence {
-                candidate_count_for_source: source_count,
-                candidate_count_for_target: target_count,
-                ..correspondence
-            })
+            (source_count == 1 && target_count == 1).then_some(
+                ValidatedSchemaDeclaredCorrespondence {
+                    candidate_count_for_source: source_count,
+                    candidate_count_for_target: target_count,
+                    ..correspondence
+                },
+            )
         })
         .collect()
 }
@@ -363,12 +375,16 @@ fn discover_identity_candidate(
                 })
                 .unwrap_or_default()
         });
-    let source_identity = source_identity_for_basis(source, declared_bases.first().map(|declaration| &declaration.basis));
+    let source_identity = source_identity_for_basis(
+        source,
+        declared_bases.first().map(|declaration| &declaration.basis),
+    );
 
     for declaration in &declared_bases {
         match &declaration.basis {
             IdentityBasisKind::StorageIdentity => {
-                if let Some(target_record) = target_storage_match(target_index, &source.record_ref) {
+                if let Some(target_record) = target_storage_match(target_index, &source.record_ref)
+                {
                     return IdentityMatchCandidate {
                         scope: Some(declaration.scope.clone()),
                         source_record: source.record_ref.clone(),
@@ -424,50 +440,48 @@ fn discover_identity_candidate(
                     };
                 }
             }
-            IdentityBasisKind::DeclaredKeySet(keys) => match declared_key_set_match(
-                runtime,
-                source,
-                keys.as_ref(),
-                target_index,
-            ) {
-                DeclaredKeySetMatch::ExactTarget(target_record) => {
-                    return IdentityMatchCandidate {
-                        scope: Some(declaration.scope.clone()),
-                        source_record: source.record_ref.clone(),
-                        target_record: Some(target_record.clone()),
-                        source: MergeRecordIdentity::StorageRecord(source.record_ref.clone()),
-                        target: Some(MergeRecordIdentity::StorageRecord(target_record)),
-                        match_class: IdentityMatchClass::Reconciliable,
-                        reason: IdentityResolutionReason::SchemaDeclaredCorrespondence,
-                        basis: declaration.basis.clone(),
-                    };
+            IdentityBasisKind::DeclaredKeySet(keys) => {
+                match declared_key_set_match(runtime, source, keys.as_ref(), target_index) {
+                    DeclaredKeySetMatch::ExactTarget(target_record) => {
+                        return IdentityMatchCandidate {
+                            scope: Some(declaration.scope.clone()),
+                            source_record: source.record_ref.clone(),
+                            target_record: Some(target_record.clone()),
+                            source: MergeRecordIdentity::StorageRecord(source.record_ref.clone()),
+                            target: Some(MergeRecordIdentity::StorageRecord(target_record)),
+                            match_class: IdentityMatchClass::Reconciliable,
+                            reason: IdentityResolutionReason::SchemaDeclaredCorrespondence,
+                            basis: declaration.basis.clone(),
+                        };
+                    }
+                    DeclaredKeySetMatch::MissingSourceEvidence => {
+                        return IdentityMatchCandidate {
+                            scope: Some(declaration.scope.clone()),
+                            source_record: source.record_ref.clone(),
+                            target_record: None,
+                            source: source_identity.clone(),
+                            target: None,
+                            match_class: IdentityMatchClass::MissingTarget,
+                            reason: IdentityResolutionReason::DeclaredBasisUnavailableOnSource,
+                            basis: declaration.basis.clone(),
+                        };
+                    }
+                    DeclaredKeySetMatch::AmbiguousTarget => {
+                        return IdentityMatchCandidate {
+                            scope: Some(declaration.scope.clone()),
+                            source_record: source.record_ref.clone(),
+                            target_record: None,
+                            source: source_identity.clone(),
+                            target: None,
+                            match_class: IdentityMatchClass::Ambiguous,
+                            reason:
+                                IdentityResolutionReason::DeclaredBasisAmbiguousVisibleTargetMatch,
+                            basis: declaration.basis.clone(),
+                        };
+                    }
+                    DeclaredKeySetMatch::NoTargetMatch => {}
                 }
-                DeclaredKeySetMatch::MissingSourceEvidence => {
-                    return IdentityMatchCandidate {
-                        scope: Some(declaration.scope.clone()),
-                        source_record: source.record_ref.clone(),
-                        target_record: None,
-                        source: source_identity.clone(),
-                        target: None,
-                        match_class: IdentityMatchClass::MissingTarget,
-                        reason: IdentityResolutionReason::DeclaredBasisUnavailableOnSource,
-                        basis: declaration.basis.clone(),
-                    };
-                }
-                DeclaredKeySetMatch::AmbiguousTarget => {
-                    return IdentityMatchCandidate {
-                        scope: Some(declaration.scope.clone()),
-                        source_record: source.record_ref.clone(),
-                        target_record: None,
-                        source: source_identity.clone(),
-                        target: None,
-                        match_class: IdentityMatchClass::Ambiguous,
-                        reason: IdentityResolutionReason::DeclaredBasisAmbiguousVisibleTargetMatch,
-                        basis: declaration.basis.clone(),
-                    };
-                }
-                DeclaredKeySetMatch::NoTargetMatch => {}
-            },
+            }
             _ => {}
         }
     }
@@ -507,7 +521,8 @@ fn declared_key_set_match(
     aspect_keys: &[AspectKey],
     target_index: &TargetIdentityIndex,
 ) -> DeclaredKeySetMatch {
-    let Some(source_signature) = extract_declared_key_signature(runtime, source, aspect_keys) else {
+    let Some(source_signature) = extract_declared_key_signature(runtime, source, aspect_keys)
+    else {
         return DeclaredKeySetMatch::MissingSourceEvidence;
     };
     let matching_targets = target_index
@@ -567,13 +582,10 @@ fn extract_identity_component(
             _,
             Some(relation),
             LoweredExecutableAspectBindingKind::RelationJsonScalarField { field },
-        ) => relation
-            .payload
-            .as_ref()
-            .and_then(|payload| {
-                resolve_interned_string(runtime, field)
-                    .and_then(|field_name| extract_json_component(payload, field_name.as_ref()))
-            }),
+        ) => relation.payload.as_ref().and_then(|payload| {
+            resolve_interned_string(runtime, field)
+                .and_then(|field_name| extract_json_component(payload, field_name.as_ref()))
+        }),
         (
             VisibleMergeRecordKind::Relation,
             _,
@@ -586,12 +598,9 @@ fn extract_identity_component(
             Some(relation),
             LoweredExecutableAspectBindingKind::RelationTargetEndpointIdentity,
         ) => Some(DeclaredIdentityComponent::EntityEndpoint(relation.target)),
-        (
-            _,
-            _,
-            _,
-            LoweredExecutableAspectBindingKind::LifecycleTransitionEquality,
-        ) => lifecycle_of_record(record).map(DeclaredIdentityComponent::Lifecycle),
+        (_, _, _, LoweredExecutableAspectBindingKind::LifecycleTransitionEquality) => {
+            lifecycle_of_record(record).map(DeclaredIdentityComponent::Lifecycle)
+        }
         (
             VisibleMergeRecordKind::Entity,
             Some(entity),
@@ -603,15 +612,15 @@ fn extract_identity_component(
             _,
             Some(relation),
             LoweredExecutableAspectBindingKind::OpaqueWholePayloadBytes,
-        ) => relation
-            .payload
-            .as_ref()
-            .and_then(extract_opaque_component),
+        ) => relation.payload.as_ref().and_then(extract_opaque_component),
         _ => None,
     }
 }
 
-fn extract_json_component(payload: &RecordPayload, field_name: &str) -> Option<DeclaredIdentityComponent> {
+fn extract_json_component(
+    payload: &RecordPayload,
+    field_name: &str,
+) -> Option<DeclaredIdentityComponent> {
     payload
         .as_json()?
         .get(field_name)
@@ -622,19 +631,27 @@ fn extract_json_component(payload: &RecordPayload, field_name: &str) -> Option<D
 fn extract_opaque_component(payload: &RecordPayload) -> Option<DeclaredIdentityComponent> {
     match payload {
         RecordPayload::StructuredJson(_) => None,
-        RecordPayload::OpaqueBytes(bytes) => Some(DeclaredIdentityComponent::OpaqueBytes(bytes.clone())),
+        RecordPayload::OpaqueBytes(bytes) => {
+            Some(DeclaredIdentityComponent::OpaqueBytes(bytes.clone()))
+        }
     }
 }
 
 fn lifecycle_of_record(record: &VisibleMergeRecord) -> Option<RecordLifecycleState> {
-    match (record.source_entity.as_ref(), record.source_relation.as_ref()) {
+    match (
+        record.source_entity.as_ref(),
+        record.source_relation.as_ref(),
+    ) {
         (Some(entity), _) => Some(entity.lifecycle),
         (_, Some(relation)) => Some(relation.lifecycle),
         _ => None,
     }
 }
 
-fn target_storage_match(target_index: &TargetIdentityIndex, record_ref: &RecordRef) -> Option<RecordRef> {
+fn target_storage_match(
+    target_index: &TargetIdentityIndex,
+    record_ref: &RecordRef,
+) -> Option<RecordRef> {
     match record_ref {
         RecordRef::Entity(entity_id) => target_index
             .entities_by_storage
@@ -651,7 +668,8 @@ struct TargetIdentityIndex {
     entities_by_storage: BTreeMap<EntityId, EntityReadRecord>,
     entities_by_lineage: BTreeMap<LineageId, Vec<EntityId>>,
     relations_by_storage: BTreeMap<RelationId, RelationReadRecord>,
-    declared_key_indexes: BTreeMap<DeclaredKeyIndexKey, BTreeMap<DeclaredIdentityDigest, Vec<RecordRef>>>,
+    declared_key_indexes:
+        BTreeMap<DeclaredKeyIndexKey, BTreeMap<DeclaredIdentityDigest, Vec<RecordRef>>>,
 }
 
 impl TargetIdentityIndex {
@@ -724,27 +742,33 @@ impl TargetIdentityIndex {
                 source_relation: None,
                 target_relation: None,
             })
-            .chain(target_relations.into_iter().map(|relation| VisibleMergeRecord {
-                record_ref: RecordRef::Relation(relation.relation_id),
-                record_kind: VisibleMergeRecordKind::Relation,
-                kind_id: Some(relation.kind.kind_id),
-                source_kind_id: Some(relation.kind.kind_id),
-                target_kind_id: None,
-                lineage_id: None,
-                source_lineage_id: None,
-                target_lineage_id: None,
-                source_entity: None,
-                target_entity: None,
-                source_relation: Some(relation),
-                target_relation: None,
-            }))
+            .chain(
+                target_relations
+                    .into_iter()
+                    .map(|relation| VisibleMergeRecord {
+                        record_ref: RecordRef::Relation(relation.relation_id),
+                        record_kind: VisibleMergeRecordKind::Relation,
+                        kind_id: Some(relation.kind.kind_id),
+                        source_kind_id: Some(relation.kind.kind_id),
+                        target_kind_id: None,
+                        lineage_id: None,
+                        source_lineage_id: None,
+                        target_lineage_id: None,
+                        source_entity: None,
+                        target_entity: None,
+                        source_relation: Some(relation),
+                        target_relation: None,
+                    }),
+            )
             .collect::<Vec<_>>();
         let declared_key_indexes =
             build_declared_key_indexes(runtime, &visible_records, effective_identity_declarations);
-        runtime.performance_access().count_merge_identity_target_indexing(
-            target_view.entities().len() + target_view.relations().len(),
-            visible_records.len(),
-        );
+        runtime
+            .performance_access()
+            .count_merge_identity_target_indexing(
+                target_view.entities().len() + target_view.relations().len(),
+                visible_records.len(),
+            );
         Self {
             entities_by_storage,
             entities_by_lineage,
@@ -764,7 +788,9 @@ impl TargetIdentityIndex {
             kind_id,
             aspect_keys: aspect_keys.to_vec(),
         };
-        self.declared_key_indexes.get(&key).unwrap_or(&EMPTY_DECLARED_KEY_INDEX)
+        self.declared_key_indexes
+            .get(&key)
+            .unwrap_or(&EMPTY_DECLARED_KEY_INDEX)
     }
 }
 
@@ -799,8 +825,9 @@ struct DeclaredKeyDeclarationCatalog {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct DeclaredIdentityDigest(u128);
 
-static EMPTY_DECLARED_KEY_INDEX: std::sync::LazyLock<BTreeMap<DeclaredIdentityDigest, Vec<RecordRef>>> =
-    std::sync::LazyLock::new(BTreeMap::new);
+static EMPTY_DECLARED_KEY_INDEX: std::sync::LazyLock<
+    BTreeMap<DeclaredIdentityDigest, Vec<RecordRef>>,
+> = std::sync::LazyLock::new(BTreeMap::new);
 
 fn identity_declaration_applies_to_record(
     runtime: &crate::logic::runtime::RelationalRuntime,
@@ -828,7 +855,8 @@ fn build_declared_key_indexes(
     effective_identity_declarations: &[IdentityBasisDeclaration],
 ) -> BTreeMap<DeclaredKeyIndexKey, BTreeMap<DeclaredIdentityDigest, Vec<RecordRef>>> {
     let catalog = build_declared_key_declaration_catalog(effective_identity_declarations);
-    let mut indexes = BTreeMap::<DeclaredKeyIndexKey, BTreeMap<DeclaredIdentityDigest, Vec<RecordRef>>>::new();
+    let mut indexes =
+        BTreeMap::<DeclaredKeyIndexKey, BTreeMap<DeclaredIdentityDigest, Vec<RecordRef>>>::new();
     for record in visible_records {
         let Some(kind_id) = record.kind_id else {
             continue;
@@ -838,7 +866,8 @@ fn build_declared_key_indexes(
             VisibleMergeRecordKind::Relation => IdentityBasisScope::RelationKind(kind_id),
         };
         for keys in applicable_declared_key_sets(runtime, record, &catalog, &kind_scope) {
-            let Some(signature) = extract_declared_key_signature(runtime, record, keys.as_slice()) else {
+            let Some(signature) = extract_declared_key_signature(runtime, record, keys.as_slice())
+            else {
                 continue;
             };
             let index_key = DeclaredKeyIndexKey {
@@ -868,10 +897,19 @@ fn build_declared_key_declaration_catalog(
         let key_vec = keys.to_vec();
         match &declaration.scope {
             IdentityBasisScope::EntityKind(_) | IdentityBasisScope::RelationKind(_) => {
-                push_unique_key_set(catalog.kind_scoped.entry(declaration.scope.clone()).or_default(), &key_vec);
+                push_unique_key_set(
+                    catalog
+                        .kind_scoped
+                        .entry(declaration.scope.clone())
+                        .or_default(),
+                    &key_vec,
+                );
             }
             IdentityBasisScope::AspectKey(aspect_key) => {
-                push_unique_key_set(catalog.aspect_scoped.entry(aspect_key.clone()).or_default(), &key_vec);
+                push_unique_key_set(
+                    catalog.aspect_scoped.entry(aspect_key.clone()).or_default(),
+                    &key_vec,
+                );
             }
         }
     }
@@ -903,7 +941,10 @@ fn applicable_declared_key_sets(
 }
 
 fn push_unique_key_set(target: &mut Vec<Vec<AspectKey>>, candidate: &[AspectKey]) {
-    if !target.iter().any(|existing| existing.as_slice() == candidate) {
+    if !target
+        .iter()
+        .any(|existing| existing.as_slice() == candidate)
+    {
         target.push(candidate.to_vec());
     }
 }

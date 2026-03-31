@@ -76,7 +76,11 @@ pub struct MergeCommitMutationPlan {
     pub merged_plan: MergedCommitPlan,
     pub structural_summary: MergeExecutionStructuralSummary,
     pub merge_execution_summary: MergeExecutionSummary,
-    #[serde(skip_serializing, skip_deserializing, default = "merge_commit_mutation_plan_token")]
+    #[serde(
+        skip_serializing,
+        skip_deserializing,
+        default = "merge_commit_mutation_plan_token"
+    )]
     pub(crate) proof_token: MergeCommitMutationPlanToken,
 }
 
@@ -186,6 +190,9 @@ pub enum ConflictClass {
     InvalidMergeParent {
         detail: String,
     },
+    StaleValidationBasis {
+        detail: String,
+    },
     MergeConflictOverlap {
         detail: String,
     },
@@ -250,6 +257,7 @@ impl ConflictClass {
             Self::ConflictingIntent { .. } => DiagnosticCode::ConflictingIntent,
             Self::InvalidSavepoint { .. } => DiagnosticCode::InvalidSavepoint,
             Self::InvalidMergeParent { .. } => DiagnosticCode::InvalidMergeParent,
+            Self::StaleValidationBasis { .. } => DiagnosticCode::StaleHandle,
             Self::MergeConflictOverlap { .. } => DiagnosticCode::MergeConflictOverlap,
             Self::MissingMergeBase { .. } => DiagnosticCode::MissingMergeBase,
             Self::UndeclaredSchemaTransition { .. }
@@ -286,6 +294,7 @@ impl ConflictClass {
             | Self::MutationStateInconsistency { detail, .. }
             | Self::AspectDeltaFailure { detail, .. }
             | Self::InvalidMergeParent { detail }
+            | Self::StaleValidationBasis { detail }
             | Self::MergeConflictOverlap { detail }
             | Self::MissingMergeBase { detail }
             | Self::UnsupportedBridgeDescriptor { detail }
@@ -531,6 +540,7 @@ pub struct CommitPublication {
     pub envelope: Arc<CanonicalCommitEnvelope>,
     pub aspect_evaluation_traces: Vec<AspectEvaluationTrace>,
     pub aspect_emission_traces: Vec<AspectEmissionTrace>,
+    pub strategy_artifacts: Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -555,7 +565,7 @@ pub struct CommitValidation {
     pub invariant_executions: Vec<InvariantExecutionResult>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct CommitValidationSummary {
     pub execution_count: usize,
     pub executed_count: usize,

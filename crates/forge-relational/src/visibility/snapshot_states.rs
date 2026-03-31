@@ -28,6 +28,7 @@ pub(crate) fn build_visibility_state(
     read_policy: SnapshotReadPolicy,
 ) -> SnapshotState {
     let handle = SnapshotHandle {
+        runtime_instance_id: runtime.runtime_instance_id(),
         snapshot_id,
         version_id,
         read_policy,
@@ -52,8 +53,13 @@ pub(crate) fn build_visibility_state(
     let mut pinned_relation_count = 0;
     for (partition_id, relation_slots) in relation_partitions {
         pinned_relation_count += relation_slots.count_ones();
-        let retained_relation_slots =
-            retained_relation_slots_for_version(runtime, &current_state, partition_id, &relation_slots, version_id);
+        let retained_relation_slots = retained_relation_slots_for_version(
+            runtime,
+            &current_state,
+            partition_id,
+            &relation_slots,
+            version_id,
+        );
         let pins = pinned_partitions
             .entry(partition_id)
             .or_insert_with(|| SnapshotPartitionPins {
@@ -136,7 +142,8 @@ fn retained_relation_slots_for_version(
         if reader
             .relation_record_for_id_at_version(state, relation_id, version_id)
             .is_some_and(|record| {
-                record.lifecycle == crate::storage::data::RecordLifecycleState::RetainedDanglingForAudit
+                record.lifecycle
+                    == crate::storage::data::RecordLifecycleState::RetainedDanglingForAudit
             })
         {
             retained.set(slot, true);

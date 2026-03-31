@@ -42,7 +42,14 @@ pub(crate) fn resolve_commit_history(
         .options
         .target_branch
         .clone()
-        .unwrap_or_else(|| transaction.runtime.runtime_config().history.main_branch.clone());
+        .unwrap_or_else(|| {
+            transaction
+                .runtime
+                .runtime_config()
+                .history
+                .main_branch
+                .clone()
+        });
     let requested_merge_parent_count = transaction.options.merge_parent_branches.len();
     let previous_branch_head_version = transaction
         .runtime
@@ -117,7 +124,10 @@ fn resolve_commit_history_for_runtime<F>(
     resolve_parents: F,
 ) -> Result<ResolvedCommitHistory, TransactionCommitError>
 where
-    F: FnOnce(&BranchId) -> Result<(Vec<CommitId>, Vec<CommitId>), crate::transactions::data::CommitConflict>,
+    F: FnOnce(
+        &BranchId,
+    )
+        -> Result<(Vec<CommitId>, Vec<CommitId>), crate::transactions::data::CommitConflict>,
 {
     let commit_id = runtime.history_access().next_commit_id();
     let branch_id = merge_plan

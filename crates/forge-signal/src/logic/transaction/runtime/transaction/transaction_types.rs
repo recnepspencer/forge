@@ -21,7 +21,7 @@ use crate::logic::planner::{ExecutionRecordId, ExecutionReport, SemanticSegmentI
 use super::super::super::key_registry::RuntimeStringId;
 use super::super::super::patch_buffer::SparsePatchBuffer;
 use super::super::config::SignalRuntimeConfig;
-use super::super::state::ReconstructabilityRecord;
+use super::super::state::{BranchManager, ReconstructabilityRecord};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TransactionOutcome {
     Committed,
@@ -311,6 +311,7 @@ where
     pub(in crate::logic::transaction::runtime) checkpoint: &'a mut CheckpointRuntime<D, I>,
     pub(in crate::logic::transaction::runtime) event_bus: &'a mut EventBus<E, D, Ctx>,
     pub(in crate::logic::transaction::runtime) telemetry: &'a mut RuntimeTelemetry,
+    pub(in crate::logic::transaction::runtime) branches: &'a mut BranchManager<D, I, T>,
     pub(in crate::logic::transaction::runtime) scratch: TransactionScratch<D, I, E>,
     pub(in crate::logic::transaction::runtime) rollback_packets: TransactionRollbackPacketSet<T>,
     pub(in crate::logic::transaction::runtime) poisoned: bool,

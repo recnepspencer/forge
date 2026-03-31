@@ -4,11 +4,26 @@ use crate::facade::indexes::{
 };
 use crate::facade::query::{
     FallbackParityMode, IndexQueryRejectionClass, QueryAccessPath, QueryFallbackContract,
-    QueryWorkPacket,
 };
 use crate::facade::runtime::RelationalExecutionModel;
 use crate::facade::transactions::RecordRef;
 use crate::tests::support::*;
+use std::sync::Arc;
+
+fn sampled_plan_key_for(
+    generation_id: crate::facade::indexes::DerivedIndexGenerationId,
+    version_id: crate::facade::identity::VersionId,
+    should_sample: bool,
+) -> crate::facade::query::DeterministicQueryPlanKey {
+    for key in 1u128..512 {
+        let sample_key = key ^ ((generation_id.0 as u128) << 64) ^ (version_id.0 as u128);
+        let sampled = sample_key % 8 == 0;
+        if sampled == should_sample {
+            return crate::facade::query::DeterministicQueryPlanKey(key);
+        }
+    }
+    panic!("unable to derive deterministic sampled plan key");
+}
 
 // CONTRACT: derived_index
 // LANES: success, fallback, determinism
@@ -41,15 +56,15 @@ fn derived_index_contract_success_branch_scoped_build_keeps_storage_fallback() {
             branch_id: BranchId("feature".to_string()),
             index_ids: vec![index.index_id],
         });
-    let packet = QueryWorkPacket::bulk(
-        "entities",
-        vec![RecordRef::Entity(changed_entities(&main_outcome)[0])],
-    );
     let context = runtime
         .visibility_reads()
         .query_plan_context(&main_outcome.snapshot)
         .expect("query plan context");
-    let mut planned = packet.clone().planned_with_context(context);
+    let mut planned = crate::facade::query::PlannedQueryPacket::explicit_targets(
+        "entities",
+        context,
+        vec![RecordRef::Entity(changed_entities(&main_outcome)[0])],
+    );
     planned.fallback = QueryFallbackContract::IndexAdmissibleStorageEquivalent;
     let plan = runtime
         .visibility_reads()
@@ -107,15 +122,15 @@ fn derived_index_contract_unscoped_generation_is_rejected_for_unsupported_scope(
             index_ids: vec![index.index_id],
         });
     let snapshot = runtime.visibility_authority().snapshot();
-    let packet = QueryWorkPacket::bulk(
-        "entities",
-        vec![RecordRef::Entity(changed_entities(&main_outcome)[0])],
-    );
     let context = runtime
         .visibility_reads()
         .query_plan_context(&snapshot)
         .expect("query plan context");
-    let mut planned = packet.clone().planned_with_context(context);
+    let mut planned = crate::facade::query::PlannedQueryPacket::explicit_targets(
+        "entities",
+        context,
+        vec![RecordRef::Entity(changed_entities(&main_outcome)[0])],
+    );
     planned.fallback = QueryFallbackContract::IndexAdmissibleStorageEquivalent;
     let plan = runtime
         .visibility_reads()
@@ -148,17 +163,24 @@ fn derived_index_contract_failure_unknown_index_keeps_truth_reads_correct() {
     let mut runtime = runtime_with_test_schema();
     let outcome = create_entity_outcome(&mut runtime, "main-a");
     let snapshot = runtime.visibility_authority().snapshot();
-    let packet = QueryWorkPacket::bulk(
+    let storage_only = execute_explicit_query(
+        &runtime,
+        &snapshot,
         "entities",
         vec![RecordRef::Entity(changed_entities(&outcome)[0])],
-    );
-    let storage_only = runtime
-        .visibility_reads()
-        .execute_read_packet(&snapshot, &packet)
-        .unwrap();
+    )
+    .result;
     let fallback_before = runtime
         .index_access()
-        .read_with_storage_fallback(&snapshot, &packet)
+        .execute_query_plan_with_fallback_parity(
+            planned_explicit_query(
+                &runtime,
+                &snapshot,
+                "entities",
+                vec![RecordRef::Entity(changed_entities(&outcome)[0])],
+            ),
+            FallbackParityMode::ProductionAdmissibility,
+        )
         .unwrap();
     let build = runtime
         .index_authority()
@@ -169,13 +191,24 @@ fn derived_index_contract_failure_unknown_index_keeps_truth_reads_correct() {
         });
     let fallback_after = runtime
         .index_access()
-        .read_with_storage_fallback(&snapshot, &packet)
+        .execute_query_plan_with_fallback_parity(
+            planned_explicit_query(
+                &runtime,
+                &snapshot,
+                "entities",
+                vec![RecordRef::Entity(changed_entities(&outcome)[0])],
+            ),
+            FallbackParityMode::ProductionAdmissibility,
+        )
         .unwrap();
 
     assert_eq!(build.failed_indexes, vec![DerivedIndexId(999)]);
-    assert_eq!(fallback_before.used_index_generation, None);
-    assert_eq!(fallback_before.result, storage_only);
-    assert_eq!(fallback_after.result, storage_only);
+    assert_eq!(
+        fallback_before.access_path,
+        QueryAccessPath::AuthoritativeStorage
+    );
+    assert_eq!(fallback_before.execution.result, storage_only);
+    assert_eq!(fallback_after.execution.result, storage_only);
 }
 
 #[test]
@@ -204,11 +237,11 @@ fn derived_index_contract_certification_mode_emits_stable_parity_digest() {
         .visibility_reads()
         .query_plan_context(&snapshot)
         .expect("query plan context");
-    let mut planned = QueryWorkPacket::bulk(
+    let mut planned = crate::facade::query::PlannedQueryPacket::explicit_targets(
         "entities",
+        context,
         vec![RecordRef::Entity(changed_entities(&outcome)[0])],
-    )
-    .planned_with_context(context);
+    );
     planned.fallback = QueryFallbackContract::IndexAdmissibleStorageEquivalent;
     let plan = runtime
         .visibility_reads()
@@ -232,7 +265,8 @@ fn derived_index_contract_certification_mode_emits_stable_parity_digest() {
 }
 
 #[test]
-fn derived_index_contract_entity_field_equals_executes_through_real_index_path_with_storage_parity() {
+fn derived_index_contract_entity_field_equals_executes_through_real_index_path_with_storage_parity()
+{
     let mut runtime = runtime_with_test_schema();
     let alpha = create_entity_outcome(&mut runtime, "alpha");
     let _beta = create_entity_outcome(&mut runtime, "beta");
@@ -298,6 +332,802 @@ fn derived_index_contract_entity_field_equals_executes_through_real_index_path_w
     assert_eq!(
         indexed.execution.result.entities[0].entity_id,
         changed_entities(&alpha)[0]
+    );
+}
+
+#[test]
+fn derived_index_contract_relation_field_equals_executes_through_real_index_path_with_storage_parity(
+) {
+    let mut runtime = runtime_with_test_schema();
+    let source = create_entity_outcome(&mut runtime, "source");
+    let source_id = changed_entities(&source)[0];
+    let target = create_entity_outcome(&mut runtime, "target");
+    let target_id = changed_entities(&target)[0];
+    let relation = create_relation_outcome(&mut runtime, source_id, target_id, "edge");
+    let index = runtime.index_authority().register(DerivedIndexDefinition {
+        index_id: DerivedIndexId(1),
+        name: "relation.label.lookup".to_string(),
+        kind: DerivedIndexKind::RelationPayloadField {
+            field: "label".to_string(),
+        },
+        branch_scoped: false,
+    });
+    let build = runtime
+        .index_authority()
+        .build_for_commit(DerivedIndexBuildRequest {
+            source_commit_id: relation.commit.commit_id,
+            branch_id: BranchId("main".to_string()),
+            index_ids: vec![index.index_id],
+        });
+    assert!(build.failed_indexes.is_empty());
+
+    let snapshot = runtime.visibility_authority().snapshot();
+    let context = runtime
+        .visibility_reads()
+        .query_plan_context(&snapshot)
+        .expect("query plan context");
+    let packet = crate::facade::query::PlannedQueryPacket {
+        label: "relation-label-equals".to_string(),
+        context_id: context,
+        scope: crate::facade::query::QueryScope::RelationPayloadFieldEquals {
+            field: "label".to_string(),
+            value: "edge".to_string(),
+            partition_scope: None,
+        },
+        locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
+        ordering: crate::facade::query::QueryOrderingContract::CanonicalRelationIdOrder,
+        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
+        reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
+        plan_key: crate::facade::query::DeterministicQueryPlanKey(1011),
+        target_count_hint: 0,
+    };
+    let plan = runtime
+        .visibility_reads()
+        .plan_query_packet(&snapshot, packet)
+        .expect("query plan");
+    let storage = runtime
+        .visibility_reads()
+        .execute_query_plan(plan.clone())
+        .expect("storage outcome");
+    let indexed = runtime
+        .index_access()
+        .execute_query_plan_with_fallback_parity(plan, FallbackParityMode::CertificationParity)
+        .expect("indexed outcome");
+
+    assert_eq!(
+        indexed.access_path,
+        QueryAccessPath::DerivedIndexGeneration {
+            generation_id: build.generations[0].generation_id,
+        }
+    );
+    assert_eq!(indexed.execution.result, storage.result);
+    assert_eq!(indexed.execution.result.relations.len(), 1);
+    assert_eq!(
+        indexed.execution.result.relations[0].relation_id,
+        changed_relations(&relation)[0]
+    );
+}
+
+#[test]
+fn derived_index_contract_relation_field_equals_reports_corrupt_generation() {
+    let mut runtime = runtime_with_test_schema();
+    let source = create_entity_outcome(&mut runtime, "source");
+    let target = create_entity_outcome(&mut runtime, "target");
+    let relation = create_relation_outcome(
+        &mut runtime,
+        changed_entities(&source)[0],
+        changed_entities(&target)[0],
+        "edge",
+    );
+    let index = runtime.index_authority().register(DerivedIndexDefinition {
+        index_id: DerivedIndexId(1),
+        name: "relation.label.lookup".to_string(),
+        kind: DerivedIndexKind::RelationPayloadField {
+            field: "label".to_string(),
+        },
+        branch_scoped: false,
+    });
+    let build = runtime
+        .index_authority()
+        .build_for_commit(DerivedIndexBuildRequest {
+            source_commit_id: relation.commit.commit_id,
+            branch_id: BranchId("main".to_string()),
+            index_ids: vec![index.index_id],
+        });
+    assert!(build.failed_indexes.is_empty());
+    runtime
+        .indexes
+        .generations
+        .get_mut(&index.index_id)
+        .expect("relation index generations")
+        .last_mut()
+        .expect("built relation generation")
+        .status = crate::facade::indexes::DerivedIndexPublicationStatus::BuildFailed;
+
+    let snapshot = runtime.visibility_authority().snapshot();
+    let context = runtime
+        .visibility_reads()
+        .query_plan_context(&snapshot)
+        .expect("query plan context");
+    let packet = crate::facade::query::PlannedQueryPacket {
+        label: "relation-label-equals".to_string(),
+        context_id: context,
+        scope: crate::facade::query::QueryScope::RelationPayloadFieldEquals {
+            field: "label".to_string(),
+            value: "edge".to_string(),
+            partition_scope: None,
+        },
+        locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
+        ordering: crate::facade::query::QueryOrderingContract::CanonicalRelationIdOrder,
+        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
+        reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
+        plan_key: crate::facade::query::DeterministicQueryPlanKey(1012),
+        target_count_hint: 0,
+    };
+    let outcome = runtime
+        .index_access()
+        .execute_query_plan_with_fallback_parity(
+            runtime
+                .visibility_reads()
+                .plan_query_packet(&snapshot, packet)
+                .expect("query plan"),
+            FallbackParityMode::ProductionAdmissibility,
+        )
+        .expect("query outcome");
+
+    assert_eq!(
+        outcome.access_path,
+        QueryAccessPath::DerivedIndexRejectedStorageFallback {
+            rejection: IndexQueryRejectionClass::CorruptPayload,
+        }
+    );
+}
+
+#[test]
+fn derived_index_contract_relation_field_equals_persisted_recovery_preserves_parity() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    let source = create_entity_outcome(&mut runtime, "source");
+    let target = create_entity_outcome(&mut runtime, "target");
+    let relation = create_relation_outcome(
+        &mut runtime,
+        changed_entities(&source)[0],
+        changed_entities(&target)[0],
+        "edge",
+    );
+    let index = runtime.index_authority().register(DerivedIndexDefinition {
+        index_id: DerivedIndexId(1),
+        name: "relation.label.lookup".to_string(),
+        kind: DerivedIndexKind::RelationPayloadField {
+            field: "label".to_string(),
+        },
+        branch_scoped: false,
+    });
+    let build = runtime
+        .index_authority()
+        .build_for_commit(DerivedIndexBuildRequest {
+            source_commit_id: relation.commit.commit_id,
+            branch_id: BranchId("main".to_string()),
+            index_ids: vec![index.index_id],
+        });
+    assert!(build.failed_indexes.is_empty());
+
+    let snapshot = runtime.visibility_authority().snapshot();
+    let context = runtime
+        .visibility_reads()
+        .query_plan_context(&snapshot)
+        .expect("query plan context");
+    let packet = crate::facade::query::PlannedQueryPacket {
+        label: "relation-label-equals".to_string(),
+        context_id: context,
+        scope: crate::facade::query::QueryScope::RelationPayloadFieldEquals {
+            field: "label".to_string(),
+            value: "edge".to_string(),
+            partition_scope: None,
+        },
+        locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
+        ordering: crate::facade::query::QueryOrderingContract::CanonicalRelationIdOrder,
+        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
+        reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
+        plan_key: crate::facade::query::DeterministicQueryPlanKey(1013),
+        target_count_hint: 0,
+    };
+    let original = runtime
+        .index_access()
+        .execute_query_plan_with_fallback_parity(
+            runtime
+                .visibility_reads()
+                .plan_query_packet(&snapshot, packet.clone())
+                .expect("original plan"),
+            FallbackParityMode::CertificationParity,
+        )
+        .expect("original outcome");
+
+    let (_recovery, mut recovered) =
+        checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
+    let recovered_snapshot = recovered.visibility_authority().snapshot();
+    let recovered_context = recovered
+        .visibility_reads()
+        .query_plan_context(&recovered_snapshot)
+        .expect("recovered context");
+    let mut recovered_packet = packet;
+    recovered_packet.context_id = recovered_context;
+    let recovered_outcome = recovered
+        .index_access()
+        .execute_query_plan_with_fallback_parity(
+            recovered
+                .visibility_reads()
+                .plan_query_packet(&recovered_snapshot, recovered_packet)
+                .expect("recovered plan"),
+            FallbackParityMode::CertificationParity,
+        )
+        .expect("recovered outcome");
+
+    assert_eq!(original.access_path, recovered_outcome.access_path);
+    assert_eq!(
+        original.execution.result,
+        recovered_outcome.execution.result
+    );
+    assert_eq!(
+        original.execution.result.reduction_digest,
+        recovered_outcome.execution.result.reduction_digest
+    );
+}
+
+#[test]
+fn derived_index_contract_sampled_parity_is_bounded_and_deterministic() {
+    let mut runtime = runtime_with_test_schema();
+    let alpha = create_entity_outcome(&mut runtime, "alpha");
+    let index = runtime.index_authority().register(DerivedIndexDefinition {
+        index_id: DerivedIndexId(9),
+        name: "entity.name.sampled".to_string(),
+        kind: DerivedIndexKind::EntityPayloadField {
+            field: "name".to_string(),
+        },
+        branch_scoped: false,
+    });
+    let build = runtime
+        .index_authority()
+        .build_for_commit(DerivedIndexBuildRequest {
+            source_commit_id: alpha.commit.commit_id,
+            branch_id: BranchId("main".to_string()),
+            index_ids: vec![index.index_id],
+        });
+    assert!(build.failed_indexes.is_empty());
+
+    let snapshot = runtime.visibility_authority().snapshot();
+    let context = runtime
+        .visibility_reads()
+        .query_plan_context(&snapshot)
+        .expect("query plan context");
+    let generation_id = build.generations[0].generation_id;
+    let sampled_key = sampled_plan_key_for(generation_id, snapshot.version_id, true);
+    let unsampled_key = sampled_plan_key_for(generation_id, snapshot.version_id, false);
+
+    let sampled_packet = crate::facade::query::PlannedQueryPacket {
+        label: "entity-name-sampled".to_string(),
+        context_id: context.clone(),
+        scope: crate::facade::query::QueryScope::EntityPayloadFieldEquals {
+            field: "name".to_string(),
+            value: "alpha".to_string(),
+            partition_scope: None,
+        },
+        locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
+        ordering: crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
+        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
+        reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
+        plan_key: sampled_key,
+        target_count_hint: 0,
+    };
+    let unsampled_packet = crate::facade::query::PlannedQueryPacket {
+        plan_key: unsampled_key,
+        label: "entity-name-unsampled".to_string(),
+        ..sampled_packet.clone()
+    };
+
+    runtime.performance_access().reset_counters();
+    let sampled = runtime
+        .index_access()
+        .execute_query_plan_with_fallback_parity(
+            runtime
+                .visibility_reads()
+                .plan_query_packet(&snapshot, sampled_packet.clone())
+                .expect("sampled plan"),
+            FallbackParityMode::SampledParity,
+        )
+        .expect("sampled outcome");
+    let sampled_repeat = runtime
+        .index_access()
+        .execute_query_plan_with_fallback_parity(
+            runtime
+                .visibility_reads()
+                .plan_query_packet(&snapshot, sampled_packet)
+                .expect("sampled plan repeat"),
+            FallbackParityMode::SampledParity,
+        )
+        .expect("sampled repeat outcome");
+    let unsampled = runtime
+        .index_access()
+        .execute_query_plan_with_fallback_parity(
+            runtime
+                .visibility_reads()
+                .plan_query_packet(&snapshot, unsampled_packet)
+                .expect("unsampled plan"),
+            FallbackParityMode::SampledParity,
+        )
+        .expect("unsampled outcome");
+    let counters = runtime.performance_access().counters();
+
+    assert_eq!(sampled.access_path, sampled_repeat.access_path);
+    assert_eq!(
+        sampled.parity_basis_digest,
+        sampled_repeat.parity_basis_digest
+    );
+    assert_eq!(
+        sampled.access_path,
+        QueryAccessPath::DerivedIndexGeneration { generation_id }
+    );
+    assert_eq!(
+        unsampled.access_path,
+        QueryAccessPath::DerivedIndexGeneration { generation_id }
+    );
+    assert_eq!(counters.query_index_attempt_count, 3);
+    assert_eq!(counters.query_index_path_count, 3);
+    assert_eq!(counters.query_index_parity_verification_count, 2);
+}
+
+#[test]
+fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
+    let baseline_hint_count = crate::indexes::logic::index_query_scratch_hint_count();
+    {
+        let mut runtime = runtime_with_test_schema();
+        let _alpha_a = create_entity_outcome(&mut runtime, "alpha");
+        let _alpha_b = create_entity_outcome(&mut runtime, "alpha");
+        let index = runtime.index_authority().register(DerivedIndexDefinition {
+            index_id: DerivedIndexId(77),
+            name: "entity.name.drop-release".to_string(),
+            kind: DerivedIndexKind::EntityPayloadField {
+                field: "name".to_string(),
+            },
+            branch_scoped: false,
+        });
+        let latest_commit_id = runtime
+            .history_access()
+            .latest_commit()
+            .expect("latest commit")
+            .commit_id;
+        let build = runtime
+            .index_authority()
+            .build_for_commit(DerivedIndexBuildRequest {
+                source_commit_id: latest_commit_id,
+                branch_id: BranchId("main".to_string()),
+                index_ids: vec![index.index_id],
+            });
+        assert!(build.failed_indexes.is_empty());
+
+        let snapshot = runtime.visibility_authority().snapshot();
+        let context = runtime
+            .visibility_reads()
+            .query_plan_context(&snapshot)
+            .expect("query plan context");
+        let packet = crate::facade::query::PlannedQueryPacket {
+            label: "entity-name-drop-release".to_string(),
+            context_id: context,
+            scope: crate::facade::query::QueryScope::EntityPayloadFieldEquals {
+                field: "name".to_string(),
+                value: "alpha".to_string(),
+                partition_scope: None,
+            },
+            locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
+            ordering: crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
+            fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+            execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
+            reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
+            plan_key: crate::facade::query::DeterministicQueryPlanKey(2077),
+            target_count_hint: 0,
+        };
+
+        for _ in 0..2 {
+            let _ = runtime
+                .index_access()
+                .execute_query_plan_with_fallback_parity(
+                    runtime
+                        .visibility_reads()
+                        .plan_query_packet(&snapshot, packet.clone())
+                        .expect("query plan"),
+                    FallbackParityMode::ProductionAdmissibility,
+                )
+                .expect("query outcome");
+        }
+
+        assert!(crate::indexes::logic::index_query_scratch_hint_count() >= baseline_hint_count + 1);
+    }
+
+    assert_eq!(
+        crate::indexes::logic::index_query_scratch_hint_count(),
+        baseline_hint_count
+    );
+}
+
+#[test]
+fn derived_index_contract_entity_field_any_of_executes_through_real_index_path_with_storage_parity()
+{
+    let mut runtime = runtime_with_test_schema();
+    let alpha = create_entity_outcome(&mut runtime, "alpha");
+    let beta = create_entity_outcome(&mut runtime, "beta");
+    let _gamma = create_entity_outcome(&mut runtime, "gamma");
+    let index = runtime.index_authority().register(DerivedIndexDefinition {
+        index_id: DerivedIndexId(10),
+        name: "entity.name.any-of".to_string(),
+        kind: DerivedIndexKind::EntityPayloadField {
+            field: "name".to_string(),
+        },
+        branch_scoped: false,
+    });
+    let latest_commit_id = runtime
+        .history_access()
+        .latest_commit()
+        .expect("latest commit")
+        .commit_id;
+    let build = runtime
+        .index_authority()
+        .build_for_commit(DerivedIndexBuildRequest {
+            source_commit_id: latest_commit_id,
+            branch_id: BranchId("main".to_string()),
+            index_ids: vec![index.index_id],
+        });
+    assert!(build.failed_indexes.is_empty());
+
+    let snapshot = runtime.visibility_authority().snapshot();
+    let context = runtime
+        .visibility_reads()
+        .query_plan_context(&snapshot)
+        .expect("query plan context");
+    let packet = crate::facade::query::PlannedQueryPacket {
+        label: "entity-name-any-of".to_string(),
+        context_id: context,
+        scope: crate::facade::query::QueryScope::EntityPayloadFieldAnyOf {
+            field: "name".to_string(),
+            values: Arc::from(["beta".to_string(), "alpha".to_string()]),
+            partition_scope: None,
+        },
+        locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
+        ordering: crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
+        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
+        reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
+        plan_key: crate::facade::query::DeterministicQueryPlanKey(2010),
+        target_count_hint: 2,
+    };
+    let plan = runtime
+        .visibility_reads()
+        .plan_query_packet(&snapshot, packet)
+        .expect("query plan");
+    let storage = runtime
+        .visibility_reads()
+        .execute_query_plan(plan.clone())
+        .expect("storage outcome");
+    let indexed = runtime
+        .index_access()
+        .execute_query_plan_with_fallback_parity(plan, FallbackParityMode::CertificationParity)
+        .expect("indexed outcome");
+
+    assert_eq!(
+        indexed.access_path,
+        QueryAccessPath::DerivedIndexGeneration {
+            generation_id: build.generations[0].generation_id,
+        }
+    );
+    assert_eq!(indexed.execution.result, storage.result);
+    assert_eq!(
+        indexed
+            .execution
+            .result
+            .entities
+            .iter()
+            .map(|record| record.entity_id)
+            .collect::<Vec<_>>(),
+        vec![changed_entities(&alpha)[0], changed_entities(&beta)[0]]
+    );
+}
+
+#[test]
+fn derived_index_contract_relation_field_any_of_executes_through_real_index_path_with_storage_parity(
+) {
+    let mut runtime = runtime_with_test_schema();
+    let source = create_entity_outcome(&mut runtime, "source");
+    let target = create_entity_outcome(&mut runtime, "target");
+    let third = create_entity_outcome(&mut runtime, "third");
+    let edge = create_relation_outcome(
+        &mut runtime,
+        changed_entities(&source)[0],
+        changed_entities(&target)[0],
+        "edge",
+    );
+    let arc = create_relation_outcome(
+        &mut runtime,
+        changed_entities(&target)[0],
+        changed_entities(&third)[0],
+        "arc",
+    );
+    let _other = create_relation_outcome(
+        &mut runtime,
+        changed_entities(&third)[0],
+        changed_entities(&source)[0],
+        "other",
+    );
+    let index = runtime.index_authority().register(DerivedIndexDefinition {
+        index_id: DerivedIndexId(11),
+        name: "relation.label.any-of".to_string(),
+        kind: DerivedIndexKind::RelationPayloadField {
+            field: "label".to_string(),
+        },
+        branch_scoped: false,
+    });
+    let latest_commit_id = runtime
+        .history_access()
+        .latest_commit()
+        .expect("latest commit")
+        .commit_id;
+    let build = runtime
+        .index_authority()
+        .build_for_commit(DerivedIndexBuildRequest {
+            source_commit_id: latest_commit_id,
+            branch_id: BranchId("main".to_string()),
+            index_ids: vec![index.index_id],
+        });
+    assert!(build.failed_indexes.is_empty());
+
+    let snapshot = runtime.visibility_authority().snapshot();
+    let context = runtime
+        .visibility_reads()
+        .query_plan_context(&snapshot)
+        .expect("query plan context");
+    let packet = crate::facade::query::PlannedQueryPacket {
+        label: "relation-label-any-of".to_string(),
+        context_id: context,
+        scope: crate::facade::query::QueryScope::RelationPayloadFieldAnyOf {
+            field: "label".to_string(),
+            values: Arc::from(["arc".to_string(), "edge".to_string()]),
+            partition_scope: None,
+        },
+        locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
+        ordering: crate::facade::query::QueryOrderingContract::CanonicalRelationIdOrder,
+        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
+        reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
+        plan_key: crate::facade::query::DeterministicQueryPlanKey(2011),
+        target_count_hint: 2,
+    };
+    let plan = runtime
+        .visibility_reads()
+        .plan_query_packet(&snapshot, packet)
+        .expect("query plan");
+    let storage = runtime
+        .visibility_reads()
+        .execute_query_plan(plan.clone())
+        .expect("storage outcome");
+    let indexed = runtime
+        .index_access()
+        .execute_query_plan_with_fallback_parity(plan, FallbackParityMode::CertificationParity)
+        .expect("indexed outcome");
+
+    assert_eq!(
+        indexed.access_path,
+        QueryAccessPath::DerivedIndexGeneration {
+            generation_id: build.generations[0].generation_id,
+        }
+    );
+    assert_eq!(indexed.execution.result, storage.result);
+    assert_eq!(
+        indexed
+            .execution
+            .result
+            .relations
+            .iter()
+            .map(|record| record.relation_id)
+            .collect::<Vec<_>>(),
+        vec![changed_relations(&edge)[0], changed_relations(&arc)[0]]
+    );
+}
+
+#[test]
+fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports_incompatible_branch(
+) {
+    let mut runtime = runtime_with_test_schema();
+    let main_source = create_entity_outcome(&mut runtime, "main-source");
+    let main_target = create_entity_outcome(&mut runtime, "main-target");
+    let main_relation = create_relation_outcome(
+        &mut runtime,
+        changed_entities(&main_source)[0],
+        changed_entities(&main_target)[0],
+        "edge",
+    );
+    runtime
+        .history_authority()
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
+        .unwrap();
+    let feature_source = create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-source",
+        BranchId("feature".to_string()),
+    );
+    let feature_target = create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-target",
+        BranchId("feature".to_string()),
+    );
+    let mut feature_txn = runtime.begin_transaction(TransactionOptions {
+        target_branch: Some(BranchId("feature".to_string())),
+        ..TransactionOptions::default()
+    });
+    feature_txn.push_batch(WorkerIntentBatch::new("feature-relation").push(
+        MutationIntent::Create(CreateIntent::Relation(
+            crate::transactions::data::RelationSpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(2),
+                client_key: InternedString::Raw("edge".to_string()),
+                source: changed_entities(&feature_source)[0],
+                target: changed_entities(&feature_target)[0],
+                payload: Some(RecordPayload::StructuredJson(
+                    serde_json::json!({"label":"edge"}),
+                )),
+            },
+        )),
+    ));
+    let feature_relation = feature_txn.commit().expect("feature relation");
+    let index = runtime.index_authority().register(DerivedIndexDefinition {
+        index_id: DerivedIndexId(1),
+        name: "relation.label.branch".to_string(),
+        kind: DerivedIndexKind::RelationPayloadField {
+            field: "label".to_string(),
+        },
+        branch_scoped: true,
+    });
+    let build = runtime
+        .index_authority()
+        .build_for_commit(DerivedIndexBuildRequest {
+            source_commit_id: feature_relation.commit.commit_id,
+            branch_id: BranchId("feature".to_string()),
+            index_ids: vec![index.index_id],
+        });
+    assert!(build.failed_indexes.is_empty());
+
+    let context = runtime
+        .visibility_reads()
+        .query_plan_context(&main_relation.snapshot)
+        .expect("query plan context");
+    let packet = crate::facade::query::PlannedQueryPacket {
+        label: "relation-branch-mismatch".to_string(),
+        context_id: context,
+        scope: crate::facade::query::QueryScope::RelationPayloadFieldEquals {
+            field: "label".to_string(),
+            value: "edge".to_string(),
+            partition_scope: None,
+        },
+        locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
+        ordering: crate::facade::query::QueryOrderingContract::CanonicalRelationIdOrder,
+        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
+        reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
+        plan_key: crate::facade::query::DeterministicQueryPlanKey(1014),
+        target_count_hint: 0,
+    };
+    let outcome = runtime
+        .index_access()
+        .execute_query_plan_with_fallback_parity(
+            runtime
+                .visibility_reads()
+                .plan_query_packet(&main_relation.snapshot, packet)
+                .expect("query plan"),
+            FallbackParityMode::ProductionAdmissibility,
+        )
+        .expect("query outcome");
+
+    assert_eq!(
+        outcome.access_path,
+        QueryAccessPath::DerivedIndexRejectedStorageFallback {
+            rejection: IndexQueryRejectionClass::IncompatibleBranch,
+        }
+    );
+}
+
+#[test]
+fn derived_index_contract_relation_field_equals_partition_scope_keeps_bounded_parity() {
+    let mut runtime = runtime_with_test_schema();
+    let left_source = create_entity_in_partition(&mut runtime, "left-source", PartitionId(7));
+    let left_target = create_entity_in_partition(&mut runtime, "left-target", PartitionId(7));
+    let right_source = create_entity_in_partition(&mut runtime, "right-source", PartitionId(11));
+    let right_target = create_entity_in_partition(&mut runtime, "right-target", PartitionId(11));
+    let left_relation = create_relation_in_partition(
+        &mut runtime,
+        left_source,
+        left_target,
+        "edge",
+        PartitionId(7),
+    );
+    let _right_relation = create_relation_in_partition(
+        &mut runtime,
+        right_source,
+        right_target,
+        "edge",
+        PartitionId(11),
+    );
+    let commit_id = runtime
+        .history_access()
+        .latest_commit()
+        .expect("latest commit")
+        .commit_id;
+    let index = runtime.index_authority().register(DerivedIndexDefinition {
+        index_id: DerivedIndexId(1),
+        name: "relation.label.partitioned".to_string(),
+        kind: DerivedIndexKind::RelationPayloadField {
+            field: "label".to_string(),
+        },
+        branch_scoped: false,
+    });
+    let build = runtime
+        .index_authority()
+        .build_for_commit(DerivedIndexBuildRequest {
+            source_commit_id: commit_id,
+            branch_id: BranchId("main".to_string()),
+            index_ids: vec![index.index_id],
+        });
+    assert!(build.failed_indexes.is_empty());
+
+    let snapshot = runtime.visibility_authority().snapshot();
+    let context = runtime
+        .visibility_reads()
+        .query_plan_context(&snapshot)
+        .expect("query plan context");
+    let packet = crate::facade::query::PlannedQueryPacket {
+        label: "relation-label-left-only".to_string(),
+        context_id: context,
+        scope: crate::facade::query::QueryScope::RelationPayloadFieldEquals {
+            field: "label".to_string(),
+            value: "edge".to_string(),
+            partition_scope: Some(std::sync::Arc::from([PartitionId(7)])),
+        },
+        locality: crate::facade::query::QueryLocalityClass::PartitionBounded {
+            partitions: std::sync::Arc::from([PartitionId(7)]),
+        },
+        ordering: crate::facade::query::QueryOrderingContract::CanonicalRelationIdOrder,
+        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
+        reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
+        plan_key: crate::facade::query::DeterministicQueryPlanKey(1015),
+        target_count_hint: 0,
+    };
+    let plan = runtime
+        .visibility_reads()
+        .plan_query_packet(&snapshot, packet)
+        .expect("query plan");
+    let storage = runtime
+        .visibility_reads()
+        .execute_query_plan(plan.clone())
+        .expect("storage outcome");
+    let indexed = runtime
+        .index_access()
+        .execute_query_plan_with_fallback_parity(plan, FallbackParityMode::CertificationParity)
+        .expect("indexed outcome");
+
+    assert_eq!(indexed.execution.result, storage.result);
+    assert_eq!(indexed.execution.result.relations.len(), 1);
+    assert_eq!(
+        indexed.execution.result.relations[0].relation_id,
+        left_relation
+    );
+    assert_eq!(
+        indexed.access_path,
+        QueryAccessPath::DerivedIndexGeneration {
+            generation_id: build.generations[0].generation_id,
+        }
     );
 }
 
@@ -725,7 +1555,10 @@ fn derived_index_contract_persisted_recovery_preserves_entity_field_equals_parit
         .expect("recovered outcome");
 
     assert_eq!(original.access_path, recovered_outcome.access_path);
-    assert_eq!(original.execution.result, recovered_outcome.execution.result);
+    assert_eq!(
+        original.execution.result,
+        recovered_outcome.execution.result
+    );
     assert_eq!(
         original.execution.result.reduction_digest,
         recovered_outcome.execution.result.reduction_digest
@@ -791,7 +1624,8 @@ fn derived_index_contract_entity_field_equals_is_stable_across_execution_models(
                             partition_scope: None,
                         },
                         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
-                        ordering: crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
+                        ordering:
+                            crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
                         fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
                         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
                         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
@@ -820,7 +1654,8 @@ fn derived_index_contract_entity_field_equals_is_stable_across_execution_models(
                             partition_scope: None,
                         },
                         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
-                        ordering: crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
+                        ordering:
+                            crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
                         fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
                         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
                         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
@@ -834,7 +1669,10 @@ fn derived_index_contract_entity_field_equals_is_stable_across_execution_models(
         .expect("staged outcome");
 
     assert_eq!(serial_outcome.access_path, staged_outcome.access_path);
-    assert_eq!(serial_outcome.execution.result, staged_outcome.execution.result);
+    assert_eq!(
+        serial_outcome.execution.result,
+        staged_outcome.execution.result
+    );
     assert_eq!(
         serial_outcome.execution.result.reduction_digest,
         staged_outcome.execution.result.reduction_digest

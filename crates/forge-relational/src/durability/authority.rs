@@ -1,14 +1,15 @@
 use std::collections::BTreeSet;
 use std::fs;
 
+use crate::authority::commit::pipeline::{
+    execute_authoritative_commit, AuthoritativeCommitContext,
+};
 use crate::capabilities::{
     DurabilityRead, RuntimeConfigSource, RuntimeIdentitySource, SchemaSource, SchemaVersionSource,
 };
 use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
-use crate::history::data::{BranchId, CommitId, OrderedParentList};
-use crate::merge::data::{MergeExecutionRequest, MergeIntent};
 use crate::durability::checkpoints::images::{partition_from_image, partition_to_image};
 use crate::durability::data::{
     CheckpointCoverage, CompactionOutcome, CompactionPlan, DurabilityError, DurabilityMode,
@@ -20,16 +21,17 @@ use crate::durability::log::local_store::{
     checkpoint_file_path, current_segment_ids, ensure_loaded_store, persist_store_manifest,
     read_json, segment_file_path, write_json, DurableCheckpointFile, DurableSegmentFile,
 };
+use crate::history::data::{BranchId, CommitId, OrderedParentList};
 use crate::history::data::{HistoryDriftClass, VersionNode};
 use crate::lineage::data::{LineageCheckpointArtifact, LineageCheckpointDigestBasis};
 use crate::logic::runtime::{RecoveryOutcome as RuntimeRecoveryOutcome, RelationalRuntime};
+use crate::merge::data::{MergeExecutionRequest, MergeIntent};
 use crate::replay::data::CanonicalCommitEnvelope;
 use crate::schema::logic::{validate_schema_continuity_bundle, SchemaContinuityBundleIssue};
 use crate::transactions::data::{
     merge_commit_mutation_plan_token, MergeCommitMutationPlan, MergeExecutionStructuralSummary,
     MergeExecutionSummary, TransactionOptions, WorkerIntentBatch,
 };
-use crate::authority::commit::pipeline::{execute_authoritative_commit, AuthoritativeCommitContext};
 use serde_json::json;
 use std::sync::Arc;
 
@@ -530,6 +532,7 @@ fn rebuild_runtime_from_plan(plan: RecoveryPlan) -> Result<RelationalRuntime, Du
     let original_durability_mode = restored.config.durability.policy.mode;
     restored.config.durability.policy.mode = DurabilityMode::InMemoryCanonical;
     restored.durability.store = None;
+    restored.commit_strategies.executors = plan.commit_strategy_executors.clone();
     if let Some(first_envelope) = plan.tail_log.first() {
         restored.config.schema.registry = first_envelope.schema_registry.clone();
     }
@@ -710,7 +713,7 @@ fn rebuild_runtime_from_plan(plan: RecoveryPlan) -> Result<RelationalRuntime, Du
                 envelope.patch.position,
                 Arc::new(envelope.clone()),
             );
-            if plan.restore_authoritative_envelopes {
+            if plan.should_restore_authoritative_envelope(envelope.commit.commit_id) {
                 apply_authoritative_commit_artifacts(&mut restored, envelope);
                 validate_recovered_history_parity(&restored, envelope)?;
             }
@@ -782,7 +785,7 @@ fn rebuild_runtime_from_plan(plan: RecoveryPlan) -> Result<RelationalRuntime, Du
                     )
                 })?;
             }
-            if plan.restore_authoritative_envelopes {
+            if plan.should_restore_authoritative_envelope(envelope.commit.commit_id) {
                 apply_authoritative_commit_artifacts(&mut restored, envelope);
                 validate_recovered_history_parity(&restored, envelope)?;
             }
@@ -997,15 +1000,15 @@ fn apply_authoritative_commit_artifacts(
         .and_then(|head| head.as_ref())
         .is_some_and(|head| head.commit_id == envelope.commit.commit_id)
     {
-        runtime
-            .history
-            .branch_heads
-            .insert(envelope.branch_context.clone(), Some(envelope.commit.clone()));
+        runtime.history.branch_heads.insert(
+            envelope.branch_context.clone(),
+            Some(envelope.commit.clone()),
+        );
     }
-    runtime.history.commit_envelopes.insert(
-        envelope.commit.commit_id,
-        Arc::new(envelope.clone()),
-    );
+    runtime
+        .history
+        .commit_envelopes
+        .insert(envelope.commit.commit_id, Arc::new(envelope.clone()));
     runtime
         .history
         .patch_stream_index

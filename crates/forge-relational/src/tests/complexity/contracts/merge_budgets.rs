@@ -77,10 +77,7 @@ fn complexity_budget_merge_planning_reports_request_shaped_work() {
 #[test]
 fn complexity_budget_merge_execution_reports_admitted_records_and_emitted_mutations() {
     let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(
-        &mut runtime,
-        "main-anchor",
-    );
+    create_entity(&mut runtime, "main-anchor");
     create_branch_from_main(&mut runtime, "feature");
     let mut txn = runtime.begin_transaction(TransactionOptions {
         target_branch: Some(BranchId("feature".to_string())),

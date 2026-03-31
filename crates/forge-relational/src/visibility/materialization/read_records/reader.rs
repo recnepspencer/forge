@@ -1,7 +1,9 @@
-use crate::capabilities::{SchemaVersionSource, SnapshotSource, VersionSource, VisibilityPolicySource};
 use crate::authority::commit::preparation::planning::strategy::{
     coarse_preparation_packet_count, strategy_for_parallel_packets, PreparationStrategySelection,
     TARGET_PREPARATION_ITEMS_PER_PACKET,
+};
+use crate::capabilities::{
+    SchemaVersionSource, SnapshotSource, VersionSource, VisibilityPolicySource,
 };
 use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
@@ -15,14 +17,11 @@ use crate::publication::patch::data::CanonicalAspectSet;
 use crate::query::data::{
     reduce_query_fragments, PlannedQueryPacket, QueryComplexitySummary, QueryExecutionOutcome,
     QueryOrderingContract, QueryParallelLegality, QueryParallelProfitability, QueryPlanContextId,
-    QueryPlanEvidenceBasis, QuerySerialReason, QueryScope, QueryWorkPacket,
-    SnapshotPinnedQueryPlan,
+    QueryPlanEvidenceBasis, QueryScope, QuerySerialReason, SnapshotPinnedQueryPlan,
 };
 use crate::schema::data::runtime_descriptor_semantics_policy;
 use crate::snapshots::data::{SnapshotHandle, SnapshotInspectionSummary};
-use crate::storage::data::{
-    EntityReadRecord, PacketResult, RelationReadRecord, RelationalReadView,
-};
+use crate::storage::data::{EntityReadRecord, RelationReadRecord, RelationalReadView};
 use crate::storage::logic::state::{DenseSlotBitSet, PartitionAccess};
 use crate::symbols::data::InternedString;
 use crate::visibility::cache_state::{
@@ -41,6 +40,62 @@ use super::visibility::{slot_kind_matches, visible_slots_in_partition_from_state
 
 pub struct VisibilityReadContext<'runtime> {
     runtime: &'runtime RelationalRuntime,
+}
+
+#[derive(Default)]
+struct QueryFragmentScratch {
+    entity_capacity_hint: usize,
+    relation_capacity_hint: usize,
+    entity_visit_key_capacity_hint: usize,
+    relation_visit_key_capacity_hint: usize,
+    visited_entities: BTreeSet<crate::identity::data::EntityId>,
+    emitted_relations: BTreeSet<crate::identity::data::RelationId>,
+    frontier: VecDeque<(
+        crate::identity::data::EntityId,
+        u32,
+        crate::identity::data::EntityId,
+        Option<crate::identity::data::RelationId>,
+    )>,
+}
+
+impl QueryFragmentScratch {
+    fn entity_buffer(&self) -> Vec<EntityReadRecord> {
+        Vec::with_capacity(self.entity_capacity_hint)
+    }
+
+    fn relation_buffer(&self) -> Vec<RelationReadRecord> {
+        Vec::with_capacity(self.relation_capacity_hint)
+    }
+
+    fn entity_visit_key_buffer(&self) -> Vec<crate::query::data::TraversalEntityVisitKey> {
+        Vec::with_capacity(self.entity_visit_key_capacity_hint)
+    }
+
+    fn relation_visit_key_buffer(&self) -> Vec<crate::query::data::TraversalRelationVisitKey> {
+        Vec::with_capacity(self.relation_visit_key_capacity_hint)
+    }
+
+    fn remember_entity_capacity(&mut self, len: usize) {
+        self.entity_capacity_hint = self.entity_capacity_hint.max(len);
+    }
+
+    fn remember_relation_capacity(&mut self, len: usize) {
+        self.relation_capacity_hint = self.relation_capacity_hint.max(len);
+    }
+
+    fn remember_entity_visit_key_capacity(&mut self, len: usize) {
+        self.entity_visit_key_capacity_hint = self.entity_visit_key_capacity_hint.max(len);
+    }
+
+    fn remember_relation_visit_key_capacity(&mut self, len: usize) {
+        self.relation_visit_key_capacity_hint = self.relation_visit_key_capacity_hint.max(len);
+    }
+
+    fn reset_traversal(&mut self) {
+        self.visited_entities.clear();
+        self.emitted_relations.clear();
+        self.frontier.clear();
+    }
 }
 
 impl<'runtime> VisibilityReadContext<'runtime> {
@@ -72,7 +127,10 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         let version_id = self
             .runtime
             .published_snapshot_version(handle.snapshot_id)?;
-        let state = self.runtime.visibility.published_snapshot_state(handle.snapshot_id)?;
+        let state = self
+            .runtime
+            .visibility
+            .published_snapshot_state(handle.snapshot_id)?;
         let read_view = read_view_from_snapshot_state(self.runtime, &state);
         Some(SnapshotInspectionSummary {
             version_id,
@@ -94,6 +152,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             )?;
             let mut read_view = read_view_from_snapshot_state(self.runtime, &state);
             read_view.snapshot = SnapshotHandle {
+                runtime_instance_id: self.runtime.runtime_instance_id(),
                 snapshot_id: handle.snapshot_id,
                 version_id,
                 read_policy,
@@ -102,7 +161,10 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         }
         self.runtime
             .published_snapshot_version(handle.snapshot_id)?;
-        let state = self.runtime.visibility.published_snapshot_state(handle.snapshot_id)?;
+        let state = self
+            .runtime
+            .visibility
+            .published_snapshot_state(handle.snapshot_id)?;
         let mut read_view = read_view_from_snapshot_state(self.runtime, &state);
         read_view.snapshot = handle.clone();
         Some(read_view)
@@ -157,24 +219,6 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         })
     }
 
-    pub fn plan_legacy_query_packet(
-        &self,
-        handle: &SnapshotHandle,
-        packet: QueryWorkPacket,
-    ) -> Option<SnapshotPinnedQueryPlan> {
-        let context_id = self.query_plan_context(handle)?;
-        self.plan_query_packet(handle, packet.planned_with_context(context_id))
-    }
-
-    pub fn execute_read_packet(
-        &self,
-        handle: &SnapshotHandle,
-        packet: &QueryWorkPacket,
-    ) -> Option<PacketResult> {
-        self.read_snapshot(handle)
-            .map(|read_view| read_view.execute_packet(packet))
-    }
-
     pub fn execute_query_plan(
         &self,
         plan: SnapshotPinnedQueryPlan,
@@ -186,15 +230,28 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         let read_view = self.read_snapshot(&plan.snapshot)?;
         let packets = packetized_query_work(&plan.packet, &read_view)?;
         let packet_count = packets.len();
-        let target_count = plan.packet.target_count_hint;
+        let target_count = packetized_query_item_count(&packets);
+        let peak_width = packetized_query_peak_width(&packets);
+        let scope_units = query_scope_units(&packets);
         let touched_partitions = partition_count_for_targets(&packets);
         let strategy = self.query_execution_strategy(&plan, packet_count);
-        self.runtime
-            .performance_access()
-            .count_query_packet_shape(packet_count, target_count);
+        let scratch_reuse_count = packetized_fragment_scratch_reuse_count(&packets);
+        self.runtime.performance_access().count_query_packet_shape(
+            packet_count,
+            target_count,
+            peak_width,
+            scope_units,
+        );
+        if scratch_reuse_count > 0 {
+            self.runtime
+                .performance_access()
+                .count_query_fragment_scratch_reuse_by(scratch_reuse_count);
+        }
 
         if matches!(plan.legality, QueryParallelLegality::LegalReadOnlySnapshot) {
-            self.runtime.performance_access().count_query_parallel_legal();
+            self.runtime
+                .performance_access()
+                .count_query_parallel_legal();
         }
         if matches!(plan.profitability, QueryParallelProfitability::Profitable) {
             self.runtime
@@ -204,12 +261,22 @@ impl<'runtime> VisibilityReadContext<'runtime> {
 
         let fragments = match strategy {
             PreparationStrategySelection::Serial => {
-                self.runtime.performance_access().count_query_serial_strategy();
+                self.runtime
+                    .performance_access()
+                    .count_query_serial_strategy();
+                let mut scratch = QueryFragmentScratch::default();
                 packets
                     .iter()
                     .enumerate()
                     .map(|(ordinal, packet)| {
-                        execute_query_fragment(self.runtime, &read_view, &plan.packet, packet, ordinal as u64)
+                        execute_query_fragment(
+                            self.runtime,
+                            &read_view,
+                            &plan.packet,
+                            packet,
+                            ordinal as u64,
+                            &mut scratch,
+                        )
                     })
                     .collect::<Option<Vec<_>>>()?
             }
@@ -217,13 +284,31 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                 self.runtime
                     .performance_access()
                     .count_query_staged_parallel_strategy();
-                packets
-                    .par_iter()
-                    .enumerate()
-                    .map(|(ordinal, packet)| {
-                        execute_query_fragment(self.runtime, &read_view, &plan.packet, packet, ordinal as u64)
+                let bucket_count = packets.len().min(rayon::current_num_threads()).max(1);
+                let mut buckets = vec![Vec::new(); bucket_count];
+                for (ordinal, packet) in packets.iter().enumerate() {
+                    buckets[ordinal % bucket_count].push((ordinal as u64, packet));
+                }
+                let bucketed_fragments = buckets
+                    .into_par_iter()
+                    .map(|bucket| {
+                        let mut scratch = QueryFragmentScratch::default();
+                        bucket
+                            .into_iter()
+                            .map(|(ordinal, packet)| {
+                                execute_query_fragment(
+                                    self.runtime,
+                                    &read_view,
+                                    &plan.packet,
+                                    packet,
+                                    ordinal,
+                                    &mut scratch,
+                                )
+                            })
+                            .collect::<Option<Vec<_>>>()
                     })
-                    .collect::<Option<Vec<_>>>()?
+                    .collect::<Option<Vec<Vec<_>>>>()?;
+                bucketed_fragments.into_iter().flatten().collect()
             }
         };
 
@@ -243,15 +328,11 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             entity_records_emitted,
             relation_records_emitted,
         };
-        let result = reduce_query_fragments(
-            plan.packet.execution_shape,
-            plan.packet.ordering,
-            fragments,
-        );
-        self.runtime.performance_access().count_query_emissions(
-            result.entities.len(),
-            result.relations.len(),
-        );
+        let result =
+            reduce_query_fragments(plan.packet.execution_shape, plan.packet.ordering, fragments);
+        self.runtime
+            .performance_access()
+            .count_query_emissions(result.entities.len(), result.relations.len());
 
         Some(QueryExecutionOutcome {
             plan,
@@ -766,6 +847,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             self.runtime.active_snapshot_binding(handle.snapshot_id)
         {
             return Some(SnapshotHandle {
+                runtime_instance_id: self.runtime.runtime_instance_id(),
                 snapshot_id: handle.snapshot_id,
                 version_id,
                 read_policy,
@@ -774,6 +856,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         self.runtime
             .published_snapshot_version(handle.snapshot_id)
             .map(|version_id| SnapshotHandle {
+                runtime_instance_id: self.runtime.runtime_instance_id(),
                 snapshot_id: handle.snapshot_id,
                 version_id,
                 read_policy: handle.read_policy,
@@ -788,7 +871,11 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         crate::schema::data::DescriptorSemanticsVersion,
         QueryPlanEvidenceBasis,
     )> {
-        if let Some(envelope) = self.runtime.history_access().commit_envelope_for_version(version_id) {
+        if let Some(envelope) = self
+            .runtime
+            .history_access()
+            .commit_envelope_for_version(version_id)
+        {
             return Some((
                 envelope.schema_version,
                 envelope.descriptor_semantics_version,
@@ -798,7 +885,9 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             ));
         }
 
-        if version_id == self.runtime.current_version_id() && self.runtime.history_access().latest_commit().is_none() {
+        if version_id == self.runtime.current_version_id()
+            && self.runtime.history_access().latest_commit().is_none()
+        {
             return Some((
                 self.runtime.primary_schema_version_id(),
                 runtime_descriptor_semantics_policy().current_write_version(),
@@ -824,7 +913,9 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             let touched_partitions = targets
                 .iter()
                 .map(|target| match target {
-                    crate::transactions::data::RecordRef::Entity(entity_id) => entity_id.partition_id,
+                    crate::transactions::data::RecordRef::Entity(entity_id) => {
+                        entity_id.partition_id
+                    }
                     crate::transactions::data::RecordRef::Relation(relation_id) => {
                         relation_id.partition_id
                     }
@@ -834,14 +925,15 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                 return QueryParallelProfitability::Profitable;
             }
 
-            let legacy_packet = QueryWorkPacket {
-                label: packet.label.clone(),
-                partition_hint: None,
-                execution_shape: packet.execution_shape,
-                reduction: packet.reduction,
-                targets: targets.to_vec(),
-            };
-            if let Some(read_plan) = self.runtime.storage_access().plan_read_packet(snapshot, &legacy_packet)
+            let read_packet = PlannedQueryPacket::explicit_targets(
+                packet.label.clone(),
+                packet.context_id.clone(),
+                targets.to_vec(),
+            );
+            if let Some(read_plan) = self
+                .runtime
+                .storage_access()
+                .plan_read_explicit_query_packet(snapshot, &read_packet)
             {
                 let touched_chunk_count =
                     read_plan.entity_chunk_indexes.len() + read_plan.relation_chunk_indexes.len();
@@ -853,8 +945,10 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             }
         }
 
-        if matches!(packet.locality, crate::query::data::QueryLocalityClass::CrossPartitionTraversal)
-            && packet.target_count_hint > 0
+        if matches!(
+            packet.locality,
+            crate::query::data::QueryLocalityClass::CrossPartitionTraversal
+        ) && packet.target_count_hint > 0
             && packet.target_count_hint <= 4
         {
             return QueryParallelProfitability::SerialPreferred {
@@ -898,6 +992,21 @@ enum PacketizedQueryWork {
         field: String,
         value: String,
     },
+    EntityPayloadFieldAnyOf {
+        partition_id: crate::identity::data::PartitionId,
+        field: String,
+        values: Vec<String>,
+    },
+    RelationPayloadFieldEquals {
+        partition_id: crate::identity::data::PartitionId,
+        field: String,
+        value: String,
+    },
+    RelationPayloadFieldAnyOf {
+        partition_id: crate::identity::data::PartitionId,
+        field: String,
+        values: Vec<String>,
+    },
     AspectFilteredEntities {
         partition_id: crate::identity::data::PartitionId,
         kind_id: Option<crate::identity::data::KindId>,
@@ -936,8 +1045,12 @@ fn packetized_query_work(
 
             for target in targets.iter() {
                 let partition_id = match target {
-                    crate::transactions::data::RecordRef::Entity(entity_id) => entity_id.partition_id,
-                    crate::transactions::data::RecordRef::Relation(relation_id) => relation_id.partition_id,
+                    crate::transactions::data::RecordRef::Entity(entity_id) => {
+                        entity_id.partition_id
+                    }
+                    crate::transactions::data::RecordRef::Relation(relation_id) => {
+                        relation_id.partition_id
+                    }
                 };
                 by_partition
                     .entry(partition_id)
@@ -994,13 +1107,75 @@ fn packetized_query_work(
         } => Some(
             entity_scan_partitions(partition_scope, read_view)
                 .into_iter()
-                .map(|partition_id| PacketizedQueryWork::EntityPayloadFieldEquals {
-                    partition_id,
-                    field: field.clone(),
-                    value: value.clone(),
-                })
+                .map(
+                    |partition_id| PacketizedQueryWork::EntityPayloadFieldEquals {
+                        partition_id,
+                        field: field.clone(),
+                        value: value.clone(),
+                    },
+                )
                 .collect(),
         ),
+        QueryScope::EntityPayloadFieldAnyOf {
+            field,
+            values,
+            partition_scope,
+        } => {
+            let values = QueryScope::canonical_value_scope(values.as_ref())
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>();
+            Some(
+                entity_scan_partitions(partition_scope, read_view)
+                    .into_iter()
+                    .map(
+                        |partition_id| PacketizedQueryWork::EntityPayloadFieldAnyOf {
+                            partition_id,
+                            field: field.clone(),
+                            values: values.clone(),
+                        },
+                    )
+                    .collect(),
+            )
+        }
+        QueryScope::RelationPayloadFieldEquals {
+            field,
+            value,
+            partition_scope,
+        } => Some(
+            relation_scan_partitions(partition_scope, read_view)
+                .into_iter()
+                .map(
+                    |partition_id| PacketizedQueryWork::RelationPayloadFieldEquals {
+                        partition_id,
+                        field: field.clone(),
+                        value: value.clone(),
+                    },
+                )
+                .collect(),
+        ),
+        QueryScope::RelationPayloadFieldAnyOf {
+            field,
+            values,
+            partition_scope,
+        } => {
+            let values = QueryScope::canonical_value_scope(values.as_ref())
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>();
+            Some(
+                relation_scan_partitions(partition_scope, read_view)
+                    .into_iter()
+                    .map(
+                        |partition_id| PacketizedQueryWork::RelationPayloadFieldAnyOf {
+                            partition_id,
+                            field: field.clone(),
+                            values: values.clone(),
+                        },
+                    )
+                    .collect(),
+            )
+        }
         QueryScope::AspectFilteredEntities {
             kind_id,
             aspect_filter,
@@ -1022,42 +1197,53 @@ fn packetized_query_work(
         } => Some(
             relation_scan_partitions(partition_scope, read_view)
                 .into_iter()
-                .map(|partition_id| PacketizedQueryWork::AspectFilteredRelations {
-                    partition_id,
-                    kind_id: *kind_id,
-                    aspect_filter: aspect_filter.clone(),
-                })
+                .map(
+                    |partition_id| PacketizedQueryWork::AspectFilteredRelations {
+                        partition_id,
+                        kind_id: *kind_id,
+                        aspect_filter: aspect_filter.clone(),
+                    },
+                )
                 .collect(),
         ),
         QueryScope::OutgoingNeighborhood {
             seeds,
             relation_kind_scope,
-        } => Some(vec![PacketizedQueryWork::OutgoingNeighborhood {
-            seeds: canonical_seed_ids(seeds),
-            relation_kind_scope: relation_kind_scope
-                .as_ref()
-                .map(canonical_kind_scope),
-        }]),
+        } => Some(
+            canonical_seed_ids(seeds)
+                .into_iter()
+                .map(|seed| PacketizedQueryWork::OutgoingNeighborhood {
+                    seeds: vec![seed],
+                    relation_kind_scope: relation_kind_scope.as_ref().map(canonical_kind_scope),
+                })
+                .collect(),
+        ),
         QueryScope::IncomingNeighborhood {
             seeds,
             relation_kind_scope,
-        } => Some(vec![PacketizedQueryWork::IncomingNeighborhood {
-            seeds: canonical_seed_ids(seeds),
-            relation_kind_scope: relation_kind_scope
-                .as_ref()
-                .map(canonical_kind_scope),
-        }]),
+        } => Some(
+            canonical_seed_ids(seeds)
+                .into_iter()
+                .map(|seed| PacketizedQueryWork::IncomingNeighborhood {
+                    seeds: vec![seed],
+                    relation_kind_scope: relation_kind_scope.as_ref().map(canonical_kind_scope),
+                })
+                .collect(),
+        ),
         QueryScope::ConnectivityTraversal {
             seeds,
             relation_kind_scope,
             max_depth,
-        } => Some(vec![PacketizedQueryWork::ConnectivityTraversal {
-            seeds: canonical_seed_ids(seeds),
-            relation_kind_scope: relation_kind_scope
-                .as_ref()
-                .map(canonical_kind_scope),
-            max_depth: *max_depth,
-        }]),
+        } => Some(
+            canonical_seed_ids(seeds)
+                .into_iter()
+                .map(|seed| PacketizedQueryWork::ConnectivityTraversal {
+                    seeds: vec![seed],
+                    relation_kind_scope: relation_kind_scope.as_ref().map(canonical_kind_scope),
+                    max_depth: *max_depth,
+                })
+                .collect(),
+        ),
     }
 }
 
@@ -1067,6 +1253,7 @@ fn execute_query_fragment(
     packet: &PlannedQueryPacket,
     work: &PacketizedQueryWork,
     ordinal: u64,
+    scratch: &mut QueryFragmentScratch,
 ) -> Option<crate::query::data::QueryWorkerFragment> {
     match work {
         PacketizedQueryWork::ExplicitTargets(targets) => read_view.execute_planned_packet_fragment(
@@ -1078,158 +1265,140 @@ fn execute_query_fragment(
         PacketizedQueryWork::EntityKindScan {
             partition_id,
             kind_id,
-        } => {
-            let entities = read_view
-                .entities()
-                .iter()
-                .filter(|record| {
-                    record.entity_id.partition_id == *partition_id
-                        && record.kind.kind_id == *kind_id
-                })
-                .cloned()
-                .collect::<Vec<_>>();
-            Some(crate::query::data::QueryWorkerFragment {
-                plan_key: packet.plan_key,
-                fragment_key: crate::query::data::deterministic_query_fragment_key(
-                    packet.plan_key,
-                    ordinal,
-                ),
-                ordering: packet.ordering,
-                counters: crate::query::data::QueryFragmentCounters {
-                    target_count: 0,
-                    entity_records_emitted: entities.len(),
-                    relation_records_emitted: 0,
-                    touched_partitions: 1,
-                },
-                entities,
-                relations: Vec::new(),
-            })
-        }
+        } => Some(entity_fragment(
+            read_view,
+            packet,
+            ordinal,
+            0,
+            1,
+            scratch,
+            |record| {
+                record.entity_id.partition_id == *partition_id && record.kind.kind_id == *kind_id
+            },
+        )),
         PacketizedQueryWork::RelationKindScan {
             partition_id,
             kind_id,
-        } => {
-            let relations = read_view
-                .relations()
-                .iter()
-                .filter(|record| {
-                    record.relation_id.partition_id == *partition_id
-                        && record.kind.kind_id == *kind_id
-                })
-                .cloned()
-                .collect::<Vec<_>>();
-            Some(crate::query::data::QueryWorkerFragment {
-                plan_key: packet.plan_key,
-                fragment_key: crate::query::data::deterministic_query_fragment_key(
-                    packet.plan_key,
-                    ordinal,
-                ),
-                ordering: packet.ordering,
-                counters: crate::query::data::QueryFragmentCounters {
-                    target_count: 0,
-                    entity_records_emitted: 0,
-                    relation_records_emitted: relations.len(),
-                    touched_partitions: 1,
-                },
-                entities: Vec::new(),
-                relations,
-            })
-        }
+        } => Some(relation_fragment(
+            read_view,
+            packet,
+            ordinal,
+            0,
+            1,
+            scratch,
+            |record| {
+                record.relation_id.partition_id == *partition_id && record.kind.kind_id == *kind_id
+            },
+        )),
         PacketizedQueryWork::EntityPayloadFieldEquals {
             partition_id,
             field,
             value,
+        } => Some(entity_fragment(
+            read_view,
+            packet,
+            ordinal,
+            0,
+            1,
+            scratch,
+            |record| {
+                record.entity_id.partition_id == *partition_id
+                    && payload_field_key(&record.payload, field).as_deref() == Some(value.as_str())
+            },
+        )),
+        PacketizedQueryWork::EntityPayloadFieldAnyOf {
+            partition_id,
+            field,
+            values,
         } => {
-            let entities = read_view
-                .entities()
-                .iter()
-                .filter(|record| {
+            let values = values.iter().map(String::as_str).collect::<BTreeSet<_>>();
+            Some(entity_fragment(
+                read_view,
+                packet,
+                ordinal,
+                values.len(),
+                1,
+                scratch,
+                |record| {
                     record.entity_id.partition_id == *partition_id
-                        && payload_field_key(&record.payload, field).as_deref() == Some(value.as_str())
-                })
-                .cloned()
-                .collect::<Vec<_>>();
-            Some(crate::query::data::QueryWorkerFragment {
-                plan_key: packet.plan_key,
-                fragment_key: crate::query::data::deterministic_query_fragment_key(
-                    packet.plan_key,
-                    ordinal,
-                ),
-                ordering: packet.ordering,
-                counters: crate::query::data::QueryFragmentCounters {
-                    target_count: 0,
-                    entity_records_emitted: entities.len(),
-                    relation_records_emitted: 0,
-                    touched_partitions: usize::from(!entities.is_empty()),
+                        && payload_field_key(&record.payload, field)
+                            .as_deref()
+                            .is_some_and(|value| values.contains(value))
                 },
-                entities,
-                relations: Vec::new(),
-            })
+            ))
+        }
+        PacketizedQueryWork::RelationPayloadFieldEquals {
+            partition_id,
+            field,
+            value,
+        } => Some(relation_fragment(
+            read_view,
+            packet,
+            ordinal,
+            0,
+            1,
+            scratch,
+            |record| {
+                record.relation_id.partition_id == *partition_id
+                    && optional_payload_field_key(&record.payload, field).as_deref()
+                        == Some(value.as_str())
+            },
+        )),
+        PacketizedQueryWork::RelationPayloadFieldAnyOf {
+            partition_id,
+            field,
+            values,
+        } => {
+            let values = values.iter().map(String::as_str).collect::<BTreeSet<_>>();
+            Some(relation_fragment(
+                read_view,
+                packet,
+                ordinal,
+                values.len(),
+                1,
+                scratch,
+                |record| {
+                    record.relation_id.partition_id == *partition_id
+                        && optional_payload_field_key(&record.payload, field)
+                            .as_deref()
+                            .is_some_and(|value| values.contains(value))
+                },
+            ))
         }
         PacketizedQueryWork::AspectFilteredEntities {
             partition_id,
             kind_id,
             aspect_filter,
-        } => {
-            let entities = read_view
-                .entities()
-                .iter()
-                .filter(|record| {
-                    record.entity_id.partition_id == *partition_id
-                        && kind_id.is_none_or(|kind_id| record.kind.kind_id == kind_id)
-                        && aspect_filter_matches_entity(runtime, record, aspect_filter)
-                })
-                .cloned()
-                .collect::<Vec<_>>();
-            Some(crate::query::data::QueryWorkerFragment {
-                plan_key: packet.plan_key,
-                fragment_key: crate::query::data::deterministic_query_fragment_key(
-                    packet.plan_key,
-                    ordinal,
-                ),
-                ordering: packet.ordering,
-                counters: crate::query::data::QueryFragmentCounters {
-                    target_count: 0,
-                    entity_records_emitted: entities.len(),
-                    relation_records_emitted: 0,
-                    touched_partitions: 1,
-                },
-                entities,
-                relations: Vec::new(),
-            })
-        }
+        } => Some(entity_fragment(
+            read_view,
+            packet,
+            ordinal,
+            0,
+            1,
+            scratch,
+            |record| {
+                record.entity_id.partition_id == *partition_id
+                    && kind_id.is_none_or(|kind_id| record.kind.kind_id == kind_id)
+                    && aspect_filter_matches_entity(runtime, record, aspect_filter)
+            },
+        )),
         PacketizedQueryWork::AspectFilteredRelations {
             partition_id,
             kind_id,
             aspect_filter,
-        } => {
-            let relations = read_view
-                .relations()
-                .iter()
-                .filter(|record| {
-                    record.relation_id.partition_id == *partition_id
-                        && kind_id.is_none_or(|kind_id| record.kind.kind_id == kind_id)
-                        && aspect_filter_matches_relation(runtime, record, aspect_filter)
-                })
-                .cloned()
-                .collect::<Vec<_>>();
-            Some(crate::query::data::QueryWorkerFragment {
-                plan_key: packet.plan_key,
-                fragment_key: crate::query::data::deterministic_query_fragment_key(
-                    packet.plan_key,
-                    ordinal,
-                ),
-                ordering: packet.ordering,
-                counters: crate::query::data::QueryFragmentCounters {
-                    target_count: 0,
-                    entity_records_emitted: 0,
-                    relation_records_emitted: relations.len(),
-                    touched_partitions: 1,
-                },
-                entities: Vec::new(),
-                relations,
-            })
-        }
+        } => Some(relation_fragment(
+            read_view,
+            packet,
+            ordinal,
+            0,
+            1,
+            scratch,
+            |record| {
+                record.relation_id.partition_id == *partition_id
+                    && kind_id.is_none_or(|kind_id| record.kind.kind_id == kind_id)
+                    && aspect_filter_matches_relation(runtime, record, aspect_filter)
+            },
+        )),
         PacketizedQueryWork::OutgoingNeighborhood {
             seeds,
             relation_kind_scope,
@@ -1241,6 +1410,7 @@ fn execute_query_fragment(
             relation_kind_scope.as_deref(),
             ordinal,
             TraversalMode::OutgoingNeighborhood,
+            scratch,
         ),
         PacketizedQueryWork::IncomingNeighborhood {
             seeds,
@@ -1253,6 +1423,7 @@ fn execute_query_fragment(
             relation_kind_scope.as_deref(),
             ordinal,
             TraversalMode::IncomingNeighborhood,
+            scratch,
         ),
         PacketizedQueryWork::ConnectivityTraversal {
             seeds,
@@ -1265,8 +1436,83 @@ fn execute_query_fragment(
             seeds,
             relation_kind_scope.as_deref(),
             ordinal,
-            TraversalMode::ConnectivityTraversal { max_depth: *max_depth },
+            TraversalMode::ConnectivityTraversal {
+                max_depth: *max_depth,
+            },
+            scratch,
         ),
+    }
+}
+
+fn entity_fragment(
+    read_view: &RelationalReadView,
+    packet: &PlannedQueryPacket,
+    ordinal: u64,
+    target_count: usize,
+    touched_partitions: usize,
+    scratch: &mut QueryFragmentScratch,
+    include: impl Fn(&EntityReadRecord) -> bool,
+) -> crate::query::data::QueryWorkerFragment {
+    let mut entities = scratch.entity_buffer();
+    for record in read_view.entities() {
+        if include(record) {
+            entities.push(record.clone());
+        }
+    }
+    let entity_records_emitted = entities.len();
+    scratch.remember_entity_capacity(entity_records_emitted);
+    crate::query::data::QueryWorkerFragment {
+        plan_key: packet.plan_key,
+        fragment_key: crate::query::data::deterministic_query_fragment_key(
+            packet.plan_key,
+            ordinal,
+        ),
+        ordering: packet.ordering,
+        counters: crate::query::data::QueryFragmentCounters {
+            target_count,
+            entity_records_emitted,
+            relation_records_emitted: 0,
+            touched_partitions: usize::from(entity_records_emitted > 0) * touched_partitions,
+        },
+        entities,
+        relations: Vec::new(),
+        traversal_basis: None,
+    }
+}
+
+fn relation_fragment(
+    read_view: &RelationalReadView,
+    packet: &PlannedQueryPacket,
+    ordinal: u64,
+    target_count: usize,
+    touched_partitions: usize,
+    scratch: &mut QueryFragmentScratch,
+    include: impl Fn(&RelationReadRecord) -> bool,
+) -> crate::query::data::QueryWorkerFragment {
+    let mut relations = scratch.relation_buffer();
+    for record in read_view.relations() {
+        if include(record) {
+            relations.push(record.clone());
+        }
+    }
+    let relation_records_emitted = relations.len();
+    scratch.remember_relation_capacity(relation_records_emitted);
+    crate::query::data::QueryWorkerFragment {
+        plan_key: packet.plan_key,
+        fragment_key: crate::query::data::deterministic_query_fragment_key(
+            packet.plan_key,
+            ordinal,
+        ),
+        ordering: packet.ordering,
+        counters: crate::query::data::QueryFragmentCounters {
+            target_count,
+            entity_records_emitted: 0,
+            relation_records_emitted,
+            touched_partitions: usize::from(relation_records_emitted > 0) * touched_partitions,
+        },
+        entities: Vec::new(),
+        relations,
+        traversal_basis: None,
     }
 }
 
@@ -1289,6 +1535,9 @@ fn partition_count_for_targets(packets: &[PacketizedQueryWork]) -> usize {
             PacketizedQueryWork::EntityKindScan { partition_id, .. }
             | PacketizedQueryWork::RelationKindScan { partition_id, .. }
             | PacketizedQueryWork::EntityPayloadFieldEquals { partition_id, .. }
+            | PacketizedQueryWork::EntityPayloadFieldAnyOf { partition_id, .. }
+            | PacketizedQueryWork::RelationPayloadFieldEquals { partition_id, .. }
+            | PacketizedQueryWork::RelationPayloadFieldAnyOf { partition_id, .. }
             | PacketizedQueryWork::AspectFilteredEntities { partition_id, .. }
             | PacketizedQueryWork::AspectFilteredRelations { partition_id, .. } => {
                 partitions.insert(*partition_id);
@@ -1301,6 +1550,63 @@ fn partition_count_for_targets(packets: &[PacketizedQueryWork]) -> usize {
         }
     }
     partitions.len()
+}
+
+fn packetized_query_item_count(packets: &[PacketizedQueryWork]) -> usize {
+    packets
+        .iter()
+        .map(|packet| match packet {
+            PacketizedQueryWork::ExplicitTargets(targets) => targets.len(),
+            PacketizedQueryWork::EntityKindScan { .. }
+            | PacketizedQueryWork::RelationKindScan { .. }
+            | PacketizedQueryWork::EntityPayloadFieldEquals { .. }
+            | PacketizedQueryWork::RelationPayloadFieldEquals { .. }
+            | PacketizedQueryWork::AspectFilteredEntities { .. }
+            | PacketizedQueryWork::AspectFilteredRelations { .. } => 1,
+            PacketizedQueryWork::EntityPayloadFieldAnyOf { values, .. }
+            | PacketizedQueryWork::RelationPayloadFieldAnyOf { values, .. } => values.len(),
+            PacketizedQueryWork::OutgoingNeighborhood { seeds, .. }
+            | PacketizedQueryWork::IncomingNeighborhood { seeds, .. }
+            | PacketizedQueryWork::ConnectivityTraversal { seeds, .. } => seeds.len(),
+        })
+        .sum()
+}
+
+fn packetized_fragment_scratch_reuse_count(packets: &[PacketizedQueryWork]) -> usize {
+    packets
+        .iter()
+        .filter(|packet| packet_uses_fragment_scratch(packet))
+        .count()
+        .saturating_sub(1)
+}
+
+fn packet_uses_fragment_scratch(packet: &PacketizedQueryWork) -> bool {
+    !matches!(packet, PacketizedQueryWork::ExplicitTargets(_))
+}
+
+fn packetized_query_peak_width(packets: &[PacketizedQueryWork]) -> usize {
+    packets
+        .iter()
+        .map(|packet| match packet {
+            PacketizedQueryWork::ExplicitTargets(targets) => targets.len(),
+            PacketizedQueryWork::EntityKindScan { .. }
+            | PacketizedQueryWork::RelationKindScan { .. }
+            | PacketizedQueryWork::EntityPayloadFieldEquals { .. }
+            | PacketizedQueryWork::RelationPayloadFieldEquals { .. }
+            | PacketizedQueryWork::AspectFilteredEntities { .. }
+            | PacketizedQueryWork::AspectFilteredRelations { .. } => 1,
+            PacketizedQueryWork::EntityPayloadFieldAnyOf { values, .. }
+            | PacketizedQueryWork::RelationPayloadFieldAnyOf { values, .. } => values.len(),
+            PacketizedQueryWork::OutgoingNeighborhood { seeds, .. }
+            | PacketizedQueryWork::IncomingNeighborhood { seeds, .. }
+            | PacketizedQueryWork::ConnectivityTraversal { seeds, .. } => seeds.len(),
+        })
+        .max()
+        .unwrap_or(0)
+}
+
+fn query_scope_units(packets: &[PacketizedQueryWork]) -> usize {
+    partition_count_for_targets(packets).max(usize::from(!packets.is_empty()))
 }
 
 fn entity_scan_partitions(
@@ -1341,9 +1647,7 @@ fn relation_scan_partitions(
 enum TraversalMode {
     OutgoingNeighborhood,
     IncomingNeighborhood,
-    ConnectivityTraversal {
-        max_depth: Option<u32>,
-    },
+    ConnectivityTraversal { max_depth: Option<u32> },
 }
 
 fn canonical_seed_ids(
@@ -1388,6 +1692,15 @@ fn aspect_filter_matches_relation(
     aspect_filter.matches(&aspects)
 }
 
+fn optional_payload_field_key(
+    payload: &Option<crate::payloads::data::RecordPayload>,
+    field: &str,
+) -> Option<String> {
+    payload
+        .as_ref()
+        .and_then(|payload| payload_field_key(payload, field))
+}
+
 fn traversal_fragment(
     runtime: &RelationalRuntime,
     read_view: &RelationalReadView,
@@ -1396,6 +1709,7 @@ fn traversal_fragment(
     relation_kind_scope: Option<&[crate::identity::data::KindId]>,
     ordinal: u64,
     mode: TraversalMode,
+    scratch: &mut QueryFragmentScratch,
 ) -> Option<crate::query::data::QueryWorkerFragment> {
     if packet.ordering != QueryOrderingContract::CanonicalTraversalOrder {
         return None;
@@ -1403,20 +1717,21 @@ fn traversal_fragment(
 
     let storage = runtime.storage_access();
     let state = storage.current_state();
-    let relation_kind_scope = relation_kind_scope.map(|scope| scope.iter().copied().collect::<BTreeSet<_>>());
-    let mut entities = Vec::new();
-    let mut relations = Vec::new();
-    let mut visited_entities = BTreeSet::new();
-    let mut emitted_relations = BTreeSet::new();
-    let mut frontier = VecDeque::new();
+    let relation_kind_scope =
+        relation_kind_scope.map(|scope| scope.iter().copied().collect::<BTreeSet<_>>());
+    scratch.reset_traversal();
+    let mut entities = scratch.entity_buffer();
+    let mut relations = scratch.relation_buffer();
+    let mut entity_visit_keys = scratch.entity_visit_key_buffer();
+    let mut relation_visit_keys = scratch.relation_visit_key_buffer();
 
     for seed in seeds.iter().copied() {
-        if visited_entities.insert(seed) {
-            frontier.push_back((seed, 0u32));
+        if scratch.visited_entities.insert(seed) {
+            scratch.frontier.push_back((seed, 0u32, seed, None));
         }
     }
 
-    while let Some((entity_id, depth)) = frontier.pop_front() {
+    while let Some((entity_id, depth, root_seed, via_relation)) = scratch.frontier.pop_front() {
         let Some(entity_record) = runtime.visibility_reads().entity_record_for_id_at_version(
             &state,
             entity_id,
@@ -1424,10 +1739,21 @@ fn traversal_fragment(
         ) else {
             continue;
         };
+        entity_visit_keys.push(crate::query::data::TraversalEntityVisitKey {
+            depth,
+            root_seed,
+            via_relation,
+            entity_id,
+        });
         entities.push(entity_record);
 
-        let relation_ids =
-            relation_ids_for_traversal(runtime, read_view, entity_id, &mode, relation_kind_scope.as_ref());
+        let relation_ids = relation_ids_for_traversal(
+            runtime,
+            read_view,
+            entity_id,
+            &mode,
+            relation_kind_scope.as_ref(),
+        );
         let allow_expansion = match mode {
             TraversalMode::OutgoingNeighborhood | TraversalMode::IncomingNeighborhood => depth == 0,
             TraversalMode::ConnectivityTraversal { max_depth } => {
@@ -1439,45 +1765,72 @@ fn traversal_fragment(
         }
 
         for relation_id in relation_ids {
-            let Some(relation_record) = runtime.visibility_reads().relation_record_for_id_at_version(
-                &state,
-                relation_id,
-                read_view.snapshot.version_id,
-            ) else {
+            let Some(relation_record) = runtime
+                .visibility_reads()
+                .relation_record_for_id_at_version(
+                    &state,
+                    relation_id,
+                    read_view.snapshot.version_id,
+                )
+            else {
                 continue;
             };
-            if emitted_relations.insert(relation_record.relation_id) {
+            if scratch
+                .emitted_relations
+                .insert(relation_record.relation_id)
+            {
+                relation_visit_keys.push(crate::query::data::TraversalRelationVisitKey {
+                    depth,
+                    root_seed,
+                    relation_id: relation_record.relation_id,
+                });
                 relations.push(relation_record.clone());
             }
 
             let neighbor = match mode {
-                TraversalMode::OutgoingNeighborhood | TraversalMode::ConnectivityTraversal { .. } => {
-                    relation_record.target
-                }
+                TraversalMode::OutgoingNeighborhood
+                | TraversalMode::ConnectivityTraversal { .. } => relation_record.target,
                 TraversalMode::IncomingNeighborhood => relation_record.source,
             };
-            if visited_entities.insert(neighbor) {
-                frontier.push_back((neighbor, depth + 1));
+            if scratch.visited_entities.insert(neighbor) {
+                scratch.frontier.push_back((
+                    neighbor,
+                    depth + 1,
+                    root_seed,
+                    Some(relation_record.relation_id),
+                ));
             }
         }
     }
+    scratch.remember_entity_capacity(entities.len());
+    scratch.remember_relation_capacity(relations.len());
+    scratch.remember_entity_visit_key_capacity(entity_visit_keys.len());
+    scratch.remember_relation_visit_key_capacity(relation_visit_keys.len());
+    let touched_partitions = entities
+        .iter()
+        .map(|record| record.entity_id.partition_id)
+        .collect::<BTreeSet<_>>()
+        .len();
 
     Some(crate::query::data::QueryWorkerFragment {
         plan_key: packet.plan_key,
-        fragment_key: crate::query::data::deterministic_query_fragment_key(packet.plan_key, ordinal),
+        fragment_key: crate::query::data::deterministic_query_fragment_key(
+            packet.plan_key,
+            ordinal,
+        ),
         ordering: packet.ordering,
         counters: crate::query::data::QueryFragmentCounters {
             target_count: seeds.len(),
             entity_records_emitted: entities.len(),
             relation_records_emitted: relations.len(),
-            touched_partitions: entities
-                .iter()
-                .map(|record| record.entity_id.partition_id)
-                .collect::<BTreeSet<_>>()
-                .len(),
+            touched_partitions,
         },
         entities,
         relations,
+        traversal_basis: Some(crate::query::data::TraversalReductionBasis {
+            entity_visit_keys,
+            relation_visit_keys,
+        }),
     })
 }
 
@@ -1500,11 +1853,10 @@ fn relation_ids_for_traversal(
     };
     relation_ids.sort();
     relation_ids.retain(|relation_id| {
-        let Some(relation_record) = runtime.visibility_reads().relation_record_for_id_at_version(
-            &state,
-            *relation_id,
-            read_view.snapshot.version_id,
-        ) else {
+        let Some(relation_record) = runtime
+            .visibility_reads()
+            .relation_record_for_id_at_version(&state, *relation_id, read_view.snapshot.version_id)
+        else {
             return false;
         };
         relation_kind_scope.is_none_or(|scope| scope.contains(&relation_record.kind.kind_id))

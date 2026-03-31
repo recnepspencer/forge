@@ -239,7 +239,9 @@ impl PreparedMergeExecution {
     }
 
     #[cfg(test)]
-    pub(crate) fn execution_ready_plan_mut_for_test(&mut self) -> &mut ExecutionReadyLoweredMergePlan {
+    pub(crate) fn execution_ready_plan_mut_for_test(
+        &mut self,
+    ) -> &mut ExecutionReadyLoweredMergePlan {
         &mut self.execution_ready_plan
     }
 

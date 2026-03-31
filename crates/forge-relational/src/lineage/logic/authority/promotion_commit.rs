@@ -75,6 +75,7 @@ impl<'runtime> LineageAuthority<'runtime> {
             &promotion_commit,
             &promotion_commit.branch_id,
             CanonicalCommitAuthorityKind::MetadataOnlyLineage,
+            None,
             &[],
             &[],
             &MergedCommitPlan {

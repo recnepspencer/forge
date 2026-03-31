@@ -1,23 +1,25 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
 
+use crate::identity::data::{EntityId, VersionId};
 use crate::merge::data::{
     AspectComparisonState, AspectConflictEvidence, ConflictClassificationSummary,
-    ConflictClassifiedMergePlan, DeletionMergeClass, EndpointContinuityClass,
-    IdentityMatchClass, IdentityResolutionReason, IdentityScopedMergePlan,
-    MergeConflictClass, MergeConflictClassification, MergePlanningError, MergePlanningRequest,
-    MergeVisibilityEvidence, MergeVisibilityEvidenceKind, MergeVisibilityState,
-    RelationConflictEvidence, RelationConflictPropagation, RelationContinuityClass,
-    TopologyRegionConflictReason,
-    VisibleMergeRecord, VisibleMergeRecordKind,
+    ConflictClassifiedMergePlan, DeletionMergeClass, EndpointContinuityClass, IdentityMatchClass,
+    IdentityResolutionReason, IdentityScopedMergePlan, MergeConflictClass,
+    MergeConflictClassification, MergePlanningError, MergePlanningRequest, MergeVisibilityEvidence,
+    MergeVisibilityEvidenceKind, MergeVisibilityState, RelationConflictEvidence,
+    RelationConflictPropagation, RelationContinuityClass, StrategyConflictClass,
+    StrategyConflictEvidence, TopologyRegionConflictReason, VisibleMergeRecord,
+    VisibleMergeRecordKind,
 };
 use crate::merge::logic::aspect_plan_lookup::lowered_plan_for_record;
 use crate::merge::logic::naming::resolve_interned_string;
 use crate::merge::logic::MergeAccess;
 use crate::payloads::data::RecordPayload;
 use crate::schema::data::{LoweredAspectBinding, LoweredExecutableAspectBindingKind};
-use crate::identity::data::{EntityId, VersionId};
-use crate::storage::data::{EntityReadRecord, RecordLifecycleState, RelationReadRecord, RelationalReadView};
+use crate::storage::data::{
+    EntityReadRecord, RecordLifecycleState, RelationReadRecord, RelationalReadView,
+};
 use crate::transactions::data::RecordRef;
 use serde_json::Value;
 
@@ -45,7 +47,10 @@ impl<'runtime> MergeAccess<'runtime> {
                 commit_id: identity_plan.merge_base.commit_id,
             })?;
         let base_version_id = base_envelope.commit.version_id;
-        let base_view = self.runtime.visibility_reads().read_version(base_version_id);
+        let base_view = self
+            .runtime
+            .visibility_reads()
+            .read_version(base_version_id);
         let source_records_by_ref = identity_plan
             .source_records
             .iter()
@@ -55,6 +60,18 @@ impl<'runtime> MergeAccess<'runtime> {
             .validated_schema_correspondences
             .iter()
             .map(|correspondence| (correspondence.source_record.clone(), correspondence))
+            .collect::<BTreeMap<_, _>>();
+        let source_touched_by_record = identity_plan
+            .source_delta
+            .touched_records
+            .iter()
+            .map(|delta| (delta.target.clone(), delta))
+            .collect::<BTreeMap<_, _>>();
+        let target_touched_by_record = identity_plan
+            .target_delta
+            .touched_records
+            .iter()
+            .map(|delta| (delta.target.clone(), delta))
             .collect::<BTreeMap<_, _>>();
 
         let classifications = refine_relation_topology_conflicts(
@@ -66,11 +83,10 @@ impl<'runtime> MergeAccess<'runtime> {
                 .candidates
                 .iter()
                 .map(|candidate| {
-                    let record =
-                        source_records_by_ref.get(&candidate.source_record).ok_or_else(|| {
-                            MergePlanningError::MissingConflictSourceRecord {
-                                record: candidate.source_record.clone(),
-                            }
+                    let record = source_records_by_ref
+                        .get(&candidate.source_record)
+                        .ok_or_else(|| MergePlanningError::MissingConflictSourceRecord {
+                            record: candidate.source_record.clone(),
                         })?;
                     Ok(classify_candidate(
                         self.runtime,
@@ -80,6 +96,8 @@ impl<'runtime> MergeAccess<'runtime> {
                         base_version_id,
                         &base_view,
                         &target_view,
+                        &source_touched_by_record,
+                        &target_touched_by_record,
                         candidate.match_class.clone(),
                         candidate.reason.clone(),
                     ))
@@ -116,6 +134,7 @@ fn summarize_classifications(
     let mut schema_declared_correspondence_count = 0;
     let mut deletion_conflict_count = 0;
     let mut divergent_visible_state_count = 0;
+    let mut strategy_intent_conflict_count = 0;
     let mut relation_endpoint_divergence_count = 0;
 
     for classification in classifications.iter() {
@@ -127,6 +146,7 @@ fn summarize_classifications(
             }
             MergeConflictClass::Deletion(_) => deletion_conflict_count += 1,
             MergeConflictClass::DivergentVisibleState => divergent_visible_state_count += 1,
+            MergeConflictClass::StrategyIntentConflict => strategy_intent_conflict_count += 1,
             MergeConflictClass::RelationEndpointDivergence => {
                 relation_endpoint_divergence_count += 1
             }
@@ -140,6 +160,7 @@ fn summarize_classifications(
         schema_declared_correspondence_count,
         deletion_conflict_count,
         divergent_visible_state_count,
+        strategy_intent_conflict_count,
         relation_endpoint_divergence_count,
         classifications,
     }
@@ -153,6 +174,8 @@ fn classify_candidate(
     base_version_id: VersionId,
     base_view: &RelationalReadView,
     target_view: &RelationalReadView,
+    source_touched_by_record: &BTreeMap<RecordRef, &crate::merge::data::BranchTouchedRecordDelta>,
+    target_touched_by_record: &BTreeMap<RecordRef, &crate::merge::data::BranchTouchedRecordDelta>,
     match_class: IdentityMatchClass,
     reason: IdentityResolutionReason,
 ) -> MergeConflictClassification {
@@ -174,6 +197,14 @@ fn classify_candidate(
         reason.clone(),
         has_validated_schema_correspondence,
     );
+    let strategy_evidence = strategy_conflict_evidence(
+        runtime,
+        source_touched_by_record.get(&record.record_ref).copied(),
+        candidate_target_record
+            .as_ref()
+            .or(Some(&record.record_ref))
+            .and_then(|target_record| target_touched_by_record.get(target_record).copied()),
+    );
     let relation_evidence = relation_conflict_evidence(record, target_record.as_ref(), base_view);
     let class = if has_validated_schema_correspondence {
         match relation_evidence.as_ref() {
@@ -194,6 +225,12 @@ fn classify_candidate(
             base_view,
         )
     };
+    let class = if strategy_evidence.is_some() && class == MergeConflictClass::DivergentVisibleState
+    {
+        MergeConflictClass::StrategyIntentConflict
+    } else {
+        class
+    };
 
     MergeConflictClassification {
         record: record.record_ref.clone(),
@@ -201,6 +238,7 @@ fn classify_candidate(
         identity_reason: reason,
         validated_schema_correspondence: has_validated_schema_correspondence,
         aspect_evidence: Arc::from(aspect_evidence),
+        strategy_evidence,
         relation_evidence,
         target_record: candidate_target_record,
         base_record_visible,
@@ -224,6 +262,74 @@ fn normalize_match_class_for_classification(
     } else {
         match_class
     }
+}
+
+fn strategy_conflict_evidence(
+    runtime: &crate::logic::runtime::RelationalRuntime,
+    source_delta: Option<&crate::merge::data::BranchTouchedRecordDelta>,
+    target_delta: Option<&crate::merge::data::BranchTouchedRecordDelta>,
+) -> Option<StrategyConflictEvidence> {
+    let source_descriptors = strategy_descriptors_for_delta(runtime, source_delta);
+    let target_descriptors = strategy_descriptors_for_delta(runtime, target_delta);
+    if source_descriptors.is_empty() && target_descriptors.is_empty() {
+        return None;
+    }
+    let class = match (source_descriptors.is_empty(), target_descriptors.is_empty()) {
+        (false, false) => {
+            let any_same_descriptor = source_descriptors.iter().any(|source_descriptor| {
+                target_descriptors.iter().any(|target_descriptor| {
+                    target_descriptor.descriptor_digest() == source_descriptor.descriptor_digest()
+                })
+            });
+            if any_same_descriptor {
+                StrategyConflictClass::SameStrategyDivergentOutput
+            } else {
+                StrategyConflictClass::DifferentStrategyOverlappingIntent
+            }
+        }
+        (false, true) => StrategyConflictClass::SourceStrategyOnly,
+        (true, false) => StrategyConflictClass::TargetStrategyOnly,
+        (true, true) => return None,
+    };
+    Some(StrategyConflictEvidence {
+        class,
+        source_commit_ids: Arc::from(
+            source_delta
+                .map(|delta| delta.commit_ids.iter().copied().collect::<Vec<_>>())
+                .unwrap_or_default(),
+        ),
+        target_commit_ids: Arc::from(
+            target_delta
+                .map(|delta| delta.commit_ids.iter().copied().collect::<Vec<_>>())
+                .unwrap_or_default(),
+        ),
+        source_descriptors: Arc::from(source_descriptors),
+        target_descriptors: Arc::from(target_descriptors),
+    })
+}
+
+fn strategy_descriptors_for_delta(
+    runtime: &crate::logic::runtime::RelationalRuntime,
+    delta: Option<&crate::merge::data::BranchTouchedRecordDelta>,
+) -> Vec<crate::commit_strategies::data::StrategyMergeDescriptor> {
+    let Some(delta) = delta else {
+        return Vec::new();
+    };
+    let history = runtime.history_access();
+    let mut dedup =
+        BTreeMap::<[u8; 32], crate::commit_strategies::data::StrategyMergeDescriptor>::new();
+    for commit_id in delta.commit_ids.iter().copied() {
+        let Some(envelope) = history.commit_envelope(commit_id) else {
+            continue;
+        };
+        let Some(strategy_artifacts) = envelope.strategy_artifacts.as_ref() else {
+            continue;
+        };
+        dedup
+            .entry(strategy_artifacts.merge_descriptor().descriptor_digest().0)
+            .or_insert_with(|| strategy_artifacts.merge_descriptor().clone());
+    }
+    dedup.into_values().collect()
 }
 
 fn classify_record_state(
@@ -260,12 +366,15 @@ fn classify_source_deleted(
 ) -> DeletionMergeClass {
     match record.record_kind {
         VisibleMergeRecordKind::Entity => {
-            match (base_entity_record(base_view, record), record.target_entity.as_ref()) {
-            (Some(base), Some(target)) if !entity_state_equal(base, target) => {
-                DeletionMergeClass::DeletedVsModified
+            match (
+                base_entity_record(base_view, record),
+                record.target_entity.as_ref(),
+            ) {
+                (Some(base), Some(target)) if !entity_state_equal(base, target) => {
+                    DeletionMergeClass::DeletedVsModified
+                }
+                _ => DeletionMergeClass::SourceDeletedTargetLive,
             }
-            _ => DeletionMergeClass::SourceDeletedTargetLive,
-        }
         }
         VisibleMergeRecordKind::Relation => {
             match (
@@ -290,12 +399,15 @@ fn classify_target_deleted(
 ) -> DeletionMergeClass {
     match record.record_kind {
         VisibleMergeRecordKind::Entity => {
-            match (base_entity_record(base_view, record), record.source_entity.as_ref()) {
-            (Some(base), Some(source)) if !entity_state_equal(base, source) => {
-                DeletionMergeClass::DeletedVsModified
+            match (
+                base_entity_record(base_view, record),
+                record.source_entity.as_ref(),
+            ) {
+                (Some(base), Some(source)) if !entity_state_equal(base, source) => {
+                    DeletionMergeClass::DeletedVsModified
+                }
+                _ => DeletionMergeClass::SourceLiveTargetDeleted,
             }
-            _ => DeletionMergeClass::SourceLiveTargetDeleted,
-        }
         }
         VisibleMergeRecordKind::Relation => {
             match (
@@ -316,19 +428,18 @@ fn classify_target_deleted(
 
 fn classify_visible_exact_state(record: &VisibleMergeRecord) -> MergeConflictClass {
     match record.record_kind {
-        VisibleMergeRecordKind::Entity => match (
-            record.source_entity.as_ref(),
-            record.target_entity.as_ref(),
-        ) {
-            (Some(source), Some(target)) => {
-                if entity_state_equal(source, target) {
-                    MergeConflictClass::ExactSharedTruth
-                } else {
-                    MergeConflictClass::DivergentVisibleState
+        VisibleMergeRecordKind::Entity => {
+            match (record.source_entity.as_ref(), record.target_entity.as_ref()) {
+                (Some(source), Some(target)) => {
+                    if entity_state_equal(source, target) {
+                        MergeConflictClass::ExactSharedTruth
+                    } else {
+                        MergeConflictClass::DivergentVisibleState
+                    }
                 }
+                _ => MergeConflictClass::DivergentVisibleState,
             }
-            _ => MergeConflictClass::DivergentVisibleState,
-        },
+        }
         VisibleMergeRecordKind::Relation => match (
             record.source_relation.as_ref(),
             record.target_relation.as_ref(),
@@ -382,7 +493,9 @@ fn relation_conflict_evidence(
         _ => EndpointContinuityClass::EndpointsStable,
     };
     let relation_continuity = match endpoint_continuity {
-        EndpointContinuityClass::EndpointsStable => RelationContinuityClass::PreserveRelationIdentity,
+        EndpointContinuityClass::EndpointsStable => {
+            RelationContinuityClass::PreserveRelationIdentity
+        }
         EndpointContinuityClass::SourceEndpointRewired
         | EndpointContinuityClass::TargetEndpointRewired
         | EndpointContinuityClass::BothEndpointsRewired => {
@@ -443,7 +556,10 @@ fn refine_relation_topology_conflicts(
     let mut endpoint_index = BTreeMap::<EntityId, Vec<usize>>::new();
     for (node_index, node) in relation_nodes.iter().enumerate() {
         for endpoint in &node.endpoint_ids {
-            endpoint_index.entry(*endpoint).or_default().push(node_index);
+            endpoint_index
+                .entry(*endpoint)
+                .or_default()
+                .push(node_index);
         }
     }
 
@@ -456,7 +572,8 @@ fn refine_relation_topology_conflicts(
         if visited[node_index] {
             continue;
         }
-        let component = relation_topology_component(node_index, &relation_nodes, &endpoint_index, &mut visited);
+        let component =
+            relation_topology_component(node_index, &relation_nodes, &endpoint_index, &mut visited);
         let component_has_rewire_seed = component
             .iter()
             .any(|component_index| relation_nodes[*component_index].rewired);
@@ -487,7 +604,8 @@ fn refine_relation_topology_conflicts(
             region_records_escalated += rewired_records.len();
         }
         for component_index in component {
-            let classification = &mut classifications[relation_nodes[component_index].classification_index];
+            let classification =
+                &mut classifications[relation_nodes[component_index].classification_index];
             if let Some(evidence) = classification.relation_evidence.as_mut() {
                 evidence.topology_neighborhood_records = component_records.clone();
                 evidence.topology_neighborhood_rewired_records = rewired_records.clone();
@@ -670,10 +788,9 @@ fn compare_binding(
     binding: &LoweredAspectBinding,
 ) -> AspectComparisonState {
     let source = extract_binding_component(runtime, source_record, binding, BindingSide::Source);
-    let target =
-        target_record.and_then(|record| {
-            extract_binding_component(runtime, record, binding, BindingSide::Target)
-        });
+    let target = target_record.and_then(|record| {
+        extract_binding_component(runtime, record, binding, BindingSide::Target)
+    });
     match (source, target) {
         (Some(source), Some(target)) if source == target => AspectComparisonState::Equal,
         (Some(_), Some(_)) => AspectComparisonState::Divergent,
@@ -773,15 +890,30 @@ fn source_record_visibility_evidence(record: &VisibleMergeRecord) -> MergeVisibi
             record.record_ref.clone(),
             MergeVisibilityEvidenceKind::SourceEmbeddedSurface,
             record.source_entity.as_ref().map(|entity| entity.lifecycle),
-            record.source_entity.as_ref().map(|entity| entity.created_at_version),
-            record.source_entity.as_ref().and_then(|entity| entity.retired_at_version),
+            record
+                .source_entity
+                .as_ref()
+                .map(|entity| entity.created_at_version),
+            record
+                .source_entity
+                .as_ref()
+                .and_then(|entity| entity.retired_at_version),
         ),
         VisibleMergeRecordKind::Relation => embedded_visibility_evidence(
             record.record_ref.clone(),
             MergeVisibilityEvidenceKind::SourceEmbeddedSurface,
-            record.source_relation.as_ref().map(|relation| relation.lifecycle),
-            record.source_relation.as_ref().map(|relation| relation.created_at_version),
-            record.source_relation.as_ref().and_then(|relation| relation.retired_at_version),
+            record
+                .source_relation
+                .as_ref()
+                .map(|relation| relation.lifecycle),
+            record
+                .source_relation
+                .as_ref()
+                .map(|relation| relation.created_at_version),
+            record
+                .source_relation
+                .as_ref()
+                .and_then(|relation| relation.retired_at_version),
         ),
     }
 }
@@ -815,15 +947,30 @@ fn target_record_visibility_evidence(
             record.record_ref.clone(),
             MergeVisibilityEvidenceKind::TargetEmbeddedSurface,
             record.target_entity.as_ref().map(|entity| entity.lifecycle),
-            record.target_entity.as_ref().map(|entity| entity.created_at_version),
-            record.target_entity.as_ref().and_then(|entity| entity.retired_at_version),
+            record
+                .target_entity
+                .as_ref()
+                .map(|entity| entity.created_at_version),
+            record
+                .target_entity
+                .as_ref()
+                .and_then(|entity| entity.retired_at_version),
         ),
         VisibleMergeRecordKind::Relation => embedded_visibility_evidence(
             record.record_ref.clone(),
             MergeVisibilityEvidenceKind::TargetEmbeddedSurface,
-            record.target_relation.as_ref().map(|relation| relation.lifecycle),
-            record.target_relation.as_ref().map(|relation| relation.created_at_version),
-            record.target_relation.as_ref().and_then(|relation| relation.retired_at_version),
+            record
+                .target_relation
+                .as_ref()
+                .map(|relation| relation.lifecycle),
+            record
+                .target_relation
+                .as_ref()
+                .map(|relation| relation.created_at_version),
+            record
+                .target_relation
+                .as_ref()
+                .and_then(|relation| relation.retired_at_version),
         ),
     }
 }
@@ -846,7 +993,11 @@ fn base_record_visibility_evidence(
     }
     match record.record_kind {
         VisibleMergeRecordKind::Entity => {
-            if let Some(entity) = record.source_entity.as_ref().or(record.target_entity.as_ref()) {
+            if let Some(entity) = record
+                .source_entity
+                .as_ref()
+                .or(record.target_entity.as_ref())
+            {
                 return historical_window_visibility_evidence(
                     record.record_ref.clone(),
                     entity.lifecycle,
@@ -855,10 +1006,18 @@ fn base_record_visibility_evidence(
                     base_version_id,
                 );
             }
-            fallback_view_visibility_evidence(record.record_ref.clone(), base_view, &record.record_ref)
+            fallback_view_visibility_evidence(
+                record.record_ref.clone(),
+                base_view,
+                &record.record_ref,
+            )
         }
         VisibleMergeRecordKind::Relation => {
-            if let Some(relation) = record.source_relation.as_ref().or(record.target_relation.as_ref()) {
+            if let Some(relation) = record
+                .source_relation
+                .as_ref()
+                .or(record.target_relation.as_ref())
+            {
                 return historical_window_visibility_evidence(
                     record.record_ref.clone(),
                     relation.lifecycle,
@@ -867,7 +1026,11 @@ fn base_record_visibility_evidence(
                     base_version_id,
                 );
             }
-            fallback_view_visibility_evidence(record.record_ref.clone(), base_view, &record.record_ref)
+            fallback_view_visibility_evidence(
+                record.record_ref.clone(),
+                base_view,
+                &record.record_ref,
+            )
         }
     }
 }
@@ -954,11 +1117,14 @@ fn view_record_visibility_metadata(
     record_ref: &RecordRef,
 ) -> Option<ViewRecordVisibilityMetadata> {
     match record_ref {
-        RecordRef::Entity(entity_id) => view.get_entity(*entity_id).map(|entity| ViewRecordVisibilityMetadata {
-            lifecycle: entity.lifecycle,
-            created_at_version: entity.created_at_version,
-            retired_at_version: entity.retired_at_version,
-        }),
+        RecordRef::Entity(entity_id) => {
+            view.get_entity(*entity_id)
+                .map(|entity| ViewRecordVisibilityMetadata {
+                    lifecycle: entity.lifecycle,
+                    created_at_version: entity.created_at_version,
+                    retired_at_version: entity.retired_at_version,
+                })
+        }
         RecordRef::Relation(relation_id) => {
             view.get_relation(*relation_id)
                 .map(|relation| ViewRecordVisibilityMetadata {

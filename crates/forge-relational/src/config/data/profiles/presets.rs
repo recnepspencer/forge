@@ -1,3 +1,4 @@
+use crate::commit_strategies::data::CommitStrategyRegistration;
 use crate::config::data::*;
 use crate::diagnostics::data::RelationalDiagnosticsProfile;
 use crate::durability::data::DurabilityMode;
@@ -53,6 +54,9 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
             invariant_catalog: InvariantCatalog::default(),
             descriptor_semantics_policy: runtime_descriptor_semantics_policy(),
             descriptor_canonicalization_policy: runtime_descriptor_canonicalization_policy(),
+        },
+        commit_strategies: CommitStrategiesConfig {
+            registrations: Vec::<CommitStrategyRegistration>::new(),
         },
         identity: IdentityConfig {
             symbol_policy,

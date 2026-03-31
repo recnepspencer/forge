@@ -272,14 +272,15 @@ impl SignalGraph {
         updated.clear();
         updated.extend_from_slice(self.raw_dependencies_of(node)?);
 
-        let old_index =
-            match updated.binary_search_by(|edge| compare_dependency_edges(edge, &old_dependency)) {
-                Ok(index) => index,
-                Err(_) => {
-                    self.traversal.topology_dependency_buffer = updated;
-                    return Ok(false);
-                }
-            };
+        let old_index = match updated
+            .binary_search_by(|edge| compare_dependency_edges(edge, &old_dependency))
+        {
+            Ok(index) => index,
+            Err(_) => {
+                self.traversal.topology_dependency_buffer = updated;
+                return Ok(false);
+            }
+        };
         updated.remove(old_index);
 
         let mut added_edges = Vec::new();

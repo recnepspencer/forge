@@ -26,7 +26,10 @@ impl RelationalRuntime {
         prepared: crate::merge::data::PreparedMergeExecution,
     ) -> Result<MergeExecutionOutcome, crate::merge::data::MergeExecutionError> {
         self.performance_access().count_merge_execution_attempt();
-        if let Err(error) = self.merge_access().verify_prepared_merge_execution(&prepared) {
+        if let Err(error) = self
+            .merge_access()
+            .verify_prepared_merge_execution(&prepared)
+        {
             emit_merge_execution_failure_artifact(self, &prepared, &error);
             return Err(error);
         }
@@ -44,7 +47,11 @@ impl RelationalRuntime {
         };
         let options = TransactionOptions {
             target_branch: Some(mutation_plan.target_branch.clone()),
-            merge_parent_branches: mutation_plan.merge_parent_branches.iter().cloned().collect(),
+            merge_parent_branches: mutation_plan
+                .merge_parent_branches
+                .iter()
+                .cloned()
+                .collect(),
             ..TransactionOptions::default()
         };
         let execution_summary = mutation_plan.merge_execution_summary.clone();
@@ -80,11 +87,7 @@ pub(crate) fn emit_merge_execution_failure_artifact(
     prepared: &crate::merge::data::PreparedMergeExecution,
     error: &crate::merge::data::MergeExecutionError,
 ) {
-    runtime
-        .publication_authority()
-        .push_diagnostic_artifact(
-            crate::merge::logic::merge_execution_failure_artifact(
-                prepared, error,
-            ),
-        );
+    runtime.publication_authority().push_diagnostic_artifact(
+        crate::merge::logic::merge_execution_failure_artifact(prepared, error),
+    );
 }

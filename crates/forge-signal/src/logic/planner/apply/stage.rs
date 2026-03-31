@@ -18,13 +18,13 @@ use crate::data::proof::{
 use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::diagnostics::SignalRuntimePolicy;
 #[cfg(feature = "parallel")]
+use crate::facade::SnapshotBatchCommit;
+#[cfg(feature = "parallel")]
 use crate::logic::evaluation::collect_effect_dependency_inputs_iter;
 #[cfg(feature = "parallel")]
 use crate::logic::evaluation::{
     build_prepared_apply_commit_packet, record_reuse_rejection_telemetry, ApplyCommitBuildError,
 };
-#[cfg(feature = "parallel")]
-use crate::facade::SnapshotBatchCommit;
 use crate::logic::prepared::{PreparedEvaluationOrigin, PreparedEvaluationOutcome};
 
 #[cfg(feature = "parallel")]
@@ -637,15 +637,14 @@ fn publish_group_local_task_commit(
         error,
         reuse_failure: None,
     })?;
-    let after_trace =
-        graph
-            .node_runtime_artifact_operational_summary(node)
-            .map_err(|error| GroupedApplyFailure {
-                node,
-                record_id: identity.record_id,
-                error,
-                reuse_failure: None,
-            })?;
+    let after_trace = graph
+        .node_runtime_artifact_operational_summary(node)
+        .map_err(|error| GroupedApplyFailure {
+            node,
+            record_id: identity.record_id,
+            error,
+            reuse_failure: None,
+        })?;
     let memoized_origin = after_trace
         .as_ref()
         .map(|trace| trace.memoized_origin)

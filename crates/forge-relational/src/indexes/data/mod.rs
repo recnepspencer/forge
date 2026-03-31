@@ -69,9 +69,3 @@ pub struct DerivedIndexBuildOutcome {
     pub generations: Vec<DerivedIndexGeneration>,
     pub failed_indexes: Vec<DerivedIndexId>,
 }
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ReadWithStorageFallbackOutcome {
-    pub result: crate::storage::data::PacketResult,
-    pub used_index_generation: Option<DerivedIndexGenerationId>,
-}

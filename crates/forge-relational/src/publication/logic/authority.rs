@@ -103,7 +103,10 @@ impl<'runtime> PublicationAuthority<'runtime> {
             else {
                 break;
             };
-            let _ = self.runtime.visibility.remove_published_handle(oldest_snapshot_id);
+            let _ = self
+                .runtime
+                .visibility
+                .remove_published_handle(oldest_snapshot_id);
         }
     }
 
@@ -145,6 +148,7 @@ impl<'runtime> PublicationAuthority<'runtime> {
     ) -> PublicationArtifacts {
         let snapshot_id = self.runtime.visibility.allocate_snapshot_id();
         let snapshot = SnapshotHandle {
+            runtime_instance_id: self.runtime.runtime_instance_id(),
             snapshot_id,
             version_id,
             read_policy: SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
@@ -181,7 +185,9 @@ impl<'runtime> PublicationAuthority<'runtime> {
             snapshot_id,
             bundle.snapshot.read_policy,
         );
-        self.runtime.visibility.insert_published_handle(snapshot_state);
+        self.runtime
+            .visibility
+            .insert_published_handle(snapshot_state);
         self.push_diagnostic_artifact(bundle.diagnostics_summary.clone());
         self.runtime.publication.latest_bundle = Some(bundle);
         self.prune_published_snapshot_handles_if_needed();

@@ -15,11 +15,11 @@ pub(crate) use runtime::execution_flow;
 pub(crate) use runtime::recorder;
 pub(crate) use runtime::state;
 
+pub use access::RuntimeDiagnostics as Diagnostics;
 pub use access::{
     diagnostics_for_graph, diagnostics_for_runtime, GraphComparisonDiagnostics, GraphDiagnostics,
     GraphHealthDiagnostics, GraphInspectDiagnostics,
 };
-pub use access::RuntimeDiagnostics as Diagnostics;
 pub use compare::{
     explanations_semantically_equivalent, graphs_semantically_equivalent,
     lineage_records_equivalent, plans_semantically_equivalent, repeat_run_summaries_equal,
@@ -50,11 +50,11 @@ pub use history::{
     inspect_execution, inspect_flow, inspect_graph, inspect_plan, inspect_report,
     ExecutionInspector, FlowInspector, GraphInspector, PlanInspector, ReportInspector,
 };
+pub use lineage::LineageRecord as LineageEvent;
 pub use lineage::{
     ArtifactTransitionKind, InvalidationCause, LineageArtifactId, LineageRecordKind,
     RetainedLineageView, SnapshotRestoreKind, SynthesizedLineageChain,
 };
-pub use lineage::LineageRecord as LineageEvent;
 pub use policy::{
     ArtifactRetentionPolicy, DiagnosticsAvailability, FrontierCyclePolicy,
     FrontierPropagationPolicy, FrontierTracingPolicy, ParallelAdmissionPolicy,
@@ -62,11 +62,11 @@ pub use policy::{
     SignalRuntimePolicy, SnapshotRestoreLineageMode,
 };
 pub use profile::DiagnosticsTier as DiagnosticsLevel;
+pub use replay::ReplaySlice as ReplayView;
 pub use replay::{
     ReplayCursor, ReplayEvent, ReplayEventKind, ReplayFrame, RetainedReplayView,
     SynthesizedReplaySlice,
 };
-pub use replay::ReplaySlice as ReplayView;
 pub use summary::{
     EvaluationPlanSummary, ExecutionHistoryNodeSummary, ExecutionHistorySummary,
     ExecutionReportSummary, ExplanationSummary, GraphSummary,

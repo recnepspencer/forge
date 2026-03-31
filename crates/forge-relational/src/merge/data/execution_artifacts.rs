@@ -79,9 +79,7 @@ pub(crate) fn merge_execution_diagnostics_digest(
     digest.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
-fn executed_record_row(
-    plan: &BoundExecutableMergeRecordPlan,
-) -> ExecutedMergeRecordDiagnosticRow {
+fn executed_record_row(plan: &BoundExecutableMergeRecordPlan) -> ExecutedMergeRecordDiagnosticRow {
     match plan {
         BoundExecutableMergeRecordPlan::AdoptSource(plan) => ExecutedMergeRecordDiagnosticRow {
             class: ExecutedMergeRecordClass::AdoptSource,

@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::commit_strategies::data::CommitStrategyRegistration;
 use crate::diagnostics::data::RelationalDiagnosticsProfile;
 use crate::durability::data::{DurabilityMode, DurableStoreLayout};
 use crate::history::data::{BranchId, HistoryRetentionClass, VersionGraphPolicy};
@@ -46,6 +47,11 @@ pub struct SchemaConfigOverride {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct CommitStrategiesConfigOverride {
+    pub registrations: Option<Vec<CommitStrategyRegistration>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct IdentityConfigOverride {
     pub symbol_policy: Option<SymbolPolicy>,
     pub symbol_table: Option<SymbolTableSnapshot>,
@@ -88,6 +94,7 @@ pub struct RelationalConfigOverride {
     pub diagnostics: DiagnosticsConfigOverride,
     pub history: HistoryConfigOverride,
     pub schema: SchemaConfigOverride,
+    pub commit_strategies: CommitStrategiesConfigOverride,
     pub identity: IdentityConfigOverride,
     pub storage: StorageConfigOverride,
     pub visibility: VisibilityConfigOverride,

@@ -87,7 +87,9 @@ impl<'a> ExecutionReadView<'a> {
         scope: PartitionSubscription,
     ) -> Result<AspectVersion, SignalError> {
         self.capture_partition_dependency(source, aspect, scope.clone());
-        Ok(self.graph().node_partitioned_aspect_version(source, &scope)?)
+        Ok(self
+            .graph()
+            .node_partitioned_aspect_version(source, &scope)?)
     }
 
     #[cfg(test)]

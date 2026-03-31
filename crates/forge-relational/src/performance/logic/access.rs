@@ -211,10 +211,18 @@ impl<'runtime> PerformanceAccess<'runtime> {
             .count(|counters| counters.preparation_reducer_conflict_count += conflicts);
     }
 
-    pub(crate) fn count_query_packet_shape(&self, packets: usize, items: usize) {
+    pub(crate) fn count_query_packet_shape(
+        &self,
+        packets: usize,
+        items: usize,
+        max_width: usize,
+        scope_units: usize,
+    ) {
         self.runtime.services.instrumentation.count(|counters| {
             counters.query_packet_count += packets;
             counters.query_packet_item_count += items;
+            counters.query_packet_peak_width_total += max_width;
+            counters.query_scope_unit_count += scope_units;
         });
     }
 
@@ -246,6 +254,12 @@ impl<'runtime> PerformanceAccess<'runtime> {
             .count(|counters| counters.query_staged_parallel_strategy_count += 1);
     }
 
+    pub(crate) fn count_query_fragment_scratch_reuse_by(&self, count: usize) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.query_fragment_scratch_reuse_count += count;
+        });
+    }
+
     pub(crate) fn count_query_index_attempt(&self) {
         self.runtime
             .services
@@ -272,6 +286,13 @@ impl<'runtime> PerformanceAccess<'runtime> {
             .services
             .instrumentation
             .count(|counters| counters.query_index_parity_verification_count += 1);
+    }
+
+    pub(crate) fn count_query_index_scratch_reuse(&self) {
+        self.runtime
+            .services
+            .instrumentation
+            .count(|counters| counters.query_index_scratch_reuse_count += 1);
     }
 
     pub(crate) fn count_query_emissions(&self, entities: usize, relations: usize) {
@@ -639,11 +660,7 @@ impl<'runtime> PerformanceAccess<'runtime> {
         });
     }
 
-    pub(crate) fn count_merge_identity_discovery(
-        &self,
-        candidates: usize,
-        declarations: usize,
-    ) {
+    pub(crate) fn count_merge_identity_discovery(&self, candidates: usize, declarations: usize) {
         self.runtime.services.instrumentation.count(|counters| {
             counters.merge_identity_candidates_discovered += candidates;
             counters.merge_identity_effective_declarations += declarations;

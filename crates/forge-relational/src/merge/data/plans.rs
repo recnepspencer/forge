@@ -34,16 +34,7 @@ pub(crate) struct HistoryScopedMergePlan {
     pub(crate) source_delta: BranchCommitDelta,
 }
 
-#[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    serde::Serialize,
-    serde::Deserialize,
-)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub(crate) enum VisibleMergeRecordKind {
     Entity,
     Relation,
@@ -179,22 +170,38 @@ pub(crate) struct ValidatedSchemaDeclaredCorrespondence {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MergePlanningError {
-    MissingSourceHead { branch_id: BranchId },
-    MissingTargetHead { branch_id: BranchId },
+    MissingSourceHead {
+        branch_id: BranchId,
+    },
+    MissingTargetHead {
+        branch_id: BranchId,
+    },
     MissingMergeBase {
         source_branch: BranchId,
         target_branch: BranchId,
     },
-    MissingMergeBaseEnvelope { commit_id: CommitId },
-    MissingConflictSourceRecord { record: RecordRef },
-    MissingPolicySourceRecord { record: RecordRef },
+    MissingMergeBaseEnvelope {
+        commit_id: CommitId,
+    },
+    MissingConflictSourceRecord {
+        record: RecordRef,
+    },
+    MissingPolicySourceRecord {
+        record: RecordRef,
+    },
     MissingPolicyTargetRecord {
         record: RecordRef,
         target_record: RecordRef,
     },
-    MissingLoweringSourceRecord { record: RecordRef },
-    MissingLoweringConflictClassification { record: RecordRef },
-    MissingCausalAnnotation { record: RecordRef },
+    MissingLoweringSourceRecord {
+        record: RecordRef,
+    },
+    MissingLoweringConflictClassification {
+        record: RecordRef,
+    },
+    MissingCausalAnnotation {
+        record: RecordRef,
+    },
     MissingLoweredRecordExecutionBundle {
         classification: crate::merge::data::MergeConflictClass,
         readiness: crate::merge::data::MergeExecutionReadiness,

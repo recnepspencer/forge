@@ -402,6 +402,10 @@ where
         SignalGraphMut { runtime: self }
     }
 
+    pub fn clear_live_branch_mutation_residue(&mut self) {
+        self.graph.clear_branch_mutation_nodes();
+    }
+
     pub fn checkpoint(&self) -> &CheckpointRuntime<D, I> {
         &self.checkpoint
     }

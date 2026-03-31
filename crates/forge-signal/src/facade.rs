@@ -104,24 +104,24 @@ pub mod runtime {
     pub use crate::data::output::KeyedComputation as KeyedRecipe;
     pub use crate::data::proof::DirtyBatch as ChangeBatch;
     pub use crate::data::proof::SemanticBatchCommit as ChangeBatchCommit;
-    pub use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger};
     pub use crate::data::tier::TierPolicy as RuntimeTierPolicy;
+    pub use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger};
     pub use crate::diagnostics::policy::SignalRuntimePolicy as RuntimePolicy;
     pub use crate::logic::invalidation::mark_dirty_batch;
-    pub use crate::logic::transaction::{
-        BatchChangeSession, PlannedRuntimeMerge, Recipe, RuntimeMerge, SignalRuntime,
-        SignalRuntimeBuilder, SignalTransaction, TransactionOutcome, TransactionResult,
-        TransactionTiming,
-    };
     pub use crate::logic::transaction::DefinedComputation as RecipeInstance;
     pub use crate::logic::transaction::DefinedKeyedComputation as KeyedRecipeInstance;
     pub use crate::logic::transaction::EvaluationSummary as RunSummary;
     pub use crate::logic::transaction::RuntimeExecutionRequest as RuntimeRunRequest;
     pub use crate::logic::transaction::RuntimeHistory as History;
-    pub use crate::logic::transaction::TransactionExecutionRequest as TransactionRunRequest;
     #[cfg(test)]
     pub use crate::logic::transaction::SignalRuntimeConfig;
     pub use crate::logic::transaction::SignalRuntimeConfig as RuntimeConfig;
+    pub use crate::logic::transaction::TransactionExecutionRequest as TransactionRunRequest;
+    pub use crate::logic::transaction::{
+        BatchChangeSession, PlannedRuntimeMerge, Recipe, RuntimeMerge, SignalRuntime,
+        SignalRuntimeBuilder, SignalTransaction, TransactionOutcome, TransactionResult,
+        TransactionTiming,
+    };
     pub type BatchChange = ChangeBatch;
     pub type BatchChangeResult = ChangeBatchCommit;
     #[cfg(test)]
@@ -156,27 +156,27 @@ pub mod runtime {
 }
 
 pub mod specialist {
-    pub use crate::data::comparator::{
-        ComparatorPolicyResolver, TierPolicyResolver,
-    };
     pub use crate::data::comparator::DefaultComparatorPolicyResolver as DefaultComparatorResolver;
     pub use crate::data::comparator::DefaultComparatorResolver as ComparatorHookResolver;
     pub use crate::data::comparator::VersionComparatorPolicy as ComparatorPolicy;
     pub use crate::data::comparator::VersionComparatorResolver as ComparatorResolver;
+    pub use crate::data::comparator::{ComparatorPolicyResolver, TierPolicyResolver};
     pub use crate::data::graph::{
         EvaluationStrategy, GcPressure, GraphMaterializer, GraphObserver, ObservationLevel,
         ParallelismHint,
     };
     pub use crate::logic::checkpoint::CheckpointRuntime;
     pub use crate::logic::context::EvaluationContext;
-    pub use crate::logic::events::{EventBus, EventFlushError, SubscriberRegistryError};
+    pub use crate::logic::evaluation::EvaluationRequestMode as RunMode;
     pub use crate::logic::evaluation::{
         AppliedEffectReport, ConditionEvaluationContext, ConditionResolver,
         DefaultConditionResolver, DeferralReason, DiagnosticEnvelope, EvaluationExecutionMetadata,
-        EvaluationOutput, EvaluationVerdict, IntoEvaluationOutput,
-        OperationalEffect, SuppressionReason,
+        EvaluationOutput, EvaluationVerdict, IntoEvaluationOutput, OperationalEffect,
+        SuppressionReason,
     };
-    pub use crate::logic::evaluation::EvaluationRequestMode as RunMode;
+    pub use crate::logic::events::{EventBus, EventFlushError, SubscriberRegistryError};
+    #[cfg(feature = "parallel")]
+    pub use crate::logic::planner::ParallelExecutionPolicy;
     pub use crate::logic::planner::{
         build_evaluation_plan, execute_prepared_plan, CandidateTask, EligibleTask, EvaluationPlan,
         ExecutedTask, ExecutionPruneReason, ExecutionRecordId, ExecutionReport, ExecutionStage,
@@ -186,18 +186,16 @@ pub mod specialist {
     };
     pub use crate::logic::prepared::ExecutionReadView as ReadView;
     pub use crate::logic::prepared::PreparedEvaluation as PlannedRun;
-    #[cfg(feature = "parallel")]
-    pub use crate::logic::planner::ParallelExecutionPolicy;
+    pub use crate::state::SignalBranchHandle as RuntimeBranch;
+    pub use crate::state::SignalBranchId as RuntimeBranchId;
+    pub use crate::state::SignalSnapshotMeta as RuntimeSnapshotMeta;
+    pub use crate::state::SignalSnapshotV1 as RuntimeSnapshot;
     pub use crate::state::{
         SignalSnapshotDiagnostics, SignalSnapshotId, SnapshotArtifactRestoreMode,
         SnapshotArtifactRetentionPolicy, SnapshotDependencyRestoreMode,
         SnapshotRestoreCoarseReason, SnapshotRestoreIntent, SnapshotRestorePlan,
         SnapshotStateRestoreMode,
     };
-    pub use crate::state::SignalBranchHandle as RuntimeBranch;
-    pub use crate::state::SignalBranchId as RuntimeBranchId;
-    pub use crate::state::SignalSnapshotMeta as RuntimeSnapshotMeta;
-    pub use crate::state::SignalSnapshotV1 as RuntimeSnapshot;
 }
 
 #[cfg(test)]
@@ -249,14 +247,13 @@ pub mod adapters {
     pub use crate::data::telemetry::RuntimeTelemetry;
     pub use crate::data::tier_policy_table::TierPolicyTable;
     pub use crate::logic::transaction::{
-        ArtifactMergeAction, ArtifactMergeComparable, BranchMergeBase,
-        BranchMergeConflictEvidence, BranchMergeConflictKind, BranchMergeConflictRecord,
-        BranchMergeConflictSummary, BranchMergeCounters, BranchMergeDivergence,
-        BranchMergeExecutionSummary, BranchMergeFailureKind, BranchMergeKind, BranchMergePlan,
-        BranchMergeReconciliationPolicy, BranchMergeRequest, BranchMergeResult,
-        BranchMergeStrategy, BranchMutationJournalSlice, BranchMutationLedger,
-        ConflictMergePolicy, ConservativeOverlapExpansion, DependencyFingerprint,
-        DependencyRemapRecord, ExistingTargetMergePolicy, LoweredMergePlan,
+        ArtifactMergeAction, ArtifactMergeComparable, BranchMergeBase, BranchMergeConflictEvidence,
+        BranchMergeConflictKind, BranchMergeConflictRecord, BranchMergeConflictSummary,
+        BranchMergeCounters, BranchMergeDivergence, BranchMergeExecutionSummary,
+        BranchMergeFailureKind, BranchMergeKind, BranchMergePlan, BranchMergeReconciliationPolicy,
+        BranchMergeRequest, BranchMergeResult, BranchMergeStrategy, BranchMutationJournalSlice,
+        BranchMutationLedger, ConflictMergePolicy, ConservativeOverlapExpansion,
+        DependencyFingerprint, DependencyRemapRecord, ExistingTargetMergePolicy, LoweredMergePlan,
         MergeBoundaryWitness, MergeBoundaryWitnessKind, MergeDecisionBasis, MergeNodeMap,
         MergeTouchedNodeSet, MergedArtifactRecord, NodeMergeInputState, NodeMergePlan,
         NodeReconciliationDecision, NodeReconciliationShape, PlannedMergeCandidateSet,
@@ -266,6 +263,10 @@ pub mod adapters {
 }
 
 pub mod diagnostics {
+    pub use crate::diagnostics::Diagnostics;
+    pub use crate::diagnostics::DiagnosticsLevel;
+    pub use crate::diagnostics::LineageEvent;
+    pub use crate::diagnostics::ReplayView;
     pub use crate::diagnostics::{
         compare_execution_history, compare_execution_reports, compare_explanations,
         compare_failures, compare_flows, compare_graphs, compare_lineage_records, compare_plans,
@@ -278,25 +279,20 @@ pub mod diagnostics {
         replay_slices_equivalent, reports_semantically_equivalent,
         serial_parallel_reports_equivalent, ApplySummary, ArtifactRetentionPolicy,
         ArtifactTransitionKind, ChangeInputSummary, DiagnosticMismatch, DiagnosticMismatchCategory,
-        DiagnosticsAvailability, EvaluationPlanSummary, EventEpochOutcome,
-        EventEpochSummary, EventSubscriberOutcome, EventSubscriberOutcomeKind,
-        ExecutionFailureContext, ExecutionFailurePhase, ExecutionHistoryNodeSummary,
-        ExecutionHistorySummary, ExecutionInspector, ExecutionReportDiff, ExecutionReportSummary,
-        ExplanationDiff, ExplanationSummary, FailureDiff, FailureSummary, FlowCauseSample,
-        FlowDiff, FlowInspector, FlowSummary, FrontierCyclePolicy, FrontierPropagationPolicy,
-        FrontierTracingPolicy, GraphComparisonDiagnostics, GraphDiagnostics, GraphDiff,
-        GraphHealthDiagnostics, GraphInspectDiagnostics, GraphInspector, GraphSummary,
-        HistoryDiff, InvalidationCause, InvalidationSummary, LineageArtifactId, LineageDiff,
-        LineageRecordKind, ParallelAdmissionPolicy, PlanDiff, PlanInspector,
-        PlanningSummary, PrecomputeSummary, ReconstructionBudget, ReplayCursor, ReplayDetailPolicy,
-        ReplayDiff, ReplayEventKind, ReplayFrame, ReportInspector, RetentionBudget,
-        RollbackDiagnostic, RollbackSummary, SemanticRetentionPolicy,
-        SnapshotRestoreKind, SnapshotRestoreLineageMode,
+        DiagnosticsAvailability, EvaluationPlanSummary, EventEpochOutcome, EventEpochSummary,
+        EventSubscriberOutcome, EventSubscriberOutcomeKind, ExecutionFailureContext,
+        ExecutionFailurePhase, ExecutionHistoryNodeSummary, ExecutionHistorySummary,
+        ExecutionInspector, ExecutionReportDiff, ExecutionReportSummary, ExplanationDiff,
+        ExplanationSummary, FailureDiff, FailureSummary, FlowCauseSample, FlowDiff, FlowInspector,
+        FlowSummary, FrontierCyclePolicy, FrontierPropagationPolicy, FrontierTracingPolicy,
+        GraphComparisonDiagnostics, GraphDiagnostics, GraphDiff, GraphHealthDiagnostics,
+        GraphInspectDiagnostics, GraphInspector, GraphSummary, HistoryDiff, InvalidationCause,
+        InvalidationSummary, LineageArtifactId, LineageDiff, LineageRecordKind,
+        ParallelAdmissionPolicy, PlanDiff, PlanInspector, PlanningSummary, PrecomputeSummary,
+        ReconstructionBudget, ReplayCursor, ReplayDetailPolicy, ReplayDiff, ReplayEventKind,
+        ReplayFrame, ReportInspector, RetentionBudget, RollbackDiagnostic, RollbackSummary,
+        SemanticRetentionPolicy, SnapshotRestoreKind, SnapshotRestoreLineageMode,
     };
-    pub use crate::diagnostics::Diagnostics as Diagnostics;
-    pub use crate::diagnostics::DiagnosticsLevel;
-    pub use crate::diagnostics::LineageEvent;
-    pub use crate::diagnostics::ReplayView;
 }
 
 #[cfg(test)]
@@ -305,91 +301,40 @@ pub mod integration {
 }
 
 pub mod history {
-    pub use crate::diagnostics::SnapshotRestoreKind;
     pub use crate::diagnostics::LineageEvent;
     pub use crate::diagnostics::ReplayView;
+    pub use crate::diagnostics::SnapshotRestoreKind;
+    pub use crate::state::SignalBranchHandle as RuntimeBranch;
+    pub use crate::state::SignalBranchId as RuntimeBranchId;
+    pub use crate::state::SignalSnapshotMeta as RuntimeSnapshotMeta;
+    pub use crate::state::SignalSnapshotV1 as RuntimeSnapshot;
     pub use crate::state::{
         SignalSnapshotDiagnostics, SignalSnapshotId, SnapshotArtifactRestoreMode,
         SnapshotArtifactRetentionPolicy, SnapshotDependencyRestoreMode,
         SnapshotRestoreCoarseReason, SnapshotRestoreIntent, SnapshotRestorePlan,
         SnapshotStateRestoreMode,
     };
-    pub use crate::state::SignalBranchHandle as RuntimeBranch;
-    pub use crate::state::SignalBranchId as RuntimeBranchId;
-    pub use crate::state::SignalSnapshotMeta as RuntimeSnapshotMeta;
-    pub use crate::state::SignalSnapshotV1 as RuntimeSnapshot;
 }
 
-#[cfg(not(test))]
-pub use self::core::{
-    mark_changed, mark_changed_with_regions, mark_dirty, mark_dirty_with_regions, Aspect,
-    AspectMask, AspectVersion,
-    CanonicalChangedRegions, ChangedRegion, DependencyEdge, EvaluationCondition, NodeBuilder,
-    NodeEvaluationResult, NodeId, NodeState, OutputChange, OutputIdentity, PartitionMatchMode,
-    PartitionSubscription, PartitionToken, SignalError, SignalGraph, MAX_ASPECTS,
-};
+#[cfg(test)]
+pub use self::adapters::*;
 #[cfg(test)]
 pub use self::core::*;
 #[cfg(not(test))]
-pub use self::diagnostics::{diagnostics_for_graph, diagnostics_for_runtime};
+pub use self::core::{
+    mark_changed, mark_changed_with_regions, mark_dirty, mark_dirty_with_regions, Aspect,
+    AspectMask, AspectVersion, CanonicalChangedRegions, ChangedRegion, DependencyEdge,
+    EvaluationCondition, NodeBuilder, NodeEvaluationResult, NodeId, NodeState, OutputChange,
+    OutputIdentity, PartitionMatchMode, PartitionSubscription, PartitionToken, SignalError,
+    SignalGraph, MAX_ASPECTS,
+};
 #[cfg(test)]
 pub use self::diagnostics::*;
 #[cfg(not(test))]
-pub use self::specialist::{
-    EvaluationContext, RunMode,
-};
-#[cfg(all(feature = "parallel", not(test)))]
-pub use self::specialist::ParallelExecutionPolicy;
-#[cfg(test)]
-pub use self::adapters::*;
-#[cfg(not(test))]
-pub use self::runtime::{
-    mark_dirty_batch, BatchChange, BatchChangeResult, BatchChangeSession, ChangeBatch,
-    ChangeBatchCommit, History, RecipeInstance, RuntimeConfig, RuntimeMerge,
-    RuntimePolicy, RunSummary, SignalRuntime, SignalTransaction, TransactionOutcome,
-    TransactionResult, TransactionTiming,
-};
-#[cfg(test)]
-pub use self::runtime::*;
-#[cfg(test)]
-pub use self::runtime::{
-    ChangeBatch as DirtyBatch, ChangeBatchCommit as SemanticBatchCommit,
-    History as RuntimeHistory, KeyedRecipe as KeyedComputation,
-    KeyedRecipeInstance as DefinedKeyedComputation, RecipeFamily as ComputationFamily,
-    RecipeInstance as DefinedComputation, RunSummary as EvaluationSummary,
-    RuntimeCheckpointPolicy as CheckpointPolicy, RuntimeConfig as SignalRuntimeConfig,
-    RuntimePolicy as SignalRuntimePolicy, RuntimeRunRequest as RuntimeExecutionRequest,
-    RuntimeTierPolicy as TierPolicy, TransactionRunRequest as TransactionExecutionRequest,
-};
-#[cfg(test)]
-pub use self::specialist::{
-    ConditionEvaluationContext,
-    ConditionResolver,
-    ComparatorPolicy as VersionComparatorPolicy,
-    ComparatorResolver as VersionComparatorResolver,
-    DefaultConditionResolver,
-    EvaluationContext,
-    EvaluationOutput,
-    PlannedRun as PreparedEvaluation,
-    ReadView as ExecutionReadView,
-    RunMode as EvaluationRequestMode,
-};
-#[cfg(test)]
-pub use crate::data::comparator::DefaultComparatorPolicyResolver;
-#[cfg(test)]
-pub use crate::data::comparator::DefaultComparatorResolver;
-#[cfg(test)]
-pub use crate::data::graph::{GcPressure, ObservationLevel, ParallelismHint};
-#[cfg(test)]
-pub use crate::logic::events::*;
-#[cfg(test)]
-pub use crate::logic::evaluation::IntoEvaluationOutput;
-#[cfg(test)]
-pub use crate::logic::planner::*;
+pub use self::diagnostics::{diagnostics_for_graph, diagnostics_for_runtime};
 #[cfg(test)]
 pub use self::diagnostics::{
-    DiagnosticsLevel as DiagnosticsTier, LineageEvent as LineageRecord,
-    ReplayView as ReplaySlice,
+    DiagnosticsLevel as DiagnosticsTier, LineageEvent as LineageRecord, ReplayView as ReplaySlice,
 };
 #[cfg(test)]
 pub use self::history::{
@@ -397,18 +342,45 @@ pub use self::history::{
     RuntimeSnapshot as SignalSnapshotV1, RuntimeSnapshotMeta as SignalSnapshotMeta,
 };
 #[cfg(test)]
-pub use crate::state::{
-    SignalSnapshotId, SnapshotArtifactRestoreMode, SnapshotDependencyRestoreMode,
-    SnapshotRestoreCoarseReason, SnapshotRestoreIntent, SnapshotStateRestoreMode,
+pub use self::runtime::*;
+#[cfg(not(test))]
+pub use self::runtime::{
+    mark_dirty_batch, BatchChange, BatchChangeResult, BatchChangeSession, ChangeBatch,
+    ChangeBatchCommit, History, RecipeInstance, RunSummary, RuntimeConfig, RuntimeMerge,
+    RuntimePolicy, SignalRuntime, SignalTransaction, TransactionOutcome, TransactionResult,
+    TransactionTiming,
 };
 #[cfg(test)]
-pub use crate::presentation::boundaries::contracts::*;
+pub use self::runtime::{
+    ChangeBatch as DirtyBatch, ChangeBatchCommit as SemanticBatchCommit, History as RuntimeHistory,
+    KeyedRecipe as KeyedComputation, KeyedRecipeInstance as DefinedKeyedComputation,
+    RecipeFamily as ComputationFamily, RecipeInstance as DefinedComputation,
+    RunSummary as EvaluationSummary, RuntimeCheckpointPolicy as CheckpointPolicy,
+    RuntimeConfig as SignalRuntimeConfig, RuntimePolicy as SignalRuntimePolicy,
+    RuntimeRunRequest as RuntimeExecutionRequest, RuntimeTierPolicy as TierPolicy,
+    TransactionRunRequest as TransactionExecutionRequest,
+};
+#[cfg(all(feature = "parallel", not(test)))]
+pub use self::specialist::ParallelExecutionPolicy;
 #[cfg(test)]
-pub use crate::presentation::boundaries::transaction_contract::*;
+pub use self::specialist::{
+    ComparatorPolicy as VersionComparatorPolicy, ComparatorResolver as VersionComparatorResolver,
+    ConditionEvaluationContext, ConditionResolver, DefaultConditionResolver, EvaluationContext,
+    EvaluationOutput, PlannedRun as PreparedEvaluation, ReadView as ExecutionReadView,
+    RunMode as EvaluationRequestMode,
+};
+#[cfg(not(test))]
+pub use self::specialist::{EvaluationContext, RunMode};
+#[cfg(test)]
+pub use crate::data::comparator::DefaultComparatorPolicyResolver;
+#[cfg(test)]
+pub use crate::data::comparator::DefaultComparatorResolver;
 #[cfg(test)]
 pub use crate::data::core_profile::CORE_STORAGE_PROFILE_ID;
 #[cfg(test)]
 pub use crate::data::dependency::CanonicalDependencies;
+#[cfg(test)]
+pub use crate::data::graph::{GcPressure, ObservationLevel, ParallelismHint};
 #[cfg(test)]
 pub use crate::data::output::MemoizedResultOrigin;
 #[cfg(test)]
@@ -417,16 +389,31 @@ pub use crate::data::trace::{
     RetainedDiagnosticArtifact,
 };
 #[cfg(test)]
+pub use crate::logic::evaluation::IntoEvaluationOutput;
+#[cfg(test)]
+pub use crate::logic::events::*;
+#[cfg(test)]
 pub use crate::logic::explain::{
     CausalDisposition, ConditionDecision, NodeExplanation, ScopeProvenanceKind, UpstreamCause,
 };
 #[cfg(test)]
+pub use crate::logic::planner::*;
+#[cfg(test)]
 pub use crate::logic::transaction::{DecisionDetail, DecisionRecord};
 #[cfg(test)]
-pub use crate::presentation::outputs::deployment::*;
+pub use crate::presentation::boundaries::contracts::*;
+#[cfg(test)]
+pub use crate::presentation::boundaries::transaction_contract::*;
 #[cfg(test)]
 pub use crate::presentation::harness::*;
 #[cfg(test)]
 pub use crate::presentation::metrics::{GraphMetrics, RuntimeMetrics};
+#[cfg(test)]
+pub use crate::presentation::outputs::deployment::*;
+#[cfg(test)]
+pub use crate::state::{
+    SignalSnapshotId, SnapshotArtifactRestoreMode, SnapshotDependencyRestoreMode,
+    SnapshotRestoreCoarseReason, SnapshotRestoreIntent, SnapshotStateRestoreMode,
+};
 #[cfg(test)]
 pub use crate::tests::support::GraphDependencyBatchExt;

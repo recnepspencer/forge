@@ -1,4 +1,5 @@
 import type {
+  LineageSummary,
   MergePlanReport,
   MergeResultReport,
   ReplayFrameSummary,
@@ -110,6 +111,16 @@ export type GearMeshModel = {
   innerRingCount: number;
 };
 
+export type GearToothModel = {
+  index: number;
+  startAngle: number;
+  midAngle: number;
+  endAngle: number;
+  rootRadius: number;
+  tipRadius: number;
+  thickness: number;
+};
+
 export type LightingModel = {
   x: number;
   y: number;
@@ -140,6 +151,7 @@ export type RenderAspects = {
   profile: GearProfileModel;
   topology: GearTopologyModel;
   mesh: GearMeshModel;
+  teeth: GearToothModel[];
   lighting: LightingModel;
   projection: ViewportProjectionModel;
   shading: ViewportShadingModel;
@@ -153,8 +165,10 @@ export type SceneBranchView = {
 };
 
 export type BranchInspect = {
+  selectedNode: string;
   replay: ReplayFrameSummary[];
   why: WhySummary;
+  lineage: LineageSummary;
 };
 
 export type RuntimeState = {

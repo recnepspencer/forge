@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use crate::facade::diagnostics::DiagnosticCode;
 use crate::diagnostics::data::DiagnosticsArtifactKind;
+use crate::facade::diagnostics::DiagnosticCode;
 use crate::facade::history::BranchId;
 use crate::facade::merge::{
-    DeletionExecutionClass, MergeConflictClass, MergeExecutableClass,
-    MergeExecutionRequest, MergeIntent, MergeResolutionClass,
+    DeletionExecutionClass, MergeConflictClass, MergeExecutableClass, MergeExecutionRequest,
+    MergeIntent, MergeResolutionClass,
 };
 use crate::facade::transactions::{
     DeleteEntityIntent, EntityMutationIntent, MutationIntent, TransactionCommitError,
@@ -34,8 +34,9 @@ fn prepared_merge_promoted_to_deleted_on_both_sides(
     {
         let execution_ready = prepared.execution_ready_plan_mut_for_test();
         let lowered = Arc::make_mut(&mut execution_ready.lowered_records);
-        lowered[0].classification =
-            MergeConflictClass::Deletion(crate::merge::data::DeletionMergeClass::DeletedOnBothSides);
+        lowered[0].classification = MergeConflictClass::Deletion(
+            crate::merge::data::DeletionMergeClass::DeletedOnBothSides,
+        );
         lowered[0].resolution_class =
             MergeResolutionClass::Deletion(DeletionExecutionClass::DeletedOnBothSides);
         lowered[0].executable_class = Some(MergeExecutableClass::ConvergeDeletedOnBothSides);
@@ -46,11 +47,13 @@ fn prepared_merge_promoted_to_deleted_on_both_sides(
         lowered[0].readiness = crate::facade::merge::MergeExecutionReadiness::Admitted;
         lowered[0].record_decision = crate::facade::merge::LoweredRecordDecision::Execute(
             crate::merge::data::LoweredRecordExecutionBundle {
-                kind: crate::merge::data::LoweredRecordExecutionIntentKind::ConvergeDeletedOnBothSides,
+                kind:
+                    crate::merge::data::LoweredRecordExecutionIntentKind::ConvergeDeletedOnBothSides,
                 aspects: Arc::from([]),
             },
         );
-        lowered[0].lowered_action = Some(crate::facade::merge::LoweredMergeAction::ConvergeDeletedOnBothSides);
+        lowered[0].lowered_action =
+            Some(crate::facade::merge::LoweredMergeAction::ConvergeDeletedOnBothSides);
         lowered[0].blocked_reason = None;
         lowered[0].rejected_reason = None;
         lowered[0].aspect_outcomes = Arc::from([]);
@@ -105,19 +108,26 @@ fn promoted_deleted_on_both_sides_derives_zero_mutation_intent_execution_plan() 
         .expect("merge mutation plan");
 
     assert_eq!(plan.structural_summary.executed_record_count, 1);
-    assert_eq!(plan.structural_summary.converged_deleted_on_both_sides_count, 1);
     assert_eq!(
-        plan.structural_summary.deleted_on_both_sides_lineage_unchanged_count,
+        plan.structural_summary
+            .converged_deleted_on_both_sides_count,
+        1
+    );
+    assert_eq!(
+        plan.structural_summary
+            .deleted_on_both_sides_lineage_unchanged_count,
         1
     );
     assert_eq!(plan.structural_summary.emitted_mutation_intent_count, 0);
     assert!(plan.merged_plan.merged_intents.is_empty());
     assert_eq!(
-        plan.merge_execution_summary.converged_deleted_on_both_sides_count,
+        plan.merge_execution_summary
+            .converged_deleted_on_both_sides_count,
         1
     );
     assert_eq!(
-        plan.merge_execution_summary.deleted_on_both_sides_lineage_unchanged_count,
+        plan.merge_execution_summary
+            .deleted_on_both_sides_lineage_unchanged_count,
         1
     );
 }
@@ -136,9 +146,16 @@ fn promoted_deleted_on_both_sides_executes_through_authoritative_merge_publicati
         .expect("canonical envelope");
 
     assert_eq!(merge.structural_summary.executed_record_count, 1);
-    assert_eq!(merge.structural_summary.converged_deleted_on_both_sides_count, 1);
     assert_eq!(
-        merge.structural_summary.deleted_on_both_sides_lineage_unchanged_count,
+        merge
+            .structural_summary
+            .converged_deleted_on_both_sides_count,
+        1
+    );
+    assert_eq!(
+        merge
+            .structural_summary
+            .deleted_on_both_sides_lineage_unchanged_count,
         1
     );
     assert_eq!(merge.structural_summary.emitted_mutation_intent_count, 0);
@@ -166,15 +183,18 @@ fn promoted_deleted_on_both_sides_executes_through_authoritative_merge_publicati
         .find(|artifact| {
             artifact.kind == DiagnosticsArtifactKind::DetailedTrace
                 && artifact.entries.iter().any(|entry| {
-                entry.code == DiagnosticCode::MergeExecutionPublished
-                    && entry.fields["commit_id"] == serde_json::json!(merge.commit.commit.commit_id.0.clone())
-            })
+                    entry.code == DiagnosticCode::MergeExecutionPublished
+                        && entry.fields["commit_id"]
+                            == serde_json::json!(merge.commit.commit.commit_id.0.clone())
+                })
         })
         .expect("merge execution success artifact");
     let record_entry = success_artifact
         .entries
         .iter()
-        .find(|entry| entry.fields["record_class"] == serde_json::json!("converge_deleted_on_both_sides"))
+        .find(|entry| {
+            entry.fields["record_class"] == serde_json::json!("converge_deleted_on_both_sides")
+        })
         .expect("deleted-on-both-sides record entry");
     assert!(record_entry.fields["equality_witness_digest"].is_string());
     assert_eq!(
@@ -188,7 +208,8 @@ fn promoted_deleted_on_both_sides_executes_through_authoritative_merge_publicati
 }
 
 #[test]
-fn real_feature_branch_delete_after_main_delete_is_authorable_and_classifies_as_deleted_on_both_sides() {
+fn real_feature_branch_delete_after_main_delete_is_authorable_and_classifies_as_deleted_on_both_sides(
+) {
     let mut runtime = persisted_runtime_with_test_schema();
     let entity = create_entity(&mut runtime, "shared");
     create_branch_from_main(&mut runtime, "feature");
@@ -241,7 +262,10 @@ fn branch_local_delete_allowance_does_not_make_same_branch_stale_delete_legal() 
 
     match txn.commit() {
         Err(TransactionCommitError::Conflict { error, .. }) => {
-            assert_eq!(error.code(), crate::facade::diagnostics::DiagnosticCode::StaleHandle);
+            assert_eq!(
+                error.code(),
+                crate::facade::diagnostics::DiagnosticCode::StaleHandle
+            );
         }
         other => panic!("expected stale delete rejection, got {other:?}"),
     }

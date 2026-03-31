@@ -157,6 +157,7 @@ export type LineageEventSummary = {
   emittedOnBranchId: number;
   node?: string | null;
   subjectArtifactId?: number | null;
+  parentArtifactId?: number | null;
   snapshotId?: number | null;
 };
 

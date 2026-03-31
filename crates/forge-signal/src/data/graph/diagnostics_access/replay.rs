@@ -1,8 +1,8 @@
 use crate::data::graph::signal_graph::SignalGraph;
-use crate::diagnostics::replay::ReplaySlice;
-use crate::state::SignalBranchHandle;
 #[cfg(any(test, doctest))]
 use crate::diagnostics::replay::ReplayEvent;
+use crate::diagnostics::replay::ReplaySlice;
+use crate::state::SignalBranchHandle;
 
 impl SignalGraph {
     #[cfg(any(test, doctest))]

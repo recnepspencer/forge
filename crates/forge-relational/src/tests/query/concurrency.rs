@@ -1,5 +1,9 @@
 use std::sync::Arc;
 
+use crate::facade::indexes::{
+    DerivedIndexBuildRequest, DerivedIndexDefinition, DerivedIndexId, DerivedIndexKind,
+};
+use crate::facade::query::FallbackParityMode;
 use crate::tests::support::*;
 
 #[test]
@@ -128,4 +132,210 @@ fn concurrent_read_pressure_keeps_cache_diagnostics_coherent() {
 
     let counters = runtime.performance_access().counters();
     assert!(counters.visibility_cache_hits > 0);
+}
+
+#[test]
+fn concurrent_pinned_traversal_reads_stay_snapshot_stable_under_hot_rewrite_pressure() {
+    let mut runtime = RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::GeometryKernel)
+        .schema_registry(declared_aspect_schema_registry(
+            CascadeDeletePolicy::CascadeDeleteRelations,
+        ))
+        .execution_model(
+            crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation,
+        )
+        .build();
+    let seeds = vec![
+        create_entity_in_partition(&mut runtime, "s0", PartitionId(7)),
+        create_entity_in_partition(&mut runtime, "s1", PartitionId(11)),
+        create_entity_in_partition(&mut runtime, "s2", PartitionId(13)),
+        create_entity_in_partition(&mut runtime, "s3", PartitionId(17)),
+        create_entity_in_partition(&mut runtime, "s4", PartitionId(19)),
+    ];
+    let neighbors = vec![
+        create_entity_in_partition(&mut runtime, "n0", PartitionId(23)),
+        create_entity_in_partition(&mut runtime, "n1", PartitionId(29)),
+        create_entity_in_partition(&mut runtime, "n2", PartitionId(31)),
+        create_entity_in_partition(&mut runtime, "n3", PartitionId(37)),
+        create_entity_in_partition(&mut runtime, "n4", PartitionId(41)),
+    ];
+    for (index, (seed, neighbor)) in seeds.iter().zip(neighbors.iter()).enumerate() {
+        create_relation_in_partition(
+            &mut runtime,
+            *seed,
+            *neighbor,
+            &format!("edge-{index}"),
+            PartitionId(43 + index as u32),
+        );
+    }
+    let snapshot = runtime.visibility_authority().snapshot();
+    let context = runtime
+        .visibility_reads()
+        .query_plan_context(&snapshot)
+        .expect("query plan context");
+    let packet = PlannedQueryPacket {
+        label: "snapshot-stable-traversal".to_string(),
+        context_id: context,
+        scope: QueryScope::OutgoingNeighborhood {
+            seeds: Arc::from(seeds.clone()),
+            relation_kind_scope: Some(Arc::from([KindId(2)])),
+        },
+        locality: QueryLocalityClass::CrossPartitionTraversal,
+        ordering: QueryOrderingContract::CanonicalTraversalOrder,
+        fallback: QueryFallbackContract::StorageOnly,
+        execution_shape: QueryExecutionShape::BulkPacketized,
+        reduction: ReductionDiscipline::DeterministicMerge,
+        plan_key: DeterministicQueryPlanKey(1101),
+        target_count_hint: seeds.len(),
+    };
+    let baseline = runtime
+        .visibility_reads()
+        .execute_query_plan(
+            runtime
+                .visibility_reads()
+                .plan_query_packet(&snapshot, packet.clone())
+                .expect("baseline query plan"),
+        )
+        .expect("baseline query outcome")
+        .result;
+
+    let churn_entity = create_entity_in_partition(&mut runtime, "rewrite-anchor", PartitionId(53));
+    let _ = update_entity(&mut runtime, churn_entity, "rewrite-anchor-2");
+    let extra_neighbor = create_entity_in_partition(&mut runtime, "late-neighbor", PartitionId(59));
+    let _ = create_relation_in_partition(
+        &mut runtime,
+        seeds[0],
+        extra_neighbor,
+        "late-edge",
+        PartitionId(61),
+    );
+
+    let runtime = Arc::new(runtime);
+    std::thread::scope(|scope| {
+        let mut readers = Vec::new();
+        for _ in 0..8 {
+            let runtime = Arc::clone(&runtime);
+            let snapshot = snapshot.clone();
+            let packet = packet.clone();
+            let expected = baseline.clone();
+            readers.push(scope.spawn(move || {
+                let result = runtime
+                    .visibility_reads()
+                    .execute_query_plan(
+                        runtime
+                            .visibility_reads()
+                            .plan_query_packet(&snapshot, packet)
+                            .expect("thread query plan"),
+                    )
+                    .expect("thread query outcome")
+                    .result;
+                assert_eq!(result, expected);
+            }));
+        }
+
+        for reader in readers {
+            reader.join().unwrap();
+        }
+    });
+}
+
+#[test]
+fn concurrent_relation_index_certification_parity_stays_stable_under_scheduler_pressure() {
+    let mut runtime = runtime_with_test_schema_execution_model(
+        crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation,
+    );
+    let source = create_entity_outcome(&mut runtime, "source");
+    let source_id = changed_entities(&source)[0];
+    let targets = [
+        create_entity_in_partition(&mut runtime, "r0", PartitionId(7)),
+        create_entity_in_partition(&mut runtime, "r1", PartitionId(11)),
+        create_entity_in_partition(&mut runtime, "r2", PartitionId(13)),
+    ];
+    for (index, target) in targets.into_iter().enumerate() {
+        create_relation_in_partition(
+            &mut runtime,
+            source_id,
+            target,
+            if index < 2 { "fast" } else { "slow" },
+            PartitionId(23 + index as u32),
+        );
+    }
+    let commit = create_entity_outcome(&mut runtime, "anchor");
+    let relation_index = runtime.index_authority().register(DerivedIndexDefinition {
+        index_id: DerivedIndexId(0),
+        name: "relation.name".to_string(),
+        kind: DerivedIndexKind::RelationPayloadField {
+            field: "name".to_string(),
+        },
+        branch_scoped: false,
+    });
+    runtime
+        .index_authority()
+        .build_for_commit(DerivedIndexBuildRequest {
+            source_commit_id: commit.commit.commit_id,
+            branch_id: BranchId("main".to_string()),
+            index_ids: vec![relation_index.index_id],
+        });
+
+    let snapshot = commit.snapshot.clone();
+    let context = runtime
+        .visibility_reads()
+        .query_plan_context(&snapshot)
+        .expect("query plan context");
+    let packet = PlannedQueryPacket {
+        label: "relation-index-certification".to_string(),
+        context_id: context,
+        scope: QueryScope::RelationPayloadFieldEquals {
+            field: "name".to_string(),
+            value: "fast".to_string(),
+            partition_scope: None,
+        },
+        locality: QueryLocalityClass::CrossPartitionTraversal,
+        ordering: QueryOrderingContract::CanonicalRelationIdOrder,
+        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        execution_shape: QueryExecutionShape::BulkPacketized,
+        reduction: ReductionDiscipline::DeterministicMerge,
+        plan_key: DeterministicQueryPlanKey(1401),
+        target_count_hint: 0,
+    };
+    let baseline = runtime
+        .index_access()
+        .execute_query_plan_with_fallback_parity(
+            runtime
+                .visibility_reads()
+                .plan_query_packet(&snapshot, packet.clone())
+                .expect("baseline plan"),
+            FallbackParityMode::CertificationParity,
+        )
+        .expect("baseline outcome");
+    let runtime = Arc::new(runtime);
+
+    std::thread::scope(|scope| {
+        let mut readers = Vec::new();
+        for _ in 0..8 {
+            let runtime = Arc::clone(&runtime);
+            let snapshot = snapshot.clone();
+            let packet = packet.clone();
+            let expected = baseline.clone();
+            readers.push(scope.spawn(move || {
+                let outcome = runtime
+                    .index_access()
+                    .execute_query_plan_with_fallback_parity(
+                        runtime
+                            .visibility_reads()
+                            .plan_query_packet(&snapshot, packet)
+                            .expect("thread plan"),
+                        FallbackParityMode::CertificationParity,
+                    )
+                    .expect("thread outcome");
+                assert_eq!(outcome.access_path, expected.access_path);
+                assert_eq!(outcome.execution.result, expected.execution.result);
+                assert_eq!(outcome.parity_basis_digest, expected.parity_basis_digest);
+            }));
+        }
+
+        for reader in readers {
+            reader.join().unwrap();
+        }
+    });
 }

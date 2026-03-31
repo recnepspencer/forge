@@ -1,16 +1,16 @@
 use crate::facade::diagnostics::DiagnosticCode;
 use crate::facade::history::BranchId;
 use crate::facade::merge::{
-    DeletionExecutionClass, LoweredMergeBlockedReason, LoweredRecordDenialKind,
-    MergeExecutionError, MergeExecutionRequest, MergeIntent, MergePolicyDecisionBoundary,
-    MergeResolutionClass, MergeResolvedAspectValueStrategy,
-    IdentityBasisDeclaration, IdentityBasisKind, IdentityBasisScope,
-    RelationConflictPropagation, TopologyExecutionClass, TopologyRegionConflictReason,
+    DeletionExecutionClass, IdentityBasisDeclaration, IdentityBasisKind, IdentityBasisScope,
+    LoweredMergeBlockedReason, LoweredRecordDenialKind, MergeExecutionError, MergeExecutionRequest,
+    MergeIntent, MergePolicyDecisionBoundary, MergeResolutionClass,
+    MergeResolvedAspectValueStrategy, RelationConflictPropagation, TopologyExecutionClass,
+    TopologyRegionConflictReason,
 };
 use crate::facade::runtime::RelationalRuntimeApi;
 use crate::facade::transactions::{
-    CreateIntent, EntityMutationIntent, MutationIntent, TransactionOptions, UpdateEntityIntent,
-    WorkerIntentBatch, RecordRef,
+    CreateIntent, EntityMutationIntent, MutationIntent, RecordRef, TransactionOptions,
+    UpdateEntityIntent, WorkerIntentBatch,
 };
 use crate::merge::data::AspectMergePolicyDeclaration;
 use crate::payloads::data::RecordPayload;
@@ -22,10 +22,11 @@ use crate::schema::data::{
 };
 use crate::symbols::data::InternedString;
 use crate::tests::support::{
-    capture_aspect_truth_bundle, certification_digest, checkpoint_and_recover_with,
-    changed_entities, create_branch_from_main, create_entity, create_relation_in_partition_on_branch,
-    delete_entity, delete_entity_on_branch, delete_relation_on_branch,
-    persisted_runtime_with_test_schema, unique_test_store_path, update_entity,
+    capture_aspect_truth_bundle, certification_digest, changed_entities,
+    checkpoint_and_recover_with, create_branch_from_main, create_entity,
+    create_relation_in_partition_on_branch, delete_entity, delete_entity_on_branch,
+    delete_relation_on_branch, persisted_runtime_with_test_schema, unique_test_store_path,
+    update_entity,
 };
 
 #[test]
@@ -48,9 +49,16 @@ fn deleted_on_both_sides_merge_commit_has_replay_and_recovery_parity() {
         .expect("executed deleted-on-both-sides merge");
 
     assert_eq!(merge.structural_summary.executed_record_count, 1);
-    assert_eq!(merge.structural_summary.converged_deleted_on_both_sides_count, 1);
     assert_eq!(
-        merge.structural_summary.deleted_on_both_sides_lineage_unchanged_count,
+        merge
+            .structural_summary
+            .converged_deleted_on_both_sides_count,
+        1
+    );
+    assert_eq!(
+        merge
+            .structural_summary
+            .deleted_on_both_sides_lineage_unchanged_count,
         1
     );
     assert_eq!(merge.structural_summary.emitted_mutation_intent_count, 0);
@@ -62,16 +70,20 @@ fn deleted_on_both_sides_merge_commit_has_replay_and_recovery_parity() {
         .expect("live merge envelope");
     let live_truth = capture_aspect_truth_bundle(&mut runtime, &[entity], &[], &[]);
 
-    let replay = runtime
-        .replay_authority()
-        .replay_commit(crate::facade::replay::RelationalReplayRequest {
-            commit_id: merge.commit.commit.commit_id,
-            branch_id: BranchId("main".to_string()),
-            execution_mode: crate::facade::replay::ReplayExecutionMode::SerialDeterministic,
-            verification_mode:
-                crate::facade::replay::ReplayVerificationMode::AuditRecoveryVerification,
-        });
-    assert!(replay.failure.is_none(), "replay certification failure: {replay:?}");
+    let replay =
+        runtime
+            .replay_authority()
+            .replay_commit(crate::facade::replay::RelationalReplayRequest {
+                commit_id: merge.commit.commit.commit_id,
+                branch_id: BranchId("main".to_string()),
+                execution_mode: crate::facade::replay::ReplayExecutionMode::SerialDeterministic,
+                verification_mode:
+                    crate::facade::replay::ReplayVerificationMode::AuditRecoveryVerification,
+            });
+    assert!(
+        replay.failure.is_none(),
+        "replay certification failure: {replay:?}"
+    );
 
     let (_recovery, mut recovered) =
         checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
@@ -135,8 +147,7 @@ fn deleted_on_both_sides_merge_commit_has_replay_and_recovery_parity() {
         .entries
         .iter()
         .find(|entry| {
-            entry.fields["record_class"]
-                == serde_json::json!("converge_deleted_on_both_sides")
+            entry.fields["record_class"] == serde_json::json!("converge_deleted_on_both_sides")
         })
         .expect("deleted-on-both-sides execution row");
     assert_eq!(
@@ -209,10 +220,9 @@ fn built_in_last_writer_wins_reject_fallback_is_stable_across_recovery() {
         crate::facade::merge::LoweredRecordDecision::Reject(_)
     ));
 
-    let (_recovery, recovered) =
-        checkpoint_and_recover_with(&mut runtime, || {
-            runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins)
-        });
+    let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
+        runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins)
+    });
     let recovered_artifact = recovered
         .merge_access()
         .inspect_planning_scope(
@@ -315,10 +325,9 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
         .canonical_commit_envelope(merge.commit.commit.commit_id)
         .cloned()
         .expect("live merge envelope");
-    let (_recovery, recovered) =
-        checkpoint_and_recover_with(&mut runtime, || {
-            runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins)
-        });
+    let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
+        runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins)
+    });
     let recovered_envelope = recovered
         .replay_access()
         .canonical_commit_envelope(live_commit_id)
@@ -339,11 +348,8 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
 fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recovery_parity() {
     let mut runtime =
         runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::MonotonicCounter);
-    let entity = create_entity_with_payload(
-        &mut runtime,
-        "counter",
-        serde_json::json!({ "value": 0 }),
-    );
+    let entity =
+        create_entity_with_payload(&mut runtime, "counter", serde_json::json!({ "value": 0 }));
     update_entity_payload_on_branch(
         &mut runtime,
         entity,
@@ -382,7 +388,9 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
         .expect("live policy row");
     assert_eq!(
         live_policy_row.resolved_value_strategy,
-        Some(MergeResolvedAspectValueStrategy::InlineCanonicalJson(serde_json::json!(18))),
+        Some(MergeResolvedAspectValueStrategy::InlineCanonicalJson(
+            serde_json::json!(18)
+        )),
         "monotonic-counter policy row: {live_policy_row:?}"
     );
 
@@ -408,10 +416,9 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
         .cloned()
         .expect("live merge envelope");
 
-    let (_recovery, recovered) =
-        checkpoint_and_recover_with(&mut runtime, || {
-            runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::MonotonicCounter)
-        });
+    let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
+        runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::MonotonicCounter)
+    });
     let recovered_envelope = recovered
         .replay_access()
         .canonical_commit_envelope(live_commit_id)
@@ -443,11 +450,8 @@ fn built_in_additive_set_merge_is_auto_resolved_with_observed_remove_semantics_a
 {
     let mut runtime =
         runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::AdditiveSet);
-    let entity = create_entity_with_payload(
-        &mut runtime,
-        "set",
-        serde_json::json!({ "value": [] }),
-    );
+    let entity =
+        create_entity_with_payload(&mut runtime, "set", serde_json::json!({ "value": [] }));
     update_entity_payload_on_branch(
         &mut runtime,
         entity,
@@ -509,10 +513,9 @@ fn built_in_additive_set_merge_is_auto_resolved_with_observed_remove_semantics_a
         serde_json::json!(["a", "b"])
     );
 
-    let (_recovery, recovered) =
-        checkpoint_and_recover_with(&mut runtime, || {
-            runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::AdditiveSet)
-        });
+    let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
+        runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::AdditiveSet)
+    });
     let live_envelope = runtime
         .replay_access()
         .canonical_commit_envelope(live_commit_id)
@@ -682,7 +685,10 @@ fn non_executable_deletion_denial_is_stable_across_recovery() {
         Some(LoweredRecordDenialKind::BlockedDeletedVsModified)
     );
     assert_eq!(
-        recovered_artifact.digest_basis.lowered_plan.denial_bundle_kinds[recovered_index],
+        recovered_artifact
+            .digest_basis
+            .lowered_plan
+            .denial_bundle_kinds[recovered_index],
         Some(LoweredRecordDenialKind::BlockedDeletedVsModified)
     );
     assert_eq!(
@@ -698,12 +704,8 @@ fn topology_endpoint_divergence_denial_is_stable_across_recovery() {
     let source = create_entity(&mut runtime, "source");
     let target_a = create_entity(&mut runtime, "target-a");
     let target_b = create_entity(&mut runtime, "target-b");
-    let relation = crate::tests::support::create_relation(
-        &mut runtime,
-        source,
-        target_a,
-        "shared-edge",
-    );
+    let relation =
+        crate::tests::support::create_relation(&mut runtime, source, target_a, "shared-edge");
     create_branch_from_main(&mut runtime, "feature");
     delete_relation_on_branch(&mut runtime, relation, BranchId("feature".to_string()));
     create_relation_in_partition_on_branch(
@@ -846,7 +848,10 @@ fn topology_endpoint_divergence_denial_is_stable_across_recovery() {
         Some(LoweredRecordDenialKind::BlockedRelationEndpointRewiredEscalated)
     );
     assert_eq!(
-        recovered_artifact.digest_basis.lowered_plan.denial_bundle_kinds[recovered_index],
+        recovered_artifact
+            .digest_basis
+            .lowered_plan
+            .denial_bundle_kinds[recovered_index],
         Some(LoweredRecordDenialKind::BlockedRelationEndpointRewiredEscalated)
     );
     assert_eq!(
@@ -865,8 +870,10 @@ fn topology_region_conflict_detection_reports_bounded_neighborhood_counters() {
     let target_b = create_entity(&mut runtime, "target-b");
     let target_c = create_entity(&mut runtime, "target-c");
     let target_d = create_entity(&mut runtime, "target-d");
-    let relation_a = crate::tests::support::create_relation(&mut runtime, source, target_a, "edge-a");
-    let relation_b = crate::tests::support::create_relation(&mut runtime, source, target_b, "edge-b");
+    let relation_a =
+        crate::tests::support::create_relation(&mut runtime, source, target_a, "edge-a");
+    let relation_b =
+        crate::tests::support::create_relation(&mut runtime, source, target_b, "edge-b");
     create_branch_from_main(&mut runtime, "feature");
     delete_relation_on_branch(&mut runtime, relation_a, BranchId("feature".to_string()));
     delete_relation_on_branch(&mut runtime, relation_b, BranchId("feature".to_string()));
@@ -976,8 +983,10 @@ fn topology_region_conflict_denial_is_stable_across_recovery() {
     let target_b = create_entity(&mut runtime, "target-b");
     let target_c = create_entity(&mut runtime, "target-c");
     let target_d = create_entity(&mut runtime, "target-d");
-    let relation_a = crate::tests::support::create_relation(&mut runtime, source, target_a, "edge-a");
-    let relation_b = crate::tests::support::create_relation(&mut runtime, source, target_b, "edge-b");
+    let relation_a =
+        crate::tests::support::create_relation(&mut runtime, source, target_a, "edge-a");
+    let relation_b =
+        crate::tests::support::create_relation(&mut runtime, source, target_b, "edge-b");
     create_branch_from_main(&mut runtime, "feature");
     delete_relation_on_branch(&mut runtime, relation_a, BranchId("feature".to_string()));
     delete_relation_on_branch(&mut runtime, relation_b, BranchId("feature".to_string()));
@@ -1097,11 +1106,19 @@ fn disjoint_rewire_neighborhoods_do_not_escalate_to_topology_region_conflict() {
     let target_right_rewired = create_entity(&mut runtime, "target-right-rewired");
     let relation_left =
         crate::tests::support::create_relation(&mut runtime, source_left, target_left, "edge-left");
-    let relation_right =
-        crate::tests::support::create_relation(&mut runtime, source_right, target_right, "edge-right");
+    let relation_right = crate::tests::support::create_relation(
+        &mut runtime,
+        source_right,
+        target_right,
+        "edge-right",
+    );
     create_branch_from_main(&mut runtime, "feature");
     delete_relation_on_branch(&mut runtime, relation_left, BranchId("feature".to_string()));
-    delete_relation_on_branch(&mut runtime, relation_right, BranchId("feature".to_string()));
+    delete_relation_on_branch(
+        &mut runtime,
+        relation_right,
+        BranchId("feature".to_string()),
+    );
     create_relation_in_partition_on_branch(
         &mut runtime,
         source_left,
@@ -1203,12 +1220,8 @@ fn unrelated_relation_additions_do_not_inflate_topology_region_detection_counter
     let unrelated_source = create_entity(&mut runtime, "unrelated-source");
     let unrelated_target_a = create_entity(&mut runtime, "unrelated-target-a");
     let unrelated_target_b = create_entity(&mut runtime, "unrelated-target-b");
-    let relation = crate::tests::support::create_relation(
-        &mut runtime,
-        source,
-        target_a,
-        "shared-edge",
-    );
+    let relation =
+        crate::tests::support::create_relation(&mut runtime, source, target_a, "shared-edge");
     create_branch_from_main(&mut runtime, "feature");
     delete_relation_on_branch(&mut runtime, relation, BranchId("feature".to_string()));
     create_relation_in_partition_on_branch(
@@ -1297,18 +1310,16 @@ fn drifted_schema_registry() -> crate::facade::schema::RelationalSchemaRegistry 
                 cascade_delete_policy:
                     crate::tests::support::CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: crate::facade::schema::KindAspectDeclarations::default(),
-                relation_integrity:
-                    crate::facade::schema::RelationIntegrityDeclarations::default(),
+                relation_integrity: crate::facade::schema::RelationIntegrityDeclarations::default(),
             })
         })
         .expect("drifted schema registry")
 }
 
 fn topology_identity_registry() -> crate::facade::schema::RelationalSchemaRegistry {
-    let label_key =
-        crate::facade::schema::AspectKey(crate::symbols::data::InternedString::Raw(
-            "label".to_string(),
-        ));
+    let label_key = crate::facade::schema::AspectKey(crate::symbols::data::InternedString::Raw(
+        "label".to_string(),
+    ));
     crate::facade::schema::RelationalSchemaRegistry::new()
         .register_entity_kind(crate::facade::schema::EntityKindRegistration {
             kind_id: crate::facade::identity::KindId(1),
@@ -1342,8 +1353,7 @@ fn topology_identity_registry() -> crate::facade::schema::RelationalSchemaRegist
                         ),
                     },
                 ]),
-                relation_integrity:
-                    crate::facade::schema::RelationIntegrityDeclarations::default(),
+                relation_integrity: crate::facade::schema::RelationIntegrityDeclarations::default(),
             })
         })
         .expect("topology identity registry")
@@ -1422,7 +1432,9 @@ fn runtime_with_payload_field_merge_policy(
             })
         })
         .expect("schema registry");
-    RelationalRuntimeApi::builder().schema_registry(registry).build()
+    RelationalRuntimeApi::builder()
+        .schema_registry(registry)
+        .build()
 }
 
 fn create_entity_with_payload(
@@ -1430,12 +1442,7 @@ fn create_entity_with_payload(
     client_key: &str,
     payload: serde_json::Value,
 ) -> crate::facade::identity::EntityId {
-    create_entity_with_payload_on_branch(
-        runtime,
-        client_key,
-        payload,
-        BranchId("main".to_string()),
-    )
+    create_entity_with_payload_on_branch(runtime, client_key, payload, BranchId("main".to_string()))
 }
 
 fn create_entity_with_payload_on_branch(
@@ -1448,18 +1455,18 @@ fn create_entity_with_payload_on_branch(
         target_branch: Some(branch_id),
         ..TransactionOptions::default()
     });
-    txn.push_batch(
-        WorkerIntentBatch::new(format!("create-{client_key}")).push(MutationIntent::Create(
-            CreateIntent::Entity(crate::transactions::data::EntitySpec {
+    txn.push_batch(WorkerIntentBatch::new(format!("create-{client_key}")).push(
+        MutationIntent::Create(CreateIntent::Entity(
+            crate::transactions::data::EntitySpec {
                 partition_id: crate::facade::identity::PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: InternedString::Raw(client_key.to_string()),
                 payload: RecordPayload::StructuredJson(payload_with_identity_name(
                     client_key, payload,
                 )),
-            }),
+            },
         )),
-    );
+    ));
     changed_entities(&txn.commit().unwrap())[0]
 }
 

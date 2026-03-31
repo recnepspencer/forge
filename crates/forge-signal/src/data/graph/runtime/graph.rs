@@ -107,7 +107,6 @@ impl BranchMutationRecord {
             || self.state_changed
             || self.dependencies_changed
             || self.dependency_snapshot_changed
-            || self.runtime_artifact_changed
     }
 
     fn mark_introduced(&mut self) {
@@ -530,7 +529,8 @@ impl SignalGraph {
                     .cloned()
                     .map(|slot| {
                         slot.node.map(|image| {
-                            let (hot, _, _) = NodeEntry::from_checkpoint_image(image).into_storage_parts();
+                            let (hot, _, _) =
+                                NodeEntry::from_checkpoint_image(image).into_storage_parts();
                             hot
                         })
                     })
@@ -750,12 +750,6 @@ impl SignalGraph {
 
     pub(crate) fn record_branch_mutation_causality(&mut self, node: NodeId) {
         self.record_branch_mutation(node, BranchMutationRecord::mark_causality_changed);
-    }
-
-    pub(crate) fn record_branch_mutation_nodes(&mut self, nodes: impl IntoIterator<Item = NodeId>) {
-        for node in nodes {
-            self.record_branch_mutation_state(node);
-        }
     }
 
     pub(crate) fn branch_mutation_records(&self) -> Vec<(NodeId, BranchMutationRecord)> {
@@ -1094,7 +1088,10 @@ impl SignalGraph {
             .nodes
             .iter()
             .enumerate()
-            .filter_map(|(index, slot)| slot.is_occupied().then_some(NodeId::new(index as u32, slot.generation)))
+            .filter_map(|(index, slot)| {
+                slot.is_occupied()
+                    .then_some(NodeId::new(index as u32, slot.generation))
+            })
             .collect()
     }
 

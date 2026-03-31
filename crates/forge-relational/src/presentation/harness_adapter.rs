@@ -12,7 +12,7 @@ use serde_json::json;
 use crate::facade::harness::RelationalHarnessError;
 use crate::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use crate::facade::transactions::WorkerIntentBatch;
-use crate::query::data::QueryWorkPacket;
+use crate::query::data::PlannedQueryPacket;
 use crate::transactions::data::{RecordRef, TransactionOptions};
 
 use super::harness_batches::{entity_fixture_batch, relation_fixture_batch};
@@ -131,16 +131,28 @@ impl HarnessAdapter for RelationalHarnessAdapter {
         let scenario_id_value = forge_harness::facade::scenario_id(&fixture.name);
         let run_id_value = run_id(&scenario_id_value, &profile.name, &request.name);
         let snapshot = runtime.visibility_authority().snapshot();
-        let read_view = runtime.visibility_reads().read_version(snapshot.version_id);
         let targets = resolve_targets(request);
-        let packet = QueryWorkPacket::bulk(
-            "execute",
-            targets
-                .iter()
-                .map(|target| parse_target(target))
-                .collect::<Result<Vec<_>, _>>()?,
-        );
-        let result = read_view.execute_packet(&packet);
+        let parsed_targets = targets
+            .iter()
+            .map(|target| parse_target(target))
+            .collect::<Result<Vec<_>, _>>()?;
+        let context = runtime
+            .visibility_reads()
+            .query_plan_context(&snapshot)
+            .ok_or_else(|| RelationalHarnessError("query plan context unavailable".to_string()))?;
+        let result = runtime
+            .visibility_reads()
+            .execute_query_plan(
+                runtime
+                    .visibility_reads()
+                    .plan_query_packet(
+                        &snapshot,
+                        PlannedQueryPacket::explicit_targets("execute", context, parsed_targets),
+                    )
+                    .ok_or_else(|| RelationalHarnessError("query plan unavailable".to_string()))?,
+            )
+            .ok_or_else(|| RelationalHarnessError("query execution unavailable".to_string()))?
+            .result;
         Ok(RunRecord {
             schema_version: forge_harness::facade::RecordSchemaVersion::V1,
             run_id: run_id_value,

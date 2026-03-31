@@ -1,4 +1,5 @@
 mod aspect_semantics;
+mod commit_strategies;
 mod durability;
 mod history;
 mod indexing;
@@ -15,6 +16,7 @@ pub(crate) trait RuntimeSubsystem: Sized {
 }
 
 pub(crate) use aspect_semantics::AspectSemanticsSubsystem;
+pub(crate) use commit_strategies::CommitStrategiesSubsystem;
 pub(crate) use durability::DurabilitySubsystem;
 pub(crate) use history::HistorySubsystem;
 pub(crate) use indexing::IndexingSubsystem;

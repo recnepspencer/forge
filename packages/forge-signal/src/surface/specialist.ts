@@ -1,5 +1,7 @@
 export class SignalSpecialist {
-  constructor(inner) {
+  inner: any;
+
+  constructor(inner: any) {
     this.inner = inner;
   }
 
@@ -11,7 +13,7 @@ export class SignalSpecialist {
     return this.inner.evaluate_dirty();
   }
 
-  readVersions(ids) {
+  readVersions(ids: string[]) {
     return this.inner.read_versions(ids);
   }
 }

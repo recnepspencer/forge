@@ -105,11 +105,7 @@ pub(super) fn subscriber_invalidation_evidence(
         }));
     }
 
-    if saw_same_source_dependency
-        && !graph
-            .node_eval_config(source)?
-            .partitioned_output
-    {
+    if saw_same_source_dependency && !graph.node_eval_config(source)?.partitioned_output {
         return Ok(Some(SubscriptionInvalidationEvidence {
             classification: FrontierEntryClassification::MaybeStale,
             inclusion_basis: FrontierInclusionBasis::DirectSubscriptionMatch,

@@ -2,6 +2,8 @@ mod presets;
 
 use std::collections::BTreeMap;
 
+use sha2::{Digest, Sha256};
+
 use crate::config::data::*;
 
 use presets::default_profile_config;
@@ -18,6 +20,7 @@ impl RelationalRuntimeConfig {
         apply_diagnostics_overrides(&mut config, &overrides, &mut provenance_entries);
         apply_history_overrides(&mut config, &overrides, &mut provenance_entries);
         apply_schema_overrides(&mut config, &overrides, &mut provenance_entries);
+        apply_commit_strategy_overrides(&mut config, &overrides, &mut provenance_entries);
         apply_identity_overrides(&mut config, &overrides, &mut provenance_entries);
         apply_storage_overrides(&mut config, &overrides, &mut provenance_entries);
         apply_visibility_overrides(&mut config, &overrides, &mut provenance_entries);
@@ -179,6 +182,54 @@ fn apply_identity_overrides(
     if let Some(symbol_table) = &section.symbol_table {
         config.identity.symbol_table = symbol_table.clone();
     }
+}
+
+fn apply_commit_strategy_overrides(
+    config: &mut RelationalRuntimeConfig,
+    override_tree: &RelationalConfigOverride,
+    provenance: &mut BTreeMap<String, ConfigProvenanceEntry>,
+) {
+    let section = &override_tree.commit_strategies;
+    if let Some(registrations) = &section.registrations {
+        config.commit_strategies.registrations = registrations.clone();
+        provenance.insert(
+            "commit_strategies.registrations".to_string(),
+            ConfigProvenanceEntry {
+                source: ConfigValueSource::BuilderOverride,
+                detail: commit_strategy_override_detail(registrations),
+            },
+        );
+    } else {
+        provenance.insert(
+            "commit_strategies.registrations".to_string(),
+            ConfigProvenanceEntry {
+                source: ConfigValueSource::ProfileDefault,
+                detail: commit_strategy_override_detail(&config.commit_strategies.registrations),
+            },
+        );
+    }
+}
+
+fn commit_strategy_override_detail(
+    registrations: &[crate::commit_strategies::data::CommitStrategyRegistration],
+) -> String {
+    let mut descriptor_digests = registrations
+        .iter()
+        .map(|registration| registration.descriptor().digest().0)
+        .collect::<Vec<_>>();
+    descriptor_digests.sort();
+    let digest = Sha256::digest(
+        serde_json::to_vec(&descriptor_digests)
+            .expect("commit strategy override detail serialization"),
+    );
+    let digest = digest
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    format!(
+        "commit strategy registrations resolved; count={}; descriptor_set_digest={digest}",
+        registrations.len()
+    )
 }
 
 fn apply_storage_overrides(

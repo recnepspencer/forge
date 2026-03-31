@@ -1,5 +1,5 @@
 use crate::logic::runtime::RelationalRuntime;
-use crate::query::data::{QueryWorkPacket, ReadPacketPlan};
+use crate::query::data::{PlannedQueryPacket, ReadPacketPlan};
 use crate::snapshots::data::SnapshotHandle;
 use crate::storage::data::{
     ChunkDiagnostics, ChunkedStorageSummary, PartitionStorageStats, RecordLifecycleState,
@@ -170,12 +170,16 @@ impl<'runtime> StorageAccess<'runtime> {
         crate::storage::partition::chunks::chunk_diagnostics(self.runtime, version_id)
     }
 
-    pub fn plan_read_packet(
+    pub fn plan_read_explicit_query_packet(
         &self,
         handle: &SnapshotHandle,
-        packet: &QueryWorkPacket,
+        packet: &PlannedQueryPacket,
     ) -> Option<ReadPacketPlan> {
-        crate::storage::partition::chunks::plan_read_packet(self.runtime, handle, packet)
+        crate::storage::partition::chunks::plan_read_explicit_query_packet(
+            self.runtime,
+            handle,
+            packet,
+        )
     }
 
     pub fn outgoing_relations_for_entity(

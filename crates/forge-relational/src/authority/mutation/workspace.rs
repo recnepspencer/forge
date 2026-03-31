@@ -4,8 +4,8 @@ use crate::authority::commit::preparation::planning::strategy::{
     ParallelLegality, ParallelProfitability, PreparationStrategy, PreparationStrategySelection,
 };
 use crate::config::data::MutationConfig;
-use crate::identity::data::{EntityId, RelationId};
 use crate::identity::data::VersionId;
+use crate::identity::data::{EntityId, RelationId};
 use crate::schema::data::{AspectPlanCatalog, LoweredAspectPlan, RelationalSchemaRegistry};
 use crate::storage::overlay::WorkingState;
 use crate::symbols::data::StringInterner;
@@ -83,19 +83,13 @@ impl<'a> MutationWorkspace<'a> {
         self.version_id
     }
 
-    pub(crate) fn branch_local_delete_allows_entity(
-        &self,
-        entity_id: EntityId,
-    ) -> bool {
+    pub(crate) fn branch_local_delete_allows_entity(&self, entity_id: EntityId) -> bool {
         self.branch_local_delete_allowance
             .entity_ids
             .contains(&entity_id)
     }
 
-    pub(crate) fn branch_local_delete_allows_relation(
-        &self,
-        relation_id: RelationId,
-    ) -> bool {
+    pub(crate) fn branch_local_delete_allows_relation(&self, relation_id: RelationId) -> bool {
         self.branch_local_delete_allowance
             .relation_ids
             .contains(&relation_id)

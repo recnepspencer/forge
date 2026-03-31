@@ -1,3 +1,4 @@
+use crate::clock::RuntimeInstant;
 use crate::data::dependency::{
     CommittedSnapshotUpdate, DependencySnapshot, DependencySnapshotShapeStore, SnapshotDeltaRecord,
     SnapshotStorageStrategy,
@@ -21,7 +22,6 @@ use crate::data::trace::{
 };
 use crate::data::{aspect::AspectVersion, core_profile::StableHashValue, output::ChangedRegion};
 use std::ops::{Deref, DerefMut};
-use crate::clock::RuntimeInstant;
 
 use super::super::node_builder::NodeBuilder;
 use super::super::signal_graph::stale_error;
@@ -78,7 +78,10 @@ impl SignalGraph {
         self.allocate_node(entry)
     }
 
-    pub(crate) fn create_node_from_checkpoint_image(&mut self, image: CheckpointNodeImage) -> NodeId {
+    pub(crate) fn create_node_from_checkpoint_image(
+        &mut self,
+        image: CheckpointNodeImage,
+    ) -> NodeId {
         self.allocate_node(NodeEntry::from_checkpoint_image(image))
     }
 
@@ -158,6 +161,10 @@ impl SignalGraph {
         Ok(!self.hot_ref(id)?.dirty_partition_scope_aspects.is_empty())
     }
 
+    pub(crate) fn node_state(&self, id: NodeId) -> Result<NodeState, SignalError> {
+        Ok(self.hot_ref(id)?.state)
+    }
+
     pub(crate) fn node_runtime_artifact_hot(
         &self,
         id: NodeId,
@@ -205,7 +212,7 @@ impl SignalGraph {
 
     pub(crate) fn node_runtime_artifact_state(
         &self,
-    id: NodeId,
+        id: NodeId,
     ) -> Result<Option<&crate::data::trace::RuntimeArtifactState>, SignalError> {
         crate::data::access_counters::note_runtime_artifact_state_read();
         Ok(self.warm_ref(id)?.runtime_artifact_state.as_ref())
@@ -222,7 +229,10 @@ impl SignalGraph {
             .map(RuntimeArtifactFinalizeImage::from_runtime_state))
     }
 
-    pub(crate) fn node_runtime_artifact_state_present(&self, id: NodeId) -> Result<bool, SignalError> {
+    pub(crate) fn node_runtime_artifact_state_present(
+        &self,
+        id: NodeId,
+    ) -> Result<bool, SignalError> {
         Ok(self.warm_ref(id)?.runtime_artifact_state.is_some())
     }
 
@@ -298,9 +308,16 @@ impl SignalGraph {
         Ok(MaterializedEntryRef(self.materialize_entry(id)?))
     }
 
-    pub(crate) fn get_entry_mut(&mut self, id: NodeId) -> Result<MaterializedEntryGuard<'_>, SignalError> {
+    pub(crate) fn get_entry_mut(
+        &mut self,
+        id: NodeId,
+    ) -> Result<MaterializedEntryGuard<'_>, SignalError> {
         let entry = self.materialize_entry(id)?;
-        Ok(MaterializedEntryGuard { graph: self, id, entry })
+        Ok(MaterializedEntryGuard {
+            graph: self,
+            id,
+            entry,
+        })
     }
 
     fn hot_ref(&self, id: NodeId) -> Result<&NodeHotData, SignalError> {
@@ -866,7 +883,9 @@ impl SignalGraph {
     }
 
     pub fn causality_of(&self, node: NodeId) -> Result<Option<&CausalityMetadata>, SignalError> {
-        Ok(self.cold_ref(node)?.and_then(|cold| cold.causality.as_ref()))
+        Ok(self
+            .cold_ref(node)?
+            .and_then(|cold| cold.causality.as_ref()))
     }
 
     pub(crate) fn node_execution_trace_stamp(
@@ -1002,10 +1021,7 @@ fn merge_dirty_partition_scopes(
     true
 }
 
-fn sync_dirty_partition_scope_flag(
-    hot: &mut NodeHotData,
-    aspect: crate::data::aspect::Aspect,
-) {
+fn sync_dirty_partition_scope_flag(hot: &mut NodeHotData, aspect: crate::data::aspect::Aspect) {
     hot.dirty_partition_scope_aspects = crate::data::aspect::AspectMask::from_bits(
         hot.dirty_partition_scope_aspects.bits()
             & !crate::data::aspect::AspectMask::from_aspect(aspect).bits(),

@@ -272,7 +272,7 @@ pub enum RecoveryAuthorityParity {
     Drift,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecoveryPlan {
     pub config: crate::logic::runtime::RelationalRuntimeConfig,
     pub store: Option<DurableStore>,
@@ -284,7 +284,10 @@ pub struct RecoveryPlan {
     pub compatibility: RecoveryCompatibilityCheck,
     pub verification_plan: RecoveryVerificationPlan,
     pub descriptor_semantics_version: DescriptorSemanticsVersion,
-    pub restore_authoritative_envelopes: bool,
+    pub restore_authoritative_envelope_commit_ids: Vec<crate::history::data::CommitId>,
+    #[serde(skip, default)]
+    pub(crate) commit_strategy_executors:
+        crate::commit_strategies::FrozenCommitStrategyExecutorRegistry,
 }
 
 impl RecoveryVerificationPlan {
@@ -359,8 +362,10 @@ impl RecoveryPlan {
         compatibility: RecoveryCompatibilityCheck,
         verification_mode: RecoveryVerificationMode,
         descriptor_semantics_version: DescriptorSemanticsVersion,
-        restore_authoritative_envelopes: bool,
+        mut restore_authoritative_envelope_commit_ids: Vec<crate::history::data::CommitId>,
     ) -> Self {
+        restore_authoritative_envelope_commit_ids.sort_unstable();
+        restore_authoritative_envelope_commit_ids.dedup();
         Self {
             config,
             store,
@@ -372,12 +377,31 @@ impl RecoveryPlan {
             compatibility,
             verification_plan: RecoveryVerificationPlan::from_mode(verification_mode),
             descriptor_semantics_version,
-            restore_authoritative_envelopes,
+            restore_authoritative_envelope_commit_ids,
+            commit_strategy_executors:
+                crate::commit_strategies::FrozenCommitStrategyExecutorRegistry::default(),
         }
     }
 
     pub fn verification_mode(&self) -> RecoveryVerificationMode {
         self.verification_plan.mode()
+    }
+
+    pub(crate) fn with_commit_strategy_executors(
+        mut self,
+        executors: crate::commit_strategies::FrozenCommitStrategyExecutorRegistry,
+    ) -> Self {
+        self.commit_strategy_executors = executors;
+        self
+    }
+
+    pub(crate) fn should_restore_authoritative_envelope(
+        &self,
+        commit_id: crate::history::data::CommitId,
+    ) -> bool {
+        self.restore_authoritative_envelope_commit_ids
+            .binary_search(&commit_id)
+            .is_ok()
     }
 }
 

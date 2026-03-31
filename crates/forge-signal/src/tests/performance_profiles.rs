@@ -126,7 +126,8 @@ fn build_chain_graph(count: usize) -> (SignalGraph, Vec<NodeId>) {
         chain.push(node);
     }
 
-    graph.apply_dependency_batch_edit(&DependencyBatchEdit::from_pairs(dependency_edits))
+    graph
+        .apply_dependency_batch_edit(&DependencyBatchEdit::from_pairs(dependency_edits))
         .unwrap();
 
     (graph, chain)
@@ -188,64 +189,62 @@ fn perf_fintech_mixed_fanout_profile_matrix() {
                     "development" | "forensic" => PerfTimingPolicy::MedianOnly,
                     other => panic!("unexpected profile for perf test: {other}"),
                 },
-                &[
-                    "read_before_nanos",
-                    "mutation_nanos",
-                    "read_after_nanos",
-                ],
+                &["read_before_nanos", "mutation_nanos", "read_after_nanos"],
             ),
             || {
-            let mut world = setup_seeded_world_with(FintechScale::fanout(), MarketRegime::Calm, 7);
-            world.set_runtime_policy(policy_for(profile_name));
+                let mut world =
+                    setup_seeded_world_with(FintechScale::fanout(), MarketRegime::Calm, 7);
+                world.set_runtime_policy(policy_for(profile_name));
 
-            let warmup_start = Instant::now();
-            let _ = world
-                .read_top_desk_with_executor(StageExecutor::Serial)
-                .unwrap();
-            let _ = world
-                .read_top_scenario_with_executor(StageExecutor::Serial)
-                .unwrap();
-            let warmup_nanos = warmup_start.elapsed().as_nanos();
+                let warmup_start = Instant::now();
+                let _ = world
+                    .read_top_desk_with_executor(StageExecutor::Serial)
+                    .unwrap();
+                let _ = world
+                    .read_top_scenario_with_executor(StageExecutor::Serial)
+                    .unwrap();
+                let warmup_nanos = warmup_start.elapsed().as_nanos();
 
-            let before = world.runtime_metrics();
-            let read_before_start = Instant::now();
-            let _ = world
-                .read_top_desk_with_executor(StageExecutor::Serial)
-                .unwrap();
-            let _ = world
-                .read_top_scenario_with_executor(StageExecutor::Serial)
-                .unwrap();
-            let read_before_nanos = read_before_start.elapsed().as_nanos();
+                let before = world.runtime_metrics();
+                let read_before_start = Instant::now();
+                let _ = world
+                    .read_top_desk_with_executor(StageExecutor::Serial)
+                    .unwrap();
+                let _ = world
+                    .read_top_scenario_with_executor(StageExecutor::Serial)
+                    .unwrap();
+                let read_before_nanos = read_before_start.elapsed().as_nanos();
 
-            let mutation_start = Instant::now();
-            let _ = world
-                .bump_primary_market(7, 4, 2, 1, StageExecutor::Serial)
-                .unwrap();
-            let mutation_nanos = mutation_start.elapsed().as_nanos();
+                let mutation_start = Instant::now();
+                let _ = world
+                    .bump_primary_market(7, 4, 2, 1, StageExecutor::Serial)
+                    .unwrap();
+                let mutation_nanos = mutation_start.elapsed().as_nanos();
 
-            let read_after_start = Instant::now();
-            let _ = world
-                .read_top_desk_with_executor(StageExecutor::Serial)
-                .unwrap();
-            let _ = world
-                .read_top_scenario_with_executor(StageExecutor::Serial)
-                .unwrap();
-            let read_after_nanos = read_after_start.elapsed().as_nanos();
-            let after = world.runtime_metrics();
+                let read_after_start = Instant::now();
+                let _ = world
+                    .read_top_desk_with_executor(StageExecutor::Serial)
+                    .unwrap();
+                let _ = world
+                    .read_top_scenario_with_executor(StageExecutor::Serial)
+                    .unwrap();
+                let read_after_nanos = read_after_start.elapsed().as_nanos();
+                let after = world.runtime_metrics();
 
-            assert!(after.evaluation.evaluation_calls >= before.evaluation.evaluation_calls);
-            let mut metrics = eval_metrics_delta(before, after);
-            if let Value::Object(ref mut map) = metrics {
-                map.insert("warmup_nanos".into(), json!(warmup_nanos));
-                map.insert("read_before_nanos".into(), json!(read_before_nanos));
-                map.insert("mutation_nanos".into(), json!(mutation_nanos));
-                map.insert("read_after_nanos".into(), json!(read_after_nanos));
-            }
-            PerfMeasurement::new(
-                (read_before_nanos + mutation_nanos + read_after_nanos) as u128 / 1_000,
-                metrics,
-            )
-        });
+                assert!(after.evaluation.evaluation_calls >= before.evaluation.evaluation_calls);
+                let mut metrics = eval_metrics_delta(before, after);
+                if let Value::Object(ref mut map) = metrics {
+                    map.insert("warmup_nanos".into(), json!(warmup_nanos));
+                    map.insert("read_before_nanos".into(), json!(read_before_nanos));
+                    map.insert("mutation_nanos".into(), json!(mutation_nanos));
+                    map.insert("read_after_nanos".into(), json!(read_after_nanos));
+                }
+                PerfMeasurement::new(
+                    (read_before_nanos + mutation_nanos + read_after_nanos) as u128 / 1_000,
+                    metrics,
+                )
+            },
+        );
 
         assert!(samples.iter().all(|sample| sample.elapsed_micros > 0));
     }
@@ -285,18 +284,18 @@ fn perf_topology_rewiring_churn_serial() {
                 ZERO_BROAD_AND_ARTIFACT_ACCESS,
             ),
             || {
-            let mut graph = SignalGraph::new();
-            let sources = (0..32).map(|_| graph.node().build()).collect::<Vec<_>>();
-            let leaves = (0..256).map(|_| graph.node().build()).collect::<Vec<_>>();
+                let mut graph = SignalGraph::new();
+                let sources = (0..32).map(|_| graph.node().build()).collect::<Vec<_>>();
+                let leaves = (0..256).map(|_| graph.node().build()).collect::<Vec<_>>();
 
-            for (index, &leaf) in leaves.iter().enumerate() {
-                graph
-                    .append_dependency(leaf, sources[index % sources.len()], ASPECT_A)
-                    .unwrap();
-            }
+                for (index, &leaf) in leaves.iter().enumerate() {
+                    graph
+                        .append_dependency(leaf, sources[index % sources.len()], ASPECT_A)
+                        .unwrap();
+                }
 
-            let before = graph.observe().metrics();
-            let rewire_start = Instant::now();
+                let before = graph.observe().metrics();
+                let rewire_start = Instant::now();
                 for round in 0..48 {
                     for (index, &leaf) in leaves.iter().enumerate() {
                         let old = sources[(index + round) % sources.len()];
@@ -304,15 +303,16 @@ fn perf_topology_rewiring_churn_serial() {
                         graph.rewire_dependency(leaf, old, new, ASPECT_A).unwrap();
                     }
                 }
-            let rewire_loop_nanos = rewire_start.elapsed().as_nanos();
-            let after = graph.observe().metrics();
+                let rewire_loop_nanos = rewire_start.elapsed().as_nanos();
+                let after = graph.observe().metrics();
 
-            let mut metrics = graph_metrics_delta(before, after);
-            if let Value::Object(ref mut map) = metrics {
-                map.insert("rewire_loop_nanos".into(), json!(rewire_loop_nanos));
-            }
-            PerfMeasurement::new(rewire_loop_nanos as u128 / 1_000, metrics)
-        })
+                let mut metrics = graph_metrics_delta(before, after);
+                if let Value::Object(ref mut map) = metrics {
+                    map.insert("rewire_loop_nanos".into(), json!(rewire_loop_nanos));
+                }
+                PerfMeasurement::new(rewire_loop_nanos as u128 / 1_000, metrics)
+            },
+        )
     });
 
     assert!(samples.iter().all(|sample| sample.elapsed_micros > 0));
@@ -435,7 +435,8 @@ fn perf_chain_10k_bootstrap_serial() {
                 let bootstrap_plan_nanos = plan_start.elapsed().as_nanos();
 
                 let execute_start = Instant::now();
-                graph.execute_prepared_plan(&plan, &(), &|_ctx| Ok(version_ab(0, 1)))
+                graph
+                    .execute_prepared_plan(&plan, &(), &|_ctx| Ok(version_ab(0, 1)))
                     .unwrap();
                 let bootstrap_execute_nanos = execute_start.elapsed().as_nanos();
 
@@ -448,9 +449,15 @@ fn perf_chain_10k_bootstrap_serial() {
                 if let Value::Object(ref mut map) = metrics {
                     map.insert("build_nanos".into(), json!(build_nanos));
                     map.insert("bootstrap_plan_nanos".into(), json!(bootstrap_plan_nanos));
-                    map.insert("bootstrap_execute_nanos".into(), json!(bootstrap_execute_nanos));
+                    map.insert(
+                        "bootstrap_execute_nanos".into(),
+                        json!(bootstrap_execute_nanos),
+                    );
                     map.insert("push_nanos".into(), json!(push_nanos));
-                    map.insert("plans_built".into(), json!(graph.telemetry().planner.plans_built));
+                    map.insert(
+                        "plans_built".into(),
+                        json!(graph.telemetry().planner.plans_built),
+                    );
                     map.insert(
                         "tasks_scheduled".into(),
                         json!(graph.telemetry().planner.tasks_scheduled),
@@ -483,7 +490,11 @@ fn perf_dependency_reconciliation_rotating_window_serial() {
                 "dependency_reconciliation_rotating_window",
                 "balanced",
                 PerfTimingPolicy::StructuralOnly,
-                &["reconcile_loop_nanos", "dependency_reconcile_nanos", "snapshot_batch_commit_nanos"],
+                &[
+                    "reconcile_loop_nanos",
+                    "dependency_reconcile_nanos",
+                    "snapshot_batch_commit_nanos",
+                ],
             ),
             || {
                 let mut graph = SignalGraph::new();
@@ -691,8 +702,8 @@ fn perf_dependency_reconciliation_rotating_window_staged_serial() {
                 }
                 let elapsed = start.elapsed();
                 let after = graph.observe().metrics();
-                let loop_access_delta = crate::data::access_counters::snapshot()
-                    .delta_since(access_before_loop);
+                let loop_access_delta =
+                    crate::data::access_counters::snapshot().delta_since(access_before_loop);
 
                 let mut metrics = graph_metrics_delta(before, after);
                 if let Value::Object(ref mut map) = metrics {
@@ -898,8 +909,8 @@ fn perf_dependency_reconciliation_stable_shape_staged_serial() {
                 }
                 let elapsed = start.elapsed();
                 let after = graph.observe().metrics();
-                let loop_access_delta = crate::data::access_counters::snapshot()
-                    .delta_since(access_before_loop);
+                let loop_access_delta =
+                    crate::data::access_counters::snapshot().delta_since(access_before_loop);
 
                 let mut metrics = graph_metrics_delta(before, after);
                 if let Value::Object(ref mut map) = metrics {
@@ -971,36 +982,34 @@ fn perf_suppression_wide_fanout_serial() {
                 "suppression_wide_fanout",
                 "balanced",
                 PerfTimingPolicy::MedianOnly,
-                &[
-                    "leaf_reread_nanos",
-                    "stage_execution_nanos",
-                ],
+                &["leaf_reread_nanos", "stage_execution_nanos"],
                 ZERO_BROAD_ENTRY_ACCESS,
             ),
             || {
-            let mut runtime = SignalRuntime::builder(SignalGraph::new())
-                .with_kernel_defaults()
-                .build();
-            runtime.set_runtime_policy(SignalRuntimePolicy::operational().with_history_limit(4));
+                let mut runtime = SignalRuntime::builder(SignalGraph::new())
+                    .with_kernel_defaults()
+                    .build();
+                runtime
+                    .set_runtime_policy(SignalRuntimePolicy::operational().with_history_limit(4));
 
-            let source = runtime.graph_mut().node().build();
-            let middle = runtime.graph_mut().node().tolerance(2).build();
-            let leaves = (0..128)
-                .map(|_| runtime.graph_mut().node().tolerance(2).build())
-                .collect::<Vec<_>>();
+                let source = runtime.graph_mut().node().build();
+                let middle = runtime.graph_mut().node().tolerance(2).build();
+                let leaves = (0..128)
+                    .map(|_| runtime.graph_mut().node().tolerance(2).build())
+                    .collect::<Vec<_>>();
 
-            let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
-            dependencies
-                .append_dependency(middle, source, ASPECT_A)
-                .unwrap();
-            for &leaf in &leaves {
+                let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
                 dependencies
-                    .append_dependency(leaf, middle, ASPECT_A)
+                    .append_dependency(middle, source, ASPECT_A)
                     .unwrap();
-            }
-            dependencies.commit().unwrap();
+                for &leaf in &leaves {
+                    dependencies
+                        .append_dependency(leaf, middle, ASPECT_A)
+                        .unwrap();
+                }
+                dependencies.commit().unwrap();
 
-            let evaluator =
+                let evaluator =
             move |ctx: &mut EvaluationContext<'_, ()>| -> Result<EvaluationOutput, SignalError> {
                 let node = ctx.node();
                 let result = if node == source {
@@ -1019,86 +1028,86 @@ fn perf_suppression_wide_fanout_serial() {
                 Ok(EvaluationOutput::from_result(result))
             };
 
-            let _ = runtime
-                .read_with_executor(source, &(), &evaluator, StageExecutor::Serial)
-                .unwrap();
-            let _ = runtime
-                .read_with_executor(middle, &(), &evaluator, StageExecutor::Serial)
-                .unwrap();
-            for &leaf in &leaves {
                 let _ = runtime
-                    .read_with_executor(leaf, &(), &evaluator, StageExecutor::Serial)
+                    .read_with_executor(source, &(), &evaluator, StageExecutor::Serial)
                     .unwrap();
-            }
-
-            let before = runtime.observe().metrics();
-            let access_before_transaction = crate::data::access_counters::snapshot();
-            let transaction_start = Instant::now();
-            runtime
-                .transaction(&mut (), |tx| {
-                    tx.mark_dirty(source, ASPECT_A)?;
-                    tx.read(source, &|ctx| {
-                        Ok(ctx.finish(NodeEvaluationResult::from_version(version_ab(12, 0))))
-                    })?;
-                    Ok(())
-                })
-                .unwrap();
-            let transaction_nanos = transaction_start.elapsed().as_nanos();
-            let access_after_transaction = crate::data::access_counters::snapshot();
-
-            let access_before_reread = crate::data::access_counters::snapshot();
-            let leaf_reread_start = Instant::now();
-            for &leaf in &leaves {
                 let _ = runtime
-                    .read_with_executor(leaf, &(), &evaluator, StageExecutor::Serial)
+                    .read_with_executor(middle, &(), &evaluator, StageExecutor::Serial)
                     .unwrap();
-            }
-            let leaf_reread_nanos = leaf_reread_start.elapsed().as_nanos();
-            let access_after_reread = crate::data::access_counters::snapshot();
-            let after = runtime.observe().metrics();
+                for &leaf in &leaves {
+                    let _ = runtime
+                        .read_with_executor(leaf, &(), &evaluator, StageExecutor::Serial)
+                        .unwrap();
+                }
 
-            let mut metrics = eval_metrics_delta(before, after);
-            if let Value::Object(ref mut map) = metrics {
-                map.insert("transaction_nanos".into(), json!(transaction_nanos));
-                map.insert("leaf_reread_nanos".into(), json!(leaf_reread_nanos));
-                map.insert(
-                    "transaction_materialized_entry_reads".into(),
-                    json!(
-                        access_after_transaction
-                            .delta_since(access_before_transaction)
-                            .materialized_entry_reads
-                    ),
-                );
-                map.insert(
-                    "transaction_runtime_artifact_state_reads".into(),
-                    json!(
-                        access_after_transaction
-                            .delta_since(access_before_transaction)
-                            .runtime_artifact_state_reads
-                    ),
-                );
-                map.insert(
-                    "reread_materialized_entry_reads".into(),
-                    json!(
-                        access_after_reread
-                            .delta_since(access_before_reread)
-                            .materialized_entry_reads
-                    ),
-                );
-                map.insert(
-                    "reread_runtime_artifact_state_reads".into(),
-                    json!(
-                        access_after_reread
-                            .delta_since(access_before_reread)
-                            .runtime_artifact_state_reads
-                    ),
-                );
-            }
-            PerfMeasurement::new(
-                (transaction_nanos + leaf_reread_nanos) as u128 / 1_000,
-                metrics,
-            )
-        },
+                let before = runtime.observe().metrics();
+                let access_before_transaction = crate::data::access_counters::snapshot();
+                let transaction_start = Instant::now();
+                runtime
+                    .transaction(&mut (), |tx| {
+                        tx.mark_dirty(source, ASPECT_A)?;
+                        tx.read(source, &|ctx| {
+                            Ok(ctx.finish(NodeEvaluationResult::from_version(version_ab(12, 0))))
+                        })?;
+                        Ok(())
+                    })
+                    .unwrap();
+                let transaction_nanos = transaction_start.elapsed().as_nanos();
+                let access_after_transaction = crate::data::access_counters::snapshot();
+
+                let access_before_reread = crate::data::access_counters::snapshot();
+                let leaf_reread_start = Instant::now();
+                for &leaf in &leaves {
+                    let _ = runtime
+                        .read_with_executor(leaf, &(), &evaluator, StageExecutor::Serial)
+                        .unwrap();
+                }
+                let leaf_reread_nanos = leaf_reread_start.elapsed().as_nanos();
+                let access_after_reread = crate::data::access_counters::snapshot();
+                let after = runtime.observe().metrics();
+
+                let mut metrics = eval_metrics_delta(before, after);
+                if let Value::Object(ref mut map) = metrics {
+                    map.insert("transaction_nanos".into(), json!(transaction_nanos));
+                    map.insert("leaf_reread_nanos".into(), json!(leaf_reread_nanos));
+                    map.insert(
+                        "transaction_materialized_entry_reads".into(),
+                        json!(
+                            access_after_transaction
+                                .delta_since(access_before_transaction)
+                                .materialized_entry_reads
+                        ),
+                    );
+                    map.insert(
+                        "transaction_runtime_artifact_state_reads".into(),
+                        json!(
+                            access_after_transaction
+                                .delta_since(access_before_transaction)
+                                .runtime_artifact_state_reads
+                        ),
+                    );
+                    map.insert(
+                        "reread_materialized_entry_reads".into(),
+                        json!(
+                            access_after_reread
+                                .delta_since(access_before_reread)
+                                .materialized_entry_reads
+                        ),
+                    );
+                    map.insert(
+                        "reread_runtime_artifact_state_reads".into(),
+                        json!(
+                            access_after_reread
+                                .delta_since(access_before_reread)
+                                .runtime_artifact_state_reads
+                        ),
+                    );
+                }
+                PerfMeasurement::new(
+                    (transaction_nanos + leaf_reread_nanos) as u128 / 1_000,
+                    metrics,
+                )
+            },
         )
     });
 
@@ -1160,9 +1169,11 @@ fn perf_harness_observability_profile_delta() {
                     dependents.push(dependent);
                 }
 
-                let fixture = dependents.iter().enumerate().fold(
-                    scenario
-                        .with_evaluator(move |ctx: &mut EvaluationContext<'_, ()>| {
+                let fixture = dependents
+                    .iter()
+                    .enumerate()
+                    .fold(
+                        scenario.with_evaluator(move |ctx: &mut EvaluationContext<'_, ()>| {
                             let node = ctx.node();
                             let version = sources
                                 .iter()
@@ -1173,14 +1184,14 @@ fn perf_harness_observability_profile_delta() {
                                 version_ab(version, 0),
                             ))
                         }),
-                    |builder, (index, _)| {
-                        builder
-                            .input(format!("source-{index}"))
-                            .observe(format!("dependent-{index}"))
-                    },
-                )
-                .fixture()
-                .unwrap();
+                        |builder, (index, _)| {
+                            builder
+                                .input(format!("source-{index}"))
+                                .observe(format!("dependent-{index}"))
+                        },
+                    )
+                    .fixture()
+                    .unwrap();
 
                 let request = forge_harness::facade::ExecutionRequest::new(
                     "observe-dependent-fanout",

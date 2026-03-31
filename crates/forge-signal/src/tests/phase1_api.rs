@@ -29,16 +29,14 @@ const WORKSPACE_SOURCE: &str = include_str!("../logic/planner/apply/workspace.rs
 const PATCH_BUFFER_SOURCE: &str = include_str!("../logic/transaction/patch_buffer.rs");
 const MERGE_EXECUTE_SOURCE: &str =
     include_str!("../logic/transaction/runtime/state/merge/execute.rs");
-const MERGE_PLAN_SOURCE: &str =
-    include_str!("../logic/transaction/runtime/state/merge/plan.rs");
+const MERGE_PLAN_SOURCE: &str = include_str!("../logic/transaction/runtime/state/merge/plan.rs");
 const MERGE_RUNTIME_SOURCE: &str =
     include_str!("../logic/transaction/runtime/state/branching/merge_runtime.rs");
 const BRANCHES_SOURCE: &str =
     include_str!("../logic/transaction/runtime/state/branching/branches.rs");
 const RUNTIME_STATE_SOURCE: &str =
     include_str!("../logic/transaction/runtime/state/runtime_state.rs");
-const SNAPSHOT_RESTORE_SOURCE: &str =
-    include_str!("../data/graph/diagnostics_access/artifacts.rs");
+const SNAPSHOT_RESTORE_SOURCE: &str = include_str!("../data/graph/diagnostics_access/artifacts.rs");
 const RUNTIME_SNAPSHOTTING_SOURCE: &str =
     include_str!("../logic/transaction/runtime/state/branching/snapshotting.rs");
 const CHECKPOINT_IMAGE_SOURCE: &str = include_str!("../data/node/checkpoint_image.rs");
@@ -122,7 +120,8 @@ fn perf_harness_supports_hot_family_access_counter_budgets() {
         "performance support should encode explicit access-counter budgets for hot families"
     );
     assert!(
-        PERFORMANCE_SUPPORT_SOURCE.contains("for (counter, maximum) in contract.access_counter_maxima"),
+        PERFORMANCE_SUPPORT_SOURCE
+            .contains("for (counter, maximum) in contract.access_counter_maxima"),
         "performance support should certify access-counter maxima as part of perf-case enforcement"
     );
 }
@@ -166,7 +165,8 @@ fn observability_perf_profiles_use_structural_only_certification() {
         "performance support should expose a structural-only cert mode for rich observability workloads"
     );
     assert!(
-        PERFORMANCE_SUPPORT_SOURCE.contains("if !matches!(contract.timing_policy, PerfTimingPolicy::StructuralOnly)"),
+        PERFORMANCE_SUPPORT_SOURCE
+            .contains("if !matches!(contract.timing_policy, PerfTimingPolicy::StructuralOnly)"),
         "structural-only perf cases should skip timing-phase regression gates"
     );
     assert!(
@@ -546,7 +546,8 @@ fn gate5_snapshot_restore_uses_classified_snapshot_commit_boundary() {
 fn checkpoint_authority_image_fields_are_sealed_behind_methods() {
     assert!(
         CHECKPOINT_IMAGE_SOURCE.contains("pub struct CheckpointNodeImage {\n    state: NodeState,")
-            || CHECKPOINT_IMAGE_SOURCE.contains("pub struct CheckpointNodeImage {\r\n    state: NodeState,"),
+            || CHECKPOINT_IMAGE_SOURCE
+                .contains("pub struct CheckpointNodeImage {\r\n    state: NodeState,"),
         "checkpoint authority image should keep its storage fields private"
     );
     assert!(
@@ -564,7 +565,8 @@ fn checkpoint_authority_image_fields_are_sealed_behind_methods() {
     assert!(
         CHECKPOINT_IMAGE_SOURCE.contains("pub(crate) fn set_eval_config(")
             && CHECKPOINT_IMAGE_SOURCE.contains("pub(crate) fn set_runtime_artifact_state(")
-            && CHECKPOINT_IMAGE_SOURCE.contains("pub(crate) fn clear_dependency_handles_for_adoption("),
+            && CHECKPOINT_IMAGE_SOURCE
+                .contains("pub(crate) fn clear_dependency_handles_for_adoption("),
         "checkpoint authority image mutation should be mediated through crate-scoped methods"
     );
 }
@@ -678,9 +680,12 @@ fn branch_snapshot_restore_packets_are_mediated_through_transition_helpers() {
         RUNTIME_STATE_SOURCE.contains("AuthorityTransferPacket")
             && RUNTIME_STATE_SOURCE.contains("RestoreTransferPacket")
             && RUNTIME_STATE_SOURCE.contains("ExplicitBranchForkPacket")
-            && RUNTIME_STATE_SOURCE.contains("pub fn new(branch_id: SignalBranchId, state: BranchState")
-            && (RUNTIME_STATE_SOURCE.contains("pub fn new(\n        source_branch: SignalBranchId,")
-                || RUNTIME_STATE_SOURCE.contains("pub fn new(\r\n        source_branch: SignalBranchId,")),
+            && RUNTIME_STATE_SOURCE
+                .contains("pub fn new(branch_id: SignalBranchId, state: BranchState")
+            && (RUNTIME_STATE_SOURCE
+                .contains("pub fn new(\n        source_branch: SignalBranchId,")
+                || RUNTIME_STATE_SOURCE
+                    .contains("pub fn new(\r\n        source_branch: SignalBranchId,")),
         "branch lifecycle transfer packets should be mediated through implementation boundaries"
     );
     assert!(
@@ -1189,7 +1194,8 @@ fn node_storage_is_physically_split_into_index_addressed_lanes() {
     assert!(
         GRAPH_RUNTIME_SOURCE.contains("pub(in crate::data::graph) hot: Vec<Option<NodeHotData>>")
             && GRAPH_RUNTIME_SOURCE.contains("pub(in crate::data::graph) warm: Vec<NodeWarmData>")
-            && GRAPH_RUNTIME_SOURCE.contains("pub(in crate::data::graph) cold: Vec<Option<Box<NodeColdData>>>"),
+            && GRAPH_RUNTIME_SOURCE
+                .contains("pub(in crate::data::graph) cold: Vec<Option<Box<NodeColdData>>>"),
         "node arena should store hot, warm, and cold node lanes explicitly"
     );
     assert!(

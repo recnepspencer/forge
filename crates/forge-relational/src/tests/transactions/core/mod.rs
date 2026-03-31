@@ -1179,7 +1179,9 @@ fn bulk_mutation_plan_normalizes_client_keys_and_tracks_locality() {
                     kind_id: KindId(2),
                     client_keys: vec![InternedString::Raw("cross-edge".to_string())],
                     endpoints: vec![(source, target)],
-                    payloads: vec![Some(RecordPayload::StructuredJson(json!({"label":"cross"})))],
+                    payloads: vec![Some(RecordPayload::StructuredJson(
+                        json!({"label":"cross"}),
+                    ))],
                 },
             ))),
     );
@@ -1239,7 +1241,9 @@ fn bulk_mutation_plan_captures_lineage_and_provenance_for_topology_rewrite() {
                 },
             )))
             .push(MutationIntent::Relation(RelationMutationIntent::Delete(
-                DeleteRelationIntent { relation_id: relation },
+                DeleteRelationIntent {
+                    relation_id: relation,
+                },
             ))),
     );
 
@@ -1297,15 +1301,25 @@ fn bulk_mutation_commit_records_admission_counters() {
                 kind_id: KindId(2),
                 client_keys: vec![InternedString::Raw("edge-a".to_string())],
                 endpoints: vec![(source, target)],
-                payloads: vec![Some(RecordPayload::StructuredJson(json!({"label":"edge-a"})))],
+                payloads: vec![Some(RecordPayload::StructuredJson(
+                    json!({"label":"edge-a"}),
+                ))],
             }),
         )),
     );
     let outcome = txn.commit().unwrap();
 
     assert_eq!(outcome.complexity_delta().bulk_mutation_batch_count, 1);
-    assert_eq!(outcome.complexity_delta().bulk_mutation_entity_target_count, 0);
-    assert_eq!(outcome.complexity_delta().bulk_mutation_relation_target_count, 1);
+    assert_eq!(
+        outcome.complexity_delta().bulk_mutation_entity_target_count,
+        0
+    );
+    assert_eq!(
+        outcome
+            .complexity_delta()
+            .bulk_mutation_relation_target_count,
+        1
+    );
     assert_eq!(
         outcome
             .complexity_delta()
