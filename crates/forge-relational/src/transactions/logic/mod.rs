@@ -141,6 +141,9 @@ impl<'a> RelationalTransaction<'a> {
                             EntityMutationIntent::Update(intent) => {
                                 touched_records.insert(RecordRef::Entity(intent.entity_id));
                             }
+                            EntityMutationIntent::UpdateFields(intent) => {
+                                touched_records.insert(RecordRef::Entity(intent.entity_id));
+                            }
                             EntityMutationIntent::Replace(intent) => {
                                 touched_records.insert(RecordRef::Entity(intent.entity_id));
                             }
@@ -228,7 +231,8 @@ fn bulk_mutation_scope(intents: &[MutationIntent]) -> BulkMutationScope {
             | MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {
                 saw_topology_rewrite = true;
             }
-            MutationIntent::Entity(EntityMutationIntent::Update(_)) => {}
+            MutationIntent::Entity(EntityMutationIntent::Update(_))
+            | MutationIntent::Entity(EntityMutationIntent::UpdateFields(_)) => {}
         }
     }
 
@@ -254,6 +258,7 @@ fn bulk_mutation_locality(intents: &[MutationIntent]) -> BulkMutationLocalityFoo
         match intent {
             MutationIntent::Create(CreateIntent::Entity(_))
             | MutationIntent::Entity(EntityMutationIntent::Update(_))
+            | MutationIntent::Entity(EntityMutationIntent::UpdateFields(_))
             | MutationIntent::Entity(EntityMutationIntent::Replace(_))
             | MutationIntent::Entity(EntityMutationIntent::Delete(_)) => {
                 entity_target_count += 1;
@@ -309,6 +314,7 @@ fn bulk_mutation_naming(intents: &[MutationIntent]) -> BulkMutationNamingPlan {
                 normalized_client_keys.push(spec.replacement.client_key.clone());
             }
             MutationIntent::Entity(EntityMutationIntent::Update(_))
+            | MutationIntent::Entity(EntityMutationIntent::UpdateFields(_))
             | MutationIntent::Entity(EntityMutationIntent::Delete(_))
             | MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {}
         }
@@ -381,7 +387,8 @@ fn bulk_mutation_lineage(intents: &[MutationIntent]) -> BulkMutationLineagePlan 
                     relation_id: spec.relation_id,
                 });
             }
-            MutationIntent::Entity(EntityMutationIntent::Update(_)) => {}
+            MutationIntent::Entity(EntityMutationIntent::Update(_))
+            | MutationIntent::Entity(EntityMutationIntent::UpdateFields(_)) => {}
         }
     }
 

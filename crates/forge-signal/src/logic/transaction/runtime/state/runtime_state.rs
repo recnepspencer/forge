@@ -4,12 +4,17 @@ use crate::data::graph::{EvaluationStrategy, SignalGraph};
 use crate::data::telemetry::{RuntimeTelemetry, TransactionTelemetry};
 use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::events::EventBus;
+use crate::schema::data::SignalSchemaRegistry;
 use crate::state::{SignalBranchHandle, SignalBranchId};
 
 use super::super::config::SignalRuntimeConfig;
 use super::branching::{BranchAncestryState, BranchManager, BranchState};
 use super::builder::SignalRuntimeBuilder;
-use super::merge::BranchMutationLedger;
+use super::merge::{
+    BranchMutationLedger, FrozenAspectMergePolicyRegistry, FrozenConflictIsolationRegistry,
+    FrozenConflictPolicyRegistry, FrozenDeletionPolicyRegistry, FrozenIdentityMatcherRegistry,
+    FrozenMergeBaseStrategyRegistry, FrozenMergeStrategyRegistry, FrozenSourceOnlyPolicyRegistry,
+};
 use super::observer::RuntimeObserver;
 use super::reconstructability::{AuthorityState, DerivedState};
 
@@ -144,6 +149,22 @@ where
 {
     pub(in crate::logic::transaction::runtime) config: SignalRuntimeConfig<T>,
     pub(in crate::logic::transaction::runtime) graph: SignalGraph,
+    pub(in crate::logic::transaction::runtime) schema_registry: SignalSchemaRegistry,
+    pub(in crate::logic::transaction::runtime) merge_strategy_registry: FrozenMergeStrategyRegistry,
+    pub(in crate::logic::transaction::runtime) merge_base_strategy_registry:
+        FrozenMergeBaseStrategyRegistry,
+    pub(in crate::logic::transaction::runtime) aspect_merge_policy_registry:
+        FrozenAspectMergePolicyRegistry,
+    pub(in crate::logic::transaction::runtime) conflict_isolation_registry:
+        FrozenConflictIsolationRegistry,
+    pub(in crate::logic::transaction::runtime) conflict_policy_registry:
+        FrozenConflictPolicyRegistry,
+    pub(in crate::logic::transaction::runtime) identity_matcher_registry:
+        FrozenIdentityMatcherRegistry,
+    pub(in crate::logic::transaction::runtime) source_only_policy_registry:
+        FrozenSourceOnlyPolicyRegistry,
+    pub(in crate::logic::transaction::runtime) deletion_policy_registry:
+        FrozenDeletionPolicyRegistry,
     pub(in crate::logic::transaction::runtime) checkpoint: CheckpointRuntime<D, I>,
     pub(in crate::logic::transaction::runtime) event_bus: EventBus<E, D, Ctx>,
     pub(in crate::logic::transaction::runtime) telemetry: RuntimeTelemetry,
@@ -212,9 +233,25 @@ impl SignalRuntime<(), (), (), (), ()> {
         SignalRuntime::<(), (), (), Ctx, ()>::build(graph)
     }
 
+    /// Build a runtime with the recommended default setup and a first-class schema registry.
+    pub fn build_for_with_schema<Ctx>(
+        graph: SignalGraph,
+        schema_registry: SignalSchemaRegistry,
+    ) -> SignalRuntime<(), (), (), Ctx, ()> {
+        SignalRuntime::<(), (), (), Ctx, ()>::build_with_schema(graph, schema_registry)
+    }
+
     /// Build a runtime with the richer development diagnostics preset for a typed app context.
     pub fn development_for<Ctx>(graph: SignalGraph) -> SignalRuntime<(), (), (), Ctx, ()> {
         SignalRuntime::<(), (), (), Ctx, ()>::development(graph)
+    }
+
+    /// Build a runtime with the richer development diagnostics preset and a first-class schema registry.
+    pub fn development_for_with_schema<Ctx>(
+        graph: SignalGraph,
+        schema_registry: SignalSchemaRegistry,
+    ) -> SignalRuntime<(), (), (), Ctx, ()> {
+        SignalRuntime::<(), (), (), Ctx, ()>::development_with_schema(graph, schema_registry)
     }
 
     /// Build a runtime with the lean operational diagnostics preset for a typed app context.
@@ -222,9 +259,25 @@ impl SignalRuntime<(), (), (), (), ()> {
         SignalRuntime::<(), (), (), Ctx, ()>::operational(graph)
     }
 
+    /// Build a runtime with the lean operational diagnostics preset and a first-class schema registry.
+    pub fn operational_for_with_schema<Ctx>(
+        graph: SignalGraph,
+        schema_registry: SignalSchemaRegistry,
+    ) -> SignalRuntime<(), (), (), Ctx, ()> {
+        SignalRuntime::<(), (), (), Ctx, ()>::operational_with_schema(graph, schema_registry)
+    }
+
     /// Build a runtime with the web-development preset for a typed app context.
     pub fn web_development_for<Ctx>(graph: SignalGraph) -> SignalRuntime<(), (), (), Ctx, ()> {
         SignalRuntime::<(), (), (), Ctx, ()>::web_development(graph)
+    }
+
+    /// Build a runtime with the web-development preset and a first-class schema registry.
+    pub fn web_development_for_with_schema<Ctx>(
+        graph: SignalGraph,
+        schema_registry: SignalSchemaRegistry,
+    ) -> SignalRuntime<(), (), (), Ctx, ()> {
+        SignalRuntime::<(), (), (), Ctx, ()>::web_development_with_schema(graph, schema_registry)
     }
 
     /// Build a runtime with the fintech preset for a typed app context.
@@ -232,9 +285,25 @@ impl SignalRuntime<(), (), (), (), ()> {
         SignalRuntime::<(), (), (), Ctx, ()>::fintech(graph)
     }
 
+    /// Build a runtime with the fintech preset and a first-class schema registry.
+    pub fn fintech_for_with_schema<Ctx>(
+        graph: SignalGraph,
+        schema_registry: SignalSchemaRegistry,
+    ) -> SignalRuntime<(), (), (), Ctx, ()> {
+        SignalRuntime::<(), (), (), Ctx, ()>::fintech_with_schema(graph, schema_registry)
+    }
+
     /// Build a runtime with the heaviest forensic preset for a typed app context.
     pub fn forensic_for<Ctx>(graph: SignalGraph) -> SignalRuntime<(), (), (), Ctx, ()> {
         SignalRuntime::<(), (), (), Ctx, ()>::forensic(graph)
+    }
+
+    /// Build a runtime with the heaviest forensic preset and a first-class schema registry.
+    pub fn forensic_for_with_schema<Ctx>(
+        graph: SignalGraph,
+        schema_registry: SignalSchemaRegistry,
+    ) -> SignalRuntime<(), (), (), Ctx, ()> {
+        SignalRuntime::<(), (), (), Ctx, ()>::forensic_with_schema(graph, schema_registry)
     }
 }
 
@@ -247,11 +316,29 @@ impl<Ctx> SignalRuntime<(), (), (), Ctx, ()> {
         Self::development(graph)
     }
 
+    /// Build a runtime with the recommended default setup and a first-class schema registry.
+    pub fn build_with_schema(graph: SignalGraph, schema_registry: SignalSchemaRegistry) -> Self {
+        Self::development_with_schema(graph, schema_registry)
+    }
+
     /// Build a runtime with the development policy preset.
     pub fn development(graph: SignalGraph) -> Self {
         SignalRuntime::<(), (), (), (), ()>::builder(graph)
             .with_context::<Ctx>()
             .with_kernel_defaults()
+            .development_policy()
+            .build()
+    }
+
+    /// Build a runtime with the development policy preset and a first-class schema registry.
+    pub fn development_with_schema(
+        graph: SignalGraph,
+        schema_registry: SignalSchemaRegistry,
+    ) -> Self {
+        SignalRuntime::<(), (), (), (), ()>::builder(graph)
+            .with_context::<Ctx>()
+            .with_kernel_defaults()
+            .schema_registry(schema_registry)
             .development_policy()
             .build()
     }
@@ -265,11 +352,37 @@ impl<Ctx> SignalRuntime<(), (), (), Ctx, ()> {
             .build()
     }
 
+    /// Build a runtime with the operational policy preset and a first-class schema registry.
+    pub fn operational_with_schema(
+        graph: SignalGraph,
+        schema_registry: SignalSchemaRegistry,
+    ) -> Self {
+        SignalRuntime::<(), (), (), (), ()>::builder(graph)
+            .with_context::<Ctx>()
+            .with_kernel_defaults()
+            .schema_registry(schema_registry)
+            .operational_policy()
+            .build()
+    }
+
     /// Build a runtime with the web-development policy preset.
     pub fn web_development(graph: SignalGraph) -> Self {
         SignalRuntime::<(), (), (), (), ()>::builder(graph)
             .with_context::<Ctx>()
             .with_kernel_defaults()
+            .web_development_policy()
+            .build()
+    }
+
+    /// Build a runtime with the web-development policy preset and a first-class schema registry.
+    pub fn web_development_with_schema(
+        graph: SignalGraph,
+        schema_registry: SignalSchemaRegistry,
+    ) -> Self {
+        SignalRuntime::<(), (), (), (), ()>::builder(graph)
+            .with_context::<Ctx>()
+            .with_kernel_defaults()
+            .schema_registry(schema_registry)
             .web_development_policy()
             .build()
     }
@@ -283,11 +396,31 @@ impl<Ctx> SignalRuntime<(), (), (), Ctx, ()> {
             .build()
     }
 
+    /// Build a runtime with the fintech policy preset and a first-class schema registry.
+    pub fn fintech_with_schema(graph: SignalGraph, schema_registry: SignalSchemaRegistry) -> Self {
+        SignalRuntime::<(), (), (), (), ()>::builder(graph)
+            .with_context::<Ctx>()
+            .with_kernel_defaults()
+            .schema_registry(schema_registry)
+            .fintech_policy()
+            .build()
+    }
+
     /// Build a runtime with the forensic policy preset.
     pub fn forensic(graph: SignalGraph) -> Self {
         SignalRuntime::<(), (), (), (), ()>::builder(graph)
             .with_context::<Ctx>()
             .with_kernel_defaults()
+            .forensic_policy()
+            .build()
+    }
+
+    /// Build a runtime with the forensic policy preset and a first-class schema registry.
+    pub fn forensic_with_schema(graph: SignalGraph, schema_registry: SignalSchemaRegistry) -> Self {
+        SignalRuntime::<(), (), (), (), ()>::builder(graph)
+            .with_context::<Ctx>()
+            .with_kernel_defaults()
+            .schema_registry(schema_registry)
             .forensic_policy()
             .build()
     }
@@ -361,14 +494,27 @@ where
 
     pub(crate) fn new(
         graph: SignalGraph,
+        mut schema_registry: SignalSchemaRegistry,
         checkpoint: CheckpointRuntime<D, I>,
         event_bus: EventBus<E, D, Ctx>,
     ) -> Self {
+        if schema_registry.is_empty() {
+            schema_registry = graph.schema_registry().clone();
+        }
         let mut config = SignalRuntimeConfig::default();
         config.sync_graph_capacity(&graph);
         Self {
             config,
             graph,
+            schema_registry,
+            merge_strategy_registry: FrozenMergeStrategyRegistry::built_in(),
+            merge_base_strategy_registry: FrozenMergeBaseStrategyRegistry::built_in(),
+            aspect_merge_policy_registry: FrozenAspectMergePolicyRegistry::built_in(),
+            conflict_isolation_registry: FrozenConflictIsolationRegistry::built_in(),
+            conflict_policy_registry: FrozenConflictPolicyRegistry::built_in(),
+            identity_matcher_registry: FrozenIdentityMatcherRegistry::built_in(),
+            source_only_policy_registry: FrozenSourceOnlyPolicyRegistry::built_in(),
+            deletion_policy_registry: FrozenDeletionPolicyRegistry::built_in(),
             checkpoint,
             event_bus,
             telemetry: RuntimeTelemetry::default(),
@@ -387,6 +533,60 @@ where
 
     pub fn graph(&self) -> &SignalGraph {
         &self.graph
+    }
+
+    pub fn schema_registry(&self) -> &SignalSchemaRegistry {
+        &self.schema_registry
+    }
+
+    pub fn merge_strategy_registry(&self) -> &FrozenMergeStrategyRegistry {
+        &self.merge_strategy_registry
+    }
+
+    pub fn merge_base_strategy_registry(&self) -> &FrozenMergeBaseStrategyRegistry {
+        &self.merge_base_strategy_registry
+    }
+
+    pub fn aspect_merge_policy_registry(&self) -> &FrozenAspectMergePolicyRegistry {
+        &self.aspect_merge_policy_registry
+    }
+
+    pub fn conflict_policy_registry(&self) -> &FrozenConflictPolicyRegistry {
+        &self.conflict_policy_registry
+    }
+
+    pub fn conflict_isolation_registry(&self) -> &FrozenConflictIsolationRegistry {
+        &self.conflict_isolation_registry
+    }
+
+    pub fn identity_matcher_registry(&self) -> &FrozenIdentityMatcherRegistry {
+        &self.identity_matcher_registry
+    }
+
+    pub fn source_only_policy_registry(&self) -> &FrozenSourceOnlyPolicyRegistry {
+        &self.source_only_policy_registry
+    }
+
+    pub fn deletion_policy_registry(&self) -> &FrozenDeletionPolicyRegistry {
+        &self.deletion_policy_registry
+    }
+
+    pub fn validate_schema_bindings(&self) -> Result<(), crate::data::error::SignalError> {
+        self.graph
+            .validate_schema_bindings_against(&self.schema_registry)
+    }
+
+    pub fn validate_merge_semantics(&self) -> Result<(), crate::data::error::SignalError> {
+        self.graph.validate_merge_semantics_against(
+            &self.schema_registry,
+            &self.merge_strategy_registry,
+            &self.aspect_merge_policy_registry,
+            &self.conflict_isolation_registry,
+            &self.conflict_policy_registry,
+            &self.identity_matcher_registry,
+            &self.source_only_policy_registry,
+            &self.deletion_policy_registry,
+        )
     }
 
     pub fn observe(&self) -> RuntimeObserver<'_, D, I, E, Ctx, T> {
@@ -454,7 +654,7 @@ where
             .unwrap_or_else(|| {
                 BranchMutationLedger::default().with_baseline_snapshot(handle.head_snapshot_id)
             });
-        mutation_ledger.absorb_records(self.graph.branch_mutation_records());
+        mutation_ledger.absorb_records(self.graph.pending_branch_mutation_records());
         self.graph.clear_branch_mutation_nodes();
         self.branches.capture_active_state(
             self.capture_full_authority_state(),
@@ -483,7 +683,7 @@ where
             .unwrap_or_else(|| {
                 BranchMutationLedger::default().with_baseline_snapshot(handle.head_snapshot_id)
             });
-        mutation_ledger.absorb_records(self.graph.branch_mutation_records());
+        mutation_ledger.absorb_records(self.graph.pending_branch_mutation_records());
         self.graph.clear_branch_mutation_nodes();
 
         let authority = AuthorityState {

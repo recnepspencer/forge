@@ -19,6 +19,7 @@ pub(crate) struct DependencyReconciliationReport {
 }
 
 impl SignalGraph {
+    #[cfg(any(test, debug_assertions))]
     pub(crate) fn assert_bidirectional_consistency(&self) -> Result<(), SignalError> {
         for (index, slot) in self.arena.nodes.iter().enumerate() {
             if !slot.is_occupied() {

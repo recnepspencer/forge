@@ -604,6 +604,274 @@ body {
   line-height: 1.4;
 }
 
+.merge-proof {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.merge-proof__block {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+}
+
+.merge-proof__title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.merge-proof__line {
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.merge-proof__block--hero {
+  gap: 10px;
+  background: linear-gradient(180deg, rgba(209, 255, 90, 0.08), rgba(255, 255, 255, 0.03));
+}
+
+.merge-proof__summary {
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.merge-proof__policy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.merge-proof__actions {
+  display: grid;
+  gap: 8px;
+}
+
+.merge-proof__microcopy {
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.merge-proof__details {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 8px 10px;
+}
+
+.merge-proof__details summary {
+  cursor: pointer;
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.merge-proof__details-body {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.proof-stat {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--line);
+}
+
+.proof-stat__label {
+  color: var(--muted);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.proof-stat__value {
+  margin-top: 4px;
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.scenario-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.scenario-panel__field {
+  display: grid;
+  gap: 6px;
+}
+
+.scenario-panel__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.scenario-panel__select {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: #16212a;
+  color: var(--ink);
+  padding: 8px 10px;
+  appearance: none;
+  -webkit-appearance: none;
+  color-scheme: dark;
+}
+
+.scenario-panel__select:focus {
+  outline: none;
+  border-color: var(--line-accent);
+  box-shadow: 0 0 0 1px rgba(209, 255, 90, 0.18);
+}
+
+.scenario-panel__select option {
+  background: #16212a;
+  color: var(--ink);
+}
+
+.scenario-panel__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.scenario-panel__actions .btn {
+  width: 100%;
+  padding: 9px 12px;
+}
+
+.walkthrough-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 11, 0.72);
+  backdrop-filter: blur(8px);
+  display: grid;
+  place-items: center;
+  z-index: 20;
+  padding: 20px;
+}
+
+.walkthrough-modal {
+  width: min(640px, 100%);
+  max-height: min(86vh, 820px);
+  overflow: auto;
+  padding: 18px;
+  border-radius: var(--radius);
+  background: #101920;
+  border: 1px solid var(--line-accent);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+  display: grid;
+  gap: 14px;
+}
+
+.walkthrough-modal__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+}
+
+.walkthrough-modal__title {
+  margin: 4px 0 0;
+  font-size: 1.15rem;
+}
+
+.walkthrough-modal__close {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 1.6rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.walkthrough-modal__body {
+  display: grid;
+  gap: 12px;
+}
+
+.walkthrough-modal__pair {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.walkthrough-modal__arrow {
+  color: var(--accent);
+}
+
+.walkthrough-modal__badge {
+  width: max-content;
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.walkthrough-modal__badge--auto {
+  background: rgba(209,255,90,0.12);
+  color: #efffc1;
+  border: 1px solid rgba(209,255,90,0.2);
+}
+
+.walkthrough-modal__badge--manual {
+  background: rgba(255,125,108,0.16);
+  color: var(--danger-ink);
+  border: 1px solid rgba(255,125,108,0.22);
+}
+
+.walkthrough-modal__summary,
+.walkthrough-modal__section p,
+.walkthrough-modal__note {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.9);
+}
+
+.walkthrough-modal__section {
+  display: grid;
+  gap: 6px;
+}
+
+.walkthrough-modal__label {
+  color: var(--accent);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.walkthrough-modal__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.walkthrough-modal__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 /* ─── sliders ────────────────────────────────────────────────────── */
 
 .sliders {
@@ -668,6 +936,12 @@ body {
   display: grid;
   gap: 10px;
   margin-top: 8px;
+}
+
+.node-tree__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .node-tree__layer {
@@ -777,6 +1051,35 @@ body {
   color: #ecffc0;
   border-color: var(--line-accent);
   background: var(--accent-soft);
+}
+
+.node-chip--legend {
+  cursor: default;
+}
+
+.node-chip--topology {
+  border-color: rgba(255, 196, 92, 0.18);
+  background: rgba(255, 196, 92, 0.08);
+}
+
+.node-chip--render {
+  border-color: rgba(92, 214, 255, 0.18);
+  background: rgba(92, 214, 255, 0.08);
+}
+
+.node-chip--output {
+  border-color: rgba(132, 255, 168, 0.18);
+  background: rgba(132, 255, 168, 0.08);
+}
+
+.node-chip--conflict {
+  border-color: rgba(255, 119, 119, 0.3);
+  box-shadow: inset 0 0 0 1px rgba(255, 119, 119, 0.12);
+}
+
+.node-chip--resolved {
+  border-color: rgba(209,255,90,0.28);
+  box-shadow: inset 0 0 0 1px rgba(209,255,90,0.12);
 }
 
 /* ─── trace graph (ancestors + descendants) ──────────────────────── */

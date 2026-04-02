@@ -38,6 +38,8 @@ use super::materialization::{
 };
 use super::visibility::{slot_kind_matches, visible_slots_in_partition_from_state};
 
+const TARGET_TRAVERSAL_SEEDS_PER_PACKET: usize = 4;
+
 pub struct VisibilityReadContext<'runtime> {
     runtime: &'runtime RelationalRuntime,
 }
@@ -127,10 +129,13 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         let version_id = self
             .runtime
             .published_snapshot_version(handle.snapshot_id)?;
-        let state = self
+        let binding = self
             .runtime
             .visibility
-            .published_snapshot_state(handle.snapshot_id)?;
+            .published_snapshot_binding(handle.snapshot_id)?;
+        let state = reconstruct_state(self.runtime, version_id, true).unwrap_or_else(|| {
+            build_visibility_state(self.runtime, version_id, handle.snapshot_id, binding.read_policy)
+        });
         let read_view = read_view_from_snapshot_state(self.runtime, &state);
         Some(SnapshotInspectionSummary {
             version_id,
@@ -161,10 +166,19 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         }
         self.runtime
             .published_snapshot_version(handle.snapshot_id)?;
-        let state = self
+        let binding = self
             .runtime
             .visibility
-            .published_snapshot_state(handle.snapshot_id)?;
+            .published_snapshot_binding(handle.snapshot_id)?;
+        let state = reconstruct_state(self.runtime, handle.version_id, true)
+            .unwrap_or_else(|| {
+                build_visibility_state(
+                    self.runtime,
+                    handle.version_id,
+                    handle.snapshot_id,
+                    binding.read_policy,
+                )
+            });
         let mut read_view = read_view_from_snapshot_state(self.runtime, &state);
         read_view.snapshot = handle.clone();
         Some(read_view)
@@ -225,6 +239,18 @@ impl<'runtime> VisibilityReadContext<'runtime> {
     ) -> Option<QueryExecutionOutcome> {
         if plan.packet.context_id != self.query_plan_context(&plan.snapshot)? {
             return None;
+        }
+
+        if matches!(plan.packet.scope, QueryScope::ExplicitTargets { .. }) {
+            return self.execute_explicit_query_plan(plan);
+        }
+        if matches!(
+            plan.packet.scope,
+            QueryScope::OutgoingNeighborhood { .. }
+                | QueryScope::IncomingNeighborhood { .. }
+                | QueryScope::ConnectivityTraversal { .. }
+        ) {
+            return self.execute_traversal_query_plan(plan);
         }
 
         let read_view = self.read_snapshot(&plan.snapshot)?;
@@ -339,6 +365,292 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             result,
             complexity,
         })
+    }
+
+    fn execute_explicit_query_plan(
+        &self,
+        plan: SnapshotPinnedQueryPlan,
+    ) -> Option<QueryExecutionOutcome> {
+        let packets = match &plan.packet.scope {
+            QueryScope::ExplicitTargets { targets } => {
+                packetized_explicit_target_work(targets)
+            }
+            _ => return None,
+        };
+        let packet_count = packets.len();
+        let target_count = packetized_query_item_count(&packets);
+        let peak_width = packetized_query_peak_width(&packets);
+        let scope_units = query_scope_units(&packets);
+        let touched_partitions = partition_count_for_targets(&packets);
+        let strategy = self.query_execution_strategy(&plan, packet_count);
+        self.runtime.performance_access().count_query_packet_shape(
+            packet_count,
+            target_count,
+            peak_width,
+            scope_units,
+        );
+
+        if matches!(plan.legality, QueryParallelLegality::LegalReadOnlySnapshot) {
+            self.runtime
+                .performance_access()
+                .count_query_parallel_legal();
+        }
+        if matches!(plan.profitability, QueryParallelProfitability::Profitable) {
+            self.runtime
+                .performance_access()
+                .count_query_parallel_profitable();
+        }
+
+        let fragments = if let Some((active_version_id, _read_policy)) =
+            self.runtime.active_snapshot_binding(plan.snapshot.snapshot_id)
+        {
+            let snapshot_state = reconstruct_state(
+                self.runtime,
+                active_version_id,
+                !self.runtime.protect_active_snapshots(),
+            )?;
+            self.execute_explicit_query_fragments_from_snapshot_state(
+                &plan,
+                &packets,
+                &snapshot_state,
+                strategy,
+            )?
+        } else {
+            let binding = self
+                .runtime
+                .visibility
+                .published_snapshot_binding(plan.snapshot.snapshot_id)?;
+            let version_id = self
+                .runtime
+                .published_snapshot_version(plan.snapshot.snapshot_id)?;
+            let snapshot_state = reconstruct_state(self.runtime, version_id, true)
+                .unwrap_or_else(|| {
+                    build_visibility_state(
+                        self.runtime,
+                        version_id,
+                        plan.snapshot.snapshot_id,
+                        binding.read_policy,
+                    )
+                });
+            self.execute_explicit_query_fragments_from_snapshot_state(
+                &plan,
+                &packets,
+                &snapshot_state,
+                strategy,
+            )?
+        };
+
+        let entity_records_emitted = fragments
+            .iter()
+            .map(|fragment| fragment.counters.entity_records_emitted)
+            .sum();
+        let relation_records_emitted = fragments
+            .iter()
+            .map(|fragment| fragment.counters.relation_records_emitted)
+            .sum();
+        let complexity = QueryComplexitySummary {
+            packet_count,
+            fragment_count: packet_count,
+            touched_partitions,
+            target_count,
+            entity_records_emitted,
+            relation_records_emitted,
+        };
+        let result =
+            reduce_query_fragments(plan.packet.execution_shape, plan.packet.ordering, fragments);
+        self.runtime
+            .performance_access()
+            .count_query_emissions(result.entities.len(), result.relations.len());
+
+        Some(QueryExecutionOutcome {
+            plan,
+            result,
+            complexity,
+        })
+    }
+
+    fn execute_traversal_query_plan(
+        &self,
+        plan: SnapshotPinnedQueryPlan,
+    ) -> Option<QueryExecutionOutcome> {
+        let packets = packetized_traversal_query_work(&plan.packet)?;
+        let packet_count = packets.len();
+        let target_count = packetized_query_item_count(&packets);
+        let peak_width = packetized_query_peak_width(&packets);
+        let scope_units = query_scope_units(&packets);
+        let touched_partitions = partition_count_for_targets(&packets);
+        let strategy = self.query_execution_strategy(&plan, packet_count);
+        let scratch_reuse_count = packetized_fragment_scratch_reuse_count(&packets);
+        self.runtime.performance_access().count_query_packet_shape(
+            packet_count,
+            target_count,
+            peak_width,
+            scope_units,
+        );
+        if scratch_reuse_count > 0 {
+            self.runtime
+                .performance_access()
+                .count_query_fragment_scratch_reuse_by(scratch_reuse_count);
+        }
+
+        if matches!(plan.legality, QueryParallelLegality::LegalReadOnlySnapshot) {
+            self.runtime
+                .performance_access()
+                .count_query_parallel_legal();
+        }
+        if matches!(plan.profitability, QueryParallelProfitability::Profitable) {
+            self.runtime
+                .performance_access()
+                .count_query_parallel_profitable();
+        }
+
+        let current_state = self.runtime.storage_access().current_state();
+        let version_id = self.resolved_snapshot_handle(&plan.snapshot)?.version_id;
+        let fragments = match strategy {
+            PreparationStrategySelection::Serial => {
+                self.runtime
+                    .performance_access()
+                    .count_query_serial_strategy();
+                let mut scratch = QueryFragmentScratch::default();
+                packets
+                    .iter()
+                    .enumerate()
+                    .map(|(ordinal, packet)| {
+                        execute_traversal_query_fragment_from_state(
+                            self.runtime,
+                            &current_state,
+                            version_id,
+                            &plan.packet,
+                            packet,
+                            ordinal as u64,
+                            &mut scratch,
+                        )
+                    })
+                    .collect::<Option<Vec<_>>>()?
+            }
+            PreparationStrategySelection::StagedParallel => {
+                self.runtime
+                    .performance_access()
+                    .count_query_staged_parallel_strategy();
+                let bucket_count = packets.len().min(rayon::current_num_threads()).max(1);
+                let mut buckets = vec![Vec::new(); bucket_count];
+                for (ordinal, packet) in packets.iter().enumerate() {
+                    buckets[ordinal % bucket_count].push((ordinal as u64, packet));
+                }
+                let bucketed_fragments = buckets
+                    .into_par_iter()
+                    .map(|bucket| {
+                        let mut scratch = QueryFragmentScratch::default();
+                        bucket
+                            .into_iter()
+                            .map(|(ordinal, packet)| {
+                                execute_traversal_query_fragment_from_state(
+                                    self.runtime,
+                                    &current_state,
+                                    version_id,
+                                    &plan.packet,
+                                    packet,
+                                    ordinal,
+                                    &mut scratch,
+                                )
+                            })
+                            .collect::<Option<Vec<_>>>()
+                    })
+                    .collect::<Option<Vec<Vec<_>>>>()?;
+                bucketed_fragments.into_iter().flatten().collect()
+            }
+        };
+
+        let entity_records_emitted = fragments
+            .iter()
+            .map(|fragment| fragment.counters.entity_records_emitted)
+            .sum();
+        let relation_records_emitted = fragments
+            .iter()
+            .map(|fragment| fragment.counters.relation_records_emitted)
+            .sum();
+        let complexity = QueryComplexitySummary {
+            packet_count,
+            fragment_count: packet_count,
+            touched_partitions,
+            target_count,
+            entity_records_emitted,
+            relation_records_emitted,
+        };
+        let result =
+            reduce_query_fragments(plan.packet.execution_shape, plan.packet.ordering, fragments);
+        self.runtime
+            .performance_access()
+            .count_query_emissions(result.entities.len(), result.relations.len());
+
+        Some(QueryExecutionOutcome {
+            plan,
+            result,
+            complexity,
+        })
+    }
+
+    fn execute_explicit_query_fragments_from_snapshot_state(
+        &self,
+        plan: &SnapshotPinnedQueryPlan,
+        packets: &[PacketizedQueryWork],
+        snapshot_state: &crate::storage::logic::state::SnapshotState,
+        strategy: PreparationStrategySelection,
+    ) -> Option<Vec<crate::query::data::QueryWorkerFragment>> {
+        let current_state = self.runtime.storage_access().current_state();
+        let version_id = snapshot_state.handle.version_id;
+        match strategy {
+            PreparationStrategySelection::Serial => {
+                self.runtime
+                    .performance_access()
+                    .count_query_serial_strategy();
+                packets
+                    .iter()
+                    .enumerate()
+                    .map(|(ordinal, packet)| {
+                        execute_explicit_query_fragment_from_state(
+                            self,
+                            snapshot_state,
+                            &current_state,
+                            version_id,
+                            &plan.packet,
+                            packet,
+                            ordinal as u64,
+                        )
+                    })
+                    .collect()
+            }
+            PreparationStrategySelection::StagedParallel => {
+                self.runtime
+                    .performance_access()
+                    .count_query_staged_parallel_strategy();
+                let bucket_count = packets.len().min(rayon::current_num_threads()).max(1);
+                let mut buckets = vec![Vec::new(); bucket_count];
+                for (ordinal, packet) in packets.iter().enumerate() {
+                    buckets[ordinal % bucket_count].push((ordinal as u64, packet));
+                }
+                let bucketed_fragments = buckets
+                    .into_par_iter()
+                    .map(|bucket| {
+                        bucket
+                            .into_iter()
+                            .map(|(ordinal, packet)| {
+                                execute_explicit_query_fragment_from_state(
+                                    self,
+                                    snapshot_state,
+                                    &current_state,
+                                    version_id,
+                                    &plan.packet,
+                                    packet,
+                                    ordinal,
+                                )
+                            })
+                            .collect::<Option<Vec<_>>>()
+                    })
+                    .collect::<Option<Vec<Vec<_>>>>()?;
+                Some(bucketed_fragments.into_iter().flatten().collect())
+            }
+        }
     }
 
     pub fn visible_entities_of_kind(
@@ -574,11 +886,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             .runtime
             .published_snapshot_version(handle.snapshot_id)?;
         let residency = residency_for_version(self.runtime, version_id);
-        let cached = self
-            .runtime
-            .visibility
-            .published_snapshot_state(handle.snapshot_id)
-            .is_some();
+        let cached = cached_state_for_version(self.runtime, version_id).is_some();
         let recent_window = self.runtime.recent_visibility_window();
         let recent_candidate = self.runtime.visibility_cache_enabled()
             && recent_window > 0
@@ -1037,45 +1345,7 @@ fn packetized_query_work(
     read_view: &RelationalReadView,
 ) -> Option<Vec<PacketizedQueryWork>> {
     match &packet.scope {
-        QueryScope::ExplicitTargets { targets } => {
-            let mut by_partition: BTreeMap<
-                crate::identity::data::PartitionId,
-                Vec<crate::transactions::data::RecordRef>,
-            > = BTreeMap::new();
-
-            for target in targets.iter() {
-                let partition_id = match target {
-                    crate::transactions::data::RecordRef::Entity(entity_id) => {
-                        entity_id.partition_id
-                    }
-                    crate::transactions::data::RecordRef::Relation(relation_id) => {
-                        relation_id.partition_id
-                    }
-                };
-                by_partition
-                    .entry(partition_id)
-                    .or_default()
-                    .push(target.clone());
-            }
-
-            let mut packets = Vec::new();
-            for (_partition_id, partition_targets) in by_partition {
-                let packet_count = coarse_preparation_packet_count(
-                    partition_targets.len(),
-                    TARGET_PREPARATION_ITEMS_PER_PACKET,
-                );
-                if packet_count <= 1 {
-                    packets.push(PacketizedQueryWork::ExplicitTargets(partition_targets));
-                    continue;
-                }
-
-                for chunk in partition_targets.chunks(TARGET_PREPARATION_ITEMS_PER_PACKET) {
-                    packets.push(PacketizedQueryWork::ExplicitTargets(chunk.to_vec()));
-                }
-            }
-
-            Some(packets)
-        }
+        QueryScope::ExplicitTargets { targets } => Some(packetized_explicit_target_work(targets)),
         QueryScope::EntityKindScan {
             kind_id,
             partition_scope,
@@ -1209,42 +1479,134 @@ fn packetized_query_work(
         QueryScope::OutgoingNeighborhood {
             seeds,
             relation_kind_scope,
-        } => Some(
-            canonical_seed_ids(seeds)
-                .into_iter()
-                .map(|seed| PacketizedQueryWork::OutgoingNeighborhood {
-                    seeds: vec![seed],
-                    relation_kind_scope: relation_kind_scope.as_ref().map(canonical_kind_scope),
-                })
-                .collect(),
-        ),
+        } => Some(packetized_traversal_seed_work(
+            canonical_seed_ids(seeds),
+            |seed_chunk| PacketizedQueryWork::OutgoingNeighborhood {
+                seeds: seed_chunk,
+                relation_kind_scope: relation_kind_scope.as_ref().map(canonical_kind_scope),
+            },
+        )),
         QueryScope::IncomingNeighborhood {
             seeds,
             relation_kind_scope,
-        } => Some(
-            canonical_seed_ids(seeds)
-                .into_iter()
-                .map(|seed| PacketizedQueryWork::IncomingNeighborhood {
-                    seeds: vec![seed],
-                    relation_kind_scope: relation_kind_scope.as_ref().map(canonical_kind_scope),
-                })
-                .collect(),
-        ),
+        } => Some(packetized_traversal_seed_work(
+            canonical_seed_ids(seeds),
+            |seed_chunk| PacketizedQueryWork::IncomingNeighborhood {
+                seeds: seed_chunk,
+                relation_kind_scope: relation_kind_scope.as_ref().map(canonical_kind_scope),
+            },
+        )),
         QueryScope::ConnectivityTraversal {
             seeds,
             relation_kind_scope,
             max_depth,
-        } => Some(
-            canonical_seed_ids(seeds)
-                .into_iter()
-                .map(|seed| PacketizedQueryWork::ConnectivityTraversal {
-                    seeds: vec![seed],
-                    relation_kind_scope: relation_kind_scope.as_ref().map(canonical_kind_scope),
-                    max_depth: *max_depth,
-                })
-                .collect(),
-        ),
+        } => Some(packetized_traversal_seed_work(
+            canonical_seed_ids(seeds),
+            |seed_chunk| PacketizedQueryWork::ConnectivityTraversal {
+                seeds: seed_chunk,
+                relation_kind_scope: relation_kind_scope.as_ref().map(canonical_kind_scope),
+                max_depth: *max_depth,
+            },
+        )),
     }
+}
+
+fn packetized_explicit_target_work(
+    targets: &[crate::transactions::data::RecordRef],
+) -> Vec<PacketizedQueryWork> {
+    let mut by_partition: BTreeMap<
+        crate::identity::data::PartitionId,
+        Vec<crate::transactions::data::RecordRef>,
+    > = BTreeMap::new();
+
+    for target in targets.iter() {
+        let partition_id = match target {
+            crate::transactions::data::RecordRef::Entity(entity_id) => entity_id.partition_id,
+            crate::transactions::data::RecordRef::Relation(relation_id) => relation_id.partition_id,
+        };
+        by_partition
+            .entry(partition_id)
+            .or_default()
+            .push(target.clone());
+    }
+
+    let mut packets = Vec::new();
+    for (_partition_id, partition_targets) in by_partition {
+        let packet_count = coarse_preparation_packet_count(
+            partition_targets.len(),
+            TARGET_PREPARATION_ITEMS_PER_PACKET,
+        );
+        if packet_count <= 1 {
+            packets.push(PacketizedQueryWork::ExplicitTargets(partition_targets));
+            continue;
+        }
+
+        for chunk in partition_targets.chunks(TARGET_PREPARATION_ITEMS_PER_PACKET) {
+            packets.push(PacketizedQueryWork::ExplicitTargets(chunk.to_vec()));
+        }
+    }
+
+    packets
+}
+
+fn packetized_traversal_query_work(packet: &PlannedQueryPacket) -> Option<Vec<PacketizedQueryWork>> {
+    match &packet.scope {
+        QueryScope::OutgoingNeighborhood {
+            seeds,
+            relation_kind_scope,
+        } => Some(packetized_traversal_seed_work(
+            canonical_seed_ids(seeds),
+            |seed_chunk| PacketizedQueryWork::OutgoingNeighborhood {
+                seeds: seed_chunk,
+                relation_kind_scope: relation_kind_scope.as_ref().map(canonical_kind_scope),
+            },
+        )),
+        QueryScope::IncomingNeighborhood {
+            seeds,
+            relation_kind_scope,
+        } => Some(packetized_traversal_seed_work(
+            canonical_seed_ids(seeds),
+            |seed_chunk| PacketizedQueryWork::IncomingNeighborhood {
+                seeds: seed_chunk,
+                relation_kind_scope: relation_kind_scope.as_ref().map(canonical_kind_scope),
+            },
+        )),
+        QueryScope::ConnectivityTraversal {
+            seeds,
+            relation_kind_scope,
+            max_depth,
+        } => Some(packetized_traversal_seed_work(
+            canonical_seed_ids(seeds),
+            |seed_chunk| PacketizedQueryWork::ConnectivityTraversal {
+                seeds: seed_chunk,
+                relation_kind_scope: relation_kind_scope.as_ref().map(canonical_kind_scope),
+                max_depth: *max_depth,
+            },
+        )),
+        _ => None,
+    }
+}
+
+fn packetized_traversal_seed_work(
+    canonical_seeds: Vec<crate::identity::data::EntityId>,
+    build: impl Fn(Vec<crate::identity::data::EntityId>) -> PacketizedQueryWork,
+) -> Vec<PacketizedQueryWork> {
+    if canonical_seeds.is_empty() {
+        return Vec::new();
+    }
+
+    let packet_count = coarse_preparation_packet_count(
+        canonical_seeds.len(),
+        TARGET_TRAVERSAL_SEEDS_PER_PACKET,
+    );
+    if packet_count <= 1 {
+        return vec![build(canonical_seeds)];
+    }
+
+    canonical_seeds
+        .chunks(TARGET_TRAVERSAL_SEEDS_PER_PACKET)
+        .map(|seed_chunk| build(seed_chunk.to_vec()))
+        .collect()
 }
 
 fn execute_query_fragment(
@@ -1404,7 +1766,8 @@ fn execute_query_fragment(
             relation_kind_scope,
         } => traversal_fragment(
             runtime,
-            read_view,
+            &runtime.storage_access().current_state(),
+            read_view.snapshot.version_id,
             packet,
             seeds,
             relation_kind_scope.as_deref(),
@@ -1417,7 +1780,8 @@ fn execute_query_fragment(
             relation_kind_scope,
         } => traversal_fragment(
             runtime,
-            read_view,
+            &runtime.storage_access().current_state(),
+            read_view.snapshot.version_id,
             packet,
             seeds,
             relation_kind_scope.as_deref(),
@@ -1431,7 +1795,8 @@ fn execute_query_fragment(
             max_depth,
         } => traversal_fragment(
             runtime,
-            read_view,
+            &runtime.storage_access().current_state(),
+            read_view.snapshot.version_id,
             packet,
             seeds,
             relation_kind_scope.as_deref(),
@@ -1441,6 +1806,155 @@ fn execute_query_fragment(
             },
             scratch,
         ),
+    }
+}
+
+fn execute_explicit_query_fragment_from_state(
+    read_context: &VisibilityReadContext<'_>,
+    snapshot_state: &crate::storage::logic::state::SnapshotState,
+    current_state: &(impl PartitionAccess + Sync),
+    version_id: crate::identity::data::VersionId,
+    packet: &PlannedQueryPacket,
+    work: &PacketizedQueryWork,
+    ordinal: u64,
+) -> Option<crate::query::data::QueryWorkerFragment> {
+    let PacketizedQueryWork::ExplicitTargets(targets) = work else {
+        return None;
+    };
+
+    let mut entities = Vec::new();
+    let mut relations = Vec::new();
+    let mut touched_partitions = std::collections::BTreeSet::new();
+
+    for target in targets {
+        match target {
+            crate::transactions::data::RecordRef::Entity(entity_id) => {
+                touched_partitions.insert(entity_id.partition_id);
+                let Some(pins) = snapshot_state.pinned_partitions.get(&entity_id.partition_id) else {
+                    continue;
+                };
+                if pins
+                    .entity_slots
+                    .count_ones_in_range(entity_id.local_slot.0 as usize, entity_id.local_slot.0 as usize + 1)
+                    == 0
+                {
+                    continue;
+                }
+                if let Some(record) =
+                    read_context.entity_record_for_id_at_version(current_state, *entity_id, version_id)
+                {
+                    entities.push(record);
+                }
+            }
+            crate::transactions::data::RecordRef::Relation(relation_id) => {
+                touched_partitions.insert(relation_id.partition_id);
+                let Some(pins) = snapshot_state.pinned_partitions.get(&relation_id.partition_id) else {
+                    continue;
+                };
+                if pins
+                    .relation_slots
+                    .count_ones_in_range(relation_id.local_slot.0 as usize, relation_id.local_slot.0 as usize + 1)
+                    == 0
+                {
+                    continue;
+                }
+                if let Some(record) = read_context
+                    .relation_record_for_id_at_version(current_state, *relation_id, version_id)
+                {
+                    relations.push(if pins
+                        .retained_relation_slots
+                        .count_ones_in_range(relation_id.local_slot.0 as usize, relation_id.local_slot.0 as usize + 1)
+                        == 1
+                    {
+                        crate::storage::data::RelationReadRecord {
+                            lifecycle: crate::storage::data::RecordLifecycleState::RetainedDanglingForAudit,
+                            ..record
+                        }
+                    } else {
+                        record
+                    });
+                }
+            }
+        }
+    }
+
+    let entity_records_emitted = entities.len();
+    let relation_records_emitted = relations.len();
+    Some(crate::query::data::QueryWorkerFragment {
+        plan_key: packet.plan_key,
+        fragment_key: crate::query::data::deterministic_query_fragment_key(
+            packet.plan_key,
+            ordinal,
+        ),
+        ordering: packet.ordering,
+        counters: crate::query::data::QueryFragmentCounters {
+            target_count: targets.len(),
+            entity_records_emitted,
+            relation_records_emitted,
+            touched_partitions: touched_partitions.len(),
+        },
+        entities,
+        relations,
+        traversal_basis: None,
+    })
+}
+
+fn execute_traversal_query_fragment_from_state(
+    runtime: &RelationalRuntime,
+    state: &(impl PartitionAccess + Sync),
+    version_id: crate::identity::data::VersionId,
+    packet: &PlannedQueryPacket,
+    work: &PacketizedQueryWork,
+    ordinal: u64,
+    scratch: &mut QueryFragmentScratch,
+) -> Option<crate::query::data::QueryWorkerFragment> {
+    match work {
+        PacketizedQueryWork::OutgoingNeighborhood {
+            seeds,
+            relation_kind_scope,
+        } => traversal_fragment(
+            runtime,
+            state,
+            version_id,
+            packet,
+            seeds,
+            relation_kind_scope.as_deref(),
+            ordinal,
+            TraversalMode::OutgoingNeighborhood,
+            scratch,
+        ),
+        PacketizedQueryWork::IncomingNeighborhood {
+            seeds,
+            relation_kind_scope,
+        } => traversal_fragment(
+            runtime,
+            state,
+            version_id,
+            packet,
+            seeds,
+            relation_kind_scope.as_deref(),
+            ordinal,
+            TraversalMode::IncomingNeighborhood,
+            scratch,
+        ),
+        PacketizedQueryWork::ConnectivityTraversal {
+            seeds,
+            relation_kind_scope,
+            max_depth,
+        } => traversal_fragment(
+            runtime,
+            state,
+            version_id,
+            packet,
+            seeds,
+            relation_kind_scope.as_deref(),
+            ordinal,
+            TraversalMode::ConnectivityTraversal {
+                max_depth: *max_depth,
+            },
+            scratch,
+        ),
+        _ => None,
     }
 }
 
@@ -1703,7 +2217,8 @@ fn optional_payload_field_key(
 
 fn traversal_fragment(
     runtime: &RelationalRuntime,
-    read_view: &RelationalReadView,
+    state: &impl PartitionAccess,
+    version_id: crate::identity::data::VersionId,
     packet: &PlannedQueryPacket,
     seeds: &[crate::identity::data::EntityId],
     relation_kind_scope: Option<&[crate::identity::data::KindId]>,
@@ -1715,8 +2230,6 @@ fn traversal_fragment(
         return None;
     }
 
-    let storage = runtime.storage_access();
-    let state = storage.current_state();
     let relation_kind_scope =
         relation_kind_scope.map(|scope| scope.iter().copied().collect::<BTreeSet<_>>());
     scratch.reset_traversal();
@@ -1733,9 +2246,9 @@ fn traversal_fragment(
 
     while let Some((entity_id, depth, root_seed, via_relation)) = scratch.frontier.pop_front() {
         let Some(entity_record) = runtime.visibility_reads().entity_record_for_id_at_version(
-            &state,
+            state,
             entity_id,
-            read_view.snapshot.version_id,
+            version_id,
         ) else {
             continue;
         };
@@ -1749,7 +2262,8 @@ fn traversal_fragment(
 
         let relation_ids = relation_ids_for_traversal(
             runtime,
-            read_view,
+            state,
+            version_id,
             entity_id,
             &mode,
             relation_kind_scope.as_ref(),
@@ -1768,9 +2282,9 @@ fn traversal_fragment(
             let Some(relation_record) = runtime
                 .visibility_reads()
                 .relation_record_for_id_at_version(
-                    &state,
+                    state,
                     relation_id,
-                    read_view.snapshot.version_id,
+                    version_id,
                 )
             else {
                 continue;
@@ -1836,26 +2350,26 @@ fn traversal_fragment(
 
 fn relation_ids_for_traversal(
     runtime: &RelationalRuntime,
-    read_view: &RelationalReadView,
+    state: &impl PartitionAccess,
+    version_id: crate::identity::data::VersionId,
     entity_id: crate::identity::data::EntityId,
     mode: &TraversalMode,
     relation_kind_scope: Option<&BTreeSet<crate::identity::data::KindId>>,
 ) -> Vec<crate::identity::data::RelationId> {
     let storage = runtime.storage_access();
-    let state = storage.current_state();
     let mut relation_ids = match mode {
         TraversalMode::OutgoingNeighborhood | TraversalMode::ConnectivityTraversal { .. } => {
-            storage.outgoing_relations_for_entity(entity_id, read_view.snapshot.version_id)
+            storage.outgoing_relations_for_entity(entity_id, version_id)
         }
         TraversalMode::IncomingNeighborhood => {
-            storage.incoming_relations_for_entity(entity_id, read_view.snapshot.version_id)
+            storage.incoming_relations_for_entity(entity_id, version_id)
         }
     };
     relation_ids.sort();
     relation_ids.retain(|relation_id| {
         let Some(relation_record) = runtime
             .visibility_reads()
-            .relation_record_for_id_at_version(&state, *relation_id, read_view.snapshot.version_id)
+            .relation_record_for_id_at_version(state, *relation_id, version_id)
         else {
             return false;
         };

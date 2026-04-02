@@ -18,8 +18,9 @@ use crate::durability::data::{
     RecoveryFailureClass, RecoveryPlan, RelationIntegrityContractFamily,
 };
 use crate::durability::log::local_store::{
-    checkpoint_file_path, current_segment_ids, ensure_loaded_store, persist_store_manifest,
-    read_json, segment_file_path, write_json, DurableCheckpointFile, DurableSegmentFile,
+    append_segment_entry, checkpoint_file_path, current_segment_ids, ensure_loaded_store,
+    persist_store_manifest, read_json, read_segment_entries, segment_file_path,
+    segment_uses_legacy_wrapper, write_json, DurableCheckpointFile, DurableSegmentFile,
 };
 use crate::history::data::{BranchId, CommitId, OrderedParentList};
 use crate::history::data::{HistoryDriftClass, VersionNode};
@@ -331,7 +332,8 @@ impl<'runtime> DurabilityAuthority<'runtime> {
             DurabilityMode::PersistedSegmentedLocalFs => {
                 let mut store = ensure_loaded_store(self.runtime)?;
                 let segment_capacity = store.layout.segment_commit_capacity.max(1);
-                let segment_id = match store.segments.last() {
+                let active_segment = store.segments.last().cloned();
+                let segment_id = match active_segment.as_ref() {
                     Some(segment) if segment.commit_count < segment_capacity => segment.segment_id,
                     _ => DurableSegmentId(
                         store
@@ -343,43 +345,60 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                     ),
                 };
                 let segment_path = segment_file_path(&store.layout, segment_id);
-                let mut segment_entries = if segment_path.exists() {
-                    read_json::<DurableSegmentFile>(&segment_path)?.entries
+                let existing_manifest = store
+                    .segments
+                    .iter()
+                    .find(|segment| segment.segment_id == segment_id)
+                    .cloned();
+                let first_commit_id = existing_manifest
+                    .as_ref()
+                    .and_then(|segment| segment.first_commit_id)
+                    .unwrap_or(envelope.commit.commit_id);
+                let last_commit_id = envelope.commit.commit_id;
+                let commit_count = existing_manifest
+                    .as_ref()
+                    .map(|segment| segment.commit_count + 1)
+                    .unwrap_or(1);
+                if existing_manifest.is_none() {
+                    append_segment_entry(&segment_path, envelope)?;
+                } else if segment_uses_legacy_wrapper(&segment_path)? {
+                    let mut migrated_entries = read_segment_entries(&segment_path)?;
+                    if migrated_entries.is_empty() {
+                        let existing_file = read_json::<DurableSegmentFile>(&segment_path)?;
+                        migrated_entries = existing_file.entries;
+                    }
+                    migrated_entries.push(envelope.clone());
+                    write_json(
+                        &segment_path,
+                        &DurableSegmentFile {
+                            entries: migrated_entries,
+                        },
+                    )?;
                 } else {
-                    Vec::new()
-                };
-                segment_entries.push(envelope.clone());
-                write_json(
-                    &segment_path,
-                    &DurableSegmentFile {
-                        entries: segment_entries.clone(),
-                    },
-                )?;
-                let first_commit_id = segment_entries.first().map(|entry| entry.commit.commit_id);
-                let last_commit_id = segment_entries.last().map(|entry| entry.commit.commit_id);
+                    append_segment_entry(&segment_path, envelope)?;
+                }
                 if let Some(existing) = store
                     .segments
                     .iter_mut()
                     .find(|segment| segment.segment_id == segment_id)
                 {
-                    existing.first_commit_id = first_commit_id;
-                    existing.last_commit_id = last_commit_id;
-                    existing.commit_count = segment_entries.len();
+                    existing.first_commit_id = Some(first_commit_id);
+                    existing.last_commit_id = Some(last_commit_id);
+                    existing.commit_count = commit_count;
                     existing.integrity = DurableIntegrityStatus::Verified;
                 } else {
                     store.segments.push(DurableSegmentManifest {
                         segment_id,
                         path: segment_path,
-                        first_commit_id,
-                        last_commit_id,
-                        commit_count: segment_entries.len(),
+                        first_commit_id: Some(first_commit_id),
+                        last_commit_id: Some(last_commit_id),
+                        commit_count,
                         runtime_name: self.runtime.runtime_name().to_string(),
                         profile: self.runtime.runtime_profile(),
                         schema_version: self.runtime.primary_schema_version_id(),
                         integrity: DurableIntegrityStatus::Verified,
                     });
                 }
-                persist_store_manifest(&store)?;
                 self.runtime.durability.store = Some(store);
                 self.runtime.durability.push_log_envelope(envelope.clone());
                 let latest_commit_id = self
@@ -993,18 +1012,10 @@ fn apply_authoritative_commit_artifacts(
             commit: envelope.commit.clone(),
         },
     );
-    if runtime
-        .history
-        .branch_heads
-        .get(&envelope.branch_context)
-        .and_then(|head| head.as_ref())
-        .is_some_and(|head| head.commit_id == envelope.commit.commit_id)
-    {
-        runtime.history.branch_heads.insert(
-            envelope.branch_context.clone(),
-            Some(envelope.commit.clone()),
-        );
-    }
+    runtime.history.branch_heads.insert(
+        envelope.branch_context.clone(),
+        Some(envelope.commit.clone()),
+    );
     runtime
         .history
         .commit_envelopes

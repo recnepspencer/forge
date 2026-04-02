@@ -122,6 +122,7 @@ pub mod runtime {
         SignalRuntimeBuilder, SignalTransaction, TransactionOutcome, TransactionResult,
         TransactionTiming,
     };
+    pub use crate::schema::data::SignalSchemaRegistry;
     pub type BatchChange = ChangeBatch;
     pub type BatchChangeResult = ChangeBatchCommit;
     #[cfg(test)]
@@ -153,6 +154,10 @@ pub mod runtime {
     #[cfg(test)]
     pub type TransactionExecutionRequest<'tx, 'a, D, I, E, Ctx, T> =
         TransactionRunRequest<'tx, 'a, D, I, E, Ctx, T>;
+}
+
+pub mod schema {
+    pub use crate::schema::facade::*;
 }
 
 pub mod specialist {
@@ -247,18 +252,57 @@ pub mod adapters {
     pub use crate::data::telemetry::RuntimeTelemetry;
     pub use crate::data::tier_policy_table::TierPolicyTable;
     pub use crate::logic::transaction::{
-        ArtifactMergeAction, ArtifactMergeComparable, BranchMergeBase, BranchMergeConflictEvidence,
-        BranchMergeConflictKind, BranchMergeConflictRecord, BranchMergeConflictSummary,
-        BranchMergeCounters, BranchMergeDivergence, BranchMergeExecutionSummary,
-        BranchMergeFailureKind, BranchMergeKind, BranchMergePlan, BranchMergeReconciliationPolicy,
-        BranchMergeRequest, BranchMergeResult, BranchMergeStrategy, BranchMutationJournalSlice,
-        BranchMutationLedger, ConflictMergePolicy, ConservativeOverlapExpansion,
-        DependencyFingerprint, DependencyRemapRecord, ExistingTargetMergePolicy, LoweredMergePlan,
-        MergeBoundaryWitness, MergeBoundaryWitnessKind, MergeDecisionBasis, MergeNodeMap,
-        MergeTouchedNodeSet, MergedArtifactRecord, NodeMergeInputState, NodeMergePlan,
-        NodeReconciliationDecision, NodeReconciliationShape, PlannedMergeCandidateSet,
-        ProofMinimalOverlapBasis, RuntimeMaterializer, SourceNodeAdoptionPlanCore,
-        SourceOnlyMergePolicy, StructuralMergeCandidateRecord, StructuralMergeJournalSlice,
+        branch_state_proof_report, canonical_digest, lowered_strategy_bundle_digest,
+        merge_lineage_digest, merge_plan_proof_report, merge_result_proof_report,
+        replay_artifact_proof_report, replay_parity_proof_report, runtime_proof_report,
+        ArtifactMergeAction, ArtifactMergeComparable, AspectMergeDecisionOutcome,
+        AspectMergePolicy, AspectMergePolicyBinding, AspectMergePolicyDescriptor,
+        AspectMergePolicyId, AspectMergePolicyName, AspectMergePolicyRegistration,
+        AspectMergePolicySelectionBasis, AspectMergePolicyVersion, BranchMergeBase,
+        BranchMergeConflictEvidence, BranchMergeConflictKind, BranchMergeConflictRecord,
+        BranchMergeConflictSummary, BranchMergeCounters, BranchMergeDeletionFailureEvidence,
+        BranchMergeDivergence, BranchMergeExecutionSummary, BranchMergeFailureEvidence,
+        BranchMergeFailureKind, BranchMergeIdentityFailureEvidence, BranchMergeKind,
+        BranchMergePlan, BranchMergeReconciliationPolicy, BranchMergeRequest, BranchMergeResult,
+        BranchMergeStrategy, BranchMutationJournalSlice, BranchMutationLedger,
+        BranchStateDenseGridProofBasis, BranchStateProofBasis, BranchStateProofReport,
+        ConflictIsolationGranularity, ConflictIsolationPolicyDescriptor, ConflictIsolationPolicyId,
+        ConflictIsolationPolicyName, ConflictIsolationPolicyRegistration,
+        ConflictIsolationPolicyVersion, ConflictIsolationSelectionBasis, ConflictMergePolicy,
+        ConflictPolicyDescriptor, ConflictPolicyId, ConflictPolicyName, ConflictPolicyRegistration,
+        ConflictPolicySelectionBasis, ConflictPolicyVersion, ConservativeOverlapExpansion,
+        DeletionMergePolicy, DeletionPolicyDescriptor, DeletionPolicyId, DeletionPolicyName,
+        DeletionPolicyRegistration, DeletionPolicySelectionBasis, DeletionPolicyVersion,
+        DependencyFingerprint, DependencyRemapRecord, DuplicateAspectMergePolicyRegistration,
+        DuplicateConflictIsolationPolicyRegistration, DuplicateConflictPolicyRegistration,
+        DuplicateDeletionPolicyRegistration, DuplicateIdentityMatcherRegistration,
+        DuplicateMergeBaseStrategyRegistration, DuplicateMergeStrategyRegistration,
+        DuplicateSourceOnlyPolicyRegistration, ExistingTargetMergePolicy,
+        FrozenAspectMergePolicyRegistry, FrozenConflictIsolationRegistry,
+        FrozenConflictPolicyRegistry, FrozenDeletionPolicyRegistry, FrozenIdentityMatcherRegistry,
+        FrozenMergeBaseStrategyRegistry, FrozenMergeStrategyRegistry,
+        FrozenSourceOnlyPolicyRegistry, IdentityCorrespondenceBasis, IdentityCorrespondenceRecord,
+        IdentityCorrespondenceStatus, IdentityMatchPolicy, IdentityMatcherDescriptor,
+        IdentityMatcherId, IdentityMatcherName, IdentityMatcherRegistration,
+        IdentityMatcherSelectionBasis, IdentityMatcherVersion, LoweredAspectMergeDecisionPlan,
+        LoweredAspectMergeDecisionRecord, LoweredConflictIsolationPlan,
+        LoweredConflictIsolationRecord, LoweredDeletionPolicyPlan,
+        LoweredIdentityCorrespondencePlan, LoweredMergeBasePlan, LoweredMergePlan,
+        MergeBaseSelectionBasis, MergeBaseSelectionPolicy, MergeBaseStrategyDescriptor,
+        MergeBaseStrategyId, MergeBaseStrategyName, MergeBaseStrategyRegistration,
+        MergeBaseStrategyVersion, MergeBoundaryWitness, MergeBoundaryWitnessKind,
+        MergeDecisionBasis, MergeNodeMap, MergePlanProofReport, MergeResultProofReport,
+        MergeStrategyDescriptor, MergeStrategyId, MergeStrategyName, MergeStrategyRegistration,
+        MergeStrategySelectionBasis, MergeStrategyVersion, MergeTouchedNodeSet,
+        MergedArtifactRecord, NodeMergeInputState, NodeMergePlan, NodeReconciliationDecision,
+        NodeReconciliationShape, PlannedMergeCandidateSet, ProofMinimalOverlapBasis,
+        ReplayArtifactProofInput, ReplayArtifactProofReport, ReplayMismatchClass,
+        ReplayParityProofReport, RuntimeMaterializer, RuntimeProofReport,
+        SelectedMergeSemanticsBundle, SourceNodeAdoptionPlanCore, SourceOnlyMergePolicy,
+        SourceOnlyPolicyDescriptor, SourceOnlyPolicyId, SourceOnlyPolicyName,
+        SourceOnlyPolicyRegistration, SourceOnlyPolicySelectionBasis, SourceOnlyPolicyVersion,
+        StructuralMergeCandidateRecord, StructuralMergeJournalSlice,
+        BRANCH_STATE_PROOF_BASIS_VERSION, MERGE_PROOF_SCHEMA_VERSION,
     };
 }
 

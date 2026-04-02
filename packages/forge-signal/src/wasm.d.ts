@@ -67,7 +67,19 @@ declare module "@forge/signal/wasm" {
     restore_branch_snapshot(branchId: bigint | number, snapshot: unknown): unknown;
     restore_branch_snapshot_by_id(branchId: bigint | number, snapshotId: bigint | number): unknown;
     plan_merge_branches(sourceBranchId: bigint | number, targetBranchId: bigint | number): unknown;
+    plan_merge_branches_with_proof(sourceBranchId: bigint | number, targetBranchId: bigint | number): unknown;
     merge_branches(sourceBranchId: bigint | number, targetBranchId: bigint | number): unknown;
+    merge_branches_with_proof(sourceBranchId: bigint | number, targetBranchId: bigint | number): unknown;
+    branch_state_proof(branchId: bigint | number): unknown;
+    replay_parity_proof(expectedBranchId: bigint | number, replayedBranchId: bigint | number): unknown;
+    replay_artifact_proof(expected: unknown, replayedBranchId: bigint | number): unknown;
+  };
+
+  export const SignalAdapters: new () => {
+    export_definitions(): unknown;
+    export_runtime_envelope(): unknown;
+    runtime_proof_report(): unknown;
+    replace_runtime_envelope(envelope: unknown): unknown;
   };
 }
 

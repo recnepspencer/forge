@@ -7,5 +7,6 @@ mod delete_relation;
 mod dispatch;
 mod replace_entity;
 mod update_entity;
+mod update_entity_fields;
 
 pub(crate) use dispatch::dispatch_intent;

@@ -1,4 +1,15 @@
-import type { MergePlan, MergeResult, ScenePatch, SceneState, HudModel, BranchId, BranchInspect } from "../core/types";
+import type {
+  MergePlan,
+  MergeResult,
+  ScenePatch,
+  SceneState,
+  HudModel,
+  BranchId,
+  BranchInspect,
+  DiagnosticsTier,
+  ScenarioMode,
+  ScenarioState,
+} from "../core/types";
 import type { RunSummary } from "@forge/signal";
 
 export type BranchFrame = {
@@ -40,6 +51,7 @@ export type WorkerSnapshot = {
   timeline: TimelineEntry[];
   timelineIndex: number;
   inspect: BranchInspect | null;
+  scenario: ScenarioState | null;
   error: string | null;
   debugStatus?: string | null;
 };
@@ -57,6 +69,12 @@ export type WorkerCommand =
   | { type: "look"; deltaX: number; deltaY: number }
   | { type: "branch" }
   | { type: "merge" }
+  | { type: "runAdversarialMergeScenario" }
+  | { type: "planScenarioMerge" }
+  | { type: "executeScenarioMerge" }
+  | { type: "replayScenarioMerge" }
+  | { type: "setScenarioMode"; mode: ScenarioMode }
+  | { type: "setDiagnosticsTier"; tier: DiagnosticsTier }
   | { type: "activateBranch"; branchId: BranchId }
   | { type: "inspectNode"; branchId: BranchId; nodeId: string }
   | { type: "scrub"; index: number }

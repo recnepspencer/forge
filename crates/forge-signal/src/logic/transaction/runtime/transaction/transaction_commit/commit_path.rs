@@ -226,7 +226,7 @@ where
         let current_branch = self.graph.current_branch();
         self.branches
             .branch_mutation_ledger_mut(current_branch.id, current_branch.head_snapshot_id)
-            .absorb_records(self.graph.branch_mutation_records());
+            .absorb_records(self.graph.pending_branch_mutation_records());
         self.graph.clear_branch_mutation_nodes();
         self.telemetry.transaction.transaction_commit_count += 1;
         self.telemetry.transaction.staged_node_patch_count += self.scratch.staged_patch_count;

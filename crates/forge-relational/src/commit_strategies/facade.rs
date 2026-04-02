@@ -105,13 +105,18 @@ mod tests {
         StrategyRequestOrigin, StrategyTraversalBasis,
     };
     use crate::commit_strategies::strategies::{
-        IntentReconciliationInput, IntentReconciliationStrategy,
+        AspectFieldReconciliationInput, AspectFieldReconciliationStrategy,
+        EntityReplacementReconciliationInput, EntityReplacementReconciliationStrategy,
+        IntentReconciliationInput, IntentReconciliationStrategy, ReplicaConvergenceInput,
+        ReplicaConvergenceStrategy,
     };
+    use crate::durability::data::DurableStoreLayout;
+    use crate::facade::durability::DurabilityMode;
     use crate::facade::history::BranchId;
     use crate::facade::merge::{MergeIntent, MergePlanningRequest};
     use crate::facade::replay::{
-        RelationalReplayRequest, ReplayExecutionMode, ReplayObservableSurface,
-        ReplayVerificationMode,
+        RelationalReplayRequest, ReplayExecutionMode, ReplayFailureClass, ReplayMismatchClass,
+        ReplayObservableSurface, ReplayVerificationMode,
     };
     use crate::facade::transactions::{
         CreateIntent, EntityMutationIntent, MutationIntent, TransactionOptions, UpdateEntityIntent,
@@ -122,9 +127,24 @@ mod tests {
     use crate::payloads::data::RecordPayload;
     use crate::snapshots::data::SnapshotHandle;
     use crate::symbols::data::InternedString;
-    use crate::tests::support::read_entity_name;
+    use crate::tests::support::{
+        changed_entities, entity_payload_aspect, lifecycle_aspect, read_entity_name,
+        unique_test_store_path, AspectSchemaFixture,
+    };
     use crate::transactions::data::{EntitySpec, TransactionCommitError};
     use serde_json::json;
+
+    fn strategy_schema_registry() -> crate::schema::data::RelationalSchemaRegistry {
+        AspectSchemaFixture {
+            entity_aspects: vec![
+                entity_payload_aspect("name", "name"),
+                entity_payload_aspect("replicas", "replicas"),
+                lifecycle_aspect(),
+            ],
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry()
+    }
 
     fn strategy_descriptor() -> CommitStrategyDescriptor {
         strategy_descriptor_named(
@@ -177,6 +197,109 @@ mod tests {
         ) -> Result<StrategyExecutionResult, StrategyExecutorFailure> {
             Ok(execution_result(request))
         }
+    }
+
+    #[derive(Clone, Copy)]
+    struct DeterministicFailureExecutor;
+
+    impl CommitStrategyExecutor for DeterministicFailureExecutor {
+        fn execute(
+            &self,
+            _request: &CanonicalStrategyCommitRequest,
+            _observation: &crate::commit_strategies::data::StrategyObservationContext<'_>,
+        ) -> Result<StrategyExecutionResult, StrategyExecutorFailure> {
+            Err(StrategyExecutorFailure::new(
+                crate::commit_strategies::data::StrategyExecutorFailureClass::DomainRejection,
+                "deterministic hostile replay failure",
+            ))
+        }
+    }
+
+    fn persisted_intent_runtime(
+        root_path: std::path::PathBuf,
+        include_executor: bool,
+    ) -> crate::facade::runtime::RelationalRuntime {
+        let descriptor = IntentReconciliationStrategy::descriptor(CommitStrategyId(161));
+        let mut builder = RelationalRuntimeBuilder::new()
+            .schema_registry(strategy_schema_registry())
+            .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
+            .durable_store_layout(DurableStoreLayout {
+                root_path,
+                segment_commit_capacity: 2,
+            })
+            .commit_strategy(
+                CommitStrategyRegistration::new(descriptor.clone())
+                    .expect("intent strategy registration"),
+            );
+        if include_executor {
+            builder = builder.commit_strategy_executor(
+                IntentReconciliationStrategy::execution_registration(&descriptor),
+            );
+        }
+        builder.build()
+    }
+
+    fn persisted_intent_runtime_with_failing_executor(
+        root_path: std::path::PathBuf,
+    ) -> crate::facade::runtime::RelationalRuntime {
+        let descriptor = IntentReconciliationStrategy::descriptor(CommitStrategyId(161));
+        RelationalRuntimeBuilder::new()
+            .schema_registry(strategy_schema_registry())
+            .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
+            .durable_store_layout(DurableStoreLayout {
+                root_path,
+                segment_commit_capacity: 2,
+            })
+            .commit_strategy(
+                CommitStrategyRegistration::new(descriptor.clone())
+                    .expect("intent strategy registration"),
+            )
+            .commit_strategy_executor(CommitStrategyExecutionRegistration::new(
+                &descriptor,
+                DeterministicFailureExecutor,
+            ))
+            .build()
+    }
+
+    fn execute_persisted_intent_strategy_commit(
+        runtime: &mut crate::facade::runtime::RelationalRuntime,
+        entity: EntityId,
+    ) -> crate::facade::transactions::CommitResult {
+        let request = runtime
+            .commit_strategies()
+            .canonicalize_request(
+                &crate::commit_strategies::data::RawStrategyCommitRequest::new(
+                    crate::commit_strategies::data::CommitStrategySemanticName::new(
+                        IntentReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
+                    ),
+                    serde_json::to_vec(&IntentReconciliationInput {
+                        entity_id: entity,
+                        desired_payload: json!({"name":"after"}),
+                    })
+                    .expect("serialize input"),
+                    StrategyCallerProvenance {
+                        request_origin: StrategyRequestOrigin::Test,
+                        actor_identity: None,
+                        correlation_id: None,
+                    },
+                ),
+            )
+            .expect("canonical request");
+        let snapshot = runtime.visibility_authority().snapshot();
+        let execution = runtime
+            .commit_strategies()
+            .execute(&request, &snapshot)
+            .expect("strategy execution");
+        let mut authority = runtime.commit_strategies_authority();
+        let lowered = authority
+            .lower_execution(&request, &execution, TransactionOptions::default())
+            .expect("lowered strategy plan");
+        let validated = authority
+            .validate_lowered_plan(lowered)
+            .expect("validated strategy plan");
+        authority
+            .execute_validated_commit(validated)
+            .expect("validated strategy commit")
     }
 
     fn canonical_request() -> CanonicalStrategyCommitRequest {
@@ -381,7 +504,10 @@ mod tests {
             2
         );
         assert_eq!(
-            strategy_artifacts.merge_descriptor().conflict_class(),
+            strategy_artifacts
+                .merge_descriptor()
+                .merge_semantics()
+                .conflict_class(),
             crate::commit_strategies::data::StrategyMergeConflictClass::IntentReconciliation
         );
         assert_eq!(
@@ -506,7 +632,7 @@ mod tests {
     fn intent_reconciliation_strategy_commits_and_replays_end_to_end() {
         let descriptor = IntentReconciliationStrategy::descriptor(CommitStrategyId(61));
         let mut runtime = RelationalRuntimeBuilder::new()
-            .schema_registry(crate::tests::support::test_schema_registry())
+            .schema_registry(strategy_schema_registry())
             .commit_strategy(
                 CommitStrategyRegistration::new(descriptor.clone())
                     .expect("intent strategy registration"),
@@ -596,6 +722,133 @@ mod tests {
     }
 
     #[test]
+    fn entity_replacement_reconciliation_strategy_commits_lineage_sensitive_replace_and_replays() {
+        let descriptor = EntityReplacementReconciliationStrategy::descriptor(CommitStrategyId(62));
+        let mut runtime = RelationalRuntimeBuilder::new()
+            .schema_registry(strategy_schema_registry())
+            .commit_strategy(
+                CommitStrategyRegistration::new(descriptor.clone())
+                    .expect("replacement strategy registration"),
+            )
+            .commit_strategy_executor(
+                EntityReplacementReconciliationStrategy::execution_registration(&descriptor),
+            )
+            .build();
+        let entity = crate::tests::support::create_entity(&mut runtime, "before");
+        let original_lineage = runtime
+            .lineage_access()
+            .for_record(entity)
+            .expect("original lineage")
+            .lineage_id;
+        let request = runtime
+            .commit_strategies()
+            .canonicalize_request(
+                &crate::commit_strategies::data::RawStrategyCommitRequest::new(
+                    crate::commit_strategies::data::CommitStrategySemanticName::new(
+                        EntityReplacementReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
+                    ),
+                    serde_json::to_vec(&EntityReplacementReconciliationInput {
+                        entity_id: entity,
+                        replacement_client_key: "service-replacement".to_string(),
+                        desired_payload: json!({"replicas":3}),
+                    })
+                    .expect("serialize replacement input"),
+                    StrategyCallerProvenance {
+                        request_origin: StrategyRequestOrigin::Test,
+                        actor_identity: None,
+                        correlation_id: None,
+                    },
+                ),
+            )
+            .expect("canonical replacement request");
+        let snapshot: SnapshotHandle = runtime.visibility_authority().snapshot();
+        let execution = runtime
+            .commit_strategies()
+            .execute(&request, &snapshot)
+            .expect("replacement strategy executes against committed basis");
+        let commit = {
+            let mut authority = runtime.commit_strategies_authority();
+            let lowered = authority
+                .lower_execution(&request, &execution, TransactionOptions::default())
+                .expect("lowered replacement strategy plan");
+            let validated = authority
+                .validate_lowered_plan(lowered)
+                .expect("validated replacement strategy plan");
+            authority
+                .execute_validated_commit(validated)
+                .expect("validated replacement strategy commit executed")
+        };
+        let current = runtime
+            .visibility_reads()
+            .read_version(runtime.current_version_id());
+        let replacement_record = changed_entities(&commit)
+            .into_iter()
+            .find_map(|entity_id| current.get_entity(entity_id).cloned())
+            .expect("replacement entity visible");
+        let replacement_lineage = runtime
+            .lineage_access()
+            .for_record(replacement_record.entity_id)
+            .expect("replacement lineage")
+            .lineage_id;
+        let strategy_artifacts = commit
+            .publication
+            .strategy_artifacts
+            .as_ref()
+            .expect("replacement strategy artifacts");
+
+        assert_ne!(original_lineage, replacement_lineage);
+        assert_eq!(read_entity_name(&replacement_record), Some("before"));
+        assert_eq!(
+            replacement_record
+                .payload
+                .as_json()
+                .and_then(|json_value| json_value.get("replicas"))
+                .and_then(serde_json::Value::as_u64),
+            Some(3)
+        );
+        assert_eq!(
+            strategy_artifacts
+                .lowering_summary()
+                .normalized_client_key_count(),
+            1
+        );
+        assert_eq!(
+            strategy_artifacts
+                .lowering_summary()
+                .lineage_transition_count(),
+            1
+        );
+        assert!(commit
+            .publication
+            .envelope
+            .lineage_decision_log()
+            .iter()
+            .any(|decision| decision.kind
+                == crate::lineage::data::LineageDecisionKind::ReplaceAccepted));
+
+        let replay = runtime
+            .replay_authority()
+            .replay_commit(RelationalReplayRequest {
+                commit_id: commit.commit.commit_id,
+                branch_id: commit.publication.envelope.branch_context.clone(),
+                execution_mode: ReplayExecutionMode::SerialDeterministic,
+                verification_mode: ReplayVerificationMode::AuditRecoveryVerification,
+            });
+
+        assert!(
+            replay.failure.is_none(),
+            "unexpected replacement replay failure: {replay:?}"
+        );
+        assert!(replay
+            .compared_surfaces
+            .contains(&ReplayObservableSurface::Strategy));
+        assert!(replay
+            .mismatches
+            .iter()
+            .all(|mismatch| mismatch.surface != ReplayObservableSurface::Strategy));
+    }
+
+    #[test]
     fn merge_planning_classifies_different_strategy_families_as_strategy_intent_conflict() {
         let main_descriptor = strategy_descriptor_named(
             CommitStrategyId(41),
@@ -632,7 +885,9 @@ mod tests {
                     StrategyInputSchemaName::new("intent.reconcile.input.v1"),
                     StrategyInputSchemaVersion(1),
                     StrategyRequestCanonicalization::JsonStableObjectOrderV1,
-                    br#"{"name":"main-strategy"}"#.to_vec().into(),
+                    br#"{"entity_id":{"partition_id":1,"local_slot":0,"generation":1},"desired_payload":{"name":"main-strategy","replicas":3}}"#
+                        .to_vec()
+                        .into(),
                     CanonicalStrategyInputDigest([11; 32]),
                     PersistentArtifactName::new("strategy.intent.reconcile.input"),
                 ),
@@ -663,7 +918,9 @@ mod tests {
                     StrategyInputSchemaName::new("intent.reconcile.input.v1"),
                     StrategyInputSchemaVersion(1),
                     StrategyRequestCanonicalization::JsonStableObjectOrderV1,
-                    br#"{"name":"feature-strategy"}"#.to_vec().into(),
+                    br#"{"entity_id":{"partition_id":1,"local_slot":0,"generation":1},"desired_replicas":7}"#
+                        .to_vec()
+                        .into(),
                     CanonicalStrategyInputDigest([12; 32]),
                     PersistentArtifactName::new("strategy.replica.converge.input"),
                 ),
@@ -738,7 +995,7 @@ mod tests {
         let intent_descriptor = IntentReconciliationStrategy::descriptor(CommitStrategyId(71));
         let replica_descriptor = ReplicaConvergenceStrategy::descriptor(CommitStrategyId(72));
         let mut runtime = RelationalRuntimeBuilder::new()
-            .schema_registry(crate::tests::support::test_schema_registry())
+            .schema_registry(strategy_schema_registry())
             .commit_strategy(
                 CommitStrategyRegistration::new(intent_descriptor.clone())
                     .expect("intent strategy registration"),
@@ -768,7 +1025,7 @@ mod tests {
                         ),
                         serde_json::to_vec(&IntentReconciliationInput {
                             entity_id: entity,
-                            desired_payload: json!({"name":"main-intent"}),
+                            desired_payload: json!({"name":"main-intent","replicas":1}),
                         })
                         .expect("serialize intent input"),
                         StrategyCallerProvenance {
@@ -846,33 +1103,393 @@ mod tests {
             .inspect_planning_scope(MergePlanningRequest::new(
                 BranchId("main".to_string()),
                 feature_branch,
-                MergeIntent::ManualReview,
+                MergeIntent::ReconcileIntoTarget,
             ))
-            .expect("merge planning scope")
-            .lowered_plan
-            .expect("lowered merge plan");
+            .expect("merge planning scope");
 
-        let record = lowered
-            .lowered_records
+        let classification_index = lowered
+            .conflict_classification
+            .classifications
+            .iter()
+            .position(|classification| {
+                classification.record == crate::transactions::data::RecordRef::Entity(entity)
+            })
+            .expect("entity conflict classification index");
+        let policy_record = lowered
+            .policy_resolution
+            .records
             .iter()
             .find(|record| record.record == crate::transactions::data::RecordRef::Entity(entity))
-            .expect("entity conflict record");
+            .expect("entity policy record");
 
         assert_eq!(
-            record.classification,
+            lowered.conflict_classification.classifications[classification_index].class,
             crate::merge::data::MergeConflictClass::StrategyIntentConflict
         );
         assert_eq!(
-            record.policy_proof_boundary.decision_boundary,
+            policy_record.proof_boundary.decision_boundary,
             crate::merge::data::MergePolicyDecisionBoundary::RequiresManualResolution {
                 class: crate::merge::data::MergeManualResolutionClass::StrategyIntentConflict,
             }
         );
-        assert_eq!(
-            record.blocked_reason,
-            Some(
-                crate::merge::data::LoweredMergeBlockedReason::StrategyIntentConflictRequiresManualResolution
+        assert!(lowered.digest_basis.lowered_plan.blocked_reasons[classification_index].is_some());
+    }
+
+    #[test]
+    fn merge_planning_distinguishes_disjoint_aspect_intent_from_strategy_intent_conflict() {
+        let aspect_descriptor = AspectFieldReconciliationStrategy::descriptor(CommitStrategyId(91));
+        let replica_descriptor = ReplicaConvergenceStrategy::descriptor(CommitStrategyId(92));
+        let registry = AspectSchemaFixture {
+            cascade_delete_policy: crate::config::data::CascadeDeletePolicy::CascadeDeleteRelations,
+            entity_aspects: vec![
+                entity_payload_aspect("name", "name"),
+                entity_payload_aspect("replicas", "replicas"),
+                lifecycle_aspect(),
+            ],
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry();
+        let mut runtime = RelationalRuntimeBuilder::new()
+            .schema_registry(registry)
+            .commit_strategy(
+                CommitStrategyRegistration::new(aspect_descriptor.clone())
+                    .expect("aspect strategy registration"),
             )
+            .commit_strategy_executor(AspectFieldReconciliationStrategy::execution_registration(
+                &aspect_descriptor,
+            ))
+            .commit_strategy(
+                CommitStrategyRegistration::new(replica_descriptor.clone())
+                    .expect("replica strategy registration"),
+            )
+            .commit_strategy_executor(ReplicaConvergenceStrategy::execution_registration(
+                &replica_descriptor,
+            ))
+            .build();
+        let entity = crate::tests::support::create_entity(&mut runtime, "shared");
+        let feature_branch =
+            crate::tests::support::create_branch_from_main(&mut runtime, "feature-aspects");
+
+        {
+            let request = runtime
+                .commit_strategies()
+                .canonicalize_request(
+                    &crate::commit_strategies::data::RawStrategyCommitRequest::new(
+                        crate::commit_strategies::data::CommitStrategySemanticName::new(
+                            AspectFieldReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
+                        ),
+                        serde_json::to_vec(&AspectFieldReconciliationInput {
+                            entity_id: entity,
+                            field_name: "name".to_string(),
+                            desired_value: serde_json::json!("main-name"),
+                        })
+                        .expect("serialize aspect input"),
+                        StrategyCallerProvenance {
+                            request_origin: StrategyRequestOrigin::Test,
+                            actor_identity: None,
+                            correlation_id: None,
+                        },
+                    ),
+                )
+                .expect("aspect canonical request");
+            let snapshot = runtime.visibility_authority().snapshot();
+            let execution = runtime
+                .commit_strategies()
+                .execute(&request, &snapshot)
+                .expect("aspect execution");
+            let mut authority = runtime.commit_strategies_authority();
+            let lowered = authority
+                .lower_execution(&request, &execution, TransactionOptions::default())
+                .expect("lowered aspect plan");
+            let validated = authority
+                .validate_lowered_plan(lowered)
+                .expect("validated aspect plan");
+            authority
+                .execute_validated_commit(validated)
+                .expect("aspect strategy commit");
+        }
+
+        {
+            let request = runtime
+                .commit_strategies()
+                .canonicalize_request(
+                    &crate::commit_strategies::data::RawStrategyCommitRequest::new(
+                        crate::commit_strategies::data::CommitStrategySemanticName::new(
+                            ReplicaConvergenceStrategy::DEFAULT_SEMANTIC_NAME,
+                        ),
+                        serde_json::to_vec(&ReplicaConvergenceInput {
+                            entity_id: entity,
+                            desired_replicas: 7,
+                        })
+                        .expect("serialize replica input"),
+                        StrategyCallerProvenance {
+                            request_origin: StrategyRequestOrigin::Test,
+                            actor_identity: None,
+                            correlation_id: None,
+                        },
+                    ),
+                )
+                .expect("replica canonical request");
+            let snapshot = runtime.visibility_authority().snapshot();
+            let execution = runtime
+                .commit_strategies()
+                .execute(&request, &snapshot)
+                .expect("replica execution");
+            let mut authority = runtime.commit_strategies_authority();
+            let lowered = authority
+                .lower_execution(
+                    &request,
+                    &execution,
+                    TransactionOptions {
+                        target_branch: Some(feature_branch.clone()),
+                        ..TransactionOptions::default()
+                    },
+                )
+                .expect("lowered replica plan");
+            let validated = authority
+                .validate_lowered_plan(lowered)
+                .expect("validated replica plan");
+            authority
+                .execute_validated_commit(validated)
+                .expect("replica strategy commit");
+        }
+
+        let planning = runtime
+            .merge_access()
+            .inspect_planning_scope(MergePlanningRequest::new(
+                BranchId("main".to_string()),
+                feature_branch,
+                MergeIntent::ReconcileIntoTarget,
+            ))
+            .expect("merge planning artifact");
+
+        let classification = planning
+            .conflict_classification
+            .classifications
+            .iter()
+            .find(|classification| {
+                classification.record == crate::transactions::data::RecordRef::Entity(entity)
+            })
+            .expect("classified shared entity");
+
+        assert_ne!(
+            classification.class,
+            crate::merge::data::MergeConflictClass::StrategyIntentConflict
+        );
+        assert!(
+            classification.strategy_evidence.is_none(),
+            "disjoint declared aspect intent should not synthesize strategy conflict evidence: {classification:?}"
+        );
+    }
+
+    #[test]
+    fn merge_planning_classifies_same_declared_aspect_field_as_strategy_intent_conflict() {
+        let aspect_descriptor = AspectFieldReconciliationStrategy::descriptor(CommitStrategyId(93));
+        let registry = AspectSchemaFixture {
+            cascade_delete_policy: crate::config::data::CascadeDeletePolicy::CascadeDeleteRelations,
+            entity_aspects: vec![
+                entity_payload_aspect("name", "name"),
+                entity_payload_aspect("replicas", "replicas"),
+                lifecycle_aspect(),
+            ],
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry();
+        let mut runtime = RelationalRuntimeBuilder::new()
+            .schema_registry(registry)
+            .commit_strategy(
+                CommitStrategyRegistration::new(aspect_descriptor.clone())
+                    .expect("aspect strategy registration"),
+            )
+            .commit_strategy_executor(AspectFieldReconciliationStrategy::execution_registration(
+                &aspect_descriptor,
+            ))
+            .build();
+        let entity = crate::tests::support::create_entity(&mut runtime, "shared");
+        let feature_branch =
+            crate::tests::support::create_branch_from_main(&mut runtime, "feature-same-aspect");
+
+        for (branch, desired_value) in [
+            (None, serde_json::json!("main-name")),
+            (
+                Some(feature_branch.clone()),
+                serde_json::json!("feature-name"),
+            ),
+        ] {
+            let request = runtime
+                .commit_strategies()
+                .canonicalize_request(
+                    &crate::commit_strategies::data::RawStrategyCommitRequest::new(
+                        crate::commit_strategies::data::CommitStrategySemanticName::new(
+                            AspectFieldReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
+                        ),
+                        serde_json::to_vec(&AspectFieldReconciliationInput {
+                            entity_id: entity,
+                            field_name: "name".to_string(),
+                            desired_value,
+                        })
+                        .expect("serialize aspect input"),
+                        StrategyCallerProvenance {
+                            request_origin: StrategyRequestOrigin::Test,
+                            actor_identity: None,
+                            correlation_id: None,
+                        },
+                    ),
+                )
+                .expect("aspect canonical request");
+            let snapshot = runtime.visibility_authority().snapshot();
+            let execution = runtime
+                .commit_strategies()
+                .execute(&request, &snapshot)
+                .expect("aspect execution");
+            let mut authority = runtime.commit_strategies_authority();
+            let lowered = authority
+                .lower_execution(
+                    &request,
+                    &execution,
+                    TransactionOptions {
+                        target_branch: branch,
+                        ..TransactionOptions::default()
+                    },
+                )
+                .expect("lowered aspect plan");
+            let validated = authority
+                .validate_lowered_plan(lowered)
+                .expect("validated aspect plan");
+            authority
+                .execute_validated_commit(validated)
+                .expect("aspect strategy commit");
+        }
+
+        let planning = runtime
+            .merge_access()
+            .inspect_planning_scope(MergePlanningRequest::new(
+                BranchId("main".to_string()),
+                feature_branch,
+                MergeIntent::ReconcileIntoTarget,
+            ))
+            .expect("merge planning artifact");
+
+        let classification = planning
+            .conflict_classification
+            .classifications
+            .iter()
+            .find(|classification| {
+                classification.record == crate::transactions::data::RecordRef::Entity(entity)
+            })
+            .expect("classified shared entity");
+
+        assert_eq!(
+            classification.class,
+            crate::merge::data::MergeConflictClass::StrategyIntentConflict
+        );
+        assert_eq!(
+            classification
+                .strategy_evidence
+                .as_ref()
+                .expect("strategy conflict evidence")
+                .class,
+            crate::merge::data::StrategyConflictClass::SameStrategyDivergentOutput
+        );
+    }
+
+    #[test]
+    fn replay_commit_reports_strategy_executor_unavailable_when_recovered_runtime_lacks_executor() {
+        let root_path = unique_test_store_path("forge-relational-strategy-replay-missing-executor");
+        let mut runtime = persisted_intent_runtime(root_path.clone(), true);
+        let entity = crate::tests::support::create_entity(&mut runtime, "before");
+        let commit = execute_persisted_intent_strategy_commit(&mut runtime, entity);
+        let branch_head_before = runtime
+            .history_access()
+            .branch_head(&BranchId("main".to_string()))
+            .cloned();
+        let mut recovery_plan = runtime.durability_access().recovery_plan(
+            crate::durability::data::RecoveryVerificationMode::AuditRecoveryVerification,
+        );
+        recovery_plan.commit_strategy_executors = Default::default();
+
+        let mut recovered = persisted_intent_runtime(root_path, false);
+        recovered
+            .durability_authority()
+            .recover(recovery_plan)
+            .expect("recovery without strategy executor");
+        let branch_head_after_recovery = recovered
+            .history_access()
+            .branch_head(&BranchId("main".to_string()))
+            .cloned();
+
+        let replay = recovered
+            .replay_authority()
+            .replay_commit(RelationalReplayRequest {
+                commit_id: commit.commit.commit_id,
+                branch_id: BranchId("main".to_string()),
+                execution_mode: ReplayExecutionMode::SerialDeterministic,
+                verification_mode: ReplayVerificationMode::AuditRecoveryVerification,
+            });
+
+        assert_eq!(replay.failure, Some(ReplayFailureClass::ObservableMismatch));
+        assert!(replay
+            .compared_surfaces
+            .contains(&ReplayObservableSurface::Strategy));
+        assert!(replay.mismatches.iter().any(|mismatch| {
+            mismatch.class == ReplayMismatchClass::StrategyExecutorUnavailable
+                && mismatch.surface == ReplayObservableSurface::Strategy
+        }));
+        assert_eq!(
+            recovered
+                .history_access()
+                .branch_head(&BranchId("main".to_string()))
+                .cloned(),
+            branch_head_after_recovery
+        );
+        assert_eq!(branch_head_after_recovery, branch_head_before);
+    }
+
+    #[test]
+    fn replay_commit_reports_strategy_execution_failure_when_recovered_executor_rejects() {
+        let root_path = unique_test_store_path("forge-relational-strategy-replay-failing-executor");
+        let mut runtime = persisted_intent_runtime(root_path.clone(), true);
+        let entity = crate::tests::support::create_entity(&mut runtime, "before");
+        let commit = execute_persisted_intent_strategy_commit(&mut runtime, entity);
+        let mut recovery_plan = runtime.durability_access().recovery_plan(
+            crate::durability::data::RecoveryVerificationMode::AuditRecoveryVerification,
+        );
+
+        let mut recovered = persisted_intent_runtime_with_failing_executor(root_path);
+        recovery_plan.commit_strategy_executors =
+            recovered.commit_strategy_executor_registry().clone();
+        recovered
+            .durability_authority()
+            .recover(recovery_plan)
+            .expect("recovery with hostile failing executor");
+        let branch_head_before_replay = recovered
+            .history_access()
+            .branch_head(&BranchId("main".to_string()))
+            .cloned();
+
+        let replay = recovered
+            .replay_authority()
+            .replay_commit(RelationalReplayRequest {
+                commit_id: commit.commit.commit_id,
+                branch_id: BranchId("main".to_string()),
+                execution_mode: ReplayExecutionMode::SerialDeterministic,
+                verification_mode: ReplayVerificationMode::AuditRecoveryVerification,
+            });
+
+        assert_eq!(replay.failure, Some(ReplayFailureClass::ObservableMismatch));
+        assert!(replay
+            .compared_surfaces
+            .contains(&ReplayObservableSurface::Strategy));
+        assert!(replay.mismatches.iter().any(|mismatch| {
+            mismatch.class == ReplayMismatchClass::StrategyExecutionFailure
+                && mismatch.surface == ReplayObservableSurface::Strategy
+        }));
+        assert_eq!(
+            recovered
+                .history_access()
+                .branch_head(&BranchId("main".to_string()))
+                .cloned(),
+            branch_head_before_replay
         );
     }
 }

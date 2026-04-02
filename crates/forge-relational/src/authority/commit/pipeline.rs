@@ -20,6 +20,7 @@ use crate::authority::commit::{
     preparation::diagnostics::{emit_preparation_failure, failures::PreparationFailureClass},
     publication::{current_test_diff_preparation_fault, TestDiffPreparationFault},
 };
+use crate::capabilities::RuntimeConfigSource;
 use crate::commit_strategies::data::{
     LoweredStrategyCommitPlan, StrategyCommitArtifactBundle, ValidatedStrategyCommitPlan,
 };
@@ -28,7 +29,7 @@ use crate::schema::data::SchemaTransitionSummary;
 use crate::transactions::data::{
     CommitExecution, CommitLog, CommitOutcome, CommitPatchBudgetSummary, CommitPhase,
     CommitPhaseTiming, CommitPublication, CommitResult, CommitSchemaSummary, CommitValidation,
-    MergeCommitMutationPlan, MergedCommitPlan, ProvenanceCompleteBulkMutationBatch,
+    LoweredCommitPlan, MergeCommitMutationPlan, ProvenanceCompleteBulkMutationBatch,
     TransactionCommitError, TransactionId, TransactionOptions,
 };
 use crate::transactions::logic::RelationalTransaction;
@@ -50,6 +51,7 @@ impl<'a> RelationalTransaction<'a> {
     /// Any failure before publication discards the touched-partition overlay without making the
     /// commit visible.
     pub fn commit(mut self) -> Result<CommitResult, TransactionCommitError> {
+        let draft_started = Instant::now();
         let mut draft_preparation_log = CommitLog::new();
         draft_preparation_log.begin_phase(CommitPhase::DraftPreparation);
         let admitted_bulk_batch = self
@@ -74,6 +76,10 @@ impl<'a> RelationalTransaction<'a> {
             AuthoritativeCommitContext::from_mutation(
                 self.transaction_id,
                 self.options,
+                CommitPhaseTiming {
+                    draft_preparation_micros: elapsed_micros(draft_started),
+                    ..CommitPhaseTiming::default()
+                },
                 prepared,
                 admitted_bulk_batch,
             ),
@@ -83,20 +89,21 @@ impl<'a> RelationalTransaction<'a> {
 
 #[derive(Debug)]
 pub(crate) enum CommitAuthorityInput {
-    Mutation(MergedCommitPlan),
+    Lowered(LoweredCommitPlan),
     Merge(MergeCommitMutationPlan),
-    Strategy(LoweredStrategyCommitPlan),
 }
 
 #[derive(Debug)]
 pub(crate) struct AuthoritativeCommitContext {
     transaction_id: TransactionId,
     options: TransactionOptions,
+    phase_timing: CommitPhaseTiming,
     authority_input: CommitAuthorityInput,
     prepared_scope: Option<PreparedAuthorityScope>,
     merge_execution_accounting: Option<MergeExecutionAccounting>,
     bulk_mutation_batch: Option<ProvenanceCompleteBulkMutationBatch>,
     prevalidated_commit_boundary: Option<InvariantExecutionResult>,
+    validated_against_commit_id: Option<crate::history::data::CommitId>,
     validated_against_version_id: Option<crate::identity::data::VersionId>,
     strategy_commit_artifacts: Option<StrategyCommitArtifactBundle>,
 }
@@ -117,13 +124,17 @@ impl AuthoritativeCommitContext {
     pub(crate) fn from_mutation(
         transaction_id: TransactionId,
         options: TransactionOptions,
+        phase_timing: CommitPhaseTiming,
         prepared: crate::authority::commit::phases::prepare::PreparedWorkingStateScope,
         bulk_mutation_batch: Option<ProvenanceCompleteBulkMutationBatch>,
     ) -> Self {
         Self {
             transaction_id,
             options,
-            authority_input: CommitAuthorityInput::Mutation(prepared.merged_plan),
+            phase_timing,
+            authority_input: CommitAuthorityInput::Lowered(LoweredCommitPlan::Mutation(
+                prepared.merged_plan,
+            )),
             prepared_scope: Some(PreparedAuthorityScope {
                 structural_summary: prepared.structural_summary,
                 working_state: prepared.working_state,
@@ -131,6 +142,7 @@ impl AuthoritativeCommitContext {
             merge_execution_accounting: None,
             bulk_mutation_batch,
             prevalidated_commit_boundary: None,
+            validated_against_commit_id: None,
             validated_against_version_id: None,
             strategy_commit_artifacts: None,
         }
@@ -168,6 +180,7 @@ impl AuthoritativeCommitContext {
         Ok(Self {
             transaction_id: merge_plan.transaction_id,
             options,
+            phase_timing: CommitPhaseTiming::default(),
             merge_execution_accounting: Some(MergeExecutionAccounting {
                 admitted_records: merge_plan.structural_summary.executed_record_count,
                 emitted_mutation_intents: merge_plan
@@ -178,6 +191,7 @@ impl AuthoritativeCommitContext {
             prepared_scope: None,
             bulk_mutation_batch: None,
             prevalidated_commit_boundary: None,
+            validated_against_commit_id: None,
             validated_against_version_id: None,
             strategy_commit_artifacts: None,
         })
@@ -195,15 +209,20 @@ impl AuthoritativeCommitContext {
         Self {
             transaction_id: lowered_plan.transaction_id(),
             options: lowered_plan.options().clone(),
-            authority_input: CommitAuthorityInput::Strategy(lowered_plan.clone()),
+            phase_timing: CommitPhaseTiming::default(),
+            authority_input: CommitAuthorityInput::Lowered(LoweredCommitPlan::Strategy(
+                lowered_plan.clone(),
+            )),
             prepared_scope: None,
             merge_execution_accounting: None,
             bulk_mutation_batch: lowered_plan.bulk_mutation_batch().cloned(),
             prevalidated_commit_boundary: None,
+            validated_against_commit_id: None,
             validated_against_version_id: None,
             strategy_commit_artifacts: Some(StrategyCommitArtifactBundle::from_lowered(
                 &lowered_plan,
                 descriptor,
+                runtime.runtime_config(),
             )),
         }
     }
@@ -220,7 +239,10 @@ impl AuthoritativeCommitContext {
         Self {
             transaction_id: validated_plan.lowered_plan().transaction_id(),
             options: validated_plan.lowered_plan().options().clone(),
-            authority_input: CommitAuthorityInput::Strategy(validated_plan.lowered_plan().clone()),
+            phase_timing: CommitPhaseTiming::default(),
+            authority_input: CommitAuthorityInput::Lowered(LoweredCommitPlan::Strategy(
+                validated_plan.lowered_plan().clone(),
+            )),
             prepared_scope: Some(PreparedAuthorityScope {
                 structural_summary: validated_plan.prepared_scope().structural_summary.clone(),
                 working_state: validated_plan.prepared_scope().working_state.clone(),
@@ -228,15 +250,18 @@ impl AuthoritativeCommitContext {
             merge_execution_accounting: None,
             bulk_mutation_batch: validated_plan.lowered_plan().bulk_mutation_batch().cloned(),
             prevalidated_commit_boundary: Some(validated_plan.commit_boundary_invariants().clone()),
+            validated_against_commit_id: validated_plan.validated_against_commit_id(),
             validated_against_version_id: Some(validated_plan.validated_against_version_id()),
             strategy_commit_artifacts: Some(
                 StrategyCommitArtifactBundle::from_lowered(
                     validated_plan.lowered_plan(),
                     descriptor,
+                    runtime.runtime_config(),
                 )
                 .with_preview_validation(
                     validated_plan.validation_summary(),
                     validated_plan.preview_validation_cost(),
+                    validated_plan.validated_against_commit_id(),
                     validated_plan.validated_against_version_id(),
                 ),
             ),
@@ -267,16 +292,17 @@ pub(crate) fn execute_authoritative_commit(
     let AuthoritativeCommitContext {
         transaction_id,
         options,
+        mut phase_timing,
         authority_input,
         prepared_scope,
         merge_execution_accounting,
         bulk_mutation_batch,
         prevalidated_commit_boundary,
+        validated_against_commit_id,
         validated_against_version_id,
         strategy_commit_artifacts,
     } = context;
     let mut commit_log = CommitLog::new();
-    let mut phase_timing = CommitPhaseTiming::default();
     let diagnostics_start = runtime.publication_access().diagnostics().artifacts().len();
     let complexity_before = runtime
         .services
@@ -294,21 +320,43 @@ pub(crate) fn execute_authoritative_commit(
             planned.provenance.worker_batch_names.len(),
         );
     }
+    let validation_basis_branch = options
+        .target_branch
+        .clone()
+        .unwrap_or_else(|| crate::history::data::BranchId("main".to_string()));
+    let validation_basis_branch_head = runtime
+        .history_access()
+        .branch_head(&validation_basis_branch)
+        .cloned();
     if let Some(validated_version_id) = validated_against_version_id {
-        if validated_version_id != runtime.current_version_id() {
+        let observed_version_id = validation_basis_branch_head
+            .as_ref()
+            .map(|commit| commit.version_id)
+            .unwrap_or_else(|| runtime.current_version_id());
+        if validated_version_id != observed_version_id {
             return Err(stale_strategy_validation_basis(
                 "validated strategy plan no longer matches the current committed version basis",
             ));
         }
     }
+    if let Some(validated_commit_id) = validated_against_commit_id {
+        if validation_basis_branch_head
+            .as_ref()
+            .map(|commit| commit.commit_id)
+            != Some(validated_commit_id)
+        {
+            return Err(stale_strategy_validation_basis(
+                "validated strategy plan no longer matches the current committed commit basis",
+            ));
+        }
+    }
     let mut invariant_executions = Vec::new();
     let (mutation_plan, merge_history_plan) = match authority_input {
-        CommitAuthorityInput::Mutation(plan) => (Some(plan), None),
+        CommitAuthorityInput::Lowered(plan) => (Some(plan), None),
         CommitAuthorityInput::Merge(plan) => (None, Some(plan)),
-        CommitAuthorityInput::Strategy(plan) => (Some(plan.merged_plan().clone()), None),
     };
     let merged_plan = match (&mutation_plan, &merge_history_plan) {
-        (Some(plan), None) => plan,
+        (Some(plan), None) => plan.merged_plan(),
         (None, Some(plan)) => &plan.merged_plan,
         _ => unreachable!("authoritative commit context must carry exactly one authority input"),
     };

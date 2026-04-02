@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::durability::data::{DurabilityMode, DurableStoreLayout};
+use crate::diagnostics::data::RelationalDiagnosticsProfile;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum RelationalRuntimeProfile {
@@ -8,6 +9,83 @@ pub enum RelationalRuntimeProfile {
     GeometryKernel,
     ChipSimulation,
     AiWorkflow,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RuntimeExecutionLane {
+    OperationalThin,
+    RichInteractive,
+    AuditReplayHeavy,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DiagnosticsBoundary {
+    MinimalHotTruth,
+    RichCertification,
+    DurableWorkflow,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RuntimeProfileBoundaryPolicy {
+    pub execution_lane: RuntimeExecutionLane,
+    pub diagnostics_boundary: DiagnosticsBoundary,
+    pub prefers_checkpoint_compaction: bool,
+    pub allows_compiled_lane: bool,
+    pub keeps_replay_hot_path_thin: bool,
+}
+
+impl RelationalRuntimeProfile {
+    pub fn boundary_policy(self) -> RuntimeProfileBoundaryPolicy {
+        match self {
+            Self::CertificationCore => RuntimeProfileBoundaryPolicy {
+                execution_lane: RuntimeExecutionLane::RichInteractive,
+                diagnostics_boundary: DiagnosticsBoundary::RichCertification,
+                prefers_checkpoint_compaction: false,
+                allows_compiled_lane: false,
+                keeps_replay_hot_path_thin: true,
+            },
+            Self::GeometryKernel => RuntimeProfileBoundaryPolicy {
+                execution_lane: RuntimeExecutionLane::RichInteractive,
+                diagnostics_boundary: DiagnosticsBoundary::RichCertification,
+                prefers_checkpoint_compaction: true,
+                allows_compiled_lane: false,
+                keeps_replay_hot_path_thin: true,
+            },
+            Self::ChipSimulation => RuntimeProfileBoundaryPolicy {
+                execution_lane: RuntimeExecutionLane::OperationalThin,
+                diagnostics_boundary: DiagnosticsBoundary::MinimalHotTruth,
+                prefers_checkpoint_compaction: true,
+                allows_compiled_lane: true,
+                keeps_replay_hot_path_thin: true,
+            },
+            Self::AiWorkflow => RuntimeProfileBoundaryPolicy {
+                execution_lane: RuntimeExecutionLane::AuditReplayHeavy,
+                diagnostics_boundary: DiagnosticsBoundary::DurableWorkflow,
+                prefers_checkpoint_compaction: true,
+                allows_compiled_lane: false,
+                keeps_replay_hot_path_thin: false,
+            },
+        }
+    }
+
+    pub fn default_diagnostics_profile(self) -> RelationalDiagnosticsProfile {
+        match self {
+            Self::CertificationCore => RelationalDiagnosticsProfile {
+                detailed_traces_enabled: true,
+                collect_all_invariant_failures: false,
+                max_entries_per_artifact: 512,
+                ..RelationalDiagnosticsProfile::default()
+            },
+            Self::GeometryKernel => RelationalDiagnosticsProfile::geometry_rich_certification(),
+            Self::ChipSimulation => RelationalDiagnosticsProfile::chip_operational_hot_path(),
+            Self::AiWorkflow => RelationalDiagnosticsProfile {
+                detailed_traces_enabled: false,
+                collect_all_invariant_failures: false,
+                max_entries_per_artifact: 256,
+                ..RelationalDiagnosticsProfile::default()
+            },
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

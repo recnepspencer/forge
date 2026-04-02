@@ -281,10 +281,17 @@ fn strategy_conflict_evidence(
                     target_descriptor.descriptor_digest() == source_descriptor.descriptor_digest()
                 })
             });
-            if any_same_descriptor {
+            let any_same_scope = source_descriptors.iter().any(|source_descriptor| {
+                target_descriptors.iter().any(|target_descriptor| {
+                    strategy_scope_overlaps(source_descriptor, target_descriptor)
+                })
+            });
+            if any_same_descriptor && any_same_scope {
                 StrategyConflictClass::SameStrategyDivergentOutput
-            } else {
+            } else if any_same_scope {
                 StrategyConflictClass::DifferentStrategyOverlappingIntent
+            } else {
+                return None;
             }
         }
         (false, true) => StrategyConflictClass::SourceStrategyOnly,
@@ -316,20 +323,45 @@ fn strategy_descriptors_for_delta(
         return Vec::new();
     };
     let history = runtime.history_access();
-    let mut dedup =
-        BTreeMap::<[u8; 32], crate::commit_strategies::data::StrategyMergeDescriptor>::new();
-    for commit_id in delta.commit_ids.iter().copied() {
+    let mut dedup = BTreeMap::<
+        ([u8; 32], [u8; 32], Vec<String>),
+        crate::commit_strategies::data::StrategyMergeDescriptor,
+    >::new();
+    for commit_id in delta.commit_ids.iter().rev().copied() {
         let Some(envelope) = history.commit_envelope(commit_id) else {
             continue;
         };
         let Some(strategy_artifacts) = envelope.strategy_artifacts.as_ref() else {
             continue;
         };
-        dedup
-            .entry(strategy_artifacts.merge_descriptor().descriptor_digest().0)
-            .or_insert_with(|| strategy_artifacts.merge_descriptor().clone());
+        let descriptor = strategy_artifacts.merge_descriptor().clone();
+        let key = (
+            descriptor.descriptor_digest().0,
+            *descriptor.intent_scope_digest().bytes(),
+            descriptor
+                .intent_scope_fields()
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>(),
+        );
+        dedup.entry(key).or_insert(descriptor);
     }
     dedup.into_values().collect()
+}
+
+fn strategy_scope_overlaps(
+    source: &crate::commit_strategies::data::StrategyMergeDescriptor,
+    target: &crate::commit_strategies::data::StrategyMergeDescriptor,
+) -> bool {
+    if source.intent_scope_digest() == target.intent_scope_digest() {
+        return true;
+    }
+    source.intent_scope_fields().iter().any(|field| {
+        target
+            .intent_scope_fields()
+            .iter()
+            .any(|other| other == field)
+    })
 }
 
 fn classify_record_state(

@@ -76,19 +76,24 @@ impl<'runtime> DiagnosticArtifactBuilder<'runtime> {
     }
 
     pub(crate) fn emit(self) -> RelationalDiagnosticArtifact {
-        let max_entries = self
-            .runtime
-            .config
-            .diagnostics
-            .profile
-            .max_entries_per_artifact;
+        let profile = &self.runtime.config.diagnostics.profile;
         let artifact = RelationalDiagnosticArtifact {
             scope: self.scope,
             kind: self.kind,
             determinism: DeterminismExpectation::Required,
-            entries: self.entries.into_iter().take(max_entries).collect(),
+            entries: self.entries,
         };
-        self.runtime.publication.diagnostics.push(artifact.clone());
-        artifact
+        let filtered = profile
+            .filter_artifact(artifact.clone())
+            .unwrap_or_else(|| RelationalDiagnosticArtifact {
+                scope: artifact.scope,
+                kind: artifact.kind,
+                determinism: artifact.determinism,
+                entries: Vec::new(),
+            });
+        if !filtered.entries.is_empty() {
+            self.runtime.publication.diagnostics.push(filtered.clone());
+        }
+        filtered
     }
 }

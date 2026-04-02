@@ -308,7 +308,12 @@ pub(super) fn finalize_published_commit(
     let snapshot_id = runtime
         .publication_authority()
         .publish_artifacts(version_id, artifacts);
-    let _ = runtime.retention_authority().run_pass();
+    if runtime.config.storage.mvcc.auto_reclaim_deleted_records
+        || runtime.config.storage.mvcc.snapshot_release_policy
+            == crate::config::data::SnapshotReleasePolicy::ReleaseOnRetentionPass
+    {
+        let _ = runtime.retention_authority().run_pass();
+    }
     runtime
         .publication_authority()
         .consume_post_commit_artifacts(

@@ -13,6 +13,10 @@ export class SignalHandle<T = unknown> {
     return this.owner._read(this.id);
   }
 
+  subscribe(listener: (value: T) => void, options?: { emitCurrent?: boolean }) {
+    return this.owner.watch(this.id, listener, options);
+  }
+
   why() {
     return this.owner.diagnostics().why(this.id);
   }
@@ -43,6 +47,10 @@ export class KeyedSourceHandle<T = unknown> {
     return this.owner._readKeyed(this.familyId, this.key);
   }
 
+  subscribe(listener: (value: T) => void, options?: { emitCurrent?: boolean }) {
+    return this.owner.watchKeyed(this.familyId, this.key, listener, options);
+  }
+
   set(value: T) {
     return this.owner._setKeyed(this.familyId, this.key, value);
   }
@@ -67,6 +75,10 @@ export class KeyedRecipeHandle<T = unknown> {
 
   read(): T {
     return this.owner._readKeyed(this.familyId, this.key);
+  }
+
+  subscribe(listener: (value: T) => void, options?: { emitCurrent?: boolean }) {
+    return this.owner.watchKeyed(this.familyId, this.key, listener, options);
   }
 
   why() {

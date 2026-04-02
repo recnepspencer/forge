@@ -90,12 +90,7 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
     match profile {
         RelationalRuntimeProfile::CertificationCore => base(
             "forge-relational",
-            RelationalDiagnosticsProfile {
-                detailed_traces_enabled: true,
-                collect_all_invariant_failures: false,
-                max_entries_per_artifact: 512,
-                ..RelationalDiagnosticsProfile::default()
-            },
+            profile.default_diagnostics_profile(),
             HistoryRetentionClass::AuditGrade,
             MvccConfig {
                 track_visibility_metadata: true,
@@ -159,12 +154,7 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
         ),
         RelationalRuntimeProfile::GeometryKernel => base(
             "forge-relational-geometry",
-            RelationalDiagnosticsProfile {
-                detailed_traces_enabled: true,
-                collect_all_invariant_failures: false,
-                max_entries_per_artifact: 768,
-                ..RelationalDiagnosticsProfile::default()
-            },
+            profile.default_diagnostics_profile(),
             HistoryRetentionClass::AuditGrade,
             MvccConfig {
                 track_visibility_metadata: true,
@@ -231,12 +221,7 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
         ),
         RelationalRuntimeProfile::ChipSimulation => base(
             "forge-relational-chip",
-            RelationalDiagnosticsProfile {
-                detailed_traces_enabled: false,
-                collect_all_invariant_failures: false,
-                max_entries_per_artifact: 384,
-                ..RelationalDiagnosticsProfile::default()
-            },
+            profile.default_diagnostics_profile(),
             HistoryRetentionClass::AuditGrade,
             MvccConfig {
                 track_visibility_metadata: true,
@@ -303,12 +288,7 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
         ),
         RelationalRuntimeProfile::AiWorkflow => base(
             "forge-relational-ai",
-            RelationalDiagnosticsProfile {
-                detailed_traces_enabled: false,
-                collect_all_invariant_failures: false,
-                max_entries_per_artifact: 256,
-                ..RelationalDiagnosticsProfile::default()
-            },
+            profile.default_diagnostics_profile(),
             HistoryRetentionClass::Durable,
             MvccConfig {
                 track_visibility_metadata: true,

@@ -7,9 +7,11 @@ mod request;
 mod strategy_id;
 mod validation;
 
+#[allow(unused_imports)]
 pub use artifacts::{
-    StrategyCommitArtifactBundle, StrategyMergeConflictClass, StrategyMergeDescriptor,
-    StrategyReplayDescriptor,
+    StrategyCommitArtifactBundle, StrategyIntentScopeDigest, StrategyMergeConflictClass,
+    StrategyMergeDescriptor, StrategyMergeSemantics, StrategyReplayDescriptor,
+    StrategyRuntimeDeterminismBasis,
 };
 pub use descriptor::{
     CommitStrategyDescriptor, CommitStrategyDescriptorDigest, CommitStrategyFamilyName,

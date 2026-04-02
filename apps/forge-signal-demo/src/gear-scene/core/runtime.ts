@@ -4,10 +4,17 @@ import {
   expr,
   keyed,
   policy,
-  type MergePlanReport,
-  type MergeResultReport,
+  type BranchMergePlan,
+  type BranchMergeResult,
+  type BranchStateProofReport,
+  type MergePlanProofReport,
+  type MergeResultProofReport,
+  type ReplayArtifactProofInput,
+  type ReplayArtifactProofReport,
+  type ReplayParityProofReport,
   type ReplayFrameSummary,
   type RuntimeEnvelope,
+  type RuntimeProofReport,
   type SignalRuntime,
   type WhySummary,
 } from "@forge/signal";
@@ -24,8 +31,19 @@ import {
   type GearToothModel,
   type HudModel,
   type LightingModel,
+  type BranchStateProofView,
+  type MergePlan,
+  type MergePlanProofView,
+  type MergeRecordView,
+  type MergeResult,
+  type MergeResultProofView,
+  type MergeSemanticsView,
+  type IdentityCorrespondenceView,
+  type ReplayParityProofView,
+  type ReplayArtifactProofView,
   type RenderAspects,
   type RenderUpdate,
+  type ScenarioProofArtifacts,
   type SceneRuntimeBundle,
   type SceneState,
   type ViewportProjectionModel,
@@ -160,7 +178,7 @@ export function readBranchInspectForNode(
   const history = runtime.history();
   const before = history.currentBranch().id;
   history.switchBranch(branchId);
-  const inspectId = normalizeInspectNodeId(nodeId);
+  const inspectId = nodeId;
   const replay = history.replayFor(inspectId).frames.slice(-10) as ReplayFrameSummary[];
   const why = runtime.diagnostics().why(inspectId) as WhySummary;
   const lineage = history.lineageFor(inspectId);
@@ -308,18 +326,523 @@ export function planMerge(
   runtime: SignalRuntime,
   sourceBranchId: BranchId,
   targetBranchId: BranchId,
-): MergePlanReport {
-  return runtime.history().planMergeBranches(sourceBranchId, targetBranchId);
+): MergePlan {
+  const envelope = runtime.history().planMergeBranchesDetailedWithProof(sourceBranchId, targetBranchId);
+  return projectMergePlan(envelope?.plan, envelope?.proof);
 }
 
 export async function executeMerge(
   runtime: SignalRuntime,
   sourceBranchId: BranchId,
   targetBranchId: BranchId,
-): Promise<MergeResultReport> {
-  const result = runtime.history().mergeBranches(sourceBranchId, targetBranchId);
+): Promise<MergeResult> {
+  const envelope = runtime.history().mergeBranchesDetailedWithProof(sourceBranchId, targetBranchId);
+  const result = projectMergeResult(envelope?.result, envelope?.proof);
   await renderBranch(runtime, targetBranchId);
   return result;
+}
+
+export function readBranchStateProof(runtime: SignalRuntime, branchId: BranchId): BranchStateProofView {
+  const proof = runtime.history().branchStateProof(branchId) as BranchStateProofReport;
+  return {
+    proofSchemaVersion: asStringOrNull(proof?.proofSchemaVersion),
+    branchId: asNumberOrNull(proof?.branchId),
+    branchName: asStringOrNull(proof?.branchName),
+    snapshotId: asNumberOrNull(proof?.snapshotId),
+    stateDigest: asStringOrNull(proof?.stateDigest),
+  };
+}
+
+export function readReplayParityProof(
+  runtime: SignalRuntime,
+  expectedBranchId: BranchId,
+  replayedBranchId: BranchId,
+): ReplayParityProofView {
+  const proof = runtime.history().replayParityProof(
+    expectedBranchId,
+    replayedBranchId,
+  ) as ReplayParityProofReport;
+  return {
+    proofSchemaVersion: asStringOrNull(proof?.proofSchemaVersion),
+    expectedBranchId: asNumberOrNull(proof?.expectedBranchId),
+    expectedBranchName: asStringOrNull(proof?.expectedBranchName),
+    expectedSnapshotId: asNumberOrNull(proof?.expectedSnapshotId),
+    expectedStateDigest: asStringOrNull(proof?.expectedStateDigest),
+    replayedBranchId: asNumberOrNull(proof?.replayedBranchId),
+    replayedBranchName: asStringOrNull(proof?.replayedBranchName),
+    replayedSnapshotId: asNumberOrNull(proof?.replayedSnapshotId),
+    replayedStateDigest: asStringOrNull(proof?.replayedStateDigest),
+    parity: typeof proof?.parity === "boolean" ? proof.parity : null,
+    mismatchClasses: Array.isArray(proof?.mismatchClasses)
+      ? proof.mismatchClasses.map((value: unknown) => String(value))
+      : [],
+  };
+}
+
+export function readReplayArtifactProof(
+  runtime: SignalRuntime,
+  expected: ReplayArtifactProofInput,
+  replayedBranchId: BranchId,
+): ReplayArtifactProofView {
+  const proof = runtime.history().replayArtifactProof(
+    expected,
+    replayedBranchId,
+  ) as ReplayArtifactProofReport;
+  return {
+    proofSchemaVersion: asStringOrNull(proof?.proofSchemaVersion),
+    parity: typeof proof?.parity === "boolean" ? proof.parity : null,
+    mismatchClasses: Array.isArray(proof?.mismatchClasses)
+      ? proof.mismatchClasses.map((value: unknown) => String(value))
+      : [],
+    replayedLoweredStrategyBundleDigest: asStringOrNull(
+      proof?.replayed?.loweredStrategyBundleDigest,
+    ),
+    replayedMergePlanDigest: asStringOrNull(proof?.replayed?.mergePlanDigest),
+    replayedMergeResultDigest: asStringOrNull(proof?.replayed?.mergeResultDigest),
+    replayedLineageDigest: asStringOrNull(proof?.replayed?.lineageDigest),
+    replayedBranchStateDigest: asStringOrNull(proof?.replayed?.branchStateDigest),
+    replayedRegistryBundleDigest: asStringOrNull(proof?.replayed?.registryBundleDigest),
+  };
+}
+
+export function readRuntimeProofReport(runtime: SignalRuntime): RuntimeProofReport {
+  return runtime.adapters().runtimeProofReport() as RuntimeProofReport;
+}
+
+export function buildScenarioProofArtifacts(params: {
+  runtime: SignalRuntime;
+  mergePlan: MergePlan | null;
+  mergeResult: MergeResult | null;
+  activeBranchId: BranchId | null;
+  previousProof?: ScenarioProofArtifacts | null;
+}): ScenarioProofArtifacts {
+  const { runtime, mergePlan, mergeResult, activeBranchId, previousProof = null } = params;
+  const runtimeProof = readRuntimeProofReport(runtime);
+  const semanticsDigest = mergeResult?.proof?.semanticsDigest ?? mergePlan?.proof?.semanticsDigest ?? null;
+  const mergePlanDigest = mergePlan?.proof?.planDigest ?? null;
+  const mergeResultDigest = mergeResult?.proof?.resultDigest ?? null;
+  const lineageDigest = mergeResult?.proof?.lineageDigest ?? null;
+  const mergedBranchStateDigest =
+    mergeResult != null && activeBranchId != null
+      ? readBranchStateProof(runtime, activeBranchId).stateDigest
+      : null;
+
+  return {
+    proofSchemaVersion:
+      mergeResult?.proof?.proofSchemaVersion
+      ?? mergePlan?.proof?.proofSchemaVersion
+      ?? runtimeProof.proofSchemaVersion
+      ?? null,
+    schemaDigest: runtimeProof.schemaRegistryDigest ?? null,
+    registryBundleDigest: runtimeProof.registryBundleDigest ?? null,
+    loweredStrategyBundleDigest:
+      mergeResult?.proof?.loweredStrategyBundleDigest
+      ?? mergePlan?.proof?.loweredStrategyBundleDigest
+      ?? null,
+    semanticsDigest,
+    mergePlanDigest,
+    mergeResultDigest,
+    lineageDigest,
+    mergedBranchStateDigest,
+    replayedLoweredStrategyBundleDigest: previousProof?.replayedLoweredStrategyBundleDigest ?? null,
+    replayedMergePlanDigest: previousProof?.replayedMergePlanDigest ?? null,
+    replayedMergeResultDigest: previousProof?.replayedMergeResultDigest ?? null,
+    replayedLineageDigest: previousProof?.replayedLineageDigest ?? null,
+    replayBranchStateDigest: previousProof?.replayBranchStateDigest ?? null,
+    replayParity: previousProof?.replayParity ?? null,
+    replayMismatchClasses: previousProof?.replayMismatchClasses ?? [],
+  };
+}
+
+export function buildReplayScenarioProofArtifacts(params: {
+  runtime: SignalRuntime;
+  replayedBranchId: BranchId | null;
+  previousProof?: ScenarioProofArtifacts | null;
+}) {
+  const { runtime, replayedBranchId, previousProof = null } = params;
+  if (previousProof == null || replayedBranchId == null) {
+    return null;
+  }
+
+  return readReplayArtifactProof(
+    runtime,
+    {
+      proofSchemaVersion: previousProof.proofSchemaVersion ?? "legacy-unknown",
+      registryBundleDigest: previousProof.registryBundleDigest,
+      loweredStrategyBundleDigest: previousProof.loweredStrategyBundleDigest,
+      mergePlanDigest: previousProof.mergePlanDigest,
+      mergeResultDigest: previousProof.mergeResultDigest,
+      lineageDigest: previousProof.lineageDigest,
+      branchStateDigest: previousProof.mergedBranchStateDigest ?? "",
+    },
+    replayedBranchId,
+  );
+}
+
+function projectMergePlan(plan: BranchMergePlan | null | undefined, proof: MergePlanProofReport | null | undefined): MergePlan {
+  return {
+    sourceBranchId: asNumberOrNull(plan?.source_branch_id),
+    targetBranchId: asNumberOrNull(plan?.target_branch_id),
+    mergeKind: asStringOrNull(plan?.merge_kind),
+    divergence: asStringOrNull(plan?.divergence),
+    mergeStrategy: asStringOrNull(plan?.merge_strategy),
+    sourceSnapshotId: asNumberOrNull(plan?.source_snapshot_id),
+    targetSnapshotIdBefore: asNumberOrNull(plan?.target_snapshot_id_before),
+    candidateCount: countEntries(plan?.planned_candidates?.nodes),
+    sharedNodeCount: countEntries(plan?.proof_minimal_overlap?.shared_nodes),
+    expandedNodeCount: countEntries(plan?.conservative_overlap?.expanded_nodes),
+    supportNodeCount: countEntries(plan?.conservative_overlap?.support_nodes),
+    nodePlanCount: countEntries(plan?.node_plan),
+    adoptionCount: countEntries(plan?.adoption_core),
+    hasResolutionPlan: Boolean(plan?.resolution_plan),
+    semantics: projectSemantics(plan),
+    identity: {
+      targetCandidateCount: asNumber(plan?.identity_correspondence?.target_candidate_count),
+      sourceLookupCount: asNumber(plan?.identity_correspondence?.source_lookup_count),
+      ambiguousMatchCount: asNumber(plan?.identity_correspondence?.ambiguous_match_count),
+      rejectedAdmissibilityCount: asNumber(
+        plan?.identity_correspondence?.rejected_admissibility_count,
+      ),
+      records: projectIdentityRecords(plan?.identity_correspondence?.records),
+    },
+    deletion: {
+      targetOnlyCount: asNumber(plan?.deletion_plan?.target_only_count),
+      rejectedTargetOnlyCount: asNumber(plan?.deletion_plan?.rejected_target_only_count),
+      targetOnlyNodes: projectNodeIds(plan?.deletion_plan?.target_only_nodes),
+    },
+    conflictIsolation: {
+      policyName: asStringOrNull(plan?.conflict_isolation_plan?.selected_policy_name),
+      policyDigest: asStringOrNull(plan?.conflict_isolation_plan?.selected_policy_digest),
+      policyBasis: asStringOrNull(plan?.conflict_isolation_plan?.selected_policy_basis),
+      expansionBreadth: asNumber(plan?.conflict_isolation_plan?.expansion_breadth),
+      witnessGranularity: asStringOrNull(plan?.conflict_isolation_plan?.witness?.granularity),
+      witnessConflictRecordCount: asNumber(
+        plan?.conflict_isolation_plan?.witness?.conflict_record_count,
+      ),
+      isolatedRegionCount: asNumber(
+        plan?.conflict_isolation_plan?.region_summary?.isolated_region_count,
+      ),
+      hostDeclaredRegionCount: asNumber(
+        plan?.conflict_isolation_plan?.region_summary?.host_declared_region_count,
+      ),
+      conservativeExpandedNodeCount: asNumber(
+        plan?.conflict_isolation_plan?.conservative_expansion?.expanded_node_count,
+      ),
+      records: projectConflictIsolationRecords(plan?.conflict_isolation_plan?.records),
+    },
+    aspectPolicies: projectAspectPolicyRecords(plan?.aspect_policy_plan?.records),
+    aspectDecisions: projectAspectDecisionRecords(plan?.aspect_decision_plan?.records),
+    proof: projectMergePlanProof(proof),
+  };
+}
+
+function projectMergeResult(result: BranchMergeResult | null | undefined, proof: MergeResultProofReport | null | undefined): MergeResult {
+  return {
+    sourceBranchId: asNumberOrNull(result?.source_branch),
+    targetBranchId: asNumberOrNull(result?.target_branch),
+    mergeKind: asStringOrNull(result?.merge_kind),
+    divergence: asStringOrNull(result?.divergence),
+    mergeStrategy: asStringOrNull(result?.merge_strategy),
+    mergedSnapshotId: asNumberOrNull(result?.merged_snapshot_id),
+    targetSnapshotIdBefore: asNumberOrNull(result?.target_snapshot_id_before),
+    targetSnapshotIdAfter: asNumberOrNull(result?.target_snapshot_id_after),
+    sourceSnapshotId: asNumberOrNull(result?.source_snapshot_id),
+    recordCount: countEntries(result?.records),
+    adoptedCount: asNumber(result?.counters?.adopted_count),
+    introducedCount: asNumber(result?.counters?.introduced_node_count),
+    replacedCount: asNumber(result?.counters?.replaced_count),
+    preservedTargetCount: asNumber(result?.counters?.preserved_target_count),
+    equivalentUnchangedCount: asNumber(result?.counters?.equivalent_unchanged_count),
+    skippedNonAdoptableCount: asNumber(result?.counters?.skipped_non_adoptable_count),
+    conflictCount: Array.isArray(result?.records)
+      ? result.records.reduce(
+          (total: number, record: any) => total + countEntries(record?.resolved_conflict_kinds),
+          0,
+        )
+      : 0,
+    hasResolutionPlan: Boolean(result?.resolution_plan),
+    semantics: projectSemantics(result),
+    counters: {
+      sourceSliceBreadth: asNumber(result?.counters?.source_slice_breadth),
+      proofMinimalOverlapBreadth: asNumber(result?.counters?.proof_minimal_overlap_breadth),
+      conservativeOverlapExpansionBreadth: asNumber(
+        result?.counters?.conservative_overlap_expansion_breadth,
+      ),
+      finalCandidateBreadth: asNumber(result?.counters?.final_candidate_breadth),
+      reconciliationBreadth: asNumber(result?.counters?.reconciliation_breadth),
+      targetOnlyCount: asNumber(result?.counters?.target_only_count),
+      identityTargetCandidatesIndexed: asNumber(
+        result?.counters?.identity_target_candidates_indexed,
+      ),
+      identitySourceLookups: asNumber(result?.counters?.identity_source_lookups),
+      identityAmbiguousMatchCount: asNumber(result?.counters?.identity_ambiguous_match_count),
+      identityRejectedAdmissibilityCount: asNumber(
+        result?.counters?.identity_rejected_admissibility_count,
+      ),
+      conflictIsolationRecordCount: asNumber(
+        result?.counters?.conflict_isolation_record_count,
+      ),
+      conflictIsolationExpansionBreadth: asNumber(
+        result?.counters?.conflict_isolation_expansion_breadth,
+      ),
+    },
+    identity: {
+      records: projectIdentityRecords(result?.identity_correspondence?.records),
+    },
+    deletion: {
+      targetOnlyCount: asNumber(result?.deletion_plan?.target_only_count),
+      rejectedTargetOnlyCount: asNumber(result?.deletion_plan?.rejected_target_only_count),
+      targetOnlyNodes: projectNodeIds(result?.deletion_plan?.target_only_nodes),
+    },
+    conflictIsolation: {
+      policyName: asStringOrNull(result?.conflict_isolation_plan?.selected_policy_name),
+      policyDigest: asStringOrNull(result?.conflict_isolation_plan?.selected_policy_digest),
+      policyBasis: asStringOrNull(result?.conflict_isolation_plan?.selected_policy_basis),
+      expansionBreadth: asNumber(result?.conflict_isolation_plan?.expansion_breadth),
+      witnessGranularity: asStringOrNull(result?.conflict_isolation_plan?.witness?.granularity),
+      witnessConflictRecordCount: asNumber(
+        result?.conflict_isolation_plan?.witness?.conflict_record_count,
+      ),
+      isolatedRegionCount: asNumber(
+        result?.conflict_isolation_plan?.region_summary?.isolated_region_count,
+      ),
+      hostDeclaredRegionCount: asNumber(
+        result?.conflict_isolation_plan?.region_summary?.host_declared_region_count,
+      ),
+      conservativeExpandedNodeCount: asNumber(
+        result?.conflict_isolation_plan?.conservative_expansion?.expanded_node_count,
+      ),
+      records: projectConflictIsolationRecords(result?.conflict_isolation_plan?.records),
+    },
+    aspectPolicies: projectAspectPolicyRecords(result?.aspect_policy_plan?.records),
+    aspectDecisions: projectAspectDecisionRecords(result?.aspect_decision_plan?.records),
+    records: projectMergeRecords(result?.records),
+    proof: projectMergeResultProof(proof),
+  };
+}
+
+function projectMergePlanProof(proof: MergePlanProofReport | null | undefined): MergePlanProofView | null {
+  if (!proof) {
+    return null;
+  }
+  return {
+    proofSchemaVersion: asStringOrNull(proof?.proofSchemaVersion),
+    registryBundleDigest: asStringOrNull(proof?.registryBundleDigest),
+    planDigest: asStringOrNull(proof?.planDigest),
+    semanticsDigest: asStringOrNull(proof?.semanticsDigest),
+    loweredStrategyBundleDigest: asStringOrNull(proof?.loweredStrategyBundleDigest),
+    selectedStrategyDigest: asStringOrNull(proof?.selectedStrategyDigest),
+    selectedMergeBaseDigest: asStringOrNull(proof?.selectedMergeBaseDigest),
+    selectedConflictPolicyDigest: asStringOrNull(proof?.selectedConflictPolicyDigest),
+    selectedConflictIsolationDigest: asStringOrNull(proof?.selectedConflictIsolationDigest),
+    selectedIdentityMatcherDigest: asStringOrNull(proof?.selectedIdentityMatcherDigest),
+    selectedSourceOnlyPolicyDigest: asStringOrNull(proof?.selectedSourceOnlyPolicyDigest),
+    selectedDeletionPolicyDigest: asStringOrNull(proof?.selectedDeletionPolicyDigest),
+  };
+}
+
+function projectMergeResultProof(proof: MergeResultProofReport | null | undefined): MergeResultProofView | null {
+  if (!proof) {
+    return null;
+  }
+  return {
+    proofSchemaVersion: asStringOrNull(proof?.proofSchemaVersion),
+    registryBundleDigest: asStringOrNull(proof?.registryBundleDigest),
+    resultDigest: asStringOrNull(proof?.resultDigest),
+    semanticsDigest: asStringOrNull(proof?.semanticsDigest),
+    loweredStrategyBundleDigest: asStringOrNull(proof?.loweredStrategyBundleDigest),
+    lineageDigest: asStringOrNull(proof?.lineageDigest),
+    selectedStrategyDigest: asStringOrNull(proof?.selectedStrategyDigest),
+    selectedMergeBaseDigest: asStringOrNull(proof?.selectedMergeBaseDigest),
+    selectedConflictPolicyDigest: asStringOrNull(proof?.selectedConflictPolicyDigest),
+    selectedConflictIsolationDigest: asStringOrNull(proof?.selectedConflictIsolationDigest),
+    selectedIdentityMatcherDigest: asStringOrNull(proof?.selectedIdentityMatcherDigest),
+    selectedSourceOnlyPolicyDigest: asStringOrNull(proof?.selectedSourceOnlyPolicyDigest),
+    selectedDeletionPolicyDigest: asStringOrNull(proof?.selectedDeletionPolicyDigest),
+  };
+}
+
+function projectSemantics(value: any): MergeSemanticsView {
+  return {
+    strategyName: asStringOrNull(
+      value?.selected_strategy_name ?? value?.selected_semantics?.strategy_name,
+    ),
+    strategyBasis: asStringOrNull(
+      value?.selected_strategy_basis ?? value?.selected_semantics?.strategy_basis,
+    ),
+    mergeBaseName: asStringOrNull(
+      value?.selected_merge_base_name ?? value?.selected_semantics?.merge_base_name,
+    ),
+    mergeBaseBasis: asStringOrNull(
+      value?.selected_merge_base_basis ?? value?.selected_semantics?.merge_base_basis,
+    ),
+    conflictPolicyName: asStringOrNull(
+      value?.selected_conflict_policy_name ?? value?.selected_semantics?.conflict_policy_name,
+    ),
+    conflictPolicyBasis: asStringOrNull(
+      value?.selected_conflict_policy_basis ?? value?.selected_semantics?.conflict_policy_basis,
+    ),
+    conflictIsolationName: asStringOrNull(
+      value?.selected_conflict_isolation_name
+      ?? value?.selected_semantics?.conflict_isolation_name,
+    ),
+    conflictIsolationBasis: asStringOrNull(
+      value?.selected_conflict_isolation_basis
+      ?? value?.selected_semantics?.conflict_isolation_basis,
+    ),
+    identityMatcherName: asStringOrNull(
+      value?.selected_identity_matcher_name ?? value?.selected_semantics?.identity_matcher_name,
+    ),
+    identityMatcherBasis: asStringOrNull(
+      value?.selected_identity_matcher_basis ?? value?.selected_semantics?.identity_matcher_basis,
+    ),
+    sourceOnlyPolicyName: asStringOrNull(
+      value?.selected_source_only_policy_name ?? value?.selected_semantics?.source_only_policy_name,
+    ),
+    sourceOnlyPolicyBasis: asStringOrNull(
+      value?.selected_source_only_policy_basis ?? value?.selected_semantics?.source_only_policy_basis,
+    ),
+    deletionPolicyName: asStringOrNull(
+      value?.selected_deletion_policy_name ?? value?.selected_semantics?.deletion_policy_name,
+    ),
+    deletionPolicyBasis: asStringOrNull(
+      value?.selected_deletion_policy_basis ?? value?.selected_semantics?.deletion_policy_basis,
+    ),
+  };
+}
+
+function projectIdentityRecords(records: any): IdentityCorrespondenceView[] {
+  if (!Array.isArray(records)) {
+    return [];
+  }
+  return records.map((record) => ({
+    sourceNode: nodeIdLabel(record?.source_node),
+    targetNode: nodeIdLabelOrNull(record?.target_node),
+    status: asString(record?.status),
+    basis: asStringOrNull(record?.basis),
+    candidateCount: asNumber(record?.candidate_count),
+    candidateTargetNodes: projectNodeIds(record?.candidate_target_nodes),
+    admissibilityRejection: asStringOrNull(record?.admissibility_rejection),
+  }));
+}
+
+function projectMergeRecords(records: any): MergeRecordView[] {
+  if (!Array.isArray(records)) {
+    return [];
+  }
+  return records.map((record) => ({
+    sourceNode: nodeIdLabel(record?.source_node),
+    targetNode: nodeIdLabelOrNull(record?.target_node),
+    action: asString(record?.action),
+    basis: asString(record?.basis),
+    identityBasis: asStringOrNull(record?.identity_basis),
+    identityStatus: asStringOrNull(record?.identity_status),
+    identityCandidateCount: asNumber(record?.identity_candidate_count),
+    resolvedConflictKinds: Array.isArray(record?.resolved_conflict_kinds)
+      ? record.resolved_conflict_kinds.map((kind: unknown) => String(kind))
+      : [],
+  }));
+}
+
+function projectAspectPolicyRecords(records: any) {
+  if (!Array.isArray(records)) {
+    return [];
+  }
+  return records.map((record) => ({
+    aspect: aspectLabel(record?.aspect),
+    policyName: asString(record?.selected_policy_name),
+    policyBasis: asString(record?.selected_policy_basis),
+    affectedSourceNodes: projectNodeIds(record?.affected_source_nodes),
+  }));
+}
+
+function projectAspectDecisionRecords(records: any) {
+  if (!Array.isArray(records)) {
+    return [];
+  }
+  return records.map((record) => ({
+    aspect: aspectLabel(record?.aspect),
+    sourceNode: nodeIdLabel(record?.source_node),
+    targetNode: nodeIdLabelOrNull(record?.target_node),
+    policyName: asString(record?.selected_policy_name),
+    policyBasis: asString(record?.selected_policy_basis),
+    outcome: asString(record?.outcome),
+  }));
+}
+
+function projectConflictIsolationRecords(records: any) {
+  if (!Array.isArray(records)) {
+    return [];
+  }
+  return records.map((record) => ({
+    sourceNode: nodeIdLabel(record?.source_node),
+    targetNode: nodeIdLabelOrNull(record?.target_node),
+    granularity: asString(record?.granularity),
+    isolatedAspects: Array.isArray(record?.isolated_aspects)
+      ? record.isolated_aspects.map((value: unknown) => aspectLabel(value))
+      : [],
+  }));
+}
+
+function projectNodeIds(values: any): string[] {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+  return values.map((value) => nodeIdLabel(value));
+}
+
+function countEntries(value: any): number {
+  return Array.isArray(value) ? value.length : 0;
+}
+
+function nodeIdLabel(value: any): string {
+  if (value && typeof value === "object" && "index" in value && "generation" in value) {
+    return `${String((value as { index: unknown }).index)}:${String((value as { generation: unknown }).generation)}`;
+  }
+  return String(value ?? "");
+}
+
+function nodeIdLabelOrNull(value: any): string | null {
+  return value == null ? null : nodeIdLabel(value);
+}
+
+function aspectLabel(value: any): string {
+  if (typeof value === "number") {
+    return `aspect-${value}`;
+  }
+  if (value && typeof value === "object" && "0" in value) {
+    return `aspect-${String((value as { 0: unknown })[0])}`;
+  }
+  return String(value ?? "");
+}
+
+function asString(value: unknown): string {
+  return value == null ? "" : String(value);
+}
+
+function asStringOrNull(value: unknown): string | null {
+  return value == null ? null : String(value);
+}
+
+function asNumber(value: unknown): number {
+  if (typeof value === "number") {
+    return value;
+  }
+  if (typeof value === "bigint") {
+    return Number(value);
+  }
+  if (typeof value === "string" && value.length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+function asNumberOrNull(value: unknown): number | null {
+  if (value == null) {
+    return null;
+  }
+  return asNumber(value);
 }
 
 function defineSceneSources(runtime: SignalRuntime, scene: SceneState) {
@@ -728,13 +1251,6 @@ function shallowNumberRecordEqual(
     }
   }
   return true;
-}
-
-function normalizeInspectNodeId(nodeId: string) {
-  if (nodeId.startsWith("gearToothModel::")) {
-    return "gearProfileModel";
-  }
-  return nodeId;
 }
 
 export function exportRuntimeEnvelope(runtime: SignalRuntime): RuntimeEnvelope {

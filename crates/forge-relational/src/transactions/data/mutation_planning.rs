@@ -39,6 +39,9 @@ impl MutationIntent {
             Self::Entity(EntityMutationIntent::Update(spec)) => {
                 touched.insert(spec.entity_id.partition_id);
             }
+            Self::Entity(EntityMutationIntent::UpdateFields(spec)) => {
+                touched.insert(spec.entity_id.partition_id);
+            }
             Self::Entity(EntityMutationIntent::Replace(spec)) => {
                 touched.insert(spec.entity_id.partition_id);
                 touched.insert(spec.replacement.partition_id);
@@ -90,6 +93,10 @@ impl MutationIntent {
             Self::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
                 entity_id, ..
             }))
+            | Self::Entity(EntityMutationIntent::UpdateFields(super::UpdateEntityFieldsIntent {
+                entity_id,
+                ..
+            }))
             | Self::Entity(EntityMutationIntent::Replace(ReplaceEntityIntent {
                 entity_id, ..
             }))
@@ -109,6 +116,9 @@ impl MutationIntent {
     pub(crate) fn existing_record_target(&self) -> Option<ExistingRecordTarget> {
         match self {
             Self::Entity(EntityMutationIntent::Update(spec)) => {
+                Some(ExistingRecordTarget::Entity(spec.entity_id))
+            }
+            Self::Entity(EntityMutationIntent::UpdateFields(spec)) => {
                 Some(ExistingRecordTarget::Entity(spec.entity_id))
             }
             Self::Entity(EntityMutationIntent::Replace(spec)) => {

@@ -49,7 +49,7 @@ pub(super) struct RiskWorld {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum FintechCaseRole {
+pub(crate) enum FintechCaseRole {
     BaselinePortfolio,
     LateTradeCorrection,
     IntradayRisk,
@@ -83,8 +83,8 @@ pub(super) struct FintechCasebook {
 }
 
 #[derive(Debug)]
-pub(super) struct FintechWorld {
-    pub(super) runtime: RelationalRuntime,
+pub(crate) struct FintechWorld {
+    pub(crate) runtime: RelationalRuntime,
     pub(super) ledger: LedgerWorld,
     pub(super) market: MarketWorld,
     pub(super) risk: RiskWorld,

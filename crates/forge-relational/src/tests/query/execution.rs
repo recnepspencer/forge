@@ -704,12 +704,13 @@ fn planned_query_execution_parallelizes_profitable_multi_seed_traversal_packets(
         .execute_query_plan(plan)
         .expect("query execution outcome");
     let counters = runtime.performance_access().counters();
+    let expected_packet_count = 2;
 
-    assert_eq!(outcome.complexity.packet_count, seeds.len());
-    assert_eq!(outcome.complexity.fragment_count, seeds.len());
-    assert_eq!(counters.query_packet_count, seeds.len());
+    assert_eq!(outcome.complexity.packet_count, expected_packet_count);
+    assert_eq!(outcome.complexity.fragment_count, expected_packet_count);
+    assert_eq!(counters.query_packet_count, expected_packet_count);
     assert_eq!(counters.query_packet_item_count, seeds.len());
-    assert_eq!(counters.query_packet_peak_width_total, 1);
+    assert_eq!(counters.query_packet_peak_width_total, 4);
     assert_eq!(counters.query_parallel_legal_count, 1);
     assert_eq!(counters.query_parallel_profitable_count, 1);
     assert_eq!(counters.query_staged_parallel_strategy_count, 1);

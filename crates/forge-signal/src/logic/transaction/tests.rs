@@ -6,6 +6,10 @@ use crate::data::subscriber_context::SubscriberContext;
 use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger, TierPolicy};
 use crate::facade::*;
 use crate::logic::transaction::{SignalRuntime, TransactionOutcome};
+use crate::schema::data::{
+    SignalSchemaDescriptor, SignalSchemaId, SignalSchemaName, SignalSchemaRegistration,
+    SignalSchemaRegistry, SignalSchemaVersion,
+};
 use crate::tests::support::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -39,6 +43,32 @@ fn build_runtime(
         .with_tiers::<Tier>()
         .checkpoint_barrier(CheckpointBarrier::PerOperation)
         .build()
+}
+
+fn demo_schema_registry() -> SignalSchemaRegistry {
+    SignalSchemaRegistry::from_registrations(vec![SignalSchemaRegistration::new(
+        SignalSchemaDescriptor::new(
+            SignalSchemaId(1),
+            SignalSchemaName::new("signal.demo.gear"),
+            SignalSchemaVersion::new(1, 0),
+            NodeContract::wildcard(),
+        ),
+    )
+    .expect("valid schema registration")])
+    .expect("valid schema registry")
+}
+
+fn contract_backed_schema_registry(contract: NodeContract) -> SignalSchemaRegistry {
+    SignalSchemaRegistry::from_registrations(vec![SignalSchemaRegistration::new(
+        SignalSchemaDescriptor::new(
+            SignalSchemaId(7),
+            SignalSchemaName::new("signal.demo.schema-bound"),
+            SignalSchemaVersion::new(1, 0),
+            contract,
+        ),
+    )
+    .expect("valid schema registration")])
+    .expect("valid schema registry")
 }
 
 struct FailingSubscriber;
@@ -820,6 +850,493 @@ fn runtime_builder_named_policy_helpers_apply_stock_postures() {
         SignalRuntimePolicy::operational()
     );
     assert_eq!(forensic.runtime_policy(), SignalRuntimePolicy::forensic());
+}
+
+#[test]
+fn runtime_builder_carries_frozen_schema_registry() {
+    let registry = demo_schema_registry();
+
+    let runtime = SignalRuntime::builder(crate::data::graph::SignalGraph::new())
+        .with_kernel_defaults()
+        .schema_registry(registry.clone())
+        .build();
+
+    assert_eq!(runtime.schema_registry(), &registry);
+}
+
+#[test]
+fn runtime_stock_constructor_with_schema_preserves_registry() {
+    let registry = demo_schema_registry();
+
+    let runtime = SignalRuntime::build_for_with_schema::<()>(
+        crate::data::graph::SignalGraph::new(),
+        registry.clone(),
+    );
+
+    assert_eq!(runtime.schema_registry(), &registry);
+}
+
+#[test]
+fn graph_node_builder_inherits_schema_default_contract() {
+    let schema_contract = NodeContract::reads(ASPECT_A)
+        .with_produces(ASPECT_B)
+        .with_path_class(PathClass::Rich)
+        .with_maintenance_mode(MaintenanceMode::IncrementalOnly)
+        .with_artifact_policy(ArtifactPolicyClass::ForensicReconstructable);
+    let registry = contract_backed_schema_registry(schema_contract.clone());
+    let mut graph = crate::data::graph::SignalGraph::new().with_schema_registry(registry);
+
+    let node = graph
+        .node()
+        .schema_name("signal.demo.schema-bound")
+        .expect("known schema")
+        .build();
+
+    assert_eq!(
+        graph.get_contract(node).expect("node contract"),
+        &schema_contract
+    );
+    let binding = graph
+        .node_schema_binding(node)
+        .expect("node schema binding")
+        .expect("schema binding present");
+    assert_eq!(binding.schema_id(), SignalSchemaId(7));
+    assert_eq!(binding.semantic_name().as_str(), "signal.demo.schema-bound");
+}
+
+#[test]
+fn graph_node_builder_rejects_unknown_schema_name() {
+    let mut graph =
+        crate::data::graph::SignalGraph::new().with_schema_registry(demo_schema_registry());
+
+    let err = match graph.node().schema_name("signal.demo.unknown") {
+        Ok(_) => panic!("unknown schema must fail"),
+        Err(err) => err,
+    };
+
+    assert!(err.to_string().contains("unknown signal schema"));
+}
+
+#[test]
+fn runtime_inherits_graph_schema_registry_when_builder_registry_is_empty() {
+    let registry = demo_schema_registry();
+    let graph = crate::data::graph::SignalGraph::new().with_schema_registry(registry.clone());
+
+    let runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+
+    assert_eq!(runtime.schema_registry(), &registry);
+}
+
+#[test]
+fn runtime_builder_validation_rejects_schema_digest_drift() {
+    let source_registry = contract_backed_schema_registry(
+        NodeContract::reads(ASPECT_A).with_path_class(PathClass::Rich),
+    );
+    let drifted_registry = contract_backed_schema_registry(
+        NodeContract::reads(ASPECT_B).with_path_class(PathClass::Operational),
+    );
+    let mut graph = crate::data::graph::SignalGraph::new().with_schema_registry(source_registry);
+    graph
+        .node()
+        .schema_id(SignalSchemaId(7))
+        .expect("known schema")
+        .build();
+
+    let err = match SignalRuntime::builder(graph)
+        .with_kernel_defaults()
+        .schema_registry(drifted_registry)
+        .build_validated()
+    {
+        Ok(_) => panic!("schema digest drift must fail validation"),
+        Err(err) => err,
+    };
+
+    assert!(err.to_string().contains("schema binding digest mismatch"));
+}
+
+#[test]
+fn runtime_builder_validation_rejects_unknown_schema_default_merge_strategy() {
+    let registry = SignalSchemaRegistry::from_registrations(vec![SignalSchemaRegistration::new(
+        SignalSchemaDescriptor::new_with_merge_semantics(
+            SignalSchemaId(71),
+            SignalSchemaName::new("signal.demo.unknown-default-strategy"),
+            SignalSchemaVersion::new(1, 0),
+            NodeContract::wildcard(),
+            Some(MergeStrategyName::new("signal.merge.unknown")),
+            None,
+            None,
+            None,
+            None,
+        ),
+    )
+    .expect("valid schema registration")])
+    .expect("valid schema registry");
+    let graph = crate::data::graph::SignalGraph::new().with_schema_registry(registry);
+
+    let err = match SignalRuntime::builder(graph)
+        .with_kernel_defaults()
+        .build_validated()
+    {
+        Ok(_) => panic!("unknown schema default merge strategy must fail validation"),
+        Err(err) => err,
+    };
+
+    assert!(err
+        .to_string()
+        .contains("references unknown default merge strategy"));
+}
+
+#[test]
+fn runtime_builder_validation_rejects_unknown_schema_default_conflict_policy() {
+    let registry = SignalSchemaRegistry::from_registrations(vec![SignalSchemaRegistration::new(
+        SignalSchemaDescriptor::new_with_merge_semantics(
+            SignalSchemaId(72),
+            SignalSchemaName::new("signal.demo.unknown-default-conflict"),
+            SignalSchemaVersion::new(1, 0),
+            NodeContract::wildcard(),
+            None,
+            Some(ConflictPolicyName::new("signal.conflict.unknown")),
+            None,
+            None,
+            None,
+        ),
+    )
+    .expect("valid schema registration")])
+    .expect("valid schema registry");
+    let graph = crate::data::graph::SignalGraph::new().with_schema_registry(registry);
+
+    let err = match SignalRuntime::builder(graph)
+        .with_kernel_defaults()
+        .build_validated()
+    {
+        Ok(_) => panic!("unknown schema default conflict policy must fail validation"),
+        Err(err) => err,
+    };
+
+    assert!(err
+        .to_string()
+        .contains("references unknown default conflict policy"));
+}
+
+#[test]
+fn runtime_builder_validation_rejects_unknown_schema_default_identity_matcher() {
+    let registry = SignalSchemaRegistry::from_registrations(vec![SignalSchemaRegistration::new(
+        SignalSchemaDescriptor::new_with_merge_semantics(
+            SignalSchemaId(73),
+            SignalSchemaName::new("signal.demo.unknown-default-identity"),
+            SignalSchemaVersion::new(1, 0),
+            NodeContract::wildcard(),
+            None,
+            None,
+            Some(IdentityMatcherName::new("signal.identity.unknown")),
+            None,
+            None,
+        ),
+    )
+    .expect("valid schema registration")])
+    .expect("valid schema registry");
+    let graph = crate::data::graph::SignalGraph::new().with_schema_registry(registry);
+
+    let err = match SignalRuntime::builder(graph)
+        .with_kernel_defaults()
+        .build_validated()
+    {
+        Ok(_) => panic!("unknown schema default identity matcher must fail validation"),
+        Err(err) => err,
+    };
+
+    assert!(err
+        .to_string()
+        .contains("references unknown default identity matcher"));
+}
+
+#[test]
+fn runtime_builder_validation_rejects_unknown_node_merge_strategy_override() {
+    let mut graph =
+        crate::data::graph::SignalGraph::new().with_schema_registry(demo_schema_registry());
+    graph
+        .node()
+        .merge_strategy_name("signal.merge.unknown")
+        .build();
+
+    let err = match SignalRuntime::builder(graph)
+        .with_kernel_defaults()
+        .build_validated()
+    {
+        Ok(_) => panic!("unknown node merge strategy override must fail validation"),
+        Err(err) => err,
+    };
+
+    assert!(err
+        .to_string()
+        .contains("references unknown merge strategy"));
+}
+
+#[test]
+fn runtime_builder_validation_rejects_unknown_node_conflict_policy_override() {
+    let mut graph =
+        crate::data::graph::SignalGraph::new().with_schema_registry(demo_schema_registry());
+    graph
+        .node()
+        .conflict_policy_name("signal.conflict.unknown")
+        .build();
+
+    let err = match SignalRuntime::builder(graph)
+        .with_kernel_defaults()
+        .build_validated()
+    {
+        Ok(_) => panic!("unknown node conflict policy override must fail validation"),
+        Err(err) => err,
+    };
+
+    assert!(err
+        .to_string()
+        .contains("references unknown conflict policy"));
+}
+
+#[test]
+fn runtime_builder_validation_rejects_unknown_node_identity_matcher_override() {
+    let mut graph =
+        crate::data::graph::SignalGraph::new().with_schema_registry(demo_schema_registry());
+    graph
+        .node()
+        .identity_matcher_name("signal.identity.unknown")
+        .build();
+
+    let err = match SignalRuntime::builder(graph)
+        .with_kernel_defaults()
+        .build_validated()
+    {
+        Ok(_) => panic!("unknown node identity matcher override must fail validation"),
+        Err(err) => err,
+    };
+
+    assert!(err
+        .to_string()
+        .contains("references unknown identity matcher"));
+}
+
+#[test]
+fn runtime_builder_validation_rejects_unknown_schema_default_source_only_policy() {
+    let registry = SignalSchemaRegistry::from_registrations(vec![SignalSchemaRegistration::new(
+        SignalSchemaDescriptor::new_with_merge_semantics(
+            SignalSchemaId(74),
+            SignalSchemaName::new("signal.demo.unknown-default-source-only"),
+            SignalSchemaVersion::new(1, 0),
+            NodeContract::wildcard(),
+            None,
+            None,
+            None,
+            Some(SourceOnlyPolicyName::new("signal.source-only.unknown")),
+            None,
+        ),
+    )
+    .expect("valid schema registration")])
+    .expect("valid schema registry");
+    let graph = crate::data::graph::SignalGraph::new().with_schema_registry(registry);
+
+    let err = match SignalRuntime::builder(graph)
+        .with_kernel_defaults()
+        .build_validated()
+    {
+        Ok(_) => panic!("unknown schema default source-only policy must fail validation"),
+        Err(err) => err,
+    };
+
+    assert!(err
+        .to_string()
+        .contains("references unknown default source-only policy"));
+}
+
+#[test]
+fn runtime_builder_validation_rejects_unknown_node_source_only_policy_override() {
+    let mut graph =
+        crate::data::graph::SignalGraph::new().with_schema_registry(demo_schema_registry());
+    graph
+        .node()
+        .source_only_policy_name("signal.source-only.unknown")
+        .build();
+
+    let err = match SignalRuntime::builder(graph)
+        .with_kernel_defaults()
+        .build_validated()
+    {
+        Ok(_) => panic!("unknown node source-only policy override must fail validation"),
+        Err(err) => err,
+    };
+
+    assert!(err
+        .to_string()
+        .contains("references unknown source-only policy"));
+}
+
+#[test]
+fn runtime_builder_validation_rejects_unknown_schema_default_deletion_policy() {
+    let registry = SignalSchemaRegistry::from_registrations(vec![SignalSchemaRegistration::new(
+        SignalSchemaDescriptor::new_with_merge_semantics(
+            SignalSchemaId(75),
+            SignalSchemaName::new("signal.demo.unknown-default-deletion"),
+            SignalSchemaVersion::new(1, 0),
+            NodeContract::wildcard(),
+            None,
+            None,
+            None,
+            None,
+            Some(DeletionPolicyName::new("signal.deletion.unknown")),
+        ),
+    )
+    .expect("valid schema registration")])
+    .expect("valid schema registry");
+    let graph = crate::data::graph::SignalGraph::new().with_schema_registry(registry);
+
+    let err = match SignalRuntime::builder(graph)
+        .with_kernel_defaults()
+        .build_validated()
+    {
+        Ok(_) => panic!("unknown schema default deletion policy must fail validation"),
+        Err(err) => err,
+    };
+
+    assert!(err
+        .to_string()
+        .contains("references unknown default deletion policy"));
+}
+
+#[test]
+fn runtime_builder_validation_rejects_unknown_node_deletion_policy_override() {
+    let mut graph =
+        crate::data::graph::SignalGraph::new().with_schema_registry(demo_schema_registry());
+    graph
+        .node()
+        .deletion_policy_name("signal.deletion.unknown")
+        .build();
+
+    let err = match SignalRuntime::builder(graph)
+        .with_kernel_defaults()
+        .build_validated()
+    {
+        Ok(_) => panic!("unknown node deletion policy override must fail validation"),
+        Err(err) => err,
+    };
+
+    assert!(err
+        .to_string()
+        .contains("references unknown deletion policy"));
+}
+
+#[test]
+fn runtime_builder_validation_rejects_unknown_schema_default_aspect_merge_policy() {
+    let registry = SignalSchemaRegistry::from_registrations(vec![SignalSchemaRegistration::new(
+        SignalSchemaDescriptor::new_with_merge_semantics_and_aspects(
+            SignalSchemaId(76),
+            SignalSchemaName::new("signal.demo.unknown-default-aspect-policy"),
+            SignalSchemaVersion::new(1, 0),
+            NodeContract::wildcard(),
+            None,
+            None,
+            None,
+            None,
+            None,
+            vec![AspectMergePolicyBinding::new(
+                Aspect::new(0),
+                AspectMergePolicyName::new("signal.aspect.unknown"),
+            )],
+        ),
+    )
+    .expect("valid schema registration")])
+    .expect("valid schema registry");
+    let graph = crate::data::graph::SignalGraph::new().with_schema_registry(registry);
+
+    let err = match SignalRuntime::builder(graph)
+        .with_kernel_defaults()
+        .build_validated()
+    {
+        Ok(_) => panic!("unknown schema default aspect merge policy must fail validation"),
+        Err(err) => err,
+    };
+
+    assert!(err
+        .to_string()
+        .contains("references unknown aspect merge policy"));
+}
+
+#[test]
+fn runtime_builder_validation_rejects_unknown_node_aspect_merge_policy_override() {
+    let mut graph =
+        crate::data::graph::SignalGraph::new().with_schema_registry(demo_schema_registry());
+    graph
+        .node()
+        .aspect_merge_policy_name(Aspect::new(1), "signal.aspect.unknown")
+        .build();
+
+    let err = match SignalRuntime::builder(graph)
+        .with_kernel_defaults()
+        .build_validated()
+    {
+        Ok(_) => panic!("unknown node aspect merge policy override must fail validation"),
+        Err(err) => err,
+    };
+
+    assert!(err
+        .to_string()
+        .contains("references unknown aspect merge policy"));
+}
+
+#[test]
+fn runtime_builder_validation_rejects_unknown_schema_default_conflict_isolation_policy() {
+    let registry = SignalSchemaRegistry::from_registrations(vec![SignalSchemaRegistration::new(
+        SignalSchemaDescriptor::new_with_merge_semantics_and_isolation(
+            SignalSchemaId(77),
+            SignalSchemaName::new("signal.demo.unknown-default-conflict-isolation"),
+            SignalSchemaVersion::new(1, 0),
+            NodeContract::wildcard(),
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(ConflictIsolationPolicyName::new(
+                "signal.conflict-isolation.unknown",
+            )),
+        ),
+    )
+    .expect("valid schema registration")])
+    .expect("valid schema registry");
+    let graph = crate::data::graph::SignalGraph::new().with_schema_registry(registry);
+
+    let err = match SignalRuntime::builder(graph)
+        .with_kernel_defaults()
+        .build_validated()
+    {
+        Ok(_) => panic!("unknown schema default conflict isolation policy must fail validation"),
+        Err(err) => err,
+    };
+
+    assert!(err
+        .to_string()
+        .contains("references unknown default conflict isolation policy"));
+}
+
+#[test]
+fn runtime_builder_validation_rejects_unknown_node_conflict_isolation_policy_override() {
+    let mut graph =
+        crate::data::graph::SignalGraph::new().with_schema_registry(demo_schema_registry());
+    graph
+        .node()
+        .conflict_isolation_policy_name("signal.conflict-isolation.unknown")
+        .build();
+
+    let err = match SignalRuntime::builder(graph)
+        .with_kernel_defaults()
+        .build_validated()
+    {
+        Ok(_) => panic!("unknown node conflict isolation policy override must fail validation"),
+        Err(err) => err,
+    };
+
+    assert!(err
+        .to_string()
+        .contains("references unknown conflict isolation policy"));
 }
 
 #[test]

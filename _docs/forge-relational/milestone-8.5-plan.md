@@ -1281,3 +1281,98 @@ If we do it incorrectly:
 - long-lived truth artifacts stop being durable contracts
 
 This milestone is where extensibility must earn truth-grade status.
+
+## 19. Implementation Closeout Addendum
+
+This section records the delivered implementation status for Milestone 8.5.
+
+### 19.1 Closeout Decision
+
+Milestone 8.5 is considered complete.
+
+The implementation now satisfies the milestone's load-bearing requirements:
+
+- shared lowered commit-plan handling exists and strategy commits do not bypass
+  the ordinary authority path
+- canonical strategy request, execution, lowering, validation, replay, and
+  merge artifacts exist as proof-bearing runtime surfaces
+- replay re-invokes strategy logic and classifies hostile failure modes
+- strategy-aware merge classification and manual boundaries are runtime-owned
+- real reference strategies ship and participate in end-to-end replay and merge
+  certification
+- named certification suites exist and pass with machine-checkable outputs
+
+### 19.2 Delivered Runtime Shape
+
+The shipped runtime behavior now includes:
+
+- deterministic frozen strategy registration and descriptor digests
+- canonical request/input/output artifacts
+- contained execution behind declared read contracts
+- shared lowered commit-plan execution through the single serialized authority
+  path
+- validation artifacts with stale-basis rejection
+- durable strategy replay and merge descriptors on canonical commit envelopes
+- replay re-execution with explicit mismatch taxonomy
+- strategy-aware merge classification for staged hostile histories
+- Kubernetes-style staged controller certification with non-trivial outcomes
+- accumulated-history recovery parity for earlier staged merge planning digests
+
+### 19.3 Reference Strategies Shipped
+
+The proving strategies are now real runtime-owned implementations, not
+synthetic drafts:
+
+- `IntentReconciliationStrategy`
+- `ReplicaConvergenceStrategy`
+- `EntityReplacementReconciliationStrategy`
+
+These strategies now exercise:
+
+- declared-field partial updates
+- aspect-aware reconciliation
+- persistent-name and lineage-sensitive replacement behavior
+- deterministic replay through the ordinary strategy pipeline
+
+### 19.4 Certification Surfaces Landed
+
+The implementation ships named certification coverage for:
+
+- general strategy-bearing replay, recovery, merge, and durable artifact truth
+- hostile executor-unavailable and executor-failure replay outcomes
+- Kubernetes-style staged intent/convergence history with:
+  - conflict introduction
+  - intent narrowing
+  - re-broadening
+  - controller re-convergence
+  - exact-shared-truth end state
+  - final accumulated-history recovery parity for earlier staged planning
+    digests
+
+### 19.5 Intentional Residual Constraint
+
+One narrow equivalence rule was required to make accumulated-history recovery
+digest parity honest and stable:
+
+- in merge planning digest basis only, `BaseHistoricalWindow` and
+  `BaseResolvedViewLookup` are treated as equivalent when base, source, and
+  target all prove the record visible
+
+This normalization does **not** erase raw planner evidence. The original
+visibility evidence rows remain present in the planning artifact. Only the
+digest-basis copy is normalized for parity where the two forms prove the same
+semantic fact.
+
+### 19.6 Closeout Statement
+
+Milestone 8.5 is closed with the following interpretation:
+
+- extensible commit strategies now have truth-grade status in
+  `forge-relational`
+- the runtime preserves one authority path
+- replay and recovery are no longer trust-based for strategy-bearing commits
+- merge semantics are strategy-aware and durable
+- staged hostile controller history is certified, not merely demonstrated
+
+Any future work in this area should be treated as post-8.5 refinement, domain
+expansion, or new certification breadth, not unfinished milestone plumbing.

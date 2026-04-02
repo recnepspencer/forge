@@ -1,3 +1,3 @@
 mod cad;
 mod chip;
-mod fintech;
+pub(super) mod fintech;

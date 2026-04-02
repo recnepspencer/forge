@@ -94,6 +94,13 @@ export class SignalHistory {
     );
   }
 
+  planMergeBranchesDetailedWithProof(sourceBranchId: number | bigint, targetBranchId: number | bigint) {
+    return this.inner.plan_merge_branches_with_proof(
+      normalizeBranchId(sourceBranchId),
+      normalizeBranchId(targetBranchId),
+    );
+  }
+
   mergeBranches(sourceBranchId: number | bigint, targetBranchId: number | bigint) {
     return summarizeMergeResult(this.mergeBranchesDetailed(sourceBranchId, targetBranchId));
   }
@@ -102,6 +109,31 @@ export class SignalHistory {
     return this.inner.merge_branches(
       normalizeBranchId(sourceBranchId),
       normalizeBranchId(targetBranchId),
+    );
+  }
+
+  mergeBranchesDetailedWithProof(sourceBranchId: number | bigint, targetBranchId: number | bigint) {
+    return this.inner.merge_branches_with_proof(
+      normalizeBranchId(sourceBranchId),
+      normalizeBranchId(targetBranchId),
+    );
+  }
+
+  branchStateProof(branchId: number | bigint) {
+    return this.inner.branch_state_proof(normalizeBranchId(branchId));
+  }
+
+  replayParityProof(expectedBranchId: number | bigint, replayedBranchId: number | bigint) {
+    return this.inner.replay_parity_proof(
+      normalizeBranchId(expectedBranchId),
+      normalizeBranchId(replayedBranchId),
+    );
+  }
+
+  replayArtifactProof(expected: unknown, replayedBranchId: number | bigint) {
+    return this.inner.replay_artifact_proof(
+      expected,
+      normalizeBranchId(replayedBranchId),
     );
   }
 }

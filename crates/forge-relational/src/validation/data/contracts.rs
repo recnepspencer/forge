@@ -50,11 +50,10 @@ impl InvariantPlanContract {
                     .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
                     .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility))
             }
-            MutationIntent::Entity(EntityMutationIntent::Update(_)) => {
+            MutationIntent::Entity(EntityMutationIntent::Update(_))
+            | MutationIntent::Entity(EntityMutationIntent::UpdateFields(_)) => {
                 InvariantGroupSet::of(InvariantGroup::IdentityCoherence)
                     .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance))
-                    .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
-                    .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility))
             }
             MutationIntent::Entity(EntityMutationIntent::Replace(_)) => {
                 InvariantGroupSet::of(InvariantGroup::AdjacencyIntegrity)
@@ -169,5 +168,32 @@ mod tests {
         assert!(contract
             .may_invalidate_groups()
             .contains(crate::validation::data::InvariantGroup::AdjacencyIntegrity));
+    }
+
+    #[test]
+    fn contract_keeps_entity_update_out_of_snapshot_publication_groups() {
+        let plan = MergedCommitPlan {
+            transaction_id: TransactionId(4),
+            merged_intents: vec![MutationIntent::Entity(EntityMutationIntent::Update(
+                crate::transactions::data::UpdateEntityIntent {
+                    entity_id: EntityId::new(PartitionId(1), LocalSlot(0).0, Generation(1).0),
+                    payload: RecordPayload::OpaqueBytes(vec![3]),
+                },
+            ))],
+        };
+
+        let contract = InvariantPlanContract::from_merged_plan(&plan);
+        assert!(contract
+            .may_invalidate_groups()
+            .contains(crate::validation::data::InvariantGroup::IdentityCoherence));
+        assert!(contract
+            .may_invalidate_groups()
+            .contains(crate::validation::data::InvariantGroup::SchemaCompliance));
+        assert!(!contract
+            .may_invalidate_groups()
+            .contains(crate::validation::data::InvariantGroup::VersionVisibility));
+        assert!(!contract
+            .may_invalidate_groups()
+            .contains(crate::validation::data::InvariantGroup::PublicationCoherence));
     }
 }

@@ -22,6 +22,7 @@ mod invalidation_bugs;
 mod lifecycle;
 mod lifetime_limits;
 mod merge_adoption;
+mod merge_certification;
 mod multi_aspect;
 mod node_conditions;
 mod observability;

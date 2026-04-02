@@ -142,7 +142,17 @@ fn evaluate_live_record_sidecar<K: RecordKind>(
     missing_label: &str,
     count_scans: impl Fn(&InvariantExecutionContext<'_>, usize),
 ) -> Option<InvariantViolation> {
-    for partition_id in context.partition_access().partition_ids() {
+    let partition_ids = context.partition_access().partition_ids();
+    let touched_by_partition = partition_ids
+        .iter()
+        .copied()
+        .map(|partition_id| (partition_id, touched_slots(context.partition_access(), partition_id)))
+        .collect::<Vec<_>>();
+    let has_touched_surface = touched_by_partition
+        .iter()
+        .any(|(_, slots)| slots.is_some());
+
+    for (partition_id, touched_slots_for_partition) in touched_by_partition {
         let Some(partition) = context.partition_access().get_partition(partition_id) else {
             return Some(storage_inconsistency_violation(
                 class,
@@ -156,7 +166,7 @@ fn evaluate_live_record_sidecar<K: RecordKind>(
                 }),
             ));
         };
-        if let Some(slots) = touched_slots(context.partition_access(), partition_id) {
+        if let Some(slots) = touched_slots_for_partition {
             count_scans(context, slots.len());
             for slot in slots {
                 if let Some(violation) = sidecar_violation_for_slot(
@@ -169,7 +179,7 @@ fn evaluate_live_record_sidecar<K: RecordKind>(
                     return Some(violation);
                 }
             }
-        } else {
+        } else if !has_touched_surface {
             let arena = K::arena(partition);
             count_scans(context, arena.slot_count());
             for slot in 0..arena.slot_count() {

@@ -116,6 +116,40 @@ fn transaction_intent_is_the_shared_mutation_intent_type() {
 }
 
 #[test]
+fn update_entity_fields_rejects_undeclared_payload_keys() {
+    let mut runtime =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let entity = create_entity(&mut runtime, "field-guard");
+
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(WorkerIntentBatch::new("update-fields-undeclared").push(
+        MutationIntent::Entity(
+            crate::transactions::data::EntityMutationIntent::UpdateFields(
+                crate::transactions::data::UpdateEntityFieldsIntent {
+                    entity_id: entity,
+                    fields: std::collections::BTreeMap::from([(
+                        "undeclared".to_string(),
+                        json!("nope"),
+                    )]),
+                },
+            ),
+        ),
+    ));
+
+    let error = txn.commit().unwrap_err();
+    match error {
+        crate::transactions::data::TransactionCommitError::Conflict { error, .. } => {
+            assert!(matches!(
+                error.class,
+                crate::transactions::data::ConflictClass::KindSchemaMismatch { .. }
+            ));
+            assert!(error.detail.contains("not a declared scalar entity aspect"));
+        }
+        other => panic!("expected conflict error, got {other:?}"),
+    }
+}
+
+#[test]
 fn commit_log_records_structural_summary_and_phase_progress() {
     let mut runtime = runtime_with_test_schema();
     let outcome = create_entity_outcome(&mut runtime, "logged");

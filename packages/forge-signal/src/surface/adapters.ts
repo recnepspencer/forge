@@ -19,6 +19,10 @@ export class SignalAdapters {
     return decodeRuntimeEnvelope(this.inner.export_runtime_envelope());
   }
 
+  runtimeProofReport() {
+    return this.inner.runtime_proof_report();
+  }
+
   replaceRuntimeEnvelope(envelope: any) {
     return this.inner.replace_runtime_envelope(normalizeRuntimeEnvelope(envelope));
   }

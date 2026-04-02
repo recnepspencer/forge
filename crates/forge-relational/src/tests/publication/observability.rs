@@ -1,4 +1,4 @@
-use crate::facade::diagnostics::RelationalDiagnosticsProfile;
+use crate::facade::diagnostics::{DiagnosticsDeliveryClass, RelationalDiagnosticsProfile};
 use crate::facade::runtime::HarnessAuditMode;
 use crate::schema::data::{
     EndpointKindContractDeclaration, RelationIntegrityDeclarations, SymmetryContractDeclaration,
@@ -639,6 +639,73 @@ fn aspect_relevant_diagnostics(
             )
         })
         .collect()
+}
+
+#[test]
+fn geometry_operational_hot_path_policy_suppresses_detailed_traces() {
+    let mut runtime = RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::GeometryKernel)
+        .schema_registry(test_schema_registry())
+        .diagnostics(RelationalDiagnosticsProfile::geometry_operational_hot_path())
+        .build();
+
+    let _ = create_entity_outcome(&mut runtime, "geometry-hot-policy");
+    let diagnostics = runtime.publication_access().diagnostics();
+
+    assert!(diagnostics.artifacts().iter().any(|artifact| {
+        artifact.scope == DiagnosticsScope::Transaction
+            && artifact.kind == DiagnosticsArtifactKind::MinimalSummary
+    }));
+    assert!(!diagnostics.artifacts().iter().any(|artifact| {
+        artifact.kind == DiagnosticsArtifactKind::DetailedTrace
+    }));
+}
+
+#[test]
+fn chip_rich_certification_policy_keeps_detailed_traces_available() {
+    let mut runtime = RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::ChipSimulation)
+        .schema_registry(test_schema_registry())
+        .diagnostics(RelationalDiagnosticsProfile::chip_rich_certification())
+        .build();
+
+    let _ = create_entity_outcome(&mut runtime, "chip-rich-policy");
+    let diagnostics = runtime.publication_access().diagnostics();
+
+    assert!(diagnostics.artifacts().iter().any(|artifact| {
+        artifact.scope == DiagnosticsScope::Transaction
+            && artifact.kind == DiagnosticsArtifactKind::MinimalSummary
+    }));
+    assert!(diagnostics.artifacts().iter().any(|artifact| {
+        artifact.kind == DiagnosticsArtifactKind::DetailedTrace
+    }));
+}
+
+#[test]
+fn geometry_operational_hot_path_policy_defers_replay_reconstructable_artifacts() {
+    let profile = RelationalDiagnosticsProfile::geometry_operational_hot_path();
+    let comparison_policy = profile.artifact_policy(
+        DiagnosticsScope::Replay,
+        DiagnosticsArtifactKind::Comparison,
+    );
+
+    assert_eq!(
+        comparison_policy.delivery_class,
+        DiagnosticsDeliveryClass::ReconstructableFromReplay
+    );
+    assert!(!comparison_policy.enabled);
+    assert_eq!(comparison_policy.max_entries, 0);
+
+    let summary_policy = profile.artifact_policy(
+        DiagnosticsScope::Transaction,
+        DiagnosticsArtifactKind::MinimalSummary,
+    );
+    assert_eq!(
+        summary_policy.delivery_class,
+        DiagnosticsDeliveryClass::MustBeHot
+    );
+    assert!(summary_policy.enabled);
+    assert!(summary_policy.max_entries > 0);
 }
 
 #[test]

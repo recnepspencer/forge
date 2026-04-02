@@ -7,7 +7,7 @@ use crate::durability::data::{
     RecoveryVerificationOutcome,
 };
 use crate::durability::log::local_store::{
-    load_store_from_disk, read_json, DurableCheckpointFile, DurableSegmentFile,
+    load_store_from_disk, read_json, read_segment_entries, DurableCheckpointFile,
 };
 use crate::history::data::BranchHead;
 use crate::logic::runtime::RelationalRuntime;
@@ -107,10 +107,10 @@ impl<'runtime> DurabilityAccess<'runtime> {
             {
                 continue;
             }
-            match read_json::<DurableSegmentFile>(&manifest.path) {
-                Ok(file) => {
+            match read_segment_entries(&manifest.path) {
+                Ok(entries) => {
                     verified_segment_ids.push(manifest.segment_id);
-                    tail_log.extend(file.entries.into_iter().filter(|entry| {
+                    tail_log.extend(entries.into_iter().filter(|entry| {
                         checkpoint_commit.is_none_or(|covered| entry.commit.commit_id > covered)
                     }));
                 }

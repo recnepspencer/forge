@@ -6,6 +6,14 @@ use std::sync::{Arc, Mutex};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
+use forge_signal::facade::adapters::{
+    branch_state_proof_report, merge_plan_proof_report, merge_result_proof_report,
+    replay_artifact_proof_report, replay_parity_proof_report, runtime_proof_report,
+    BranchStateDenseGridProofBasis, BranchStateProofBasis, BranchStateProofReport,
+    MergePlanProofReport, MergeResultProofReport, ReplayArtifactProofInput,
+    ReplayArtifactProofReport, ReplayParityProofReport, RuntimeProofReport,
+    BRANCH_STATE_PROOF_BASIS_VERSION,
+};
 use forge_signal::facade::adapters::{ArtifactMergeAction, BranchMergePlan, BranchMergeResult};
 use forge_signal::facade::history::RuntimeSnapshot;
 use forge_signal::facade::history::{RuntimeBranch, RuntimeBranchId};
@@ -23,7 +31,9 @@ use crate::recipe::model::{
     KeyedRecipeFamilySpec, KeyedSetValue, KeyedSourceFamilySpec, RecipeFamilyReadSpec, RecipeSpec,
     SourceSpec, TransactionOp,
 };
-use crate::runtime::adapters::{RuntimeDefinitionEnvelope, RuntimeEnvelope};
+use crate::runtime::adapters::{
+    MergePlanProofEnvelope, MergeResultProofEnvelope, RuntimeDefinitionEnvelope, RuntimeEnvelope,
+};
 use crate::runtime::policy::RuntimePolicySpec;
 use crate::runtime::specialist::VersionSummary;
 use crate::runtime::summaries::{
@@ -804,6 +814,61 @@ impl RuntimeCore {
             .into())
     }
 
+    pub fn diagnostics_summary_now(
+        &self,
+    ) -> Result<forge_signal::facade::diagnostics::GraphSummary, ForgeSignalJsError> {
+        Ok(self.runtime.diagnostics().summary_now())
+    }
+
+    pub fn execution_history_now(
+        &self,
+    ) -> Result<forge_signal::facade::diagnostics::ExecutionHistorySummary, ForgeSignalJsError> {
+        Ok(self.runtime.diagnostics().history_now())
+    }
+
+    pub fn latest_flow(
+        &self,
+    ) -> Result<Option<forge_signal::diagnostics::FlowSummary>, ForgeSignalJsError> {
+        Ok(self.runtime.diagnostics().latest_flow().cloned())
+    }
+
+    pub fn latest_failure(
+        &self,
+    ) -> Result<Option<forge_signal::diagnostics::FailureSummary>, ForgeSignalJsError> {
+        Ok(self.runtime.diagnostics().latest_failure().cloned())
+    }
+
+    pub fn latest_rollback(
+        &self,
+    ) -> Result<Option<forge_signal::diagnostics::RollbackDiagnostic>, ForgeSignalJsError> {
+        Ok(self.runtime.diagnostics().latest_rollback().cloned())
+    }
+
+    pub fn latest_frontier_execution(
+        &self,
+    ) -> Result<Option<forge_signal::facade::adapters::FrontierExecutionSummary>, ForgeSignalJsError>
+    {
+        Ok(self.runtime.diagnostics().latest_frontier_execution().cloned())
+    }
+
+    pub fn latest_invalidation_trace_records(
+        &self,
+    ) -> Result<Vec<forge_signal::facade::adapters::InvalidationTraceRecord>, ForgeSignalJsError>
+    {
+        Ok(self
+            .runtime
+            .diagnostics()
+            .latest_invalidation_trace_records()
+            .to_vec())
+    }
+
+    pub fn recent_history(
+        &self,
+    ) -> Result<Vec<forge_signal::facade::diagnostics::ExecutionHistorySummary>, ForgeSignalJsError>
+    {
+        Ok(self.runtime.diagnostics().recent_history().iter().cloned().collect())
+    }
+
     pub fn replay_for_id(&mut self, id: &str) -> Result<ReplaySummary, ForgeSignalJsError> {
         let node = self.node_for_id(id)?;
         let replay = {
@@ -1065,6 +1130,16 @@ impl RuntimeCore {
             })
     }
 
+    pub fn merge_branches_with_proof(
+        &mut self,
+        source_branch_id: u64,
+        target_branch_id: u64,
+    ) -> Result<MergeResultProofEnvelope, ForgeSignalJsError> {
+        let result = self.merge_branches(source_branch_id, target_branch_id)?;
+        let proof = self.merge_result_proof_report(&result)?;
+        Ok(MergeResultProofEnvelope { result, proof })
+    }
+
     pub fn plan_merge_branches(
         &mut self,
         source_branch_id: u64,
@@ -1089,6 +1164,16 @@ impl RuntimeCore {
             .plan()
             .map(|planned| planned.plan().clone())
             .map_err(ForgeSignalJsError::from)
+    }
+
+    pub fn plan_merge_branches_with_proof(
+        &mut self,
+        source_branch_id: u64,
+        target_branch_id: u64,
+    ) -> Result<MergePlanProofEnvelope, ForgeSignalJsError> {
+        let plan = self.plan_merge_branches(source_branch_id, target_branch_id)?;
+        let proof = self.merge_plan_proof_report(&plan)?;
+        Ok(MergePlanProofEnvelope { plan, proof })
     }
 
     pub fn graph_summary(
@@ -1182,6 +1267,101 @@ impl RuntimeCore {
             definitions: self.export_definitions()?,
             snapshot: self.snapshot()?,
         })
+    }
+
+    pub fn runtime_proof_report(&self) -> RuntimeProofReport {
+        runtime_proof_report(
+            self.runtime.schema_registry().registry_digest(),
+            self.runtime.merge_strategy_registry().registry_digest(),
+            self.runtime
+                .merge_base_strategy_registry()
+                .registry_digest(),
+            self.runtime
+                .aspect_merge_policy_registry()
+                .registry_digest(),
+            self.runtime.conflict_isolation_registry().registry_digest(),
+            self.runtime.conflict_policy_registry().registry_digest(),
+            self.runtime.identity_matcher_registry().registry_digest(),
+            self.runtime.source_only_policy_registry().registry_digest(),
+            self.runtime.deletion_policy_registry().registry_digest(),
+        )
+    }
+
+    pub fn branch_state_proof(
+        &self,
+        branch_id: u64,
+    ) -> Result<BranchStateProofReport, ForgeSignalJsError> {
+        let branch = self
+            .runtime
+            .branch_handle(RuntimeBranchId(branch_id))
+            .ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!("unknown branch `{branch_id}`"))
+            })?;
+        let state = self.state_for_branch(branch_id);
+        Ok(branch_state_proof_report(
+            branch_id,
+            branch.name,
+            branch.head_snapshot_id.map(|id| id.0),
+            BRANCH_STATE_PROOF_BASIS_VERSION,
+            &build_branch_state_proof_basis(&state),
+        ))
+    }
+
+    pub fn replay_parity_proof(
+        &self,
+        expected_branch_id: u64,
+        replayed_branch_id: u64,
+    ) -> Result<ReplayParityProofReport, ForgeSignalJsError> {
+        let expected = self.branch_state_proof(expected_branch_id)?;
+        let replayed = self.branch_state_proof(replayed_branch_id)?;
+        Ok(replay_parity_proof_report(
+            expected.branch_id,
+            expected.branch_name,
+            expected.snapshot_id,
+            expected.state_digest,
+            replayed.branch_id,
+            replayed.branch_name,
+            replayed.snapshot_id,
+            replayed.state_digest,
+        ))
+    }
+
+    pub fn replay_artifact_proof(
+        &self,
+        expected: ReplayArtifactProofInput,
+        replayed_branch_id: u64,
+    ) -> Result<ReplayArtifactProofReport, ForgeSignalJsError> {
+        let replayed_state = self.branch_state_proof(replayed_branch_id)?;
+        let runtime_proof = self.runtime_proof_report();
+        Ok(replay_artifact_proof_report(
+            expected,
+            ReplayArtifactProofInput {
+                proof_schema_version: runtime_proof.proof_schema_version.clone(),
+                registry_bundle_digest: Some(runtime_proof.registry_bundle_digest),
+                lowered_strategy_bundle_digest: None,
+                merge_plan_digest: None,
+                merge_result_digest: None,
+                lineage_digest: None,
+                branch_state_digest: replayed_state.state_digest,
+            },
+        ))
+    }
+
+    fn merge_plan_proof_report(
+        &self,
+        plan: &BranchMergePlan,
+    ) -> Result<MergePlanProofReport, ForgeSignalJsError> {
+        Ok(merge_plan_proof_report(
+            plan,
+            &self.runtime_proof_report().registry_bundle_digest,
+        ))
+    }
+
+    fn merge_result_proof_report(
+        &self,
+        result: &BranchMergeResult,
+    ) -> Result<MergeResultProofReport, ForgeSignalJsError> {
+        Ok(merge_result_proof_report(result))
     }
 
     pub fn replace_runtime_envelope(
@@ -1357,6 +1537,37 @@ impl RuntimeCore {
                 .cloned()
                 .unwrap_or_default()
         }
+    }
+}
+
+fn build_branch_state_proof_basis(
+    state: &BranchRuntimeState,
+) -> BranchStateProofBasis<RuntimeStoreSnapshot> {
+    let mut catalog_ids = state.metadata.catalog.keys().cloned().collect::<Vec<_>>();
+    catalog_ids.sort();
+
+    let mut dense_grids = state
+        .metadata
+        .dense_grids
+        .iter()
+        .map(|(family_id, grid)| BranchStateDenseGridProofBasis {
+            family_id: family_id.clone(),
+            width: grid.width,
+            height: grid.height,
+            key_count: grid.key_to_index.len(),
+            ids: grid.ids.clone(),
+        })
+        .collect::<Vec<_>>();
+    dense_grids.sort_by(|left, right| left.family_id.cmp(&right.family_id));
+    for grid in &mut dense_grids {
+        grid.ids.sort();
+    }
+
+    BranchStateProofBasis {
+        proof_schema_version: BRANCH_STATE_PROOF_BASIS_VERSION.to_owned(),
+        catalog_ids,
+        dense_grids,
+        store: state.store.clone(),
     }
 }
 

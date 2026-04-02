@@ -69,6 +69,7 @@ impl RelationalRuntime {
             &execution_summary,
             &prepared.bound_executable_plan().diagnostics_plan,
             commit.outcome.commit.commit_id,
+            self.config.diagnostics.profile.max_entries_per_artifact,
         );
         self.publication_authority()
             .push_diagnostic_artifact(execution_artifact.clone());

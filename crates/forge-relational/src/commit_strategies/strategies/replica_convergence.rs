@@ -13,9 +13,9 @@ use crate::commit_strategies::data::{
     StrategyReadScopeClass, StrategyRequestCanonicalization, StrategyTraversalBasis,
 };
 use crate::identity::data::EntityId;
-use crate::payloads::data::{canonicalize_json, RecordPayload};
+use crate::schema::data::{AspectBinding, AspectComparator};
 use crate::transactions::data::{
-    EntityMutationIntent, MutationIntent, UpdateEntityIntent, WorkerIntentBatch,
+    EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -109,32 +109,53 @@ impl ReplicaConvergenceStrategy {
         ))
     }
 
-    fn reconcile_payload(
-        existing: &RecordPayload,
+    fn reconcile_fields(
+        observation: &StrategyObservationContext<'_>,
+        existing: &crate::storage::data::EntityReadRecord,
         desired_replicas: u64,
-    ) -> Result<RecordPayload, StrategyExecutorFailure> {
-        let existing_json = existing.as_json().ok_or_else(|| {
-            StrategyExecutorFailure::new(
-                StrategyExecutorFailureClass::DomainRejection,
-                "replica convergence requires a structured-json entity payload",
-            )
-        })?;
-        let mut object = match existing_json {
-            Value::Object(map) => map.clone(),
-            _ => {
-                return Err(StrategyExecutorFailure::new(
+    ) -> Result<std::collections::BTreeMap<String, Value>, StrategyExecutorFailure> {
+        let registration = observation
+            .schema_registry()
+            .entity_registration(existing.kind.kind_id)
+            .map_err(|error| {
+                StrategyExecutorFailure::new(
                     StrategyExecutorFailureClass::DomainRejection,
-                    "replica convergence requires the entity payload to be a JSON object",
-                ));
-            }
-        };
-        object.insert(
+                    format!(
+                        "entity kind registration missing during replica convergence: {error:?}"
+                    ),
+                )
+            })?;
+        let replicas_declared = registration
+            .aspect_declarations
+            .aspects
+            .iter()
+            .any(|aspect| {
+                matches!(
+                    (&aspect.binding, aspect.comparator),
+                    (
+                        AspectBinding::EntityPayloadField { field },
+                        AspectComparator::JsonScalarEquality,
+                    ) if matches!(
+                        field,
+                        crate::symbols::data::InternedString::Raw(raw) if raw == "replicas"
+                    )
+                )
+            });
+        if !replicas_declared {
+            return Err(StrategyExecutorFailure::new(
+                StrategyExecutorFailureClass::DomainRejection,
+                format!(
+                    "field 'replicas' is not a declared scalar entity aspect on kind {}",
+                    existing.kind.kind_name
+                ),
+            ));
+        }
+        let mut fields = std::collections::BTreeMap::new();
+        fields.insert(
             "replicas".to_string(),
             Value::Number(serde_json::Number::from(desired_replicas)),
         );
-        Ok(RecordPayload::StructuredJson(canonicalize_json(
-            &Value::Object(object),
-        )))
+        Ok(fields)
     }
 }
 
@@ -157,20 +178,33 @@ impl CommitStrategyExecutor for ReplicaConvergenceStrategy {
                     ),
                 )
             })?;
-        let desired_payload = Self::reconcile_payload(&existing.payload, input.desired_replicas)?;
+        let desired_fields =
+            Self::reconcile_fields(observation, &existing, input.desired_replicas)?;
+        let desired_replicas_value = desired_fields
+            .get("replicas")
+            .cloned()
+            .expect("replicas field");
+        let existing_replicas = existing
+            .payload
+            .as_json()
+            .and_then(|value| value.get("replicas"))
+            .cloned();
 
-        let (action, mutation_program) = if existing.payload == desired_payload {
+        let (action, mutation_program) = if existing_replicas.as_ref()
+            == Some(&desired_replicas_value)
+        {
             (
                 ReplicaConvergenceAction::NoChange,
                 StrategyMutationProgram::new(Vec::<WorkerIntentBatch>::new()),
             )
         } else {
-            let batch = WorkerIntentBatch::new("replica-convergence-update").push(
-                MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-                    entity_id: input.entity_id,
-                    payload: desired_payload,
-                })),
-            );
+            let batch =
+                WorkerIntentBatch::new("replica-convergence-update").push(MutationIntent::Entity(
+                    EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
+                        entity_id: input.entity_id,
+                        fields: desired_fields,
+                    }),
+                ));
             (
                 ReplicaConvergenceAction::UpdateReplicas,
                 StrategyMutationProgram::new(vec![batch]),
@@ -196,8 +230,20 @@ mod tests {
         RawStrategyCommitRequest, StrategyCallerProvenance, StrategyRequestOrigin,
     };
     use crate::logic::builder::RelationalRuntimeBuilder;
-    use crate::tests::support::test_schema_registry;
+    use crate::tests::support::{entity_payload_aspect, lifecycle_aspect, AspectSchemaFixture};
     use serde_json::Value;
+
+    fn strategy_registry() -> crate::schema::data::RelationalSchemaRegistry {
+        AspectSchemaFixture {
+            entity_aspects: vec![
+                entity_payload_aspect("name", "name"),
+                entity_payload_aspect("replicas", "replicas"),
+                lifecycle_aspect(),
+            ],
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry()
+    }
 
     #[test]
     fn replica_convergence_strategy_updates_replicas_and_preserves_other_fields() {
@@ -205,7 +251,7 @@ mod tests {
             crate::commit_strategies::data::CommitStrategyId(601),
         );
         let mut runtime = RelationalRuntimeBuilder::new()
-            .schema_registry(test_schema_registry())
+            .schema_registry(strategy_registry())
             .commit_strategy(
                 crate::commit_strategies::data::CommitStrategyRegistration::new(descriptor.clone())
                     .expect("strategy registration"),
@@ -243,19 +289,22 @@ mod tests {
         let intent = &execution.mutation_program().worker_batches()[0].intents[0];
         let updated_payload = match intent {
             crate::transactions::data::MutationIntent::Entity(
-                crate::transactions::data::EntityMutationIntent::Update(intent),
-            ) => intent.payload.as_json().expect("json payload").clone(),
-            other => panic!("expected update entity intent, got {other:?}"),
+                crate::transactions::data::EntityMutationIntent::UpdateFields(intent),
+            ) => serde_json::Value::Object(
+                intent
+                    .fields
+                    .iter()
+                    .map(|(key, value)| (key.clone(), value.clone()))
+                    .collect(),
+            ),
+            other => panic!("expected update entity fields intent, got {other:?}"),
         };
 
         assert_eq!(output.action, ReplicaConvergenceAction::UpdateReplicas);
         assert_eq!(
-            updated_payload.get("name"),
-            Some(&Value::String("before".to_string()))
-        );
-        assert_eq!(
             updated_payload.get("replicas"),
             Some(&Value::Number(serde_json::Number::from(5_u64)))
         );
+        assert_eq!(updated_payload.as_object().expect("object").len(), 1);
     }
 }

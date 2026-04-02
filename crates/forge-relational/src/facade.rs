@@ -6,9 +6,10 @@ pub mod config {
     pub use crate::config::data::{
         AdjacencyBackend, AdjacencyPolicy, CascadeDeletePolicy, CheckpointPolicy,
         CommitStrategiesConfig, CompiledLanePolicy, ConfigProvenance, ConfigProvenanceEntry,
-        ConfigValueSource, CrossContextPolicy, DurabilityPolicy, DurableLogPolicy,
-        DurableLogRetentionMode, MvccConfig, PatchSurfacePolicy, PublicationConfig,
-        RelationalConfigOverride, RelationalRuntimeProfile, RetentionBackend, RetentionPolicy,
+        ConfigValueSource, CrossContextPolicy, DiagnosticsBoundary, DurabilityPolicy,
+        DurableLogPolicy, DurableLogRetentionMode, MvccConfig, PatchSurfacePolicy,
+        PublicationConfig, RelationalConfigOverride, RelationalRuntimeProfile,
+        RetentionBackend, RetentionPolicy, RuntimeExecutionLane, RuntimeProfileBoundaryPolicy,
         SnapshotReleasePolicy, StorageLayoutConfig, VisibilityCachePolicy,
     };
 }
@@ -25,29 +26,35 @@ pub mod commit_strategies {
         StrategyCommitArtifactBundle, StrategyCommitRequestError, StrategyExecutionDraft,
         StrategyExecutionResult, StrategyExecutionSummary, StrategyExecutorFailure,
         StrategyExecutorFailureClass, StrategyInputSchemaName, StrategyInputSchemaVersion,
-        StrategyIntentName, StrategyLoweringError, StrategyLoweringProvenance,
-        StrategyLoweringSummary, StrategyMergeConflictClass, StrategyMergeDescriptor,
-        StrategyMutationProgram, StrategyMutationProgramDigest, StrategyObservationContext,
-        StrategyOutputSchemaName, StrategyPacketContract, StrategyReadContract,
-        StrategyReadCostClass, StrategyReadLocalityClass, StrategyReadScopeClass,
-        StrategyReplayDescriptor, StrategyRequestCanonicalization, StrategyRequestOrigin,
-        StrategyTraversalBasis, StrategyVisibilityReadView, ValidatedStrategyCommitPlan,
+        StrategyIntentName, StrategyIntentScopeDigest, StrategyLoweringError,
+        StrategyLoweringProvenance, StrategyLoweringSummary, StrategyMergeConflictClass,
+        StrategyMergeDescriptor, StrategyMergeSemantics, StrategyMutationProgram,
+        StrategyMutationProgramDigest, StrategyObservationContext, StrategyOutputSchemaName,
+        StrategyPacketContract, StrategyReadContract, StrategyReadCostClass,
+        StrategyReadLocalityClass, StrategyReadScopeClass, StrategyReplayDescriptor,
+        StrategyRequestCanonicalization, StrategyRequestOrigin, StrategyTraversalBasis,
+        StrategyVisibilityReadView, ValidatedStrategyCommitPlan,
     };
     pub use crate::commit_strategies::facade::{
         CommitStrategiesAuthorityFacade, CommitStrategiesFacade,
     };
     pub use crate::commit_strategies::strategies::{
-        IntentReconciliationAction, IntentReconciliationInput, IntentReconciliationOutput,
-        IntentReconciliationStrategy, ReplicaConvergenceAction, ReplicaConvergenceInput,
-        ReplicaConvergenceOutput, ReplicaConvergenceStrategy,
+        AspectFieldReconciliationInput, AspectFieldReconciliationOutput,
+        AspectFieldReconciliationStrategy, EntityReplacementReconciliationAction,
+        EntityReplacementReconciliationInput, EntityReplacementReconciliationOutput,
+        EntityReplacementReconciliationStrategy, IntentReconciliationAction,
+        IntentReconciliationInput, IntentReconciliationOutput, IntentReconciliationStrategy,
+        ReplicaConvergenceAction, ReplicaConvergenceInput, ReplicaConvergenceOutput,
+        ReplicaConvergenceStrategy,
     };
     pub use crate::commit_strategies::{FrozenCommitStrategyRegistry, StrategyExecutionError};
 }
 
 pub mod diagnostics {
     pub use crate::diagnostics::data::{
-        DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
-        RelationalDiagnosticArtifact, RelationalDiagnosticsEntry, RelationalDiagnosticsProfile,
+        DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsDeliveryClass,
+        DiagnosticsScope, RelationalArtifactPolicy, RelationalDiagnosticArtifact,
+        RelationalDiagnosticsEntry, RelationalDiagnosticsProfile,
     };
     pub use crate::diagnostics::facade::RelationalDiagnosticsFacade;
 }

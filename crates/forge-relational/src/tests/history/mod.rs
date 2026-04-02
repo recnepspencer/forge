@@ -8,5 +8,7 @@ mod milestone_7d_phase_a;
 mod milestone_7d_phase_b;
 mod milestone_7d_phase_c;
 mod milestone_7d_phase_d;
+mod milestone_8_5;
+mod milestone_8_5_kubernetes;
 mod queries;
 mod replay;

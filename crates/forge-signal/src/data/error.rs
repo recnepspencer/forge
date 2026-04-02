@@ -3,7 +3,7 @@ use std::fmt;
 use crate::data::graph::ScratchLeaseKind;
 use crate::data::handle::NodeId;
 use crate::data::node::ContextRequirement;
-use crate::logic::transaction::{BranchMergeConflictEvidence, BranchMergeFailureKind};
+use crate::logic::transaction::{BranchMergeFailureEvidence, BranchMergeFailureKind};
 use crate::state::SignalBranchId;
 
 /// Library-native error type for signal graph operations.
@@ -44,7 +44,7 @@ pub enum SignalError {
     BranchMergeFailed {
         kind: BranchMergeFailureKind,
         message: String,
-        evidence: Option<BranchMergeConflictEvidence>,
+        evidence: Option<BranchMergeFailureEvidence>,
     },
     InvalidInput {
         message: String,
@@ -122,7 +122,7 @@ impl SignalError {
     pub fn branch_merge_failed_with_evidence(
         kind: BranchMergeFailureKind,
         message: impl Into<String>,
-        evidence: BranchMergeConflictEvidence,
+        evidence: BranchMergeFailureEvidence,
     ) -> Self {
         Self::BranchMergeFailed {
             kind,
@@ -195,12 +195,26 @@ impl fmt::Display for SignalError {
                 evidence,
             } => {
                 if let Some(evidence) = evidence {
-                    write!(
-                        f,
-                        "branch merge failed ({kind:?}): {message} [{} conflict record(s), primary={:?}]",
-                        evidence.records.len(),
-                        evidence.summary.primary_conflict_kind
-                    )
+                    match evidence {
+                        BranchMergeFailureEvidence::Conflict(evidence) => write!(
+                            f,
+                            "branch merge failed ({kind:?}): {message} [{} conflict record(s), primary={:?}]",
+                            evidence.records.len(),
+                            evidence.summary.primary_conflict_kind
+                        ),
+                        BranchMergeFailureEvidence::Identity(evidence) => write!(
+                            f,
+                            "branch merge failed ({kind:?}): {message} [identity source={}, candidates={}]",
+                            evidence.source_node,
+                            evidence.candidate_target_nodes.len()
+                        ),
+                        BranchMergeFailureEvidence::Deletion(evidence) => write!(
+                            f,
+                            "branch merge failed ({kind:?}): {message} [deletion policy={}, target_only={}]",
+                            evidence.deletion_policy_name.as_str(),
+                            evidence.target_only_nodes.len()
+                        ),
+                    }
                 } else {
                     write!(f, "branch merge failed ({kind:?}): {message}")
                 }

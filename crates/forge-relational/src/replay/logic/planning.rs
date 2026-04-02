@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use crate::capabilities::{CommitEnvelopeSource, DurabilityRead};
 use crate::durability::data::RecoveryPlan;
-use crate::history::data::CommitId;
+use crate::history::data::{BranchId, CommitId};
 use crate::logic::runtime::RelationalRuntime;
 use crate::replay::data::{
     CanonicalCommitEnvelope, ReplayFailureClass, ReplayObservableSurface, ReplayVerificationLayer,
@@ -17,16 +17,20 @@ pub(super) fn load_replay_envelope(
 }
 
 pub(super) fn promised_replay_surfaces(
+    runtime: &RelationalRuntime,
     original: &CanonicalCommitEnvelope,
+    original_closure: &[CommitId],
     recovered: Option<&CanonicalCommitEnvelope>,
 ) -> Vec<ReplayObservableSurface> {
     let mut surfaces = vec![
-        ReplayObservableSurface::Snapshot,
         ReplayObservableSurface::Patch,
         ReplayObservableSurface::Diagnostics,
         ReplayObservableSurface::History,
         ReplayObservableSurface::BranchHead,
     ];
+    if snapshot_surface_is_authoritative(runtime, original, original_closure) {
+        surfaces.push(ReplayObservableSurface::Snapshot);
+    }
     if original.has_lineage_authority()
         || recovered.is_some_and(|envelope| envelope.has_lineage_authority())
     {
@@ -43,6 +47,21 @@ pub(super) fn promised_replay_surfaces(
         surfaces.push(ReplayObservableSurface::DerivedIndexes);
     }
     surfaces
+}
+
+fn snapshot_surface_is_authoritative(
+    runtime: &RelationalRuntime,
+    envelope: &CanonicalCommitEnvelope,
+    closure: &[CommitId],
+) -> bool {
+    if envelope.branch_context != BranchId("main".to_string()) {
+        return false;
+    }
+    let closure_ids = closure.iter().copied().collect::<BTreeSet<_>>();
+    !runtime.history.commit_envelopes.values().any(|candidate| {
+        candidate.commit.version_id <= envelope.commit.version_id
+            && !closure_ids.contains(&candidate.commit.commit_id)
+    })
 }
 
 pub(super) fn replay_commit_closure_by_commit_id_order(

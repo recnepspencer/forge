@@ -47,25 +47,29 @@ pub(crate) fn merge_execution_success_artifact(
     summary: &MergeExecutionSummary,
     plan: &MergeExecutionDiagnosticsPlan,
     commit_id: crate::history::data::CommitId,
+    max_entries: usize,
 ) -> RelationalDiagnosticArtifact {
-    let mut entries = Vec::with_capacity(plan.executed_records.len() + 1);
-    entries.push(RelationalDiagnosticsEntry {
-        code: DiagnosticCode::MergeExecutionPublished,
-        message: "prepared merge execution artifact records executed rows only".to_string(),
-        fields: json!({
-            "commit_id": commit_id.0,
-            "target_branch": summary.request.target_branch.0.clone(),
-            "source_branch": summary.request.source_branch.0.clone(),
-            "execution_digest": summary.execution_digest,
-            "diagnostics_digest": plan.digest,
-            "executed_record_count": plan.executed_records.len(),
-        }),
-    });
-    entries.extend(
-        plan.executed_records
-            .iter()
-            .map(executed_record_diagnostics_entry),
-    );
+    let mut entries = Vec::with_capacity(max_entries.min(plan.executed_records.len() + 1));
+    if max_entries > 0 {
+        entries.push(RelationalDiagnosticsEntry {
+            code: DiagnosticCode::MergeExecutionPublished,
+            message: "prepared merge execution artifact records executed rows only".to_string(),
+            fields: json!({
+                "commit_id": commit_id.0,
+                "target_branch": summary.request.target_branch.0.clone(),
+                "source_branch": summary.request.source_branch.0.clone(),
+                "execution_digest": summary.execution_digest,
+                "diagnostics_digest": plan.digest,
+                "executed_record_count": plan.executed_records.len(),
+            }),
+        });
+        entries.extend(
+            plan.executed_records
+                .iter()
+                .take(max_entries.saturating_sub(1))
+                .map(executed_record_diagnostics_entry),
+        );
+    }
     RelationalDiagnosticArtifact {
         scope: DiagnosticsScope::History,
         kind: DiagnosticsArtifactKind::DetailedTrace,

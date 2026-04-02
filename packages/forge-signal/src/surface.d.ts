@@ -1,12 +1,25 @@
 import type {
+  BranchStateProofReport,
   BranchMergePlan,
   BranchMergeResult,
+  DiagnosticsExecutionHistorySummary,
+  DiagnosticsFailureSummary,
+  DiagnosticsFlowSummary,
+  DiagnosticsFrontierExecutionSummary,
+  DiagnosticsGraphSummary,
+  DiagnosticsInvalidationTraceRecord,
+  DiagnosticsRollbackDiagnostic,
   HealthSummary,
   KeyedRecipeFamilySpec,
   KeyedSourceFamilySpec,
   LineageSummary,
   MergePlanReport,
+  MergePlanProofEnvelope,
+  ReplayArtifactProofInput,
+  ReplayArtifactProofReport,
+  ReplayParityProofReport,
   MergeResultReport,
+  MergeResultProofEnvelope,
   ReplaySummary,
   RecipeSpec,
   RunSummary,
@@ -30,6 +43,7 @@ import type {
 export class SignalHandle<T = SignalValue> {
   readonly id: string;
   read(): T;
+  subscribe(listener: (value: T) => void, options?: { emitCurrent?: boolean }): () => void;
   why(): WhySummary;
 }
 
@@ -44,6 +58,7 @@ export class KeyedSourceHandle<T = SignalValue> {
   readonly key: string;
   readonly id: string;
   read(): T;
+  subscribe(listener: (value: T) => void, options?: { emitCurrent?: boolean }): () => void;
   set(value: T): RunSummary;
   why(): WhySummary;
 }
@@ -53,6 +68,7 @@ export class KeyedRecipeHandle<T = SignalValue> {
   readonly key: string;
   readonly id: string;
   read(): T;
+  subscribe(listener: (value: T) => void, options?: { emitCurrent?: boolean }): () => void;
   why(): WhySummary;
 }
 
@@ -81,11 +97,24 @@ export class SignalApp {
     spec: KeyedRecipeFamilySpec<T> | RecipeFamilyBuilder<T>
   ): RecipeFamilyHandle<T>;
   batch<T = SignalValue>(ops: Array<TransactionOp<T>>): RunSummary;
+  handle<T = SignalValue>(id: string): SignalHandle<T>;
   read<T = SignalValue>(id: string): T;
   readKeyed<T = SignalValue>(familyId: string, key: string): T;
   setKeyed<T = SignalValue>(familyId: string, key: string, value: T): RunSummary;
   readKeyedMany<T = SignalValue>(familyId: string, keys: string[]): T[];
   setKeyedMany<T = SignalValue>(familyId: string, values: Array<{ key: string; value: T }>): RunSummary;
+  subscribe(listener: () => void): () => void;
+  watch<T = SignalValue>(
+    id: string,
+    listener: (value: T) => void,
+    options?: { emitCurrent?: boolean }
+  ): () => void;
+  watchKeyed<T = SignalValue>(
+    familyId: string,
+    key: string,
+    listener: (value: T) => void,
+    options?: { emitCurrent?: boolean }
+  ): () => void;
   clearKeyedFamilyCache(familyId: string): void;
   diagnostics(): SignalDiagnostics;
   history(): SignalHistory;
@@ -104,11 +133,24 @@ export class SignalRuntime {
     spec: KeyedRecipeFamilySpec<T> | RecipeFamilyBuilder<T>
   ): RecipeFamilyHandle<T>;
   transaction<T = SignalValue>(ops: Array<TransactionOp<T>>): RunSummary;
+  handle<T = SignalValue>(id: string): SignalHandle<T>;
   read<T = SignalValue>(id: string): T;
   readKeyed<T = SignalValue>(familyId: string, key: string): T;
   setKeyed<T = SignalValue>(familyId: string, key: string, value: T): RunSummary;
   readKeyedMany<T = SignalValue>(familyId: string, keys: string[]): T[];
   setKeyedMany<T = SignalValue>(familyId: string, values: Array<{ key: string; value: T }>): RunSummary;
+  subscribe(listener: () => void): () => void;
+  watch<T = SignalValue>(
+    id: string,
+    listener: (value: T) => void,
+    options?: { emitCurrent?: boolean }
+  ): () => void;
+  watchKeyed<T = SignalValue>(
+    familyId: string,
+    key: string,
+    listener: (value: T) => void,
+    options?: { emitCurrent?: boolean }
+  ): () => void;
   clearKeyedFamilyCache(familyId: string): void;
   diagnostics(): SignalDiagnostics;
   history(): SignalHistory;
@@ -119,6 +161,14 @@ export class SignalRuntime {
 export class SignalDiagnostics {
   why(id: string): WhySummary;
   health(): HealthSummary;
+  summaryNow(): DiagnosticsGraphSummary;
+  historyNow(): DiagnosticsExecutionHistorySummary;
+  latestFlow(): DiagnosticsFlowSummary | null;
+  latestFailure(): DiagnosticsFailureSummary | null;
+  latestRollback(): DiagnosticsRollbackDiagnostic | null;
+  latestFrontierExecution(): DiagnosticsFrontierExecutionSummary | null;
+  latestInvalidationTraceRecords(): DiagnosticsInvalidationTraceRecord[];
+  recentHistory(): DiagnosticsExecutionHistorySummary[];
 }
 
 export class SignalHistory {
@@ -141,12 +191,17 @@ export class SignalHistory {
   restoreBranchSnapshotById(branchId: number, snapshotId: number | bigint): void;
   planMergeBranches(sourceBranchId: number, targetBranchId: number): MergePlanReport;
   planMergeBranchesDetailed(sourceBranchId: number, targetBranchId: number): BranchMergePlan;
+  planMergeBranchesDetailedWithProof(sourceBranchId: number, targetBranchId: number): MergePlanProofEnvelope;
   mergeBranches(sourceBranchId: number, targetBranchId: number): MergeResultReport;
   mergeBranchesDetailed(sourceBranchId: number, targetBranchId: number): BranchMergeResult;
+  mergeBranchesDetailedWithProof(sourceBranchId: number, targetBranchId: number): MergeResultProofEnvelope;
+  branchStateProof(branchId: number): BranchStateProofReport;
+  replayParityProof(expectedBranchId: number, replayedBranchId: number): ReplayParityProofReport;
+  replayArtifactProof(expected: ReplayArtifactProofInput, replayedBranchId: number): ReplayArtifactProofReport;
 }
 
 export class SignalSpecialist {
-  graphSummary(): unknown;
+  graphSummary(): DiagnosticsGraphSummary;
   evaluateDirty(): RunSummary;
   readVersions(ids: string[]): VersionSummary[];
 }
@@ -154,5 +209,6 @@ export class SignalSpecialist {
 export class SignalAdapters {
   exportDefinitions(): RuntimeDefinitionEnvelope;
   exportRuntimeEnvelope(): RuntimeEnvelope;
+  runtimeProofReport(): RuntimeProofReport;
   replaceRuntimeEnvelope(envelope: RuntimeEnvelope): void;
 }

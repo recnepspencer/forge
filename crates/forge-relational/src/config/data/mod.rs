@@ -9,9 +9,11 @@ pub use overrides::RelationalConfigOverride;
 pub(crate) use policies::MutationConfig;
 pub use policies::{
     AdjacencyBackend, AdjacencyPolicy, CascadeDeletePolicy, CheckpointPolicy, CompiledLanePolicy,
-    CrossContextPolicy, DurabilityPolicy, DurableLogPolicy, DurableLogRetentionMode, MvccConfig,
-    PatchSurfacePolicy, PublicationConfig, RelationalRuntimeProfile, RetentionBackend,
-    RetentionPolicy, SnapshotReleasePolicy, StorageLayoutConfig, VisibilityCachePolicy,
+    CrossContextPolicy, DiagnosticsBoundary, DurabilityPolicy, DurableLogPolicy,
+    DurableLogRetentionMode, MvccConfig, PatchSurfacePolicy, PublicationConfig,
+    RelationalRuntimeProfile, RetentionBackend, RetentionPolicy, RuntimeExecutionLane,
+    RuntimeProfileBoundaryPolicy, SnapshotReleasePolicy, StorageLayoutConfig,
+    VisibilityCachePolicy,
 };
 pub use provenance::{ConfigProvenance, ConfigProvenanceEntry, ConfigValueSource};
 pub use runtime_config::RelationalRuntimeConfig;

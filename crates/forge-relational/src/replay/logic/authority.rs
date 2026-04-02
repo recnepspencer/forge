@@ -192,7 +192,12 @@ impl<'runtime> ReplayAuthority<'runtime> {
                 );
             }
         };
-        let compared_surfaces = promised_replay_surfaces(&envelope, Some(&replayed_envelope));
+        let compared_surfaces = promised_replay_surfaces(
+            self.runtime,
+            &envelope,
+            &commit_closure,
+            Some(&replayed_envelope),
+        );
         let mut mismatches = Vec::new();
         if compared_surfaces.contains(&ReplayObservableSurface::Strategy) {
             verify_strategy_reexecution_surface(
@@ -1042,6 +1047,7 @@ fn surface_basis_for_strategy(
                 artifacts.replay_descriptor().input_digest(),
                 artifacts.replay_descriptor().output_digest(),
                 artifacts.replay_descriptor().mutation_program_digest(),
+                artifacts.replay_descriptor().validated_against_commit_id(),
                 artifacts.replay_descriptor().validated_against_version_id(),
             ))
         }),
@@ -1058,12 +1064,74 @@ fn verify_strategy_reexecution_surface(
     let Some(expected_artifacts) = envelope.strategy_artifacts.as_ref() else {
         return;
     };
-    let basis_closure = &commit_closure[..commit_closure.len().saturating_sub(1)];
+    let basis_commits = match (
+        expected_artifacts.validated_against_commit_id(),
+        expected_artifacts.validated_against_version_id(),
+    ) {
+        (Some(basis_commit_id), _) => {
+            match replay_commit_closure_by_commit_id_order(runtime, runtime, basis_commit_id) {
+                Ok(chain) => chain,
+                Err(failure) => {
+                    mismatches.push(ReplayMismatch {
+                        class: ReplayMismatchClass::StrategyExecutorUnavailable,
+                        history_drift_class: None,
+                        surface: ReplayObservableSurface::Strategy,
+                        verification_layer: ReplayVerificationLayer::DeepArtifactParity,
+                        detail: format!(
+                            "failed to rebuild strategy replay validation basis closure: {failure:?}"
+                        ),
+                        expected: Some(format!("{:?}", expected_artifacts.replay_descriptor())),
+                        observed: None,
+                    });
+                    return;
+                }
+            }
+        }
+        (None, Some(validated_version_id)) if validated_version_id.0 > 0 => {
+            let history = runtime.history_access();
+            let Some(basis_commit_id) = history
+                .commit_envelope_for_version(validated_version_id)
+                .map(|envelope| envelope.commit.commit_id)
+            else {
+                mismatches.push(ReplayMismatch {
+                    class: ReplayMismatchClass::StrategyExecutorUnavailable,
+                    history_drift_class: None,
+                    surface: ReplayObservableSurface::Strategy,
+                    verification_layer: ReplayVerificationLayer::DeepArtifactParity,
+                    detail: format!(
+                        "failed to resolve strategy replay validation basis version {:?}",
+                        validated_version_id
+                    ),
+                    expected: Some(format!("{:?}", expected_artifacts.replay_descriptor())),
+                    observed: None,
+                });
+                return;
+            };
+            match replay_commit_closure_by_commit_id_order(runtime, runtime, basis_commit_id) {
+                Ok(chain) => chain,
+                Err(failure) => {
+                    mismatches.push(ReplayMismatch {
+                        class: ReplayMismatchClass::StrategyExecutorUnavailable,
+                        history_drift_class: None,
+                        surface: ReplayObservableSurface::Strategy,
+                        verification_layer: ReplayVerificationLayer::DeepArtifactParity,
+                        detail: format!(
+                            "failed to rebuild strategy replay validation basis closure: {failure:?}"
+                        ),
+                        expected: Some(format!("{:?}", expected_artifacts.replay_descriptor())),
+                        observed: None,
+                    });
+                    return;
+                }
+            }
+        }
+        _ => commit_closure[..commit_closure.len().saturating_sub(1)].to_vec(),
+    };
     let basis_plan = super::planning::replay_recovery_plan_for_chain(
         runtime,
         runtime.runtime_config(),
         runtime.commit_strategy_executor_registry().clone(),
-        basis_closure,
+        &basis_commits,
         verification_mode,
     );
     let mut basis_runtime = match RelationalRuntime::rebuild_runtime_from_plan(basis_plan) {
@@ -1084,6 +1152,20 @@ fn verify_strategy_reexecution_surface(
             return;
         }
     };
+    if let Err(detail) =
+        ensure_strategy_replay_basis_branch(&mut basis_runtime, envelope, expected_artifacts)
+    {
+        mismatches.push(ReplayMismatch {
+            class: ReplayMismatchClass::StrategyExecutorUnavailable,
+            history_drift_class: None,
+            surface: ReplayObservableSurface::Strategy,
+            verification_layer: ReplayVerificationLayer::DeepArtifactParity,
+            detail,
+            expected: Some(format!("{:?}", expected_artifacts.replay_descriptor())),
+            observed: None,
+        });
+        return;
+    }
     let replay_request = expected_artifacts.replay_request();
     let snapshot = basis_runtime.visibility_authority().snapshot();
     let execution = match basis_runtime
@@ -1092,8 +1174,25 @@ fn verify_strategy_reexecution_surface(
     {
         Ok(execution) => execution,
         Err(error) => {
+            let mismatch_class = match error {
+                crate::commit_strategies::StrategyExecutionError::UnknownStrategyId { .. }
+                | crate::commit_strategies::StrategyExecutionError::UnboundStrategyExecutor {
+                    ..
+                } => ReplayMismatchClass::StrategyExecutorUnavailable,
+                crate::commit_strategies::StrategyExecutionError::DescriptorDigestMismatch {
+                    ..
+                }
+                | crate::commit_strategies::StrategyExecutionError::UnsupportedReadContract {
+                    ..
+                }
+                | crate::commit_strategies::StrategyExecutionError::UnknownSnapshot { .. }
+                | crate::commit_strategies::StrategyExecutionError::ExecutorFailed { .. }
+                | crate::commit_strategies::StrategyExecutionError::ExecutorPanicked { .. } => {
+                    ReplayMismatchClass::StrategyExecutionFailure
+                }
+            };
             mismatches.push(ReplayMismatch {
-                class: ReplayMismatchClass::StrategyExecutionFailure,
+                class: mismatch_class,
                 history_drift_class: None,
                 surface: ReplayObservableSurface::Strategy,
                 verification_layer: ReplayVerificationLayer::DeepArtifactParity,
@@ -1127,16 +1226,61 @@ fn verify_strategy_reexecution_surface(
             return;
         }
     };
-    let observed = crate::commit_strategies::data::StrategyCommitArtifactBundle::from_lowered(
-        &lowered,
-        basis_runtime
-            .commit_strategy_registry()
-            .get_by_id(replay_request.strategy_id())
-            .expect("replayed strategy request should resolve to a registered descriptor")
-            .descriptor(),
-    );
+    let descriptor = basis_runtime
+        .commit_strategy_registry()
+        .get_by_id(replay_request.strategy_id())
+        .expect("replayed strategy request should resolve to a registered descriptor")
+        .descriptor()
+        .clone();
+    let observed = if expected_artifacts.preview_validation_summary().is_some()
+        || expected_artifacts.preview_validation_cost().is_some()
+        || expected_artifacts.validated_against_version_id().is_some()
+    {
+        match basis_runtime
+            .commit_strategies_authority()
+            .validate_lowered_plan(lowered.clone())
+        {
+            Ok(validated) => {
+                crate::commit_strategies::data::StrategyCommitArtifactBundle::from_lowered(
+                    validated.lowered_plan(),
+                    &descriptor,
+                    basis_runtime.runtime_config(),
+                )
+                .with_preview_validation(
+                    validated.validation_summary(),
+                    validated.preview_validation_cost(),
+                    validated.validated_against_commit_id(),
+                    validated.validated_against_version_id(),
+                )
+            }
+            Err(error) => {
+                mismatches.push(ReplayMismatch {
+                    class: ReplayMismatchClass::StrategyLoweringDrift,
+                    history_drift_class: None,
+                    surface: ReplayObservableSurface::Strategy,
+                    verification_layer: ReplayVerificationLayer::DeepArtifactParity,
+                    detail: format!("strategy replay re-validation failed: {error:?}"),
+                    expected: Some(format!("{:?}", expected_artifacts.replay_descriptor())),
+                    observed: None,
+                });
+                return;
+            }
+        }
+    } else {
+        crate::commit_strategies::data::StrategyCommitArtifactBundle::from_lowered(
+            &lowered,
+            &descriptor,
+            basis_runtime.runtime_config(),
+        )
+    };
     if observed.lowering_provenance() == expected_artifacts.lowering_provenance()
         && observed.lowering_summary() == expected_artifacts.lowering_summary()
+        && observed.preview_validation_summary() == expected_artifacts.preview_validation_summary()
+        && observed.preview_validation_cost() == expected_artifacts.preview_validation_cost()
+        && observed.validated_against_commit_id()
+            == expected_artifacts.validated_against_commit_id()
+        && observed.validated_against_version_id()
+            == expected_artifacts.validated_against_version_id()
         && execution.output().digest() == expected_artifacts.replay_descriptor().output_digest()
         && execution.mutation_program().digest()
             == expected_artifacts
@@ -1172,6 +1316,41 @@ fn verify_strategy_reexecution_surface(
         expected: Some(format!("{:?}", expected_artifacts.replay_descriptor())),
         observed: Some(format!("{:?}", observed.replay_descriptor())),
     });
+}
+
+fn ensure_strategy_replay_basis_branch(
+    basis_runtime: &mut RelationalRuntime,
+    envelope: &CanonicalCommitEnvelope,
+    expected_artifacts: &crate::commit_strategies::data::StrategyCommitArtifactBundle,
+) -> Result<(), String> {
+    if envelope.branch_context == BranchId("main".to_string())
+        || basis_runtime
+            .history_access()
+            .branch_head(&envelope.branch_context)
+            .is_some()
+    {
+        return Ok(());
+    }
+
+    let source_branch = expected_artifacts
+        .validated_against_commit_id()
+        .and_then(|commit_id| {
+            basis_runtime
+                .replay_access()
+                .canonical_commit_envelope(commit_id)
+                .map(|basis| basis.branch_context.clone())
+        })
+        .unwrap_or_else(|| BranchId("main".to_string()));
+
+    basis_runtime
+        .history_authority()
+        .create_branch(envelope.branch_context.clone(), &source_branch)
+        .map_err(|error| {
+            format!(
+                "failed to reconstruct strategy replay basis branch {:?} from {:?}: {error:?}",
+                envelope.branch_context, source_branch
+            )
+        })
 }
 
 fn published_lineage_artifacts_match(

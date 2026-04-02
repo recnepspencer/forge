@@ -78,10 +78,17 @@ impl<'runtime> MergeAccess<'runtime> {
                     policy_record,
                     resolution_class,
                 )?;
-                let readiness = if aspect_outcomes.is_empty() {
-                    readiness_for_policy_decision(policy_record.proof_boundary.decision_boundary)
+                let policy_readiness =
+                    readiness_for_policy_decision(policy_record.proof_boundary.decision_boundary);
+                let aspect_readiness = if aspect_outcomes.is_empty() {
+                    policy_readiness
                 } else {
                     aggregate_record_readiness(aspect_outcomes.as_slice())
+                };
+                let readiness = match policy_readiness {
+                    MergeExecutionReadiness::Rejected => MergeExecutionReadiness::Rejected,
+                    MergeExecutionReadiness::Blocked => MergeExecutionReadiness::Blocked,
+                    MergeExecutionReadiness::Admitted => aspect_readiness,
                 };
                 let lowered_action = lowered_action_for_record(
                     policy_record.classification,
@@ -534,9 +541,9 @@ fn blocked_reason_for_record(
             | crate::merge::data::MergeConflictClass::SourceOnlyAddition => {
                 Some(LoweredMergeBlockedReason::ManualConflictResolutionRequired)
             }
-            crate::merge::data::MergeConflictClass::StrategyIntentConflict => Some(
-                LoweredMergeBlockedReason::StrategyIntentConflictRequiresManualResolution,
-            ),
+            crate::merge::data::MergeConflictClass::StrategyIntentConflict => {
+                Some(LoweredMergeBlockedReason::StrategyIntentConflictRequiresManualResolution)
+            }
         };
     }
     if let Some(reason) = aspect_outcomes.iter().find_map(|aspect| {
@@ -561,6 +568,8 @@ fn blocked_reason_for_record(
         .any(|aspect| aspect.blocked_reason.is_some())
     {
         Some(LoweredMergeBlockedReason::ManualConflictResolutionRequired)
+    } else if classification == crate::merge::data::MergeConflictClass::StrategyIntentConflict {
+        Some(LoweredMergeBlockedReason::StrategyIntentConflictRequiresManualResolution)
     } else {
         None
     }
@@ -1084,6 +1093,9 @@ fn blocked_reason_for_aspect(
         }
     }
     match (classification, comparison) {
+        (crate::merge::data::MergeConflictClass::StrategyIntentConflict, _) => {
+            Some(LoweredMergeBlockedReason::StrategyIntentConflictRequiresManualResolution)
+        }
         (crate::merge::data::MergeConflictClass::Deletion(class), _) => {
             Some(blocked_reason_for_deletion_class(class))
         }

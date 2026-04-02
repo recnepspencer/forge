@@ -16,6 +16,7 @@ pub(crate) enum CanonicalIntentKey {
         client_keys: Vec<crate::symbols::data::InternedString>,
     },
     UpdateEntity(EntityId),
+    UpdateEntityFields(EntityId),
     ReplaceEntity {
         entity_id: EntityId,
         replacement_partition_id: crate::identity::data::PartitionId,
@@ -57,6 +58,9 @@ pub(crate) fn canonical_intent_key(intent: &MutationIntent) -> CanonicalIntentKe
         }
         MutationIntent::Entity(EntityMutationIntent::Update(spec)) => {
             CanonicalIntentKey::UpdateEntity(spec.entity_id)
+        }
+        MutationIntent::Entity(EntityMutationIntent::UpdateFields(spec)) => {
+            CanonicalIntentKey::UpdateEntityFields(spec.entity_id)
         }
         MutationIntent::Entity(EntityMutationIntent::Replace(spec)) => {
             CanonicalIntentKey::ReplaceEntity {

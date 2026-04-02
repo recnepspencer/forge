@@ -134,6 +134,7 @@ mod logic;
 mod presentation;
 #[cfg(test)]
 pub mod presentation;
+pub mod schema;
 mod state;
 
 pub mod facade;

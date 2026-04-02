@@ -1,10 +1,15 @@
 use serde::{Deserialize, Serialize};
 
 use crate::data::handle::NodeId;
+use crate::data::output::OutputIdentity;
 
 use super::core::BranchMergeDivergence;
+use super::deletion_policy_registry::DeletionPolicyName;
+use super::identity_matcher_registry::IdentityMatcherName;
 use super::journal::StructuralMergeCandidateRecord;
-use super::plan::ArtifactMergeComparable;
+use super::plan::{
+    ArtifactMergeComparable, LoweredDeletionPolicyPlan, LoweredIdentityCorrespondencePlan,
+};
 use super::policy::BranchMergeReconciliationPolicy;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -85,4 +90,27 @@ pub struct BranchMergeConflictEvidence {
     pub summary: BranchMergeConflictSummary,
     pub resolution_plan: BranchConflictResolutionPlan,
     pub records: Vec<BranchMergeConflictRecord>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BranchMergeIdentityFailureEvidence {
+    pub identity_matcher_name: IdentityMatcherName,
+    pub source_node: NodeId,
+    pub source_output_identity: Option<OutputIdentity>,
+    pub candidate_target_nodes: Vec<NodeId>,
+    pub correspondence: LoweredIdentityCorrespondencePlan,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BranchMergeDeletionFailureEvidence {
+    pub deletion_policy_name: DeletionPolicyName,
+    pub target_only_nodes: Vec<NodeId>,
+    pub deletion_plan: LoweredDeletionPolicyPlan,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BranchMergeFailureEvidence {
+    Conflict(BranchMergeConflictEvidence),
+    Identity(BranchMergeIdentityFailureEvidence),
+    Deletion(BranchMergeDeletionFailureEvidence),
 }

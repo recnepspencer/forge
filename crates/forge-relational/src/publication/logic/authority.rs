@@ -13,7 +13,6 @@ use crate::logic::runtime::{RelationalReplayRecord, RelationalRuntime, ReplaySch
 use crate::publication::data::{PublicationBundle, PublicationStatus};
 use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
 use crate::storage::logic::state::PublicationArtifacts;
-use crate::visibility::snapshot_states::build_visibility_state;
 use rayon::prelude::*;
 use serde_json::json;
 
@@ -87,7 +86,9 @@ impl<'runtime> PublicationAuthority<'runtime> {
         &mut self,
         artifact: crate::diagnostics::data::RelationalDiagnosticArtifact,
     ) {
-        self.runtime.publication.diagnostics.push(artifact);
+        if let Some(filtered) = self.runtime.config.diagnostics.profile.filter_artifact(artifact) {
+            self.runtime.publication.diagnostics.push(filtered);
+        }
     }
 
     pub(crate) fn prune_published_snapshot_handles_if_needed(&mut self) {
@@ -116,20 +117,28 @@ impl<'runtime> PublicationAuthority<'runtime> {
         kind: crate::diagnostics::data::DiagnosticsArtifactKind,
         entries: Vec<crate::diagnostics::data::RelationalDiagnosticsEntry>,
     ) -> crate::diagnostics::data::RelationalDiagnosticArtifact {
-        let max_entries = self
-            .runtime
-            .config
-            .diagnostics
-            .profile
-            .max_entries_per_artifact;
         let artifact = crate::diagnostics::data::RelationalDiagnosticArtifact {
             scope,
             kind,
             determinism: crate::diagnostics::data::DeterminismExpectation::Required,
-            entries: entries.into_iter().take(max_entries).collect(),
+            entries,
         };
-        self.runtime.publication.diagnostics.push(artifact.clone());
-        artifact
+        let filtered = self
+            .runtime
+            .config
+            .diagnostics
+            .profile
+            .filter_artifact(artifact.clone())
+            .unwrap_or_else(|| crate::diagnostics::data::RelationalDiagnosticArtifact {
+                scope: artifact.scope,
+                kind: artifact.kind,
+                determinism: artifact.determinism,
+                entries: Vec::new(),
+            });
+        if !filtered.entries.is_empty() {
+            self.runtime.publication.diagnostics.push(filtered.clone());
+        }
+        filtered
     }
 
     pub(crate) fn diagnostic(
@@ -179,15 +188,15 @@ impl<'runtime> PublicationAuthority<'runtime> {
     ) -> SnapshotId {
         let PublicationArtifacts { bundle } = artifacts;
         let snapshot_id = bundle.snapshot.snapshot_id;
-        let snapshot_state = build_visibility_state(
-            self.runtime,
-            version_id,
-            snapshot_id,
-            bundle.snapshot.read_policy,
-        );
         self.runtime
             .visibility
-            .insert_published_handle(snapshot_state);
+            .insert_published_handle(
+                snapshot_id,
+                crate::logic::runtime::SnapshotHandleBinding {
+                    version_id,
+                    read_policy: bundle.snapshot.read_policy,
+                },
+            );
         self.push_diagnostic_artifact(bundle.diagnostics_summary.clone());
         self.runtime.publication.latest_bundle = Some(bundle);
         self.prune_published_snapshot_handles_if_needed();

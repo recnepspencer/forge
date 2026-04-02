@@ -3,7 +3,154 @@ use crate::data::error::SignalError;
 use crate::data::graph::BranchStructuralDelta;
 use crate::facade::*;
 use crate::logic::transaction::{BranchMergeResolutionRequirement, ConflictResolutionStrategy};
+use crate::schema::data::{
+    SignalSchemaDescriptor, SignalSchemaId, SignalSchemaName, SignalSchemaRegistration,
+    SignalSchemaRegistry, SignalSchemaVersion,
+};
 use crate::tests::support::*;
+
+fn merge_schema_registry(
+    default_strategy_name: &str,
+    default_conflict_policy_name: Option<&str>,
+    default_identity_matcher_name: Option<&str>,
+) -> SignalSchemaRegistry {
+    SignalSchemaRegistry::from_registrations(vec![SignalSchemaRegistration::new(
+        SignalSchemaDescriptor::new_with_merge_semantics(
+            SignalSchemaId(41),
+            SignalSchemaName::new("signal.demo.merge-owned"),
+            SignalSchemaVersion::new(1, 0),
+            NodeContract::wildcard(),
+            Some(MergeStrategyName::new(default_strategy_name)),
+            default_conflict_policy_name.map(ConflictPolicyName::new),
+            default_identity_matcher_name.map(IdentityMatcherName::new),
+            None,
+            None,
+        ),
+    )
+    .expect("valid schema registration")])
+    .expect("valid schema registry")
+}
+
+fn cross_identity_merge_schema_registry(
+    default_identity_matcher_name: Option<&str>,
+) -> SignalSchemaRegistry {
+    SignalSchemaRegistry::from_registrations(vec![SignalSchemaRegistration::new(
+        SignalSchemaDescriptor::new_with_merge_semantics(
+            SignalSchemaId(42),
+            SignalSchemaName::new("signal.demo.cross-identity-merge-owned"),
+            SignalSchemaVersion::new(1, 0),
+            NodeContract::wildcard().with_cross_identity_persistent_matching(),
+            Some(MergeStrategyName::new(
+                "signal.merge.rebase-source-onto-target",
+            )),
+            None,
+            default_identity_matcher_name.map(IdentityMatcherName::new),
+            None,
+            None,
+        ),
+    )
+    .expect("valid schema registration")])
+    .expect("valid schema registry")
+}
+
+fn source_only_merge_schema_registry(
+    default_source_only_policy_name: Option<&str>,
+) -> SignalSchemaRegistry {
+    SignalSchemaRegistry::from_registrations(vec![SignalSchemaRegistration::new(
+        SignalSchemaDescriptor::new_with_merge_semantics(
+            SignalSchemaId(43),
+            SignalSchemaName::new("signal.demo.source-only-merge-owned"),
+            SignalSchemaVersion::new(1, 0),
+            NodeContract::wildcard(),
+            Some(MergeStrategyName::new(
+                "signal.merge.rebase-source-onto-target",
+            )),
+            None,
+            None,
+            default_source_only_policy_name.map(SourceOnlyPolicyName::new),
+            None,
+        ),
+    )
+    .expect("valid schema registration")])
+    .expect("valid schema registry")
+}
+
+fn deletion_merge_schema_registry(
+    default_deletion_policy_name: Option<&str>,
+) -> SignalSchemaRegistry {
+    SignalSchemaRegistry::from_registrations(vec![SignalSchemaRegistration::new(
+        SignalSchemaDescriptor::new_with_merge_semantics(
+            SignalSchemaId(44),
+            SignalSchemaName::new("signal.demo.deletion-merge-owned"),
+            SignalSchemaVersion::new(1, 0),
+            NodeContract::wildcard(),
+            Some(MergeStrategyName::new(
+                "signal.merge.rebase-source-onto-target",
+            )),
+            None,
+            None,
+            None,
+            default_deletion_policy_name.map(DeletionPolicyName::new),
+        ),
+    )
+    .expect("valid schema registration")])
+    .expect("valid schema registry")
+}
+
+fn aspect_policy_merge_schema_registry(
+    default_aspect_policy_name: Option<&str>,
+) -> SignalSchemaRegistry {
+    SignalSchemaRegistry::from_registrations(vec![SignalSchemaRegistration::new(
+        SignalSchemaDescriptor::new_with_merge_semantics_and_aspects(
+            SignalSchemaId(44),
+            SignalSchemaName::new("signal.demo.aspect-merge-owned"),
+            SignalSchemaVersion::new(1, 0),
+            NodeContract::wildcard(),
+            Some(MergeStrategyName::new(
+                "signal.merge.rebase-source-onto-target",
+            )),
+            None,
+            None,
+            None,
+            None,
+            default_aspect_policy_name
+                .map(|name| {
+                    vec![AspectMergePolicyBinding::new(
+                        ASPECT_A,
+                        AspectMergePolicyName::new(name),
+                    )]
+                })
+                .unwrap_or_default(),
+        ),
+    )
+    .expect("valid schema registration")])
+    .expect("valid schema registry")
+}
+
+fn conflict_isolation_merge_schema_registry(
+    default_conflict_isolation_policy_name: Option<&str>,
+) -> SignalSchemaRegistry {
+    SignalSchemaRegistry::from_registrations(vec![SignalSchemaRegistration::new(
+        SignalSchemaDescriptor::new_with_merge_semantics_and_isolation(
+            SignalSchemaId(45),
+            SignalSchemaName::new("signal.demo.conflict-isolation-owned"),
+            SignalSchemaVersion::new(1, 0),
+            NodeContract::wildcard(),
+            Some(MergeStrategyName::new(
+                "signal.merge.rebase-source-onto-target",
+            )),
+            Some(ConflictPolicyName::new(
+                "signal.conflict.resolve-source-when-structure-matches",
+            )),
+            None,
+            None,
+            None,
+            default_conflict_isolation_policy_name.map(ConflictIsolationPolicyName::new),
+        ),
+    )
+    .expect("valid schema registration")])
+    .expect("valid schema registry")
+}
 
 #[test]
 fn merge_branch_introduces_source_only_node_with_new_target_id_and_merge_traces() {
@@ -923,7 +1070,10 @@ fn merge_branch_divergent_shared_node_requires_typed_conflict_surface() {
                 kind,
                 BranchMergeFailureKind::DivergenceRequiresConflictResolution
             );
-            let evidence = evidence.expect("conflict evidence should be present");
+            let evidence = match evidence.expect("conflict evidence should be present") {
+                BranchMergeFailureEvidence::Conflict(evidence) => evidence,
+                other => panic!("expected conflict evidence, got {other:?}"),
+            };
             assert_eq!(
                 evidence.divergence,
                 BranchMergeDivergence::SharedStateConflict
@@ -1196,7 +1346,10 @@ fn merge_branch_dependency_topology_conflict_surfaces_structural_requirement() {
                 kind,
                 BranchMergeFailureKind::DivergenceRequiresConflictResolution
             );
-            let evidence = evidence.expect("topology conflict evidence should be present");
+            let evidence = match evidence.expect("topology conflict evidence should be present") {
+                BranchMergeFailureEvidence::Conflict(evidence) => evidence,
+                other => panic!("expected conflict evidence, got {other:?}"),
+            };
             assert_eq!(
                 evidence.divergence,
                 BranchMergeDivergence::SharedStateConflict
@@ -1438,6 +1591,144 @@ fn merge_branch_conflict_resolved_emits_resolution_traceability() {
         }
         other => panic!("expected conflict-resolved artifact merge lineage, got {other:?}"),
     }
+}
+
+#[test]
+fn runtime_merge_request_named_conflict_policy_changes_merge_outcome() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let shared = runtime.graph_mut().node().output_identity().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(201, 0))
+                        .with_output_identity("base-request-policy"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let reject_feature = runtime
+        .create_branch("feature-request-conflict-policy-reject")
+        .unwrap();
+
+    runtime.switch_branch(reject_feature.clone()).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(202, 0))
+                        .with_output_identity("feature-request-policy"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime.switch_branch(main.clone()).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(203, 0))
+                        .with_output_identity("main-request-policy"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let reject_err = runtime
+        .merge()
+        .from(reject_feature.clone())
+        .into(main.clone())
+        .conflict_policy_named("signal.conflict.reject-shared-state")
+        .run()
+        .expect_err("reject policy should fail closed on shared-state conflict");
+
+    match reject_err {
+        SignalError::BranchMergeFailed { kind, evidence, .. } => {
+            assert_eq!(
+                kind,
+                BranchMergeFailureKind::DivergenceRequiresConflictResolution
+            );
+            let evidence =
+                match evidence.expect("reject policy failure should expose conflict evidence") {
+                    BranchMergeFailureEvidence::Conflict(evidence) => evidence,
+                    other => panic!("expected conflict evidence, got {other:?}"),
+                };
+            assert_eq!(
+                evidence.reconciliation_policy.conflict,
+                ConflictMergePolicy::RejectSharedStateConflict
+            );
+            assert_eq!(
+                evidence.summary.primary_conflict_kind,
+                Some(BranchMergeConflictKind::RuntimeArtifactMismatch)
+            );
+        }
+        other => panic!("expected typed merge failure, got {other:?}"),
+    }
+
+    let resolve_feature = runtime
+        .create_branch("feature-request-conflict-policy-resolve")
+        .unwrap();
+    runtime.switch_branch(resolve_feature.clone()).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(204, 0))
+                        .with_output_identity("feature-request-policy-resolve"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime.switch_branch(main.clone()).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(205, 0))
+                        .with_output_identity("main-request-policy-resolve"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let resolve_result = runtime
+        .merge()
+        .from(resolve_feature)
+        .into(main)
+        .conflict_policy_named("signal.conflict.resolve-source-when-structure-matches")
+        .run()
+        .expect("resolve policy should permit bounded auto-resolution");
+
+    assert_eq!(
+        resolve_result.selected_conflict_policy_name.as_str(),
+        "signal.conflict.resolve-source-when-structure-matches"
+    );
+    assert_eq!(
+        resolve_result.selected_conflict_policy_basis,
+        ConflictPolicySelectionBasis::RequestNamed
+    );
+    assert_eq!(
+        resolve_result.reconciliation_policy.conflict,
+        ConflictMergePolicy::ResolveSourceStateWhenStructureMatches
+    );
+    assert_eq!(resolve_result.merge_kind, BranchMergeKind::ConflictResolved);
 }
 
 #[test]
@@ -1844,6 +2135,2211 @@ fn active_restore_reinstates_branch_merge_ledger_boundary_for_later_fast_forward
         BranchMergeDivergence::None,
         "active restore should clear stale target overlap from the restored branch ledger"
     );
+}
+
+#[test]
+fn runtime_merge_strategy_hint_selects_registered_descriptor() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let shared = runtime.graph_mut().node().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime.create_branch("feature-strategy-hint").unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime.graph_mut().node().build();
+    runtime
+        .graph_mut()
+        .append_dependency(feature_only, shared, ASPECT_A)
+        .unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                let upstream = view.read_aspect_version(shared, ASPECT_A)?;
+                Ok(view.finish(NodeEvaluationResult::from_version(upstream)))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main.clone()).unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .strategy_hint(BranchMergeStrategy::ReplaySourceDeltaOntoTarget)
+        .plan()
+        .unwrap();
+
+    assert_eq!(
+        planned.plan().merge_strategy(),
+        BranchMergeStrategy::ReplaySourceDeltaOntoTarget
+    );
+    assert_eq!(
+        planned.plan().selected_strategy_name().as_str(),
+        "signal.merge.replay-source-delta"
+    );
+}
+
+#[test]
+fn runtime_merge_strategy_named_selects_registered_descriptor() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let shared = runtime.graph_mut().node().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime.create_branch("feature-strategy-name").unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime.graph_mut().node().build();
+    runtime
+        .graph_mut()
+        .append_dependency(feature_only, shared, ASPECT_A)
+        .unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                let upstream = view.read_aspect_version(shared, ASPECT_A)?;
+                Ok(view.finish(NodeEvaluationResult::from_version(upstream)))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main.clone()).unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .strategy_named("signal.merge.rebase-source-onto-target")
+        .plan()
+        .unwrap();
+
+    assert_eq!(
+        planned.plan().merge_strategy(),
+        BranchMergeStrategy::RebaseSourceOntoTarget
+    );
+    assert_eq!(
+        planned.plan().selected_strategy_name().as_str(),
+        "signal.merge.rebase-source-onto-target"
+    );
+}
+
+#[test]
+fn runtime_merge_base_named_selects_registered_descriptor_and_lowers_plan() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let shared = runtime.graph_mut().node().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime.create_branch("feature-merge-base-name").unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime.graph_mut().node().build();
+    runtime
+        .graph_mut()
+        .append_dependency(feature_only, shared, ASPECT_A)
+        .unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                let upstream = view.read_aspect_version(shared, ASPECT_A)?;
+                Ok(view.finish(NodeEvaluationResult::from_version(upstream)))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main.clone()).unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .merge_base_named("signal.merge-base.fork-point")
+        .plan()
+        .unwrap();
+
+    let lowered = planned
+        .plan()
+        .lowered_merge_base()
+        .expect("lowered merge-base plan");
+    assert_eq!(
+        lowered.selected_merge_base_name.as_str(),
+        "signal.merge-base.fork-point"
+    );
+    assert_eq!(
+        lowered.resolved_base.forked_from_snapshot_id,
+        planned
+            .plan()
+            .merge_base()
+            .and_then(|base| base.forked_from_snapshot_id)
+    );
+    let proof = merge_plan_proof_report(planned.plan(), planned.plan().registry_bundle_digest());
+    assert_eq!(
+        proof.selected_merge_base_digest,
+        lowered.selected_merge_base_digest
+    );
+    assert_eq!(
+        planned.plan().selected_semantics().merge_base_name.as_str(),
+        "signal.merge-base.fork-point"
+    );
+}
+
+#[test]
+fn runtime_proof_report_carries_merge_base_registry_digest() {
+    let runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+
+    let report = runtime_proof_report(
+        runtime.schema_registry().registry_digest(),
+        runtime.merge_strategy_registry().registry_digest(),
+        runtime.merge_base_strategy_registry().registry_digest(),
+        runtime.aspect_merge_policy_registry().registry_digest(),
+        runtime.conflict_isolation_registry().registry_digest(),
+        runtime.conflict_policy_registry().registry_digest(),
+        runtime.identity_matcher_registry().registry_digest(),
+        runtime.source_only_policy_registry().registry_digest(),
+        runtime.deletion_policy_registry().registry_digest(),
+    );
+
+    assert_eq!(
+        report.merge_base_strategy_registry_digest,
+        runtime.merge_base_strategy_registry().registry_digest()
+    );
+}
+
+#[test]
+fn runtime_merge_uses_schema_default_strategy_when_request_is_silent() {
+    let graph = SignalGraph::new().with_schema_registry(merge_schema_registry(
+        "signal.merge.rebase-source-onto-target",
+        None,
+        None,
+    ));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let shared = runtime.graph_mut().node().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-schema-default-strategy")
+        .unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.merge-owned")
+        .expect("known schema")
+        .build();
+    runtime
+        .graph_mut()
+        .append_dependency(feature_only, shared, ASPECT_A)
+        .unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                let upstream = view.read_aspect_version(shared, ASPECT_A)?;
+                Ok(view.finish(NodeEvaluationResult::from_version(upstream)))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main.clone()).unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .plan()
+        .unwrap();
+
+    assert_eq!(
+        planned.plan().merge_strategy(),
+        BranchMergeStrategy::RebaseSourceOntoTarget
+    );
+    assert_eq!(
+        planned.plan().selected_strategy_basis(),
+        MergeStrategySelectionBasis::SchemaDefault
+    );
+}
+
+#[test]
+fn runtime_merge_lowers_schema_default_aspect_policy_for_affected_aspect() {
+    let graph = SignalGraph::new().with_schema_registry(aspect_policy_merge_schema_registry(Some(
+        "signal.aspect.prefer-source",
+    )));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let shared = runtime.graph_mut().node().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-aspect-schema-default")
+        .unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.aspect-merge-owned")
+        .expect("known schema")
+        .produces_aspects([ASPECT_A])
+        .build();
+    runtime
+        .graph_mut()
+        .append_dependency(feature_only, shared, ASPECT_A)
+        .unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                let upstream = view.read_aspect_version(shared, ASPECT_A)?;
+                Ok(view.finish(NodeEvaluationResult::from_version(upstream)))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main.clone()).unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .plan()
+        .unwrap();
+
+    let aspect_plan = planned.plan().aspect_policy_plan();
+    assert_eq!(aspect_plan.records.len(), 1);
+    assert_eq!(aspect_plan.records[0].aspect, ASPECT_A);
+    assert_eq!(
+        aspect_plan.records[0].selected_policy_name.as_str(),
+        "signal.aspect.prefer-source"
+    );
+    assert_eq!(
+        aspect_plan.records[0].selected_policy_basis,
+        AspectMergePolicySelectionBasis::SchemaDefault
+    );
+}
+
+#[test]
+fn runtime_merge_node_aspect_policy_override_precedes_schema_default() {
+    let graph = SignalGraph::new().with_schema_registry(aspect_policy_merge_schema_registry(Some(
+        "signal.aspect.prefer-target",
+    )));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let shared = runtime.graph_mut().node().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-aspect-node-override")
+        .unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.aspect-merge-owned")
+        .expect("known schema")
+        .produces_aspects([ASPECT_A])
+        .aspect_merge_policy_name(ASPECT_A, "signal.aspect.prefer-source")
+        .build();
+    runtime
+        .graph_mut()
+        .append_dependency(feature_only, shared, ASPECT_A)
+        .unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                let upstream = view.read_aspect_version(shared, ASPECT_A)?;
+                Ok(view.finish(NodeEvaluationResult::from_version(upstream)))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main.clone()).unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .plan()
+        .unwrap();
+
+    let aspect_plan = planned.plan().aspect_policy_plan();
+    assert_eq!(aspect_plan.records.len(), 1);
+    assert_eq!(
+        aspect_plan.records[0].selected_policy_name.as_str(),
+        "signal.aspect.prefer-source"
+    );
+    assert_eq!(
+        aspect_plan.records[0].selected_policy_basis,
+        AspectMergePolicySelectionBasis::NodeOverride
+    );
+}
+
+#[test]
+fn runtime_merge_request_named_aspect_policy_precedes_schema_and_node_defaults() {
+    let graph = SignalGraph::new().with_schema_registry(aspect_policy_merge_schema_registry(Some(
+        "signal.aspect.prefer-target",
+    )));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let shared = runtime.graph_mut().node().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(4, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-aspect-request-override")
+        .unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.aspect-merge-owned")
+        .expect("known schema")
+        .produces_aspects([ASPECT_A])
+        .aspect_merge_policy_name(ASPECT_A, "signal.aspect.prefer-target")
+        .build();
+    runtime
+        .graph_mut()
+        .append_dependency(feature_only, shared, ASPECT_A)
+        .unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                let upstream = view.read_aspect_version(shared, ASPECT_A)?;
+                Ok(view.finish(NodeEvaluationResult::from_version(upstream)))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main.clone()).unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .aspect_policy_named(ASPECT_A, "signal.aspect.prefer-source")
+        .plan()
+        .unwrap();
+
+    let aspect_plan = planned.plan().aspect_policy_plan();
+    assert_eq!(aspect_plan.records.len(), 1);
+    assert_eq!(
+        aspect_plan.records[0].selected_policy_name.as_str(),
+        "signal.aspect.prefer-source"
+    );
+    assert_eq!(
+        aspect_plan.records[0].selected_policy_basis,
+        AspectMergePolicySelectionBasis::RequestNamed
+    );
+}
+
+#[test]
+fn runtime_merge_lowers_aspect_decision_records_for_affected_nodes() {
+    let graph = SignalGraph::new().with_schema_registry(aspect_policy_merge_schema_registry(Some(
+        "signal.aspect.prefer-source",
+    )));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let shared = runtime.graph_mut().node().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-aspect-decision-lowering")
+        .unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.aspect-merge-owned")
+        .expect("known schema")
+        .produces_aspects([ASPECT_A])
+        .build();
+    runtime
+        .graph_mut()
+        .append_dependency(feature_only, shared, ASPECT_A)
+        .unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                let upstream = view.read_aspect_version(shared, ASPECT_A)?;
+                Ok(view.finish(NodeEvaluationResult::from_version(upstream)))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main.clone()).unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .plan()
+        .unwrap();
+
+    let aspect_decisions = &planned.plan().aspect_decision_plan().records;
+    assert_eq!(aspect_decisions.len(), 1);
+    assert_eq!(aspect_decisions[0].aspect, ASPECT_A);
+    assert_eq!(aspect_decisions[0].source_node, feature_only);
+    assert_eq!(
+        aspect_decisions[0].selected_policy_name.as_str(),
+        "signal.aspect.prefer-source"
+    );
+    assert_eq!(
+        aspect_decisions[0].outcome,
+        AspectMergeDecisionOutcome::SourceIntroducedIntoTarget
+    );
+}
+
+#[test]
+fn runtime_merge_lowers_conflict_isolation_records_for_conflicted_nodes() {
+    let graph =
+        SignalGraph::new().with_schema_registry(conflict_isolation_merge_schema_registry(None));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let shared = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.conflict-isolation-owned")
+        .expect("known schema")
+        .produces_aspects([ASPECT_A])
+        .build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-conflict-isolation-schema-default")
+        .unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(2, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime.switch_branch(main.clone()).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(3, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .plan()
+        .unwrap();
+
+    assert_eq!(
+        planned.plan().selected_conflict_isolation_name().as_str(),
+        "signal.conflict-isolation.per-node"
+    );
+    assert_eq!(
+        planned.plan().selected_conflict_isolation_basis(),
+        ConflictIsolationSelectionBasis::BuiltInDefault
+    );
+    assert_eq!(
+        planned.plan().conflict_isolation_plan().expansion_breadth,
+        0
+    );
+}
+
+#[test]
+fn runtime_merge_request_named_conflict_isolation_precedes_schema_and_node_defaults() {
+    let graph = SignalGraph::new().with_schema_registry(conflict_isolation_merge_schema_registry(
+        Some("signal.conflict-isolation.per-node"),
+    ));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let shared = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.conflict-isolation-owned")
+        .expect("known schema")
+        .conflict_isolation_policy_name("signal.conflict-isolation.per-node")
+        .produces_aspects([ASPECT_A, ASPECT_B])
+        .build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(401, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-request-conflict-isolation-precedence")
+        .unwrap();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(402, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime.switch_branch(main.clone()).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(403, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .conflict_isolation_policy_named("signal.conflict-isolation.per-aspect")
+        .plan()
+        .unwrap();
+
+    assert_eq!(
+        planned.plan().selected_conflict_isolation_name().as_str(),
+        "signal.conflict-isolation.per-aspect"
+    );
+    assert_eq!(
+        planned.plan().selected_conflict_isolation_basis(),
+        ConflictIsolationSelectionBasis::RequestNamed
+    );
+    assert_eq!(planned.plan().conflict_isolation_plan().records.len(), 1);
+    assert_eq!(
+        planned.plan().conflict_isolation_plan().records[0].granularity,
+        ConflictIsolationGranularity::PerAspect
+    );
+    assert_eq!(
+        planned.plan().conflict_isolation_plan().records[0].isolated_aspects,
+        vec![ASPECT_A, ASPECT_B]
+    );
+}
+
+#[test]
+fn runtime_merge_node_conflict_isolation_override_precedes_schema_default() {
+    let graph = SignalGraph::new().with_schema_registry(conflict_isolation_merge_schema_registry(
+        Some("signal.conflict-isolation.per-node"),
+    ));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let shared = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.conflict-isolation-owned")
+        .expect("known schema")
+        .conflict_isolation_policy_name("signal.conflict-isolation.per-aspect")
+        .produces_aspects([ASPECT_A, ASPECT_B])
+        .build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(411, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-node-conflict-isolation-precedence")
+        .unwrap();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(412, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime.switch_branch(main.clone()).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(413, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .plan()
+        .unwrap();
+
+    assert_eq!(
+        planned.plan().selected_conflict_isolation_name().as_str(),
+        "signal.conflict-isolation.per-aspect"
+    );
+    assert_eq!(
+        planned.plan().selected_conflict_isolation_basis(),
+        ConflictIsolationSelectionBasis::NodeOverride
+    );
+    assert_eq!(
+        planned.plan().conflict_isolation_plan().records[0].granularity,
+        ConflictIsolationGranularity::PerAspect
+    );
+}
+
+#[test]
+fn runtime_merge_schema_default_conflict_isolation_applies_to_structural_conflicts() {
+    let graph = SignalGraph::new().with_schema_registry(conflict_isolation_merge_schema_registry(
+        Some("signal.conflict-isolation.per-aspect"),
+    ));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let shared = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.conflict-isolation-owned")
+        .expect("known schema")
+        .produces_aspects([ASPECT_A, ASPECT_B])
+        .build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(421, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-schema-conflict-isolation-precedence")
+        .unwrap();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(422, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime.switch_branch(main.clone()).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(423, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .plan()
+        .unwrap();
+
+    assert_eq!(
+        planned.plan().selected_conflict_isolation_name().as_str(),
+        "signal.conflict-isolation.per-aspect"
+    );
+    assert_eq!(
+        planned.plan().selected_conflict_isolation_basis(),
+        ConflictIsolationSelectionBasis::SchemaDefault
+    );
+    assert_eq!(planned.plan().conflict_isolation_plan().records.len(), 1);
+    assert_eq!(
+        planned.plan().conflict_isolation_plan().records[0].isolated_aspects,
+        vec![ASPECT_A, ASPECT_B]
+    );
+}
+
+#[test]
+fn runtime_merge_conflict_isolation_selection_flows_into_execution_counters() {
+    let graph = SignalGraph::new().with_schema_registry(conflict_isolation_merge_schema_registry(
+        Some("signal.conflict-isolation.per-node"),
+    ));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let shared = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.conflict-isolation-owned")
+        .expect("known schema")
+        .produces_aspects([ASPECT_A, ASPECT_B])
+        .build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(431, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-conflict-isolation-execution-counters")
+        .unwrap();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(432, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime.switch_branch(main.clone()).unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(433, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let result = runtime
+        .merge()
+        .from(feature)
+        .into(main)
+        .conflict_isolation_policy_named("signal.conflict-isolation.per-aspect")
+        .run()
+        .unwrap();
+
+    assert_eq!(
+        result.selected_conflict_isolation_name.as_str(),
+        "signal.conflict-isolation.per-aspect"
+    );
+    assert_eq!(
+        result.selected_conflict_isolation_basis,
+        ConflictIsolationSelectionBasis::RequestNamed
+    );
+    assert_eq!(result.conflict_isolation_plan.records.len(), 1);
+    assert_eq!(
+        result.conflict_isolation_plan.records[0].granularity,
+        ConflictIsolationGranularity::PerAspect
+    );
+    assert_eq!(
+        result.conflict_isolation_plan.records[0].isolated_aspects,
+        vec![ASPECT_A, ASPECT_B]
+    );
+    assert_eq!(result.counters.conflict_isolation_record_count, 1);
+    assert_eq!(result.counters.conflict_isolation_expansion_breadth, 0);
+}
+
+#[test]
+fn runtime_merge_node_override_precedes_schema_default_strategy() {
+    let graph = SignalGraph::new().with_schema_registry(merge_schema_registry(
+        "signal.merge.rebase-source-onto-target",
+        None,
+        None,
+    ));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let shared = runtime.graph_mut().node().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-node-override-strategy")
+        .unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.merge-owned")
+        .expect("known schema")
+        .merge_strategy_name("signal.merge.replay-source-delta")
+        .build();
+    runtime
+        .graph_mut()
+        .append_dependency(feature_only, shared, ASPECT_A)
+        .unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                let upstream = view.read_aspect_version(shared, ASPECT_A)?;
+                Ok(view.finish(NodeEvaluationResult::from_version(upstream)))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main.clone()).unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .plan()
+        .unwrap();
+
+    assert_eq!(
+        planned.plan().merge_strategy(),
+        BranchMergeStrategy::ReplaySourceDeltaOntoTarget
+    );
+    assert_eq!(
+        planned.plan().selected_strategy_basis(),
+        MergeStrategySelectionBasis::NodeOverride
+    );
+}
+
+#[test]
+fn runtime_merge_request_named_conflict_policy_selects_registered_descriptor() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let shared = runtime.graph_mut().node().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-request-named-conflict-policy")
+        .unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime.graph_mut().node().build();
+    runtime
+        .graph_mut()
+        .append_dependency(feature_only, shared, ASPECT_A)
+        .unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                let upstream = view.read_aspect_version(shared, ASPECT_A)?;
+                Ok(view.finish(NodeEvaluationResult::from_version(upstream)))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main.clone()).unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .conflict_policy_named("signal.conflict.reject-shared-state")
+        .plan()
+        .unwrap();
+
+    assert_eq!(
+        planned.plan().selected_conflict_policy_name().as_str(),
+        "signal.conflict.reject-shared-state"
+    );
+    assert_eq!(
+        planned.plan().selected_conflict_policy_basis(),
+        ConflictPolicySelectionBasis::RequestNamed
+    );
+    assert_eq!(
+        planned.plan().reconciliation_policy().conflict,
+        ConflictMergePolicy::RejectSharedStateConflict
+    );
+}
+
+#[test]
+fn runtime_merge_uses_schema_default_conflict_policy_when_request_is_silent() {
+    let graph = SignalGraph::new().with_schema_registry(merge_schema_registry(
+        "signal.merge.rebase-source-onto-target",
+        Some("signal.conflict.reject-shared-state"),
+        None,
+    ));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let shared = runtime.graph_mut().node().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-schema-default-conflict-policy")
+        .unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.merge-owned")
+        .expect("known schema")
+        .build();
+    runtime
+        .graph_mut()
+        .append_dependency(feature_only, shared, ASPECT_A)
+        .unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                let upstream = view.read_aspect_version(shared, ASPECT_A)?;
+                Ok(view.finish(NodeEvaluationResult::from_version(upstream)))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main.clone()).unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .plan()
+        .unwrap();
+
+    assert_eq!(
+        planned.plan().selected_conflict_policy_name().as_str(),
+        "signal.conflict.reject-shared-state"
+    );
+    assert_eq!(
+        planned.plan().selected_conflict_policy_basis(),
+        ConflictPolicySelectionBasis::SchemaDefault
+    );
+    assert_eq!(
+        planned.plan().reconciliation_policy().conflict,
+        ConflictMergePolicy::RejectSharedStateConflict
+    );
+}
+
+#[test]
+fn runtime_merge_node_conflict_policy_override_precedes_schema_default() {
+    let graph = SignalGraph::new().with_schema_registry(merge_schema_registry(
+        "signal.merge.rebase-source-onto-target",
+        Some("signal.conflict.resolve-source-when-structure-matches"),
+        None,
+    ));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let shared = runtime.graph_mut().node().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-node-override-conflict-policy")
+        .unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.merge-owned")
+        .expect("known schema")
+        .conflict_policy_name("signal.conflict.reject-shared-state")
+        .build();
+    runtime
+        .graph_mut()
+        .append_dependency(feature_only, shared, ASPECT_A)
+        .unwrap();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                let upstream = view.read_aspect_version(shared, ASPECT_A)?;
+                Ok(view.finish(NodeEvaluationResult::from_version(upstream)))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main.clone()).unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .plan()
+        .unwrap();
+
+    assert_eq!(
+        planned.plan().selected_conflict_policy_name().as_str(),
+        "signal.conflict.reject-shared-state"
+    );
+    assert_eq!(
+        planned.plan().selected_conflict_policy_basis(),
+        ConflictPolicySelectionBasis::NodeOverride
+    );
+    assert_eq!(
+        planned.plan().reconciliation_policy().conflict,
+        ConflictMergePolicy::RejectSharedStateConflict
+    );
+}
+
+#[test]
+fn runtime_merge_request_named_identity_matcher_selects_registered_descriptor() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let shared = runtime.graph_mut().node().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-request-named-identity-matcher")
+        .unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime.graph_mut().node().output_identity().build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(2, 0))
+                        .with_output_identity("identity-matcher-request"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main.clone()).unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .identity_matcher_named("signal.identity.output-identity-in-target-journal")
+        .plan()
+        .unwrap();
+
+    assert_eq!(
+        planned.plan().selected_identity_matcher_name().as_str(),
+        "signal.identity.output-identity-in-target-journal"
+    );
+    assert_eq!(
+        planned.plan().selected_identity_matcher_basis(),
+        IdentityMatcherSelectionBasis::RequestNamed
+    );
+    assert_eq!(
+        planned
+            .plan()
+            .selected_semantics()
+            .identity_matcher_name
+            .as_str(),
+        "signal.identity.output-identity-in-target-journal"
+    );
+}
+
+#[test]
+fn runtime_merge_uses_schema_default_identity_matcher_when_request_is_silent() {
+    let graph = SignalGraph::new().with_schema_registry(merge_schema_registry(
+        "signal.merge.rebase-source-onto-target",
+        None,
+        Some("signal.identity.output-identity-in-target-journal"),
+    ));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let shared = runtime.graph_mut().node().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-schema-default-identity-matcher")
+        .unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.merge-owned")
+        .expect("known schema")
+        .output_identity()
+        .build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(2, 0))
+                        .with_output_identity("identity-matcher-schema"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main.clone()).unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .plan()
+        .unwrap();
+
+    assert_eq!(
+        planned.plan().selected_identity_matcher_name().as_str(),
+        "signal.identity.output-identity-in-target-journal"
+    );
+    assert_eq!(
+        planned.plan().selected_identity_matcher_basis(),
+        IdentityMatcherSelectionBasis::SchemaDefault
+    );
+}
+
+#[test]
+fn runtime_merge_node_identity_matcher_override_precedes_schema_default() {
+    let graph = SignalGraph::new().with_schema_registry(merge_schema_registry(
+        "signal.merge.rebase-source-onto-target",
+        None,
+        Some("signal.identity.exact-node-id"),
+    ));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let shared = runtime.graph_mut().node().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-node-override-identity-matcher")
+        .unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.merge-owned")
+        .expect("known schema")
+        .identity_matcher_name("signal.identity.output-identity-in-target-journal")
+        .output_identity()
+        .build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(2, 0))
+                        .with_output_identity("identity-matcher-node"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main.clone()).unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .plan()
+        .unwrap();
+
+    assert_eq!(
+        planned.plan().selected_identity_matcher_name().as_str(),
+        "signal.identity.output-identity-in-target-journal"
+    );
+    assert_eq!(
+        planned.plan().selected_identity_matcher_basis(),
+        IdentityMatcherSelectionBasis::NodeOverride
+    );
+}
+
+#[test]
+fn runtime_merge_identity_matcher_changes_source_only_correspondence_behavior() {
+    let graph = SignalGraph::new().with_schema_registry(cross_identity_merge_schema_registry(None));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let mut runtime_ctx = ();
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-identity-matcher-correspondence")
+        .unwrap();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.cross-identity-merge-owned")
+        .expect("known schema")
+        .output_identity()
+        .build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(10, 0))
+                        .with_output_identity("gear-tooth-correspondence"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime.switch_branch(main.clone()).unwrap();
+    let target_only = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.cross-identity-merge-owned")
+        .expect("known schema")
+        .output_identity()
+        .build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(target_only, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(11, 0))
+                        .with_output_identity("gear-tooth-correspondence"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    let target_node_count_before_exact = runtime.graph().active_node_count();
+
+    let exact_result = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .identity_matcher_named("signal.identity.exact-node-id")
+        .run()
+        .unwrap();
+
+    assert_eq!(
+        exact_result.selected_identity_matcher_name.as_str(),
+        "signal.identity.exact-node-id"
+    );
+    assert_eq!(
+        exact_result.selected_identity_matcher_basis,
+        IdentityMatcherSelectionBasis::RequestNamed
+    );
+    assert_eq!(
+        runtime.graph().active_node_count(),
+        target_node_count_before_exact + 1
+    );
+    assert!(exact_result
+        .records
+        .iter()
+        .any(|record| record.source_node == feature_only
+            && matches!(record.action, ArtifactMergeAction::IntroducedIntoTarget)));
+
+    let graph = SignalGraph::new().with_schema_registry(cross_identity_merge_schema_registry(None));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let mut runtime_ctx = ();
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-identity-matcher-correspondence")
+        .unwrap();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.cross-identity-merge-owned")
+        .expect("known schema")
+        .output_identity()
+        .build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(10, 0))
+                        .with_output_identity("gear-tooth-correspondence"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime.switch_branch(main.clone()).unwrap();
+    let target_only = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.cross-identity-merge-owned")
+        .expect("known schema")
+        .output_identity()
+        .build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(target_only, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(11, 0))
+                        .with_output_identity("gear-tooth-correspondence"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    let target_node_count_before_output_identity = runtime.graph().active_node_count();
+
+    let matched_result = runtime
+        .merge()
+        .from(feature)
+        .into(main)
+        .identity_matcher_named("signal.identity.output-identity-in-target-journal")
+        .run()
+        .unwrap();
+
+    assert_eq!(
+        matched_result.selected_identity_matcher_name.as_str(),
+        "signal.identity.output-identity-in-target-journal"
+    );
+    assert_eq!(
+        matched_result.selected_identity_matcher_basis,
+        IdentityMatcherSelectionBasis::RequestNamed
+    );
+    assert_eq!(
+        matched_result
+            .identity_correspondence
+            .rejected_admissibility_count,
+        0
+    );
+    assert_eq!(
+        runtime.graph().active_node_count(),
+        target_node_count_before_output_identity
+    );
+    let matched_record = matched_result
+        .records
+        .iter()
+        .find(|record| record.source_node == feature_only)
+        .expect("identity matcher should reconcile the source-only node onto the target node");
+    assert_eq!(matched_record.target_node, Some(target_only));
+    assert_eq!(
+        matched_record.identity_basis,
+        Some(IdentityCorrespondenceBasis::OutputIdentityTargetJournal)
+    );
+    assert_eq!(
+        matched_record.identity_status,
+        Some(IdentityCorrespondenceStatus::Matched)
+    );
+    assert_eq!(matched_record.identity_candidate_count, 1);
+    assert!(!matches!(
+        matched_record.action,
+        ArtifactMergeAction::IntroducedIntoTarget
+    ));
+}
+
+#[test]
+fn runtime_merge_output_identity_matcher_fails_closed_without_explicit_admissibility() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let mut runtime_ctx = ();
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-identity-matcher-not-admitted")
+        .unwrap();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime.graph_mut().node().output_identity().build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(20, 0))
+                        .with_output_identity("not-admitted-correspondence"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime.switch_branch(main.clone()).unwrap();
+    let target_only = runtime.graph_mut().node().output_identity().build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(target_only, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(21, 0))
+                        .with_output_identity("not-admitted-correspondence"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    let target_node_count_before = runtime.graph().active_node_count();
+
+    let result = runtime
+        .merge()
+        .from(feature)
+        .into(main)
+        .identity_matcher_named("signal.identity.output-identity-in-target-journal")
+        .run()
+        .unwrap();
+
+    assert_eq!(
+        runtime.graph().active_node_count(),
+        target_node_count_before + 1
+    );
+    assert_eq!(
+        result.identity_correspondence.rejected_admissibility_count,
+        1
+    );
+    let correspondence = result
+        .identity_correspondence
+        .records
+        .iter()
+        .find(|record| record.source_node == feature_only)
+        .expect("source node should have identity correspondence record");
+    assert_eq!(
+        correspondence.status,
+        IdentityCorrespondenceStatus::UnmatchedRejectedAdmissibility
+    );
+    assert!(correspondence.admissibility_rejection.is_some());
+    assert!(result
+        .records
+        .iter()
+        .any(|record| record.source_node == feature_only
+            && matches!(record.action, ArtifactMergeAction::IntroducedIntoTarget)));
+}
+
+#[test]
+fn runtime_merge_request_named_source_only_policy_selects_registered_descriptor() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-request-named-source-only-policy")
+        .unwrap();
+    let mut runtime_ctx = ();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime.graph_mut().node().output_identity().build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(30, 0))
+                        .with_output_identity("request-named-source-only-policy"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main.clone()).unwrap();
+
+    let planned = match runtime
+        .merge()
+        .from(feature)
+        .into(main)
+        .source_only_policy_named("signal.source-only.reject-introduction")
+        .plan()
+    {
+        Ok(_) => panic!(
+            "reject-introduction policy must fail closed when source-only adoption is required"
+        ),
+        Err(err) => err,
+    };
+
+    assert!(planned
+        .to_string()
+        .contains("signal.source-only.reject-introduction"));
+}
+
+#[test]
+fn runtime_merge_uses_schema_default_source_only_policy_when_request_is_silent() {
+    let graph = SignalGraph::new().with_schema_registry(source_only_merge_schema_registry(Some(
+        "signal.source-only.reject-introduction",
+    )));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-schema-default-source-only-policy")
+        .unwrap();
+    let mut runtime_ctx = ();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.source-only-merge-owned")
+        .expect("known schema")
+        .output_identity()
+        .build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(31, 0))
+                        .with_output_identity("schema-default-source-only-policy"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main.clone()).unwrap();
+
+    let err = match runtime.merge().from(feature).into(main).plan() {
+        Ok(_) => panic!("schema default reject-introduction should fail closed"),
+        Err(err) => err,
+    };
+
+    assert!(err
+        .to_string()
+        .contains("signal.source-only.reject-introduction"));
+}
+
+#[test]
+fn runtime_merge_node_source_only_policy_override_precedes_schema_default() {
+    let graph = SignalGraph::new().with_schema_registry(source_only_merge_schema_registry(Some(
+        "signal.source-only.reject-introduction",
+    )));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-node-source-only-policy-override")
+        .unwrap();
+    let mut runtime_ctx = ();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.source-only-merge-owned")
+        .expect("known schema")
+        .source_only_policy_name("signal.source-only.introduce-adoptable-skip-non-adoptable")
+        .output_identity()
+        .build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(32, 0))
+                        .with_output_identity("node-source-only-policy-override"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+    runtime.switch_branch(main.clone()).unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .plan()
+        .unwrap();
+
+    assert_eq!(
+        planned.plan().selected_source_only_policy_name().as_str(),
+        "signal.source-only.introduce-adoptable-skip-non-adoptable"
+    );
+    assert_eq!(
+        planned.plan().selected_source_only_policy_basis(),
+        SourceOnlyPolicySelectionBasis::NodeOverride
+    );
+
+    let result = planned.execute().unwrap();
+    assert_eq!(
+        result.selected_source_only_policy_name.as_str(),
+        "signal.source-only.introduce-adoptable-skip-non-adoptable"
+    );
+    assert_eq!(
+        result.selected_source_only_policy_basis,
+        SourceOnlyPolicySelectionBasis::NodeOverride
+    );
+    assert!(result.records.iter().any(|record| {
+        record.source_node == feature_only
+            && matches!(record.action, ArtifactMergeAction::IntroducedIntoTarget)
+    }));
+}
+
+#[test]
+fn runtime_merge_reject_source_only_policy_blocks_introduction_and_preserves_target_breadth() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-reject-source-only-policy")
+        .unwrap();
+    let mut runtime_ctx = ();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime.graph_mut().node().output_identity().build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(33, 0))
+                        .with_output_identity("reject-source-only-policy"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime.switch_branch(main.clone()).unwrap();
+    let target_node_count_before = runtime.graph().active_node_count();
+    let err = runtime
+        .merge()
+        .from(feature)
+        .into(main)
+        .source_only_policy_named("signal.source-only.reject-introduction")
+        .run()
+        .expect_err("reject-introduction policy must block source-only adoption");
+
+    assert!(err
+        .to_string()
+        .contains("rejects introducing source-only node"));
+    assert_eq!(
+        runtime.graph().active_node_count(),
+        target_node_count_before
+    );
+}
+
+#[test]
+fn runtime_merge_uses_schema_default_deletion_policy_when_request_is_silent() {
+    let graph = SignalGraph::new().with_schema_registry(deletion_merge_schema_registry(Some(
+        "signal.deletion.reject-target-only-conflict",
+    )));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let shared = runtime.graph_mut().node().output_identity().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(34, 0))
+                        .with_output_identity("deletion-shared-base"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-schema-default-deletion-policy")
+        .unwrap();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.deletion-merge-owned")
+        .expect("known schema")
+        .output_identity()
+        .build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(34, 0))
+                        .with_output_identity("deletion-shared-base"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime.switch_branch(main.clone()).unwrap();
+    let main_only = runtime.graph_mut().node().output_identity().build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(main_only, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(35, 0))
+                        .with_output_identity("schema-default-deletion-policy"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let err = runtime
+        .merge()
+        .from(feature)
+        .into(main)
+        .run()
+        .expect_err("schema default reject-target-only-conflict should fail closed");
+
+    assert!(err
+        .to_string()
+        .contains("signal.deletion.reject-target-only-conflict"));
+}
+
+#[test]
+fn runtime_merge_node_deletion_policy_override_precedes_schema_default() {
+    let graph = SignalGraph::new().with_schema_registry(deletion_merge_schema_registry(Some(
+        "signal.deletion.reject-target-only-conflict",
+    )));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let shared = runtime.graph_mut().node().output_identity().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(36, 0))
+                        .with_output_identity("deletion-override-shared"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-node-deletion-policy-override")
+        .unwrap();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.deletion-merge-owned")
+        .expect("known schema")
+        .deletion_policy_name("signal.deletion.preserve-target-only")
+        .output_identity()
+        .build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(36, 0))
+                        .with_output_identity("deletion-override-shared"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime.switch_branch(main.clone()).unwrap();
+    let main_only = runtime.graph_mut().node().output_identity().build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(main_only, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(37, 0))
+                        .with_output_identity("node-deletion-policy-override"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let planned = runtime
+        .merge()
+        .from(feature.clone())
+        .into(main.clone())
+        .plan()
+        .unwrap();
+
+    assert_eq!(
+        planned.plan().selected_deletion_policy_name().as_str(),
+        "signal.deletion.preserve-target-only"
+    );
+    assert_eq!(
+        planned.plan().selected_deletion_policy_basis(),
+        DeletionPolicySelectionBasis::NodeOverride
+    );
+
+    let result = planned.execute().unwrap();
+    assert_eq!(
+        result.selected_deletion_policy_name.as_str(),
+        "signal.deletion.preserve-target-only"
+    );
+    assert_eq!(
+        result.selected_deletion_policy_basis,
+        DeletionPolicySelectionBasis::NodeOverride
+    );
+    assert_eq!(result.deletion_plan.target_only_count, 1);
+}
+
+#[test]
+fn runtime_merge_request_named_deletion_policy_precedes_schema_and_node_defaults() {
+    let graph = SignalGraph::new().with_schema_registry(deletion_merge_schema_registry(Some(
+        "signal.deletion.reject-target-only-conflict",
+    )));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let shared = runtime.graph_mut().node().output_identity().build();
+    let mut runtime_ctx = ();
+
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(136, 0))
+                        .with_output_identity("deletion-request-shared"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-request-deletion-policy")
+        .unwrap();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.deletion-merge-owned")
+        .expect("known schema")
+        .deletion_policy_name("signal.deletion.reject-target-only-conflict")
+        .output_identity()
+        .build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.mark_dirty(shared, ASPECT_A)?;
+            tx.read(shared, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(136, 0))
+                        .with_output_identity("deletion-request-shared"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime.switch_branch(main.clone()).unwrap();
+    let main_only = runtime.graph_mut().node().output_identity().build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(main_only, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(137, 0))
+                        .with_output_identity("request-deletion-policy"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let result = runtime
+        .merge()
+        .from(feature)
+        .into(main)
+        .deletion_policy_named("signal.deletion.preserve-target-only")
+        .run()
+        .expect("request deletion policy should override schema and node defaults");
+
+    assert_eq!(
+        result.selected_deletion_policy_name.as_str(),
+        "signal.deletion.preserve-target-only"
+    );
+    assert_eq!(
+        result.selected_deletion_policy_basis,
+        DeletionPolicySelectionBasis::RequestNamed
+    );
+}
+
+#[test]
+fn merge_budget_identity_counters_track_bounded_target_journal_scope() {
+    let graph = SignalGraph::new().with_schema_registry(cross_identity_merge_schema_registry(None));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let mut runtime_ctx = ();
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-identity-budget-counters")
+        .unwrap();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.cross-identity-merge-owned")
+        .expect("known schema")
+        .output_identity()
+        .build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(34, 0))
+                        .with_output_identity("identity-budget-shared"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime.switch_branch(main.clone()).unwrap();
+    let matched_target = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.cross-identity-merge-owned")
+        .expect("known schema")
+        .output_identity()
+        .build();
+    let unrelated_target = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.cross-identity-merge-owned")
+        .expect("known schema")
+        .output_identity()
+        .build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(matched_target, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(35, 0))
+                        .with_output_identity("identity-budget-shared"),
+                ))
+            })?;
+            tx.read(unrelated_target, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(36, 0))
+                        .with_output_identity("identity-budget-unrelated"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let result = runtime
+        .merge()
+        .from(feature)
+        .into(main)
+        .identity_matcher_named("signal.identity.output-identity-in-target-journal")
+        .run()
+        .unwrap();
+
+    assert_eq!(result.identity_correspondence.target_candidate_count, 2);
+    assert_eq!(result.counters.identity_target_candidates_indexed, 2);
+    assert_eq!(result.identity_correspondence.source_lookup_count, 1);
+    assert_eq!(result.counters.identity_source_lookups, 1);
+    assert_eq!(result.identity_correspondence.ambiguous_match_count, 0);
+    assert_eq!(result.counters.identity_ambiguous_match_count, 0);
+    assert_eq!(
+        result.identity_correspondence.rejected_admissibility_count,
+        0
+    );
+    assert_eq!(result.counters.identity_rejected_admissibility_count, 0);
+    let correspondence = result
+        .identity_correspondence
+        .records
+        .iter()
+        .find(|record| record.source_node == feature_only)
+        .expect("identity correspondence record should be present");
+    assert_eq!(correspondence.target_node, Some(matched_target));
+    assert_eq!(correspondence.candidate_count, 1);
+}
+
+#[test]
+fn runtime_merge_output_identity_matcher_rejects_ambiguous_target_journal_candidates() {
+    let graph = SignalGraph::new().with_schema_registry(cross_identity_merge_schema_registry(None));
+    let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
+    let mut runtime_ctx = ();
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("feature-identity-ambiguous-candidates")
+        .unwrap();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_only = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.cross-identity-merge-owned")
+        .expect("known schema")
+        .output_identity()
+        .build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(feature_only, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(37, 0))
+                        .with_output_identity("identity-ambiguous"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime.switch_branch(main.clone()).unwrap();
+    let target_a = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.cross-identity-merge-owned")
+        .expect("known schema")
+        .output_identity()
+        .build();
+    let target_b = runtime
+        .graph_mut()
+        .node()
+        .schema_name("signal.demo.cross-identity-merge-owned")
+        .expect("known schema")
+        .output_identity()
+        .build();
+    runtime
+        .transaction(&mut runtime_ctx, |tx| {
+            tx.read(target_a, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(38, 0))
+                        .with_output_identity("identity-ambiguous"),
+                ))
+            })?;
+            tx.read(target_b, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(39, 0))
+                        .with_output_identity("identity-ambiguous"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let err = runtime
+        .merge()
+        .from(feature)
+        .into(main)
+        .identity_matcher_named("signal.identity.output-identity-in-target-journal")
+        .run()
+        .expect_err("ambiguous output-identity candidates must fail explicitly");
+
+    match err {
+        SignalError::BranchMergeFailed { kind, message, .. } => {
+            assert_eq!(kind, BranchMergeFailureKind::UnsupportedMergeStrategy);
+            assert!(message.contains("ambiguous target journal correspondence"));
+            assert!(message.contains(&feature_only.to_string()));
+        }
+        other => panic!("unexpected error kind: {other:?}"),
+    }
 }
 
 #[test]

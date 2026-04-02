@@ -1452,9 +1452,11 @@ dependencies = [
  "rayon",
  "serde",
  "serde_json",
+ "sha2",
  "smallvec",
  "stats_alloc",
  "tracing",
+ "trybuild",
  "wasm-bindgen",
 ]
 
@@ -1468,6 +1470,7 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
+ "sha2",
  "wasm-bindgen",
 ]
 

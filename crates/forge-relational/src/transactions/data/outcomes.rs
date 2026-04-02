@@ -33,6 +33,21 @@ pub struct MergedCommitPlan {
     pub merged_intents: Vec<MutationIntent>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LoweredCommitPlan {
+    Mutation(MergedCommitPlan),
+    Strategy(crate::commit_strategies::data::LoweredStrategyCommitPlan),
+}
+
+impl LoweredCommitPlan {
+    pub fn merged_plan(&self) -> &MergedCommitPlan {
+        match self {
+            Self::Mutation(plan) => plan,
+            Self::Strategy(plan) => plan.merged_plan(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MergeExecutionStructuralSummary {
     pub executed_record_count: usize,
@@ -524,6 +539,7 @@ pub struct CommitOutcome {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct CommitPhaseTiming {
+    pub draft_preparation_micros: u64,
     pub working_state_preparation_micros: u64,
     pub invariant_pre_check_micros: u64,
     pub authoritative_mutation_micros: u64,

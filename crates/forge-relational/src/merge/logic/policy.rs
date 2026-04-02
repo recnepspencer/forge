@@ -477,6 +477,10 @@ fn aggregate_record_resolution(
 
     if let Some(class) = reject_class {
         MergePolicyDecisionBoundary::Reject { class }
+    } else if classification == MergeConflictClass::StrategyIntentConflict {
+        MergePolicyDecisionBoundary::RequiresManualResolution {
+            class: MergeManualResolutionClass::StrategyIntentConflict,
+        }
     } else if let Some(class) = manual_class {
         MergePolicyDecisionBoundary::RequiresManualResolution { class }
     } else {
@@ -1691,6 +1695,26 @@ mod tests {
             aggregate_record_resolution(MergeConflictClass::SchemaDeclaredCorrespondence, &aspects),
             MergePolicyDecisionBoundary::Reject {
                 class: MergePolicyRejectClass::BuiltInFailOnConflict,
+            }
+        );
+    }
+
+    #[test]
+    fn aggregate_record_resolution_preserves_strategy_conflict_over_generic_aspect_manual_class() {
+        let aspects = [crate::merge::data::AspectPolicyResolutionRecord {
+            aspect_key: AspectKey(InternedString::from("replicas")),
+            comparison: crate::merge::data::AspectComparisonState::Divergent,
+            applied_policy: None,
+            decision_boundary: MergePolicyDecisionBoundary::RequiresManualResolution {
+                class: MergeManualResolutionClass::GenericRuntimeConflict,
+            },
+            resolved_value_strategy: None,
+        }];
+
+        assert_eq!(
+            aggregate_record_resolution(MergeConflictClass::StrategyIntentConflict, &aspects),
+            MergePolicyDecisionBoundary::RequiresManualResolution {
+                class: MergeManualResolutionClass::StrategyIntentConflict,
             }
         );
     }

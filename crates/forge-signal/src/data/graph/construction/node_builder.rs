@@ -1,4 +1,4 @@
-use crate::data::aspect::AspectMask;
+use crate::data::aspect::{Aspect, AspectMask};
 use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
@@ -9,6 +9,12 @@ use crate::data::node::{
 };
 use crate::data::output::PartitionSubscription;
 use crate::data::reuse::{ArtifactEquivalenceContract, NodeReuseContract};
+use crate::logic::transaction::{
+    AspectMergePolicyBinding, AspectMergePolicyName, ConflictIsolationPolicyName,
+    ConflictPolicyName, DeletionPolicyName, IdentityMatcherName, MergeStrategyName,
+    SourceOnlyPolicyName,
+};
+use crate::schema::data::{SignalSchemaId, SignalSchemaName};
 
 /// Fluent node builder for accessible public graph configuration.
 ///
@@ -32,6 +38,109 @@ impl<'a> NodeBuilder<'a> {
     pub fn with_contract(mut self, contract: NodeContract) -> Self {
         self.config.contract = contract;
         self
+    }
+
+    /// Bind an explicit per-node merge strategy override.
+    pub fn merge_strategy_name(mut self, strategy_name: impl Into<String>) -> Self {
+        self.config.merge_strategy_name = Some(MergeStrategyName::new(strategy_name));
+        self
+    }
+
+    /// Bind an explicit per-node conflict policy override.
+    pub fn conflict_policy_name(mut self, policy_name: impl Into<String>) -> Self {
+        self.config.conflict_policy_name = Some(ConflictPolicyName::new(policy_name));
+        self
+    }
+
+    /// Bind an explicit per-node identity matcher override.
+    pub fn identity_matcher_name(mut self, matcher_name: impl Into<String>) -> Self {
+        self.config.identity_matcher_name = Some(IdentityMatcherName::new(matcher_name));
+        self
+    }
+
+    /// Bind an explicit per-node source-only merge policy override.
+    pub fn source_only_policy_name(mut self, policy_name: impl Into<String>) -> Self {
+        self.config.source_only_policy_name = Some(SourceOnlyPolicyName::new(policy_name));
+        self
+    }
+
+    /// Bind an explicit per-node deletion policy override.
+    pub fn deletion_policy_name(mut self, policy_name: impl Into<String>) -> Self {
+        self.config.deletion_policy_name = Some(DeletionPolicyName::new(policy_name));
+        self
+    }
+
+    /// Bind an explicit per-node conflict isolation override.
+    pub fn conflict_isolation_policy_name(mut self, policy_name: impl Into<String>) -> Self {
+        self.config.conflict_isolation_policy_name =
+            Some(ConflictIsolationPolicyName::new(policy_name));
+        self
+    }
+
+    /// Bind an explicit per-aspect merge policy override.
+    pub fn aspect_merge_policy_name(
+        mut self,
+        aspect: Aspect,
+        policy_name: impl Into<String>,
+    ) -> Self {
+        let policy_name = AspectMergePolicyName::new(policy_name);
+        if let Some(existing) = self
+            .config
+            .aspect_merge_policy_bindings
+            .iter_mut()
+            .find(|binding| binding.aspect == aspect)
+        {
+            existing.policy_name = policy_name;
+        } else {
+            self.config
+                .aspect_merge_policy_bindings
+                .push(AspectMergePolicyBinding::new(aspect, policy_name));
+            self.config
+                .aspect_merge_policy_bindings
+                .sort_by_key(|binding| binding.aspect.id());
+        }
+        self
+    }
+
+    /// Bind this node to a schema descriptor by semantic name and inherit its default contract.
+    pub fn schema_name(
+        mut self,
+        schema_name: impl Into<String>,
+    ) -> Result<Self, crate::data::error::SignalError> {
+        let schema_name = SignalSchemaName::new(schema_name);
+        let descriptor = self
+            .graph
+            .schema_registry()
+            .resolve_by_name(&schema_name)
+            .ok_or_else(|| {
+                crate::data::error::SignalError::invalid_input(format!(
+                    "unknown signal schema `{}`",
+                    schema_name.as_str()
+                ))
+            })?;
+        self.config.schema_binding = Some(descriptor.binding());
+        self.config.contract = descriptor.default_contract().clone();
+        Ok(self)
+    }
+
+    /// Bind this node to a schema descriptor by registry id and inherit its default contract.
+    pub fn schema_id(
+        mut self,
+        schema_id: SignalSchemaId,
+    ) -> Result<Self, crate::data::error::SignalError> {
+        let descriptor = self
+            .graph
+            .schema_registry()
+            .resolve_by_id(schema_id)
+            .ok_or_else(|| {
+                crate::data::error::SignalError::invalid_input(format!(
+                    "unknown signal schema id `{}`",
+                    schema_id.0
+                ))
+            })?;
+        self.config.schema_binding = Some(descriptor.binding());
+        self.config.contract = descriptor.default_contract().clone();
+        Ok(self)
     }
 
     /// Declare which upstream aspects this node reads.

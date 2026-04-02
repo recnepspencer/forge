@@ -22,6 +22,7 @@ use crate::data::telemetry::RuntimeTelemetry;
 use crate::diagnostics::lineage::LineageArtifactId;
 use crate::diagnostics::state::DiagnosticsState;
 use crate::diagnostics::DiagnosticsLevel;
+use crate::schema::data::SignalSchemaRegistry;
 use crate::state::{
     SignalCheckpointArena, SignalCheckpointAuthority, SignalCheckpointSlot,
     SignalCheckpointTopology,
@@ -82,6 +83,8 @@ pub(crate) struct RuntimeObservation {
     pub(in crate::data::graph) reconstruction_counters: ReconstructionCounters,
     #[serde(default)]
     pub(in crate::data::graph) partition_interner: PartitionInterner,
+    #[serde(default)]
+    pub(in crate::data::graph) branch_mutation_view: BTreeMap<NodeId, BranchMutationRecord>,
     #[serde(default)]
     pub(in crate::data::graph) branch_mutation_records: BTreeMap<NodeId, BranchMutationRecord>,
     #[serde(skip, default)]
@@ -412,6 +415,8 @@ pub struct SignalGraph {
     pub(in crate::data::graph) topology: EdgeTopology,
     pub(in crate::data::graph) traversal: TraversalResources,
     pub(in crate::data::graph) observation: RuntimeObservation,
+    #[serde(skip, default)]
+    pub(in crate::data::graph) schema_registry: SignalSchemaRegistry,
 }
 
 const NODE_ARENA_RESERVE_CHUNK: usize = 1024;
@@ -441,6 +446,7 @@ impl SignalGraph {
             topology: EdgeTopology::default(),
             traversal: TraversalResources::default(),
             observation: RuntimeObservation::default(),
+            schema_registry: SignalSchemaRegistry::default(),
         }
     }
 
@@ -452,6 +458,19 @@ impl SignalGraph {
 
     pub(crate) fn clone_stateful(&self) -> Self {
         self.clone()
+    }
+
+    pub fn with_schema_registry(mut self, schema_registry: SignalSchemaRegistry) -> Self {
+        self.schema_registry = schema_registry;
+        self
+    }
+
+    pub fn set_schema_registry(&mut self, schema_registry: SignalSchemaRegistry) {
+        self.schema_registry = schema_registry;
+    }
+
+    pub fn schema_registry(&self) -> &SignalSchemaRegistry {
+        &self.schema_registry
     }
 
     pub(crate) fn capture_checkpoint_authority(&self) -> SignalCheckpointAuthority {
@@ -467,6 +486,7 @@ impl SignalGraph {
         }
         graph.observation.telemetry = RuntimeTelemetry::default();
         graph.observation.reconstruction_counters = ReconstructionCounters::default();
+        graph.observation.branch_mutation_view.clear();
         graph.observation.branch_mutation_records.clear();
         graph.topology.dependency_snapshots = DependencySnapshotStore::default();
         graph.topology.dependency_snapshot_shapes = DependencySnapshotShapeStore::default();
@@ -580,9 +600,11 @@ impl SignalGraph {
                 telemetry: RuntimeTelemetry::default(),
                 reconstruction_counters: ReconstructionCounters::default(),
                 partition_interner: PartitionInterner::default(),
+                branch_mutation_view: BTreeMap::new(),
                 branch_mutation_records: BTreeMap::new(),
                 diagnostics: authority.diagnostics.clone(),
             },
+            schema_registry: SignalSchemaRegistry::default(),
         }
     }
 
@@ -700,8 +722,14 @@ impl SignalGraph {
     fn record_branch_mutation(
         &mut self,
         node: NodeId,
-        update: impl FnOnce(&mut BranchMutationRecord),
+        mut update: impl FnMut(&mut BranchMutationRecord),
     ) {
+        update(
+            self.observation
+                .branch_mutation_view
+                .entry(node)
+                .or_default(),
+        );
         update(
             self.observation
                 .branch_mutation_records
@@ -723,7 +751,9 @@ impl SignalGraph {
         node: NodeId,
         delta: DependencyTopologyDelta,
     ) {
-        self.record_branch_mutation(node, |record| record.mark_dependencies_changed(delta));
+        self.record_branch_mutation(node, |record| {
+            record.mark_dependencies_changed(delta.clone())
+        });
     }
 
     pub(crate) fn record_branch_mutation_snapshot(
@@ -732,7 +762,7 @@ impl SignalGraph {
         delta: DependencySnapshotStructuralDelta,
     ) {
         self.record_branch_mutation(node, |record| {
-            record.mark_dependency_snapshot_changed(delta)
+            record.mark_dependency_snapshot_changed(delta.clone())
         });
     }
 
@@ -741,7 +771,9 @@ impl SignalGraph {
         node: NodeId,
         delta: RuntimeArtifactStructuralDelta,
     ) {
-        self.record_branch_mutation(node, |record| record.mark_runtime_artifact_changed(delta));
+        self.record_branch_mutation(node, |record| {
+            record.mark_runtime_artifact_changed(delta.clone())
+        });
     }
 
     pub(crate) fn record_branch_mutation_retained_artifact(&mut self, node: NodeId) {
@@ -752,7 +784,16 @@ impl SignalGraph {
         self.record_branch_mutation(node, BranchMutationRecord::mark_causality_changed);
     }
 
+    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn branch_mutation_records(&self) -> Vec<(NodeId, BranchMutationRecord)> {
+        self.observation
+            .branch_mutation_view
+            .iter()
+            .map(|(node, record)| (*node, record.clone()))
+            .collect()
+    }
+
+    pub(crate) fn pending_branch_mutation_records(&self) -> Vec<(NodeId, BranchMutationRecord)> {
         self.observation
             .branch_mutation_records
             .iter()

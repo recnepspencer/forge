@@ -238,7 +238,9 @@ pub fn record_branch_merge_failure(
             Some(target_branch),
             crate::data::error::SignalError::BranchMergeFailed {
                 kind,
-                evidence: Some(evidence),
+                evidence: Some(crate::logic::transaction::BranchMergeFailureEvidence::Conflict(
+                    evidence,
+                )),
                 ..
             },
         ) => format!(
@@ -248,6 +250,41 @@ pub fn record_branch_merge_failure(
             evidence.divergence,
             evidence.summary.primary_conflict_kind,
             evidence.summary.required_resolution
+        ),
+        (
+            Some(source_branch),
+            Some(target_branch),
+            crate::data::error::SignalError::BranchMergeFailed {
+                kind,
+                evidence: Some(crate::logic::transaction::BranchMergeFailureEvidence::Identity(
+                    evidence,
+                )),
+                ..
+            },
+        ) => format!(
+            "branch merge failed {} -> {} ({kind:?}, identity_matcher={}, source_node={}, candidates={:?})",
+            source_branch.id.0,
+            target_branch.id.0,
+            evidence.identity_matcher_name.as_str(),
+            evidence.source_node,
+            evidence.candidate_target_nodes
+        ),
+        (
+            Some(source_branch),
+            Some(target_branch),
+            crate::data::error::SignalError::BranchMergeFailed {
+                kind,
+                evidence: Some(crate::logic::transaction::BranchMergeFailureEvidence::Deletion(
+                    evidence,
+                )),
+                ..
+            },
+        ) => format!(
+            "branch merge failed {} -> {} ({kind:?}, deletion_policy={}, target_only_nodes={:?})",
+            source_branch.id.0,
+            target_branch.id.0,
+            evidence.deletion_policy_name.as_str(),
+            evidence.target_only_nodes
         ),
         (
             Some(source_branch),

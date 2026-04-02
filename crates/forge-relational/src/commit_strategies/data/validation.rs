@@ -13,6 +13,7 @@ pub(crate) struct PreparedStrategyAuthorityScope {
 #[derive(Debug, Clone)]
 pub struct ValidatedStrategyCommitPlan {
     lowered: LoweredStrategyCommitPlan,
+    validated_against_commit_id: Option<crate::history::data::CommitId>,
     validated_against_version_id: crate::identity::data::VersionId,
     prepared_scope: PreparedStrategyAuthorityScope,
     commit_boundary_invariants: InvariantExecutionResult,
@@ -81,6 +82,7 @@ impl StrategyPreviewValidationCostSummary {
 impl ValidatedStrategyCommitPlan {
     pub(crate) fn new(
         lowered: LoweredStrategyCommitPlan,
+        validated_against_commit_id: Option<crate::history::data::CommitId>,
         validated_against_version_id: crate::identity::data::VersionId,
         prepared_scope: PreparedStrategyAuthorityScope,
         commit_boundary_invariants: InvariantExecutionResult,
@@ -91,6 +93,7 @@ impl ValidatedStrategyCommitPlan {
     ) -> Self {
         Self {
             lowered,
+            validated_against_commit_id,
             validated_against_version_id,
             prepared_scope,
             commit_boundary_invariants,
@@ -108,6 +111,10 @@ impl ValidatedStrategyCommitPlan {
 
     pub fn validated_against_version_id(&self) -> crate::identity::data::VersionId {
         self.validated_against_version_id
+    }
+
+    pub fn validated_against_commit_id(&self) -> Option<crate::history::data::CommitId> {
+        self.validated_against_commit_id
     }
 
     pub fn commit_boundary_invariants(&self) -> &InvariantExecutionResult {

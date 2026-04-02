@@ -18,15 +18,16 @@ where
     ) -> Result<SignalBranchHandle, SignalError> {
         let current_branch_name = self.graph.current_branch().name;
         let parent_branch_id = self.graph.current_branch().id;
+        let parent_head_snapshot_id = self.graph.current_branch().head_snapshot_id;
         let handle = self.graph.diagnostics_state_mut().create_branch(name);
         let mut branch_state = self.capture_heavy_branch_state();
-        *branch_state.ancestry_mut() = BranchAncestryState::new(
-            handle.id,
-            Some(parent_branch_id),
-            self.graph.current_branch().head_snapshot_id,
-        );
+        *branch_state.ancestry_mut() =
+            BranchAncestryState::new(handle.id, Some(parent_branch_id), parent_head_snapshot_id);
         branch_state.reset_mutation_ledger(handle.head_snapshot_id);
         branch_state.clear_branch_mutation_nodes();
+        self.branches
+            .branch_mutation_ledger_mut(parent_branch_id, parent_head_snapshot_id)
+            .clear_all(parent_head_snapshot_id);
         branch_state
             .graph_mut()
             .diagnostics_state_mut()

@@ -10,7 +10,8 @@ use crate::merge::data::{
     MergeLoweredAspectDigestRow, MergeLoweredPlanDigestBasis, MergePlanningArtifactCore,
     MergePlanningSummary, MergePolicyAspectDigestRow, MergePolicyDigestBasis,
     MergeRequestDigestBasis, MergeSchemaKindClass, MergeSchemaKindSemanticSnapshot,
-    MergeSchemaSnapshotDigestBasis, VisibleMergeRecordKind,
+    MergeSchemaSnapshotDigestBasis, MergeVisibilityEvidence, MergeVisibilityEvidenceKind,
+    VisibleMergeRecordKind,
 };
 use crate::schema::data::RelationalSchemaRegistry;
 use crate::transactions::data::RecordRef;
@@ -208,7 +209,7 @@ pub(super) fn materialize_planning_artifact(
             base_visibility_evidence: std::sync::Arc::from(
                 plan.classifications
                     .iter()
-                    .map(|classification| classification.base_visibility_evidence.clone())
+                    .map(normalized_base_visibility_evidence_for_digest)
                     .collect::<Vec<_>>(),
             ),
             aspect_evidence_keys: std::sync::Arc::from(
@@ -429,6 +430,20 @@ pub(super) fn materialize_planning_artifact(
             ancestry_summary,
         },
     }
+}
+
+fn normalized_base_visibility_evidence_for_digest(
+    classification: &crate::merge::data::MergeConflictClassification,
+) -> MergeVisibilityEvidence {
+    let mut evidence = classification.base_visibility_evidence.clone();
+    if evidence.kind == MergeVisibilityEvidenceKind::BaseHistoricalWindow
+        && classification.base_record_visible
+        && classification.source_record_visible
+        && classification.target_record_visible
+    {
+        evidence.kind = MergeVisibilityEvidenceKind::BaseResolvedViewLookup;
+    }
+    evidence
 }
 
 pub(crate) fn merge_schema_snapshot_for_execution_ready(

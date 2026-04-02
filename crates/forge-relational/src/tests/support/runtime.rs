@@ -1,6 +1,35 @@
 use super::*;
+use crate::facade::diagnostics::RelationalDiagnosticsProfile;
 
 static TEST_STORE_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum PerfDiagnosticsPolicy {
+    GeometryOperationalHotPath,
+    GeometryRichCertification,
+    ChipOperationalHotPath,
+    ChipRichCertification,
+}
+
+pub(crate) fn apply_perf_diagnostics_policy(
+    runtime: &mut RelationalRuntime,
+    policy: PerfDiagnosticsPolicy,
+) {
+    runtime.config.diagnostics.profile = match policy {
+        PerfDiagnosticsPolicy::GeometryOperationalHotPath => {
+            RelationalDiagnosticsProfile::geometry_operational_hot_path()
+        }
+        PerfDiagnosticsPolicy::GeometryRichCertification => {
+            RelationalDiagnosticsProfile::geometry_rich_certification()
+        }
+        PerfDiagnosticsPolicy::ChipOperationalHotPath => {
+            RelationalDiagnosticsProfile::chip_operational_hot_path()
+        }
+        PerfDiagnosticsPolicy::ChipRichCertification => {
+            RelationalDiagnosticsProfile::chip_rich_certification()
+        }
+    };
+}
 
 pub(crate) fn runtime_with_test_schema() -> RelationalRuntime {
     runtime_with_test_schema_profile(RelationalRuntimeProfile::CertificationCore)
@@ -35,9 +64,31 @@ pub(crate) fn runtime_with_test_schema_profile(
         .build()
 }
 
-pub(crate) fn persisted_runtime_with_test_schema() -> RelationalRuntime {
+pub(crate) fn runtime_with_test_schema_profile_and_chunks(
+    profile: RelationalRuntimeProfile,
+    entity_chunk_size: usize,
+    relation_chunk_size: usize,
+) -> RelationalRuntime {
     RelationalRuntimeApi::builder()
-        .profile(RelationalRuntimeProfile::CertificationCore)
+        .profile(profile)
+        .schema_registry(test_schema_registry())
+        .storage_layout(StorageLayoutConfig {
+            entity_chunk_size,
+            relation_chunk_size,
+            scan_packet_size: 256,
+        })
+        .build()
+}
+
+pub(crate) fn persisted_runtime_with_test_schema() -> RelationalRuntime {
+    persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::CertificationCore)
+}
+
+pub(crate) fn persisted_runtime_with_test_schema_profile(
+    profile: RelationalRuntimeProfile,
+) -> RelationalRuntime {
+    RelationalRuntimeApi::builder()
+        .profile(profile)
         .schema_registry(test_schema_registry())
         .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
         .durable_store_layout(DurableStoreLayout {

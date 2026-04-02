@@ -92,6 +92,13 @@ fn runtime_builder_uses_expected_defaults() {
 }
 
 #[test]
+fn merge_api_compile_fail_boundaries_hold() {
+    let cases = trybuild::TestCases::new();
+    cases.compile_fail("tests/ui/runtime_builder_requires_complete_defaults.rs");
+    cases.compile_fail("tests/ui/lowered_merge_plan_fields_are_private.rs");
+}
+
+#[test]
 fn hot_apply_modules_do_not_use_broad_entry_accessors_for_reads() {
     for (name, source) in [
         ("apply", HOT_APPLY_SOURCE),

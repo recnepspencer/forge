@@ -998,6 +998,9 @@ fn collect_touched_structural_set(
                 MutationIntent::Entity(EntityMutationIntent::Update(spec)) => {
                     visible_entities.insert(spec.entity_id);
                 }
+                MutationIntent::Entity(EntityMutationIntent::UpdateFields(spec)) => {
+                    visible_entities.insert(spec.entity_id);
+                }
                 MutationIntent::Entity(EntityMutationIntent::Replace(spec)) => {
                     visible_entities.insert(spec.entity_id);
                 }

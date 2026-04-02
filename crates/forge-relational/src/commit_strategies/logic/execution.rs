@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::Arc;
 
+use crate::capabilities::SchemaSource;
 use crate::commit_strategies::data::{
     CanonicalStrategyCommitRequest, CommitStrategyDescriptorDigest,
     CommitStrategyExecutionRegistration, CommitStrategyExecutor, CommitStrategyId,
@@ -176,6 +177,7 @@ pub(crate) fn bind_execution<'runtime>(
         observation: StrategyObservationContext::new(
             snapshot,
             descriptor.read_contract(),
+            runtime.schema_registry(),
             visibility,
         ),
     })

@@ -2,8 +2,12 @@ use serde::{de::Error as DeError, Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
 use std::io::{self, Write};
 
+use crate::config::data::RelationalRuntimeConfig;
+use crate::history::data::CommitId;
 use crate::identity::data::VersionId;
+use crate::schema::data::{DescriptorCanonicalizationVersion, DescriptorSemanticsVersion};
 use crate::transactions::data::CommitValidationSummary;
+use std::sync::Arc;
 
 use super::{
     CanonicalStrategyCommitRequest, CanonicalStrategyInputArtifact, CanonicalStrategyInputDigest,
@@ -19,7 +23,54 @@ use super::{
 pub enum StrategyMergeConflictClass {
     IntentReconciliation,
     ReplicaConvergence,
+    EntityReplacement,
     Custom,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct StrategyIntentScopeDigest([u8; 32]);
+
+impl StrategyIntentScopeDigest {
+    pub fn new(digest: [u8; 32]) -> Self {
+        Self(digest)
+    }
+
+    pub fn bytes(&self) -> &[u8; 32] {
+        &self.0
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StrategyMergeSemantics {
+    conflict_class: StrategyMergeConflictClass,
+    requires_causal_comparison: bool,
+    respects_aspect_merge_policies: bool,
+}
+
+impl StrategyMergeSemantics {
+    pub fn new(
+        conflict_class: StrategyMergeConflictClass,
+        requires_causal_comparison: bool,
+        respects_aspect_merge_policies: bool,
+    ) -> Self {
+        Self {
+            conflict_class,
+            requires_causal_comparison,
+            respects_aspect_merge_policies,
+        }
+    }
+
+    pub fn conflict_class(&self) -> StrategyMergeConflictClass {
+        self.conflict_class
+    }
+
+    pub fn requires_causal_comparison(&self) -> bool {
+        self.requires_causal_comparison
+    }
+
+    pub fn respects_aspect_merge_policies(&self) -> bool {
+        self.respects_aspect_merge_policies
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -30,7 +81,9 @@ pub struct StrategyMergeDescriptor {
     family_name: CommitStrategyFamilyName,
     version: CommitStrategyVersion,
     intent_name: StrategyIntentName,
-    conflict_class: StrategyMergeConflictClass,
+    intent_scope_digest: StrategyIntentScopeDigest,
+    intent_scope_fields: Arc<[String]>,
+    merge_semantics: StrategyMergeSemantics,
     lowering_summary_digest: [u8; 32],
 }
 
@@ -46,7 +99,9 @@ impl StrategyMergeDescriptor {
             family_name: descriptor.family_name().clone(),
             version: descriptor.version(),
             intent_name: descriptor.intent_name().clone(),
-            conflict_class: merge_conflict_class_for_descriptor(descriptor),
+            intent_scope_digest: strategy_intent_scope_digest(descriptor, lowered),
+            intent_scope_fields: strategy_intent_scope_fields(descriptor, lowered),
+            merge_semantics: merge_semantics_for_descriptor(descriptor),
             lowering_summary_digest: stable_digest(lowered.lowering_summary()),
         }
     }
@@ -75,8 +130,16 @@ impl StrategyMergeDescriptor {
         &self.intent_name
     }
 
-    pub fn conflict_class(&self) -> StrategyMergeConflictClass {
-        self.conflict_class
+    pub fn intent_scope_digest(&self) -> StrategyIntentScopeDigest {
+        self.intent_scope_digest
+    }
+
+    pub fn intent_scope_fields(&self) -> &[String] {
+        &self.intent_scope_fields
+    }
+
+    pub fn merge_semantics(&self) -> StrategyMergeSemantics {
+        self.merge_semantics
     }
 
     pub fn lowering_summary_digest(&self) -> &[u8; 32] {
@@ -98,11 +161,16 @@ pub struct StrategyReplayDescriptor {
     lowering_summary_digest: [u8; 32],
     preview_validation_summary_digest: Option<[u8; 32]>,
     preview_validation_cost_digest: Option<[u8; 32]>,
+    validated_against_commit_id: Option<CommitId>,
     validated_against_version_id: Option<VersionId>,
+    runtime_determinism_basis: StrategyRuntimeDeterminismBasis,
 }
 
 impl StrategyReplayDescriptor {
-    pub fn from_lowered(lowered: &LoweredStrategyCommitPlan) -> Self {
+    pub fn from_lowered(
+        lowered: &LoweredStrategyCommitPlan,
+        runtime_config: &RelationalRuntimeConfig,
+    ) -> Self {
         Self {
             strategy_id: lowered.lowering_provenance().strategy_id(),
             descriptor_digest: lowered.lowering_provenance().descriptor_digest(),
@@ -116,7 +184,11 @@ impl StrategyReplayDescriptor {
             lowering_summary_digest: stable_digest(lowered.lowering_summary()),
             preview_validation_summary_digest: None,
             preview_validation_cost_digest: None,
+            validated_against_commit_id: None,
             validated_against_version_id: None,
+            runtime_determinism_basis: StrategyRuntimeDeterminismBasis::from_runtime_config(
+                runtime_config,
+            ),
         }
     }
 
@@ -124,10 +196,12 @@ impl StrategyReplayDescriptor {
         mut self,
         preview_validation_summary: &CommitValidationSummary,
         preview_validation_cost: &StrategyPreviewValidationCostSummary,
+        validated_against_commit_id: Option<CommitId>,
         validated_against_version_id: VersionId,
     ) -> Self {
         self.preview_validation_summary_digest = Some(stable_digest(preview_validation_summary));
         self.preview_validation_cost_digest = Some(stable_digest(preview_validation_cost));
+        self.validated_against_commit_id = validated_against_commit_id;
         self.validated_against_version_id = Some(validated_against_version_id);
         self
     }
@@ -180,8 +254,69 @@ impl StrategyReplayDescriptor {
         self.preview_validation_cost_digest.as_ref()
     }
 
+    pub fn validated_against_commit_id(&self) -> Option<CommitId> {
+        self.validated_against_commit_id
+    }
+
     pub fn validated_against_version_id(&self) -> Option<VersionId> {
         self.validated_against_version_id
+    }
+
+    pub fn runtime_determinism_basis(&self) -> &StrategyRuntimeDeterminismBasis {
+        &self.runtime_determinism_basis
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StrategyRuntimeDeterminismBasis {
+    schema_registry_digest: [u8; 32],
+    invariant_catalog_digest: [u8; 32],
+    planning_contract_digest: [u8; 32],
+    execution_model_digest: [u8; 32],
+    descriptor_semantics_version: DescriptorSemanticsVersion,
+    descriptor_canonicalization_version: DescriptorCanonicalizationVersion,
+}
+
+impl StrategyRuntimeDeterminismBasis {
+    pub fn from_runtime_config(runtime_config: &RelationalRuntimeConfig) -> Self {
+        Self {
+            schema_registry_digest: stable_digest(&runtime_config.schema.registry),
+            invariant_catalog_digest: stable_digest(&runtime_config.schema.invariant_catalog),
+            planning_contract_digest: stable_digest(&runtime_config.execution.planning),
+            execution_model_digest: stable_digest(&runtime_config.execution.execution_model),
+            descriptor_semantics_version: runtime_config
+                .schema
+                .descriptor_semantics_policy
+                .current_write_version(),
+            descriptor_canonicalization_version: runtime_config
+                .schema
+                .descriptor_canonicalization_policy
+                .current_write_version(),
+        }
+    }
+
+    pub fn schema_registry_digest(&self) -> &[u8; 32] {
+        &self.schema_registry_digest
+    }
+
+    pub fn invariant_catalog_digest(&self) -> &[u8; 32] {
+        &self.invariant_catalog_digest
+    }
+
+    pub fn planning_contract_digest(&self) -> &[u8; 32] {
+        &self.planning_contract_digest
+    }
+
+    pub fn execution_model_digest(&self) -> &[u8; 32] {
+        &self.execution_model_digest
+    }
+
+    pub fn descriptor_semantics_version(&self) -> DescriptorSemanticsVersion {
+        self.descriptor_semantics_version
+    }
+
+    pub fn descriptor_canonicalization_version(&self) -> DescriptorCanonicalizationVersion {
+        self.descriptor_canonicalization_version
     }
 }
 
@@ -204,7 +339,9 @@ impl<'de> Deserialize<'de> for StrategyReplayDescriptor {
             lowering_summary_digest: [u8; 32],
             preview_validation_summary_digest: Option<[u8; 32]>,
             preview_validation_cost_digest: Option<[u8; 32]>,
+            validated_against_commit_id: Option<CommitId>,
             validated_against_version_id: Option<VersionId>,
+            runtime_determinism_basis: StrategyRuntimeDeterminismBasis,
         }
 
         let raw = RawStrategyReplayDescriptor::deserialize(deserializer)?;
@@ -221,7 +358,9 @@ impl<'de> Deserialize<'de> for StrategyReplayDescriptor {
             lowering_summary_digest: raw.lowering_summary_digest,
             preview_validation_summary_digest: raw.preview_validation_summary_digest,
             preview_validation_cost_digest: raw.preview_validation_cost_digest,
+            validated_against_commit_id: raw.validated_against_commit_id,
             validated_against_version_id: raw.validated_against_version_id,
+            runtime_determinism_basis: raw.runtime_determinism_basis,
         })
     }
 }
@@ -235,6 +374,7 @@ pub struct StrategyCommitArtifactBundle {
     replay_descriptor: StrategyReplayDescriptor,
     preview_validation_summary: Option<CommitValidationSummary>,
     preview_validation_cost: Option<StrategyPreviewValidationCostSummary>,
+    validated_against_commit_id: Option<CommitId>,
     validated_against_version_id: Option<VersionId>,
 }
 
@@ -242,6 +382,7 @@ impl StrategyCommitArtifactBundle {
     pub fn from_lowered(
         lowered: &LoweredStrategyCommitPlan,
         descriptor: &CommitStrategyDescriptor,
+        runtime_config: &RelationalRuntimeConfig,
     ) -> Self {
         Self {
             lowering_provenance: lowered.lowering_provenance(),
@@ -250,9 +391,10 @@ impl StrategyCommitArtifactBundle {
             merge_descriptor: StrategyMergeDescriptor::from_descriptor_and_lowered(
                 descriptor, lowered,
             ),
-            replay_descriptor: StrategyReplayDescriptor::from_lowered(lowered),
+            replay_descriptor: StrategyReplayDescriptor::from_lowered(lowered, runtime_config),
             preview_validation_summary: None,
             preview_validation_cost: None,
+            validated_against_commit_id: None,
             validated_against_version_id: None,
         }
     }
@@ -261,15 +403,18 @@ impl StrategyCommitArtifactBundle {
         mut self,
         preview_validation_summary: CommitValidationSummary,
         preview_validation_cost: StrategyPreviewValidationCostSummary,
+        validated_against_commit_id: Option<CommitId>,
         validated_against_version_id: VersionId,
     ) -> Self {
         self.replay_descriptor = self.replay_descriptor.with_preview_validation(
             &preview_validation_summary,
             &preview_validation_cost,
+            validated_against_commit_id,
             validated_against_version_id,
         );
         self.preview_validation_summary = Some(preview_validation_summary);
         self.preview_validation_cost = Some(preview_validation_cost);
+        self.validated_against_commit_id = validated_against_commit_id;
         self.validated_against_version_id = Some(validated_against_version_id);
         self
     }
@@ -300,6 +445,10 @@ impl StrategyCommitArtifactBundle {
 
     pub fn preview_validation_cost(&self) -> Option<StrategyPreviewValidationCostSummary> {
         self.preview_validation_cost
+    }
+
+    pub fn validated_against_commit_id(&self) -> Option<CommitId> {
+        self.validated_against_commit_id
     }
 
     pub fn validated_against_version_id(&self) -> Option<VersionId> {
@@ -425,6 +574,12 @@ impl StrategyCommitArtifactBundle {
                 "strategy validated-against version id does not match strategy replay descriptor",
             );
         }
+        if self.validated_against_commit_id != self.replay_descriptor.validated_against_commit_id()
+        {
+            return Err(
+                "strategy validated-against commit id does not match strategy replay descriptor",
+            );
+        }
         Ok(())
     }
 }
@@ -443,6 +598,7 @@ impl<'de> Deserialize<'de> for StrategyCommitArtifactBundle {
             replay_descriptor: StrategyReplayDescriptor,
             preview_validation_summary: Option<CommitValidationSummary>,
             preview_validation_cost: Option<StrategyPreviewValidationCostSummary>,
+            validated_against_commit_id: Option<CommitId>,
             validated_against_version_id: Option<VersionId>,
         }
 
@@ -455,6 +611,7 @@ impl<'de> Deserialize<'de> for StrategyCommitArtifactBundle {
             replay_descriptor: raw.replay_descriptor,
             preview_validation_summary: raw.preview_validation_summary,
             preview_validation_cost: raw.preview_validation_cost,
+            validated_against_commit_id: raw.validated_against_commit_id,
             validated_against_version_id: raw.validated_against_version_id,
         };
         bundle.validate_consistency().map_err(D::Error::custom)?;
@@ -502,13 +659,120 @@ fn merge_conflict_class_for_descriptor(
     match descriptor.family_name().as_str() {
         "strategy.intent" => StrategyMergeConflictClass::IntentReconciliation,
         "strategy.replica" => StrategyMergeConflictClass::ReplicaConvergence,
+        "strategy.replace" => StrategyMergeConflictClass::EntityReplacement,
         _ => StrategyMergeConflictClass::Custom,
     }
 }
 
+fn merge_semantics_for_descriptor(descriptor: &CommitStrategyDescriptor) -> StrategyMergeSemantics {
+    let requires_causal_comparison =
+        !matches!(descriptor.family_name().as_str(), "strategy.aspect");
+    StrategyMergeSemantics::new(
+        merge_conflict_class_for_descriptor(descriptor),
+        requires_causal_comparison,
+        true,
+    )
+}
+
+fn strategy_intent_scope_digest(
+    descriptor: &CommitStrategyDescriptor,
+    lowered: &LoweredStrategyCommitPlan,
+) -> StrategyIntentScopeDigest {
+    if let Some(digest) = semantic_intent_scope_digest(descriptor, lowered) {
+        return StrategyIntentScopeDigest::new(digest);
+    }
+    let mut targets = lowered
+        .merged_plan()
+        .merged_intents
+        .iter()
+        .filter_map(|intent| intent.existing_record_target())
+        .collect::<Vec<_>>();
+    targets.sort();
+    targets.dedup();
+    StrategyIntentScopeDigest::new(stable_digest(&(
+        lowered.request().strategy_id(),
+        lowered.request().canonical_input().schema_name(),
+        lowered.request().canonical_input().schema_version(),
+        lowered.request().canonical_input().digest(),
+        targets,
+    )))
+}
+
+fn strategy_intent_scope_fields(
+    descriptor: &CommitStrategyDescriptor,
+    lowered: &LoweredStrategyCommitPlan,
+) -> Arc<[String]> {
+    semantic_intent_scope_fields(descriptor, lowered)
+        .unwrap_or_default()
+        .into()
+}
+
+fn semantic_intent_scope_digest(
+    descriptor: &CommitStrategyDescriptor,
+    lowered: &LoweredStrategyCommitPlan,
+) -> Option<[u8; 32]> {
+    let fields = semantic_intent_scope_fields(descriptor, lowered)?;
+    let input = serde_json::from_slice::<serde_json::Value>(
+        lowered.request().canonical_input().canonical_bytes(),
+    )
+    .ok()?;
+    let scope = match descriptor.family_name().as_str() {
+        "strategy.aspect" => {
+            let entity_id = input.get("entity_id")?.clone();
+            stable_digest(&("entity-fields", entity_id, &fields))
+        }
+        "strategy.replica" => {
+            let entity_id = input.get("entity_id")?.clone();
+            stable_digest(&("entity-fields", entity_id, &fields))
+        }
+        "strategy.intent" => {
+            let entity_id = input.get("entity_id")?.clone();
+            stable_digest(&("entity-fields", entity_id, &fields))
+        }
+        "strategy.replace" => {
+            let entity_id = input.get("entity_id")?.clone();
+            let replacement_client_key = input.get("replacement_client_key")?.as_str()?;
+            stable_digest(&(
+                "entity-replacement",
+                entity_id,
+                replacement_client_key.to_string(),
+                &fields,
+            ))
+        }
+        _ => return None,
+    };
+    Some(scope)
+}
+
+fn semantic_intent_scope_fields(
+    descriptor: &CommitStrategyDescriptor,
+    lowered: &LoweredStrategyCommitPlan,
+) -> Option<Vec<String>> {
+    let input = serde_json::from_slice::<serde_json::Value>(
+        lowered.request().canonical_input().canonical_bytes(),
+    )
+    .ok()?;
+    let mut fields = match descriptor.family_name().as_str() {
+        "strategy.aspect" => vec![input.get("field_name")?.as_str()?.to_string()],
+        "strategy.replica" => vec!["replicas".to_string()],
+        "strategy.intent" | "strategy.replace" => input
+            .get("desired_payload")?
+            .as_object()?
+            .keys()
+            .cloned()
+            .collect::<Vec<_>>(),
+        _ => return None,
+    };
+    fields.sort();
+    fields.dedup();
+    Some(fields)
+}
+
 #[cfg(test)]
 mod tests {
+    use super::stable_digest;
     use super::StrategyCommitArtifactBundle;
+    use crate::capabilities::{RuntimeConfigSource, SchemaSource};
     use crate::commit_strategies::data::{
         CanonicalStrategyCommitRequest, CanonicalStrategyInputArtifact,
         CanonicalStrategyInputDigest, CanonicalStrategyOutputArtifact, CommitStrategyDescriptor,
@@ -609,7 +873,11 @@ mod tests {
             .commit_strategies_authority()
             .lower_execution(&request, &execution, TransactionOptions::default())
             .expect("lowered strategy plan");
-        let bundle = StrategyCommitArtifactBundle::from_lowered(&lowered, &descriptor());
+        let bundle = StrategyCommitArtifactBundle::from_lowered(
+            &lowered,
+            &descriptor(),
+            runtime.runtime_config(),
+        );
 
         let bytes = serde_json::to_vec(&bundle).expect("serialize strategy bundle");
         let roundtripped: StrategyCommitArtifactBundle =
@@ -627,6 +895,13 @@ mod tests {
                 .canonical_bytes(),
             request.canonical_input().canonical_bytes()
         );
+        assert_eq!(
+            roundtripped
+                .replay_descriptor()
+                .runtime_determinism_basis()
+                .schema_registry_digest(),
+            &stable_digest(runtime.schema_registry())
+        );
     }
 
     #[test]
@@ -640,7 +915,11 @@ mod tests {
             .commit_strategies_authority()
             .lower_execution(&request, &execution, TransactionOptions::default())
             .expect("lowered strategy plan");
-        let bundle = StrategyCommitArtifactBundle::from_lowered(&lowered, &descriptor());
+        let bundle = StrategyCommitArtifactBundle::from_lowered(
+            &lowered,
+            &descriptor(),
+            runtime.runtime_config(),
+        );
         let mut value = serde_json::to_value(&bundle).expect("bundle value");
         value["lowering_summary"]["worker_batch_count"] = serde_json::json!(99);
 
@@ -661,22 +940,27 @@ mod tests {
             .commit_strategies_authority()
             .lower_execution(&request, &execution, TransactionOptions::default())
             .expect("lowered strategy plan");
-        let bundle = StrategyCommitArtifactBundle::from_lowered(&lowered, &descriptor())
-            .with_preview_validation(
-                CommitValidationSummary {
-                    execution_count: 3,
-                    ..CommitValidationSummary::default()
-                },
-                crate::commit_strategies::data::StrategyPreviewValidationCostSummary::new(
-                    crate::identity::data::VersionId(1),
-                    1,
-                    1,
-                    1,
-                    0,
-                    2,
-                ),
-                crate::identity::data::VersionId(0),
-            );
+        let bundle = StrategyCommitArtifactBundle::from_lowered(
+            &lowered,
+            &descriptor(),
+            runtime.runtime_config(),
+        )
+        .with_preview_validation(
+            CommitValidationSummary {
+                execution_count: 3,
+                ..CommitValidationSummary::default()
+            },
+            crate::commit_strategies::data::StrategyPreviewValidationCostSummary::new(
+                crate::identity::data::VersionId(1),
+                1,
+                1,
+                1,
+                0,
+                2,
+            ),
+            None,
+            crate::identity::data::VersionId(0),
+        );
         let mut value = serde_json::to_value(&bundle).expect("bundle value");
         value["preview_validation_cost"]["post_mutation_preview_pass_count"] = serde_json::json!(3);
 

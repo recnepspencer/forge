@@ -6,6 +6,7 @@ use serde::{de::Error as DeError, Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
+use crate::schema::data::RelationalSchemaRegistry;
 use crate::snapshots::data::SnapshotHandle;
 use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 use crate::transactions::data::WorkerIntentBatch;
@@ -653,6 +654,7 @@ impl<'observation, 'runtime> StrategyVisibilityReadView<'observation, 'runtime> 
 pub struct StrategyObservationContext<'runtime> {
     snapshot: &'runtime SnapshotHandle,
     read_contract: &'runtime StrategyReadContract,
+    schema_registry: &'runtime RelationalSchemaRegistry,
     metrics: RefCell<StrategyObservationMetrics>,
     projection: VisibilityProjectionView<'runtime>,
 }
@@ -661,11 +663,13 @@ impl<'runtime> StrategyObservationContext<'runtime> {
     pub(crate) fn new(
         snapshot: &'runtime SnapshotHandle,
         read_contract: &'runtime StrategyReadContract,
+        schema_registry: &'runtime RelationalSchemaRegistry,
         visibility: VisibilityProjectionView<'runtime>,
     ) -> Self {
         Self {
             snapshot,
             read_contract,
+            schema_registry,
             metrics: RefCell::new(StrategyObservationMetrics::default()),
             projection: visibility,
         }
@@ -681,6 +685,10 @@ impl<'runtime> StrategyObservationContext<'runtime> {
 
     pub fn read_contract(&self) -> &StrategyReadContract {
         self.read_contract
+    }
+
+    pub fn schema_registry(&self) -> &RelationalSchemaRegistry {
+        self.schema_registry
     }
 
     pub fn visibility(&self) -> StrategyVisibilityReadView<'_, 'runtime> {

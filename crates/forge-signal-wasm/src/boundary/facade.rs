@@ -380,6 +380,74 @@ impl SignalDiagnostics {
         let summary = self.core.borrow().health().map_err(JsValue::from)?;
         to_js(&summary).map_err(JsValue::from)
     }
+
+    pub fn summary_now(&self) -> Result<JsValue, JsValue> {
+        let summary = self
+            .core
+            .borrow()
+            .diagnostics_summary_now()
+            .map_err(JsValue::from)?;
+        to_js(&summary).map_err(JsValue::from)
+    }
+
+    pub fn history_now(&self) -> Result<JsValue, JsValue> {
+        let history = self
+            .core
+            .borrow()
+            .execution_history_now()
+            .map_err(JsValue::from)?;
+        to_js(&history).map_err(JsValue::from)
+    }
+
+    pub fn latest_flow(&self) -> Result<JsValue, JsValue> {
+        let flow = self.core.borrow().latest_flow().map_err(JsValue::from)?;
+        to_js(&flow).map_err(JsValue::from)
+    }
+
+    pub fn latest_failure(&self) -> Result<JsValue, JsValue> {
+        let failure = self
+            .core
+            .borrow()
+            .latest_failure()
+            .map_err(JsValue::from)?;
+        to_js(&failure).map_err(JsValue::from)
+    }
+
+    pub fn latest_rollback(&self) -> Result<JsValue, JsValue> {
+        let rollback = self
+            .core
+            .borrow()
+            .latest_rollback()
+            .map_err(JsValue::from)?;
+        to_js(&rollback).map_err(JsValue::from)
+    }
+
+    pub fn latest_frontier_execution(&self) -> Result<JsValue, JsValue> {
+        let frontier = self
+            .core
+            .borrow()
+            .latest_frontier_execution()
+            .map_err(JsValue::from)?;
+        to_js(&frontier).map_err(JsValue::from)
+    }
+
+    pub fn latest_invalidation_trace_records(&self) -> Result<JsValue, JsValue> {
+        let records = self
+            .core
+            .borrow()
+            .latest_invalidation_trace_records()
+            .map_err(JsValue::from)?;
+        to_js(&records).map_err(JsValue::from)
+    }
+
+    pub fn recent_history(&self) -> Result<JsValue, JsValue> {
+        let history = self
+            .core
+            .borrow()
+            .recent_history()
+            .map_err(JsValue::from)?;
+        to_js(&history).map_err(JsValue::from)
+    }
 }
 
 #[wasm_bindgen]
@@ -511,6 +579,19 @@ impl SignalHistory {
         to_js(&result).map_err(JsValue::from)
     }
 
+    pub fn merge_branches_with_proof(
+        &self,
+        source_branch_id: u64,
+        target_branch_id: u64,
+    ) -> Result<JsValue, JsValue> {
+        let envelope = self
+            .core
+            .borrow_mut()
+            .merge_branches_with_proof(source_branch_id, target_branch_id)
+            .map_err(JsValue::from)?;
+        to_js(&envelope).map_err(JsValue::from)
+    }
+
     pub fn plan_merge_branches(
         &self,
         source_branch_id: u64,
@@ -522,6 +603,55 @@ impl SignalHistory {
             .plan_merge_branches(source_branch_id, target_branch_id)
             .map_err(JsValue::from)?;
         to_js(&plan).map_err(JsValue::from)
+    }
+
+    pub fn plan_merge_branches_with_proof(
+        &self,
+        source_branch_id: u64,
+        target_branch_id: u64,
+    ) -> Result<JsValue, JsValue> {
+        let envelope = self
+            .core
+            .borrow_mut()
+            .plan_merge_branches_with_proof(source_branch_id, target_branch_id)
+            .map_err(JsValue::from)?;
+        to_js(&envelope).map_err(JsValue::from)
+    }
+
+    pub fn branch_state_proof(&self, branch_id: u64) -> Result<JsValue, JsValue> {
+        let proof = self
+            .core
+            .borrow()
+            .branch_state_proof(branch_id)
+            .map_err(JsValue::from)?;
+        to_js(&proof).map_err(JsValue::from)
+    }
+
+    pub fn replay_parity_proof(
+        &self,
+        expected_branch_id: u64,
+        replayed_branch_id: u64,
+    ) -> Result<JsValue, JsValue> {
+        let proof = self
+            .core
+            .borrow()
+            .replay_parity_proof(expected_branch_id, replayed_branch_id)
+            .map_err(JsValue::from)?;
+        to_js(&proof).map_err(JsValue::from)
+    }
+
+    pub fn replay_artifact_proof(
+        &self,
+        expected: JsValue,
+        replayed_branch_id: u64,
+    ) -> Result<JsValue, JsValue> {
+        let expected = from_js(expected)?;
+        let proof = self
+            .core
+            .borrow()
+            .replay_artifact_proof(expected, replayed_branch_id)
+            .map_err(JsValue::from)?;
+        to_js(&proof).map_err(JsValue::from)
     }
 }
 
@@ -570,6 +700,11 @@ impl SignalAdapters {
             .export_runtime_envelope()
             .map_err(JsValue::from)?;
         to_js(&envelope).map_err(JsValue::from)
+    }
+
+    pub fn runtime_proof_report(&self) -> Result<JsValue, JsValue> {
+        let report = self.core.borrow().runtime_proof_report();
+        to_js(&report).map_err(JsValue::from)
     }
 
     pub fn replace_runtime_envelope(&self, envelope: JsValue) -> Result<(), JsValue> {

@@ -100,15 +100,16 @@ impl VisibilitySubsystem {
 
     pub(crate) fn insert_published_handle(
         &mut self,
-        state: crate::storage::overlay::SnapshotState,
+        snapshot_id: SnapshotId,
+        binding: SnapshotHandleBinding,
     ) {
-        self.handles.insert_published(state);
+        self.handles.insert_published(snapshot_id, binding);
     }
 
     pub(crate) fn remove_published_handle(
         &mut self,
         snapshot_id: SnapshotId,
-    ) -> Option<crate::storage::overlay::SnapshotState> {
+    ) -> Option<SnapshotHandleBinding> {
         self.handles.remove_published(snapshot_id)
     }
 
@@ -119,11 +120,11 @@ impl VisibilitySubsystem {
         self.handles.published_version(snapshot_id)
     }
 
-    pub(crate) fn published_snapshot_state(
+    pub(crate) fn published_snapshot_binding(
         &self,
         snapshot_id: SnapshotId,
-    ) -> Option<crate::storage::overlay::SnapshotState> {
-        self.handles.published_state(snapshot_id).cloned()
+    ) -> Option<SnapshotHandleBinding> {
+        self.handles.published_binding(snapshot_id).cloned()
     }
 
     pub(crate) fn oldest_published_snapshot_id(&self) -> Option<SnapshotId> {

@@ -1,6 +1,6 @@
 use super::adapters::RuntimeEnvelope;
 use super::core::RuntimeCore;
-use super::policy::RuntimePolicySpec;
+use super::policy::{RuntimePolicyPreset, RuntimePolicySpec};
 use crate::expression::model::{Expr, IdentitySpec, SignalValue};
 use crate::recipe::model::{
     KeyedRecipeFamilySpec, KeyedSetValue, KeyedSourceFamilySpec, RecipeFamilyReadSpec, RecipeSpec,
@@ -15,6 +15,131 @@ fn number(value: f64) -> Expr {
 
 fn read(id: &str) -> Expr {
     Expr::Read { id: id.to_owned() }
+}
+
+fn build_adversarial_merge_runtime(policy: RuntimePolicySpec) -> (RuntimeCore, u64, u64, String) {
+    let mut runtime = RuntimeCore::new(policy).unwrap();
+    runtime
+        .define_source(SourceSpec {
+            id: "gearTeeth".to_owned(),
+            initial: SignalValue::Number(16.0),
+        })
+        .unwrap();
+    runtime
+        .define_source(SourceSpec {
+            id: "gearThickness".to_owned(),
+            initial: SignalValue::Number(0.22),
+        })
+        .unwrap();
+    runtime
+        .define_source(SourceSpec {
+            id: "gearInnerRadius".to_owned(),
+            initial: SignalValue::Number(0.28),
+        })
+        .unwrap();
+    runtime
+        .define_source(SourceSpec {
+            id: "lightIntensity".to_owned(),
+            initial: SignalValue::Number(1.0),
+        })
+        .unwrap();
+    runtime
+        .define_recipe(RecipeSpec {
+            id: "gearTopologyModel".to_owned(),
+            reads: vec![
+                "gearTeeth".to_owned(),
+                "gearThickness".to_owned(),
+                "gearInnerRadius".to_owned(),
+            ],
+            expr: Expr::Object {
+                fields: vec![
+                    (
+                        "teeth".to_owned(),
+                        Expr::Read {
+                            id: "gearTeeth".to_owned(),
+                        },
+                    ),
+                    (
+                        "thickness".to_owned(),
+                        Expr::Read {
+                            id: "gearThickness".to_owned(),
+                        },
+                    ),
+                    (
+                        "innerRadius".to_owned(),
+                        Expr::Read {
+                            id: "gearInnerRadius".to_owned(),
+                        },
+                    ),
+                ],
+            },
+            when: None,
+            identity: Some(IdentitySpec::Exact),
+        })
+        .unwrap();
+    runtime
+        .define_recipe(RecipeSpec {
+            id: "hudModel".to_owned(),
+            reads: vec!["gearTopologyModel".to_owned(), "lightIntensity".to_owned()],
+            expr: Expr::Object {
+                fields: vec![
+                    (
+                        "gear".to_owned(),
+                        Expr::Read {
+                            id: "gearTopologyModel".to_owned(),
+                        },
+                    ),
+                    (
+                        "light".to_owned(),
+                        Expr::Read {
+                            id: "lightIntensity".to_owned(),
+                        },
+                    ),
+                ],
+            },
+            when: None,
+            identity: Some(IdentitySpec::Exact),
+        })
+        .unwrap();
+
+    let _ = runtime.read_value("hudModel").unwrap();
+    let main_branch = runtime.current_branch();
+    let feature_branch = runtime.create_branch("what-if".to_owned()).unwrap();
+
+    runtime.switch_branch(feature_branch.id.0).unwrap();
+    runtime
+        .apply_transaction(vec![
+            TransactionOp::Set {
+                id: "gearTeeth".to_owned(),
+                value: SignalValue::Number(22.0),
+            },
+            TransactionOp::Set {
+                id: "lightIntensity".to_owned(),
+                value: SignalValue::Number(1.78),
+            },
+        ])
+        .unwrap();
+
+    runtime.switch_branch(main_branch.id.0).unwrap();
+    runtime
+        .apply_transaction(vec![
+            TransactionOp::Set {
+                id: "gearThickness".to_owned(),
+                value: SignalValue::Number(0.42),
+            },
+            TransactionOp::Set {
+                id: "gearInnerRadius".to_owned(),
+                value: SignalValue::Number(0.36),
+            },
+        ])
+        .unwrap();
+
+    (
+        runtime,
+        main_branch.id.0,
+        feature_branch.id.0,
+        main_branch.name,
+    )
 }
 
 #[test]
@@ -898,4 +1023,276 @@ fn keyed_recipe_family_handles_survive_branch_switches_with_divergent_materializ
         .read_keyed_value("gearToothModel", "tooth-31")
         .unwrap();
     assert_eq!(feature_tooth_again, feature_tooth);
+}
+
+#[test]
+fn branch_state_proof_is_versioned_and_stable_for_unchanged_branch_state() {
+    let mut runtime = RuntimeCore::new(RuntimePolicySpec::default()).unwrap();
+    runtime
+        .define_source(SourceSpec {
+            id: "gearTeeth".to_owned(),
+            initial: SignalValue::Number(16.0),
+        })
+        .unwrap();
+    runtime
+        .define_source(SourceSpec {
+            id: "gearThickness".to_owned(),
+            initial: SignalValue::Number(0.42),
+        })
+        .unwrap();
+
+    let branch = runtime.current_branch();
+    let left = runtime.branch_state_proof(branch.id.0).unwrap();
+    let right = runtime.branch_state_proof(branch.id.0).unwrap();
+
+    assert!(left
+        .proof_schema_version
+        .starts_with(forge_signal::facade::adapters::MERGE_PROOF_SCHEMA_VERSION));
+    assert_eq!(left.proof_schema_version, right.proof_schema_version);
+    assert_eq!(left.branch_id, right.branch_id);
+    assert_eq!(left.state_digest, right.state_digest);
+}
+
+#[test]
+fn replay_parity_proof_distinguishes_equivalent_and_divergent_branch_states() {
+    let mut runtime = RuntimeCore::new(RuntimePolicySpec::default()).unwrap();
+    runtime
+        .define_source(SourceSpec {
+            id: "gearTeeth".to_owned(),
+            initial: SignalValue::Number(16.0),
+        })
+        .unwrap();
+    runtime
+        .define_source(SourceSpec {
+            id: "gearThickness".to_owned(),
+            initial: SignalValue::Number(0.42),
+        })
+        .unwrap();
+
+    let main = runtime.current_branch();
+    let twin = runtime.create_branch("twin".to_owned()).unwrap();
+
+    let parity = runtime.replay_parity_proof(main.id.0, twin.id.0).unwrap();
+    assert_eq!(
+        parity.proof_schema_version,
+        forge_signal::facade::adapters::MERGE_PROOF_SCHEMA_VERSION
+    );
+    assert!(parity.parity);
+    assert_eq!(parity.expected_state_digest, parity.replayed_state_digest);
+
+    runtime.switch_branch(twin.id.0).unwrap();
+    runtime
+        .apply_transaction(vec![TransactionOp::Set {
+            id: "gearTeeth".to_owned(),
+            value: SignalValue::Number(32.0),
+        }])
+        .unwrap();
+
+    let divergent = runtime.replay_parity_proof(main.id.0, twin.id.0).unwrap();
+    assert!(!divergent.parity);
+    assert_ne!(
+        divergent.expected_state_digest,
+        divergent.replayed_state_digest
+    );
+}
+
+#[test]
+fn adversarial_merge_proof_envelopes_and_rebuild_state_remain_consistent() {
+    let (mut runtime, main_branch_id, feature_branch_id, main_branch_name) =
+        build_adversarial_merge_runtime(RuntimePolicySpec::default());
+
+    let plan_envelope = runtime
+        .plan_merge_branches_with_proof(feature_branch_id, main_branch_id)
+        .unwrap();
+    assert_eq!(
+        plan_envelope.proof.proof_schema_version,
+        forge_signal::facade::adapters::MERGE_PROOF_SCHEMA_VERSION
+    );
+    assert_eq!(plan_envelope.plan.source_branch_id().0, feature_branch_id);
+    assert_eq!(plan_envelope.plan.target_branch_id().0, main_branch_id);
+
+    let result_envelope = runtime
+        .merge_branches_with_proof(feature_branch_id, main_branch_id)
+        .unwrap();
+    assert_eq!(
+        result_envelope.proof.proof_schema_version,
+        forge_signal::facade::adapters::MERGE_PROOF_SCHEMA_VERSION
+    );
+    assert_eq!(
+        plan_envelope.proof.selected_strategy_digest,
+        result_envelope.proof.selected_strategy_digest
+    );
+    assert_eq!(
+        plan_envelope.proof.selected_merge_base_digest,
+        result_envelope.proof.selected_merge_base_digest
+    );
+    assert_eq!(
+        plan_envelope.proof.selected_conflict_policy_digest,
+        result_envelope.proof.selected_conflict_policy_digest
+    );
+    assert_eq!(
+        plan_envelope.proof.selected_conflict_isolation_digest,
+        result_envelope.proof.selected_conflict_isolation_digest
+    );
+    assert_eq!(result_envelope.result.source_branch.0, feature_branch_id);
+    assert_eq!(result_envelope.result.target_branch.0, main_branch_id);
+
+    runtime.switch_branch(main_branch_id).unwrap();
+    assert_eq!(
+        runtime.read_value("gearTeeth").unwrap(),
+        SignalValue::Number(22.0)
+    );
+    assert_eq!(
+        runtime.read_value("gearThickness").unwrap(),
+        SignalValue::Number(0.42)
+    );
+    assert_eq!(
+        runtime.read_value("gearInnerRadius").unwrap(),
+        SignalValue::Number(0.36)
+    );
+    assert_eq!(
+        runtime.read_value("lightIntensity").unwrap(),
+        SignalValue::Number(1.78)
+    );
+
+    let merged_proof = runtime.branch_state_proof(main_branch_id).unwrap();
+    let envelope = runtime.export_runtime_envelope().unwrap();
+    let mut rebuilt = RuntimeCore::new(RuntimePolicySpec::default()).unwrap();
+    rebuilt.replace_runtime_envelope(envelope).unwrap();
+    let rebuilt_main_branch = rebuilt
+        .branches()
+        .into_iter()
+        .find(|branch| branch.name == main_branch_name)
+        .expect("rebuilt runtime should preserve the merged target branch by name");
+    rebuilt.switch_branch(rebuilt_main_branch.id.0).unwrap();
+    let rebuilt_proof = rebuilt
+        .branch_state_proof(rebuilt_main_branch.id.0)
+        .unwrap();
+
+    assert_eq!(
+        merged_proof.proof_schema_version,
+        rebuilt_proof.proof_schema_version
+    );
+    assert_eq!(merged_proof.state_digest, rebuilt_proof.state_digest);
+    assert_eq!(
+        rebuilt.read_value("gearTopologyModel").unwrap(),
+        SignalValue::Object(vec![
+            ("teeth".to_owned(), SignalValue::Number(22.0)),
+            ("thickness".to_owned(), SignalValue::Number(0.42)),
+            ("innerRadius".to_owned(), SignalValue::Number(0.36)),
+        ])
+    );
+    assert_eq!(
+        rebuilt.read_value("hudModel").unwrap(),
+        SignalValue::Object(vec![
+            (
+                "gear".to_owned(),
+                SignalValue::Object(vec![
+                    ("teeth".to_owned(), SignalValue::Number(22.0)),
+                    ("thickness".to_owned(), SignalValue::Number(0.42)),
+                    ("innerRadius".to_owned(), SignalValue::Number(0.36)),
+                ]),
+            ),
+            ("light".to_owned(), SignalValue::Number(1.78)),
+        ])
+    );
+}
+
+#[test]
+fn diagnostics_tier_changes_richness_only_not_merge_truth() {
+    let development = RuntimePolicySpec {
+        preset: RuntimePolicyPreset::WebDevelopment,
+    };
+    let kernel = RuntimePolicySpec {
+        preset: RuntimePolicyPreset::Kernel,
+    };
+
+    let (mut development_runtime, development_main, development_feature, _) =
+        build_adversarial_merge_runtime(development);
+    let (mut kernel_runtime, kernel_main, kernel_feature, _) =
+        build_adversarial_merge_runtime(kernel);
+
+    let development_plan = development_runtime
+        .plan_merge_branches_with_proof(development_feature, development_main)
+        .unwrap();
+    let kernel_plan = kernel_runtime
+        .plan_merge_branches_with_proof(kernel_feature, kernel_main)
+        .unwrap();
+    assert_eq!(
+        development_plan.proof.plan_digest,
+        kernel_plan.proof.plan_digest
+    );
+    assert_eq!(
+        development_plan.proof.semantics_digest,
+        kernel_plan.proof.semantics_digest
+    );
+
+    let development_result = development_runtime
+        .merge_branches_with_proof(development_feature, development_main)
+        .unwrap();
+    let kernel_result = kernel_runtime
+        .merge_branches_with_proof(kernel_feature, kernel_main)
+        .unwrap();
+
+    assert_eq!(
+        development_result.proof.result_digest,
+        kernel_result.proof.result_digest
+    );
+    assert_eq!(
+        development_result.result.selected_semantics,
+        kernel_result.result.selected_semantics
+    );
+
+    let development_state = development_runtime
+        .branch_state_proof(development_main)
+        .unwrap();
+    let kernel_state = kernel_runtime.branch_state_proof(kernel_main).unwrap();
+    assert_eq!(development_state.state_digest, kernel_state.state_digest);
+}
+
+#[test]
+fn replay_artifact_proof_reports_typed_mismatch_classes() {
+    let (mut runtime, main_branch_id, feature_branch_id, _) =
+        build_adversarial_merge_runtime(RuntimePolicySpec::default());
+
+    let expected_plan = runtime
+        .plan_merge_branches_with_proof(feature_branch_id, main_branch_id)
+        .unwrap();
+    let expected_result = runtime
+        .merge_branches_with_proof(feature_branch_id, main_branch_id)
+        .unwrap();
+    let expected_state = runtime.branch_state_proof(main_branch_id).unwrap();
+
+    let replayed_branch = runtime
+        .create_branch("replayed-divergent".to_owned())
+        .unwrap();
+    runtime.switch_branch(replayed_branch.id.0).unwrap();
+    runtime
+        .apply_transaction(vec![TransactionOp::Set {
+            id: "gearTeeth".to_owned(),
+            value: SignalValue::Number(7.0),
+        }])
+        .unwrap();
+
+    let report = runtime
+        .replay_artifact_proof(
+            forge_signal::facade::adapters::ReplayArtifactProofInput {
+                proof_schema_version: expected_result.proof.proof_schema_version.clone(),
+                registry_bundle_digest: Some(expected_result.proof.registry_bundle_digest.clone()),
+                lowered_strategy_bundle_digest: Some(
+                    expected_result.proof.lowered_strategy_bundle_digest.clone(),
+                ),
+                merge_plan_digest: Some(expected_plan.proof.plan_digest.clone()),
+                merge_result_digest: Some(expected_result.proof.result_digest.clone()),
+                lineage_digest: Some(expected_result.proof.lineage_digest.clone()),
+                branch_state_digest: expected_state.state_digest.clone(),
+            },
+            replayed_branch.id.0,
+        )
+        .unwrap();
+
+    assert!(!report.parity);
+    assert!(report
+        .mismatch_classes
+        .contains(&forge_signal::facade::adapters::ReplayMismatchClass::BranchStateDigestMismatch));
 }
