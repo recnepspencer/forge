@@ -13,6 +13,8 @@ export function setTracedNode(app: SignalApp, nodeId: string | null) {
 export function openWalkthrough(app: SignalApp) {
   app.batch([
     tx.set("uiWalkthroughIndex", 0),
+    tx.set("uiReviewPolicyLane", "current"),
+    tx.set("uiReviewManualChoice", "source"),
     tx.set("uiWalkthroughOpen", true),
   ]);
 }
@@ -33,4 +35,15 @@ export function prevWalkthrough(app: SignalApp) {
 
 export function setDiagnosticsTier(app: SignalApp, tier: DiagnosticsTier) {
   app.batch([tx.set("uiDiagnosticsTier", tier)]);
+}
+
+export function setReviewPolicyLane(app: SignalApp, lane: string) {
+  app.batch([
+    tx.set("uiReviewPolicyLane", lane),
+    tx.set("uiReviewManualChoice", "source"),
+  ]);
+}
+
+export function setReviewManualChoice(app: SignalApp, choice: "source" | "target") {
+  app.batch([tx.set("uiReviewManualChoice", choice)]);
 }

@@ -3,6 +3,7 @@ use crate::authority::commit::phases::publication::{
 };
 use crate::authority::commit::phases::schema_continuity::SchemaContinuityPlan;
 use crate::authority::commit::publication::diagnostics_summary_artifact;
+use crate::diagnostics::data::{DiagnosticsArtifactKind, DiagnosticsScope};
 use crate::diagnostics::data::RelationalDiagnosticsEntry;
 use crate::history::data::CommitReference;
 use crate::publication::data::diff::RelationalPatchRecord;
@@ -48,17 +49,34 @@ pub(crate) fn prepare_publication_artifacts(
         additional_diagnostics_entries,
         effect.diagnostics.entries,
     );
-    let aspect_evaluation_traces = effect
-        .publication
-        .canonical_deltas
-        .iter()
-        .map(|delta| delta.evaluation_trace())
-        .collect::<Vec<_>>();
-    let aspect_emission_traces = derive_aspect_emission_traces(
-        patch.position,
-        &patch.records,
-        &effect.publication.canonical_deltas,
+    let diagnostics_profile = &runtime.config.diagnostics.profile;
+    let capture_transaction_traces = diagnostics_profile.should_capture_artifact(
+        DiagnosticsScope::Transaction,
+        DiagnosticsArtifactKind::DetailedTrace,
     );
+    let capture_patch_publication_traces = diagnostics_profile.should_capture_artifact(
+        DiagnosticsScope::PatchPublication,
+        DiagnosticsArtifactKind::DetailedTrace,
+    );
+    let aspect_evaluation_traces = if capture_transaction_traces {
+        effect
+            .publication
+            .canonical_deltas
+            .iter()
+            .map(|delta| delta.evaluation_trace())
+            .collect::<Vec<_>>()
+    } else {
+        Vec::new()
+    };
+    let aspect_emission_traces = if capture_patch_publication_traces {
+        derive_aspect_emission_traces(
+            patch.position,
+            &patch.records,
+            &effect.publication.canonical_deltas,
+        )
+    } else {
+        Vec::new()
+    };
     let artifacts = runtime.publication_authority().assemble_publication_bundle(
         commit_reference.clone(),
         version_id,

@@ -7,7 +7,7 @@ import {
   type DemoShellSignals,
 } from "./shell_signal_schema";
 
-export class SignalCache {
+export class SignalValues {
   private values = new Map<DemoShellSignalKey, unknown>();
   private listeners = new Map<DemoShellSignalKey, Set<() => void>>();
   private watchUnsubs: Array<() => void> = [];

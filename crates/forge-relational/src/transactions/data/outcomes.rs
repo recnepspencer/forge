@@ -540,6 +540,10 @@ pub struct CommitOutcome {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct CommitPhaseTiming {
     pub draft_preparation_micros: u64,
+    pub draft_bulk_admission_micros: u64,
+    pub draft_merge_plan_micros: u64,
+    pub draft_structural_summary_micros: u64,
+    pub draft_working_state_clone_micros: u64,
     pub working_state_preparation_micros: u64,
     pub invariant_pre_check_micros: u64,
     pub authoritative_mutation_micros: u64,
@@ -548,6 +552,15 @@ pub struct CommitPhaseTiming {
     pub artifact_assembly_micros: u64,
     pub durable_append_micros: u64,
     pub publication_micros: u64,
+    pub publication_storage_commit_micros: u64,
+    pub publication_index_refresh_micros: u64,
+    pub publication_history_publish_micros: u64,
+    pub publication_visibility_pin_micros: u64,
+    pub publication_retention_trim_micros: u64,
+    pub publication_compaction_micros: u64,
+    pub publication_bundle_publish_micros: u64,
+    pub publication_retention_pass_micros: u64,
+    pub publication_post_commit_consumer_micros: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

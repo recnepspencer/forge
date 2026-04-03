@@ -5,6 +5,24 @@ function normalizeBranchId(branchId: number | bigint) {
   return typeof branchId === "bigint" ? branchId : BigInt(branchId);
 }
 
+function normalizeMergePolicyPreviewRequest(request: {
+  sourceBranchId: number | bigint;
+  targetBranchId: number | bigint;
+  conflictPolicyName?: string | null;
+  conflictIsolationPolicyName?: string | null;
+  identityMatcherName?: string | null;
+  deletionPolicyName?: string | null;
+}) {
+  return {
+    source_branch_id: normalizeBranchId(request.sourceBranchId),
+    target_branch_id: normalizeBranchId(request.targetBranchId),
+    conflict_policy_name: request.conflictPolicyName ?? null,
+    conflict_isolation_policy_name: request.conflictIsolationPolicyName ?? null,
+    identity_matcher_name: request.identityMatcherName ?? null,
+    deletion_policy_name: request.deletionPolicyName ?? null,
+  };
+}
+
 export class SignalHistory {
   inner: any;
 
@@ -98,6 +116,80 @@ export class SignalHistory {
     return this.inner.plan_merge_branches_with_proof(
       normalizeBranchId(sourceBranchId),
       normalizeBranchId(targetBranchId),
+    );
+  }
+
+  planMergePolicyPreview(request: {
+    sourceBranchId: number | bigint;
+    targetBranchId: number | bigint;
+    conflictPolicyName?: string | null;
+    conflictIsolationPolicyName?: string | null;
+    identityMatcherName?: string | null;
+    deletionPolicyName?: string | null;
+  }) {
+    return summarizeMergePlan(this.planMergePolicyPreviewDetailed(request));
+  }
+
+  planMergePolicyPreviewDetailed(request: {
+    sourceBranchId: number | bigint;
+    targetBranchId: number | bigint;
+    conflictPolicyName?: string | null;
+    conflictIsolationPolicyName?: string | null;
+    identityMatcherName?: string | null;
+    deletionPolicyName?: string | null;
+  }) {
+    return this.inner.plan_merge_policy_preview(
+      normalizeMergePolicyPreviewRequest(request),
+    );
+  }
+
+  planMergePolicyPreviewDetailedWithProof(request: {
+    sourceBranchId: number | bigint;
+    targetBranchId: number | bigint;
+    conflictPolicyName?: string | null;
+    conflictIsolationPolicyName?: string | null;
+    identityMatcherName?: string | null;
+    deletionPolicyName?: string | null;
+  }) {
+    return this.inner.plan_merge_policy_preview_with_proof(
+      normalizeMergePolicyPreviewRequest(request),
+    );
+  }
+
+  mergeBranchesPolicyPreview(request: {
+    sourceBranchId: number | bigint;
+    targetBranchId: number | bigint;
+    conflictPolicyName?: string | null;
+    conflictIsolationPolicyName?: string | null;
+    identityMatcherName?: string | null;
+    deletionPolicyName?: string | null;
+  }) {
+    return summarizeMergeResult(this.mergeBranchesPolicyPreviewDetailed(request));
+  }
+
+  mergeBranchesPolicyPreviewDetailed(request: {
+    sourceBranchId: number | bigint;
+    targetBranchId: number | bigint;
+    conflictPolicyName?: string | null;
+    conflictIsolationPolicyName?: string | null;
+    identityMatcherName?: string | null;
+    deletionPolicyName?: string | null;
+  }) {
+    return this.inner.merge_branches_policy_preview(
+      normalizeMergePolicyPreviewRequest(request),
+    );
+  }
+
+  mergeBranchesPolicyPreviewDetailedWithProof(request: {
+    sourceBranchId: number | bigint;
+    targetBranchId: number | bigint;
+    conflictPolicyName?: string | null;
+    conflictIsolationPolicyName?: string | null;
+    identityMatcherName?: string | null;
+    deletionPolicyName?: string | null;
+  }) {
+    return this.inner.merge_branches_policy_preview_with_proof(
+      normalizeMergePolicyPreviewRequest(request),
     );
   }
 

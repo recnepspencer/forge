@@ -55,6 +55,19 @@ impl<'runtime> PerformanceAccess<'runtime> {
             .expect("complexity counter lock poisoned") = RuntimeComplexityCounters::default();
     }
 
+    pub(crate) fn count_working_state_clone(
+        &self,
+        partitions: usize,
+        entity_slots: usize,
+        relation_slots: usize,
+    ) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.partitions_cloned += partitions;
+            counters.entity_slots_cloned += entity_slots;
+            counters.relation_slots_cloned += relation_slots;
+        });
+    }
+
     pub(crate) fn count_invariant_entity_slot_scans(&self, slots: usize) {
         self.runtime
             .services

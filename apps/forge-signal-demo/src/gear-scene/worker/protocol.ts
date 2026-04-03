@@ -19,6 +19,13 @@ export type BranchFrame = {
   bitmap: ImageBitmap;
 };
 
+export type ReviewFrame = {
+  id: string;
+  width: number;
+  height: number;
+  bitmap: ImageBitmap;
+};
+
 export type BranchSummary = {
   id: BranchId;
   name: string;
@@ -40,6 +47,27 @@ export type TimelineEntry = {
   touchedNodes: string[];
 };
 
+export type MergeReviewPolicyPreview = {
+  id: string;
+  label: string;
+  accent: string;
+  description: string;
+  plan: MergePlan | null;
+  frameId: string | null;
+  resultState: SceneState | null;
+  visualMode: "rendered" | "manual-review";
+};
+
+export type MergeReviewSnapshot = {
+  source: BranchSummary;
+  target: BranchSummary;
+  merged: BranchSummary;
+  sourceFrameId: string;
+  targetFrameId: string;
+  mergedFrameId: string;
+  previews: MergeReviewPolicyPreview[];
+};
+
 export type WorkerSnapshot = {
   ready: boolean;
   graphNodes: number;
@@ -51,6 +79,7 @@ export type WorkerSnapshot = {
   timeline: TimelineEntry[];
   timelineIndex: number;
   inspect: BranchInspect | null;
+  mergeReview: MergeReviewSnapshot | null;
   scenario: ScenarioState | null;
   error: string | null;
   debugStatus?: string | null;
@@ -81,6 +110,6 @@ export type WorkerCommand =
   | { type: "setScenePatch"; branchId: BranchId; patch: ScenePatch; label?: string };
 
 export type WorkerEvent =
-  | { type: "snapshot"; snapshot: WorkerSnapshot; frames: BranchFrame[] }
+  | { type: "snapshot"; snapshot: WorkerSnapshot; frames: BranchFrame[]; reviewFrames: ReviewFrame[] }
   | { type: "error"; error: string }
   | WorkerDebugEvent;

@@ -194,7 +194,10 @@ impl<'runtime> InvariantAuthority<'runtime> {
             .config
             .diagnostics
             .profile
-            .detailed_traces_enabled
+            .should_capture_artifact(
+                DiagnosticsScope::Invariant,
+                DiagnosticsArtifactKind::DetailedTrace,
+            )
         {
             if let Some(proof_boundary) = result.metadata().proof_boundary() {
                 self.runtime

@@ -21,6 +21,7 @@ export function createEmptySnapshot(): WorkerSnapshot {
     timeline: [],
     timelineIndex: 0,
     inspect: null,
+    mergeReview: null,
     scenario: null,
     error: null,
     debugStatus: "worker idle",
@@ -42,6 +43,7 @@ export type DemoShellSignals = {
   timeline: WorkerSnapshot["timeline"];
   timelineIndex: number;
   inspect: BranchInspect | null;
+  mergeReview: WorkerSnapshot["mergeReview"];
   scenario: ScenarioState | null;
   error: string | null;
   debugStatus: string | null;
@@ -51,6 +53,8 @@ export type DemoShellSignals = {
   controlsOpen: boolean;
   walkthroughOpen: boolean;
   walkthroughIndex: number;
+  reviewPolicyLane: string;
+  reviewManualChoice: "source" | "target";
 };
 
 export type DemoShellSignalKey = keyof DemoShellSignals;
@@ -71,6 +75,7 @@ export const SHELL_SIGNAL_BINDINGS: Record<
   timeline: { id: "uiTimeline", initial: EMPTY_SNAPSHOT.timeline },
   timelineIndex: { id: "uiTimelineIndex", initial: EMPTY_SNAPSHOT.timelineIndex },
   inspect: { id: "uiInspect", initial: EMPTY_SNAPSHOT.inspect as BranchInspect | null },
+  mergeReview: { id: "uiMergeReview", initial: EMPTY_SNAPSHOT.mergeReview },
   scenario: { id: "uiScenario", initial: EMPTY_SNAPSHOT.scenario as ScenarioState | null },
   error: { id: "uiError", initial: EMPTY_SNAPSHOT.error },
   debugStatus: { id: "uiDebugStatus", initial: EMPTY_SNAPSHOT.debugStatus ?? null },
@@ -80,6 +85,8 @@ export const SHELL_SIGNAL_BINDINGS: Record<
   controlsOpen: { id: "uiControlsOpen", initial: true },
   walkthroughOpen: { id: "uiWalkthroughOpen", initial: false },
   walkthroughIndex: { id: "uiWalkthroughIndex", initial: 0 },
+  reviewPolicyLane: { id: "uiReviewPolicyLane", initial: "current" },
+  reviewManualChoice: { id: "uiReviewManualChoice", initial: "source" as "source" | "target" },
 };
 
 export const SHELL_SIGNAL_KEYS = Object.keys(SHELL_SIGNAL_BINDINGS) as DemoShellSignalKey[];

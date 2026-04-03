@@ -30,9 +30,22 @@ pub(super) fn allocate_entity(
         version_id,
         EntityRecordKind::empty_extra(),
     );
+    if reused {
+        state.mark_entity_free_list_changed(partition_id);
+    }
     let partition = ensure_partition_state(state, partition_id);
     if reused {
         let idx = slot;
+        while partition.adjacency.len() <= idx {
+            partition
+                .adjacency
+                .push(AdjacencySet::new(&partition.adjacency_policy));
+        }
+        while partition.reverse_adjacency.len() <= idx {
+            partition
+                .reverse_adjacency
+                .push(AdjacencySet::new(&partition.adjacency_policy));
+        }
         partition.adjacency[idx].clear();
         partition.reverse_adjacency[idx].clear();
     } else {
@@ -51,7 +64,7 @@ pub(super) fn allocate_relation(
     version_id: crate::identity::data::VersionId,
     spec: &RelationSpec,
 ) -> RelationId {
-    let (slot, generation, _) = allocate_record::<RelationRecordKind>(
+    let (slot, generation, reused) = allocate_record::<RelationRecordKind>(
         state,
         spec.partition_id,
         spec.kind_id,
@@ -62,6 +75,9 @@ pub(super) fn allocate_relation(
             target: spec.target,
         }),
     );
+    if reused {
+        state.mark_relation_free_list_changed(spec.partition_id);
+    }
     RelationId::new(spec.partition_id, slot as u64, generation)
 }
 
@@ -117,8 +133,12 @@ pub(super) fn delete_entity_with_cascade(
     });
 
     let mut attached = BTreeSet::new();
-    partition.adjacency[slot].extend_into(&mut attached);
-    partition.reverse_adjacency[slot].extend_into(&mut attached);
+    if let Some(adjacency) = partition.adjacency.get(slot) {
+        adjacency.extend_into(&mut attached);
+    }
+    if let Some(reverse_adjacency) = partition.reverse_adjacency.get(slot) {
+        reverse_adjacency.extend_into(&mut attached);
+    }
     for relation_id in attached {
         let cascade_policy = state
             .get_partition(relation_id.partition_id)

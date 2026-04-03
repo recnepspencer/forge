@@ -18,11 +18,15 @@ export const demoState = {
     controlsOpen: demoReads.controlsOpen,
     walkthroughOpen: demoReads.walkthroughOpen,
     walkthroughIndex: demoReads.walkthroughIndex,
+    reviewPolicyLane: demoReads.reviewPolicyLane,
+    reviewManualChoice: demoReads.reviewManualChoice,
     toggleControls: demoActions.toggleControls,
     openWalkthrough: demoActions.openWalkthrough,
     closeWalkthrough: demoActions.closeWalkthrough,
     nextWalkthrough: demoActions.nextWalkthrough,
     prevWalkthrough: demoActions.prevWalkthrough,
+    setReviewPolicyLane: demoActions.setReviewPolicyLane,
+    setReviewManualChoice: demoActions.setReviewManualChoice,
   },
   inspection: {
     inspect: demoReads.inspect,
@@ -34,6 +38,7 @@ export const demoState = {
   merge: {
     mergePlan: demoReads.mergePlan,
     mergeResult: demoReads.mergeResult,
+    mergeReview: demoReads.mergeReview,
     mergeNow: demoActions.mergeNow,
   },
   scenario: {
@@ -70,5 +75,6 @@ export const demoState = {
     setScenarioMode: demoActions.setScenarioMode,
     setDiagnosticsTier: demoActions.setDiagnosticsTier,
     getFrame: demoActions.getFrame,
+    getReviewFrame: demoActions.getReviewFrame,
   },
 };

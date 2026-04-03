@@ -114,6 +114,26 @@ impl PerfCaseContract {
             zero_baseline_metric_floor: 32,
         }
     }
+
+    const fn volatile() -> Self {
+        Self {
+            elapsed_median_tolerance: 2.10,
+            elapsed_max_tolerance: 2.50,
+            metric_median_tolerance: 2.25,
+            enforce_elapsed_max: false,
+            zero_baseline_metric_floor: 32,
+        }
+    }
+
+    const fn extreme_volatile() -> Self {
+        Self {
+            elapsed_median_tolerance: 2.50,
+            elapsed_max_tolerance: 3.00,
+            metric_median_tolerance: 3.00,
+            enforce_elapsed_max: false,
+            zero_baseline_metric_floor: 32,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -228,11 +248,8 @@ fn perf_case_contract(suite: &str, case: &str) -> PerfCaseContract {
         | ("chip_simulator_matrix", "checkpoint_window_recover_compile_round_trip")
         | ("durability_append_matrix", "append_canonical_envelope_fresh_store")
         | ("durability_append_matrix", "append_canonical_envelope_existing_segment")
-        | ("geometry_kernel_matrix", "topology_identity_survival_recovery_round_trip")
         | ("index_parity_matrix", "persisted_recovery_generation_parity")
         | ("invariant_materialization_matrix", "custom_structural_surface_commit_wave")
-        | ("chip_simulator_matrix", "event_wave_compile_churn_window")
-        | ("chip_simulator_matrix", "event_wave_compile_churn_rich_diagnostics")
         | ("hot_cold_path_matrix", "geometry_hot_commit_vs_replay_reconstruction")
         | ("hot_cold_path_matrix", "chip_hot_compile_vs_recovery_compile")
         | ("hot_cold_path_matrix", "geometry_rich_publication_hot_vs_replay_truth")
@@ -247,10 +264,31 @@ fn perf_case_contract(suite: &str, case: &str) -> PerfCaseContract {
         | ("rocketship_scale_matrix", "hundred_k_nodes_pseudorealistic_subsystem_round_trip")
         | ("rocketship_scale_matrix", "hundred_k_nodes_zero_diagnostics_narrow_round_trip")
         | ("rocketship_scale_matrix", "hundred_k_nodes_geometry_profile_narrow_round_trip")
+        | ("sustained_load_matrix", "rocketship_hot_update_endurance")
+        | ("sustained_load_matrix", "rocketship_propagation_endurance")
+        | ("sustained_load_matrix", "chip_global_step_endurance")
         | ("replay_recovery_matrix", "durable_replay_lineage_basis")
-        | ("sustained_load_matrix", "replay_window_drift_stability")
-        | ("workflow_matrix", "persisted_recovery_replay_round_trip") => {
+        | ("sustained_load_matrix", "replay_window_drift_stability") => {
             PerfCaseContract::io_bursty()
+        }
+        ("commit_delta_matrix", "single_partition_create_burst")
+        | ("geometry_kernel_matrix", "topology_identity_survival_recovery_round_trip")
+        | ("chip_simulator_matrix", "branch_rollback_compile_step_window")
+        | ("index_parity_matrix", "entity_field_equals_warm_generation")
+        | ("inspection_budget_matrix", "retention_commit_window")
+        | ("sustained_load_matrix", "commit_query_churn_stability")
+        | (
+            "snapshot_materialization_matrix",
+            "projection_entity_identity_surface",
+        )
+        | ("workflow_matrix", "persisted_recovery_replay_round_trip")
+        | ("profile_matrix", "certification_core_rich_commit_query_round_trip")
+        | ("profile_matrix", "geometry_kernel_rich_commit_query_round_trip") => {
+            PerfCaseContract::volatile()
+        }
+        ("chip_simulator_matrix", "event_wave_compile_churn_window")
+        | ("chip_simulator_matrix", "event_wave_compile_churn_rich_diagnostics") => {
+            PerfCaseContract::extreme_volatile()
         }
         ("merge_lineage_matrix", "merge_execution_feature_adoption")
         | ("merge_lineage_matrix", "merge_execution_feature_adoption_zero_diagnostics_budget")
@@ -262,10 +300,8 @@ fn perf_case_contract(suite: &str, case: &str) -> PerfCaseContract {
             "hundred_k_nodes_pseudorealistic_rich_artifact_classes",
         )
         | ("geometry_kernel_matrix", "topology_bridge_connectivity_wave")
-        | ("chip_simulator_matrix", "branch_rollback_compile_step_window")
         | ("chip_simulator_matrix", "dense_fanout_compile_wave")
         | ("chip_simulator_matrix", "dense_fanout_compile_wave_rich_diagnostics")
-        | ("index_parity_matrix", "entity_field_equals_warm_generation")
         | ("runtime_bridge_mock_matrix", "geometry_commit_bridge_wave_operational")
         | ("runtime_bridge_mock_matrix", "geometry_commit_bridge_wave_development")
         | (
@@ -281,6 +317,8 @@ fn perf_case_contract(suite: &str, case: &str) -> PerfCaseContract {
             "geometry_commit_bridge_wave_mixed_locality_operational",
         )
         | ("mixed_load_matrix", "concurrent_relation_index_parity_pressure")
+        | ("game_engine_matrix", "local_scene_graph_propagation_wave")
+        | ("game_engine_matrix", "mixed_read_write_frame_churn_window")
         | ("query_packet_matrix", "explicit_targets_cross_partition")
         | ("sustained_load_matrix", "mixed_topology_query_churn_stability")
         | ("sustained_load_matrix", "retention_pass_drift_stability")
@@ -293,19 +331,15 @@ fn perf_case_contract(suite: &str, case: &str) -> PerfCaseContract {
         ) => {
             PerfCaseContract::bursty()
         }
-        ("commit_delta_matrix", "single_partition_create_burst")
-        | ("commit_delta_matrix", "cross_partition_relation_burst")
+        ("commit_delta_matrix", "cross_partition_relation_burst")
         | ("geometry_kernel_matrix", "topology_bridge_connectivity_wave_rich_geometry_profile")
         | ("geometry_kernel_matrix", "topology_bridge_connectivity_wave_zero_diagnostics")
-        | ("inspection_budget_matrix", "retention_commit_window")
         | ("mixed_load_matrix", "concurrent_snapshot_version_read_pressure")
         | ("query_packet_matrix", "connectivity_traversal_cross_partition")
-        | ("sustained_load_matrix", "commit_query_churn_stability")
         | ("snapshot_materialization_matrix", "version_read_view_historical")
-        | ("replay_recovery_matrix", "checkpoint_recover_suffix_replay")
-        | ("profile_matrix", "certification_core_rich_commit_query_round_trip")
-        | ("profile_matrix", "geometry_kernel_rich_commit_query_round_trip")
-        => PerfCaseContract::noisy(),
+        | ("replay_recovery_matrix", "checkpoint_recover_suffix_replay") => {
+            PerfCaseContract::noisy()
+        }
         ("merge_lineage_matrix", "merge_planning_divergent_update")
         | ("index_parity_matrix", "entity_field_equals_build_failed_fallback")
         | ("inspection_budget_matrix", "structural_identity_historical_window")

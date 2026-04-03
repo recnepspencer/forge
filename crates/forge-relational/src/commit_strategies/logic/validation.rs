@@ -26,7 +26,7 @@ pub(crate) fn validate_lowered_plan(
         .as_ref()
         .map(|commit| commit.version_id)
         .unwrap_or_else(|| runtime.current_version_id());
-    let (structural_summary, working_state) = prepare_authoritative_working_state_scope(
+    let (structural_summary, working_state, _) = prepare_authoritative_working_state_scope(
         runtime,
         lowered.merged_plan(),
         lowered.options().merge_parent_branches.len(),

@@ -292,16 +292,64 @@ Harden geometry and chip realism using the full matrix rather than isolated micr
 
 ### Current Status
 
-Phase 4 is now started. The first hotspot and endurance read is captured in [forge_relational_phase4_hotspots_and_endurance.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/engineering/forge_relational_phase4_hotspots_and_endurance.md).
+Phase 4 is now effectively complete enough to hand off to the AoSoA decision gate. The current hotspot and endurance read is captured in [forge_relational_phase4_hotspots_and_endurance.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/engineering/forge_relational_phase4_hotspots_and_endurance.md).
 
 The current ranking is:
 
-1. 100k-world geometry propagation and explicit query latency
-2. 100k-world bootstrap cost
-3. remaining rich-vs-thin geometry spread at large scale
-4. hot geometry durability tail
-5. chip checkpoint/recovery cadence
-6. long-horizon replay-window endurance
+1. 100k-world bootstrap cost
+2. touched-partition clone and publication width on large geometry edits
+3. checkpoint-heavy durability and recovery cadence
+4. longer-horizon replay-window endurance beyond the current bounded windows
+5. broader game-engine frame regions beyond the first frame-shaped certification window
+
+Latest Phase 4 evidence from the certified lane:
+
+- `rocketship_scale_matrix/hundred_k_nodes_zero_diagnostics_narrow_round_trip`
+  - `hot_update_micros = 10797`
+  - `draft_preparation_micros = 2477`
+  - `publication_storage_commit_micros = 993`
+  - `hot_query_execution_micros = 391`
+- `rocketship_scale_matrix/hundred_k_nodes_pseudorealistic_propagation_wave`
+  - `hot_update_micros = 16245`
+  - `draft_preparation_micros = 2066`
+  - `publication_storage_commit_micros = 846`
+  - `propagation_execution_micros = 211`
+  - `explicit_query_micros = 58`
+- `rocketship_scale_matrix/hundred_k_nodes_geometry_profile_propagation_wave`
+  - `hot_update_micros = 16126`
+  - `draft_preparation_micros = 1967`
+  - `publication_micros = 943`
+  - `detailed_trace_entries = 0`
+- `sustained_load_matrix/rocketship_hot_update_endurance`
+  - `256` iterations
+  - `average_update_micros = 1677`
+  - `first_window_average_update_micros = 1943`
+  - `last_window_average_update_micros = 1776`
+- `sustained_load_matrix/rocketship_propagation_endurance`
+  - `96` iterations
+  - `average_update_micros = 3361`
+  - `average_propagation_micros = 205`
+  - `average_explicit_query_micros = 52`
+  - `first_window_average_cycle_micros = 9173`
+  - `last_window_average_cycle_micros = 2608`
+- `sustained_load_matrix/chip_global_step_endurance`
+  - `128` iterations
+  - `average_update_micros = 216`
+  - `average_compile_micros = 2`
+  - `first_window_average_cycle_micros = 172`
+  - `last_window_average_cycle_micros = 265`
+- `game_engine_matrix/local_scene_graph_propagation_wave`
+  - median elapsed `525us`
+  - `update_micros = 362`
+  - `propagation_micros = 152`
+  - `explicit_query_micros = 23`
+- `game_engine_matrix/mixed_read_write_frame_churn_window`
+  - `48` iterations
+  - `average_update_micros = 367`
+  - `average_propagation_micros = 40`
+  - `average_explicit_query_micros = 12`
+  - `first_window_average_cycle_micros = 427`
+  - `last_window_average_cycle_micros = 421`
 
 ### Required Work
 
@@ -313,9 +361,9 @@ The current ranking is:
    - denser fanout and adjacency churn
    - repeated rollback/recover patterns
 3. game-engine-like:
-   - mixed read/write frame-shape churn
-   - local scene graph propagation
-   - bounded regional recompute
+   - broader mixed read/write frame-shape churn
+   - local scene graph propagation on wider regions
+   - bounded regional recompute at larger scene widths
 
 ### Success Criteria
 
@@ -325,6 +373,8 @@ The current ranking is:
 ### Exit Criteria
 
 - geometry, chip, and game-engine target families exist and are baselined
+- rocketship-scale endurance is certified over longer hot-update and propagation windows
+- the remaining Phase 4 walls are narrow enough to hand off to the AoSoA decision gate
 
 ## Phase 5: Measurement Hygiene Sweep
 
@@ -352,6 +402,15 @@ Eliminate remaining ambiguity about test overhead contaminating benchmark number
 ### Exit Criteria
 
 - no major benchmark family relies on ad hoc timing shape
+
+### Current Status
+
+Phase 5 is complete enough for the AoSoA decision gate:
+
+- the shared `measurement_with_elapsed(...)` and `measurement_from(...)` helpers are now used in the main decision-driving families
+- `profile_matrix`, `workflow_matrix`, `sustained_load_matrix`, `rocketship_scale_matrix`, and `hot_cold_path_matrix` now all keep metrics assembly out of the measured window
+- `harness_measurement_matrix/post_measurement_metrics_do_not_pollute_elapsed` remains in the lane as a guardrail
+- the full perf lane passes with the updated helpers and promoted baseline
 
 ## Phase 6: AoSoA Decision Gate
 
@@ -394,11 +453,9 @@ The intended execution order is:
 
 The first tasks to pick up from this spec are:
 
-1. finish Phase 2 profile boundary enforcement across all named runtime profiles
-2. extend `runtime_bridge_mock_matrix` with larger invalidation-region cases and mirror them later in the bridge crate
-3. add first frame-shape game-engine perf family
-4. continue measurement helper rollout through `performance_profiles.rs`
-5. re-baseline merged and domain-scale hotspots after the new profile boundaries land
+1. begin Phase 6 AoSoA decision review against the promoted rocketship and endurance baselines
+2. use the current hotspot list to decide whether touched-partition clone cost is still the true structural wall
+3. only then scope chunk-local layout experiments or defer AoSoA explicitly
 
 ## Decision Standard
 

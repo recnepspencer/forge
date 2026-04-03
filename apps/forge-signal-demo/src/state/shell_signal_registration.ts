@@ -7,7 +7,7 @@ import type {
   MergeResult,
   ScenarioState,
 } from "../gear-scene/core/types";
-import type { WorkerSnapshot } from "../gear-scene/worker/protocol";
+import type { MergeReviewSnapshot, WorkerSnapshot } from "../gear-scene/worker/protocol";
 import { createEmptySnapshot } from "./shell_signal_schema";
 
 export function registerShellSignals(app: SignalApp) {
@@ -25,6 +25,7 @@ export function registerShellSignals(app: SignalApp) {
   app.source(define.source<WorkerSnapshot["timeline"]>("uiTimeline").initial(empty.timeline));
   app.source(define.source<number>("uiTimelineIndex").initial(empty.timelineIndex));
   app.source(define.source<BranchInspect | null>("uiInspect").initial(empty.inspect));
+  app.source(define.source<MergeReviewSnapshot | null>("uiMergeReview").initial(empty.mergeReview));
   app.source(define.source<ScenarioState | null>("uiScenario").initial(empty.scenario));
   app.source(define.source<string | null>("uiError").initial(empty.error));
   app.source(define.source<string | null>("uiDebugStatus").initial(empty.debugStatus ?? null));
@@ -34,4 +35,6 @@ export function registerShellSignals(app: SignalApp) {
   app.source(define.source<boolean>("uiControlsOpen").initial(true));
   app.source(define.source<boolean>("uiWalkthroughOpen").initial(false));
   app.source(define.source<number>("uiWalkthroughIndex").initial(0));
+  app.source(define.source<string>("uiReviewPolicyLane").initial("current"));
+  app.source(define.source<"source" | "target">("uiReviewManualChoice").initial("source"));
 }

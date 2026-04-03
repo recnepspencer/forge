@@ -7,7 +7,11 @@ const DEBUG_CONSOLE = false;
 export type WorkerTransportOptions = {
   onDebugStatus: (status: string) => void;
   onSnapshot: (snapshot: WorkerSnapshot, hasNewFrames: boolean) => void;
-  onFrames: (snapshot: WorkerSnapshot, frames: Array<{ branchId: BranchId; bitmap: ImageBitmap }>) => void;
+  onFrames: (
+    snapshot: WorkerSnapshot,
+    frames: Array<{ branchId: BranchId; bitmap: ImageBitmap }>,
+    reviewFrames: Array<{ id: string; bitmap: ImageBitmap }>,
+  ) => void;
   onError: (message: string) => void;
   onPendingInspectReady: (branchId: BranchId, nodeId: string) => void;
   getPendingInspectNode: () => string | null;
@@ -69,8 +73,8 @@ export class WorkerTransport {
         return;
       }
 
-      this.options.onFrames(message.snapshot, message.frames);
-      this.options.onSnapshot(message.snapshot, message.frames.length > 0);
+      this.options.onFrames(message.snapshot, message.frames, message.reviewFrames);
+      this.options.onSnapshot(message.snapshot, message.frames.length > 0 || message.reviewFrames.length > 0);
 
       if (
         this.options.getPendingInspectNode()

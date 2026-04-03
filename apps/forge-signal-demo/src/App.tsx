@@ -1,7 +1,7 @@
 import "./App.css";
 
-import type { ScenePatch } from "./gear-scene/core/types";
-import { demoState, useDemoSignal } from "./state/ui_state";
+import { useReviewView, useScenarioView, useWorkspaceView } from "./state/app_views";
+import { demoState } from "./state/ui_state";
 import {
   mergeConflictNodeIds,
   mergeResolvedNodeIds,
@@ -10,37 +10,60 @@ import { MergeProofPanel } from "./ui/merge_review_panel";
 import { ScenarioPanel } from "./ui/scenario_review_panel";
 import {
   ControlsPanel,
-  LiveHudPanel,
-  SignalGraphPanel,
-  TimelinePanel,
-} from "./ui/workspace_layout";
+} from "./ui/controls_panel";
 import { HudOverlay } from "./ui/hud_panels";
+import { LiveHudPanel } from "./ui/live_hud_panel";
 import { NodeTrace } from "./ui/node_trace_panel";
+import { SignalGraphPanel } from "./ui/signal_graph_panel";
+import { TimelinePanel } from "./ui/timeline_panel";
 import { Viewport } from "./ui/viewport_panel";
 
-/* ??? main app ????????????????????????????????????????????????????? */
-
 function App() {
-  const branches = useDemoSignal(demoState.branches.branches);
-  const activeBranch = useDemoSignal(demoState.branches.activeBranch);
-  const hasFeatureBranch = useDemoSignal(demoState.branches.hasFeatureBranch);
-  const latestSummary = useDemoSignal(demoState.branches.latestSummary);
-  const suppression = useDemoSignal(demoState.branches.suppressionPercent);
-  const graphNodes = useDemoSignal(demoState.branches.graphNodes);
-  const frameVersion = useDemoSignal(demoState.branches.frameVersion);
-  const mergePlan = useDemoSignal(demoState.merge.mergePlan);
-  const mergeResult = useDemoSignal(demoState.merge.mergeResult);
-  const timeline = useDemoSignal(demoState.timeline.timeline);
-  const timelineIndex = useDemoSignal(demoState.timeline.timelineIndex);
-  const inspect = useDemoSignal(demoState.inspection.inspect);
-  const tracedNode = useDemoSignal(demoState.inspection.tracedNode);
-  const scenario = useDemoSignal(demoState.scenario.scenario);
-  const diagnosticsTier = useDemoSignal(demoState.scenario.diagnosticsTier);
-  const error = useDemoSignal(demoState.status.error);
-  const debugStatus = useDemoSignal(demoState.status.debugStatus);
-  const controlsOpen = useDemoSignal(demoState.controls.controlsOpen);
-  const walkthroughOpen = useDemoSignal(demoState.controls.walkthroughOpen);
-  const walkthroughIndex = useDemoSignal(demoState.controls.walkthroughIndex);
+  const {
+    branches,
+    activeBranch,
+    latestSummary,
+    suppression,
+    graphNodes,
+    frameVersion,
+    timeline,
+    timelineIndex,
+    inspect,
+    tracedNode,
+    controlsOpen,
+    applyActiveBranchPatch,
+    inspectActiveBranchNode,
+  } = useWorkspaceView();
+  const {
+    mergePlan,
+    mergeResult,
+    mergeReview,
+    walkthroughOpen,
+    walkthroughIndex,
+    reviewPolicyLane,
+    reviewManualChoice,
+  } = useReviewView();
+  const {
+    hasFeatureBranch,
+    scenario,
+    diagnosticsTier,
+    error,
+    debugStatus,
+  } = useScenarioView();
+
+  function beginMergeReview() {
+    demoState.controls.openWalkthrough();
+  }
+
+  function executeScenarioMergeAndReview() {
+    demoState.scenario.execute();
+    beginMergeReview();
+  }
+
+  function mergeNowAndReview() {
+    demoState.merge.mergeNow();
+    beginMergeReview();
+  }
 
   return (
     <main className="shell">
@@ -56,9 +79,9 @@ function App() {
           <button
             className="btn"
             disabled={!hasFeatureBranch}
-            onClick={() => demoState.merge.mergeNow()}
+            onClick={mergeNowAndReview}
           >
-            Merge
+            Merge And Review
           </button>
         </div>
       </header>
@@ -83,7 +106,7 @@ function App() {
             ))}
           </div>
 
-            <HudOverlay
+          <HudOverlay
             graphNodes={graphNodes}
             summary={latestSummary}
             suppression={suppression}
@@ -112,10 +135,7 @@ function App() {
             controlsOpen={controlsOpen}
             activeBranch={activeBranch}
             onToggle={() => demoState.controls.toggleControls()}
-            onPatch={(patch: ScenePatch, label: string) => {
-              if (!activeBranch) return;
-              demoState.transport.applyScenePatch(activeBranch.id, patch, label);
-            }}
+            onPatch={applyActiveBranchPatch}
           />
 
           <LiveHudPanel
@@ -134,23 +154,30 @@ function App() {
               onSetMode={(mode) => demoState.scenario.setMode(mode)}
               onRun={() => demoState.scenario.run()}
               onPlan={() => demoState.scenario.plan()}
-              onExecute={() => demoState.scenario.execute()}
+              onExecute={executeScenarioMergeAndReview}
               onReplay={() => demoState.scenario.replay()}
               onSetDiagnosticsTier={(tier) => demoState.scenario.setDiagnosticsTier(tier)}
             />
           </section>
 
           <section className="panel">
-            <span className="panel__eyebrow">Merge Proof</span>
+            <span className="panel__eyebrow">Merge Review</span>
             <MergeProofPanel
               mergePlan={mergePlan}
               mergeResult={mergeResult}
+              mergeReview={mergeReview}
               walkthroughOpen={walkthroughOpen}
               walkthroughIndex={walkthroughIndex}
+              reviewPolicyLane={reviewPolicyLane}
+              reviewManualChoice={reviewManualChoice}
+              frameVersion={frameVersion}
+              getReviewFrame={demoState.transport.getReviewFrame}
               onOpenWalkthrough={() => demoState.controls.openWalkthrough()}
               onCloseWalkthrough={() => demoState.controls.closeWalkthrough()}
               onNextWalkthrough={(maxIndex) => demoState.controls.nextWalkthrough(maxIndex)}
               onPrevWalkthrough={() => demoState.controls.prevWalkthrough()}
+              onSetReviewPolicyLane={(lane) => demoState.controls.setReviewPolicyLane(lane)}
+              onSetReviewManualChoice={(choice) => demoState.controls.setReviewManualChoice(choice)}
             />
           </section>
 
@@ -159,10 +186,7 @@ function App() {
             tracedNode={tracedNode}
             conflictedNodes={mergeConflictNodeIds(mergePlan, mergeResult)}
             resolvedNodes={mergeResolvedNodeIds(mergePlan, mergeResult)}
-            onInspect={(nodeId) => {
-              if (!activeBranch) return;
-              demoState.inspection.inspectNode(activeBranch.id, nodeId);
-            }}
+            onInspect={inspectActiveBranchNode}
           />
         </aside>
       </section>

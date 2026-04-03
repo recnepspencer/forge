@@ -29,8 +29,9 @@ use crate::schema::data::SchemaTransitionSummary;
 use crate::transactions::data::{
     CommitExecution, CommitLog, CommitOutcome, CommitPatchBudgetSummary, CommitPhase,
     CommitPhaseTiming, CommitPublication, CommitResult, CommitSchemaSummary, CommitValidation,
-    LoweredCommitPlan, MergeCommitMutationPlan, ProvenanceCompleteBulkMutationBatch,
-    TransactionCommitError, TransactionId, TransactionOptions,
+    CreateIntent, EntityMutationIntent, LoweredCommitPlan, MergeCommitMutationPlan,
+    MutationIntent, RelationMutationIntent, TransactionCommitError, TransactionId,
+    TransactionOptions,
 };
 use crate::transactions::logic::RelationalTransaction;
 use crate::validation::engine::InvariantExecutionResult;
@@ -54,16 +55,6 @@ impl<'a> RelationalTransaction<'a> {
         let draft_started = Instant::now();
         let mut draft_preparation_log = CommitLog::new();
         draft_preparation_log.begin_phase(CommitPhase::DraftPreparation);
-        let admitted_bulk_batch = self
-            .admit_provenance_complete_bulk_mutation_batch()
-            .map_err(TransactionCommitError::conflict)
-            .map_err(|error| {
-                attach_rejection(
-                    &mut draft_preparation_log,
-                    CommitPhase::DraftPreparation,
-                    error,
-                )
-            })?;
         let prepared = prepare_working_state_scope(&mut self).map_err(|error| {
             attach_rejection(
                 &mut draft_preparation_log,
@@ -71,6 +62,8 @@ impl<'a> RelationalTransaction<'a> {
                 error,
             )
         })?;
+        let bulk_mutation_telemetry =
+            summarize_bulk_mutation_telemetry(&prepared.merged_plan, self.batches.len());
         execute_authoritative_commit(
             self.runtime,
             AuthoritativeCommitContext::from_mutation(
@@ -78,13 +71,107 @@ impl<'a> RelationalTransaction<'a> {
                 self.options,
                 CommitPhaseTiming {
                     draft_preparation_micros: elapsed_micros(draft_started),
+                    draft_merge_plan_micros: prepared.phase_timing.draft_merge_plan_micros,
+                    draft_structural_summary_micros: prepared
+                        .phase_timing
+                        .draft_structural_summary_micros,
+                    draft_working_state_clone_micros: prepared
+                        .phase_timing
+                        .draft_working_state_clone_micros,
                     ..CommitPhaseTiming::default()
                 },
                 prepared,
-                admitted_bulk_batch,
+                bulk_mutation_telemetry,
             ),
         )
     }
+}
+
+#[derive(Debug, Clone)]
+struct BulkMutationPlanTelemetry {
+    locality: crate::transactions::data::BulkMutationLocalityFootprint,
+    normalized_client_key_count: usize,
+    lineage_transition_count: usize,
+    provenance_record_count: usize,
+}
+
+fn summarize_bulk_mutation_telemetry(
+    merged_plan: &crate::transactions::data::MergedCommitPlan,
+    worker_batch_count: usize,
+) -> Option<BulkMutationPlanTelemetry> {
+    if merged_plan.merged_intents.is_empty() {
+        return None;
+    }
+
+    let mut touched_partitions = std::collections::BTreeSet::new();
+    let mut cross_partition_relation_count = 0usize;
+    let mut entity_target_count = 0usize;
+    let mut relation_target_count = 0usize;
+    let mut normalized_client_key_count = 0usize;
+    let mut lineage_transition_count = 0usize;
+
+    for intent in &merged_plan.merged_intents {
+        intent.seed_touched_partitions(&mut touched_partitions);
+        match intent {
+            MutationIntent::Create(CreateIntent::Entity(_)) => {
+                entity_target_count += 1;
+                normalized_client_key_count += 1;
+                lineage_transition_count += 1;
+            }
+            MutationIntent::Create(CreateIntent::BulkEntities(spec)) => {
+                entity_target_count += spec.payloads.len();
+                normalized_client_key_count += spec.client_keys.len();
+                lineage_transition_count += spec.client_keys.len();
+            }
+            MutationIntent::Create(CreateIntent::Relation(spec)) => {
+                relation_target_count += 1;
+                normalized_client_key_count += 1;
+                lineage_transition_count += 1;
+                if spec.source.partition_id != spec.target.partition_id {
+                    cross_partition_relation_count += 1;
+                }
+            }
+            MutationIntent::Create(CreateIntent::BulkRelations(spec)) => {
+                relation_target_count += spec.endpoints.len();
+                normalized_client_key_count += spec.client_keys.len();
+                lineage_transition_count += spec.client_keys.len();
+                cross_partition_relation_count += spec
+                    .endpoints
+                    .iter()
+                    .filter(|(source, target)| source.partition_id != target.partition_id)
+                    .count();
+            }
+            MutationIntent::Entity(EntityMutationIntent::Update(_))
+            | MutationIntent::Entity(EntityMutationIntent::UpdateFields(_)) => {
+                entity_target_count += 1;
+            }
+            MutationIntent::Entity(EntityMutationIntent::Replace(_)) => {
+                entity_target_count += 1;
+                normalized_client_key_count += 1;
+                lineage_transition_count += 1;
+            }
+            MutationIntent::Entity(EntityMutationIntent::Delete(_)) => {
+                entity_target_count += 1;
+                lineage_transition_count += 1;
+            }
+            MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {
+                relation_target_count += 1;
+                lineage_transition_count += 1;
+            }
+        }
+    }
+
+    Some(BulkMutationPlanTelemetry {
+        locality: crate::transactions::data::BulkMutationLocalityFootprint {
+            touched_partitions: touched_partitions.into_iter().collect::<Vec<_>>().into(),
+            cross_partition_relation_count,
+            entity_target_count,
+            relation_target_count,
+        },
+        normalized_client_key_count,
+        lineage_transition_count,
+        provenance_record_count: worker_batch_count,
+    })
 }
 
 #[derive(Debug)]
@@ -101,7 +188,7 @@ pub(crate) struct AuthoritativeCommitContext {
     authority_input: CommitAuthorityInput,
     prepared_scope: Option<PreparedAuthorityScope>,
     merge_execution_accounting: Option<MergeExecutionAccounting>,
-    bulk_mutation_batch: Option<ProvenanceCompleteBulkMutationBatch>,
+    bulk_mutation_telemetry: Option<BulkMutationPlanTelemetry>,
     prevalidated_commit_boundary: Option<InvariantExecutionResult>,
     validated_against_commit_id: Option<crate::history::data::CommitId>,
     validated_against_version_id: Option<crate::identity::data::VersionId>,
@@ -112,6 +199,7 @@ pub(crate) struct AuthoritativeCommitContext {
 struct PreparedAuthorityScope {
     structural_summary: crate::authority::commit::structural_summary::CommitStructuralSummary,
     working_state: crate::storage::overlay::WorkingState,
+    phase_timing: CommitPhaseTiming,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -121,26 +209,27 @@ struct MergeExecutionAccounting {
 }
 
 impl AuthoritativeCommitContext {
-    pub(crate) fn from_mutation(
+    fn from_mutation(
         transaction_id: TransactionId,
         options: TransactionOptions,
         phase_timing: CommitPhaseTiming,
         prepared: crate::authority::commit::phases::prepare::PreparedWorkingStateScope,
-        bulk_mutation_batch: Option<ProvenanceCompleteBulkMutationBatch>,
+        bulk_mutation_telemetry: Option<BulkMutationPlanTelemetry>,
     ) -> Self {
         Self {
             transaction_id,
             options,
-            phase_timing,
+            phase_timing: phase_timing.clone(),
             authority_input: CommitAuthorityInput::Lowered(LoweredCommitPlan::Mutation(
                 prepared.merged_plan,
             )),
             prepared_scope: Some(PreparedAuthorityScope {
                 structural_summary: prepared.structural_summary,
                 working_state: prepared.working_state,
+                phase_timing,
             }),
             merge_execution_accounting: None,
-            bulk_mutation_batch,
+            bulk_mutation_telemetry,
             prevalidated_commit_boundary: None,
             validated_against_commit_id: None,
             validated_against_version_id: None,
@@ -189,7 +278,7 @@ impl AuthoritativeCommitContext {
             }),
             authority_input: CommitAuthorityInput::Merge(merge_plan),
             prepared_scope: None,
-            bulk_mutation_batch: None,
+            bulk_mutation_telemetry: None,
             prevalidated_commit_boundary: None,
             validated_against_commit_id: None,
             validated_against_version_id: None,
@@ -215,7 +304,14 @@ impl AuthoritativeCommitContext {
             )),
             prepared_scope: None,
             merge_execution_accounting: None,
-            bulk_mutation_batch: lowered_plan.bulk_mutation_batch().cloned(),
+            bulk_mutation_telemetry: lowered_plan
+                .bulk_mutation_batch()
+                .map(|batch| BulkMutationPlanTelemetry {
+                    locality: batch.planned().locality.clone(),
+                    normalized_client_key_count: batch.planned().naming.normalized_client_keys.len(),
+                    lineage_transition_count: batch.planned().lineage.transitions.len(),
+                    provenance_record_count: batch.planned().provenance.worker_batch_names.len(),
+                }),
             prevalidated_commit_boundary: None,
             validated_against_commit_id: None,
             validated_against_version_id: None,
@@ -246,9 +342,18 @@ impl AuthoritativeCommitContext {
             prepared_scope: Some(PreparedAuthorityScope {
                 structural_summary: validated_plan.prepared_scope().structural_summary.clone(),
                 working_state: validated_plan.prepared_scope().working_state.clone(),
+                phase_timing: CommitPhaseTiming::default(),
             }),
             merge_execution_accounting: None,
-            bulk_mutation_batch: validated_plan.lowered_plan().bulk_mutation_batch().cloned(),
+            bulk_mutation_telemetry: validated_plan
+                .lowered_plan()
+                .bulk_mutation_batch()
+                .map(|batch| BulkMutationPlanTelemetry {
+                    locality: batch.planned().locality.clone(),
+                    normalized_client_key_count: batch.planned().naming.normalized_client_keys.len(),
+                    lineage_transition_count: batch.planned().lineage.transitions.len(),
+                    provenance_record_count: batch.planned().provenance.worker_batch_names.len(),
+                }),
             prevalidated_commit_boundary: Some(validated_plan.commit_boundary_invariants().clone()),
             validated_against_commit_id: validated_plan.validated_against_commit_id(),
             validated_against_version_id: Some(validated_plan.validated_against_version_id()),
@@ -296,7 +401,7 @@ pub(crate) fn execute_authoritative_commit(
         authority_input,
         prepared_scope,
         merge_execution_accounting,
-        bulk_mutation_batch,
+        bulk_mutation_telemetry,
         prevalidated_commit_boundary,
         validated_against_commit_id,
         validated_against_version_id,
@@ -311,13 +416,12 @@ pub(crate) fn execute_authoritative_commit(
         .lock()
         .expect("complexity counter lock poisoned")
         .clone();
-    if let Some(admitted_bulk_batch) = bulk_mutation_batch.as_ref() {
-        let planned = admitted_bulk_batch.planned();
+    if let Some(telemetry) = bulk_mutation_telemetry.as_ref() {
         runtime.performance_access().count_bulk_mutation_plan(
-            &planned.locality,
-            planned.naming.normalized_client_keys.len(),
-            planned.lineage.transitions.len(),
-            planned.provenance.worker_batch_names.len(),
+            &telemetry.locality,
+            telemetry.normalized_client_key_count,
+            telemetry.lineage_transition_count,
+            telemetry.provenance_record_count,
         );
     }
     let validation_basis_branch = options
@@ -367,17 +471,23 @@ pub(crate) fn execute_authoritative_commit(
     let PreparedAuthorityScope {
         structural_summary,
         mut working_state,
+        phase_timing: prepared_phase_timing,
     } = match prepared_scope {
         Some(scope) => scope,
         None => {
-            let (structural_summary, working_state) =
+            let (structural_summary, working_state, phase_timing) =
                 prepare_authoritative_working_state_scope(runtime, merged_plan, merge_parent_count);
             PreparedAuthorityScope {
                 structural_summary,
                 working_state,
+                phase_timing,
             }
         }
     };
+    phase_timing.draft_structural_summary_micros =
+        prepared_phase_timing.draft_structural_summary_micros;
+    phase_timing.draft_working_state_clone_micros =
+        prepared_phase_timing.draft_working_state_clone_micros;
     let public_structural_summary = structural_summary.public_summary(
         runtime
             .config
@@ -604,7 +714,7 @@ pub(crate) fn execute_authoritative_commit(
             },
     } = publication;
     let canonical_commit_envelope = Arc::new(canonical_commit_envelope);
-    finalize_commit_publication(
+    let publication_phase_timing = finalize_commit_publication(
         runtime,
         working_state,
         FinalizeCommitInput {
@@ -624,6 +734,16 @@ pub(crate) fn execute_authoritative_commit(
     commit_log.record_commit_published(commit_id, &commit_reference.branch_id.0);
     commit_log.complete_phase(CommitPhase::Publication);
     phase_timing.publication_micros = elapsed_micros(phase_started);
+    phase_timing.publication_storage_commit_micros = publication_phase_timing.storage_commit_micros;
+    phase_timing.publication_index_refresh_micros = publication_phase_timing.index_refresh_micros;
+    phase_timing.publication_history_publish_micros = publication_phase_timing.history_publish_micros;
+    phase_timing.publication_visibility_pin_micros = publication_phase_timing.visibility_pin_micros;
+    phase_timing.publication_retention_trim_micros = publication_phase_timing.retention_trim_micros;
+    phase_timing.publication_compaction_micros = publication_phase_timing.compaction_micros;
+    phase_timing.publication_bundle_publish_micros = publication_phase_timing.bundle_publish_micros;
+    phase_timing.publication_retention_pass_micros = publication_phase_timing.retention_pass_micros;
+    phase_timing.publication_post_commit_consumer_micros =
+        publication_phase_timing.post_commit_consumer_micros;
 
     if let Some(accounting) = merge_execution_accounting {
         runtime.performance_access().count_merge_execution_request(

@@ -646,6 +646,15 @@ export type MergeResultProofEnvelope = {
   proof: MergeResultProofReport;
 };
 
+export type MergePolicyPreviewRequest = {
+  sourceBranchId: number;
+  targetBranchId: number;
+  conflictPolicyName?: string | null;
+  conflictIsolationPolicyName?: string | null;
+  identityMatcherName?: string | null;
+  deletionPolicyName?: string | null;
+};
+
 export type RawIdentityCorrespondenceRecord = {
   source_node: string | number;
   target_node?: string | number | null;

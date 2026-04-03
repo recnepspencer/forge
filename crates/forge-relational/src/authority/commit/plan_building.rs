@@ -140,6 +140,9 @@ impl<'a> RelationalTransaction<'a> {
         for intent in intents.iter() {
             intent.collect_raw_client_keys(&mut raw_values);
         }
+        if raw_values.is_empty() {
+            return;
+        }
         for raw in raw_values {
             interner.intern(&raw);
         }

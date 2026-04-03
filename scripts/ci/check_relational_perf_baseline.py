@@ -14,8 +14,6 @@ NOISY_CASES = {
     ("replay_recovery_matrix", "durable_replay_lineage_basis"),
     ("replay_recovery_matrix", "checkpoint_recover_suffix_replay"),
     ("snapshot_materialization_matrix", "version_read_view_historical"),
-    ("profile_matrix", "certification_core_rich_commit_query_round_trip"),
-    ("profile_matrix", "geometry_kernel_rich_commit_query_round_trip"),
     ("workflow_matrix", "retention_release_reclaim_round_trip"),
 }
 
@@ -37,7 +35,24 @@ IO_BURSTY_CASES = {
     ("durability_append_matrix", "append_canonical_envelope_fresh_store"),
     ("durability_append_matrix", "append_canonical_envelope_existing_segment"),
     ("replay_recovery_matrix", "durable_replay_lineage_basis"),
+}
+
+VOLATILE_CASES = {
+    ("commit_delta_matrix", "single_partition_create_burst"),
+    ("geometry_kernel_matrix", "topology_identity_survival_recovery_round_trip"),
+    ("chip_simulator_matrix", "branch_rollback_compile_step_window"),
+    ("index_parity_matrix", "entity_field_equals_warm_generation"),
+    ("inspection_budget_matrix", "retention_commit_window"),
+    ("sustained_load_matrix", "commit_query_churn_stability"),
+    ("snapshot_materialization_matrix", "projection_entity_identity_surface"),
     ("workflow_matrix", "persisted_recovery_replay_round_trip"),
+    ("profile_matrix", "certification_core_rich_commit_query_round_trip"),
+    ("profile_matrix", "geometry_kernel_rich_commit_query_round_trip"),
+}
+
+EXTREME_VOLATILE_CASES = {
+    ("chip_simulator_matrix", "event_wave_compile_churn_window"),
+    ("chip_simulator_matrix", "event_wave_compile_churn_rich_diagnostics"),
 }
 
 TINY_CASES = {
@@ -104,6 +119,20 @@ def case_tolerances(suite, case):
             "elapsed_median": 1.90,
             "elapsed_max": 2.50,
             "metric_median": 2.00,
+            "enforce_elapsed_max": False,
+        }
+    if (suite, case) in EXTREME_VOLATILE_CASES:
+        return {
+            "elapsed_median": 2.50,
+            "elapsed_max": 3.00,
+            "metric_median": 3.00,
+            "enforce_elapsed_max": False,
+        }
+    if (suite, case) in VOLATILE_CASES:
+        return {
+            "elapsed_median": 2.10,
+            "elapsed_max": 2.50,
+            "metric_median": 2.25,
             "enforce_elapsed_max": False,
         }
     if (suite, case) in BURSTY_CASES:

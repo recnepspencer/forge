@@ -192,6 +192,12 @@ export class SignalHistory {
   planMergeBranches(sourceBranchId: number, targetBranchId: number): MergePlanReport;
   planMergeBranchesDetailed(sourceBranchId: number, targetBranchId: number): BranchMergePlan;
   planMergeBranchesDetailedWithProof(sourceBranchId: number, targetBranchId: number): MergePlanProofEnvelope;
+  planMergePolicyPreview(request: MergePolicyPreviewRequest): MergePlanReport;
+  planMergePolicyPreviewDetailed(request: MergePolicyPreviewRequest): BranchMergePlan;
+  planMergePolicyPreviewDetailedWithProof(request: MergePolicyPreviewRequest): MergePlanProofEnvelope;
+  mergeBranchesPolicyPreview(request: MergePolicyPreviewRequest): MergeResultReport;
+  mergeBranchesPolicyPreviewDetailed(request: MergePolicyPreviewRequest): BranchMergeResult;
+  mergeBranchesPolicyPreviewDetailedWithProof(request: MergePolicyPreviewRequest): MergeResultProofEnvelope;
   mergeBranches(sourceBranchId: number, targetBranchId: number): MergeResultReport;
   mergeBranchesDetailed(sourceBranchId: number, targetBranchId: number): BranchMergeResult;
   mergeBranchesDetailedWithProof(sourceBranchId: number, targetBranchId: number): MergeResultProofEnvelope;

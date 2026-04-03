@@ -1,15 +1,15 @@
 import type { DemoShellSignalKey } from "./shell_signal_schema";
-import { runtimeAccess } from "./runtime_access";
+import { demoSession } from "./demo_session";
 
 export type SignalSlice<T> = {
   getSnapshot: () => T;
   subscribe: (listener: () => void) => () => void;
 };
 
-function signalSlice<K extends DemoShellSignalKey>(key: K): SignalSlice<ReturnType<typeof runtimeAccess.readSignal<K>>> {
+function signalSlice<K extends DemoShellSignalKey>(key: K): SignalSlice<ReturnType<typeof demoSession.readSignal<K>>> {
   return {
-    getSnapshot: () => runtimeAccess.readSignal(key),
-    subscribe: (listener) => runtimeAccess.subscribeSignal(key, listener),
+    getSnapshot: () => demoSession.readSignal(key),
+    subscribe: (listener) => demoSession.subscribeSignal(key, listener),
   };
 }
 
@@ -26,6 +26,7 @@ export const demoReads = {
   timeline: signalSlice("timeline"),
   timelineIndex: signalSlice("timelineIndex"),
   inspect: signalSlice("inspect"),
+  mergeReview: signalSlice("mergeReview"),
   tracedNode: signalSlice("tracedNode"),
   scenario: signalSlice("scenario"),
   diagnosticsTier: signalSlice("diagnosticsTier"),
@@ -34,4 +35,6 @@ export const demoReads = {
   controlsOpen: signalSlice("controlsOpen"),
   walkthroughOpen: signalSlice("walkthroughOpen"),
   walkthroughIndex: signalSlice("walkthroughIndex"),
+  reviewPolicyLane: signalSlice("reviewPolicyLane"),
+  reviewManualChoice: signalSlice("reviewManualChoice"),
 };

@@ -265,7 +265,7 @@ pub(super) fn finalize_published_commit(
     runtime: &mut RelationalRuntime,
     committed_partitions: std::collections::BTreeMap<
         crate::identity::data::PartitionId,
-        PartitionState,
+        (PartitionState, crate::storage::overlay::PartitionMutationJournal),
     >,
     changed_records: &[RecordRef],
     version_id: VersionId,
@@ -277,13 +277,21 @@ pub(super) fn finalize_published_commit(
     merge_base_commits: &[CommitId],
     artifacts: PublicationArtifacts,
     merge_parent_branches: &[BranchId],
+    phase_timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
 ) {
+    let phase_started = std::time::Instant::now();
     runtime
         .storage_authority()
-        .publish_partitions(committed_partitions);
+        .publish_partition_commits(committed_partitions);
+    phase_timing.storage_commit_micros = phase_started.elapsed().as_micros() as u64;
+
+    let phase_started = std::time::Instant::now();
     runtime
         .index_authority()
         .refresh_unique_field_index_for_records(changed_records, version_id);
+    phase_timing.index_refresh_micros = phase_started.elapsed().as_micros() as u64;
+
+    let phase_started = std::time::Instant::now();
     runtime.history_authority().publish_commit(
         commit_id,
         commit_reference.clone(),
@@ -291,6 +299,9 @@ pub(super) fn finalize_published_commit(
         canonical_commit_envelope.patch.position,
         canonical_commit_envelope,
     );
+    phase_timing.history_publish_micros = phase_started.elapsed().as_micros() as u64;
+
+    let phase_started = std::time::Instant::now();
     runtime
         .visibility_pins()
         .move_branch_head_visibility_residency(previous_branch_head_version, Some(version_id));
@@ -301,19 +312,34 @@ pub(super) fn finalize_published_commit(
             version_id,
             changed_records,
         );
+    phase_timing.visibility_pin_micros = phase_started.elapsed().as_micros() as u64;
+
+    let phase_started = std::time::Instant::now();
     runtime
         .retention_authority()
         .trim_live_history_for_records(changed_records, version_id);
+    phase_timing.retention_trim_micros = phase_started.elapsed().as_micros() as u64;
+
+    let phase_started = std::time::Instant::now();
     runtime.durability_authority().compact_log_if_needed();
+    phase_timing.compaction_micros = phase_started.elapsed().as_micros() as u64;
+
+    let phase_started = std::time::Instant::now();
     let snapshot_id = runtime
         .publication_authority()
         .publish_artifacts(version_id, artifacts);
+    phase_timing.bundle_publish_micros = phase_started.elapsed().as_micros() as u64;
+
     if runtime.config.storage.mvcc.auto_reclaim_deleted_records
         || runtime.config.storage.mvcc.snapshot_release_policy
             == crate::config::data::SnapshotReleasePolicy::ReleaseOnRetentionPass
     {
+        let phase_started = std::time::Instant::now();
         let _ = runtime.retention_authority().run_pass();
+        phase_timing.retention_pass_micros = phase_started.elapsed().as_micros() as u64;
     }
+
+    let phase_started = std::time::Instant::now();
     runtime
         .publication_authority()
         .consume_post_commit_artifacts(
@@ -324,4 +350,5 @@ pub(super) fn finalize_published_commit(
             merge_parent_branches,
             merge_base_commits,
         );
+    phase_timing.post_commit_consumer_micros = phase_started.elapsed().as_micros() as u64;
 }

@@ -1,70 +1,111 @@
 import type { BranchId, DiagnosticsTier, ScenePatch, ScenarioMode } from "../gear-scene/core/types";
 import type { WorkerCommand } from "../gear-scene/worker/protocol";
-import { runtimeAccess } from "./runtime_access";
+import { demoSession } from "./demo_session";
+import {
+  closeWalkthrough,
+  nextWalkthrough,
+  openWalkthrough,
+  prevWalkthrough,
+  setDiagnosticsTier as writeDiagnosticsTier,
+  setReviewManualChoice as writeReviewManualChoice,
+  setReviewPolicyLane as writeReviewPolicyLane,
+  setTracedNode as writeTracedNode,
+  toggleControls,
+} from "./ui_mutations";
 
 export const demoActions = {
   command(command: WorkerCommand) {
-    runtimeAccess.command(command);
+    demoSession.command(command);
   },
   branch() {
-    runtimeAccess.command({ type: "branch" });
+    demoSession.command({ type: "branch" });
   },
   mergeNow() {
-    runtimeAccess.command({ type: "merge" });
+    demoSession.command({ type: "merge" });
   },
   activateBranch(branchId: BranchId) {
-    runtimeAccess.command({ type: "activateBranch", branchId });
+    demoSession.command({ type: "activateBranch", branchId });
   },
   applyScenePatch(branchId: BranchId, patch: ScenePatch, label?: string) {
-    runtimeAccess.command({ type: "setScenePatch", branchId, patch, label });
+    demoSession.command({ type: "setScenePatch", branchId, patch, label });
   },
   inspectNode(branchId: BranchId, nodeId: string) {
-    runtimeAccess.setTracedNode(nodeId);
-    runtimeAccess.command({ type: "inspectNode", branchId, nodeId });
+    const app = demoSession.getApp();
+    if (!app) return;
+    writeTracedNode(app, nodeId);
+    demoSession.command({ type: "inspectNode", branchId, nodeId });
   },
   setTracedNode(nodeId: string | null) {
-    runtimeAccess.setTracedNode(nodeId);
+    const app = demoSession.getApp();
+    if (!app) return;
+    writeTracedNode(app, nodeId);
   },
   scrub(index: number) {
-    runtimeAccess.command({ type: "scrub", index });
+    demoSession.command({ type: "scrub", index });
   },
   jumpToTrace(index: number) {
-    runtimeAccess.jumpToTrace(index);
+    demoSession.jumpToTrace(index);
   },
   toggleControls() {
-    runtimeAccess.toggleControls();
+    const app = demoSession.getApp();
+    if (!app) return;
+    toggleControls(app);
   },
   openWalkthrough() {
-    runtimeAccess.openWalkthrough();
+    const app = demoSession.getApp();
+    if (!app) return;
+    openWalkthrough(app);
   },
   closeWalkthrough() {
-    runtimeAccess.closeWalkthrough();
+    const app = demoSession.getApp();
+    if (!app) return;
+    closeWalkthrough(app);
   },
   nextWalkthrough(maxIndex: number) {
-    runtimeAccess.nextWalkthrough(maxIndex);
+    const app = demoSession.getApp();
+    if (!app) return;
+    nextWalkthrough(app, maxIndex);
   },
   prevWalkthrough() {
-    runtimeAccess.prevWalkthrough();
+    const app = demoSession.getApp();
+    if (!app) return;
+    prevWalkthrough(app);
+  },
+  setReviewPolicyLane(lane: string) {
+    const app = demoSession.getApp();
+    if (!app) return;
+    writeReviewPolicyLane(app, lane);
+  },
+  setReviewManualChoice(choice: "source" | "target") {
+    const app = demoSession.getApp();
+    if (!app) return;
+    writeReviewManualChoice(app, choice);
   },
   setScenarioMode(mode: ScenarioMode) {
-    runtimeAccess.command({ type: "setScenarioMode", mode });
+    demoSession.command({ type: "setScenarioMode", mode });
   },
   setDiagnosticsTier(tier: DiagnosticsTier) {
-    runtimeAccess.setDiagnosticsTier(tier);
+    const app = demoSession.getApp();
+    if (!app) return;
+    writeDiagnosticsTier(app, tier);
+    demoSession.getWorkerClient()?.post({ type: "setDiagnosticsTier", tier });
   },
   runScenario() {
-    runtimeAccess.command({ type: "runAdversarialMergeScenario" });
+    demoSession.command({ type: "runAdversarialMergeScenario" });
   },
   planScenarioMerge() {
-    runtimeAccess.command({ type: "planScenarioMerge" });
+    demoSession.command({ type: "planScenarioMerge" });
   },
   executeScenarioMerge() {
-    runtimeAccess.command({ type: "executeScenarioMerge" });
+    demoSession.command({ type: "executeScenarioMerge" });
   },
   replayScenarioMerge() {
-    runtimeAccess.command({ type: "replayScenarioMerge" });
+    demoSession.command({ type: "replayScenarioMerge" });
   },
   getFrame(branchId: BranchId) {
-    return runtimeAccess.getFrame(branchId);
+    return demoSession.getFrame(branchId);
+  },
+  getReviewFrame(frameId: string) {
+    return demoSession.getReviewFrame(frameId);
   },
 };

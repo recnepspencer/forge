@@ -121,6 +121,20 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
         new_version: crate::identity::data::VersionId,
         changed_records: &[crate::transactions::data::RecordRef],
     ) {
+        if old_version.is_none() {
+            for record in changed_records {
+                match record {
+                    crate::transactions::data::RecordRef::Entity(entity_id) => {
+                        self.pin_branch_entity(*entity_id);
+                    }
+                    crate::transactions::data::RecordRef::Relation(relation_id) => {
+                        self.pin_branch_relation(*relation_id);
+                    }
+                }
+            }
+            return;
+        }
+
         let current_state = self.runtime.storage_access().current_state();
         let reader = self.runtime.visibility_reads();
         let mut entity_actions = Vec::new();

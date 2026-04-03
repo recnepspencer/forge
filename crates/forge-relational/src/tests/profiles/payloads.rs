@@ -53,6 +53,20 @@ fn symbol_policy_interns_client_keys_before_merge() {
 }
 
 #[test]
+fn symbol_policy_skips_symbol_table_snapshot_refresh_when_no_raw_keys_are_present() {
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(test_schema_registry())
+        .symbol_policy(SymbolPolicy::RequireInterned)
+        .build();
+    let entity = create_entity(&mut runtime, "stable-key");
+    let before = runtime.config().identity.symbol_table.clone();
+
+    let _ = update_entity(&mut runtime, entity, "updated-payload");
+
+    assert_eq!(runtime.config().identity.symbol_table, before);
+}
+
+#[test]
 fn structured_json_payloads_are_canonicalized_in_patch_output() {
     let mut left_runtime = runtime_with_test_schema();
     let mut right_runtime = runtime_with_test_schema();

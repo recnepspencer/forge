@@ -9,6 +9,7 @@ import {
   type BranchStateProofReport,
   type MergePlanProofReport,
   type MergeResultProofReport,
+  type MergePolicyPreviewRequest,
   type ReplayArtifactProofInput,
   type ReplayArtifactProofReport,
   type ReplayParityProofReport,
@@ -329,6 +330,22 @@ export function planMerge(
 ): MergePlan {
   const envelope = runtime.history().planMergeBranchesDetailedWithProof(sourceBranchId, targetBranchId);
   return projectMergePlan(envelope?.plan, envelope?.proof);
+}
+
+export function planMergePolicyPreview(
+  runtime: SignalRuntime,
+  request: MergePolicyPreviewRequest,
+): MergePlan {
+  const envelope = runtime.history().planMergePolicyPreviewDetailedWithProof(request);
+  return projectMergePlan(envelope?.plan, envelope?.proof);
+}
+
+export function executeMergePolicyPreview(
+  runtime: SignalRuntime,
+  request: MergePolicyPreviewRequest,
+): MergeResult {
+  const envelope = runtime.history().mergeBranchesPolicyPreviewDetailedWithProof(request);
+  return projectMergeResult(envelope?.result, envelope?.proof);
 }
 
 export async function executeMerge(

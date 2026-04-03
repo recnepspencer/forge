@@ -618,6 +618,52 @@ impl SignalHistory {
         to_js(&envelope).map_err(JsValue::from)
     }
 
+    pub fn plan_merge_policy_preview(&self, request: JsValue) -> Result<JsValue, JsValue> {
+        let request = from_js(request)?;
+        let plan = self
+            .core
+            .borrow_mut()
+            .plan_merge_policy_preview(request)
+            .map_err(JsValue::from)?;
+        to_js(&plan).map_err(JsValue::from)
+    }
+
+    pub fn plan_merge_policy_preview_with_proof(
+        &self,
+        request: JsValue,
+    ) -> Result<JsValue, JsValue> {
+        let request = from_js(request)?;
+        let envelope = self
+            .core
+            .borrow_mut()
+            .plan_merge_policy_preview_with_proof(request)
+            .map_err(JsValue::from)?;
+        to_js(&envelope).map_err(JsValue::from)
+    }
+
+    pub fn merge_branches_policy_preview(&self, request: JsValue) -> Result<JsValue, JsValue> {
+        let request = from_js(request)?;
+        let result = self
+            .core
+            .borrow_mut()
+            .merge_branches_policy_preview(request)
+            .map_err(JsValue::from)?;
+        to_js(&result).map_err(JsValue::from)
+    }
+
+    pub fn merge_branches_policy_preview_with_proof(
+        &self,
+        request: JsValue,
+    ) -> Result<JsValue, JsValue> {
+        let request = from_js(request)?;
+        let envelope = self
+            .core
+            .borrow_mut()
+            .merge_branches_policy_preview_with_proof(request)
+            .map_err(JsValue::from)?;
+        to_js(&envelope).map_err(JsValue::from)
+    }
+
     pub fn branch_state_proof(&self, branch_id: u64) -> Result<JsValue, JsValue> {
         let proof = self
             .core

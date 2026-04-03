@@ -10,7 +10,7 @@ import type {
   SceneState,
 } from "../core/types";
 import type { RenderUpdate } from "../core/types";
-import type { BranchSummary, WorkerSnapshot } from "./protocol";
+import type { BranchSummary, MergeReviewSnapshot, WorkerSnapshot } from "./protocol";
 import {
   displayBranchSetSnapshot,
   primaryNodeForLabel,
@@ -45,6 +45,7 @@ export type SessionState = {
   runtime: SignalRuntime;
   graphNodes: number;
   branches: Map<BranchId, CachedBranch>;
+  reviewFrames: Map<string, ImageBitmap | null>;
   activeBranchId: BranchId | null;
   latestSummary: RunSummary | null;
   mergePlan: MergePlan | null;
@@ -55,6 +56,7 @@ export type SessionState = {
   branchHeads: Map<string, string>;
   inspect: BranchInspect | null;
   inspectNodeId: string;
+  mergeReview: MergeReviewSnapshot | null;
   scenario: ScenarioState | null;
 };
 
@@ -151,6 +153,7 @@ export function buildWorkerSnapshot(current: SessionState): WorkerSnapshot {
     })),
     timelineIndex: current.timelineIndex,
     inspect: current.inspect,
+    mergeReview: current.mergeReview,
     scenario: current.scenario,
     error: null,
   };
@@ -194,6 +197,7 @@ export function createSessionFromInitialRender(
     runtime,
     graphNodes: 0,
     branches,
+    reviewFrames: new Map(),
     activeBranchId: initial.branchId,
     latestSummary: initial.summary,
     mergePlan: null,
@@ -204,6 +208,7 @@ export function createSessionFromInitialRender(
     branchHeads: new Map(),
     inspect: null,
     inspectNodeId: "hudModel",
+    mergeReview: null,
     scenario: null,
   };
 }

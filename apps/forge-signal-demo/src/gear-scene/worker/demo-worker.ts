@@ -5,7 +5,9 @@ import {
   buildScenarioProofArtifacts,
   createSceneRuntime,
   executeMerge,
+  executeMergePolicyPreview,
   planMerge,
+  planMergePolicyPreview,
   readBranchInspect,
   readBranchInspectForNode,
   renderBranch,
@@ -24,6 +26,9 @@ import type {
 } from "../core/types";
 import type {
   BranchFrame,
+  BranchSummary,
+  MergeReviewSnapshot,
+  ReviewFrame,
   WorkerCommand,
   WorkerEvent,
   WorkerSnapshot,
@@ -304,6 +309,8 @@ async function runAdversarialMergeScenario() {
     current.inspect = safeInspect(current.runtime, featureId, current.inspectNodeId);
     current.mergePlan = computeMergePlan(current);
     current.mergeResult = null;
+    current.mergeReview = null;
+    current.reviewFrames.clear();
     current.scenario = {
       ...(withScenarioStatus(
         current.scenario,
@@ -322,6 +329,8 @@ async function runAdversarialMergeScenario() {
 async function planScenarioMerge(current: SessionState) {
   current.mergePlan = computeMergePlan(current);
   current.mergeResult = null;
+  current.mergeReview = null;
+  current.reviewFrames.clear();
   current.inspectNodeId = "gearTopologyModel";
   if (current.activeBranchId !== null) {
     current.inspect = safeInspect(current.runtime, current.activeBranchId, current.inspectNodeId);
@@ -521,7 +530,19 @@ async function mergeActiveBranch(current: SessionState) {
   current.activeBranchId = main.summary.id;
   current.latestSummary = mainUpdate.summary;
   current.mergeResult = mergeResult;
-  current.mergePlan = null;
+  current.mergePlan = current.mergePlan;
+  current.mergeReview = await buildMergeReviewSnapshot(
+    current,
+    feature.summary,
+    main.summary,
+    {
+      id: mainUpdate.branchId,
+      name: mainUpdate.branchName,
+      state: mainUpdate.state,
+      hud: mainUpdate.hud,
+    },
+    current.mergePlan,
+  );
   current.inspect = safeInspect(current.runtime, main.summary.id, current.inspectNodeId);
   postDebug(
     "merge:done",
@@ -549,6 +570,8 @@ async function activateBranch(current: SessionState, branchId: BranchId) {
   current.activeBranchId = branchId;
   current.latestSummary = null;
   current.mergePlan = null;
+  current.mergeReview = null;
+  current.reviewFrames.clear();
   current.inspect = safeInspect(current.runtime, branchId, current.inspectNodeId);
   postDebug(
     "activate:branch-selected",
@@ -642,10 +665,12 @@ async function rebuildFromTimeline(
     runtime,
     graphNodes: totalGraphNodes(runtime),
     branches,
+    reviewFrames: new Map(),
     activeBranchId,
     latestSummary: mainUpdate.summary,
     mergePlan: null,
     mergeResult: null,
+    mergeReview: null,
     timeline: [],
     timelineIndex: 0,
     commitCounter: 0,
@@ -669,6 +694,314 @@ function computeMergePlan(current: SessionState): MergePlan | null {
   return planMerge(current.runtime, feature.summary.id, main.summary.id);
 }
 
+type ReviewPreviewDefinition = {
+  id: string;
+  label: string;
+  accent: string;
+  description: string;
+  frameId: string;
+  request: {
+    conflictPolicyName?: string | null;
+    conflictIsolationPolicyName?: string | null;
+    identityMatcherName?: string | null;
+    deletionPolicyName?: string | null;
+  } | null;
+  fallbackPlan: MergePlan | null;
+};
+
+type ReviewPreviewRender = {
+  id: string;
+  label: string;
+  accent: string;
+  description: string;
+  frameId: string;
+  frame: ImageBitmap;
+  plan: MergePlan | null;
+  resultState: BranchSummary["state"] | null;
+  visualMode: "rendered" | "manual-review";
+  sourceFrame?: ImageBitmap;
+  targetFrame?: ImageBitmap;
+};
+
+async function buildMergeReviewSnapshot(
+  current: SessionState,
+  source: BranchSummary,
+  target: BranchSummary,
+  merged: BranchSummary,
+  currentPlan: MergePlan | null,
+): Promise<MergeReviewSnapshot | null> {
+  const sourceFrameId = buildReviewFrameId("source");
+  const targetFrameId = buildReviewFrameId("target");
+  const mergedFrameId = buildReviewFrameId("merged-current");
+  const diagnosticsTier = current.scenario?.diagnosticsTier ?? "webDevelopment";
+
+  const currentPreview = await renderReviewPreview({
+    id: "current",
+    label: "Active merge stack",
+    accent: "#d1ff5a",
+    description: "The exact policy stack used for the executed merge.",
+    frameId: mergedFrameId,
+    request: null,
+    fallbackPlan: currentPlan,
+  }, source, target, diagnosticsTier);
+  const strictPreview = await renderReviewPreview({
+    id: "strict",
+    label: "Conflict override",
+    accent: "#ff8e78",
+    description: "Swap the conflict resolver to reject shared-state edits and stop for manual review.",
+    frameId: buildReviewFrameId("strict"),
+    request: {
+      conflictPolicyName: "signal.conflict.reject-shared-state",
+    },
+    fallbackPlan: tryPreviewPlan(current, source.id, target.id, {
+      conflictPolicyName: "signal.conflict.reject-shared-state",
+    }),
+  }, source, target, diagnosticsTier);
+  const perAspectPreview = await renderReviewPreview({
+    id: "perAspect",
+    label: "Isolation override",
+    accent: "#71d8ff",
+    description: "Swap conflict isolation to per-aspect so only the moved decision surface is isolated.",
+    frameId: buildReviewFrameId("per-aspect"),
+    request: {
+      conflictIsolationPolicyName: "signal.conflict-isolation.per-aspect",
+    },
+    fallbackPlan: tryPreviewPlan(current, source.id, target.id, {
+      conflictIsolationPolicyName: "signal.conflict-isolation.per-aspect",
+    }),
+  }, source, target, diagnosticsTier);
+
+  current.reviewFrames.clear();
+  current.reviewFrames.set(sourceFrameId, currentPreview.sourceFrame ?? currentPreview.frame);
+  current.reviewFrames.set(targetFrameId, currentPreview.targetFrame ?? currentPreview.frame);
+  current.reviewFrames.set(mergedFrameId, currentPreview.frame);
+  current.reviewFrames.set(strictPreview.frameId, strictPreview.frame);
+  current.reviewFrames.set(perAspectPreview.frameId, perAspectPreview.frame);
+
+  return {
+    source: cloneBranchSummary(source),
+    target: cloneBranchSummary(target),
+    merged: cloneBranchSummary(merged),
+    sourceFrameId,
+    targetFrameId,
+    mergedFrameId,
+    previews: [
+      {
+        id: currentPreview.id,
+        label: currentPreview.label,
+        accent: currentPreview.accent,
+        description: currentPreview.description,
+        plan: currentPreview.plan,
+        frameId: mergedFrameId,
+        resultState: currentPreview.resultState,
+        visualMode: currentPreview.visualMode,
+      },
+      {
+        id: strictPreview.id,
+        label: strictPreview.label,
+        accent: strictPreview.accent,
+        description: strictPreview.description,
+        plan: strictPreview.plan,
+        frameId: strictPreview.frameId,
+        resultState: strictPreview.resultState,
+        visualMode: strictPreview.visualMode,
+      },
+      {
+        id: perAspectPreview.id,
+        label: perAspectPreview.label,
+        accent: perAspectPreview.accent,
+        description: perAspectPreview.description,
+        plan: perAspectPreview.plan,
+        frameId: perAspectPreview.frameId,
+        resultState: perAspectPreview.resultState,
+        visualMode: perAspectPreview.visualMode,
+      },
+    ],
+  };
+}
+
+async function renderReviewPreview(
+  definition: ReviewPreviewDefinition,
+  source: BranchSummary,
+  target: BranchSummary,
+  diagnosticsTier: DiagnosticsTier,
+): Promise<ReviewPreviewRender> {
+  const { runtime } = await createSceneRuntime();
+  applyDiagnosticsTierToRuntime(runtime, diagnosticsTier);
+
+  const targetBranchId = runtime.history().currentBranch().id;
+  const targetUpdate = await updateScene(runtime, targetBranchId, fullScenePatch(target.state));
+  const sourceBranchId = runtime.history().createBranch("review-source").id;
+  const sourceUpdate = await updateScene(runtime, sourceBranchId, fullScenePatch(source.state));
+
+  if (!definition.request) {
+    await executeMerge(runtime, sourceBranchId, targetBranchId);
+    const mergedUpdate = await renderBranch(runtime, targetBranchId);
+    return {
+      id: definition.id,
+      label: definition.label,
+      accent: definition.accent,
+      description: definition.description,
+      frameId: definition.frameId,
+      frame: mergedUpdate.frame,
+      plan: definition.fallbackPlan,
+      resultState: mergedUpdate.state,
+      visualMode: "rendered",
+      sourceFrame: sourceUpdate.frame,
+      targetFrame: targetUpdate.frame,
+    };
+  }
+
+  try {
+    executeMergePolicyPreview(runtime, {
+      sourceBranchId,
+      targetBranchId,
+      conflictPolicyName: definition.request.conflictPolicyName ?? null,
+      conflictIsolationPolicyName: definition.request.conflictIsolationPolicyName ?? null,
+      identityMatcherName: definition.request.identityMatcherName ?? null,
+      deletionPolicyName: definition.request.deletionPolicyName ?? null,
+    });
+    const mergedUpdate = await renderBranch(runtime, targetBranchId);
+    closeBitmapSafe(sourceUpdate.frame);
+    closeBitmapSafe(targetUpdate.frame);
+    return {
+      id: definition.id,
+      label: definition.label,
+      accent: definition.accent,
+      description: definition.description,
+      frameId: definition.frameId,
+      frame: mergedUpdate.frame,
+      plan: definition.fallbackPlan,
+      resultState: mergedUpdate.state,
+      visualMode: "rendered",
+    };
+  } catch {
+    const composite = composeManualReviewFrame(sourceUpdate.frame, targetUpdate.frame, definition.accent);
+    closeBitmapSafe(sourceUpdate.frame);
+    closeBitmapSafe(targetUpdate.frame);
+    return {
+      id: definition.id,
+      label: definition.label,
+      accent: definition.accent,
+      description: definition.description,
+      frameId: definition.frameId,
+      frame: composite,
+      plan: definition.fallbackPlan,
+      resultState: null,
+      visualMode: "manual-review",
+    };
+  }
+}
+
+function tryPreviewPlan(
+  current: SessionState,
+  sourceBranchId: BranchId,
+  targetBranchId: BranchId,
+  request: {
+    conflictPolicyName?: string | null;
+    conflictIsolationPolicyName?: string | null;
+    identityMatcherName?: string | null;
+    deletionPolicyName?: string | null;
+  },
+): MergePlan | null {
+  try {
+    return planMergePolicyPreview(current.runtime, {
+      sourceBranchId,
+      targetBranchId,
+      conflictPolicyName: request.conflictPolicyName ?? null,
+      conflictIsolationPolicyName: request.conflictIsolationPolicyName ?? null,
+      identityMatcherName: request.identityMatcherName ?? null,
+      deletionPolicyName: request.deletionPolicyName ?? null,
+    });
+  } catch (error) {
+    postDebug("merge:preview-failed", formatError(error));
+    return null;
+  }
+}
+
+function cloneBranchSummary(summary: BranchSummary): BranchSummary {
+  return {
+    id: summary.id,
+    name: summary.name,
+    state: {
+      camera: { ...summary.state.camera },
+      light: { ...summary.state.light },
+      gear: { ...summary.state.gear },
+    },
+    hud: { ...summary.hud },
+  };
+}
+
+function fullScenePatch(state: BranchSummary["state"]) {
+  return {
+    camera: { ...state.camera },
+    light: { ...state.light },
+    gear: { ...state.gear },
+  };
+}
+
+function buildReviewFrameId(label: string) {
+  return `merge-review:${label}:${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function composeManualReviewFrame(
+  sourceFrame: ImageBitmap,
+  targetFrame: ImageBitmap,
+  accent: string,
+) {
+  const canvas = new OffscreenCanvas(RENDER_WIDTH, RENDER_HEIGHT);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("2D OffscreenCanvas context is required for manual review composition.");
+  }
+
+  ctx.clearRect(0, 0, RENDER_WIDTH, RENDER_HEIGHT);
+  ctx.drawImage(targetFrame, 0, 0, RENDER_WIDTH, RENDER_HEIGHT);
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(RENDER_WIDTH * 0.58, 0);
+  ctx.lineTo(RENDER_WIDTH * 0.42, RENDER_HEIGHT);
+  ctx.lineTo(0, RENDER_HEIGHT);
+  ctx.closePath();
+  ctx.clip();
+  ctx.drawImage(sourceFrame, 0, 0, RENDER_WIDTH, RENDER_HEIGHT);
+  ctx.restore();
+
+  ctx.fillStyle = "rgba(7, 11, 15, 0.18)";
+  ctx.fillRect(0, 0, RENDER_WIDTH, RENDER_HEIGHT);
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(RENDER_WIDTH * 0.58, 0);
+  ctx.lineTo(RENDER_WIDTH * 0.42, RENDER_HEIGHT);
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(9, 13, 18, 0.88)";
+  ctx.fillRect(RENDER_WIDTH * 0.5 - 62, RENDER_HEIGHT * 0.5 - 22, 124, 44);
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(RENDER_WIDTH * 0.5 - 62, RENDER_HEIGHT * 0.5 - 22, 124, 44);
+  ctx.fillStyle = "#f7fbfd";
+  ctx.font = "700 14px Inter";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("Manual Review", RENDER_WIDTH * 0.5, RENDER_HEIGHT * 0.5);
+
+  return canvas.transferToImageBitmap();
+}
+
+function closeBitmapSafe(bitmap: ImageBitmap | null | undefined) {
+  if (!bitmap) {
+    return;
+  }
+  try {
+    bitmap.close();
+  } catch {
+    // Ignore detached or already-closed bitmaps.
+  }
+}
+
 function emitSnapshot(frameBranchIds: BranchId[]) {
   const current = session;
   if (!current) {
@@ -676,6 +1009,7 @@ function emitSnapshot(frameBranchIds: BranchId[]) {
   }
 
   const frames: BranchFrame[] = [];
+  const reviewFrames: ReviewFrame[] = [];
   const transfer: Transferable[] = [];
   for (const branchId of frameBranchIds) {
     const branch = current.branches.get(branchId);
@@ -692,9 +1026,23 @@ function emitSnapshot(frameBranchIds: BranchId[]) {
     branch.frame = null;
   }
 
+  for (const [id, bitmap] of current.reviewFrames.entries()) {
+    if (!bitmap) {
+      continue;
+    }
+    reviewFrames.push({
+      id,
+      width: RENDER_WIDTH,
+      height: RENDER_HEIGHT,
+      bitmap,
+    });
+    transfer.push(bitmap);
+    current.reviewFrames.set(id, null);
+  }
+
   const snapshot: WorkerSnapshot = buildWorkerSnapshot(current);
 
-  postEvent({ type: "snapshot", snapshot, frames }, transfer);
+  postEvent({ type: "snapshot", snapshot, frames, reviewFrames }, transfer);
 }
 
 function safeInspect(runtime: SessionState["runtime"], branchId: BranchId, nodeId: string): BranchInspect | null {

@@ -73,7 +73,7 @@ export function ScenarioPanel({
           Plan Merge
         </button>
         <button className="btn" type="button" onClick={onExecute} disabled={!arenaMode || !hasFeatureBranch}>
-          Execute Merge
+          Execute + Review
         </button>
         <button className="btn" type="button" onClick={onReplay} disabled={!arenaMode || !scenario || scenario.status === "idle"}>
           Replay
@@ -94,7 +94,7 @@ export function ScenarioPanel({
               <div className="merge-proof__microcopy">Manual Gear mode is for freeform edits. The arena mode is the scripted certification run.</div>
             )}
             {arenaMode && (
-              <div className="merge-proof__microcopy">Changing diagnostics tier should only change retained detail. Merge choices, proof digests, and replay parity stay invariant.</div>
+              <div className="merge-proof__microcopy">Run the script, plan the merge, then execute it to enter the guided merge review. Changing diagnostics tier should only change retained detail. Merge choices, proof digests, and replay parity stay invariant.</div>
             )}
           </div>
           {scenario.steps.length > 0 && (

@@ -3,7 +3,9 @@ use std::collections::BTreeMap;
 use crate::identity::data::{PartitionId, RecordId, VersionBound, VersionId};
 use crate::logic::runtime::RelationalRuntime;
 use crate::storage::data::RecordLifecycleState;
-use crate::storage::overlay::{PartitionState, WorkingState};
+use crate::storage::overlay::{
+    PartitionCloneMode, PartitionMutationJournal, PartitionState, WorkingState,
+};
 use crate::storage::substrate::{HistoricalMetadata, PinClass, RecordKind};
 
 pub struct StorageAuthority<'runtime> {
@@ -21,25 +23,60 @@ impl<'runtime> StorageAuthority<'runtime> {
         Self { runtime }
     }
 
-    pub(crate) fn publish_partitions(
+    pub(crate) fn publish_partition_commits(
         &mut self,
-        committed_partitions: BTreeMap<crate::identity::data::PartitionId, PartitionState>,
+        committed_partitions: BTreeMap<
+            crate::identity::data::PartitionId,
+            (PartitionState, PartitionMutationJournal),
+        >,
     ) {
-        for (partition_id, partition_state) in committed_partitions {
-            self.runtime
-                .partitions
-                .insert(partition_id, partition_state);
+        for (partition_id, (mut partition_state, journal)) in committed_partitions {
+            let entity_only_commit = !journal.entity_slots.is_empty()
+                && journal.relation_slots.is_empty()
+                && journal.adjacency_slots.is_empty()
+                && journal.reverse_adjacency_slots.is_empty();
+
+            if entity_only_commit {
+                if let Some(base_partition) = self.runtime.partitions.get_mut(&partition_id) {
+                    base_partition
+                        .entity_arena
+                        .merge_slots_from_owned(
+                            &mut partition_state.entity_arena,
+                            &journal.entity_slots,
+                            journal.entity_free_list_changed,
+                        );
+                    continue;
+                }
+            }
+
+            if let Some(base_partition) = self.runtime.partitions.remove(&partition_id) {
+                if journal.entity_slots.is_empty() {
+                    partition_state.entity_arena = base_partition.entity_arena;
+                }
+                if journal.relation_slots.is_empty() {
+                    partition_state.relation_arena = base_partition.relation_arena;
+                }
+                if journal.adjacency_slots.is_empty() {
+                    partition_state.adjacency = base_partition.adjacency;
+                }
+                if journal.reverse_adjacency_slots.is_empty() {
+                    partition_state.reverse_adjacency = base_partition.reverse_adjacency;
+                }
+            }
+            self.runtime.partitions.insert(partition_id, partition_state);
         }
     }
 
     pub(crate) fn working_state_for_touched_partitions(
         &self,
         touched_partitions: impl IntoIterator<Item = crate::identity::data::PartitionId>,
+        clone_mode: PartitionCloneMode,
     ) -> WorkingState {
         WorkingState::from_touched_partitions(
             &self.runtime.partitions,
             touched_partitions,
             self.runtime.config.storage.adjacency_policy.clone(),
+            clone_mode,
         )
     }
 
